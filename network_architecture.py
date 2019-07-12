@@ -51,11 +51,11 @@ if bc_in_volume > 0.0:
 if dcn_in_volume > 0.0:
     cells_placement(dcn_sublayers, dcn_volume, 'dcn', dcn_eps, dcn_height_placement, ndcn_per_sublayer, dcn_bounds)
 
-### TEMP: add a field to final_cell_positions for IO ###	
+### TEMP: add a field to final_cell_positions for IO ###
 ### We randomly place 7 IO (for a 400.0 x 400.0 scaffold with 69 Purkinje cells) in a 400 x 400 x 100 volume
 # io_pos = np.random.random((7,3)) * np.array([400, 100, 400])
-# final_cell_positions['IO'] = io_pos	
-#########################	
+# final_cell_positions['IO'] = io_pos
+#########################
 
 adapt_positions()
 
@@ -67,9 +67,11 @@ adapt_positions()
 
 ######## Prepare data for placement saving in .hdf5 format #######
 # Progressive indexing of neurons
-cel_num_vec = sorted(list(cell_type_ID.itervalues()))
+# 2.7 ==> 3.7: .itervalues() deprecated in favor of .values()
+cel_num_vec = sorted(cell_type_ID.values())
 
-cellID2type = {val: key for key, val in cell_type_ID.iteritems()}
+# 2.7 ==> 3.7: .iteritems() deprecated in favor of .items()
+cellID2type = {val: key for key, val in cell_type_ID.items()}
 #### TEMP ####
 # cel_num_vec.append(8)
 # cellID2type[8]= 'IO'
@@ -96,7 +98,7 @@ data_matrix[:,0] += 1
 
 
 
-#####################################################################################################################		
+#####################################################################################################################
 ############ Part2 - Building Connectivity
 
 positions = np.column_stack((prog_nums, data_matrix))
@@ -185,7 +187,7 @@ dcn_glut = positions[first_dcn:last_dcn+1,:]			# submatrix for dcn glutamatergic
 h_pf = np.zeros((len(granules_idx),2))
 
 for idx,i in enumerate(granules):
-	
+
 	h_final = 0
 	h_max = h_m + 30. + sd + i[3]
 	h_min = h_m + 30. - sd + i[3]
@@ -214,7 +216,7 @@ for idx,i in enumerate(granules):
 	#	h_range = np.arange(h_min, y_dcn + y_gl + y_pc + y_ml + 10., 0.01)
 		h_final = np.random.choice(h_range)
 	#	h_final = np.random.normal(h, sd1/4.0)
-	#	h_pf[idx,0] = i[0]		
+	#	h_pf[idx,0] = i[0]
 	#	h_pf[idx,1] = np.random.normal(h, sd1/4.0)
 
 	h_pf[idx,0] = i[0]
@@ -232,7 +234,7 @@ for idx,i in enumerate(granules):
 
 	h_pf[idx,0] = i[0]
 	h_pf[idx,1] = h_final
-		
+
 #h_pf_mat = np.column_stack((granules[:,0], h_pf))
 h_pf_mat = h_pf
 
@@ -266,7 +268,7 @@ gj_bc = gap_junctions_bc(first_basket, basketcells, d_xy, d_z, dc_gj, gj_bc)
 gj_goc = connectome_gj_goc(r_goc_vol, GoCaxon_x, GoCaxon_y, GoCaxon_z, golgicells)
 
 
-		
+
 # Plane orientation for every DCN cell
 dend_tree_coeff = np.zeros((dcn_glut.shape[0],4))
 
@@ -290,8 +292,8 @@ for idx1 in enumerate(dcn_glut):
 
 	dend_tree_coeff[idx1[0],3] = (-1)*((dend_tree_coeff[idx1[0],0]*dcn_glut[idx1[0],2])+(dend_tree_coeff[idx1[0],1]*dcn_glut[idx1[0],3])+(dend_tree_coeff[idx1[0],2]*dcn_glut[idx1[0],4]))
 
-dcn_angle = np.column_stack((dcn_glut[:,0], dend_tree_coeff))	
-	
+dcn_angle = np.column_stack((dcn_glut[:,0], dend_tree_coeff))
+
 # connectivity between Purkinje cells axon and glutamatergic DCN cells
 pc_dcn = connectome_pc_dcn(first_dcn, dcn_idx, purkinjes, dcn_glut, div_pc, dend_tree_coeff, pc_dcn)
 
@@ -318,8 +320,8 @@ glom_dcn = connectome_glom_dcn(first_glomerulus, glomeruli, dcn_glut, conv_dcn, 
 # pcs_gid = positions[positions[:,1]==4,0]
 # np.random.shuffle(pcs_gid)
 # target_pcs_blocks = np.array_split(pcs_gid, 7)
-# io_pc =np.concatenate([np.column_stack([np.repeat(val,len(target_pcs_blocks[idx])), target_pcs_blocks[idx]]) 
-		# for idx, val in enumerate(io_gid)])	
+# io_pc =np.concatenate([np.column_stack([np.repeat(val,len(target_pcs_blocks[idx])), target_pcs_blocks[idx]])
+		# for idx, val in enumerate(io_gid)])
 #####################################################################
 f = h5py.File(save_name, 'w')
 f.create_dataset('positions', data=positions)
@@ -345,9 +347,3 @@ f['connections'].create_dataset('pc_dcn', data=pc_dcn)
 f['connections'].create_dataset('glom_dcn', data=glom_dcn)
 #f['connections'].create_dataset('io_pc', data=io_pc)
 f.close()
-
-	
-	
-	
-	
-	
