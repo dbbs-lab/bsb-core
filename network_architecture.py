@@ -6,6 +6,7 @@ import random
 from scipy.spatial import distance
 from scaffold_params import *
 from scaffold_functions import *
+from pprint import pprint
 
 goc_in_volume, goc_eps, goc_sublayers, goc_height_placement, ngoc_per_sublayer, goc_bounds = sublayer_partitioning('granular', 'golgi', volume_base_size)
 placement_stats['golgi']['total_n_golgi'] = goc_in_volume
@@ -69,6 +70,7 @@ adapt_positions()
 # Progressive indexing of neurons
 # 2.7 ==> 3.7: .itervalues() deprecated in favor of .values()
 cel_num_vec = sorted(cell_type_ID.values())
+pprint(cel_num_vec)
 
 # 2.7 ==> 3.7: .iteritems() deprecated in favor of .items()
 cellID2type = {val: key for key, val in cell_type_ID.items()}

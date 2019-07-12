@@ -16,7 +16,7 @@ base_size = 400.
 volume_base_size = np.array([base_size, base_size])
 dcn_volume = volume_base_size / 2
 
-# Name of data file 
+# Name of data file
 filename = 'scaffold_full_IO'
 save_name = '{}_{}x{}_v3'.format(filename, volume_base_size[0], volume_base_size[1])
 save_name = save_name + '.hdf5'
@@ -24,13 +24,13 @@ save_name = save_name + '.hdf5'
 # Purkinje / DCN ratio: the number of PC per DCN - (Note: describe better)
 pc_dcn_ratio = 11.
 
-# Extension of Purkinje cell dendritic tree 
+# Extension of Purkinje cell dendritic tree
 pc_extension_dend_tree = 130.
 z_pc = 3.5	# NOME DA MODIFICARE - PC extension of the dendritic tree along the z-axis
 
 # Thickness of different layers
-layers_thick = {'granular': 150., 
-				'purkinje': 30., 
+layers_thick = {'granular': 150.,
+				'purkinje': 30.,
 				'molecular': 150.,
 				'dcn': 600.}
 # Soma radius of each cell type (micron)
@@ -39,9 +39,9 @@ layers_thick = {'granular': 150.,
 	==> mean radius = 12.5 micron
 	Slightly different estimate (Gauck and Jaeger, 2000): 10 - 35 micron, average = 20
 	==> mean radius = 10 micron'''
-				
-cells_radius = {'golgi': 8, 
-				'glomerulus': 1.5, 
+
+cells_radius = {'golgi': 8,
+				'glomerulus': 1.5,
 				'granule': 2.5,
 				'purkinje': 7.5,
 				'stellate': 4.,
@@ -49,33 +49,33 @@ cells_radius = {'golgi': 8,
 				'dcn': 10}
 
 
-# Density distribution of each cell type 
-cells_density = {'golgi': 9*(10**(-6)), 
-				 'glomerulus': 3*(10**(-4)), 
-				 'granule': 3.9*(10**(-3)),
+# Density distribution of each cell type
+cells_density = {'golgi': 9*(10**(-6)),
+				 'glomerulus': 3*(10**(-4)),
+				 'granule': 3.9*(10**(-6)),
 				 'purkinje': 0.45*(10**(-3)),
 				 'stellate':1.0/2*10**(-4),
 				 'basket':1.0/2*(10**(-4))}
 
-# Cell type ID (can be changed without constraints)				   
+# Cell type ID (can be changed without constraints)
 cell_type_ID = {'golgi': 1,
-				'glomerulus': 2, 
-				'granule': 3, 
+				'glomerulus': 2,
+				'granule': 3,
 				'purkinje': 4,
-				'basket': 5, 
-				'stellate': 6, 
+				'basket': 5,
+				'stellate': 6,
 				'dcn': 7
 				}
-				
+
 # Colors for plots (can be changed without constraints)
 cell_color = {'golgi': '#332EBC',
-			  'glomerulus': '#0E1030', 
+			  'glomerulus': '#0E1030',
 			  'granule': '#E62214',
 			  'purkinje': '#0F8944',
 			  'stellate': '#876506',
 			  'basket': '#7A1607',
 			  'dcn': '#15118B'}
-			  
+
 # Define pc and dcn values once volume base size has been defined
 pc_in_volume = int(volume_base_size[0]*volume_base_size[1]*cells_density['purkinje'])
 dcn_in_volume = int(pc_in_volume / pc_dcn_ratio)
@@ -140,9 +140,6 @@ max_conv_pc = 10000	# convergence on Purkinje cells
 
 # Connectivity parameters for PC-DCN layers
 div_pc = 5	# maximum number of connections per PC (typically there are 4-5)
-### Data for glom - dcn connectivity 
+### Data for glom - dcn connectivity
 conv_dcn = 147	# convergence
 div_dcn = 2	# or 3 - to be tested - divergence
-
-
-
