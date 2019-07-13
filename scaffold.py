@@ -1,6 +1,11 @@
 import configparser
 import argparse
-from pprint import pprint
+from scaffold.config import ScaffoldIniConfig
+
+##
+## This is the high-level API: It receives a command from the CLI, which is translated
+## to the scaffold python package and executed.
+##
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-c", "--config",
@@ -8,4 +13,5 @@ parser.add_argument("-c", "--config",
 	default="mouse_cerebellum.ini"
 )
 cl_args = parser.parse_args()
-pprint(cl_args)
+# print(cl_args)
+scaffoldConfig = ScaffoldIniConfig(cl_args.config)

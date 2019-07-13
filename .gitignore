@@ -1,1 +1,4 @@
 *.pyc
+*.ini
+!mouse_cerebellum.ini
+*.hdf5
