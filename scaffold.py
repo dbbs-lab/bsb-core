@@ -13,5 +13,5 @@ parser.add_argument("-c", "--config",
 	default="mouse_cerebellum.ini"
 )
 cl_args = parser.parse_args()
-# print(cl_args)
 scaffoldConfig = ScaffoldIniConfig(cl_args.config)
+print(scaffoldConfig.getLayer(id=scaffoldConfig.getLayerID('Molecular Layer')))
