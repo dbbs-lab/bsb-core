@@ -52,7 +52,7 @@ cells_radius = {'golgi': 8,
 # Density distribution of each cell type
 cells_density = {'golgi': 9*(10**(-6)),
 				 'glomerulus': 3*(10**(-4)),
-				 'granule': 3.9*(10**(-6)),
+				 'granule': 3.9*(10**(-3)),
 				 'purkinje': 0.45*(10**(-3)),
 				 'stellate':1.0/2*10**(-4),
 				 'basket':1.0/2*(10**(-4))}

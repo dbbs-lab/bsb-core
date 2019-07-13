@@ -5,7 +5,7 @@ import pandas as pd
 from mpl_toolkits.mplot3d import Axes3D
 import random
 from scipy.spatial import distance
-from scaffold_params import * 
+from scaffold_params import *
 
 
 def adapt_thick_coords(sublayers_roof, cell_radius):
@@ -41,32 +41,32 @@ def sublayer_partitioning(layer, cell_type, volume_base_size, *args):
 	cell_height_placement = adapt_thick_coords(cell_sublayers_roof, cells_radius[cell_type])
 	ncell_per_sublayer = np.round(cell_in_volume/cell_sublayers)
 	cell_bounds = np.column_stack([np.zeros(2)+cells_radius[cell_type], volume_base_size-cells_radius[cell_type]])
-	
+
 	return cell_in_volume, cell_eps, cell_sublayers, cell_height_placement, ncell_per_sublayer, cell_bounds
-	
+
 def volume_occupied(cell_in_volume, radius):
 	return cell_in_volume*4.0/3*np.pi*(radius)**3.0
 
 def compute_circle(center, radius, n_samples=50):
-	''' Create circle n_samples starting from given 
+	''' Create circle n_samples starting from given
 	center and radius.'''
 	nodes = np.linspace(0,2*np.pi,n_samples, endpoint=False)
 	x, y = np.sin(nodes)*radius+center[0], np.cos(nodes)*radius+center[1]
 	return np.column_stack([x,y])
-	
+
 def linear_project(center, cell, eps):
 	''' Linear projections of points on a circle;
 	center: center of circle
-	cell: radius 
+	cell: radius
 	eps: random positive number '''
 	return (cell-(center-cell)) + (np.sign(cell-center)*eps)
-	
+
 def rec_intersection(*args):
 	''' Intersection of 2 or more arrays (using recursion)'''
 	if len(args) == 2:
 		return np.intersect1d(args[0], args[1])
 	return rec_intersection(np.intersect1d(args[0], args[1]), args[2::])
-	
+
 def purkinje_placement(pc_extension_dend_tree, pc_in_volume):
 	'''Special case for placement; kept separated from 'cells_placement' function
 		because requires less/different arguments and exploits different algorithm'''
@@ -94,7 +94,7 @@ def purkinje_placement(pc_extension_dend_tree, pc_in_volume):
 
 	matrix_reframe = np.empty((1,3))
 	placement_stats['purkinje']['total_n_pc'] = npc
-	
+
 	for subl in final_cell_positions['purkinje']:
 		matrix_reframe = np.concatenate((matrix_reframe, subl), axis=0)
 	final_cell_positions['purkinje'] = matrix_reframe[1::]
@@ -102,25 +102,25 @@ def purkinje_placement(pc_extension_dend_tree, pc_in_volume):
 
 
 def define_bounds(possible_points, cell_bounds):
-	x_mask = (possible_points[:,0].__ge__(cell_bounds[0,0])) & (possible_points[:,0].__le__(cell_bounds[0,1]))	
+	x_mask = (possible_points[:,0].__ge__(cell_bounds[0,0])) & (possible_points[:,0].__le__(cell_bounds[0,1]))
 	y_mask = (possible_points[:,1].__ge__(cell_bounds[1,0])) & (possible_points[:,1].__le__(cell_bounds[1,1]))
 	return x_mask, y_mask
 
-				
-def cells_placement(cell_sublayers, volume_base_size, cell_type, eps, cell_height_placement, ncell_per_sublayer, cell_bounds):	
-	if cell_type == 'granule': 
+
+def cells_placement(cell_sublayers, volume_base_size, cell_type, eps, cell_height_placement, ncell_per_sublayer, cell_bounds):
+	if cell_type == 'granule':
 		min_mult, max_mult = 2., 2.
 	else:
 		min_mult, max_mult = 3., 5.
-	
+
 	for subl in np.arange(cell_sublayers):
-		subl = int(subl)										
-		cell_positions = np.array((np.random.uniform(0, volume_base_size[0]), 
+		subl = int(subl)
+		cell_positions = np.array((np.random.uniform(0, volume_base_size[0]),
 									np.random.uniform(cell_height_placement[subl,0],cell_height_placement[subl,1]),
 									np.random.uniform(0, volume_base_size[1])))
-									
+
 		positions_list = np.array([cell_positions])
-		## Place the first cell and generate the second one; NB: should add a check to 
+		## Place the first cell and generate the second one; NB: should add a check to
 		## verify that the randomly selected position is not occupied by a different cell type
 		# For Soma and possible points calcs, we take into account only planar coordinates
 		center = positions_list[0][[0,2]] # First and Third columns
@@ -140,16 +140,16 @@ def cells_placement(cell_sublayers, volume_base_size, cell_type, eps, cell_heigh
 			possible_points = np.array([linear_project(center, cell, rnd_eps) for cell in cell_soma])
 			x_mask, y_mask = define_bounds(possible_points, cell_bounds)
 			possible_points = possible_points[x_mask & y_mask]
-		# Add third coordinate to all possible points		
+		# Add third coordinate to all possible points
 		possible_points = np.insert(possible_points, 1, np.random.uniform(cell_height_placement[subl, 0], cell_height_placement[subl,1], possible_points.shape[0]), axis=1)
 		# Randomly select one of possible points
 		new_point = possible_points[np.random.randint(possible_points.shape[0])]
 		# Add the new point to list of cells positions
 		positions_list= np.vstack([positions_list, new_point])
 		# History of good possible points still available
-		good_points_store = [possible_points] 
+		good_points_store = [possible_points]
 		# History of 'dead-ends' points
-		bad_points = []  
+		bad_points = []
 
 		# Place the rest of the cells for the selected sublayer
 		for i in np.arange(1, ncell_per_sublayer):
@@ -166,15 +166,15 @@ def cells_placement(cell_sublayers, volume_base_size, cell_type, eps, cell_heigh
 			possible_points = np.array([linear_project(center, cell, rnd_eps) for cell in cell_soma])
 			x_mask, y_mask = define_bounds(possible_points, cell_bounds)
 			possible_points = possible_points[x_mask & y_mask]
-			if possible_points.shape[0] == 0: 
+			if possible_points.shape[0] == 0:
 				print ("Can't place cells because of volume boundaries")
 				break
 			# For each candidate, calculate distance from the centers of all the (already placed) cells
 			# This comparison is performed ONLY along planar coordinates
 			distance_from_centers = distance.cdist(possible_points, positions_list[:,[0,2]])
-			# Associate a third dimension		
+			# Associate a third dimension
 			full_coords = np.insert(possible_points, 1, np.random.uniform(cell_height_placement[subl, 0], cell_height_placement[subl,1], possible_points.shape[0]), axis=1)
-			# Check if any of candidate points is placed at acceptable distance from all of the other cells. 
+			# Check if any of candidate points is placed at acceptable distance from all of the other cells.
 			good_idx = list(np.where(np.sum(distance_from_centers.__ge__(inter_cell_soma_dist), axis=1)==distance_from_centers.shape[1])[0])
 			if cell_type == 'glomerulus':
 				# If the cell type is Glomerulus, we should take into account GoC positions
@@ -192,7 +192,7 @@ def cells_placement(cell_sublayers, volume_base_size, cell_type, eps, cell_heigh
 				good_from_gloms = list(np.where(np.sum(distance_from_gloms.__ge__(inter_grcglom_dist), axis=1)==distance_from_gloms.shape[1])[0])
 				good_idx = rec_intersection(good_idx, good_from_goc, good_from_gloms)
 			if len(good_idx) == 0:
-				# If we don't find any possible candidate, let's start from the first cell and see 
+				# If we don't find any possible candidate, let's start from the first cell and see
 				# if we can find new candidates from previous cells options
 				for j in range(len(good_points_store)):
 					possible_points = good_points_store[j][:,[0,2]]
@@ -207,7 +207,7 @@ def cells_placement(cell_sublayers, volume_base_size, cell_type, eps, cell_heigh
 						good_idx = rec_intersection(good_idx, good_from_goc)
 					if cell_type == 'granule':
 						distance_from_golgi = distance.cdist(full_coords, final_cell_positions['golgi'])
-						distance_from_gloms = distance.cdist(full_coords, final_cell_positions['glomerulus'])				
+						distance_from_gloms = distance.cdist(full_coords, final_cell_positions['glomerulus'])
 						good_from_goc = list(np.where(np.sum(distance_from_golgi.__ge__(inter_grcgoc_dist), axis=1)==distance_from_golgi.shape[1])[0])
 						good_from_gloms = list(np.where(np.sum(distance_from_gloms.__ge__(inter_grcglom_dist), axis=1)==distance_from_gloms.shape[1])[0])
 						good_idx = rec_intersection(good_idx, good_from_goc, good_from_gloms)
@@ -223,28 +223,28 @@ def cells_placement(cell_sublayers, volume_base_size, cell_type, eps, cell_heigh
 						bad_points.append(j)
 				# If we can't find a good point, the loop must be stopped
 				if len(good_idx) == 0:
-					print( "Finished after: ", i, " iters") 
+					print( "Finished after: ", i, " iters")
 					break
 			else:
 				# If there is at least one good candidate, select one randomly
 				new_point_idx = random.sample(list(good_idx), 1)[0]
 				positions_list= np.vstack([positions_list, full_coords[new_point_idx]])
-		
+
 				# Keep track of good candidates for each cell
 				good_points_store = [good_points_store[i] for i in range(len(good_points_store)) if i not in bad_points]
 				good_points_store.append(full_coords[good_idx])
-				bad_points = []	
-			
+				bad_points = []
+
 		final_cell_positions[cell_type].append(positions_list)
 		placement_stats[cell_type]['number_of_cells'].append(positions_list.shape[0])
 		print( "{} sublayer number {} out of {} filled".format(cell_type, subl+1, cell_sublayers))
-		
+
 	matrix_reframe = np.empty((1,3))
 	for subl in final_cell_positions[cell_type]:
 		matrix_reframe = np.concatenate((matrix_reframe, subl), axis=0)
 	final_cell_positions[cell_type] = matrix_reframe[1::]
 
-def adapt_positions():	
+def adapt_positions():
 	if len(final_cell_positions['purkinje']) != 0:
 		final_cell_positions['purkinje'][:,1] += layers_thick['granular']
 	if len(final_cell_positions['basket']) != 0:
@@ -258,13 +258,13 @@ def adapt_positions():
 	dcn_thick = layers_thick['dcn']
 	for key, val in final_cell_positions.items():
 		val[:,1] += dcn_thick
-		
-		
-		
-		
-		
-		
-		
+
+
+
+
+
+
+
 
 
 
@@ -275,7 +275,7 @@ def adapt_positions():
 
 # Connectivity between glomeruli and GrC dendrites
 def connectome_glom_grc(first_glomerulus, glomeruli, granules, dend_len, n_conn_glom, glom_grc):
-	
+
 	for i in granules:	# for all granules: calculate which glomeruli can be connected, then choose 4 of them
 
 		# find all glomeruli at a maximum distance of 40micron
@@ -292,7 +292,7 @@ def connectome_glom_grc(first_glomerulus, glomeruli, granules, dend_len, n_conn_
 			connected_dist = sc_dist[0:n_conn_glom,1]
 			connected_provv = connected_f.astype(int)
 			connected_gloms = connected_provv
-		
+
 			# construction of the output matrix: the first column has the  glomerulus index, while the second column has the connected granule index
 			matrix = np.zeros((n_conn_glom, 3))
 			matrix[:,1] = i[0]
@@ -327,12 +327,12 @@ def connectome_glom_goc(first_glomerulus, glomeruli, golgicells, r_goc_vol, glom
 		connected_gloms = good_gloms + first_glomerulus
 
 		# construction of the output matrix: the first column has the index of the connected glomerulus, while the second column has the Golgi cell index
-		matrix = np.zeros((len(good_gloms), 3))	
+		matrix = np.zeros((len(good_gloms), 3))
 		matrix[:,1] = i[0]
 		matrix[:,0] = connected_gloms
 		matrix[:,2] = np.sqrt((glomeruli[good_gloms,2]-i[2])**2 + (glomeruli[good_gloms,3]-i[3])**2 + (glomeruli[good_gloms,4]-i[4])**2)
 		glom_bd = np.vstack((glom_bd, matrix))
-	
+
 	glom_bd = glom_bd[1:-1,:]
 
 	return glom_bd
@@ -352,22 +352,22 @@ def connectome_goc_glom(first_glomerulus, glomeruli, golgicells, GoCaxon_x, GoCa
 		bool_matrix = np.zeros((new_glomeruli.shape[0], 3))		# matrix initialization
 		# glomerulus falls into the z range of values?
 		bool_matrix[:,0] = (((new_glomeruli[:,2]+r_glom).__ge__(i[2]-GoCaxon_x/2.)) & ((new_glomeruli[:,2]-r_glom).__le__(i[2]+GoCaxon_x/2.)))
-		# glomerulus falls into the y range of values?	
+		# glomerulus falls into the y range of values?
 		bool_matrix[:,1] = (((new_glomeruli[:,3]+r_glom).__ge__(i[3]-GoCaxon_y/2.)) & ((new_glomeruli[:,3]-r_glom).__le__(i[3]+GoCaxon_y/2.)))
 		# glomerulus falls into the x range of values?
 		bool_matrix[:,2] = (((new_glomeruli[:,4]+r_glom).__ge__(i[4]-GoCaxon_z/2.)) & ((new_glomeruli[:,4]-r_glom).__le__(i[4]+GoCaxon_z/2.)))
-	
+
 		good_gloms = np.where(np.sum(bool_matrix, axis=1)==3)[0]	# finds indexes of glomeruli that, on the selected axis, have the correct sum value
 		chosen_rand = np.random.permutation(good_gloms)
 		good_gloms_matrix = new_glomeruli[chosen_rand]
 		prob = np.sort((np.sqrt((good_gloms_matrix[:,2]-i[2])**2 + (good_gloms_matrix[:,3]-i[3])**2))/150.)
 
 		b=np.zeros(len(good_gloms_matrix))
-	
+
 		for idx1,j in enumerate(good_gloms_matrix):
 
 			if idx <= n_conn_goc:
-				
+
 				ra = np.random.random()
 				if (ra).__gt__(prob[idx1]):
 
@@ -378,30 +378,31 @@ def connectome_goc_glom(first_glomerulus, glomeruli, golgicells, GoCaxon_x, GoCa
 					matrix[0,1] = j[0]
 					matrix[0,2] = np.sqrt((j[2]-i[2])**2 + (j[3]-i[3])**2 + (j[4]-i[4])**2)
 					axonGOC_glom = np.vstack((axonGOC_glom, matrix))
-	
+
 					new_glomeruli[int(j[0] )- first_glomerulus,:] = OoB_value
 
 	axonGOC_glom = axonGOC_glom[1:-1,:]
 
 	return axonGOC_glom
 
-	
-	
+
+
 def connectome_goc_grc(glom_grc, goc_glom):
 	# Given goc --> glom connectivity, infer goc --> granules
-	# First, create a DataFrame where column names are glomeruli and values are granules 
+	# First, create a DataFrame where column names are glomeruli and values are granules
 	# contacted by each glomerulus
 	glom_grc_df = pd.DataFrame()
-	for key in np.unique(glom_grc[:,0]):
+	for key in np.unique(glom_grc[:,0]): # for each glomerulus connected to one or more granule cell
 		target_grcs = glom_grc[glom_grc[:,0]==key,1]
-		glom_grc_df[key] = pd.Series(target_grcs)
 
 	# Now store in a dictionary all granules inhibited by each Golgi cell:
 	# keys --> Golgi cells
 	# values --> contacted Granule cells
 	goc_grc_dic = {}
 	for key in np.unique(goc_glom[:,0]):
-		target_glom = goc_glom[goc_glom[:,0]==key,1]
+		target_glom = np.array(goc_glom[goc_glom[:,0]==key,1], dtype=int)
+		# Filter out any Glomerulus not connected to any granular cells.
+		target_glom = list(filter(lambda x: x in glom_grc_df.index, target_glom))
 		target_grc = np.unique(glom_grc_df[target_glom])
 		target_grc = target_grc[~np.isnan(target_grc)]
 		goc_grc_dic[key] = target_grc
@@ -409,38 +410,38 @@ def connectome_goc_grc(glom_grc, goc_glom):
 	# Finally, turn everything into a matrix
 	pres = np.concatenate([np.tile(key, len(val)) for key, val in goc_grc_dic.items()])
 	post = np.concatenate([val for val in goc_grc_dic.values()])
-	goc_grc = np.column_stack([pres, post])		
-	
+	goc_grc = np.column_stack([pres, post])
+
 	return goc_grc
-	
+
 
 
 # Connectivity between ascending axon of GrCs and GoCs & connectivity between parallel fibers and GoCs
 def connectome_grc_goc(first_granule, granules, golgicells, r_goc_vol, OoB_value, n_connAA, n_conn_pf, tot_conn, aa_goc, pf_goc):
 
+	densityWarningSent = False
 	new_granules = np.copy(granules)
 	new_golgicells = np.random.permutation(golgicells)
-	connectedAA = []
+	if new_granules.shape[0] <= new_golgicells.shape[0]:
+		raise Exception("The number of golgi cells was less than the number of granule cells. Simulation cannot continue.")
+
 
 	# for all Golgi cells: calculate which ascending axons of GrCs fall into the area of GoC soma, then choose 400 of them for the connection and delete them from successive computations, since 1 axon is connected to 1 GoC
 	for i in new_golgicells:
-	
+
 		idx = 1
-		connectedAA = []
+		connectedAA = np.array([])
 
 		axon_matrix = (((new_granules[:,2]-i[2])**2)+((new_granules[:,4]-i[4])**2)-(r_goc_vol**2)).__le__(0)
 		goodAA = np.where(axon_matrix==True)[0]		# finds indexes of ascending axons that can potentially be connected
 		chosen_rand = np.random.permutation(goodAA)
 		goodAA_matrix = new_granules[chosen_rand]
 		prob = np.sort((np.sqrt((goodAA_matrix[:,2]-i[2])**2 + (goodAA_matrix[:,4]-i[4])**2))/r_goc_vol)
-	
-		for ind,j in enumerate(goodAA_matrix):
 
+		for ind,j in enumerate(goodAA_matrix):
 			if idx <= n_connAA:
-				
 				ra = np.random.random()
 				if (ra).__gt__(prob[ind]):
-
 					idx += 1
 
 					matrix = np.zeros((1, 3))
@@ -452,21 +453,41 @@ def connectome_grc_goc(first_granule, granules, golgicells, r_goc_vol, OoB_value
 
 		# parallel fiber and GoC connections
 
-		good_grc = np.delete(granules, (connectedAA - first_granule), 0)		
+		good_grc = np.delete(granules, (connectedAA - first_granule), 0)
 		intersections = (good_grc[:,2]).__ge__(i[2]-r_goc_vol) & (good_grc[:,2]).__le__(i[2]+r_goc_vol)
 		good_pf = np.where(intersections==True)[0]				# finds indexes of granules that can potentially be connected
-		connected_pf = np.random.choice(good_pf, tot_conn-len(connectedAA), replace = False)	# randomly select 1200 parallel fibers to be connected with a GoC
+
+		# The remaining amount of parallel fibres to connect after subtracting the amount of already connected ascending axons.
+		parallelFibersToConnect = tot_conn - len(connectedAA)
+
+		# Randomly select parallel fibers to be connected with a GoC, to a maximum of tot_conn connections
+		# TODO: Calculate the risk of not having enough granule cells beforehand, outside of the for loop for performance.
+		if good_pf.shape[0] < parallelFibersToConnect:
+			connected_pf = np.random.choice(good_pf, min(tot_conn-len(connectedAA), good_pf.shape[0]), replace = False)
+			totalConnectionsMade = connected_pf.shape[0] + len(connectedAA)
+			# Warn the user once if not enough granule cells are present to connect to the Golgi cell.
+			if not densityWarningSent:
+				densityWarningSent = True
+				print("[WARNING] The granule cell density is too low compared to the Golgi cell density to make physiological connections!")
+		else:
+			connected_pf = np.random.choice(good_pf, tot_conn-len(connectedAA), replace = False)
+			totalConnectionsMade = tot_conn
+
 		pf_idx = good_grc[connected_pf,:]
 
-		matrix_pf = np.zeros((tot_conn, 3))					# construction of the output matrix
+		matrix_pf = np.zeros((totalConnectionsMade, 3))	# construction of the output matrix
 		matrix_pf[:,1] = i[0]
 		matrix_pf[0:len(connectedAA),0] = connectedAA
-		matrix_pf[len(connectedAA):tot_conn,0] = pf_idx[:,0]
+		matrix_pf[len(connectedAA):totalConnectionsMade,0] = pf_idx[:,0]
+
+		# Store Euclidean distance.
 		matrix_pf[0:len(connectedAA),2] = np.sqrt((granules[(connectedAA.astype(int)-first_granule),2]-i[2])**2 + (granules[(connectedAA.astype(int)-first_granule),3]-i[3])**2 + (granules[(connectedAA.astype(int)-first_granule),4]-i[4])**2)
-		matrix_pf[len(connectedAA):tot_conn,2] = np.sqrt((pf_idx[:,2]-i[2])**2 + (pf_idx[:,3]-i[3])**2 + (pf_idx[:,4]-i[4])**2)
-		pf_goc = np.vstack((pf_goc, matrix_pf))	
-	
+		matrix_pf[len(connectedAA):totalConnectionsMade,2] = np.sqrt((pf_idx[:,2]-i[2])**2 + (pf_idx[:,3]-i[3])**2 + (pf_idx[:,4]-i[4])**2)
+		pf_goc = np.vstack((pf_goc, matrix_pf))
+
 		new_granules[((connectedAA.astype(int)) - first_granule),:] = OoB_value
+
+		# End of Golgi cell loop
 
 	aa_goc = aa_goc[1:-1,:]
 	pf_goc = pf_goc[1:-1,:]
@@ -494,7 +515,7 @@ def connectome_aa_pc(first_granule, granules, purkinjes, x_pc, z_pc, OoB_value, 
 		bool_matrix[:,0] = (new_granules[:,4]).__ge__(i[4]-z_pc/2.) & (new_granules[:,4]).__le__(i[4]+z_pc/2.)
 		# ascending axon falls into the x range of values?
 		bool_matrix[:,1] = (new_granules[:,2]).__ge__(i[2]-x_pc/2.) & (new_granules[:,2]).__le__(i[2]+x_pc/2.)
-	
+
 		good_aa = np.where(np.sum(bool_matrix, axis=1)==2)[0]	# finds indexes of ascending axons that, on the selected axis, have the correct sum value
 
 		# construction of the output matrix: the first column has the GrC id, while the second column has the PC id
@@ -537,7 +558,7 @@ def connectome_pf_pc(first_granule, granules, purkinjes, x_pc, pf_pc):
 
 # Connections between basket cells and parallel fibers
 def connectome_pf_bc(first_granule, basketcells, granules, r_sb, h_pf, pf_bc):
-	
+
 	for i in basketcells:	# for each basket cell find all the parallel fibers that fall into the sphere with centre the cell soma and appropriate radius
 
 		# find all cells that satisfy the condition
@@ -553,7 +574,7 @@ def connectome_pf_bc(first_granule, basketcells, granules, r_sb, h_pf, pf_bc):
 	pf_bc = pf_bc[1:-1,:]
 
 	return pf_bc
-	
+
 
 
 # Connections between basket cells and parallel fibers
@@ -564,7 +585,7 @@ def connectome_pf_sc(first_granule, stellates, granules, r_sb, h_pf, pf_sc):
 		# find all cells that satisfy the condition
 		sc_matrix = (((granules[:,2]-i[2])**2)+((h_pf-i[3])**2)-(r_sb**2)).__le__(0)
 		good_pf = np.where(sc_matrix==True)[0]	# indexes of stellate cells that can potentially be connected
-				
+
 		matrix = np.zeros((len(good_pf), 3))
 		matrix[:,1] = i[0]
 		matrix[:,0] = good_pf + first_granule
@@ -581,17 +602,17 @@ def connectome_pf_sc(first_granule, stellates, granules, r_sb, h_pf, pf_sc):
 
 # Connectivity between basket and stellate cells and PCs
 def connectome_sc_bc_pc(first_stellate, first_basket, basketcells, stellates, purkinjes, distx, distz, conv, sc_pc, bc_pc):
-	
+
 	for i in purkinjes:	# for all Purkinje cells: calculate which basket and stellate cells can be connected, then choose 20 of them for each typology
 
 		idx_bc = 1
 		idx_sc = 1
 
-		# find all cells that satisfy the distance condition for both types	
+		# find all cells that satisfy the distance condition for both types
 		sc_matrix = (np.absolute(stellates[:,4]-i[4])).__lt__(distz) & (np.absolute(stellates[:,2]-i[2])).__lt__(distx)
 		#bc_matrix = (np.absolute(basketcells[:,4]-i[4])).__lt__(distz) & (np.absolute(basketcells[:,2]-i[2])).__lt__(distx)
 		bc_matrix = (np.absolute(basketcells[:,4]-i[4])).__lt__(distx) & (np.absolute(basketcells[:,2]-i[2])).__lt__(distz)
-		
+
 
 		good_bc = np.where(bc_matrix==True)[0]	# indexes of basket cells that can potentially be connected
 		good_sc = np.where(sc_matrix==True)[0]	# indexes of stellate cells that can potentially be connected
@@ -606,9 +627,9 @@ def connectome_sc_bc_pc(first_stellate, first_basket, basketcells, stellates, pu
 		for j in good_bc_matrix:
 
 			if idx_bc <= conv:
-				
+
 				ra = np.random.random()
-				if (ra).__gt__((np.absolute(j[4]-i[4]))/distx) & (ra).__gt__((np.absolute(j[2]-i[2]))/distz):	
+				if (ra).__gt__((np.absolute(j[4]-i[4]))/distx) & (ra).__gt__((np.absolute(j[2]-i[2]))/distz):
 
 					idx_bc += 1
 
@@ -621,11 +642,11 @@ def connectome_sc_bc_pc(first_stellate, first_basket, basketcells, stellates, pu
 
 		# stellate cells connectivity
 		for k in good_sc_matrix:
-	
+
 			if idx_sc <= conv:
-				
+
 				ra = np.random.random()
-				if (ra).__gt__((np.absolute(k[4]-i[4]))/distz) & (ra).__gt__((np.absolute(k[2]-i[2]))/distx):	
+				if (ra).__gt__((np.absolute(k[4]-i[4]))/distz) & (ra).__gt__((np.absolute(k[2]-i[2]))/distx):
 
 					idx_sc += 1
 
@@ -643,7 +664,7 @@ def connectome_sc_bc_pc(first_stellate, first_basket, basketcells, stellates, pu
 
 # gap junction connectivity algorithm for basket cells
 def gap_junctions_bc(first_basket, basketcells, d_xy, d_z, dc_gj, gj_bc):
-	
+
 	for i in basketcells:	# for each basket cell calculate the distance with every other cell of the same type in the volume, than choose 4 of them
 
 		idx = 1
@@ -657,7 +678,7 @@ def gap_junctions_bc(first_basket, basketcells, d_xy, d_z, dc_gj, gj_bc):
 		for j in good_bc_matrix:
 
 			if idx <= dc_gj:
-				
+
 				ra = np.random.random()
 				if (ra).__gt__((np.absolute(j[4]-i[4]))/float(d_z)) & (ra).__gt__((np.sqrt((j[2]-i[2])**2 + (j[3]-i[3])**2))/float(d_xy)):
 
@@ -690,12 +711,12 @@ def gap_junctions_sc(first_stallate, stellates, d_xy, d_z, dc_gj, gj_sc):
 		for j in good_sc_matrix:
 
 			if idx <= dc_gj:
-				
+
 				ra = np.random.random()
 				if (ra).__gt__((np.absolute(j[4]-i[4]))/float(d_z)) & (ra).__gt__((np.sqrt((j[2]-i[2])**2 + (j[3]-i[3])**2))/float(d_xy)):
 
 					idx += 1
-					
+
 					matrix = np.zeros((1, 3))
 					matrix[0,0] = i[0]
 					matrix[0,1] = j[0]
@@ -714,14 +735,14 @@ def connectome_pc_dcn(first_dcn, dcn_idx, purkinjes, dcn_glut, div_pc, dend_tree
 
 	for i in purkinjes:	# for all Purkinje cells: calculate the distance with the area around glutamatergic DCN cells soma, then choose 4-5 of them
 
-		distance = np.zeros((dcn_glut.shape[0]))		
+		distance = np.zeros((dcn_glut.shape[0]))
 		distance = (np.absolute((dend_tree_coeff[:,0]*i[2])+(dend_tree_coeff[:,1]*i[3])+(dend_tree_coeff[:,2]*i[4])+dend_tree_coeff[:,3]))/(np.sqrt((dend_tree_coeff[:,0]**2)+(dend_tree_coeff[:,1]**2)+(dend_tree_coeff[:,2]**2)))
 
 		dist_matrix = np.zeros((dcn_glut.shape[0],2))
-		dist_matrix[:,1] = dcn_glut[:,0] 
+		dist_matrix[:,1] = dcn_glut[:,0]
 		dist_matrix[:,0] = distance
 		dcn_dist = np.random.permutation(dist_matrix)
-		
+
 		# If the number of DCN cells are less than the divergence value, all neurons are connected to the corresponding PC
 		if dcn_idx.shape[0]<div_pc:
 			matrix = np.zeros((dcn_idx.shape[0], 3))
@@ -737,7 +758,7 @@ def connectome_pc_dcn(first_dcn, dcn_idx, purkinjes, dcn_glut, div_pc, dend_tree
 				connected_dist = dcn_dist[0:div_pc,0]
 				connected_provv = connected_f.astype(int)
 				connected_dcn = connected_provv
-		
+
 				# construction of the output matrix: the first column has the  PC index, while the second column has the connected DCN cell index
 				matrix = np.zeros((div_pc, 3))
 				matrix[:,0] = i[0]
@@ -746,25 +767,25 @@ def connectome_pc_dcn(first_dcn, dcn_idx, purkinjes, dcn_glut, div_pc, dend_tree
 				pc_dcn = np.vstack((pc_dcn, matrix))
 
 			else:
-				
+
 				connected_f = dcn_dist[0:(div_pc-1),1]
 				connected_dist = dcn_dist[0:(div_pc-1),0]
 				connected_provv = connected_f.astype(int)
 				connected_dcn = connected_provv
-		
+
 				matrix = np.zeros(((div_pc-1), 3))
 				matrix[:,0] = i[0]
 				matrix[:,1] = connected_dcn
 				matrix[:,2] = np.sqrt((dcn_glut[(connected_dcn-first_dcn),2]-i[2])**2 + (dcn_glut[(connected_dcn-first_dcn),3]-i[3])**2 + (dcn_glut[(connected_dcn-first_dcn),4]-i[4])**2)
 				pc_dcn = np.vstack((pc_dcn, matrix))
-	
+
 	pc_dcn = pc_dcn[1:-1,:]
 
 	return pc_dcn
-	
+
 def connectome_glom_dcn(first_glomerulus, glomeruli, dcn_glut, conv_dcn, glom_dcn):
 	for i in dcn_glut:
-		
+
 		connected_gloms = np.random.choice(glomeruli[:,0], conv_dcn, replace=False)
 
 		matrix = np.zeros((conv_dcn, 3))
@@ -775,9 +796,9 @@ def connectome_glom_dcn(first_glomerulus, glomeruli, dcn_glut, conv_dcn, glom_dc
 		glom_dcn = np.vstack((glom_dcn, matrix))
 
 	glom_dcn = glom_dcn[1:-1,:]
-	return glom_dcn 
+	return glom_dcn
 
-	
+
 def connectome_gj_goc(r_goc_vol, GoCaxon_x, GoCaxon_y, GoCaxon_z, golgicells):
 	gj_goc = np.zeros((1,3))
 	for i in golgicells:	# for each Golgi find all cells of the same type that, through their dendritic tree, fall into its axonal tree
@@ -790,8 +811,8 @@ def connectome_gj_goc(r_goc_vol, GoCaxon_x, GoCaxon_y, GoCaxon_z, golgicells):
 		bool_matrix = np.zeros(((golgicells.shape[0])-1, 3))
 		bool_matrix[:,0] = (np.absolute(golgicells[potential_goc,2]-i[2])).__le__(r_goc_vol + (GoCaxon_x/2.))
 		bool_matrix[:,1] = (np.absolute(golgicells[potential_goc,3]-i[3])).__le__(r_goc_vol + (GoCaxon_y/2.))
-		bool_matrix[:,2] = (np.absolute(golgicells[potential_goc,4]-i[4])).__le__(r_goc_vol + (GoCaxon_z/2.))	
-		
+		bool_matrix[:,2] = (np.absolute(golgicells[potential_goc,4]-i[4])).__le__(r_goc_vol + (GoCaxon_z/2.))
+
 		good_goc = np.where(np.sum(bool_matrix, axis=1)==3)[0]	# finds indexes of Golgi cells that satisfy all conditions
 
 		matrix = np.zeros((len(good_goc), 3))
@@ -803,10 +824,3 @@ def connectome_gj_goc(r_goc_vol, GoCaxon_x, GoCaxon_y, GoCaxon_z, golgicells):
 
 	gj_goc = gj_goc[1:-1,:]
 	return gj_goc
-	
-
-
-
-	
-		
-
