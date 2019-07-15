@@ -177,6 +177,8 @@ class ScaffoldIniConfig(ScaffoldConfig):
         if not 'density' in section:
             raise Exception('Required attribute Density missing in {} section.'.format(name))
         cellType.density = parseToDensity(section['density'])
+        if 'color' in section:
+            cellType.color = section['color']
         # Register cell type
         self.addCellType(cellType)
         return cellType

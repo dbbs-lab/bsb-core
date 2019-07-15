@@ -5,6 +5,7 @@ class CellType:
     def __init__(self, name, density = 0.):
         self.name = name
         self.density = density
+        self.color = '#000000'
 
 class GeometricCellType(CellType):
     pass
