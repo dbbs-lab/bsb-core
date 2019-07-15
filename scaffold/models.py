@@ -2,8 +2,9 @@ import numpy as np
 
 class CellType:
 
-    def __init__(self, name):
+    def __init__(self, name, density = 0.):
         self.name = name
+        self.density = density
 
 class GeometricCellType(CellType):
     pass
