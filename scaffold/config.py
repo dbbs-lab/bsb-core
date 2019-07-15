@@ -108,10 +108,10 @@ class ScaffoldIniConfig(ScaffoldConfig):
             print("[WARNING] No .ini extension on given config file '{}', config file changed to : '{}'".format(file, file + '.ini'))
             file = file + '.ini'
         # Use configparser to read .ini file
-        cp = configparser.ConfigParser()
-        cp.read(file)
-        self._sections = cp.sections()
-        self._config = cp
+        parsedConfig = configparser.ConfigParser()
+        parsedConfig.read(file)
+        self._sections = parsedConfig.sections()
+        self._config = parsedConfig
         # Check if ini file is empty
         if len(self._sections) == 0:
             raise Exception("Empty or non existent configuration file '{}'.".format(file))
@@ -131,7 +131,7 @@ class ScaffoldIniConfig(ScaffoldConfig):
         self.initSections()
         # Initialize each section in the .ini file based on their type
         for sectionName in self._sections:
-            sectionConfig = cp[sectionName]
+            sectionConfig = parsedConfig[sectionName]
             if not 'type' in sectionConfig:
                 raise Exception("No type declared for section '{}' in '{}'.".format(
                     sectionName,
@@ -150,7 +150,7 @@ class ScaffoldIniConfig(ScaffoldConfig):
         # Finalize each section in the .ini file based on their type.
         # Finalisation allows sections to configure themselves based on properties initialised in other sections.
         for sectionName in self._sections:
-            sectionConfig = cp[sectionName]
+            sectionConfig = parsedConfig[sectionName]
             sectionType = sectionConfig['type']
             sectionFinalizers[sectionType](sectionConfig)
 
@@ -164,7 +164,7 @@ class ScaffoldIniConfig(ScaffoldConfig):
             :returns: A :class:`CellType`: object.
             :rtype: CellType
         '''
-        # Get morphology type
+        # Morphology type
         if not 'morphologytype' in section:
             raise Exception('Required attribute MorphologyType missing in {} section.'.format(name))
         morphoType = section['morphologytype']
@@ -173,10 +173,13 @@ class ScaffoldIniConfig(ScaffoldConfig):
             cellType = self.iniGeometricCell(name, section)
         elif morphoType == 'Morphology':
             cellType = self.iniMorphologicCell(name, section)
-        # Get density
+        else:
+            raise Exception("Cell morphology type must be either 'Geometry' or 'Morphology'")
+        # Density
         if not 'density' in section:
             raise Exception('Required attribute Density missing in {} section.'.format(name))
         cellType.density = parseToDensity(section['density'])
+        # Color
         if 'color' in section:
             cellType.color = section['color']
         # Register cell type
@@ -187,12 +190,16 @@ class ScaffoldIniConfig(ScaffoldConfig):
         '''
             Create a cell type that is modelled in space based on geometrical rules.
         '''
+        # Geometry name
         if not 'geometryname' in section:
             raise Exception('Required geometry attribute GeometryName missing in {} section.'.format(name))
         geometryName = section['geometryname']
         if not geometryName in self.Geometries.keys():
             raise Exception("Unknown geometry '{}' in section '{}'".format(geometryName, name))
-        return GeometricCellType(name, geometryName)
+
+        # Create and return geometric cell type
+        cellType = GeometricCellType(name, self.Geometries[geometryName])
+        return cellType
 
     def iniMorphologicCell(self, name, section):
         '''
