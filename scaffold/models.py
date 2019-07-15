@@ -1,9 +1,15 @@
-
+import numpy as np
 
 class CellType:
 
     def __init__(self, name):
         self.name = name
+
+class GeometricCellType(CellType):
+    pass
+
+class MorphologicCellType(CellType):
+    pass
 
 class Layer:
 
@@ -14,3 +20,7 @@ class Layer:
         self.origin = origin
         # Dimensions in the XYZ axes.
         self.dimensions = dimensions
+
+    @property
+    def volume(self):
+        return np.prod(self.dimensions)
