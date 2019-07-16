@@ -3,10 +3,13 @@ from .geometries import Geometry as BaseGeometry
 
 class CellType:
 
-    def __init__(self, name, density = 0.):
+    def __init__(self, name, density=0., radius=0., ratio=None, ratioTo=None):
         self.name = name
         self.density = density
+        self.radius = radius
         self.color = '#000000'
+        self.ratio = ratio
+        self.ratioTo = ratioTo
         self.geometry = None
         self.morphology = None
 

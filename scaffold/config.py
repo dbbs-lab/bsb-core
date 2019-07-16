@@ -104,7 +104,7 @@ class ScaffoldIniConfig(ScaffoldConfig):
         # Determine extension of file.
         head, tail = os.path.splitext(file)
         # Append .ini and send warning if .ini extension is not present.
-        if tail != 'ini':
+        if tail != '.ini':
             print("[WARNING] No .ini extension on given config file '{}', config file changed to : '{}'".format(file, file + '.ini'))
             file = file + '.ini'
         # Use configparser to read .ini file
@@ -175,10 +175,18 @@ class ScaffoldIniConfig(ScaffoldConfig):
             cellType = self.iniMorphologicCell(name, section)
         else:
             raise Exception("Cell morphology type must be either 'Geometry' or 'Morphology'")
+        # Radius
+        if not 'radius' in section:
+            raise Exception('Required attribute Radius missing in {} section.'.format(name))
+        cellType.radius = float(section['radius'])
         # Density
-        if not 'density' in section:
-            raise Exception('Required attribute Density missing in {} section.'.format(name))
-        cellType.density = parseToDensity(section['density'])
+        if not 'density' in section and (not 'ratio' in section or not 'ratioto' in section):
+            raise Exception('Either Density or Ratio and RatioTo attributes missing in {} section.'.format(name))
+        if 'density' in section:
+            cellType.density = parseToDensity(section['density'])
+        else:
+            cellType.ratio = float(section['ratio'])
+            cellType.ratioTo = section['ratioTo']
         # Color
         if 'color' in section:
             cellType.color = section['color']
