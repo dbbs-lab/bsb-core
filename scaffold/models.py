@@ -14,7 +14,7 @@ class CellType:
         '''
             Check whether this CellType is valid to be used in the simulation.
         '''
-        if self.geometry == None && self.morphology == None:
+        if self.geometry == None and self.morphology == None:
             raise Exception("No Geometry or Morphology set for cell type {}".format(self.name))
         if self.placement == None:
             raise Exception("No PlacementStrategy set for cell type {}".format(self.name))
