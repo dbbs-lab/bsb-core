@@ -1,5 +1,11 @@
 import numpy as np
 
+try:
+	scaffoldInstance
+except Exception as e:
+	raise Exception("A scaffold instance needs to be present in the namespace when importing scaffold_params.py")
+
+config = scaffoldInstance.configuration
 # Set the following variables to 1 to save / plot results
 # Set to 0 otherwise
 save = 1
@@ -12,27 +18,26 @@ plot = 1
 #
 # N.B. by now, for semplicity, keep the two values equal
 #volume_base_size = np.array([300., 300.])
-base_size = 400.
-volume_base_size = np.array([base_size, base_size])
+volume_base_size = np.array([config.X * 10 ** 6, config.Z * 10 ** 6])
 dcn_volume = volume_base_size / 2
 
 # Name of data file
 filename = 'scaffold_full_IO'
-save_name = '{}_{}x{}_v3'.format(filename, volume_base_size[0], volume_base_size[1])
-save_name = save_name + '.hdf5'
+save_name = '{}_{}x{}_v3.hdf5'.format(filename, volume_base_size[0], volume_base_size[1])
 
 # Purkinje / DCN ratio: the number of PC per DCN - (Note: describe better)
-pc_dcn_ratio = 11.
+pc_dcn_ratio = 1. / config.CellTypes['DCN Cell'].ratio
 
 # Extension of Purkinje cell dendritic tree
-pc_extension_dend_tree = 130.
-z_pc = 3.5	# NOME DA MODIFICARE - PC extension of the dendritic tree along the z-axis
+pc_extension_dend_tree = config.Geometries['PurkinjeCellGeometry'].tree_extension_x
+z_pc = config.Geometries['PurkinjeCellGeometry'].tree_extension_z
 
 # Thickness of different layers
-layers_thick = {'granular': 150.,
-				'purkinje': 30.,
-				'molecular': 150.,
-				'dcn': 600.}
+layers_thick = {'granular': config.Layers['Granular Layer'].dimensions[1] * 10 ** 6,
+				'purkinje': config.Layers['Purkinje Layer'].dimensions[1] * 10 ** 6,
+				'molecular': config.Layers['Molecular Layer'].dimensions[1] * 10 ** 6,
+				'dcn': config.Layers['DCN Layer'].dimensions[1] * 10 ** 6}
+
 # Soma radius of each cell type (micron)
 ''' Diameter of DCN Glutamatergic neuron is in range 15 - 35 micron (Aizemann et al., 2003)
 	==> mean diam = 25 micron
@@ -40,22 +45,22 @@ layers_thick = {'granular': 150.,
 	Slightly different estimate (Gauck and Jaeger, 2000): 10 - 35 micron, average = 20
 	==> mean radius = 10 micron'''
 
-cells_radius = {'golgi': 8,
-				'glomerulus': 1.5,
-				'granule': 2.5,
-				'purkinje': 7.5,
-				'stellate': 4.,
-				'basket': 6.,
-				'dcn': 10}
+cells_radius = {'golgi': config.CellTypes['Golgi Cell'].radius,
+				'glomerulus': config.CellTypes['Glomerulus'].radius,
+				'granule': config.CellTypes['Granule Cell'].radius,
+				'purkinje': config.CellTypes['Purkinje Cell'].radius,
+				'stellate': config.CellTypes['Stellate Cell'].radius,
+				'basket': config.CellTypes['Basket Cell'].radius,
+				'dcn': config.CellTypes['DCN Cell'].radius}
 
 
 # Density distribution of each cell type
-cells_density = {'golgi': 9*(10**(-6)),
-				 'glomerulus': 3*(10**(-4)),
-				 'granule': 3.9*(10**(-3)),
-				 'purkinje': 0.45*(10**(-3)),
-				 'stellate':1.0/2*10**(-4),
-				 'basket':1.0/2*(10**(-4))}
+cells_density = {'golgi': config.CellTypes['Golgi Cell'].density,
+			     'glomerulus': config.CellTypes['Glomerulus'].density,
+			     'granule': config.CellTypes['Granule Cell'].density,
+			     'purkinje': config.CellTypes['Purkinje Cell'].density,
+			     'stellate': config.CellTypes['Stellate Cell'].density,
+			     'basket': config.CellTypes['Basket Cell'].density}
 
 # Cell type ID (can be changed without constraints)
 cell_type_ID = {'golgi': 1,
@@ -68,23 +73,18 @@ cell_type_ID = {'golgi': 1,
 				}
 
 # Colors for plots (can be changed without constraints)
-cell_color = {'golgi': '#332EBC',
-			  'glomerulus': '#0E1030',
-			  'granule': '#E62214',
-			  'purkinje': '#0F8944',
-			  'stellate': '#876506',
-			  'basket': '#7A1607',
-			  'dcn': '#15118B'}
+cell_color = {  'golgi': config.CellTypes['Golgi Cell'].color,
+				'glomerulus': config.CellTypes['Glomerulus'].color,
+				'granule': config.CellTypes['Granule Cell'].color,
+				'purkinje': config.CellTypes['Purkinje Cell'].color,
+				'stellate': config.CellTypes['Stellate Cell'].color,
+				'basket': config.CellTypes['Basket Cell'].color,
+				'dcn': config.CellTypes['DCN Cell'].color}
 
 # Define pc and dcn values once volume base size has been defined
 pc_in_volume = int(volume_base_size[0]*volume_base_size[1]*cells_density['purkinje'])
 dcn_in_volume = int(pc_in_volume / pc_dcn_ratio)
 cells_density['dcn'] = dcn_in_volume / (dcn_volume[0]*dcn_volume[1]*layers_thick['dcn'])
-
-dcn_volume = volume_base_size / 2
-save_name = '{}_{}x{}_v3.hdf5'.format(filename, volume_base_size[0], volume_base_size[1])
-
-
 
 ### Must be generated from previous dictionaries!
 # Store positions of cells - organized by cell type
@@ -100,19 +100,19 @@ for key, subdic in placement_stats.items():
 ############################### CONNECTOME PARAMETERS ##################################
 
 # GoC parameters
-r_goc_vol = 50	# radius of the GoC volume around the soma
+r_goc_vol = config.Geometries['GolgiCellGeometry'].dendrite_radius	# radius of the GoC volume around the soma
 # GoC axon
-GoCaxon_z = 30		# max width of GoC axon (keep the minimum possible)
-GoCaxon_y = 150		# max height (height of the total simulation volume)
-GoCaxon_x = 150		# max lenght
+GoCaxon_z = config.Geometries['GolgiCellGeometry'].axon_z		# max width of GoC axon (keep the minimum possible)
+GoCaxon_y = config.Geometries['GolgiCellGeometry'].axon_y		# max height (height of the total simulation volume)
+GoCaxon_x = config.Geometries['GolgiCellGeometry'].axon_x		# max lenght
 
 # GrC and parallel fibers parameters
-dend_len = 40		# maximum lenght of a GrC dendrite
-h_m = 151		# offset for the height of each parallel fiber
-sd = 66			# standard deviation of the parallel fibers distribution of heights
+dend_len = config.Geometries['GranuleCellGeometry'].dendrite_length		# maximum lenght of a GrC dendrite
+h_m = config.Geometries['GranuleCellGeometry'].pf_height		# offset for the height of each parallel fiber
+sd = config.Geometries['GranuleCellGeometry'].pf_height_sd			# standard deviation of the parallel fibers distribution of heights
 
 # basket and stellate cells parameters
-r_sb = 15		# radius of stellate and basket cells area around soma
+r_sb = config.Geometries['StellateCellGeometry'].radius		# radius of stellate and basket cells area around soma
 
 
 # Connectivity parameters for granular layer
