@@ -1,7 +1,7 @@
 import os
 import configparser
 from .models import CellType, Layer, GeometricCellType, MorphologicCellType
-from .quantities import parseToMicrometer, parseToDensity
+from .quantities import parseToMicrometer, parseToDensity, parseToPlanarDensity
 from .geometries import Geometry as BaseGeometry
 from .helpers import copyIniKey
 from pprint import pprint
@@ -180,10 +180,14 @@ class ScaffoldIniConfig(ScaffoldConfig):
             raise Exception('Required attribute Radius missing in {} section.'.format(name))
         cellType.radius = parseToMicrometer(section['radius'])
         # Density
-        if not 'density' in section and (not 'ratio' in section or not 'ratioto' in section):
-            raise Exception('Either Density or Ratio and RatioTo attributes missing in {} section.'.format(name))
+        if not 'density' in section and
+           not 'planardensity' in section and
+          (not 'ratio' in section or not 'ratioto' in section):
+            raise Exception('Either Density, PlanarDensity or Ratio and RatioTo attributes missing in {} section.'.format(name))
         if 'density' in section:
             cellType.density = parseToDensity(section['density'])
+        elif 'planardensity' in section:
+            cellType.planarDensity = parseToPlanarDensity(section['planardensity'])
         else:
             cellType.ratio = float(section['ratio'])
             cellType.ratioTo = section['ratioTo']

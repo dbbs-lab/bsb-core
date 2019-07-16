@@ -22,7 +22,7 @@ def parseToDensity(text):
     try:
         quantities = UnitParser.parse(text.replace('Âµm', 'µm'))
         if len(quantities) == 0:
-            raise Exception("No quantity found where micrometers were expected")
+            raise Exception("No quantity found where a density was expected")
         result = quantities[0]
         if result.unit.name.find('cubic') == -1:
             raise Exception("A cubic unit is expected as density in '{}'".format(text))
@@ -32,3 +32,18 @@ def parseToDensity(text):
         return pq.to(units.millimeter ** -3).magnitude
     except Exception as e:
         raise Exception("Unable to parse '{}' to density.".format(text))
+
+def parseToPlanarDensity(text):
+    try:
+        quantities = UnitParser.parse(text.replace('Âµm', 'µm'))
+        if len(quantities) == 0:
+            raise Exception("No quantity found where a planar density was expected")
+        result = quantities[0]
+        if result.unit.name.find('squared') == -1:
+            raise Exception("A squared unit is expected as planar density in '{}'".format(text))
+        unitName = list(filter(lambda x: x != 'squared' and x != 'per', result.unit.name.split(' ')))[-1]
+        unit = units.Unit(unitName)
+        pq = result.value * unit ** -2
+        return pq.to(units.millimeter ** -2).magnitude
+    except Exception as e:
+        raise Exception("Unable to parse '{}' to planar density.".format(text))
