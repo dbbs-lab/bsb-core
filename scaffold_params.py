@@ -29,8 +29,8 @@ save_name = '{}_{}x{}_v3.hdf5'.format(filename, volume_base_size[0], volume_base
 pc_dcn_ratio = 1. / config.CellTypes['DCN Cell'].ratio
 
 # Extension of Purkinje cell dendritic tree
-pc_extension_dend_tree = config.Geometries['PurkinjeCellGeometry'].tree_extension_x
-z_pc = config.Geometries['PurkinjeCellGeometry'].tree_extension_z
+pc_extension_dend_tree = float(config.Geometries['PurkinjeCellGeometry'].tree_extension_x)
+z_pc = float(config.Geometries['PurkinjeCellGeometry'].tree_extension_z)
 
 # Thickness of different layers
 layers_thick = {'granular': config.Layers['Granular Layer'].dimensions[1],
@@ -100,19 +100,19 @@ for key, subdic in placement_stats.items():
 ############################### CONNECTOME PARAMETERS ##################################
 
 # GoC parameters
-r_goc_vol = config.Geometries['GolgiCellGeometry'].dendrite_radius	# radius of the GoC volume around the soma
+r_goc_vol = float(config.Geometries['GolgiCellGeometry'].dendrite_radius)	# radius of the GoC volume around the soma
 # GoC axon
-GoCaxon_z = config.Geometries['GolgiCellGeometry'].axon_z		# max width of GoC axon (keep the minimum possible)
-GoCaxon_y = config.Geometries['GolgiCellGeometry'].axon_y		# max height (height of the total simulation volume)
-GoCaxon_x = config.Geometries['GolgiCellGeometry'].axon_x		# max lenght
+GoCaxon_z = float(config.Geometries['GolgiCellGeometry'].axon_z)		# max width of GoC axon (keep the minimum possible)
+GoCaxon_y = float(config.Geometries['GolgiCellGeometry'].axon_y)		# max height (height of the total simulation volume)
+GoCaxon_x = float(config.Geometries['GolgiCellGeometry'].axon_x)		# max lenght
 
 # GrC and parallel fibers parameters
-dend_len = config.Geometries['GranuleCellGeometry'].dendrite_length		# maximum lenght of a GrC dendrite
-h_m = config.Geometries['GranuleCellGeometry'].pf_height		# offset for the height of each parallel fiber
-sd = config.Geometries['GranuleCellGeometry'].pf_height_sd			# standard deviation of the parallel fibers distribution of heights
+dend_len = float(config.Geometries['GranuleCellGeometry'].dendrite_length)		# maximum lenght of a GrC dendrite
+h_m = float(config.Geometries['GranuleCellGeometry'].pf_height)		# offset for the height of each parallel fiber
+sd = float(config.Geometries['GranuleCellGeometry'].pf_height_sd)			# standard deviation of the parallel fibers distribution of heights
 
 # basket and stellate cells parameters
-r_sb = config.Geometries['StellateCellGeometry'].radius		# radius of stellate and basket cells area around soma
+r_sb = float(config.Geometries['StellateCellGeometry'].radius)		# radius of stellate and basket cells area around soma
 
 
 # Connectivity parameters for granular layer
