@@ -33,10 +33,10 @@ pc_extension_dend_tree = config.Geometries['PurkinjeCellGeometry'].tree_extensio
 z_pc = config.Geometries['PurkinjeCellGeometry'].tree_extension_z
 
 # Thickness of different layers
-layers_thick = {'granular': config.Layers['Granular Layer'].dimensions[1] * 10 ** 6,
-				'purkinje': config.Layers['Purkinje Layer'].dimensions[1] * 10 ** 6,
-				'molecular': config.Layers['Molecular Layer'].dimensions[1] * 10 ** 6,
-				'dcn': config.Layers['DCN Layer'].dimensions[1] * 10 ** 6}
+layers_thick = {'granular': config.Layers['Granular Layer'].dimensions[1],
+				'purkinje': config.Layers['Purkinje Layer'].dimensions[1],
+				'molecular': config.Layers['Molecular Layer'].dimensions[1],
+				'dcn': config.Layers['DCN Layer'].dimensions[1]}
 
 # Soma radius of each cell type (micron)
 ''' Diameter of DCN Glutamatergic neuron is in range 15 - 35 micron (Aizemann et al., 2003)

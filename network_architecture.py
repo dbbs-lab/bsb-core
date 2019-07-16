@@ -70,7 +70,6 @@ adapt_positions()
 # Progressive indexing of neurons
 # 2.7 ==> 3.7: .itervalues() deprecated in favor of .values()
 cel_num_vec = sorted(cell_type_ID.values())
-pprint(cel_num_vec)
 
 # 2.7 ==> 3.7: .iteritems() deprecated in favor of .items()
 cellID2type = {val: key for key, val in cell_type_ID.items()}

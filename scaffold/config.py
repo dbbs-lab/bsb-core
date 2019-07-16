@@ -3,6 +3,7 @@ import configparser
 from .models import CellType, Layer, GeometricCellType, MorphologicCellType
 from .quantities import parseToMicrometer, parseToDensity, parseToPlanarDensity
 from .geometries import Geometry as BaseGeometry
+from .connectivity import ConnectionStrategy
 from .helpers import copyIniKey
 from pprint import pprint
 
@@ -16,7 +17,7 @@ class ScaffoldConfig(object):
         self.CellTypeIDs = []
         self.Layers = {}
         self.LayerIDs = []
-        self.Connections = {}
+        self.ConnectionTypes = {}
         self.Geometries = {}
 
         # General simulation values
@@ -43,8 +44,19 @@ class ScaffoldConfig(object):
             :param geometry: Geometry object to add
             :type geometry: Geometry
         '''
-        # Register a new geometry model.
+        # Register a new Geometry.
         self.Geometries[geometry.name] = geometry
+
+    def addConnection(self, connection):
+        '''
+            Adds a ConnectionStrategy to the config object. ConnectionStrategies
+            are used to determine which touching cells to connect.
+
+            :param connection: ConnectionStrategy object to add
+            :type connection: ConnectionStrategy
+        '''
+        # Register a new ConnectionStrategy.
+        self.ConnectionTypes[connection.name] = connection
 
     def addLayer(self, layer):
         '''
@@ -120,12 +132,14 @@ class ScaffoldIniConfig(ScaffoldConfig):
             'Cell': self.iniCellType,
             'Layer': self.iniLayer,
             'Geometry': self.iniGeometry,
+            'Connection': self.iniConnection,
         }
         # Define a map from section types to finalizers.
         sectionFinalizers = {
             'Cell': self.finalizeCellType,
             'Layer': self.finalizeLayer,
             'Geometry': self.finalizeGeometry,
+            'Connection': self.finalizeConnection,
         }
         # Initialize special sections such as the general section.
         self.initSections()
@@ -180,9 +194,7 @@ class ScaffoldIniConfig(ScaffoldConfig):
             raise Exception('Required attribute Radius missing in {} section.'.format(name))
         cellType.radius = parseToMicrometer(section['radius'])
         # Density
-        if not 'density' in section and
-           not 'planardensity' in section and
-          (not 'ratio' in section or not 'ratioto' in section):
+        if not 'density' in section and not 'planardensity' in section and (not 'ratio' in section or not 'ratioto' in section):
             raise Exception('Either Density, PlanarDensity or Ratio and RatioTo attributes missing in {} section.'.format(name))
         if 'density' in section:
             cellType.density = parseToDensity(section['density'])
@@ -271,7 +283,7 @@ class ScaffoldIniConfig(ScaffoldConfig):
             and adds it to the Geometries dictionary.
         '''
         # Keys to exclude from copying to the geometry instance
-        excluded = ['MorphologyType', 'GeometryName']
+        excluded = ['Type', 'MorphologyType', 'GeometryName', 'Class']
         if not 'class' in section:
             raise Exception('Required attribute Class missing in {} section.'.format(name))
         classParts = section['class'].split('.')
@@ -288,6 +300,30 @@ class ScaffoldIniConfig(ScaffoldConfig):
         geometryInstance.__dict__['name'] = name
         self.addGeometry(geometryInstance)
 
+    def iniConnection(self, name, section):
+        '''
+            Initialize a ConnectionStrategy-subclass from the configuration. Uses __import__
+            to fetch geometry class, then copies all keys as is from config section to instance
+            and adds it to the Geometries dictionary.
+        '''
+        # Keys to exclude from copying to the geometry instance
+        excluded = ['Type', 'Class']
+        if not 'class' in section:
+            raise Exception('Required attribute Class missing in {} section.'.format(name))
+        classParts = section['class'].split('.')
+        className = classParts[-1]
+        moduleName = '.'.join(classParts[:-1])
+        moduleRef = __import__(moduleName, globals(), locals(), [className], 0)
+        classRef = moduleRef.__dict__[className]
+        if not issubclass(classRef, ConnectionStrategy):
+            raise Exception("Class '{}.{}' must derive from scaffold.geometries.ConnectionStrategy".format(moduleName,className))
+        connectionInstance = classRef()
+        for key in section:
+            if not key in excluded:
+                copyIniKey(connectionInstance, section, {'key': key, 'type': 'string'})
+        connectionInstance.__dict__['name'] = name
+        self.addConnection(connectionInstance)
+
 
     def finalizeGeometry(self, section):
         pass
@@ -296,7 +332,9 @@ class ScaffoldIniConfig(ScaffoldConfig):
         pass
 
     def finalizeCellType(self, section):
-        # TODO: Load morphology/geometry config
+        pass
+
+    def finalizeConnection(self, section):
         pass
 
     def initSections(self):

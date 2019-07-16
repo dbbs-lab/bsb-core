@@ -1,4 +1,13 @@
 import abc
 
-class ConnectivityStrategy(abc.ABC):
+class ConnectionStrategy(abc.ABC):
+    pass
+
+class ReciprocalGolgiGlomerulus(ConnectionStrategy):
+    pass
+
+class TouchingConvergenceDivergence(ConnectionStrategy):
+    pass
+
+class TouchConnect(ConnectionStrategy):
     pass
