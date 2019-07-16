@@ -178,7 +178,7 @@ class ScaffoldIniConfig(ScaffoldConfig):
         # Radius
         if not 'radius' in section:
             raise Exception('Required attribute Radius missing in {} section.'.format(name))
-        cellType.radius = float(section['radius'])
+        cellType.radius = parseToMicrometer(section['radius'])
         # Density
         if not 'density' in section and (not 'ratio' in section or not 'ratioto' in section):
             raise Exception('Either Density or Ratio and RatioTo attributes missing in {} section.'.format(name))
