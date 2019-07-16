@@ -29,7 +29,7 @@ def parseToDensity(text):
         unitName = list(filter(lambda x: x != 'cubic' and x != 'per', result.unit.name.split(' ')))[-1]
         unit = units.Unit(unitName)
         pq = result.value * unit ** -3
-        return pq.to(units.millimeter ** -3).magnitude
+        return pq.to(units.micrometer ** -3).magnitude
     except Exception as e:
         raise Exception("Unable to parse '{}' to density.".format(text))
 
