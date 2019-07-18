@@ -1,9 +1,10 @@
 import os
 import configparser
-from .models import CellType, Layer, GeometricCellType, MorphologicCellType
+from .models import CellType, Layer
 from .quantities import parseToMicrometer, parseToDensity, parseToPlanarDensity
 from .geometries import Geometry as BaseGeometry
 from .connectivity import ConnectionStrategy
+from .placement import PlacementStrategy
 from .helpers import copyIniKey
 from pprint import pprint
 
@@ -19,10 +20,11 @@ class ScaffoldConfig(object):
         self.LayerIDs = []
         self.ConnectionTypes = {}
         self.Geometries = {}
+        self.PlacementStrategies = {}
 
         # General simulation values
-        self.X = 200 * 10 ** -6    # Transverse dimension size (m)
-        self.Z = 200 * 10 ** -6    # Longitudinal dimension size (m)
+        self.X = 200    # Transverse simulation space size (µm)
+        self.Z = 200    # Longitudinal simulation space size (µm)
 
     def addCellType(self, cellType):
         '''
@@ -46,6 +48,17 @@ class ScaffoldConfig(object):
         '''
         # Register a new Geometry.
         self.Geometries[geometry.name] = geometry
+
+    def addPlacementStrategy(self, placement):
+        '''
+            Adds a placement to the config object. Placement strategies are used to
+            place cells in the simulation volume.
+
+            :param placement: PlacementStrategy object to add
+            :type placement: PlacementStrategy
+        '''
+        # Register a new Geometry.
+        self.PlacementStrategies[placement.name] = placement
 
     def addConnection(self, connection):
         '''
@@ -127,19 +140,29 @@ class ScaffoldIniConfig(ScaffoldConfig):
         # Check if ini file is empty
         if len(self._sections) == 0:
             raise Exception("Empty or non existent configuration file '{}'.".format(file))
-        # Define a map from section types to initializers.
+        # Defines a map from section types to initializers.
         sectionInitializers = {
             'Cell': self.iniCellType,
             'Layer': self.iniLayer,
             'Geometry': self.iniGeometry,
             'Connection': self.iniConnection,
+            'Placement': self.iniPlacement,
         }
-        # Define a map from section types to finalizers.
+        # Defines a map from section types to finalizers.
         sectionFinalizers = {
             'Cell': self.finalizeCellType,
             'Layer': self.finalizeLayer,
             'Geometry': self.finalizeGeometry,
             'Connection': self.finalizeConnection,
+            'Placement': self.finalizePlacement,
+        }
+        # Defines a map from section types to config object dictionaries
+        sectionDictionaries = {
+            'Cell': self.CellTypes,
+            'Layer': self.Layers,
+            'Geometry': self.Geometries,
+            'Connection': self.ConnectionTypes,
+            'Placement': self.PlacementStrategies,
         }
         # Initialize special sections such as the general section.
         self.initSections()
@@ -166,7 +189,8 @@ class ScaffoldIniConfig(ScaffoldConfig):
         for sectionName in self._sections:
             sectionConfig = parsedConfig[sectionName]
             sectionType = sectionConfig['type']
-            sectionFinalizers[sectionType](sectionConfig)
+            # Fetch the initialized config from the storage dictionaries and finalize it.
+            sectionFinalizers[sectionType](sectionDictionaries[sectionType][sectionName], sectionConfig)
 
     def iniCellType(self, name, section):
         '''
@@ -178,17 +202,7 @@ class ScaffoldIniConfig(ScaffoldConfig):
             :returns: A :class:`CellType`: object.
             :rtype: CellType
         '''
-        # Morphology type
-        if not 'morphologytype' in section:
-            raise Exception('Required attribute MorphologyType missing in {} section.'.format(name))
-        morphoType = section['morphologytype']
-        # Construct geometrical/morphological cell type.
-        if morphoType == 'Geometry':
-            cellType = self.iniGeometricCell(name, section)
-        elif morphoType == 'Morphology':
-            cellType = self.iniMorphologicCell(name, section)
-        else:
-            raise Exception("Cell morphology type must be either 'Geometry' or 'Morphology'")
+        cellType = CellType(name)
         # Radius
         if not 'radius' in section:
             raise Exception('Required attribute Radius missing in {} section.'.format(name))
@@ -210,26 +224,25 @@ class ScaffoldIniConfig(ScaffoldConfig):
         self.addCellType(cellType)
         return cellType
 
-    def iniGeometricCell(self, name, section):
+    def iniGeometricCell(self, cellType, section):
         '''
             Create a cell type that is modelled in space based on geometrical rules.
         '''
-        # Geometry name
         if not 'geometryname' in section:
             raise Exception('Required geometry attribute GeometryName missing in {} section.'.format(name))
         geometryName = section['geometryname']
         if not geometryName in self.Geometries.keys():
             raise Exception("Unknown geometry '{}' in section '{}'".format(geometryName, name))
-
-        # Create and return geometric cell type
-        cellType = GeometricCellType(name, self.Geometries[geometryName])
+        # Set the cell's geometry
+        cellType.setGeometry(self.Geometries[geometryName])
         return cellType
 
-    def iniMorphologicCell(self, name, section):
+    def iniMorphologicCell(self, cellType, section):
         '''
             Create a cell type that is modelled in space based on a detailed morphology.
         '''
-        return MorphologicCellType(name)
+        raise Exception("Morphologic cells not implemented yet.")
+        return cellType
 
     def iniLayer(self, name, section):
         '''
@@ -284,20 +297,7 @@ class ScaffoldIniConfig(ScaffoldConfig):
         '''
         # Keys to exclude from copying to the geometry instance
         excluded = ['Type', 'MorphologyType', 'GeometryName', 'Class']
-        if not 'class' in section:
-            raise Exception('Required attribute Class missing in {} section.'.format(name))
-        classParts = section['class'].split('.')
-        className = classParts[-1]
-        moduleName = '.'.join(classParts[:-1])
-        moduleRef = __import__(moduleName, globals(), locals(), [className], 0)
-        classRef = moduleRef.__dict__[className]
-        if not issubclass(classRef, BaseGeometry):
-            raise Exception("Class '{}.{}' must derive from scaffold.geometries.Geometry".format(moduleName,className))
-        geometryInstance = classRef()
-        for key in section:
-            if not key in excluded:
-                copyIniKey(geometryInstance, section, {'key': key, 'type': 'string'})
-        geometryInstance.__dict__['name'] = name
+        geometryInstance = loadConfigClass(name, section, BaseGeometry, excluded)
         self.addGeometry(geometryInstance)
 
     def iniConnection(self, name, section):
@@ -306,35 +306,43 @@ class ScaffoldIniConfig(ScaffoldConfig):
             to fetch geometry class, then copies all keys as is from config section to instance
             and adds it to the Geometries dictionary.
         '''
-        # Keys to exclude from copying to the geometry instance
-        excluded = ['Type', 'Class']
-        if not 'class' in section:
-            raise Exception('Required attribute Class missing in {} section.'.format(name))
-        classParts = section['class'].split('.')
-        className = classParts[-1]
-        moduleName = '.'.join(classParts[:-1])
-        moduleRef = __import__(moduleName, globals(), locals(), [className], 0)
-        classRef = moduleRef.__dict__[className]
-        if not issubclass(classRef, ConnectionStrategy):
-            raise Exception("Class '{}.{}' must derive from scaffold.geometries.ConnectionStrategy".format(moduleName,className))
-        connectionInstance = classRef()
-        for key in section:
-            if not key in excluded:
-                copyIniKey(connectionInstance, section, {'key': key, 'type': 'string'})
-        connectionInstance.__dict__['name'] = name
+        connectionInstance = loadConfigClass(name, section, ConnectionStrategy)
         self.addConnection(connectionInstance)
 
+    def iniPlacement(self, name, section):
+        '''
+            Initialize a PlacementStrategy-subclass from the configuration. Uses __import__
+            to fetch placement class, then copies all keys as is from config section to instance
+            and adds it to the PlacementStrategies dictionary.
+        '''
+        # Keys to exclude from copying to the geometry instance
+        placementInstance = loadConfigClass(name, section, PlacementStrategy)
+        self.addPlacementStrategy(placementInstance)
 
-    def finalizeGeometry(self, section):
+
+    def finalizeGeometry(self, geometry, section):
         pass
 
-    def finalizeLayer(self, section):
+    def finalizeLayer(self, layer, section):
         pass
 
-    def finalizeCellType(self, section):
+    def finalizeCellType(self, cellType, section):
+        # Morphology type
+        if not 'morphologytype' in section:
+            raise Exception('Required attribute MorphologyType missing in {} section.'.format(cellType.name))
+        morphoType = section['morphologytype']
+        # Construct geometrical/morphological cell type.
+        if morphoType == 'Geometry':
+            self.iniGeometricCell(cellType, section)
+        elif morphoType == 'Morphology':
+            self.iniMorphologicCell(cellType, section)
+        else:
+            raise Exception("Cell morphology type must be either 'Geometry' or 'Morphology'")
+
+    def finalizeConnection(self, connection, section):
         pass
 
-    def finalizeConnection(self, section):
+    def finalizePlacement(self, placement, section):
         pass
 
     def initSections(self):
@@ -355,3 +363,27 @@ class ScaffoldIniConfig(ScaffoldConfig):
 
         # Filter out all special sections
         self._sections = list(filter(lambda x: not x in special, self._sections))
+
+
+## Helper functions
+def loadConfigClass(name, section, parentClass, excludedKeys = ['Type', 'Class']):
+    if not 'class' in section:
+        raise Exception('Required attribute Class missing in {} section.'.format(name))
+    classParts = section['class'].split('.')
+    className = classParts[-1]
+    moduleName = '.'.join(classParts[:-1])
+    moduleRef = __import__(moduleName, globals(), locals(), [className], 0)
+    classRef = moduleRef.__dict__[className]
+    if not issubclass(classRef, parentClass):
+        raise Exception("Class '{}.{}' must derive from {}.{}".format(
+            moduleName,
+            className,
+            parentClass.__module__,
+            parentClass.__qualname__,
+        ))
+    instance = classRef()
+    for key in section:
+        if not key in excludedKeys:
+            copyIniKey(instance, section, {'key': key, 'type': 'string'})
+    instance.__dict__['name'] = name
+    return instance

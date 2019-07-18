@@ -1,5 +1,5 @@
 import abc
-from helpers import CastsConfigurationValues
+from .helpers import CastsConfigurationValues
 
 
 class Geometry(abc.ABC, CastsConfigurationValues):
@@ -14,7 +14,12 @@ class PurkinjeCellGeometry(Geometry):
     pass
 
 class GolgiCellGeometry(Geometry):
-    pass
+    casts = {
+        'dendrite_radius': float,
+        'axon_x': float,
+        'axon_y': float,
+        'axon_z': float,
+    }
 
 class RadialGeometry(Geometry):
     pass

@@ -3,7 +3,7 @@ from .geometries import Geometry as BaseGeometry
 
 class CellType:
 
-    def __init__(self, name, density=0., radius=0., ratio=None, ratioTo=None):
+    def __init__(self, name, density=0., radius=0., ratio=None, ratioTo=None, placement=None):
         self.name = name
         self.density = density
         self.radius = radius
@@ -12,23 +12,22 @@ class CellType:
         self.ratioTo = ratioTo
         self.geometry = None
         self.morphology = None
+        self.placement = None
 
     def validate(self):
         '''
             Check whether this CellType is valid to be used in the simulation.
         '''
         if self.geometry == None and self.morphology == None:
-            raise Exception("No Geometry or Morphology set for cell type {}".format(self.name))
+            raise Exception("No Geometry or Morphology set for cell type '{}'".format(self.name))
         if self.placement == None:
-            raise Exception("No PlacementStrategy set for cell type {}".format(self.name))
+            raise Exception("No PlacementStrategy set for cell type '{}'".format(self.name))
         return true
 
-
-class GeometricCellType(CellType):
-
-    def __init__(self, name, geometry):
-        CellType.__init__(self, name)
-        self.setGeometry(geometry)
+    def initialise(self, scaffoldInstance):
+        self.scaffold = scaffoldInstance
+        # TODO: Add placement sections to
+        # self.validate()
 
     def setGeometry(self, geometry):
         '''
@@ -40,8 +39,6 @@ class GeometricCellType(CellType):
         if not issubclass(type(geometry), BaseGeometry):
             raise Exception("Only subclasses of scaffold.geometries.Geometry can be used as cell geometries.")
         self.geometry = geometry
-
-class MorphologicCellType(CellType):
 
     def setMorphology(self, morphology):
         self.morphology = morphology
@@ -59,3 +56,6 @@ class Layer:
     @property
     def volume(self):
         return np.prod(self.dimensions)
+
+    def initialise(self, scaffoldInstance):
+        self.scaffold = scaffoldInstance

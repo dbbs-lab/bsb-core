@@ -1,4 +1,5 @@
 from .statistics import Statistics
+from pprint import pprint
 ###############################
 ## Scaffold class
 #    * Bootstraps configuration
@@ -18,9 +19,9 @@ class Scaffold:
         self._initialiseCells()
 
     def _initialiseCells(self):
-        for cellType in self.configuration.CellTypes.items():
+        for name, cellType in self.configuration.CellTypes.items():
             cellType.initialise(self)
 
     def _initialiseLayers(self):
-        for layer in self.configuration.Layers.items():
+        for name, layer in self.configuration.Layers.items():
             layer.initialise(self)
