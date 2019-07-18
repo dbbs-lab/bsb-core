@@ -6,7 +6,7 @@ from mpl_toolkits.mplot3d import Axes3D
 import random
 from scipy.spatial import distance
 from scaffold_params import *
-
+from pprint import pprint
 
 def adapt_thick_coords(sublayers_roof, cell_radius):
 	''' Given y-lims of each sublayer, return range of possible positions.
@@ -30,11 +30,21 @@ def sublayer_partitioning(layer, cell_type, volume_base_size, *args):
 						# volume_base_size[0]*
 						# volume_base_size[1]-v_occupied)*
 						# cells_density[cell_type])
-	vol_for_cell = 1/cells_density[cell_type]
-	vol_for_cell_radius = (3.0/4/np.pi*vol_for_cell)**(1/3.0)
-	cell_eps = (vol_for_cell_radius - cells_radius[cell_type])
-	cell_eps = np.array([cell_eps, cell_eps])
-	cell_sublayers = np.round(layer_thick/(1.5*vol_for_cell_radius))
+	if cells_density[cell_type] == 0:
+		# 1 sublayer
+		print("[WARNING] 0 density encountered for cell type '{}'".format(cell_type))
+		cell_sublayers = 1
+		cell_eps = np.array([1., 1.])
+	else:
+		# Calculate the volume per single cell
+		vol_for_cell = 1/cells_density[cell_type]
+		# Calculate the radius of that volume's sphere
+		vol_for_cell_radius = (3.0/4/np.pi*vol_for_cell)**(1/3.0)
+		# Calculate the cell epsilon: This is the length of the 'spare space' a cell has inside of its volume
+		cell_eps = (vol_for_cell_radius - cells_radius[cell_type])
+		cell_eps = np.array([cell_eps, cell_eps])
+		# Calculate the amount of sublayers
+		cell_sublayers = np.round(layer_thick/(1.5*vol_for_cell_radius))
 	height_cell_sublayer = layer_thick/cell_sublayers
 	cell_sublayers_roof = np.linspace(height_cell_sublayer, layer_thick, cell_sublayers)
 	cell_sublayers_roof = np.insert(cell_sublayers_roof, 0, 0)
@@ -257,7 +267,8 @@ def adapt_positions():
 
 	dcn_thick = layers_thick['dcn']
 	for key, val in final_cell_positions.items():
-		val[:,1] += dcn_thick
+		if len(val) != 0:
+			val[:,1] += dcn_thick
 
 
 

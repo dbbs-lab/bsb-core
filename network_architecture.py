@@ -79,7 +79,7 @@ cellID2type = {val: key for key, val in cell_type_ID.items()}
 # cell_type_ID['IO'] = 8
 # y_io = 100
 ##############
-max_shape_values = [final_cell_positions[cellID2type[val]].shape[0] for val in cel_num_vec]
+max_shape_values = [np.array(final_cell_positions[cellID2type[val]]).shape[0] for val in cel_num_vec]
 max_shape_values.insert(0,0)
 prog_nums = []
 for n in range(1,len(max_shape_values)):
@@ -89,13 +89,14 @@ for n in range(1,len(max_shape_values)):
 data_matrix = np.empty((1, 4))
 
 for n in cel_num_vec:
+	if len(final_cell_positions[cellID2type[n]]) == 0:
+		continue
 	cell_id = np.zeros(final_cell_positions[cellID2type[n]].shape[0])+cell_type_ID[cellID2type[n]]
 	positions = final_cell_positions[cellID2type[n]]
 	pos_id = np.column_stack((cell_id, positions))
 	data_matrix = np.concatenate((data_matrix, pos_id))
 
 data_matrix = data_matrix[1::]
-data_matrix[:,0] += 1
 
 
 
@@ -143,46 +144,63 @@ pf_goc = np.zeros((1,3))
 # deep cerebellar nucleus
 pc_dcn = np.zeros((1,3))
 
-
-
 # Determine all the submatrices for the different cell types, with: cell index, type, xyz coordinates
 
 golgi_idx = np.where(positions[:,1]==cell_type_ID['golgi'])[0]			# find all indexes where the cell type is that of the Golgi cells
-first_golgi = golgi_idx[0]					# index of the first element
-last_golgi = golgi_idx[-1]					# index of the last element
-golgicells = positions[first_golgi:last_golgi+1,:]		# submatrix for Golgi cells
+if len(golgi_idx) == 0:
+	golgicells = np.array([])
+else:
+	first_golgi = golgi_idx[0]					# index of the first element
+	last_golgi = golgi_idx[-1]					# index of the last element
+	golgicells = positions[first_golgi:last_golgi+1,:]		# submatrix for Golgi cells
 
 glomeruli_idx = np.where(positions[:,1]==cell_type_ID['glomerulus'])[0]			# find all indexes where the cell type is that of the glomeruli
-first_glomerulus = glomeruli_idx[0]
-last_glomerulus = glomeruli_idx[-1]
-glomeruli = positions[first_glomerulus:last_glomerulus+1,:]	# submatrix for glomeruli
+if len(glomeruli_idx) == 0:
+	glomeruli = np.array([])
+else:
+	first_glomerulus = glomeruli_idx[0]
+	last_glomerulus = glomeruli_idx[-1]
+	glomeruli = positions[first_glomerulus:last_glomerulus+1,:]	# submatrix for glomeruli
 
 granules_idx = np.where(positions[:,1]==cell_type_ID['granule'])[0]			# find all indexes where the cell type is that of the granules
-first_granule = granules_idx[0]
-last_granule = granules_idx[-1]
-granules = positions[first_granule:last_granule+1,:]		# submatrix for granules
+if len(granules_idx) == 0:
+	granules = np.array([])
+else:
+	first_granule = granules_idx[0]
+	last_granule = granules_idx[-1]
+	granules = positions[first_granule:last_granule+1,:]		# submatrix for granules
 
 purkinjes_idx = np.where(positions[:,1]==cell_type_ID['purkinje'])[0]			# find all indexes where the cell type is that of the Purkinje cells
-first_pc = purkinjes_idx[0]
-last_pc = purkinjes_idx[-1]
-purkinjes = positions[first_pc:last_pc+1,:]			# submatrix for Purkinje cells
+if len(purkinjes_idx) == 0:
+	purkinjes = np.array([])
+else:
+	first_pc = purkinjes_idx[0]
+	last_pc = purkinjes_idx[-1]
+	purkinjes = positions[first_pc:last_pc+1,:]			# submatrix for Purkinje cells
 
 basket_idx = np.where(positions[:,1]==cell_type_ID['basket'])[0]			# find all indexes where the cell type is that of the basket cells
-first_basket = basket_idx[0]
-last_basket = basket_idx[-1]
-basketcells = positions[first_basket:last_basket+1,:]		# submatrix for basket cells
+if len(basket_idx) == 0:
+	basketcells = np.array([])
+else:
+	first_basket = basket_idx[0]
+	last_basket = basket_idx[-1]
+	basketcells = positions[first_basket:last_basket+1,:]		# submatrix for basket cells
 
 stellates_idx = np.where(positions[:,1]==cell_type_ID['stellate'])[0]			# find all indexes where the cell type is that of the stellate cells
-first_stellate = stellates_idx[0]
-last_stellate = stellates_idx[-1]
-stellates = positions[first_stellate:last_stellate+1,:]		# submatrix for stellate cells
+if len(stellates_idx) == 0:
+	stellates = np.array([])
+else:
+	first_stellate = stellates_idx[0]
+	last_stellate = stellates_idx[-1]
+	stellates = positions[first_stellate:last_stellate+1,:]		# submatrix for stellate cells
 
 dcn_idx = np.where(positions[:,1]==cell_type_ID['dcn'])[0]			# find all indexes where the cell type is that of the dcn glutamatergic cells
-first_dcn = dcn_idx[0]
-last_dcn = dcn_idx[-1]
-dcn_glut = positions[first_dcn:last_dcn+1,:]			# submatrix for dcn glutamatergic cells
-
-
+if len(dcn_idx) == 0:
+	dcn_glut = np.empty((0, positions.shape[1]))
+else:
+	first_dcn = dcn_idx[0]
+	last_dcn = dcn_idx[-1]
+	dcn_glut = positions[first_dcn:last_dcn+1,:]			# submatrix for dcn glutamatergic cells
 
 # Calculate the heights of all parallel fibers of the simulation volume
 h_pf = np.zeros((len(granules_idx),2))
@@ -293,27 +311,20 @@ for idx1 in enumerate(dcn_glut):
 
 	dend_tree_coeff[idx1[0],3] = (-1)*((dend_tree_coeff[idx1[0],0]*dcn_glut[idx1[0],2])+(dend_tree_coeff[idx1[0],1]*dcn_glut[idx1[0],3])+(dend_tree_coeff[idx1[0],2]*dcn_glut[idx1[0],4]))
 
-dcn_angle = np.column_stack((dcn_glut[:,0], dend_tree_coeff))
+if dcn_glut.shape[0] != 0:
+	dcn_angle = np.column_stack((dcn_glut[:,0], dend_tree_coeff))
 
-# connectivity between Purkinje cells axon and glutamatergic DCN cells
-pc_dcn = connectome_pc_dcn(first_dcn, dcn_idx, purkinjes, dcn_glut, div_pc, dend_tree_coeff, pc_dcn)
+	# connectivity between Purkinje cells axon and glutamatergic DCN cells
+	pc_dcn = connectome_pc_dcn(first_dcn, dcn_idx, purkinjes, dcn_glut, div_pc, dend_tree_coeff, pc_dcn)
 
-# Finally, connect glomeruli to DCN
-# Determine all the submatrices for the different cell types, with: cell index, type, xyz coordinates
-glomeruli_idx = np.where(positions[:,1]==cell_type_ID['glomerulus'])[0]			# find all indexes where the cell type is that of the glomeruli
-first_glomerulus = glomeruli_idx[0]
-last_glomerulus = glomeruli_idx[-1]
-glomeruli = positions[first_glomerulus:last_glomerulus+1,:]	# submatrix for glomeruli
+	# initialization of the output matrix
+	glom_dcn = np.zeros((1,3))
 
-dcn_idx = np.where(positions[:,1]==cell_type_ID['dcn'])[0]			# find all indexes where the cell type is that of the dcn glutamatergic cells
-first_dcn = dcn_idx[0]
-last_dcn = dcn_idx[-1]
-dcn_glut = positions[first_dcn:last_dcn+1,:]			# submatrix for dcn glutamatergic cells
-
-# initialization of the output matrix
-glom_dcn = np.zeros((1,3))
-
-glom_dcn = connectome_glom_dcn(first_glomerulus, glomeruli, dcn_glut, conv_dcn, glom_dcn)
+	glom_dcn = connectome_glom_dcn(first_glomerulus, glomeruli, dcn_glut, conv_dcn, glom_dcn)
+else:
+	dcn_angle = dend_tree_coeff
+	pc_dcn = np.empty((0, pf_pc.shape[1]))
+	glom_dcn = np.empty((0, pf_pc.shape[1]))
 
 
 ### TEMP connections from IO to PCs

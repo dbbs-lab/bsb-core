@@ -44,6 +44,6 @@ def parseToPlanarDensity(text):
         unitName = list(filter(lambda x: x != 'squared' and x != 'per', result.unit.name.split(' ')))[-1]
         unit = units.Unit(unitName)
         pq = result.value * unit ** -2
-        return pq.to(units.millimeter ** -2).magnitude
+        return pq.to(units.micrometer ** -2).magnitude
     except Exception as e:
         raise Exception("Unable to parse '{}' to planar density.".format(text))
