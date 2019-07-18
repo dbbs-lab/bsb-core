@@ -1,17 +1,20 @@
 import abc
-from .helpers import CastsConfigurationValues
+from .helpers import ConfigurableClass
 
 
-class Geometry(abc.ABC, CastsConfigurationValues):
+class Geometry(ConfigurableClass):
 
     def __init__(self):
         pass
 
 class GranuleCellGeometry(Geometry):
-    pass
+
+    def validate(self):
+        pass
 
 class PurkinjeCellGeometry(Geometry):
-    pass
+    def validate(self):
+        pass
 
 class GolgiCellGeometry(Geometry):
     casts = {
@@ -21,8 +24,13 @@ class GolgiCellGeometry(Geometry):
         'axon_z': float,
     }
 
+    def validate(self):
+        pass
+
 class RadialGeometry(Geometry):
-    pass
+    def validate(self):
+        pass
 
 class NoGeometry(Geometry):
-    pass
+    def validate(self):
+        pass

@@ -1,14 +1,17 @@
 import abc
-from .helpers import CastsConfigurationValues
+from .helpers import ConfigurableClass
 
-class ConnectionStrategy(abc.ABC, CastsConfigurationValues):
+class ConnectionStrategy(ConfigurableClass):
     pass
 
 class ReciprocalGolgiGlomerulus(ConnectionStrategy):
-    pass
+    def validate(self):
+        pass
 
 class TouchingConvergenceDivergence(ConnectionStrategy):
-    pass
+    def validate(self):
+        pass
 
 class TouchConnect(ConnectionStrategy):
-    pass
+    def validate(self):
+        pass

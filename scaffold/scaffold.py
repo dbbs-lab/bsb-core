@@ -17,6 +17,7 @@ class Scaffold:
         # Initialise the components now that the scaffoldInstance is available
         self._initialiseLayers()
         self._initialiseCells()
+        self._initialisePlacementStrategies()
 
     def _initialiseCells(self):
         for name, cellType in self.configuration.CellTypes.items():
@@ -25,3 +26,7 @@ class Scaffold:
     def _initialiseLayers(self):
         for name, layer in self.configuration.Layers.items():
             layer.initialise(self)
+
+    def _initialisePlacementStrategies(self):
+        for name, placement in self.configuration.PlacementStrategies.items():
+            placement.initialise(self)

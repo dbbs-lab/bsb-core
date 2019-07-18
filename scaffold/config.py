@@ -1,4 +1,4 @@
-import os
+import os, abc
 import configparser
 from .models import CellType, Layer
 from .quantities import parseToMicrometer, parseToDensity, parseToPlanarDensity
@@ -330,6 +330,10 @@ class ScaffoldIniConfig(ScaffoldConfig):
         pass
 
     def finalizeCellType(self, cellType, section):
+        '''
+            Adds configured morphology and placement strategy to the cell type configuration.
+        '''
+
         # Morphology type
         if not 'morphologytype' in section:
             raise Exception('Required attribute MorphologyType missing in {} section.'.format(cellType.name))
@@ -341,6 +345,13 @@ class ScaffoldIniConfig(ScaffoldConfig):
             self.iniMorphologicCell(cellType, section)
         else:
             raise Exception("Cell morphology type must be either 'Geometry' or 'Morphology'")
+        # Placement strategy
+        if not 'placementstrategy' in section:
+            raise Exception('Required attribute PlacementStrategy missing in {} section.'.format(cellType.name))
+        placementName = section['placementstrategy']
+        if not placementName in self.PlacementStrategies:
+            raise Exception("Unknown placement strategy '{}' in {} section".format(placementName, cellType.name))
+        cellType.setPlacementStrategy(self.PlacementStrategies[placementName])
 
     def finalizeConnection(self, connection, section):
         pass

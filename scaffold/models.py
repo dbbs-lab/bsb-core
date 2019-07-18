@@ -22,12 +22,11 @@ class CellType:
             raise Exception("No Geometry or Morphology set for cell type '{}'".format(self.name))
         if self.placement == None:
             raise Exception("No PlacementStrategy set for cell type '{}'".format(self.name))
-        return true
 
     def initialise(self, scaffoldInstance):
         self.scaffold = scaffoldInstance
         # TODO: Add placement sections to
-        # self.validate()
+        self.validate()
 
     def setGeometry(self, geometry):
         '''
@@ -42,6 +41,9 @@ class CellType:
 
     def setMorphology(self, morphology):
         self.morphology = morphology
+
+    def setPlacementStrategy(self, placement):
+        self.placement = placement
 
 class Layer:
 
