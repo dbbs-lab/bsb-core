@@ -148,7 +148,7 @@ pc_dcn = np.zeros((1,3))
 
 golgi_idx = np.where(positions[:,1]==cell_type_ID['golgi'])[0]			# find all indexes where the cell type is that of the Golgi cells
 if len(golgi_idx) == 0:
-	golgicells = np.array([])
+	golgicells = np.empty((0, positions.shape[1]))
 else:
 	first_golgi = golgi_idx[0]					# index of the first element
 	last_golgi = golgi_idx[-1]					# index of the last element
@@ -156,7 +156,7 @@ else:
 
 glomeruli_idx = np.where(positions[:,1]==cell_type_ID['glomerulus'])[0]			# find all indexes where the cell type is that of the glomeruli
 if len(glomeruli_idx) == 0:
-	glomeruli = np.array([])
+	glomeruli = np.empty((0, positions.shape[1]))
 else:
 	first_glomerulus = glomeruli_idx[0]
 	last_glomerulus = glomeruli_idx[-1]
@@ -164,7 +164,7 @@ else:
 
 granules_idx = np.where(positions[:,1]==cell_type_ID['granule'])[0]			# find all indexes where the cell type is that of the granules
 if len(granules_idx) == 0:
-	granules = np.array([])
+	granules = np.empty((0, positions.shape[1]))
 else:
 	first_granule = granules_idx[0]
 	last_granule = granules_idx[-1]
@@ -172,7 +172,7 @@ else:
 
 purkinjes_idx = np.where(positions[:,1]==cell_type_ID['purkinje'])[0]			# find all indexes where the cell type is that of the Purkinje cells
 if len(purkinjes_idx) == 0:
-	purkinjes = np.array([])
+	purkinjes = np.empty((0, positions.shape[1]))
 else:
 	first_pc = purkinjes_idx[0]
 	last_pc = purkinjes_idx[-1]
@@ -180,7 +180,7 @@ else:
 
 basket_idx = np.where(positions[:,1]==cell_type_ID['basket'])[0]			# find all indexes where the cell type is that of the basket cells
 if len(basket_idx) == 0:
-	basketcells = np.array([])
+	basketcells = np.empty((0, positions.shape[1]))
 else:
 	first_basket = basket_idx[0]
 	last_basket = basket_idx[-1]
@@ -188,7 +188,7 @@ else:
 
 stellates_idx = np.where(positions[:,1]==cell_type_ID['stellate'])[0]			# find all indexes where the cell type is that of the stellate cells
 if len(stellates_idx) == 0:
-	stellates = np.array([])
+	stellates = np.empty((0, positions.shape[1]))
 else:
 	first_stellate = stellates_idx[0]
 	last_stellate = stellates_idx[-1]
