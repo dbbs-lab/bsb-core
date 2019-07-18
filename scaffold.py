@@ -38,6 +38,9 @@ scaffoldInstance = Scaffold(scaffoldConfig)
 builtins.scaffoldInstance = scaffoldInstance
 
 if cl_args.task == 'compile':
+	# Use the configuration to initialise all components such as cells and layers
+	# to prepare for the network architecture compilation.
+	scaffoldInstance.initialiseComponents()
 	# Run the procedural file network_architecture.py
 	from network_architecture import *
 
