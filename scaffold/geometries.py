@@ -1,7 +1,8 @@
 import abc
+from helpers import CastsConfigurationValues
 
 
-class Geometry(abc.ABC):
+class Geometry(abc.ABC, CastsConfigurationValues):
 
     def __init__(self):
         pass

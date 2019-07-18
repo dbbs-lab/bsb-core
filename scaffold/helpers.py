@@ -22,7 +22,13 @@ class CastsConfigurationValues:
         '''
             Casts/validates values imported onto this object from configuration files to their final form.
         '''
-        castingDict = getattr(self, 'casts', {})
-        for attr, cast in castingDict:
+        castingDict = getattr(self.__class__, 'casts', {})
+        for attr, cast in castingDict.items():
             if hasattr(self, attr):
-                self.__dict__[attr] = cast(self.__dict__[attr])
+                try:
+                    self.__dict__[attr] = cast(self.__dict__[attr])
+                except Exception as e:
+                    if not hasattr(self, 'name'):
+                        raise Exception("Could not cast configured attribute '{}' for '{}'".format(attr, self))
+                    else:
+                        raise Exception("Could not cast configured attribute '{}' for '{}'".format(attr, self.name))

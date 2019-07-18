@@ -1,6 +1,7 @@
 import abc
+from .helpers import CastsConfigurationValues
 
-class ConnectionStrategy(abc.ABC):
+class ConnectionStrategy(abc.ABC, CastsConfigurationValues):
     pass
 
 class ReciprocalGolgiGlomerulus(ConnectionStrategy):
