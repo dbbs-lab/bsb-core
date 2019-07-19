@@ -36,13 +36,30 @@ class ConfigurableClass(abc.ABC):
             a value as only argument. This dictionary will be used to cast the attributes when castConfig
             is called.
         '''
+        if hasattr(self, 'name'):
+            name = self.name
+        else:
+            name = str(self)
         castingDict = getattr(self.__class__, 'casts', {})
-        for attr, cast in castingDict.items():
-            if hasattr(self, attr):
+        defaultDict = getattr(self.__class__, 'defaults', {})
+        required =    getattr(self.__class__, 'required', [])
+        attrKeys = [*castingDict.keys(), *defaultDict.keys(), *required]
+        for attr in attrKeys:
+            isRequired = attr in required
+            hasDefault = attr in defaultDict
+            shouldCast = attr in castingDict
+            if not hasattr(self, attr):
+                if hasDefault:
+                    self.__dict__[attr] = defaultDict[attr]
+                elif isRequired:
+                    raise Exception("Required attribute '{}' missing from '{}' section.".format(attr, self.name))
+            elif shouldCast:
                 try:
                     self.__dict__[attr] = cast(self.__dict__[attr])
                 except Exception as e:
                     if not hasattr(self, 'name'):
-                        raise Exception("Could not cast configured attribute '{}' for '{}'".format(attr, self))
-                    else:
-                        raise Exception("Could not cast configured attribute '{}' for '{}'".format(attr, self.name))
+                        raise Exception("Could not cast configured attribute '{}' with value '{}' for '{}'".format(
+                            attr,
+                            self.__dict__[attr],
+                            self.name)
+                        )

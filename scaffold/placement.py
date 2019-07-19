@@ -18,7 +18,10 @@ class LayeredRandomWalk(PlacementStrategy):
 		'distance_multiplier_max': float
 	}
 
-	required = ['distance_multiplier_min', 'distance_multiplier_max']
+	defaults = {
+		'distance_multiplier_min': 3.,
+		'distance_multiplier_max': 5.
+	}
 
 	def initialise(self, scaffold):
 		super().initialise(scaffold)
@@ -67,27 +70,16 @@ class LayeredRandomWalk(PlacementStrategy):
 		# Adjust partitions for cell radius.
 		partitions = partitions + np.array([cellType.radius, -cellType.radius])
 
-	def partitionLayer(self, nSublayers):
-		# See the wiki page `Placement > Sublayer partitioning` for a detailed explanation
-		# of the following steps.
-		# TODO: Add to wiki.
-		layerThickness = self.layerObject.thickness
-		sublayerHeight = layerThickness / nSublayers
-		sublayerYs = np.linspace(sublayerHeight, layerThickness, nSublayers)
-		sublayerYs = np.insert(sublayerYs, 0, 0)
-		sublayerPartitions = np.column_stack([sublayerYs, np.roll(sublayerYs, -1)])[:-1]
-		return sublayerPartitions
-
-
-	def cells_placement(cell_sublayers, volume_base_size, cell_type, eps, cell_height_placement, ncell_per_sublayer, cell_bounds):
+		## Placement
 		min_mult = self.distance_multiplier_min
 		max_mult = self.distance_multiplier_max
+		cellsPerSublayer = np.round(cellType.nToPlace / nSublayers)
 		# if cell_type == 'granule':
 		# 	min_mult, max_mult = 2., 2.
 		# else:
 		# 	min_mult, max_mult = 3., 5.
 
-		for subl in np.arange(cell_sublayers):
+		for subl in np.arange(nSublayers):
 			subl = int(subl)
 			cell_positions = np.array((np.random.uniform(0, volume_base_size[0]),
 										np.random.uniform(cell_height_placement[subl,0],cell_height_placement[subl,1]),
@@ -217,3 +209,14 @@ class LayeredRandomWalk(PlacementStrategy):
 		for subl in final_cell_positions[cell_type]:
 			matrix_reframe = np.concatenate((matrix_reframe, subl), axis=0)
 		final_cell_positions[cell_type] = matrix_reframe[1::]
+
+	def partitionLayer(self, nSublayers):
+		# See the wiki page `Placement > Sublayer partitioning` for a detailed explanation
+		# of the following steps.
+		# TODO: Add to wiki.
+		layerThickness = self.layerObject.thickness
+		sublayerHeight = layerThickness / nSublayers
+		sublayerYs = np.linspace(sublayerHeight, layerThickness, nSublayers)
+		sublayerYs = np.insert(sublayerYs, 0, 0)
+		sublayerPartitions = np.column_stack([sublayerYs, np.roll(sublayerYs, -1)])[:-1]
+		return sublayerPartitions
