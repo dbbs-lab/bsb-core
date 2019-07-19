@@ -1,5 +1,8 @@
 from .statistics import Statistics
 from pprint import pprint
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+
 ###############################
 ## Scaffold class
 #    * Bootstraps configuration
@@ -41,11 +44,21 @@ class Scaffold:
         cellTypes = sorted(self.configuration.CellTypes.values(), key=lambda x: x.density)
         for cellType in cellTypes:
             cellType.placement.place(cellType)
+        self.plotNetwork(from_memory=True)
+
+    def plotNetwork(self, file=None, from_memory=False):
+        if from_memory:
+            plt.interactive(True)
+            fig = plt.figure()
+            ax = fig.add_subplot(111, projection='3d')
+            pos = self.final_cell_positions['Granule Cell']
+            ax.scatter3D(pos[:,0], pos[:,1], pos[:,2])
+            plt.show(block=True)
 
     def initLegacyCode(self):
         self.final_cell_positions = {key: [] for key in self.configuration.CellTypes.keys()}
         self.placement_stats = {key: {} for key in self.configuration.CellTypes.keys()}
-        for key, subdic in placement_stats.items():
+        for key, subdic in self.placement_stats.items():
         	subdic['number_of_cells'] = []
         	subdic['total_n_{}'.format(key)] = 0
         	if key != 'purkinje':

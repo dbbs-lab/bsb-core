@@ -43,7 +43,8 @@ class ConfigurableClass(abc.ABC):
         castingDict = getattr(self.__class__, 'casts', {})
         defaultDict = getattr(self.__class__, 'defaults', {})
         required =    getattr(self.__class__, 'required', [])
-        attrKeys = [*castingDict.keys(), *defaultDict.keys(), *required]
+        # Get unique keys
+        attrKeys = set([*castingDict.keys(), *defaultDict.keys(), *required])
         for attr in attrKeys:
             isRequired = attr in required
             hasDefault = attr in defaultDict
@@ -54,6 +55,7 @@ class ConfigurableClass(abc.ABC):
                 elif isRequired:
                     raise Exception("Required attribute '{}' missing from '{}' section.".format(attr, self.name))
             elif shouldCast:
+                cast = castingDict[attr]
                 try:
                     self.__dict__[attr] = cast(self.__dict__[attr])
                 except Exception as e:

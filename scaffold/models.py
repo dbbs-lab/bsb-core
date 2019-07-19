@@ -68,6 +68,18 @@ class Layer:
     def thickness(self):
         return self.dimensions[1]
 
+    @property
+    def X(self):
+        return self.dimensions[0]
+
+    @property
+    def Y(self):
+        return self.dimensions[1]
+
+    @property
+    def Z(self):
+        return self.dimensions[2]
+
     def allocateVolume(volume):
         self.volumeOccupied += volume
 

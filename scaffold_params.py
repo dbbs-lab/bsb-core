@@ -18,7 +18,7 @@ plot = 1
 #
 # N.B. by now, for semplicity, keep the two values equal
 #volume_base_size = np.array([300., 300.])
-volume_base_size = np.array([config.X * 10 ** 6, config.Z * 10 ** 6])
+volume_base_size = np.array([config.X, config.Z])
 dcn_volume = volume_base_size / 2
 
 # Name of data file

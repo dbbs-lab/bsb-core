@@ -298,7 +298,6 @@ class ScaffoldIniConfig(ScaffoldConfig):
         # Keys to exclude from copying to the geometry instance
         excluded = ['Type', 'MorphologyType', 'GeometryName', 'Class']
         geometryInstance = loadConfigClass(name, section, BaseGeometry, excluded)
-        geometryInstance.castConfig()
         self.addGeometry(geometryInstance)
 
     def iniConnection(self, name, section):
@@ -308,7 +307,6 @@ class ScaffoldIniConfig(ScaffoldConfig):
             and adds it to the Geometries dictionary.
         '''
         connectionInstance = loadConfigClass(name, section, ConnectionStrategy)
-        connectionInstance.castConfig()
         self.addConnection(connectionInstance)
 
     def iniPlacement(self, name, section):
@@ -319,7 +317,6 @@ class ScaffoldIniConfig(ScaffoldConfig):
         '''
         # Keys to exclude from copying to the geometry instance
         placementInstance = loadConfigClass(name, section, PlacementStrategy)
-        placementInstance.castConfig()
         self.addPlacementStrategy(placementInstance)
 
 
