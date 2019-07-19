@@ -12,6 +12,9 @@ class Scaffold:
     def __init__(self, config):
         self.configuration = config
         self.statistics = Statistics(self)
+    	# Use the configuration to initialise all components such as cells and layers
+    	# to prepare for the network architecture compilation.
+    	scaffoldInstance.initialiseComponents()
 
     def initialiseComponents(self):
         # Initialise the components now that the scaffoldInstance is available
