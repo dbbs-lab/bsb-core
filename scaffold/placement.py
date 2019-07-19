@@ -66,8 +66,6 @@ class LayeredRandomWalk(PlacementStrategy):
 		partitions = self.partitionLayer(nSublayers)
 		# Adjust partitions for cell radius.
 		partitions = partitions + np.array([cellType.radius, -cellType.radius])
-		print('{} {} cell sublayers:'.format(nSublayers, cellType.name))
-		pprint(partitions)
 
 	def partitionLayer(self, nSublayers):
 		# See the wiki page `Placement > Sublayer partitioning` for a detailed explanation
