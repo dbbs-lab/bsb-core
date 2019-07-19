@@ -588,7 +588,7 @@ def connectome_pf_bc(first_granule, basketcells, granules, r_sb, h_pf, pf_bc):
 
 
 
-# Connections between basket cells and parallel fibers
+# Connections between stellate cells and parallel fibers
 def connectome_pf_sc(first_granule, stellates, granules, r_sb, h_pf, pf_sc):
 
 	for i in stellates:	# for each stellate cell find all the parallel fibers that fall into the sphere with centre the cell soma and appropriate radius

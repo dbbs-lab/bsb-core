@@ -54,10 +54,22 @@ class Layer:
         self.origin = origin
         # Dimensions in the XYZ axes.
         self.dimensions = dimensions
+        self.volumeOccupied = 0.
 
     @property
     def volume(self):
         return np.prod(self.dimensions)
+
+    @property
+    def availableVolume(self):
+        return self.volume - self.volumeOccupied
+
+    @property
+    def thickness(self):
+        return self.dimensions[1]
+
+    def allocateVolume(volume):
+        self.volumeOccupied += volume
 
     def initialise(self, scaffoldInstance):
         self.scaffold = scaffoldInstance

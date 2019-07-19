@@ -12,9 +12,9 @@ class Scaffold:
     def __init__(self, config):
         self.configuration = config
         self.statistics = Statistics(self)
-    	# Use the configuration to initialise all components such as cells and layers
-    	# to prepare for the network architecture compilation.
-    	scaffoldInstance.initialiseComponents()
+        # Use the configuration to initialise all components such as cells and layers
+        # to prepare for the network architecture compilation.
+        self.initialiseComponents()
 
     def initialiseComponents(self):
         # Initialise the components now that the scaffoldInstance is available
@@ -33,3 +33,9 @@ class Scaffold:
     def _initialisePlacementStrategies(self):
         for name, placement in self.configuration.PlacementStrategies.items():
             placement.initialise(self)
+
+    def compileNetworkArchitecture(self):
+        # Place the cells starting from the lowest density celltypes.
+        cellTypes = sorted(self.configuration.CellTypes.values(), key=lambda x: x.density)
+        for cellType in cellTypes:
+            cellType.placement.place(cellType)

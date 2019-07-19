@@ -38,8 +38,9 @@ scaffoldInstance = Scaffold(scaffoldConfig)
 builtins.scaffoldInstance = scaffoldInstance
 
 if cl_args.task == 'compile':
-	# Run the procedural file network_architecture.py
-	from network_architecture import *
+	scaffoldInstance.compileNetworkArchitecture()
+	# OLD: Run the procedural file network_architecture.py
+	# from network_architecture import *
 
 if cl_args.task == 'run':
 	# Run the nest script

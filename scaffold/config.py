@@ -283,7 +283,7 @@ class ScaffoldIniConfig(ScaffoldConfig):
         if 'xzscale' in section:
             xzScale = float(section['xzscale'])
         dimensions = [self.X * xzScale, thickness, self.Z * xzScale]
-        #Put together the layer object from the extracted values.
+        # Put together the layer object from the extracted values.
         layer = Layer(name, origin, dimensions)
         # Add layer to the config object
         self.addLayer(layer)
