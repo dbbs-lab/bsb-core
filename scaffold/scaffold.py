@@ -15,6 +15,7 @@ class Scaffold:
 
     def __init__(self, config):
         self.configuration = config
+        self.CellsByType = {key: np.empty((0, 3)) for key in self.configuration.CellTypes.keys()}
         self.statistics = Statistics(self)
         # Use the configuration to initialise all components such as cells and layers
         # to prepare for the network architecture compilation.
@@ -79,7 +80,6 @@ class Scaffold:
 
 
     def initLegacyCode(self):
-        self.CellsByType = {key: [] for key in self.configuration.CellTypes.keys()}
         self.placement_stats = {key: {} for key in self.configuration.CellTypes.keys()}
         for key, subdic in self.placement_stats.items():
         	subdic['number_of_cells'] = []
