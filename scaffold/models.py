@@ -51,9 +51,9 @@ class Layer:
         # Name of the layer
         self.name = name
         # The XYZ coordinates of the point at the center of the bottom plane of the layer.
-        self.origin = origin
+        self.origin = np.array(origin)
         # Dimensions in the XYZ axes.
-        self.dimensions = dimensions
+        self.dimensions = np.array(dimensions)
         self.volumeOccupied = 0.
 
     @property

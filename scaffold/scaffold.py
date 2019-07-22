@@ -57,7 +57,7 @@ class Scaffold:
         cellTypeIDs = self.configuration.CellTypeIDs
         data = np.empty((0, 5))
         startingID = 0
-        for cellTypeName, cellPositions in self.final_cell_positions.items():
+        for cellTypeName, cellPositions in self.CellsByType.items():
             nCellsOfType = cellPositions.shape[0]
             cellTypeID = cellTypeIDs.index(cellTypeName)
             cellTypeColumn = cellTypeID * np.ones(nCellsOfType)
@@ -79,7 +79,7 @@ class Scaffold:
 
 
     def initLegacyCode(self):
-        self.final_cell_positions = {key: [] for key in self.configuration.CellTypes.keys()}
+        self.CellsByType = {key: [] for key in self.configuration.CellTypes.keys()}
         self.placement_stats = {key: {} for key in self.configuration.CellTypes.keys()}
         for key, subdic in self.placement_stats.items():
         	subdic['number_of_cells'] = []

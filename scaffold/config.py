@@ -267,6 +267,7 @@ class ScaffoldIniConfig(ScaffoldConfig):
             origin = [float(coord) for coord in section['position'].split(',')]
             if len(origin) != 3:
                 raise Exception("Invalid position '{}' given in section '{}'".format(section['position'], name))
+
         # Stack this layer on the previous one.
         if 'stack' in section and section['stack'] != 'False':
             layers = self.getLayerList()
@@ -283,6 +284,10 @@ class ScaffoldIniConfig(ScaffoldConfig):
         if 'xzscale' in section:
             xzScale = float(section['xzscale'])
         dimensions = [self.X * xzScale, thickness, self.Z * xzScale]
+        # Center the layer on the XZ plane
+        if 'xzcenter' in section and section['xzcenter'] == 'True':
+            origin[0] = (self.X - dimensions[0]) / 2.
+            origin[2] = (self.Z - dimensions[2]) / 2.
         # Put together the layer object from the extracted values.
         layer = Layer(name, origin, dimensions)
         # Add layer to the config object
@@ -348,6 +353,9 @@ class ScaffoldIniConfig(ScaffoldConfig):
         placementName = section['placementstrategy']
         if not placementName in self.PlacementStrategies:
             raise Exception("Unknown placement strategy '{}' in {} section".format(placementName, cellType.name))
+        if not cellType.ratio is None:
+            if cellType.ratioTo not in self.CellTypes:
+                raise Exception("Ratio defined to unknown cell type '{}' in {}".format(cellType.ratioTo, cellType.name))
         cellType.setPlacementStrategy(self.PlacementStrategies[placementName])
 
     def finalizeConnection(self, connection, section):
