@@ -6,6 +6,7 @@ class CellType:
     def __init__(self, name, density=0., radius=0., ratio=None, ratioTo=None, placement=None):
         self.name = name
         self.density = density
+        self.planarDensity = None
         self.radius = radius
         self.color = '#000000'
         self.ratio = ratio
@@ -25,7 +26,7 @@ class CellType:
 
     def initialise(self, scaffoldInstance):
         self.scaffold = scaffoldInstance
-        # TODO: Add placement sections to
+        self.id = scaffoldInstance.configuration.CellTypeIDs.index(self.name)
         self.validate()
 
     def setGeometry(self, geometry):
