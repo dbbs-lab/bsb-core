@@ -72,6 +72,8 @@ class LayeredRandomWalk(PlacementStrategy):
 			nSublayers = np.round(layerThickness / (1.5 * cellType.placementRadius))
 		## Sublayer partitioning
 		partitions = self.partitionLayer(nSublayers)
+		print(layer.name)
+		pprint(partitions)
 		# Adjust partitions for cell radius.
 		partitions = partitions + np.array([cellRadius, -cellRadius])
 
@@ -224,6 +226,6 @@ class LayeredRandomWalk(PlacementStrategy):
 		layerThickness = self.layerObject.thickness
 		sublayerHeight = layerThickness / nSublayers
 		sublayerYs = np.linspace(sublayerHeight, layerThickness, nSublayers)
-		sublayerYs = np.insert(sublayerYs, 0, 0)
+		sublayerYs = np.insert(sublayerYs, 0, 0) + self.layerObject.origin[1]
 		sublayerPartitions = np.column_stack([sublayerYs, np.roll(sublayerYs, -1)])[:-1]
 		return sublayerPartitions

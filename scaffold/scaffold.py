@@ -1,7 +1,8 @@
 from .statistics import Statistics
+from .plotting import plotNetwork
+import numpy as np
+import h5py
 from pprint import pprint
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
 
 ###############################
 ## Scaffold class
@@ -44,16 +45,38 @@ class Scaffold:
         cellTypes = sorted(self.configuration.CellTypes.values(), key=lambda x: x.density)
         for cellType in cellTypes:
             cellType.placement.place(cellType)
-        self.plotNetwork(from_memory=True)
 
-    def plotNetwork(self, file=None, from_memory=False):
-        if from_memory:
-            plt.interactive(True)
-            fig = plt.figure()
-            ax = fig.add_subplot(111, projection='3d')
-            pos = self.final_cell_positions['Granule Cell']
-            ax.scatter3D(pos[:,0], pos[:,1], pos[:,2])
-            plt.show(block=True)
+        self.save()
+        plotNetwork(self, from_memory=True)
+
+    def placeCell(self, cellType, position):
+        pass
+
+    def save(self):
+        f = h5py.File('scaffold_new_test.hdf5', 'w')
+        cellTypeIDs = self.configuration.CellTypeIDs
+        data = np.empty((0, 5))
+        startingID = 0
+        for cellTypeName, cellPositions in self.final_cell_positions.items():
+            nCellsOfType = cellPositions.shape[0]
+            cellTypeID = cellTypeIDs.index(cellTypeName)
+            cellTypeColumn = cellTypeID * np.ones(nCellsOfType)
+            endingID = startingID + nCellsOfType
+            cellIDColumn = np.array(range(startingID, endingID))
+            startingID = endingID
+            newData = np.column_stack(( # Create 5 column layout: ID, type, X, Y, Z
+                cellIDColumn,
+                cellTypeColumn,
+                cellPositions
+            ))
+            data = np.concatenate((
+                data,
+                newData
+            ))
+        dset = f.create_dataset('positions', data=data)
+        dset.attrs['types'] = cellTypeIDs
+        f.close()
+
 
     def initLegacyCode(self):
         self.final_cell_positions = {key: [] for key in self.configuration.CellTypes.keys()}
