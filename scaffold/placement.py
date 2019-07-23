@@ -338,12 +338,15 @@ class ParallelArrayPlacement(PlacementStrategy):
 		parallelArrayZ = np.linspace(start=radius + ϵ / 2, stop=totalZ - radius - ϵ / 2, num=totalZ / (diameter + ϵ))
 
 		for i in np.arange(parallelArrayZ.shape[0]):
+			# Calculate the shift of the arrays to account for the angle of the arrays.
+			# Once the arrays have shifted by an entire `extensionX` it's the same as no shift --> modulus
 			shift = parallelArrayZ[i] * math.tan(self.angle) % extensionX
+			# Place purkinje cells equally spaced over the entire length of the X axis kept apart by their dendritic trees.
+			# They are placed in straight lines, tilted by a certain angle by adding a shifting value.
 			x = np.arange(start=(extensionX / 2.) + radius + shift, stop=totalX - radius, step=extensionX)
+			# Place them at a uniformly random height throughout the layer.
 			y = np.random.uniform(radius + layer.origin[1], layer.thickness - radius + layer.origin[1], x.shape[0])
-			z = np.zeros((x.shape[0]))
-			for cont in np.arange(x.shape[0]):
-				z[cont] = parallelArrayZ[i] + (ϵ / 2) * np.random.rand()
+			# Create jitter on the equally spaced parallelArrayZ positions proportional to ϵ along the z-axis.
+			z = np.array([parallelArrayZ[i] + (ϵ / 2) * np.random.rand() for _ in np.arange(x.shape[0])])
 
 			self.scaffold.placeCells(cellType, layer, np.column_stack([x, y, z]))
-			# offset += delta * np.random.rand()

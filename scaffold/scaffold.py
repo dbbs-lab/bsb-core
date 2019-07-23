@@ -15,12 +15,7 @@ class Scaffold:
 
 	def __init__(self, config):
 		self.configuration = config
-		# Cell positions dictionary per cell type. Columns: X, Y, Z.
-		self.CellsByType = {key: np.empty((0, 3)) for key in config.CellTypes.keys()}
-		# Cell positions dictionary per layer. Columns: Type, X, Y, Z.
-		self.CellsByLayer = {key: np.empty((0, 4)) for key in config.Layers.keys()}
-		# Cell positions dictionary. Columns: Cell ID, Type, X, Y, Z.
-		self.Cells = np.empty((0, 5))
+		self.resetNetworkCache()
 		# Debug statistics, unused.
 		self.statistics = Statistics(self)
 		self._nextId = 0
@@ -56,6 +51,14 @@ class Scaffold:
 
 		self.save()
 		plotNetwork(self, from_memory=True)
+
+	def resetNetworkCache(self):
+		# Cell positions dictionary per cell type. Columns: X, Y, Z.
+		self.CellsByType = {key: np.empty((0, 3)) for key in self.configuration.CellTypes.keys()}
+		# Cell positions dictionary per layer. Columns: Type, X, Y, Z.
+		self.CellsByLayer = {key: np.empty((0, 4)) for key in self.configuration.Layers.keys()}
+		# Cell positions dictionary. Columns: Cell ID, Type, X, Y, Z.
+		self.Cells = np.empty((0, 5))
 
 	def placeCells(self, cellType, layer, positions):
 		# Store cells per type as X, Y, Z
