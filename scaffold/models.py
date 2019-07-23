@@ -46,7 +46,20 @@ class CellType:
     def setPlacementStrategy(self, placement):
         self.placement = placement
 
-class Layer:
+class dimensions:
+    @property
+    def X(self):
+        return self.dimensions[0]
+
+    @property
+    def Y(self):
+        return self.dimensions[1]
+
+    @property
+    def Z(self):
+        return self.dimensions[2]
+
+class Layer(dimensions):
 
     def __init__(self, name, origin, dimensions):
         # Name of the layer
@@ -68,18 +81,6 @@ class Layer:
     @property
     def thickness(self):
         return self.dimensions[1]
-
-    @property
-    def X(self):
-        return self.dimensions[0]
-
-    @property
-    def Y(self):
-        return self.dimensions[1]
-
-    @property
-    def Z(self):
-        return self.dimensions[2]
 
     def allocateVolume(volume):
         self.volumeOccupied += volume

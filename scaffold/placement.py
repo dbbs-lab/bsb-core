@@ -28,7 +28,7 @@ class PlacementStrategy(ConfigurableClass):
 			return int(ratioCellType.placement.getPlacementCount(ratioCellType) * cellType.ratio)
 		if not cellType.planarDensity is None:
 			# Calculate the planar density
-			return int(self.scaffold.X * self.scaffold.Z * cellType.planarDensity)
+			return int(layer.X * layer.Z * cellType.planarDensity)
 		if hasattr(self, 'restrictionFactor'):
 			# Add a restriction factor to the available volume
 			return int(availableVolume * self.restrictionFactor * cellType.density)
@@ -317,7 +317,7 @@ class ParallelArrayPlacement(PlacementStrategy):
 
 	def place(self, cellType):
 		'''
-			Cell placement: Create a single layer of multiple arrays of cells parallel to each other.
+			Cell placement: Create a lattice of parallel arrays/lines in the layer's surface.
 		'''
 		layer = self.layerObject
 		radius = cellType.radius
@@ -325,28 +325,41 @@ class ParallelArrayPlacement(PlacementStrategy):
 		# Extension of a single array in the X dimension
 		extensionX = self.extension_x
 		spanX = diameter + extensionX
-		# Volume dimensions
-		totalX = cellType.scaffold.configuration.X
-		totalZ = cellType.scaffold.configuration.Z
 		# Surface area of the plane to place the cells on
-		surfaceArea = totalX * totalZ
+		surfaceArea = layer.X * layer.Z
 		# Number of cells
 		N = self.getPlacementCount(cellType)
-		# Epsilon: Amount of variation possible on the z-axis
-		ϵ = (( spanX ** 2 - 4. * (diameter * extensionX - (surfaceArea / N))) ** .5 - spanX) / 2.
+		# Place purkinje cells equally spaced over the entire length of the X axis kept apart by their dendritic trees.
+		# They are placed in straight lines, tilted by a certain angle by adding a shifting value.
+		xPositions = np.arange(start=0., stop=layer.X, step=extensionX)[:-1]
+		# Amount of parallel arrays of cells
+		nArrays = xPositions.shape[0]
+		# Cells to distribute along the rows
+		cellsPerRow = round(N / nArrays)
 		# Calculate the position of the cells along the z-axis.
-		parallelArrayZ = np.linspace(start=radius + ϵ / 2, stop=totalZ - radius - ϵ / 2, num=totalZ / (diameter + ϵ))
+		zPositions, lengthPerCell = np.linspace(start=0., stop=layer.Z - radius, num=cellsPerRow, retstep=True, endpoint=False)
+		# Center the cell soma center to the middle of the unit cell
+		zPositions += radius + lengthPerCell / 2
+		# Add a random shift to the starting points of the arrays for variation.
+		startOffset = np.random.rand() * extensionX
+		# The length of the X axis where cells can be placed in.
+		boundedX = layer.X - radius * 2
+		# The length of the X axis rounded up to a multiple of the unit cell size.
+		latticeX = nArrays * extensionX
+		# Error introduced in the lattice when it is broken by the modulus.
+		latticeError = latticeX - boundedX
 
-		for i in np.arange(parallelArrayZ.shape[0]):
-			# Calculate the shift of the arrays to account for the angle of the arrays.
-			# Once the arrays have shifted by an entire `extensionX` it's the same as no shift --> modulus
-			shift = parallelArrayZ[i] * math.tan(self.angle) % extensionX
-			# Place purkinje cells equally spaced over the entire length of the X axis kept apart by their dendritic trees.
-			# They are placed in straight lines, tilted by a certain angle by adding a shifting value.
-			x = np.arange(start=(extensionX / 2.) + radius + shift, stop=totalX - radius, step=extensionX)
+		# See the Wiki `Placement > Purkinje placement` for detailed explanations of the following stepd
+		for i in np.arange(zPositions.shape[0]):
+			# Shift the arrays at an angle
+			angleShift = zPositions[i] * math.tan(self.angle)
+			# Apply shift and offset
+			x = (xPositions + angleShift + startOffset)
+			# Place the cells in a bounded lattice with a little modulus magic
+			x = layer.origin[0] + x % boundedX - np.floor(x / boundedX) * latticeError + radius
 			# Place them at a uniformly random height throughout the layer.
-			y = np.random.uniform(radius + layer.origin[1], layer.thickness - radius + layer.origin[1], x.shape[0])
-			# Create jitter on the equally spaced parallelArrayZ positions proportional to ϵ along the z-axis.
-			z = np.array([parallelArrayZ[i] + (ϵ / 2) * np.random.rand() for _ in np.arange(x.shape[0])])
-
+			y = layer.origin[1] + np.random.uniform(radius, layer.Y - radius, x.shape[0])
+			# Place the cells in their z-position with slight jitter
+			z = layer.origin[2] + np.array([zPositions[i] + ϵ * (np.random.rand() - 0.5) for _ in np.arange(x.shape[0])])
+			# Store this stack's cells
 			self.scaffold.placeCells(cellType, layer, np.column_stack([x, y, z]))
