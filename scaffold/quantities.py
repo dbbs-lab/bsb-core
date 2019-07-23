@@ -7,7 +7,7 @@ units = UnitRegistry()
 
 def parseToMicrometer(text):
     try:
-        quantities = UnitParser.parse(text.replace('Âµm', 'µm'))
+        quantities = UnitParser.parse(text.replace('Â', ''))
         if len(quantities) == 0:
             raise Exception("No quantity found where micrometers were expected")
         result = quantities[0]
@@ -20,9 +20,9 @@ def parseToMicrometer(text):
 
 def parseToDensity(text):
     try:
-        quantities = UnitParser.parse(text.replace('Âµm', 'µm'))
+        quantities = UnitParser.parse(text.replace('Â', ''))
         if len(quantities) == 0:
-            raise Exception("No quantity found where a density was expected")
+            raise Exception("No quantity found where a density was expected in '{}".format(text))
         result = quantities[0]
         if result.unit.name.find('cubic') == -1:
             raise Exception("A cubic unit is expected as density in '{}'".format(text))
@@ -35,9 +35,9 @@ def parseToDensity(text):
 
 def parseToPlanarDensity(text):
     try:
-        quantities = UnitParser.parse(text.replace('Âµm', 'µm'))
+        quantities = UnitParser.parse(text.replace('Â', ''))
         if len(quantities) == 0:
-            raise Exception("No quantity found where a planar density was expected")
+            raise Exception("No quantity found where a planar density was expected in '{}".format(text))
         result = quantities[0]
         if result.unit.name.find('squared') == -1:
             raise Exception("A squared unit is expected as planar density in '{}'".format(text))
@@ -47,3 +47,16 @@ def parseToPlanarDensity(text):
         return pq.to(units.micrometer ** -2).magnitude
     except Exception as e:
         raise Exception("Unable to parse '{}' to planar density.".format(text))
+
+def parseToRadian(text):
+    try:
+        quantities = UnitParser.parse(text.replace('Â', ''))
+        if len(quantities) == 0:
+            raise Exception("No quantity found where an angle was expected in '{}".format(text))
+        result = quantities[0]
+        unitName = result.unit.name.split(' ')[0]
+        unit = units.Unit(unitName)
+        pq = result.value * unit
+        return pq.to(units.radian).magnitude
+    except Exception as e:
+        raise Exception("Unable to parse '{}' to radian angle.".format(text))

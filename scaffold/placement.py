@@ -1,8 +1,10 @@
 import abc
 from .helpers import ConfigurableClass
 from .functions import compute_circle, define_bounds, rec_intersection, linear_project
+from .quantities import parseToRadian
 from pprint import pprint
 import numpy as np
+import math
 import random
 from scipy.spatial import distance
 
@@ -295,13 +297,14 @@ class ParallelArrayPlacement(PlacementStrategy):
 	casts = {
 		'extension_x': float,
 		'extension_z': float,
+		'angle': parseToRadian
 	}
 
 	defaults = {
-
+		'angle': 0.08726646259971647 # 5 degrees
 	}
 
-	required = ['extension_x', 'extension_z']
+	required = ['extension_x', 'extension_z', 'angle']
 
 	def validate(self):
 		# Check if the layer is given and exists.
@@ -318,35 +321,29 @@ class ParallelArrayPlacement(PlacementStrategy):
 		'''
 		layer = self.layerObject
 		radius = cellType.radius
-		cellDiameter = 2 * radius
+		diameter = 2 * radius
 		# Extension of a single array in the X dimension
 		extensionX = self.extension_x
-		spanX = cellDiameter + extensionX
+		spanX = diameter + extensionX
 		# Volume dimensions
-		volumeX = cellType.scaffold.configuration.X
-		volumeZ = cellType.scaffold.configuration.Z
+		totalX = cellType.scaffold.configuration.X
+		totalZ = cellType.scaffold.configuration.Z
 		# Surface area of the plane to place the cells on
-		surfaceArea = volumeX * volumeZ
+		surfaceArea = totalX * totalZ
 		# Number of cells
 		N = self.getPlacementCount(cellType)
-		# Epsilon. # TODO: Better comment description
-		ϵ = (( spanX ** 2 - 4. * (cellDiameter * extensionX - (surfaceArea / N))) ** .5 - spanX) / 2.
-		# Calculate the z values for each parallel array
-		parallelArrayZ = np.linspace(radius, volumeZ - radius - (ϵ / 2), volumeZ / (cellDiameter + ϵ))
-
-		offset = 0
-		delta = parallelArrayZ.shape[0] / ((extensionX / 2) - 1)
-		npc = 0
+		# Epsilon: Amount of variation possible on the z-axis
+		ϵ = (( spanX ** 2 - 4. * (diameter * extensionX - (surfaceArea / N))) ** .5 - spanX) / 2.
+		# Calculate the position of the cells along the z-axis.
+		parallelArrayZ = np.linspace(start=radius + ϵ / 2, stop=totalZ - radius - ϵ / 2, num=totalZ / (diameter + ϵ))
 
 		for i in np.arange(parallelArrayZ.shape[0]):
-
-			# Why extension x - 1?
-			x = np.arange((extensionX / 2.) + offset + radius, volumeX - radius, extensionX - 1)
+			shift = parallelArrayZ[i] * math.tan(self.angle) % extensionX
+			x = np.arange(start=(extensionX / 2.) + radius + shift, stop=totalX - radius, step=extensionX)
 			y = np.random.uniform(radius + layer.origin[1], layer.thickness - radius + layer.origin[1], x.shape[0])
 			z = np.zeros((x.shape[0]))
 			for cont in np.arange(x.shape[0]):
 				z[cont] = parallelArrayZ[i] + (ϵ / 2) * np.random.rand()
 
 			self.scaffold.placeCells(cellType, layer, np.column_stack([x, y, z]))
-			offset += delta * 5. * np.random.rand()
-			npc += x.shape[0]
+			# offset += delta * np.random.rand()

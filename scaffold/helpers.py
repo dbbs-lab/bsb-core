@@ -59,9 +59,8 @@ class ConfigurableClass(abc.ABC):
                 try:
                     self.__dict__[attr] = cast(self.__dict__[attr])
                 except Exception as e:
-                    if not hasattr(self, 'name'):
-                        raise Exception("Could not cast configured attribute '{}' with value '{}' for '{}'".format(
-                            attr,
-                            self.__dict__[attr],
-                            self.name)
-                        )
+                    raise Exception("Could not cast configured attribute '{}' with value '{}' for '{}'".format(
+                        attr,
+                        self.__dict__[attr],
+                        name)
+                    )
