@@ -36,10 +36,13 @@ def define_bounds(possible_points, cell_bounds):
 	z_mask = (possible_points[:,1].__ge__(cell_bounds[2,0])) & (possible_points[:,1].__le__(cell_bounds[2,1]))
 	return x_mask, z_mask
 
-def get_candidate_points(center, radius, bounds, min_ϵ, max_ϵ):
+def get_candidate_points(center, radius, bounds, min_ϵ, max_ϵ, return_ϵ=False):
 	# Get n points 2 + rnd_ϵ radii away from the center, see `Wiki > Placement > Layered > Epsilon`
 	# TODO: Add wiki doc
 	rnd_ϵ = np.random.uniform(min_ϵ, max_ϵ)
 	possible_points = compute_circle(center, radius * 2 + rnd_ϵ)
 	x_mask, z_mask = define_bounds(possible_points, bounds)
-	return possible_points[x_mask & z_mask], rnd_ϵ
+	if return_ϵ:
+		return possible_points[x_mask & z_mask], rnd_ϵ
+	else:
+		return possible_points[x_mask & z_mask]
