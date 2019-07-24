@@ -26,17 +26,17 @@ filename = 'scaffold_full_IO'
 save_name = '{}_{}x{}_v3.hdf5'.format(filename, volume_base_size[0], volume_base_size[1])
 
 # Purkinje / DCN ratio: the number of PC per DCN - (Note: describe better)
-pc_dcn_ratio = 1. / config.CellTypes['DCN Cell'].ratio
+pc_dcn_ratio = 1. / config.cell_types['DCN Cell'].ratio
 
 # Extension of Purkinje cell dendritic tree
 pc_extension_dend_tree = float(config.Geometries['PurkinjeCellGeometry'].tree_extension_x)
 z_pc = float(config.Geometries['PurkinjeCellGeometry'].tree_extension_z)
 
 # Thickness of different layers
-layers_thick = {'granular': config.Layers['Granular Layer'].dimensions[1],
-				'purkinje': config.Layers['Purkinje Layer'].dimensions[1],
-				'molecular': config.Layers['Molecular Layer'].dimensions[1],
-				'dcn': config.Layers['DCN Layer'].dimensions[1]}
+layers_thick = {'granular': config.layers['Granular Layer'].dimensions[1],
+				'purkinje': config.layers['Purkinje Layer'].dimensions[1],
+				'molecular': config.layers['Molecular Layer'].dimensions[1],
+				'dcn': config.layers['DCN Layer'].dimensions[1]}
 
 # Soma radius of each cell type (micron)
 ''' Diameter of DCN Glutamatergic neuron is in range 15 - 35 micron (Aizemann et al., 2003)
@@ -45,22 +45,22 @@ layers_thick = {'granular': config.Layers['Granular Layer'].dimensions[1],
 	Slightly different estimate (Gauck and Jaeger, 2000): 10 - 35 micron, average = 20
 	==> mean radius = 10 micron'''
 
-cells_radius = {'golgi': config.CellTypes['Golgi Cell'].radius,
-				'glomerulus': config.CellTypes['Glomerulus'].radius,
-				'granule': config.CellTypes['Granule Cell'].radius,
-				'purkinje': config.CellTypes['Purkinje Cell'].radius,
-				'stellate': config.CellTypes['Stellate Cell'].radius,
-				'basket': config.CellTypes['Basket Cell'].radius,
-				'dcn': config.CellTypes['DCN Cell'].radius}
+cells_radius = {'golgi': config.cell_types['Golgi Cell'].radius,
+				'glomerulus': config.cell_types['Glomerulus'].radius,
+				'granule': config.cell_types['Granule Cell'].radius,
+				'purkinje': config.cell_types['Purkinje Cell'].radius,
+				'stellate': config.cell_types['Stellate Cell'].radius,
+				'basket': config.cell_types['Basket Cell'].radius,
+				'dcn': config.cell_types['DCN Cell'].radius}
 
 
 # Density distribution of each cell type
-cells_density = {'golgi': config.CellTypes['Golgi Cell'].density,
-			     'glomerulus': config.CellTypes['Glomerulus'].density,
-			     'granule': config.CellTypes['Granule Cell'].density,
-			     'purkinje': config.CellTypes['Purkinje Cell'].density,
-			     'stellate': config.CellTypes['Stellate Cell'].density,
-			     'basket': config.CellTypes['Basket Cell'].density}
+cells_density = {'golgi': config.cell_types['Golgi Cell'].density,
+			     'glomerulus': config.cell_types['Glomerulus'].density,
+			     'granule': config.cell_types['Granule Cell'].density,
+			     'purkinje': config.cell_types['Purkinje Cell'].density,
+			     'stellate': config.cell_types['Stellate Cell'].density,
+			     'basket': config.cell_types['Basket Cell'].density}
 
 # Cell type ID (can be changed without constraints)
 cell_type_ID = {'golgi': 1,
@@ -73,13 +73,13 @@ cell_type_ID = {'golgi': 1,
 				}
 
 # Colors for plots (can be changed without constraints)
-cell_color = {  'golgi': config.CellTypes['Golgi Cell'].color,
-				'glomerulus': config.CellTypes['Glomerulus'].color,
-				'granule': config.CellTypes['Granule Cell'].color,
-				'purkinje': config.CellTypes['Purkinje Cell'].color,
-				'stellate': config.CellTypes['Stellate Cell'].color,
-				'basket': config.CellTypes['Basket Cell'].color,
-				'dcn': config.CellTypes['DCN Cell'].color}
+cell_color = {  'golgi': config.cell_types['Golgi Cell'].color,
+				'glomerulus': config.cell_types['Glomerulus'].color,
+				'granule': config.cell_types['Granule Cell'].color,
+				'purkinje': config.cell_types['Purkinje Cell'].color,
+				'stellate': config.cell_types['Stellate Cell'].color,
+				'basket': config.cell_types['Basket Cell'].color,
+				'dcn': config.cell_types['DCN Cell'].color}
 
 # Define pc and dcn values once volume base size has been defined
 pc_in_volume = int(volume_base_size[0]*volume_base_size[1]*cells_density['purkinje'])

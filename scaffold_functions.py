@@ -5,7 +5,7 @@ import pandas as pd
 from mpl_toolkits.mplot3d import Axes3D
 import random
 from scipy.spatial import distance
-from scaffold_params import *
+# from scaffold_params import *
 from pprint import pprint
 
 def adapt_thick_coords(sublayers_roof, cell_radius):

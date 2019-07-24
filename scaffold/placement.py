@@ -10,30 +10,30 @@ from scipy.spatial import distance
 
 class PlacementStrategy(ConfigurableClass):
 	@abc.abstractmethod
-	def place(self, scaffold, cellType):
+	def place(self, scaffold, cell_type):
 		pass
 
-	def getPlacementCount(self, cellType):
+	def get_placement_count(self, cell_type):
 		'''
 			Get the placement count, assuming that it is proportional to the available volume times the density.
 			If it is not, overload this function in your derived class to attain correct placement counts.
 		'''
 
 		scaffold = self.scaffold
-		layer = self.layerObject
-		availableVolume = layer.availableVolume
-		if not cellType.ratio is None:
+		layer = self.layer_instance
+		available_volume = layer.available_volume
+		if not cell_type.ratio is None:
 			# Get the placement count of the ratio cell type and multiply their count by the ratio.
-			ratioCellType = scaffold.configuration.CellTypes[cellType.ratioTo]
-			return int(ratioCellType.placement.getPlacementCount(ratioCellType) * cellType.ratio)
-		if not cellType.planarDensity is None:
+			ratioCellType = scaffold.configuration.cell_types[cell_type.ratioTo]
+			return int(ratioCellType.placement.get_placement_count(ratioCellType) * cell_type.ratio)
+		if not cell_type.planarDensity is None:
 			# Calculate the planar density
-			return int(layer.X * layer.Z * cellType.planarDensity)
-		if hasattr(self, 'restrictionFactor'):
+			return int(layer.X * layer.Z * cell_type.planarDensity)
+		if hasattr(self, 'restriction_factor'):
 			# Add a restriction factor to the available volume
-			return int(availableVolume * self.restrictionFactor * cellType.density)
+			return int(available_volume * self.restriction_factor * cell_type.density)
 		# Default: calculate N = V * C
-		return int(availableVolume * cellType.density)
+		return int(available_volume * cell_type.density)
 
 class LayeredRandomWalk(PlacementStrategy):
 	'''
@@ -46,8 +46,8 @@ class LayeredRandomWalk(PlacementStrategy):
 	}
 
 	defaults = {
-		'distance_multiplier_min': 3.,
-		'distance_multiplier_max': 5.
+		'distance_multiplier_min': 0.75,
+		'distance_multiplier_max': 1.25
 	}
 
 	def validate(self):
@@ -55,22 +55,22 @@ class LayeredRandomWalk(PlacementStrategy):
 		config = self.scaffold.configuration
 		if not hasattr(self, 'layer'):
 			raise Exception("Required attribute Layer missing from {}".format(self.name))
-		if not self.layer in config.Layers:
+		if not self.layer in config.layers:
 			raise Exception("Unknown layer '{}' in {}".format(self.layer, self.name))
-		self.layerObject = self.scaffold.configuration.Layers[self.layer]
+		self.layer_instance = self.scaffold.configuration.layers[self.layer]
 		try:
 			if hasattr(self, 'y_restrict'):
 				minmax = self.y_restrict.split(',')
-				self.restrictionMinimum = float(minmax[0])
-				self.restrictionMaximum = float(minmax[1])
+				self.restriction_minimum = float(minmax[0])
+				self.restriction_maximum = float(minmax[1])
 			else:
-				self.restrictionMinimum = 0.
-				self.restrictionMaximum = 1.
-			self.restrictionFactor = self.restrictionMaximum - self.restrictionMinimum
+				self.restriction_minimum = 0.
+				self.restriction_maximum = 1.
+			self.restriction_factor = self.restriction_maximum - self.restriction_minimum
 		except Exception as e:
 			raise Exception("Could not parse Y_Restrict attribute '{}' of {}".format(self.y_restrict, self.layer))
 
-	def place(self, cellType):
+	def place(self, cell_type):
 		'''
 			Cell placement.
 
@@ -83,144 +83,145 @@ class LayeredRandomWalk(PlacementStrategy):
 		# Variables
 		scaffold = self.scaffold
 		config = scaffold.configuration
-		layer = self.layerObject
-		layerThickness = self.getRestrictedThickness()
+		layer = self.layer_instance
+		layer_thickness = self.get_restricted_thickness()
 		# Virtual layer origin point that applies the Y-Restriction used for example by basket and stellate cells.
-		restrictedOrigin = np.array([
+		restricted_origin = np.array([
 			layer.origin[0],
-			layer.origin[1] + layer.thickness * self.restrictionMinimum,
+			layer.origin[1] + layer.thickness * self.restriction_minimum,
 			layer.origin[2]
 		])
 		# Virtual layer dimensions that apply the Y-Restriction used for example by basket and stellate cells.
-		restrictedDimensions = np.array([
+		restricted_dimensions = np.array([
 			layer.dimensions[0],
-			layerThickness,
+			layer_thickness,
 			layer.dimensions[2]
 		])
-		cellRadius = cellType.radius
-		cellBounds = np.column_stack((
-			restrictedOrigin + cellRadius,
-			restrictedOrigin + restrictedDimensions - cellRadius
+		cell_radius = cell_type.radius
+		cell_bounds = np.column_stack((
+			restricted_origin + cell_radius,
+			restricted_origin + restricted_dimensions - cell_radius
 		))
 		# Get the number of cells that belong in the available volume.
-		nCellsToPlace = self.getPlacementCount(cellType)
-		if nCellsToPlace == 0:
-			print("[WARNING] Volume or density too low, no '{}' cells will be placed".format(cellType.name))
-			nSublayers = 1
-			cellType.ϵ = 0.
+		n_cells_to_place = self.get_placement_count(cell_type)
+		if n_cells_to_place == 0:
+			print("[WARNING] Volume or density too low, no '{}' cells will be placed".format(cell_type.name))
+			n_sublayers = 1
+			cell_type.ϵ = 0.
 		else:
 			# Calculate the volume available per cell
-			cellType.placementVolume = layer.availableVolume * self.restrictionFactor / nCellsToPlace
+			cell_type.placement_volume = layer.available_volume * self.restriction_factor / n_cells_to_place
 			# Calculate the radius of that volume's sphere
-			cellType.placementRadius = (0.75 * cellType.placementVolume / np.pi) ** (1. / 3.0)
+			cell_type.placement_radius = (0.75 * cell_type.placement_volume / np.pi) ** (1. / 3.0)
 			# Calculate the cell epsilon: This is the length of the 'spare space' a cell has inside of its volume
-			cellType.ϵ = cellType.placementRadius - cellRadius
+			cell_type.ϵ = cell_type.placement_radius - cell_radius
 			# Calculate the amount of sublayers
-			nSublayers = np.round(layerThickness / (1.5 * cellType.placementRadius))
+			n_sublayers = np.round(layer_thickness / (1.5 * cell_type.placement_radius))
 		## Sublayer partitioning
-		partitions = self.partitionLayer(nSublayers)
+		partitions = self.partition_layer(n_sublayers)
 		# Adjust partitions for cell radius.
-		partitions = partitions + np.array([cellRadius, -cellRadius])
+		partitions = partitions + np.array([cell_radius, -cell_radius])
 
 		## Placement
 		min_mult = self.distance_multiplier_min
 		max_mult = self.distance_multiplier_max
-		cellsPerSublayer = np.round(nCellsToPlace / nSublayers)
+		cells_per_sublayer = np.round(n_cells_to_place / n_sublayers)
 
-		layerCellPositions = np.empty((0, 3))
+		layer_cell_positions = np.empty((0, 3))
 
-		for sublayerId in np.arange(nSublayers):
-			if cellsPerSublayer == 0:
+		for sublayer_id in np.arange(n_sublayers):
+			if cells_per_sublayer == 0:
 				continue
-			sublayerId = int(sublayerId)
-			sublayerFloor = partitions[sublayerId, 0]
-			sublayerRoof = partitions[sublayerId, 1]
+			sublayer_id = int(sublayer_id)
+			sublayer_floor = partitions[sublayer_id, 0]
+			sublayer_roof = partitions[sublayer_id, 1]
 			# Generate the first cell's position.
-			startingPosition = np.array((
-				np.random.uniform(cellBounds[0, 0], cellBounds[0, 1]), # X
-				np.random.uniform(cellBounds[1, 0], cellBounds[1, 1]), # Y
-				np.random.uniform(cellBounds[2, 0], cellBounds[2, 1]) # Z
+			starting_position = np.array((
+				np.random.uniform(cell_bounds[0, 0], cell_bounds[0, 1]), # X
+				np.random.uniform(cell_bounds[1, 0], cell_bounds[1, 1]), # Y
+				np.random.uniform(cell_bounds[2, 0], cell_bounds[2, 1]) # Z
 			))
 
 			# Store the starting position in the output array. NB: should add a check to
 			## verify that the randomly selected position is not occupied by a different cell type
-			sublayerCellPositions = np.array([startingPosition])
+			sublayer_cell_positions = np.array([starting_position])
 			# For Soma and possible points calcs, we take into account only planar coordinates
-			center = [startingPosition[0], startingPosition[2]] # First and Third columns
+			center = [starting_position[0], starting_position[2]] # First and Third columns
 			# Compute cell soma limits
-			cell_soma = compute_circle(center, cellRadius)
+			soma_outer_points = compute_circle(center, cell_radius)
 			# Define random (bounded) epsilon value for minimal distance between two cells
-			rnd_eps = np.tile(np.random.uniform(cellType.ϵ * (min_mult/4), cellType.ϵ *(max_mult/4)),2)
+			rnd_eps = np.random.uniform(cell_type.ϵ * min_mult, cell_type.ϵ * max_mult)
 			# Create new possible centers for next cell
-			possible_points = np.array([linear_project(center, cell, rnd_eps) for cell in cell_soma])
+			possible_points = np.array([linear_project(center, cell, rnd_eps) for cell in soma_outer_points])
 			# Constrain their possible positions considering volume (plane) boundaries
-			x_mask, z_mask = define_bounds(possible_points, cellBounds)
+			x_mask, z_mask = define_bounds(possible_points, cell_bounds)
 			possible_points = possible_points[x_mask & z_mask]
 			# If there are no possible points, force the cell position to be in the middle of surface
 			if possible_points.shape[0] == 0:
-				startingPosition = np.array([
-					cellBounds[0, 0] + (cellBounds[0, 1] - cellBounds[0, 0]) / 2., # X
-					np.random.uniform(sublayerFloor, sublayerRoof), # Y
-					cellBounds[2, 0] + (cellBounds[2, 1] - cellBounds[2, 0]) / 2. # Z
+				starting_position = np.array([
+					cell_bounds[0, 0] + (cell_bounds[0, 1] - cell_bounds[0, 0]) / 2., # X
+					np.random.uniform(sublayer_floor, sublayer_roof), # Y
+					cell_bounds[2, 0] + (cell_bounds[2, 1] - cell_bounds[2, 0]) / 2. # Z
 				])
-				cell_soma = compute_circle(center, cellRadius)
-				possible_points = np.array([linear_project(center, cell, rnd_eps) for cell in cell_soma])
-				x_mask, z_mask = define_bounds(possible_points, cellBounds)
+				soma_outer_points = compute_circle(center, cell_radius)
+				possible_points = np.array([linear_project(center, cell, rnd_eps) for cell in soma_outer_points])
+				x_mask, z_mask = define_bounds(possible_points, cell_bounds)
 				possible_points = possible_points[x_mask & z_mask]
 				if possible_points.shape[0] == 0:
 					print("[WARNING] Could not place a single cell in {} {} starting from the middle of the simulation volume: Maybe the volume is too low or cell radius/epsilon too big. Sublayer skipped!".format(
 						layer.name,
-						sublayerId
+						sublayer_id
 					))
 					continue
 			# Add third coordinate to all possible points
-			possible_points = np.insert(possible_points, 1, np.random.uniform(sublayerFloor, sublayerRoof, possible_points.shape[0]), axis=1)
+			possible_points = np.insert(possible_points, 1, np.random.uniform(sublayer_floor, sublayer_roof, possible_points.shape[0]), axis=1)
 			# Randomly select one of possible points
 			new_point = possible_points[np.random.randint(possible_points.shape[0])]
 			# Add the new point to list of cells positions
-			sublayerCellPositions = np.vstack([sublayerCellPositions, new_point])
+			sublayer_cell_positions = np.vstack([sublayer_cell_positions, new_point])
 			# History of good possible points still available
 			good_points_store = [possible_points]
 			# History of 'dead-ends' points
 			bad_points = []
 
 			# Place the rest of the cells for the selected sublayer
-			for i in np.arange(1, cellsPerSublayer):
+			for i in np.arange(1, cells_per_sublayer):
 				i = int(i)
 				# Create soma as a circle:
 				# start from the center of previously fixed cell
-				center = sublayerCellPositions[-1][[0,2]]
+				center = sublayer_cell_positions[-1][[0,2]]
 				# Sample n_samples points along the circle surrounding cell center
-				cell_soma = compute_circle(center, cellRadius)
+				soma_outer_points = compute_circle(center, cell_radius)
 				# Recalc random epsilon and use it to define min distance from current cell
 				# for possible new cells
-				rnd_eps = np.tile(np.random.uniform(cellType.ϵ*(min_mult/4), cellType.ϵ*(max_mult/4)),2)
-				inter_cell_soma_dist = cellRadius*2+rnd_eps[0]
-				possible_points = np.array([linear_project(center, cell, rnd_eps) for cell in cell_soma])
-				x_mask, z_mask = define_bounds(possible_points, cellBounds)
+				get_candidate_points()
+				rnd_eps = np.random.uniform(cell_type.ϵ * min_mult, cell_type.ϵ * max_mult)
+				inter_cell_soma_dist = cell_radius * 2 + rnd_eps
+				possible_points = np.array([linear_project(center, cell, rnd_eps) for cell in soma_outer_points])
+				x_mask, z_mask = define_bounds(possible_points, cell_bounds)
 				possible_points = possible_points[x_mask & z_mask]
 				if possible_points.shape[0] == 0:
 					print ("Can't place cells because of volume boundaries")
 					break
 				# For each candidate, calculate distance from the centers of all the (already placed) cells
 				# This comparison is performed ONLY along planar coordinates
-				distance_from_centers = distance.cdist(possible_points, sublayerCellPositions[:,[0,2]])
+				distance_from_centers = distance.cdist(possible_points, sublayer_cell_positions[:,[0,2]])
 				# Associate a third dimension
-				full_coords = np.insert(possible_points, 1, np.random.uniform(sublayerFloor, sublayerRoof, possible_points.shape[0]), axis=1)
+				full_coords = np.insert(possible_points, 1, np.random.uniform(sublayer_floor, sublayer_roof, possible_points.shape[0]), axis=1)
 				# Check if any of candidate points is placed at acceptable distance from all of the other cells.
 				good_idx = list(np.where(np.sum(distance_from_centers.__ge__(inter_cell_soma_dist), axis=1)==distance_from_centers.shape[1])[0])
-				if cellType.name == 'Glomerulus':
+				if cell_type.name == 'Glomerulus':
 					# If the cell type is Glomerulus, we should take into account GoC positions
-					inter_glomgoc_dist = cellRadius + config.CellTypes['Golgi Cell'].radius
-					distance_from_golgi = distance.cdist(full_coords, scaffold.CellsByType['Golgi Cell'])
+					inter_glomgoc_dist = cell_radius + config.cell_types['Golgi Cell'].radius
+					distance_from_golgi = distance.cdist(full_coords, scaffold.cells_by_type['Golgi Cell'])
 					good_from_goc = list(np.where(np.sum(distance_from_golgi.__ge__(inter_glomgoc_dist), axis=1)==distance_from_golgi.shape[1])[0])
 					good_idx = rec_intersection(good_idx, good_from_goc)
-				if cellType.name == 'Granule Cell':
+				if cell_type.name == 'Granule Cell':
 					# If the cell type is Granule, we should take into account GoC and Gloms positions
-					inter_grcgoc_dist = cellRadius + config.CellTypes['Golgi Cell'].radius
-					inter_grcglom_dist = cellRadius + config.CellTypes['Glomerulus'].radius
-					distance_from_golgi = distance.cdist(full_coords, scaffold.CellsByType['Golgi Cell'])
-					distance_from_gloms = distance.cdist(full_coords, scaffold.CellsByType['Glomerulus'])
+					inter_grcgoc_dist = cell_radius + config.cell_types['Golgi Cell'].radius
+					inter_grcglom_dist = cell_radius + config.cell_types['Glomerulus'].radius
+					distance_from_golgi = distance.cdist(full_coords, scaffold.cells_by_type['Golgi Cell'])
+					distance_from_gloms = distance.cdist(full_coords, scaffold.cells_by_type['Glomerulus'])
 					good_from_goc = list(np.where(np.sum(distance_from_golgi.__ge__(inter_grcgoc_dist), axis=1)==distance_from_golgi.shape[1])[0])
 					good_from_gloms = list(np.where(np.sum(distance_from_gloms.__ge__(inter_grcglom_dist), axis=1)==distance_from_gloms.shape[1])[0])
 					good_idx = rec_intersection(good_idx, good_from_goc, good_from_gloms)
@@ -229,18 +230,18 @@ class LayeredRandomWalk(PlacementStrategy):
 					# if we can find new candidates from previous cells options
 					for j in range(len(good_points_store)):
 						possible_points = good_points_store[j][:,[0,2]]
-						cand_dist = distance.cdist(possible_points, sublayerCellPositions[:,[0,2]])
+						cand_dist = distance.cdist(possible_points, sublayer_cell_positions[:,[0,2]])
 						full_coords = good_points_store[j]
-						rnd_eps = np.tile(np.random.uniform(cellType.ϵ * (min_mult/4), cellType.ϵ * (max_mult/4)),2)
-						inter_cell_soma_dist = cellRadius*2+rnd_eps[0]
+						rnd_eps = np.random.uniform(cell_type.ϵ * min_mult, cell_type.ϵ * max_mult)
+						inter_cell_soma_dist = cell_radius * 2 + rnd_eps
 						good_idx = list(np.where(np.sum(cand_dist.__ge__(inter_cell_soma_dist), axis=1)==cand_dist.shape[1])[0])
-						if cellType.name == 'Glomerulus':
-							distance_from_golgi = distance.cdist(full_coords, scaffold.CellsByType['Golgi Cell'])
+						if cell_type.name == 'Glomerulus':
+							distance_from_golgi = distance.cdist(full_coords, scaffold.cells_by_type['Golgi Cell'])
 							good_from_goc = list(np.where(np.sum(distance_from_golgi.__ge__(inter_glomgoc_dist), axis=1)==distance_from_golgi.shape[1])[0])
 							good_idx = rec_intersection(good_idx, good_from_goc)
-						if cellType.name == 'Granule Cell':
-							distance_from_golgi = distance.cdist(full_coords, scaffold.CellsByType['Golgi Cell'])
-							distance_from_gloms = distance.cdist(full_coords, scaffold.CellsByType['Glomerulus'])
+						if cell_type.name == 'Granule Cell':
+							distance_from_golgi = distance.cdist(full_coords, scaffold.cells_by_type['Golgi Cell'])
+							distance_from_gloms = distance.cdist(full_coords, scaffold.cells_by_type['Glomerulus'])
 							good_from_goc = list(np.where(np.sum(distance_from_golgi.__ge__(inter_grcgoc_dist), axis=1)==distance_from_golgi.shape[1])[0])
 							good_from_gloms = list(np.where(np.sum(distance_from_gloms.__ge__(inter_grcglom_dist), axis=1)==distance_from_gloms.shape[1])[0])
 							good_idx = rec_intersection(good_idx, good_from_goc, good_from_gloms)
@@ -248,8 +249,9 @@ class LayeredRandomWalk(PlacementStrategy):
 							## If there is at least one good candidate, select one randomly
 							new_point_idx = random.sample(list(good_idx), 1)[0]
 							center = good_points_store[j][new_point_idx]
-							cell_soma = compute_circle(center[[0,2]], cellRadius)
-							sublayerCellPositions = np.vstack([sublayerCellPositions, center])
+							# Commented: No need to compute soma of candidate at this point?
+							# soma_outer_points = compute_circle(center[[0,2]], cell_radius)
+							sublayer_cell_positions = np.vstack([sublayer_cell_positions, center])
 							#print( "Go back to main loop")
 							break
 						else:
@@ -261,34 +263,34 @@ class LayeredRandomWalk(PlacementStrategy):
 				else:
 					# If there is at least one good candidate, select one randomly
 					new_point_idx = random.sample(list(good_idx), 1)[0]
-					sublayerCellPositions = np.vstack([sublayerCellPositions, full_coords[new_point_idx]])
+					sublayer_cell_positions = np.vstack([sublayer_cell_positions, full_coords[new_point_idx]])
 
 					# Keep track of good candidates for each cell
 					good_points_store = [good_points_store[i] for i in range(len(good_points_store)) if i not in bad_points]
 					good_points_store.append(full_coords[good_idx])
 					bad_points = []
 
-			layerCellPositions = np.concatenate((layerCellPositions, sublayerCellPositions))
-			scaffold.placement_stats[cellType.name]['number_of_cells'].append(layerCellPositions.shape[0])
-			print( "{} sublayer number {} out of {} filled".format(cellType.name, sublayerId + 1, nSublayers))
+			layer_cell_positions = np.concatenate((layer_cell_positions, sublayer_cell_positions))
+			scaffold.placement_stats[cell_type.name]['number_of_cells'].append(layer_cell_positions.shape[0])
+			print( "{} sublayer number {} out of {} filled".format(cell_type.name, sublayer_id + 1, n_sublayers))
 
-		scaffold.placeCells(cellType, layer, layerCellPositions)
+		scaffold.place_cells(cell_type, layer, layer_cell_positions)
 
-	def partitionLayer(self, nSublayers):
+	def partition_layer(self, n_sublayers):
 		# Allow restricted placement along the Y-axis.
-		yMin = self.restrictionMinimum
-		layerThickness = self.getRestrictedThickness()
-		sublayerHeight = layerThickness / nSublayers
+		yMin = self.restriction_minimum
+		layer_thickness = self.get_restricted_thickness()
+		sublayerHeight = layer_thickness / n_sublayers
 		# Divide the Y axis into equal pieces
-		sublayerYs = np.linspace(sublayerHeight, layerThickness, nSublayers)
+		sublayerYs = np.linspace(sublayerHeight, layer_thickness, n_sublayers)
 		# Add the bottom of the lowest layer and translate all the points by the layer's Y position, keeping the Y restriction into account
-		sublayerYs = np.insert(sublayerYs, 0, 0) + self.layerObject.origin[1] + yMin * self.layerObject.thickness
+		sublayerYs = np.insert(sublayerYs, 0, 0) + self.layer_instance.origin[1] + yMin * self.layer_instance.thickness
 		# Create pairs of points on the Y axis corresponding to the bottom and ceiling of each sublayer partition
 		sublayerPartitions = np.column_stack([sublayerYs, np.roll(sublayerYs, -1)])[:-1]
 		return sublayerPartitions
 
-	def getRestrictedThickness(self):
-		return self.layerObject.thickness * (self.restrictionMaximum - self.restrictionMinimum)
+	def get_restricted_thickness(self):
+		return self.layer_instance.thickness * (self.restriction_maximum - self.restriction_minimum)
 
 class ParallelArrayPlacement(PlacementStrategy):
 	'''
@@ -311,16 +313,16 @@ class ParallelArrayPlacement(PlacementStrategy):
 		config = self.scaffold.configuration
 		if not hasattr(self, 'layer'):
 			raise Exception("Required attribute Layer missing from {}".format(self.name))
-		if not self.layer in config.Layers:
+		if not self.layer in config.layers:
 			raise Exception("Unknown layer '{}' in {}".format(self.layer, self.name))
-		self.layerObject = self.scaffold.configuration.Layers[self.layer]
+		self.layer_instance = self.scaffold.configuration.layers[self.layer]
 
-	def place(self, cellType):
+	def place(self, cell_type):
 		'''
 			Cell placement: Create a lattice of parallel arrays/lines in the layer's surface.
 		'''
-		layer = self.layerObject
-		radius = cellType.radius
+		layer = self.layer_instance
+		radius = cell_type.radius
 		diameter = 2 * radius
 		# Extension of a single array in the X dimension
 		extensionX = self.extension_x
@@ -328,13 +330,13 @@ class ParallelArrayPlacement(PlacementStrategy):
 		# Surface area of the plane to place the cells on
 		surfaceArea = layer.X * layer.Z
 		# Number of cells
-		N = self.getPlacementCount(cellType)
+		N = self.get_placement_count(cell_type)
 		# Place purkinje cells equally spaced over the entire length of the X axis kept apart by their dendritic trees.
 		# They are placed in straight lines, tilted by a certain angle by adding a shifting value.
 		xPositions = np.arange(start=0., stop=layer.X, step=extensionX)[:-1]
 		# Amount of parallel arrays of cells
 		nArrays = xPositions.shape[0]
-		# Cells to distribute along the rows
+		# cells to distribute along the rows
 		cellsPerRow = round(N / nArrays)
 		# Calculate the position of the cells along the z-axis.
 		zPositions, lengthPerCell = np.linspace(start=0., stop=layer.Z - radius, num=cellsPerRow, retstep=True, endpoint=False)
@@ -348,6 +350,8 @@ class ParallelArrayPlacement(PlacementStrategy):
 		latticeX = nArrays * extensionX
 		# Error introduced in the lattice when it is broken by the modulus.
 		latticeError = latticeX - boundedX
+		# Epsilon: jitter along the z-axis
+		ϵ = self.extension_z / 2
 
 		# See the Wiki `Placement > Purkinje placement` for detailed explanations of the following stepd
 		for i in np.arange(zPositions.shape[0]):
@@ -362,4 +366,4 @@ class ParallelArrayPlacement(PlacementStrategy):
 			# Place the cells in their z-position with slight jitter
 			z = layer.origin[2] + np.array([zPositions[i] + ϵ * (np.random.rand() - 0.5) for _ in np.arange(x.shape[0])])
 			# Store this stack's cells
-			self.scaffold.placeCells(cellType, layer, np.column_stack([x, y, z]))
+			self.scaffold.place_cells(cell_type, layer, np.column_stack([x, y, z]))

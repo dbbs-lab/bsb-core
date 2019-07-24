@@ -5,20 +5,37 @@ import pandas as pd
 from mpl_toolkits.mplot3d import Axes3D
 import random
 from scipy.spatial import distance
+from pprint import pprint
 
 def compute_circle(center, radius, n_samples=50):
-	''' Create circle n_samples starting from given
-	center and radius.'''
+	'''
+		Create `n_samples` points on a circle based on given `center` and `radius`.
+
+		:param center: XYZ vector of the circle center
+		:type center: array-like
+		:param radius: Radius of the circle
+		:type radius: scalar value
+		:param n_samples: Amount of points on the circle.
+		:type n_samples: int
+	'''
 	nodes = np.linspace(0,2*np.pi,n_samples, endpoint=False)
 	x, y = np.sin(nodes)*radius+center[0], np.cos(nodes)*radius+center[1]
 	return np.column_stack([x,y])
 
-def linear_project(center, cell, eps):
-	''' Linear projections of points on a circle;
-	center: center of circle
-	cell: radius
-	eps: random positive number '''
-	return (cell-(center-cell)) + (np.sign(cell-center)*eps)
+def linear_project(cell_center, cell_outer, ϵ):
+	'''
+		Translate a point in the direction of cell_outer - cell_center with a magnitude of (2 + ϵ).
+
+		:param center: The center point of the cell
+		:param cell_outer: A point on the outer circle of the cell
+		:param ϵ: A random positive number
+	'''
+	# Get the direction vector to project.
+	direction_vector = cell_outer - cell_center
+	# Translate the target point (2 + ϵ) times the radius away from the center
+	translation = direction_vector * (2 + ϵ)
+	# Return the translated point
+	return cell_center + translation
 
 def rec_intersection(*args):
 	''' Intersection of 2 or more arrays (using recursion)'''

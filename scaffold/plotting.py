@@ -6,8 +6,8 @@ def plotNetwork(scaffold, file=None, from_memory=False):
         plt.interactive(True)
         fig = plt.figure()
         ax = fig.add_subplot(111, projection='3d')
-        for type in scaffold.configuration.CellTypes.values():
-            pos = scaffold.CellsByType[type.name]
+        for type in scaffold.configuration.cell_types.values():
+            pos = scaffold.cells_by_type[type.name]
             color = type.color
             ax.scatter3D(pos[:,0], pos[:,1], pos[:,2],c=color)
         plt.show(block=True)

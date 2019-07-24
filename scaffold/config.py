@@ -14,9 +14,9 @@ class ScaffoldConfig(object):
         # Initialise empty config object.
 
         # Dictionaries and lists
-        self.CellTypes = {}
+        self.cell_types = {}
         self.CellTypeIDs = []
-        self.Layers = {}
+        self.layers = {}
         self.LayerIDs = []
         self.ConnectionTypes = {}
         self.Geometries = {}
@@ -26,17 +26,17 @@ class ScaffoldConfig(object):
         self.X = 200    # Transverse simulation space size (µm)
         self.Z = 200    # Longitudinal simulation space size (µm)
 
-    def addCellType(self, cellType):
+    def addCellType(self, cell_type):
         '''
             Adds a cell type to the config object. Cell types are used to populate
             cells into the layers of the simulation.
 
-            :param cellType: CellType object to add
-            :type cellType: CellType
+            :param cell_type: CellType object to add
+            :type cell_type: CellType
         '''
         # Register a new cell type model.
-        self.CellTypes[cellType.name] = cellType
-        self.CellTypeIDs.append(cellType.name)
+        self.cell_types[cell_type.name] = cell_type
+        self.CellTypeIDs.append(cell_type.name)
 
     def addGeometry(self, geometry):
         '''
@@ -73,14 +73,14 @@ class ScaffoldConfig(object):
 
     def addLayer(self, layer):
         '''
-            Adds a layer to the config object. Layers are regions of the simulation
+            Adds a layer to the config object. layers are regions of the simulation
             to be populated by cells.
 
             :param layer: Layer object to add
             :type layer: Layer
         '''
         # Register a new layer model.
-        self.Layers[layer.name] = layer
+        self.layers[layer.name] = layer
         self.LayerIDs.append(layer.name)
 
     def getLayer(self, name='',id=-1):
@@ -98,18 +98,18 @@ class ScaffoldConfig(object):
         if id > -1:
             if len(self.LayerIDs) <= id:
                 raise Exception("Layer with id {} not found.".format(id))
-            return list(self.Layers.values())[id]
+            return list(self.layers.values())[id]
         if name != '':
-            if not name in self.Layers:
+            if not name in self.layers:
                 raise Exception("Layer with name '{}' not found".format(name))
-            return self.Layers[name]
+            return self.layers[name]
         raise Exception("Invalid arguments for ScaffoldConfig.getLayer: name='{}', id={}".format(name, id))
 
     def getLayerID(self, name):
         return self.LayerIDs.index(name)
 
     def getLayerList(self):
-        return list(self.Layers.values())
+        return list(self.layers.values())
 
 class ScaffoldIniConfig(ScaffoldConfig):
     '''
@@ -158,8 +158,8 @@ class ScaffoldIniConfig(ScaffoldConfig):
         }
         # Defines a map from section types to config object dictionaries
         sectionDictionaries = {
-            'Cell': self.CellTypes,
-            'Layer': self.Layers,
+            'Cell': self.cell_types,
+            'Layer': self.layers,
             'Geometry': self.Geometries,
             'Connection': self.ConnectionTypes,
             'Placement': self.PlacementStrategies,
@@ -202,29 +202,29 @@ class ScaffoldIniConfig(ScaffoldConfig):
             :returns: A :class:`CellType`: object.
             :rtype: CellType
         '''
-        cellType = CellType(name)
+        cell_type = CellType(name)
         # Radius
         if not 'radius' in section:
             raise Exception('Required attribute Radius missing in {} section.'.format(name))
-        cellType.radius = parseToMicrometer(section['radius'])
+        cell_type.radius = parseToMicrometer(section['radius'])
         # Density
         if not 'density' in section and not 'planardensity' in section and (not 'ratio' in section or not 'ratioto' in section):
             raise Exception('Either Density, PlanarDensity or Ratio and RatioTo attributes missing in {} section.'.format(name))
         if 'density' in section:
-            cellType.density = parseToDensity(section['density'])
+            cell_type.density = parseToDensity(section['density'])
         elif 'planardensity' in section:
-            cellType.planarDensity = parseToPlanarDensity(section['planardensity'])
+            cell_type.planarDensity = parseToPlanarDensity(section['planardensity'])
         else:
-            cellType.ratio = float(section['ratio'])
-            cellType.ratioTo = section['ratioTo']
+            cell_type.ratio = float(section['ratio'])
+            cell_type.ratioTo = section['ratioTo']
         # Color
         if 'color' in section:
-            cellType.color = section['color']
+            cell_type.color = section['color']
         # Register cell type
-        self.addCellType(cellType)
-        return cellType
+        self.addCellType(cell_type)
+        return cell_type
 
-    def iniGeometricCell(self, cellType, section):
+    def iniGeometricCell(self, cell_type, section):
         '''
             Create a cell type that is modelled in space based on geometrical rules.
         '''
@@ -234,15 +234,15 @@ class ScaffoldIniConfig(ScaffoldConfig):
         if not geometryName in self.Geometries.keys():
             raise Exception("Unknown geometry '{}' in section '{}'".format(geometryName, name))
         # Set the cell's geometry
-        cellType.setGeometry(self.Geometries[geometryName])
-        return cellType
+        cell_type.setGeometry(self.Geometries[geometryName])
+        return cell_type
 
-    def iniMorphologicCell(self, cellType, section):
+    def iniMorphologicCell(self, cell_type, section):
         '''
             Create a cell type that is modelled in space based on a detailed morphology.
         '''
         raise Exception("Morphologic cells not implemented yet.")
-        return cellType
+        return cell_type
 
     def iniLayer(self, name, section):
         '''
@@ -331,32 +331,32 @@ class ScaffoldIniConfig(ScaffoldConfig):
     def finalizeLayer(self, layer, section):
         pass
 
-    def finalizeCellType(self, cellType, section):
+    def finalizeCellType(self, cell_type, section):
         '''
             Adds configured morphology and placement strategy to the cell type configuration.
         '''
 
         # Morphology type
         if not 'morphologytype' in section:
-            raise Exception('Required attribute MorphologyType missing in {} section.'.format(cellType.name))
+            raise Exception('Required attribute MorphologyType missing in {} section.'.format(cell_type.name))
         morphoType = section['morphologytype']
         # Construct geometrical/morphological cell type.
         if morphoType == 'Geometry':
-            self.iniGeometricCell(cellType, section)
+            self.iniGeometricCell(cell_type, section)
         elif morphoType == 'Morphology':
-            self.iniMorphologicCell(cellType, section)
+            self.iniMorphologicCell(cell_type, section)
         else:
             raise Exception("Cell morphology type must be either 'Geometry' or 'Morphology'")
         # Placement strategy
         if not 'placementstrategy' in section:
-            raise Exception('Required attribute PlacementStrategy missing in {} section.'.format(cellType.name))
+            raise Exception('Required attribute PlacementStrategy missing in {} section.'.format(cell_type.name))
         placementName = section['placementstrategy']
         if not placementName in self.PlacementStrategies:
-            raise Exception("Unknown placement strategy '{}' in {} section".format(placementName, cellType.name))
-        if not cellType.ratio is None:
-            if cellType.ratioTo not in self.CellTypes:
-                raise Exception("Ratio defined to unknown cell type '{}' in {}".format(cellType.ratioTo, cellType.name))
-        cellType.setPlacementStrategy(self.PlacementStrategies[placementName])
+            raise Exception("Unknown placement strategy '{}' in {} section".format(placementName, cell_type.name))
+        if not cell_type.ratio is None:
+            if cell_type.ratioTo not in self.cell_types:
+                raise Exception("Ratio defined to unknown cell type '{}' in {}".format(cell_type.ratioTo, cell_type.name))
+        cell_type.setPlacementStrategy(self.PlacementStrategies[placementName])
 
     def finalizeConnection(self, connection, section):
         pass

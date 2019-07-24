@@ -75,7 +75,7 @@ class Layer(dimensions):
         return np.prod(self.dimensions)
 
     @property
-    def availableVolume(self):
+    def available_volume(self):
         return self.volume - self.volumeOccupied
 
     @property

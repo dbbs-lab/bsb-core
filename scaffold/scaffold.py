@@ -27,16 +27,16 @@ class Scaffold:
 
 	def initialiseComponents(self):
 		# Initialise the components now that the scaffoldInstance is available
-		self._initialiseLayers()
-		self._initialiseCells()
+		self._initialiselayers()
+		self._initialise_cells()
 		self._initialisePlacementStrategies()
 
-	def _initialiseCells(self):
-		for name, cellType in self.configuration.CellTypes.items():
-			cellType.initialise(self)
+	def _initialise_cells(self):
+		for name, cell_type in self.configuration.cell_types.items():
+			cell_type.initialise(self)
 
-	def _initialiseLayers(self):
-		for name, layer in self.configuration.Layers.items():
+	def _initialiselayers(self):
+		for name, layer in self.configuration.layers.items():
 			layer.initialise(self)
 
 	def _initialisePlacementStrategies(self):
@@ -45,34 +45,34 @@ class Scaffold:
 
 	def compileNetworkArchitecture(self):
 		# Place the cells starting from the lowest density celltypes.
-		cellTypes = sorted(self.configuration.CellTypes.values(), key=lambda x: x.density)
-		for cellType in cellTypes:
-			cellType.placement.place(cellType)
+		cell_types = sorted(self.configuration.cell_types.values(), key=lambda x: x.density)
+		for cell_type in cell_types:
+			cell_type.placement.place(cell_type)
 
 		self.save()
 		plotNetwork(self, from_memory=True)
 
 	def resetNetworkCache(self):
 		# Cell positions dictionary per cell type. Columns: X, Y, Z.
-		self.CellsByType = {key: np.empty((0, 3)) for key in self.configuration.CellTypes.keys()}
+		self.cells_by_type = {key: np.empty((0, 3)) for key in self.configuration.cell_types.keys()}
 		# Cell positions dictionary per layer. Columns: Type, X, Y, Z.
-		self.CellsByLayer = {key: np.empty((0, 4)) for key in self.configuration.Layers.keys()}
+		self.cells_by_layer = {key: np.empty((0, 4)) for key in self.configuration.layers.keys()}
 		# Cell positions dictionary. Columns: Cell ID, Type, X, Y, Z.
-		self.Cells = np.empty((0, 5))
+		self.cells = np.empty((0, 5))
 
-	def placeCells(self, cellType, layer, positions):
+	def place_cells(self, cell_type, layer, positions):
 		# Store cells per type as X, Y, Z
-		self.CellsByType[cellType.name] = np.concatenate((
-			self.CellsByType[cellType.name],
+		self.cells_by_type[cell_type.name] = np.concatenate((
+			self.cells_by_type[cell_type.name],
 			positions
 		))
 		# Store cells per layer as typeID, X, Y, Z
 		positionsWithTypeId = np.column_stack((
-			np.ones(positions.shape[0]) * cellType.id,
+			np.ones(positions.shape[0]) * cell_type.id,
 			positions
 		))
-		self.CellsByLayer[layer.name] = np.concatenate((
-			self.CellsByLayer[layer.name],
+		self.cells_by_layer[layer.name] = np.concatenate((
+			self.cells_by_layer[layer.name],
 			positionsWithTypeId
 		))
 		# Ask the scaffold for an ID per cell, thread safe?
@@ -82,8 +82,8 @@ class Scaffold:
 			CellIDs,
 			positionsWithTypeId
 		))
-		self.Cells = np.concatenate((
-			self.Cells,
+		self.cells = np.concatenate((
+			self.cells,
 			positionsWithIdAndTypeId
 		))
 
@@ -94,14 +94,14 @@ class Scaffold:
 
 	def save(self):
 		f = h5py.File('scaffold_new_test.hdf5', 'w')
-		cellTypeIDs = self.configuration.CellTypeIDs
-		dset = f.create_dataset('positions', data=self.Cells)
-		dset.attrs['types'] = cellTypeIDs
+		cell_typeIDs = self.configuration.CellTypeIDs
+		dset = f.create_dataset('positions', data=self.cells)
+		dset.attrs['types'] = cell_typeIDs
 		f.close()
 
 
 	def initLegacyCode(self):
-		self.placement_stats = {key: {} for key in self.configuration.CellTypes.keys()}
+		self.placement_stats = {key: {} for key in self.configuration.cell_types.keys()}
 		for key, subdic in self.placement_stats.items():
 			subdic['number_of_cells'] = []
 			subdic['total_n_{}'.format(key)] = 0
