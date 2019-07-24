@@ -1,6 +1,12 @@
 import abc
 from .helpers import ConfigurableClass
-from .functions import compute_circle, define_bounds, rec_intersection, linear_project
+from .functions import (
+	compute_circle,
+	define_bounds,
+	rec_intersection,
+	linear_project,
+	get_candidate_points
+)
 from .quantities import parseToRadian
 from pprint import pprint
 import numpy as np
@@ -123,8 +129,8 @@ class LayeredRandomWalk(PlacementStrategy):
 		partitions = partitions + np.array([cell_radius, -cell_radius])
 
 		## Placement
-		min_mult = self.distance_multiplier_min
-		max_mult = self.distance_multiplier_max
+		min_ϵ = self.distance_multiplier_min * cell_type.ϵ
+		max_ϵ = self.distance_multiplier_max * cell_type.ϵ
 		cells_per_sublayer = np.round(n_cells_to_place / n_sublayers)
 
 		layer_cell_positions = np.empty((0, 3))
@@ -135,27 +141,20 @@ class LayeredRandomWalk(PlacementStrategy):
 			sublayer_id = int(sublayer_id)
 			sublayer_floor = partitions[sublayer_id, 0]
 			sublayer_roof = partitions[sublayer_id, 1]
+
 			# Generate the first cell's position.
 			starting_position = np.array((
 				np.random.uniform(cell_bounds[0, 0], cell_bounds[0, 1]), # X
 				np.random.uniform(cell_bounds[1, 0], cell_bounds[1, 1]), # Y
 				np.random.uniform(cell_bounds[2, 0], cell_bounds[2, 1]) # Z
 			))
-
 			# Store the starting position in the output array. NB: should add a check to
 			## verify that the randomly selected position is not occupied by a different cell type
 			sublayer_cell_positions = np.array([starting_position])
 			# For Soma and possible points calcs, we take into account only planar coordinates
-			center = [starting_position[0], starting_position[2]] # First and Third columns
-			# Compute cell soma limits
-			soma_outer_points = compute_circle(center, cell_radius)
-			# Define random (bounded) epsilon value for minimal distance between two cells
-			rnd_eps = np.random.uniform(cell_type.ϵ * min_mult, cell_type.ϵ * max_mult)
-			# Create new possible centers for next cell
-			possible_points = np.array([linear_project(center, cell, rnd_eps) for cell in soma_outer_points])
-			# Constrain their possible positions considering volume (plane) boundaries
-			x_mask, z_mask = define_bounds(possible_points, cell_bounds)
-			possible_points = possible_points[x_mask & z_mask]
+			center = [starting_position[0], starting_position[2]] # X & Z
+			# Get all possible new cell positions
+			possible_points = get_candidate_points(center, cell_radius, cell_bounds, min_ϵ, max_ϵ)
 			# If there are no possible points, force the cell position to be in the middle of surface
 			if possible_points.shape[0] == 0:
 				starting_position = np.array([
@@ -163,10 +162,7 @@ class LayeredRandomWalk(PlacementStrategy):
 					np.random.uniform(sublayer_floor, sublayer_roof), # Y
 					cell_bounds[2, 0] + (cell_bounds[2, 1] - cell_bounds[2, 0]) / 2. # Z
 				])
-				soma_outer_points = compute_circle(center, cell_radius)
-				possible_points = np.array([linear_project(center, cell, rnd_eps) for cell in soma_outer_points])
-				x_mask, z_mask = define_bounds(possible_points, cell_bounds)
-				possible_points = possible_points[x_mask & z_mask]
+				possible_points = get_candidate_points(center, cell_radius, cell_bounds, min_ϵ, max_ϵ)
 				if possible_points.shape[0] == 0:
 					print("[WARNING] Could not place a single cell in {} {} starting from the middle of the simulation volume: Maybe the volume is too low or cell radius/epsilon too big. Sublayer skipped!".format(
 						layer.name,
@@ -190,17 +186,9 @@ class LayeredRandomWalk(PlacementStrategy):
 				i = int(i)
 				# Create soma as a circle:
 				# start from the center of previously fixed cell
-				center = last_position
-				# Sample n_samples points along the circle surrounding cell center
-				soma_outer_points = compute_circle(center, cell_radius)
-				# Recalc random epsilon and use it to define min distance from current cell
-				# for possible new cells
-				get_candidate_points()
-				rnd_eps = np.random.uniform(cell_type.ϵ * min_mult, cell_type.ϵ * max_mult)
-				inter_cell_soma_dist = cell_radius * 2 + rnd_eps
-				possible_points = np.array([linear_project(center, cell, rnd_eps) for cell in soma_outer_points])
-				x_mask, z_mask = define_bounds(possible_points, cell_bounds)
-				possible_points = possible_points[x_mask & z_mask]
+				center = last_position[[0, 2]]
+				possible_points, rnd_ϵ = get_candidate_points(center, cell_radius, cell_bounds, min_ϵ, max_ϵ)
+				inter_cell_soma_dist = cell_radius * 2 + rnd_ϵ
 				if possible_points.shape[0] == 0:
 					print ("Can't place cells because of volume boundaries")
 					break
@@ -233,7 +221,7 @@ class LayeredRandomWalk(PlacementStrategy):
 						possible_points = good_points_store[j][:,[0,2]]
 						cand_dist = distance.cdist(possible_points, sublayer_cell_positions[:,[0,2]])
 						full_coords = good_points_store[j]
-						rnd_eps = np.random.uniform(cell_type.ϵ * min_mult, cell_type.ϵ * max_mult)
+						rnd_eps = np.random.uniform(cell_type.ϵ * min_ϵ, cell_type.ϵ * max_ϵ)
 						inter_cell_soma_dist = cell_radius * 2 + rnd_eps
 						good_idx = list(np.where(np.sum(cand_dist.__ge__(inter_cell_soma_dist), axis=1)==cand_dist.shape[1])[0])
 						if cell_type.name == 'Glomerulus':

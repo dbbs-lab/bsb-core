@@ -22,21 +22,6 @@ def compute_circle(center, radius, n_samples=50):
 	x, y = np.sin(nodes)*radius+center[0], np.cos(nodes)*radius+center[1]
 	return np.column_stack([x,y])
 
-def linear_project(cell_center, cell_outer, ϵ):
-	'''
-		Translate a point in the direction of cell_outer - cell_center with a magnitude of (2 + ϵ).
-
-		:param center: The center point of the cell
-		:param cell_outer: A point on the outer circle of the cell
-		:param ϵ: A random positive number
-	'''
-	# Get the direction vector to project.
-	direction_vector = cell_outer - cell_center
-	# Translate the target point (2 + ϵ) times the radius away from the center
-	translation = direction_vector * (2 + ϵ)
-	# Return the translated point
-	return cell_center + translation
-
 def rec_intersection(*args):
 	''' Intersection of 2 or more arrays (using recursion)'''
 	if len(args) == 2:
@@ -50,3 +35,11 @@ def define_bounds(possible_points, cell_bounds):
 	x_mask = (possible_points[:,0].__ge__(cell_bounds[0,0])) & (possible_points[:,0].__le__(cell_bounds[0,1]))
 	z_mask = (possible_points[:,1].__ge__(cell_bounds[2,0])) & (possible_points[:,1].__le__(cell_bounds[2,1]))
 	return x_mask, z_mask
+
+def get_candidate_points(center, radius, bounds, min_ϵ, max_ϵ):
+	# Get n points 2 + rnd_ϵ radii away from the center, see `Wiki > Placement > Layered > Epsilon`
+	# TODO: Add wiki doc
+	rnd_ϵ = np.random.uniform(min_ϵ, max_ϵ)
+	possible_points = compute_circle(center, radius * 2 + rnd_ϵ)
+	x_mask, z_mask = define_bounds(possible_points, bounds)
+	return possible_points[x_mask & z_mask], rnd_ϵ
