@@ -9,11 +9,11 @@ from scaffold.plotting import plotNetwork
 import imageio
 
 
-def get_placement_frame(cellType, pos, angle, layer, squishy = 1.):
+def get_placement_frame(cell_type, pos, angle, layer, squishy = 1.):
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
     ax.set(title='Purkinje placement', xlabel='Angle = {}'.format(angle))
-    color = cellType.color
+    color = cell_type.color
     ax.scatter3D(pos[:,0], pos[:,1], pos[:,2],c=color)
     ax.set_xlim(layer.origin[0], layer.origin[0] + layer.dimensions[0])
     ax.set_ylim(layer.origin[1] - (squishy - 1.) * layer.dimensions[1], layer.origin[1] + layer.dimensions[1] * squishy)
@@ -30,8 +30,8 @@ def get_placement_frame(cellType, pos, angle, layer, squishy = 1.):
 scaffoldConfig = ScaffoldIniConfig('test.ini')
 scaffoldInstance = Scaffold(scaffoldConfig)
 config = scaffoldInstance.configuration
-layer = config.Layers['Purkinje Layer']
-pc = config.CellTypes['Purkinje Cell']
+layer = config.layers['Purkinje Layer']
+pc = config.cell_types['Purkinje Cell']
 steps = 400
 angle_range = np.linspace(start=0.,stop=0.9,num=steps)
 densities = np.empty((steps,2))
@@ -42,7 +42,7 @@ for angle in angle_range:
     scaffoldInstance.resetNetworkCache()
     pc.placement.angle = angle
     pc.placement.place(pc)
-    pcCount = scaffoldInstance.CellsByType['Purkinje Cell'].shape[0]
+    pcCount = scaffoldInstance.cells_by_type['Purkinje Cell'].shape[0]
     density = pcCount / layer.X / layer.Z
     if pc.planarDensity is None:
         density /= layer.Y
@@ -50,7 +50,7 @@ for angle in angle_range:
     else:
         densities[index, :] = [pc.planarDensity, density]
     index += 1
-    frames.append(get_placement_frame(pc, scaffoldInstance.CellsByType['Purkinje Cell'], angle, layer, 10.))
+    frames.append(get_placement_frame(pc, scaffoldInstance.cells_by_type['Purkinje Cell'], angle, layer, 10.))
 
 imageio.mimsave('./purkinje_debug.gif', frames, fps=24.)
 
