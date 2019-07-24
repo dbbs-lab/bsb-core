@@ -186,7 +186,7 @@ class LayeredRandomWalk(PlacementStrategy):
 				# Create soma as a circle:
 				# start from the center of previously fixed cell
 				center = last_position[[0, 2]]
-				possible_points, rnd_ϵ = get_candidate_points(center, cell_radius, cell_bounds, min_ϵ, max_ϵ)
+				possible_points, rnd_ϵ = get_candidate_points(center, cell_radius, cell_bounds, min_ϵ, max_ϵ, return_ϵ=True)
 				inter_cell_soma_dist = cell_radius * 2 + rnd_ϵ
 				if possible_points.shape[0] == 0:
 					print ("Can't place cells because of volume boundaries")
@@ -240,6 +240,7 @@ class LayeredRandomWalk(PlacementStrategy):
 							# Commented: No need to compute soma of candidate at this point?
 							# soma_outer_points = compute_circle(center[[0,2]], cell_radius)
 							sublayer_cell_positions = np.vstack([sublayer_cell_positions, center])
+							last_position = center
 							#print( "Go back to main loop")
 							break
 						else:
