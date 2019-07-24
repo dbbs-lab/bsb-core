@@ -184,12 +184,13 @@ class LayeredRandomWalk(PlacementStrategy):
 			# History of 'dead-ends' points
 			bad_points = []
 
+			last_position = starting_position
 			# Place the rest of the cells for the selected sublayer
 			for i in np.arange(1, cells_per_sublayer):
 				i = int(i)
 				# Create soma as a circle:
 				# start from the center of previously fixed cell
-				center = sublayer_cell_positions[-1][[0,2]]
+				center = last_position
 				# Sample n_samples points along the circle surrounding cell center
 				soma_outer_points = compute_circle(center, cell_radius)
 				# Recalc random epsilon and use it to define min distance from current cell
@@ -263,11 +264,13 @@ class LayeredRandomWalk(PlacementStrategy):
 				else:
 					# If there is at least one good candidate, select one randomly
 					new_point_idx = random.sample(list(good_idx), 1)[0]
-					sublayer_cell_positions = np.vstack([sublayer_cell_positions, full_coords[new_point_idx]])
+					new_position = full_coords[new_point_idx]
+					sublayer_cell_positions = np.vstack([sublayer_cell_positions, ])
 
 					# Keep track of good candidates for each cell
 					good_points_store = [good_points_store[i] for i in range(len(good_points_store)) if i not in bad_points]
-					good_points_store.append(full_coords[good_idx])
+					good_points_store.append(new_position)
+					last_position = new_position
 					bad_points = []
 
 			layer_cell_positions = np.concatenate((layer_cell_positions, sublayer_cell_positions))
