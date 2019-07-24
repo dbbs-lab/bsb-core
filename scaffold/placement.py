@@ -253,11 +253,11 @@ class LayeredRandomWalk(PlacementStrategy):
 					# If there is at least one good candidate, select one randomly
 					new_point_idx = random.sample(list(good_idx), 1)[0]
 					new_position = full_coords[new_point_idx]
-					sublayer_cell_positions = np.vstack([sublayer_cell_positions, ])
+					sublayer_cell_positions = np.vstack([sublayer_cell_positions, new_position])
 
 					# Keep track of good candidates for each cell
 					good_points_store = [good_points_store[i] for i in range(len(good_points_store)) if i not in bad_points]
-					good_points_store.append(new_position)
+					good_points_store.append(full_coords[good_idx])
 					last_position = new_position
 					bad_points = []
 
