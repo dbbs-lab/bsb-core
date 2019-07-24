@@ -4,7 +4,6 @@ from .functions import (
 	compute_circle,
 	define_bounds,
 	rec_intersection,
-	linear_project,
 	get_candidate_points
 )
 from .quantities import parseToRadian
