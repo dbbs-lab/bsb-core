@@ -220,7 +220,7 @@ class LayeredRandomWalk(PlacementStrategy):
 						possible_points = good_points_store[j][:,[0,2]]
 						cand_dist = distance.cdist(possible_points, sublayer_cell_positions[:,[0,2]])
 						full_coords = good_points_store[j]
-						rnd_eps = np.random.uniform(cell_type.ϵ * min_ϵ, cell_type.ϵ * max_ϵ)
+						rnd_eps = np.random.uniform(min_ϵ, max_ϵ)
 						inter_cell_soma_dist = cell_radius * 2 + rnd_eps
 						good_idx = list(np.where(np.sum(cand_dist.__ge__(inter_cell_soma_dist), axis=1)==cand_dist.shape[1])[0])
 						if cell_type.name == 'Glomerulus':
@@ -241,7 +241,6 @@ class LayeredRandomWalk(PlacementStrategy):
 							# soma_outer_points = compute_circle(center[[0,2]], cell_radius)
 							sublayer_cell_positions = np.vstack([sublayer_cell_positions, center])
 							last_position = center
-							#print( "Go back to main loop")
 							break
 						else:
 							bad_points.append(j)
