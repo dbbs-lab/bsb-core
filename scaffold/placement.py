@@ -179,7 +179,6 @@ class LayeredRandomWalk(PlacementStrategy):
 			planar_placed_positions = np.array([starting_position[[0,2]]])
 			full_coords = add_y_axis(planar_placed_positions, sublayer_floor, sublayer_roof)
 			good_points_store = [np.copy(full_coords)]
-			bad_points = []
 			last_position = starting_position
 			for current_cell_count in np.arange(1, cells_per_sublayer, dtype=int):
 				planar_candidates, rnd_ϵ = get_candidate_points(last_position[[0, 2]], cell_radius, cell_bounds, min_ϵ, max_ϵ, return_ϵ=True)
@@ -222,7 +221,7 @@ class LayeredRandomWalk(PlacementStrategy):
 							last_position = center
 							break
 						else:
-							bad_points.append(store_id)
+							good_points_store = exclude_index(good_points_store, store_id)
 					if len(good_idx) == 0:
 						print( "Finished after placing {} out of {} cells".format(current_cell_count, cells_per_sublayer))
 						break
@@ -232,10 +231,8 @@ class LayeredRandomWalk(PlacementStrategy):
 					placed_positions = np.vstack([placed_positions, new_position])
 					planar_placed_positions = np.vstack([planar_placed_positions, new_position[[0,2]]])
 
-					good_points_store = [good_points_store[i] for i in range(len(good_points_store)) if i not in bad_points]
 					good_points_store.append(full_coords[good_idx])
 					last_position = new_position
-					bad_points = []
 
 			layer_cell_positions = np.concatenate((layer_cell_positions, placed_positions))
 			scaffold.placement_stats[cell_type.name]['number_of_cells'].append(layer_cell_positions.shape[0])
