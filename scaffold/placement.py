@@ -179,8 +179,7 @@ class LayeredRandomWalk(PlacementStrategy):
 
 			last_position = starting_position
 			# Place the rest of the cells for the selected sublayer
-			for i in np.arange(1, cells_per_sublayer):
-				i = int(i)
+			for i in np.arange(1, cells_per_sublayer, dtype=int):
 				# Create soma as a circle:
 				# start from the center of previously fixed cell
 				center = last_position[[0, 2]]
