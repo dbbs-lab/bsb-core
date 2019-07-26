@@ -50,6 +50,13 @@ class Scaffold:
 			cell_type.placement.place(cell_type)
 
 		self.save()
+		for type in self.configuration.cell_types.values():
+			count = self.cells_by_type[type.name].shape[0]
+			volume = self.configuration.layers[type.placement.layer].volume
+			print(count, volume)
+			density_gotten = '%.4g' % (count / volume)
+			density_wanted = '%.4g' % (type.placement.get_placement_count(type) / volume)
+			print('{} {} placed. Desired density: {}. Actual density: {}'.format(count, type.name, density_wanted, density_gotten))
 		plotNetwork(self, from_memory=True)
 
 	def resetNetworkCache(self):

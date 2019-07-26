@@ -145,54 +145,48 @@ class LayeredRandomWalk(PlacementStrategy):
 			starting_position = np.array((
 				np.random.uniform(cell_bounds[0, 0], cell_bounds[0, 1]), # X
 				np.random.uniform(cell_bounds[1, 0], cell_bounds[1, 1]), # Y
-				np.random.uniform(cell_bounds[2, 0], cell_bounds[2, 1]) # Z
+				np.random.uniform(cell_bounds[2, 0], cell_bounds[2, 1])  # Z
 			))
 			# For Soma and possible points calcs, we take into account only planar coordinates
 			center = [starting_position[0], starting_position[2]] # X & Z
 			# Get all possible new cell positions
-			possible_points = get_candidate_points(center, cell_radius, cell_bounds, min_ϵ, max_ϵ)
+			planar_candidates = get_candidate_points(center, cell_radius, cell_bounds, min_ϵ, max_ϵ)
 			# If there are no possible points, force the cell position to be in the middle of surface
-			if possible_points.shape[0] == 0:
+			if planar_candidates.shape[0] == 0:
 				starting_position = np.array([
 					cell_bounds[0, 0] + (cell_bounds[0, 1] - cell_bounds[0, 0]) / 2., # X
-					np.random.uniform(sublayer_floor, sublayer_roof), # Y
-					cell_bounds[2, 0] + (cell_bounds[2, 1] - cell_bounds[2, 0]) / 2. # Z
+					np.random.uniform(sublayer_floor, sublayer_roof), 				  # Y
+					cell_bounds[2, 0] + (cell_bounds[2, 1] - cell_bounds[2, 0]) / 2.  # Z
 				])
-				possible_points = get_candidate_points(center, cell_radius, cell_bounds, min_ϵ, max_ϵ)
-				if possible_points.shape[0] == 0:
+				planar_candidates = get_candidate_points(center, cell_radius, cell_bounds, min_ϵ, max_ϵ)
+				if planar_candidates.shape[0] == 0:
 					print("[WARNING] Could not place a single cell in {} {} starting from the middle of the simulation volume: Maybe the volume is too low or cell radius/epsilon too big. Sublayer skipped!".format(
 						layer.name,
 						sublayer_id
 					))
 					continue
-			sublayer_cell_positions = np.array([starting_position])
+			placed_positions = np.array([starting_position])
+			planar_placed_positions = np.array([starting_position[[0,2]]])
 			# Add third coordinate to all possible points
-			possible_points = np.insert(possible_points, 1, np.random.uniform(sublayer_floor, sublayer_roof, possible_points.shape[0]), axis=1)
-			# Randomly select one of possible points
-			new_point = possible_points[np.random.randint(possible_points.shape[0])]
-			# Add the new point to list of cells positions
-			sublayer_cell_positions = np.vstack([sublayer_cell_positions, new_point])
-			# History of good possible points still available
-			good_points_store = [possible_points]
-			# History of 'dead-ends' points
+			full_coords = np.insert(planar_candidates, 1, np.random.uniform(sublayer_floor, sublayer_roof, planar_candidates.shape[0]), axis=1)
+			good_points_store = [np.copy(full_coords)]
 			bad_points = []
-
 			last_position = starting_position
 			# Place the rest of the cells for the selected sublayer
 			for i in np.arange(1, cells_per_sublayer, dtype=int):
 				# Create soma as a circle:
 				# start from the center of previously fixed cell
 				center = last_position[[0, 2]]
-				possible_points, rnd_ϵ = get_candidate_points(center, cell_radius, cell_bounds, min_ϵ, max_ϵ, return_ϵ=True)
+				planar_candidates, rnd_ϵ = get_candidate_points(center, cell_radius, cell_bounds, min_ϵ, max_ϵ, return_ϵ=True)
 				inter_cell_soma_dist = cell_radius * 2 + rnd_ϵ
-				if possible_points.shape[0] == 0:
+				if planar_candidates.shape[0] == 0:
 					print ("Can't place cells because of volume boundaries")
 					break
 				# For each candidate, calculate distance from the centers of all the (already placed) cells
 				# This comparison is performed ONLY along planar coordinates
-				distance_from_centers = distance.cdist(possible_points, sublayer_cell_positions[:,[0,2]])
+				distance_from_centers = distance.cdist(planar_candidates, planar_placed_positions)
 				# Associate a third dimension
-				full_coords = np.insert(possible_points, 1, np.random.uniform(sublayer_floor, sublayer_roof, possible_points.shape[0]), axis=1)
+				full_coords = np.insert(planar_candidates, 1, np.random.uniform(sublayer_floor, sublayer_roof, planar_candidates.shape[0]), axis=1)
 				# Check if any of candidate points is placed at acceptable distance from all of the other cells.
 				good_idx = list(np.where(np.sum(distance_from_centers.__ge__(inter_cell_soma_dist), axis=1)==distance_from_centers.shape[1])[0])
 				if cell_type.name == 'Glomerulus':
@@ -214,11 +208,10 @@ class LayeredRandomWalk(PlacementStrategy):
 					# If we don't find any possible candidate, let's start from the first cell and see
 					# if we can find new candidates from previous cells options
 					for j in range(len(good_points_store)):
-						possible_points = good_points_store[j][:,[0,2]]
-						cand_dist = distance.cdist(possible_points, sublayer_cell_positions[:,[0,2]])
+						planar_candidates = good_points_store[j][:,[0,2]]
+						cand_dist = distance.cdist(planar_candidates, planar_placed_positions)
 						full_coords = good_points_store[j]
 						rnd_eps = np.random.uniform(min_ϵ, max_ϵ)
-						pprint(rnd_eps)
 						inter_cell_soma_dist = cell_radius * 2 + rnd_eps
 						good_idx = list(np.where(np.sum(cand_dist.__ge__(inter_cell_soma_dist), axis=1)==cand_dist.shape[1])[0])
 						if cell_type.name == 'Glomerulus':
@@ -237,7 +230,8 @@ class LayeredRandomWalk(PlacementStrategy):
 							center = good_points_store[j][new_point_idx]
 							# Commented: No need to compute soma of candidate at this point?
 							# soma_outer_points = compute_circle(center[[0,2]], cell_radius)
-							sublayer_cell_positions = np.vstack([sublayer_cell_positions, center])
+							placed_positions = np.vstack([placed_positions, center])
+							planar_placed_positions = np.vstack([planar_placed_positions, center[[0,2]]])
 							last_position = center
 							break
 						else:
@@ -250,7 +244,8 @@ class LayeredRandomWalk(PlacementStrategy):
 					# If there is at least one good candidate, select one randomly
 					new_point_idx = random.sample(list(good_idx), 1)[0]
 					new_position = full_coords[new_point_idx]
-					sublayer_cell_positions = np.vstack([sublayer_cell_positions, new_position])
+					placed_positions = np.vstack([placed_positions, new_position])
+					planar_placed_positions = np.vstack([planar_placed_positions, new_position[[0,2]]])
 
 					# Keep track of good candidates for each cell
 					good_points_store = [good_points_store[i] for i in range(len(good_points_store)) if i not in bad_points]
@@ -258,10 +253,10 @@ class LayeredRandomWalk(PlacementStrategy):
 					last_position = new_position
 					bad_points = []
 
-			layer_cell_positions = np.concatenate((layer_cell_positions, sublayer_cell_positions))
+			layer_cell_positions = np.concatenate((layer_cell_positions, placed_positions))
 			scaffold.placement_stats[cell_type.name]['number_of_cells'].append(layer_cell_positions.shape[0])
 			print( "{} sublayer number {} out of {} filled".format(cell_type.name, sublayer_id + 1, n_sublayers))
-			break
+			# break
 
 		scaffold.place_cells(cell_type, layer, layer_cell_positions)
 

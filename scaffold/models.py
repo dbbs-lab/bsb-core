@@ -58,6 +58,10 @@ class dimensions:
     @property
     def Z(self):
         return self.dimensions[2]
+        
+    @property
+    def volume(self):
+        return np.prod(self.dimensions)
 
 class Layer(dimensions):
 
@@ -69,10 +73,6 @@ class Layer(dimensions):
         # Dimensions in the XYZ axes.
         self.dimensions = np.array(dimensions)
         self.volumeOccupied = 0.
-
-    @property
-    def volume(self):
-        return np.prod(self.dimensions)
 
     @property
     def available_volume(self):
