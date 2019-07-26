@@ -168,7 +168,7 @@ class LayeredRandomWalk(PlacementStrategy):
 					np.random.uniform(sublayer_floor, sublayer_roof), 				  # Y
 					cell_bounds[2, 0] + (cell_bounds[2, 1] - cell_bounds[2, 0]) / 2.  # Z
 				])
-				planar_candidates = get_candidate_points(center, cell_radius, cell_bounds, min_ϵ, max_ϵ)
+				planar_candidates = get_candidate_points(planar_start, cell_radius, cell_bounds, min_ϵ, max_ϵ)
 				if planar_candidates.shape[0] == 0:
 					print("[WARNING] Could not place a single cell in {} {} starting from the middle of the simulation volume: Maybe the volume is too low or cell radius/epsilon too big. Sublayer skipped!".format(
 						layer.name,
@@ -197,8 +197,6 @@ class LayeredRandomWalk(PlacementStrategy):
 				layer_distances = distance.cdist(full_coords, previously_placed_cells)
 				good_idx = list(np.where(np.sum(layer_distances > previously_placed_min_dist, axis=1)==layer_distances.shape[1])[0])
 				if len(good_idx) == 0:
-					# If we don't find any possible candidate, let's start from the first cell and see
-					# if we can find new candidates from previous cells options
 					for j in range(len(good_points_store)):
 						planar_candidates = good_points_store[j][:,[0,2]]
 						cand_dist = distance.cdist(planar_candidates, planar_placed_positions)
@@ -217,29 +215,23 @@ class LayeredRandomWalk(PlacementStrategy):
 							good_from_gloms = list(np.where(np.sum(distance_from_gloms.__ge__(inter_grcglom_dist), axis=1)==distance_from_gloms.shape[1])[0])
 							good_idx = rec_intersection(good_idx, good_from_goc, good_from_gloms)
 						if len(good_idx) > 0:
-							## If there is at least one good candidate, select one randomly
 							new_point_idx = random.sample(list(good_idx), 1)[0]
 							center = good_points_store[j][new_point_idx]
-							# Commented: No need to compute soma of candidate at this point?
-							# soma_outer_points = compute_circle(center[[0,2]], cell_radius)
 							placed_positions = np.vstack([placed_positions, center])
 							planar_placed_positions = np.vstack([planar_placed_positions, center[[0,2]]])
 							last_position = center
 							break
 						else:
 							bad_points.append(j)
-					# If we can't find a good point, the loop must be stopped
 					if len(good_idx) == 0:
 						print( "Finished after placing {} out of {} cells".format(current_cell_count, cells_per_sublayer))
 						break
 				else:
-					# If there is at least one good candidate, select one randomly
 					new_point_idx = random.sample(list(good_idx), 1)[0]
 					new_position = full_coords[new_point_idx]
 					placed_positions = np.vstack([placed_positions, new_position])
 					planar_placed_positions = np.vstack([planar_placed_positions, new_position[[0,2]]])
 
-					# Keep track of good candidates for each cell
 					good_points_store = [good_points_store[i] for i in range(len(good_points_store)) if i not in bad_points]
 					good_points_store.append(full_coords[good_idx])
 					last_position = new_position
