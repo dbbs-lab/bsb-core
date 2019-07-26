@@ -147,9 +147,6 @@ class LayeredRandomWalk(PlacementStrategy):
 				np.random.uniform(cell_bounds[1, 0], cell_bounds[1, 1]), # Y
 				np.random.uniform(cell_bounds[2, 0], cell_bounds[2, 1]) # Z
 			))
-			# Store the starting position in the output array. NB: should add a check to
-			## verify that the randomly selected position is not occupied by a different cell type
-			sublayer_cell_positions = np.array([starting_position])
 			# For Soma and possible points calcs, we take into account only planar coordinates
 			center = [starting_position[0], starting_position[2]] # X & Z
 			# Get all possible new cell positions
@@ -168,6 +165,7 @@ class LayeredRandomWalk(PlacementStrategy):
 						sublayer_id
 					))
 					continue
+			sublayer_cell_positions = np.array([starting_position])
 			# Add third coordinate to all possible points
 			possible_points = np.insert(possible_points, 1, np.random.uniform(sublayer_floor, sublayer_roof, possible_points.shape[0]), axis=1)
 			# Randomly select one of possible points
