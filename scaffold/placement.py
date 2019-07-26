@@ -195,10 +195,12 @@ class LayeredRandomWalk(PlacementStrategy):
 				layer_distances = distance.cdist(full_coords, previously_placed_cells)
 				good_idx = list(np.where(np.sum(layer_distances > previously_placed_min_dist, axis=1)==layer_distances.shape[1])[0])
 				if len(good_idx) == 0:
-					for j in range(len(good_points_store)):
-						planar_candidates = good_points_store[j][:,[0,2]]
+					max_attempts = len(good_points_store)
+					for attempt in range(max_attempts):
+						store_id = np.random.randint(max_attempts - attempt)
+						planar_candidates = good_points_store[store_id][:,[0,2]]
 						cand_dist = distance.cdist(planar_candidates, planar_placed_positions)
-						full_coords = good_points_store[j]
+						full_coords = good_points_store[store_id]
 						rnd_eps = np.random.uniform(min_ϵ, max_ϵ)
 						inter_cell_soma_dist = cell_radius * 2 + rnd_eps
 						good_idx = list(np.where(np.sum(cand_dist.__ge__(inter_cell_soma_dist), axis=1)==cand_dist.shape[1])[0])
@@ -214,13 +216,13 @@ class LayeredRandomWalk(PlacementStrategy):
 							good_idx = rec_intersection(good_idx, good_from_goc, good_from_gloms)
 						if len(good_idx) > 0:
 							new_point_idx = random.sample(list(good_idx), 1)[0]
-							center = good_points_store[j][new_point_idx]
+							center = good_points_store[store_id][new_point_idx]
 							placed_positions = np.vstack([placed_positions, center])
 							planar_placed_positions = np.vstack([planar_placed_positions, center[[0,2]]])
 							last_position = center
 							break
 						else:
-							bad_points.append(j)
+							bad_points.append(store_id)
 					if len(good_idx) == 0:
 						print( "Finished after placing {} out of {} cells".format(current_cell_count, cells_per_sublayer))
 						break
