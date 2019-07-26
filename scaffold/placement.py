@@ -135,15 +135,11 @@ class LayeredRandomWalk(PlacementStrategy):
 		previously_placed_cells = scaffold.cells_by_layer[layer.name][:,[1,2,3]]
 		previously_placed_types = np.array(scaffold.cells_by_layer[layer.name][:,0], dtype=int)
 		other_celltype_radii = np.array(list(map(lambda type: scaffold.configuration.cell_types[type].radius, scaffold.configuration.cell_type_map)))
-
-		inter_glomgoc_dist = cell_radius + config.cell_types['Golgi Cell'].radius
-		inter_grcgoc_dist = cell_radius + config.cell_types['Golgi Cell'].radius
-		inter_grcglom_dist = cell_radius + config.cell_types['Glomerulus'].radius
-
 		if len(previously_placed_cells) > 0:
 			previously_placed_min_dist = other_celltype_radii[previously_placed_types] + cell_radius
 		else:
 			previously_placed_min_dist = np.empty((0))
+		other_celltype_count = previously_placed_min_dist.shape[0]
 
 		for sublayer_id in np.arange(n_sublayers):
 			if cells_per_sublayer == 0:
@@ -182,50 +178,47 @@ class LayeredRandomWalk(PlacementStrategy):
 			last_position = starting_position
 			for current_cell_count in np.arange(1, cells_per_sublayer, dtype=int):
 				planar_candidates, rnd_ϵ = get_candidate_points(last_position[[0, 2]], cell_radius, cell_bounds, min_ϵ, max_ϵ, return_ϵ=True)
-				inter_cell_soma_dist = cell_radius * 2 + rnd_ϵ
-				if planar_candidates.shape[0] == 0:
-					print ("Can't place cells because of volume boundaries")
-					break
-				sublayer_distances = distance.cdist(planar_candidates, planar_placed_positions)
 				full_coords = add_y_axis(planar_candidates, sublayer_floor, sublayer_roof)
-				good_idx = list(np.where(np.sum(sublayer_distances.__ge__(inter_cell_soma_dist), axis=1)==sublayer_distances.shape[1])[0])
-				planar_candidates = planar_candidates[good_idx]
-				full_coords = full_coords[good_idx]
+				inter_cell_soma_dist = cell_radius * 2 + rnd_ϵ
+				sublayer_distances = distance.cdist(planar_candidates, planar_placed_positions)
+				good_indices = list(np.where(np.sum(sublayer_distances > inter_cell_soma_dist, axis=1) == current_cell_count)[0])
+				planar_candidates = planar_candidates[good_indices]
+				full_coords = full_coords[good_indices]
 				layer_distances = distance.cdist(full_coords, previously_placed_cells)
-				good_idx = list(np.where(np.sum(layer_distances > previously_placed_min_dist, axis=1)==layer_distances.shape[1])[0])
-				if len(good_idx) == 0:
+				good_indices = list(np.where(np.sum(layer_distances > previously_placed_min_dist, axis=1) == other_celltype_count)[0])
+				if len(good_indices) == 0:
 					max_attempts = len(good_points_store)
 					for attempt in range(max_attempts):
 						store_id = np.random.randint(max_attempts - attempt)
 						planar_candidates = good_points_store[store_id][:,[0,2]]
-						sublayer_distances = distance.cdist(planar_candidates, planar_placed_positions)
 						full_coords = good_points_store[store_id]
-						rnd_eps = np.random.uniform(min_ϵ, max_ϵ)
-						inter_cell_soma_dist = cell_radius * 2 + rnd_eps
-						good_idx = list(np.where(np.sum(sublayer_distances.__ge__(inter_cell_soma_dist), axis=1)==sublayer_distances.shape[1])[0])
-						planar_candidates = planar_candidates[good_idx]
-						full_coords = full_coords[good_idx]
+						rnd_ϵ = np.random.uniform(min_ϵ, max_ϵ)
+						inter_cell_soma_dist = cell_radius * 2 #+ rnd_ϵ
+						sublayer_distances = distance.cdist(planar_candidates, planar_placed_positions)
+						good_indices = list(np.where(np.sum(sublayer_distances > inter_cell_soma_dist, axis=1)==current_cell_count)[0])
+						planar_candidates = planar_candidates[good_indices]
+						full_coords = full_coords[good_indices]
 						layer_distances = distance.cdist(full_coords, previously_placed_cells)
-						good_idx = list(np.where(np.sum(layer_distances > previously_placed_min_dist, axis=1)==layer_distances.shape[1])[0])
-						if len(good_idx) > 0:
-							new_point_idx = random.sample(list(good_idx), 1)[0]
-							candidate = full_coords[new_point_idx]
+						good_indices = list(np.where(np.sum(layer_distances > previously_placed_min_dist, axis=1) == other_celltype_count)[0])
+						if len(good_indices) > 0:
+							random_index = random.sample(good_indices, 1)[0]
+							candidate = full_coords[random_index]
 							placed_positions = np.vstack([placed_positions, candidate])
 							planar_placed_positions = np.vstack([planar_placed_positions, candidate[[0,2]]])
 							last_position = candidate
 							break
 						else:
 							good_points_store = exclude_index(good_points_store, store_id)
-					if len(good_idx) == 0:
+					if len(good_indices) == 0:
 						print( "Finished after placing {} out of {} cells".format(current_cell_count, cells_per_sublayer))
 						break
 				else:
-					new_point_idx = random.sample(list(good_idx), 1)[0]
-					new_position = full_coords[new_point_idx]
+					random_index = random.sample(good_indices, 1)[0]
+					new_position = full_coords[random_index]
 					placed_positions = np.vstack([placed_positions, new_position])
 					planar_placed_positions = np.vstack([planar_placed_positions, new_position[[0,2]]])
 
-					good_points_store.append(full_coords[good_idx])
+					good_points_store.append(full_coords[good_indices])
 					last_position = new_position
 
 			layer_cell_positions = np.concatenate((layer_cell_positions, placed_positions))
