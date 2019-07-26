@@ -147,6 +147,7 @@ class LayeredRandomWalk(PlacementStrategy):
 			sublayer_id = int(sublayer_id)
 			sublayer_floor = partitions[sublayer_id, 0]
 			sublayer_roof = partitions[sublayer_id, 1]
+			sublayer_attempts = 0
 
 			# Generate the first cell's position.
 			starting_position = np.array((
@@ -177,6 +178,8 @@ class LayeredRandomWalk(PlacementStrategy):
 			good_points_store = [np.copy(full_coords)]
 			last_position = starting_position
 			for current_cell_count in np.arange(1, cells_per_sublayer, dtype=int):
+				# Subtract failed placement attempts from loop counter
+				current_cell_count = current_cell_count - sublayer_attempts
 				planar_candidates, rnd_ϵ = get_candidate_points(last_position[[0, 2]], cell_radius, cell_bounds, min_ϵ, max_ϵ, return_ϵ=True)
 				full_coords = add_y_axis(planar_candidates, sublayer_floor, sublayer_roof)
 				inter_cell_soma_dist = cell_radius * 2 + rnd_ϵ
@@ -193,7 +196,7 @@ class LayeredRandomWalk(PlacementStrategy):
 						planar_candidates = good_points_store[store_id][:,[0,2]]
 						full_coords = good_points_store[store_id]
 						rnd_ϵ = np.random.uniform(min_ϵ, max_ϵ)
-						inter_cell_soma_dist = cell_radius * 2 #+ rnd_ϵ
+						inter_cell_soma_dist = cell_radius * 2 + rnd_ϵ
 						sublayer_distances = distance.cdist(planar_candidates, planar_placed_positions)
 						good_indices = list(np.where(np.sum(sublayer_distances > inter_cell_soma_dist, axis=1)==current_cell_count)[0])
 						planar_candidates = planar_candidates[good_indices]
@@ -210,8 +213,17 @@ class LayeredRandomWalk(PlacementStrategy):
 						else:
 							good_points_store = exclude_index(good_points_store, store_id)
 					if len(good_indices) == 0:
-						print( "Finished after placing {} out of {} cells".format(current_cell_count, cells_per_sublayer))
-						break
+						if sublayer_attempts < 10:
+							sublayer_attempts += 1
+							# Try again from a random position
+							last_position = np.array([
+								cell_bounds[0, 0] + (cell_bounds[0, 1] - cell_bounds[0, 0]) / 2., # X
+								np.random.uniform(sublayer_floor, sublayer_roof), 				  # Y
+								cell_bounds[2, 0] + (cell_bounds[2, 1] - cell_bounds[2, 0]) / 2.  # Z
+							])
+						else:
+							print( "Finished after placing {} out of {} cells".format(current_cell_count, cells_per_sublayer))
+							break
 				else:
 					random_index = random.sample(good_indices, 1)[0]
 					new_position = full_coords[random_index]
