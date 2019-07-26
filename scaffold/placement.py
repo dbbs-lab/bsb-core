@@ -158,9 +158,9 @@ class LayeredRandomWalk(PlacementStrategy):
 				np.random.uniform(cell_bounds[1, 0], cell_bounds[1, 1]), # Y
 				np.random.uniform(cell_bounds[2, 0], cell_bounds[2, 1])  # Z
 			))
-			center = [starting_position[0], starting_position[2]] # X & Z
+			planar_start = [starting_position[0], starting_position[2]] # X & Z
 			# Get all possible new cell positions
-			planar_candidates = get_candidate_points(center, cell_radius, cell_bounds, min_ϵ, max_ϵ)
+			planar_candidates = get_candidate_points(planar_start, cell_radius, cell_bounds, min_ϵ, max_ϵ)
 			# If there are no possible points, force the cell position to be in the middle of surface
 			if planar_candidates.shape[0] == 0:
 				starting_position = np.array([
