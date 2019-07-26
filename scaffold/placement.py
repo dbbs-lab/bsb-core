@@ -147,7 +147,6 @@ class LayeredRandomWalk(PlacementStrategy):
 				np.random.uniform(cell_bounds[1, 0], cell_bounds[1, 1]), # Y
 				np.random.uniform(cell_bounds[2, 0], cell_bounds[2, 1])  # Z
 			))
-			# For Soma and possible points calcs, we take into account only planar coordinates
 			center = [starting_position[0], starting_position[2]] # X & Z
 			# Get all possible new cell positions
 			planar_candidates = get_candidate_points(center, cell_radius, cell_bounds, min_ϵ, max_ϵ)
@@ -167,28 +166,21 @@ class LayeredRandomWalk(PlacementStrategy):
 					continue
 			placed_positions = np.array([starting_position])
 			planar_placed_positions = np.array([starting_position[[0,2]]])
-			# Add third coordinate to all possible points
 			full_coords = np.insert(planar_candidates, 1, np.random.uniform(sublayer_floor, sublayer_roof, planar_candidates.shape[0]), axis=1)
 			good_points_store = [np.copy(full_coords)]
 			bad_points = []
 			last_position = starting_position
-			# Place the rest of the cells for the selected sublayer
-			for i in np.arange(1, cells_per_sublayer, dtype=int):
-				# Create soma as a circle:
-				# start from the center of previously fixed cell
-				center = last_position[[0, 2]]
-				planar_candidates, rnd_ϵ = get_candidate_points(center, cell_radius, cell_bounds, min_ϵ, max_ϵ, return_ϵ=True)
+			for current_cell_count in np.arange(1, cells_per_sublayer, dtype=int):
+				# Look for candidates around the xz-coords of previously fixed cell
+				planar_candidates, rnd_ϵ = get_candidate_points(last_position[[0, 2]], cell_radius, cell_bounds, min_ϵ, max_ϵ, return_ϵ=True)
 				inter_cell_soma_dist = cell_radius * 2 + rnd_ϵ
 				if planar_candidates.shape[0] == 0:
 					print ("Can't place cells because of volume boundaries")
 					break
-				# For each candidate, calculate distance from the centers of all the (already placed) cells
-				# This comparison is performed ONLY along planar coordinates
-				distance_from_centers = distance.cdist(planar_candidates, planar_placed_positions)
-				# Associate a third dimension
+				sublayer_distances = distance.cdist(planar_candidates, planar_placed_positions)
 				full_coords = np.insert(planar_candidates, 1, np.random.uniform(sublayer_floor, sublayer_roof, planar_candidates.shape[0]), axis=1)
 				# Check if any of candidate points is placed at acceptable distance from all of the other cells.
-				good_idx = list(np.where(np.sum(distance_from_centers.__ge__(inter_cell_soma_dist), axis=1)==distance_from_centers.shape[1])[0])
+				good_idx = list(np.where(np.sum(sublayer_distances.__ge__(inter_cell_soma_dist), axis=1)==sublayer_distances.shape[1])[0])
 				if cell_type.name == 'Glomerulus':
 					# If the cell type is Glomerulus, we should take into account GoC positions
 					inter_glomgoc_dist = cell_radius + config.cell_types['Golgi Cell'].radius
