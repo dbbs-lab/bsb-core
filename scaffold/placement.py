@@ -1,17 +1,15 @@
-import abc
+import abc, math, random, numpy as np
 from .helpers import ConfigurableClass
+from .quantities import parseToRadian
+from scipy.spatial import distance
 from .functions import (
 	compute_circle,
 	define_bounds,
 	rec_intersection,
-	get_candidate_points
+	get_candidate_points,
+	add_y_axis
 )
-from .quantities import parseToRadian
 from pprint import pprint
-import numpy as np
-import math
-import random
-from scipy.spatial import distance
 
 class PlacementStrategy(ConfigurableClass):
 	@abc.abstractmethod
@@ -178,7 +176,7 @@ class LayeredRandomWalk(PlacementStrategy):
 					continue
 			placed_positions = np.array([starting_position])
 			planar_placed_positions = np.array([starting_position[[0,2]]])
-			full_coords = np.insert(planar_candidates, 1, np.random.uniform(sublayer_floor, sublayer_roof, planar_candidates.shape[0]), axis=1)
+			full_coords = add_y_axis(planar_placed_positions, sublayer_floor, sublayer_roof)
 			good_points_store = [np.copy(full_coords)]
 			bad_points = []
 			last_position = starting_position

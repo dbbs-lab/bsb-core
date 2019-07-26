@@ -46,3 +46,6 @@ def get_candidate_points(center, radius, bounds, min_ϵ, max_ϵ, return_ϵ=False
 		return possible_points[x_mask & z_mask], rnd_ϵ
 	else:
 		return possible_points[x_mask & z_mask]
+
+def add_y_axis(points, min, max):
+	return np.insert(points, 1, np.random.uniform(min, max, points.shape[0]), axis=1)
