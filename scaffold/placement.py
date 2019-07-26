@@ -198,24 +198,18 @@ class LayeredRandomWalk(PlacementStrategy):
 					for attempt in range(max_attempts):
 						store_id = np.random.randint(max_attempts - attempt)
 						planar_candidates = good_points_store[store_id][:,[0,2]]
-						cand_dist = distance.cdist(planar_candidates, planar_placed_positions)
+						sublayer_distances = distance.cdist(planar_candidates, planar_placed_positions)
 						full_coords = good_points_store[store_id]
 						rnd_eps = np.random.uniform(min_ϵ, max_ϵ)
 						inter_cell_soma_dist = cell_radius * 2 + rnd_eps
-						good_idx = list(np.where(np.sum(cand_dist.__ge__(inter_cell_soma_dist), axis=1)==cand_dist.shape[1])[0])
-						if cell_type.name == 'Glomerulus':
-							distance_from_golgi = distance.cdist(full_coords, scaffold.cells_by_type['Golgi Cell'])
-							good_from_goc = list(np.where(np.sum(distance_from_golgi.__ge__(inter_glomgoc_dist), axis=1)==distance_from_golgi.shape[1])[0])
-							good_idx = rec_intersection(good_idx, good_from_goc)
-						if cell_type.name == 'Granule Cell':
-							distance_from_golgi = distance.cdist(full_coords, scaffold.cells_by_type['Golgi Cell'])
-							distance_from_gloms = distance.cdist(full_coords, scaffold.cells_by_type['Glomerulus'])
-							good_from_goc = list(np.where(np.sum(distance_from_golgi.__ge__(inter_grcgoc_dist), axis=1)==distance_from_golgi.shape[1])[0])
-							good_from_gloms = list(np.where(np.sum(distance_from_gloms.__ge__(inter_grcglom_dist), axis=1)==distance_from_gloms.shape[1])[0])
-							good_idx = rec_intersection(good_idx, good_from_goc, good_from_gloms)
+						good_idx = list(np.where(np.sum(sublayer_distances.__ge__(inter_cell_soma_dist), axis=1)==sublayer_distances.shape[1])[0])
+						planar_candidates = planar_candidates[good_idx]
+						full_coords = full_coords[good_idx]
+						layer_distances = distance.cdist(full_coords, previously_placed_cells)
+						good_idx = list(np.where(np.sum(layer_distances > previously_placed_min_dist, axis=1)==layer_distances.shape[1])[0])
 						if len(good_idx) > 0:
 							new_point_idx = random.sample(list(good_idx), 1)[0]
-							center = good_points_store[store_id][new_point_idx]
+							center = full_coords[new_point_idx]
 							placed_positions = np.vstack([placed_positions, center])
 							planar_placed_positions = np.vstack([planar_placed_positions, center[[0,2]]])
 							last_position = center
