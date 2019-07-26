@@ -230,7 +230,7 @@ class LayeredRandomWalk(PlacementStrategy):
 							bad_points.append(j)
 					# If we can't find a good point, the loop must be stopped
 					if len(good_idx) == 0:
-						print( "Finished after placing {} out of {} cells".format(i, cells_per_sublayer))
+						print( "Finished after placing {} out of {} cells".format(current_cell_count, cells_per_sublayer))
 						break
 				else:
 					# If there is at least one good candidate, select one randomly
