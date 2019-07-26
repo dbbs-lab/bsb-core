@@ -182,7 +182,6 @@ class LayeredRandomWalk(PlacementStrategy):
 			bad_points = []
 			last_position = starting_position
 			for current_cell_count in np.arange(1, cells_per_sublayer, dtype=int):
-				# Look for candidates around the xz-coords of previously fixed cell
 				planar_candidates, rnd_ϵ = get_candidate_points(last_position[[0, 2]], cell_radius, cell_bounds, min_ϵ, max_ϵ, return_ϵ=True)
 				inter_cell_soma_dist = cell_radius * 2 + rnd_ϵ
 				if planar_candidates.shape[0] == 0:
@@ -190,7 +189,6 @@ class LayeredRandomWalk(PlacementStrategy):
 					break
 				sublayer_distances = distance.cdist(planar_candidates, planar_placed_positions)
 				full_coords = add_y_axis(planar_candidates, sublayer_floor, sublayer_roof)
-				# Check if any of candidate points is placed at acceptable distance from all of the other cells.
 				good_idx = list(np.where(np.sum(sublayer_distances.__ge__(inter_cell_soma_dist), axis=1)==sublayer_distances.shape[1])[0])
 				planar_candidates = planar_candidates[good_idx]
 				full_coords = full_coords[good_idx]
