@@ -7,7 +7,8 @@ from .functions import (
 	define_bounds,
 	rec_intersection,
 	get_candidate_points,
-	add_y_axis
+	add_y_axis,
+	exclude_index
 )
 from pprint import pprint
 
