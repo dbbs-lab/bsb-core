@@ -209,10 +209,10 @@ class LayeredRandomWalk(PlacementStrategy):
 						good_idx = list(np.where(np.sum(layer_distances > previously_placed_min_dist, axis=1)==layer_distances.shape[1])[0])
 						if len(good_idx) > 0:
 							new_point_idx = random.sample(list(good_idx), 1)[0]
-							center = full_coords[new_point_idx]
-							placed_positions = np.vstack([placed_positions, center])
-							planar_placed_positions = np.vstack([planar_placed_positions, center[[0,2]]])
-							last_position = center
+							candidate = full_coords[new_point_idx]
+							placed_positions = np.vstack([placed_positions, candidate])
+							planar_placed_positions = np.vstack([planar_placed_positions, candidate[[0,2]]])
+							last_position = candidate
 							break
 						else:
 							good_points_store = exclude_index(good_points_store, store_id)
