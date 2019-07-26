@@ -26,10 +26,10 @@ class CellType:
 
     def initialise(self, scaffoldInstance):
         self.scaffold = scaffoldInstance
-        self.id = scaffoldInstance.configuration.CellTypeIDs.index(self.name)
+        self.id = scaffoldInstance.configuration.cell_type_map.index(self.name)
         self.validate()
 
-    def setGeometry(self, geometry):
+    def set_geometry(self, geometry):
         '''
             Set the Geometry class for this cell type.
 
@@ -58,7 +58,7 @@ class dimensions:
     @property
     def Z(self):
         return self.dimensions[2]
-        
+
     @property
     def volume(self):
         return np.prod(self.dimensions)

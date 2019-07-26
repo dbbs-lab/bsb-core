@@ -133,6 +133,13 @@ class LayeredRandomWalk(PlacementStrategy):
 		cells_per_sublayer = np.round(n_cells_to_place / n_sublayers)
 
 		layer_cell_positions = np.empty((0, 3))
+		previously_placed_cells = scaffold.cells_by_layer[layer.name][:,[1,3]]
+		previously_placed_types = np.array(scaffold.cells_by_layer[layer.name][:,0], dtype=int)
+		other_celltype_radii = np.array(list(map(lambda type: scaffold.configuration.cell_types[type].radius, scaffold.configuration.cell_type_map)))
+		if len(previously_placed_cells) > 0:
+			previously_placed_min_dist = other_celltype_radii[previously_placed_types] + cell_radius
+		else:
+			previously_placed_min_dist = np.empty((0))
 
 		for sublayer_id in np.arange(n_sublayers):
 			if cells_per_sublayer == 0:

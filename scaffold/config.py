@@ -15,12 +15,12 @@ class ScaffoldConfig(object):
 
         # Dictionaries and lists
         self.cell_types = {}
-        self.CellTypeIDs = []
+        self.cell_type_map = []
         self.layers = {}
-        self.LayerIDs = []
-        self.ConnectionTypes = {}
-        self.Geometries = {}
-        self.PlacementStrategies = {}
+        self.layer_map = []
+        self.connection_types = {}
+        self.geometries = {}
+        self.placement_strategies = {}
 
         # General simulation values
         self.X = 200    # Transverse simulation space size (µm)
@@ -36,7 +36,7 @@ class ScaffoldConfig(object):
         '''
         # Register a new cell type model.
         self.cell_types[cell_type.name] = cell_type
-        self.CellTypeIDs.append(cell_type.name)
+        self.cell_type_map.append(cell_type.name)
 
     def addGeometry(self, geometry):
         '''
@@ -47,7 +47,7 @@ class ScaffoldConfig(object):
             :type geometry: Geometry
         '''
         # Register a new Geometry.
-        self.Geometries[geometry.name] = geometry
+        self.geometries[geometry.name] = geometry
 
     def addPlacementStrategy(self, placement):
         '''
@@ -58,7 +58,7 @@ class ScaffoldConfig(object):
             :type placement: PlacementStrategy
         '''
         # Register a new Geometry.
-        self.PlacementStrategies[placement.name] = placement
+        self.placement_strategies[placement.name] = placement
 
     def addConnection(self, connection):
         '''
@@ -69,7 +69,7 @@ class ScaffoldConfig(object):
             :type connection: ConnectionStrategy
         '''
         # Register a new ConnectionStrategy.
-        self.ConnectionTypes[connection.name] = connection
+        self.connection_types[connection.name] = connection
 
     def addLayer(self, layer):
         '''
@@ -81,7 +81,7 @@ class ScaffoldConfig(object):
         '''
         # Register a new layer model.
         self.layers[layer.name] = layer
-        self.LayerIDs.append(layer.name)
+        self.layer_map.append(layer.name)
 
     def getLayer(self, name='',id=-1):
         '''
@@ -96,7 +96,7 @@ class ScaffoldConfig(object):
             :rtype: Layer
         '''
         if id > -1:
-            if len(self.LayerIDs) <= id:
+            if len(self.layer_map) <= id:
                 raise Exception("Layer with id {} not found.".format(id))
             return list(self.layers.values())[id]
         if name != '':
@@ -106,7 +106,7 @@ class ScaffoldConfig(object):
         raise Exception("Invalid arguments for ScaffoldConfig.getLayer: name='{}', id={}".format(name, id))
 
     def getLayerID(self, name):
-        return self.LayerIDs.index(name)
+        return self.layer_map.index(name)
 
     def getLayerList(self):
         return list(self.layers.values())
@@ -160,9 +160,9 @@ class ScaffoldIniConfig(ScaffoldConfig):
         sectionDictionaries = {
             'Cell': self.cell_types,
             'Layer': self.layers,
-            'Geometry': self.Geometries,
-            'Connection': self.ConnectionTypes,
-            'Placement': self.PlacementStrategies,
+            'Geometry': self.geometries,
+            'Connection': self.connection_types,
+            'Placement': self.placement_strategies,
         }
         # Initialize special sections such as the general section.
         self.initSections()
@@ -230,11 +230,11 @@ class ScaffoldIniConfig(ScaffoldConfig):
         '''
         if not 'geometryname' in section:
             raise Exception('Required geometry attribute GeometryName missing in {} section.'.format(name))
-        geometryName = section['geometryname']
-        if not geometryName in self.Geometries.keys():
-            raise Exception("Unknown geometry '{}' in section '{}'".format(geometryName, name))
+        geometry_name = section['geometryname']
+        if not geometry_name in self.geometries.keys():
+            raise Exception("Unknown geometry '{}' in section '{}'".format(geometry_name, name))
         # Set the cell's geometry
-        cell_type.setGeometry(self.Geometries[geometryName])
+        cell_type.set_geometry(self.geometries[geometry_name])
         return cell_type
 
     def iniMorphologicCell(self, cell_type, section):
@@ -351,12 +351,12 @@ class ScaffoldIniConfig(ScaffoldConfig):
         if not 'placementstrategy' in section:
             raise Exception('Required attribute PlacementStrategy missing in {} section.'.format(cell_type.name))
         placementName = section['placementstrategy']
-        if not placementName in self.PlacementStrategies:
+        if not placementName in self.placement_strategies:
             raise Exception("Unknown placement strategy '{}' in {} section".format(placementName, cell_type.name))
         if not cell_type.ratio is None:
             if cell_type.ratioTo not in self.cell_types:
                 raise Exception("Ratio defined to unknown cell type '{}' in {}".format(cell_type.ratioTo, cell_type.name))
-        cell_type.setPlacementStrategy(self.PlacementStrategies[placementName])
+        cell_type.setPlacementStrategy(self.placement_strategies[placementName])
 
     def finalizeConnection(self, connection, section):
         pass

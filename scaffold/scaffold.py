@@ -3,6 +3,7 @@ from .plotting import plotNetwork
 import numpy as np
 import h5py
 from pprint import pprint
+import time
 
 ###############################
 ## Scaffold class
@@ -40,24 +41,28 @@ class Scaffold:
 			layer.initialise(self)
 
 	def _initialisePlacementStrategies(self):
-		for name, placement in self.configuration.PlacementStrategies.items():
+		for name, placement in self.configuration.placement_strategies.items():
 			placement.initialise(self)
 
-	def compileNetworkArchitecture(self):
+	def compileNetworkArchitecture(self, tries=1):
+		times = np.zeros(tries)
 		# Place the cells starting from the lowest density celltypes.
-		cell_types = sorted(self.configuration.cell_types.values(), key=lambda x: x.density)
-		for cell_type in cell_types:
-			cell_type.placement.place(cell_type)
-
-		self.save()
-		for type in self.configuration.cell_types.values():
-			count = self.cells_by_type[type.name].shape[0]
-			volume = self.configuration.layers[type.placement.layer].volume
-			print(count, volume)
-			density_gotten = '%.4g' % (count / volume)
-			density_wanted = '%.4g' % (type.placement.get_placement_count(type) / volume)
-			print('{} {} placed. Desired density: {}. Actual density: {}'.format(count, type.name, density_wanted, density_gotten))
-		plotNetwork(self, from_memory=True)
+		for i in np.arange(tries, dtype=int):
+			t = time.time()
+			cell_types = sorted(self.configuration.cell_types.values(), key=lambda x: x.density)
+			for cell_type in cell_types:
+				cell_type.placement.place(cell_type)
+			times[i] = time.time() - t
+			self.save()
+			for type in self.configuration.cell_types.values():
+				count = self.cells_by_type[type.name].shape[0]
+				volume = self.configuration.layers[type.placement.layer].volume
+				density_gotten = '%.4g' % (count / volume)
+				density_wanted = '%.4g' % (type.placement.get_placement_count(type) / volume)
+				percent = int((count / type.placement.get_placement_count(type)) * 100)
+				print('{} {} placed ({}%). Desired density: {}. Actual density: {}'.format(count, type.name, percent, density_wanted, density_gotten))
+		print('Average runtime: {}'.format(np.average(times)))
+		# plotNetwork(self, from_memory=True)
 
 	def resetNetworkCache(self):
 		# Cell positions dictionary per cell type. Columns: X, Y, Z.
@@ -101,7 +106,7 @@ class Scaffold:
 
 	def save(self):
 		f = h5py.File('scaffold_new_test.hdf5', 'w')
-		cell_typeIDs = self.configuration.CellTypeIDs
+		cell_typeIDs = self.configuration.cell_type_map
 		dset = f.create_dataset('positions', data=self.cells)
 		dset.attrs['types'] = cell_typeIDs
 		f.close()
