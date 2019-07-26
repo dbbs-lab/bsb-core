@@ -62,7 +62,7 @@ class Scaffold:
 				percent = int((count / type.placement.get_placement_count(type)) * 100)
 				print('{} {} placed ({}%). Desired density: {}. Actual density: {}'.format(count, type.name, percent, density_wanted, density_gotten))
 		print('Average runtime: {}'.format(np.average(times)))
-		# plotNetwork(self, from_memory=True)
+		plotNetwork(self, from_memory=True)
 
 	def resetNetworkCache(self):
 		# Cell positions dictionary per cell type. Columns: X, Y, Z.

@@ -133,9 +133,14 @@ class LayeredRandomWalk(PlacementStrategy):
 		cells_per_sublayer = np.round(n_cells_to_place / n_sublayers)
 
 		layer_cell_positions = np.empty((0, 3))
-		previously_placed_cells = scaffold.cells_by_layer[layer.name][:,[1,3]]
+		previously_placed_cells = scaffold.cells_by_layer[layer.name][:,[1,2,3]]
 		previously_placed_types = np.array(scaffold.cells_by_layer[layer.name][:,0], dtype=int)
 		other_celltype_radii = np.array(list(map(lambda type: scaffold.configuration.cell_types[type].radius, scaffold.configuration.cell_type_map)))
+
+		inter_glomgoc_dist = cell_radius + config.cell_types['Golgi Cell'].radius
+		inter_grcgoc_dist = cell_radius + config.cell_types['Golgi Cell'].radius
+		inter_grcglom_dist = cell_radius + config.cell_types['Glomerulus'].radius
+
 		if len(previously_placed_cells) > 0:
 			previously_placed_min_dist = other_celltype_radii[previously_placed_types] + cell_radius
 		else:
@@ -188,21 +193,10 @@ class LayeredRandomWalk(PlacementStrategy):
 				full_coords = np.insert(planar_candidates, 1, np.random.uniform(sublayer_floor, sublayer_roof, planar_candidates.shape[0]), axis=1)
 				# Check if any of candidate points is placed at acceptable distance from all of the other cells.
 				good_idx = list(np.where(np.sum(sublayer_distances.__ge__(inter_cell_soma_dist), axis=1)==sublayer_distances.shape[1])[0])
-				if cell_type.name == 'Glomerulus':
-					# If the cell type is Glomerulus, we should take into account GoC positions
-					inter_glomgoc_dist = cell_radius + config.cell_types['Golgi Cell'].radius
-					distance_from_golgi = distance.cdist(full_coords, scaffold.cells_by_type['Golgi Cell'])
-					good_from_goc = list(np.where(np.sum(distance_from_golgi.__ge__(inter_glomgoc_dist), axis=1)==distance_from_golgi.shape[1])[0])
-					good_idx = rec_intersection(good_idx, good_from_goc)
-				if cell_type.name == 'Granule Cell':
-					# If the cell type is Granule, we should take into account GoC and Gloms positions
-					inter_grcgoc_dist = cell_radius + config.cell_types['Golgi Cell'].radius
-					inter_grcglom_dist = cell_radius + config.cell_types['Glomerulus'].radius
-					distance_from_golgi = distance.cdist(full_coords, scaffold.cells_by_type['Golgi Cell'])
-					distance_from_gloms = distance.cdist(full_coords, scaffold.cells_by_type['Glomerulus'])
-					good_from_goc = list(np.where(np.sum(distance_from_golgi.__ge__(inter_grcgoc_dist), axis=1)==distance_from_golgi.shape[1])[0])
-					good_from_gloms = list(np.where(np.sum(distance_from_gloms.__ge__(inter_grcglom_dist), axis=1)==distance_from_gloms.shape[1])[0])
-					good_idx = rec_intersection(good_idx, good_from_goc, good_from_gloms)
+				planar_candidates = planar_candidates[good_idx]
+				full_coords = full_coords[good_idx]
+				layer_distances = distance.cdist(full_coords, previously_placed_cells)
+				good_idx = list(np.where(np.sum(layer_distances > previously_placed_min_dist, axis=1)==layer_distances.shape[1])[0])
 				if len(good_idx) == 0:
 					# If we don't find any possible candidate, let's start from the first cell and see
 					# if we can find new candidates from previous cells options
