@@ -188,7 +188,7 @@ class LayeredRandomWalk(PlacementStrategy):
 					print ("Can't place cells because of volume boundaries")
 					break
 				sublayer_distances = distance.cdist(planar_candidates, planar_placed_positions)
-				full_coords = np.insert(planar_candidates, 1, np.random.uniform(sublayer_floor, sublayer_roof, planar_candidates.shape[0]), axis=1)
+				full_coords = add_y_axis(planar_candidates, sublayer_floor, sublayer_roof)
 				# Check if any of candidate points is placed at acceptable distance from all of the other cells.
 				good_idx = list(np.where(np.sum(sublayer_distances.__ge__(inter_cell_soma_dist), axis=1)==sublayer_distances.shape[1])[0])
 				planar_candidates = planar_candidates[good_idx]
