@@ -28,31 +28,46 @@ class Scaffold:
 
 	def initialiseComponents(self):
 		# Initialise the components now that the scaffoldInstance is available
-		self._initialiselayers()
+		self._initialise_layers()
 		self._initialise_cells()
-		self._initialisePlacementStrategies()
+		self._initialise_geometries()
+		self._initialise_placement_strategies()
+		self._initialise_connection_types()
 
 	def _initialise_cells(self):
-		for name, cell_type in self.configuration.cell_types.items():
+		for cell_type in self.configuration.cell_types.values():
 			cell_type.initialise(self)
 
-	def _initialiselayers(self):
-		for name, layer in self.configuration.layers.items():
+	def _initialise_layers(self):
+		for layer in self.configuration.layers.values():
 			layer.initialise(self)
 
-	def _initialisePlacementStrategies(self):
-		for name, placement in self.configuration.placement_strategies.items():
+	def _initialise_placement_strategies(self):
+		for placement in self.configuration.placement_strategies.values():
 			placement.initialise(self)
 
+	def _initialise_connection_types(self):
+		for connection_type in self.configuration.connection_types.values():
+			connection_type.initialise(self)
+
+	def _initialise_geometries(self):
+		for geometry in self.configuration.geometries.values():
+			geometry.initialise(self)
+
 	def compileNetworkArchitecture(self, tries=1):
-		times = np.zeros(tries)
+		place_times = np.zeros(tries)
+		connect_times = np.zeros(tries)
 		# Place the cells starting from the lowest density celltypes.
 		for i in np.arange(tries, dtype=int):
 			t = time.time()
 			cell_types = sorted(self.configuration.cell_types.values(), key=lambda x: x.density)
 			for cell_type in cell_types:
 				cell_type.placement.place(cell_type)
-			times[i] = time.time() - t
+			place_times[i] = time.time() - t
+			t = time.time()
+			for connection_type in self.configuration.connection_types.values():
+				connection_type.connect()
+			place_times[i] = time.time() - t
 			self.save()
 			for type in self.configuration.cell_types.values():
 				count = self.cells_by_type[type.name].shape[0]
@@ -61,45 +76,40 @@ class Scaffold:
 				density_wanted = '%.4g' % (type.placement.get_placement_count(type) / volume)
 				percent = int((count / type.placement.get_placement_count(type)) * 100)
 				print('{} {} placed ({}%). Desired density: {}. Actual density: {}'.format(count, type.name, percent, density_wanted, density_gotten))
-		print('Average runtime: {}'.format(np.average(times)))
+		print('Average runtime: {}'.format(np.average(place_times)))
 		plotNetwork(self, from_memory=True)
 
 	def resetNetworkCache(self):
 		# Cell positions dictionary per cell type. Columns: X, Y, Z.
-		self.cells_by_type = {key: np.empty((0, 3)) for key in self.configuration.cell_types.keys()}
+		self.cells_by_type = {key: np.empty((0, 5)) for key in self.configuration.cell_types.keys()}
 		# Cell positions dictionary per layer. Columns: Type, X, Y, Z.
-		self.cells_by_layer = {key: np.empty((0, 4)) for key in self.configuration.layers.keys()}
+		self.cells_by_layer = {key: np.empty((0, 5)) for key in self.configuration.layers.keys()}
 		# Cell positions dictionary. Columns: Cell ID, Type, X, Y, Z.
 		self.cells = np.empty((0, 5))
 
 	def place_cells(self, cell_type, layer, positions):
-		# Store cells per type as X, Y, Z
-		self.cells_by_type[cell_type.name] = np.concatenate((
-			self.cells_by_type[cell_type.name],
-			positions
-		))
-		# Store cells per layer as typeID, X, Y, Z
-		positionsWithTypeId = np.column_stack((
+		# Create an ID for each cell.
+		cell_ids = self.allocate_ids(positions.shape[0])
+		# Store cells as ID, typeID, X, Y, Z
+		cell_data = np.column_stack((
+			cell_ids,
 			np.ones(positions.shape[0]) * cell_type.id,
 			positions
 		))
+		self.cells_by_type[cell_type.name] = np.concatenate((
+			self.cells_by_type[cell_type.name],
+			cell_data
+		))
 		self.cells_by_layer[layer.name] = np.concatenate((
 			self.cells_by_layer[layer.name],
-			positionsWithTypeId
-		))
-		# Ask the scaffold for an ID per cell, thread safe?
-		CellIDs = self.allocateIDs(positions.shape[0])
-		# Store cells as ID, typeID, X, Y, Z
-		positionsWithIdAndTypeId = np.column_stack((
-			CellIDs,
-			positionsWithTypeId
+			cell_data
 		))
 		self.cells = np.concatenate((
 			self.cells,
-			positionsWithIdAndTypeId
+			cell_data
 		))
 
-	def allocateIDs(self, count):
+	def allocate_ids(self, count):
 		IDs = np.array(range(self._nextId, self._nextId + count))
 		self._nextId += count
 		return IDs

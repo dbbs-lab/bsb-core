@@ -50,7 +50,7 @@ for angle in angle_range:
     else:
         densities[index, :] = [pc.planarDensity, density]
     index += 1
-    frames.append(get_placement_frame(pc, scaffoldInstance.cells_by_type['Purkinje Cell'], angle, layer, 10.))
+    frames.append(get_placement_frame(pc, scaffoldInstance.cells_by_type['Purkinje Cell'][[2,3,4]], angle, layer, 10.))
 
 imageio.mimsave('./purkinje_debug.gif', frames, fps=24.)
 
