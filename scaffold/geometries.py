@@ -8,9 +8,14 @@ class Geometry(ConfigurableClass):
         pass
 
 class GranuleCellGeometry(Geometry):
+	casts = {
+		'dendrite_length' : float,
+	}
+	required = ['dendrite_length']
 
-    def validate(self):
-        pass
+	def validate(self):
+		print(type(self.dendrite_length))
+		pass
 
 class PurkinjeCellGeometry(Geometry):
     def validate(self):
