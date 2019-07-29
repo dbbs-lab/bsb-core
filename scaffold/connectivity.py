@@ -66,7 +66,7 @@ class ConnectomeGlomGranule(ConnectionStrategy):
 					matrix = np.zeros((n_conn_glom, 3))
 					matrix[:,1] = i[0]
 					matrix[:,0] = connected_gloms
-					matrix[:,2] = gloms_distance[0:4]
+					matrix[:,2] = gloms_distance[0:n_conn_glom]
 					glom_grc = np.vstack((glom_grc, matrix))
 
 				else:
