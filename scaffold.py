@@ -24,6 +24,7 @@ subparsers = parser.add_subparsers(
 )
 
 parser_compile = subparsers.add_parser('compile', help='Build a network of neurons in a volume.')
+parser_compile.add_argument('-p', action='store_true',help='Plot the created network')
 
 parser_run = subparsers.add_parser('run', help='Run a simulation using a compiled scaffold network.')
 
@@ -39,6 +40,8 @@ builtins.scaffoldInstance = scaffoldInstance
 
 if cl_args.task == 'compile':
 	scaffoldInstance.compileNetworkArchitecture()
+	if cl_args.p:
+		scaffoldInstance.plotNetworkCache()
 
 if cl_args.task == 'run':
 	# Run the nest script

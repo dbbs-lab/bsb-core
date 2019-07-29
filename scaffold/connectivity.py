@@ -1,6 +1,7 @@
 import abc
 from .helpers import ConfigurableClass
 import numpy as np
+from pprint import pprint
 
 class ConnectionStrategy(ConfigurableClass):
 	@abc.abstractmethod
@@ -44,11 +45,13 @@ class ConnectomeGlomGranule(ConnectionStrategy):
 		first_glomerulus = glomeruli[0,0]
 
 		def connectome_glom_grc(first_glomerulus, glomeruli, granules, dend_len, n_conn_glom, glom_grc):
-
+			glom_x = glomeruli[:,2]
+			glom_y = glomeruli[:,3]
+			glom_z = glomeruli[:,4]
 			for i in granules:	# for all granules: calculate which glomeruli can be connected, then choose 4 of them
 
 				# find all glomeruli at a maximum distance of 40micron
-				volume_matrix = (((glomeruli[:,2]-i[2])**2)+((glomeruli[:,3]-i[3])**2)+((glomeruli[:,4]-i[4])**2)-(dend_len**2)).__le__(0)
+				volume_matrix = (((glom_x-i[2])**2)+((glom_y-i[3])**2)+((glom_z-i[4])**2)-(dend_len**2)).__le__(0)
 				good_gloms = np.where(volume_matrix==True)[0]	# indexes of glomeruli that can potentially be connected
 
 				if (len(good_gloms))>n_conn_glom:
@@ -84,4 +87,7 @@ class ConnectomeGlomGranule(ConnectionStrategy):
 			return glom_grc
 
 		glom_grc = connectome_glom_grc(first_glomerulus, glomeruli, granules, dend_len, n_conn_glom, glom_grc)
+		pprint(glom_grc.shape)
+		pprint(glomeruli.shape)
+		pprint(granules.shape)
 		return glom_grc

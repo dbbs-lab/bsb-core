@@ -55,19 +55,16 @@ class Scaffold:
 			geometry.initialise(self)
 
 	def compileNetworkArchitecture(self, tries=1):
-		place_times = np.zeros(tries)
-		connect_times = np.zeros(tries)
+		times = np.zeros(tries)
 		# Place the cells starting from the lowest density celltypes.
 		for i in np.arange(tries, dtype=int):
 			t = time.time()
 			cell_types = sorted(self.configuration.cell_types.values(), key=lambda x: x.density)
 			for cell_type in cell_types:
 				cell_type.placement.place(cell_type)
-			place_times[i] = time.time() - t
-			t = time.time()
 			for connection_type in self.configuration.connection_types.values():
 				connection_type.connect()
-			place_times[i] = time.time() - t
+			times[i] = time.time() - t
 			self.save()
 			for type in self.configuration.cell_types.values():
 				count = self.cells_by_type[type.name].shape[0]
@@ -76,8 +73,11 @@ class Scaffold:
 				density_wanted = '%.4g' % (type.placement.get_placement_count(type) / volume)
 				percent = int((count / type.placement.get_placement_count(type)) * 100)
 				print('{} {} placed ({}%). Desired density: {}. Actual density: {}'.format(count, type.name, percent, density_wanted, density_gotten))
-		print('Average runtime: {}'.format(np.average(place_times)))
+		print('Average runtime: {}'.format(np.average(times)))
+
+	def plotNetworkCache(self):
 		plotNetwork(self, from_memory=True)
+
 
 	def resetNetworkCache(self):
 		# Cell positions dictionary per cell type. Columns: X, Y, Z.
