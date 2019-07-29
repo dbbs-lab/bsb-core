@@ -359,7 +359,16 @@ class ScaffoldIniConfig(ScaffoldConfig):
         cell_type.setPlacementStrategy(self.placement_strategies[placementName])
 
     def finalizeConnection(self, connection, section):
-        pass
+        if not hasattr(connection, 'cellfrom'):
+            raise Exception("Required attribute 'CellFrom' missing in {}".format(connection.name))
+        if not hasattr(connection, 'cellto'):
+            raise Exception("Required attribute 'CellTo' missing in {}".format(connection.name))
+        if not connection.cellfrom in self.cell_types:
+            raise Exception("Unknown CellFrom '{}' in {}".format(connection.cellfrom, connection.name))
+        if not connection.cellto in self.cell_types:
+            raise Exception("Unknown CellTo '{}' in {}".format(connection.cellto, connection.name))
+        connection.__dict__['from_celltype'] = self.cell_types[connection.cellfrom]
+        connection.__dict__['to_celltype'] = self.cell_types[connection.cellto]
 
     def finalizePlacement(self, placement, section):
         pass
