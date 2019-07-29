@@ -14,7 +14,6 @@ class GranuleCellGeometry(Geometry):
 	required = ['dendrite_length']
 
 	def validate(self):
-		print(type(self.dendrite_length))
 		pass
 
 class PurkinjeCellGeometry(Geometry):

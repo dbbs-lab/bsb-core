@@ -11,4 +11,4 @@ instance = Scaffold(config)
 
 cProfile.run('instance.compileNetworkArchitecture()', 'compile_stats')
 p = pstats.Stats('compile_stats')
-p.strip_dirs().sort_stats('cumulative').print_stats(10)
+p.strip_dirs().sort_stats('cumulative').print_stats(25)

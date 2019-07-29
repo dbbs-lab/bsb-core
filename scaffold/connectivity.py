@@ -16,6 +16,12 @@ class ReciprocalGolgiGlomerulus(ConnectionStrategy):
 		pass
 
 class TouchingConvergenceDivergence(ConnectionStrategy):
+	casts = {
+		'divergence': int,
+		'convergence': int
+	}
+
+	required = ['divergence', 'convergence']
 	def validate(self):
 		pass
 
@@ -29,7 +35,7 @@ class TouchConnect(ConnectionStrategy):
 	def connect(self):
 		pass
 
-class ConnectomeGlomGranule(ConnectionStrategy):
+class ConnectomeGlomGranule(TouchingConvergenceDivergence):
 
 	def validate(self):
 		pass
@@ -40,7 +46,7 @@ class ConnectomeGlomGranule(ConnectionStrategy):
 		glomeruli = self.scaffold.cells_by_type[from_celltype.name]
 		granules = self.scaffold.cells_by_type[to_celltype.name]
 		dend_len = to_celltype.geometry.dendrite_length
-		n_conn_glom = 40
+		n_conn_glom = 4
 		glom_grc = np.zeros((0,3))
 		first_glomerulus = glomeruli[0,0]
 
@@ -87,7 +93,4 @@ class ConnectomeGlomGranule(ConnectionStrategy):
 			return glom_grc
 
 		glom_grc = connectome_glom_grc(first_glomerulus, glomeruli, granules, dend_len, n_conn_glom, glom_grc)
-		pprint(glom_grc.shape)
-		pprint(glomeruli.shape)
-		pprint(granules.shape)
 		return glom_grc
