@@ -46,7 +46,7 @@ class ConnectomeGlomGranule(TouchingConvergenceDivergence):
 		glomeruli = self.scaffold.cells_by_type[from_celltype.name]
 		granules = self.scaffold.cells_by_type[to_celltype.name]
 		dend_len = to_celltype.geometry.dendrite_length
-		n_conn_glom = 4
+		n_conn_glom = self.convergence
 		glom_grc = np.zeros((0,3))
 		first_glomerulus = glomeruli[0,0]
 
