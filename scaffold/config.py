@@ -83,7 +83,7 @@ class ScaffoldConfig(object):
         self.layers[layer.name] = layer
         self.layer_map.append(layer.name)
 
-    def getLayer(self, name='',id=-1):
+    def get_layer(self, name='',id=-1):
         '''
             Finds a layer by its name or id.
 
@@ -103,12 +103,12 @@ class ScaffoldConfig(object):
             if not name in self.layers:
                 raise Exception("Layer with name '{}' not found".format(name))
             return self.layers[name]
-        raise Exception("Invalid arguments for ScaffoldConfig.getLayer: name='{}', id={}".format(name, id))
+        raise Exception("Invalid arguments for ScaffoldConfig.get_layer: name='{}', id={}".format(name, id))
 
-    def getLayerID(self, name):
+    def get_layerID(self, name):
         return self.layer_map.index(name)
 
-    def getLayerList(self):
+    def get_layerList(self):
         return list(self.layers.values())
 
     def resize(self, X=None, Z=None):
@@ -284,7 +284,7 @@ class ScaffoldIniConfig(ScaffoldConfig):
 
         # Stack this layer on the previous one.
         if 'stack' in section and section['stack'] != 'False':
-            layers = self.getLayerList()
+            layers = self.get_layerList()
             if len(layers) == 0:
                 # If this is the first layer, put it at the bottom of the simulation.
                 origin[1] = 0.
