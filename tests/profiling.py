@@ -16,4 +16,3 @@ for i in range(1,40):
     p = pstats.Stats('compile_stats')
     p.strip_dirs().sort_stats('cumulative').print_stats(25, 'connect')
     print('square size:', config.X)
-    sleep(2)
