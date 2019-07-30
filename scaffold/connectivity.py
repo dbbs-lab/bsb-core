@@ -93,7 +93,7 @@ class ConnectomeGlomerulusGranule(TouchingConvergenceDivergence):
 
 class ConnectomeGlomerulusGolgi(TouchingConvergenceDivergence):
 	'''
-		Legacy implementation for the connections between glomeruli and Golgi cells.
+		Legacy implementation for the connections between Golgi cells and glomeruli.
 	'''
 	def validate(self):
 		pass
@@ -130,3 +130,73 @@ class ConnectomeGlomerulusGolgi(TouchingConvergenceDivergence):
 
 		connectome = connectome_glom_goc(first_glomerulus, glomeruli, golgis, r_goc_vol)
 		self.scaffold.connect_cells(self, connectome)
+
+class ConnectomeGolgiGlomerulus(TouchingConvergenceDivergence):
+	'''
+		Legacy implementation for the connections between glomeruli and Golgi cells.
+	'''
+	def validate(self):
+		pass
+
+	def connect(self):
+		# Gather information for the legacy code block below.
+		golgi_celltype = self.from_celltype
+		glomerulus_celltype = self.to_celltype
+		glomeruli = self.scaffold.cells_by_type[glomerulus_celltype.name]
+		golgis = self.scaffold.cells_by_type[golgi_celltype.name]
+		first_glomerulus = int(glomeruli[0,0])
+		GoCaxon_x = golgi_celltype.geometry.axon_x
+		GoCaxon_y = golgi_celltype.geometry.axon_y
+		GoCaxon_z = golgi_celltype.geometry.axon_z
+		r_glom = glomerulus_celltype.radius
+		n_conn_goc = self.divergence
+		layer_thickness = self.scaffold.configuration.get_layer(name=golgi_celltype.placement.layer).thickness
+		# An arbitrarily large value that will be used to exclude cells from geometric constraints
+		oob = self.scaffold.configuration.X * 1000.
+		def connectome_goc_glom(first_glomerulus, glomeruli, golgicells, GoCaxon_x, GoCaxon_y, GoCaxon_z, r_glom, n_conn_goc, layer_thickness, oob):
+			glom_x = glomeruli[:,2]
+			glom_y = glomeruli[:,3]
+			glom_z = glomeruli[:,4]
+			new_glomeruli = np.copy(glomeruli)
+			new_golgicells = np.random.permutation(golgicells)
+			connections = np.zeros((golgis.shape[0] * n_conn_goc ,2))
+			new_connection_index = 0
+
+			# for all Golgi cells: calculate which glomeruli fall into the area of GoC axon, then choose 40 of them for the connection and delete them from successive computations, since 1 glomerulus must be connected to only 1 GoC
+			for golgi_id, golgi_type, golgi_x, golgi_y, golgi_z in new_golgicells:
+				# Check geometrical constraints
+				# glomerulus falls into the x range of values?
+				bool_vector = (((glom_x+r_glom).__ge__(golgi_x-GoCaxon_x/2.)) & ((glom_x-r_glom).__le__(golgi_x+GoCaxon_x/2.)))
+				# glomerulus falls into the y range of values?
+				bool_vector = bool_vector & (((glom_y+r_glom).__ge__(golgi_y-GoCaxon_y/2.)) & ((glom_y-r_glom).__le__(golgi_y+GoCaxon_y/2.)))
+				# glomerulus falls into the z range of values?
+				bool_vector = bool_vector & (((glom_z+r_glom).__ge__(golgi_z-GoCaxon_z/2.)) & ((glom_z-r_glom).__le__(golgi_z+GoCaxon_z/2.)))
+
+				# Make a permutation of all candidate glomeruli
+				good_gloms = np.where(bool_vector)[0]
+				chosen_rand = np.random.permutation(good_gloms)
+				good_gloms_matrix = new_glomeruli[chosen_rand]
+				# Calculate the distance between the golgi cell and all glomerulus candidates, normalize distance by layer thickness
+				normalized_distance_vector = np.sqrt((good_gloms_matrix[:,2]-golgi_x)**2 + (good_gloms_matrix[:,3]-golgi_y)**2) / layer_thickness
+				sorting_map = normalized_distance_vector.argsort()
+				# Sort the candidate glomerulus matrix and distance vector by the distance vector
+				good_gloms_matrix = good_gloms_matrix[sorting_map]
+				# Use the normalized distance vector as a probability treshold for connecting glomeruli
+				probability_treshold = normalized_distance_vector[sorting_map]
+
+				idx = 1
+				for candidate_index, glomerulus in enumerate(good_gloms_matrix):
+					if idx <= n_conn_goc:
+						ra = np.random.random()
+						if (ra).__gt__(probability_treshold[candidate_index]):
+							glomerulus_id = glomerulus[0]
+							connections[new_connection_index, 0] = golgi_id
+							connections[new_connection_index, 1] = glomerulus_id + first_glomerulus
+							new_glomeruli[int(glomerulus_id - first_glomerulus),:] = oob
+							new_connection_index += 1
+							idx += 1
+				print('added {} candidates'.format(idx))
+			return connections[0:new_connection_index]
+
+		result = connectome_goc_glom(first_glomerulus, glomeruli, golgis, GoCaxon_x, GoCaxon_y, GoCaxon_z, r_glom, n_conn_goc, layer_thickness, oob)
+		self.scaffold.connect_cells(self, result)
