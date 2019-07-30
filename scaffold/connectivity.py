@@ -78,17 +78,18 @@ class ConnectomeGlomerulusGranule(TouchingConvergenceDivergence):
 				else: # No: select all of them
 					connected_gloms = good_gloms
 					connected_glom_len = good_gloms_len
-				# Connect the current gran_id to all the selected glomeruli
+				# Connect the selected glomeruli to the current gran_id
 				for i in range(connected_glom_len):
 					# Add the first_glomerulus id to convert their local id to their real simulation id
-					results[next_index + i] = [gran_id, connected_gloms[i] + first_glomerulus]
+					results[next_index + i] = [connected_gloms[i] + first_glomerulus, gran_id]
 				# Move up the internal array pointer
 				next_index += connected_glom_len
 			# Truncate the pre-allocated array to the internal array pointer.
 			return results[0:next_index,:]
 
-		# Execute legacy code and return the connection matrix it returns.
-		return connectome_glom_grc(first_glomerulus, glomeruli, granules, dend_len, n_conn_glom)
+		# Execute legacy code and add the connection matrix it returns to the scaffold.
+		connectome = connectome_glom_grc(first_glomerulus, glomeruli, granules, dend_len, n_conn_glom)
+		self.scaffold.connect_cells(self, connectome)
 
 class ConnectomeGlomerulusGolgi(TouchingConvergenceDivergence):
 	'''
@@ -107,24 +108,25 @@ class ConnectomeGlomerulusGolgi(TouchingConvergenceDivergence):
 		r_goc_vol = golgi_celltype.geometry.dendrite_radius
 
 		def connectome_glom_goc(first_glomerulus, glomeruli, golgicells, r_goc_vol):
-			glom_bd = np.zeros((0,3))
+			glom_bd = np.zeros((0,2))
+			glom_x = glomeruli[:,2]
+			glom_y = glomeruli[:,3]
+			glom_z = glomeruli[:,4]
 
 			# for all Golgi cells: calculate which glomeruli fall into the volume of GoC basolateral dendrites, then choose 40 of them for the connection and delete them from successive computations, since 1 axon is connected to 1 GoC
-			for i in golgicells:
+			for golgi_id, golgi_type, golgi_x, golgi_y, golgi_z in golgicells:
 
-				volume_matrix = (((glomeruli[:,2]-i[2])**2)+((glomeruli[:,3]-i[3])**2)+((glomeruli[:,4]-i[4])**2)-(r_goc_vol**2)).__le__(0) & (glomeruli[:,3]).__le__(i[3])
+				# Geometric constraints: glom less than `r_goc_vol` away from golgi and golgi cell soma above glom.
+				volume_matrix = (((glom_x - golgi_x)**2)+((glom_y-golgi_y)**2)+((glom_z-golgi_z)**2)-(r_goc_vol**2)).__le__(0) & (glom_y).__le__(golgi_y)
 				good_gloms = np.where(volume_matrix==True)[0]	# finds indexes of granules that can potentially be connected
-				connected_gloms = good_gloms + first_glomerulus
+				connected_gloms = good_gloms + first_glomerulus # Translate local id to simulation id
 
-				# construction of the output matrix: the first column has the index of the connected glomerulus, while the second column has the Golgi cell index
-				matrix = np.zeros((len(good_gloms), 3))
-				matrix[:,1] = i[0]
-				matrix[:,0] = connected_gloms
-				matrix[:,2] = np.sqrt((glomeruli[good_gloms,2]-i[2])**2 + (glomeruli[good_gloms,3]-i[3])**2 + (glomeruli[good_gloms,4]-i[4])**2)
+				matrix = np.zeros((len(good_gloms), 2))
+				matrix[:,0] = connected_gloms # from cell
+				matrix[:,1] = golgi_id	# to cell
 				glom_bd = np.vstack((glom_bd, matrix))
-
-			glom_bd = glom_bd[1:-1,:]
 
 			return glom_bd
 
-		return connectome_glom_goc(first_glomerulus, glomeruli, golgis, r_goc_vol)
+		connectome = connectome_glom_goc(first_glomerulus, glomeruli, golgis, r_goc_vol)
+		self.scaffold.connect_cells(self, connectome)

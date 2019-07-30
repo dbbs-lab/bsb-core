@@ -84,8 +84,12 @@ class Scaffold:
 		self.cells_by_type = {key: np.empty((0, 5)) for key in self.configuration.cell_types.keys()}
 		# Cell positions dictionary per layer. Columns: Type, X, Y, Z.
 		self.cells_by_layer = {key: np.empty((0, 5)) for key in self.configuration.layers.keys()}
-		# Cell positions dictionary. Columns: Cell ID, Type, X, Y, Z.
+		# Cells collection. Columns: Cell ID, Type, X, Y, Z.
 		self.cells = np.empty((0, 5))
+		# Cell connections. Columns: From ID, To ID.
+		self.cell_connections = np.empty((0, 2))
+		# Cell connections per connection type. Columns: From ID, To ID.
+		self.cell_connections_by_type = {key: np.empty((0, 2)) for key in self.configuration.connection_types.keys()}
 
 	def place_cells(self, cell_type, layer, positions):
 		# Create an ID for each cell.
@@ -96,14 +100,17 @@ class Scaffold:
 			np.ones(positions.shape[0]) * cell_type.id,
 			positions
 		))
+		# Cache them per type
 		self.cells_by_type[cell_type.name] = np.concatenate((
 			self.cells_by_type[cell_type.name],
 			cell_data
 		))
+		# Cache them per layer
 		self.cells_by_layer[layer.name] = np.concatenate((
 			self.cells_by_layer[layer.name],
 			cell_data
 		))
+		# Store
 		self.cells = np.concatenate((
 			self.cells,
 			cell_data
@@ -113,6 +120,13 @@ class Scaffold:
 		IDs = np.array(range(self._nextId, self._nextId + count))
 		self._nextId += count
 		return IDs
+
+	def connect_cells(self, connection_type, connectome_data):
+		# Cache the connectome per connection type
+		cache = self.cell_connections_by_type[connection_type.name]
+		cache = np.concatenate((cache, connectome_data))
+		# Store all the connections
+		self.cell_connections = np.concatenate((self.cell_connections, connectome_data))
 
 	def save(self):
 		f = h5py.File('scaffold_new_test.hdf5', 'w')
