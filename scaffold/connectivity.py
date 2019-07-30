@@ -22,6 +22,7 @@ class TouchingConvergenceDivergence(ConnectionStrategy):
 	}
 
 	required = ['divergence', 'convergence']
+
 	def validate(self):
 		pass
 
@@ -36,11 +37,14 @@ class TouchConnect(ConnectionStrategy):
 		pass
 
 class ConnectomeGlomGranule(TouchingConvergenceDivergence):
-
+	'''
+		Legacy implementation for the connections between glomeruli and granule cells.
+	'''
 	def validate(self):
 		pass
 
 	def connect(self):
+		# Gather information for the legacy code block below.
 		from_celltype = self.from_celltype
 		to_celltype = self.to_celltype
 		glomeruli = self.scaffold.cells_by_type[from_celltype.name]
@@ -50,48 +54,38 @@ class ConnectomeGlomGranule(TouchingConvergenceDivergence):
 		first_glomerulus = int(glomeruli[0,0])
 
 		def connectome_glom_grc(first_glomerulus, glomeruli, granules, dend_len, n_conn_glom):
+			'''
+				Legacy code block to connect glomeruli to granule cells
+			'''
 			glom_x = glomeruli[:,2]
 			glom_y = glomeruli[:,3]
 			glom_z = glomeruli[:,4]
-			results = np.empty((granules.shape[0] * n_conn_glom, 3))
-			last_used_index = 0
-			for i in granules:	# for all granules: calculate which glomeruli can be connected, then choose 4 of them
+			results = np.empty((granules.shape[0] * n_conn_glom, 2))
+			next_index = 0
+			# Find glomeruli to connect to each granule cell
+			for gran_id, gran_type, gran_x, gran_y, gran_z in granules:
+				# Use a naive approach to find all glomeruli at a maximum distance of `dendrite_length`
+				distance_vector = ((glom_x-gran_x)**2)+((glom_y-gran_y)**2)+((glom_z-gran_z)**2)-(dend_len**2)
+				good_gloms = np.where((distance_vector < 0.) == True)[0]	# indexes of glomeruli that can potentially be connected
+				good_gloms_len = len(good_gloms)
+				# Do we find more than enough candidates?
+				if good_gloms_len > n_conn_glom: # Yes: select the closest ones
+					# Get the distances of the glomeruli within range
+					gloms_distance = distance_vector[good_gloms]
+					# Sort the good glomerulus id vector by the good glomerulus distance vector
+					connected_gloms = good_gloms[gloms_distance.argsort()]
+					connected_glom_len = n_conn_glom
+				else: # No: select all of them
+					connected_gloms = good_gloms
+					connected_glom_len = good_gloms_len
+				# Connect the current gran_id to all the selected glomeruli
+				for i in range(connected_glom_len):
+					# Add the first_glomerulus id to convert their local id to their real simulation id
+					results[next_index + i] = [gran_id, connected_gloms[i] + first_glomerulus]
+				# Move up the internal array pointer
+				next_index += connected_glom_len
+			# Truncate the pre-allocated array to the internal array pointer.
+			return results[0:next_index,:]
 
-				# find all glomeruli at a maximum distance of 40micron
-				volume_matrix = (((glom_x-i[2])**2)+((glom_y-i[3])**2)+((glom_z-i[4])**2)-(dend_len**2)).__le__(0)
-				good_gloms = np.where(volume_matrix==True)[0]	# indexes of glomeruli that can potentially be connected
-				gloms_distance = np.sqrt((glomeruli[good_gloms,2]-i[2])**2+(glomeruli[good_gloms,3]-i[3])**2+(glomeruli[good_gloms,4]-i[4])**2)
-
-				if (len(good_gloms)) > n_conn_glom:
-					dist_matrix = np.zeros((len(good_gloms), 2))
-					dist_matrix[:,0] = good_gloms + first_glomerulus
-					dist_matrix[:,1] = gloms_distance
-					sc_dist = dist_matrix[dist_matrix[:,1].argsort()]	# sorting of the resulting vector on the distances
-					connected_f = sc_dist[0:n_conn_glom,0]
-					connected_dist = sc_dist[0:n_conn_glom,1]
-					connected_provv = connected_f.astype(int)
-					connected_gloms = connected_provv
-
-					# construction of the output matrix: the first column has the  glomerulus index, while the second column has the connected granule index
-					matrix = np.zeros((n_conn_glom, 3))
-					matrix[:,1] = i[0]
-					matrix[:,0] = connected_gloms
-					matrix[:,2] = gloms_distance[0:n_conn_glom]
-					results[last_used_index:(last_used_index + n_conn_glom)] = matrix
-					last_used_index += n_conn_glom
-				else:
-					connected_gloms = good_gloms + first_glomerulus
-
-					glom_len = len(connected_gloms)
-					matrix = np.zeros((glom_len, 3))
-					matrix[:,1] = i[0]
-					matrix[:,0] = connected_gloms
-					matrix[:,2] = gloms_distance
-					results[last_used_index:(last_used_index + glom_len)] = matrix
-					last_used_index += glom_len
-
-			######todo
-			return results
-
-		results = connectome_glom_grc(first_glomerulus, glomeruli, granules, dend_len, n_conn_glom)
-		return results
+		# Execute legacy code and return the connection matrix it returns.
+		return connectome_glom_grc(first_glomerulus, glomeruli, granules, dend_len, n_conn_glom)

@@ -10,10 +10,10 @@ from scaffold.config import ScaffoldIniConfig
 config = ScaffoldIniConfig('../test.ini')
 instance = Scaffold(config)
 for i in range(1,40):
+    instance.resize(100 + i * 20, 100 + i * 20)
     instance.resetNetworkCache()
-    config.connection_types['GlomerulusGranule'].convergence = i
     cProfile.run('instance.compileNetworkArchitecture()', 'compile_stats')
     p = pstats.Stats('compile_stats')
     p.strip_dirs().sort_stats('cumulative').print_stats(25, 'connect')
-    print(i)
+    print(config.X)
     sleep(2)
