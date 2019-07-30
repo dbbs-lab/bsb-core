@@ -28,6 +28,8 @@ class GolgiCellGeometry(Geometry):
         'axon_z': float,
     }
 
+	required = ['dendrite_radius']
+
     def validate(self):
         pass
 
