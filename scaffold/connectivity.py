@@ -47,14 +47,14 @@ class ConnectomeGlomGranule(TouchingConvergenceDivergence):
 		granules = self.scaffold.cells_by_type[to_celltype.name]
 		dend_len = to_celltype.geometry.dendrite_length
 		n_conn_glom = self.convergence
-		first_glomerulus = glomeruli[0,0]
+		first_glomerulus = int(glomeruli[0,0])
 
 		def connectome_glom_grc(first_glomerulus, glomeruli, granules, dend_len, n_conn_glom):
 			glom_x = glomeruli[:,2]
 			glom_y = glomeruli[:,3]
 			glom_z = glomeruli[:,4]
 			results = np.empty((granules.shape[0] * n_conn_glom, 3))
-			last_i = 0
+			last_used_index = 0
 			for i in granules:	# for all granules: calculate which glomeruli can be connected, then choose 4 of them
 
 				# find all glomeruli at a maximum distance of 40micron
@@ -77,8 +77,8 @@ class ConnectomeGlomGranule(TouchingConvergenceDivergence):
 					matrix[:,1] = i[0]
 					matrix[:,0] = connected_gloms
 					matrix[:,2] = gloms_distance[0:n_conn_glom]
-					results[last_i:(last_i + n_conn_glom)] = matrix
-					last_i += n_conn_glom
+					results[last_used_index:(last_used_index + n_conn_glom)] = matrix
+					last_used_index += n_conn_glom
 				else:
 					connected_gloms = good_gloms + first_glomerulus
 
@@ -87,9 +87,10 @@ class ConnectomeGlomGranule(TouchingConvergenceDivergence):
 					matrix[:,1] = i[0]
 					matrix[:,0] = connected_gloms
 					matrix[:,2] = gloms_distance
-					results[last_i:(last_i + glom_len)] = matrix
-					last_i += glom_len
+					results[last_used_index:(last_used_index + glom_len)] = matrix
+					last_used_index += glom_len
 
+			######todo
 			return results
 
 		results = connectome_glom_grc(first_glomerulus, glomeruli, granules, dend_len, n_conn_glom)
