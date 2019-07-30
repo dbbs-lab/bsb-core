@@ -111,6 +111,20 @@ class ScaffoldConfig(object):
     def getLayerList(self):
         return list(self.layers.values())
 
+    def resize(self, X=None, Z=None):
+        scaling_x = 1.
+        scaling_z = 1.
+        if not X is None:
+            scaling_x = X / self.X
+            self.X = X
+        if not Z is None:
+            scaling_z = Z / self.Z
+            self.Z = Z
+        for layer in self.layers.values():
+            if layer.scaling:
+                layer.dimensions[0] *= scaling_x
+                layer.dimensions[2] *= scaling_z
+
 class ScaffoldIniConfig(ScaffoldConfig):
     '''
         Create a scaffold configuration from a .ini file.
