@@ -65,7 +65,7 @@ class dimensions:
 
 class Layer(dimensions):
 
-    def __init__(self, name, origin, dimensions):
+    def __init__(self, name, origin, dimensions, scaling=True):
         # Name of the layer
         self.name = name
         # The XYZ coordinates of the point at the center of the bottom plane of the layer.
@@ -73,6 +73,8 @@ class Layer(dimensions):
         # Dimensions in the XYZ axes.
         self.dimensions = np.array(dimensions)
         self.volumeOccupied = 0.
+        # Should this layer scale when the simulation volume is resized?
+        self.scaling = scaling
 
     @property
     def available_volume(self):
