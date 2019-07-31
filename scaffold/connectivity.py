@@ -199,3 +199,68 @@ class ConnectomeGolgiGlomerulus(TouchingConvergenceDivergence):
 
 		result = connectome_goc_glom(first_glomerulus, glomeruli, golgis, GoCaxon_x, GoCaxon_y, GoCaxon_z, r_glom, n_conn_goc, layer_thickness, oob)
 		self.scaffold.connect_cells(self, result)
+
+class ConnectomeGranuleGolgi(TouchingConvergenceDivergence):
+	'''
+		Legacy implementation for the connections between Golgi cells and glomeruli.
+	'''
+	def validate(self):
+		pass
+
+	def connect(self):
+		def connectome_grc_goc(first_granule, granules, golgicells, r_goc_vol, OoB_value, n_connAA, n_conn_pf, tot_conn, aa_goc, pf_goc):
+			aa_goc = np.empty((0,2))
+			densityWarningSent = False
+			new_granules = np.copy(granules)
+			new_golgicells = np.random.permutation(golgicells)
+			if new_granules.shape[0] <= new_golgicells.shape[0]:
+				raise Exception("The number of granule cells was less than the number of golgi cells. Simulation cannot continue.")
+			for i in new_golgicells:
+				idx = 1
+				connectedAA = np.array([])
+				axon_matrix = (((new_granules[:,2]-i[2])**2)+((new_granules[:,4]-i[4])**2)-(r_goc_vol**2)).__le__(0)
+				goodAA = np.where(axon_matrix==True)[0]		# finds indexes of ascending axons that can potentially be connected
+				chosen_rand = np.random.permutation(goodAA)
+				goodAA_matrix = new_granules[chosen_rand]
+				prob = np.sort((np.sqrt((goodAA_matrix[:,2]-i[2])**2 + (goodAA_matrix[:,4]-i[4])**2))/r_goc_vol)
+				for ind,j in enumerate(goodAA_matrix):
+					if idx <= n_connAA:
+						ra = np.random.random()
+						if (ra).__gt__(prob[ind]):
+							idx += 1
+							matrix = np.zeros((1, 2))
+							matrix[0,0] = j[0]
+							matrix[0,1] = i[0]
+							aa_goc = np.vstack((aa_goc, matrix))
+							connectedAA = np.append(connectedAA,j[0])
+				good_grc = np.delete(granules, (connectedAA - first_granule), 0)
+				intersections = (good_grc[:,2]).__ge__(i[2]-r_goc_vol) & (good_grc[:,2]).__le__(i[2]+r_goc_vol)
+				good_pf = np.where(intersections==True)[0]				# finds indexes of granules that can potentially be connected
+				# The remaining amount of parallel fibres to connect after subtracting the amount of already connected ascending axons.
+				parallelFibersToConnect = tot_conn - len(connectedAA)
+				# Randomly select parallel fibers to be connected with a GoC, to a maximum of tot_conn connections
+				# TODO: Calculate the risk of not having enough granule cells beforehand, outside of the for loop for performance.
+				if good_pf.shape[0] < parallelFibersToConnect:
+					connected_pf = np.random.choice(good_pf, min(tot_conn-len(connectedAA), good_pf.shape[0]), replace = False)
+					totalConnectionsMade = connected_pf.shape[0] + len(connectedAA)
+					# Warn the user once if not enough granule cells are present to connect to the Golgi cell.
+					if not densityWarningSent:
+						densityWarningSent = True
+						print("[WARNING] The granule cell density is too low compared to the Golgi cell density to make physiological connections!")
+				else:
+					connected_pf = np.random.choice(good_pf, tot_conn-len(connectedAA), replace = False)
+					totalConnectionsMade = tot_conn
+				pf_idx = good_grc[connected_pf,:]
+				matrix_pf = np.zeros((totalConnectionsMade, 3))	# construction of the output matrix
+				matrix_pf[:,1] = i[0]
+				matrix_pf[0:len(connectedAA),0] = connectedAA
+				matrix_pf[len(connectedAA):totalConnectionsMade,0] = pf_idx[:,0]
+				# Store Euclidean distance.
+				matrix_pf[0:len(connectedAA),2] = np.sqrt((granules[(connectedAA.astype(int)-first_granule),2]-i[2])**2 + (granules[(connectedAA.astype(int)-first_granule),3]-i[3])**2 + (granules[(connectedAA.astype(int)-first_granule),4]-i[4])**2)
+				matrix_pf[len(connectedAA):totalConnectionsMade,2] = np.sqrt((pf_idx[:,2]-i[2])**2 + (pf_idx[:,3]-i[3])**2 + (pf_idx[:,4]-i[4])**2)
+				pf_goc = np.vstack((pf_goc, matrix_pf))
+				new_granules[((connectedAA.astype(int)) - first_granule),:] = OoB_value
+				# End of Golgi cell loop
+			aa_goc = aa_goc[aa_goc[:,1].argsort()]
+			pf_goc = pf_goc[pf_goc[:,1].argsort()]		# sorting of the resulting vector on the post-synaptic neurons
+			return aa_goc, pf_goc
