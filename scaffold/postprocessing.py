@@ -16,11 +16,9 @@ def placeParallelFibers(scaffold, granule_geometry, granules):
         # Determine the shape parameters a and b of the truncated normal distribution.
         # See https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.truncnorm.html
         a, b = (pf_height_min - pf_height) / pf_height_sd, (pf_height_max - pf_height) / pf_height_sd
-        #
+        # Draw a sample for the parallel fiber height from a truncated normal distribution
+        # with sd `pf_height_sd` and mean `pf_height`, truncated by the molecular layer bounds.
     	parallel_fibers[idx,1] = truncnorm.rvs(a, b, size=1) * pf_height_sd + pf_height # Height
         parallel_fibers[idx,0] = granule[0] # ID
-
-    	parallel_fibers[idx,0] = granule[0]
-    	parallel_fibers[idx,1] = h_final
 
     return parallel_fibers
