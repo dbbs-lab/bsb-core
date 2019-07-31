@@ -8,9 +8,6 @@ def placeParallelFibers(scaffold, granule_geometry, granules):
     floor_ml = molecular_layer.Y
     roof_ml = floor_ml + molecular_layer.height # Roof of the molecular layer
 
-    # TODO:
-    # Generate a map from granule y position to truncnorm distribution samples so that the re-calculation of the entire distribution per required sample can be avoided.
-
     for idx, granule in enumerate(granules):
         granule_y = granule[3]
         # Determine min and max height so that the parallel fiber is inside of the molecular layer
