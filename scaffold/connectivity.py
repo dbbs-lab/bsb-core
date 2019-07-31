@@ -195,7 +195,6 @@ class ConnectomeGolgiGlomerulus(TouchingConvergenceDivergence):
 							new_glomeruli[int(glomerulus_id - first_glomerulus),:] = oob
 							new_connection_index += 1
 							idx += 1
-				print('added {} candidates'.format(idx))
 			return connections[0:new_connection_index]
 
 		result = connectome_goc_glom(first_glomerulus, glomeruli, golgis, GoCaxon_x, GoCaxon_y, GoCaxon_z, r_glom, n_conn_goc, layer_thickness, oob)
