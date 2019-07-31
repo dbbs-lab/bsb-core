@@ -59,6 +59,11 @@ class dimensions:
     def depth(self):
         return self.dimensions[2]
 
+    @property
+    def volume(self):
+        return np.prod(self.dimensions)
+
+class origin:
     def X(self):
         return self.origin[0]
 
@@ -70,11 +75,7 @@ class dimensions:
     def Z(self):
         return self.origin[2]
 
-    @property
-    def volume(self):
-        return np.prod(self.dimensions)
-
-class Layer(dimensions):
+class Layer(dimensions, origin):
 
     def __init__(self, name, origin, dimensions, scaling=True):
         # Name of the layer
