@@ -11,8 +11,9 @@ class GranuleCellGeometry(Geometry):
 	casts = {
 		'dendrite_length' : float,
 		'pf_height': float,
+		'pf_height_sd': float,
 	}
-	required = ['dendrite_length', 'pf_height']
+	required = ['dendrite_length', 'pf_height', 'pf_height_sd']
 
 	def validate(self):
 		pass
