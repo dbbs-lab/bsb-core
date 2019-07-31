@@ -32,7 +32,7 @@ class PlacementStrategy(ConfigurableClass):
 			return int(ratioCellType.placement.get_placement_count(ratioCellType) * cell_type.ratio)
 		if not cell_type.planarDensity is None:
 			# Calculate the planar density
-			return int(layer.X * layer.Z * cell_type.planarDensity)
+			return int(layer.width * layer.depth * cell_type.planarDensity)
 		if hasattr(self, 'restriction_factor'):
 			# Add a restriction factor to the available volume
 			return int(available_volume * self.restriction_factor * cell_type.density)
@@ -292,24 +292,24 @@ class ParallelArrayPlacement(PlacementStrategy):
 		extensionX = self.extension_x
 		spanX = diameter + extensionX
 		# Surface area of the plane to place the cells on
-		surfaceArea = layer.X * layer.Z
+		surfaceArea = layer.width * layer.depth
 		# Number of cells
 		N = self.get_placement_count(cell_type)
 		# Place purkinje cells equally spaced over the entire length of the X axis kept apart by their dendritic trees.
 		# They are placed in straight lines, tilted by a certain angle by adding a shifting value.
-		xPositions = np.arange(start=0., stop=layer.X, step=extensionX)[:-1]
+		xPositions = np.arange(start=0., stop=layer.width, step=extensionX)[:-1]
 		# Amount of parallel arrays of cells
 		nArrays = xPositions.shape[0]
 		# cells to distribute along the rows
 		cellsPerRow = round(N / nArrays)
 		# Calculate the position of the cells along the z-axis.
-		zPositions, lengthPerCell = np.linspace(start=0., stop=layer.Z - radius, num=cellsPerRow, retstep=True, endpoint=False)
+		zPositions, lengthPerCell = np.linspace(start=0., stop=layer.depth - radius, num=cellsPerRow, retstep=True, endpoint=False)
 		# Center the cell soma center to the middle of the unit cell
 		zPositions += radius + lengthPerCell / 2
 		# Add a random shift to the starting points of the arrays for variation.
 		startOffset = np.random.rand() * extensionX
 		# The length of the X axis where cells can be placed in.
-		boundedX = layer.X - radius * 2
+		boundedX = layer.width - radius * 2
 		# The length of the X axis rounded up to a multiple of the unit cell size.
 		latticeX = nArrays * extensionX
 		# Error introduced in the lattice when it is broken by the modulus.
@@ -326,7 +326,7 @@ class ParallelArrayPlacement(PlacementStrategy):
 			# Place the cells in a bounded lattice with a little modulus magic
 			x = layer.origin[0] + x % boundedX - np.floor(x / boundedX) * latticeError + radius
 			# Place them at a uniformly random height throughout the layer.
-			y = layer.origin[1] + np.random.uniform(radius, layer.Y - radius, x.shape[0])
+			y = layer.origin[1] + np.random.uniform(radius, layer.height - radius, x.shape[0])
 			# Place the cells in their z-position with slight jitter
 			z = layer.origin[2] + np.array([zPositions[i] + ϵ * (np.random.rand() - 0.5) for _ in np.arange(x.shape[0])])
 			# Store this stack's cells

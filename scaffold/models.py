@@ -48,16 +48,27 @@ class CellType:
 
 class dimensions:
     @property
-    def X(self):
+    def width(self):
         return self.dimensions[0]
 
     @property
-    def Y(self):
+    def height(self):
         return self.dimensions[1]
 
     @property
-    def Z(self):
+    def depth(self):
         return self.dimensions[2]
+
+    def X(self):
+        return self.origin[0]
+
+    @property
+    def Y(self):
+        return self.origin[1]
+
+    @property
+    def Z(self):
+        return self.origin[2]
 
     @property
     def volume(self):
