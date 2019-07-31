@@ -200,16 +200,37 @@ class ConnectomeGolgiGlomerulus(TouchingConvergenceDivergence):
 		result = connectome_goc_glom(first_glomerulus, glomeruli, golgis, GoCaxon_x, GoCaxon_y, GoCaxon_z, r_glom, n_conn_goc, layer_thickness, oob)
 		self.scaffold.connect_cells(self, result)
 
-class ConnectomeGranuleGolgi(TouchingConvergenceDivergence):
+class ConnectomeGranuleGolgi(ConnectionStrategy):
 	'''
 		Legacy implementation for the connections between Golgi cells and glomeruli.
 	'''
+
+	casts = {
+		'aa_convergence': int,
+		'pf_convergence': int
+	}
+
+	required = ['aa_convergence', 'pf_convergence']
+
 	def validate(self):
 		pass
 
 	def connect(self):
-		def connectome_grc_goc(first_granule, granules, golgicells, r_goc_vol, OoB_value, n_connAA, n_conn_pf, tot_conn, aa_goc, pf_goc):
+		# Gather information for the legacy code block below.
+		granule_celltype = self.from_celltype
+		golgi_celltype = self.to_celltype
+		granules = self.scaffold.cells_by_type[granule_celltype.name]
+		golgis = self.scaffold.cells_by_type[golgi_celltype.name]
+		first_granule = int(granules[0, 0])
+		r_goc_vol = golgi_celltype.geometry.dendrite_radius
+		oob = self.scaffold.configuration.X * 1000.
+		n_connAA = self.aa_convergence
+		n_conn_pf = self.pf_convergence
+		tot_conn = n_connAA + n_conn_pf
+
+		def connectome_grc_goc(first_granule, granules, golgicells, r_goc_vol, OoB_value, n_connAA, n_conn_pf, tot_conn):
 			aa_goc = np.empty((0,2))
+			pf_goc = np.empty((0,2))
 			densityWarningSent = False
 			new_granules = np.copy(granules)
 			new_golgicells = np.random.permutation(golgicells)
@@ -229,8 +250,8 @@ class ConnectomeGranuleGolgi(TouchingConvergenceDivergence):
 						if (ra).__gt__(prob[ind]):
 							idx += 1
 							matrix = np.zeros((1, 2))
-							matrix[0,0] = j[0]
-							matrix[0,1] = i[0]
+							matrix[0,0] = int(j[0])
+							matrix[0,1] = int(i[0])
 							aa_goc = np.vstack((aa_goc, matrix))
 							connectedAA = np.append(connectedAA,j[0])
 				good_grc = np.delete(granules, (connectedAA - first_granule), 0)
@@ -251,16 +272,17 @@ class ConnectomeGranuleGolgi(TouchingConvergenceDivergence):
 					connected_pf = np.random.choice(good_pf, tot_conn-len(connectedAA), replace = False)
 					totalConnectionsMade = tot_conn
 				pf_idx = good_grc[connected_pf,:]
-				matrix_pf = np.zeros((totalConnectionsMade, 3))	# construction of the output matrix
+				matrix_pf = np.zeros((totalConnectionsMade, 2))	# construction of the output matrix
 				matrix_pf[:,1] = i[0]
 				matrix_pf[0:len(connectedAA),0] = connectedAA
 				matrix_pf[len(connectedAA):totalConnectionsMade,0] = pf_idx[:,0]
 				# Store Euclidean distance.
-				matrix_pf[0:len(connectedAA),2] = np.sqrt((granules[(connectedAA.astype(int)-first_granule),2]-i[2])**2 + (granules[(connectedAA.astype(int)-first_granule),3]-i[3])**2 + (granules[(connectedAA.astype(int)-first_granule),4]-i[4])**2)
-				matrix_pf[len(connectedAA):totalConnectionsMade,2] = np.sqrt((pf_idx[:,2]-i[2])**2 + (pf_idx[:,3]-i[3])**2 + (pf_idx[:,4]-i[4])**2)
 				pf_goc = np.vstack((pf_goc, matrix_pf))
 				new_granules[((connectedAA.astype(int)) - first_granule),:] = OoB_value
 				# End of Golgi cell loop
 			aa_goc = aa_goc[aa_goc[:,1].argsort()]
 			pf_goc = pf_goc[pf_goc[:,1].argsort()]		# sorting of the resulting vector on the post-synaptic neurons
 			return aa_goc, pf_goc
+
+		result_aa, result_pf = connectome_grc_goc(first_granule, granules, golgis, r_goc_vol, oob, n_connAA, n_conn_pf, tot_conn)
+		
