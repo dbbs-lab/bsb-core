@@ -233,34 +233,37 @@ class ConnectomeGranuleGolgi(ConnectionStrategy):
 			pf_goc = np.empty((0,2))
 			densityWarningSent = False
 			new_granules = np.copy(granules)
+			granules_x = new_granules[:,2]
+			granules_z = new_granules[:,4]
 			new_golgicells = np.random.permutation(golgicells)
 			if new_granules.shape[0] <= new_golgicells.shape[0]:
 				raise Exception("The number of granule cells was less than the number of golgi cells. Simulation cannot continue.")
-			for i in new_golgicells:
-				idx = 1
-				connectedAA = np.array([])
-				axon_matrix = (((new_granules[:,2]-i[2])**2)+((new_granules[:,4]-i[4])**2)-(r_goc_vol**2)).__le__(0)
-				goodAA = np.where(axon_matrix==True)[0]		# finds indexes of ascending axons that can potentially be connected
-				chosen_rand = np.random.permutation(goodAA)
-				goodAA_matrix = new_granules[chosen_rand]
-				prob = np.sort((np.sqrt((goodAA_matrix[:,2]-i[2])**2 + (goodAA_matrix[:,4]-i[4])**2))/r_goc_vol)
-				for ind,j in enumerate(goodAA_matrix):
-					if idx <= n_connAA:
-						ra = np.random.random()
-						if (ra).__gt__(prob[ind]):
+			for golgi_id, _, golgi_x, golgi_y, golgi_z in new_golgicells:
+				# Distance of this golgi cell to all ascending axons
+				distance_vector = ((granules_x-golgi_x)**2)+((granules_z-golgi_z)**2)
+				AA_candidates = np.where((distance_vector).__le__(r_goc_vol**2))[0]		# finds indexes of ascending axons that can potentially be connected
+				chosen_rand = np.random.permutation(AA_candidates)
+				selected_granules = new_granules[chosen_rand]
+				selected_distances = np.sqrt(distance_vector[chosen_rand])
+				prob = selected_distances / r_goc_vol
+				distance_sort = prob.argsort()
+				selected_granules = selected_granules[distance_sort]
+				prob = prob[distance_sort]
+				rolls = np.random.uniform(size=len(selected_granules))
+				connectedAA = np.empty(n_connAA)
+				idx = 0
+				for ind,j in enumerate(selected_granules):
+					if idx < n_connAA:
+						if rolls[ind] > prob[ind]:
+							connectedAA[idx] = j[0]
 							idx += 1
-							matrix = np.zeros((1, 2))
-							matrix[0,0] = int(j[0])
-							matrix[0,1] = int(i[0])
-							aa_goc = np.vstack((aa_goc, matrix))
-							connectedAA = np.append(connectedAA,j[0])
+				connectedAA = connectedAA[0:idx]
 				good_grc = np.delete(granules, (connectedAA - first_granule), 0)
-				intersections = (good_grc[:,2]).__ge__(i[2]-r_goc_vol) & (good_grc[:,2]).__le__(i[2]+r_goc_vol)
+				intersections = (good_grc[:,2]).__ge__(golgi_x-r_goc_vol) & (good_grc[:,2]).__le__(golgi_x+r_goc_vol)
 				good_pf = np.where(intersections==True)[0]				# finds indexes of granules that can potentially be connected
 				# The remaining amount of parallel fibres to connect after subtracting the amount of already connected ascending axons.
 				parallelFibersToConnect = tot_conn - len(connectedAA)
 				# Randomly select parallel fibers to be connected with a GoC, to a maximum of tot_conn connections
-				# TODO: Calculate the risk of not having enough granule cells beforehand, outside of the for loop for performance.
 				if good_pf.shape[0] < parallelFibersToConnect:
 					connected_pf = np.random.choice(good_pf, min(tot_conn-len(connectedAA), good_pf.shape[0]), replace = False)
 					totalConnectionsMade = connected_pf.shape[0] + len(connectedAA)
@@ -273,10 +276,9 @@ class ConnectomeGranuleGolgi(ConnectionStrategy):
 					totalConnectionsMade = tot_conn
 				pf_idx = good_grc[connected_pf,:]
 				matrix_pf = np.zeros((totalConnectionsMade, 2))	# construction of the output matrix
-				matrix_pf[:,1] = i[0]
-				matrix_pf[0:len(connectedAA),0] = connectedAA
+				matrix_pf[0:len(connectedAA), 0] = connectedAA
 				matrix_pf[len(connectedAA):totalConnectionsMade,0] = pf_idx[:,0]
-				# Store Euclidean distance.
+				matrix_pf[:,1] = golgi_id
 				pf_goc = np.vstack((pf_goc, matrix_pf))
 				new_granules[((connectedAA.astype(int)) - first_granule),:] = OoB_value
 				# End of Golgi cell loop
@@ -285,4 +287,3 @@ class ConnectomeGranuleGolgi(ConnectionStrategy):
 			return aa_goc, pf_goc
 
 		result_aa, result_pf = connectome_grc_goc(first_granule, granules, golgis, r_goc_vol, oob, n_connAA, n_conn_pf, tot_conn)
-		
