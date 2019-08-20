@@ -4,7 +4,7 @@ import os, sys, pstats
 from time import sleep
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
-from scaffold.scaffold import Scaffold
+from scaffold import Scaffold
 from scaffold.config import ScaffoldIniConfig
 
 config = ScaffoldIniConfig('../test.ini')
