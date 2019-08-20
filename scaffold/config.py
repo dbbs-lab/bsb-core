@@ -71,7 +71,7 @@ class ScaffoldConfig(object):
         # Register a new ConnectionStrategy.
         self.connection_types[connection.name] = connection
 
-    def addLayer(self, layer):
+    def add_layer(self, layer):
         '''
             Adds a layer to the config object. layers are regions of the simulation
             to be populated by cells.
@@ -305,7 +305,7 @@ class ScaffoldIniConfig(ScaffoldConfig):
         # Put together the layer object from the extracted values.
         layer = Layer(name, origin, dimensions)
         # Add layer to the config object
-        self.addLayer(layer)
+        self.add_layer(layer)
         return layer
 
     def iniGeometry(self, name, section):

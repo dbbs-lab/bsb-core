@@ -1,5 +1,6 @@
 import abc
 from .helpers import ConfigurableClass
+from .postprocessing import placeParallelFibers
 import numpy as np
 from pprint import pprint
 
@@ -227,6 +228,8 @@ class ConnectomeGranuleGolgi(ConnectionStrategy):
 		n_connAA = self.aa_convergence
 		n_conn_pf = self.pf_convergence
 		tot_conn = n_connAA + n_conn_pf
+		pf_heights = placeParallelFibers(self.scaffold, granule_celltype.geometry, granules)
+		self.scaffold.append_dset('hpf', data=pf_heights)
 
 		def connectome_grc_goc(first_granule, granules, golgicells, r_goc_vol, OoB_value, n_connAA, n_conn_pf, tot_conn):
 			aa_goc = np.empty((0,2))

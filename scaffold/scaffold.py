@@ -90,6 +90,7 @@ class Scaffold:
 		self.cell_connections = np.empty((0, 2))
 		# Cell connections per connection type. Columns: From ID, To ID.
 		self.cell_connections_by_type = {}
+		self.appends = {}
 
 	def place_cells(self, cell_type, layer, positions):
 		# Create an ID for each cell.
@@ -131,16 +132,25 @@ class Scaffold:
 		# Store all the connections
 		self.cell_connections = np.concatenate((self.cell_connections, connectome_data))
 
+	def append_dset(self, name, data):
+		self.appends[name] = data
+
 	def save(self):
 		f = h5py.File('scaffold_new_test.hdf5', 'w')
 		celltype_names = self.configuration.cell_type_map
 		position_dset = f.create_dataset('positions', data=self.cells)
 		position_dset.attrs['types'] = celltype_names
 		f.create_group('connections')
+
 		for key, connectome_data in self.cell_connections_by_type.items():
 			dset = f['connections'].create_dataset(key, data=connectome_data)
 			dset.attrs['name'] = key
 			# Maybe from/to information can be stored here aswell.
+
+		# Append extra datasets specified internally or by user.
+		for key, data in self.appends.items():
+			dset = f.create_dataset(key, data=data)
+
 		f.create_dataset('connectome', data=self.cell_connections)
 		f.close()
 
