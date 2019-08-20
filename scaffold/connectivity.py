@@ -297,3 +297,47 @@ class ConnectomeGranuleGolgi(ConnectionStrategy):
 		result_aa, result_pf = connectome_grc_goc(first_granule, granules, golgis, r_goc_vol, oob, n_connAA, n_conn_pf, tot_conn)
 		self.scaffold.connect_cells(self, result_aa, "AscendingAxonGolgi")
 		self.scaffold.connect_cells(self, result_pf)
+
+class ConnectomeGolgiGranule(ConnectionStrategy):
+	'''
+		Legacy implementation for the connections between Golgi cells and glomeruli.
+	'''
+
+	def validate(self):
+		pass
+
+	def connect(self):
+		# Gather information for the legacy code block below.
+		glom_grc = self.scaffold.cell_connections_by_type['GlomerulusGranule']
+		goc_glom = self.scaffold.cell_connections_by_type['GolgiGlomerulus']
+
+		def connectome_goc_grc(glom_grc, goc_glom):
+			import pandas as pd
+			# Given goc --> glom connectivity, infer goc --> granules
+			# First, create a DataFrame where column names are glomeruli and values are granules
+			# contacted by each glomerulus
+			glom_grc_df = pd.DataFrame()
+			for key in np.unique(glom_grc[:,0]): # for each glomerulus connected to one or more granule cell
+				target_grcs = glom_grc[glom_grc[:,0]==key,1]
+
+			# Now store in a dictionary all granules inhibited by each Golgi cell:
+			# keys --> Golgi cells
+			# values --> contacted Granule cells
+			goc_grc_dic = {}
+			for key in np.unique(goc_glom[:,0]):
+				target_glom = np.array(goc_glom[goc_glom[:,0]==key,1], dtype=int)
+				# Filter out any Glomerulus not connected to any granular cells.
+				target_glom = list(filter(lambda x: x in glom_grc_df.index, target_glom))
+				target_grc = np.unique(glom_grc_df[target_glom])
+				target_grc = target_grc[~np.isnan(target_grc)]
+				goc_grc_dic[key] = target_grc
+
+			# Finally, turn everything into a matrix
+			pres = np.concatenate([np.tile(key, len(val)) for key, val in goc_grc_dic.items()])
+			post = np.concatenate([val for val in goc_grc_dic.values()])
+			goc_grc = np.column_stack([pres, post])
+
+			return goc_grc
+
+		result = connectome_goc_grc(glom_grc, goc_glom)
+		self.scaffold.connect_cells(self, result)
