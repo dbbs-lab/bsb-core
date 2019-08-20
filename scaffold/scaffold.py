@@ -133,9 +133,15 @@ class Scaffold:
 
 	def save(self):
 		f = h5py.File('scaffold_new_test.hdf5', 'w')
-		cell_typeIDs = self.configuration.cell_type_map
-		dset = f.create_dataset('positions', data=self.cells)
-		dset.attrs['types'] = cell_typeIDs
+		celltype_names = self.configuration.cell_type_map
+		position_dset = f.create_dataset('positions', data=self.cells)
+		position_dset.attrs['types'] = celltype_names
+		f.create_group('connections')
+		for key, connectome_data in self.cell_connections_by_type.items():
+			dset = f['connections'].create_dataset(key, data=connectome_data)
+			dset.attrs['name'] = key
+			# Maybe from/to information can be stored here aswell.
+		f.create_dataset('connectome', data=self.cell_connections)
 		f.close()
 
 
