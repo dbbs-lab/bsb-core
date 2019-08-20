@@ -121,9 +121,9 @@ class Scaffold:
 		self._nextId += count
 		return IDs
 
-	def connect_cells(self, connection_type, connectome_data):
+	def connect_cells(self, connection_type, connectome_data, connection_name = None):
 		# Cache the connectome per connection type
-		cache = self.cell_connections_by_type[connection_type.name]
+		cache = self.cell_connections_by_type[connection_name or connection_type.name]
 		cache = np.concatenate((cache, connectome_data))
 		# Store all the connections
 		self.cell_connections = np.concatenate((self.cell_connections, connectome_data))

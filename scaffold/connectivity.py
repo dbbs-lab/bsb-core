@@ -292,5 +292,5 @@ class ConnectomeGranuleGolgi(ConnectionStrategy):
 			return aa_goc, pf_goc
 
 		result_aa, result_pf = connectome_grc_goc(first_granule, granules, golgis, r_goc_vol, oob, n_connAA, n_conn_pf, tot_conn)
-		self.scaffold.connect_cells(self, result_aa)
+		self.scaffold.connect_cells(self, result_aa, "AscendingAxonGolgi")
 		self.scaffold.connect_cells(self, result_pf)
