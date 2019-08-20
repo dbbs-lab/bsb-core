@@ -262,11 +262,12 @@ class ConnectomeGranuleGolgi(ConnectionStrategy):
 				intersections = (good_grc[:,2]).__ge__(golgi_x-r_goc_vol) & (good_grc[:,2]).__le__(golgi_x+r_goc_vol)
 				good_pf = np.where(intersections==True)[0]				# finds indexes of granules that can potentially be connected
 				# The remaining amount of parallel fibres to connect after subtracting the amount of already connected ascending axons.
-				parallelFibersToConnect = tot_conn - len(connectedAA)
+				AA_connected_count = len(connectedAA)
+				parallelFibersToConnect = tot_conn - AA_connected_count
 				# Randomly select parallel fibers to be connected with a GoC, to a maximum of tot_conn connections
 				if good_pf.shape[0] < parallelFibersToConnect:
-					connected_pf = np.random.choice(good_pf, min(tot_conn-len(connectedAA), good_pf.shape[0]), replace = False)
-					totalConnectionsMade = connected_pf.shape[0] + len(connectedAA)
+					connected_pf = np.random.choice(good_pf, min(tot_conn-AA_connected_count, good_pf.shape[0]), replace = False)
+					totalConnectionsMade = connected_pf.shape[0] + AA_connected_count
 					# Warn the user once if not enough granule cells are present to connect to the Golgi cell.
 					if not densityWarningSent:
 						densityWarningSent = True
@@ -274,12 +275,16 @@ class ConnectomeGranuleGolgi(ConnectionStrategy):
 				else:
 					connected_pf = np.random.choice(good_pf, tot_conn-len(connectedAA), replace = False)
 					totalConnectionsMade = tot_conn
+				PF_connected_count = connected_pf.shape[0]
 				pf_idx = good_grc[connected_pf,:]
-				matrix_pf = np.zeros((totalConnectionsMade, 2))	# construction of the output matrix
-				matrix_pf[0:len(connectedAA), 0] = connectedAA
-				matrix_pf[len(connectedAA):totalConnectionsMade,0] = pf_idx[:,0]
+				matrix_aa = np.zeros((AA_connected_count, 2))
+				matrix_pf = np.zeros((PF_connected_count, 2))
+				matrix_pf[0:PF_connected_count, 0] = pf_idx[:,0]
+				matrix_aa[0:AA_connected_count, 0] = connectedAA
 				matrix_pf[:,1] = golgi_id
+				matrix_aa[:,1] = golgi_id
 				pf_goc = np.vstack((pf_goc, matrix_pf))
+				aa_goc = np.vstack((aa_goc, matrix_aa))
 				new_granules[((connectedAA.astype(int)) - first_granule),:] = OoB_value
 				# End of Golgi cell loop
 			aa_goc = aa_goc[aa_goc[:,1].argsort()]
@@ -287,3 +292,5 @@ class ConnectomeGranuleGolgi(ConnectionStrategy):
 			return aa_goc, pf_goc
 
 		result_aa, result_pf = connectome_grc_goc(first_granule, granules, golgis, r_goc_vol, oob, n_connAA, n_conn_pf, tot_conn)
+		self.scaffold.connect_cells(self, result_aa)
+		self.scaffold.connect_cells(self, result_pf)
