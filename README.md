@@ -35,7 +35,7 @@ To run with different configurations, change the config argument to the relative
 
 As a package the central object is the `Scaffold` class. This object requires a `ScaffoldConfig` instance for its construction. To emulate the CLI functionality you can use the `ScaffoldIniConfig` class and provide the relative path to the configuration file.
 
-```
+```python
 from scaffold import Scaffold
 from scaffold.config import ScaffoldIniConfig
 
@@ -45,7 +45,7 @@ scaffoldInstance = new Scaffold(config)
 
 This scaffold instance can then be used to perform the subcommands available in the CLI by calling their corresponding functions:
 
-```
+```python
 scaffoldInstance.compileNetworkArchitecture()
 ```
 
@@ -53,7 +53,7 @@ scaffoldInstance.compileNetworkArchitecture()
 
 After calling `compileNetworkArchitecture` the scaffold instance can be passed to `plotNetwork` from the `scaffold.plotting` module for plotting:
 
-```
+```python
 from scaffold.plotting import plotNetwork
 
 plotNetwork(scaffoldInstance)
