@@ -89,7 +89,7 @@ class Scaffold:
 		# Cell connections. Columns: From ID, To ID.
 		self.cell_connections = np.empty((0, 2))
 		# Cell connections per connection type. Columns: From ID, To ID.
-		self.cell_connections_by_type = {key: np.empty((0, 2)) for key in self.configuration.connection_types.keys()}
+		self.cell_connections_by_type = {}
 
 	def place_cells(self, cell_type, layer, positions):
 		# Create an ID for each cell.
@@ -122,9 +122,12 @@ class Scaffold:
 		return IDs
 
 	def connect_cells(self, connection_type, connectome_data, connection_name = None):
-		# Cache the connectome per connection type
-		cache = self.cell_connections_by_type[connection_name or connection_type.name]
-		cache = np.concatenate((cache, connectome_data))
+		name = connection_name or connection_type.name
+		if name in self.cell_connections_by_type:
+			cache = self.cell_connections_by_type[name]
+			cache = np.concatenate((cache, connectome_data))
+		else:
+			self.cell_connections_by_type[name] = np.copy(connectome_data)
 		# Store all the connections
 		self.cell_connections = np.concatenate((self.cell_connections, connectome_data))
 
