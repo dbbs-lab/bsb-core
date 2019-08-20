@@ -125,7 +125,7 @@ class Scaffold:
 		name = connection_name or connection_type.name
 		if name in self.cell_connections_by_type:
 			cache = self.cell_connections_by_type[name]
-			cache = np.concatenate((cache, connectome_data))
+			self.cell_connections_by_type[name] = np.concatenate((cache, connectome_data))
 		else:
 			self.cell_connections_by_type[name] = np.copy(connectome_data)
 		# Store all the connections
