@@ -674,26 +674,27 @@ class ConnectomeGapJunctionsGolgi(ConnectionStrategy):
 
 		def connectome_gj_goc(r_goc_vol, GoCaxon_x, GoCaxon_y, GoCaxon_z, golgicells, first_golgi):
 			gj_goc = np.zeros((golgis.shape[0] ** 2,2))
-			gj_i = 0
+			start_index = 0
+			golgi_x = golgicells[:, 2]
+			golgi_y = golgicells[:, 3]
+			golgi_z = golgicells[:, 4]
+			self_index = 0
 			for i in golgicells:	# for each Golgi find all cells of the same type that, through their dendritic tree, fall into its axonal tree
 
-				# do not consider the current cell in the connectivity calculus
-				a = np.where(golgicells[:,0]==i[0])[0]
-				del_goc = np.delete(golgicells[:,0], a)
-				potential_goc = (del_goc - first_golgi).astype(int)
-
-				bool_vector = (np.absolute(golgicells[potential_goc,2]-i[2])).__le__(r_goc_vol + (GoCaxon_x/2.))
-				bool_vector = bool_vector & (np.absolute(golgicells[potential_goc,3]-i[3])).__le__(r_goc_vol + (GoCaxon_y/2.))
-				bool_vector = bool_vector & (np.absolute(golgicells[potential_goc,4]-i[4])).__le__(r_goc_vol + (GoCaxon_z/2.))
+				bool_vector = (np.absolute(golgi_x-i[2])).__le__(r_goc_vol + (GoCaxon_x/2.))
+				bool_vector[self_index] = False # Don't connect a golgi cell to itself
+				bool_vector = bool_vector & (np.absolute(golgi_y-i[3])).__le__(r_goc_vol + (GoCaxon_y/2.))
+				bool_vector = bool_vector & (np.absolute(golgi_z-i[4])).__le__(r_goc_vol + (GoCaxon_z/2.))
 
 				good_goc = np.where(bool_vector)[0]	# finds indexes of Golgi cells that satisfy all conditions
 
-				new_gj_i = gj_i + len(good_goc)
-				gj_goc[gj_i:new_gj_i, 0] = i[0]
-				gj_goc[gj_i:new_gj_i, 1] = good_goc
-				gj_i = new_gj_i
+				end_index = start_index + len(good_goc)
+				gj_goc[start_index:end_index, 0] = i[0]
+				gj_goc[start_index:end_index, 1] = good_goc
+				start_index = end_index
+				self_index += 1
 
-			return gj_goc[0:new_gj_i]
+			return gj_goc[0:end_index]
 
 		result = connectome_gj_goc(r_goc_vol, GoCaxon_x, GoCaxon_y, GoCaxon_z, golgis, first_golgi)
 		self.scaffold.connect_cells(self, result)
