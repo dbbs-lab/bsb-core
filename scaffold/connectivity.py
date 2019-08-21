@@ -539,18 +539,20 @@ class ConnectomeBCSCPurkinje(ConnectionStrategy):
 
 			stellates_x = stellates[:, 2]
 			stellates_z = stellates[:, 4]
-			for i in purkinjes:	# for all Purkinje cells: calculate which basket and stellate cells can be connected, then choose 20 of them for each typology
+			baskets_x = baskets[:, 2]
+			baskets_z = baskets[:, 4]
+			for p_id, p_type, p_x, p_y, p_z in purkinjes:	# for all Purkinje cells: calculate which basket and stellate cells can be connected, then choose 20 of them for each typology
 
 				idx_bc = 1
 				idx_sc = 1
 
 				# find all cells that satisfy the distance condition for both types
-				sc_matrix = (np.absolute(stellates[:,4]-i[4])).__lt__(distz) & (np.absolute(stellates[:,2]-i[2])).__lt__(distx)
-				bc_matrix = (np.absolute(basketcells[:,4]-i[4])).__lt__(distx) & (np.absolute(basketcells[:,2]-i[2])).__lt__(distz)
+				sc_matrix = (np.absolute(stellates_z-p_z)).__lt__(distz) & (np.absolute(stellates_x-p_x)).__lt__(distx)
+				bc_matrix = (np.absolute(baskets_z-p_z)).__lt__(distx) & (np.absolute(baskets_x-p_x)).__lt__(distz)
 
 
-				good_bc = np.where(bc_matrix==True)[0]	# indexes of basket cells that can potentially be connected
-				good_sc = np.where(sc_matrix==True)[0]	# indexes of stellate cells that can potentially be connected
+				good_bc = np.where(bc_matrix)[0]	# indexes of basket cells that can potentially be connected
+				good_sc = np.where(sc_matrix)[0]	# indexes of stellate cells that can potentially be connected
 
 				chosen_rand_bc = np.random.permutation(good_bc)
 				good_bc_matrix = basketcells[chosen_rand_bc]
@@ -564,11 +566,11 @@ class ConnectomeBCSCPurkinje(ConnectionStrategy):
 					if idx_bc <= conv:
 
 						ra = np.random.random()
-						if (ra).__gt__((np.absolute(j[4]-i[4]))/distx) & (ra).__gt__((np.absolute(j[2]-i[2]))/distz):
+						if (ra).__gt__((np.absolute(j[4]-p_z))/distx) & (ra).__gt__((np.absolute(j[2]-p_x))/distz):
 
 							idx_bc += 1
 							bc_pc[bc_i, 0] = j[0]
-							bc_pc[bc_i, 1] = i[0]
+							bc_pc[bc_i, 1] = p_id
 							bc_i += 1
 
 
@@ -578,12 +580,12 @@ class ConnectomeBCSCPurkinje(ConnectionStrategy):
 					if idx_sc <= conv:
 
 						ra = np.random.random()
-						if (ra).__gt__((np.absolute(k[4]-i[4]))/distz) & (ra).__gt__((np.absolute(k[2]-i[2]))/distx):
+						if (ra).__gt__((np.absolute(k[4]-p_z))/distz) & (ra).__gt__((np.absolute(k[2]-p_x))/distx):
 
 							idx_sc += 1
 							sc_pc[sc_i, 0] = k[0]
-							sc_pc[sc_i, 1] = i[0]
-							sc_pc += 1
+							sc_pc[sc_i, 1] = p_id
+							sc_i += 1
 
 
 			return sc_pc[0:sc_i], bc_pc[0:bc_i]
