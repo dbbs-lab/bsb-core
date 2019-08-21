@@ -386,5 +386,4 @@ class ConnectomeAscAxonPurkinje(ConnectionStrategy):
 			return aa_pc
 
 		result = connectome_aa_pc(first_granule, granules, purkinjes, purkinje_extension_x, purkinje_extension_z, OoB_value)
-		print("{} purkinjes, {} connectome shape".format(purkinjes.shape[0], result.shape))
 		self.scaffold.connect_cells(self, result, "AscAxonPurkinje")
