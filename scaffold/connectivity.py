@@ -673,7 +673,8 @@ class ConnectomeGapJunctionsGolgi(ConnectionStrategy):
 		GoCaxon_z = golgi_celltype.geometry.axon_z
 
 		def connectome_gj_goc(r_goc_vol, GoCaxon_x, GoCaxon_y, GoCaxon_z, golgicells, first_golgi):
-			gj_goc = np.zeros((1,2))
+			gj_goc = np.zeros((golgis.shape[0] ** 2,2))
+			gj_i = 0
 			for i in golgicells:	# for each Golgi find all cells of the same type that, through their dendritic tree, fall into its axonal tree
 
 				# do not consider the current cell in the connectivity calculus
@@ -681,20 +682,18 @@ class ConnectomeGapJunctionsGolgi(ConnectionStrategy):
 				del_goc = np.delete(golgicells[:,0], a)
 				potential_goc = (del_goc - first_golgi).astype(int)
 
-				bool_matrix = np.zeros(((golgicells.shape[0])-1, 3))
-				bool_matrix[:,0] = (np.absolute(golgicells[potential_goc,2]-i[2])).__le__(r_goc_vol + (GoCaxon_x/2.))
-				bool_matrix[:,1] = (np.absolute(golgicells[potential_goc,3]-i[3])).__le__(r_goc_vol + (GoCaxon_y/2.))
-				bool_matrix[:,2] = (np.absolute(golgicells[potential_goc,4]-i[4])).__le__(r_goc_vol + (GoCaxon_z/2.))
+				bool_vector = (np.absolute(golgicells[potential_goc,2]-i[2])).__le__(r_goc_vol + (GoCaxon_x/2.))
+				bool_vector = bool_vector & (np.absolute(golgicells[potential_goc,3]-i[3])).__le__(r_goc_vol + (GoCaxon_y/2.))
+				bool_vector = bool_vector & (np.absolute(golgicells[potential_goc,4]-i[4])).__le__(r_goc_vol + (GoCaxon_z/2.))
 
-				good_goc = np.where(np.sum(bool_matrix, axis=1)==3)[0]	# finds indexes of Golgi cells that satisfy all conditions
+				good_goc = np.where(bool_vector)[0]	# finds indexes of Golgi cells that satisfy all conditions
 
-				matrix = np.zeros((len(good_goc), 2))
-				matrix[:,0] = i[0]
-				matrix[:,1] = good_goc
-				gj_goc = np.vstack((gj_goc, matrix))
+				new_gj_i = gj_i + len(good_goc)
+				gj_goc[gj_i:new_gj_i, 0] = i[0]
+				gj_goc[gj_i:new_gj_i, 1] = good_goc
+				gj_i = new_gj_i
 
-			gj_goc = gj_goc[1:-1,:]
-			return gj_goc
+			return gj_goc[0:new_gj_i]
 
 		result = connectome_gj_goc(r_goc_vol, GoCaxon_x, GoCaxon_y, GoCaxon_z, golgis, first_golgi)
 		self.scaffold.connect_cells(self, result)
