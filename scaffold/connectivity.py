@@ -424,3 +424,39 @@ class ConnectomePFPurkinje(ConnectionStrategy):
 
 		result = connectome_pf_pc(first_granule, granules, purkinjes, purkinje_extension_x)
 		self.scaffold.connect_cells(self, result, "PFPurkinje")
+
+class ConnectomePFBasket(ConnectionStrategy):
+	'''
+		Legacy implementation for the connections between parallel fibers and purkinje cells.
+	'''
+
+	def validate(self):
+		pass
+
+	def connect(self):
+		# Gather information for the legacy code block below.
+		granule_celltype = self.from_celltype
+		basket_celltype = self.to_celltype
+		granules = self.scaffold.cells_by_type[granule_celltype.name]
+		baskets = self.scaffold.cells_by_type[basket_celltype.name]
+		first_granule = int(granules[0, 0])
+		dendrite_radius = basket_celltype.geometry.radius
+		pf_heights = self.scaffold.appends['hpf'][:, 1] + granules[:, 3] # Add granule Y to height of its pf
+
+		def connectome_pf_bc(first_granule, basketcells, granules, r_sb, h_pf):
+			pf_bc = np.zeros((0,2))
+
+			for i in basketcells:	# for each basket cell find all the parallel fibers that fall into the sphere with centre the cell soma and appropriate radius
+
+				# find all cells that satisfy the condition
+				bc_matrix = (((granules[:,2]-i[2])**2)+((h_pf-i[3])**2)-(r_sb**2)).__le__(0)
+				good_pf = np.where(bc_matrix==True)[0]	# indexes of basket cells that can potentially be connected
+
+				matrix = np.zeros((len(good_pf), 2))
+				matrix[:,1] = i[0]
+				matrix[:,0] = good_pf + first_granule
+				pf_bc = np.vstack((pf_bc, matrix))
+
+			return pf_bc
+
+		result = connectome_pf_bc(first_granule, baskets, granules, dendrite_radius, pf_heights)

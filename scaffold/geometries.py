@@ -36,6 +36,12 @@ class GolgiCellGeometry(Geometry):
 		pass
 
 class RadialGeometry(Geometry):
+	casts = {
+		'radius': float,
+	}
+
+	required = ['radius']
+	
 	def validate(self):
 		pass
 
