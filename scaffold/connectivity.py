@@ -498,3 +498,96 @@ class ConnectomePFStellate(ConnectionStrategy):
 
 		result = connectome_pf_sc(first_granule, stellates, granules, dendrite_radius, pf_heights)
 		self.scaffold.connect_cells(self, result)
+
+class ConnectomeBCSCPurkinje(ConnectionStrategy):
+	'''
+		Legacy implementation for the connections between stellate cells, basket cells and purkinje cells.
+	'''
+
+	casts = {
+		'limit_x': float,
+		'limit_z': float,
+		'divergence': int,
+		'convergence': int
+	}
+
+	required = ['limit_x', 'limit_z', 'divergence', 'convergence']
+
+	def validate(self):
+		pass
+
+	def connect(self):
+		# Gather information for the legacy code block below.
+		stellate_celltype = self.from_celltype
+		basket_celltype = self.scaffold.configuration.cell_types["Basket Cell"]
+		purkinje_celltype = self.to_celltype
+		stellates = self.scaffold.cells_by_type[stellate_celltype.name]
+		purkinjes = self.scaffold.cells_by_type[purkinje_celltype.name]
+		baskets = self.scaffold.cells_by_type[basket_celltype.name]
+		first_stellate = int(stellates[0, 0])
+		first_basket = int(baskets[0, 0])
+		distx = self.limit_x
+		distz = self.limit_z
+		conv = self.convergence
+
+		def connectome_sc_bc_pc(first_stellate, first_basket, basketcells, stellates, purkinjes, distx, distz, conv):
+			n_purkinje = len(purkinjes)
+			sc_pc = np.empty((n_purkinje * conv, 2))
+			bc_pc = np.empty((n_purkinje * conv, 2))
+			bc_i = 0
+			sc_i = 0
+
+			stellates_x = stellates[:, 2]
+			stellates_z = stellates[:, 4]
+			for i in purkinjes:	# for all Purkinje cells: calculate which basket and stellate cells can be connected, then choose 20 of them for each typology
+
+				idx_bc = 1
+				idx_sc = 1
+
+				# find all cells that satisfy the distance condition for both types
+				sc_matrix = (np.absolute(stellates[:,4]-i[4])).__lt__(distz) & (np.absolute(stellates[:,2]-i[2])).__lt__(distx)
+				bc_matrix = (np.absolute(basketcells[:,4]-i[4])).__lt__(distx) & (np.absolute(basketcells[:,2]-i[2])).__lt__(distz)
+
+
+				good_bc = np.where(bc_matrix==True)[0]	# indexes of basket cells that can potentially be connected
+				good_sc = np.where(sc_matrix==True)[0]	# indexes of stellate cells that can potentially be connected
+
+				chosen_rand_bc = np.random.permutation(good_bc)
+				good_bc_matrix = basketcells[chosen_rand_bc]
+				chosen_rand_sc = np.random.permutation(good_sc)
+				good_sc_matrix = stellates[chosen_rand_sc]
+
+
+				# basket cells connectivity
+				for j in good_bc_matrix:
+
+					if idx_bc <= conv:
+
+						ra = np.random.random()
+						if (ra).__gt__((np.absolute(j[4]-i[4]))/distx) & (ra).__gt__((np.absolute(j[2]-i[2]))/distz):
+
+							idx_bc += 1
+							bc_pc[bc_i, 0] = j[0]
+							bc_pc[bc_i, 1] = i[0]
+							bc_i += 1
+
+
+				# stellate cells connectivity
+				for k in good_sc_matrix:
+
+					if idx_sc <= conv:
+
+						ra = np.random.random()
+						if (ra).__gt__((np.absolute(k[4]-i[4]))/distz) & (ra).__gt__((np.absolute(k[2]-i[2]))/distx):
+
+							idx_sc += 1
+							sc_pc[sc_i, 0] = k[0]
+							sc_pc[sc_i, 1] = i[0]
+							sc_pc += 1
+
+
+			return sc_pc[0:sc_i], bc_pc[0:bc_i]
+
+		result_sc, result_bc = connectome_sc_bc_pc(first_stellate, first_basket, baskets, stellates, purkinjes, distx, distz, conv)
+		self.scaffold.connect_cells(self, result_sc, "StellatePurkinje")
+		self.scaffold.connect_cells(self, result_bc, "BasketPurkinje")
