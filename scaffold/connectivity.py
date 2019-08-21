@@ -697,5 +697,4 @@ class ConnectomeGapJunctionsGolgi(ConnectionStrategy):
 			return gj_goc
 
 		result = connectome_gj_goc(r_goc_vol, GoCaxon_x, GoCaxon_y, GoCaxon_z, golgis, first_golgi)
-		print('golgis', result.shape)
 		self.scaffold.connect_cells(self, result)
