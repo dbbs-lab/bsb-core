@@ -593,3 +593,109 @@ class ConnectomeBCSCPurkinje(ConnectionStrategy):
 		result_sc, result_bc = connectome_sc_bc_pc(first_stellate, first_basket, baskets, stellates, purkinjes, distx, distz, conv)
 		self.scaffold.connect_cells(self, result_sc, "StellatePurkinje")
 		self.scaffold.connect_cells(self, result_bc, "BasketPurkinje")
+
+class ConnectomeGapJunctions(ConnectionStrategy):
+	'''
+		Legacy implementation for gap junctions between a cell type.
+	'''
+
+	casts = {
+		'limit_xy': float,
+		'limit_z': float,
+		'divergence': int
+	}
+
+	required = ['limit_xy', 'limit_z', 'divergence']
+
+	def validate(self):
+		pass
+
+	def connect(self):
+		# Gather information for the legacy code block below.
+		from_celltype = self.from_celltype
+		from_cells = self.scaffold.cells_by_type[from_celltype.name]
+		first_cell = int(from_cells[0, 0])
+		limit_xy = self.limit_xy
+		limit_z = self.limit_z
+		divergence = self.divergence
+
+		def gap_junctions(cells, d_xy, d_z, dc_gj):
+			gj_sc = np.zeros((cells.shape[0] * dc_gj ,2))
+			gj_i = 0
+			cells_x = cells[:,2]
+			cells_y = cells[:,3]
+			cells_z = cells[:,4]
+
+			for id, type, x, y, z in cells:	# for each stellate cell calculate the distance with every other cell of the same type in the volume, then choose 4 of them
+
+				idx = 1
+
+				# find all cells that satisfy the distance condition
+				constraint_vector = (np.absolute(cells_z-z)).__lt__(d_z) & (np.absolute(cells_z-z)).__ne__(0) & (np.sqrt((cells_x-x)**2 + (cells_y-y)**2)).__lt__(d_xy)
+				good_sc = np.where(constraint_vector)[0]	# indexes of stellate cells that can potentially be connected
+				chosen_rand = np.random.permutation(good_sc)
+				candidates = cells[chosen_rand]
+
+				for j in candidates:
+
+					if idx <= dc_gj:
+
+						ra = np.random.random()
+						if (ra).__gt__((np.absolute(j[4]-z))/float(d_z)) & (ra).__gt__((np.sqrt((j[2]-x)**2 + (j[3]-y)**2))/float(d_xy)):
+
+							idx += 1
+							gj_sc[gj_i, 0] = id
+							gj_sc[gj_i, 1] = j[0]
+							gj_i += 1
+
+			return gj_sc[0:gj_i]
+
+		result = gap_junctions(from_cells, limit_xy, limit_z, divergence)
+		print(from_celltype.name, 'gaps', result.shape)
+		self.scaffold.connect_cells(self, result)
+
+class ConnectomeGapJunctionsGolgi(ConnectionStrategy):
+	'''
+		Legacy implementation for Golgi cell gap junctions.
+	'''
+
+	def validate(self):
+		pass
+
+	def connect(self):
+		# Gather information for the legacy code block below.
+		golgi_celltype = self.from_celltype
+		golgis = self.scaffold.cells_by_type[golgi_celltype.name]
+		first_golgi = int(golgis[0, 0])
+		r_goc_vol = golgi_celltype.geometry.dendrite_radius
+		GoCaxon_x = golgi_celltype.geometry.axon_x
+		GoCaxon_y = golgi_celltype.geometry.axon_y
+		GoCaxon_z = golgi_celltype.geometry.axon_z
+
+		def connectome_gj_goc(r_goc_vol, GoCaxon_x, GoCaxon_y, GoCaxon_z, golgicells, first_golgi):
+			gj_goc = np.zeros((1,2))
+			for i in golgicells:	# for each Golgi find all cells of the same type that, through their dendritic tree, fall into its axonal tree
+
+				# do not consider the current cell in the connectivity calculus
+				a = np.where(golgicells[:,0]==i[0])[0]
+				del_goc = np.delete(golgicells[:,0], a)
+				potential_goc = (del_goc - first_golgi).astype(int)
+
+				bool_matrix = np.zeros(((golgicells.shape[0])-1, 3))
+				bool_matrix[:,0] = (np.absolute(golgicells[potential_goc,2]-i[2])).__le__(r_goc_vol + (GoCaxon_x/2.))
+				bool_matrix[:,1] = (np.absolute(golgicells[potential_goc,3]-i[3])).__le__(r_goc_vol + (GoCaxon_y/2.))
+				bool_matrix[:,2] = (np.absolute(golgicells[potential_goc,4]-i[4])).__le__(r_goc_vol + (GoCaxon_z/2.))
+
+				good_goc = np.where(np.sum(bool_matrix, axis=1)==3)[0]	# finds indexes of Golgi cells that satisfy all conditions
+
+				matrix = np.zeros((len(good_goc), 2))
+				matrix[:,0] = i[0]
+				matrix[:,1] = good_goc
+				gj_goc = np.vstack((gj_goc, matrix))
+
+			gj_goc = gj_goc[1:-1,:]
+			return gj_goc
+
+		result = connectome_gj_goc(r_goc_vol, GoCaxon_x, GoCaxon_y, GoCaxon_z, golgis, first_golgi)
+		print('golgis', result.shape)
+		self.scaffold.connect_cells(self, result)
