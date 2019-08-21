@@ -368,14 +368,11 @@ class ConnectomeAscAxonPurkinje(ConnectionStrategy):
 			# for all Purkinje cells: calculate and choose which granules fall into the area of PC dendritic tree, then delete them from successive computations, since 1 ascending axon is connected to only 1 PC
 			for i in purkinjes:
 
-				# CONTROLLARE X E Z
-				bool_matrix = np.zeros((new_granules.shape[0], 2))	# matrix initialization
 				# ascending axon falls into the z range of values?
-				bool_matrix[:,0] = (new_granules[:,4]).__ge__(i[4]-z_pc/2.) & (new_granules[:,4]).__le__(i[4]+z_pc/2.)
+				bool_vector = (new_granules[:,4]).__ge__(i[4]-z_pc/2.) & (new_granules[:,4]).__le__(i[4]+z_pc/2.)
 				# ascending axon falls into the x range of values?
-				bool_matrix[:,1] = (new_granules[:,2]).__ge__(i[2]-x_pc/2.) & (new_granules[:,2]).__le__(i[2]+x_pc/2.)
-
-				good_aa = np.where(np.sum(bool_matrix, axis=1)==2)[0]	# finds indexes of ascending axons that, on the selected axis, have the correct sum value
+				bool_vector = bool_vector & ((new_granules[:,2]).__ge__(i[2]-x_pc/2.) & (new_granules[:,2]).__le__(i[2]+x_pc/2.))
+				good_aa = np.where(bool_vector)[0]	# finds indexes of ascending axons that, on the selected axis, have the correct sum value
 
 				# construction of the output matrix: the first column has the GrC id, while the second column has the PC id
 				matrix = np.zeros((len(good_aa), 2))
