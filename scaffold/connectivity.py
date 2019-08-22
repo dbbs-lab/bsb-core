@@ -1,6 +1,6 @@
 import abc
 from .helpers import ConfigurableClass
-from .postprocessing import placeParallelFibers
+from .postprocessing import get_parallel_fiber_heights, get_dcn_rotations
 import numpy as np
 from pprint import pprint
 
@@ -228,7 +228,7 @@ class ConnectomeGranuleGolgi(ConnectionStrategy):
 		n_connAA = self.aa_convergence
 		n_conn_pf = self.pf_convergence
 		tot_conn = n_connAA + n_conn_pf
-		pf_heights = placeParallelFibers(self.scaffold, granule_celltype.geometry, granules)
+		pf_heights = get_parallel_fiber_heights(self.scaffold, granule_celltype.geometry, granules)
 		self.scaffold.append_dset('hpf', data=pf_heights)
 
 		def connectome_grc_goc(first_granule, granules, golgicells, r_goc_vol, OoB_value, n_connAA, n_conn_pf, tot_conn):
@@ -698,3 +698,116 @@ class ConnectomeGapJunctionsGolgi(ConnectionStrategy):
 
 		result = connectome_gj_goc(r_goc_vol, GoCaxon_x, GoCaxon_y, GoCaxon_z, golgis, first_golgi)
 		self.scaffold.connect_cells(self, result)
+
+
+class ConnectomePurkinjeDCN(ConnectionStrategy):
+	'''
+		Legacy implementation for the connection between purkinje cells and DCN cells.
+		Also rotates the dendritic trees of the DCN.
+	'''
+
+	casts = {
+		'divergence': int
+	}
+
+	required = ['divergence']
+
+	def validate(self):
+		pass
+
+	def connect(self):
+		# Gather information for the legacy code block below.
+		purkinje_celltype = self.from_celltype
+		dcn_celltype = self.to_celltype
+		purkinjes = self.scaffold.cells_by_type[purkinje_celltype.name]
+		dcn_cells = self.scaffold.cells_by_type[dcn_celltype.name]
+		dcn_angles = get_dcn_rotations(dcn_cells)
+		self.scaffold.append_dset("DCNangle", data=dcn_angles)
+		if len(dcn_cells) == 0:
+			return
+		first_dcn = int(dcn_cells[0,0])
+		divergence = self.divergence
+
+		def connectome_pc_dcn(first_dcn, purkinjes, dcn_cells, div_pc, dend_tree_coeff):
+			pc_dcn = np.zeros((0, 2))
+
+			for i in purkinjes:	# for all Purkinje cells: calculate the distance with the area around glutamatergic DCN cells soma, then choose 4-5 of them
+
+				distance = np.zeros((dcn_cells.shape[0]))
+				distance = (np.absolute((dend_tree_coeff[:,0]*i[2])+(dend_tree_coeff[:,1]*i[3])+(dend_tree_coeff[:,2]*i[4])+dend_tree_coeff[:,3]))/(np.sqrt((dend_tree_coeff[:,0]**2)+(dend_tree_coeff[:,1]**2)+(dend_tree_coeff[:,2]**2)))
+
+				dist_matrix = np.zeros((dcn_cells.shape[0],2))
+				dist_matrix[:,1] = dcn_cells[:,0]
+				dist_matrix[:,0] = distance
+				dcn_dist = np.random.permutation(dist_matrix)
+
+				# If the number of DCN cells are less than the divergence value, all neurons are connected to the corresponding PC
+				if dcn_cells.shape[0]<div_pc:
+					matrix = np.zeros((dcn_cells.shape[0], 2))
+					matrix[:,0] = i[0]
+					matrix[:,1] = dcn_cells[:, 0]
+					pc_dcn = np.vstack((pc_dcn, matrix))
+
+				else:
+					if np.random.rand()>0.5:
+
+						connected_f = dcn_dist[0:div_pc,1]
+						connected_dist = dcn_dist[0:div_pc,0]
+						connected_provv = connected_f.astype(int)
+						connected_dcn = connected_provv
+
+						# construction of the output matrix: the first column has the  PC index, while the second column has the connected DCN cell index
+						matrix = np.zeros((div_pc, 2))
+						matrix[:,0] = i[0]
+						matrix[:,1] = connected_dcn
+						pc_dcn = np.vstack((pc_dcn, matrix))
+
+					else:
+						connected_f = dcn_dist[0:(div_pc-1),1]
+						connected_dist = dcn_dist[0:(div_pc-1),0]
+						connected_provv = connected_f.astype(int)
+						connected_dcn = connected_provv
+
+						matrix = np.zeros(((div_pc-1), 2))
+						matrix[:,0] = i[0]
+						matrix[:,1] = connected_dcn
+						pc_dcn = np.vstack((pc_dcn, matrix))
+			return pc_dcn
+
+		results = connectome_pc_dcn(first_dcn, purkinjes, dcn_cells, divergence, dcn_angles)
+		self.scaffold.connect_cells(self, results)
+
+
+class ConnectomeGlomDCN(TouchingConvergenceDivergence):
+	'''
+		Legacy implementation for the connection between glomeruli and DCN cells.
+	'''
+
+	def validate(self):
+		pass
+
+	def connect(self):
+		# Gather information for the legacy code block below.
+		glomerulus_celltype = self.from_celltype
+		dcn_celltype = self.to_celltype
+		glomeruli = self.scaffold.cells_by_type[glomerulus_celltype.name]
+		dcn_cells = self.scaffold.cells_by_type[dcn_celltype.name]
+		first_glomerulus = int(glomeruli[0, 0])
+		convergence = self.convergence
+
+		def connectome_glom_dcn(first_glomerulus, glomeruli, dcn_glut, conv_dcn):
+			glom_dcn = np.zeros((0, 2))
+			for i in dcn_glut:
+
+				connected_gloms = np.random.choice(glomeruli[:,0], conv_dcn, replace=False)
+
+				matrix = np.zeros((conv_dcn, 2))
+				matrix[:,0] = connected_gloms.astype(int)
+				matrix[:,1] = i[0]
+
+				glom_dcn = np.vstack((glom_dcn, matrix))
+
+			return glom_dcn
+
+		results = connectome_glom_dcn(first_glomerulus, glomeruli, dcn_cells, convergence)
+		self.scaffold.connect_cells(self, results)
