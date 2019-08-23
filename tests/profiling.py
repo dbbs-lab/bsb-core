@@ -1,18 +1,19 @@
 import cProfile
 import numpy as np
-from profiling.linear_project import test_lp
-import os, sys
+import os, sys, pstats
+from time import sleep
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-from scaffold.functions import linear_project as updated
-from scaffold_functions import linear_project as original
 
-iters = 100000
-random_centers = np.random.rand(iters, 2)
-random_outer = np.random.rand(iters, 2)
-random_eps = np.random.rand(iters)
+from scaffold import Scaffold
+from scaffold.config import ScaffoldIniConfig
 
-print('Original linear_project function:')
-cProfile.run('test_lp(random_centers, random_outer, random_eps, original)')
-
-print('New linear_project function:')
-cProfile.run('test_lp(random_centers, random_outer, random_eps, updated)')
+config = ScaffoldIniConfig('../test.ini')
+instance = Scaffold(config)
+for i in range(1,40):
+    config.resize(100 + i * 20, 100 + i * 20)
+    instance.resetNetworkCache()
+    cProfile.run('instance.compileNetworkArchitecture()', 'compile_stats')
+    p = pstats.Stats('compile_stats')
+    p.strip_dirs().sort_stats('cumulative').print_stats('place', 25)
+    print('square size:', config.X)
+    sleep(1)
