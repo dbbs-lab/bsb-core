@@ -1,0 +1,1 @@
+python scaffold.py %*
