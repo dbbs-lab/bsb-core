@@ -6,7 +6,6 @@ from .geometries import Geometry as BaseGeometry
 from .connectivity import ConnectionStrategy
 from .placement import PlacementStrategy
 from .helpers import copyIniKey
-from pprint import pprint
 
 class ScaffoldConfig(object):
 

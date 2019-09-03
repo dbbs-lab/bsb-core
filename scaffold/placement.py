@@ -10,7 +10,6 @@ from .functions import (
 	add_y_axis,
 	exclude_index
 )
-from pprint import pprint
 
 class PlacementStrategy(ConfigurableClass):
 	@abc.abstractmethod

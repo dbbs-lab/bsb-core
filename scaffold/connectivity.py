@@ -2,7 +2,6 @@ import abc
 from .helpers import ConfigurableClass
 from .postprocessing import get_parallel_fiber_heights, get_dcn_rotations
 import numpy as np
-from pprint import pprint
 
 class ConnectionStrategy(ConfigurableClass):
 	@abc.abstractmethod
@@ -651,7 +650,6 @@ class ConnectomeGapJunctions(ConnectionStrategy):
 			return gj_sc[0:gj_i]
 
 		result = gap_junctions(from_cells, limit_xy, limit_z, divergence)
-		print(from_celltype.name, 'gaps', result.shape)
 		self.scaffold.connect_cells(self, result)
 
 class ConnectomeGapJunctionsGolgi(ConnectionStrategy):
