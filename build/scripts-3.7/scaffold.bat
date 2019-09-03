@@ -1,1 +1,1 @@
-python scaffold.py %*
+python %~dp0scaffold.py %*
