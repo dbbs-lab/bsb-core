@@ -1,5 +1,5 @@
 # Scaffold: A scaffold model for the cerebellum
-This package is intended to facilitate spatially and topologically precise, morphologically detailed simulations of the cerebellum.
+This package is intended to facilitate spatially, topologically and morphologically detailed simulations of the cerebellum.
 
 ## Installation
 
