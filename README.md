@@ -5,10 +5,10 @@ This package is intended to facilitate spatially, topologically and morphologica
 
 ### Pip
 
-placeholder
+This software can be installed as a Python package from PyPI through pip.
 
 ```
- pip install dbbs-lab/scaffold
+ pip install dbbs-scaffold
 ```
 
 ## Usage
@@ -17,12 +17,7 @@ The scaffold model can be used through the command line interface or as a python
 
 ### Command line interface (CLI)
 
-1. Navigate to the directory where the scaffold package is installed.
-```
-cd <directory>
-```
-
-2. Run the scaffold with subcommand `compile` to compile a network architecture
+Run the scaffold in the command line with subcommand `compile` to compile a network architecture.
 ```
 scaffold --config=mouse_cerebellum.ini compile -p
 ```
