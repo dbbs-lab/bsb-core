@@ -3,3 +3,6 @@
 ## 2.0.0
 * Complete rework of the codebase to ensure flexibility, scalability and adoption by the community.
 * First steps of distribution as a Python package.
+
+## 2.0.1
+* README updated.
