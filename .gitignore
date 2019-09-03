@@ -4,3 +4,6 @@ __pycache__/
 !mouse_cerebellum.ini
 !human_cerebellum.ini
 *.hdf5
+build/
+dist/
+*.egg-info/
