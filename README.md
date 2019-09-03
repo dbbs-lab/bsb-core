@@ -1,8 +1,6 @@
-# Unnamed: A scaffold for modelling the cerebellum
- Let's have some fun with a name. What about PyScaff, PyCereb, scaff, ... ? :) Best name gets a Belgian beer ;p
- 
- GitHub Repo for Scaffold model of Cerebellum.
- 
+# Scaffold: A scaffold model for the cerebellum
+This package is intended to facilitate spatially and topologically precise, morphologically detailed simulations of the cerebellum.
+
 ## Installation
 
 ### Pip
@@ -10,7 +8,7 @@
 placeholder
 
 ```
- pip install <our-package>
+ pip install dbbs-lab/scaffold
 ```
 
 ## Usage
@@ -23,7 +21,7 @@ The scaffold model can be used through the command line interface or as a python
 ```
 cd <directory>
 ```
- 
+
 2. Run the scaffold with subcommand `compile` to compile a network architecture
 ```
 scaffold --config=mouse_cerebellum.ini compile -p
@@ -33,7 +31,7 @@ To run with different configurations, change the config argument to the relative
 
 ### Python package
 
-As a package the central object is the `Scaffold` class. This object requires a `ScaffoldConfig` instance for its construction. To emulate the CLI functionality you can use the `ScaffoldIniConfig` class and provide the relative path to the configuration file.
+The central object is the `scaffold.Scaffold` class. This object requires a `scaffold.config.ScaffoldConfig` instance for its construction. To emulate the CLI functionality you can use the `ScaffoldIniConfig` class and provide the relative path to the configuration file.
 
 ```python
 from scaffold import Scaffold
