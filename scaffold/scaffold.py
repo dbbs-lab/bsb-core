@@ -71,8 +71,10 @@ class Scaffold:
 				density_gotten = '%.4g' % (count / volume)
 				density_wanted = '%.4g' % (type.placement.get_placement_count(type) / volume)
 				percent = int((count / type.placement.get_placement_count(type)) * 100)
-				print('{} {} placed ({}%). Desired density: {}. Actual density: {}'.format(count, type.name, percent, density_wanted, density_gotten))
-		print('Average runtime: {}'.format(np.average(times)))
+				if self.configuration.verbosity > 1:
+					print('{} {} placed ({}%). Desired density: {}. Actual density: {}'.format(count, type.name, percent, density_wanted, density_gotten))
+			if self.configuration.verbosity > 1:
+				print('Average runtime: {}'.format(np.average(times)))
 
 	def plotNetworkCache(self):
 		plotNetwork(self, from_memory=True)

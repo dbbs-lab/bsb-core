@@ -108,7 +108,8 @@ class LayeredRandomWalk(PlacementStrategy):
 		# Get the number of cells that belong in the available volume.
 		n_cells_to_place = self.get_placement_count(cell_type)
 		if n_cells_to_place == 0:
-			print("[WARNING] Volume or density too low, no '{}' cells will be placed".format(cell_type.name))
+			if scaffold.configuration.verbosity > 0:
+				print("[WARNING] Volume or density too low, no '{}' cells will be placed".format(cell_type.name))
 			n_sublayers = 1
 			cell_type.ϵ = 0.
 		else:
@@ -166,10 +167,11 @@ class LayeredRandomWalk(PlacementStrategy):
 				])
 				planar_candidates = get_candidate_points(planar_start, cell_radius, cell_bounds, min_ϵ, max_ϵ)
 				if planar_candidates.shape[0] == 0:
-					print("[WARNING] Could not place a single cell in {} {} starting from the middle of the simulation volume: Maybe the volume is too low or cell radius/epsilon too big. Sublayer skipped!".format(
-						layer.name,
-						sublayer_id
-					))
+					if scaffold.configuration.verbosity > 0:
+						print("[WARNING] Could not place a single cell in {} {} starting from the middle of the simulation volume: Maybe the volume is too low or cell radius/epsilon too big. Sublayer skipped!".format(
+							layer.name,
+							sublayer_id
+						))
 					continue
 			placed_positions = np.array([starting_position])
 			planar_placed_positions = np.array([starting_position[[0,2]]])
@@ -221,7 +223,8 @@ class LayeredRandomWalk(PlacementStrategy):
 								cell_bounds[2, 0] + (cell_bounds[2, 1] - cell_bounds[2, 0]) / 2.  # Z
 							])
 						else:
-							print( "Finished after placing {} out of {} cells".format(current_cell_count, cells_per_sublayer))
+							if scaffold.configuration.verbosity > 2:
+								print( "Finished after placing {} out of {} cells".format(current_cell_count, cells_per_sublayer))
 							break
 				else:
 					random_index = random.sample(good_indices, 1)[0]
@@ -234,8 +237,8 @@ class LayeredRandomWalk(PlacementStrategy):
 
 			layer_cell_positions = np.concatenate((layer_cell_positions, placed_positions))
 			scaffold.placement_stats[cell_type.name]['number_of_cells'].append(layer_cell_positions.shape[0])
-			print( "{} sublayer number {} out of {} filled".format(cell_type.name, sublayer_id + 1, n_sublayers))
-			# break
+			if scaffold.configuration.verbosity > 2:
+				print( "{} sublayer number {} out of {} filled".format(cell_type.name, sublayer_id + 1, n_sublayers))
 
 		scaffold.place_cells(cell_type, layer, layer_cell_positions)
 
