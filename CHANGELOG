@@ -6,3 +6,8 @@
 
 ## 2.0.1
 * README updated.
+
+# 2.1
+* README updated.
+* Verbosity added.
+* Command line interface added. (Linux version not tested)

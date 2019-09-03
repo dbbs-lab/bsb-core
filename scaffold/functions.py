@@ -5,7 +5,6 @@ import pandas as pd
 from mpl_toolkits.mplot3d import Axes3D
 import random
 from scipy.spatial import distance
-from pprint import pprint
 
 def compute_circle(center, radius, n_samples=50):
 	'''
