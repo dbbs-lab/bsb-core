@@ -27,7 +27,7 @@ setuptools.setup(
          'kiwisolver>=1.1.0',
          'matplotlib>=3.1.1',
          'mkl-fft>=1.0.6',
-         'mkl-random>=1.0.2',
+         'mkl-random>=1.0',
          'mock>=2.0',
          'numpy>=1.16.4',
          'pyparsing>=2.4.2',

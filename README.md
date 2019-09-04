@@ -11,6 +11,9 @@ This software can be installed as a Python package from PyPI through pip.
  pip install dbbs-scaffold
 ```
 
+**Note:** *When using Anaconda, package dependency version errors might be thrown. Try updating your
+package index in the Anaconda Navigator.*
+
 ## Usage
 
 The scaffold model can be used through the command line interface or as a python package.
