@@ -1,7 +1,6 @@
 import numpy as np
 import h5py
 import matplotlib.pyplot as plt
-import pandas as pd
 from mpl_toolkits.mplot3d import Axes3D
 import random
 from scipy.spatial import distance
