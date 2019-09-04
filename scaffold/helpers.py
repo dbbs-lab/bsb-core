@@ -1,5 +1,4 @@
 import abc
-from .quantities import parseToMicrometer
 
 def copyIniKey(obj, section, key_config):
     ini_key = key_config['key']
@@ -7,7 +6,7 @@ def copyIniKey(obj, section, key_config):
         return
 
     # Process the config values based on the type in their key_config.
-    morph_map = {'micrometer': parseToMicrometer, 'float': float, 'string': str}
+    morph_map = {'micrometer': float, 'float': float, 'string': str}
     obj.__dict__[ini_key] = morph_map[key_config['type']](section[ini_key])
 
 

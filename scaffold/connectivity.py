@@ -310,36 +310,33 @@ class ConnectomeGolgiGranule(ConnectionStrategy):
 		# Gather information for the legacy code block below.
 		glom_grc = self.scaffold.cell_connections_by_type['GlomerulusGranule']
 		goc_glom = self.scaffold.cell_connections_by_type['GolgiGlomerulus']
+		golgi_type = self.from_celltype
+		golgis = self.scaffold.cells_by_type[golgi_type.name]
 
-		def connectome_goc_grc(glom_grc, goc_glom):
-			import pandas as pd
-			# Given goc --> glom connectivity, infer goc --> granules
-			# First, create a DataFrame where column names are glomeruli and values are granules
-			# contacted by each glomerulus
-			glom_grc_df = pd.DataFrame()
-			for key in np.unique(glom_grc[:,0]): # for each glomerulus connected to one or more granule cell
-				target_grcs = glom_grc[glom_grc[:,0]==key,1]
-
-			# Now store in a dictionary all granules inhibited by each Golgi cell:
-			# keys --> Golgi cells
-			# values --> contacted Granule cells
-			goc_grc_dic = {}
-			for key in np.unique(goc_glom[:,0]):
-				target_glom = np.array(goc_glom[goc_glom[:,0]==key,1], dtype=int)
-				# Filter out any Glomerulus not connected to any granular cells.
-				target_glom = list(filter(lambda x: x in glom_grc_df.index, target_glom))
-				target_grc = np.unique(glom_grc_df[target_glom])
-				target_grc = target_grc[~np.isnan(target_grc)]
-				goc_grc_dic[key] = target_grc
-
-			# Finally, turn everything into a matrix
-			pres = np.concatenate([np.tile(key, len(val)) for key, val in goc_grc_dic.items()])
-			post = np.concatenate([val for val in goc_grc_dic.values()])
-			goc_grc = np.column_stack([pres, post])
+		def connectome_goc_grc(golgis, glom_grc, goc_glom):
+			# Connect all golgi cells to the granule cells that they share a glomerulus with.
+			glom_grc_per_glom = {}
+			goc_grc = np.empty((0, 2))
+			golgi_ids = golgis[:, 0]
+			for golgi_id in golgis[:, 0]:
+				# Fetch all the glomeruli this golgi is connected to
+				connected_glomeruli = goc_glom[goc_glom[:, 0] == golgi_id, 1]
+				# Append a new set of connections after the existing set of goc_grc connections.
+				connected_granules_via_gloms = list(map(lambda row: row[1], filter(lambda row: row[0] in connected_glomeruli, glom_grc)))
+				goc_grc = np.vstack((
+					goc_grc,
+					# Create a matrix with 2 columns where the 1st column is the golgi id
+					np.column_stack((
+						golgi_id * np.ones(len(connected_granules_via_gloms)),
+						# and the 2nd column is all granules connected to one of the glomeruli the golgi is connected to.
+						connected_granules_via_gloms
+					))
+				))
 
 			return goc_grc
 
-		result = connectome_goc_grc(glom_grc, goc_glom)
+
+		result = connectome_goc_grc(golgis, glom_grc, goc_glom)
 		self.scaffold.connect_cells(self, result)
 
 class ConnectomeAscAxonPurkinje(ConnectionStrategy):
