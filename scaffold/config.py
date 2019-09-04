@@ -1,7 +1,6 @@
 import os, abc
 import configparser
 from .models import CellType, Layer
-from .quantities import parseToMicrometer, parseToDensity, parseToPlanarDensity
 from .geometries import Geometry as BaseGeometry
 from .connectivity import ConnectionStrategy
 from .placement import PlacementStrategy
@@ -221,14 +220,14 @@ class ScaffoldIniConfig(ScaffoldConfig):
         # Radius
         if not 'radius' in section:
             raise Exception('Required attribute Radius missing in {} section.'.format(name))
-        cell_type.radius = parseToMicrometer(section['radius'])
+        cell_type.radius = float(section['radius'])
         # Density
         if not 'density' in section and not 'planardensity' in section and (not 'ratio' in section or not 'ratioto' in section):
             raise Exception('Either Density, PlanarDensity or Ratio and RatioTo attributes missing in {} section.'.format(name))
         if 'density' in section:
-            cell_type.density = parseToDensity(section['density'])
+            cell_type.density = float(section['density'])
         elif 'planardensity' in section:
-            cell_type.planarDensity = parseToPlanarDensity(section['planardensity'])
+            cell_type.planarDensity = float(section['planardensity'])
         else:
             cell_type.ratio = float(section['ratio'])
             cell_type.ratioTo = section['ratioTo']
@@ -273,7 +272,7 @@ class ScaffoldIniConfig(ScaffoldConfig):
         if not 'thickness' in section:
             raise Exception('Required attribute Thickness missing in {} section.'.format(name))
 
-        thickness = parseToMicrometer(section['thickness'])
+        thickness = float(section['thickness'])
         # Set the position of this layer in the space.
         if not 'position' in section:
             origin = [0., 0., 0.]

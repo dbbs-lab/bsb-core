@@ -1,6 +1,5 @@
 import abc, math, random, numpy as np
 from .helpers import ConfigurableClass
-from .quantities import parseToRadian
 from scipy.spatial import distance
 from .functions import (
 	compute_circle,
@@ -265,7 +264,7 @@ class ParallelArrayPlacement(PlacementStrategy):
 	casts = {
 		'extension_x': float,
 		'extension_z': float,
-		'angle': parseToRadian
+		'angle': lambda x: float(x) / 360 * math.pi
 	}
 
 	defaults = {
