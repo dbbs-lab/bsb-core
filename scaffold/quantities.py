@@ -1,7 +1,6 @@
 # Waiting for https://github.com/nielstron/quantulum3/issues/131 to be resolved
 from quantulum3 import parser as UnitParser
 from pint import UnitRegistry
-from pprint import pprint
 
 units = UnitRegistry()
 

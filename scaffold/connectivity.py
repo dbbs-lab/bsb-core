@@ -2,7 +2,6 @@ import abc
 from .helpers import ConfigurableClass
 from .postprocessing import get_parallel_fiber_heights, get_dcn_rotations
 import numpy as np
-from pprint import pprint
 
 class ConnectionStrategy(ConfigurableClass):
 	@abc.abstractmethod
@@ -231,7 +230,7 @@ class ConnectomeGranuleGolgi(ConnectionStrategy):
 		pf_heights = get_parallel_fiber_heights(self.scaffold, granule_celltype.geometry, granules)
 		self.scaffold.append_dset('hpf', data=pf_heights)
 
-		def connectome_grc_goc(first_granule, granules, golgicells, r_goc_vol, OoB_value, n_connAA, n_conn_pf, tot_conn):
+		def connectome_grc_goc(first_granule, granules, golgicells, r_goc_vol, OoB_value, n_connAA, n_conn_pf, tot_conn, scaffold):
 			aa_goc = np.empty((0,2))
 			pf_goc = np.empty((0,2))
 			densityWarningSent = False
@@ -274,7 +273,8 @@ class ConnectomeGranuleGolgi(ConnectionStrategy):
 					# Warn the user once if not enough granule cells are present to connect to the Golgi cell.
 					if not densityWarningSent:
 						densityWarningSent = True
-						print("[WARNING] The granule cell density is too low compared to the Golgi cell density to make physiological connections!")
+						if scaffold.configuration.verbosity > 0:
+							print("[WARNING] The granule cell density is too low compared to the Golgi cell density to make physiological connections!")
 				else:
 					connected_pf = np.random.choice(good_pf, tot_conn-len(connectedAA), replace = False)
 					totalConnectionsMade = tot_conn
@@ -294,7 +294,7 @@ class ConnectomeGranuleGolgi(ConnectionStrategy):
 			pf_goc = pf_goc[pf_goc[:,1].argsort()]		# sorting of the resulting vector on the post-synaptic neurons
 			return aa_goc, pf_goc
 
-		result_aa, result_pf = connectome_grc_goc(first_granule, granules, golgis, r_goc_vol, oob, n_connAA, n_conn_pf, tot_conn)
+		result_aa, result_pf = connectome_grc_goc(first_granule, granules, golgis, r_goc_vol, oob, n_connAA, n_conn_pf, tot_conn, self.scaffold)
 		self.scaffold.connect_cells(self, result_aa, "AscendingAxonGolgi")
 		self.scaffold.connect_cells(self, result_pf)
 
@@ -651,7 +651,6 @@ class ConnectomeGapJunctions(ConnectionStrategy):
 			return gj_sc[0:gj_i]
 
 		result = gap_junctions(from_cells, limit_xy, limit_z, divergence)
-		print(from_celltype.name, 'gaps', result.shape)
 		self.scaffold.connect_cells(self, result)
 
 class ConnectomeGapJunctionsGolgi(ConnectionStrategy):

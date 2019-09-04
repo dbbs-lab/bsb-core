@@ -6,7 +6,6 @@ from .geometries import Geometry as BaseGeometry
 from .connectivity import ConnectionStrategy
 from .placement import PlacementStrategy
 from .helpers import copyIniKey
-from pprint import pprint
 
 class ScaffoldConfig(object):
 
@@ -21,6 +20,7 @@ class ScaffoldConfig(object):
         self.connection_types = {}
         self.geometries = {}
         self.placement_strategies = {}
+        self.verbosity = 0
 
         # General simulation values
         self.X = 200    # Transverse simulation space size (µm)
@@ -144,7 +144,8 @@ class ScaffoldIniConfig(ScaffoldConfig):
         head, tail = os.path.splitext(file)
         # Append .ini and send warning if .ini extension is not present.
         if tail != '.ini':
-            print("[WARNING] No .ini extension on given config file '{}', config file changed to : '{}'".format(file, file + '.ini'))
+            if self.verbosity > 0:
+                print("[WARNING] No .ini extension on given config file '{}', config file changed to : '{}'".format(file, file + '.ini'))
             file = file + '.ini'
         # Use configparser to read .ini file
         parsedConfig = configparser.ConfigParser()
