@@ -3,7 +3,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 setuptools.setup(
      name='dbbs-scaffold',
-     version='2.1.3',
+     version='2.2.0',
      author="Elisa Marenzi, Stefano Casali, Claudia Casselato, Robin De Schepper",
      author_email="robingilbert.deschepper@unipv.it",
      description="A morphologically detailed scaffolding package for the scientific modelling of the cerebellum.",
