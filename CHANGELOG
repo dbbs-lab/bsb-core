@@ -1,5 +1,8 @@
 # 2.2
 
+## 2.2.2
+* Changed dependency list for installs outside of Anaconda.
+
 ## 2.2.1
 * Removed obsolete files transferred by bad merge.
 

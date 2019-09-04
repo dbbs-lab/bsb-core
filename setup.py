@@ -3,7 +3,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 setuptools.setup(
      name='dbbs-scaffold',
-     version='2.1.3',
+     version='2.2.2',
      author="Elisa Marenzi, Stefano Casali, Claudia Casselato, Robin De Schepper",
      author_email="robingilbert.deschepper@unipv.it",
      description="A morphologically detailed scaffolding package for the scientific modelling of the cerebellum.",
@@ -22,14 +22,13 @@ setuptools.setup(
          "Operating System :: OS Independent",
      ],
      install_requires= [
-         'certifi>=2019.6.16',
          'cycler>=0.10.0',
          'h5py>=2.9.0',
          'kiwisolver>=1.1.0',
          'matplotlib>=3.1.1',
-         'mkl-fft>=1.0.14',
+         'mkl-fft>=1.0.6',
          'mkl-random>=1.0.2',
-         'mkl-service>=2.0.2',
+         'mock>=2.0',
          'numpy>=1.16.4',
          'pyparsing>=2.4.2',
          'pyreadline>=2.1',
