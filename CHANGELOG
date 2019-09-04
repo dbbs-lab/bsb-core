@@ -1,13 +1,19 @@
-# Version 2.0
-
-## 2.0.0
-* Complete rework of the codebase to ensure flexibility, scalability and adoption by the community.
-* First steps of distribution as a Python package.
-
-## 2.0.1
-* README updated.
-
 # 2.1
+
+# 2.1.1
+* CHANGELOG restructured to show newest first.
+* Removed dependency on pint and quantulum3.
+
+# 2.1.0
 * README updated.
 * Verbosity added.
 * Command line interface added. (Linux version not tested)
+
+# 2.0
+
+# 2.0.1
+* README updated.
+
+# 2.0.0
+* Complete rework of the codebase to ensure flexibility, scalability and adoption by the community.
+* First steps of distribution as a Python package.
