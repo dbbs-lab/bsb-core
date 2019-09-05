@@ -1,0 +1,115 @@
+{
+  "name": "DBBS Mouse cerebellum configuration v4.0",
+  "layers": {
+    "dcn_layer": {
+      "thickness": 600,
+      "xz_scale": 0.5,
+      "xz_center": true,
+      "stack": {
+        "stack_id": 0,
+        "position_in_stack": 0,
+        "position": [0., 0., 0.],
+      }
+    },
+    "granular_layer": {
+      "thickness": 150.,
+      "stack": {
+        "stack_id": 0,
+        "position_in_stack": 1,
+      }
+    },
+    "purkinje_layer": {
+      "thickness": 30.,
+      "stack": {
+        "stack_id": 0,
+        "position_in_stack": 2,
+      }
+    },
+    "molecular_layer": {
+      "thickness": 150.,
+      "stack": {
+        "stack_id": 0,
+        "position_in_stack": 3,
+      }
+    },
+  },
+  "cell_types": {
+    "granule_cell": {
+      "placement": {
+        "class": "scaffold.placement.LayeredRandomWalk",
+        "layer": "granular_layer",
+        "radius": 2.5,
+        "density": 3.9e-3,
+        "distance_muliplier_min": 0.5,
+        "distance_muliplier_max": 0.5,
+      },
+      "morphology": {
+        "class": "scaffold.geometries.GranuleCellGeometry",
+        "pf_height": 180,
+        "pf_height_sd": 20,
+        "pf_length": 3000,
+        "pf_radius": 0.5,
+        "dendrite_length": 40
+      },
+      "simulation": {
+        "nest": {
+          "model": "eglif"
+        }
+      },
+      "plotting": {
+        "display_name": "granule cell",
+        "color": "#E62214",
+      }
+    },
+    "purkinje_cell": {
+      "placement": {
+        "class": "scaffold.placement.ParallelArrayPlacement",
+        "layer": "purkinje_layer",
+        "radius": 7.5,
+        "planar_density": 0.003125,
+        "extension_x": 130.,
+        "extension_z": 3.5,
+        "angle": 4
+      },
+      "morphology": {
+        "class": "scaffold.geometries.PurkinjeCellGeometry",
+      },
+      "simulation": {
+        "nest": {
+          "model": "eglif"
+        }
+      },
+      "plotting": {
+        "display_name": "purkinje cell",
+        "color": "#0F8944",
+      }
+    },
+    "golgi_cell": {
+      "placement": {
+        "class": "scaffold.placement.LayeredRandomWalk",
+        "layer": "granular_layer",
+        "radius": 8.,
+        "density": 9e-6
+      },
+      "morphology": {
+        "class": "scaffold.geometries.GolgiCellGeometry",
+        "dendrite_radius": 50.,
+        "axon_x": 150.,
+        "axon_y": 150.,
+        "axon_z": 30.
+      },
+      "simulation": {
+        "nest": {
+          "model": "eglif"
+        }
+      },
+      "plotting": {
+        "display_name": "golgi cell",
+        "color": "#332EBC",
+      }
+    }
+  },
+  "connection_types": {
+
+  }
+}
