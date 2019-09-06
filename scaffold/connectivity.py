@@ -422,9 +422,9 @@ class ConnectomePFPurkinje(ConnectionStrategy):
 		result = connectome_pf_pc(first_granule, granules, purkinjes, purkinje_extension_x)
 		self.scaffold.connect_cells(self, result, "PFPurkinje")
 
-class ConnectomePFBasket(ConnectionStrategy):
+class ConnectomePFInterneuron(ConnectionStrategy):
 	'''
-		Legacy implementation for the connections between parallel fibers and purkinje cells.
+		Legacy implementation for the connections between parallel fibers and a molecular layer interneuron celltype.
 	'''
 
 	def validate(self):
@@ -433,67 +433,30 @@ class ConnectomePFBasket(ConnectionStrategy):
 	def connect(self):
 		# Gather information for the legacy code block below.
 		granule_celltype = self.from_celltype
-		basket_celltype = self.to_celltype
+		interneuron_celltype = self.to_celltype
 		granules = self.scaffold.cells_by_type[granule_celltype.name]
-		baskets = self.scaffold.cells_by_type[basket_celltype.name]
+		interneurons = self.scaffold.cells_by_type[interneuron_celltype.name]
 		first_granule = int(granules[0, 0])
-		dendrite_radius = basket_celltype.geometry.radius
+		dendrite_radius = interneuron_celltype.geometry.radius
 		pf_heights = self.scaffold.appends['hpf'][:, 1] + granules[:, 3] # Add granule Y to height of its pf
 
-		def connectome_pf_bc(first_granule, basketcells, granules, r_sb, h_pf):
+		def connectome_pf_inter(first_granule, interneurons, granules, r_sb, h_pf):
 			pf_bc = np.zeros((0,2))
 
-			for i in basketcells:	# for each basket cell find all the parallel fibers that fall into the sphere with centre the cell soma and appropriate radius
+			for i in interneurons:	# for each interneuron find all the parallel fibers that fall into the sphere with centre the cell soma and appropriate radius
 
 				# find all cells that satisfy the condition
-				bc_matrix = (((granules[:,2]-i[2])**2)+((h_pf-i[3])**2)-(r_sb**2)).__le__(0)
-				good_pf = np.where(bc_matrix)[0]	# indexes of basket cells that can potentially be connected
+				interneuron_matrix = (((granules[:,2]-i[2])**2)+((h_pf-i[3])**2)-(r_sb**2)).__le__(0)
+				good_pf = np.where(interneuron_matrix)[0]	# indexes of interneurons that can potentially be connected
 
 				matrix = np.zeros((len(good_pf), 2))
 				matrix[:,1] = i[0]
 				matrix[:,0] = good_pf + first_granule
-				pf_bc = np.vstack((pf_bc, matrix))
+				pf_interneuron = np.vstack((pf_interneuron, matrix))
 
 			return pf_bc
 
-		result = connectome_pf_bc(first_granule, baskets, granules, dendrite_radius, pf_heights)
-		self.scaffold.connect_cells(self, result)
-
-class ConnectomePFStellate(ConnectionStrategy):
-	'''
-		Legacy implementation for the connections between parallel fibers and purkinje cells.
-	'''
-
-	def validate(self):
-		pass
-
-	def connect(self):
-		# Gather information for the legacy code block below.
-		granule_celltype = self.from_celltype
-		stellate_celltype = self.to_celltype
-		granules = self.scaffold.cells_by_type[granule_celltype.name]
-		stellates = self.scaffold.cells_by_type[stellate_celltype.name]
-		first_granule = int(granules[0, 0])
-		dendrite_radius = stellate_celltype.geometry.radius
-		pf_heights = self.scaffold.appends['hpf'][:, 1] + granules[:, 3] # Add granule Y to height of its pf
-
-		def connectome_pf_sc(first_granule, stellates, granules, r_sb, h_pf):
-			pf_sc = np.zeros((0,2))
-
-			for i in stellates:	# for each stellate cell find all the parallel fibers that fall into the sphere with centre the cell soma and appropriate radius
-
-				# find all cells that satisfy the condition
-				sc_matrix = (((granules[:,2]-i[2])**2)+((h_pf-i[3])**2)-(r_sb**2)).__le__(0)
-				good_pf = np.where(sc_matrix)[0]	# indexes of stellate cells that can potentially be connected
-
-				matrix = np.zeros((len(good_pf), 2))
-				matrix[:,1] = i[0]
-				matrix[:,0] = good_pf + first_granule
-				pf_sc = np.vstack((pf_sc, matrix))
-
-			return pf_sc
-
-		result = connectome_pf_sc(first_granule, stellates, granules, dendrite_radius, pf_heights)
+		result = connectome_pf_inter(first_granule, interneurons, granules, dendrite_radius, pf_heights)
 		self.scaffold.connect_cells(self, result)
 
 class ConnectomeBCSCPurkinje(ConnectionStrategy):
