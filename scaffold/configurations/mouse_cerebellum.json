@@ -57,7 +57,14 @@
       },
       "simulation": {
         "nest": {
-          "model": "eglif"
+          "models" : {
+            "eglif" : {
+
+            },
+            "iaf" : {
+
+            }
+          }
         }
       },
       "plotting": {

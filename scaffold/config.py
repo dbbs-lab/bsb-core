@@ -343,7 +343,7 @@ class ScaffoldIniConfig(ScaffoldConfig):
         '''
         # Keys to exclude from copying to the geometry instance
         excluded = ['Type', 'MorphologyType', 'GeometryName', 'Class']
-        geometryInstance = loadConfigClass(name, section, BaseGeometry, excluded)
+        geometryInstance = self.loadConfigClass(name, section, BaseGeometry, excluded)
         self.addGeometry(geometryInstance)
 
     def iniConnection(self, name, section):
@@ -352,7 +352,7 @@ class ScaffoldIniConfig(ScaffoldConfig):
             to fetch geometry class, then copies all keys as is from config section to instance
             and adds it to the Geometries dictionary.
         '''
-        connectionInstance = loadConfigClass(name, section, ConnectionStrategy)
+        connectionInstance = self.loadConfigClass(name, section, ConnectionStrategy)
         self.addConnection(connectionInstance)
 
     def iniPlacement(self, name, section):
@@ -362,7 +362,7 @@ class ScaffoldIniConfig(ScaffoldConfig):
             and adds it to the PlacementStrategies dictionary.
         '''
         # Keys to exclude from copying to the geometry instance
-        placementInstance = loadConfigClass(name, section, PlacementStrategy)
+        placementInstance = self.loadConfigClass(name, section, PlacementStrategy)
         self.addPlacementStrategy(placementInstance)
 
 
@@ -433,26 +433,24 @@ class ScaffoldIniConfig(ScaffoldConfig):
         # Filter out all special sections
         self._sections = list(filter(lambda x: not x in special, self._sections))
 
-
-## Helper functions
-def loadConfigClass(name, section, parentClass, excludedKeys = ['Type', 'Class']):
-    if not 'class' in section:
-        raise Exception('Required attribute Class missing in {} section.'.format(name))
-    classParts = section['class'].split('.')
-    className = classParts[-1]
-    moduleName = '.'.join(classParts[:-1])
-    moduleRef = __import__(moduleName, globals(), locals(), [className], 0)
-    classRef = moduleRef.__dict__[className]
-    if not issubclass(classRef, parentClass):
-        raise Exception("Class '{}.{}' must derive from {}.{}".format(
-            moduleName,
-            className,
-            parentClass.__module__,
-            parentClass.__qualname__,
-        ))
-    instance = classRef()
-    for key in section:
-        if not key in excludedKeys:
-            copyIniKey(instance, section, {'key': key, 'type': 'string'})
-    instance.__dict__['name'] = name
-    return instance
+    def loadConfigClass(self, name, section, parentClass, excludedKeys = ['Type', 'Class']):
+        if not 'class' in section:
+            raise Exception('Required attribute Class missing in {} section.'.format(name))
+        classParts = section['class'].split('.')
+        className = classParts[-1]
+        moduleName = '.'.join(classParts[:-1])
+        moduleRef = __import__(moduleName, globals(), locals(), [className], 0)
+        classRef = moduleRef.__dict__[className]
+        if not issubclass(classRef, parentClass):
+            raise Exception("Class '{}.{}' must derive from {}.{}".format(
+                moduleName,
+                className,
+                parentClass.__module__,
+                parentClass.__qualname__,
+            ))
+        instance = classRef()
+        for key in section:
+            if not key in excludedKeys:
+                copyIniKey(instance, section, {'key': key, 'type': 'string'})
+        instance.__dict__['name'] = name
+        return instance
