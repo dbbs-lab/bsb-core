@@ -441,7 +441,7 @@ class ConnectomePFInterneuron(ConnectionStrategy):
 		pf_heights = self.scaffold.appends['hpf'][:, 1] + granules[:, 3] # Add granule Y to height of its pf
 
 		def connectome_pf_inter(first_granule, interneurons, granules, r_sb, h_pf):
-			pf_bc = np.zeros((0,2))
+			pf_interneuron = np.zeros((0,2))
 
 			for i in interneurons:	# for each interneuron find all the parallel fibers that fall into the sphere with centre the cell soma and appropriate radius
 
@@ -454,7 +454,7 @@ class ConnectomePFInterneuron(ConnectionStrategy):
 				matrix[:,0] = good_pf + first_granule
 				pf_interneuron = np.vstack((pf_interneuron, matrix))
 
-			return pf_bc
+			return pf_interneuron
 
 		result = connectome_pf_inter(first_granule, interneurons, granules, dendrite_radius, pf_heights)
 		self.scaffold.connect_cells(self, result)
