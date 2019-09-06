@@ -45,8 +45,7 @@ parser_run = subparsers.add_parser('run', help='Run a simulation using a compile
 cl_args = parser.parse_args()
 
 # Load the .ini configuration
-scaffoldConfig = ScaffoldIniConfig(cl_args.config)
-scaffoldConfig.verbosity = cl_args.verbose
+scaffoldConfig = ScaffoldIniConfig(cl_args.config, verbosity=cl_args.verbose)
 
 # Create the scaffold instance
 scaffoldInstance = Scaffold(scaffoldConfig)
