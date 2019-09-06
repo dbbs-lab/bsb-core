@@ -8,7 +8,7 @@ from .helpers import copyIniKey
 
 class ScaffoldConfig(object):
 
-    def __init__(self):
+    def __init__(self, file=None, stream=None, verbosity=0):
         # Initialise empty config object.
 
         # Dictionaries and lists
@@ -19,11 +19,40 @@ class ScaffoldConfig(object):
         self.connection_types = {}
         self.geometries = {}
         self.placement_strategies = {}
-        self.verbosity = 0
+        self.verbosity = verbosity
+        self._raw = ''
+        if not hasattr(self, '_extension'):
+            self._extension = ''
 
-        # General simulation values
+        # Fallback simulation values
         self.X = 200    # Transverse simulation space size (µm)
         self.Z = 200    # Longitudinal simulation space size (µm)
+
+        self.read_config(file, stream)
+
+    def read_config(self, file=None, stream=None):
+        if not stream is None:
+            self.read_config_stream(stream)
+        elif not file is None:
+            self.read_config_file(file)
+
+    def read_config_file(self, file):
+        # Determine extension of file.
+        head, tail = os.path.splitext(file)
+        # Append .ini and send warning if .ini extension is not present.
+        if tail != self._extension:
+            if self.verbosity > 0:
+                print("[WARNING] No .ini extension on given config file '{}', config file changed to : '{}'".format(file, file + '.ini'))
+            file += self._extension
+        try:
+            with open('scaffold/configurations/' + file, 'r') as file:
+                self._raw = file.read()
+        except Exception as e:
+            with open(file, 'r') as file:
+                self._raw = file.read()
+
+    def read_config_stream(self, stream):
+        self._raw = stream
 
     def addCellType(self, cell_type):
         '''
@@ -129,31 +158,29 @@ class ScaffoldIniConfig(ScaffoldConfig):
         Create a scaffold configuration from a .ini file.
     '''
 
-    def __init__(self, file):
+    def __init__(self, file=None, stream=None, verbosity=0):
         '''
             Initialize ScaffoldIniConfig from .ini file.
 
             :param file: Path of the configuration .ini file.
             :type file: string
+            :param stream: INI formatted string representing the configuration file.
+            :type file: string
+            :param verbosity: Verbosity (output level) of the scaffold.
+            :type file: int
         '''
-
-        # Initialize base config class
-        ScaffoldConfig.__init__(self)
-        # Determine extension of file.
-        head, tail = os.path.splitext(file)
-        # Append .ini and send warning if .ini extension is not present.
-        if tail != '.ini':
-            if self.verbosity > 0:
-                print("[WARNING] No .ini extension on given config file '{}', config file changed to : '{}'".format(file, file + '.ini'))
-            file = file + '.ini'
-        # Use configparser to read .ini file
+        # Set _extension to indicate we expect a .ini file.
+        self._extension = ".ini"
+        # Initialize base config class, handling the reading of file/stream to string
+        ScaffoldConfig.__init__(self, file, stream, verbosity)
+        # Use configparser to read self._raw ini string provided by parent ScaffoldConfig.__init__
         parsedConfig = configparser.ConfigParser()
-        parsedConfig.read(file)
+        parsedConfig.read_string(self._raw)
         self._sections = parsedConfig.sections()
         self._config = parsedConfig
         # Check if ini file is empty
         if len(self._sections) == 0:
-            raise Exception("Empty or non existent configuration file '{}'.".format(file))
+            raise Exception("Empty or non existent configuration " + (("file" + '\'{}\''.format(file)) if file else "stream") + ".")
         # Defines a map from section types to initializers.
         sectionInitializers = {
             'Cell': self.iniCellType,
