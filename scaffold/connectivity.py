@@ -260,7 +260,7 @@ class ConnectomeGranuleGolgi(ConnectionStrategy):
 							connectedAA[idx] = j[0]
 							idx += 1
 				connectedAA = connectedAA[0:idx]
-				good_grc = np.delete(granules, (connectedAA - first_granule), 0)
+				good_grc = np.delete(granules, np.array(connectedAA - first_granule, dtype=int), 0)
 				intersections = (good_grc[:,2]).__ge__(golgi_x-r_goc_vol) & (good_grc[:,2]).__le__(golgi_x+r_goc_vol)
 				good_pf = np.where(intersections==True)[0]				# finds indexes of granules that can potentially be connected
 				# The remaining amount of parallel fibres to connect after subtracting the amount of already connected ascending axons.
