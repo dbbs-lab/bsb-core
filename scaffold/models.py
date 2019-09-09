@@ -1,5 +1,5 @@
 import numpy as np
-from .geometries import Geometry as BaseGeometry
+from .morphologies import Morphology as BaseMorphology
 
 class CellType:
 
@@ -12,31 +12,25 @@ class CellType:
         '''
             Check whether this CellType is valid to be used in the simulation.
         '''
-        if self.geometry == None and self.morphology == None:
-            raise Exception("No Geometry or Morphology set for cell type '{}'".format(self.name))
-        if self.placement == None:
-            raise Exception("No PlacementStrategy set for cell type '{}'".format(self.name))
+        pass
 
     def initialise(self, scaffoldInstance):
         self.scaffold = scaffoldInstance
         self.id = scaffoldInstance.configuration.cell_type_map.index(self.name)
         self.validate()
 
-    def set_geometry(self, geometry):
+    def set_morphology(self, morphology):
         '''
-            Set the Geometry class for this cell type.
+            Set the Morphology class for this cell type.
 
-            :param geometry: Defines the geometrical constraints for the axon and dendrites of the cell type.
-            :type geometry: Instance of a subclass of scaffold.geometries.Geometry
+            :param morphology: Defines the geometrical constraints for the axon and dendrites of the cell type.
+            :type morphology: Instance of a subclass of scaffold.morphologies.Morphology
         '''
-        if not issubclass(type(geometry), BaseGeometry):
-            raise Exception("Only subclasses of scaffold.geometries.Geometry can be used as cell geometries.")
-        self.geometry = geometry
-
-    def setMorphology(self, morphology):
+        if not issubclass(type(morphology), BaseMorphology):
+            raise Exception("Only subclasses of scaffold.morphologies.Morphology can be used as cell morphologies.")
         self.morphology = morphology
 
-    def setPlacementStrategy(self, placement):
+    def set_placement(self, placement):
         self.placement = placement
 
 class dimensions:

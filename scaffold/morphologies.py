@@ -2,12 +2,12 @@ import abc
 from .helpers import ConfigurableClass
 
 
-class Geometry(ConfigurableClass):
+class Morphology(ConfigurableClass):
 
 	def __init__(self):
 		pass
 
-class GranuleCellGeometry(Geometry):
+class GranuleCellGeometry(Morphology):
 	casts = {
 		'dendrite_length' : float,
 		'pf_height': float,
@@ -18,11 +18,11 @@ class GranuleCellGeometry(Geometry):
 	def validate(self):
 		pass
 
-class PurkinjeCellGeometry(Geometry):
+class PurkinjeCellGeometry(Morphology):
 	def validate(self):
 		pass
 
-class GolgiCellGeometry(Geometry):
+class GolgiCellGeometry(Morphology):
 	casts = {
 		'dendrite_radius': float,
 		'axon_x': float,
@@ -35,16 +35,16 @@ class GolgiCellGeometry(Geometry):
 	def validate(self):
 		pass
 
-class RadialGeometry(Geometry):
+class RadialGeometry(Morphology):
 	casts = {
-		'radius': float,
+		'dendrite_radius': float,
 	}
 
-	required = ['radius']
-	
+	required = ['dendrite_radius']
+
 	def validate(self):
 		pass
 
-class NoGeometry(Geometry):
+class NoGeometry(Morphology):
 	def validate(self):
 		pass

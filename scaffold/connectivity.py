@@ -49,7 +49,7 @@ class ConnectomeGlomerulusGranule(TouchingConvergenceDivergence):
 		to_celltype = self.to_celltype
 		glomeruli = self.scaffold.cells_by_type[from_celltype.name]
 		granules = self.scaffold.cells_by_type[to_celltype.name]
-		dend_len = to_celltype.geometry.dendrite_length
+		dend_len = to_celltype.morphology.dendrite_length
 		n_conn_glom = self.convergence
 		first_glomerulus = int(glomeruli[0,0])
 
@@ -105,7 +105,7 @@ class ConnectomeGlomerulusGolgi(TouchingConvergenceDivergence):
 		glomeruli = self.scaffold.cells_by_type[glomerulus_celltype.name]
 		golgis = self.scaffold.cells_by_type[golgi_celltype.name]
 		first_glomerulus = int(glomeruli[0,0])
-		r_goc_vol = golgi_celltype.geometry.dendrite_radius
+		r_goc_vol = golgi_celltype.morphology.dendrite_radius
 
 		def connectome_glom_goc(first_glomerulus, glomeruli, golgicells, r_goc_vol):
 			glom_bd = np.zeros((0,2))
@@ -145,9 +145,9 @@ class ConnectomeGolgiGlomerulus(TouchingConvergenceDivergence):
 		glomeruli = self.scaffold.cells_by_type[glomerulus_celltype.name]
 		golgis = self.scaffold.cells_by_type[golgi_celltype.name]
 		first_glomerulus = int(glomeruli[0,0])
-		GoCaxon_x = golgi_celltype.geometry.axon_x
-		GoCaxon_y = golgi_celltype.geometry.axon_y
-		GoCaxon_z = golgi_celltype.geometry.axon_z
+		GoCaxon_x = golgi_celltype.morphology.axon_x
+		GoCaxon_y = golgi_celltype.morphology.axon_y
+		GoCaxon_z = golgi_celltype.morphology.axon_z
 		r_glom = glomerulus_celltype.placement.radius
 		n_conn_goc = self.divergence
 		layer_thickness = self.scaffold.configuration.get_layer(name=golgi_celltype.placement.layer).thickness
@@ -222,12 +222,12 @@ class ConnectomeGranuleGolgi(ConnectionStrategy):
 		granules = self.scaffold.cells_by_type[granule_celltype.name]
 		golgis = self.scaffold.cells_by_type[golgi_celltype.name]
 		first_granule = int(granules[0, 0])
-		r_goc_vol = golgi_celltype.geometry.dendrite_radius
+		r_goc_vol = golgi_celltype.morphology.dendrite_radius
 		oob = self.scaffold.configuration.X * 1000. # Any arbitrarily large value outside of simulation volume
 		n_connAA = self.aa_convergence
 		n_conn_pf = self.pf_convergence
 		tot_conn = n_connAA + n_conn_pf
-		pf_heights = get_parallel_fiber_heights(self.scaffold, granule_celltype.geometry, granules)
+		pf_heights = get_parallel_fiber_heights(self.scaffold, granule_celltype.morphology, granules)
 		self.scaffold.append_dset('hpf', data=pf_heights)
 
 		def connectome_grc_goc(first_granule, granules, golgicells, r_goc_vol, OoB_value, n_connAA, n_conn_pf, tot_conn, scaffold):
@@ -437,7 +437,7 @@ class ConnectomePFInterneuron(ConnectionStrategy):
 		granules = self.scaffold.cells_by_type[granule_celltype.name]
 		interneurons = self.scaffold.cells_by_type[interneuron_celltype.name]
 		first_granule = int(granules[0, 0])
-		dendrite_radius = interneuron_celltype.geometry.radius
+		dendrite_radius = interneuron_celltype.morphology.dendrite_radius
 		pf_heights = self.scaffold.appends['hpf'][:, 1] + granules[:, 3] # Add granule Y to height of its pf
 
 		def connectome_pf_inter(first_granule, interneurons, granules, r_sb, h_pf):
@@ -626,10 +626,10 @@ class ConnectomeGapJunctionsGolgi(ConnectionStrategy):
 		golgi_celltype = self.from_celltype
 		golgis = self.scaffold.cells_by_type[golgi_celltype.name]
 		first_golgi = int(golgis[0, 0])
-		r_goc_vol = golgi_celltype.geometry.dendrite_radius
-		GoCaxon_x = golgi_celltype.geometry.axon_x
-		GoCaxon_y = golgi_celltype.geometry.axon_y
-		GoCaxon_z = golgi_celltype.geometry.axon_z
+		r_goc_vol = golgi_celltype.morphology.dendrite_radius
+		GoCaxon_x = golgi_celltype.morphology.axon_x
+		GoCaxon_y = golgi_celltype.morphology.axon_y
+		GoCaxon_z = golgi_celltype.morphology.axon_z
 
 		def connectome_gj_goc(r_goc_vol, GoCaxon_x, GoCaxon_y, GoCaxon_z, golgicells, first_golgi):
 			gj_goc = np.zeros((golgis.shape[0] ** 2,2))

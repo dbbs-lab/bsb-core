@@ -1,8 +1,8 @@
 {
   "name": "DBBS Mouse cerebellum configuration v4.0",
   "network_architecture": {
-    "simulation_volume_x": 400.0,
-    "simulation_volume_z": 400.0
+    "simulation_volume_x": 100.0,
+    "simulation_volume_z": 100.0
   },
   "layers": {
     "dcn_layer": {
@@ -48,7 +48,7 @@
         "distance_muliplier_max": 0.5
       },
       "morphology": {
-        "class": "scaffold.geometries.GranuleCellGeometry",
+        "class": "scaffold.morphologies.GranuleCellGeometry",
         "pf_height": 180,
         "pf_height_sd": 20,
         "pf_length": 3000,
@@ -84,7 +84,7 @@
         "angle": 4
       },
       "morphology": {
-        "class": "scaffold.geometries.PurkinjeCellGeometry"
+        "class": "scaffold.morphologies.PurkinjeCellGeometry"
       },
       "simulation": {
         "nest": {
@@ -104,7 +104,7 @@
         "density": 9e-6
       },
       "morphology": {
-        "class": "scaffold.geometries.GolgiCellGeometry",
+        "class": "scaffold.morphologies.GolgiCellGeometry",
         "dendrite_radius": 50.0,
         "axon_x": 150.0,
         "axon_y": 150.0,
@@ -129,7 +129,7 @@
         "y_restriction": [0.66, 1.0]
       },
       "morphology": {
-        "class": "scaffold.geometries.RadialGeometry",
+        "class": "scaffold.morphologies.RadialGeometry",
         "dendrite_radius": 15.0
       },
       "simulation": {
@@ -151,7 +151,7 @@
         "y_restriction": [0.0, 0.66]
       },
       "morphology": {
-        "class": "scaffold.geometries.RadialGeometry",
+        "class": "scaffold.morphologies.RadialGeometry",
         "dendrite_radius": 15.0
       },
       "simulation": {
@@ -173,7 +173,7 @@
         "placement_count_ratio": 0.090909
       },
       "morphology": {
-        "class": "scaffold.geometries.NoGeometry"
+        "class": "scaffold.morphologies.NoGeometry"
       },
       "simulation": {
         "nest": {

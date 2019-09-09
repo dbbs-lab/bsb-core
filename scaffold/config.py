@@ -1,6 +1,6 @@
 import os, abc
 from .models import CellType, Layer
-from .geometries import Geometry as BaseGeometry
+from .morphologies import Morphology as BaseMorphology
 from .connectivity import ConnectionStrategy
 from .placement import PlacementStrategy
 from .helpers import copyIniKey
@@ -16,7 +16,7 @@ class ScaffoldConfig(object):
         self.layers = {}
         self.layer_map = []
         self.connection_types = {}
-        self.geometries = {}
+        self.morphologies = {}
         self.placement_strategies = {}
         self.verbosity = verbosity
         self._raw = ''
@@ -69,16 +69,16 @@ class ScaffoldConfig(object):
         self.cell_types[cell_type.name] = cell_type
         self.cell_type_map.append(cell_type.name)
 
-    def addGeometry(self, geometry):
+    def addMorphology(self, morphology):
         '''
-            Adds a geometry to the config object. Geometries are used to determine
+            Adds a morphology to the config object. Mrophologies are used to determine
             which cells touch and form synapses.
 
-            :param geometry: Geometry object to add
-            :type geometry: Geometry
+            :param morphology: Morphology object to add
+            :type morphology: Morphology
         '''
         # Register a new Geometry.
-        self.geometries[geometry.name] = geometry
+        self.morphologies[morphology.name] = morphology
 
     def add_placement_strategy(self, placement):
         '''
@@ -211,9 +211,7 @@ class JSONConfig(ScaffoldConfig):
         self.load_general(parsed_config)
         self._layer_stacks = {}
         self.load_attr(config=parsed_config, attr='layers', init=self.iniLayer, final=self.finalizeLayers, single=True)
-        self.load_attr(config=parsed_config, attr='cell_types', init=self.iniCellType, final=self.finalizeCellType)
-
-        exit()
+        self.load_attr(config=parsed_config, attr='cell_types', init=self.init_cell_type, final=self.finalizeCellType)
 
     def load_general(self, config):
         '''
@@ -249,7 +247,7 @@ class JSONConfig(ScaffoldConfig):
     def load_simulations(self, config):
         pass
 
-    def iniCellType(self, name, section):
+    def init_cell_type(self, name, section):
         '''
             Initialise a CellType from a .ini object.
 
@@ -266,32 +264,15 @@ class JSONConfig(ScaffoldConfig):
         placement_kwargs = {}
         # Get the placement configuration node
         placement = assert_attr(section, 'placement', node_name)
-        # Get the initialized placement strategy from the configuration node
         cell_type.placement = self.iniPlacement(placement, name)
+        # Get the morphology configuration node
+        morphology = assert_attr(section, 'morphology', node_name)
+        cell_type.morphology = self.init_morphology(morphology, name)
+        print(cell_type.name, cell_type.morphology, cell_type.morphology.name)
         # Color
         cell_type.color = if_attr(section, 'color', '#000000')
         # Register cell type
         self.addCellType(cell_type)
-        return cell_type
-
-    def iniGeometricCell(self, cell_type, section):
-        '''
-            Create a cell type that is modelled in space based on geometrical rules.
-        '''
-        if not 'geometryname' in section:
-            raise Exception('Required geometry attribute GeometryName missing in {} section.'.format(name))
-        geometry_name = section['geometryname']
-        if not geometry_name in self.geometries.keys():
-            raise Exception("Unknown geometry '{}' in section '{}'".format(geometry_name, name))
-        # Set the cell's geometry
-        cell_type.set_geometry(self.geometries[geometry_name])
-        return cell_type
-
-    def iniMorphologicCell(self, cell_type, section):
-        '''
-            Create a cell type that is modelled in space based on a detailed morphology.
-        '''
-        raise Exception("Morphologic cells not implemented yet.")
         return cell_type
 
     def iniLayer(self, name, config):
@@ -353,16 +334,19 @@ class JSONConfig(ScaffoldConfig):
         self.add_layer(layer)
         return layer
 
-    def iniGeometry(self, name, section):
+    def init_morphology(self, section, cell_type_name):
         '''
             Initialize a Geometry-subclass from the configuration. Uses __import__
             to fetch geometry class, then copies all keys as is from config section to instance
             and adds it to the Geometries dictionary.
         '''
-        # Keys to exclude from copying to the geometry instance
-        excluded = ['Type', 'MorphologyType', 'GeometryName', 'Class']
-        geometryInstance = self.loadConfigClass(name, section, BaseGeometry, excluded)
-        self.addGeometry(geometryInstance)
+        name = cell_type_name + '_morphology'
+        node_name = 'cell_types.{}.morphology'.format(cell_type_name)
+        morphology_class = assert_attr(section, 'class', node_name)
+        morphology = self.load_configurable_class(name, morphology_class, BaseMorphology)
+        self.fill_configurable_class(morphology, section, excluded=['class'])
+        self.addMorphology(morphology)
+        return morphology
 
     def iniConnection(self, name, section):
         '''
@@ -386,6 +370,8 @@ class JSONConfig(ScaffoldConfig):
             placement = self.load_configurable_class(name, placement_class, PlacementStrategy)
         except ConfigurableClassNotFoundException as e:
             raise Exception("Couldn't find class '{}' specified in '{}'".format(placement_class, node_name))
+        # Placement layer
+        placement.layer = assert_attr(section, 'layer', node_name)
         # Radius of the cell soma
         placement.radius = assert_attr_float(section, 'soma_radius', node_name)
         # Density configurations all rely on a float or a float and relation
@@ -399,10 +385,9 @@ class JSONConfig(ScaffoldConfig):
             placement.placement_relative_to = relation
 
         # Copy other information to be validated by the placement class
-        self.fill_configurable_class(placement, section, excluded=['class', 'soma_radius', 'density', 'planar_density', 'placement_count_ratio', 'density_ratio'])
+        self.fill_configurable_class(placement, section, excluded=['class', 'layer', 'soma_radius', 'density', 'planar_density', 'placement_count_ratio', 'density_ratio'])
         # Register the configured placement class
         self.add_placement_strategy(placement)
-        print(placement.radius)
         return placement
 
 
@@ -423,30 +408,9 @@ class JSONConfig(ScaffoldConfig):
 
     def finalizeCellType(self, cell_type, section):
         '''
-            Adds configured morphology and placement strategy to the cell type configuration.
+            Finalize configuration of the cell type.
         '''
         pass
-        # # Morphology type
-        # if not 'morphologytype' in section:
-        #     raise Exception('Required attribute MorphologyType missing in {} section.'.format(cell_type.name))
-        # morphoType = section['morphologytype']
-        # # Construct geometrical/morphological cell type.
-        # if morphoType == 'Geometry':
-        #     self.iniGeometricCell(cell_type, section)
-        # elif morphoType == 'Morphology':
-        #     self.iniMorphologicCell(cell_type, section)
-        # else:
-        #     raise Exception("Cell morphology type must be either 'Geometry' or 'Morphology'")
-        # # Placement strategy
-        # if not 'placementstrategy' in section:
-        #     raise Exception('Required attribute PlacementStrategy missing in {} section.'.format(cell_type.name))
-        # placementName = section['placementstrategy']
-        # if not placementName in self.placement_strategies:
-        #     raise Exception("Unknown placement strategy '{}' in {} section".format(placementName, cell_type.name))
-        # if not cell_type.ratio is None:
-        #     if cell_type.ratioTo not in self.cell_types:
-        #         raise Exception("Ratio defined to unknown cell type '{}' in {}".format(cell_type.ratioTo, cell_type.name))
-        # cell_type.setPlacementStrategy(self.placement_strategies[placementName])
 
     def finalizeConnection(self, connection, section):
         if not hasattr(connection, 'cellfrom'):

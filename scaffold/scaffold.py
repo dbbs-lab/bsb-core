@@ -7,7 +7,7 @@ import time
 ###############################
 ## Scaffold class
 #    * Bootstraps configuration
-#    * Loads geometries, morphologies, ...
+#    * Loads morphologies, morphologies, ...
 #    * Creates network architecture
 #    * Sets up simulation
 
@@ -29,7 +29,7 @@ class Scaffold:
 		# Initialise the components now that the scaffoldInstance is available
 		self._initialise_layers()
 		self._initialise_cells()
-		self._initialise_geometries()
+		self._initialise_morphologies()
 		self._initialise_placement_strategies()
 		self._initialise_connection_types()
 
@@ -49,8 +49,8 @@ class Scaffold:
 		for connection_type in self.configuration.connection_types.values():
 			connection_type.initialise(self)
 
-	def _initialise_geometries(self):
-		for geometry in self.configuration.geometries.values():
+	def _initialise_morphologies(self):
+		for geometry in self.configuration.morphologies.values():
 			geometry.initialise(self)
 
 	def compileNetworkArchitecture(self, tries=1):
@@ -58,7 +58,7 @@ class Scaffold:
 		# Place the cells starting from the lowest density celltypes.
 		for i in np.arange(tries, dtype=int):
 			t = time.time()
-			cell_types = sorted(self.configuration.cell_types.values(), key=lambda x: x.density)
+			cell_types = sorted(self.configuration.cell_types.values(), key=lambda x: x.placement.get_placement_count(x))
 			for cell_type in cell_types:
 				cell_type.placement.place(cell_type)
 			for connection_type in self.configuration.connection_types.values():
