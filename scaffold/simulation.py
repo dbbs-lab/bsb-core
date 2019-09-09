@@ -30,7 +30,13 @@ class NestAdapter(SimulatorAdapter):
         self.stimulate_neurons()
         return nest
 
-    def create_neurons(self,simulation_config, neuron_types)
+    def simulate(self, simulator):
+        simulator.Simulate()
+
+    def validate(self):
+        pass
+
+    def create_neurons(self,simulation_config, neuron_types):
         default_model = self.scaffold.simulation_config.neuron_model
         for neuron_type in neuron_types.values():
             name = neuron_type.name

@@ -41,6 +41,7 @@ parser_compile = subparsers.add_parser('compile', help='Build a network of neuro
 parser_compile.add_argument('-p', action='store_true',help='Plot the created network')
 
 parser_run = subparsers.add_parser('run', help='Run a simulation using a compiled scaffold network.')
+parser_run.add_argument('simulator', action='store', help='Simulator backend.', choices=["nest","neuron","pynn"], default="nest")
 
 cl_args = parser.parse_args()
 
@@ -59,5 +60,9 @@ if cl_args.task == 'compile':
 		scaffoldInstance.plotNetworkCache()
 
 if cl_args.task == 'run':
-	# Run the nest script
-	pass
+	adapter = scaffoldInstance.get_adapter(cl_args.simulator)
+	# Spaceholders, waiting for definitive hdf5 format and json config
+	hdf5 = None
+	simulation_config = None
+	simulator = adapter.prepare(hdf5, simulation_config)
+	adapter.simulate(simulator)

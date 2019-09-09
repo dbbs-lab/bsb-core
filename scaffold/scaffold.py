@@ -22,8 +22,7 @@ class Scaffold:
 		# Use the configuration to initialise all components such as cells and layers
 		# to prepare for the network architecture compilation.
 		self.initialiseComponents()
-		# Code to be compliant with old code, to be removed after rework
-		self.initLegacyCode()
+		self.initialiseSimulators()
 
 	def initialiseComponents(self):
 		# Initialise the components now that the scaffoldInstance is available
@@ -32,6 +31,12 @@ class Scaffold:
 		self._initialise_geometries()
 		self._initialise_placement_strategies()
 		self._initialise_connection_types()
+
+	def initialiseSimulators(self):
+		self.simulators = self.configuration.simulators
+		del self.configuration.simulators
+		for simulator in self.simulators.values():
+			simulator.initialise(self)
 
 	def _initialise_cells(self):
 		for cell_type in self.configuration.cell_types.values():
@@ -155,11 +160,7 @@ class Scaffold:
 		f.create_dataset('connectome', data=self.cell_connections)
 		f.close()
 
-
-	def initLegacyCode(self):
-		self.placement_stats = {key: {} for key in self.configuration.cell_types.keys()}
-		for key, subdic in self.placement_stats.items():
-			subdic['number_of_cells'] = []
-			subdic['total_n_{}'.format(key)] = 0
-			if key != 'purkinje':
-				subdic['{}_subl'.format(key)] = 0
+	def get_adapter(self, adapter_name):
+		if not adapter_name in self.simulators:
+			raise Exception("Unknown simulator '{}'".format(adapter_name))
+		return self.simulators[adapter_name]

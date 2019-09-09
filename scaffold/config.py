@@ -5,6 +5,7 @@ from .geometries import Geometry as BaseGeometry
 from .connectivity import ConnectionStrategy
 from .placement import PlacementStrategy
 from .helpers import copyIniKey
+from .simulation import NestAdapter
 
 class ScaffoldConfig(object):
 
@@ -20,6 +21,7 @@ class ScaffoldConfig(object):
         self.geometries = {}
         self.placement_strategies = {}
         self.verbosity = 0
+        self.simulators = { 'nest': NestAdapter()}
 
         # General simulation values
         self.X = 200    # Transverse simulation space size (µm)
