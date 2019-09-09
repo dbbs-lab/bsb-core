@@ -22,8 +22,6 @@ class Scaffold:
 		# Use the configuration to initialise all components such as cells and layers
 		# to prepare for the network architecture compilation.
 		self.initialiseComponents()
-		# Code to be compliant with old code, to be removed after rework
-		self.initLegacyCode()
 
 	def initialiseComponents(self):
 		# Initialise the components now that the scaffoldInstance is available
@@ -154,12 +152,3 @@ class Scaffold:
 
 		f.create_dataset('connectome', data=self.cell_connections)
 		f.close()
-
-
-	def initLegacyCode(self):
-		self.placement_stats = {key: {} for key in self.configuration.cell_types.keys()}
-		for key, subdic in self.placement_stats.items():
-			subdic['number_of_cells'] = []
-			subdic['total_n_{}'.format(key)] = 0
-			if key != 'purkinje':
-				subdic['{}_subl'.format(key)] = 0
