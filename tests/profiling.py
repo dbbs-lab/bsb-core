@@ -5,9 +5,9 @@ from time import sleep
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 from scaffold import Scaffold
-from scaffold.config import ScaffoldIniConfig
+from scaffold.config import IniConfig
 
-config = ScaffoldIniConfig('../test.ini')
+config = IniConfig('../test.ini')
 instance = Scaffold(config)
 for i in range(1,40):
     config.resize(100 + i * 20, 100 + i * 20)

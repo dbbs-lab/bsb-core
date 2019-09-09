@@ -29,13 +29,13 @@ To run with different configurations, change the config argument to the relative
 
 ### Python package
 
-The central object is the `scaffold.Scaffold` class. This object requires a `scaffold.config.ScaffoldConfig` instance for its construction. To emulate the CLI functionality you can use the `ScaffoldIniConfig` class and provide the relative path to the configuration file.
+The central object is the `scaffold.Scaffold` class. This object requires a `scaffold.config.ScaffoldConfig` instance for its construction. To emulate the CLI functionality you can use the `IniConfig` class and provide the relative path to the configuration file.
 
 ```python
 from scaffold import Scaffold
-from scaffold.config import ScaffoldIniConfig
+from scaffold.config import IniConfig
 
-config = new ScaffoldIniConfig('mouse_cerebellum.ini')
+config = new IniConfig('mouse_cerebellum.ini')
 scaffoldInstance = new Scaffold(config)
 ```
 

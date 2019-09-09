@@ -8,7 +8,7 @@ import configparser
 import builtins
 import argparse
 import scaffold
-from scaffold.config import ScaffoldJSONConfig
+from scaffold.config import JSONConfig
 from scaffold.scaffold import Scaffold
 
 ##
@@ -45,7 +45,7 @@ parser_run = subparsers.add_parser('run', help='Run a simulation using a compile
 cl_args = parser.parse_args()
 
 # Load the .json configuration
-scaffoldConfig = ScaffoldJSONConfig(cl_args.config, verbosity=cl_args.verbose)
+scaffoldConfig = JSONConfig(cl_args.config, verbosity=cl_args.verbose)
 
 # Create the scaffold instance
 scaffoldInstance = Scaffold(scaffoldConfig)

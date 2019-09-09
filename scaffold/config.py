@@ -152,14 +152,14 @@ class ScaffoldConfig(object):
                 layer.dimensions[0] *= scaling_x
                 layer.dimensions[2] *= scaling_z
 
-class ScaffoldIniConfig(ScaffoldConfig):
+class IniConfig(ScaffoldConfig):
     '''
         Create a scaffold configuration from an INI formatted file/string.
     '''
 
     def __init__(self, file=None, stream=None, verbosity=0):
         '''
-            Initialize ScaffoldIniConfig from .ini file.
+            Initialize IniConfig from .ini file.
 
             :param file: Path of the configuration .ini file.
             :type file: string
@@ -456,14 +456,14 @@ class ScaffoldIniConfig(ScaffoldConfig):
         return instance
 
 
-class ScaffoldJSONConfig(ScaffoldConfig):
+class JSONConfig(ScaffoldConfig):
     '''
         Create a scaffold configuration from a JSON formatted file/string.
     '''
 
     def __init__(self, file=None, stream=None, verbosity=0):
         '''
-            Initialize ScaffoldIniConfig from .ini file.
+            Initialize IniConfig from .ini file.
 
             :param file: Path of the configuration .ini file.
             :type file: string
