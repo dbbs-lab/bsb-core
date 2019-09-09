@@ -1,5 +1,4 @@
 import os, abc
-import configparser
 from .models import CellType, Layer
 from .geometries import Geometry as BaseGeometry
 from .connectivity import ConnectionStrategy
@@ -136,7 +135,7 @@ class ScaffoldConfig(object):
     def get_layerID(self, name):
         return self.layer_map.index(name)
 
-    def get_layerList(self):
+    def get_layer_list(self):
         return list(self.layers.values())
 
     def resize(self, X=None, Z=None):
@@ -169,6 +168,7 @@ class ScaffoldIniConfig(ScaffoldConfig):
             :param verbosity: Verbosity (output level) of the scaffold.
             :type file: int
         '''
+        import configparser
         # Set _extension to indicate we expect a .ini file.
         self._extension = ".ini"
         # Initialize base config class, handling the reading of file/stream to string
@@ -311,7 +311,7 @@ class ScaffoldIniConfig(ScaffoldConfig):
 
         # Stack this layer on the previous one.
         if 'stack' in section and section['stack'] != 'False':
-            layers = self.get_layerList()
+            layers = self.get_layer_list()
             if len(layers) == 0:
                 # If this is the first layer, put it at the bottom of the simulation.
                 origin[1] = 0.
@@ -472,69 +472,55 @@ class ScaffoldJSONConfig(ScaffoldConfig):
             :param verbosity: Verbosity (output level) of the scaffold.
             :type file: int
         '''
-        # Set _extension to indicate we expect a .ini file.
-        self._extension = ".ini"
+        import json
+        # Set _extension to indicate we expect a .json file.
+        self._extension = ".json"
         # Initialize base config class, handling the reading of file/stream to string
         ScaffoldConfig.__init__(self, file, stream, verbosity)
-        # Use configparser to read self._raw ini string provided by parent ScaffoldConfig.__init__
-        parsedConfig = configparser.ConfigParser()
-        parsedConfig.read_string(self._raw)
-        self._sections = parsedConfig.sections()
-        self._config = parsedConfig
-        # Check if ini file is empty
-        if len(self._sections) == 0:
-            raise Exception("Empty or non existent configuration " + (("file" + '\'{}\''.format(file)) if file else "stream") + ".")
-        # Defines a map from section types to initializers.
-        sectionInitializers = {
-            'Cell': self.iniCellType,
-            'Layer': self.iniLayer,
-            'Geometry': self.iniGeometry,
-            'Connection': self.iniConnection,
-            'Placement': self.iniPlacement,
-        }
-        # Defines a map from section types to finalizers.
-        sectionFinalizers = {
-            'Cell': self.finalizeCellType,
-            'Layer': self.finalizeLayer,
-            'Geometry': self.finalizeGeometry,
-            'Connection': self.finalizeConnection,
-            'Placement': self.finalizePlacement,
-        }
-        # Defines a map from section types to config object dictionaries
-        sectionDictionaries = {
-            'Cell': self.cell_types,
-            'Layer': self.layers,
-            'Geometry': self.geometries,
-            'Connection': self.connection_types,
-            'Placement': self.placement_strategies,
-        }
-        # Initialize special sections such as the general section.
-        self.initSections()
-        # Initialize each section in the .ini file based on their type
-        for sectionName in self._sections:
-            sectionConfig = parsedConfig[sectionName]
-            if not 'type' in sectionConfig:
-                raise Exception("No type declared for section '{}' in '{}'.".format(
-                    sectionName,
-                    file,
-                ))
-            sectionType = sectionConfig['type']
-            if not sectionType in sectionInitializers:
-                raise Exception("Unknown section type '{}' for section '{}' in '{}'. Options: '{}'".format(
-                    sectionType,
-                    sectionName,
-                    file,
-                    "', '".join(sectionInitializers.keys()) # Format a list of the available section types.
-                ))
-            # Call the appropriate ini-section initialiser for this type.
-            sectionInitializers[sectionType](sectionName, sectionConfig)
-        # Finalize each section in the .ini file based on their type.
-        # Finalisation allows sections to configure themselves based on properties initialised in other sections.
-        for sectionName in self._sections:
-            sectionConfig = parsedConfig[sectionName]
-            sectionType = sectionConfig['type']
-            # Fetch the initialized config from the storage dictionaries and finalize it.
-            sectionFinalizers[sectionType](sectionDictionaries[sectionType][sectionName], sectionConfig)
+        # Use json module to read self._raw json string provided by parent ScaffoldConfig.__init__
+        try:
+            parsed_config = json.loads(self._raw)
+        except json.decoder.JSONDecodeError as e:
+            raise Exception("Error while loading JSON configuration: {}".format(e))
+
+        self.load_general(parsed_config)
+        self.load_layers(parsed_config)
+
+        exit()
+
+    def load_general(config):
+        '''
+            Load the general segment in a JSON configuration file.
+        '''
+        if not 'network_architecture' in config:
+            raise Exception("Missing 'network_architecture' attribute in configuration.")
+        netw_config = config['network_architecture']
+        if not 'simulation_volume_x' in netw_config:
+            raise Exception("Missing 'simulation_volume_x' attribute in 'network_architecture' configuration.")
+        if not 'simulation_volume_z' in netw_config:
+            raise Exception("Missing 'simulation_volume_x' attribute in 'network_architecture' configuration.")
+        self.X = float(netw_config['simulation_volume_x'])
+        self.Z = float(netw_config['simulation_volume_z'])
+
+    def load_layers(config):
+        '''
+            Load the layers segment in a JSON configuration file.
+        '''
+        if not 'layers' in config:
+            raise Exception("Missing 'layers' attribute in configuration.")
+        self._layer_stacks = {}
+        for layer_name, layer_config in config['layers'].items():
+            self.iniLayer(layer_name, layer_config)
+        self.finalizeLayers()
+
+    def load_cell_types(config):
+        pass
+
+    def load_connection_types(config):
+        pass
+
+    def load_simulations(config):
+        pass
 
     def iniCellType(self, name, section):
         '''
@@ -588,48 +574,57 @@ class ScaffoldJSONConfig(ScaffoldConfig):
         raise Exception("Morphologic cells not implemented yet.")
         return cell_type
 
-    def iniLayer(self, name, section):
+    def iniLayer(self, name, config):
         '''
-            Initialise a Layer from a .ini object.
+            Initialise a Layer from a json object.
 
-            :param section: A section of a .ini file, parsed by configparser.
-            :type section: /
+            :param config: An object in the 'layers' array of the JSON file.
+            :type config: /
 
             :returns: A :class:`Layer`: object.
             :rtype: Layer
         '''
         # Get thickness of the layer
-        if not 'thickness' in section:
-            raise Exception('Required attribute Thickness missing in {} section.'.format(name))
-
-        thickness = float(section['thickness'])
+        if not 'thickness' in config:
+            raise Exception('Required attribute thickness missing in {} config.'.format(name))
+        thickness = float(config['thickness'])
         # Set the position of this layer in the space.
-        if not 'position' in section:
+        if not 'position' in config:
             origin = [0., 0., 0.]
         else:
-            # TODO: Catch possible casting errors from string to float.
-            origin = [float(coord) for coord in section['position'].split(',')]
+            # TODO: Catch possible casting errors to float.
+            origin = [float(coord) for coord in config['position']]
             if len(origin) != 3:
-                raise Exception("Invalid position '{}' given in section '{}'".format(section['position'], name))
+                raise Exception("Invalid position '{}' given in config '{}'".format(config['position'], name))
 
-        # Stack this layer on the previous one.
-        if 'stack' in section and section['stack'] != 'False':
-            layers = self.get_layerList()
-            if len(layers) == 0:
-                # If this is the first layer, put it at the bottom of the simulation.
-                origin[1] = 0.
+        # Parse the layer stack config
+        if 'stack' in config:
+            stack_config = config['stack']
+            if not 'stack_id' in stack_config:
+                raise Exception("A 'stack_id' attribute is required in '{}.stack'.".format(name))
+            stack_id = int(stack_config['stack_id'])
+            stack = {'layers': {}}
+            # Get or add stack from/to layer_stacks
+            if stack_id in self._layer_stacks:
+                stack = self._layer_stacks[stack_id]
             else:
-                # Otherwise, place it on top of the previous one
-                previousLayer = layers[-1]
-                origin[1] = previousLayer.origin[1] + previousLayer.dimensions[1]
+                self._layer_stacks[stack_id] = stack
+            if not 'position_in_stack' in stack_config:
+                raise Exception("A 'position_in_stack' attribute is required in '{}.stack'.".format(name))
+            stack['layers'][stack_config['position_in_stack']] = name
+            # This config determines the position of the stack
+            if 'position' in stack_config:
+                if 'position' in stack:
+                    raise Exception("Duplicate positioning attribute found for stack with id '{}'".format(stack_id))
+                stack['position'] = stack_config['position']
         # Set the layer dimensions
         #   scale by the XZ-scaling factor, if present
         xzScale = 1.
-        if 'xzscale' in section:
-            xzScale = float(section['xzscale'])
+        if 'xz_scale' in config:
+            xzScale = float(config['xz_scale'])
         dimensions = [self.X * xzScale, thickness, self.Z * xzScale]
-        # Center the layer on the XZ plane
-        if 'xzcenter' in section and section['xzcenter'] == 'True':
+        #   and center the layer on the XZ plane, if present
+        if 'xz_center' in config and config['xz_center'] == True:
             origin[0] = (self.X - dimensions[0]) / 2.
             origin[2] = (self.Z - dimensions[2]) / 2.
         # Put together the layer object from the extracted values.
@@ -672,8 +667,17 @@ class ScaffoldJSONConfig(ScaffoldConfig):
     def finalizeGeometry(self, geometry, section):
         pass
 
-    def finalizeLayer(self, layer, section):
-        pass
+    def finalizeLayers(self):
+        for stack in self._layer_stacks.values():
+            if not 'position' in stack:
+                stack['position'] = [0., 0., 0.]
+            # Get the current roof of the stack
+            stack_roof = stack['position'][1]
+            for (id, name) in sorted(stack["layers"].items()):
+                layer = self.layers[name]
+                # Place the layer on top of the roof of the stack, and move up the roof by the thickness of the stacked layer.
+                layer.origin[1] = stack_roof
+                stack_roof += layer.thickness
 
     def finalizeCellType(self, cell_type, section):
         '''

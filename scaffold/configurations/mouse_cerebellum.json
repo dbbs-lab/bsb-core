@@ -1,9 +1,9 @@
 {
   "name": "DBBS Mouse cerebellum configuration v4.0",
   "network_architecture": {
-    "simulation_volume_x": 400.,
-    "simulation_volume_z": 400.
-  }
+    "simulation_volume_x": 400.0,
+    "simulation_volume_z": 400.0
+  },
   "layers": {
     "dcn_layer": {
       "thickness": 600,
@@ -12,30 +12,30 @@
       "stack": {
         "stack_id": 0,
         "position_in_stack": 0,
-        "position": [0., 0., 0.],
+        "position": [0.0, 0.0, 0.0]
       }
     },
     "granular_layer": {
-      "thickness": 150.,
+      "thickness": 150.0,
       "stack": {
         "stack_id": 0,
-        "position_in_stack": 1,
+        "position_in_stack": 1
       }
     },
     "purkinje_layer": {
-      "thickness": 30.,
+      "thickness": 30.0,
       "stack": {
         "stack_id": 0,
-        "position_in_stack": 2,
+        "position_in_stack": 2
       }
     },
     "molecular_layer": {
-      "thickness": 150.,
+      "thickness": 150.0,
       "stack": {
         "stack_id": 0,
-        "position_in_stack": 3,
+        "position_in_stack": 3
       }
-    },
+    }
   },
   "cell_types": {
     "granule_cell": {
@@ -45,7 +45,7 @@
         "soma_radius": 2.5,
         "density": 3.9e-3,
         "distance_muliplier_min": 0.5,
-        "distance_muliplier_max": 0.5,
+        "distance_muliplier_max": 0.5
       },
       "morphology": {
         "class": "scaffold.geometries.GranuleCellGeometry",
@@ -70,7 +70,7 @@
       },
       "plotting": {
         "display_name": "granule cell",
-        "color": "#E62214",
+        "color": "#E62214"
       }
     },
     "purkinje_cell": {
@@ -79,12 +79,12 @@
         "layer": "purkinje_layer",
         "soma_radius": 7.5,
         "planar_density": 0.003125,
-        "extension_x": 130.,
+        "extension_x": 130.0,
         "extension_z": 3.5,
         "angle": 4
       },
       "morphology": {
-        "class": "scaffold.geometries.PurkinjeCellGeometry",
+        "class": "scaffold.geometries.PurkinjeCellGeometry"
       },
       "simulation": {
         "nest": {
@@ -93,22 +93,22 @@
       },
       "plotting": {
         "display_name": "purkinje cell",
-        "color": "#0F8944",
+        "color": "#0F8944"
       }
     },
     "golgi_cell": {
       "placement": {
         "class": "scaffold.placement.LayeredRandomWalk",
         "layer": "granular_layer",
-        "soma_radius": 8.,
+        "soma_radius": 8.0,
         "density": 9e-6
       },
       "morphology": {
         "class": "scaffold.geometries.GolgiCellGeometry",
-        "dendrite_radius": 50.,
-        "axon_x": 150.,
-        "axon_y": 150.,
-        "axon_z": 30.
+        "dendrite_radius": 50.0,
+        "axon_x": 150.0,
+        "axon_y": 150.0,
+        "axon_z": 30.0
       },
       "simulation": {
         "nest": {
@@ -117,20 +117,20 @@
       },
       "plotting": {
         "display_name": "golgi cell",
-        "color": "#332EBC",
+        "color": "#332EBC"
       }
     },
     "stellate_cell": {
       "placement": {
         "class": "scaffold.placement.LayeredRandomWalk",
         "layer": "molecular_layer",
-        "soma_radius": 4.,
+        "soma_radius": 4.0,
         "density": 0.5e-4,
-        "y_restriction": [0.66, 1.]
+        "y_restriction": [0.66, 1.0]
       },
       "morphology": {
         "class": "scaffold.geometries.RadialGeometry",
-        "dendrite_radius": 15.,
+        "dendrite_radius": 15.0
       },
       "simulation": {
         "nest": {
@@ -139,20 +139,20 @@
       },
       "plotting": {
         "display_name": "stellate cell",
-        "color": "#876506",
+        "color": "#876506"
       }
     },
     "basket_cell": {
       "placement": {
         "class": "scaffold.placement.LayeredRandomWalk",
         "layer": "molecular_layer",
-        "soma_radius": 6.,
+        "soma_radius": 6.0,
         "density": 0.5e-4,
-        "y_restriction": [0., 0.66]
+        "y_restriction": [0.0, 0.66]
       },
       "morphology": {
         "class": "scaffold.geometries.RadialGeometry",
-        "dendrite_radius": 15.,
+        "dendrite_radius": 15.0
       },
       "simulation": {
         "nest": {
@@ -161,19 +161,19 @@
       },
       "plotting": {
         "display_name": "basket cell",
-        "color": "#7A1607",
+        "color": "#7A1607"
       }
     },
     "dcn_cell": {
       "placement": {
         "class": "scaffold.placement.DCNPlacement",
         "layer": "dcn_layer",
-        "soma_radius": 10.,
+        "soma_radius": 10.0,
         "placement_count_relative_to": "purkinje_cell",
-        "placement_count_ratio": 0.090909,
+        "placement_count_ratio": 0.090909
       },
       "morphology": {
-        "class": "scaffold.geometries.NoGeometry",
+        "class": "scaffold.geometries.NoGeometry"
       },
       "simulation": {
         "nest": {
@@ -182,7 +182,7 @@
       },
       "plotting": {
         "display_name": "dcn cell",
-        "color": "#15118B",
+        "color": "#15118B"
       }
     }
   },
@@ -242,29 +242,29 @@
       "to_celltypes": [{"type": "purkinje_cell", "compartments": ["dendrites"]}],
       "divergence": 2,
       "convergence": 20,
-      "limit_x": 500.,
-      "limit_y": 100.
+      "limit_x": 500.0,
+      "limit_y": 100.0
     },
     "stellate_gap_junctions": {
       "class": "scaffold.connectivity.ConnectomeGapJunctions",
       "from_celltypes": [{"type": "stellate_cell", "compartments": ["axon"]}],
       "to_celltypes": [{"type": "stellate_cell", "compartments": ["dendrites"]}],
       "divergence": 4,
-      "limit_xy": 150.,
-      "limit_z": 50.
+      "limit_xy": 150.0,
+      "limit_z": 50.0
     },
     "basket_gap_junctions": {
       "class": "scaffold.connectivity.ConnectomeGapJunctions",
       "from_celltypes": [{"type": "basket_cell", "compartments": ["axon"]}],
       "to_celltypes": [{"type": "basket_cell", "compartments": ["dendrites"]}],
       "divergence": 4,
-      "limit_xy": 150.,
-      "limit_z": 50.
+      "limit_xy": 150.0,
+      "limit_z": 50.0
     },
     "golgi_gap_junctions": {
       "class": "scaffold.connectivity.ConnectomeGapJunctionsGolgi",
       "from_celltypes": [{"type": "golgi_cell", "compartments": ["axon"]}],
-      "to_celltypes": [{"type": "golgi_cell", "compartments": ["dendrites"]}],
+      "to_celltypes": [{"type": "golgi_cell", "compartments": ["dendrites"]}]
     },
     "purkinje_to_dcn": {
       "class": "scaffold.connectivity.ConnectomeGapJunctionsGolgi",
@@ -275,6 +275,7 @@
   },
   "simulations": {
     "alice1": {
+      "simulator": "nest",
       "neuron_model": "iaf"
     }
   }
