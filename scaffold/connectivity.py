@@ -148,7 +148,7 @@ class ConnectomeGolgiGlomerulus(TouchingConvergenceDivergence):
 		GoCaxon_x = golgi_celltype.geometry.axon_x
 		GoCaxon_y = golgi_celltype.geometry.axon_y
 		GoCaxon_z = golgi_celltype.geometry.axon_z
-		r_glom = glomerulus_celltype.radius
+		r_glom = glomerulus_celltype.placement.radius
 		n_conn_goc = self.divergence
 		layer_thickness = self.scaffold.configuration.get_layer(name=golgi_celltype.placement.layer).thickness
 		# An arbitrarily large value that will be used to exclude cells from geometric constraints

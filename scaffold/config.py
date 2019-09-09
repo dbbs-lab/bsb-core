@@ -41,7 +41,11 @@ class ScaffoldConfig(object):
         # Append .ini and send warning if .ini extension is not present.
         if tail != self._extension:
             if self.verbosity > 0:
-                print("[WARNING] No .ini extension on given config file '{}', config file changed to : '{}'".format(file, file + '.ini'))
+                print("[WARNING] No {} extension on given config file '{}', config file changed to : '{}'".format(
+                    self._extension,
+                    file,
+                    file + self._extension
+                ))
             file += self._extension
         try:
             with open('scaffold/configurations/' + file, 'r') as file:
@@ -76,7 +80,7 @@ class ScaffoldConfig(object):
         # Register a new Geometry.
         self.geometries[geometry.name] = geometry
 
-    def addPlacementStrategy(self, placement):
+    def add_placement_strategy(self, placement):
         '''
             Adds a placement to the config object. Placement strategies are used to
             place cells in the simulation volume.
@@ -152,309 +156,29 @@ class ScaffoldConfig(object):
                 layer.dimensions[0] *= scaling_x
                 layer.dimensions[2] *= scaling_z
 
-class IniConfig(ScaffoldConfig):
-    '''
-        Create a scaffold configuration from an INI formatted file/string.
-    '''
-
-    def __init__(self, file=None, stream=None, verbosity=0):
-        '''
-            Initialize IniConfig from .ini file.
-
-            :param file: Path of the configuration .ini file.
-            :type file: string
-            :param stream: INI formatted string representing the configuration file.
-            :type file: string
-            :param verbosity: Verbosity (output level) of the scaffold.
-            :type file: int
-        '''
-        import configparser
-        # Set _extension to indicate we expect a .ini file.
-        self._extension = ".ini"
-        # Initialize base config class, handling the reading of file/stream to string
-        ScaffoldConfig.__init__(self, file, stream, verbosity)
-        # Use configparser to read self._raw ini string provided by parent ScaffoldConfig.__init__
-        parsedConfig = configparser.ConfigParser()
-        parsedConfig.read_string(self._raw)
-        self._sections = parsedConfig.sections()
-        self._config = parsedConfig
-        # Check if ini file is empty
-        if len(self._sections) == 0:
-            raise Exception("Empty or non existent configuration " + (("file" + '\'{}\''.format(file)) if file else "stream") + ".")
-        # Defines a map from section types to initializers.
-        sectionInitializers = {
-            'Cell': self.iniCellType,
-            'Layer': self.iniLayer,
-            'Geometry': self.iniGeometry,
-            'Connection': self.iniConnection,
-            'Placement': self.iniPlacement,
-        }
-        # Defines a map from section types to finalizers.
-        sectionFinalizers = {
-            'Cell': self.finalizeCellType,
-            'Layer': self.finalizeLayer,
-            'Geometry': self.finalizeGeometry,
-            'Connection': self.finalizeConnection,
-            'Placement': self.finalizePlacement,
-        }
-        # Defines a map from section types to config object dictionaries
-        sectionDictionaries = {
-            'Cell': self.cell_types,
-            'Layer': self.layers,
-            'Geometry': self.geometries,
-            'Connection': self.connection_types,
-            'Placement': self.placement_strategies,
-        }
-        # Initialize special sections such as the general section.
-        self.initSections()
-        # Initialize each section in the .ini file based on their type
-        for sectionName in self._sections:
-            sectionConfig = parsedConfig[sectionName]
-            if not 'type' in sectionConfig:
-                raise Exception("No type declared for section '{}' in '{}'.".format(
-                    sectionName,
-                    file,
-                ))
-            sectionType = sectionConfig['type']
-            if not sectionType in sectionInitializers:
-                raise Exception("Unknown section type '{}' for section '{}' in '{}'. Options: '{}'".format(
-                    sectionType,
-                    sectionName,
-                    file,
-                    "', '".join(sectionInitializers.keys()) # Format a list of the available section types.
-                ))
-            # Call the appropriate ini-section initialiser for this type.
-            sectionInitializers[sectionType](sectionName, sectionConfig)
-        # Finalize each section in the .ini file based on their type.
-        # Finalisation allows sections to configure themselves based on properties initialised in other sections.
-        for sectionName in self._sections:
-            sectionConfig = parsedConfig[sectionName]
-            sectionType = sectionConfig['type']
-            # Fetch the initialized config from the storage dictionaries and finalize it.
-            sectionFinalizers[sectionType](sectionDictionaries[sectionType][sectionName], sectionConfig)
-
-    def iniCellType(self, name, section):
-        '''
-            Initialise a CellType from a .ini object.
-
-            :param section: A section of a .ini file, parsed by configparser.
-            :type section: /
-
-            :returns: A :class:`CellType`: object.
-            :rtype: CellType
-        '''
-        cell_type = CellType(name)
-        # Radius
-        if not 'radius' in section:
-            raise Exception('Required attribute Radius missing in {} section.'.format(name))
-        cell_type.radius = float(section['radius'])
-        # Density
-        if not 'density' in section and not 'planardensity' in section and (not 'ratio' in section or not 'ratioto' in section):
-            raise Exception('Either Density, PlanarDensity or Ratio and RatioTo attributes missing in {} section.'.format(name))
-        if 'density' in section:
-            cell_type.density = float(section['density'])
-        elif 'planardensity' in section:
-            cell_type.planarDensity = float(section['planardensity'])
-        else:
-            cell_type.ratio = float(section['ratio'])
-            cell_type.ratioTo = section['ratioTo']
-        # Color
-        if 'color' in section:
-            cell_type.color = section['color']
-        # Register cell type
-        self.addCellType(cell_type)
-        return cell_type
-
-    def iniGeometricCell(self, cell_type, section):
-        '''
-            Create a cell type that is modelled in space based on geometrical rules.
-        '''
-        if not 'geometryname' in section:
-            raise Exception('Required geometry attribute GeometryName missing in {} section.'.format(name))
-        geometry_name = section['geometryname']
-        if not geometry_name in self.geometries.keys():
-            raise Exception("Unknown geometry '{}' in section '{}'".format(geometry_name, name))
-        # Set the cell's geometry
-        cell_type.set_geometry(self.geometries[geometry_name])
-        return cell_type
-
-    def iniMorphologicCell(self, cell_type, section):
-        '''
-            Create a cell type that is modelled in space based on a detailed morphology.
-        '''
-        raise Exception("Morphologic cells not implemented yet.")
-        return cell_type
-
-    def iniLayer(self, name, section):
-        '''
-            Initialise a Layer from a .ini object.
-
-            :param section: A section of a .ini file, parsed by configparser.
-            :type section: /
-
-            :returns: A :class:`Layer`: object.
-            :rtype: Layer
-        '''
-        # Get thickness of the layer
-        if not 'thickness' in section:
-            raise Exception('Required attribute Thickness missing in {} section.'.format(name))
-
-        thickness = float(section['thickness'])
-        # Set the position of this layer in the space.
-        if not 'position' in section:
-            origin = [0., 0., 0.]
-        else:
-            # TODO: Catch possible casting errors from string to float.
-            origin = [float(coord) for coord in section['position'].split(',')]
-            if len(origin) != 3:
-                raise Exception("Invalid position '{}' given in section '{}'".format(section['position'], name))
-
-        # Stack this layer on the previous one.
-        if 'stack' in section and section['stack'] != 'False':
-            layers = self.get_layer_list()
-            if len(layers) == 0:
-                # If this is the first layer, put it at the bottom of the simulation.
-                origin[1] = 0.
-            else:
-                # Otherwise, place it on top of the previous one
-                previousLayer = layers[-1]
-                origin[1] = previousLayer.origin[1] + previousLayer.dimensions[1]
-        # Set the layer dimensions
-        #   scale by the XZ-scaling factor, if present
-        xzScale = 1.
-        if 'xzscale' in section:
-            xzScale = float(section['xzscale'])
-        dimensions = [self.X * xzScale, thickness, self.Z * xzScale]
-        # Center the layer on the XZ plane
-        if 'xzcenter' in section and section['xzcenter'] == 'True':
-            origin[0] = (self.X - dimensions[0]) / 2.
-            origin[2] = (self.Z - dimensions[2]) / 2.
-        # Put together the layer object from the extracted values.
-        layer = Layer(name, origin, dimensions)
-        # Add layer to the config object
-        self.add_layer(layer)
-        return layer
-
-    def iniGeometry(self, name, section):
-        '''
-            Initialize a Geometry-subclass from the configuration. Uses __import__
-            to fetch geometry class, then copies all keys as is from config section to instance
-            and adds it to the Geometries dictionary.
-        '''
-        # Keys to exclude from copying to the geometry instance
-        excluded = ['Type', 'MorphologyType', 'GeometryName', 'Class']
-        geometryInstance = self.loadConfigClass(name, section, BaseGeometry, excluded)
-        self.addGeometry(geometryInstance)
-
-    def iniConnection(self, name, section):
-        '''
-            Initialize a ConnectionStrategy-subclass from the configuration. Uses __import__
-            to fetch geometry class, then copies all keys as is from config section to instance
-            and adds it to the Geometries dictionary.
-        '''
-        connectionInstance = self.loadConfigClass(name, section, ConnectionStrategy)
-        self.addConnection(connectionInstance)
-
-    def iniPlacement(self, name, section):
-        '''
-            Initialize a PlacementStrategy-subclass from the configuration. Uses __import__
-            to fetch placement class, then copies all keys as is from config section to instance
-            and adds it to the PlacementStrategies dictionary.
-        '''
-        # Keys to exclude from copying to the geometry instance
-        placementInstance = self.loadConfigClass(name, section, PlacementStrategy)
-        self.addPlacementStrategy(placementInstance)
-
-
-    def finalizeGeometry(self, geometry, section):
-        pass
-
-    def finalizeLayer(self, layer, section):
-        pass
-
-    def finalizeCellType(self, cell_type, section):
-        '''
-            Adds configured morphology and placement strategy to the cell type configuration.
-        '''
-
-        # Morphology type
-        if not 'morphologytype' in section:
-            raise Exception('Required attribute MorphologyType missing in {} section.'.format(cell_type.name))
-        morphoType = section['morphologytype']
-        # Construct geometrical/morphological cell type.
-        if morphoType == 'Geometry':
-            self.iniGeometricCell(cell_type, section)
-        elif morphoType == 'Morphology':
-            self.iniMorphologicCell(cell_type, section)
-        else:
-            raise Exception("Cell morphology type must be either 'Geometry' or 'Morphology'")
-        # Placement strategy
-        if not 'placementstrategy' in section:
-            raise Exception('Required attribute PlacementStrategy missing in {} section.'.format(cell_type.name))
-        placementName = section['placementstrategy']
-        if not placementName in self.placement_strategies:
-            raise Exception("Unknown placement strategy '{}' in {} section".format(placementName, cell_type.name))
-        if not cell_type.ratio is None:
-            if cell_type.ratioTo not in self.cell_types:
-                raise Exception("Ratio defined to unknown cell type '{}' in {}".format(cell_type.ratioTo, cell_type.name))
-        cell_type.setPlacementStrategy(self.placement_strategies[placementName])
-
-    def finalizeConnection(self, connection, section):
-        if not hasattr(connection, 'cellfrom'):
-            raise Exception("Required attribute 'CellFrom' missing in {}".format(connection.name))
-        if not hasattr(connection, 'cellto'):
-            raise Exception("Required attribute 'CellTo' missing in {}".format(connection.name))
-        if not connection.cellfrom in self.cell_types:
-            raise Exception("Unknown CellFrom '{}' in {}".format(connection.cellfrom, connection.name))
-        if not connection.cellto in self.cell_types:
-            raise Exception("Unknown CellTo '{}' in {}".format(connection.cellto, connection.name))
-        connection.__dict__['from_celltype'] = self.cell_types[connection.cellfrom]
-        connection.__dict__['to_celltype'] = self.cell_types[connection.cellto]
-
-    def finalizePlacement(self, placement, section):
-        pass
-
-    def initSections(self):
-        '''
-            Initialize the special sections of the configuration file.
-            Special sections: 'General'
-        '''
-        special = ['General']
-        # An array of keys to extract from the General section.
-        general_keys = [
-            {'key': 'X', 'type': 'micrometer'},
-            {'key': 'Z', 'type': 'micrometer'}
-        ]
-        # Copy all general_keys from the General section to the config object.
-        if 'General' in self._sections:
-            for key in general_keys:
-                copyIniKey(self, self._config['General'], key)
-
-        # Filter out all special sections
-        self._sections = list(filter(lambda x: not x in special, self._sections))
-
-    def loadConfigClass(self, name, section, parentClass, excludedKeys = ['Type', 'Class']):
-        if not 'class' in section:
-            raise Exception('Required attribute Class missing in {} section.'.format(name))
-        classParts = section['class'].split('.')
+    def load_configurable_class(self, name, configured_class_name, parent_class):
+        classParts = configured_class_name.split('.')
         className = classParts[-1]
         moduleName = '.'.join(classParts[:-1])
-        moduleRef = __import__(moduleName, globals(), locals(), [className], 0)
-        classRef = moduleRef.__dict__[className]
-        if not issubclass(classRef, parentClass):
-            raise Exception("Class '{}.{}' must derive from {}.{}".format(
+        module_ref = __import__(moduleName, globals(), locals(), [className], 0)
+        if not className in module_ref.__dict__:
+            raise ConfigurableClassNotFoundException('Class not found:' + configured_class_name)
+        class_ref = module_ref.__dict__[className]
+        if not issubclass(class_ref, parent_class):
+            raise Exception("Configurable class '{}.{}' must derive from {}.{}".format(
                 moduleName,
                 className,
-                parentClass.__module__,
-                parentClass.__qualname__,
+                parent_class.__module__,
+                parent_class.__qualname__,
             ))
-        instance = classRef()
-        for key in section:
-            if not key in excludedKeys:
-                copyIniKey(instance, section, {'key': key, 'type': 'string'})
+        instance = class_ref()
         instance.__dict__['name'] = name
         return instance
 
+    def fill_configurable_class(self, obj, conf, excluded=[]):
+        for name, prop in conf.items():
+            if not name in excluded:
+                obj.__dict__[name] = prop
 
 class JSONConfig(ScaffoldConfig):
     '''
@@ -463,9 +187,9 @@ class JSONConfig(ScaffoldConfig):
 
     def __init__(self, file=None, stream=None, verbosity=0):
         '''
-            Initialize IniConfig from .ini file.
+            Initialize config from .json file.
 
-            :param file: Path of the configuration .ini file.
+            :param file: Path of the configuration .json file.
             :type file: string
             :param stream: INI formatted string representing the configuration file.
             :type file: string
@@ -473,7 +197,8 @@ class JSONConfig(ScaffoldConfig):
             :type file: int
         '''
         import json
-        # Set _extension to indicate we expect a .json file.
+        # Set flags to indicate we expect a json configuration.
+        self._type = 'json'
         self._extension = ".json"
         # Initialize base config class, handling the reading of file/stream to string
         ScaffoldConfig.__init__(self, file, stream, verbosity)
@@ -484,11 +209,13 @@ class JSONConfig(ScaffoldConfig):
             raise Exception("Error while loading JSON configuration: {}".format(e))
 
         self.load_general(parsed_config)
-        self.load_layers(parsed_config)
+        self._layer_stacks = {}
+        self.load_attr(config=parsed_config, attr='layers', init=self.iniLayer, final=self.finalizeLayers, single=True)
+        self.load_attr(config=parsed_config, attr='cell_types', init=self.iniCellType, final=self.finalizeCellType)
 
         exit()
 
-    def load_general(config):
+    def load_general(self, config):
         '''
             Load the general segment in a JSON configuration file.
         '''
@@ -502,24 +229,24 @@ class JSONConfig(ScaffoldConfig):
         self.X = float(netw_config['simulation_volume_x'])
         self.Z = float(netw_config['simulation_volume_z'])
 
-    def load_layers(config):
+    def load_attr(self, config, attr, init, final, single=False):
         '''
-            Load the layers segment in a JSON configuration file.
+            Load an attribute of a config node containing a group of definitions .
         '''
-        if not 'layers' in config:
-            raise Exception("Missing 'layers' attribute in configuration.")
-        self._layer_stacks = {}
-        for layer_name, layer_config in config['layers'].items():
-            self.iniLayer(layer_name, layer_config)
-        self.finalizeLayers()
+        if not attr in config:
+            raise Exception("Missing '{}' attribute in configuration.".format(attr))
+        for def_name, def_config in config[attr].items():
+            init(def_name, def_config)
+        if single:
+            final()
+        else:
+            for def_name, def_config in config[attr].items():
+                final(def_name, def_config)
 
-    def load_cell_types(config):
+    def load_connection_types(self, config):
         pass
 
-    def load_connection_types(config):
-        pass
-
-    def load_simulations(config):
+    def load_simulations(self, config):
         pass
 
     def iniCellType(self, name, section):
@@ -533,23 +260,16 @@ class JSONConfig(ScaffoldConfig):
             :rtype: CellType
         '''
         cell_type = CellType(name)
-        # Radius
-        if not 'radius' in section:
-            raise Exception('Required attribute Radius missing in {} section.'.format(name))
-        cell_type.radius = float(section['radius'])
-        # Density
-        if not 'density' in section and not 'planardensity' in section and (not 'ratio' in section or not 'ratioto' in section):
-            raise Exception('Either Density, PlanarDensity or Ratio and RatioTo attributes missing in {} section.'.format(name))
-        if 'density' in section:
-            cell_type.density = float(section['density'])
-        elif 'planardensity' in section:
-            cell_type.planarDensity = float(section['planardensity'])
-        else:
-            cell_type.ratio = float(section['ratio'])
-            cell_type.ratioTo = section['ratioTo']
+        node_name = 'cell_types.{}'.format(name)
+
+        # Placement configuration
+        placement_kwargs = {}
+        # Get the placement configuration node
+        placement = assert_attr(section, 'placement', node_name)
+        # Get the initialized placement strategy from the configuration node
+        cell_type.placement = self.iniPlacement(placement, name)
         # Color
-        if 'color' in section:
-            cell_type.color = section['color']
+        cell_type.color = if_attr(section, 'color', '#000000')
         # Register cell type
         self.addCellType(cell_type)
         return cell_type
@@ -653,15 +373,37 @@ class JSONConfig(ScaffoldConfig):
         connectionInstance = self.loadConfigClass(name, section, ConnectionStrategy)
         self.addConnection(connectionInstance)
 
-    def iniPlacement(self, name, section):
+    def iniPlacement(self, section, cell_type_name):
         '''
             Initialize a PlacementStrategy-subclass from the configuration. Uses __import__
             to fetch placement class, then copies all keys as is from config section to instance
             and adds it to the PlacementStrategies dictionary.
         '''
-        # Keys to exclude from copying to the geometry instance
-        placementInstance = self.loadConfigClass(name, section, PlacementStrategy)
-        self.addPlacementStrategy(placementInstance)
+        name = cell_type_name + '_placement'
+        node_name = 'cell_types.{}.placement'.format(cell_type_name)
+        placement_class = assert_attr(section, 'class', node_name)
+        try:
+            placement = self.load_configurable_class(name, placement_class, PlacementStrategy)
+        except ConfigurableClassNotFoundException as e:
+            raise Exception("Couldn't find class '{}' specified in '{}'".format(placement_class, node_name))
+        # Radius of the cell soma
+        placement.radius = assert_attr_float(section, 'soma_radius', node_name)
+        # Density configurations all rely on a float or a float and relation
+        density_attr, density_value = assert_strictly_one(section, ['density', 'planar_density', 'placement_count_ratio', 'density_ratio'], node_name)
+        density_value = assert_float(density_value, '{}.{}'.format(node_name, density_attr))
+        placement.__dict__[density_attr] = density_value
+        # Does this density configuration rely on a relation to another celltype?
+        ratio_attrs = ['placement_count_ratio', 'density_ratio']
+        if density_attr in ratio_attrs:
+            relation = assert_attr(section, 'placement_relative_to', node_name)
+            placement.placement_relative_to = relation
+
+        # Copy other information to be validated by the placement class
+        self.fill_configurable_class(placement, section, excluded=['class', 'soma_radius', 'density', 'planar_density', 'placement_count_ratio', 'density_ratio'])
+        # Register the configured placement class
+        self.add_placement_strategy(placement)
+        print(placement.radius)
+        return placement
 
 
     def finalizeGeometry(self, geometry, section):
@@ -683,28 +425,28 @@ class JSONConfig(ScaffoldConfig):
         '''
             Adds configured morphology and placement strategy to the cell type configuration.
         '''
-
-        # Morphology type
-        if not 'morphologytype' in section:
-            raise Exception('Required attribute MorphologyType missing in {} section.'.format(cell_type.name))
-        morphoType = section['morphologytype']
-        # Construct geometrical/morphological cell type.
-        if morphoType == 'Geometry':
-            self.iniGeometricCell(cell_type, section)
-        elif morphoType == 'Morphology':
-            self.iniMorphologicCell(cell_type, section)
-        else:
-            raise Exception("Cell morphology type must be either 'Geometry' or 'Morphology'")
-        # Placement strategy
-        if not 'placementstrategy' in section:
-            raise Exception('Required attribute PlacementStrategy missing in {} section.'.format(cell_type.name))
-        placementName = section['placementstrategy']
-        if not placementName in self.placement_strategies:
-            raise Exception("Unknown placement strategy '{}' in {} section".format(placementName, cell_type.name))
-        if not cell_type.ratio is None:
-            if cell_type.ratioTo not in self.cell_types:
-                raise Exception("Ratio defined to unknown cell type '{}' in {}".format(cell_type.ratioTo, cell_type.name))
-        cell_type.setPlacementStrategy(self.placement_strategies[placementName])
+        pass
+        # # Morphology type
+        # if not 'morphologytype' in section:
+        #     raise Exception('Required attribute MorphologyType missing in {} section.'.format(cell_type.name))
+        # morphoType = section['morphologytype']
+        # # Construct geometrical/morphological cell type.
+        # if morphoType == 'Geometry':
+        #     self.iniGeometricCell(cell_type, section)
+        # elif morphoType == 'Morphology':
+        #     self.iniMorphologicCell(cell_type, section)
+        # else:
+        #     raise Exception("Cell morphology type must be either 'Geometry' or 'Morphology'")
+        # # Placement strategy
+        # if not 'placementstrategy' in section:
+        #     raise Exception('Required attribute PlacementStrategy missing in {} section.'.format(cell_type.name))
+        # placementName = section['placementstrategy']
+        # if not placementName in self.placement_strategies:
+        #     raise Exception("Unknown placement strategy '{}' in {} section".format(placementName, cell_type.name))
+        # if not cell_type.ratio is None:
+        #     if cell_type.ratioTo not in self.cell_types:
+        #         raise Exception("Ratio defined to unknown cell type '{}' in {}".format(cell_type.ratioTo, cell_type.name))
+        # cell_type.setPlacementStrategy(self.placement_strategies[placementName])
 
     def finalizeConnection(self, connection, section):
         if not hasattr(connection, 'cellfrom'):
@@ -740,24 +482,40 @@ class JSONConfig(ScaffoldConfig):
         # Filter out all special sections
         self._sections = list(filter(lambda x: not x in special, self._sections))
 
-    def loadConfigClass(self, name, section, parentClass, excludedKeys = ['Type', 'Class']):
-        if not 'class' in section:
-            raise Exception('Required attribute Class missing in {} section.'.format(name))
-        classParts = section['class'].split('.')
-        className = classParts[-1]
-        moduleName = '.'.join(classParts[:-1])
-        moduleRef = __import__(moduleName, globals(), locals(), [className], 0)
-        classRef = moduleRef.__dict__[className]
-        if not issubclass(classRef, parentClass):
-            raise Exception("Class '{}.{}' must derive from {}.{}".format(
-                moduleName,
-                className,
-                parentClass.__module__,
-                parentClass.__qualname__,
-            ))
-        instance = classRef()
-        for key in section:
-            if not key in excludedKeys:
-                copyIniKey(instance, section, {'key': key, 'type': 'string'})
-        instance.__dict__['name'] = name
-        return instance
+def assert_attr(section, attr, section_name):
+    if not attr in section:
+        raise Exception("Required attribute '{}' missing in '{}'".format(attr, section_name))
+    return section[attr]
+
+def if_attr(section, attr, default_value):
+    if not attr in section:
+        return default_value
+    return section[attr]
+
+def assert_strictly_one(section, attrs, section_name):
+    attr_list = []
+    for attr in attrs:
+        if attr in section:
+            attr_list.append(attr)
+    if len(attr_list) != 1:
+        msg = "{} found: ".format(len(attr_list)) + ", ".join(attr_list)
+        if len(attr_list) == 0:
+            msg = "None found."
+        raise Exception("Strictly one of the following attributes is expected in {}: {}. {}".format(section_name, ", ".join(attrs), msg))
+    else:
+        return attr_list[0], section[attr_list[0]]
+
+def assert_float(val, section_name):
+    try:
+        ret = float(val)
+    except ValueError as e:
+        raise Exception("Invalid float '{}' given for '{}'".format(val, section_name))
+    return ret
+
+def assert_attr_float(section, attr, section_name):
+    if not attr in section:
+        raise Exception("Required attribute '{}' missing in '{}'".format(attr, section_name))
+    return assert_float(section[attr], section_name)
+
+class ConfigurableClassNotFoundException(Exception):
+    pass

@@ -3,17 +3,10 @@ from .geometries import Geometry as BaseGeometry
 
 class CellType:
 
-    def __init__(self, name, density=0., radius=0., ratio=None, ratioTo=None, placement=None):
+    def __init__(self, name, placement=None):
         self.name = name
-        self.density = density
-        self.planarDensity = None
-        self.radius = radius
-        self.color = '#000000'
-        self.ratio = ratio
-        self.ratioTo = ratioTo
-        self.geometry = None
-        self.morphology = None
-        self.placement = None
+        # self.color = '#000000'
+        self.placement = placement
 
     def validate(self):
         '''

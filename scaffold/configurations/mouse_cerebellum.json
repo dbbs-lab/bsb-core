@@ -166,10 +166,10 @@
     },
     "dcn_cell": {
       "placement": {
-        "class": "scaffold.placement.DCNPlacement",
+        "class": "scaffold.placement.LayeredRandomWalk",
         "layer": "dcn_layer",
         "soma_radius": 10.0,
-        "placement_count_relative_to": "purkinje_cell",
+        "placement_relative_to": "purkinje_cell",
         "placement_count_ratio": 0.090909
       },
       "morphology": {

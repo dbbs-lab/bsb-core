@@ -11,6 +11,15 @@ from .functions import (
 )
 
 class PlacementStrategy(ConfigurableClass):
+	def __init__(self):
+		super().__init__()
+		self.radius = None
+		self.density = None
+		self.planar_density = None
+		self.placement_count_ratio = None
+		self.density_ratio = None
+		self.placement_relative_to = None
+
 	@abc.abstractmethod
 	def place(self, scaffold, cell_type):
 		pass

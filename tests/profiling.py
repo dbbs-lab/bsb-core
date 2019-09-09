@@ -5,9 +5,9 @@ from time import sleep
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 from scaffold import Scaffold
-from scaffold.config import IniConfig
+from scaffold.config import JSONConfig
 
-config = IniConfig('../test.ini')
+config = JSONConfig('../test.json')
 instance = Scaffold(config)
 for i in range(1,40):
     config.resize(100 + i * 20, 100 + i * 20)

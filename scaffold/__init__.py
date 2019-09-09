@@ -1,2 +1,2 @@
 from .scaffold import Scaffold
-from .config import IniConfig
+from .config import JSONConfig
