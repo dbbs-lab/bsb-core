@@ -268,9 +268,9 @@ class JSONConfig(ScaffoldConfig):
         # Get the morphology configuration node
         morphology = assert_attr(section, 'morphology', node_name)
         cell_type.morphology = self.init_morphology(morphology, name)
-        print(cell_type.name, cell_type.morphology, cell_type.morphology.name)
-        # Color
-        cell_type.color = if_attr(section, 'color', '#000000')
+        cell_type.plotting = type('Plotting', (object,), {'color': '#000000'})()
+        if 'plotting' in section:
+            cell_type.plotting.color = if_attr(section['plotting'], 'color', '#000000')
         # Register cell type
         self.addCellType(cell_type)
         return cell_type

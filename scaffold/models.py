@@ -5,7 +5,6 @@ class CellType:
 
     def __init__(self, name, placement=None):
         self.name = name
-        # self.color = '#000000'
         self.placement = placement
 
     def validate(self):

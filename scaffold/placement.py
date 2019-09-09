@@ -319,7 +319,7 @@ class ParallelArrayPlacement(PlacementStrategy):
 		# They are placed in straight lines, tilted by a certain angle by adding a shifting value.
 		xPositions = np.arange(start=0., stop=layer.width, step=extensionX)[:-1]
 		# Amount of parallel arrays of cells
-		nArrays = xPositions.shape[0]
+		nArrays = max(1, xPositions.shape[0])
 		# cells to distribute along the rows
 		cellsPerRow = round(N / nArrays)
 		# Calculate the position of the cells along the z-axis.
