@@ -57,6 +57,7 @@
       },
       "simulation": {
         "nest": {
+          "fixed_model": "parrot_neuron",
           "models" : {
             "eglif" : {
 
@@ -274,7 +275,7 @@
   },
   "simulations": {
     "alice1": {
-
+      "neuron_model": "iaf"
     }
   }
 }
