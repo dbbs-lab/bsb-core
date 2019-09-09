@@ -21,7 +21,6 @@ class SimulatorAdapter(ConfigurableClass):
 
 class NestAdapter(SimulatorAdapter):
     def prepare(self, hdf5, simulation_config):
-
         import nest
 
         scaffold = self.scaffold
@@ -29,16 +28,21 @@ class NestAdapter(SimulatorAdapter):
         self.create_neurons(simulation_config,configuration.cell_types)
         self.connect_neurons()
         self.stimulate_neurons()
-
-# Parrot neuron glomerulus to do with if!!!!!!!!!!!!!1
         return nest
 
     def create_neurons(self,simulation_config, neuron_types)
         default_model = self.scaffold.simulation_config.neuron_model
         for neuron_type in neuron_types.values():
-            nest.CopyModel(default_model, neuron_type.name)
-            nest.SetDefaults(neuron_type.name,cell_type.simulation.nest.models[default_model])
-            nest.Create(neuron_type.name,neuron_type.placement.number)
-    def connect_neurons(self,)
+            name = neuron_type.name
+            nest_model_name = default_model
+            if hasattr(neuron_type, "fixed_model"):
+                nest_model_name = neuron_type.fixed_model
+            nest.CopyModel(nest_model_name, name)
+            nest.SetDefaults(name, cell_type.simulation.nest.models[nest_model_name])
+            # nest.Create(neuron_type.name,neuron_type.placement.number)
 
-    def stimulate_neurons
+    def connect_neurons(self):
+        pass
+
+    def stimulate_neurons(self):
+        pass
