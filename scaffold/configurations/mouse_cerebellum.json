@@ -314,9 +314,10 @@
     }
   },
   "simulations": {
-    "alice1": {
+    "FCN_2019": {
       "simulator": "nest",
-      "neuron_model": "iaf"
+      "neuron_model": "eglif",
+      "synapse_model": "static_synapse"
     }
   }
 }
