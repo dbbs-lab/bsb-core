@@ -138,6 +138,8 @@ class Scaffold:
 
 	def save(self):
 		f = h5py.File('scaffold_new_test.hdf5', 'w')
+		f.attrs['configuration_type'] = self.configuration._type
+		f.attrs['configuration_string'] = self.configuration._raw
 		cell_type_names = self.configuration.cell_type_map
 		position_dset = f.create_dataset('positions', data=self.cells)
 		position_dset.attrs['types'] = cell_type_names
