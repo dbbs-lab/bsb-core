@@ -1,8 +1,5 @@
 __pycache__/
 *.pyc
-*.ini
-!mouse_cerebellum.ini
-!human_cerebellum.ini
 *.hdf5
 build/
 dist/

@@ -45,11 +45,11 @@ class ConnectomeGlomerulusGranule(TouchingConvergenceDivergence):
 
 	def connect(self):
 		# Gather information for the legacy code block below.
-		from_celltype = self.from_celltype
-		to_celltype = self.to_celltype
-		glomeruli = self.scaffold.cells_by_type[from_celltype.name]
-		granules = self.scaffold.cells_by_type[to_celltype.name]
-		dend_len = to_celltype.geometry.dendrite_length
+		from_cell_type = self.from_cell_types[0]
+		to_cell_type = self.to_cell_types[0]
+		glomeruli = self.scaffold.cells_by_type[from_cell_type.name]
+		granules = self.scaffold.cells_by_type[to_cell_type.name]
+		dend_len = to_cell_type.morphology.dendrite_length
 		n_conn_glom = self.convergence
 		first_glomerulus = int(glomeruli[0,0])
 
@@ -100,12 +100,12 @@ class ConnectomeGlomerulusGolgi(TouchingConvergenceDivergence):
 
 	def connect(self):
 		# Gather information for the legacy code block below.
-		glomerulus_celltype = self.from_celltype
-		golgi_celltype = self.to_celltype
-		glomeruli = self.scaffold.cells_by_type[glomerulus_celltype.name]
-		golgis = self.scaffold.cells_by_type[golgi_celltype.name]
+		glomerulus_cell_type = self.from_cell_types[0]
+		golgi_cell_type = self.to_cell_types[0]
+		glomeruli = self.scaffold.cells_by_type[glomerulus_cell_type.name]
+		golgis = self.scaffold.cells_by_type[golgi_cell_type.name]
 		first_glomerulus = int(glomeruli[0,0])
-		r_goc_vol = golgi_celltype.geometry.dendrite_radius
+		r_goc_vol = golgi_cell_type.morphology.dendrite_radius
 
 		def connectome_glom_goc(first_glomerulus, glomeruli, golgicells, r_goc_vol):
 			glom_bd = np.zeros((0,2))
@@ -140,17 +140,17 @@ class ConnectomeGolgiGlomerulus(TouchingConvergenceDivergence):
 
 	def connect(self):
 		# Gather information for the legacy code block below.
-		golgi_celltype = self.from_celltype
-		glomerulus_celltype = self.to_celltype
-		glomeruli = self.scaffold.cells_by_type[glomerulus_celltype.name]
-		golgis = self.scaffold.cells_by_type[golgi_celltype.name]
+		golgi_cell_type = self.from_cell_types[0]
+		glomerulus_cell_type = self.to_cell_types[0]
+		glomeruli = self.scaffold.cells_by_type[glomerulus_cell_type.name]
+		golgis = self.scaffold.cells_by_type[golgi_cell_type.name]
 		first_glomerulus = int(glomeruli[0,0])
-		GoCaxon_x = golgi_celltype.geometry.axon_x
-		GoCaxon_y = golgi_celltype.geometry.axon_y
-		GoCaxon_z = golgi_celltype.geometry.axon_z
-		r_glom = glomerulus_celltype.radius
+		GoCaxon_x = golgi_cell_type.morphology.axon_x
+		GoCaxon_y = golgi_cell_type.morphology.axon_y
+		GoCaxon_z = golgi_cell_type.morphology.axon_z
+		r_glom = glomerulus_cell_type.placement.radius
 		n_conn_goc = self.divergence
-		layer_thickness = self.scaffold.configuration.get_layer(name=golgi_celltype.placement.layer).thickness
+		layer_thickness = self.scaffold.configuration.get_layer(name=golgi_cell_type.placement.layer).thickness
 		# An arbitrarily large value that will be used to exclude cells from geometric constraints
 		oob = self.scaffold.configuration.X * 1000.
 		def connectome_goc_glom(first_glomerulus, glomeruli, golgicells, GoCaxon_x, GoCaxon_y, GoCaxon_z, r_glom, n_conn_goc, layer_thickness, oob):
@@ -217,17 +217,17 @@ class ConnectomeGranuleGolgi(ConnectionStrategy):
 
 	def connect(self):
 		# Gather information for the legacy code block below.
-		granule_celltype = self.from_celltype
-		golgi_celltype = self.to_celltype
-		granules = self.scaffold.cells_by_type[granule_celltype.name]
-		golgis = self.scaffold.cells_by_type[golgi_celltype.name]
+		granule_cell_type = self.from_cell_types[0]
+		golgi_cell_type = self.to_cell_types[0]
+		granules = self.scaffold.cells_by_type[granule_cell_type.name]
+		golgis = self.scaffold.cells_by_type[golgi_cell_type.name]
 		first_granule = int(granules[0, 0])
-		r_goc_vol = golgi_celltype.geometry.dendrite_radius
+		r_goc_vol = golgi_cell_type.morphology.dendrite_radius
 		oob = self.scaffold.configuration.X * 1000. # Any arbitrarily large value outside of simulation volume
 		n_connAA = self.aa_convergence
 		n_conn_pf = self.pf_convergence
 		tot_conn = n_connAA + n_conn_pf
-		pf_heights = get_parallel_fiber_heights(self.scaffold, granule_celltype.geometry, granules)
+		pf_heights = get_parallel_fiber_heights(self.scaffold, granule_cell_type.morphology, granules)
 		self.scaffold.append_dset('hpf', data=pf_heights)
 
 		def connectome_grc_goc(first_granule, granules, golgicells, r_goc_vol, OoB_value, n_connAA, n_conn_pf, tot_conn, scaffold):
@@ -308,9 +308,9 @@ class ConnectomeGolgiGranule(ConnectionStrategy):
 
 	def connect(self):
 		# Gather information for the legacy code block below.
-		glom_grc = self.scaffold.cell_connections_by_type['GlomerulusGranule']
-		goc_glom = self.scaffold.cell_connections_by_type['GolgiGlomerulus']
-		golgi_type = self.from_celltype
+		glom_grc = self.scaffold.cell_connections_by_type['glomerulus_to_granule']
+		goc_glom = self.scaffold.cell_connections_by_type['golgi_to_glomerulus']
+		golgi_type = self.from_cell_types[0]
 		golgis = self.scaffold.cells_by_type[golgi_type.name]
 
 		def connectome_goc_grc(golgis, glom_grc, goc_glom):
@@ -349,14 +349,14 @@ class ConnectomeAscAxonPurkinje(ConnectionStrategy):
 
 	def connect(self):
 		# Gather information for the legacy code block below.
-		granule_celltype = self.from_celltype
-		purkinje_celltype = self.to_celltype
-		granules = self.scaffold.cells_by_type[granule_celltype.name]
-		purkinjes = self.scaffold.cells_by_type[purkinje_celltype.name]
+		granule_cell_type = self.from_cell_types[0]
+		purkinje_cell_type = self.to_cell_types[0]
+		granules = self.scaffold.cells_by_type[granule_cell_type.name]
+		purkinjes = self.scaffold.cells_by_type[purkinje_cell_type.name]
 		first_granule = int(granules[0, 0])
 		OoB_value = self.scaffold.configuration.X * 1000. # Any arbitrarily large value outside of simulation volume
-		purkinje_extension_x = purkinje_celltype.placement.extension_x
-		purkinje_extension_z = purkinje_celltype.placement.extension_z
+		purkinje_extension_x = purkinje_cell_type.placement.extension_x
+		purkinje_extension_z = purkinje_cell_type.placement.extension_z
 
 		def connectome_aa_pc(first_granule, granules, purkinjes, x_pc, z_pc, OoB_value):
 			aa_pc = np.zeros((0, 2))
@@ -395,12 +395,12 @@ class ConnectomePFPurkinje(ConnectionStrategy):
 
 	def connect(self):
 		# Gather information for the legacy code block below.
-		granule_celltype = self.from_celltype
-		purkinje_celltype = self.to_celltype
-		granules = self.scaffold.cells_by_type[granule_celltype.name]
-		purkinjes = self.scaffold.cells_by_type[purkinje_celltype.name]
+		granule_cell_type = self.from_cell_types[0]
+		purkinje_cell_type = self.to_cell_types[0]
+		granules = self.scaffold.cells_by_type[granule_cell_type.name]
+		purkinjes = self.scaffold.cells_by_type[purkinje_cell_type.name]
 		first_granule = int(granules[0, 0])
-		purkinje_extension_x = purkinje_celltype.placement.extension_x
+		purkinje_extension_x = purkinje_cell_type.placement.extension_x
 
 		def connectome_pf_pc(first_granule, granules, purkinjes, x_pc):
 			pf_pc = np.zeros((0,2))
@@ -422,46 +422,9 @@ class ConnectomePFPurkinje(ConnectionStrategy):
 		result = connectome_pf_pc(first_granule, granules, purkinjes, purkinje_extension_x)
 		self.scaffold.connect_cells(self, result, "PFPurkinje")
 
-class ConnectomePFBasket(ConnectionStrategy):
+class ConnectomePFInterneuron(ConnectionStrategy):
 	'''
-		Legacy implementation for the connections between parallel fibers and purkinje cells.
-	'''
-
-	def validate(self):
-		pass
-
-	def connect(self):
-		# Gather information for the legacy code block below.
-		granule_celltype = self.from_celltype
-		basket_celltype = self.to_celltype
-		granules = self.scaffold.cells_by_type[granule_celltype.name]
-		baskets = self.scaffold.cells_by_type[basket_celltype.name]
-		first_granule = int(granules[0, 0])
-		dendrite_radius = basket_celltype.geometry.radius
-		pf_heights = self.scaffold.appends['hpf'][:, 1] + granules[:, 3] # Add granule Y to height of its pf
-
-		def connectome_pf_bc(first_granule, basketcells, granules, r_sb, h_pf):
-			pf_bc = np.zeros((0,2))
-
-			for i in basketcells:	# for each basket cell find all the parallel fibers that fall into the sphere with centre the cell soma and appropriate radius
-
-				# find all cells that satisfy the condition
-				bc_matrix = (((granules[:,2]-i[2])**2)+((h_pf-i[3])**2)-(r_sb**2)).__le__(0)
-				good_pf = np.where(bc_matrix)[0]	# indexes of basket cells that can potentially be connected
-
-				matrix = np.zeros((len(good_pf), 2))
-				matrix[:,1] = i[0]
-				matrix[:,0] = good_pf + first_granule
-				pf_bc = np.vstack((pf_bc, matrix))
-
-			return pf_bc
-
-		result = connectome_pf_bc(first_granule, baskets, granules, dendrite_radius, pf_heights)
-		self.scaffold.connect_cells(self, result)
-
-class ConnectomePFStellate(ConnectionStrategy):
-	'''
-		Legacy implementation for the connections between parallel fibers and purkinje cells.
+		Legacy implementation for the connections between parallel fibers and a molecular layer interneuron cell_type.
 	'''
 
 	def validate(self):
@@ -469,31 +432,31 @@ class ConnectomePFStellate(ConnectionStrategy):
 
 	def connect(self):
 		# Gather information for the legacy code block below.
-		granule_celltype = self.from_celltype
-		stellate_celltype = self.to_celltype
-		granules = self.scaffold.cells_by_type[granule_celltype.name]
-		stellates = self.scaffold.cells_by_type[stellate_celltype.name]
+		granule_cell_type = self.from_cell_types[0]
+		interneuron_cell_type = self.to_cell_types[0]
+		granules = self.scaffold.cells_by_type[granule_cell_type.name]
+		interneurons = self.scaffold.cells_by_type[interneuron_cell_type.name]
 		first_granule = int(granules[0, 0])
-		dendrite_radius = stellate_celltype.geometry.radius
+		dendrite_radius = interneuron_cell_type.morphology.dendrite_radius
 		pf_heights = self.scaffold.appends['hpf'][:, 1] + granules[:, 3] # Add granule Y to height of its pf
 
-		def connectome_pf_sc(first_granule, stellates, granules, r_sb, h_pf):
-			pf_sc = np.zeros((0,2))
+		def connectome_pf_inter(first_granule, interneurons, granules, r_sb, h_pf):
+			pf_interneuron = np.zeros((0,2))
 
-			for i in stellates:	# for each stellate cell find all the parallel fibers that fall into the sphere with centre the cell soma and appropriate radius
+			for i in interneurons:	# for each interneuron find all the parallel fibers that fall into the sphere with centre the cell soma and appropriate radius
 
 				# find all cells that satisfy the condition
-				sc_matrix = (((granules[:,2]-i[2])**2)+((h_pf-i[3])**2)-(r_sb**2)).__le__(0)
-				good_pf = np.where(sc_matrix)[0]	# indexes of stellate cells that can potentially be connected
+				interneuron_matrix = (((granules[:,2]-i[2])**2)+((h_pf-i[3])**2)-(r_sb**2)).__le__(0)
+				good_pf = np.where(interneuron_matrix)[0]	# indexes of interneurons that can potentially be connected
 
 				matrix = np.zeros((len(good_pf), 2))
 				matrix[:,1] = i[0]
 				matrix[:,0] = good_pf + first_granule
-				pf_sc = np.vstack((pf_sc, matrix))
+				pf_interneuron = np.vstack((pf_interneuron, matrix))
 
-			return pf_sc
+			return pf_interneuron
 
-		result = connectome_pf_sc(first_granule, stellates, granules, dendrite_radius, pf_heights)
+		result = connectome_pf_inter(first_granule, interneurons, granules, dendrite_radius, pf_heights)
 		self.scaffold.connect_cells(self, result)
 
 class ConnectomeBCSCPurkinje(ConnectionStrategy):
@@ -515,12 +478,12 @@ class ConnectomeBCSCPurkinje(ConnectionStrategy):
 
 	def connect(self):
 		# Gather information for the legacy code block below.
-		stellate_celltype = self.from_celltype
-		basket_celltype = self.scaffold.configuration.cell_types["Basket Cell"]
-		purkinje_celltype = self.to_celltype
-		stellates = self.scaffold.cells_by_type[stellate_celltype.name]
-		purkinjes = self.scaffold.cells_by_type[purkinje_celltype.name]
-		baskets = self.scaffold.cells_by_type[basket_celltype.name]
+		basket_cell_type = self.from_cell_types[0]
+		stellate_cell_type = self.from_cell_types[1]
+		purkinje_cell_type = self.to_cell_types[0]
+		stellates = self.scaffold.cells_by_type[stellate_cell_type.name]
+		purkinjes = self.scaffold.cells_by_type[purkinje_cell_type.name]
+		baskets = self.scaffold.cells_by_type[basket_cell_type.name]
 		first_stellate = int(stellates[0, 0])
 		first_basket = int(baskets[0, 0])
 		distx = self.limit_x
@@ -609,8 +572,8 @@ class ConnectomeGapJunctions(ConnectionStrategy):
 
 	def connect(self):
 		# Gather information for the legacy code block below.
-		from_celltype = self.from_celltype
-		from_cells = self.scaffold.cells_by_type[from_celltype.name]
+		from_cell_type = self.from_cell_types[0]
+		from_cells = self.scaffold.cells_by_type[from_cell_type.name]
 		first_cell = int(from_cells[0, 0])
 		limit_xy = self.limit_xy
 		limit_z = self.limit_z
@@ -660,13 +623,13 @@ class ConnectomeGapJunctionsGolgi(ConnectionStrategy):
 
 	def connect(self):
 		# Gather information for the legacy code block below.
-		golgi_celltype = self.from_celltype
-		golgis = self.scaffold.cells_by_type[golgi_celltype.name]
+		golgi_cell_type = self.from_cell_types[0]
+		golgis = self.scaffold.cells_by_type[golgi_cell_type.name]
 		first_golgi = int(golgis[0, 0])
-		r_goc_vol = golgi_celltype.geometry.dendrite_radius
-		GoCaxon_x = golgi_celltype.geometry.axon_x
-		GoCaxon_y = golgi_celltype.geometry.axon_y
-		GoCaxon_z = golgi_celltype.geometry.axon_z
+		r_goc_vol = golgi_cell_type.morphology.dendrite_radius
+		GoCaxon_x = golgi_cell_type.morphology.axon_x
+		GoCaxon_y = golgi_cell_type.morphology.axon_y
+		GoCaxon_z = golgi_cell_type.morphology.axon_z
 
 		def connectome_gj_goc(r_goc_vol, GoCaxon_x, GoCaxon_y, GoCaxon_z, golgicells, first_golgi):
 			gj_goc = np.zeros((golgis.shape[0] ** 2,2))
@@ -713,12 +676,12 @@ class ConnectomePurkinjeDCN(ConnectionStrategy):
 
 	def connect(self):
 		# Gather information for the legacy code block below.
-		purkinje_celltype = self.from_celltype
-		dcn_celltype = self.to_celltype
-		purkinjes = self.scaffold.cells_by_type[purkinje_celltype.name]
-		dcn_cells = self.scaffold.cells_by_type[dcn_celltype.name]
+		purkinje_cell_type = self.from_cell_types[0]
+		dcn_cell_type = self.to_cell_types[0]
+		purkinjes = self.scaffold.cells_by_type[purkinje_cell_type.name]
+		dcn_cells = self.scaffold.cells_by_type[dcn_cell_type.name]
 		dcn_angles = get_dcn_rotations(dcn_cells)
-		self.scaffold.append_dset("DCNangle", data=dcn_angles)
+		self.scaffold.append_dset("dcn_angle", data=dcn_angles)
 		if len(dcn_cells) == 0:
 			return
 		first_dcn = int(dcn_cells[0,0])
@@ -784,10 +747,10 @@ class ConnectomeGlomDCN(TouchingConvergenceDivergence):
 
 	def connect(self):
 		# Gather information for the legacy code block below.
-		glomerulus_celltype = self.from_celltype
-		dcn_celltype = self.to_celltype
-		glomeruli = self.scaffold.cells_by_type[glomerulus_celltype.name]
-		dcn_cells = self.scaffold.cells_by_type[dcn_celltype.name]
+		glomerulus_cell_type = self.from_cell_types[0]
+		dcn_cell_type = self.to_cell_types[0]
+		glomeruli = self.scaffold.cells_by_type[glomerulus_cell_type.name]
+		dcn_cells = self.scaffold.cells_by_type[dcn_cell_type.name]
 		first_glomerulus = int(glomeruli[0, 0])
 		convergence = self.convergence
 

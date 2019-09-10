@@ -8,7 +8,6 @@ import configparser
 import builtins
 import argparse
 import scaffold
-from scaffold.config import ScaffoldIniConfig
 from scaffold.scaffold import Scaffold
 
 ##
@@ -21,9 +20,16 @@ from scaffold.scaffold import Scaffold
 parser = argparse.ArgumentParser()
 
 parser.add_argument("-c", "--config",
-	help="Specify the path of the configuration .ini file.",
-	default="{}/configurations/mouse_cerebellum.ini".format(scaffold.__path__[0])
+	help="Specify the path of the configuration file.",
+	default="{}/configurations/mouse_cerebellum.json".format(scaffold.__path__[0])
 )
+
+parser.add_argument("-ct", "--ctype",
+	help="Specify the type of the configuration file.",
+	default="json".format(scaffold.__path__[0]),
+	choices=["json"]
+)
+
 parser.add_argument("-v", "--verbose",
 	help="Specify the verbosity of the console output",
 	action="count",
@@ -45,14 +51,12 @@ parser_run.add_argument('simulator', action='store', help='Simulator backend.', 
 
 cl_args = parser.parse_args()
 
-# Load the .ini configuration
-scaffoldConfig = ScaffoldIniConfig(cl_args.config)
-scaffoldConfig.verbosity = cl_args.verbose
+if cl_args.ctype == 'json':
+	# Load the .json configuration
+	scaffoldConfig = scaffold.config.JSONConfig(cl_args.config, verbosity=cl_args.verbose)
 
 # Create the scaffold instance
 scaffoldInstance = Scaffold(scaffoldConfig)
-# Make the scaffoldInstance available in all modules. (Monkey patch during rework)
-builtins.scaffoldInstance = scaffoldInstance
 
 if cl_args.task == 'compile':
 	scaffoldInstance.compileNetworkArchitecture()

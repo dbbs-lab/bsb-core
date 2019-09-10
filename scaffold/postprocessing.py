@@ -6,7 +6,7 @@ def get_parallel_fiber_heights(scaffold, granule_geometry, granules):
     parallel_fibers = np.zeros((len(granules),2))
     pf_height = granule_geometry.pf_height
     pf_height_sd = granule_geometry.pf_height_sd
-    molecular_layer = scaffold.configuration.get_layer(name='Molecular Layer')
+    molecular_layer = scaffold.configuration.get_layer(name='molecular_layer')
     floor_ml = molecular_layer.Y
     roof_ml = floor_ml + molecular_layer.height # Roof of the molecular layer
 

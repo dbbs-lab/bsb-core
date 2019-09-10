@@ -11,6 +11,16 @@ from .functions import (
 )
 
 class PlacementStrategy(ConfigurableClass):
+	def __init__(self):
+		super().__init__()
+		self.layer = None
+		self.radius = None
+		self.density = None
+		self.planar_density = None
+		self.placement_count_ratio = None
+		self.density_ratio = None
+		self.placement_relative_to = None
+
 	@abc.abstractmethod
 	def place(self, scaffold, cell_type):
 		pass
@@ -24,18 +34,28 @@ class PlacementStrategy(ConfigurableClass):
 		scaffold = self.scaffold
 		layer = self.layer_instance
 		available_volume = layer.available_volume
-		if not cell_type.ratio is None:
+		placement = cell_type.placement
+		if not placement.placement_count_ratio is None:
 			# Get the placement count of the ratio cell type and multiply their count by the ratio.
-			ratioCellType = scaffold.configuration.cell_types[cell_type.ratioTo]
-			return int(ratioCellType.placement.get_placement_count(ratioCellType) * cell_type.ratio)
-		if not cell_type.planarDensity is None:
+			ratioCellType = scaffold.configuration.cell_types[placement.placement_relative_to]
+			return int(ratioCellType.placement.get_placement_count(ratioCellType) * placement.placement_count_ratio)
+		if not placement.density_ratio is None:
+			# Get the density of the ratio cell type and multiply it by the ratio.
+			ratioCellType = scaffold.configuration.cell_types[placement.placement_relative_to]
+			relation = ratioCellType.placement
+			ratio = placement.placement_count_ratio
+			n1 = relation.get_placement_count(ratioCellType)
+			V1 = relation.layer_instance.volume
+			V2 = layer.volume
+			return int(n1 * ratio * V2 / V1)
+		if not placement.planar_density is None:
 			# Calculate the planar density
-			return int(layer.width * layer.depth * cell_type.planarDensity)
+			return int(layer.width * layer.depth * placement.planar_density)
 		if hasattr(self, 'restriction_factor'):
 			# Add a restriction factor to the available volume
-			return int(available_volume * self.restriction_factor * cell_type.density)
+			return int(available_volume * self.restriction_factor * placement.density)
 		# Default: calculate N = V * C
-		return int(available_volume * cell_type.density)
+		return int(available_volume * placement.density)
 
 class LayeredRandomWalk(PlacementStrategy):
 	'''
@@ -56,21 +76,20 @@ class LayeredRandomWalk(PlacementStrategy):
 		# Check if the layer is given and exists.
 		config = self.scaffold.configuration
 		if not hasattr(self, 'layer'):
-			raise Exception("Required attribute Layer missing from {}".format(self.name))
+			raise Exception("Required attribute 'layer' missing from {}".format(self.name))
 		if not self.layer in config.layers:
 			raise Exception("Unknown layer '{}' in {}".format(self.layer, self.name))
 		self.layer_instance = self.scaffold.configuration.layers[self.layer]
 		try:
-			if hasattr(self, 'y_restrict'):
-				minmax = self.y_restrict.split(',')
-				self.restriction_minimum = float(minmax[0])
-				self.restriction_maximum = float(minmax[1])
+			if hasattr(self, 'y_restriction'):
+				self.restriction_minimum = float(self.y_restriction[0])
+				self.restriction_maximum = float(self.y_restriction[1])
 			else:
 				self.restriction_minimum = 0.
 				self.restriction_maximum = 1.
 			self.restriction_factor = self.restriction_maximum - self.restriction_minimum
 		except Exception as e:
-			raise Exception("Could not parse Y_Restrict attribute '{}' of {}".format(self.y_restrict, self.layer))
+			raise Exception("Invalid y_restriction attribute '{}' of {}".format(self.y_restriction, self.layer))
 
 	def place(self, cell_type):
 		'''
@@ -99,7 +118,7 @@ class LayeredRandomWalk(PlacementStrategy):
 			layer_thickness,
 			layer.dimensions[2]
 		])
-		cell_radius = cell_type.radius
+		cell_radius = cell_type.placement.radius
 		cell_bounds = np.column_stack((
 			restricted_origin + cell_radius,
 			restricted_origin + restricted_dimensions - cell_radius
@@ -133,12 +152,12 @@ class LayeredRandomWalk(PlacementStrategy):
 		layer_cell_positions = np.empty((0, 3))
 		previously_placed_cells = scaffold.cells_by_layer[layer.name][:,[2,3,4]]
 		previously_placed_types = np.array(scaffold.cells_by_layer[layer.name][:,1], dtype=int)
-		other_celltype_radii = np.array(list(map(lambda type: scaffold.configuration.cell_types[type].radius, scaffold.configuration.cell_type_map)))
+		other_cell_type_radii = np.array(list(map(lambda type: scaffold.configuration.cell_types[type].placement.radius, scaffold.configuration.cell_type_map)))
 		if len(previously_placed_cells) > 0:
-			previously_placed_min_dist = other_celltype_radii[previously_placed_types] + cell_radius
+			previously_placed_min_dist = other_cell_type_radii[previously_placed_types] + cell_radius
 		else:
 			previously_placed_min_dist = np.empty((0))
-		other_celltype_count = previously_placed_min_dist.shape[0]
+		other_cell_type_count = previously_placed_min_dist.shape[0]
 
 		for sublayer_id in np.arange(n_sublayers):
 			if cells_per_sublayer == 0:
@@ -188,7 +207,7 @@ class LayeredRandomWalk(PlacementStrategy):
 				planar_candidates = planar_candidates[good_indices]
 				full_coords = full_coords[good_indices]
 				layer_distances = distance.cdist(full_coords, previously_placed_cells)
-				good_indices = list(np.where(np.sum(layer_distances > previously_placed_min_dist, axis=1) == other_celltype_count)[0])
+				good_indices = list(np.where(np.sum(layer_distances > previously_placed_min_dist, axis=1) == other_cell_type_count)[0])
 				if len(good_indices) == 0:
 					max_attempts = len(good_points_store)
 					for attempt in range(max_attempts):
@@ -202,7 +221,7 @@ class LayeredRandomWalk(PlacementStrategy):
 						planar_candidates = planar_candidates[good_indices]
 						full_coords = full_coords[good_indices]
 						layer_distances = distance.cdist(full_coords, previously_placed_cells)
-						good_indices = list(np.where(np.sum(layer_distances > previously_placed_min_dist, axis=1) == other_celltype_count)[0])
+						good_indices = list(np.where(np.sum(layer_distances > previously_placed_min_dist, axis=1) == other_cell_type_count)[0])
 						if len(good_indices) > 0:
 							random_index = random.sample(good_indices, 1)[0]
 							candidate = full_coords[random_index]
@@ -287,7 +306,7 @@ class ParallelArrayPlacement(PlacementStrategy):
 			Cell placement: Create a lattice of parallel arrays/lines in the layer's surface.
 		'''
 		layer = self.layer_instance
-		radius = cell_type.radius
+		radius = cell_type.placement.radius
 		diameter = 2 * radius
 		# Extension of a single array in the X dimension
 		extensionX = self.extension_x
@@ -300,7 +319,7 @@ class ParallelArrayPlacement(PlacementStrategy):
 		# They are placed in straight lines, tilted by a certain angle by adding a shifting value.
 		xPositions = np.arange(start=0., stop=layer.width, step=extensionX)[:-1]
 		# Amount of parallel arrays of cells
-		nArrays = xPositions.shape[0]
+		nArrays = max(1, xPositions.shape[0])
 		# cells to distribute along the rows
 		cellsPerRow = round(N / nArrays)
 		# Calculate the position of the cells along the z-axis.
