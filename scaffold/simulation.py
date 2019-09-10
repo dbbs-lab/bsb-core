@@ -20,6 +20,16 @@ class SimulatorAdapter(ConfigurableClass):
         pass
 
 class NestAdapter(SimulatorAdapter):
+	'''
+		Interface between the scaffold model and the NEST simulator.
+	'''
+
+	defaults = {
+		'synapse_model': 'static_synapse'
+	}
+
+	required = ['neuron_model', 'synapse_model']
+
     def prepare(self, hdf5):
         import nest
 
