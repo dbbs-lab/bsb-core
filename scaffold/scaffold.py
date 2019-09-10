@@ -99,6 +99,7 @@ class Scaffold:
 		self.appends = {}
 
 	def place_cells(self, cell_type, layer, positions):
+		cell_count = positions.shape[0]
 		# Create an ID for each cell.
 		cell_ids = self.allocate_ids(positions.shape[0])
 		# Store cells as ID, typeID, X, Y, Z
@@ -122,6 +123,14 @@ class Scaffold:
 			self.cells,
 			cell_data
 		))
+
+		placement_dict = self.statistics.cells_placed
+		if not cell_type.name in placement_dict:
+			placement_dict[cell_type.name] = 0
+		placement_dict[cell_type.name] += cell_count
+		if not 'cells_placed' in cell_type.placement:
+			cell_type.placement.__dict__['cells_placed'] = 0
+		cells_placed.placement.cells_placed += cell_count
 
 	def allocate_ids(self, count):
 		IDs = np.array(range(self._nextId, self._nextId + count))

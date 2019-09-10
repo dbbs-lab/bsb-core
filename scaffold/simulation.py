@@ -34,7 +34,7 @@ class NestAdapter(SimulatorAdapter):
         import nest
 
         scaffold = self.scaffold
-        configuration = self.scaffold.configuration
+        configuration = scaffold.configuration
         self.create_neurons(configuration.cell_types)
         self.connect_neurons(configuration.connection_types, hdf5)
         self.stimulate_neurons()
@@ -46,7 +46,7 @@ class NestAdapter(SimulatorAdapter):
     def validate(self):
         pass
 
-    def create_neurons(neuron_types):
+    def create_neurons(self, neuron_types):
         default_model = self.neuron_model
         for neuron_type in neuron_types.values():
             name = neuron_type.name
@@ -55,7 +55,7 @@ class NestAdapter(SimulatorAdapter):
                 nest_model_name = neuron_type.fixed_model
             nest.CopyModel(nest_model_name, name)
             nest.SetDefaults(name, cell_type.simulation.nest.models[nest_model_name])
-            # nest.Create(neuron_type.name,neuron_type.placement.number)
+            nest.Create(neuron_type.name,neuron_type.placement.cells_placed)
 
     def connect_neurons(self, connection_types, hdf5):
         default_model = self.synapse_model       # default model will be static_synapse
