@@ -3,6 +3,7 @@ from .models import CellType, Layer
 from .morphologies import Morphology as BaseMorphology
 from .connectivity import ConnectionStrategy
 from .placement import PlacementStrategy
+from .output import OutputFormatter
 from .helpers import copyIniKey
 from .simulation import NestAdapter
 
@@ -211,6 +212,7 @@ class JSONConfig(ScaffoldConfig):
             raise Exception("Error while loading JSON configuration: {}".format(e))
 
         self.load_general(parsed_config)
+        self.load_output(parsed_config)
         self._layer_stacks = {}
         self.load_attr(config=parsed_config, attr='layers', init=self.init_layer, final=self.finalize_layers, single=True)
         self.load_attr(config=parsed_config, attr='cell_types', init=self.init_cell_type, final=self.finalize_cell_type)
@@ -229,6 +231,18 @@ class JSONConfig(ScaffoldConfig):
             raise Exception("Missing 'simulation_volume_x' attribute in 'network_architecture' configuration.")
         self.X = float(netw_config['simulation_volume_x'])
         self.Z = float(netw_config['simulation_volume_z'])
+
+    def load_output(self, config):
+        '''
+            Load the output segment in a JSON configuration file.
+        '''
+        if not 'output' in config:
+            raise Exception("Missing 'output' attribute in configuration.")
+        output_config = config['output']
+        if not 'format' in output_config:
+            raise Exception("Missing 'format' attribute in 'output' configuration.")
+        self.output_formatter = self.load_configurable_class('output_formatter', output_config['format'], OutputFormatter)
+        self.fill_configurable_class(self.output_formatter, output_config, excluded=['format'])
 
     def load_attr(self, config, attr, init, final, single=False):
         '''

@@ -3,6 +3,7 @@ import numpy as np
 from .helpers import ConfigurableClass
 
 class SimulatorAdapter(ConfigurableClass):
+
     @abc.abstractmethod
     def prepare(self, hdf5, simulation_config):
         '''
@@ -20,15 +21,16 @@ class SimulatorAdapter(ConfigurableClass):
         pass
 
 class NestAdapter(SimulatorAdapter):
-	'''
-		Interface between the scaffold model and the NEST simulator.
-	'''
+    '''
+        Interface between the scaffold model and the NEST simulator.
+    '''
 
-	defaults = {
-		'synapse_model': 'static_synapse'
-	}
+    defaults = {
+        'synapse_model': 'static_synapse',
+        'neuron_model': 'iaf'
+    }
 
-	required = ['neuron_model', 'synapse_model']
+    required = ['neuron_model', 'synapse_model']
 
     def prepare(self, hdf5):
         import nest

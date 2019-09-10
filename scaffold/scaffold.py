@@ -31,6 +31,7 @@ class Scaffold:
 		self._initialise_morphologies()
 		self._initialise_placement_strategies()
 		self._initialise_connection_types()
+		self._initialise_output_formatter()
 
 	def initialiseSimulators(self):
 		self.simulators = self.configuration.simulators
@@ -57,6 +58,10 @@ class Scaffold:
 	def _initialise_morphologies(self):
 		for geometry in self.configuration.morphologies.values():
 			geometry.initialise(self)
+
+	def _initialise_output_formatter(self):
+		self.output_formatter = self.configuration.output_formatter
+		self.output_formatter.initialise(self)
 
 	def compileNetworkArchitecture(self, tries=1):
 		times = np.zeros(tries)
@@ -128,9 +133,9 @@ class Scaffold:
 		if not cell_type.name in placement_dict:
 			placement_dict[cell_type.name] = 0
 		placement_dict[cell_type.name] += cell_count
-		if not 'cells_placed' in cell_type.placement:
+		if not hasattr(cell_type.placement, 'cells_placed'):
 			cell_type.placement.__dict__['cells_placed'] = 0
-		cells_placed.placement.cells_placed += cell_count
+		cell_type.placement.cells_placed += cell_count
 
 	def allocate_ids(self, count):
 		IDs = np.array(range(self._nextId, self._nextId + count))
@@ -151,25 +156,7 @@ class Scaffold:
 		self.appends[name] = data
 
 	def save(self):
-		f = h5py.File('scaffold_new_test.hdf5', 'w')
-		f.attrs['configuration_type'] = self.configuration._type
-		f.attrs['configuration_string'] = self.configuration._raw
-		cell_type_names = self.configuration.cell_type_map
-		position_dset = f.create_dataset('positions', data=self.cells)
-		position_dset.attrs['types'] = cell_type_names
-		f.create_group('connections')
-
-		for key, connectome_data in self.cell_connections_by_type.items():
-			dset = f['connections'].create_dataset(key, data=connectome_data)
-			dset.attrs['name'] = key
-			# Maybe from/to information can be stored here aswell.
-
-		# Append extra datasets specified internally or by user.
-		for key, data in self.appends.items():
-			dset = f.create_dataset(key, data=data)
-
-		f.create_dataset('connectome', data=self.cell_connections)
-		f.close()
+		self.output_formatter.save()
 
 	def get_adapter(self, adapter_name):
 		if not adapter_name in self.simulators:

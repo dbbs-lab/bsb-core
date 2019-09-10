@@ -254,7 +254,6 @@ class LayeredRandomWalk(PlacementStrategy):
 					last_position = new_position
 
 			layer_cell_positions = np.concatenate((layer_cell_positions, placed_positions))
-			scaffold.placement_stats[cell_type.name]['number_of_cells'].append(layer_cell_positions.shape[0])
 			if scaffold.configuration.verbosity > 2:
 				print( "{} sublayer number {} out of {} filled".format(cell_type.name, sublayer_id + 1, n_sublayers))
 

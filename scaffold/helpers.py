@@ -52,7 +52,7 @@ class ConfigurableClass(abc.ABC):
                 if hasDefault:
                     self.__dict__[attr] = defaultDict[attr]
                 elif isRequired:
-                    raise Exception("Required attribute '{}' missing from '{}' section.".format(attr, self.name))
+                    raise Exception("Required attribute '{}' missing from '{}' section.".format(attr, name))
             elif shouldCast:
                 cast = castingDict[attr]
                 try:
