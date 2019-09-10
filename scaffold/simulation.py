@@ -57,7 +57,7 @@ class NestAdapter(SimulatorAdapter):
                 nest_model_name = neuron_type.fixed_model
             nest.CopyModel(nest_model_name, name)
             nest.SetDefaults(name, cell_type.simulation.nest.models[nest_model_name])
-            nest.Create(neuron_type.name,neuron_type.placement.cells_placed)
+            nest.Create(neuron_type.name, neuron_type.placement.cells_placed)
 
     def connect_neurons(self, connection_types, hdf5):
         default_model = self.synapse_model       # default model will be static_synapse
