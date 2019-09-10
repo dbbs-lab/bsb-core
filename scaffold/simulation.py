@@ -20,13 +20,13 @@ class SimulatorAdapter(ConfigurableClass):
         pass
 
 class NestAdapter(SimulatorAdapter):
-    def prepare(self, hdf5, simulation_config):
+    def prepare(self, hdf5):
         import nest
 
         scaffold = self.scaffold
         configuration = self.scaffold.configuration
-        self.create_neurons(simulation_config,configuration.cell_types)
-        self.connect_neurons(simulation_config, configuration.connection_types)
+        self.create_neurons(configuration.cell_types)
+        self.connect_neurons(configuration.connection_types, hdf5)
         self.stimulate_neurons()
         return nest
 
@@ -36,8 +36,8 @@ class NestAdapter(SimulatorAdapter):
     def validate(self):
         pass
 
-    def create_neurons(self,simulation_config, neuron_types):
-        default_model = self.scaffold.simulation_config.neuron_model
+    def create_neurons(neuron_types):
+        default_model = self.neuron_model
         for neuron_type in neuron_types.values():
             name = neuron_type.name
             nest_model_name = default_model
@@ -47,16 +47,17 @@ class NestAdapter(SimulatorAdapter):
             nest.SetDefaults(name, cell_type.simulation.nest.models[nest_model_name])
             # nest.Create(neuron_type.name,neuron_type.placement.number)
 
-    def connect_neurons(self, simulation_config, connection_types):
-        default_model = self.scaffold.simulation_config.synapse_model       # default model will be static_synapse
+    def connect_neurons(self, connection_types, hdf5):
+        default_model = self.synapse_model       # default model will be static_synapse
         for connection_type in connection_types.values():
-            pre = connection_type.matrix[:,0]          # The connectivity matrix can be in the configuration file? Maybe better in the simulation configuration file?
-            post = connection_type.matrix[:,1]
-            syn_spec = connection_type.conn_parameters  # Dictionary with delay and weight
-            conn_dict = {'rule': 'one_to_one'}
-            nest.Connect(pre,post, conn_dict, syn_spec)
-        
-        
+            connectivity_matrix = hdf5['connections'][connection_type.name]
+            presynaptic_cells = connectivity_matrix[:,0]
+            postsynaptic_cells = connectivity_matrix[:,1]
+            synaptic_parameters = connection_type.simulation.nest.models[default_model]  # Dictionary with delay and weight
+            connection_parameters = {'rule': 'one_to_one'}
+            nest.Connect(presynaptic_cells, postsynaptic_cells, connection_parameters, synaptic_parameters)
+
+
 
     def stimulate_neurons(self):
         pass

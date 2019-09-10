@@ -297,7 +297,17 @@
       "class": "scaffold.connectivity.ConnectomePurkinjeDCN",
       "from_cell_types": [{"type": "purkinje_cell", "compartments": ["axon"]}],
       "to_cell_types": [{"type": "dcn_cell", "compartments": ["dendrites"]}],
-      "divergence": 5
+      "divergence": 5,
+      "simulation": {
+        "nest": {
+          "models": {
+            "static_synapse": {
+              "weight": 0.5,
+              "delay": 40.0
+            }
+          }
+        }
+      }
     }
   },
   "simulations": {
