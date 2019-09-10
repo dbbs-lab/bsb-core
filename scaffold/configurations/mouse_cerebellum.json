@@ -216,87 +216,87 @@
   "connection_types": {
     "golgi_to_glomerulus": {
       "class": "scaffold.connectivity.ConnectomeGolgiGlomerulus",
-      "from_celltypes": [{"type": "golgi_cell", "compartment": "axon"}],
-      "to_celltypes": [{"type": "glomerulus", "compartment": "soma"}],
+      "from_cell_types": [{"type": "golgi_cell", "compartment": "axon"}],
+      "to_cell_types": [{"type": "glomerulus", "compartment": "soma"}],
       "divergence": 40,
       "convergence": 4
     },
     "glomerulus_to_granule": {
       "class": "scaffold.connectivity.ConnectomeGlomerulusGranule",
-      "from_celltypes": [{"type": "glomerulus", "compartments": ["soma"]}],
-      "to_celltypes": [{"type": "granule_cell", "compartments": ["dendrites"]}],
+      "from_cell_types": [{"type": "glomerulus", "compartments": ["soma"]}],
+      "to_cell_types": [{"type": "granule_cell", "compartments": ["dendrites"]}],
       "divergence": 50,
       "convergence": 4
     },
     "granule_to_golgi": {
       "class": "scaffold.connectivity.ConnectomeGranuleGolgi",
-      "from_celltypes": [{"type": "granule_cell", "compartments": ["parallel_fiber", "ascending_axon"]}],
-      "to_celltypes": [{"type": "golgi_cell", "compartments": ["dendrites"]}],
+      "from_cell_types": [{"type": "granule_cell", "compartments": ["parallel_fiber", "ascending_axon"]}],
+      "to_cell_types": [{"type": "golgi_cell", "compartments": ["dendrites"]}],
       "aa_convergence": 400,
       "pf_convergence": 1200
     },
     "golgi_to_granule": {
       "class": "scaffold.connectivity.ConnectomeGolgiGranule",
-      "from_celltypes": [{"type": "golgi_cell", "compartments": ["axon"]}],
-      "to_celltypes": [{"type": "granule_cell", "compartments": ["dendrites"]}]
+      "from_cell_types": [{"type": "golgi_cell", "compartments": ["axon"]}],
+      "to_cell_types": [{"type": "granule_cell", "compartments": ["dendrites"]}]
     },
     "ascending_axon_to_purkinje": {
       "class": "scaffold.connectivity.ConnectomeAscAxonPurkinje",
-      "from_celltypes": [{"type": "granule_cell", "compartments": ["ascending_axon"]}],
-      "to_celltypes": [{"type": "purkinje_cell", "compartments": ["dendrites"]}]
+      "from_cell_types": [{"type": "granule_cell", "compartments": ["ascending_axon"]}],
+      "to_cell_types": [{"type": "purkinje_cell", "compartments": ["dendrites"]}]
     },
     "parallel_fiber_to_purkinje": {
       "class": "scaffold.connectivity.ConnectomePFPurkinje",
-      "from_celltypes": [{"type": "granule_cell", "compartments": ["parallel_fiber"]}],
-      "to_celltypes": [{"type": "purkinje_cell", "compartments": ["dendrites"]}]
+      "from_cell_types": [{"type": "granule_cell", "compartments": ["parallel_fiber"]}],
+      "to_cell_types": [{"type": "purkinje_cell", "compartments": ["dendrites"]}]
     },
     "parallel_fiber_to_basket": {
       "class": "scaffold.connectivity.ConnectomePFInterneuron",
-      "from_celltypes": [{"type": "granule_cell", "compartments": ["parallel_fiber"]}],
-      "to_celltypes": [{"type": "basket_cell", "compartments": ["dendrites"]}]
+      "from_cell_types": [{"type": "granule_cell", "compartments": ["parallel_fiber"]}],
+      "to_cell_types": [{"type": "basket_cell", "compartments": ["dendrites"]}]
     },
     "parallel_fiber_to_stellate": {
       "class": "scaffold.connectivity.ConnectomePFInterneuron",
-      "from_celltypes": [{"type": "granule_cell", "compartments": ["parallel_fiber"]}],
-      "to_celltypes": [{"type": "stellate_cell", "compartments": ["dendrites"]}]
+      "from_cell_types": [{"type": "granule_cell", "compartments": ["parallel_fiber"]}],
+      "to_cell_types": [{"type": "stellate_cell", "compartments": ["dendrites"]}]
     },
     "basket_and_stellate_to_purkinje": {
       "class": "scaffold.connectivity.ConnectomeBCSCPurkinje",
-      "from_celltypes": [
+      "from_cell_types": [
         {"type": "basket_cell", "compartments": ["axon"]},
         {"type": "stellate_cell", "compartments": ["axon"]}
       ],
-      "to_celltypes": [{"type": "purkinje_cell", "compartments": ["dendrites"]}],
+      "to_cell_types": [{"type": "purkinje_cell", "compartments": ["dendrites"]}],
       "divergence": 2,
       "convergence": 20,
       "limit_x": 500.0,
-      "limit_y": 100.0
+      "limit_z": 100.0
     },
     "stellate_gap_junctions": {
       "class": "scaffold.connectivity.ConnectomeGapJunctions",
-      "from_celltypes": [{"type": "stellate_cell", "compartments": ["axon"]}],
-      "to_celltypes": [{"type": "stellate_cell", "compartments": ["dendrites"]}],
+      "from_cell_types": [{"type": "stellate_cell", "compartments": ["axon"]}],
+      "to_cell_types": [{"type": "stellate_cell", "compartments": ["dendrites"]}],
       "divergence": 4,
       "limit_xy": 150.0,
       "limit_z": 50.0
     },
     "basket_gap_junctions": {
       "class": "scaffold.connectivity.ConnectomeGapJunctions",
-      "from_celltypes": [{"type": "basket_cell", "compartments": ["axon"]}],
-      "to_celltypes": [{"type": "basket_cell", "compartments": ["dendrites"]}],
+      "from_cell_types": [{"type": "basket_cell", "compartments": ["axon"]}],
+      "to_cell_types": [{"type": "basket_cell", "compartments": ["dendrites"]}],
       "divergence": 4,
       "limit_xy": 150.0,
       "limit_z": 50.0
     },
     "golgi_gap_junctions": {
       "class": "scaffold.connectivity.ConnectomeGapJunctionsGolgi",
-      "from_celltypes": [{"type": "golgi_cell", "compartments": ["axon"]}],
-      "to_celltypes": [{"type": "golgi_cell", "compartments": ["dendrites"]}]
+      "from_cell_types": [{"type": "golgi_cell", "compartments": ["axon"]}],
+      "to_cell_types": [{"type": "golgi_cell", "compartments": ["dendrites"]}]
     },
     "purkinje_to_dcn": {
-      "class": "scaffold.connectivity.ConnectomeGapJunctionsGolgi",
-      "from_celltypes": [{"type": "purkinje_cell", "compartments": ["axon"]}],
-      "to_celltypes": [{"type": "dcn_cell", "compartments": ["dendrites"]}],
+      "class": "scaffold.connectivity.ConnectomePurkinjeDCN",
+      "from_cell_types": [{"type": "purkinje_cell", "compartments": ["axon"]}],
+      "to_cell_types": [{"type": "dcn_cell", "compartments": ["dendrites"]}],
       "divergence": 5
     }
   },

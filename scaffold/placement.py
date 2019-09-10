@@ -152,12 +152,12 @@ class LayeredRandomWalk(PlacementStrategy):
 		layer_cell_positions = np.empty((0, 3))
 		previously_placed_cells = scaffold.cells_by_layer[layer.name][:,[2,3,4]]
 		previously_placed_types = np.array(scaffold.cells_by_layer[layer.name][:,1], dtype=int)
-		other_celltype_radii = np.array(list(map(lambda type: scaffold.configuration.cell_types[type].placement.radius, scaffold.configuration.cell_type_map)))
+		other_cell_type_radii = np.array(list(map(lambda type: scaffold.configuration.cell_types[type].placement.radius, scaffold.configuration.cell_type_map)))
 		if len(previously_placed_cells) > 0:
-			previously_placed_min_dist = other_celltype_radii[previously_placed_types] + cell_radius
+			previously_placed_min_dist = other_cell_type_radii[previously_placed_types] + cell_radius
 		else:
 			previously_placed_min_dist = np.empty((0))
-		other_celltype_count = previously_placed_min_dist.shape[0]
+		other_cell_type_count = previously_placed_min_dist.shape[0]
 
 		for sublayer_id in np.arange(n_sublayers):
 			if cells_per_sublayer == 0:
@@ -207,7 +207,7 @@ class LayeredRandomWalk(PlacementStrategy):
 				planar_candidates = planar_candidates[good_indices]
 				full_coords = full_coords[good_indices]
 				layer_distances = distance.cdist(full_coords, previously_placed_cells)
-				good_indices = list(np.where(np.sum(layer_distances > previously_placed_min_dist, axis=1) == other_celltype_count)[0])
+				good_indices = list(np.where(np.sum(layer_distances > previously_placed_min_dist, axis=1) == other_cell_type_count)[0])
 				if len(good_indices) == 0:
 					max_attempts = len(good_points_store)
 					for attempt in range(max_attempts):
@@ -221,7 +221,7 @@ class LayeredRandomWalk(PlacementStrategy):
 						planar_candidates = planar_candidates[good_indices]
 						full_coords = full_coords[good_indices]
 						layer_distances = distance.cdist(full_coords, previously_placed_cells)
-						good_indices = list(np.where(np.sum(layer_distances > previously_placed_min_dist, axis=1) == other_celltype_count)[0])
+						good_indices = list(np.where(np.sum(layer_distances > previously_placed_min_dist, axis=1) == other_cell_type_count)[0])
 						if len(good_indices) > 0:
 							random_index = random.sample(good_indices, 1)[0]
 							candidate = full_coords[random_index]

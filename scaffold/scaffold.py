@@ -55,7 +55,7 @@ class Scaffold:
 
 	def compileNetworkArchitecture(self, tries=1):
 		times = np.zeros(tries)
-		# Place the cells starting from the lowest density celltypes.
+		# Place the cells starting from the lowest density cell_types.
 		for i in np.arange(tries, dtype=int):
 			t = time.time()
 			cell_types = sorted(self.configuration.cell_types.values(), key=lambda x: x.placement.get_placement_count(x))
@@ -138,9 +138,9 @@ class Scaffold:
 
 	def save(self):
 		f = h5py.File('scaffold_new_test.hdf5', 'w')
-		celltype_names = self.configuration.cell_type_map
+		cell_type_names = self.configuration.cell_type_map
 		position_dset = f.create_dataset('positions', data=self.cells)
-		position_dset.attrs['types'] = celltype_names
+		position_dset.attrs['types'] = cell_type_names
 		f.create_group('connections')
 
 		for key, connectome_data in self.cell_connections_by_type.items():

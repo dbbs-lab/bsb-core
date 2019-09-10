@@ -210,8 +210,9 @@ class JSONConfig(ScaffoldConfig):
 
         self.load_general(parsed_config)
         self._layer_stacks = {}
-        self.load_attr(config=parsed_config, attr='layers', init=self.init_layer, final=self.finalizeLayers, single=True)
-        self.load_attr(config=parsed_config, attr='cell_types', init=self.init_cell_type, final=self.finalizeCellType)
+        self.load_attr(config=parsed_config, attr='layers', init=self.init_layer, final=self.finalize_layers, single=True)
+        self.load_attr(config=parsed_config, attr='cell_types', init=self.init_cell_type, final=self.finalize_cell_type)
+        self.load_attr(config=parsed_config, attr='connection_types', init=self.init_connection, final=self.finalize_connection)
 
     def load_general(self, config):
         '''
@@ -348,14 +349,19 @@ class JSONConfig(ScaffoldConfig):
         self.addMorphology(morphology)
         return morphology
 
-    def iniConnection(self, name, section):
+    def init_connection(self, name, section):
         '''
             Initialize a ConnectionStrategy-subclass from the configuration. Uses __import__
             to fetch geometry class, then copies all keys as is from config section to instance
             and adds it to the Geometries dictionary.
         '''
-        connectionInstance = self.loadConfigClass(name, section, ConnectionStrategy)
-        self.addConnection(connectionInstance)
+        node_name = 'connection_types.{}'.format(name)
+        connection_class = assert_attr(section, 'class', node_name)
+        connection = self.load_configurable_class(name, connection_class, ConnectionStrategy)
+        self.fill_configurable_class(connection, section, excluded=['class', 'from_cell_types', 'to_cell_types'])
+        connection.__dict__['_from_cell_types'] = assert_attr_array(section, 'from_cell_types', node_name)
+        connection.__dict__['_to_cell_types'] = assert_attr_array(section, 'to_cell_types', node_name)
+        self.addConnection(connection)
 
     def init_placement(self, section, cell_type_name):
         '''
@@ -378,7 +384,7 @@ class JSONConfig(ScaffoldConfig):
         density_attr, density_value = assert_strictly_one(section, ['density', 'planar_density', 'placement_count_ratio', 'density_ratio'], node_name)
         density_value = assert_float(density_value, '{}.{}'.format(node_name, density_attr))
         placement.__dict__[density_attr] = density_value
-        # Does this density configuration rely on a relation to another celltype?
+        # Does this density configuration rely on a relation to another cell_type?
         ratio_attrs = ['placement_count_ratio', 'density_ratio']
         if density_attr in ratio_attrs:
             relation = assert_attr(section, 'placement_relative_to', node_name)
@@ -391,11 +397,7 @@ class JSONConfig(ScaffoldConfig):
         self.add_placement_strategy(placement)
         return placement
 
-
-    def finalizeGeometry(self, geometry, section):
-        pass
-
-    def finalizeLayers(self):
+    def finalize_layers(self):
         for stack in self._layer_stacks.values():
             if not 'position' in stack:
                 stack['position'] = [0., 0., 0.]
@@ -407,26 +409,33 @@ class JSONConfig(ScaffoldConfig):
                 layer.origin[1] = stack_roof
                 stack_roof += layer.thickness
 
-    def finalizeCellType(self, cell_type, section):
+    def finalize_cell_type(self, cell_type_name, section):
         '''
             Finalize configuration of the cell type.
         '''
         pass
 
-    def finalizeConnection(self, connection, section):
-        if not hasattr(connection, 'cellfrom'):
-            raise Exception("Required attribute 'CellFrom' missing in {}".format(connection.name))
-        if not hasattr(connection, 'cellto'):
-            raise Exception("Required attribute 'CellTo' missing in {}".format(connection.name))
-        if not connection.cellfrom in self.cell_types:
-            raise Exception("Unknown CellFrom '{}' in {}".format(connection.cellfrom, connection.name))
-        if not connection.cellto in self.cell_types:
-            raise Exception("Unknown CellTo '{}' in {}".format(connection.cellto, connection.name))
-        connection.__dict__['from_celltype'] = self.cell_types[connection.cellfrom]
-        connection.__dict__['to_celltype'] = self.cell_types[connection.cellto]
-
-    def finalizePlacement(self, placement, section):
-        pass
+    def finalize_connection(self, connection_name, section):
+        node_name = 'connection_types.{}'
+        connection = self.connection_types[connection_name]
+        from_cell_types = []
+        to_cell_types = []
+        i = 0
+        for connected_cell in connection._from_cell_types:
+            type = assert_attr(connected_cell, 'type', node_name + '.{}'.format(i))
+            i += 1
+            if not type in self.cell_types:
+                raise Exception("Unknown cell type '{}' in '{}.from_cell_types'".format(type, node_name))
+            from_cell_types.append(self.cell_types[type])
+        i = 0
+        for connected_cell in connection._to_cell_types:
+            type = assert_attr(connected_cell, 'type', node_name + '.{}'.format(i))
+            i += 1
+            if not type in self.cell_types:
+                raise Exception("Unknown cell type '{}' in '{}.to_cell_types'".format(type, node_name))
+            to_cell_types.append(self.cell_types[type])
+        connection.__dict__['from_cell_types'] = from_cell_types
+        connection.__dict__['to_cell_types'] = to_cell_types
 
     def initSections(self):
         '''
@@ -477,10 +486,21 @@ def assert_float(val, section_name):
         raise Exception("Invalid float '{}' given for '{}'".format(val, section_name))
     return ret
 
+def assert_array(val, section_name):
+    from collections import Sequence
+    if isinstance(val, Sequence):
+        return val
+    raise Exception("Invalid array '{}' given for '{}'".format(val, section_name))
+
 def assert_attr_float(section, attr, section_name):
     if not attr in section:
         raise Exception("Required attribute '{}' missing in '{}'".format(attr, section_name))
-    return assert_float(section[attr], section_name)
+    return assert_float(section[attr], "{}.{}".format(section_name, attr))
+
+def assert_attr_array(section, attr, section_name):
+    if not attr in section:
+        raise Exception("Required attribute '{}' missing in '{}'".format(attr, section_name))
+    return assert_array(section[attr], "{}.{}".format(section_name, attr))
 
 class ConfigurableClassNotFoundException(Exception):
     pass
