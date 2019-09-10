@@ -44,8 +44,8 @@
         "layer": "granular_layer",
         "soma_radius": 2.5,
         "density": 3.9e-3,
-        "distance_muliplier_min": 0.5,
-        "distance_muliplier_max": 0.5
+        "distance_multiplier_min": 0.5,
+        "distance_multiplier_max": 0.5
       },
       "morphology": {
         "class": "scaffold.morphologies.GranuleCellGeometry",
@@ -54,6 +54,33 @@
         "pf_length": 3000,
         "pf_radius": 0.5,
         "dendrite_length": 40
+      },
+      "simulation": {
+        "nest": {
+          "models" : {
+            "eglif" : {
+
+            },
+            "iaf" : {
+
+            }
+          }
+        }
+      },
+      "plotting": {
+        "display_name": "granule cell",
+        "color": "#E62214"
+      }
+    },
+    "glomerulus": {
+      "placement": {
+        "class": "scaffold.placement.LayeredRandomWalk",
+        "layer": "granular_layer",
+        "soma_radius": 1.5,
+        "density": 3e-4
+      },
+      "morphology": {
+        "class": "scaffold.morphologies.NoGeometry"
       },
       "simulation": {
         "nest": {
@@ -69,8 +96,8 @@
         }
       },
       "plotting": {
-        "display_name": "granule cell",
-        "color": "#E62214"
+        "display_name": "glomerulus",
+        "color": "#0E1030"
       }
     },
     "purkinje_cell": {

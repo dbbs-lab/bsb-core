@@ -210,7 +210,7 @@ class JSONConfig(ScaffoldConfig):
 
         self.load_general(parsed_config)
         self._layer_stacks = {}
-        self.load_attr(config=parsed_config, attr='layers', init=self.iniLayer, final=self.finalizeLayers, single=True)
+        self.load_attr(config=parsed_config, attr='layers', init=self.init_layer, final=self.finalizeLayers, single=True)
         self.load_attr(config=parsed_config, attr='cell_types', init=self.init_cell_type, final=self.finalizeCellType)
 
     def load_general(self, config):
@@ -264,7 +264,7 @@ class JSONConfig(ScaffoldConfig):
         placement_kwargs = {}
         # Get the placement configuration node
         placement = assert_attr(section, 'placement', node_name)
-        cell_type.placement = self.iniPlacement(placement, name)
+        cell_type.placement = self.init_placement(placement, name)
         # Get the morphology configuration node
         morphology = assert_attr(section, 'morphology', node_name)
         cell_type.morphology = self.init_morphology(morphology, name)
@@ -275,7 +275,7 @@ class JSONConfig(ScaffoldConfig):
         self.addCellType(cell_type)
         return cell_type
 
-    def iniLayer(self, name, config):
+    def init_layer(self, name, config):
         '''
             Initialise a Layer from a json object.
 
@@ -357,7 +357,7 @@ class JSONConfig(ScaffoldConfig):
         connectionInstance = self.loadConfigClass(name, section, ConnectionStrategy)
         self.addConnection(connectionInstance)
 
-    def iniPlacement(self, section, cell_type_name):
+    def init_placement(self, section, cell_type_name):
         '''
             Initialize a PlacementStrategy-subclass from the configuration. Uses __import__
             to fetch placement class, then copies all keys as is from config section to instance
@@ -386,6 +386,7 @@ class JSONConfig(ScaffoldConfig):
 
         # Copy other information to be validated by the placement class
         self.fill_configurable_class(placement, section, excluded=['class', 'layer', 'soma_radius', 'density', 'planar_density', 'placement_count_ratio', 'density_ratio'])
+
         # Register the configured placement class
         self.add_placement_strategy(placement)
         return placement

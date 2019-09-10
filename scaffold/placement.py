@@ -81,15 +81,15 @@ class LayeredRandomWalk(PlacementStrategy):
 			raise Exception("Unknown layer '{}' in {}".format(self.layer, self.name))
 		self.layer_instance = self.scaffold.configuration.layers[self.layer]
 		try:
-			if hasattr(self, 'y_restrict'):
-				self.restriction_minimum = float(self.y_restrict[0])
-				self.restriction_maximum = float(self.y_restrict[1])
+			if hasattr(self, 'y_restriction'):
+				self.restriction_minimum = float(self.y_restriction[0])
+				self.restriction_maximum = float(self.y_restriction[1])
 			else:
 				self.restriction_minimum = 0.
 				self.restriction_maximum = 1.
 			self.restriction_factor = self.restriction_maximum - self.restriction_minimum
 		except Exception as e:
-			raise Exception("Invalid y_restrict attribute '{}' of {}".format(self.y_restrict, self.layer))
+			raise Exception("Invalid y_restriction attribute '{}' of {}".format(self.y_restriction, self.layer))
 
 	def place(self, cell_type):
 		'''
