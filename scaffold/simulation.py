@@ -62,7 +62,7 @@ class NestAdapter(SimulatorAdapter):
     def connect_neurons(self, connection_types, hdf5):
         default_model = self.synapse_model       # default model will be static_synapse
         for connection_type in connection_types.values():
-            connectivity_matrix = hdf5['connections'][connection_type.name]
+            connectivity_matrix = hdf5['cells/connections'][connection_type.name]
             presynaptic_cells = connectivity_matrix[:,0]
             postsynaptic_cells = connectivity_matrix[:,1]
             synaptic_parameters = connection_type.simulation.nest.models[default_model]  # Dictionary with delay and weight
