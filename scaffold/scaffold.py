@@ -1,7 +1,6 @@
 from .statistics import Statistics
 from .plotting import plotNetwork
 import numpy as np
-import h5py
 import time
 
 ###############################

@@ -1,5 +1,6 @@
 from .helpers import ConfigurableClass
 from abc import abstractmethod
+import h5py, time
 
 class OutputFormatter(ConfigurableClass):
     @abstractmethod
@@ -8,19 +9,24 @@ class OutputFormatter(ConfigurableClass):
 
 class HDF5Formatter(OutputFormatter):
 
+    defaults = {
+        'output_file': 'scaffold_network_{}.hdf5'.format(time.strftime("%Y_%m_%d_-%H%M%S"))
+    }
+
     def save(self):
-        self.storage = h5py.File('scaffold_new_test.hdf5', 'w')
+        self.storage = h5py.File(self.output_file, 'w')
         self.store_configuration()
         self.store_cells()
         self.store_statistics()
         self.store_appendices()
-        f.close()
+        self.storage.close()
 
     def validate(self):
         pass
 
     def store_configuration(self):
         f = self.storage
+        f.attrs['configuration_name'] = self.scaffold.configuration._name
         f.attrs['configuration_type'] = self.scaffold.configuration._type
         f.attrs['configuration_string'] = self.scaffold.configuration._raw
 

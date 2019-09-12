@@ -29,6 +29,7 @@ class ScaffoldConfig(object):
         self.simulations = {}
         self.verbosity = verbosity
         self._raw = ''
+        self._name = ''
         if not hasattr(self, '_extension'):
             self._extension = ''
         self.simulators = simulators
@@ -63,12 +64,15 @@ class ScaffoldConfig(object):
         try:
             with open('scaffold/configurations/' + file, 'r') as file:
                 self._raw = file.read()
+                self._name = file.name
         except Exception as e:
             with open(file, 'r') as file:
                 self._raw = file.read()
+                self._name = file.name
 
     def read_config_stream(self, stream):
         self._raw = stream
+        self._name = '<stream>'
 
     def addCellType(self, cell_type):
         '''
