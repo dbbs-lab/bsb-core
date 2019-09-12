@@ -10,7 +10,7 @@ class OutputFormatter(ConfigurableClass):
 class HDF5Formatter(OutputFormatter):
 
     defaults = {
-        'output_file': 'scaffold_network_{}.hdf5'.format(time.strftime("%Y_%m_%d_-%H%M%S"))
+        'output_file': 'scaffold_network_{}.hdf5'.format(time.strftime("%Y_%m_%d-%H%M%S"))
     }
 
     def save(self):
@@ -34,8 +34,6 @@ class HDF5Formatter(OutputFormatter):
         cells_group = self.storage.create_group('cells')
         self.store_cell_positions(cells_group)
         self.store_cell_connections(cells_group)
-        # # Store the entire connectivity matrix
-        # self.storage.create_dataset('connectome', data=self.scaffold.cell_connections)
 
     def store_cell_positions(self, cells_group):
         position_dataset = cells_group.create_dataset('positions', data=self.scaffold.cells)
@@ -44,9 +42,12 @@ class HDF5Formatter(OutputFormatter):
 
     def store_cell_connections(self, cells_group):
         connections_group = cells_group.create_group('connections')
-        for connection_type_name, connectome_data in self.scaffold.cell_connections_by_type.items():
-            connection_dataset = connections_group.create_dataset(connection_type_name, data=connectome_data)
-            connection_dataset.attrs['name'] = connection_type_name
+        for tag, connectome_data in self.scaffold.cell_connections_by_tag.items():
+            related_types = list(filter(lambda x: tag in x.tags, self.scaffold.configuration.connection_types.values()))
+            connection_dataset = connections_group.create_dataset(tag, data=connectome_data)
+            connection_dataset.attrs['tag'] = tag
+            connection_dataset.attrs['connection_types'] = list(map(lambda x: x.name, related_types))
+            connection_dataset.attrs['connection_type_classes'] = list(map(lambda x: str(x.__class__), related_types))
 
     def store_statistics(self):
         statistics = self.storage.create_group('statistics')

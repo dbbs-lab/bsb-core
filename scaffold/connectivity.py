@@ -8,6 +8,7 @@ class ConnectionStrategy(ConfigurableClass):
 	def __init__(self):
 		super().__init__()
 		self.simulation = type('simulation_configuration', (object,), {})()
+		self.tags = []
 
 	@abc.abstractmethod
 	def connect(self):
@@ -300,7 +301,7 @@ class ConnectomeGranuleGolgi(ConnectionStrategy):
 			return aa_goc, pf_goc
 
 		result_aa, result_pf = connectome_grc_goc(first_granule, granules, golgis, r_goc_vol, oob, n_connAA, n_conn_pf, tot_conn, self.scaffold)
-		self.scaffold.connect_cells(self, result_aa, "AscendingAxonGolgi")
+		self.scaffold.connect_cells(self, result_aa, "ascending_axon_to_golgi")
 		self.scaffold.connect_cells(self, result_pf)
 
 class ConnectomeGolgiGranule(ConnectionStrategy):
@@ -388,7 +389,7 @@ class ConnectomeAscAxonPurkinje(ConnectionStrategy):
 			return aa_pc
 
 		result = connectome_aa_pc(first_granule, granules, purkinjes, purkinje_extension_x, purkinje_extension_z, OoB_value)
-		self.scaffold.connect_cells(self, result, "AscAxonPurkinje")
+		self.scaffold.connect_cells(self, result)
 
 class ConnectomePFPurkinje(ConnectionStrategy):
 	'''
@@ -425,7 +426,7 @@ class ConnectomePFPurkinje(ConnectionStrategy):
 			return pf_pc
 
 		result = connectome_pf_pc(first_granule, granules, purkinjes, purkinje_extension_x)
-		self.scaffold.connect_cells(self, result, "PFPurkinje")
+		self.scaffold.connect_cells(self, result)
 
 class ConnectomePFInterneuron(ConnectionStrategy):
 	'''
@@ -556,8 +557,8 @@ class ConnectomeBCSCPurkinje(ConnectionStrategy):
 			return sc_pc[0:sc_i], bc_pc[0:bc_i]
 
 		result_sc, result_bc = connectome_sc_bc_pc(first_stellate, first_basket, baskets, stellates, purkinjes, distx, distz, conv)
-		self.scaffold.connect_cells(self, result_sc, "StellatePurkinje")
-		self.scaffold.connect_cells(self, result_bc, "BasketPurkinje")
+		self.scaffold.connect_cells(self, result_sc, "stellate_to_purkinje")
+		self.scaffold.connect_cells(self, result_bc, "basket_to_purkinje")
 
 class ConnectomeGapJunctions(ConnectionStrategy):
 	'''

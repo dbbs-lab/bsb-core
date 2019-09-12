@@ -102,10 +102,8 @@ class Scaffold:
 		self.cells_by_layer = {key: np.empty((0, 5)) for key in self.configuration.layers.keys()}
 		# Cells collection. Columns: Cell ID, Type, X, Y, Z.
 		self.cells = np.empty((0, 5))
-		# Cell connections. Columns: From ID, To ID.
-		self.cell_connections = np.empty((0, 2))
 		# Cell connections per connection type. Columns: From ID, To ID.
-		self.cell_connections_by_type = {}
+		self.cell_connections_by_tag = {}
 		self.appends = {}
 
 	def place_cells(self, cell_type, layer, positions):
@@ -147,15 +145,18 @@ class Scaffold:
 		self._nextId += count
 		return IDs
 
-	def connect_cells(self, connection_type, connectome_data, connection_name = None):
-		name = connection_name or connection_type.name
-		if name in self.cell_connections_by_type:
-			cache = self.cell_connections_by_type[name]
-			self.cell_connections_by_type[name] = np.concatenate((cache, connectome_data))
+	def connect_cells(self, connection_type, connectome_data, tag = None):
+		# Allow 1 connection type to store multiple connectivity datasets by utilizing tags
+		tag = tag or connection_type.name
+		# Keep track of relevant tags in the connection_type object
+		if not tag in connection_type.tags:
+			connection_type.tags.append(tag)
+		# Store the connections based on their tag, and append them if a dataset already exists under the same tag.
+		if tag in self.cell_connections_by_tag:
+			cache = self.cell_connections_by_tag[tag]
+			self.cell_connections_by_tag[tag] = np.concatenate((cache, connectome_data))
 		else:
-			self.cell_connections_by_type[name] = np.copy(connectome_data)
-		# Store all the connections
-		self.cell_connections = np.concatenate((self.cell_connections, connectome_data))
+			self.cell_connections_by_tag[tag] = np.copy(connectome_data)
 
 	def append_dset(self, name, data):
 		self.appends[name] = data
