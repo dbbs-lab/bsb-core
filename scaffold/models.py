@@ -1,5 +1,6 @@
 import numpy as np
 from .morphologies import Morphology as BaseMorphology
+from .helpers import ConfigurableClass
 
 class CellType:
 
@@ -88,3 +89,11 @@ class Layer(dimensions, origin):
 
     def initialise(self, scaffoldInstance):
         self.scaffold = scaffoldInstance
+
+class NestCell(ConfigurableClass):
+    def validate(self):
+        pass
+
+class NestConnection(ConfigurableClass):
+    def validate(self):
+        pass

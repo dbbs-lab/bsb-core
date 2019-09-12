@@ -4,6 +4,11 @@ from .postprocessing import get_parallel_fiber_heights, get_dcn_rotations
 import numpy as np
 
 class ConnectionStrategy(ConfigurableClass):
+
+	def __init__(self):
+		super().__init__()
+		self.simulation = type('simulation_configuration', (object,), {})()
+	
 	@abc.abstractmethod
 	def connect(self):
 		pass

@@ -31,13 +31,11 @@ class Scaffold:
 		self._initialise_morphologies()
 		self._initialise_placement_strategies()
 		self._initialise_connection_types()
+		self._initialise_simulations()
 		self._initialise_output_formatter()
 
 	def initialiseSimulators(self):
 		self.simulators = self.configuration.simulators
-		del self.configuration.simulators
-		for simulator in self.simulators.values():
-			simulator.initialise(self)
 
 	def _initialise_cells(self):
 		for cell_type in self.configuration.cell_types.values():
@@ -58,6 +56,14 @@ class Scaffold:
 	def _initialise_morphologies(self):
 		for geometry in self.configuration.morphologies.values():
 			geometry.initialise(self)
+
+	def _initialise_simulations(self):
+		for simulation in self.configuration.simulations.values():
+			simulation.initialise(self)
+			for sim_cell in simulation.cell_types.values():
+				sim_cell.initialise(self)
+			for sim_connection in simulation.connection_types.values():
+				sim_connection.initialise(self)
 
 	def _initialise_output_formatter(self):
 		self.output_formatter = self.configuration.output_formatter

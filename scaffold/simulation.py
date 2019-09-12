@@ -1,6 +1,7 @@
 import abc
 import numpy as np
 from .helpers import ConfigurableClass, assert_attr
+from .models import NestCell, NestConnection
 
 class SimulatorAdapter(ConfigurableClass):
 
@@ -14,17 +15,17 @@ class SimulatorAdapter(ConfigurableClass):
             raise Exception("The SimulatorAdapter {} is missing the class attribute 'simulator_name'".format(self.__class__))
         # Check for the 'configuration_classes' class attribute
         if not hasattr(self.__class__, 'configuration_classes'):
-            raise Exception("The '{}' adapter class needs to set the 'configuration_classes' class attribute to a dictionary of ConfigurableClass class objects.".format(self.simulator_name))
+            raise Exception("The '{}' adapter class needs to set the 'configuration_classes' class attribute to a dictionary of configurable classes (str or class).".format(self.simulator_name))
         classes = self.configuration_classes
         # Check for the presence of required classes
-        if not 'cell_model' in classes:
-            raise Exception("{} adapter: The 'configuration_classes' dictionary requires a class to handle the simulation configuration of cells under the 'cell_model' key.".format(self.simulator_name))
-        if not 'connection' in classes:
-            raise Exception("{} adapter: The 'configuration_classes' dictionary requires a class to handle the simulation configuration of cell connections under the 'connection' key.".format(self.simulator_name))
+        if not 'cell_models' in classes:
+            raise Exception("{} adapter: The 'configuration_classes' dictionary requires a class to handle the simulation configuration of cells under the 'cell_models' key.".format(self.simulator_name))
+        if not 'connection_models' in classes:
+            raise Exception("{} adapter: The 'configuration_classes' dictionary requires a class to handle the simulation configuration of cell connections under the 'connection_models' key.".format(self.simulator_name))
         # if not 'simulation' in classes:
         #     raise Exception("The 'configuration_classes' dictionary requires a class to handle the configuration of simulations under the 'simulation' key.")
         # Test if they are all children of the ConfigurableClass class
-        keys = ['cell_model', 'connection'] #, 'simulation']
+        keys = ['cell_models', 'connection_models'] #, 'simulation']
         for class_key in keys:
             if not issubclass(classes[class_key], ConfigurableClass):
                 raise Exception("{} adapter: The configuration class '{}' should inherit from ConfigurableClass".format(self.simulator_name, class_key))
@@ -51,7 +52,12 @@ class NestAdapter(SimulatorAdapter):
         Interface between the scaffold model and the NEST simulator.
     '''
 
-    name = 'nest'
+    simulator_name = 'nest'
+
+    configuration_classes = {
+        'cell_models': NestCell,
+        'connection_models': NestConnection
+    }
 
     defaults = {
         'synapse_model': 'static_synapse',
@@ -96,8 +102,6 @@ class NestAdapter(SimulatorAdapter):
             synaptic_parameters = connection_type.simulation.nest.models[default_model]  # Dictionary with delay and weight
             connection_parameters = {'rule': 'one_to_one'}
             nest.Connect(presynaptic_cells, postsynaptic_cells, connection_parameters, synaptic_parameters)
-
-
 
     def stimulate_neurons(self):
         pass
