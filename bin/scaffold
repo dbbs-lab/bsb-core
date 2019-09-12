@@ -53,7 +53,7 @@ cl_args = parser.parse_args()
 
 if cl_args.ctype == 'json':
 	# Load the .json configuration
-	scaffoldConfig = scaffold.config.JSONConfig(cl_args.config, verbosity=cl_args.verbose)
+	scaffoldConfig = scaffold.config.JSONConfig(file=cl_args.config, verbosity=cl_args.verbose)
 
 # Create the scaffold instance
 scaffoldInstance = Scaffold(scaffoldConfig)

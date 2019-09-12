@@ -1,8 +1,34 @@
 import abc
 import numpy as np
-from .helpers import ConfigurableClass
+from .helpers import ConfigurableClass, assert_attr
 
 class SimulatorAdapter(ConfigurableClass):
+
+    def __init__(self):
+        super().__init__()
+        self.cell_types = {}
+        self.connection_types = {}
+
+    def get_configuration_classes(self):
+        if not hasattr(self.__class__, 'simulator_name'):
+            raise Exception("The SimulatorAdapter {} is missing the class attribute 'simulator_name'".format(self.__class__))
+        # Check for the 'configuration_classes' class attribute
+        if not hasattr(self.__class__, 'configuration_classes'):
+            raise Exception("The '{}' adapter class needs to set the 'configuration_classes' class attribute to a dictionary of ConfigurableClass class objects.".format(self.simulator_name))
+        classes = self.configuration_classes
+        # Check for the presence of required classes
+        if not 'cell_model' in classes:
+            raise Exception("{} adapter: The 'configuration_classes' dictionary requires a class to handle the simulation configuration of cells under the 'cell_model' key.".format(self.simulator_name))
+        if not 'connection' in classes:
+            raise Exception("{} adapter: The 'configuration_classes' dictionary requires a class to handle the simulation configuration of cell connections under the 'connection' key.".format(self.simulator_name))
+        # if not 'simulation' in classes:
+        #     raise Exception("The 'configuration_classes' dictionary requires a class to handle the configuration of simulations under the 'simulation' key.")
+        # Test if they are all children of the ConfigurableClass class
+        keys = ['cell_model', 'connection'] #, 'simulation']
+        for class_key in keys:
+            if not issubclass(classes[class_key], ConfigurableClass):
+                raise Exception("{} adapter: The configuration class '{}' should inherit from ConfigurableClass".format(self.simulator_name, class_key))
+        return self.configuration_classes
 
     @abc.abstractmethod
     def prepare(self, hdf5, simulation_config):
@@ -24,6 +50,8 @@ class NestAdapter(SimulatorAdapter):
     '''
         Interface between the scaffold model and the NEST simulator.
     '''
+
+    name = 'nest'
 
     defaults = {
         'synapse_model': 'static_synapse',

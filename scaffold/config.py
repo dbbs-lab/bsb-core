@@ -4,12 +4,17 @@ from .morphologies import Morphology as BaseMorphology
 from .connectivity import ConnectionStrategy
 from .placement import PlacementStrategy
 from .output import OutputFormatter
-from .helpers import copyIniKey
+from .simulation import SimulatorAdapter
+from .helpers import (
+    copyIniKey, assert_float, assert_array, assert_attr_array,
+    assert_attr_float, assert_attr, if_attr, assert_strictly_one,
+    assert_attr_in
+)
 from .simulation import NestAdapter
 
 class ScaffoldConfig(object):
 
-    def __init__(self, file=None, stream=None, verbosity=0):
+    def __init__(self, file=None, stream=None, verbosity=0, simulators={}):
         # Initialise empty config object.
 
         # Dictionaries and lists
@@ -20,17 +25,21 @@ class ScaffoldConfig(object):
         self.connection_types = {}
         self.morphologies = {}
         self.placement_strategies = {}
+        self.simulations = {}
         self.verbosity = verbosity
         self._raw = ''
         if not hasattr(self, '_extension'):
             self._extension = ''
-        self.simulators = { 'nest': NestAdapter()}
+        self.simulators = simulators
+        self.simulators['nest'] = NestAdapter
 
         # Fallback simulation values
         self.X = 200    # Transverse simulation space size (µm)
         self.Z = 200    # Longitudinal simulation space size (µm)
 
         self.read_config(file, stream)
+        # Execute the load handler set by the child configuration implementation
+        self._parsed_config = self._load_handler(self._raw)
 
     def read_config(self, file=None, stream=None):
         if not stream is None:
@@ -104,6 +113,10 @@ class ScaffoldConfig(object):
         '''
         # Register a new ConnectionStrategy.
         self.connection_types[connection.name] = connection
+
+    def add_simulation(self, simulation):
+        # Register a new simulation
+        self.simulations[simulation.name] = simulation
 
     def add_layer(self, layer):
         '''
@@ -188,7 +201,7 @@ class JSONConfig(ScaffoldConfig):
         Create a scaffold configuration from a JSON formatted file/string.
     '''
 
-    def __init__(self, file=None, stream=None, verbosity=0):
+    def __init__(self, **kwargs):
         '''
             Initialize config from .json file.
 
@@ -198,25 +211,32 @@ class JSONConfig(ScaffoldConfig):
             :type file: string
             :param verbosity: Verbosity (output level) of the scaffold.
             :type file: int
+            :param simulators: Dictionary with extra simulators to register
+            :type simulators: {string: SimulatorAdapter}
         '''
-        import json
+        def load_handler(config_string):
+            import json
+            try:
+                return json.loads(config_string)
+            except json.decoder.JSONDecodeError as e:
+                raise Exception("Error while loading JSON configuration: {}".format(e))
+
         # Set flags to indicate we expect a json configuration.
         self._type = 'json'
         self._extension = ".json"
+        # Tells the base configuration class how to parse the configuration string
+        self._load_handler = load_handler
         # Initialize base config class, handling the reading of file/stream to string
-        ScaffoldConfig.__init__(self, file, stream, verbosity)
-        # Use json module to read self._raw json string provided by parent ScaffoldConfig.__init__
-        try:
-            parsed_config = json.loads(self._raw)
-        except json.decoder.JSONDecodeError as e:
-            raise Exception("Error while loading JSON configuration: {}".format(e))
+        ScaffoldConfig.__init__(self, **kwargs)
 
+        parsed_config = self._parsed_config
         self.load_general(parsed_config)
         self.load_output(parsed_config)
         self._layer_stacks = {}
         self.load_attr(config=parsed_config, attr='layers', init=self.init_layer, final=self.finalize_layers, single=True)
         self.load_attr(config=parsed_config, attr='cell_types', init=self.init_cell_type, final=self.finalize_cell_type)
         self.load_attr(config=parsed_config, attr='connection_types', init=self.init_connection, final=self.finalize_connection)
+        self.load_attr(config=parsed_config, attr='simulations', init=self.init_simulation, final=self.finalize_simulation)
 
     def load_general(self, config):
         '''
@@ -257,12 +277,6 @@ class JSONConfig(ScaffoldConfig):
         else:
             for def_name, def_config in config[attr].items():
                 final(def_name, def_config)
-
-    def load_connection_types(self, config):
-        pass
-
-    def load_simulations(self, config):
-        pass
 
     def init_cell_type(self, name, section):
         '''
@@ -413,6 +427,39 @@ class JSONConfig(ScaffoldConfig):
         self.add_placement_strategy(placement)
         return placement
 
+    def init_simulation(self, name, section):
+        # Get the simulator name from the config
+        simulator_name = assert_attr_in(section, 'simulator', self.simulators.keys(), 'simulation.{}'.format(name))
+        # Get the simulator adapter class for this simulation
+        simulator = self.simulators[simulator_name]
+        # Initialise a new simulator adapter for this simulation
+        simulation = self.load_configurable_class(name, simulator, SimulatorAdapter)
+        # Configure the simulation's adapter
+        self.fill_configurable_class(simulation, section, excluded=['simulator'])
+        # Get the classes required to configure cells and connections in this simulation
+        config_classes = simulator.get_configuration_classes()
+        cell_model_class = config_classes['cell_model']
+        connection_class = config_classes['connection']
+
+        # Configure the cell types for the simulator used by this simulation
+        cell_types_config = self._parsed_config['cell_types']
+        connection_types_config = self._parsed_config['connection_types']
+        for cell_type in self.cell_types.values():
+            cell_type_simulator_config = self.configure_simulator_cell_type(cell_type, cell_model_class, simulator_name)
+            # Store the cell simulation configurations in a shorthand dictionary
+            simulation.cell_types[cell_type.name] = cell_type_simulator_config
+
+        # Configure the connection types for the simulator used by this simulation
+        for connection_type in self.connection_types.values():
+            connection_simulator_config = self.configure_simulator_connection_type(self, connection_type, connection_class)
+            # Store the connection simulation configurations in a shorthand dictionary
+            simulation.connection_types[connection_type.name] = connection_simulator_config
+
+        self.add_simulation(simulation)
+
+    def finalize_simulation(self, simulation_name, section):
+        pass
+
     def finalize_layers(self):
         for stack in self._layer_stacks.values():
             if not 'position' in stack:
@@ -453,70 +500,22 @@ class JSONConfig(ScaffoldConfig):
         connection.__dict__['from_cell_types'] = from_cell_types
         connection.__dict__['to_cell_types'] = to_cell_types
 
-    def initSections(self):
-        '''
-            Initialize the special sections of the configuration file.
-            Special sections: 'General'
-        '''
-        special = ['General']
-        # An array of keys to extract from the General section.
-        general_keys = [
-            {'key': 'X', 'type': 'micrometer'},
-            {'key': 'Z', 'type': 'micrometer'}
-        ]
-        # Copy all general_keys from the General section to the config object.
-        if 'General' in self._sections:
-            for key in general_keys:
-                copyIniKey(self, self._config['General'], key)
-
-        # Filter out all special sections
-        self._sections = list(filter(lambda x: not x in special, self._sections))
-
-def assert_attr(section, attr, section_name):
-    if not attr in section:
-        raise Exception("Required attribute '{}' missing in '{}'".format(attr, section_name))
-    return section[attr]
-
-def if_attr(section, attr, default_value):
-    if not attr in section:
-        return default_value
-    return section[attr]
-
-def assert_strictly_one(section, attrs, section_name):
-    attr_list = []
-    for attr in attrs:
-        if attr in section:
-            attr_list.append(attr)
-    if len(attr_list) != 1:
-        msg = "{} found: ".format(len(attr_list)) + ", ".join(attr_list)
-        if len(attr_list) == 0:
-            msg = "None found."
-        raise Exception("Strictly one of the following attributes is expected in {}: {}. {}".format(section_name, ", ".join(attrs), msg))
-    else:
-        return attr_list[0], section[attr_list[0]]
-
-def assert_float(val, section_name):
-    try:
-        ret = float(val)
-    except ValueError as e:
-        raise Exception("Invalid float '{}' given for '{}'".format(val, section_name))
-    return ret
-
-def assert_array(val, section_name):
-    from collections import Sequence
-    if isinstance(val, Sequence):
-        return val
-    raise Exception("Invalid array '{}' given for '{}'".format(val, section_name))
-
-def assert_attr_float(section, attr, section_name):
-    if not attr in section:
-        raise Exception("Required attribute '{}' missing in '{}'".format(attr, section_name))
-    return assert_float(section[attr], "{}.{}".format(section_name, attr))
-
-def assert_attr_array(section, attr, section_name):
-    if not attr in section:
-        raise Exception("Required attribute '{}' missing in '{}'".format(attr, section_name))
-    return assert_array(section[attr], "{}.{}".format(section_name, attr))
+    def configure_simulator_cell_type(self, cell_type, cell_model_class, simulator_name):
+        # Check if another simulation already configured the same simulator for this cell type
+        if hasattr(cell_type.simulation, simulator_name):
+            return cell_type.simulation.__dict__[simulator_name]
+        # Initialise a new cell simulation representation object
+        cell_simulation = self.load_configurable_class(cell_type.name + '_' + simulator_name, cell_model_class, ConfigurableClass)
+        # Fetch the configuration for this object
+        cell_type_config = self._parsed_config['cell_types'][cell_type.name]
+        node_name = "cell_types.{}".format(cell_type.name)
+        simulation_node = assert_attr(cell_type_config, 'simulation', node_name)
+        simulator_specific_config = assert_attr(simulation_node, self.name, node_name + '.simulation')
+        # Apply the configuration to the object
+        self.fill_configurable_class(cell_simulation, simulator_specific_config)
+        # Store the cell simulation configuration inside the cell type configuration's simulation object
+        cell_type.simulation.__dict__[simulator_name] = cell_simulation
+        return cell_simulation
 
 class ConfigurableClassNotFoundException(Exception):
     pass
