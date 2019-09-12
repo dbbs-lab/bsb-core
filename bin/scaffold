@@ -26,7 +26,7 @@ parser.add_argument("-c", "--config",
 
 parser.add_argument("-ct", "--ctype",
 	help="Specify the type of the configuration file.",
-	default="json".format(scaffold.__path__[0]),
+	default="json",
 	choices=["json"]
 )
 
@@ -46,10 +46,16 @@ subparsers = parser.add_subparsers(
 parser_compile = subparsers.add_parser('compile', help='Build a network of neurons in a volume.')
 parser_compile.add_argument('-p', action='store_true',help='Plot the created network')
 
-parser_run = subparsers.add_parser('run', help='Run a simulation using a compiled scaffold network.')
-parser_run.add_argument('simulator', action='store', help='Simulator backend.', choices=["nest","neuron","pynn"], default="nest")
+parser_run = subparsers.add_parser('run', help='Run a simulation from scratch.')
+parser_run.add_argument('simulation', action='store', help='Preconfigured simulation to run.')
+
+parser_run = subparsers.add_parser('simulate', help='Run a simulation from a compiled HDF5 network architecture file.')
+parser_run.add_argument('simulation', action='store', help='Name of the preconfigured simulation.')
+parser_run.add_argument('--hdf5', action='store', required=True, help='Name of the HDF5 file to load.')
 
 cl_args = parser.parse_args()
+if hasattr(cl_args, 'hdf5'):
+	cl_args.ctype = 'hdf5'
 
 if cl_args.ctype == 'json':
 	# Load the .json configuration
