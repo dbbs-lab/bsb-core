@@ -316,7 +316,7 @@
   "simulations": {
     "FCN_2019": {
       "simulator": "nest",
-      "neuron_model": "eglif",
+      "neuron_model": "iaf",
       "synapse_model": "static_synapse"
     }
   }
