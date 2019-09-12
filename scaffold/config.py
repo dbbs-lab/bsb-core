@@ -1,4 +1,5 @@
 import os, abc
+from inspect import isclass
 from .models import CellType, Layer
 from .morphologies import Morphology as BaseMorphology
 from .connectivity import ConnectionStrategy
@@ -173,21 +174,24 @@ class ScaffoldConfig(object):
                 layer.dimensions[2] *= scaling_z
 
     def load_configurable_class(self, name, configured_class_name, parent_class):
-        classParts = configured_class_name.split('.')
-        className = classParts[-1]
-        moduleName = '.'.join(classParts[:-1])
-        module_ref = __import__(moduleName, globals(), locals(), [className], 0)
-        if not className in module_ref.__dict__:
-            raise ConfigurableClassNotFoundException('Class not found:' + configured_class_name)
-        class_ref = module_ref.__dict__[className]
-        if not issubclass(class_ref, parent_class):
-            raise Exception("Configurable class '{}.{}' must derive from {}.{}".format(
-                moduleName,
-                className,
-                parent_class.__module__,
-                parent_class.__qualname__,
-            ))
-        instance = class_ref()
+        if isclass(configured_class_name):
+            instance = configured_class_name()
+        else:
+            classParts = configured_class_name.split('.')
+            className = classParts[-1]
+            moduleName = '.'.join(classParts[:-1])
+            module_ref = __import__(moduleName, globals(), locals(), [className], 0)
+            if not className in module_ref.__dict__:
+                raise ConfigurableClassNotFoundException('Class not found:' + configured_class_name)
+            class_ref = module_ref.__dict__[className]
+            if not issubclass(class_ref, parent_class):
+                raise Exception("Configurable class '{}.{}' must derive from {}.{}".format(
+                    moduleName,
+                    className,
+                    parent_class.__module__,
+                    parent_class.__qualname__,
+                ))
+            instance = class_ref()
         instance.__dict__['name'] = name
         return instance
 
@@ -214,7 +218,9 @@ class JSONConfig(ScaffoldConfig):
             :param simulators: Dictionary with extra simulators to register
             :type simulators: {string: SimulatorAdapter}
         '''
+
         def load_handler(config_string):
+            # Use the JSON module to parse the configuration string.
             import json
             try:
                 return json.loads(config_string)
@@ -229,13 +235,20 @@ class JSONConfig(ScaffoldConfig):
         # Initialize base config class, handling the reading of file/stream to string
         ScaffoldConfig.__init__(self, **kwargs)
 
+        # Use the parsed configuration as a basis for loading all parts of the scaffold
         parsed_config = self._parsed_config
+        # Load the general scaffold configuration
         self.load_general(parsed_config)
+        # Load the output module configuration
         self.load_output(parsed_config)
         self._layer_stacks = {}
+        # Load the layers
         self.load_attr(config=parsed_config, attr='layers', init=self.init_layer, final=self.finalize_layers, single=True)
+        # Load the cell types
         self.load_attr(config=parsed_config, attr='cell_types', init=self.init_cell_type, final=self.finalize_cell_type)
+        # Load the connection types
         self.load_attr(config=parsed_config, attr='connection_types', init=self.init_connection, final=self.finalize_connection)
+        # Load the simulations
         self.load_attr(config=parsed_config, attr='simulations', init=self.init_simulation, final=self.finalize_simulation)
 
     def load_general(self, config):
