@@ -8,7 +8,7 @@ class ConnectionStrategy(ConfigurableClass):
 	def __init__(self):
 		super().__init__()
 		self.simulation = type('simulation_configuration', (object,), {})()
-	
+
 	@abc.abstractmethod
 	def connect(self):
 		pass
@@ -233,7 +233,7 @@ class ConnectomeGranuleGolgi(ConnectionStrategy):
 		n_conn_pf = self.pf_convergence
 		tot_conn = n_connAA + n_conn_pf
 		pf_heights = get_parallel_fiber_heights(self.scaffold, granule_cell_type.morphology, granules)
-		self.scaffold.append_dset('hpf', data=pf_heights)
+		self.scaffold.append_dset('cells/ascending_axon_lengths', data=pf_heights)
 
 		def connectome_grc_goc(first_granule, granules, golgicells, r_goc_vol, OoB_value, n_connAA, n_conn_pf, tot_conn, scaffold):
 			aa_goc = np.empty((0,2))
@@ -313,8 +313,8 @@ class ConnectomeGolgiGranule(ConnectionStrategy):
 
 	def connect(self):
 		# Gather information for the legacy code block below.
-		glom_grc = self.scaffold.cell_connections_by_type['glomerulus_to_granule']
-		goc_glom = self.scaffold.cell_connections_by_type['golgi_to_glomerulus']
+		glom_grc = self.scaffold.cell_connections_by_tag['glomerulus_to_granule']
+		goc_glom = self.scaffold.cell_connections_by_tag['golgi_to_glomerulus']
 		golgi_type = self.from_cell_types[0]
 		golgis = self.scaffold.cells_by_type[golgi_type.name]
 
@@ -443,7 +443,7 @@ class ConnectomePFInterneuron(ConnectionStrategy):
 		interneurons = self.scaffold.cells_by_type[interneuron_cell_type.name]
 		first_granule = int(granules[0, 0])
 		dendrite_radius = interneuron_cell_type.morphology.dendrite_radius
-		pf_heights = self.scaffold.appends['hpf'][:, 1] + granules[:, 3] # Add granule Y to height of its pf
+		pf_heights = self.scaffold.appends['cells/ascending_axon_lengths'][:, 1] + granules[:, 3] # Add granule Y to height of its pf
 
 		def connectome_pf_inter(first_granule, interneurons, granules, r_sb, h_pf):
 			pf_interneuron = np.zeros((0,2))
@@ -686,7 +686,7 @@ class ConnectomePurkinjeDCN(ConnectionStrategy):
 		purkinjes = self.scaffold.cells_by_type[purkinje_cell_type.name]
 		dcn_cells = self.scaffold.cells_by_type[dcn_cell_type.name]
 		dcn_angles = get_dcn_rotations(dcn_cells)
-		self.scaffold.append_dset("dcn_angle", data=dcn_angles)
+		self.scaffold.append_dset("cells/dcn_orientations", data=dcn_angles)
 		if len(dcn_cells) == 0:
 			return
 		first_dcn = int(dcn_cells[0,0])
