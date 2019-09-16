@@ -1,8 +1,31 @@
 from .helpers import ConfigurableClass
+from contextlib import contextmanager
 from abc import abstractmethod
 import h5py, time
 
 class OutputFormatter(ConfigurableClass):
+    @contextmanager
+    def load(self):
+        handle = self.get_handle()
+        try:
+            yield handle
+        finally:
+            self.release_handle(handle)
+
+    @abstractmethod
+    def get_handle(self):
+        '''
+            Open the output resource and return a handle.
+        '''
+        pass
+
+    @abstractmethod
+    def release_handle(self, handle):
+        '''
+            Close the open output resource and release the handle.
+        '''
+        pass
+
     @abstractmethod
     def save(self):
         pass
@@ -10,11 +33,17 @@ class OutputFormatter(ConfigurableClass):
 class HDF5Formatter(OutputFormatter):
 
     defaults = {
-        'output_file': 'scaffold_network_{}.hdf5'.format(time.strftime("%Y_%m_%d-%H%M%S"))
+        'file': 'scaffold_network_{}.hdf5'.format(time.strftime("%Y_%m_%d-%H%M%S"))
     }
 
+    def get_handle(self):
+        return h5py.File(self.file, 'r')
+
+    def release_handle(self, handle):
+        return handle.close()
+
     def save(self):
-        self.storage = h5py.File(self.output_file, 'w')
+        self.storage = h5py.File(self.file, 'w')
         self.store_configuration()
         self.store_cells()
         self.store_statistics()
