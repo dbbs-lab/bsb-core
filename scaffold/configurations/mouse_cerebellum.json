@@ -213,7 +213,7 @@
     "parallel_fiber_to_stellate": {
       "class": "scaffold.connectivity.ConnectomePFInterneuron",
       "from_cell_types": [{"type": "granule_cell", "compartments": ["parallel_fiber"]}],
-      "to_cell_types": [{"type": "stellate_cell", "compartments": ["dendrites"]}],
+      "to_cell_types": [{"type": "stellate_cell", "compartments": ["dendrites"]}]
     },
     "basket_and_stellate_to_purkinje": {
       "class": "scaffold.connectivity.ConnectomeBCSCPurkinje",
@@ -341,7 +341,7 @@
           "weight": 0.3,
           "delay": 1.0
         },
-        "purkinje_to_dc": {
+        "purkinje_to_dcn": {
           "weight": 0.5,
           "delay": 40.0
         }

@@ -59,9 +59,9 @@ class Scaffold:
 	def _initialise_simulations(self):
 		for simulation in self.configuration.simulations.values():
 			simulation.initialise(self)
-			for sim_cell in simulation.cell_types.values():
+			for sim_cell in simulation.cell_models.values():
 				sim_cell.initialise(self)
-			for sim_connection in simulation.connection_types.values():
+			for sim_connection in simulation.connection_models.values():
 				sim_connection.initialise(self)
 
 	def _initialise_output_formatter(self):

@@ -466,14 +466,14 @@ class JSONConfig(ScaffoldConfig):
             # Initialise the cell model
             cell_model_config = self.init_cell_model(cell_model_name, cell_model, cell_model_class)
             # Store the cell simulation configuration
-            simulation.cell_models[cell_type.name] = cell_model_config
+            simulation.cell_models[cell_model_name] = cell_model_config
 
         # Configure the connection models for this simulation
         for connection_model_name, connection_model in connection_models_config.items():
             # Initialise the connection model
             connection_model_config = self.init_connection_model(connection_model_name, connection_model, connection_class)
             # Store the connection simulation configuration
-            simulation.connection_models[connection_type.name] = connection_model_config
+            simulation.connection_models[connection_model_name] = connection_model_config
 
         self.add_simulation(simulation)
 
@@ -522,17 +522,19 @@ class JSONConfig(ScaffoldConfig):
 
     def init_cell_model(self, name, section, cell_model_class):
         # Initialise a new cell simulation representation object
-        cell_model = self.load_configurable_class(name + '_cell_model', cell_model_class, ConfigurableClass)
+        cell_model = self.load_configurable_class(name, cell_model_class, ConfigurableClass)
         # Apply the configuration to the object
         self.fill_configurable_class(cell_model, section)
-        return cell_simulation
+        print('configured cell model', name)
+        return cell_model
 
     def init_connection_model(self, name, section, connection_model_class):
         # Initialise a new connection simulation representation object
-        connection_model = self.load_configurable_class(name + '_connection_model', connection_model_class, ConfigurableClass)
+        connection_model = self.load_configurable_class(name, connection_model_class, ConfigurableClass)
         # Apply the configuration to the object
         self.fill_configurable_class(connection_model, section)
-        return connection_simulation
+        print('configured conn model', name)
+        return connection_model
 
 class ConfigurableClassNotFoundException(Exception):
     pass
