@@ -48,6 +48,7 @@ parser_compile.add_argument('-p', action='store_true',help='Plot the created net
 
 parser_run = subparsers.add_parser('run', help='Run a simulation from scratch.')
 parser_run.add_argument('simulation', action='store', help='Preconfigured simulation to run.')
+parser_run.add_argument('-p', action='store_true',help='Plot the created network')
 
 parser_run = subparsers.add_parser('simulate', help='Run a simulation from a compiled HDF5 network architecture file.')
 parser_run.add_argument('simulation', action='store', help='Name of the preconfigured simulation.')
@@ -64,15 +65,18 @@ if cl_args.ctype == 'json':
 # Create the scaffold instance
 scaffoldInstance = Scaffold(scaffoldConfig)
 
-if cl_args.task == 'compile':
+if cl_args.task == 'compile' or cl_args.task == 'run':
 	scaffoldInstance.compileNetworkArchitecture()
 	if cl_args.p:
 		scaffoldInstance.plotNetworkCache()
 
 if cl_args.task == 'run':
-	adapter = scaffoldInstance.get_adapter(cl_args.simulator)
-	# Spaceholders, waiting for definitive hdf5 format and json config
-	hdf5 = None
-	simulation_config = None
-	simulator = adapter.prepare(hdf5, simulation_config)
-	adapter.simulate(simulator)
+	if not cl_args.simulation in scaffoldInstance.configuration.simulations:
+		raise Exception("Unknown simulation '{}', choose from: {}".format(
+			cl_args.simulation,
+			", ".join(scaffoldInstance.configuration.simulations.keys())
+		))
+	simulation = scaffoldInstance.configuration.simulations[cl_args.simulation]
+	with scaffoldInstance.output_formatter.load() as hdf5:
+		simulator = simulation.prepare(hdf5)
+	simulation.simulate(simulator)
