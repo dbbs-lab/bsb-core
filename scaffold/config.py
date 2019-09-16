@@ -525,7 +525,6 @@ class JSONConfig(ScaffoldConfig):
         cell_model = self.load_configurable_class(name, cell_model_class, ConfigurableClass)
         # Apply the configuration to the object
         self.fill_configurable_class(cell_model, section)
-        print('configured cell model', name)
         return cell_model
 
     def init_connection_model(self, name, section, connection_model_class):
@@ -533,7 +532,6 @@ class JSONConfig(ScaffoldConfig):
         connection_model = self.load_configurable_class(name, connection_model_class, ConfigurableClass)
         # Apply the configuration to the object
         self.fill_configurable_class(connection_model, section)
-        print('configured conn model', name)
         return connection_model
 
 class ConfigurableClassNotFoundException(Exception):

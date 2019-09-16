@@ -71,8 +71,8 @@ class NestAdapter(SimulatorAdapter):
 
         scaffold = self.scaffold
         configuration = scaffold.configuration
-        self.create_neurons(configuration.cell_types)
-        self.connect_neurons(configuration.connection_types, hdf5)
+        self.create_neurons(self.cell_models)
+        self.connect_neurons(self.connection_models, hdf5)
         self.stimulate_neurons()
         return nest
 
@@ -82,20 +82,18 @@ class NestAdapter(SimulatorAdapter):
     def validate(self):
         pass
 
-    def create_neurons(self, neuron_types):
-        default_model = self.neuron_model
-        for neuron_type in neuron_types.values():
-            name = neuron_type.name
-            nest_model_name = default_model
-            if hasattr(neuron_type, "fixed_model"):
-                nest_model_name = neuron_type.fixed_model
+    def create_neurons(self, cell_models):
+        default_model = self.default_neuron_model
+        for cell_model in cell_models.values():
+            name = cell_model.name
+            nest_model_name = cell_model.neuron_model if hasattr(cell_model, "neuron_model") else default_model
             nest.CopyModel(nest_model_name, name)
-            nest.SetDefaults(name, cell_type.simulation.nest.models[nest_model_name])
-            nest.Create(neuron_type.name, neuron_type.placement.cells_placed)
+            nest.SetDefaults(name, cell_model.parameters)
+            nest.Create(cell_model.name, self.scaffold.statistics.cells_placed[cell_model.name])
 
-    def connect_neurons(self, connection_types, hdf5):
-        default_model = self.synapse_model       # default model will be static_synapse
-        for connection_type in connection_types.values():
+    def connect_neurons(self, connection_models, hdf5):
+        default_model = self.default_synapse_model
+        for connection_type in connection_models.values():
             connectivity_matrix = hdf5['cells/connections'][connection_type.name]
             presynaptic_cells = connectivity_matrix[:,0]
             postsynaptic_cells = connectivity_matrix[:,1]
