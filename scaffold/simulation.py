@@ -68,9 +68,6 @@ class NestAdapter(SimulatorAdapter):
 
     def prepare(self, hdf5):
         import nest
-
-        scaffold = self.scaffold
-        configuration = scaffold.configuration
         self.create_neurons(self.cell_models)
         self.connect_neurons(self.connection_models, hdf5)
         self.stimulate_neurons()
