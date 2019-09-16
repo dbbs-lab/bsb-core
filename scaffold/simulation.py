@@ -7,8 +7,8 @@ class SimulatorAdapter(ConfigurableClass):
 
     def __init__(self):
         super().__init__()
-        self.cell_types = {}
-        self.connection_types = {}
+        self.cell_models = {}
+        self.connection_models = {}
 
     def get_configuration_classes(self):
         if not hasattr(self.__class__, 'simulator_name'):

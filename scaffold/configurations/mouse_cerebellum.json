@@ -260,7 +260,7 @@
       "simulator": "nest",
       "default_neuron_model": "iaf",
       "default_synapse_model": "static_synapse",
-      "neuron_models": {
+      "cell_models": {
         "granule_cell": {
           "weight": 0.6,
           "delay": 2.0

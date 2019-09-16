@@ -7,7 +7,6 @@ class CellType:
     def __init__(self, name, placement=None):
         self.name = name
         self.placement = placement
-        self.simulation = type('simulation_configuration', (object,), {})()
 
     def validate(self):
         '''

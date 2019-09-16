@@ -108,7 +108,7 @@ class ScaffoldConfig(object):
         # Register a new Geometry.
         self.placement_strategies[placement.name] = placement
 
-    def addConnection(self, connection):
+    def add_connection(self, connection):
         '''
             Adds a ConnectionStrategy to the config object. ConnectionStrategies
             are used to determine which touching cells to connect.
@@ -408,7 +408,7 @@ class JSONConfig(ScaffoldConfig):
         self.fill_configurable_class(connection, section, excluded=['class', 'from_cell_types', 'to_cell_types', 'simulation'])
         connection.__dict__['_from_cell_types'] = assert_attr_array(section, 'from_cell_types', node_name)
         connection.__dict__['_to_cell_types'] = assert_attr_array(section, 'to_cell_types', node_name)
-        self.addConnection(connection)
+        self.add_connection(connection)
 
     def init_placement(self, section, cell_type_name):
         '''
@@ -445,32 +445,35 @@ class JSONConfig(ScaffoldConfig):
         return placement
 
     def init_simulation(self, name, section):
+        node_name = 'simulations.{}'.format(name)
         # Get the simulator name from the config
-        simulator_name = assert_attr_in(section, 'simulator', self.simulators.keys(), 'simulation.{}'.format(name))
+        simulator_name = assert_attr_in(section, 'simulator', self.simulators.keys(), node_name)
         # Get the simulator adapter class for this simulation
         simulator = self.simulators[simulator_name]
         # Initialise a new simulator adapter for this simulation
         simulation = self.load_configurable_class(name, simulator, SimulatorAdapter)
         # Configure the simulation's adapter
-        self.fill_configurable_class(simulation, section, excluded=['simulator'])
+        self.fill_configurable_class(simulation, section, excluded=['simulator', 'cell_models', 'connection_models'])
         # Get the classes required to configure cells and connections in this simulation
         config_classes = simulation.get_configuration_classes()
         cell_model_class = config_classes['cell_models']
         connection_class = config_classes['connection_models']
 
-        # Configure the cell types for the simulator used by this simulation
-        cell_types_config = self._parsed_config['cell_types']
-        connection_types_config = self._parsed_config['connection_types']
-        for cell_type in self.cell_types.values():
-            cell_type_simulator_config = self.configure_simulator_cell_type(cell_type, cell_model_class, simulator_name)
-            # Store the cell simulation configurations in a shorthand dictionary
-            simulation.cell_types[cell_type.name] = cell_type_simulator_config
+        # Configure the cell models for this simulation
+        cell_models_config = assert_attr(section, 'cell_models', node_name)
+        connection_models_config = assert_attr(section, 'connection_models', node_name)
+        for cell_model_name, cell_model in cell_models_config.items():
+            # Initialise the cell model
+            cell_model_config = self.init_cell_model(cell_model_name, cell_model, cell_model_class)
+            # Store the cell simulation configuration
+            simulation.cell_models[cell_type.name] = cell_model_config
 
-        # Configure the connection types for the simulator used by this simulation
-        for connection_type in self.connection_types.values():
-            connection_simulator_config = self.configure_simulator_connection_type(connection_type, connection_class, simulator_name)
-            # Store the connection simulation configurations in a shorthand dictionary
-            simulation.connection_types[connection_type.name] = connection_simulator_config
+        # Configure the connection models for this simulation
+        for connection_model_name, connection_model in connection_models_config.items():
+            # Initialise the connection model
+            connection_model_config = self.init_connection_model(connection_model_name, connection_model, connection_class)
+            # Store the connection simulation configuration
+            simulation.connection_models[connection_type.name] = connection_model_config
 
         self.add_simulation(simulation)
 
@@ -517,38 +520,18 @@ class JSONConfig(ScaffoldConfig):
         connection.__dict__['from_cell_types'] = from_cell_types
         connection.__dict__['to_cell_types'] = to_cell_types
 
-    def configure_simulator_cell_type(self, cell_type, cell_model_class, simulator_name):
-        # Check if another simulation already configured the same simulator for this cell type
-        if hasattr(cell_type.simulation, simulator_name):
-            return cell_type.simulation.__dict__[simulator_name]
+    def init_cell_model(self, name, section, cell_model_class):
         # Initialise a new cell simulation representation object
-        cell_simulation = self.load_configurable_class(cell_type.name + '_' + simulator_name, cell_model_class, ConfigurableClass)
-        # Fetch the configuration for this object
-        cell_type_config = self._parsed_config['cell_types'][cell_type.name]
-        node_name = "cell_types.{}".format(cell_type.name)
-        simulation_node = assert_attr(cell_type_config, 'simulation', node_name)
-        simulator_specific_config = assert_attr(simulation_node, simulator_name, node_name + '.simulation')
+        cell_model = self.load_configurable_class(name + '_cell_model', cell_model_class, ConfigurableClass)
         # Apply the configuration to the object
-        self.fill_configurable_class(cell_simulation, simulator_specific_config)
-        # Store the cell simulation configuration inside the cell type configuration's simulation object
-        cell_type.simulation.__dict__[simulator_name] = cell_simulation
+        self.fill_configurable_class(cell_model, section)
         return cell_simulation
 
-    def configure_simulator_connection_type(self, connection_type, connection_model_class, simulator_name):
-        # Check if another simulation already configured the same simulator for this connection type
-        if hasattr(connection_type.simulation, simulator_name):
-            return connection_type.simulation.__dict__[simulator_name]
+    def init_connection_model(self, name, section, connection_model_class):
         # Initialise a new connection simulation representation object
-        connection_simulation = self.load_configurable_class(connection_type.name + '_' + simulator_name, connection_model_class, ConfigurableClass)
-        # Fetch the configuration for this object
-        connection_type_config = self._parsed_config['connection_types'][connection_type.name]
-        node_name = "connection_types.{}".format(connection_type.name)
-        simulation_node = assert_attr(connection_type_config, 'simulation', node_name)
-        simulator_specific_config = assert_attr(simulation_node, simulator_name, node_name + '.simulation')
+        connection_model = self.load_configurable_class(name + '_connection_model', connection_model_class, ConfigurableClass)
         # Apply the configuration to the object
-        self.fill_configurable_class(connection_simulation, simulator_specific_config)
-        # Store the connection simulation configuration inside the connection type configuration's simulation object
-        connection_type.simulation.__dict__[simulator_name] = connection_simulation
+        self.fill_configurable_class(connection_model, section)
         return connection_simulation
 
 class ConfigurableClassNotFoundException(Exception):
