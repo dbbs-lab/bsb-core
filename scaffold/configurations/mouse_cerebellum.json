@@ -58,18 +58,6 @@
         "pf_radius": 0.5,
         "dendrite_length": 40
       },
-      "simulation": {
-        "nest": {
-          "models" : {
-            "eglif" : {
-
-            },
-            "iaf" : {
-
-            }
-          }
-        }
-      },
       "plotting": {
         "display_name": "granule cell",
         "color": "#E62214"
@@ -84,19 +72,6 @@
       },
       "morphology": {
         "class": "scaffold.morphologies.NoGeometry"
-      },
-      "simulation": {
-        "nest": {
-          "fixed_model": "parrot_neuron",
-          "models" : {
-            "eglif" : {
-
-            },
-            "iaf" : {
-
-            }
-          }
-        }
       },
       "plotting": {
         "display_name": "glomerulus",
@@ -115,11 +90,6 @@
       },
       "morphology": {
         "class": "scaffold.morphologies.PurkinjeCellGeometry"
-      },
-      "simulation": {
-        "nest": {
-          "model": "eglif"
-        }
       },
       "plotting": {
         "display_name": "purkinje cell",
@@ -140,11 +110,6 @@
         "axon_y": 150.0,
         "axon_z": 30.0
       },
-      "simulation": {
-        "nest": {
-          "model": "eglif"
-        }
-      },
       "plotting": {
         "display_name": "golgi cell",
         "color": "#332EBC"
@@ -161,11 +126,6 @@
       "morphology": {
         "class": "scaffold.morphologies.RadialGeometry",
         "dendrite_radius": 15.0
-      },
-      "simulation": {
-        "nest": {
-          "model": "eglif"
-        }
       },
       "plotting": {
         "display_name": "stellate cell",
@@ -184,11 +144,6 @@
         "class": "scaffold.morphologies.RadialGeometry",
         "dendrite_radius": 15.0
       },
-      "simulation": {
-        "nest": {
-          "model": "eglif"
-        }
-      },
       "plotting": {
         "display_name": "basket cell",
         "color": "#7A1607"
@@ -205,11 +160,6 @@
       "morphology": {
         "class": "scaffold.morphologies.NoGeometry"
       },
-      "simulation": {
-        "nest": {
-          "model": "eglif"
-        }
-      },
       "plotting": {
         "display_name": "dcn cell",
         "color": "#15118B"
@@ -222,126 +172,48 @@
       "from_cell_types": [{"type": "golgi_cell", "compartment": "axon"}],
       "to_cell_types": [{"type": "glomerulus", "compartment": "soma"}],
       "divergence": 40,
-      "convergence": 4,
-      "simulation": {
-        "nest": {
-          "models": {
-            "static_synapse": {
-              "weight": 0.0,
-              "delay": 0.5
-            }
-          }
-        }
-      }
+      "convergence": 4
     },
     "glomerulus_to_granule": {
       "class": "scaffold.connectivity.ConnectomeGlomerulusGranule",
       "from_cell_types": [{"type": "glomerulus", "compartments": ["soma"]}],
       "to_cell_types": [{"type": "granule_cell", "compartments": ["dendrites"]}],
       "divergence": 50,
-      "convergence": 4,
-      "simulation": {
-        "nest": {
-          "models": {
-            "static_synapse": {
-              "weight": 0.15,
-              "delay": 4.0
-            }
-          }
-        }
-      }
+      "convergence": 4
     },
     "granule_to_golgi": {
       "class": "scaffold.connectivity.ConnectomeGranuleGolgi",
       "from_cell_types": [{"type": "granule_cell", "compartments": ["parallel_fiber", "ascending_axon"]}],
       "to_cell_types": [{"type": "golgi_cell", "compartments": ["dendrites"]}],
+      "tag_aa": "ascending_axon_to_golgi",
+      "tag_pf": "parallel_fiber_to_golgi",
       "aa_convergence": 400,
-      "pf_convergence": 1200,
-      "simulation": {
-        "nest": {
-          "models": {
-            "static_synapse": {
-              "weight": [1.2, 0.05], // [aa_goc, pf_goc]
-              "delay": [2.0, 5.0]
-            }
-          }
-        }
-      }
+      "pf_convergence": 1200
     },
     "golgi_to_granule": {
       "class": "scaffold.connectivity.ConnectomeGolgiGranule",
       "from_cell_types": [{"type": "golgi_cell", "compartments": ["axon"]}],
-      "to_cell_types": [{"type": "granule_cell", "compartments": ["dendrites"]}],
-      "simulation": {
-        "nest": {
-          "models": {
-            "static_synapse": {
-              "weight": 0.6,
-              "delay": 2.0
-            }
-          }
-        }
-      }
+      "to_cell_types": [{"type": "granule_cell", "compartments": ["dendrites"]}]
     },
     "ascending_axon_to_purkinje": {
       "class": "scaffold.connectivity.ConnectomeAscAxonPurkinje",
       "from_cell_types": [{"type": "granule_cell", "compartments": ["ascending_axon"]}],
-      "to_cell_types": [{"type": "purkinje_cell", "compartments": ["dendrites"]}],
-      "simulation": {
-        "nest": {
-          "models": {
-            "static_synapse": {
-              "weight": 0.7,
-              "delay": 2.0
-            }
-          }
-        }
-      }
+      "to_cell_types": [{"type": "purkinje_cell", "compartments": ["dendrites"]}]
     },
     "parallel_fiber_to_purkinje": {
       "class": "scaffold.connectivity.ConnectomePFPurkinje",
       "from_cell_types": [{"type": "granule_cell", "compartments": ["parallel_fiber"]}],
-      "to_cell_types": [{"type": "purkinje_cell", "compartments": ["dendrites"]}],
-      "simulation": {
-        "nest": {
-          "models": {
-            "static_synapse": {
-              "weight": 0.007,
-              "delay": 5.0
-            }
-          }
-        }
-      }
+      "to_cell_types": [{"type": "purkinje_cell", "compartments": ["dendrites"]}]
     },
     "parallel_fiber_to_basket": {
       "class": "scaffold.connectivity.ConnectomePFInterneuron",
       "from_cell_types": [{"type": "granule_cell", "compartments": ["parallel_fiber"]}],
-      "to_cell_types": [{"type": "basket_cell", "compartments": ["dendrites"]}],
-      "simulation": {
-        "nest": {
-          "models": {
-            "static_synapse": {
-              "weight": 0.015,
-              "delay": 5.0
-            }
-          }
-        }
-      }
+      "to_cell_types": [{"type": "basket_cell", "compartments": ["dendrites"]}]
     },
     "parallel_fiber_to_stellate": {
       "class": "scaffold.connectivity.ConnectomePFInterneuron",
       "from_cell_types": [{"type": "granule_cell", "compartments": ["parallel_fiber"]}],
       "to_cell_types": [{"type": "stellate_cell", "compartments": ["dendrites"]}],
-      "simulation": {
-        "nest": {
-          "models": {
-            "static_synapse": {
-              "weight": 0.015,
-              "delay": 5.0
-            }
-          }
-        }
-      }
     },
     "basket_and_stellate_to_purkinje": {
       "class": "scaffold.connectivity.ConnectomeBCSCPurkinje",
@@ -353,17 +225,7 @@
       "divergence": 2,
       "convergence": 20,
       "limit_x": 500.0,
-      "limit_z": 100.0,
-      "simulation": {
-        "nest": {
-          "models": {
-            "static_synapse": {
-              "weight": 0.3,
-              "delay": 4.0
-            }
-          }
-        }
-      }
+      "limit_z": 100.0
     },
     "stellate_gap_junctions": {
       "class": "scaffold.connectivity.ConnectomeGapJunctions",
@@ -371,17 +233,7 @@
       "to_cell_types": [{"type": "stellate_cell", "compartments": ["dendrites"]}],
       "divergence": 4,
       "limit_xy": 150.0,
-      "limit_z": 50.0,
-      "simulation": {
-        "nest": {
-          "models": {
-            "static_synapse": {
-              "weight": 0.2,
-              "delay": 1.0
-            }
-          }
-        }
-      }
+      "limit_z": 50.0
     },
     "basket_gap_junctions": {
       "class": "scaffold.connectivity.ConnectomeGapJunctions",
@@ -389,55 +241,107 @@
       "to_cell_types": [{"type": "basket_cell", "compartments": ["dendrites"]}],
       "divergence": 4,
       "limit_xy": 150.0,
-      "limit_z": 50.0,
-      "simulation": {
-        "nest": {
-          "models": {
-            "static_synapse": {
-              "weight": 0.2,
-              "delay": 1.0
-            }
-          }
-        }
-      }
+      "limit_z": 50.0
     },
     "golgi_gap_junctions": {
       "class": "scaffold.connectivity.ConnectomeGapJunctionsGolgi",
       "from_cell_types": [{"type": "golgi_cell", "compartments": ["axon"]}],
-      "to_cell_types": [{"type": "golgi_cell", "compartments": ["dendrites"]}],
-    "simulation": {
-        "nest": {
-          "models": {
-            "static_synapse": {
-              "weight": 0.3,
-              "delay": 1.0
-            }
-          }
-        }
-      } 
+      "to_cell_types": [{"type": "golgi_cell", "compartments": ["dendrites"]}]
     },
     "purkinje_to_dcn": {
       "class": "scaffold.connectivity.ConnectomePurkinjeDCN",
       "from_cell_types": [{"type": "purkinje_cell", "compartments": ["axon"]}],
       "to_cell_types": [{"type": "dcn_cell", "compartments": ["dendrites"]}],
-      "divergence": 5,
-      "simulation": {
-        "nest": {
-          "models": {
-            "static_synapse": {
-              "weight": 0.5,
-              "delay": 40.0
-            }
-          }
-        }
-      }
+      "divergence": 5
     }
   },
   "simulations": {
     "FCN_2019": {
       "simulator": "nest",
-      "neuron_model": "iaf",
-      "synapse_model": "static_synapse"
+      "default_neuron_model": "iaf",
+      "default_synapse_model": "static_synapse",
+      "neuron_models": {
+        "granule_cell": {
+          "weight": 0.6,
+          "delay": 2.0
+        },
+        "glomerulus": {
+
+        },
+        "purkinje_cell": {
+
+        },
+        "golgi_cell": {
+
+        },
+        "stellate_cell": {
+
+        },
+        "basket_cell": {
+
+        },
+        "dcn_cell": {
+
+        }
+      },
+      "connection_models": {
+        "golgi_to_glomerulus": {
+          "weight": 0.0,
+          "delay": 0.5
+        },
+        "glomerulus_to_granule": {
+          "weight": 0.15,
+          "delay": 4.0
+        },
+        "golgi_to_granule": {
+          "weight": 0.6,
+          "delay": 2.0
+        },
+        "ascending_axon_to_purkinje": {
+          "weight": 0.7,
+          "delay": 2.0
+        },
+        "ascending_axon_to_golgi": {
+          "weight": 1.2,
+          "delay": 2.0
+        },
+        "parallel_fiber_to_golgi": {
+          "weight": 0.5,
+          "delay": 5.0
+        },
+        "parallel_fiber_to_purkinje": {
+          "weight": 0.007,
+          "delay": 5.0
+        },
+        "parallel_fiber_to_basket": {
+          "weight": 0.015,
+          "delay": 5.0
+        },
+        "parallel_fiber_to_stellate": {
+          "weight": 0.015,
+          "delay": 5.0
+        },
+        "basked_and_stellate_to_purkinje": {
+          "weight": 0.3,
+          "delay": 4.0
+        },
+        "stellate_gap_junctions": {
+          "weight": 0.2,
+          "delay": 1.0
+        },
+        "basket_gap_junctions": {
+          "weight": 0.2,
+          "delay": 1.0
+        },
+        "golgi_gap_junctions" : {
+          "weight": 0.3,
+          "delay": 1.0
+        },
+        "purkinje_to_dc": {
+          "weight": 0.5,
+          "delay": 40.0
+        }
+      }
     }
   }
 }
