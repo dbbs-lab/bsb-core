@@ -106,6 +106,17 @@ class Scaffold:
 		self.cell_connections_by_tag = {}
 		self.appends = {}
 
+	def run_simulation(self, simulation_name):
+	if not simulation_name in self.configuration.simulations:
+		raise Exception("Unknown simulation '{}', choose from: {}".format(
+			simulation_name,
+			", ".join(self.configuration.simulations.keys())
+		))
+	simulation = self.configuration.simulations[simulation_name]
+	with self.output_formatter.load() as hdf5:
+		simulator = simulation.prepare(hdf5)
+	simulation.simulate(simulator)
+
 	def place_cells(self, cell_type, layer, positions):
 		cell_count = positions.shape[0]
 		# Create an ID for each cell.

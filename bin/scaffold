@@ -71,12 +71,4 @@ if cl_args.task == 'compile' or cl_args.task == 'run':
 		scaffoldInstance.plotNetworkCache()
 
 if cl_args.task == 'run':
-	if not cl_args.simulation in scaffoldInstance.configuration.simulations:
-		raise Exception("Unknown simulation '{}', choose from: {}".format(
-			cl_args.simulation,
-			", ".join(scaffoldInstance.configuration.simulations.keys())
-		))
-	simulation = scaffoldInstance.configuration.simulations[cl_args.simulation]
-	with scaffoldInstance.output_formatter.load() as hdf5:
-		simulator = simulation.prepare(hdf5)
-	simulation.simulate(simulator)
+	scaffoldInstance.run_simulation(cl_args.simulation)
