@@ -216,7 +216,12 @@ class ConnectomeGranuleGolgi(ConnectionStrategy):
 		'pf_convergence': int
 	}
 
-	required = ['aa_convergence', 'pf_convergence']
+	required = ['aa_convergence', 'pf_convergence', 'tag_aa', 'tag_pf']
+
+	defaults = {
+		'tag_aa': 'ascending_axon_to_golgi',
+		'tag_pf': 'parallel_fiber_to_golgi'
+	}
 
 	def validate(self):
 		pass
@@ -301,8 +306,8 @@ class ConnectomeGranuleGolgi(ConnectionStrategy):
 			return aa_goc, pf_goc
 
 		result_aa, result_pf = connectome_grc_goc(first_granule, granules, golgis, r_goc_vol, oob, n_connAA, n_conn_pf, tot_conn, self.scaffold)
-		self.scaffold.connect_cells(self, result_aa, "ascending_axon_to_golgi")
-		self.scaffold.connect_cells(self, result_pf)
+		self.scaffold.connect_cells(self, result_aa, self.tag_aa)
+		self.scaffold.connect_cells(self, result_pf, self.tag_pf)
 
 class ConnectomeGolgiGranule(ConnectionStrategy):
 	'''
@@ -477,7 +482,12 @@ class ConnectomeBCSCPurkinje(ConnectionStrategy):
 		'convergence': int
 	}
 
-	required = ['limit_x', 'limit_z', 'divergence', 'convergence']
+	required = ['limit_x', 'limit_z', 'divergence', 'convergence', "tag_sc", "tag_bc"]
+
+	defaults = {
+		"tag_sc": "stellate_to_purkinje",
+		"tag_bc": "basket_to_purkinje"
+	}
 
 	def validate(self):
 		pass
@@ -557,8 +567,8 @@ class ConnectomeBCSCPurkinje(ConnectionStrategy):
 			return sc_pc[0:sc_i], bc_pc[0:bc_i]
 
 		result_sc, result_bc = connectome_sc_bc_pc(first_stellate, first_basket, baskets, stellates, purkinjes, distx, distz, conv)
-		self.scaffold.connect_cells(self, result_sc, "stellate_to_purkinje")
-		self.scaffold.connect_cells(self, result_bc, "basket_to_purkinje")
+		self.scaffold.connect_cells(self, result_sc, self.tag_sc)
+		self.scaffold.connect_cells(self, result_bc, self.tag_bc)
 
 class ConnectomeGapJunctions(ConnectionStrategy):
 	'''

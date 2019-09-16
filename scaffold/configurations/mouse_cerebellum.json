@@ -321,7 +321,11 @@
           "weight": 0.015,
           "delay": 5.0
         },
-        "basked_and_stellate_to_purkinje": {
+        "stellate_to_purkinje": {
+          "weight": 0.3,
+          "delay": 4.0
+        },
+        "basket_to_purkinje": {
           "weight": 0.3,
           "delay": 4.0
         },
