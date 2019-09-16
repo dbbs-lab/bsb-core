@@ -35,8 +35,11 @@ class ConfigurableClass(abc.ABC):
             a value as only argument. This dictionary will be used to cast the attributes when castConfig
             is called.
         '''
+        name = ''
+        if hasattr(self, 'node_name'):
+            name += self.node_name + '.'
         if hasattr(self, 'name'):
-            name = self.name
+            name += self.name
         else:
             name = str(self)
         castingDict = getattr(self.__class__, 'casts', {})

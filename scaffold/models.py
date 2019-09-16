@@ -90,9 +90,15 @@ class Layer(dimensions, origin):
         self.scaffold = scaffoldInstance
 
 class NestCell(ConfigurableClass):
+
+    node_name = 'simulations.?.cell_models'
+    required = ['parameters']
+
     def validate(self):
         pass
 
 class NestConnection(ConfigurableClass):
+    node_name = 'simulations.?.connection_models'
+    
     def validate(self):
         pass
