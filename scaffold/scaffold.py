@@ -68,7 +68,7 @@ class Scaffold:
 		self.output_formatter = self.configuration.output_formatter
 		self.output_formatter.initialise(self)
 
-	def compileNetworkArchitecture(self, tries=1):
+	def compile_network(self, tries=1):
 		times = np.zeros(tries)
 		# Place the cells starting from the lowest density cell_types.
 		for i in np.arange(tries, dtype=int):

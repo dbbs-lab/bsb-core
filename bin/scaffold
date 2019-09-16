@@ -66,7 +66,7 @@ if cl_args.ctype == 'json':
 scaffoldInstance = Scaffold(scaffoldConfig)
 
 if cl_args.task == 'compile' or cl_args.task == 'run':
-	scaffoldInstance.compileNetworkArchitecture()
+	scaffoldInstance.compile_network()
 	if cl_args.p:
 		scaffoldInstance.plotNetworkCache()
 

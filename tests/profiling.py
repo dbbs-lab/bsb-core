@@ -12,7 +12,7 @@ instance = Scaffold(config)
 for i in range(1,40):
     config.resize(100 + i * 20, 100 + i * 20)
     instance.resetNetworkCache()
-    cProfile.run('instance.compileNetworkArchitecture()', 'compile_stats')
+    cProfile.run('instance.compile_network()', 'compile_stats')
     p = pstats.Stats('compile_stats')
     p.strip_dirs().sort_stats('cumulative').print_stats('place', 25)
     print('square size:', config.X)
