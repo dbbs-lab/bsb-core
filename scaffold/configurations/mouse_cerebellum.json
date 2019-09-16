@@ -262,26 +262,40 @@
       "default_synapse_model": "static_synapse",
       "cell_models": {
         "granule_cell": {
-          "weight": 0.6,
-          "delay": 2.0
+          "parameters": {
+
+          }
         },
         "glomerulus": {
+          "neuron_model": "parrot_neuron",
+          "parameters": {
 
+          }
         },
         "purkinje_cell": {
+          "parameters": {
 
+          }
         },
         "golgi_cell": {
+          "parameters": {
 
+          }
         },
         "stellate_cell": {
+          "parameters": {
 
+          }
         },
         "basket_cell": {
+          "parameters": {
 
+          }
         },
         "dcn_cell": {
+          "parameters": {
 
+          }
         }
       },
       "connection_models": {
