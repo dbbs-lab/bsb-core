@@ -13,6 +13,23 @@ from .helpers import (
 )
 from .simulation import NestAdapter
 
+def from_hdf5(file):
+    import h5py
+    with h5py.File(file, 'r') as resource:
+        config_class = resource.attrs['configuration_class']
+        config_string = resource.attrs['configuration_string']
+    classParts = config_class.split('.')
+    className = classParts[-1]
+    module_name = '.'.join(classParts[:-1])
+    if module_name == '':
+        module_dict = globals()
+    else:
+        module_dict = __import__(moduleName, globals(), locals(), [className], 0).__dict__
+    if not className in module_dict:
+        raise Exception('Can not load HDF5 file \'{}\'. Configuration class not found:'.format(file) + config_class)
+    # Instantiate the configuration class with a configuration stream
+    return module_dict[className](stream=config_string)
+
 class ScaffoldConfig(object):
 
     def __init__(self, file=None, stream=None, verbosity=0, simulators={}):

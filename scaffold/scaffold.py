@@ -12,7 +12,7 @@ import time
 
 class Scaffold:
 
-	def __init__(self, config):
+	def __init__(self, config, from_file=None):
 		self.configuration = config
 		self.resetNetworkCache()
 		# Debug statistics, unused.
@@ -22,6 +22,9 @@ class Scaffold:
 		# to prepare for the network architecture compilation.
 		self.initialiseComponents()
 		self.initialiseSimulators()
+
+		if from_file:
+			self.output_formatter.file = from_file
 
 	def initialiseComponents(self):
 		# Initialise the components now that the scaffoldInstance is available
@@ -107,15 +110,15 @@ class Scaffold:
 		self.appends = {}
 
 	def run_simulation(self, simulation_name):
-	if not simulation_name in self.configuration.simulations:
-		raise Exception("Unknown simulation '{}', choose from: {}".format(
-			simulation_name,
-			", ".join(self.configuration.simulations.keys())
-		))
-	simulation = self.configuration.simulations[simulation_name]
-	with self.output_formatter.load() as hdf5:
-		simulator = simulation.prepare(hdf5)
-	simulation.simulate(simulator)
+		if not simulation_name in self.configuration.simulations:
+			raise Exception("Unknown simulation '{}', choose from: {}".format(
+				simulation_name,
+				", ".join(self.configuration.simulations.keys())
+			))
+		simulation = self.configuration.simulations[simulation_name]
+		with self.output_formatter.load() as hdf5:
+			simulator = simulation.prepare(hdf5)
+		simulation.simulate(simulator)
 
 	def place_cells(self, cell_type, layer, positions):
 		cell_count = positions.shape[0]

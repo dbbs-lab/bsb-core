@@ -54,21 +54,24 @@ parser_run = subparsers.add_parser('simulate', help='Run a simulation from a com
 parser_run.add_argument('simulation', action='store', help='Name of the preconfigured simulation.')
 parser_run.add_argument('--hdf5', action='store', required=True, help='Name of the HDF5 file to load.')
 
+file = None
 cl_args = parser.parse_args()
 if hasattr(cl_args, 'hdf5'):
 	cl_args.ctype = 'hdf5'
-
 if cl_args.ctype == 'json':
 	# Load the .json configuration
 	scaffoldConfig = scaffold.config.JSONConfig(file=cl_args.config, verbosity=cl_args.verbose)
+elif cl_args.ctype == 'hdf5':
+	file = cl_args.hdf5
+	scaffoldConfig = scaffold.config.from_hdf5(file)
 
 # Create the scaffold instance
-scaffoldInstance = Scaffold(scaffoldConfig)
+scaffoldInstance = Scaffold(scaffoldConfig, from_file=file)
 
 if cl_args.task == 'compile' or cl_args.task == 'run':
 	scaffoldInstance.compile_network()
 	if cl_args.p:
 		scaffoldInstance.plotNetworkCache()
 
-if cl_args.task == 'run':
+if cl_args.task == 'run' or cl_args.task == 'simulate':
 	scaffoldInstance.run_simulation(cl_args.simulation)

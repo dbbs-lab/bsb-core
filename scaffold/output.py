@@ -57,6 +57,7 @@ class HDF5Formatter(OutputFormatter):
         f = self.storage
         f.attrs['configuration_name'] = self.scaffold.configuration._name
         f.attrs['configuration_type'] = self.scaffold.configuration._type
+        f.attrs['configuration_class'] = self.scaffold.configuration.__class__.__qualname__
         f.attrs['configuration_string'] = self.scaffold.configuration._raw
 
     def store_cells(self):
