@@ -93,11 +93,15 @@ class NestAdapter(SimulatorAdapter):
 
     def connect_neurons(self, connection_models, hdf5):
         default_model = self.default_synapse_model
-        for connection_type in connection_models.values():
-            connectivity_matrix = hdf5['cells/connections'][connection_type.name]
+        for connection_model in connection_models.values():
+            connectivity_matrix = hdf5['cells/connections'][connection_model.name]
             presynaptic_cells = connectivity_matrix[:,0]
             postsynaptic_cells = connectivity_matrix[:,1]
-            synaptic_parameters = connection_type.simulation.nest.models[default_model]  # Dictionary with delay and weight
+            parameter_keys = ['weight', 'delay']
+            synaptic_parameters = {}
+            for key in parameter_keys:
+                if hasattr(connection_model, key):
+                    synaptic_parameters[key] = connection_model.__dict__[key]
             connection_parameters = {'rule': 'one_to_one'}
             nest.Connect(presynaptic_cells, postsynaptic_cells, connection_parameters, synaptic_parameters)
 
