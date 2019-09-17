@@ -91,16 +91,14 @@ class NestAdapter(SimulatorAdapter):
                 raise Exception("Missing parameters for '{}' model in '{}'".format(nest_model_name, name))
             params.update(cell_model.__dict__[nest_model_name])
             self.nest.SetDefaults(name, params)
-            self.nest.Create(cell_model.name, self.scaffold.statistics.cells_placed[cell_model.name])
+            self.handle = self.nest.Create(cell_model.name, self.scaffold.statistics.cells_placed[name])
 
     def connect_neurons(self, connection_models, hdf5):
         default_model = self.default_synapse_model
         for connection_model in connection_models.values():
             connectivity_matrix = hdf5['cells/connections'][connection_model.name]
-            presynaptic_cells = connectivity_matrix[:,0]
-            postsynaptic_cells = connectivity_matrix[:,1]
-            print(connectivity_matrix[:,0])
-            print(connectivity_matrix[:,1])
+            presynaptic_cells = np.array(connectivity_matrix[:,0], dtype=int)
+            postsynaptic_cells = np.array(connectivity_matrix[:,1], dtype=int)
             parameter_keys = ['weight', 'delay']
             synaptic_parameters = {}
             for key in parameter_keys:
