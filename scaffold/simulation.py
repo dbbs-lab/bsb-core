@@ -70,7 +70,7 @@ class NestAdapter(SimulatorAdapter):
         import nest
         self.create_neurons(self.cell_models)
         self.connect_neurons(self.connection_models, hdf5)
-        self.stimulate_neurons()
+        self.stimulate_neurons({})
         return nest
 
     def simulate(self, simulator):
