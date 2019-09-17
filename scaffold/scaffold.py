@@ -23,8 +23,10 @@ class Scaffold:
 		self.initialiseComponents()
 		self.initialiseSimulators()
 
+		# Tell the output formatter that we've loaded from an output and initialise scaffold from it.
 		if from_file:
 			self.output_formatter.file = from_file
+			self.output_formatter.init_scaffold()
 
 	def initialiseComponents(self):
 		# Initialise the components now that the scaffoldInstance is available

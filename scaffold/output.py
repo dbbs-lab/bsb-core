@@ -30,6 +30,13 @@ class OutputFormatter(ConfigurableClass):
     def save(self):
         pass
 
+    @abstractmethod
+    def init_scaffold(self):
+        '''
+            Initialize the scaffold when it has been loaded from an output file.
+        '''
+        pass
+
 class HDF5Formatter(OutputFormatter):
 
     defaults = {
@@ -49,6 +56,11 @@ class HDF5Formatter(OutputFormatter):
         self.store_statistics()
         self.store_appendices()
         self.storage.close()
+
+    def init_scaffold(self):
+        with self.load() as resource:
+            for cell_type_name, count in resource['statistics/cells_placed'].attrs.items():
+                self.scaffold.statistics.cells_placed[cell_type_name] = count
 
     def validate(self):
         pass
