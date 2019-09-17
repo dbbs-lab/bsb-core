@@ -106,5 +106,8 @@ class NestAdapter(SimulatorAdapter):
             connection_parameters = {'rule': 'one_to_one'}
             nest.Connect(presynaptic_cells, postsynaptic_cells, connection_parameters, synaptic_parameters)
 
-    def stimulate_neurons(self):
-        pass
+    def stimulate_neurons(self, stimulus_models):
+        for stimulus_model in stimulus_models.values():
+            stimulus = nest.Create(stimulus_model.name)
+            nest.SetStatus(stimulus, stimulus_model.parameters)
+            nest.Connect(stimulus,stimulus_model.get_targets())
