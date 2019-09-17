@@ -272,7 +272,7 @@
           }
           "iaf_parameters": {
           "Ie": 0.0
-        }
+          }
           "eglif_parameters": {
           "Vinit": -62.0,
           "lambda":1.0, 
@@ -283,8 +283,7 @@
           "k2": 0.041,
           "A1": 0.01,
           "A2":-0.94
-        }
-        }
+          }
         },
         "glomerulus": {
           "neuron_model": "parrot_neuron",
@@ -293,9 +292,27 @@
           }
         },
         "purkinje_cell": {
-          "parameters": {
-
+          "passive_parameters": {
+            "t_ref": 0.5,
+            "C_m": 334.0,
+            "tau_m": 47.0,
+            "V_th": -43.0,
+            "V_reset": -69.0,
+            "E_L": -59.0
           }
+          "iaf_parameters": {
+            "Ie": 800.0
+          }
+          "eglif_parameters": {
+            "Vinit": -59.0,
+            "lambda":4.0, 
+            "deltaV":3.5,
+            "Ie": 742.54,
+            "k_adap": 1.492,
+            "k1": 0.1950, 
+            "k2": 0.041,
+            "A1": 157.622,
+            "A2":172.622}
         },
         "golgi_cell": {
           "passive_parameters": {
@@ -320,22 +337,75 @@
             "A1": 259.988,
             "A2":178.01
            }
-          }
+          
         },
         "stellate_cell": {
-          "parameters": {
-
+          "passive_parameters": {
+            "t_ref": 1.59, 
+            "C_m": 14.6,
+            "tau_m": 9.125,
+            "V_th": -53.0,
+            "V_reset": -78.0,
+            "E_L": -68.0
           }
+          "iaf_parameters": {
+            "Ie": 24.05
+          }
+          "eglif_parameters": {
+            "Vinit": -68.0,
+            "lambda":1.8, 
+            "deltaV":1.1,
+            "Ie": 3.711,
+            "k_adap": 2.025,
+            "k1": 1.887, 
+            "k2": 1.096,
+            "A1": 5.953,
+            "A2":5.863}
         },
         "basket_cell": {
-          "parameters": {
-
+          "passive_parameters": {
+            "t_ref": 1.59, 
+            "C_m": 14.6,
+            "tau_m": 9.125,
+            "V_th": -53.0,
+            "V_reset": -78.0,
+            "E_L": -68.0
           }
+          "iaf_parameters": {
+            "Ie": 24.05
+          }
+          "eglif_parameters": {
+            "Vinit": -68.0,
+            "lambda":1.8, 
+            "deltaV":1.1,
+            "Ie": 3.711,
+            "k_adap": 2.025,
+            "k1": 1.887, 
+            "k2": 1.096,
+            "A1": 5.953,
+            "A2":5.863}
         },
         "dcn_cell": {
-          "parameters": {
-
+          "passive_parameters": {
+            "t_ref": 0.8, 
+            "C_m": 142.0,
+            "tau_m": 33.0,
+            "V_th": -36.0,
+            "V_reset": -55.0,
+            "E_L": -45.0}
+          "iaf_parameters": {
+            "Ie": 180.0
           }
+          "eglif_parameters": {
+            "Vinit": -45.0,
+            "lambda":3.5, 
+            "deltaV":3.0,
+            "Ie": 75.385,
+            "k_adap": 0.408,
+            "k1": 0.697, 
+            "k2": 0.047,
+            "A1": 13.857,
+            "A2":3.477}
         }
       },
       "connection_models": {
