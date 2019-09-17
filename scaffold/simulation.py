@@ -85,7 +85,11 @@ class NestAdapter(SimulatorAdapter):
             name = cell_model.name
             nest_model_name = cell_model.neuron_model if hasattr(cell_model, "neuron_model") else default_model
             nest.CopyModel(nest_model_name, name)
-            nest.SetDefaults(name, cell_model.parameters)
+            params = cell_model.parameters.copy()
+            if not hasattr(cell_model, nest_model_name):
+                raise Exception("Missing parameters for '{}' model in '{}'".format(nest_model_name, name))
+            params.update(cell_model.__dict__[nest_model_name])
+            nest.SetDefaults(name, params)
             nest.Create(cell_model.name, self.scaffold.statistics.cells_placed[cell_model.name])
 
     def connect_neurons(self, connection_models, hdf5):

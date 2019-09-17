@@ -262,7 +262,7 @@
       "default_synapse_model": "static_synapse",
       "cell_models": {
         "granule_cell": {
-          "passive_parameters": {
+          "parameters": {
             "t_ref": 1.5,
             "C_m": 7.0,
             "tau_m": 24.15,
@@ -270,10 +270,10 @@
             "V_reset": -70.0,
             "E_L": -62.0
           },
-          "iaf_parameters": {
+          "iaf": {
             "Ie": 0.0
           },
-          "eglif_parameters": {
+          "eglif": {
             "Vinit": -62.0,
             "lambda":1.0,
             "deltaV":0.3,
@@ -292,7 +292,7 @@
           }
         },
         "purkinje_cell": {
-          "passive_parameters": {
+          "parameters": {
             "t_ref": 0.5,
             "C_m": 334.0,
             "tau_m": 47.0,
@@ -300,10 +300,10 @@
             "V_reset": -69.0,
             "E_L": -59.0
           },
-          "iaf_parameters": {
+          "iaf": {
             "Ie": 800.0
           },
-          "eglif_parameters": {
+          "eglif": {
             "Vinit": -59.0,
             "lambda":4.0,
             "deltaV":3.5,
@@ -316,7 +316,7 @@
           }
         },
         "golgi_cell": {
-          "passive_parameters": {
+          "parameters": {
             "t_ref": 2.0,
             "C_m": 145.0,
             "tau_m": 44.0,
@@ -324,10 +324,10 @@
             "V_reset": -75.0,
             "E_L": -62.0
           },
-          "iaf_parameters": {
+          "iaf": {
             "Ie": 36.8
           },
-          "eglif_parameters": {
+          "eglif": {
             "Vinit": -62.0,
             "lambda":1.0,
             "deltaV":0.4,
@@ -341,7 +341,7 @@
 
         },
         "stellate_cell": {
-          "passive_parameters": {
+          "parameters": {
             "t_ref": 1.59,
             "C_m": 14.6,
             "tau_m": 9.125,
@@ -349,10 +349,10 @@
             "V_reset": -78.0,
             "E_L": -68.0
           },
-          "iaf_parameters": {
+          "iaf": {
             "Ie": 24.05
           },
-          "eglif_parameters": {
+          "eglif": {
             "Vinit": -68.0,
             "lambda":1.8,
             "deltaV":1.1,
@@ -364,7 +364,7 @@
             "A2":5.863}
         },
         "basket_cell": {
-          "passive_parameters": {
+          "parameters": {
             "t_ref": 1.59,
             "C_m": 14.6,
             "tau_m": 9.125,
@@ -372,10 +372,10 @@
             "V_reset": -78.0,
             "E_L": -68.0
           },
-          "iaf_parameters": {
+          "iaf": {
             "Ie": 24.05
           },
-          "eglif_parameters": {
+          "eglif": {
             "Vinit": -68.0,
             "lambda":1.8,
             "deltaV":1.1,
@@ -387,7 +387,7 @@
             "A2":5.863}
         },
         "dcn_cell": {
-          "passive_parameters": {
+          "parameters": {
             "t_ref": 0.8,
             "C_m": 142.0,
             "tau_m": 33.0,
@@ -395,10 +395,10 @@
             "V_reset": -55.0,
             "E_L": -45.0
           },
-          "iaf_parameters": {
+          "iaf": {
             "Ie": 180.0
           },
-          "eglif_parameters": {
+          "eglif": {
             "Vinit": -45.0,
             "lambda":3.5,
             "deltaV":3.0,
