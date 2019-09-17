@@ -263,6 +263,7 @@
       "cell_models": {
         "granule_cell": {
           "parameters": {
+            
 
           }
         },
@@ -278,8 +279,28 @@
           }
         },
         "golgi_cell": {
-          "parameters": {
-
+          "passive_parameters": {
+            "t_ref": 2.0,
+            "C_m": 145.0,
+            "tau_m": 44.0,
+            "V_th': -55.0,
+            "V_reset": -75.0,
+            "E_L": -62.0
+          }
+          "iaf_parameters": {
+            "Ie": 14.0
+          }
+          "eglif_parameters": {
+            "Vinit": -62.0,
+            "lambda":1.0, 
+            "deltaV":0.4,
+            "Ie": 16.214,
+            "k_adap": 0.217,
+            "k1": 0.031,
+            "k2": 0.023,
+            "A1": 259.988,
+            "A2":178.01
+           }
           }
         },
         "stellate_cell": {
