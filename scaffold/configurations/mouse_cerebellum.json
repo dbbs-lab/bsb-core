@@ -262,10 +262,29 @@
       "default_synapse_model": "static_synapse",
       "cell_models": {
         "granule_cell": {
-          "parameters": {
-            
-
+          "passive_parameters": {
+            "t_ref": 1.5,
+            "C_m": 7.0,
+            "tau_m": 24.15,
+            "V_th": -41.0,
+            "V_reset": -70.0,
+            "E_L": -62.0
           }
+          "iaf_parameters": {
+          "Ie": 0.0
+        }
+          "eglif_parameters": {
+          "Vinit": -62.0,
+          "lambda":1.0, 
+          "deltaV":0.3,
+          "Ie": -0.888,
+          "k_adap": 0.022,
+          "k1": 0.311, 
+          "k2": 0.041,
+          "A1": 0.01,
+          "A2":-0.94
+        }
+        }
         },
         "glomerulus": {
           "neuron_model": "parrot_neuron",
@@ -286,9 +305,9 @@
             "V_th': -55.0,
             "V_reset": -75.0,
             "E_L": -62.0
-          }
+          }'E_L': -62.0,
           "iaf_parameters": {
-            "Ie": 14.0
+            "Ie": 36.8
           }
           "eglif_parameters": {
             "Vinit": -62.0,
