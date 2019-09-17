@@ -258,26 +258,26 @@
   "simulations": {
     "FCN_2019": {
       "simulator": "nest",
-      "default_neuron_model": "iaf",
+      "default_neuron_model": "iaf_cond_alpha",
       "default_synapse_model": "static_synapse",
       "cell_models": {
         "granule_cell": {
           "parameters": {
             "t_ref": 1.5,
             "C_m": 7.0,
-            "tau_m": 24.15,
             "V_th": -41.0,
             "V_reset": -70.0,
             "E_L": -62.0
           },
-          "iaf": {
-            "Ie": 0.0
+          "iaf_cond_alpha": {
+            "I_e": 0.0
           },
           "eglif": {
             "Vinit": -62.0,
             "lambda":1.0,
             "deltaV":0.3,
-            "Ie": -0.888,
+            "tau_m": 24.15,
+            "I_e": -0.888,
             "k_adap": 0.022,
             "k1": 0.311,
             "k2": 0.041,
@@ -289,25 +289,28 @@
           "neuron_model": "parrot_neuron",
           "parameters": {
 
+          },
+          "parrot_neuron": {
+            
           }
         },
         "purkinje_cell": {
           "parameters": {
             "t_ref": 0.5,
             "C_m": 334.0,
-            "tau_m": 47.0,
             "V_th": -43.0,
             "V_reset": -69.0,
             "E_L": -59.0
           },
-          "iaf": {
-            "Ie": 800.0
+          "iaf_cond_alpha": {
+            "I_e": 800.0
           },
           "eglif": {
             "Vinit": -59.0,
             "lambda":4.0,
             "deltaV":3.5,
-            "Ie": 742.54,
+            "tau_m": 47.0,
+            "I_e": 742.54,
             "k_adap": 1.492,
             "k1": 0.1950,
             "k2": 0.041,
@@ -319,19 +322,19 @@
           "parameters": {
             "t_ref": 2.0,
             "C_m": 145.0,
-            "tau_m": 44.0,
             "V_th": -55.0,
             "V_reset": -75.0,
             "E_L": -62.0
           },
-          "iaf": {
-            "Ie": 36.8
+          "iaf_cond_alpha": {
+            "I_e": 36.8
           },
           "eglif": {
             "Vinit": -62.0,
             "lambda":1.0,
             "deltaV":0.4,
-            "Ie": 16.214,
+            "tau_m": 44.0,
+            "I_e": 16.214,
             "k_adap": 0.217,
             "k1": 0.031,
             "k2": 0.023,
@@ -344,19 +347,19 @@
           "parameters": {
             "t_ref": 1.59,
             "C_m": 14.6,
-            "tau_m": 9.125,
             "V_th": -53.0,
             "V_reset": -78.0,
             "E_L": -68.0
           },
-          "iaf": {
-            "Ie": 24.05
+          "iaf_cond_alpha": {
+            "I_e": 24.05
           },
           "eglif": {
             "Vinit": -68.0,
             "lambda":1.8,
             "deltaV":1.1,
-            "Ie": 3.711,
+            "tau_m": 9.125,
+            "I_e": 3.711,
             "k_adap": 2.025,
             "k1": 1.887,
             "k2": 1.096,
@@ -367,19 +370,19 @@
           "parameters": {
             "t_ref": 1.59,
             "C_m": 14.6,
-            "tau_m": 9.125,
             "V_th": -53.0,
             "V_reset": -78.0,
             "E_L": -68.0
           },
-          "iaf": {
-            "Ie": 24.05
+          "iaf_cond_alpha": {
+            "I_e": 24.05
           },
           "eglif": {
             "Vinit": -68.0,
             "lambda":1.8,
             "deltaV":1.1,
-            "Ie": 3.711,
+            "tau_m": 9.125,
+            "I_e": 3.711,
             "k_adap": 2.025,
             "k1": 1.887,
             "k2": 1.096,
@@ -390,19 +393,19 @@
           "parameters": {
             "t_ref": 0.8,
             "C_m": 142.0,
-            "tau_m": 33.0,
             "V_th": -36.0,
             "V_reset": -55.0,
             "E_L": -45.0
           },
-          "iaf": {
-            "Ie": 180.0
+          "iaf_cond_alpha": {
+            "I_e": 180.0
           },
           "eglif": {
             "Vinit": -45.0,
             "lambda":3.5,
             "deltaV":3.0,
-            "Ie": 75.385,
+            "tau_m": 33.0,
+            "I_e": 75.385,
             "k_adap": 0.408,
             "k1": 0.697,
             "k2": 0.047,

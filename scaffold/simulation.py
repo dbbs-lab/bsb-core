@@ -68,6 +68,7 @@ class NestAdapter(SimulatorAdapter):
 
     def prepare(self, hdf5):
         import nest
+        self.nest = nest
         self.create_neurons(self.cell_models)
         self.connect_neurons(self.connection_models, hdf5)
         self.stimulate_neurons({})
@@ -84,13 +85,13 @@ class NestAdapter(SimulatorAdapter):
         for cell_model in cell_models.values():
             name = cell_model.name
             nest_model_name = cell_model.neuron_model if hasattr(cell_model, "neuron_model") else default_model
-            nest.CopyModel(nest_model_name, name)
+            self.nest.CopyModel(nest_model_name, name)
             params = cell_model.parameters.copy()
             if not hasattr(cell_model, nest_model_name):
                 raise Exception("Missing parameters for '{}' model in '{}'".format(nest_model_name, name))
             params.update(cell_model.__dict__[nest_model_name])
-            nest.SetDefaults(name, params)
-            nest.Create(cell_model.name, self.scaffold.statistics.cells_placed[cell_model.name])
+            self.nest.SetDefaults(name, params)
+            self.nest.Create(cell_model.name, self.scaffold.statistics.cells_placed[cell_model.name])
 
     def connect_neurons(self, connection_models, hdf5):
         default_model = self.default_synapse_model
@@ -98,16 +99,18 @@ class NestAdapter(SimulatorAdapter):
             connectivity_matrix = hdf5['cells/connections'][connection_model.name]
             presynaptic_cells = connectivity_matrix[:,0]
             postsynaptic_cells = connectivity_matrix[:,1]
+            print(connectivity_matrix[:,0])
+            print(connectivity_matrix[:,1])
             parameter_keys = ['weight', 'delay']
             synaptic_parameters = {}
             for key in parameter_keys:
                 if hasattr(connection_model, key):
                     synaptic_parameters[key] = connection_model.__dict__[key]
             connection_parameters = {'rule': 'one_to_one'}
-            nest.Connect(presynaptic_cells, postsynaptic_cells, connection_parameters, synaptic_parameters)
+            self.nest.Connect(presynaptic_cells, postsynaptic_cells, connection_parameters, synaptic_parameters)
 
     def stimulate_neurons(self, stimulus_models):
         for stimulus_model in stimulus_models.values():
-            stimulus = nest.Create(stimulus_model.name)
-            nest.SetStatus(stimulus, stimulus_model.parameters)
-            nest.Connect(stimulus,stimulus_model.get_targets())
+            stimulus = self.nest.Create(stimulus_model.name)
+            self.nest.SetStatus(stimulus, stimulus_model.parameters)
+            self.nest.Connect(stimulus,stimulus_model.get_targets())
