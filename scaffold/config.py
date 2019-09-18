@@ -18,17 +18,17 @@ def from_hdf5(file):
     with h5py.File(file, 'r') as resource:
         config_class = resource.attrs['configuration_class']
         config_string = resource.attrs['configuration_string']
-    classParts = config_class.split('.')
-    className = classParts[-1]
-    module_name = '.'.join(classParts[:-1])
+    class_parts = config_class.split('.')
+    class_name = class_parts[-1]
+    module_name = '.'.join(class_parts[:-1])
     if module_name == '':
         module_dict = globals()
     else:
-        module_dict = __import__(moduleName, globals(), locals(), [className], 0).__dict__
-    if not className in module_dict:
+        module_dict = __import__(module_name, globals(), locals(), [class_name], 0).__dict__
+    if not class_name in module_dict:
         raise Exception('Can not load HDF5 file \'{}\'. Configuration class not found:'.format(file) + config_class)
     # Instantiate the configuration class with a configuration stream
-    return module_dict[className](stream=config_string)
+    return module_dict[class_name](stream=config_string)
 
 class ScaffoldConfig(object):
 
@@ -198,17 +198,17 @@ class ScaffoldConfig(object):
         if isclass(configured_class_name):
             instance = configured_class_name()
         else:
-            classParts = configured_class_name.split('.')
-            className = classParts[-1]
-            moduleName = '.'.join(classParts[:-1])
-            module_ref = __import__(moduleName, globals(), locals(), [className], 0)
-            if not className in module_ref.__dict__:
+            class_parts = configured_class_name.split('.')
+            class_name = class_parts[-1]
+            module_name = '.'.join(class_parts[:-1])
+            module_ref = __import__(module_name, globals(), locals(), [class_name], 0)
+            if not class_name in module_ref.__dict__:
                 raise ConfigurableClassNotFoundException('Class not found:' + configured_class_name)
-            class_ref = module_ref.__dict__[className]
+            class_ref = module_ref.__dict__[class_name]
             if not issubclass(class_ref, parent_class):
                 raise Exception("Configurable class '{}.{}' must derive from {}.{}".format(
-                    moduleName,
-                    className,
+                    module_name,
+                    class_name,
                     parent_class.__module__,
                     parent_class.__qualname__,
                 ))

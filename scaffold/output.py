@@ -1,4 +1,4 @@
-from .helpers import ConfigurableClass
+from .helpers import ConfigurableClass, get_qualified_class_name
 from contextlib import contextmanager
 from abc import abstractmethod
 import h5py, time
@@ -78,7 +78,7 @@ class HDF5Formatter(OutputFormatter):
         f = self.storage
         f.attrs['configuration_name'] = self.scaffold.configuration._name
         f.attrs['configuration_type'] = self.scaffold.configuration._type
-        f.attrs['configuration_class'] = self.scaffold.configuration.__class__.__qualname__
+        f.attrs['configuration_class'] = get_qualified_class_name(self.scaffold.configuration)
         f.attrs['configuration_string'] = self.scaffold.configuration._raw
 
     def store_cells(self):
@@ -98,7 +98,7 @@ class HDF5Formatter(OutputFormatter):
             connection_dataset = connections_group.create_dataset(tag, data=connectome_data)
             connection_dataset.attrs['tag'] = tag
             connection_dataset.attrs['connection_types'] = list(map(lambda x: x.name, related_types))
-            connection_dataset.attrs['connection_type_classes'] = list(map(lambda x: str(x.__class__), related_types))
+            connection_dataset.attrs['connection_type_classes'] = list(map(get_qualified_class_name, related_types))
 
     def store_statistics(self):
         statistics = self.storage.create_group('statistics')
