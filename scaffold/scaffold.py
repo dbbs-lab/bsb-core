@@ -14,7 +14,7 @@ class Scaffold:
 
 	def __init__(self, config, from_file=None):
 		self.configuration = config
-		self.resetNetworkCache()
+		self.reset_network_cache()
 		# Debug statistics, unused.
 		self.statistics = Statistics(self)
 		self._nextId = 0
@@ -100,7 +100,7 @@ class Scaffold:
 		plotNetwork(self, from_memory=True)
 
 
-	def resetNetworkCache(self):
+	def reset_network_cache(self):
 		# Cell positions dictionary per cell type. Columns: X, Y, Z.
 		self.cells_by_type = {key: np.empty((0, 5)) for key in self.configuration.cell_types.keys()}
 		# Cell positions dictionary per layer. Columns: Type, X, Y, Z.
@@ -110,6 +110,7 @@ class Scaffold:
 		# Cell connections per connection type. Columns: From ID, To ID.
 		self.cell_connections_by_tag = {}
 		self.appends = {}
+		self.placement_stitching = []
 
 	def run_simulation(self, simulation_name):
 		if not simulation_name in self.configuration.simulations:
@@ -124,6 +125,8 @@ class Scaffold:
 
 	def place_cells(self, cell_type, layer, positions):
 		cell_count = positions.shape[0]
+		if cell_count == 0:
+			return
 		# Create an ID for each cell.
 		cell_ids = self.allocate_ids(positions.shape[0])
 		# Store cells as ID, typeID, X, Y, Z
@@ -155,6 +158,8 @@ class Scaffold:
 		if not hasattr(cell_type.placement, 'cells_placed'):
 			cell_type.placement.__dict__['cells_placed'] = 0
 		cell_type.placement.cells_placed += cell_count
+		# Keep track of the order of placement, so that it can be emulated in simulators
+		self.placement_stitching.append((cell_type.id, cell_ids[0], cell_count))
 
 	def allocate_ids(self, count):
 		IDs = np.array(range(self._nextId, self._nextId + count), dtype=int)
@@ -179,8 +184,3 @@ class Scaffold:
 
 	def save(self):
 		self.output_formatter.save()
-
-	def get_adapter(self, adapter_name):
-		if not adapter_name in self.simulators:
-			raise Exception("Unknown simulator '{}'".format(adapter_name))
-		return self.simulators[adapter_name]

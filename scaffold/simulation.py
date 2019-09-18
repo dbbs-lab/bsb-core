@@ -75,38 +75,58 @@ class NestAdapter(SimulatorAdapter):
         return nest
 
     def simulate(self, simulator):
-        simulator.Simulate()
+        simulator.Simulate(10)
 
     def validate(self):
         pass
 
     def create_neurons(self, cell_models):
+        '''
+            Recreate the scaffold neurons in the same order as they were placed,
+            inside of the NEST simulator based on the cell model configuration.
+        '''
         default_model = self.default_neuron_model
-        sort_by_placement_order = lambda m: self.scaffold.cells_by_type[m.name][0,0]
-        for cell_model in sorted(cell_models.values(), key=sort_by_placement_order):
-            name = cell_model.name
+        # Iterate over all the placement stitches: each stitch was a batch of cells placed together and
+        # if we don't follow the same order as during the placement, the cell IDs will not match
+        for cell_type_id, start_id, count in self.scaffold.placement_stitching:
+            # Get the cell_type name from the type id to type name map.
+            name = self.scaffold.configuration.cell_type_map[cell_type_id]
+            # Get the cell model
+            cell_model = cell_models[name]
+            # Use the default model unless another one is specified in the configuration.
             nest_model_name = cell_model.neuron_model if hasattr(cell_model, "neuron_model") else default_model
+            # Alias the nest model name under our cell model name.
             self.nest.CopyModel(nest_model_name, name)
-            params = cell_model.parameters.copy()
-            if not hasattr(cell_model, nest_model_name):
-                raise Exception("Missing parameters for '{}' model in '{}'".format(nest_model_name, name))
-            params.update(cell_model.__dict__[nest_model_name])
+            # Get the synapse parameters
+            params = cell_model.get_parameters(model=nest_model_name)
+            # Set the parameters in NEST
             self.nest.SetDefaults(name, params)
-            self.nest_identifiers = nest.Create(cell_model.name, self.scaffold.statistics.cells_placed[cell_model.name])
-            print(self.scaffold.cells_by_type[cell_model.name][:,0])
-            print(self.nest_identifiers)
+            # Create the same amount of cells that were placed in this stitch.
+            identifiers = self.nest.Create(name, count)
+            # Check if the stitching is going OK.
+            if identifiers[0] != start_id + 1:
+                raise Exception("Could not match the scaffold cell identifiers to NEST identifiers! Cannot continue.")
 
     def connect_neurons(self, connection_models, hdf5):
         default_model = self.default_synapse_model
         for connection_model in connection_models.values():
-            connectivity_matrix = hdf5['cells/connections'][connection_model.name]
-            presynaptic_cells = np.array(connectivity_matrix[:,0], dtype=int)
-            postsynaptic_cells = np.array(connectivity_matrix[:,1], dtype=int)
+            dataset_name = 'cells/connections/' + connection_model.name
+            if not dataset_name in hdf5:
+                if self.scaffold.configuration.verbosity > 0:
+                    print('[WARNING] Expected connection dataset "{}" not found. Skipping it.'.format(dataset_name))
+                continue
+            connectivity_matrix = hdf5[dataset_name]
+            # Translate the id's from 0 based scaffold ID's to NEST's 1 based ID's with '+ 1'
+            presynaptic_cells = np.array(connectivity_matrix[:,0] + 1, dtype=int)
+            postsynaptic_cells = np.array(connectivity_matrix[:,1] + 1, dtype=int)
+            # Filter out these keys to use as parameters for the synapses
             parameter_keys = ['weight', 'delay']
             synaptic_parameters = {}
             for key in parameter_keys:
                 if hasattr(connection_model, key):
                     synaptic_parameters[key] = connection_model.__dict__[key]
+                else:
+                    print('exluded:', key)
             connection_parameters = {'rule': 'one_to_one'}
             self.nest.Connect(presynaptic_cells, postsynaptic_cells, connection_parameters, synaptic_parameters)
 

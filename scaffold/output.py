@@ -68,6 +68,8 @@ class HDF5Formatter(OutputFormatter):
 
     def init_scaffold(self):
         with self.load() as resource:
+            self.scaffold.configuration.cell_type_map = resource['cells'].attrs['types']
+            self.scaffold.placement_stitching = resource['cells/stitching'][:]
             for cell_type_name, count in resource['statistics/cells_placed'].attrs.items():
                 self.scaffold.statistics.cells_placed[cell_type_name] = count
 
@@ -76,6 +78,8 @@ class HDF5Formatter(OutputFormatter):
 
     def store_configuration(self):
         f = self.storage
+        f.attrs['shdf_version'] = 3.0
+        f.attrs['configuration_version'] = 3.0
         f.attrs['configuration_name'] = self.scaffold.configuration._name
         f.attrs['configuration_type'] = self.scaffold.configuration._type
         f.attrs['configuration_class'] = get_qualified_class_name(self.scaffold.configuration)
@@ -83,6 +87,7 @@ class HDF5Formatter(OutputFormatter):
 
     def store_cells(self):
         cells_group = self.storage.create_group('cells')
+        cells_group.create_dataset('stitching', data=self.scaffold.placement_stitching)
         self.store_cell_positions(cells_group)
         self.store_cell_connections(cells_group)
 
