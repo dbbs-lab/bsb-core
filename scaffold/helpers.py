@@ -61,14 +61,34 @@ class ConfigurableClass(abc.ABC):
                     raise Exception("Required attribute '{}' missing from '{}' section.".format(attr, name))
             elif shouldCast:
                 cast = castingDict[attr]
-                try:
-                    self.__dict__[attr] = cast(self.__dict__[attr])
-                except Exception as e:
-                    raise Exception("Could not cast configured attribute '{}' with value '{}' for '{}'".format(
-                        attr,
-                        self.__dict__[attr],
-                        name)
-                    )
+                def cast_node(value, cast, attr):
+                    def try_cast(value, cast):
+                        try:
+                            return cast(value)
+                        except Exception as e:
+                            raise Exception("{}.{}: Could not cast '{}' to a {}".format(
+                                name,
+                                attr,
+                                value,
+                                cast.__name__
+                            ))
+
+                    if type(cast) is list:
+                        if len(cast) != 1:
+                            raise Exception("Invalid list casting configuration of {} in {}: can only cast a one-element list. The one element being the casting type of the list elements.".format(attr, name))
+                        cast = cast[0]
+                        # Try casting value to a list
+                        value = try_cast(value, list)
+                        # Try casting each element of value to the cast type
+                        for i in range(len(value)):
+                            value[i] = cast_node(value[i], cast, attr + '[{}]'.format(i))
+                        return value
+                    elif type(cast) is dict:
+                        raise Exception("Dictionary casting not implemented yet. (no use case)")
+                    else:
+                        return try_cast(value, cast)
+
+                self.__dict__[attr] = cast_node(self.__dict__[attr], cast, attr)
 
 def assert_attr(section, attr, section_name):
     if not attr in section:
