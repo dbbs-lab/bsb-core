@@ -60,11 +60,11 @@ class NestAdapter(SimulatorAdapter):
     }
 
     defaults = {
-        'synapse_model': 'static_synapse',
-        'neuron_model': 'iaf'
+        'default_synapse_model': 'static_synapse',
+        'default_neuron_model': 'iaf'
     }
 
-    required = ['neuron_model', 'synapse_model']
+    required = ['default_neuron_model', 'default_synapse_model']
 
     def prepare(self, hdf5):
         import nest
@@ -81,12 +81,15 @@ class NestAdapter(SimulatorAdapter):
 
     def create_neurons(self, cell_models):
         default_model = self.default_neuron_model
-        for cell_model in cell_models.values():
+        sort_by_placement_order = lambda m: self.scaffold.cells_by_type[m.name][0,0]
+        for cell_model in sorted(cell_models.values(), key=sort_by_placement_order):
             name = cell_model.name
             nest_model_name = cell_model.neuron_model if hasattr(cell_model, "neuron_model") else default_model
             nest.CopyModel(nest_model_name, name)
             nest.SetDefaults(name, cell_model.parameters)
-            nest.Create(cell_model.name, self.scaffold.statistics.cells_placed[cell_model.name])
+            self.nest_identifiers = nest.Create(cell_model.name, self.scaffold.statistics.cells_placed[cell_model.name])
+            print(self.scaffold.cells_by_type[cell_model.name][:,0])
+            print(self.nest_identifiers)
 
     def connect_neurons(self, connection_models, hdf5):
         default_model = self.default_synapse_model
