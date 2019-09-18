@@ -38,7 +38,7 @@ def check_positive_factory(name):
 	def f(x):
 		try:
 			x = int(x)
-			if x <= 0:
+			if x >= 0:
 				return x
 			raise
 		except Exception as e:
