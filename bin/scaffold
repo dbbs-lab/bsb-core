@@ -1,6 +1,6 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
-if __file__[-13:] == "/bin/scaffold" or __file__[-13:] == "\\bin\\scaffold":
+if __file__[-12:] == "bin/scaffold" or __file__[-12:] == "bin\\scaffold":
 	import os, sys
 	print("Using test source code from", os.path.dirname(__file__)[0:-3])
 	sys.path.insert(0, os.path.dirname(__file__)[0:-3])
@@ -39,7 +39,6 @@ parser.add_argument("-v", "--verbose",
 subparsers = parser.add_subparsers(
 	title='Scaffold tasks',
 	description='The scaffold performs multiple seperate tasks. See the list below for available tasks.',
-	required=True,
 	dest='task'
 )
 

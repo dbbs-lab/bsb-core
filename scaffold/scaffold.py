@@ -23,8 +23,10 @@ class Scaffold:
 		self.initialiseComponents()
 		self.initialiseSimulators()
 
+		# Tell the output formatter that we've loaded from an output and initialise scaffold from it.
 		if from_file:
 			self.output_formatter.file = from_file
+			self.output_formatter.init_scaffold()
 
 	def initialiseComponents(self):
 		# Initialise the components now that the scaffoldInstance is available
@@ -155,11 +157,11 @@ class Scaffold:
 		cell_type.placement.cells_placed += cell_count
 
 	def allocate_ids(self, count):
-		IDs = np.array(range(self._nextId, self._nextId + count))
+		IDs = np.array(range(self._nextId, self._nextId + count), dtype=int)
 		self._nextId += count
 		return IDs
 
-	def connect_cells(self, connection_type, connectome_data, tag = None):
+	def connect_cells(self, connection_type, connectome_data, tag=None):
 		# Allow 1 connection type to store multiple connectivity datasets by utilizing tags
 		tag = tag or connection_type.name
 		# Keep track of relevant tags in the connection_type object
