@@ -1,5 +1,8 @@
 import abc
 
+def get_qualified_class_name(x):
+    return x.__class__.__module__ + '.' + str(x.__class__.__name__)
+
 def copyIniKey(obj, section, key_config):
     ini_key = key_config['key']
     if not ini_key in section: # Only copy values that exist in the config

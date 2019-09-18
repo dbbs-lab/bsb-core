@@ -30,10 +30,25 @@ parser.add_argument("-ct", "--ctype",
 	choices=["json"]
 )
 
+def check_positive_factory(name):
+	'''
+		Return a function to report whether a certain value is a positive integer.
+		If it isn't, raise an ArgumentTypeError.
+	'''
+	def f(x):
+		try:
+			x = int(x)
+			if x <= 0:
+				return x
+			raise
+		except Exception as e:
+			raise argparse.ArgumentTypeError("{} is an invalid {} value (positive int expected)".format(x, name))
+	return f
+
 parser.add_argument("-v", "--verbose",
 	help="Specify the verbosity of the console output",
-	action="count",
-	default=0
+	default=1,
+	type=check_positive_factory("verbosity")
 )
 
 parser.add_argument("-o", "--output",
