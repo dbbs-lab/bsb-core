@@ -11,7 +11,7 @@ config = JSONConfig('../test.json')
 instance = Scaffold(config)
 for i in range(1,40):
     config.resize(100 + i * 20, 100 + i * 20)
-    instance.resetNetworkCache()
+    instance.reset_network_cache()
     cProfile.run('instance.compile_network()', 'compile_stats')
     p = pstats.Stats('compile_stats')
     p.strip_dirs().sort_stats('cumulative').print_stats('place', 25)

@@ -39,7 +39,7 @@ index = 0
 frames = []
 
 for angle in angle_range:
-    scaffoldInstance.resetNetworkCache()
+    scaffoldInstance.reset_network_cache()
     pc.placement.angle = angle
     pc.placement.place(pc)
     pcCount = scaffoldInstance.cells_by_type['Purkinje Cell'].shape[0]
