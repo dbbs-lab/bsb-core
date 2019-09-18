@@ -114,3 +114,9 @@ class NestConnection(ConfigurableClass):
 
     def validate(self):
         pass
+
+class NestStimulus(ConfigurableClass):
+    node_name = 'simulations.?.stimuli'
+
+    def validate(self):
+        pass

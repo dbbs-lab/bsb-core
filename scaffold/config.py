@@ -301,17 +301,17 @@ class JSONConfig(ScaffoldConfig):
         self.output_formatter = self.load_configurable_class('output_formatter', output_config['format'], OutputFormatter)
         self.fill_configurable_class(self.output_formatter, output_config, excluded=['format'])
 
-    def load_attr(self, config, attr, init, final, single=False):
+    def load_attr(self, config, attr, init, final=None, single=False, node_name=None, ):
         '''
             Load an attribute of a config node containing a group of definitions .
         '''
         if not attr in config:
-            raise Exception("Missing '{}' attribute in configuration.".format(attr))
+            raise Exception("Missing '{}' attribute in {}.".format(attr, node_name or 'configuration'))
         for def_name, def_config in config[attr].items():
             init(def_name, def_config)
-        if single:
+        if single and final:
             final()
-        else:
+        elif final:
             for def_name, def_config in config[attr].items():
                 final(def_name, def_config)
 
@@ -473,28 +473,29 @@ class JSONConfig(ScaffoldConfig):
         # Initialise a new simulator adapter for this simulation
         simulation = self.load_configurable_class(name, simulator, SimulatorAdapter)
         # Configure the simulation's adapter
-        self.fill_configurable_class(simulation, section, excluded=['simulator', 'cell_models', 'connection_models'])
+        self.fill_configurable_class(simulation, section, excluded=['simulator', 'cell_models', 'connection_models', 'stimuli'])
         # Get the classes required to configure cells and connections in this simulation
         config_classes = simulation.get_configuration_classes()
-        cell_model_class = config_classes['cell_models']
-        connection_class = config_classes['connection_models']
 
-        # Configure the cell models for this simulation
-        cell_models_config = assert_attr(section, 'cell_models', node_name)
-        connection_models_config = assert_attr(section, 'connection_models', node_name)
-        for cell_model_name, cell_model in cell_models_config.items():
-            # Initialise the cell model
-            cell_model_config = self.init_cell_model(cell_model_name, cell_model, cell_model_class)
-            # Store the cell simulation configuration
-            simulation.cell_models[cell_model_name] = cell_model_config
+        # Factory that produces initialization functions for the simulation components
+        def init_component_factory(component_type):
+            component_class = config_classes[component_type]
+            def init_component(component_name, component_config):
+                simulation.__dict__[component_type][component_name] = self.init_simulation_component(
+                    component_name,
+                    component_config,
+                    component_class
+                )
 
-        # Configure the connection models for this simulation
-        for connection_model_name, connection_model in connection_models_config.items():
-            # Initialise the connection model
-            connection_model_config = self.init_connection_model(connection_model_name, connection_model, connection_class)
-            # Store the connection simulation configuration
-            simulation.connection_models[connection_model_name] = connection_model_config
+            # Return the initialization function
+            return init_component
 
+        # Load the simulations' cell models, connection models and stimuli from the configuration.
+        self.load_attr(config=section, attr='cell_models', init=init_component_factory('cell_models') ,node_name=node_name)
+        self.load_attr(config=section, attr='connection_models', init=init_component_factory('connection_models'), node_name=node_name)
+        self.load_attr(config=section, attr='stimuli', init=init_component_factory('stimuli'), node_name=node_name)
+
+        # Add the simulation into the configuration
         self.add_simulation(simulation)
 
     def finalize_simulation(self, simulation_name, section):
@@ -540,19 +541,11 @@ class JSONConfig(ScaffoldConfig):
         connection.__dict__['from_cell_types'] = from_cell_types
         connection.__dict__['to_cell_types'] = to_cell_types
 
-    def init_cell_model(self, name, section, cell_model_class):
-        # Initialise a new cell simulation representation object
-        cell_model = self.load_configurable_class(name, cell_model_class, ConfigurableClass)
-        # Apply the configuration to the object
-        self.fill_configurable_class(cell_model, section)
-        return cell_model
-
-    def init_connection_model(self, name, section, connection_model_class):
-        # Initialise a new connection simulation representation object
-        connection_model = self.load_configurable_class(name, connection_model_class, ConfigurableClass)
-        # Apply the configuration to the object
-        self.fill_configurable_class(connection_model, section)
-        return connection_model
+    def init_simulation_component(self, name, section, component_class):
+        print("creating '{}', a {}".format(name, component_class))
+        component = self.load_configurable_class(name, component_class, ConfigurableClass)
+        self.fill_configurable_class(component, section)
+        return component
 
 class ConfigurableClassNotFoundException(Exception):
     pass

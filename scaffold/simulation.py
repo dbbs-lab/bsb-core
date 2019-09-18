@@ -1,7 +1,7 @@
 import abc
 import numpy as np
 from .helpers import ConfigurableClass, assert_attr
-from .models import NestCell, NestConnection
+from .models import NestCell, NestConnection, NestStimulus
 
 class SimulatorAdapter(ConfigurableClass):
 
@@ -9,6 +9,7 @@ class SimulatorAdapter(ConfigurableClass):
         super().__init__()
         self.cell_models = {}
         self.connection_models = {}
+        self.stimuli = {}
 
     def get_configuration_classes(self):
         if not hasattr(self.__class__, 'simulator_name'):
@@ -22,10 +23,11 @@ class SimulatorAdapter(ConfigurableClass):
             raise Exception("{} adapter: The 'configuration_classes' dictionary requires a class to handle the simulation configuration of cells under the 'cell_models' key.".format(self.simulator_name))
         if not 'connection_models' in classes:
             raise Exception("{} adapter: The 'configuration_classes' dictionary requires a class to handle the simulation configuration of cell connections under the 'connection_models' key.".format(self.simulator_name))
-        # if not 'simulation' in classes:
-        #     raise Exception("The 'configuration_classes' dictionary requires a class to handle the configuration of simulations under the 'simulation' key.")
+        if not 'stimuli' in classes:
+            raise Exception("{} adapter: The 'configuration_classes' dictionary requires a class to handle the simulation configuration of stimuli under the 'stimuli' key.".format(self.simulator_name))
+
         # Test if they are all children of the ConfigurableClass class
-        keys = ['cell_models', 'connection_models'] #, 'simulation']
+        keys = ['cell_models', 'connection_models', 'stimuli']
         for class_key in keys:
             if not issubclass(classes[class_key], ConfigurableClass):
                 raise Exception("{} adapter: The configuration class '{}' should inherit from ConfigurableClass".format(self.simulator_name, class_key))
@@ -56,7 +58,8 @@ class NestAdapter(SimulatorAdapter):
 
     configuration_classes = {
         'cell_models': NestCell,
-        'connection_models': NestConnection
+        'connection_models': NestConnection,
+        'stimuli': NestStimulus
     }
 
     defaults = {
@@ -130,8 +133,8 @@ class NestAdapter(SimulatorAdapter):
             connection_parameters = {'rule': 'one_to_one'}
             self.nest.Connect(presynaptic_cells, postsynaptic_cells, connection_parameters, synaptic_parameters)
 
-    def stimulate_neurons(self, stimulus_models):
-        for stimulus_model in stimulus_models.values():
+    def stimulate_neurons(self, stimuli):
+        for stimulus_model in stimuli.values():
             stimulus = self.nest.Create(stimulus_model.name)
             self.nest.SetStatus(stimulus, stimulus_model.parameters)
             self.nest.Connect(stimulus,stimulus_model.get_targets())

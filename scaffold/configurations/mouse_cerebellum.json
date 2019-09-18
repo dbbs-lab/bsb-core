@@ -291,7 +291,7 @@
 
           },
           "parrot_neuron": {
-            
+
           }
         },
         "purkinje_cell": {
@@ -473,6 +473,11 @@
         "purkinje_to_dcn": {
           "weight": 0.5,
           "delay": 40.0
+        }
+      },
+      "stimuli": {
+        "center": {
+          
         }
       }
     }
