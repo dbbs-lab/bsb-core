@@ -97,8 +97,20 @@ class NestCell(ConfigurableClass):
     def validate(self):
         pass
 
+    def get_parameters(self, model=None):
+        # Get the default synapse parameters
+        params = self.parameters.copy()
+        # If a model is specified, fetch model specific parameters
+        if not model is None:
+            # Raise an exception if the requested model is not configured.
+            if not hasattr(self, model):
+                raise Exception("Missing parameters for '{}' model in '{}'".format(model, self.name))
+            # Merge in the model specific parameters
+            params.update(cell_model.__dict__[model])
+        return params
+
 class NestConnection(ConfigurableClass):
     node_name = 'simulations.?.connection_models'
-    
+
     def validate(self):
         pass
