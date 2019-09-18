@@ -4,6 +4,11 @@ from abc import abstractmethod
 import h5py, time
 
 class OutputFormatter(ConfigurableClass):
+
+    def __init__(self):
+        super().__init__()
+        self.save_file_as = None
+
     @contextmanager
     def load(self):
         handle = self.get_handle()
@@ -50,7 +55,11 @@ class HDF5Formatter(OutputFormatter):
         return handle.close()
 
     def save(self):
-        self.storage = h5py.File(self.file, 'w')
+        if self.save_file_as:
+            self.storage = h5py.File(self.save_file_as, 'w')
+            self.file = self.save_file_as
+        else:
+            self.storage = h5py.File(self.file, 'w')
         self.store_configuration()
         self.store_cells()
         self.store_statistics()

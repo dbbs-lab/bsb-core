@@ -36,6 +36,10 @@ parser.add_argument("-v", "--verbose",
 	default=0
 )
 
+parser.add_argument("-o", "--output",
+	help="Specify an output file path",
+)
+
 subparsers = parser.add_subparsers(
 	title='Scaffold tasks',
 	description='The scaffold performs multiple seperate tasks. See the list below for available tasks.',
@@ -66,6 +70,9 @@ elif cl_args.ctype == 'hdf5':
 
 # Create the scaffold instance
 scaffoldInstance = Scaffold(scaffoldConfig, from_file=file)
+
+if cl_args.output:
+	scaffoldInstance.output_formatter.save_file_as = cl_args.output
 
 if cl_args.task == 'compile' or cl_args.task == 'run':
 	scaffoldInstance.compile_network()
