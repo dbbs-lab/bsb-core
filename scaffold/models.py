@@ -106,7 +106,7 @@ class NestCell(ConfigurableClass):
             if not hasattr(self, model):
                 raise Exception("Missing parameters for '{}' model in '{}'".format(model, self.name))
             # Merge in the model specific parameters
-            params.update(cell_model.__dict__[model])
+            params.update(self.__dict__[model])
         return params
 
 class NestConnection(ConfigurableClass):
