@@ -5,13 +5,13 @@ from .morphologies import Morphology as BaseMorphology
 from .connectivity import ConnectionStrategy
 from .placement import PlacementStrategy
 from .output import OutputFormatter
-from .simulation import SimulatorAdapter
+from .simulation import SimulatorAdapter, SimulationComponent
 from .helpers import (
     copyIniKey, assert_float, assert_array, assert_attr_array,
     assert_attr_float, assert_attr, if_attr, assert_strictly_one,
     assert_attr_in, ConfigurableClass
 )
-from .simulation import NestAdapter
+from .simulators.nest import NestAdapter
 
 def from_hdf5(file):
     import h5py
@@ -481,11 +481,14 @@ class JSONConfig(ScaffoldConfig):
         def init_component_factory(component_type):
             component_class = config_classes[component_type]
             def init_component(component_name, component_config):
-                simulation.__dict__[component_type][component_name] = self.init_simulation_component(
+                component = self.init_simulation_component(
                     component_name,
                     component_config,
                     component_class
                 )
+                component.simulation = simulation
+                component.node_name = 'simulations.' + simulation.name + '.' + component_type
+                simulation.__dict__[component_type][component_name] = component
 
             # Return the initialization function
             return init_component
@@ -542,8 +545,7 @@ class JSONConfig(ScaffoldConfig):
         connection.__dict__['to_cell_types'] = to_cell_types
 
     def init_simulation_component(self, name, section, component_class):
-        print("creating '{}', a {}".format(name, component_class))
-        component = self.load_configurable_class(name, component_class, ConfigurableClass)
+        component = self.load_configurable_class(name, component_class, SimulationComponent)
         self.fill_configurable_class(component, section)
         return component
 

@@ -68,6 +68,8 @@ class Scaffold:
 				sim_cell.initialise(self)
 			for sim_connection in simulation.connection_models.values():
 				sim_connection.initialise(self)
+			for stimulus in simulation.stimuli.values():
+				stimulus.initialise(self)
 
 	def _initialise_output_formatter(self):
 		self.output_formatter = self.configuration.output_formatter
