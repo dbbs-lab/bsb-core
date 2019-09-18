@@ -180,6 +180,9 @@ class ScaffoldConfig(object):
     def get_layer_list(self):
         return list(self.layers.values())
 
+    def get_cell_type(self, id):
+        return self.cell_types[self.cell_type_map[id]]
+
     def resize(self, X=None, Z=None):
         scaling_x = 1.
         scaling_z = 1.
