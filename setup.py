@@ -36,6 +36,7 @@ setuptools.setup(
          'pytz>=2019.2',
          'readme-renderer>=24.0',
          'requests-toolbelt>=0.9.1',
+         'scikit-learn>=0.20.3',
          'scipy>=1.3.1',
          'six>=1.12.0',
          'tornado>=6.0.3',
