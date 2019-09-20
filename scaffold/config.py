@@ -473,7 +473,7 @@ class JSONConfig(ScaffoldConfig):
         # Initialise a new simulator adapter for this simulation
         simulation = self.load_configurable_class(name, simulator, SimulatorAdapter)
         # Configure the simulation's adapter
-        self.fill_configurable_class(simulation, section, excluded=['simulator', 'cell_models', 'connection_models', 'stimuli'])
+        self.fill_configurable_class(simulation, section, excluded=['simulator', 'cell_models', 'connection_models', 'devices'])
         # Get the classes required to configure cells and connections in this simulation
         config_classes = simulation.get_configuration_classes()
 
@@ -493,10 +493,10 @@ class JSONConfig(ScaffoldConfig):
             # Return the initialization function
             return init_component
 
-        # Load the simulations' cell models, connection models and stimuli from the configuration.
+        # Load the simulations' cell models, connection models and devices from the configuration.
         self.load_attr(config=section, attr='cell_models', init=init_component_factory('cell_models') ,node_name=node_name)
         self.load_attr(config=section, attr='connection_models', init=init_component_factory('connection_models'), node_name=node_name)
-        self.load_attr(config=section, attr='stimuli', init=init_component_factory('stimuli'), node_name=node_name)
+        self.load_attr(config=section, attr='devices', init=init_component_factory('devices'), node_name=node_name)
 
         # Add the simulation into the configuration
         self.add_simulation(simulation)

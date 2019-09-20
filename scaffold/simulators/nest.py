@@ -34,8 +34,8 @@ class NestConnection(SimulationComponent):
     def validate(self):
         pass
 
-class NestStimulus(SimulationComponent):
-    node_name = 'simulations.?.stimuli'
+class NestDevice(SimulationComponent):
+    node_name = 'simulations.?.devices'
 
     casts = {
         'radius': float,
@@ -81,22 +81,38 @@ class NestAdapter(SimulatorAdapter):
     configuration_classes = {
         'cell_models': NestCell,
         'connection_models': NestConnection,
-        'stimuli': NestStimulus
+        'devices': NestDevice
+    }
+
+    casts = {
+        'threads': int,
+        'virtual_processes': int
     }
 
     defaults = {
         'default_synapse_model': 'static_synapse',
-        'default_neuron_model': 'iaf'
+        'default_neuron_model': 'iaf',
+        'verbosity': 'M_ERROR',
+        'threads': 1,
+        'virtual_processes': 1
     }
 
     required = ['default_neuron_model', 'default_synapse_model', 'duration']
 
     def prepare(self, hdf5):
         import nest
+        nest.SetVerbosity(self.verbosity)
+        nest.ResetKernel()
+        nest.SetKernelStatus({
+            'local_num_threads': self.threads,
+            'total_num_virtual_procs': self.virtual_processes,
+            'overwrite_files': True,
+            'data_path': self.scaffold.output_formatter.get_simulator_output_path(self.simulator_name)
+        })
         self.nest = nest
         self.create_neurons(self.cell_models)
         self.connect_neurons(self.connection_models, hdf5)
-        self.stimulate_neurons(self.stimuli)
+        self.create_devices(self.devices)
         return nest
 
     def simulate(self, simulator):
@@ -156,8 +172,15 @@ class NestAdapter(SimulatorAdapter):
             # Create the connections in NEST
             self.nest.Connect(presynaptic_cells, postsynaptic_cells, connection_specifications, synaptic_parameters)
 
-    def stimulate_neurons(self, stimuli):
-        for stimulus_model in stimuli.values():
-            stimulus = self.nest.Create(stimulus_model.device)
-            self.nest.SetStatus(stimulus, stimulus_model.parameters)
-            self.nest.Connect(stimulus, stimulus_model.get_targets())
+    def create_devices(self, devices):
+        input_devices = list(filter(lambda x: x.io == 'input', devices.values()))
+        output_devices = list(filter(lambda x: x.io == 'output', devices.values()))
+        for device_model in input_devices:
+            device = self.nest.Create(device_model.device)
+            self.nest.SetStatus(device, device_model.parameters)
+            self.nest.Connect(device, device_model.get_targets())
+
+        for device_model in output_devices:
+            device = self.nest.Create(device_model.device)
+            self.nest.SetStatus(device, device_model.parameters)
+            self.nest.Connect(device_model.get_targets(), device)

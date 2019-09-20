@@ -13,7 +13,7 @@ class SimulatorAdapter(ConfigurableClass):
         super().__init__()
         self.cell_models = {}
         self.connection_models = {}
-        self.stimuli = {}
+        self.devices = {}
 
     def get_configuration_classes(self):
         if not hasattr(self.__class__, 'simulator_name'):
@@ -27,11 +27,11 @@ class SimulatorAdapter(ConfigurableClass):
             raise Exception("{} adapter: The 'configuration_classes' dictionary requires a class to handle the simulation configuration of cells under the 'cell_models' key.".format(self.simulator_name))
         if not 'connection_models' in classes:
             raise Exception("{} adapter: The 'configuration_classes' dictionary requires a class to handle the simulation configuration of cell connections under the 'connection_models' key.".format(self.simulator_name))
-        if not 'stimuli' in classes:
-            raise Exception("{} adapter: The 'configuration_classes' dictionary requires a class to handle the simulation configuration of stimuli under the 'stimuli' key.".format(self.simulator_name))
+        if not 'devices' in classes:
+            raise Exception("{} adapter: The 'configuration_classes' dictionary requires a class to handle the simulation configuration of devices under the 'devices' key.".format(self.simulator_name))
 
         # Test if they are all children of the ConfigurableClass class
-        keys = ['cell_models', 'connection_models', 'stimuli']
+        keys = ['cell_models', 'connection_models', 'devices']
         for class_key in keys:
             if not issubclass(classes[class_key], ConfigurableClass):
                 raise Exception("{} adapter: The configuration class '{}' should inherit from ConfigurableClass".format(self.simulator_name, class_key))
