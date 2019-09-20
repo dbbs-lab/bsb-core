@@ -42,7 +42,7 @@ class NestStimulus(SimulationComponent):
         'origin': [float]
     }
 
-    required = ['type']
+    required = ['type', 'device']
 
     def validate(self):
         # Replace the get_stimulation method by the stimulate_<type> method, so that get_stimulation always
@@ -65,12 +65,10 @@ class NestStimulus(SimulationComponent):
         pass
 
     def _targets_local(self):
-        # Hi Alice! In this function you have access to the simulation (NestAdapter) through self.simulation
-        # and to the scaffold with self.scaffold. In self there's also the radius and origin.
-        # Can you write the code so that this function returns what we need to create the stimulation in
-        # NestAdapter::stimulate_neurons
-        print('local stimulation')
-
+        target_type = self.scaffold.get_cell_type(name=self.targets.types)
+        tree = kdtree(target_cells)
+        target_ids = tree.query_radius(self.origin, self.radius)
+        return target_ids
 
 
 class NestAdapter(SimulatorAdapter):
@@ -91,7 +89,7 @@ class NestAdapter(SimulatorAdapter):
         'default_neuron_model': 'iaf'
     }
 
-    required = ['default_neuron_model', 'default_synapse_model']
+    required = ['default_neuron_model', 'default_synapse_model', 'duration']
 
     def prepare(self, hdf5):
         import nest
@@ -102,7 +100,7 @@ class NestAdapter(SimulatorAdapter):
         return nest
 
     def simulate(self, simulator):
-        simulator.Simulate(10)
+        simulator.Simulate(self.duration)
 
     def validate(self):
         pass
@@ -160,6 +158,6 @@ class NestAdapter(SimulatorAdapter):
 
     def stimulate_neurons(self, stimuli):
         for stimulus_model in stimuli.values():
-            stimulus = self.nest.Create(stimulus_model.name)
+            stimulus = self.nest.Create(stimulus_model.device)
             self.nest.SetStatus(stimulus, stimulus_model.parameters)
             self.nest.Connect(stimulus, stimulus_model.get_targets())
