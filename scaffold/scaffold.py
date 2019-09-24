@@ -2,6 +2,8 @@ from .statistics import Statistics
 from .plotting import plotNetwork
 import numpy as np
 import time
+from sklearn.neighbors import KDTree
+from .trees import TreeCollection
 
 ###############################
 ## Scaffold class
@@ -17,6 +19,8 @@ class Scaffold:
 		self.reset_network_cache()
 		# Debug statistics, unused.
 		self.statistics = Statistics(self)
+		self.trees = type('scaffold.trees', (object,), {})()
+		self.trees.__dict__['cells'] = TreeCollection(self, 'cells')
 		self._nextId = 0
 		# Use the configuration to initialise all components such as cells and layers
 		# to prepare for the network architecture compilation.
@@ -82,7 +86,10 @@ class Scaffold:
 			t = time.time()
 			cell_types = sorted(self.configuration.cell_types.values(), key=lambda x: x.placement.get_placement_count(x))
 			for cell_type in cell_types:
+				# Place cell type according to PlacementStrategy
 				cell_type.placement.place(cell_type)
+				# Construct a tree of the placed cells
+				self.trees.cells.create_tree(cell_type.name, self.cells_by_type[cell_type.name])
 			for connection_type in self.configuration.connection_types.values():
 				connection_type.connect()
 			times[i] = time.time() - t

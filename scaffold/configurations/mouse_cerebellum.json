@@ -5,7 +5,10 @@
   },
   "network_architecture": {
     "simulation_volume_x": 200.0,
-    "simulation_volume_z": 200.0
+    "simulation_volume_z": 200.0,
+    "store_kd_trees": true,
+    "store_compound_kd_tree": true,
+    "store_pf_kd_trees": true
   },
   "layers": {
     "dcn_layer": {

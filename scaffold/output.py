@@ -1,7 +1,8 @@
 from .helpers import ConfigurableClass, get_qualified_class_name
 from contextlib import contextmanager
 from abc import abstractmethod
-import h5py, time
+import h5py, time, pickle
+from numpy import string_
 
 class OutputFormatter(ConfigurableClass):
 
@@ -42,6 +43,13 @@ class OutputFormatter(ConfigurableClass):
         '''
         pass
 
+    @abstractmethod
+    def load_tree(self, collection_name, tree_name):
+        '''
+            Load a tree from a tree collection in the storage
+        '''
+        pass
+
 class HDF5Formatter(OutputFormatter):
 
     defaults = {
@@ -62,6 +70,7 @@ class HDF5Formatter(OutputFormatter):
             self.storage = h5py.File(self.file, 'w')
         self.store_configuration()
         self.store_cells()
+        self.store_trees()
         self.store_statistics()
         self.store_appendices()
         self.storage.close()
@@ -105,6 +114,13 @@ class HDF5Formatter(OutputFormatter):
             connection_dataset.attrs['connection_types'] = list(map(lambda x: x.name, related_types))
             connection_dataset.attrs['connection_type_classes'] = list(map(get_qualified_class_name, related_types))
 
+    def store_trees(self):
+        tree_group = self.storage.create_group('trees')
+        for tree_collection_name, tree_collection in self.scaffold.trees.__dict__.items():
+            tree_collection_group = tree_group.create_group(tree_collection_name)
+            for tree_name, tree in tree_collection.items():
+                tree_dataset = tree_collection_group.create_dataset(tree_name, data=string_(pickle.dumps(tree)))
+
     def store_statistics(self):
         statistics = self.storage.create_group('statistics')
         self.store_placement_statistics(statistics)
@@ -118,3 +134,10 @@ class HDF5Formatter(OutputFormatter):
         # Append extra datasets specified internally or by user.
         for key, data in self.scaffold.appends.items():
             dset = self.storage.create_dataset(key, data=data)
+
+    def load_tree(self, collection_name, tree_name):
+        with self.load() as f:
+            try:
+                return pickle.loads(f['/trees/{}/{}'.format(collection_name, tree_name)][()])
+            except KeyError as e:
+                raise Exception("Tree not found in HDF5 file '{}', path does not exist: '{}'".format(f.file))
