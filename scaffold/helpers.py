@@ -1,5 +1,8 @@
 import abc
 
+def get_qualified_class_name(x):
+    return x.__class__.__module__ + '.' + str(x.__class__.__name__)
+
 def copyIniKey(obj, section, key_config):
     ini_key = key_config['key']
     if not ini_key in section: # Only copy values that exist in the config
@@ -35,8 +38,11 @@ class ConfigurableClass(abc.ABC):
             a value as only argument. This dictionary will be used to cast the attributes when castConfig
             is called.
         '''
+        name = ''
+        if hasattr(self, 'node_name'):
+            name += self.node_name + '.'
         if hasattr(self, 'name'):
-            name = self.name
+            name += self.name
         else:
             name = str(self)
         castingDict = getattr(self.__class__, 'casts', {})
@@ -52,14 +58,92 @@ class ConfigurableClass(abc.ABC):
                 if hasDefault:
                     self.__dict__[attr] = defaultDict[attr]
                 elif isRequired:
-                    raise Exception("Required attribute '{}' missing from '{}' section.".format(attr, self.name))
+                    raise Exception("Required attribute '{}' missing from '{}' section.".format(attr, name))
             elif shouldCast:
                 cast = castingDict[attr]
-                try:
-                    self.__dict__[attr] = cast(self.__dict__[attr])
-                except Exception as e:
-                    raise Exception("Could not cast configured attribute '{}' with value '{}' for '{}'".format(
-                        attr,
-                        self.__dict__[attr],
-                        name)
-                    )
+                def cast_node(value, cast, attr):
+                    def try_cast(value, cast):
+                        try:
+                            return cast(value)
+                        except Exception as e:
+                            raise Exception("{}.{}: Could not cast '{}' to a {}".format(
+                                name,
+                                attr,
+                                value,
+                                cast.__name__
+                            ))
+
+                    if type(cast) is list:
+                        if len(cast) != 1:
+                            raise Exception("Invalid list casting configuration of {} in {}: can only cast a one-element list. The one element being the casting type of the list elements.".format(attr, name))
+                        cast = cast[0]
+                        # Try casting value to a list
+                        value = try_cast(value, list)
+                        # Try casting each element of value to the cast type
+                        for i in range(len(value)):
+                            value[i] = cast_node(value[i], cast, attr + '[{}]'.format(i))
+                        return value
+                    elif type(cast) is dict:
+                        raise Exception("Dictionary casting not implemented yet. (no use case)")
+                    else:
+                        return try_cast(value, cast)
+
+                self.__dict__[attr] = cast_node(self.__dict__[attr], cast, attr)
+
+def assert_attr(section, attr, section_name):
+    if not attr in section:
+        raise Exception("Required attribute '{}' missing in '{}'".format(attr, section_name))
+    return section[attr]
+
+def if_attr(section, attr, default_value):
+    if not attr in section:
+        return default_value
+    return section[attr]
+
+def assert_strictly_one(section, attrs, section_name):
+    attr_list = []
+    for attr in attrs:
+        if attr in section:
+            attr_list.append(attr)
+    if len(attr_list) != 1:
+        msg = "{} found: ".format(len(attr_list)) + ", ".join(attr_list)
+        if len(attr_list) == 0:
+            msg = "None found."
+        raise Exception("Strictly one of the following attributes is expected in {}: {}. {}".format(section_name, ", ".join(attrs), msg))
+    else:
+        return attr_list[0], section[attr_list[0]]
+
+def assert_float(val, section_name):
+    try:
+        ret = float(val)
+    except ValueError as e:
+        raise Exception("Invalid float '{}' given for '{}'".format(val, section_name))
+    return ret
+
+def assert_array(val, section_name):
+    from collections import Sequence
+    if isinstance(val, Sequence):
+        return val
+    raise Exception("Invalid array '{}' given for '{}'".format(val, section_name))
+
+def assert_attr_float(section, attr, section_name):
+    if not attr in section:
+        raise Exception("Required attribute '{}' missing in '{}'".format(attr, section_name))
+    return assert_float(section[attr], "{}.{}".format(section_name, attr))
+
+def assert_attr_array(section, attr, section_name):
+    if not attr in section:
+        raise Exception("Required attribute '{}' missing in '{}'".format(attr, section_name))
+    return assert_array(section[attr], "{}.{}".format(section_name, attr))
+
+def assert_attr_in(section, attr, values, section_name):
+    if not attr in section:
+        raise Exception("Required attribute '{}' missing in '{}'".format(attr, section_name))
+    if not section[attr] in values:
+        raise Exception("Attribute '{}.{}' with value '{}' must be one of the following values: {}".format(
+            section_name,
+            attr,
+            section[attr],
+            "'" + "', '".join(values) + "'"
+        ))
+    return section[attr]

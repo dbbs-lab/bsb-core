@@ -1,6 +1,6 @@
 import os, sys
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-from scaffold.config import ScaffoldIniConfig
+from scaffold.config import JSONConfig
 from scaffold.scaffold import Scaffold
 import matplotlib
 import matplotlib.pyplot as plt
@@ -27,7 +27,7 @@ def get_placement_frame(cell_type, pos, angle, layer, squishy = 1.):
 
     return image
 
-scaffoldConfig = ScaffoldIniConfig('test.ini')
+scaffoldConfig = JSONConfig('test.json')
 scaffoldInstance = Scaffold(scaffoldConfig)
 config = scaffoldInstance.configuration
 layer = config.layers['Purkinje Layer']
@@ -39,7 +39,7 @@ index = 0
 frames = []
 
 for angle in angle_range:
-    scaffoldInstance.resetNetworkCache()
+    scaffoldInstance.reset_network_cache()
     pc.placement.angle = angle
     pc.placement.place(pc)
     pcCount = scaffoldInstance.cells_by_type['Purkinje Cell'].shape[0]
