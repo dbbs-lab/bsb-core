@@ -56,7 +56,12 @@ class MorphologyRepository(OutputFormatter):
             self.file = file
 
     def get_handle(self):
-        return h5py.File(self.file)
+        f = h5py.File(self.file)
+        if not 'morphologies' in f:
+            f.create_group('morphologies')
+        if not 'morphologies/voxel_clouds' in f:
+            f.create_group('morphologies/voxel_clouds')
+        return f
 
     def release_handle(self, handle):
         return handle.close()
