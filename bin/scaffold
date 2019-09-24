@@ -81,6 +81,7 @@ debug_subparsers = parser_debug.add_subparsers(
 )
 
 parser_vc = debug_subparsers.add_parser('voxel_cloud', help='Interactively debug the transformation from morphology to voxel cloud.')
+parser_hdf5 = debug_subparsers.add_parser('hdf5', help='Interactively debug the structure of an HDF5 file.')
 
 file = None
 cl_args = parser.parse_args()

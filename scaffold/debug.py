@@ -1,4 +1,4 @@
-import sys, argparse
+import sys, argparse, h5py
 from .output import MorphologyRepository
 
 class ReplState:
@@ -46,18 +46,18 @@ def debug_voxel_cloud(scaffold):
                 state.reply = "All voxelized morphologies: " + ", ".join(state.reply)
 
 def debug_hdf5(scaffold):
-    sub = chr(172)
-    def format_level(lvl):
-        return ' ' * lvl * 2 - (1 if lvl > 0 else 0) + (sub if lvl > 0 else '')
+    df = chr(172)
+    def format_level(lvl, sub=None):
+        return ' ' * (lvl * 3) + (sub or df)
 
     def format_self(obj, name, lvl):
         print(format_level(lvl) + name)
         if hasattr(obj, "attrs"):
             for attr in obj.attrs.keys():
-                print(format_level(lvl) + '>' + attr + ' = ' + str(obj.attrs[attr])[:min(100, len(str(obj.attrs[attr])))])
+                print(' ' + format_level(lvl, '.') + attr + ' = ' + str(obj.attrs[attr])[:min(100, len(str(obj.attrs[attr])))] + ('...' if len(str(obj.attrs[attr])) > 100 else ''))
         if hasattr(obj, "keys"):
             for key in obj.keys():
-                format_self(obj[key], obj.name, lvl + 1)
+                format_self(obj[key], obj[key].name, lvl + 1)
 
     hdf5_file = input("Specify the hdf5 file: ")
     with h5py.File(hdf5_file) as f:

@@ -479,17 +479,17 @@
           "delay": 40.0
         }
       },
-      "stimuli": {
+      "devices": {
         "center": {
           "device": "poisson_generator",
           "type": "local",
           "radius": 50.0,
-          "origin": [0., 0., 0.],
+          "origin": [0.0, 0.0, 0.0],
           "targets": {
             "types": ["glomerulus"]
           },
           "parameters": {
-            
+
           }
         }
       }
