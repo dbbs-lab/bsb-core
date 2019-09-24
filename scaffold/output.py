@@ -122,11 +122,20 @@ class MorphologyRepository(OutputFormatter):
         # Open repository and close afterwards
         with self.load() as repo:
             # Check if morphology exists
-            if not name in repo:
+            if not name in repo['morphologies']:
                 raise Exception("Attempting to load unknown morphology '{}'".format(name))
             # Take out all the data with () index, and send along the metadata stored in the attributes
             return Morphology.from_repo_data(repo[name][()], repo[name].attrs)
 
+    def list_all_morphologies(self):
+        with self.load() as repo:
+            return list(repo['morphologies'].keys())
+
+    def list_all_voxelized(self):
+        with self.load() as repo:
+            all = list(repo['morphologies'].keys())
+            voxelized = list(filter(lambda x: x in repo['morphologies/voxel_clouds'], all))
+            return voxelized
 
     def init_scaffold(self):
         pass
