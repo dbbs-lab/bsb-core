@@ -68,9 +68,19 @@ parser_run = subparsers.add_parser('run', help='Run a simulation from scratch.')
 parser_run.add_argument('simulation', action='store', help='Preconfigured simulation to run.')
 parser_run.add_argument('-p', action='store_true',help='Plot the created network')
 
-parser_run = subparsers.add_parser('simulate', help='Run a simulation from a compiled HDF5 network architecture file.')
-parser_run.add_argument('simulation', action='store', help='Name of the preconfigured simulation.')
-parser_run.add_argument('--hdf5', action='store', required=True, help='Name of the HDF5 file to load.')
+parser_sim = subparsers.add_parser('simulate', help='Run a simulation from a compiled HDF5 network architecture file.')
+parser_sim.add_argument('simulation', action='store', help='Name of the preconfigured simulation.')
+parser_sim.add_argument('--hdf5', action='store', required=True, help='Name of the HDF5 file to load.')
+
+parser_debug = subparsers.add_parser('debug', help='Enter debugging mode.')
+
+debug_subparsers = parser_debug.add_subparsers(
+	title='Debug scripts',
+	description='Choose one of the subcommands to debug a specific aspect of the scaffold (not tested/maintained, might be broken and corrupt data).',
+	dest='debug_task'
+)
+
+parser_vc = debug_subparsers.add_parser('voxel_cloud', help='Interactively debug the transformation from morphology to voxel cloud.')
 
 file = None
 cl_args = parser.parse_args()
@@ -96,3 +106,8 @@ if cl_args.task == 'compile' or cl_args.task == 'run':
 
 if cl_args.task == 'run' or cl_args.task == 'simulate':
 	scaffoldInstance.run_simulation(cl_args.simulation)
+
+if cl_args.task == 'debug':
+	func_name = 'debug_' + cl_args.debug_task
+	# Load the debug task from the debug module
+	modRef = __import__('scaffold.debug', globals(), locals(), [func_name], 0).__dict__[func_name](scaffoldInstance)

@@ -1,7 +1,8 @@
 from .helpers import ConfigurableClass, get_qualified_class_name
 from contextlib import contextmanager
 from abc import abstractmethod
-import h5py, time, pickle
+import h5py, time, pickle, numpy as np
+from .morphologies import Morphology
 from numpy import string_
 
 class OutputFormatter(ConfigurableClass):
@@ -9,6 +10,7 @@ class OutputFormatter(ConfigurableClass):
     def __init__(self):
         super().__init__()
         self.save_file_as = None
+        self.storage = None
 
     @contextmanager
     def load(self):
@@ -50,6 +52,108 @@ class OutputFormatter(ConfigurableClass):
         '''
         pass
 
+class MorphologyRepository(OutputFormatter):
+
+    defaults = {
+        'file': 'morphology_repository.hdf5'
+    }
+
+    def __init__(self, file=None):
+        super().__init__()
+        if not file is None:
+            self.file = file
+
+    def get_handle(self):
+        f = h5py.File(self.file)
+        if not 'morphologies' in f:
+            f.create_group('morphologies')
+        if not 'morphologies/voxel_clouds' in f:
+            f.create_group('morphologies/voxel_clouds')
+        return f
+
+    def release_handle(self, handle):
+        return handle.close()
+
+    def save(self):
+        pass
+
+    def import_swc(self, file, name, tags=[]):
+        '''
+            Import and store .swc file contents as a morphology in the repository.
+        '''
+        # Read as CSV
+        swc_data = np.loadtxt(file)
+        # Create empty dataset
+        dataset_length = len(swc_data)
+        dataset_data = np.empty((dataset_length, 10))
+        # Map parent id's to start coordinates. Root node (id: -1) is at 0., 0., 0.
+        starts = {-1: [0., 0., 0.]}
+        # Iterate over the compartments
+        for i in range(dataset_length):
+            # Extract compartment record
+            compartment = swc_data[i, :]
+            compartment_id = compartment[0]
+            compartment_type = compartment[1]
+            compartment_parent = compartment[6]
+            # Check if parent id is known
+            if not compartment_parent in starts:
+                raise Exception("Node {} references a parent node {} that isn't know yet".format(compartment_id, compartment_parent))
+            # Use parent endpoint as startpoint, get endpoint and store it as a startpoint for child compartments
+            compartment_start = starts[compartment_parent]
+            compartment_end = compartment[2:5]
+            starts[compartment_id] = compartment_end
+            # Get more compartment radius
+            compartment_radius = compartment[5]
+            # Store compartment in the repository dataset
+            dataset_data[i] = [
+                compartment_id,
+                compartment_type,
+                *compartment_start,
+                *compartment_end,
+                compartment_radius,
+                compartment_parent
+            ]
+        # Save the dataset in the repository
+        with self.load() as f:
+            if 'morphologies' in f:
+                morphology_group = f['/morphologies']
+            else:
+                morphology_group = f.create_group('morphologies')
+            dset = morphology_group.create_dataset(name, data=dataset_data)
+            dset.attrs['name'] = name
+            dset.attrs['type'] = 'swc'
+
+    def get_morphology(self, name):
+        '''
+            Load a morphology from repository data
+        '''
+        # Open repository and close afterwards
+        with self.load() as repo:
+            # Check if morphology exists
+            if not name in repo['morphologies']:
+                raise Exception("Attempting to load unknown morphology '{}'".format(name))
+            # Take out all the data with () index, and send along the metadata stored in the attributes
+            return Morphology.from_repo_data(repo[name][()], repo[name].attrs)
+
+    def list_all_morphologies(self):
+        with self.load() as repo:
+            return list(repo['morphologies'].keys())
+
+    def list_all_voxelized(self):
+        with self.load() as repo:
+            all = list(repo['morphologies'].keys())
+            voxelized = list(filter(lambda x: x in repo['morphologies/voxel_clouds'], all))
+            return voxelized
+
+    def init_scaffold(self):
+        pass
+
+    def validate(self):
+        pass
+    
+    def load_tree(self, collection_name, tree_name):
+        pass
+
 class HDF5Formatter(OutputFormatter):
 
     defaults = {
@@ -57,7 +161,7 @@ class HDF5Formatter(OutputFormatter):
     }
 
     def get_handle(self):
-        return h5py.File(self.file, 'r')
+        return h5py.File(self.file, 'r+')
 
     def release_handle(self, handle):
         return handle.close()
