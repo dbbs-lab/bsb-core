@@ -102,8 +102,13 @@ class MorphologyRepository(OutputFormatter):
             ]
         # Save the dataset in the repository
         with self.load() as f:
-            dset = f.create_dataset(name, data=dataset_data)
+            if 'morphologies' in f:
+                morphology_group = f['/morphologies']
+            else:
+                morphology_group = f.create_group('morphologies')
+            dset = morphology_group.create_dataset(name, data=dataset_data)
             dset.attrs['name'] = name
+            dset.attrs['type'] = 'swc'
 
     def get_morphology(self, name):
         '''
