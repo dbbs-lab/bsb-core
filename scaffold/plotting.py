@@ -69,7 +69,7 @@ def plot_voxel_cloud(cloud, fig_ax_tuple=None, selected_voxel_id=None):
         fig, ax = fig_ax_tuple
     ax.set(xlim=(0., maxmax), ylim=(0., maxmax), zlim=(0., maxmax))
     ax.set(xlabel='x', ylabel='y', zlabel='z')
-    ax.voxels(voxels, facecolors=colors, edgecolor='k', linewidth=.25)
+    return ax.voxels(voxels, facecolors=colors, edgecolor='k', linewidth=.25)
 
 def plot_compartment(ax, compartment, radius_multiplier=1., max_radius=4., color=None):
     artist = ax.plot_wireframe(
@@ -88,6 +88,9 @@ def plot_morphology(morphology, fig_ax_tuple=None, compartment_selection=()):
     else:
         fig, ax = fig_ax_tuple
     ax.set(xlabel='x', ylabel='y', zlabel='z')
+    if compartments.shape[0] > 1: # Just to be sure that we don't crash here on empty morphologies
+        # Draw the cell soma.
+        ax.scatter(*compartments[1].end, s=compartments[1].radius ** 2, c='blue')
     if compartment_selection != (): # A selection is being made
         # Get selected compartments
         highlighted = np.array([x.end for x in compartments[compartment_selection]])
@@ -95,26 +98,25 @@ def plot_morphology(morphology, fig_ax_tuple=None, compartment_selection=()):
         for faded_compartment in compartments:
             plot_compartment(ax, faded_compartment, color=(0.3,0.3,0.3,0.6))
         # Mark the selected compartments
-        ax.scatter(*highlighted.transpose(), s=5, c='red', marker="^")
+        return ax.scatter(*highlighted.transpose(), s=5, c='red', marker="^")
     else: # No selection is being made
         # Style all compartments normally
         for compartment in compartments:
             plot_compartment(ax, compartment)
+        return None
 
-
-    ax.scatter(*compartments[1].end, s=compartments[1].radius ** 2, c='red')
 
 def plot_voxel_morpho_map(morphology, cloud, selected_voxel_id=None, compartment_selection=()):
     fig = plt.figure(figsize=plt.figaspect(0.5))
     ax_cloud = fig.add_subplot(1, 2, 1, projection='3d')
     ax_frame = fig.add_subplot(1, 2, 2, projection='3d')
-    plot_voxel_cloud(cloud, fig_ax_tuple=(fig, ax_cloud), selected_voxel_id=selected_voxel_id)
-    plot_morphology(
+    voxels = plot_voxel_cloud(cloud, fig_ax_tuple=(fig, ax_cloud), selected_voxel_id=selected_voxel_id)
+    selection = plot_morphology(
         morphology,
         fig_ax_tuple=(fig, ax_frame),
         compartment_selection=compartment_selection
     )
-    plt.show(block=True)
+    return fig, ax_cloud, ax_frame, voxels, selection
 
 # def line2d_seg_dist(p1, p2, p0):
 #     """distance(s) from line defined by p1 - p2 to point(s) p0
