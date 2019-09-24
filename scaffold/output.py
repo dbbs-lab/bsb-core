@@ -1,7 +1,7 @@
 from .helpers import ConfigurableClass, get_qualified_class_name
 from contextlib import contextmanager
 from abc import abstractmethod
-import h5py, time, pickle, numpy as np
+import h5py, os, time, pickle, numpy as np
 from .morphologies import Morphology
 from numpy import string_
 
@@ -50,6 +50,10 @@ class OutputFormatter(ConfigurableClass):
         '''
             Load a tree from a tree collection in the storage
         '''
+        pass
+
+    @abstractmethod
+    def get_simulator_output_path(self):
         pass
 
 class MorphologyRepository(OutputFormatter):
@@ -150,14 +154,15 @@ class MorphologyRepository(OutputFormatter):
 
     def validate(self):
         pass
-    
+
     def load_tree(self, collection_name, tree_name):
         pass
 
 class HDF5Formatter(OutputFormatter):
 
     defaults = {
-        'file': 'scaffold_network_{}.hdf5'.format(time.strftime("%Y_%m_%d-%H%M%S"))
+        'file': 'scaffold_network_{}.hdf5'.format(time.strftime("%Y_%m_%d-%H%M%S")),
+        'simulator_output_path': False
     }
 
     def get_handle(self):
@@ -245,3 +250,6 @@ class HDF5Formatter(OutputFormatter):
                 return pickle.loads(f['/trees/{}/{}'.format(collection_name, tree_name)][()])
             except KeyError as e:
                 raise Exception("Tree not found in HDF5 file '{}', path does not exist: '{}'".format(f.file))
+
+    def get_simulator_output_path(self):
+        return self.simulator_output_path or os.getcwd()

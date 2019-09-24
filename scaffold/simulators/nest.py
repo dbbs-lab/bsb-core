@@ -1,5 +1,6 @@
 from ..simulation import SimulatorAdapter, SimulationComponent
 import numpy as np
+from sklearn.neighbors import KDTree
 
 class NestCell(SimulationComponent):
 
@@ -39,10 +40,11 @@ class NestDevice(SimulationComponent):
 
     casts = {
         'radius': float,
-        'origin': [float]
+        'origin': [float],
+        'parameters': dict
     }
 
-    required = ['type', 'device']
+    required = ['type', 'device', 'io', 'parameters']
 
     def validate(self):
         # Replace the get_stimulation method by the stimulate_<type> method, so that get_stimulation always
@@ -65,10 +67,42 @@ class NestDevice(SimulationComponent):
         pass
 
     def _targets_local(self):
-        target_type = self.scaffold.get_cell_type(name=self.targets.types)
-        tree = kdtree(target_cells)
+        '''
+            Target all or certain cells in a spherical location.
+        '''
+        if len(self.cell_types) != 1:
+            # Compile a list of the cells and build a compound tree.
+            target_cells = np.empty((0, 5))
+            id_map = np.empty((0,1))
+            for t in self.cell_types:
+                cells = self.scaffold.get_cells_by_type(t)
+                target_cells = np.vstack((target_cells, cells[:, 2:5]))
+                id_map = np.vstack((id_map, cells[:, 0]))
+            tree = KDTree(target_cells)
+        else:
+            # Retrieve the prebuilt tree from the SHDF file
+            tree = self.scaffold.trees.cells.get_tree(self.cell_types[0])
+            cells = self.scaffold.get_cells_by_type(t)
+            id_map = cells[:, 0]
+        # Query the tree for all the targets
         target_ids = tree.query_radius(self.origin, self.radius)
-        return target_ids
+        return id_map[target_ids]
+
+    def _targets_cell_type(self):
+        '''
+            Target all cells of certain cell types
+        '''
+        if len(self.cell_types) != 1:
+            # Compile a list of the different cell type cells.
+            target_cells = np.empty((0, 1))
+            for t in self.cell_types:
+                cells_of_type = self.scaffold.get_cells_by_type(t)
+                target_cells = np.vstack((target_cells, cells_of_type[:, 0]))
+            return target_cells
+        else:
+            # Retrieve a single list
+            cells = self.scaffold.get_cells_by_type(t)
+            return cells[:, 0]
 
 
 class NestAdapter(SimulatorAdapter):

@@ -480,16 +480,27 @@
         }
       },
       "devices": {
-        "center": {
+        "center_stimulation": {
           "device": "poisson_generator",
+          "io": "input",
           "type": "local",
           "radius": 50.0,
           "origin": [0.0, 0.0, 0.0],
-          "targets": {
-            "types": ["glomerulus"]
-          },
+          "cell_types": ["glomerulus"],
           "parameters": {
 
+          }
+        }
+        "record_glomerulus": {
+          "device": "spike_detector",
+          "io": "output",
+          "type": "cell_type",
+          "cell_types": ["glomerulus"],
+          "parameters": {
+            "withgid": true,
+            "withtime": true,
+            "to_file": true,
+            "label": "glom_spikes"
           }
         }
       }
