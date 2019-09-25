@@ -491,7 +491,7 @@
 
           }
         }
-        "record_glomerulus": {
+        "record_glomerulus_spikes": {
           "device": "spike_detector",
           "io": "output",
           "type": "cell_type",
@@ -501,6 +501,19 @@
             "withtime": true,
             "to_file": true,
             "label": "glom_spikes"
+          }
+        }
+        "record_glomerulus": {
+          "device": "multimeter",
+          "io": "input",
+          "type": "cell_type",
+          "cell_types": ["glomerulus"],
+          "parameters": {
+            "withgid": true,
+            "withtime": true,
+            "to_file": true,
+            "label": "glom_multimeter",
+            "record_from": ["V_m"]
           }
         }
       }

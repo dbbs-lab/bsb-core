@@ -209,12 +209,10 @@ class NestAdapter(SimulatorAdapter):
     def create_devices(self, devices):
         input_devices = list(filter(lambda x: x.io == 'input', devices.values()))
         output_devices = list(filter(lambda x: x.io == 'output', devices.values()))
+        device = self.nest.Create(device_model.device)
+        self.nest.SetStatus(device, device_model.parameters)
         for device_model in input_devices:
-            device = self.nest.Create(device_model.device)
-            self.nest.SetStatus(device, device_model.parameters)
             self.nest.Connect(device, device_model.get_targets())
 
         for device_model in output_devices:
-            device = self.nest.Create(device_model.device)
-            self.nest.SetStatus(device, device_model.parameters)
             self.nest.Connect(device_model.get_targets(), device)
