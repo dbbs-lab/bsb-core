@@ -49,9 +49,9 @@ class NestDevice(SimulationComponent):
     def validate(self):
         # Replace the get_stimulation method by the stimulate_<type> method, so that get_stimulation always
         # stimulates according to type.
-        types = ['local']
+        types = ['local', 'cell_type']
         if not self.type in types:
-            raise Exception("Unknown NEST stimulation type '{}' in {}".format(self.type, self.node_name))
+            raise Exception("Unknown NEST targetting type '{}' in {}".format(self.type, self.node_name))
         get_targets_name = '_targets_' + self.type
         method = getattr(self, get_targets_name) if hasattr(self, get_targets_name) else None
         if not callable(method):
