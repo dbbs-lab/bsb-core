@@ -3,14 +3,14 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 setuptools.setup(
      name='dbbs-scaffold',
-     version='2.2.2',
-     author="Elisa Marenzi, Stefano Casali, Claudia Casselato, Robin De Schepper",
+     version='2.3.0',
+     author="Robin De Schepper, Alice Geminiani, Elisa Marenzi, Stefano Casali, Claudia Casselato, Egidio D'Angelo",
      author_email="robingilbert.deschepper@unipv.it",
      description="A morphologically detailed scaffolding package for the scientific modelling of the cerebellum.",
-     scripts=['bin/scaffold', 'bin/scaffold.bat'] ,
+     scripts=['bin/scaffold', 'bin/scaffold.bat'],
      include_package_data=True,
      data_files=[
-        ('configurations', ['scaffold/configurations/mouse_cerebellum.ini'])
+        ('configurations', ['scaffold/configurations/mouse_cerebellum.json'])
      ],
      long_description=long_description,
      long_description_content_type="text/markdown",

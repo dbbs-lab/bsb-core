@@ -1,3 +1,15 @@
+# 2.3
+This release is a prerelease of version 3.0 with finished simulator handling for the NEST simulator
+and preliminary support for TreeCollections, tree pickling, MorphologyRepositories, morphologies, voxelization
+and touch detection.
+
+* Added MorphologyRepositories to preprocess and store morphologies before they are used in the placement/connectivity.
+* Added TreeCollections to load, cache and store trees. OutputFormatters should know how to handle trees.
+* HDF5Formatter can pickle trees.
+* Simulations can be configured through SimulatorAdapters, should provide ConfigurableClasses to configure `cell_models`,
+`connection_models` and `devices`.
+* Implemented a NestAdapter with NestCells, NestConnections and NestDevices.
+
 # 2.2
 
 ## 2.2.2
