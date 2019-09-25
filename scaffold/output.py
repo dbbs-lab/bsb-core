@@ -54,6 +54,23 @@ class OutputFormatter(ConfigurableClass):
 
     @abstractmethod
     def get_simulator_output_path(self, simulator_name):
+        '''
+            Return the path where a simulator can dump preliminary output.
+        '''
+        pass
+
+    @abstractmethod
+    def has_cells_of_type(self, name):
+        '''
+            Check whether the position matrix for a certain cell type is present.
+        '''
+        pass
+
+    @abstractmethod
+    def get_cells_of_type(self, name):
+        '''
+            Return the position matrix for a specific cell type.
+        '''
         pass
 
 class MorphologyRepository(OutputFormatter):
@@ -158,6 +175,15 @@ class MorphologyRepository(OutputFormatter):
     def load_tree(self, collection_name, tree_name):
         pass
 
+    def get_simulator_output_path(self, simulator_name):
+        pass
+
+    def has_cells_of_type(self, name):
+        pass
+
+    def get_cells_of_type(self, name):
+        pass
+
 class HDF5Formatter(OutputFormatter):
 
     defaults = {
@@ -213,6 +239,8 @@ class HDF5Formatter(OutputFormatter):
         position_dataset = cells_group.create_dataset('positions', data=self.scaffold.cells)
         cell_type_names = self.scaffold.configuration.cell_type_map
         cells_group.attrs['types'] = cell_type_names
+        for type in self.scaffold.configuration.cell_types.keys():
+            position_dataset.attrs[type + '_map'] = np.where(self.scaffold.cells[:,1] == cell_type_names.index(type))[0]
 
     def store_cell_connections(self, cells_group):
         connections_group = cells_group.create_group('connections')
@@ -253,3 +281,15 @@ class HDF5Formatter(OutputFormatter):
 
     def get_simulator_output_path(self, simulator_name):
         return self.simulator_output_path or os.getcwd()
+
+    def has_cells_of_type(self, name):
+        with self.load() as resource:
+            return name in list(resource['/cells'].attrs['types'])
+
+    def get_cells_of_type(self, name):
+        # Check if cell type is present
+        if not self.has_cells_of_type(name):
+            raise Exception("Attempting to load cell type '{}' that isn't defined in the storage.".format(name))
+        # Slice out the cells of this type based on the map in the position dataset attributes.
+        with self.load() as resource:
+            return resource['/cells/positions'][resource['/cells/positions'].attrs[name + '_map']][()]

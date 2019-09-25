@@ -47,8 +47,8 @@ class NestDevice(SimulationComponent):
     required = ['type', 'device', 'io', 'parameters']
 
     def validate(self):
-        # Replace the get_stimulation method by the stimulate_<type> method, so that get_stimulation always
-        # stimulates according to type.
+        # Fill in the _get_targets method, so that get_target functions
+        # according to `type`.
         types = ['local', 'cell_type']
         if not self.type in types:
             raise Exception("Unknown NEST targetting type '{}' in {}".format(self.type, self.node_name))
@@ -56,15 +56,15 @@ class NestDevice(SimulationComponent):
         method = getattr(self, get_targets_name) if hasattr(self, get_targets_name) else None
         if not callable(method):
             raise Exception("Unimplemented NEST stimulation type '{}' in {}".format(self.type, self.node_name))
-        self.get_targets = method
+        self._get_targets = method
+        if not self.io == "input" and not self.io == "output":
+            raise Exception("Attribute io needs to be either 'input' or 'output' in {}".format(self.node_name))
 
     def get_targets(self):
         '''
-            *This method gets replaced by one of the _targets_x methods, depending on the value of self.type.*
-
             Return the targets of the stimulation to pass into the nest.Connect call.
         '''
-        pass
+        return (np.array(self._get_targets(), dtype=int) + 1).tolist()
 
     def _targets_local(self):
         '''
@@ -79,13 +79,16 @@ class NestDevice(SimulationComponent):
                 target_cells = np.vstack((target_cells, cells[:, 2:5]))
                 id_map = np.vstack((id_map, cells[:, 0]))
             tree = KDTree(target_cells)
+            target_positions = target_cells
         else:
             # Retrieve the prebuilt tree from the SHDF file
             tree = self.scaffold.trees.cells.get_tree(self.cell_types[0])
-            cells = self.scaffold.get_cells_by_type(t)
-            id_map = cells[:, 0]
+            target_cells = self.scaffold.get_cells_by_type(self.cell_types[0])
+            id_map = target_cells[:, 0]
+            target_positions = target_cells[:, 2:5]
         # Query the tree for all the targets
-        target_ids = tree.query_radius(self.origin, self.radius)
+        target_ids = tree.query_radius(np.array([0., 600., 0.]).reshape(1, -1), self.radius)[0].tolist()
+        print('found {} targets'.format(len(target_ids)), target_ids)
         return id_map[target_ids]
 
     def _targets_cell_type(self):
@@ -101,7 +104,7 @@ class NestDevice(SimulationComponent):
             return target_cells
         else:
             # Retrieve a single list
-            cells = self.scaffold.get_cells_by_type(t)
+            cells = self.scaffold.get_cells_by_type(self.cell_types[0])
             return cells[:, 0]
 
 
@@ -132,6 +135,10 @@ class NestAdapter(SimulatorAdapter):
     }
 
     required = ['default_neuron_model', 'default_synapse_model', 'duration']
+
+    def __init__(self):
+        super().__init__()
+        self.identifiers = np.empty((0), dtype=int)
 
     def prepare(self, hdf5):
         import nest
@@ -178,6 +185,7 @@ class NestAdapter(SimulatorAdapter):
             self.nest.SetDefaults(name, params)
             # Create the same amount of cells that were placed in this stitch.
             identifiers = self.nest.Create(name, count)
+            self.identifiers = np.hstack((self.identifiers, identifiers))
             # Check if the stitching is going OK.
             if identifiers[0] != start_id + 1:
                 raise Exception("Could not match the scaffold cell identifiers to NEST identifiers! Cannot continue.")
@@ -207,12 +215,13 @@ class NestAdapter(SimulatorAdapter):
             self.nest.Connect(presynaptic_cells, postsynaptic_cells, connection_specifications, synaptic_parameters)
 
     def create_devices(self, devices):
-        input_devices = list(filter(lambda x: x.io == 'input', devices.values()))
-        output_devices = list(filter(lambda x: x.io == 'output', devices.values()))
-        device = self.nest.Create(device_model.device)
-        self.nest.SetStatus(device, device_model.parameters)
-        for device_model in input_devices:
-            self.nest.Connect(device, device_model.get_targets())
-
-        for device_model in output_devices:
-            self.nest.Connect(device_model.get_targets(), device)
+        for device_model in devices.values():
+            device = self.nest.Create(device_model.device)
+            device_targets = device_model.get_targets()
+            print('Device: {}; parameters:'.format(device_model.name))
+            print(device_model.parameters)
+            self.nest.SetStatus(device, device_model.parameters)
+            if device_model.io == "input":
+                self.nest.Connect(device, device_targets)
+            else:
+                self.nest.Connect(device_targets, device)

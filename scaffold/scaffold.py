@@ -89,7 +89,7 @@ class Scaffold:
 				# Place cell type according to PlacementStrategy
 				cell_type.placement.place(cell_type)
 				# Construct a tree of the placed cells
-				self.trees.cells.create_tree(cell_type.name, self.cells_by_type[cell_type.name])
+				self.trees.cells.create_tree(cell_type.name, self.cells_by_type[cell_type.name][:, 2:5])
 			for connection_type in self.configuration.connection_types.values():
 				connection_type.connect()
 			times[i] = time.time() - t
@@ -190,6 +190,20 @@ class Scaffold:
 
 	def append_dset(self, name, data):
 		self.appends[name] = data
+
+	def get_cells_by_type(self, name):
+		if not name in self.cells_by_type:
+			print('not currently loaded')
+			if self.output_formatter.has_cells_of_type(name):
+				if not name in self.configuration.cell_types.keys():
+					raise Exception("Attempting to load a cell type '{}' that is present in the output storage, but not in the currently loaded configuration.".format(name))
+				self.cells_by_type[name] = self.output_formatter.get_cells_of_type(name)
+				return self.cells_by_type[name]
+			else:
+				raise Exception("Cell type '{}' not found in network cache or output storage".format(name))
+		else:
+			return self.cells_by_type[name]
+
 
 	def save(self):
 		self.output_formatter.save()

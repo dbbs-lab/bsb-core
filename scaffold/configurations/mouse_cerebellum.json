@@ -488,7 +488,9 @@
           "origin": [0.0, 0.0, 0.0],
           "cell_types": ["glomerulus"],
           "parameters": {
-
+            "rate": 4.0,
+            "start": 0.0,
+            "stop": 1000.
           }
         },
         "record_glomerulus_spikes": {
@@ -503,11 +505,11 @@
             "label": "glom_spikes"
           }
         },
-        "record_glomerulus": {
+        "purkinje_multimeter": {
           "device": "multimeter",
-          "io": "input",
+          "io": "output",
           "type": "cell_type",
-          "cell_types": ["glomerulus"],
+          "cell_types": ["purkinje_cell"],
           "parameters": {
             "withgid": true,
             "withtime": true,
