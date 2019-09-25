@@ -218,8 +218,6 @@ class NestAdapter(SimulatorAdapter):
         for device_model in devices.values():
             device = self.nest.Create(device_model.device)
             device_targets = device_model.get_targets()
-            print('Device: {}; parameters:'.format(device_model.name))
-            print(device_model.parameters)
             self.nest.SetStatus(device, device_model.parameters)
             if device_model.io == "input":
                 self.nest.Connect(device, device_targets)
