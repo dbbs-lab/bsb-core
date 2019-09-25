@@ -135,7 +135,7 @@ class NestAdapter(SimulatorAdapter):
 
     def prepare(self, hdf5):
         import nest
-        nest.SetVerbosity(self.verbosity)
+        nest.set_verbosity(self.verbosity)
         nest.ResetKernel()
         nest.SetKernelStatus({
             'local_num_threads': self.threads,

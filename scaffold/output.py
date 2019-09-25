@@ -53,7 +53,7 @@ class OutputFormatter(ConfigurableClass):
         pass
 
     @abstractmethod
-    def get_simulator_output_path(self):
+    def get_simulator_output_path(self, simulator_name):
         pass
 
 class MorphologyRepository(OutputFormatter):
@@ -251,5 +251,5 @@ class HDF5Formatter(OutputFormatter):
             except KeyError as e:
                 raise Exception("Tree not found in HDF5 file '{}', path does not exist: '{}'".format(f.file))
 
-    def get_simulator_output_path(self):
+    def get_simulator_output_path(self, simulator_name):
         return self.simulator_output_path or os.getcwd()
