@@ -116,7 +116,7 @@ class MorphologyRepository(OutputFormatter):
         '''
         pass
 
-    def import_swc(self, file, name, tags=[]):
+    def import_swc(self, file, name, tags=[], overwrite=False):
         '''
             Import and store .swc file contents as a morphology in the repository.
         '''
@@ -153,12 +153,14 @@ class MorphologyRepository(OutputFormatter):
                 compartment_parent
             ]
         # Save the dataset in the repository
-        with self.load() as f:
-            if 'morphologies' in f:
-                morphology_group = f['/morphologies']
-            else:
-                morphology_group = f.create_group('morphologies')
-            dset = morphology_group.create_dataset(name, data=dataset_data)
+        with self.load() as repo:
+            if overwrite: # Do we overwrite previously existing dataset with same name?
+                self._rmm(name) # Delete anything that might be under this name.
+            elif self._me(name):
+                raise Exception("A morphology called '{}' already exists in this repository.")
+            # Create the dataset
+            dset = repo['morphologies'].create_dataset(name, data=dataset_data)
+            # Set attributes
             dset.attrs['name'] = name
             dset.attrs['type'] = 'swc'
 
