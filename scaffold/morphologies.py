@@ -1,6 +1,7 @@
-import abc, numpy as np
+import abc, numpy as np, pickle, h5py
 from .helpers import ConfigurableClass
 from .output import ResourceHandler
+from .voxels import VoxelCloud
 
 class Compartment:
 	def __init__(self, repo_record):
@@ -24,11 +25,13 @@ class Morphology(ConfigurableClass):
 	def __init__(self):
 		super().__init__()
 		self.compartments = None
+		self.cloud = None
 		self.has_morphology = False
+		self.has_voxels = False
 
-	def load_morphology(self, repo_data, repo_meta):
+	def init_morphology(self, repo_data, repo_meta):
 		'''
-			Load a morphology from the repository
+			Initialize this Morphology with detailed morphology data from a MorphologyRepository.
 		'''
 		# Initialise as a true morphology
 		self.compartments = []
@@ -37,17 +40,29 @@ class Morphology(ConfigurableClass):
 		# Iterate over the data to create compartment objects
 		for i in range(len(repo_data)):
 			repo_record = repo_data[i, :]
-			self.compartments.append(Compartment(repo_record))
+			compartment = Compartment(repo_record)
+			self.compartments.append(compartment)
+
+	def init_voxel_cloud(self, voxel_data, voxel_meta, voxel_map):
+		'''
+			Initialize this Morphology with a voxel cloud from a MorphologyRepository.
+		'''
+		# Initialise as a true morphology
+		self.cloud = VoxelCloud(voxel_meta['grid_size'], voxel_data, voxel_map)
 
 	@staticmethod
-	def from_repo_data(repo_data, repo_meta, scaffold = None):
+	def from_repo_data(repo_data, repo_meta, voxel_data=None, voxel_map=None, voxel_meta=None, scaffold = None):
 		# Instantiate morphology instance
 		m = TrueMorphology()
 		if not scaffold is None:
 			# Initialise configurable class
 			m.initialise(scaffold)
 		# Load the morphology data into this morphology instance
-		m.load_morphology(repo_data, repo_meta)
+		m.init_morphology(repo_data, repo_meta)
+		if not voxel_data is None:
+			if voxel_map is None or voxel_meta is None:
+				raise Exception("If voxel_data is provided, voxel_meta and voxel_map must be provided aswell.")
+			m.init_voxel_cloud(voxel_data, voxel_meta, voxel_map)
 		return m
 
 class TrueMorphology(Morphology):
@@ -195,7 +210,15 @@ class MorphologyRepository(ResourceHandler):
                 raise Exception("Attempting to load unknown morphology '{}'".format(name))
             # Take out all the data with () index, and send along the metadata stored in the attributes
             data = self._m(name)
-            return Morphology.from_repo_data(data[()], data.attrs)
+            repo_data = data[()]
+            repo_meta = dict(data.attrs)
+            voxel_kwargs = {}
+            if self._ve(name):
+                voxels = self._v(name)
+                voxel_kwargs['voxel_data'] = voxels['positions'][()]
+                voxel_kwargs['voxel_meta'] = dict(voxels.attrs)
+                voxel_kwargs['voxel_map'] = pickle.loads(voxels['map'][()])
+            return Morphology.from_repo_data(repo_data, repo_meta, **voxel_kwargs)
 
     def morphology_exists(self, name):
         with self.load() as repo:
@@ -251,10 +274,16 @@ class MorphologyRepository(ResourceHandler):
             Shorthand for self.remove_voxel_cloud
         '''
         if self._ve(name):
-            del self.handle['morphologies/voxel_clouds' + name]
+            del self.handle['morphologies/voxel_clouds/' + name]
 
     def _m(self, name):
         '''
             Return the morphology dataset
         '''
         return self.handle['morphologies/' + name]
+
+    def _v(self, name):
+        '''
+            Return the morphology dataset
+        '''
+        return self.handle['morphologies/voxel_clouds/' + name]
