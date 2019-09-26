@@ -14,21 +14,22 @@ def plotNetwork(scaffold, file=None, from_memory=False, block=True):
             ax.scatter3D(pos[:,0], pos[:,1], pos[:,2],c=color)
         plt.show(block=block)
 
-def plot_voxel_cloud(cloud, fig_ax_tuple=None, selected_voxel_id=None):
+def plot_voxel_cloud(cloud, fig_ax_tuple=None, selected_voxel_ids=None):
     # Calculate the 3D voxel indices based on the voxel positions and the grid size.
     indices = np.array(cloud.positions / cloud.grid_size, dtype=int)
     # Translate the voxel cloud to 0, 0, 0 as minimum index.
     min_x = min(indices[:, 0])
     min_y = min(indices[:, 1])
     min_z = min(indices[:, 2])
-    if not selected_voxel_id is None:
-        selected_voxel = np.array(cloud.positions[selected_voxel_id] / cloud.grid_size, dtype=int)
-        selected_voxel[0] -= min_x
-        selected_voxel[1] -= min_y
-        selected_voxel[2] -= min_z
     indices[:, 0] -= min_x
     indices[:, 1] -= min_y
     indices[:, 2] -= min_z
+    if not selected_voxel_id is None:
+        # Select voxels and remove from indices so that the selected voxels aren't drawn twice
+        selected_voxels = indices[selected_voxel_ids]
+        mask = np.ones(indices.shape[0])
+        mask[selected_voxel_ids] = False
+        indices = indices[mask]
     # Determine the total grid dimensions
     x_max = max(indices[:, 0])
     y_max = max(indices[:, 1])
@@ -39,43 +40,40 @@ def plot_voxel_cloud(cloud, fig_ax_tuple=None, selected_voxel_id=None):
     voxel_occupancy = np.array(list(map(lambda x: len(x), cloud.map)))
     max_voxel_occupancy = max(voxel_occupancy)
     normalized_voxel_occupancy = voxel_occupancy / (max_voxel_occupancy * 1.5)
+    # Initialise plotting arrays
     voxels = np.zeros(grid_dimensions)
     colors = np.empty(voxels.shape, dtype=object)
     if not selected_voxel is None:
-        # Switch on the voxel at the selected index positions, switch off everywhere else
-        # Select another voxel that isn't the selected voxel, to overwrite the position of the selected
-        # voxel's indices with, so that they both refer to the same unselected voxel.
-        i = 0 if selected_voxel_id != 0 else 1
-        indices[selected_voxel_id, 0] = indices[i, 0]
-        indices[selected_voxel_id, 1] = indices[i, 1]
-        indices[selected_voxel_id, 2] = indices[i, 2]
-        # Color the selected voxel
-        voxels[selected_voxel[0],selected_voxel[1],selected_voxel[2],] = True
-        colors[selected_voxel[0],selected_voxel[1],selected_voxel[2],] = (0., 1., 0., 1.)
-        # Create transparent unselected voxels
+        # Prepare colored selected voxels
+        for i in range(selected_voxels.shape[0]):
+            voxels[selected_voxel[i,0],selected_voxel[i,2],selected_voxel[i,1]] = True
+            colors[selected_voxel[i,0],selected_voxel[i,2],selected_voxel[i,1]] = (0., 1., 0., 1.)
+        # Prepare transparent unselected voxels
         for i in range(indices.shape[0]):
-            voxels[indices[i,0],indices[i,1],indices[i,2],] = True
-            colors[indices[i,0],indices[i,1],indices[i,2],] = (0., 0., 0., 0.)
+            voxels[indices[i,0],indices[i,2],indices[i,1]] = True
+            colors[indices[i,0],indices[i,2],indices[i,1]] = (0., 0., 0., 0.)
     else:
-        # Switch on the voxels on the selected index positions
+        # Prepare voxels with the compartment density coded into the alpha of the facecolor
         for i in range(indices.shape[0]):
-            voxels[indices[i,0],indices[i,1],indices[i,2],] = True
-            colors[indices[i,0],indices[i,1],indices[i,2],] = (1., 0., 0., normalized_voxel_occupancy[i])
-
+            voxels[indices[i,0],indices[i,2],indices[i,1]] = True
+            colors[indices[i,0],indices[i,2],indices[i,1]] = (1., 0., 0., normalized_voxel_occupancy[i])
+    # If no plotting tuple is provided, create a new figure
     if fig_ax_tuple is None:
         fig = plt.figure()
         ax = fig.gca(projection='3d')
     else:
         fig, ax = fig_ax_tuple
+    # Prepare plot
     ax.set(xlim=(0., maxmax), ylim=(0., maxmax), zlim=(0., maxmax))
-    ax.set(xlabel='x', ylabel='y', zlabel='z')
+    ax.set(xlabel='x', ylabel='z', zlabel='y')
+    # Plot and return the voxel's artist dictionary
     return ax.voxels(voxels, facecolors=colors, edgecolor='k', linewidth=.25)
 
 def plot_compartment(ax, compartment, radius_multiplier=1., max_radius=4., color=None):
     artist = ax.plot_wireframe(
         np.array([compartment.start[0], compartment.end[0]]),
-        np.array([compartment.start[1], compartment.end[1]]),
-        np.array([[compartment.start[2], compartment.end[2]]]),
+        np.array([compartment.start[2], compartment.end[2]]),
+        np.array([[compartment.start[1], compartment.end[1]]]),
         linewidth=min(compartment.radius * radius_multiplier, max_radius),
         color=color
     )
@@ -87,10 +85,11 @@ def plot_morphology(morphology, fig_ax_tuple=None, compartment_selection=()):
         ax = fig.gca(projection='3d')
     else:
         fig, ax = fig_ax_tuple
-    ax.set(xlabel='x', ylabel='y', zlabel='z')
+    ax.set(xlabel='x', ylabel='z', zlabel='y')
     if compartments.shape[0] > 1: # Just to be sure that we don't crash here on empty morphologies
         # Draw the cell soma.
-        ax.scatter(*compartments[1].end, s=compartments[1].radius ** 2, c='blue')
+        soma = compartments[1].end
+        ax.scatter(soma[0], soma[2], soma[1], s=compartments[1].radius ** 2, c='blue')
     if compartment_selection != (): # A selection is being made
         # Get selected compartments
         highlighted = np.array([x.end for x in compartments[compartment_selection]])
@@ -98,7 +97,8 @@ def plot_morphology(morphology, fig_ax_tuple=None, compartment_selection=()):
         for faded_compartment in compartments:
             plot_compartment(ax, faded_compartment, color=(0.3,0.3,0.3,0.6))
         # Mark the selected compartments
-        return ax.scatter(*highlighted.transpose(), s=5, c='red', marker="^")
+        t = highlighted.transpose()
+        return ax.scatter(t[0], t[2], t[1], s=5, c='red', marker="^")
     else: # No selection is being made
         # Style all compartments normally
         for compartment in compartments:
