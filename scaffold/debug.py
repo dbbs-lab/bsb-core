@@ -1,5 +1,7 @@
 import sys, argparse, h5py
 from .output import MorphologyRepository
+from .plotting import plot_morphology, plot_voxel_morpho_map
+import matplotlib.pyplot as plt
 
 class ReplState:
     def __init__(self):
@@ -26,6 +28,7 @@ class ReplState:
 
 def debug_voxel_cloud(scaffold):
     # REPL
+    # Bullshit hacky code, just needed to debug. We should make a real REPL at some point.
     repo_file = input("Specify the morphology repository: ")
     repo = MorphologyRepository(repo_file if len(repo_file) > 0 else None)
     repo.initialise(scaffold)
@@ -44,6 +47,26 @@ def debug_voxel_cloud(scaffold):
                 state.reply = "<None>"
             else:
                 state.reply = "All voxelized morphologies: " + ", ".join(state.reply)
+        elif state.command[:10] == 'import swc':
+            eof_name = state.command[11:].find(' ') + 11
+            name = state.command[11:eof_name]
+            file = state.command[(eof_name+1):]
+            repo.import_swc(file, name, overwrite=True)
+            state.reply = "Added '{}' as '{}' to the repository.".format(file, name)
+        elif state.command[:6] == "remove":
+            repo.remove_morphology(state.command[7:])
+        elif state.command[:4] == "plot":
+            name = state.command[5:]
+            if repo.morphology_exists(name):
+                morphology = repo.get_morphology(name)
+                if repo.voxel_cloud_exists(name):
+                    pass
+                    # plot_voxel_morpho_map(morphology)
+                else:
+                    plot_morphology(morphology)
+                    plt.show()
+            else:
+                state.reply = "Unknown morphology '{}'".format(name)
 
 def debug_hdf5(scaffold):
     df = chr(172)
