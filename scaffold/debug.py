@@ -31,7 +31,6 @@ def debug_voxel_cloud(scaffold):
     # Bullshit hacky code, just needed to debug. We should make a real REPL at some point.
     repo_file = input("Specify the morphology repository: ")
     repo = MorphologyRepository(repo_file if len(repo_file) > 0 else None)
-    repo.initialise(scaffold)
     state = ReplState()
     while not state.exit:
         state.repl()
@@ -60,11 +59,10 @@ def debug_voxel_cloud(scaffold):
             if repo.morphology_exists(name):
                 morphology = repo.get_morphology(name)
                 if repo.voxel_cloud_exists(name):
-                    pass
-                    # plot_voxel_morpho_map(morphology)
+                    plot_voxel_morpho_map(morphology)
                 else:
                     plot_morphology(morphology)
-                    plt.show()
+                plt.show()
             else:
                 state.reply = "Unknown morphology '{}'".format(name)
 
