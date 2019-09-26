@@ -177,6 +177,13 @@
       "divergence": 50,
       "convergence": 4
     },
+    "glomerulus_to_dcn": {
+      "class": "scaffold.connectivity.ConnectomeGlomDCN",
+      "from_cell_types": [{"type": "glomerulus", "compartments": ["soma"]}],
+      "to_cell_types": [{"type": "dcn_cell", "compartments": ["dendrites"]}],
+      "divergence": 147,
+      "convergence": 2
+    },
     "granule_to_golgi": {
       "class": "scaffold.connectivity.ConnectomeGranuleGolgi",
       "from_cell_types": [{"type": "granule_cell", "compartments": ["parallel_fiber", "ascending_axon"]}],
@@ -483,6 +490,10 @@
         },
         "purkinje_to_dcn": {
           "weight": -0.03,
+          "delay": 4.0
+        },
+        "glomerulus_to_dcn": {
+          "weight": 0.0006,
           "delay": 4.0
         }
       },
