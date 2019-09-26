@@ -171,19 +171,36 @@ class MorphologyRepository(OutputFormatter):
         # Open repository and close afterwards
         with self.load() as repo:
             # Check if morphology exists
-            if not name in repo['morphologies']:
+            if not self._me(name):
                 raise Exception("Attempting to load unknown morphology '{}'".format(name))
             # Take out all the data with () index, and send along the metadata stored in the attributes
-            return Morphology.from_repo_data(repo[name][()], repo[name].attrs)
+            data = self._m(name)
+            return Morphology.from_repo_data(data[()], data.attrs)
+
+    def morphology_exists(self, name):
+        with self.load() as repo:
+            return self._me(name)
+
+    def voxel_cloud_exists(self, name):
+        with self.load() as repo:
+            return self._ve(name)
+
+    def remove_morphology(self, name):
+        with self.load() as repo:
+            self._rmm(name)
+
+    def remove_voxel_cloud(self, name):
+        with self.load() as repo:
+            self._rmv(name)
 
     def list_all_morphologies(self):
         with self.load() as repo:
-            return list(repo['morphologies'].keys())
+            return list(filter(lambda x: x != 'voxel_clouds', repo['morphologies'].keys()))
 
     def list_all_voxelized(self):
         with self.load() as repo:
             all = list(repo['morphologies'].keys())
-            voxelized = list(filter(lambda x: x in repo['morphologies/voxel_clouds'], all))
+            voxelized = list(filter(lambda x: x in repo['/morphologies/voxel_clouds'], all))
             return voxelized
 
     ## Handle avoidance factories
