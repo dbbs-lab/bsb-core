@@ -418,10 +418,6 @@
         }
       },
       "connection_models": {
-        "golgi_to_glomerulus": {
-          "weight": 0.0,
-          "delay": 0.5
-        },
         "glomerulus_to_granule": {
           "weight": 0.15,
           "delay": 4.0
