@@ -83,5 +83,5 @@ def debug_hdf5(scaffold):
                 format_self(obj[key], obj[key].name, lvl + 1)
 
     hdf5_file = input("Specify the hdf5 file: ")
-    with h5py.File(hdf5_file) as f:
+    with h5py.File(hdf5_file, 'r+') as f:
         format_self(f, str(f.file), 0)
