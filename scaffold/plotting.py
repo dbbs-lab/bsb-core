@@ -106,85 +106,14 @@ def plot_morphology(morphology, fig_ax_tuple=None, compartment_selection=()):
         return None
 
 
-def plot_voxel_morpho_map(morphology, cloud, selected_voxel_id=None, compartment_selection=()):
+def plot_voxel_morpho_map(morphology, selected_voxel_id=None, compartment_selection=()):
     fig = plt.figure(figsize=plt.figaspect(0.5))
     ax_cloud = fig.add_subplot(1, 2, 1, projection='3d')
     ax_frame = fig.add_subplot(1, 2, 2, projection='3d')
-    voxels = plot_voxel_cloud(cloud, fig_ax_tuple=(fig, ax_cloud), selected_voxel_id=selected_voxel_id)
+    voxels = plot_voxel_cloud(morphology.cloud, fig_ax_tuple=(fig, ax_cloud), selected_voxel_id=selected_voxel_id)
     selection = plot_morphology(
         morphology,
         fig_ax_tuple=(fig, ax_frame),
         compartment_selection=compartment_selection
     )
     return fig, ax_cloud, ax_frame, voxels, selection
-
-# def line2d_seg_dist(p1, p2, p0):
-#     """distance(s) from line defined by p1 - p2 to point(s) p0
-#
-#     p0[0] = x(s)
-#     p0[1] = y(s)
-#
-#     intersection point p = p1 + u*(p2-p1)
-#     and intersection point lies within segment if u is between 0 and 1
-#     """
-#
-#     x21 = p2[0] - p1[0]
-#     y21 = p2[1] - p1[1]
-#     x01 = np.asarray(p0[0]) - p1[0]
-#     y01 = np.asarray(p0[1]) - p1[1]
-#
-#     u = (x01*x21 + y01*y21) / (x21**2 + y21**2)
-#     u = np.clip(u, 0, 1)
-#     d = np.hypot(x01 - u*x21, y01 - u*y21)
-#
-#     return d
-#
-# def get_3d_pos(ax, xd, yd):
-#     if ax.M is None:
-#         return {}
-#
-#     p = (xd, yd)
-#     edges = ax.tunit_edges()
-#     ldists = [(line2d_seg_dist(p0, p1, p), i) for \
-#                 i, (p0, p1) in enumerate(edges)]
-#     ldists.sort()
-#
-#     # nearest edge
-#     edgei = ldists[0][1]
-#
-#     p0, p1 = edges[edgei]
-#
-#     # scale the z value to match
-#     x0, y0, z0 = p0
-#     x1, y1, z1 = p1
-#     d0 = np.hypot(x0-xd, y0-yd)
-#     d1 = np.hypot(x1-xd, y1-yd)
-#     dt = d0+d1
-#     z = d1/dt * z0 + d0/dt * z1
-#
-#     x, y, z = mplot3d.proj3d.inv_transform(xd, yd, z, ax.M)
-#     return type('pos_obj', (object,), {'x':x, 'y': y, 'z': z})()
-#
-# The positions matrix, 3 columns: x, y, z
-positions = np.zeros((4, 3))
-
-positions[0, :] = [-2, 0, 0]
-positions[1, :] = [2, 2, 2]
-positions[2, :] = [2, 6, 2]
-positions[3, :] = [6, 8, 8]
-
-# The density map: a list of lists where each row is a voxel and the list of that row are all the compartments in that voxel
-_map = [
-    [4,5, 6, 8],
-    [4, 5],
-    [1],
-    []
-]
-
-grid_size = 2
-
-voxel_cloud = type('VoxelCloud', (object,), {'positions': positions, 'map': _map, 'grid_size': grid_size})()
-# morphology = type('Morphology', (object,), {'compartments': compartments})()
-#
-# # plot_voxel_morpho_map(morphology, voxel_cloud)
-# # plt.show(block=True)
