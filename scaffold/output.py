@@ -81,21 +81,39 @@ class MorphologyRepository(OutputFormatter):
 
     def __init__(self, file=None):
         super().__init__()
+        self.handle = None
         if not file is None:
             self.file = file
 
     def get_handle(self):
-        f = h5py.File(self.file)
-        if not 'morphologies' in f:
-            f.create_group('morphologies')
-        if not 'morphologies/voxel_clouds' in f:
-            f.create_group('morphologies/voxel_clouds')
-        return f
+        '''
+            Open the MorphologyRepository storage resource.
+        '''
+        if not self.handle is None: # Resource already open?
+            # Return the handle to the already open resource.
+            return self.handle
+        # Open a new handle to the resource.
+        self.handle = h5py.File(self.file)
+        # Repository structure missing from resource? Create it.
+        if not 'morphologies' in self.handle:
+            self.handle.create_group('morphologies')
+        if not 'morphologies/voxel_clouds' in self.handle:
+            self.handle.create_group('morphologies/voxel_clouds')
+        # Return the handle to the resource.
+        return self.handle
 
     def release_handle(self, handle):
+        '''
+            Close the MorphologyRepository storage resource.
+        '''
+        self.handle = None
         return handle.close()
 
     def save(self):
+        '''
+            Called when the scaffold is saving itself.
+            Don't need to do anything special with the repo when the scaffold is saving itself.
+        '''
         pass
 
     def import_swc(self, file, name, tags=[]):
