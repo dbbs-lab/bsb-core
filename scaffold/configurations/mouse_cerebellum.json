@@ -177,6 +177,13 @@
       "divergence": 50,
       "convergence": 4
     },
+    "golgi_to_glomerulus": {
+      "class": "scaffold.connectivity.ConnectomeGolgiGlomerulus",
+      "from_cell_types": [{"type": "golgi_cell", "compartment": "axon"}],
+      "to_cell_types": [{"type": "glomerulus", "compartment": "soma"}],
+      "divergence": 40,
+      "convergence": 4
+    },
     "glomerulus_to_dcn": {
       "class": "scaffold.connectivity.ConnectomeGlomDCN",
       "from_cell_types": [{"type": "glomerulus", "compartments": ["soma"]}],
