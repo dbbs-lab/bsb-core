@@ -490,7 +490,7 @@
           "parameters": {
             "rate": 4.0,
             "start": 0.0,
-            "stop": 1000.
+            "stop": 1000.0
           }
         },
         "record_glomerulus_spikes": {
