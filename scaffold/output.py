@@ -166,6 +166,44 @@ class MorphologyRepository(OutputFormatter):
             voxelized = list(filter(lambda x: x in repo['morphologies/voxel_clouds'], all))
             return voxelized
 
+    ## Handle avoidance factories
+    ##   These function are shorthands for internal use that assume an open handle and don't close the handle.
+
+    def _me(self, name):
+        '''
+            Shorthand for self.morphology_exists
+        '''
+        return name in self.handle['morphologies']
+
+    def _ve(self, name):
+        '''
+            Shorthand for self.voxel_cloud_exists
+        '''
+        return name in self.handle['morphologies/voxel_clouds']
+
+    def _rmm(self, name):
+        '''
+            Shorthand for self.remove_morphology
+        '''
+        if self._me(name):
+            del self.handle['morphologies/' + name]
+
+    def _rmv(self, name):
+        '''
+            Shorthand for self.remove_voxel_cloud
+        '''
+        if self._ve(name):
+            del self.handle['morphologies/voxel_clouds' + name]
+
+    def _m(self, name):
+        '''
+            Return the morphology dataset
+        '''
+        return self.handle['morphologies/' + name]
+
+    ## Parts of the interface that we don't need. Should restructure to a pure OutputHandler for the handles
+    ## and an extension OutputFormatter for integration with the scaffold
+
     def init_scaffold(self):
         pass
 
