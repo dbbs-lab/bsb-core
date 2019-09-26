@@ -24,7 +24,8 @@ def plot_voxel_cloud(cloud, fig_ax_tuple=None, selected_voxel_ids=None):
     indices[:, 0] -= min_x
     indices[:, 1] -= min_y
     indices[:, 2] -= min_z
-    if not selected_voxel_id is None:
+    selected_voxels = None
+    if not selected_voxel_ids is None:
         # Select voxels and remove from indices so that the selected voxels aren't drawn twice
         selected_voxels = indices[selected_voxel_ids]
         mask = np.ones(indices.shape[0])
@@ -35,7 +36,7 @@ def plot_voxel_cloud(cloud, fig_ax_tuple=None, selected_voxel_ids=None):
     y_max = max(indices[:, 1])
     z_max = max(indices[:, 2])
     maxmax = max(x_max, y_max, z_max) + 1
-    grid_dimensions = (x_max + 1, y_max + 1, z_max + 1)
+    grid_dimensions = (x_max + 1, z_max + 1, y_max + 1)
     # Calculate normalized occupancy of each voxel to determine transparency
     voxel_occupancy = np.array(list(map(lambda x: len(x), cloud.map)))
     max_voxel_occupancy = max(voxel_occupancy)
@@ -43,7 +44,7 @@ def plot_voxel_cloud(cloud, fig_ax_tuple=None, selected_voxel_ids=None):
     # Initialise plotting arrays
     voxels = np.zeros(grid_dimensions)
     colors = np.empty(voxels.shape, dtype=object)
-    if not selected_voxel is None:
+    if not selected_voxels is None:
         # Prepare colored selected voxels
         for i in range(selected_voxels.shape[0]):
             voxels[selected_voxel[i,0],selected_voxel[i,2],selected_voxel[i,1]] = True
@@ -106,11 +107,11 @@ def plot_morphology(morphology, fig_ax_tuple=None, compartment_selection=()):
         return None
 
 
-def plot_voxel_morpho_map(morphology, selected_voxel_id=None, compartment_selection=()):
+def plot_voxel_morpho_map(morphology, selected_voxel_ids=None, compartment_selection=()):
     fig = plt.figure(figsize=plt.figaspect(0.5))
     ax_cloud = fig.add_subplot(1, 2, 1, projection='3d')
     ax_frame = fig.add_subplot(1, 2, 2, projection='3d')
-    voxels = plot_voxel_cloud(morphology.cloud, fig_ax_tuple=(fig, ax_cloud), selected_voxel_id=selected_voxel_id)
+    voxels = plot_voxel_cloud(morphology.cloud, fig_ax_tuple=(fig, ax_cloud), selected_voxel_ids=selected_voxel_ids)
     selection = plot_morphology(
         morphology,
         fig_ax_tuple=(fig, ax_frame),
