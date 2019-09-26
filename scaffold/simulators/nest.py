@@ -87,7 +87,7 @@ class NestDevice(SimulationComponent):
             id_map = target_cells[:, 0]
             target_positions = target_cells[:, 2:5]
         # Query the tree for all the targets
-        target_ids = tree.query_radius(np.array([0., 600., 0.]).reshape(1, -1), self.radius)[0].tolist()
+        target_ids = tree.query_radius(np.array(self.origin).reshape(1, -1), self.radius)[0].tolist()
         print('found {} targets'.format(len(target_ids)), target_ids)
         return id_map[target_ids]
 
