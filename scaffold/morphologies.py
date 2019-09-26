@@ -136,13 +136,6 @@ class MorphologyRepository(ResourceHandler):
         self.handle = None
         return handle.close()
 
-    def save(self):
-        '''
-            Called when the scaffold is saving itself.
-            Don't need to do anything special with the repo when the scaffold is saving itself.
-        '''
-        pass
-
     def import_swc(self, file, name, tags=[], overwrite=False):
         '''
             Import and store .swc file contents as a morphology in the repository.
