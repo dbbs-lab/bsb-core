@@ -230,8 +230,9 @@ class MorphologyRepository(ResourceHandler):
             voxelized = list(filter(lambda x: x in repo['/morphologies/voxel_clouds'], all))
             return voxelized
 
-    ## Handle avoidance factories
-    ##   These function are shorthands for internal use that assume an open handle and don't close the handle.
+    #-- Handle avoidance shorthand functions
+    # These function are shorthands for internal use that assume an open handle
+    # in self.handle and don't close that handle.
 
     def _me(self, name):
         '''
@@ -264,24 +265,3 @@ class MorphologyRepository(ResourceHandler):
             Return the morphology dataset
         '''
         return self.handle['morphologies/' + name]
-
-    ## Parts of the interface that we don't need. Should restructure to a pure OutputHandler for the handles
-    ## and an extension OutputFormatter for integration with the scaffold
-
-    def init_scaffold(self):
-        pass
-
-    def validate(self):
-        pass
-
-    def load_tree(self, collection_name, tree_name):
-        pass
-
-    def get_simulator_output_path(self, simulator_name):
-        pass
-
-    def has_cells_of_type(self, name):
-        pass
-
-    def get_cells_of_type(self, name):
-        pass
