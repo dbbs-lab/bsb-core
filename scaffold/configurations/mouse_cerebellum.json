@@ -170,6 +170,13 @@
     }
   },
   "connection_types": {
+    "glomerulus_to_granule": {
+      "class": "scaffold.connectivity.ConnectomeGlomerulusGranule",
+      "from_cell_types": [{"type": "glomerulus", "compartments": ["soma"]}],
+      "to_cell_types": [{"type": "granule_cell", "compartments": ["dendrites"]}],
+      "divergence": 50,
+      "convergence": 4
+    },
     "golgi_to_glomerulus": {
       "class": "scaffold.connectivity.ConnectomeGolgiGlomerulus",
       "from_cell_types": [{"type": "golgi_cell", "compartment": "axon"}],
@@ -177,12 +184,12 @@
       "divergence": 40,
       "convergence": 4
     },
-    "glomerulus_to_granule": {
-      "class": "scaffold.connectivity.ConnectomeGlomerulusGranule",
+    "glomerulus_to_dcn": {
+      "class": "scaffold.connectivity.ConnectomeGlomDCN",
       "from_cell_types": [{"type": "glomerulus", "compartments": ["soma"]}],
-      "to_cell_types": [{"type": "granule_cell", "compartments": ["dendrites"]}],
-      "divergence": 50,
-      "convergence": 4
+      "to_cell_types": [{"type": "dcn_cell", "compartments": ["dendrites"]}],
+      "divergence": 147,
+      "convergence": 2
     },
     "granule_to_golgi": {
       "class": "scaffold.connectivity.ConnectomeGranuleGolgi",
@@ -268,10 +275,13 @@
         "granule_cell": {
           "parameters": {
             "t_ref": 1.5,
-            "C_m": 7.0,
-            "V_th": -41.0,
-            "V_reset": -70.0,
-            "E_L": -62.0
+            "C_m": 3.0,
+            "V_th": -42.0,
+            "V_reset": -84.0,
+            "E_L": -74.0,
+            "tau_syn_ex": 0.5,
+            "tau_syn_in": 10.0,
+            "g_L": 1.5
           },
           "iaf_cond_alpha": {
             "I_e": 0.0
@@ -300,14 +310,17 @@
         },
         "purkinje_cell": {
           "parameters": {
-            "t_ref": 0.5,
-            "C_m": 334.0,
-            "V_th": -43.0,
-            "V_reset": -69.0,
-            "E_L": -59.0
+            "t_ref": 0.8,
+            "C_m": 620.0,
+            "V_th": -47.0,
+            "V_reset": -72.0,
+            "E_L": -62.0,
+            "tau_syn_ex": 0.5,
+            "tau_syn_in": 1.6,
+            "g_L": 7.0
           },
           "iaf_cond_alpha": {
-            "I_e": 800.0
+            "I_e": 700.0
           },
           "eglif": {
             "Vinit": -59.0,
@@ -325,13 +338,16 @@
         "golgi_cell": {
           "parameters": {
             "t_ref": 2.0,
-            "C_m": 145.0,
+            "C_m": 76.0,
             "V_th": -55.0,
             "V_reset": -75.0,
-            "E_L": -62.0
+            "E_L": -65.0,
+            "tau_syn_ex": 0.5,
+            "tau_syn_in": 10.0,
+            "g_L": 3.6
           },
           "iaf_cond_alpha": {
-            "I_e": 36.8
+            "I_e": 36.75
           },
           "eglif": {
             "Vinit": -62.0,
@@ -353,10 +369,13 @@
             "C_m": 14.6,
             "V_th": -53.0,
             "V_reset": -78.0,
-            "E_L": -68.0
+            "E_L": -68.0,
+            "tau_syn_ex": 0.64,
+            "tau_syn_in": 2.0,
+            "g_L": 1.0
           },
           "iaf_cond_alpha": {
-            "I_e": 24.05
+            "I_e": 15.6
           },
           "eglif": {
             "Vinit": -68.0,
@@ -376,10 +395,13 @@
             "C_m": 14.6,
             "V_th": -53.0,
             "V_reset": -78.0,
-            "E_L": -68.0
+            "E_L": -68.0,
+            "tau_syn_ex": 0.64,
+            "tau_syn_in": 2.0,
+            "g_L": 1.0
           },
           "iaf_cond_alpha": {
-            "I_e": 24.05
+            "I_e": 15.6
           },
           "eglif": {
             "Vinit": -68.0,
@@ -395,14 +417,17 @@
         },
         "dcn_cell": {
           "parameters": {
-            "t_ref": 0.8,
-            "C_m": 142.0,
-            "V_th": -36.0,
-            "V_reset": -55.0,
-            "E_L": -45.0
+            "t_ref": 3.7,
+            "C_m": 89.0,
+            "V_th": -48.0,
+            "V_reset": -69.0,
+            "E_L": -59.0,
+            "tau_syn_ex": 7.1,
+            "tau_syn_in": 13.6,
+            "g_L": 1.56
           },
           "iaf_cond_alpha": {
-            "I_e": 180.0
+            "I_e": 55.75
           },
           "eglif": {
             "Vinit": -45.0,
@@ -418,65 +443,65 @@
         }
       },
       "connection_models": {
-        "golgi_to_glomerulus": {
-          "weight": 0.0,
-          "delay": 0.5
-        },
         "glomerulus_to_granule": {
-          "weight": 0.15,
+          "weight": 9.0,
           "delay": 4.0
         },
         "golgi_to_granule": {
-          "weight": 0.6,
+          "weight": -5.0,
           "delay": 2.0
         },
         "ascending_axon_to_purkinje": {
-          "weight": 0.7,
+          "weight": 75.0,
           "delay": 2.0
         },
         "ascending_axon_to_golgi": {
-          "weight": 1.2,
+          "weight": 20.0,
           "delay": 2.0
         },
         "parallel_fiber_to_golgi": {
-          "weight": 0.5,
+          "weight": 0.2,
           "delay": 5.0
         },
         "parallel_fiber_to_purkinje": {
-          "weight": 0.007,
+          "weight": 0.2,
           "delay": 5.0
         },
         "parallel_fiber_to_basket": {
-          "weight": 0.015,
+          "weight": 0.2,
           "delay": 5.0
         },
         "parallel_fiber_to_stellate": {
-          "weight": 0.015,
+          "weight": 0.2,
           "delay": 5.0
         },
         "stellate_to_purkinje": {
-          "weight": 0.3,
+          "weight": -8.5,
           "delay": 4.0
         },
         "basket_to_purkinje": {
-          "weight": 0.3,
+          "weight": -9.0,
           "delay": 4.0
         },
         "stellate_gap_junctions": {
-          "weight": 0.2,
+          "weight": -2.0,
           "delay": 1.0
         },
         "basket_gap_junctions": {
-          "weight": 0.2,
+          "weight": -2.5,
           "delay": 1.0
         },
         "golgi_gap_junctions" : {
-          "weight": 0.3,
+          "weight": -8.0,
           "delay": 1.0
         },
         "purkinje_to_dcn": {
-          "weight": 0.5,
-          "delay": 40.0
+          "weight": -0.03,
+          "delay": 4.0
+        },
+        "glomerulus_to_dcn": {
+          "weight": 0.0006,
+          "delay": 4.0
         }
       },
       "devices": {
