@@ -38,8 +38,12 @@ class TreeCollection:
         return self.trees.keys()
 
     def load_tree(self, name):
-        self.trees[name] = handler.load_tree(self.name, name)
-        return self.trees[name]
+        try:
+            self.trees[name] = handler.load_tree(self.name, name)
+            return self.trees[name]
+        except Exception:
+            self.trees[name] = None
+            return None
 
     def get_tree(self, name, plane='xyz'):
         if not is_valid_tree_name(name):

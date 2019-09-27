@@ -75,7 +75,6 @@ class HDF5TreeHandler(HDF5ResourceHandler, TreeHandler):
             for tree_name, tree in tree_collection.items():
                 tree_dataset = tree_collection_group.create_dataset(tree_name, data=string_(pickle.dumps(tree)))
 
-
     def load_tree(self, collection_name, tree_name):
         with self.load() as f:
             try:
