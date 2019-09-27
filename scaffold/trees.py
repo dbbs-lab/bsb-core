@@ -2,7 +2,7 @@ from sklearn.neighbors import KDTree
 import re, abc
 
 TREE_NAME_REGEX = re.compile(r'^[^\:\+]+$')
-def validate_tree_name(name):
+def is_valid_tree_name(name):
     '''
         Validate whether a given string is fit to be the name of a tree in a TreeCollection.
         Must not contain any plus signs or colons.
@@ -41,7 +41,11 @@ class TreeCollection:
         self.trees[name] = handler.load_tree(self.name, name)
         return self.trees[name]
 
-    def get_tree(self, name):
+    def get_tree(self, name, plane='xyz'):
+        if not is_valid_tree_name(name):
+            raise Exception("Not a valid tree name.")
         if not name in self.trees:
             self.load_tree(name)
         return self.trees[name]
+
+    def get_compound_tree(self, name, plane='xyz'):

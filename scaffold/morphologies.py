@@ -115,7 +115,7 @@ class NoGeometry(Morphology):
 	def validate(self):
 		pass
 
-class MorphologyRepository(TreeHandler):
+class MorphologyRepository(HDF5TreeHandler):
 
     defaults = {
         'file': 'morphology_repository.hdf5'
@@ -127,12 +127,13 @@ class MorphologyRepository(TreeHandler):
         if not file is None:
             self.file = file
 
+	# Abstract function from ResourceHandler
     def get_handle(self, mode='r+'):
         '''
-            Open the MorphologyRepository storage resource.
+            Open the HDF5 storage resource and initialise the MorphologyRepository structure.
         '''
-        # Open a new handle to the resource.
-        handle = h5py.File(self.file, mode)
+        # Open a new handle to the HDF5 resource.
+        handle = HDF5ResourceHandler.get_handle(self, mode)
         # Repository structure missing from resource? Create it.
         if not 'morphologies' in handle:
             handle.create_group('morphologies')
@@ -140,26 +141,6 @@ class MorphologyRepository(TreeHandler):
             handle.create_group('morphologies/voxel_clouds')
         # Return the handle to the resource.
         return handle
-
-    def release_handle(self, handle):
-        '''
-            Close the MorphologyRepository storage resource.
-        '''
-        return handle.close()
-
-    def store_tree_collections(self, tree_collections):
-        tree_group = self.handle.create_group('trees')
-        for tree_collection in tree_collections:
-            tree_collection_group = tree_group.create_group(tree_collection.name)
-            for tree_name, tree in tree_collection.items():
-                tree_dataset = tree_collection_group.create_dataset(tree_name, data=string_(pickle.dumps(tree)))
-
-    def load_tree(self, collection_name, tree_name):
-        with self.load() as f:
-            try:
-                return pickle.loads(f['/trees/{}/{}'.format(collection_name, tree_name)][()])
-            except KeyError as e:
-                raise Exception("Tree not found in HDF5 file '{}', path does not exist: '{}'".format(f.file))
 
     def import_swc(self, file, name, tags=[], overwrite=False):
         '''
