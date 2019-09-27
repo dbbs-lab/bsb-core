@@ -11,15 +11,17 @@ class ResourceHandler(ABC):
     @contextmanager
     def load(self, mode=None):
         already_open = False
-        if self.handle is None:
-            # Pass the mode argument if it is given, otherwise allow child to rely on its own default value.
+        if self.handle is None: # Is the handle not open yet? Open it.
+            # Pass the mode argument if it is given, otherwise allow child to rely
+            # on its own default value for the mode argument.
             self.handle = self.get_handle(mode) if not mode is None else self.get_handle()
             already_open = True
         try:
-            yield self.handle
-        finally:
-            if not already_open:
+            yield self.handle # Return the handle
+        finally: # This is always called after the context manager closes.
+            if not already_open: # Did we open the handle? We close it.
                 self.release_handle(self.handle)
+                self.handle = None
 
     @abstractmethod
     def get_handle(self, mode=None):
