@@ -1,4 +1,14 @@
 from sklearn.neighbors import KDTree
+import re, abc
+
+TREE_NAME_REGEX = re.compile(r'^[^\:\+]+$')
+def validate_tree_name(name):
+    '''
+        Validate whether a given string is fit to be the name of a tree in a TreeCollection.
+        Must not contain any plus signs or colons.
+    '''
+    # re.match() returns a MatchObject with a boolean value of True, or None
+    return not not TREE_NAME_REGEX.match(name)
 
 class TreeCollection:
     '''
