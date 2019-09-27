@@ -1,24 +1,25 @@
 from .helpers import ConfigurableClass, get_qualified_class_name
 from contextlib import contextmanager
-from abc import abstractmethod
+from abc import abstractmethod, ABC
 import h5py, os, time, pickle, numpy as np
 from numpy import string_
 
-class ResourceHandler:
+class ResourceHandler(ABC):
     def __init__(self):
         self.handle = None
 
     @contextmanager
-    def load(self):
+    def load(self, mode=None):
         if self.handle is None:
-            self.handle = self.get_handle()
+            # Pass the mode argument if it is given, otherwise allow child to rely on its own default value.
+            self.handle = self.get_handle(mode) if not mode is None else self.get_handle()
         try:
             yield self.handle
         finally:
             self.release_handle(self.handle)
 
     @abstractmethod
-    def get_handle(self):
+    def get_handle(self, mode=None):
         '''
             Open the output resource and return a handle.
         '''
@@ -31,11 +32,24 @@ class ResourceHandler:
         '''
         pass
 
-class OutputFormatter(ConfigurableClass, ResourceHandler):
+class TreeHandler(ResourceHandler):
+    '''
+        Interface that allows a ResourceHandler to handle storage of TreeCollections.
+    '''
+
+    @abstractmethod
+    def load_tree(collection_name, tree_name):
+        pass
+
+    @abstractmethod
+    def store_tree_collections(self, tree_collections):
+        pass
+
+class OutputFormatter(ConfigurableClass, TreeHandler):
 
     def __init__(self):
         ConfigurableClass.__init__(self)
-        ResourceHandler.__init__(self)
+        TreeHandler.__init__(self)
         self.save_file_as = None
 
     @abstractmethod
@@ -46,13 +60,6 @@ class OutputFormatter(ConfigurableClass, ResourceHandler):
     def init_scaffold(self):
         '''
             Initialize the scaffold when it has been loaded from an output file.
-        '''
-        pass
-
-    @abstractmethod
-    def load_tree(self, collection_name, tree_name):
-        '''
-            Load a tree from a tree collection in the storage
         '''
         pass
 
@@ -84,8 +91,8 @@ class HDF5Formatter(OutputFormatter):
         'simulator_output_path': False
     }
 
-    def get_handle(self):
-        return h5py.File(self.file, 'a')
+    def get_handle(self, mode='a'):
+        return h5py.File(self.file, mode)
 
     def release_handle(self, handle):
         return handle.close()
@@ -93,10 +100,11 @@ class HDF5Formatter(OutputFormatter):
     def save(self):
         if self.save_file_as:
             self.file = self.save_file_as
-        with self.load() as output:
+
+        with self.load('w') as output:
             self.store_configuration()
             self.store_cells()
-            self.store_trees()
+            self.store_tree_collections(self.scaffold.trees.__dict__.values())
             self.store_statistics()
             self.store_appendices()
 
@@ -141,10 +149,10 @@ class HDF5Formatter(OutputFormatter):
             connection_dataset.attrs['connection_types'] = list(map(lambda x: x.name, related_types))
             connection_dataset.attrs['connection_type_classes'] = list(map(get_qualified_class_name, related_types))
 
-    def store_trees(self):
+    def store_tree_collections(self, tree_collections):
         tree_group = self.handle.create_group('trees')
-        for tree_collection_name, tree_collection in self.scaffold.trees.__dict__.items():
-            tree_collection_group = tree_group.create_group(tree_collection_name)
+        for tree_collection in tree_collections:
+            tree_collection_group = tree_group.create_group(tree_collection.name)
             for tree_name, tree in tree_collection.items():
                 tree_dataset = tree_collection_group.create_dataset(tree_name, data=string_(pickle.dumps(tree)))
 
