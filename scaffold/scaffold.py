@@ -19,8 +19,9 @@ class Scaffold:
 		self.reset_network_cache()
 		# Debug statistics, unused.
 		self.statistics = Statistics(self)
+		self._initialise_output_formatter()
 		self.trees = type('scaffold.trees', (object,), {})()
-		self.trees.__dict__['cells'] = TreeCollection(self, 'cells')
+		self.trees.__dict__['cells'] = TreeCollection('cells', self.output_formatter)
 		self._nextId = 0
 		# Use the configuration to initialise all components such as cells and layers
 		# to prepare for the network architecture compilation.
@@ -40,7 +41,6 @@ class Scaffold:
 		self._initialise_placement_strategies()
 		self._initialise_connection_types()
 		self._initialise_simulations()
-		self._initialise_output_formatter()
 
 	def initialiseSimulators(self):
 		self.simulators = self.configuration.simulators

@@ -1,10 +1,13 @@
 from sklearn.neighbors import KDTree
 
 class TreeCollection:
+    '''
+        Keeps track of a collection of KDTrees in cooperation with a TreeHandler.
+    '''
     trees = {}
 
-    def __init__(self, scaffold, name):
-        self.scaffold = scaffold
+    def __init__(self, name, handler):
+        self.handler = handler
         self.name = name
 
     def create_tree(self, name, nodes):
@@ -25,7 +28,7 @@ class TreeCollection:
         return self.trees.keys()
 
     def load_tree(self, name):
-        self.trees[name] = self.scaffold.output_formatter.load_tree(self.name, name)
+        self.trees[name] = handler.load_tree(self.name, name)
         return self.trees[name]
 
     def get_tree(self, name):

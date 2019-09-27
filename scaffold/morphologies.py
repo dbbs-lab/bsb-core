@@ -1,6 +1,6 @@
 import abc, numpy as np, pickle, h5py
 from .helpers import ConfigurableClass
-from .output import ResourceHandler
+from .output import TreeHandler
 from .voxels import VoxelCloud
 
 class Compartment:
@@ -115,7 +115,7 @@ class NoGeometry(Morphology):
 	def validate(self):
 		pass
 
-class MorphologyRepository(ResourceHandler):
+class MorphologyRepository(TreeHandler):
 
     defaults = {
         'file': 'morphology_repository.hdf5'
