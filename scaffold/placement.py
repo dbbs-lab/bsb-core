@@ -314,19 +314,24 @@ class ParallelArrayPlacement(PlacementStrategy):
 		surfaceArea = layer.width * layer.depth
 		# Number of cells
 		N = self.get_placement_count(cell_type)
+		# Add a random shift to the starting points of the arrays for variation.
+		startOffset = np.random.rand() * extensionX
 		# Place purkinje cells equally spaced over the entire length of the X axis kept apart by their dendritic trees.
 		# They are placed in straight lines, tilted by a certain angle by adding a shifting value.
-		xPositions = np.arange(start=0., stop=layer.width, step=extensionX)[:-1]
+		xPositions = np.arange(start=0., stop=layer.width, step=extensionX)[:-1] + startOffset
+		if xPositions.shape[0] == 0: # This only happens if the extensionX of a purkinje cell is larger than the simulation volume
+			# Place a single row on a random position along the x axis
+			xPositions = np.array([startOffset])
 		# Amount of parallel arrays of cells
-		nArrays = max(1, xPositions.shape[0])
+		nArrays = xPositions.shape[0]
 		# cells to distribute along the rows
 		cellsPerRow = round(N / nArrays)
+		# The rounded amount of cells that will be placed
+		cellsPlaced = cellsPerRow * nArrays
 		# Calculate the position of the cells along the z-axis.
 		zPositions, lengthPerCell = np.linspace(start=0., stop=layer.depth - radius, num=cellsPerRow, retstep=True, endpoint=False)
 		# Center the cell soma center to the middle of the unit cell
 		zPositions += radius + lengthPerCell / 2
-		# Add a random shift to the starting points of the arrays for variation.
-		startOffset = np.random.rand() * extensionX
 		# The length of the X axis where cells can be placed in.
 		boundedX = layer.width - radius * 2
 		# The length of the X axis rounded up to a multiple of the unit cell size.
@@ -335,13 +340,15 @@ class ParallelArrayPlacement(PlacementStrategy):
 		latticeError = latticeX - boundedX
 		# Epsilon: jitter along the z-axis
 		ϵ = self.extension_z / 2
-
-		# See the Wiki `Placement > Purkinje placement` for detailed explanations of the following stepd
-		for i in np.arange(zPositions.shape[0]):
+		# Storage array for the cells
+		cells = np.empty((cellsPlaced,3))
+		# See the Wiki `Placement > Purkinje placement` for detailed explanations of the following steps
+		zShape = zPositions.shape[0]
+		for i in np.arange(zShape):
 			# Shift the arrays at an angle
 			angleShift = zPositions[i] * math.tan(self.angle)
 			# Apply shift and offset
-			x = (xPositions + angleShift + startOffset)
+			x = xPositions + angleShift
 			# Place the cells in a bounded lattice with a little modulus magic
 			x = layer.origin[0] + x % boundedX - np.floor(x / boundedX) * latticeError + radius
 			# Place them at a uniformly random height throughout the layer.
@@ -349,4 +356,8 @@ class ParallelArrayPlacement(PlacementStrategy):
 			# Place the cells in their z-position with slight jitter
 			z = layer.origin[2] + np.array([zPositions[i] + ϵ * (np.random.rand() - 0.5) for _ in np.arange(x.shape[0])])
 			# Store this stack's cells
-			self.scaffold.place_cells(cell_type, layer, np.column_stack([x, y, z]))
+			cells[(i * zShape):(i * (zShape + 1)), 0] = x
+			cells[(i * zShape):(i * (zShape + 1)), 1] = y
+			cells[(i * zShape):(i * (zShape + 1)), 2] = z
+		# Place all the cells in 1 stitch
+		self.scaffold.place_cells(cell_type, layer, cells)
