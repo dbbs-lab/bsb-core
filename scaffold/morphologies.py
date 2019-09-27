@@ -151,6 +151,20 @@ class MorphologyRepository(TreeHandler):
         self.handle = None
         return handle.close()
 
+    def store_tree_collections(self, tree_collections):
+        tree_group = self.handle.create_group('trees')
+        for tree_collection in tree_collections:
+            tree_collection_group = tree_group.create_group(tree_collection.name)
+            for tree_name, tree in tree_collection.items():
+                tree_dataset = tree_collection_group.create_dataset(tree_name, data=string_(pickle.dumps(tree)))
+
+    def load_tree(self, collection_name, tree_name):
+        with self.load() as f:
+            try:
+                return pickle.loads(f['/trees/{}/{}'.format(collection_name, tree_name)][()])
+            except KeyError as e:
+                raise Exception("Tree not found in HDF5 file '{}', path does not exist: '{}'".format(f.file))
+
     def import_swc(self, file, name, tags=[], overwrite=False):
         '''
             Import and store .swc file contents as a morphology in the repository.
