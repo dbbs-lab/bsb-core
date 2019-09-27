@@ -127,28 +127,24 @@ class MorphologyRepository(TreeHandler):
         if not file is None:
             self.file = file
 
-    def get_handle(self):
+    def get_handle(self, mode='r+'):
         '''
             Open the MorphologyRepository storage resource.
         '''
-        if not self.handle is None: # Resource already open?
-            # Return the handle to the already open resource.
-            return self.handle
         # Open a new handle to the resource.
-        self.handle = h5py.File(self.file)
+        handle = h5py.File(self.file, mode)
         # Repository structure missing from resource? Create it.
-        if not 'morphologies' in self.handle:
-            self.handle.create_group('morphologies')
-        if not 'morphologies/voxel_clouds' in self.handle:
-            self.handle.create_group('morphologies/voxel_clouds')
+        if not 'morphologies' in handle:
+            handle.create_group('morphologies')
+        if not 'morphologies/voxel_clouds' in handle:
+            handle.create_group('morphologies/voxel_clouds')
         # Return the handle to the resource.
-        return self.handle
+        return handle
 
     def release_handle(self, handle):
         '''
             Close the MorphologyRepository storage resource.
         '''
-        self.handle = None
         return handle.close()
 
     def store_tree_collections(self, tree_collections):
@@ -204,8 +200,8 @@ class MorphologyRepository(TreeHandler):
         # Save the dataset in the repository
         with self.load() as repo:
             if overwrite: # Do we overwrite previously existing dataset with same name?
-                self._rmm(name) # Delete anything that might be under this name.
-            elif self._me(name):
+                self.remove_morphology(name) # Delete anything that might be under this name.
+            elif self.morphology_exists(name):
                 raise Exception("A morphology called '{}' already exists in this repository.")
             # Create the dataset
             dset = repo['morphologies'].create_dataset(name, data=dataset_data)
@@ -220,15 +216,15 @@ class MorphologyRepository(TreeHandler):
         # Open repository and close afterwards
         with self.load() as repo:
             # Check if morphology exists
-            if not self._me(name):
+            if not self.morphology_exists(name):
                 raise Exception("Attempting to load unknown morphology '{}'".format(name))
             # Take out all the data with () index, and send along the metadata stored in the attributes
-            data = self._m(name)
+            data = self.raw_morphology(name)
             repo_data = data[()]
             repo_meta = dict(data.attrs)
             voxel_kwargs = {}
-            if self._ve(name):
-                voxels = self._v(name)
+            if self.voxel_cloud_exists(name):
+                voxels = self.raw_voxel_cloud(name)
                 voxel_kwargs['voxel_data'] = voxels['positions'][()]
                 voxel_kwargs['voxel_meta'] = dict(voxels.attrs)
                 voxel_kwargs['voxel_map'] = pickle.loads(voxels['map'][()])
@@ -236,19 +232,21 @@ class MorphologyRepository(TreeHandler):
 
     def morphology_exists(self, name):
         with self.load() as repo:
-            return self._me(name)
+            return name in self.handle['morphologies']
 
     def voxel_cloud_exists(self, name):
         with self.load() as repo:
-            return self._ve(name)
+            return name in self.handle['morphologies/voxel_clouds']
 
     def remove_morphology(self, name):
         with self.load() as repo:
-            self._rmm(name)
+            if self.morphology_exists(name):
+                del self.handle['morphologies/' + name]
 
     def remove_voxel_cloud(self, name):
         with self.load() as repo:
-            self._rmv(name)
+            if self.voxel_cloud_exists(name):
+                del self.handle['morphologies/voxel_clouds/' + name]
 
     def list_all_morphologies(self):
         with self.load() as repo:
@@ -260,44 +258,16 @@ class MorphologyRepository(TreeHandler):
             voxelized = list(filter(lambda x: x in repo['/morphologies/voxel_clouds'], all))
             return voxelized
 
-    #-- Handle avoidance shorthand functions
-    # These function are shorthands for internal use that assume an open handle
-    # in self.handle and don't close that handle.
-
-    def _me(self, name):
-        '''
-            Shorthand for self.morphology_exists
-        '''
-        return name in self.handle['morphologies']
-
-    def _ve(self, name):
-        '''
-            Shorthand for self.voxel_cloud_exists
-        '''
-        return name in self.handle['morphologies/voxel_clouds']
-
-    def _rmm(self, name):
-        '''
-            Shorthand for self.remove_morphology
-        '''
-        if self._me(name):
-            del self.handle['morphologies/' + name]
-
-    def _rmv(self, name):
-        '''
-            Shorthand for self.remove_voxel_cloud
-        '''
-        if self._ve(name):
-            del self.handle['morphologies/voxel_clouds/' + name]
-
-    def _m(self, name):
+    def raw_morphology(self, name):
         '''
             Return the morphology dataset
         '''
-        return self.handle['morphologies/' + name]
+        with self.load() as repo:
+        	return repo['morphologies/' + name]
 
-    def _v(self, name):
+    def raw_voxel_cloud(self, name):
         '''
             Return the morphology dataset
         '''
-        return self.handle['morphologies/voxel_clouds/' + name]
+        with self.load() as repo:
+            return repo['morphologies/voxel_clouds/' + name]

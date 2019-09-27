@@ -10,13 +10,18 @@ class ResourceHandler(ABC):
 
     @contextmanager
     def load(self, mode=None):
-        if self.handle is None:
-            # Pass the mode argument if it is given, otherwise allow child to rely on its own default value.
+        already_open = False
+        if self.handle is None: # Is the handle not open yet? Open it.
+            # Pass the mode argument if it is given, otherwise allow child to rely
+            # on its own default value for the mode argument.
             self.handle = self.get_handle(mode) if not mode is None else self.get_handle()
+            already_open = True
         try:
-            yield self.handle
-        finally:
-            self.release_handle(self.handle)
+            yield self.handle # Return the handle
+        finally: # This is always called after the context manager closes.
+            if not already_open: # Did we open the handle? We close it.
+                self.release_handle(self.handle)
+                self.handle = None
 
     @abstractmethod
     def get_handle(self, mode=None):
@@ -137,8 +142,9 @@ class HDF5Formatter(OutputFormatter):
         position_dataset = cells_group.create_dataset('positions', data=self.scaffold.cells)
         cell_type_names = self.scaffold.configuration.cell_type_map
         cells_group.attrs['types'] = cell_type_names
+        type_maps_group = cells_group.create_group('type_maps')
         for type in self.scaffold.configuration.cell_types.keys():
-            position_dataset.attrs[type + '_map'] = np.where(self.scaffold.cells[:,1] == cell_type_names.index(type))[0]
+            type_maps_group.create_dataset(type + '_map', data=np.where(self.scaffold.cells[:,1] == cell_type_names.index(type))[0])
 
     def store_cell_connections(self, cells_group):
         connections_group = cells_group.create_group('connections')
@@ -190,4 +196,9 @@ class HDF5Formatter(OutputFormatter):
             raise Exception("Attempting to load cell type '{}' that isn't defined in the storage.".format(name))
         # Slice out the cells of this type based on the map in the position dataset attributes.
         with self.load() as resource:
-            return resource['/cells/positions'][resource['/cells/positions'].attrs[name + '_map']][()]
+            type_map = self.get_type_map(name)
+            return resource['/cells/positions'][type_map][()]
+
+    def get_type_map(self, type):
+        with self.load() as resource:
+            return self.handle['/cells/type_maps/{}_map'.format(type)][()]
