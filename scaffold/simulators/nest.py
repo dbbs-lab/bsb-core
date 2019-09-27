@@ -88,7 +88,6 @@ class NestDevice(SimulationComponent):
             target_positions = target_cells[:, 2:5]
         # Query the tree for all the targets
         target_ids = tree.query_radius(np.array(self.origin).reshape(1, -1), self.radius)[0].tolist()
-        print('found {} targets'.format(len(target_ids)), target_ids)
         return id_map[target_ids]
 
     def _targets_cell_type(self):
@@ -138,7 +137,6 @@ class NestAdapter(SimulatorAdapter):
 
     def __init__(self):
         super().__init__()
-        self.identifiers = np.empty((0), dtype=int)
 
     def prepare(self, hdf5):
         import nest
@@ -167,30 +165,26 @@ class NestAdapter(SimulatorAdapter):
             Recreate the scaffold neurons in the same order as they were placed,
             inside of the NEST simulator based on the cell model configuration.
         '''
-        default_model = self.default_neuron_model
+        track_models = [] # Keeps track of already added models if there's more than 1 stitch per model
         # Iterate over all the placement stitches: each stitch was a batch of cells placed together and
-        # if we don't follow the same order as during the placement, the cell IDs will not match
+        # if we don't follow the same order as during the placement, the cell IDs can not be easily matched
         for cell_type_id, start_id, count in self.scaffold.placement_stitching:
             # Get the cell_type name from the type id to type name map.
             name = self.scaffold.configuration.cell_type_map[cell_type_id]
-            # Get the cell model
-            cell_model = cell_models[name]
-            # Use the default model unless another one is specified in the configuration.
-            nest_model_name = cell_model.neuron_model if hasattr(cell_model, "neuron_model") else default_model
-            # Alias the nest model name under our cell model name.
-            self.nest.CopyModel(nest_model_name, name)
-            # Get the synapse parameters
-            params = cell_model.get_parameters(model=nest_model_name)
-            # Set the parameters in NEST
-            self.nest.SetDefaults(name, params)
+            if name not in track_models: # Is this the first time encountering this model?
+                # Create the cell model in the simulator
+                self.create_model(cell_models[name], self.default_neuron_model)
+                track_models.append(name)
             # Create the same amount of cells that were placed in this stitch.
             identifiers = self.nest.Create(name, count)
-            self.identifiers = np.hstack((self.identifiers, identifiers))
             # Check if the stitching is going OK.
             if identifiers[0] != start_id + 1:
                 raise Exception("Could not match the scaffold cell identifiers to NEST identifiers! Cannot continue.")
 
     def connect_neurons(self, connection_models, hdf5):
+        '''
+            Connect the cells in NEST according to the connection model configurations
+        '''
         default_model = self.default_synapse_model
         for connection_model in connection_models.values():
             dataset_name = 'cells/connections/' + connection_model.name
@@ -215,6 +209,9 @@ class NestAdapter(SimulatorAdapter):
             self.nest.Connect(presynaptic_cells, postsynaptic_cells, connection_specifications, synaptic_parameters)
 
     def create_devices(self, devices):
+        '''
+            Create the configured NEST devices in the simulator
+        '''
         for device_model in devices.values():
             device = self.nest.Create(device_model.device)
             device_targets = device_model.get_targets()
@@ -223,3 +220,16 @@ class NestAdapter(SimulatorAdapter):
                 self.nest.Connect(device, device_targets)
             else:
                 self.nest.Connect(device_targets, device)
+
+    def create_model(self, cell_model, default_model):
+        '''
+            Create a NEST cell model in the simulator based on a cell model configuration.
+        '''
+        # Use the default model unless another one is specified in the configuration.
+        nest_model_name = cell_model.neuron_model if hasattr(cell_model, "neuron_model") else default_model
+        # Alias the nest model name under our cell model name.
+        self.nest.CopyModel(nest_model_name, cell_model.name)
+        # Get the synapse parameters
+        params = cell_model.get_parameters(model=nest_model_name)
+        # Set the parameters in NEST
+        self.nest.SetDefaults(cell_model.name, params)
