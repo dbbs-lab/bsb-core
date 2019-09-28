@@ -51,5 +51,3 @@ class TreeCollection:
         if not name in self.trees:
             self.load_tree(name)
         return self.trees[name]
-
-    def get_compound_tree(self, name, plane='xyz'):

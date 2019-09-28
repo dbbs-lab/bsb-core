@@ -1,6 +1,6 @@
 import abc, numpy as np, pickle, h5py
 from .helpers import ConfigurableClass
-from .output import TreeHandler
+from .output import HDF5TreeHandler
 from .voxels import VoxelCloud
 
 class Compartment:
@@ -133,7 +133,7 @@ class MorphologyRepository(HDF5TreeHandler):
             Open the HDF5 storage resource and initialise the MorphologyRepository structure.
         '''
         # Open a new handle to the HDF5 resource.
-        handle = HDF5ResourceHandler.get_handle(self, mode)
+        handle = HDF5TreeHandler.get_handle(self, mode)
         # Repository structure missing from resource? Create it.
         if not 'morphologies' in handle:
             handle.create_group('morphologies')

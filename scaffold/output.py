@@ -121,7 +121,7 @@ class OutputFormatter(ConfigurableClass, TreeHandler):
         '''
         pass
 
-class HDF5Formatter(OutputFormatter, HDF5ResourceHandler, HDF5TreeHandler):
+class HDF5Formatter(OutputFormatter, HDF5TreeHandler):
 
     defaults = {
         'file': 'scaffold_network_{}.hdf5'.format(time.strftime("%Y_%m_%d-%H%M%S")),
