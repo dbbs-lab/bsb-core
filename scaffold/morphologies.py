@@ -47,8 +47,10 @@ class Morphology(ConfigurableClass):
 		'''
 			Initialize this Morphology with a voxel cloud from a MorphologyRepository.
 		'''
+		bounds = voxel_meta['bounds']
+		grid_size = voxel_meta['grid_size']
 		# Initialise as a true morphology
-		self.cloud = VoxelCloud(voxel_meta['grid_size'], voxel_data, voxel_map)
+		self.cloud = VoxelCloud(bounds, grid_size, voxel_data, voxel_map)
 
 	@staticmethod
 	def from_repo_data(repo_data, repo_meta, voxel_data=None, voxel_map=None, voxel_meta=None, scaffold = None):
