@@ -14,50 +14,24 @@ def plotNetwork(scaffold, file=None, from_memory=False, block=True):
             ax.scatter3D(pos[:,0], pos[:,1], pos[:,2],c=color)
         plt.show(block=block)
 
-def plot_voxel_cloud(cloud, fig_ax_tuple=None, selected_voxel_ids=None):
+def plot_voxel_cloud(cloud, fig_ax_tuple=None, selected_voxels=None):
     # Calculate the 3D voxel indices based on the voxel positions and the grid size.
-    indices = np.array(cloud.positions / cloud.grid_size, dtype=int)
-    # Translate the voxel cloud to 0, 0, 0 as minimum index.
-    min_x = min(indices[:, 0])
-    min_y = min(indices[:, 1])
-    min_z = min(indices[:, 2])
-    indices[:, 0] -= min_x
-    indices[:, 1] -= min_y
-    indices[:, 2] -= min_z
-    selected_voxels = None
-    if not selected_voxel_ids is None:
-        # Select voxels and remove from indices so that the selected voxels aren't drawn twice
-        selected_voxels = indices[selected_voxel_ids]
-        mask = np.ones(indices.shape[0])
-        mask[selected_voxel_ids] = False
-        indices = indices[mask]
-    # Determine the total grid dimensions
-    x_max = max(indices[:, 0])
-    y_max = max(indices[:, 1])
-    z_max = max(indices[:, 2])
-    maxmax = max(x_max, y_max, z_max) + 1
-    grid_dimensions = (x_max + 1, z_max + 1, y_max + 1)
+    boxes = cloud.get_boxes()
+    voxels = cloud.voxels.copy()
     # Calculate normalized occupancy of each voxel to determine transparency
     voxel_occupancy = np.array(list(map(lambda x: len(x), cloud.map)))
     max_voxel_occupancy = max(voxel_occupancy)
-    normalized_voxel_occupancy = voxel_occupancy / (max_voxel_occupancy * 1.5)
-    # Initialise plotting arrays
-    voxels = np.zeros(grid_dimensions)
+    normalized_voxel_occupancy = list(map(lambda o: (1., 0., 0., o), voxel_occupancy / (max_voxel_occupancy * 1.5)))
     colors = np.empty(voxels.shape, dtype=object)
     if not selected_voxels is None:
-        # Prepare colored selected voxels
-        for i in range(selected_voxels.shape[0]):
-            voxels[selected_voxel[i,0],selected_voxel[i,2],selected_voxel[i,1]] = True
-            colors[selected_voxel[i,0],selected_voxel[i,2],selected_voxel[i,1]] = (0., 1., 0., 1.)
-        # Prepare transparent unselected voxels
-        for i in range(indices.shape[0]):
-            voxels[indices[i,0],indices[i,2],indices[i,1]] = True
-            colors[indices[i,0],indices[i,2],indices[i,1]] = (0., 0., 0., 0.)
+        # Don't double draw the selected voxels (might be more performant and insignificant to just double draw)
+        voxels[selected_voxels] = False
+        # Color selected voxels
+        colors[voxels] = (0., 0., 0., 0.)
+        colors[selected_voxels] = (0., 1., 0., 1.)
     else:
         # Prepare voxels with the compartment density coded into the alpha of the facecolor
-        for i in range(indices.shape[0]):
-            voxels[indices[i,0],indices[i,2],indices[i,1]] = True
-            colors[indices[i,0],indices[i,2],indices[i,1]] = (1., 0., 0., normalized_voxel_occupancy[i])
+        colors[voxels] = normalized_voxel_occupancy
     # If no plotting tuple is provided, create a new figure
     if fig_ax_tuple is None:
         fig = plt.figure()
@@ -65,10 +39,10 @@ def plot_voxel_cloud(cloud, fig_ax_tuple=None, selected_voxel_ids=None):
     else:
         fig, ax = fig_ax_tuple
     # Prepare plot
-    ax.set(xlim=(0., maxmax), ylim=(0., maxmax), zlim=(0., maxmax))
+    ax.set(xlim=(0., voxels.shape[0]), ylim=(0., voxels.shape[0]), zlim=(0., voxels.shape[0]))
     ax.set(xlabel='x', ylabel='z', zlabel='y')
     # Plot and return the voxel's artist dictionary
-    return ax.voxels(voxels, facecolors=colors, edgecolor='k', linewidth=.25)
+    return ax.voxels(np.swapaxes(voxels, 1, 2), facecolors=colors, edgecolor='k', linewidth=.25)
 
 def plot_compartment(ax, compartment, radius_multiplier=1., max_radius=4., color=None):
     artist = ax.plot_wireframe(

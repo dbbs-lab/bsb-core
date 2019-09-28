@@ -150,8 +150,8 @@ def assert_attr_in(section, attr, values, section_name):
 
 
 class dimensions:
-    def __init__(self):
-        self.dimensions = np.array([0., 0., 0.])
+    def __init__(self, dimensions):
+        self.dimensions = np.array([0., 0., 0.]) if dimensions is None else dimensions
 
     @property
     def width(self):
@@ -170,8 +170,8 @@ class dimensions:
         return np.prod(self.dimensions)
 
 class origin:
-    def __init__(self):
-        self.dimensions = np.array([0., 0., 0.])
+    def __init__(self, origin=None):
+        self.origin = np.array([0., 0., 0.]) if origin is None else origin
 
     def X(self):
         return self.origin[0]

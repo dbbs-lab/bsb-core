@@ -1,7 +1,8 @@
 import abc, numpy as np, pickle, h5py
 from .helpers import ConfigurableClass
 from .output import HDF5TreeHandler
-from .voxels import VoxelCloud
+from .voxels import VoxelCloud, detect_box_compartments
+from sklearn.neighbors import KDTree
 
 class Compartment:
 	def __init__(self, repo_record):
@@ -42,6 +43,9 @@ class Morphology(ConfigurableClass):
 			repo_record = repo_data[i, :]
 			compartment = Compartment(repo_record)
 			self.compartments.append(compartment)
+		# Create a tree from the compartment object list
+		# TODO: Create and store this tree when importing from morphology file.
+		self.compartment_tree = KDTree(np.array(list(map(lambda c: c.end, self.compartments))))
 
 	def init_voxel_cloud(self, voxel_data, voxel_meta, voxel_map):
 		'''
@@ -50,7 +54,7 @@ class Morphology(ConfigurableClass):
 		bounds = voxel_meta['bounds']
 		grid_size = voxel_meta['grid_size']
 		# Initialise as a true morphology
-		self.cloud = VoxelCloud(bounds, grid_size, voxel_data, voxel_map)
+		self.cloud = VoxelCloud(bounds, voxel_data, grid_size, voxel_map)
 
 	@staticmethod
 	def from_repo_data(repo_data, repo_meta, voxel_data=None, voxel_map=None, voxel_meta=None, scaffold = None):
@@ -66,6 +70,30 @@ class Morphology(ConfigurableClass):
 				raise Exception("If voxel_data is provided, voxel_meta and voxel_map must be provided aswell.")
 			m.init_voxel_cloud(voxel_data, voxel_meta, voxel_map)
 		return m
+
+	def voxelize(self, N):
+		self.cloud = VoxelCloud.create(self, N)
+		print(self.cloud.map)
+
+	def get_compartment_map(self, boxes, voxels, box_size):
+		tree = self.compartment_tree
+		compartment_map = []
+		box_positions = np.column_stack(boxes[:, voxels])
+		compartments = tree.get_arrays()[0]
+		compartments_taken = set([])
+		for i in range(box_positions.shape[0]):
+			box_origin = box_positions[i, :]
+			compartments_in_outer_sphere = detect_box_compartments(tree, box_origin, box_size)
+			candidate_positions = compartments[compartments_in_outer_sphere]
+			bool_vector = np.ones(compartments_in_outer_sphere.shape, dtype=bool)
+			bool_vector &= (candidate_positions[:, 0] >= box_origin[0]) & (candidate_positions[:, 0] <= box_origin[0] + box_size)
+			bool_vector &= (candidate_positions[:, 1] >= box_origin[1]) & (candidate_positions[:, 1] <= box_origin[1] + box_size)
+			bool_vector &= (candidate_positions[:, 2] >= box_origin[2]) & (candidate_positions[:, 2] <= box_origin[2] + box_size)
+			compartments_in_box = set(compartments_in_outer_sphere[bool_vector]) - compartments_taken
+			compartments_taken |= set(compartments_in_box)
+			compartment_map.append(list(compartments_in_box))
+		return compartment_map
+
 
 class TrueMorphology(Morphology):
 	'''
