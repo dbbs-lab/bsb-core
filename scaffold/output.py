@@ -37,6 +37,20 @@ class ResourceHandler(ABC):
         '''
         pass
 
+class HDF5ResourceHandler(ResourceHandler):
+    def get_handle(self, mode='r+'):
+        '''
+            Open an HDF5 resource.
+        '''
+        # Open a new handle to the resource.
+        return h5py.File(self.file, mode)
+
+    def release_handle(self, handle):
+        '''
+            Close the MorphologyRepository storage resource.
+        '''
+        return handle.close()
+
 class TreeHandler(ResourceHandler):
     '''
         Interface that allows a ResourceHandler to handle storage of TreeCollections.
@@ -49,6 +63,24 @@ class TreeHandler(ResourceHandler):
     @abstractmethod
     def store_tree_collections(self, tree_collections):
         pass
+
+class HDF5TreeHandler(HDF5ResourceHandler, TreeHandler):
+    '''
+        TreeHandler that uses HDF5 as resource storage
+    '''
+    def store_tree_collections(self, tree_collections):
+        tree_group = self.handle.create_group('trees')
+        for tree_collection in tree_collections:
+            tree_collection_group = tree_group.create_group(tree_collection.name)
+            for tree_name, tree in tree_collection.items():
+                tree_dataset = tree_collection_group.create_dataset(tree_name, data=string_(pickle.dumps(tree)))
+
+    def load_tree(self, collection_name, tree_name):
+        with self.load() as f:
+            try:
+                return pickle.loads(f['/trees/{}/{}'.format(collection_name, tree_name)][()])
+            except KeyError as e:
+                raise Exception("Tree not found in HDF5 file '{}', path does not exist: '{}'".format(f.file))
 
 class OutputFormatter(ConfigurableClass, TreeHandler):
 
@@ -89,18 +121,12 @@ class OutputFormatter(ConfigurableClass, TreeHandler):
         '''
         pass
 
-class HDF5Formatter(OutputFormatter):
+class HDF5Formatter(OutputFormatter, HDF5ResourceHandler, HDF5TreeHandler):
 
     defaults = {
         'file': 'scaffold_network_{}.hdf5'.format(time.strftime("%Y_%m_%d-%H%M%S")),
         'simulator_output_path': False
     }
-
-    def get_handle(self, mode='a'):
-        return h5py.File(self.file, mode)
-
-    def release_handle(self, handle):
-        return handle.close()
 
     def save(self):
         if self.save_file_as:
@@ -155,13 +181,6 @@ class HDF5Formatter(OutputFormatter):
             connection_dataset.attrs['connection_types'] = list(map(lambda x: x.name, related_types))
             connection_dataset.attrs['connection_type_classes'] = list(map(get_qualified_class_name, related_types))
 
-    def store_tree_collections(self, tree_collections):
-        tree_group = self.handle.create_group('trees')
-        for tree_collection in tree_collections:
-            tree_collection_group = tree_group.create_group(tree_collection.name)
-            for tree_name, tree in tree_collection.items():
-                tree_dataset = tree_collection_group.create_dataset(tree_name, data=string_(pickle.dumps(tree)))
-
     def store_statistics(self):
         statistics = self.handle.create_group('statistics')
         self.store_placement_statistics(statistics)
@@ -175,13 +194,6 @@ class HDF5Formatter(OutputFormatter):
         # Append extra datasets specified internally or by user.
         for key, data in self.scaffold.appends.items():
             dset = self.handle.create_dataset(key, data=data)
-
-    def load_tree(self, collection_name, tree_name):
-        with self.load() as f:
-            try:
-                return pickle.loads(f['/trees/{}/{}'.format(collection_name, tree_name)][()])
-            except KeyError as e:
-                raise Exception("Tree not found in HDF5 file '{}', path does not exist: '{}'".format(f.file))
 
     def get_simulator_output_path(self, simulator_name):
         return self.simulator_output_path or os.getcwd()

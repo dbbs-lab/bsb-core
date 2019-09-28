@@ -115,7 +115,7 @@ class NoGeometry(Morphology):
 	def validate(self):
 		pass
 
-class MorphologyRepository(TreeHandler):
+class MorphologyRepository(HDF5TreeHandler):
 
     defaults = {
         'file': 'morphology_repository.hdf5'
@@ -127,12 +127,13 @@ class MorphologyRepository(TreeHandler):
         if not file is None:
             self.file = file
 
+	# Abstract function from ResourceHandler
     def get_handle(self, mode='r+'):
         '''
-            Open the MorphologyRepository storage resource.
+            Open the HDF5 storage resource and initialise the MorphologyRepository structure.
         '''
-        # Open a new handle to the resource.
-        handle = h5py.File(self.file, mode)
+        # Open a new handle to the HDF5 resource.
+        handle = HDF5ResourceHandler.get_handle(self, mode)
         # Repository structure missing from resource? Create it.
         if not 'morphologies' in handle:
             handle.create_group('morphologies')
@@ -140,12 +141,6 @@ class MorphologyRepository(TreeHandler):
             handle.create_group('morphologies/voxel_clouds')
         # Return the handle to the resource.
         return handle
-
-    def release_handle(self, handle):
-        '''
-            Close the MorphologyRepository storage resource.
-        '''
-        return handle.close()
 
     def import_swc(self, file, name, tags=[], overwrite=False):
         '''
