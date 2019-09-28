@@ -1,4 +1,4 @@
-import abc
+import abc, numpy as np
 
 def get_qualified_class_name(x):
     return x.__class__.__module__ + '.' + str(x.__class__.__name__)
@@ -147,3 +147,39 @@ def assert_attr_in(section, attr, values, section_name):
             "'" + "', '".join(values) + "'"
         ))
     return section[attr]
+
+
+class dimensions:
+    def __init__(self):
+        self.dimensions = np.array([0., 0., 0.])
+
+    @property
+    def width(self):
+        return self.dimensions[0]
+
+    @property
+    def height(self):
+        return self.dimensions[1]
+
+    @property
+    def depth(self):
+        return self.dimensions[2]
+
+    @property
+    def volume(self):
+        return np.prod(self.dimensions)
+
+class origin:
+    def __init__(self):
+        self.dimensions = np.array([0., 0., 0.])
+
+    def X(self):
+        return self.origin[0]
+
+    @property
+    def Y(self):
+        return self.origin[1]
+
+    @property
+    def Z(self):
+        return self.origin[2]

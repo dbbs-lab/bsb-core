@@ -1,6 +1,6 @@
 import numpy as np
 from .morphologies import Morphology as BaseMorphology
-from .helpers import ConfigurableClass
+from .helpers import ConfigurableClass, dimensions, origin
 
 class CellType:
 
@@ -32,41 +32,6 @@ class CellType:
 
     def set_placement(self, placement):
         self.placement = placement
-
-class dimensions:
-    def __init__(self):
-        self.dimensions = np.array([0., 0., 0.])
-
-    @property
-    def width(self):
-        return self.dimensions[0]
-
-    @property
-    def height(self):
-        return self.dimensions[1]
-
-    @property
-    def depth(self):
-        return self.dimensions[2]
-
-    @property
-    def volume(self):
-        return np.prod(self.dimensions)
-
-class origin:
-    def __init__(self):
-        self.dimensions = np.array([0., 0., 0.])
-    
-    def X(self):
-        return self.origin[0]
-
-    @property
-    def Y(self):
-        return self.origin[1]
-
-    @property
-    def Z(self):
-        return self.origin[2]
 
 class Layer(dimensions, origin):
 
