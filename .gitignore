@@ -6,3 +6,4 @@ dist/
 *.egg-info/
 *.swc
 dev/
+test_fbfv.py
