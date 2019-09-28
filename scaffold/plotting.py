@@ -118,3 +118,13 @@ def plot_voxel_morpho_map(morphology, selected_voxel_ids=None, compartment_selec
         compartment_selection=compartment_selection
     )
     return fig, ax_cloud, ax_frame, voxels, selection
+
+def plot_voxelize_results(bounds, voxels, box_length, error):
+    plot_voxels = np.swapaxes(voxels, 1, 2)
+    fig = plt.figure()
+    ax = fig.gca(projection='3d')
+    ax.set(xlabel='x', ylabel='z', zlabel='y')
+    maxmax = np.max(voxels.shape)
+    ax.set(xlim=(0., maxmax), ylim=(0., maxmax), zlim=(0., maxmax))
+    ax.voxels(plot_voxels, facecolors=(1.,0.,0.,0.2), edgecolor='k', linewidth=.25)
+    plt.show(block=True)
