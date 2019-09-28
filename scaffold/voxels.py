@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits import mplot3d
 import numpy as np
 from .plotting import plot_voxelize_results
+from scipy import ndimage
 
 class VoxelCloud:
     def __init__(self, bounds, voxels, grid_size, map):
@@ -116,3 +117,6 @@ def morphology_detector_factory(morphology):
         return len(detect_box_compartments(tree, box_origin, box_size)) > 0
     # Return the morphology detector function and box data as the factory products
     return morphology_detector, outer_box
+
+def center_of_mass(points, weights):
+    return ndimage.center_of_mass(np.column_stack((points, weights)))

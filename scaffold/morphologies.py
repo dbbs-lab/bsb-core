@@ -73,7 +73,6 @@ class Morphology(ConfigurableClass):
 
 	def voxelize(self, N):
 		self.cloud = VoxelCloud.create(self, N)
-		print(self.cloud.map)
 
 	def get_compartment_map(self, boxes, voxels, box_size):
 		tree = self.compartment_tree
