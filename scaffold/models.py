@@ -34,6 +34,9 @@ class CellType:
         self.placement = placement
 
 class dimensions:
+    def __init__(self):
+        self.dimensions = np.array([0., 0., 0.])
+
     @property
     def width(self):
         return self.dimensions[0]
@@ -51,6 +54,9 @@ class dimensions:
         return np.prod(self.dimensions)
 
 class origin:
+    def __init__(self):
+        self.dimensions = np.array([0., 0., 0.])
+    
     def X(self):
         return self.origin[0]
 
