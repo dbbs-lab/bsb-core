@@ -240,13 +240,11 @@ class AttractionGame:
         ax.scatter([com[0]],[com[2]],[com[1]], s=30, c=[(1., 0., 0.)])
         plt.interactive(True)
         plt.show()
+        input()
         self.turn = 0
         self.set_plot_limits(ax)
         self.plot_turn(fig, ax)
         ind = np.indices(self.field.shape)[:,self.field > 0].T
-        tree = KDTree(ind + 0.5)
-        print(ind.shape)
-        print(len(self.players))
         while self.active_players > 0:
             self.turn += 1
             # print('####### TURN ', self.turn)
