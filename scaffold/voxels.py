@@ -6,30 +6,55 @@ from .plotting import plot_voxelize_results
 from scipy import ndimage
 
 class VoxelCloud:
-    def __init__(self, bounds, voxels, grid_size, map):
+    def __init__(self, bounds, voxels, grid_size, map, occupancies=None):
         self.bounds = bounds
         self.grid_size = grid_size
         self.voxels = voxels
         self.map = map
+        self.occupancies = occupancies
 
     def get_boxes(self):
         return m_grid(self.bounds, self.grid_size)
+
+    def get_occupancies(self):
+        if self.occupancies is None:
+            voxel_occupancy = np.array(list(map(lambda x: len(x), self.map)))
+            max_voxel_occupancy = max(voxel_occupancy)
+            normalized_voxel_occupancy = voxel_occupancy / (max_voxel_occupancy)
+            self.occupancies = normalized_voxel_occupancy
+        return self.occupancies
+
+    def center_of_mass(self):
+        boxes = self.get_boxes()
+        points = boxes + self.grid_size / 2
+        voxels = self.voxels
+        occupancies = self.get_occupancies()
+        point_positions = np.column_stack(points[:, voxels]).T
+        return center_of_mass(point_positions, occupancies)
 
     @staticmethod
     def create(morphology, N):
         hit_detector, box_data = morphology_detector_factory(morphology)
         bounds, voxels, length, error = voxelize(N, box_data, hit_detector)
-        # plot_voxelize_results(bounds, voxels, length, error)
+        plot_voxelize_results(bounds, voxels, length)
         voxel_map = morphology.get_compartment_map(m_grid(bounds, length), voxels, length)
         if error == 0:
             return VoxelCloud(bounds, voxels, length, voxel_map)
         else:
             raise NotImplementedError("Pick random voxels and distribute their compartments to random neighbours")
 
+_class_dimensions = dimensions
+_class_origin = origin
 class Box(dimensions, origin):
     def __init__(self, dimensions=None, origin=None):
-        dimensions.__init__(self, dimensions)
-        origin.__init__(self, origin)
+        _class_dimensions.__init__(self, dimensions)
+        _class_origin.__init__(self, origin)
+
+    @staticmethod
+    def from_bounds(bounds):
+        dimensions = np.amax(bounds, axis=1) - np.amin(bounds,axis=1)
+        origin = np.amin(bounds,axis=1) + dimensions / 2
+        return Box(dimensions=dimensions, origin=origin)
 
 def m_grid(bounds, size):
     return np.mgrid[
@@ -118,5 +143,9 @@ def morphology_detector_factory(morphology):
     # Return the morphology detector function and box data as the factory products
     return morphology_detector, outer_box
 
-def center_of_mass(points, weights):
-    return ndimage.center_of_mass(np.column_stack((points, weights)))
+def center_of_mass(points, weights = None):
+    if weights is None:
+        cog = [np.sum(points[dim, :]) / points.shape[1] for dim in range(points.shape[0])]
+    else:
+        cog = [np.sum(points[dim, :] * weights) for dim in range(points.shape[0])] / np.sum(weights)
+    return cog

@@ -19,9 +19,8 @@ def plot_voxel_cloud(cloud, fig_ax_tuple=None, selected_voxels=None):
     boxes = cloud.get_boxes()
     voxels = cloud.voxels.copy()
     # Calculate normalized occupancy of each voxel to determine transparency
-    voxel_occupancy = np.array(list(map(lambda x: len(x), cloud.map)))
-    max_voxel_occupancy = max(voxel_occupancy)
-    normalized_voxel_occupancy = list(map(lambda o: (1., 0., 0., o), voxel_occupancy / (max_voxel_occupancy * 1.5)))
+    occupancies = cloud.get_occupancies() / 1.5
+
     colors = np.empty(voxels.shape, dtype=object)
     if not selected_voxels is None:
         # Don't double draw the selected voxels (might be more performant and insignificant to just double draw)
@@ -31,7 +30,7 @@ def plot_voxel_cloud(cloud, fig_ax_tuple=None, selected_voxels=None):
         colors[selected_voxels] = (0., 1., 0., 1.)
     else:
         # Prepare voxels with the compartment density coded into the alpha of the facecolor
-        colors[voxels] = normalized_voxel_occupancy
+        colors[voxels] = list(map(lambda o: (1., 0., 0., o), occupancies))
     # If no plotting tuple is provided, create a new figure
     if fig_ax_tuple is None:
         fig = plt.figure()
@@ -93,12 +92,13 @@ def plot_voxel_morpho_map(morphology, selected_voxel_ids=None, compartment_selec
     )
     return fig, ax_cloud, ax_frame, voxels, selection
 
-def plot_voxelize_results(bounds, voxels, box_length, error):
+def plot_voxelize_results(bounds, voxels, box_length, color=(1.,0.,0.,0.2)):
     plot_voxels = np.swapaxes(voxels, 1, 2)
     fig = plt.figure()
     ax = fig.gca(projection='3d')
     ax.set(xlabel='x', ylabel='z', zlabel='y')
     maxmax = np.max(voxels.shape)
     ax.set(xlim=(0., maxmax), ylim=(0., maxmax), zlim=(0., maxmax))
-    ax.voxels(plot_voxels, facecolors=(1.,0.,0.,0.2), edgecolor='k', linewidth=.25)
-    plt.show(block=True)
+    ax.voxels(plot_voxels, facecolors=color, edgecolor='k', linewidth=.25)
+    # plt.show(block=True)
+    return fig, ax

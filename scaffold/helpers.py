@@ -150,7 +150,7 @@ def assert_attr_in(section, attr, values, section_name):
 
 
 class dimensions:
-    def __init__(self, dimensions):
+    def __init__(self, dimensions=None):
         self.dimensions = np.array([0., 0., 0.]) if dimensions is None else dimensions
 
     @property
