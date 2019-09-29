@@ -178,6 +178,7 @@ class AttractionGame:
         self.occupied = {}
         self.turn = 0
         self.artists = []
+        self.paused = False
 
     def clear(self):
         self.players = []
@@ -229,7 +230,7 @@ class AttractionGame:
     def get_attractions(self, candidates):
         return [self.get_attraction(p) for p in candidates]
 
-    def play(self):
+    def play(self, max_turns=100):
         fig = plt.figure()
         ax = fig.gca(projection='3d')
         ax.set(xlabel='x', ylabel='z', zlabel='y')
@@ -241,15 +242,14 @@ class AttractionGame:
         self.turn = 0
         self.set_plot_limits(ax)
         self.plot_turn(fig, ax)
-        # sleep(1)
-        while self.active_players > 0:
+        while self.active_players > 0 and self.turn < max_turns:
+            sleep(0.5)
             self.turn += 1
             # print('####### TURN ', self.turn)
             closest_player_first = self.get_closest_players()
             for p in closest_player_first:
                 best = p.move()
             self.plot_turn(fig, ax)
-            sleep(0.5)
         plt.show(block=True)
 
 
@@ -272,7 +272,7 @@ class AttractionGame:
         for p in self.players:
             # Draw player
             self.artists.append(ax.scatter([p.position[0] + 0.5],[p.position[2] + 0.5],[p.position[1] + 0.5], c=[p.color]))
-            self.artists.append(ax.plot(xs=[p.last_move[0] + 0.5, p.position[0] + 0.5],ys=[p.last_move[2] + 0.5, p.position[2] + 0.5], zs=[p.last_move[1] + 0.5, p.position[1] + 0.5], c=(0., 1., 0.), linewidth=.25)[0])
+            # self.artists.append(ax.plot(xs=[p.last_move[0] + 0.5, p.position[0] + 0.5],ys=[p.last_move[2] + 0.5, p.position[2] + 0.5], zs=[p.last_move[1] + 0.5, p.position[1] + 0.5], c=(0., 1., 0.), linewidth=.25)[0])
         for p in self.eliminated_players:
             self.artists.append(ax.scatter([p.position[0] + 0.5],[p.position[2] + 0.5],[p.position[1] + 0.5], c=[(0.5, 0.5, 0.5, 0.5)]))
         fig.canvas.draw()
