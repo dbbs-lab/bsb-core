@@ -6,6 +6,7 @@ from .plotting import plot_voxelize_results
 from scipy import ndimage
 from random import choice as random_element
 from time import sleep
+from sklearn.neighbors import KDTree
 
 class VoxelCloud:
     def __init__(self, bounds, voxels, grid_size, map, occupancies=None):
@@ -205,7 +206,7 @@ class AttractionGame:
             raise Exception("Position already occupied")
         player = AttractionPlayer(self, payload, position)
         self.players.append(player)
-        self.occupied[position] = True
+        # self.occupied[position] = True
         self.active_players += 1
         return player
 
@@ -230,7 +231,7 @@ class AttractionGame:
     def get_attractions(self, candidates):
         return [self.get_attraction(p) for p in candidates]
 
-    def play(self, max_turns=100):
+    def play(self):
         fig = plt.figure()
         ax = fig.gca(projection='3d')
         ax.set(xlabel='x', ylabel='z', zlabel='y')
@@ -242,14 +243,28 @@ class AttractionGame:
         self.turn = 0
         self.set_plot_limits(ax)
         self.plot_turn(fig, ax)
-        while self.active_players > 0 and self.turn < max_turns:
-            sleep(0.5)
+        ind = np.indices(self.field.shape)[:,self.field > 0].T
+        tree = KDTree(ind + 0.5)
+        print(ind.shape)
+        print(len(self.players))
+        while self.active_players > 0:
             self.turn += 1
             # print('####### TURN ', self.turn)
-            closest_player_first = self.get_closest_players()
-            for p in closest_player_first:
-                best = p.move()
-            self.plot_turn(fig, ax)
+            furthest_player_first = np.flip(self.get_closest_players()).tolist()
+            for p in furthest_player_first:
+                dists = np.array(get_distances(ind, p.position))
+                dist_sort = dists.argsort()
+                new_pos = None
+                for try_pos in range(len(dist_sort)):
+                    best_pos = ind[dist_sort[try_pos]]
+                    if self.is_unoccupied(best_pos):
+                        new_pos = best_pos
+                        print('player {} should move to {} after {} tries'.format(p.id, best_pos, try_pos))
+                        break
+                if not new_pos is None:
+                    p.move(tuple(new_pos))
+                    p.eliminate()
+                self.plot_turn(fig, ax)
         plt.show(block=True)
 
 
@@ -259,7 +274,7 @@ class AttractionGame:
         return np.array(self.players)[np.argsort(distances)].tolist()
 
     def get_attractor_distances(self, candidates):
-        dists = get_distances(candidates, self.attractor)
+        dists = get_distances(candidates, self.attractor - 0.5)
         return dists
 
     def get_plot_voxels(self):
@@ -360,17 +375,18 @@ class AttractionPlayer:
         closest_to_me = find_best_candidates(closest, get_distances(closest, self.position), metric=np.min)
         return random_element(closest_to_me)
 
-    def move(self):
-        m = self.get_move()
-        if m is None:
-            # print('player {}: eliminated at {} with score {}'.format(self.id, self.position, self.game.turn, self.game.get_attraction(self.position)))
-            self.eliminate()
-            return
+    def move(self, pos):
+        print('player {} moves to {}'.format(self.id, pos))
+        # m = self.get_move()
+        # if m is None:
+        #     # print('player {}: eliminated at {} with score {}'.format(self.id, self.position, self.game.turn, self.game.get_attraction(self.position)))
+        #     self.eliminate()
+        #     return
         # print('player {}: moved from {} to {}'.format(self.id, self.position, m))
-        self.last_move = self.position
-        self.moves.add(m)
-        self.game.occupy(self, m)
-        self.attraction = self.game.get_attraction(m)
+        # self.last_move = self.position
+        # self.moves.add(m)
+        self.game.occupy(self, pos)
+        self.attraction = self.game.get_attraction(pos)
         # print('last move is now:',self.last_move, self.position)
 
 def find_best_candidates(candidates, results, metric=np.max):
