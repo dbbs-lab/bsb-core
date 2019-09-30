@@ -175,7 +175,6 @@ class VoxelTransformer:
         self.attractor = attractor
         self.field = field
         self.occupied = {}
-        self.artists = []
 
     def occupy(self, position):
         if position in self.occupied:
@@ -191,16 +190,6 @@ class VoxelTransformer:
         return not tuple(position) in self.occupied
 
     def transform(self):
-        fig = plt.figure()
-        ax = fig.gca(projection='3d')
-        ax.set(xlabel='x', ylabel='z', zlabel='y')
-        ax.voxels(np.swapaxes(self.field >  0, 1, 2), facecolors=(0.,0.,0.,0.0), edgecolor='k', linewidth=.25)
-        ax.scatter([self.attractor[0]],[self.attractor[2]],[self.attractor[1]], s=30, c=[(1., 0., 0.)])
-        plt.interactive(True)
-        plt.show()
-        input()
-        self.set_plot_limits(ax)
-        self.plot_turn(fig, ax)
         ind = np.indices(self.field.shape)[:,self.field > 0].T
         furthest_carrier_first = self.get_furthest_carriers()
         for carrier in furthest_carrier_first:
@@ -212,8 +201,6 @@ class VoxelTransformer:
                     self.occupied[attempt_position] = True
                     carrier.position = attempt_position
                     break
-            self.plot_turn(fig, ax)
-        plt.show(block=True)
 
     def get_furthest_carriers(self):
         positions = list(map(lambda p: p.position, self.carriers))
@@ -223,27 +210,6 @@ class VoxelTransformer:
     def get_attractor_distances(self, candidates):
         dists = get_distances(candidates, self.attractor - 0.5)
         return dists
-
-    def plot_turn(self, fig, ax):
-        for artist in self.artists:
-            artist.remove()
-        self.artists = []
-        for p in self.carriers:
-            # Draw carrier
-            self.artists.append(ax.scatter([p.position[0] + 0.5],[p.position[2] + 0.5],[p.position[1] + 0.5], c=[(0.5, 0.5, 0.5)]))
-        fig.canvas.draw()
-        fig.canvas.flush_events()
-
-    def set_plot_limits(self, ax):
-        positions = list(map(lambda p: p.position, self.carriers))
-        if len(positions) == 0:
-            min_ax = [0., 0., 0.]
-            max_ax = np.array(self.field.shape) + 1
-        else:
-            np_pos = np.array(positions)
-            min_ax = np.array([min(np.min(np_pos[:,0]),0), min(np.min(np_pos[:,1]),0), min(np.min(np_pos[:,2]),0)]) + 1
-            max_ax = np.array([max(np.max(np_pos[:,0]),self.field.shape[0]), max(np.max(np_pos[:,1]),self.field.shape[1]), max(np.max(np_pos[:,2]),self.field.shape[2])]) + 1
-        ax.set(xlim=(min_ax[0], max_ax[0]), ylim=(min_ax[2], max_ax[2]), zlim=(min_ax[1], max_ax[1]))
 
 class VoxelTransformCarrier:
     def __init__(self, transformer, payload, position):
