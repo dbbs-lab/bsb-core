@@ -108,19 +108,19 @@ def plot_voxelize_results(bounds, voxels, box_length, color=(1.,0.,0.,0.2)):
     # plt.show(block=True)
     return fig, ax
 
-def plot_cube(fig, origin, size, **kwargs):
-    edges, faces = plotly_cube(origin, size)
+def plot_block(fig, origin, sizes, **kwargs):
+    edges, faces = plotly_block(origin, sizes)
     fig.add_trace(edges, **kwargs)
     fig.add_trace(faces, **kwargs)
 
-def plotly_cube(origin, size):
-    return plotly_cube_edges(origin, size), plotly_cube_faces(origin, size)
+def plotly_block(origin, sizes):
+    return plotly_block_edges(origin, sizes), plotly_block_faces(origin, sizes)
 
-def plotly_cube_faces(origin, size):
-    # 8 vertices of a cube
-    x = origin[0] + np.array([0, 0, 1, 1, 0, 0, 1, 1]) * size
-    y = origin[0] + np.array([0, 1, 1, 0, 0, 1, 1, 0]) * size
-    z = origin[0] + np.array([0, 0, 0, 0, 1, 1, 1, 1]) * size
+def plotly_block_faces(origin, sizes):
+    # 8 vertices of a block
+    x = origin[0] + np.array([0, 0, 1, 1, 0, 0, 1, 1]) * sizes[0]
+    y = origin[1] + np.array([0, 1, 1, 0, 0, 1, 1, 0]) * sizes[1]
+    z = origin[2] + np.array([0, 0, 0, 0, 1, 1, 1, 1]) * sizes[2]
     return go.Mesh3d(
         x=x, y=z, z=y,
         # i, j and k give the vertices of the mesh triangles
@@ -130,10 +130,10 @@ def plotly_cube_faces(origin, size):
         opacity=0.3
     )
 
-def plotly_cube_edges(origin, size):
-    x = origin[0] + np.array([0, 0, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0]) * size
-    y = origin[0] + np.array([0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 1, 1]) * size
-    z = origin[0] + np.array([0, 0, 0, 0, 0, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 0]) * size
+def plotly_block_edges(origin, sizes):
+    x = origin[0] + np.array([0, 0, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0]) * sizes[0]
+    y = origin[1] + np.array([0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 1, 1]) * sizes[1]
+    z = origin[2] + np.array([0, 0, 0, 0, 0, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 0]) * sizes[2]
     return go.Scatter3d(
         x=x, y=z, z=y, mode='lines',
         line=dict(
@@ -153,13 +153,23 @@ def plot_eli_voxels(morphology, voxel_positions, voxel_compartment_map):
             trace,
             row=1, col=1
         )
-    for trace in plot_morphology(morphology, return_traces=True):
-        fig.add_trace(
-            trace,
-            row=1, col=2
-        )
     fig.update_layout(showlegend=False)
-    plot_cube(fig, np.array([100., 100., 20.]), 20., row=1, col=2)
+    Δx, Δy, Δz = 0., 0., 0.
+    no_dx, no_dy, no_dz = True, True, True
+    for i in range(len(voxel_positions) - 1):
+      if no_dx and voxel_positions[i, 0] != voxel_positions[i + 1, 0]:
+        Δx = np.abs(voxel_positions[i, 0] - voxel_positions[i + 1, 0])
+        no_dx = False
+      if no_dy and voxel_positions[i, 1] != voxel_positions[i + 1, 1]:
+        Δy = np.abs(voxel_positions[i, 1] - voxel_positions[i + 1, 1])
+        no_dy = False
+      if no_dz and voxel_positions[i, 2] != voxel_positions[i + 1, 2]:
+        Δz = np.abs(voxel_positions[i, 2] - voxel_positions[i + 1, 2])
+        no_dz = False
+      if not no_dy and not no_dz and not no_dx:
+        break
+    Δ = [Δx, Δy, Δz]
+    for voxel in voxel_positions:
+        plot_block(fig, voxel, Δ, row=1, col=2)
     set_scene_range(fig.layout.scene1, morphology.get_plot_range())
-    set_scene_range(fig.layout.scene2, morphology.get_plot_range())
     fig.write_html("../test_figure.html", auto_open=True)
