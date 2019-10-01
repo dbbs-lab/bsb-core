@@ -130,8 +130,8 @@ class TrueMorphology(Morphology):
 		compartments = self.compartment_tree.get_arrays()[0]
 		n_dimensions = range(compartments.shape[1])
 		mins = np.array([np.min(compartments[:, i]) for i in n_dimensions])
-		maxs = np.array([np.max(compartments[:, i]) for i in n_dimensions])
-		return list(zip(mins.tolist(), (maxs - mins).tolist()))
+		max = np.max(np.array([np.max(compartments[:, i]) - mins for i in n_dimensions]))
+		return list(zip(mins.tolist(), (mins + max).tolist()))
 
 
 class GranuleCellGeometry(Morphology):

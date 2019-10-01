@@ -45,13 +45,14 @@ def plot_voxel_cloud(cloud, fig_ax_tuple=None, selected_voxels=None):
 
 def get_branch_trace(compartments):
     x = [c.start[0] for c in compartments]
+    y = [c.start[1] for c in compartments]
+    z = [c.start[2] for c in compartments]
+    # Add branch endpoint
     x.append(compartments[-1].end[0])
-    y = [c.start[2] for c in compartments]
-    y.append(compartments[-1].end[2])
-    z = [c.start[1] for c in compartments]
-    z.append(compartments[-1].end[1])
+    y.append(compartments[-1].end[1])
+    z.append(compartments[-1].end[2])
     return go.Scatter3d(
-        x=x, y=y, z=z, mode='lines',
+        x=x, y=z, z=y, mode='lines',
         line=dict(
             width=1.,
             color=(0., 0., 0., 1.)
@@ -78,9 +79,13 @@ def plot_morphology(morphology, return_traces=False, compartment_selection=()):
     else:
         fig = go.Figure(data=traces)
         fig.update_layout(showlegend=False)
+        set_3D_axes_range(fig, morphology.get_plot_range())
         fig.show()
         print('shown')
 
+def set_3D_axes_range(fig, bounds, row=None, **kwargs):
+    print(bounds)
+    fig.update_layout(scene_xaxis_range=bounds[0],scene_yaxis_range=bounds[2],scene_zaxis_range=bounds[1], **kwargs)
 
 def plot_voxel_morpho_map(morphology, selected_voxel_ids=None, compartment_selection=()):
     fig = plt.figure(figsize=plt.figaspect(0.5))
@@ -119,6 +124,7 @@ def plot_eli_voxels(morphology, voxel_positions, voxel_compartment_map):
             row=1, col=1
         )
     fig.update_layout(showlegend=False)
+    set_3D_axes_range(fig, morphology.get_plot_range(),row=1,col=1)
     print('writing...')
     fig.write_html("test_figure.html", auto_open=True)
     print('written')
