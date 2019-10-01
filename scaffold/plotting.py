@@ -68,9 +68,7 @@ def plot_morphology(morphology, return_traces=False, compartment_selection=()):
     c = 0
     for branch in dfs_list[::-1]:
         c += 1
-        print('busy...', c)
         traces.append(get_branch_trace(compartments[branch]))
-    print('traces made')
     if compartment_selection != (): # A selection is being made
         # Get selected compartments
         highlighted = compartments[compartment_selection]
@@ -79,13 +77,13 @@ def plot_morphology(morphology, return_traces=False, compartment_selection=()):
     else:
         fig = go.Figure(data=traces)
         fig.update_layout(showlegend=False)
-        set_3D_axes_range(fig, morphology.get_plot_range())
+        set_3D_axes_range(fig.layout.scene, morphology.get_plot_range())
         fig.show()
-        print('shown')
 
-def set_3D_axes_range(fig, bounds, row=None, **kwargs):
-    print(bounds)
-    fig.update_layout(scene_xaxis_range=bounds[0],scene_yaxis_range=bounds[2],scene_zaxis_range=bounds[1], **kwargs)
+def set_scene_range(scene, bounds):
+    scene.xaxis.range=bounds[0]
+    scene.yaxis.range=bounds[2]
+    scene.zaxis.range=bounds[1]
 
 def plot_voxel_morpho_map(morphology, selected_voxel_ids=None, compartment_selection=()):
     fig = plt.figure(figsize=plt.figaspect(0.5))
@@ -110,21 +108,58 @@ def plot_voxelize_results(bounds, voxels, box_length, color=(1.,0.,0.,0.2)):
     # plt.show(block=True)
     return fig, ax
 
+def plot_cube(fig, origin, size, **kwargs):
+    edges, faces = plotly_cube(origin, size)
+    fig.add_trace(edges, **kwargs)
+    fig.add_trace(faces, **kwargs)
+
+def plotly_cube(origin, size):
+    return plotly_cube_edges(origin, size), plotly_cube_faces(origin, size)
+
+def plotly_cube_faces(origin, size):
+    # 8 vertices of a cube
+    x = origin[0] + np.array([0, 0, 1, 1, 0, 0, 1, 1]) * size
+    y = origin[0] + np.array([0, 1, 1, 0, 0, 1, 1, 0]) * size
+    z = origin[0] + np.array([0, 0, 0, 0, 1, 1, 1, 1]) * size
+    return go.Mesh3d(
+        x=x, y=z, z=y,
+        # i, j and k give the vertices of the mesh triangles
+        i = [7, 0, 0, 0, 4, 4, 6, 6, 4, 0, 3, 2],
+        j = [3, 4, 1, 2, 5, 6, 5, 2, 0, 1, 6, 3],
+        k = [0, 7, 2, 3, 6, 7, 1, 1, 5, 5, 7, 6],
+        opacity=0.3
+    )
+
+def plotly_cube_edges(origin, size):
+    x = origin[0] + np.array([0, 0, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0]) * size
+    y = origin[0] + np.array([0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 1, 1]) * size
+    z = origin[0] + np.array([0, 0, 0, 0, 0, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 0]) * size
+    return go.Scatter3d(
+        x=x, y=z, z=y, mode='lines',
+        line=dict(
+            width=1.,
+            color=(0., 0., 0., 1.)
+        )
+    )
+
+
 def plot_eli_voxels(morphology, voxel_positions, voxel_compartment_map):
     fig = make_subplots(
         rows=1, cols=2,
-        specs=[[{'type': 'scatter3d'}, {'type': 'scatter3d'}]]
+        specs=[[{'type': 'scene'}, {'type': 'scene'}]]
     )
-    c = 0
     for trace in plot_morphology(morphology, return_traces=True):
-        c += 1
-        print('adding... ', c)
         fig.add_trace(
             trace,
             row=1, col=1
         )
+    for trace in plot_morphology(morphology, return_traces=True):
+        fig.add_trace(
+            trace,
+            row=1, col=2
+        )
     fig.update_layout(showlegend=False)
-    set_3D_axes_range(fig, morphology.get_plot_range(),row=1,col=1)
-    print('writing...')
-    fig.write_html("test_figure.html", auto_open=True)
-    print('written')
+    plot_cube(fig, np.array([100., 100., 20.]), 20., row=1, col=2)
+    set_scene_range(fig.layout.scene1, morphology.get_plot_range())
+    set_scene_range(fig.layout.scene2, morphology.get_plot_range())
+    fig.write_html("../test_figure.html", auto_open=True)
