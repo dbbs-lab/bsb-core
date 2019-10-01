@@ -37,14 +37,13 @@ class VoxelCloud:
 
     @staticmethod
     def create(morphology, N):
-        hit_detector, box_data = morphology_detector_factory(morphology)
-        bounds, voxels, length, error = voxelize(N, box_data, hit_detector)
-        # plot_voxelize_results(bounds, voxels, length)
+        hit_detector = morphology_detector_factory(morphology)
+        bounds, voxels, length, error = voxelize(N, morphology.get_bounding_box(), hit_detector)
         voxel_map = morphology.get_compartment_map(m_grid(bounds, length), voxels, length)
         if error == 0:
             return VoxelCloud(bounds, voxels, length, voxel_map)
         else:
-            raise NotImplementedError("Pick random voxels and distribute their compartments to random neighbours")
+            raise NotImplementedError("Voxelization error: could not find the right amount of voxels.")
 
 _class_dimensions = dimensions
 _class_origin = origin
@@ -129,22 +128,13 @@ def morphology_detector_factory(morphology):
     '''
         Will return a hit detector and outer box required to perform voxelization on the morphology.
     '''
-    # Transform the compartment object list into a compartment position 3D numpy array
     tree = morphology.compartment_tree
-    compartments = tree.get_arrays()[0]
-    n_dimensions = range(compartments.shape[1])
-    # Create an outer detection box
-    outer_box = Box()
-    # The outer box dimensions are equal to the maximum distance between compartments in each of n dimensions
-    outer_box.dimensions = np.array([np.max(compartments[:, i]) - np.min(compartments[:, i]) for i in n_dimensions])
-    # The outer box origin is in the middle of the outer bounds. (So lowermost point + half of dimensions)
-    outer_box.origin = np.array([np.min(compartments[:, i]) + outer_box.dimensions[i] / 2 for i in n_dimensions])
     # Create the detector function
     def morphology_detector(box_origin, box_size):
         # Report a hit if more than 0 compartments are within the box.
         return len(detect_box_compartments(tree, box_origin, box_size)) > 0
-    # Return the morphology detector function and box data as the factory products
-    return morphology_detector, outer_box
+    # Return the morphology detector function as the factory product
+    return morphology_detector
 
 def center_of_mass(points, weights = None):
     if weights is None:

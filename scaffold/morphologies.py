@@ -1,7 +1,7 @@
 import abc, numpy as np, pickle, h5py
 from .helpers import ConfigurableClass
 from .output import HDF5TreeHandler
-from .voxels import VoxelCloud, detect_box_compartments
+from .voxels import VoxelCloud, detect_box_compartments, Box
 from sklearn.neighbors import KDTree
 
 class Compartment:
@@ -71,6 +71,14 @@ class Morphology(ConfigurableClass):
 			m.init_voxel_cloud(voxel_data, voxel_meta, voxel_map)
 		return m
 
+class TrueMorphology(Morphology):
+	'''
+		Used to load morphologies that don't need to be configured/validated.
+	'''
+
+	def validate(self):
+		pass
+
 	def voxelize(self, N):
 		self.cloud = VoxelCloud.create(self, N)
 
@@ -93,14 +101,30 @@ class Morphology(ConfigurableClass):
 			compartment_map.append(list(compartments_in_box))
 		return compartment_map
 
+	def get_bounding_box(self):
+		if not self.has_morphology:
+			raise Exception("Bounding boxes for geometric shapes not supported.")
+		# Use the compartment tree to get a quick array of the compartments positions
+		tree = self.compartment_tree
+		compartments = tree.get_arrays()[0]
+		# Determine the amount of dimensions of the morphology. Let's hope 3 ;)
+		n_dimensions = range(compartments.shape[1])
+		# Create a bounding box
+		outer_box = Box()
+		# The outer box dimensions are equal to the maximum distance between compartments in each of n dimensions
+		outer_box.dimensions = np.array([np.max(compartments[:, i]) - np.min(compartments[:, i]) for i in n_dimensions])
+		# The outer box origin is in the middle of the outer bounds. (So lowermost point + half of dimensions)
+		outer_box.origin = np.array([np.min(compartments[:, i]) + outer_box.dimensions[i] / 2 for i in n_dimensions])
+		return outer_box
 
-class TrueMorphology(Morphology):
-	'''
-		Used to load morphologies that don't need to be configured/validated.
-	'''
-
-	def validate(self):
-		pass
+	def get_compartment_network(self):
+		compartments = self.compartments
+		node_list = dict([(c.id, set([])) for c in compartments])
+		compartments.pop(0) # Remove root node
+		for node in compartments:
+			node_list[node.parent].add(node.id)
+		print(node_list)
+		return node_list
 
 class GranuleCellGeometry(Morphology):
 	casts = {
