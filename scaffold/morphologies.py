@@ -102,8 +102,6 @@ class TrueMorphology(Morphology):
 		return compartment_map
 
 	def get_bounding_box(self):
-		if not self.has_morphology:
-			raise Exception("Bounding boxes for geometric shapes not supported.")
 		# Use the compartment tree to get a quick array of the compartments positions
 		tree = self.compartment_tree
 		compartments = tree.get_arrays()[0]
@@ -119,12 +117,22 @@ class TrueMorphology(Morphology):
 
 	def get_compartment_network(self):
 		compartments = self.compartments
-		node_list = dict([(c.id, set([])) for c in compartments])
-		compartments.pop(0) # Remove root node
-		for node in compartments:
-			node_list[node.parent].add(node.id)
-		print(node_list)
+		node_list = [set([]) for c in compartments]
+		# Fix first and last compartments
+		node_list[0] = set([1])
+		node_list.append(set([]))
+		# Add child nodes to their parent's adjacency set
+		for node in compartments[1:]:
+			node_list[int(node.parent)].add(int(node.id))
 		return node_list
+
+	def get_plot_range(self):
+		compartments = self.compartment_tree.get_arrays()[0]
+		n_dimensions = range(compartments.shape[1])
+		mins = np.array([np.min(compartments[:, i]) for i in n_dimensions])
+		maxs = np.array([np.max(compartments[:, i]) for i in n_dimensions])
+		return list(zip(mins.tolist(), (maxs - mins).tolist()))
+
 
 class GranuleCellGeometry(Morphology):
 	casts = {

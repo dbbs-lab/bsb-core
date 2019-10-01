@@ -1,6 +1,6 @@
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-from mpl_toolkits import mplot3d
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+from .networks import depth_first_branches
 import numpy as np, math
 
 def plotNetwork(scaffold, file=None, from_memory=False, block=True):
@@ -43,41 +43,43 @@ def plot_voxel_cloud(cloud, fig_ax_tuple=None, selected_voxels=None):
     # Plot and return the voxel's artist dictionary
     return ax.voxels(np.swapaxes(voxels, 1, 2), facecolors=colors, edgecolor='k', linewidth=.25)
 
-def plot_compartment(ax, compartment, radius_multiplier=1., max_radius=4., color=None):
-    artist = ax.plot_wireframe(
-        np.array([compartment.start[0], compartment.end[0]]),
-        np.array([compartment.start[2], compartment.end[2]]),
-        np.array([[compartment.start[1], compartment.end[1]]]),
-        linewidth=min(compartment.radius * radius_multiplier, max_radius),
-        color=color
+def get_branch_trace(compartments):
+    x = [c.start[0] for c in compartments]
+    x.append(compartments[-1].end[0])
+    y = [c.start[2] for c in compartments]
+    y.append(compartments[-1].end[2])
+    z = [c.start[1] for c in compartments]
+    z.append(compartments[-1].end[1])
+    return go.Scatter3d(
+        x=x, y=y, z=z, mode='lines',
+        line=dict(
+            width=1.,
+            color=(0., 0., 0., 1.)
+        )
     )
 
-def plot_morphology(morphology, fig_ax_tuple=None, compartment_selection=()):
-    compartments = np.array(morphology.compartments)
-    if fig_ax_tuple is None:
-        fig = plt.figure()
-        ax = fig.gca(projection='3d')
-    else:
-        fig, ax = fig_ax_tuple
-    ax.set(xlabel='x', ylabel='z', zlabel='y')
-    if compartments.shape[0] > 1: # Just to be sure that we don't crash here on empty morphologies
-        # Draw the cell soma.
-        soma = compartments[1].end
-        ax.scatter(soma[0], soma[2], soma[1], s=compartments[1].radius ** 2, c='blue')
+def plot_morphology(morphology, return_traces=False, compartment_selection=()):
+    compartments = morphology.compartments.copy()
+    compartments.insert(0, type('Compartment', (object,), {'start': [0., 0., 0.], 'end': [0., 0., 0.]})())
+    compartments = np.array(compartments)
+    dfs_list = depth_first_branches(morphology.get_compartment_network())
+    traces = []
+    c = 0
+    for branch in dfs_list[::-1]:
+        c += 1
+        print('busy...', c)
+        traces.append(get_branch_trace(compartments[branch]))
+    print('traces made')
     if compartment_selection != (): # A selection is being made
         # Get selected compartments
-        highlighted = np.array([x.end for x in compartments[compartment_selection]])
-        # Draw a faded out morphology
-        for faded_compartment in compartments:
-            plot_compartment(ax, faded_compartment, color=(0.3,0.3,0.3,0.6))
-        # Mark the selected compartments
-        t = highlighted.transpose()
-        return ax.scatter(t[0], t[2], t[1], s=5, c='red', marker="^")
-    else: # No selection is being made
-        # Style all compartments normally
-        for compartment in compartments:
-            plot_compartment(ax, compartment)
-        return None
+        highlighted = compartments[compartment_selection]
+    if return_traces:
+        return traces
+    else:
+        fig = go.Figure(data=traces)
+        fig.update_layout(showlegend=False)
+        fig.show()
+        print('shown')
 
 
 def plot_voxel_morpho_map(morphology, selected_voxel_ids=None, compartment_selection=()):
@@ -102,3 +104,21 @@ def plot_voxelize_results(bounds, voxels, box_length, color=(1.,0.,0.,0.2)):
     ax.voxels(plot_voxels, facecolors=color, edgecolor='k', linewidth=.25)
     # plt.show(block=True)
     return fig, ax
+
+def plot_eli_voxels(morphology, voxel_positions, voxel_compartment_map):
+    fig = make_subplots(
+        rows=1, cols=2,
+        specs=[[{'type': 'scatter3d'}, {'type': 'scatter3d'}]]
+    )
+    c = 0
+    for trace in plot_morphology(morphology, return_traces=True):
+        c += 1
+        print('adding... ', c)
+        fig.add_trace(
+            trace,
+            row=1, col=1
+        )
+    fig.update_layout(showlegend=False)
+    print('writing...')
+    fig.write_html("test_figure.html", auto_open=True)
+    print('written')
