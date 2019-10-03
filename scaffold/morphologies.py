@@ -101,7 +101,7 @@ class TrueMorphology(Morphology):
 			compartment_map.append(list(compartments_in_box))
 		return compartment_map
 
-	def get_bounding_box(self):
+	def get_bounding_box(self, centered=True):
 		# Use the compartment tree to get a quick array of the compartments positions
 		tree = self.compartment_tree
 		compartments = tree.get_arrays()[0]
@@ -111,8 +111,8 @@ class TrueMorphology(Morphology):
 		outer_box = Box()
 		# The outer box dimensions are equal to the maximum distance between compartments in each of n dimensions
 		outer_box.dimensions = np.array([np.max(compartments[:, i]) - np.min(compartments[:, i]) for i in n_dimensions])
-		# The outer box origin is in the middle of the outer bounds. (So lowermost point + half of dimensions)
-		outer_box.origin = np.array([np.min(compartments[:, i]) + outer_box.dimensions[i] / 2 for i in n_dimensions])
+		# The outer box origin should be in the middle of the outer bounds if 'centered' is True. (So lowermost point + sometimes half of dimensions)
+		outer_box.origin = np.array([np.min(compartments[:, i]) + (outer_box.dimensions[i] / 2) * int(centered) for i in n_dimensions])
 		return outer_box
 
 	def get_compartment_network(self):

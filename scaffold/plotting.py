@@ -108,26 +108,30 @@ def plot_voxelize_results(bounds, voxels, box_length, color=(1.,0.,0.,0.2)):
     # plt.show(block=True)
     return fig, ax
 
-def plot_block(fig, origin, sizes, **kwargs):
-    edges, faces = plotly_block(origin, sizes)
-    fig.add_trace(edges, **kwargs)
+def plot_block(fig, origin, sizes, color=None, colorscale="Cividis", **kwargs):
+    edges, faces = plotly_block(origin, sizes, color, colorscale)
+    # fig.add_trace(edges, **kwargs)
     fig.add_trace(faces, **kwargs)
 
-def plotly_block(origin, sizes):
-    return plotly_block_edges(origin, sizes), plotly_block_faces(origin, sizes)
+def plotly_block(origin, sizes, color=None, colorscale="Cividis"):
+    return plotly_block_edges(origin, sizes), plotly_block_faces(origin, sizes, color)
 
-def plotly_block_faces(origin, sizes):
+def plotly_block_faces(origin, sizes, color=None, colorscale="Cividis"):
     # 8 vertices of a block
     x = origin[0] + np.array([0, 0, 1, 1, 0, 0, 1, 1]) * sizes[0]
     y = origin[1] + np.array([0, 1, 1, 0, 0, 1, 1, 0]) * sizes[1]
     z = origin[2] + np.array([0, 0, 0, 0, 1, 1, 1, 1]) * sizes[2]
+    color_args = {}
+    if color:
+        color_args = {'colorscale': colorscale, 'intensity': np.ones((8)) * color, 'cmin': 0, 'cmax': 16.}
     return go.Mesh3d(
         x=x, y=z, z=y,
         # i, j and k give the vertices of the mesh triangles
         i = [7, 0, 0, 0, 4, 4, 6, 6, 4, 0, 3, 2],
         j = [3, 4, 1, 2, 5, 6, 5, 2, 0, 1, 6, 3],
         k = [0, 7, 2, 3, 6, 7, 1, 1, 5, 5, 7, 6],
-        opacity=0.3
+        opacity=0.3,
+        **color_args
     )
 
 def plotly_block_edges(origin, sizes):
@@ -138,22 +142,26 @@ def plotly_block_edges(origin, sizes):
         x=x, y=z, z=y, mode='lines',
         line=dict(
             width=1.,
-            color=(0., 0., 0., 1.)
+            color='black'
         )
     )
 
 
-def plot_eli_voxels(morphology, voxel_positions, voxel_compartment_map):
+def plot_eli_voxels(morphology, voxel_positions, voxel_compartment_map, selected_voxel_ids=None):
+    if selected_voxel_ids is None:
+        selected_voxel_ids = list(range(len(voxel_positions)))
     fig = make_subplots(
         rows=1, cols=2,
-        specs=[[{'type': 'scene'}, {'type': 'scene'}]]
+        specs=[[{'type': 'scene'}, {'type': 'scene'}]],
     )
+    fig.update_layout(showlegend=False)
+
     for trace in plot_morphology(morphology, return_traces=True):
         fig.add_trace(
             trace,
             row=1, col=1
         )
-    fig.update_layout(showlegend=False)
+
     Δx, Δy, Δz = 0., 0., 0.
     no_dx, no_dy, no_dz = True, True, True
     for i in range(len(voxel_positions) - 1):
@@ -169,7 +177,32 @@ def plot_eli_voxels(morphology, voxel_positions, voxel_compartment_map):
       if not no_dy and not no_dz and not no_dx:
         break
     Δ = [Δx, Δy, Δz]
-    for voxel in voxel_positions:
-        plot_block(fig, voxel, Δ, row=1, col=2)
+    voxel_origins = np.min(voxel_positions, axis=0)
+    total_grid_size = np.max(voxel_positions, axis=0) - voxel_origins
+    diagonal = np.sum(total_grid_size ** 2)
+    voxel_color_values = np.sum((voxel_positions - voxel_origins) ** 2, axis=1) / diagonal * 16.
+    for voxel_id in range(len(voxel_color_values)):
+        voxel = voxel_positions[voxel_id]
+        if voxel_id in selected_voxel_ids:
+            plot_block(fig, voxel, Δ, row=1, col=2, color=voxel_color_values[voxel_id] + 0.0001)
+            fig.add_trace(
+                go.Scatter3d(
+                    x = list(map(lambda c: morphology.compartments[c].end[0], voxel_compartments)),
+                    y = list(map(lambda c: morphology.compartments[c].end[2], voxel_compartments)),
+                    z = list(map(lambda c: morphology.compartments[c].end[1], voxel_compartments)),
+                    mode='markers',
+                    marker=dict(
+                        size=2.,
+                        cmin=0.,
+                        cmax=16.,
+                        color=[voxel_color_values[voxel_id] for _ in range(len(voxel_compartments))],
+                        colorscale='Viridis',
+                    )
+                ), row=1, col=1
+            )
+        else:
+            fig.add_trace(plotly_block_edges(voxel, Δ), row=1, col=2)
+        voxel_compartments = voxel_compartment_map[voxel_id]
+        print(voxel_color_values[voxel_id])
     set_scene_range(fig.layout.scene1, morphology.get_plot_range())
     fig.write_html("../test_figure.html", auto_open=True)
