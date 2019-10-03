@@ -232,7 +232,7 @@ class MorphologyRepository(HDF5TreeHandler):
                         if overwrite or not m_key in m_group:
                             external_handle.copy('/morphologies/' + m_key, m_group)
                         else:
-                            print("WARNING] Did not import '{}' because it already existed and overwrite=False".format(m_key))
+                            print("[WARNING] Did not import '{}' because it already existed and overwrite=False".format(m_key))
 
     def get_morphology(self, name):
         '''
