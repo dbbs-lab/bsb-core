@@ -206,6 +206,8 @@ class Scaffold:
 		else:
 			return self.cells_by_type[name]
 
-
 	def save(self):
 		self.output_formatter.save()
+
+	def translate_cell_ids(self, data, cell_type):
+		return data + self.output_formatter.get_type_map(cell_type)[0]
