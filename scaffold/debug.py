@@ -1,5 +1,5 @@
 import sys, argparse, h5py
-from .morphologies import MorphologyRepository
+from .ouput import MorphologyRepository
 from .plotting import plot_morphology, plot_voxel_morpho_map
 import matplotlib.pyplot as plt
 

@@ -1,4 +1,5 @@
 from .helpers import ConfigurableClass, get_qualified_class_name
+from .morphologies import Morphology
 from contextlib import contextmanager
 from abc import abstractmethod, ABC
 import h5py, os, time, pickle, numpy as np
@@ -10,16 +11,20 @@ class ResourceHandler(ABC):
 
     @contextmanager
     def load(self, mode=None):
-        already_open = False
+        # id = np.random.randint(0, 100)
+        already_open = True
         if self.handle is None: # Is the handle not open yet? Open it.
+            # print('opening handle', id)
             # Pass the mode argument if it is given, otherwise allow child to rely
             # on its own default value for the mode argument.
             self.handle = self.get_handle(mode) if not mode is None else self.get_handle()
-            already_open = True
+            already_open = False
         try:
             yield self.handle # Return the handle
         finally: # This is always called after the context manager closes.
+            # print('finishing', id)
             if not already_open: # Did we open the handle? We close it.
+                # print('closing handle', id)
                 self.release_handle(self.handle)
                 self.handle = None
 
@@ -64,23 +69,44 @@ class TreeHandler(ResourceHandler):
     def store_tree_collections(self, tree_collections):
         pass
 
+    @abstractmethod
+    def list_trees(self, collection_name):
+        pass
+
 class HDF5TreeHandler(HDF5ResourceHandler, TreeHandler):
     '''
         TreeHandler that uses HDF5 as resource storage
     '''
     def store_tree_collections(self, tree_collections):
-        tree_group = self.handle.create_group('trees')
-        for tree_collection in tree_collections:
-            tree_collection_group = tree_group.create_group(tree_collection.name)
-            for tree_name, tree in tree_collection.items():
-                tree_dataset = tree_collection_group.create_dataset(tree_name, data=string_(pickle.dumps(tree)))
+        with self.load() as f:
+            if not 'trees' in f:
+                tree_group = f.create_group('trees')
+            else:
+                tree_group = f['trees']
+            for tree_collection in tree_collections:
+                if not tree_collection.name in tree_group:
+                    tree_collection_group = tree_group.create_group(tree_collection.name)
+                else:
+                    tree_collection_group = tree_group[tree_collection.name]
+                for tree_name, tree in tree_collection.items():
+                    if tree_name in tree_collection_group:
+                        del tree_collection_group[tree_name]
+                    tree_dataset = tree_collection_group.create_dataset(tree_name, data=string_(pickle.dumps(tree)))
 
     def load_tree(self, collection_name, tree_name):
         with self.load() as f:
+            print(collection_name, tree_name)
             try:
                 return pickle.loads(f['/trees/{}/{}'.format(collection_name, tree_name)][()])
             except KeyError as e:
                 raise Exception("Tree not found in HDF5 file '{}', path does not exist: '{}'".format(f.file))
+
+    def list_trees(self, collection_name):
+        with self.load() as f:
+            try:
+                return list(f['trees'][collection_name].keys())
+            except KeyError as e:
+                return Exception("Tree collection '{}' not found".format(collection_name))
 
 class OutputFormatter(ConfigurableClass, TreeHandler):
 
@@ -121,7 +147,161 @@ class OutputFormatter(ConfigurableClass, TreeHandler):
         '''
         pass
 
-class HDF5Formatter(OutputFormatter, HDF5TreeHandler):
+class MorphologyRepository(HDF5TreeHandler):
+
+    defaults = {
+        'file': 'morphology_repository.hdf5'
+    }
+
+    protected_keys = ['voxel_clouds']
+
+    def __init__(self, file=None):
+        super().__init__()
+        if not file is None:
+            self.file = file
+
+	# Abstract function from ResourceHandler
+    def get_handle(self, mode='r+'):
+        '''
+            Open the HDF5 storage resource and initialise the MorphologyRepository structure.
+        '''
+        # Open a new handle to the HDF5 resource.
+        handle = HDF5TreeHandler.get_handle(self, mode)
+        # Repository structure missing from resource? Create it.
+        if not 'morphologies' in handle:
+            handle.create_group('morphologies')
+        if not 'morphologies/voxel_clouds' in handle:
+            handle.create_group('morphologies/voxel_clouds')
+        # Return the handle to the resource.
+        return handle
+
+    def import_swc(self, file, name, tags=[], overwrite=False):
+        '''
+            Import and store .swc file contents as a morphology in the repository.
+        '''
+        # Read as CSV
+        swc_data = np.loadtxt(file)
+        # Create empty dataset
+        dataset_length = len(swc_data)
+        dataset_data = np.empty((dataset_length, 10))
+        # Map parent id's to start coordinates. Root node (id: -1) is at 0., 0., 0.
+        starts = {-1: [0., 0., 0.]}
+        # Iterate over the compartments
+        for i in range(dataset_length):
+            # Extract compartment record
+            compartment = swc_data[i, :]
+            compartment_id = compartment[0]
+            compartment_type = compartment[1]
+            compartment_parent = compartment[6]
+            # Check if parent id is known
+            if not compartment_parent in starts:
+                raise Exception("Node {} references a parent node {} that isn't know yet".format(compartment_id, compartment_parent))
+            # Use parent endpoint as startpoint, get endpoint and store it as a startpoint for child compartments
+            compartment_start = starts[compartment_parent]
+            compartment_end = compartment[2:5]
+            starts[compartment_id] = compartment_end
+            # Get more compartment radius
+            compartment_radius = compartment[5]
+            # Store compartment in the repository dataset
+            dataset_data[i] = [
+                compartment_id,
+                compartment_type,
+                *compartment_start,
+                *compartment_end,
+                compartment_radius,
+                compartment_parent
+            ]
+        # Save the dataset in the repository
+        with self.load() as repo:
+            if overwrite: # Do we overwrite previously existing dataset with same name?
+                self.remove_morphology(name) # Delete anything that might be under this name.
+            elif self.morphology_exists(name):
+                raise Exception("A morphology called '{}' already exists in this repository.")
+            # Create the dataset
+            dset = repo['morphologies'].create_dataset(name, data=dataset_data)
+            # Set attributes
+            dset.attrs['name'] = name
+            dset.attrs['type'] = 'swc'
+
+    def import_repository(self, repository, overwrite=False):
+        with repository.load() as external_handle:
+            with self.load() as internal_handle:
+                m_group = internal_handle['morphologies']
+                for m_key in external_handle['morphologies'].keys():
+                    if m_key not in self.protected_keys:
+                        if overwrite or not m_key in m_group:
+                            external_handle.copy('/morphologies/' + m_key, m_group)
+                        else:
+                            print("WARNING] Did not import '{}' because it already existed and overwrite=False".format(m_key))
+
+    def get_morphology(self, name):
+        '''
+            Load a morphology from repository data
+        '''
+        # Open repository and close afterwards
+        with self.load() as repo:
+            # Check if morphology exists
+            if not self.morphology_exists(name):
+                raise Exception("Attempting to load unknown morphology '{}'".format(name))
+            # Take out all the data with () index, and send along the metadata stored in the attributes
+            data = self.raw_morphology(name)
+            repo_data = data[()]
+            repo_meta = dict(data.attrs)
+            voxel_kwargs = {}
+            if self.voxel_cloud_exists(name):
+                voxels = self.raw_voxel_cloud(name)
+                voxel_kwargs['voxel_data'] = voxels['positions'][()]
+                voxel_kwargs['voxel_meta'] = dict(voxels.attrs)
+                voxel_kwargs['voxel_map'] = pickle.loads(voxels['map'][()])
+            return Morphology.from_repo_data(repo_data, repo_meta, **voxel_kwargs)
+
+    def morphology_exists(self, name):
+        with self.load() as repo:
+            return name in self.handle['morphologies']
+
+    def voxel_cloud_exists(self, name):
+        with self.load() as repo:
+            return name in self.handle['morphologies/voxel_clouds']
+
+    def remove_morphology(self, name):
+        with self.load() as repo:
+            if self.morphology_exists(name):
+                del self.handle['morphologies/' + name]
+
+    def remove_voxel_cloud(self, name):
+        with self.load() as repo:
+            if self.voxel_cloud_exists(name):
+                del self.handle['morphologies/voxel_clouds/' + name]
+
+    def list_all_morphologies(self):
+        with self.load() as repo:
+            return list(filter(lambda x: x != 'voxel_clouds', repo['morphologies'].keys()))
+
+    def list_all_voxelized(self):
+        with self.load() as repo:
+            all = list(repo['morphologies'].keys())
+            voxelized = list(filter(lambda x: x in repo['/morphologies/voxel_clouds'], all))
+            return voxelized
+
+    def raw_morphology(self, name):
+        '''
+            Return the morphology dataset
+        '''
+        with self.load() as repo:
+        	return repo['morphologies/' + name]
+
+    def raw_voxel_cloud(self, name):
+        '''
+            Return the morphology dataset
+        '''
+        with self.load() as repo:
+            return repo['morphologies/voxel_clouds/' + name]
+
+class HDF5Formatter(OutputFormatter, MorphologyRepository):
+    '''
+    	Stores the output of the scaffold as a single HDF5 file. Is also a MorphologyRepository
+    	and an HDF5TreeHandler.
+    '''
 
     defaults = {
         'file': 'scaffold_network_{}.hdf5'.format(time.strftime("%Y_%m_%d-%H%M%S")),

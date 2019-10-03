@@ -77,6 +77,9 @@ class Scaffold:
 
 	def _initialise_output_formatter(self):
 		self.output_formatter = self.configuration.output_formatter
+		# Alias the output formatter under its other functions
+		self.morphology_repository = self.output_formatter
+		self.tree_handler = self.output_formatter
 		self.output_formatter.initialise(self)
 
 	def compile_network(self, tries=1):
