@@ -195,8 +195,7 @@ class Scaffold:
 		self.appends[name] = data
 
 	def get_cells_by_type(self, name):
-		if not name in self.cells_by_type:
-			print('not currently loaded')
+		if not name in self.cells_by_type or self.cells_by_type[name].shape[0] == 0:
 			if self.output_formatter.has_cells_of_type(name):
 				if not name in self.configuration.cell_types.keys():
 					raise Exception("Attempting to load a cell type '{}' that is present in the output storage, but not in the currently loaded configuration.".format(name))
