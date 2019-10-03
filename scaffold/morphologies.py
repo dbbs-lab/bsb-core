@@ -1,6 +1,6 @@
 import abc, numpy as np, pickle, h5py
 from .helpers import ConfigurableClass
-from .voxels import VoxelCloud, detect_box_compartments
+from .voxels import VoxelCloud, detect_box_compartments, Box
 from sklearn.neighbors import KDTree
 
 class Compartment:
@@ -70,6 +70,14 @@ class Morphology(ConfigurableClass):
 			m.init_voxel_cloud(voxel_data, voxel_meta, voxel_map)
 		return m
 
+class TrueMorphology(Morphology):
+	'''
+		Used to load morphologies that don't need to be configured/validated.
+	'''
+
+	def validate(self):
+		pass
+
 	def voxelize(self, N):
 		self.cloud = VoxelCloud.create(self, N)
 
@@ -92,14 +100,38 @@ class Morphology(ConfigurableClass):
 			compartment_map.append(list(compartments_in_box))
 		return compartment_map
 
+	def get_bounding_box(self, centered=True):
+		# Use the compartment tree to get a quick array of the compartments positions
+		tree = self.compartment_tree
+		compartments = tree.get_arrays()[0]
+		# Determine the amount of dimensions of the morphology. Let's hope 3 ;)
+		n_dimensions = range(compartments.shape[1])
+		# Create a bounding box
+		outer_box = Box()
+		# The outer box dimensions are equal to the maximum distance between compartments in each of n dimensions
+		outer_box.dimensions = np.array([np.max(compartments[:, i]) - np.min(compartments[:, i]) for i in n_dimensions])
+		# The outer box origin should be in the middle of the outer bounds if 'centered' is True. (So lowermost point + sometimes half of dimensions)
+		outer_box.origin = np.array([np.min(compartments[:, i]) + (outer_box.dimensions[i] / 2) * int(centered) for i in n_dimensions])
+		return outer_box
 
-class TrueMorphology(Morphology):
-	'''
-		Used to load morphologies that don't need to be configured/validated.
-	'''
+	def get_compartment_network(self):
+		compartments = self.compartments
+		node_list = [set([]) for c in compartments]
+		# Fix first and last compartments
+		node_list[0] = set([1])
+		node_list.append(set([]))
+		# Add child nodes to their parent's adjacency set
+		for node in compartments[1:]:
+			node_list[int(node.parent)].add(int(node.id))
+		return node_list
 
-	def validate(self):
-		pass
+	def get_plot_range(self):
+		compartments = self.compartment_tree.get_arrays()[0]
+		n_dimensions = range(compartments.shape[1])
+		mins = np.array([np.min(compartments[:, i]) for i in n_dimensions])
+		max = np.max(np.array([np.max(compartments[:, i]) - mins[i] for i in n_dimensions]))
+		return list(zip(mins.tolist(), (mins + max).tolist()))
+
 
 class GranuleCellGeometry(Morphology):
 	casts = {
