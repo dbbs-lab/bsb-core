@@ -389,7 +389,7 @@ class HDF5Formatter(OutputFormatter, MorphologyRepository):
         # Slice out the cells of this type based on the map in the position dataset attributes.
         with self.load() as resource:
             type_map = self.get_type_map(name)
-            return resource['/cells/positions'][type_map][()]
+            return resource['/cells/positions'][()][type_map]
 
     def get_type_map(self, type):
         with self.load() as resource:
