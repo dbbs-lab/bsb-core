@@ -2,7 +2,6 @@ from .statistics import Statistics
 from .plotting import plotNetwork
 import numpy as np
 import time
-from sklearn.neighbors import KDTree
 from .trees import TreeCollection
 
 ###############################
