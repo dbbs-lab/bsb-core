@@ -1,7 +1,8 @@
 import abc
-from .helpers import ConfigurableClass
+from .helpers import ConfigurableClass, assert_attr_in
 from .postprocessing import get_parallel_fiber_heights, get_dcn_rotations
 import numpy as np
+from random import choice as random_element
 
 class ConnectionStrategy(ConfigurableClass):
 
@@ -786,3 +787,66 @@ class ConnectomeGlomDCN(TouchingConvergenceDivergence):
 
 		results = connectome_glom_dcn(first_glomerulus, glomeruli, dcn_cells, convergence)
 		self.scaffold.connect_cells(self, results)
+
+class TouchDetector(ConnectionStrategy):
+	'''
+		Connectivity based on intersection of detailed morphologies
+	'''
+
+	defaults = {
+		'cell_intersection_plane': 'xyz',
+		'compartment_intersection_plane': 'xyz'
+	}
+
+	def validate(self):
+		planes = ['xyz', 'xy', 'xz', 'yz', 'x', 'y', 'z']
+		assert_attr_in(self.__dict__, 'cell_intersection_plane', planes, 'connection_types.{}'.format(self.name))
+		# Preselection: preselect candidate compartments
+		# Preselection uses placement point (?)
+		# Preselection plane
+		assert_attr_in(self.__dict__, 'compartment_intersection_plane', planes, 'connection_types.{}'.format(self.name))
+
+	def connect(self):
+		candidates = self.intersect_cells()
+		connections, compartments = self.intersect_compartments(candidates)
+		self.scaffold.connect_cells(self, connections, compartments=compartments)
+
+	def connect_cells(from_cell, to_cell):
+		from_type = self.from_cell_types[0]
+		to_type = self.to_cell_types[0]
+
+	def intersect_cells(self):
+		cell_plane = self.cell_intersection_plane
+		from_type = self.from_cell_types[0]
+		to_type = self.to_cell_types[0]
+		from_cell_tree = self.scaffold.tree_handler.get_tree('cells', from_type.name, plane=cell_plane)
+		to_cell_tree = self.scaffold.tree_handler.get_tree('cells', to_type.name, plane=cell_plane)
+		from_count = self.scaffold.get_placed_count(from_type.name)
+		to_count = self.scaffold.get_placed_count(to_type.name)
+		radius = from_cell_type.get_search_radius() + to_cell_type.get_search_radius()
+		# TODO: Profile whether the reverse lookup with the smaller tree and then reversing the matches array
+		# gains us any speed.
+		if from_count < to_count:
+			return to_cell_tree.query_radius(from_cell_tree.get_arrays()[0], radius)
+		else:
+			reversed_matches = from_cell_tree.query_radius(to_cell_tree.get_arrays()[0], radius)
+			matches = [[] for _ in range(len(reversed_matches))]
+			for i in len(reversed_matches):
+				for match in reversed_matches[i]:
+					matches[match].append(i)
+			return matches
+
+	def intersect_compartments(candidate_map, reversed_map=False):
+		id_map_from = self.scaffold.translate_cell_ids(list(range(len(cell_matches))), from_type.name)
+		id_map_to = self.scaffold.translate_cell_ids(list(range(len(cell_matches))), to_type.name)
+		connected_cells = []
+		connected_compartments = []
+		for i in range(len(candidate_map)):
+			from_id = id_map_from[i]
+			to_id = id_map_to[cell_matches]
+			# Pass positions instead of ID's to prevent having to load them again.
+			intersections = self.get_compartment_intersections(from_id, to_id)
+			if len(intersections) > 0:
+				connected_cells.append([from_id, to_id])
+				connected_compartments.append(random_element(intersections))
+		return connected_cells, connected_compartments
