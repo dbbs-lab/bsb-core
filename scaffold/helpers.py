@@ -137,6 +137,10 @@ def assert_attr_array(section, attr, section_name):
     return assert_array(section[attr], "{}.{}".format(section_name, attr))
 
 def assert_attr_in(section, attr, values, section_name):
+    '''
+        Assert that the attribute is present in the section dictionary and that its value is included
+        in the given array.
+    '''
     if not attr in section:
         raise Exception("Required attribute '{}' missing in '{}'".format(attr, section_name))
     if not section[attr] in values:
