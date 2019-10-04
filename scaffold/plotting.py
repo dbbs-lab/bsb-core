@@ -43,14 +43,14 @@ def plot_voxel_cloud(cloud, fig_ax_tuple=None, selected_voxels=None):
     # Plot and return the voxel's artist dictionary
     return ax.voxels(np.swapaxes(voxels, 1, 2), facecolors=colors, edgecolor='k', linewidth=.25)
 
-def get_branch_trace(compartments):
-    x = [c.start[0] for c in compartments]
-    y = [c.start[1] for c in compartments]
-    z = [c.start[2] for c in compartments]
+def get_branch_trace(compartments, offset = [0., 0., 0.]):
+    x = [c.start[0] + offset[0] for c in compartments]
+    y = [c.start[1] + offset[1] for c in compartments]
+    z = [c.start[2] + offset[2] for c in compartments]
     # Add branch endpoint
-    x.append(compartments[-1].end[0])
-    y.append(compartments[-1].end[1])
-    z.append(compartments[-1].end[2])
+    x.append(compartments[-1].end[0] + offset[0])
+    y.append(compartments[-1].end[1] + offset[1])
+    z.append(compartments[-1].end[2] + offset[2])
     return go.Scatter3d(
         x=x, y=z, z=y, mode='lines',
         line=dict(
@@ -59,26 +59,26 @@ def get_branch_trace(compartments):
         )
     )
 
-def plot_morphology(morphology, return_traces=False):
+def plot_morphology(morphology, return_traces=False, offset=[0., 0., 0.]):
     compartments = morphology.compartments.copy()
     compartments.insert(0, type('Compartment', (object,), {'start': [0., 0., 0.], 'end': [0., 0., 0.]})())
     compartments = np.array(compartments)
     dfs_list = depth_first_branches(morphology.get_compartment_network())
     traces = []
     for branch in dfs_list[::-1]:
-        traces.append(get_branch_trace(compartments[branch]))
+        traces.append(get_branch_trace(compartments[branch], offset))
     if return_traces:
         return traces
     else:
         fig = go.Figure(data=traces)
         fig.update_layout(showlegend=False)
-        set_3D_axes_range(fig.layout.scene, morphology.get_plot_range())
+        set_scene_range(fig.layout.scene, morphology.get_plot_range(), offset=offset)
         fig.show()
 
-def set_scene_range(scene, bounds):
-    scene.xaxis.range=bounds[0]
-    scene.yaxis.range=bounds[2]
-    scene.zaxis.range=bounds[1]
+def set_scene_range(scene, bounds, offset=[0., 0., 0.]):
+    scene.xaxis.range=bounds[0] + offset[0]
+    scene.yaxis.range=bounds[2] + offset[2]
+    scene.zaxis.range=bounds[1] + offset[1]
 
 def plot_voxel_morpho_map(morphology, selected_voxel_ids=None, compartment_selection=()):
     fig = plt.figure(figsize=plt.figaspect(0.5))

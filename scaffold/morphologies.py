@@ -114,6 +114,16 @@ class TrueMorphology(Morphology):
 		outer_box.origin = np.array([np.min(compartments[:, i]) + (outer_box.dimensions[i] / 2) * int(centered) for i in n_dimensions])
 		return outer_box
 
+	def get_search_radius(self, plane='xyz'):
+		pos = np.array(self.compartment_tree.get_arrays()[0])
+		dimensions = ['x', 'y', 'z']
+		try:
+			max_dists = np.max(np.abs(np.array([pos[:,dimensions.index(d)] for d in plane])), axis=1)
+		except ValueError as e:
+			raise Exception("Unknown dimensions in dimension string '{}'".format(plane))
+		print(max_dists)
+		return np.sqrt(np.sum(max_dists ** 2))
+
 	def get_compartment_network(self):
 		compartments = self.compartments
 		node_list = [set([]) for c in compartments]
