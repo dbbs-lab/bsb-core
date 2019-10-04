@@ -59,19 +59,14 @@ def get_branch_trace(compartments):
         )
     )
 
-def plot_morphology(morphology, return_traces=False, compartment_selection=()):
+def plot_morphology(morphology, return_traces=False):
     compartments = morphology.compartments.copy()
     compartments.insert(0, type('Compartment', (object,), {'start': [0., 0., 0.], 'end': [0., 0., 0.]})())
     compartments = np.array(compartments)
     dfs_list = depth_first_branches(morphology.get_compartment_network())
     traces = []
-    c = 0
     for branch in dfs_list[::-1]:
-        c += 1
         traces.append(get_branch_trace(compartments[branch]))
-    if compartment_selection != (): # A selection is being made
-        # Get selected compartments
-        highlighted = compartments[compartment_selection]
     if return_traces:
         return traces
     else:
