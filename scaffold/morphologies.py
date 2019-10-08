@@ -56,10 +56,9 @@ class Morphology(ConfigurableClass):
 		self.cloud = VoxelCloud(bounds, voxel_data, grid_size, voxel_map)
 
 	@staticmethod
-	def from_repo_data(name, repo_data, repo_meta, voxel_data=None, voxel_map=None, voxel_meta=None, scaffold = None):
+	def from_repo_data(repo_data, repo_meta, voxel_data=None, voxel_map=None, voxel_meta=None, scaffold = None):
 		# Instantiate morphology instance
 		m = TrueMorphology()
-		m.name = name
 		if not scaffold is None:
 			# Initialise configurable class
 			m.initialise(scaffold)
