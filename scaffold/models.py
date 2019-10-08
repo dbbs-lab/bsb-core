@@ -33,6 +33,9 @@ class CellType:
     def set_placement(self, placement):
         self.placement = placement
 
+    def get_placed_count(self):
+        return self.scaffold.statistics.cells_placed[self.name]
+
 class Layer(dimensions, origin):
 
     def __init__(self, name, origin, dimensions, scaling=True):
