@@ -55,7 +55,7 @@ def get_branch_trace(compartments, offset = [0., 0., 0.]):
         x=x, y=z, z=y, mode='lines',
         line=dict(
             width=1.,
-            color=(0., 0., 0., 1.)
+            color='black'
         )
     )
 
@@ -76,9 +76,9 @@ def plot_morphology(morphology, return_traces=False, offset=[0., 0., 0.]):
         fig.show()
 
 def set_scene_range(scene, bounds, offset=[0., 0., 0.]):
-    scene.xaxis.range=bounds[0] + offset[0]
-    scene.yaxis.range=bounds[2] + offset[2]
-    scene.zaxis.range=bounds[1] + offset[1]
+    scene.xaxis.range=np.array(bounds[0]) + offset[0]
+    scene.yaxis.range=np.array(bounds[2]) + offset[2]
+    scene.zaxis.range=np.array(bounds[1]) + offset[1]
 
 def plot_voxel_morpho_map(morphology, selected_voxel_ids=None, compartment_selection=()):
     fig = plt.figure(figsize=plt.figaspect(0.5))
@@ -198,6 +198,5 @@ def plot_eli_voxels(morphology, voxel_positions, voxel_compartment_map, selected
         else:
             fig.add_trace(plotly_block_edges(voxel, Δ), row=1, col=2)
         voxel_compartments = voxel_compartment_map[voxel_id]
-        print(voxel_color_values[voxel_id])
     set_scene_range(fig.layout.scene1, morphology.get_plot_range())
     fig.write_html("../test_figure.html", auto_open=True)
