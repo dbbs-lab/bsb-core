@@ -115,7 +115,7 @@ class OutputFormatter(ConfigurableClass, TreeHandler):
         self.save_file_as = None
 
     @abstractmethod
-    def save(self):
+    def create_output(self):
         pass
 
     @abstractmethod
@@ -143,6 +143,13 @@ class OutputFormatter(ConfigurableClass, TreeHandler):
     def get_cells_of_type(self, name):
         '''
             Return the position matrix for a specific cell type.
+        '''
+        pass
+
+    @abstractmethod
+    def exists(self):
+        '''
+            Check if the resource exists.
         '''
         pass
 
@@ -317,7 +324,7 @@ class HDF5Formatter(OutputFormatter, MorphologyRepository):
         'simulator_output_path': False
     }
 
-    def save(self):
+    def create_output(self):
         if self.save_file_as:
             self.file = self.save_file_as
 
@@ -327,6 +334,8 @@ class HDF5Formatter(OutputFormatter, MorphologyRepository):
             self.store_tree_collections(self.scaffold.trees.__dict__.values())
             self.store_statistics()
             self.store_appendices()
+            if not self.scaffold.morphology_repository is None:
+                self.store_morphology_repository()
 
     def init_scaffold(self):
         with self.load() as resource:
@@ -364,6 +373,7 @@ class HDF5Formatter(OutputFormatter, MorphologyRepository):
     def store_cell_connections(self, cells_group):
         connections_group = cells_group.create_group('connections')
         for tag, connectome_data in self.scaffold.cell_connections_by_tag.items():
+            print(type(connectome_data))
             related_types = list(filter(lambda x: tag in x.tags, self.scaffold.configuration.connection_types.values()))
             connection_dataset = connections_group.create_dataset(tag, data=connectome_data)
             connection_dataset.attrs['tag'] = tag
@@ -384,6 +394,11 @@ class HDF5Formatter(OutputFormatter, MorphologyRepository):
         for key, data in self.scaffold.appends.items():
             dset = self.handle.create_dataset(key, data=data)
 
+    def store_morphology_repository(self):
+        with self.load() as resource:
+            with self.scaffold.morphology_repository.load() as repo:
+                repo.copy('/morphologies', resource)
+
     def get_simulator_output_path(self, simulator_name):
         return self.simulator_output_path or os.getcwd()
 
@@ -403,3 +418,6 @@ class HDF5Formatter(OutputFormatter, MorphologyRepository):
     def get_type_map(self, type):
         with self.load() as resource:
             return self.handle['/cells/type_maps/{}_map'.format(type)][()]
+
+    def exists(self):
+        return os.path.exists(self.file)

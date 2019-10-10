@@ -3,6 +3,7 @@ from .plotting import plotNetwork
 import numpy as np
 import time
 from .trees import TreeCollection
+from .output import MorphologyRepository
 
 ###############################
 ## Scaffold class
@@ -76,10 +77,14 @@ class Scaffold:
 
 	def _initialise_output_formatter(self):
 		self.output_formatter = self.configuration.output_formatter
-		# Alias the output formatter under its other functions
+		self.output_formatter.initialise(self)
+		# Alias the output formatter to some other functions it provides.
 		self.morphology_repository = self.output_formatter
 		self.tree_handler = self.output_formatter
-		self.output_formatter.initialise(self)
+		# Load an actual morphology repository if it is provided
+		if not self.is_compiled() and not self.output_formatter.morphology_repository is None:
+			# We are in a precompilation state and the configuration specifies us to use a morpho repo.
+			self.morphology_repository = MorphologyRepository(self.output_formatter.morphology_repository)
 
 	def compile_network(self, tries=1):
 		times = np.zeros(tries)
@@ -95,7 +100,7 @@ class Scaffold:
 			for connection_type in self.configuration.connection_types.values():
 				connection_type.connect()
 			times[i] = time.time() - t
-			self.save()
+			self.compile_output()
 			for type in self.configuration.cell_types.values():
 				count = self.cells_by_type[type.name].shape[0]
 				volume = self.configuration.layers[type.placement.layer].volume
@@ -218,8 +223,8 @@ class Scaffold:
 		else:
 			return self.cells_by_type[name]
 
-	def save(self):
-		self.output_formatter.save()
+	def compile_output(self):
+		self.output_formatter.create_output()
 
 	def translate_cell_ids(self, data, cell_type):
 		return data + self.output_formatter.get_type_map(cell_type)[0]
@@ -231,3 +236,6 @@ class Scaffold:
 
 	def get_placed_count(self, cell_type_name):
 		return self.statistics.cells_placed[cell_type_name]
+
+	def is_compiled(self):
+		return self.output_formatter.exists()
