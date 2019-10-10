@@ -174,12 +174,15 @@ class MorphologyRepository(HDF5TreeHandler):
         # Open a new handle to the HDF5 resource.
         handle = HDF5TreeHandler.get_handle(self, mode)
         # Repository structure missing from resource? Create it.
+        self.initialise_repo_structure(handle)
+        # Return the handle to the resource.
+        return handle
+
+    def initialise_repo_structure(self, handle):
         if not 'morphologies' in handle:
             handle.create_group('morphologies')
         if not 'morphologies/voxel_clouds' in handle:
             handle.create_group('morphologies/voxel_clouds')
-        # Return the handle to the resource.
-        return handle
 
     def import_swc(self, file, name, tags=[], overwrite=False):
         '''
@@ -321,10 +324,17 @@ class HDF5Formatter(OutputFormatter, MorphologyRepository):
 
     defaults = {
         'file': 'scaffold_network_{}.hdf5'.format(time.strftime("%Y_%m_%d-%H%M%S")),
-        'simulator_output_path': False
+        'simulator_output_path': False,
+        'morphology_repository': None
     }
 
     def create_output(self):
+        was_compiled = self.exists()
+        if was_compiled:
+            with h5py.File('__backup__.hdf5', 'w') as backup:
+                with self.morphology_repository.load() as repo:
+                    repo.copy('/morphologies', backup)
+
         if self.save_file_as:
             self.file = self.save_file_as
 
@@ -334,8 +344,7 @@ class HDF5Formatter(OutputFormatter, MorphologyRepository):
             self.store_tree_collections(self.scaffold.trees.__dict__.values())
             self.store_statistics()
             self.store_appendices()
-            if not self.scaffold.morphology_repository is None:
-                self.store_morphology_repository()
+            self.store_morphology_repository(was_compiled)
 
     def init_scaffold(self):
         with self.load() as resource:
@@ -394,10 +403,18 @@ class HDF5Formatter(OutputFormatter, MorphologyRepository):
         for key, data in self.scaffold.appends.items():
             dset = self.handle.create_dataset(key, data=data)
 
-    def store_morphology_repository(self):
+    def store_morphology_repository(self, was_compiled=False):
         with self.load() as resource:
-            with self.scaffold.morphology_repository.load() as repo:
-                repo.copy('/morphologies', resource)
+            if was_compiled: # File already existed?
+                # Copy from the backup of previous version
+                with h5py.File('__backup__.hdf5', 'w') as backup:
+                    backup.copy('/morphologies', resource)
+            else: # Fresh compilation
+                if self.morphology_repository is None: # No repo specified
+                    # Initialise empty repo.
+                    self.initialise_repo_structure(resource)
+                else: # Repo specified
+                    self.import_repository(self.scaffold.morphology_repository)
 
     def get_simulator_output_path(self, simulator_name):
         return self.simulator_output_path or os.getcwd()
