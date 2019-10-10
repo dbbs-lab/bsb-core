@@ -843,7 +843,6 @@ class TouchDetector(ConnectionStrategy):
 		else:
 			reversed_matches = from_cell_tree.query_radius(to_cell_tree.get_arrays()[0], radius)
 			matches = [[] for _ in range(len(from_cell_tree.get_arrays()[0]))]
-			print(len(matches), len(reversed_matches))
 			for i in range(len(reversed_matches)):
 				for match in reversed_matches[i]:
 					matches[match].append(i)
