@@ -120,6 +120,8 @@ class Scaffold:
 		self.cells = np.empty((0, 5))
 		# Cell connections per connection type. Columns: From ID, To ID.
 		self.cell_connections_by_tag = {}
+		self.connection_morphologies = {}
+		self.connection_compartments = {}
 		self.appends = {}
 		self.placement_stitching = []
 
@@ -177,18 +179,29 @@ class Scaffold:
 		self._nextId += count
 		return IDs
 
-	def connect_cells(self, connection_type, connectome_data, tag=None):
+	def connect_cells(self, connection_type, connectome_data, tag=None, morphologies=None, compartments=None):
 		# Allow 1 connection type to store multiple connectivity datasets by utilizing tags
 		tag = tag or connection_type.name
 		# Keep track of relevant tags in the connection_type object
 		if not tag in connection_type.tags:
 			connection_type.tags.append(tag)
-		# Store the connections based on their tag, and append them if a dataset already exists under the same tag.
-		if tag in self.cell_connections_by_tag:
-			cache = self.cell_connections_by_tag[tag]
-			self.cell_connections_by_tag[tag] = np.concatenate((cache, connectome_data))
+		self._append_tagged('cell_connections_by_tag', tag, connectome_data)
+		if not morphologies is None:
+			if len(morphologies) != len(connectome_data) or len(compartments) != len(connectome_data):
+				raise Exception("The morphological data did not match the connectome data.")
+			self._append_tagged('connection_morphologies', tag, morphologies)
+			self._append_tagged('connection_compartments', tag, compartments)
+
+	def _append_tagged(self, attr, tag, data):
+		'''
+			Appends or creates data to a tagged numpy array in a dictionary attribute of the scaffold.
+		'''
+		if tag in self.__dict__[attr]:
+			cache = self.__dict__[attr][tag]
+			self.__dict__[attr][tag] = np.concatenate((cache, data))
 		else:
-			self.cell_connections_by_tag[tag] = np.copy(connectome_data)
+			self.__dict__[attr][tag] = np.copy(data)
+
 
 	def append_dset(self, name, data):
 		self.appends[name] = data
