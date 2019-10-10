@@ -384,15 +384,17 @@ class HDF5Formatter(OutputFormatter, MorphologyRepository):
 
     def store_cell_connections(self, cells_group):
         connections_group = cells_group.create_group('connections')
+        compartments_group = cells_group.create_group('connection_compartments')
+        morphologies_group = cells_group.create_group('connection_morphologies')
         for tag, connectome_data in self.scaffold.cell_connections_by_tag.items():
-            # print(type(connectome_data))
-            # print(connectome_data)
-            # print(tag)
             related_types = list(filter(lambda x: tag in x.tags, self.scaffold.configuration.connection_types.values()))
             connection_dataset = connections_group.create_dataset(tag, data=connectome_data)
             connection_dataset.attrs['tag'] = tag
             connection_dataset.attrs['connection_types'] = list(map(lambda x: x.name, related_types))
             connection_dataset.attrs['connection_type_classes'] = list(map(get_qualified_class_name, related_types))
+            if tag in self.scaffold.connection_compartments:
+                compartments_group.create_dataset(tag, data=self.scaffold.connection_compartments[tag])
+                morphologies_group.create_dataset(tag, data=self.scaffold.connection_morphologies[tag])
 
     def store_statistics(self):
         statistics = self.handle.create_group('statistics')
