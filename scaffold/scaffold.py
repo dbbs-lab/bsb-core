@@ -8,7 +8,7 @@ from .output import MorphologyRepository
 ###############################
 ## Scaffold class
 #    * Bootstraps configuration
-#    * Loads morphologies, morphologies, ...
+#    * Loads geometries, morphologies, ...
 #    * Creates network architecture
 #    * Sets up simulation
 
@@ -227,7 +227,10 @@ class Scaffold:
 		self.output_formatter.create_output()
 
 	def translate_cell_ids(self, data, cell_type):
-		return data + self.output_formatter.get_type_map(cell_type)[0]
+		if not self.is_compiled():
+			return self.cells_by_type[cell_type.name][data,0]
+		else:
+			return np.array(self.output_formatter.get_type_map(cell_type))[data]
 
 	def get_cell_position(self, id):
 		if not id < len(self.cells):
