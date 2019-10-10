@@ -43,7 +43,7 @@ class ResourceHandler(ABC):
         pass
 
 class HDF5ResourceHandler(ResourceHandler):
-    def get_handle(self, mode='r+'):
+    def get_handle(self, mode='a'):
         '''
             Open an HDF5 resource.
         '''
@@ -95,7 +95,6 @@ class HDF5TreeHandler(HDF5ResourceHandler, TreeHandler):
 
     def load_tree(self, collection_name, tree_name):
         with self.load() as f:
-            print(collection_name, tree_name)
             try:
                 return pickle.loads(f['/trees/{}/{}'.format(collection_name, tree_name)][()])
             except KeyError as e:
@@ -161,7 +160,7 @@ class MorphologyRepository(HDF5TreeHandler):
             self.file = file
 
 	# Abstract function from ResourceHandler
-    def get_handle(self, mode='r+'):
+    def get_handle(self, mode='a'):
         '''
             Open the HDF5 storage resource and initialise the MorphologyRepository structure.
         '''
@@ -186,19 +185,29 @@ class MorphologyRepository(HDF5TreeHandler):
         dataset_data = np.empty((dataset_length, 10))
         # Map parent id's to start coordinates. Root node (id: -1) is at 0., 0., 0.
         starts = {-1: [0., 0., 0.]}
+        id_map = {-1: -1}
+        next_id = 1
+        translation = swc_data[0, 2:5]
         # Iterate over the compartments
         for i in range(dataset_length):
             # Extract compartment record
             compartment = swc_data[i, :]
-            compartment_id = compartment[0]
+            # Renumber the compartments to yield a continuous incrementing list of IDs
+            # (increases performance of graph theory and network related tasks)
+            compartment_old_id = compartment[0]
+            compartment_id = next_id
+            next_id += 1
+            # Keep track of a map to translate old IDs to new IDs
+            id_map[compartment_old_id] = compartment_id
             compartment_type = compartment[1]
-            compartment_parent = compartment[6]
             # Check if parent id is known
-            if not compartment_parent in starts:
-                raise Exception("Node {} references a parent node {} that isn't know yet".format(compartment_id, compartment_parent))
+            if not compartment[6] in id_map:
+                raise Exception("Node {} references a parent node {} that isn't known yet".format(compartment_old_id, compartment[6]))
+            # Map the old parent ID to the new parent ID
+            compartment_parent = id_map[compartment[6]]
             # Use parent endpoint as startpoint, get endpoint and store it as a startpoint for child compartments
             compartment_start = starts[compartment_parent]
-            compartment_end = compartment[2:5]
+            compartment_end = compartment[2:5] - translation
             starts[compartment_id] = compartment_end
             # Get more compartment radius
             compartment_radius = compartment[5]

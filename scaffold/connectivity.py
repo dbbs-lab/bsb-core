@@ -793,10 +793,18 @@ class TouchDetector(ConnectionStrategy):
 		Connectivity based on intersection of detailed morphologies
 	'''
 
+	casts = {
+		'tolerance': float,
+		'morphologies': dict
+	}
+
 	defaults = {
 		'cell_intersection_plane': 'xyz',
-		'compartment_intersection_plane': 'xyz'
+		'compartment_intersection_plane': 'xyz',
+		'tolerance': 5.
 	}
+
+	required = ['cell_intersection_plane', 'compartment_intersection_plane', 'tolerance', 'morphologies']
 
 	def validate(self):
 		planes = ['xyz', 'xy', 'xz', 'yz', 'x', 'y', 'z']
@@ -807,46 +815,107 @@ class TouchDetector(ConnectionStrategy):
 		assert_attr_in(self.__dict__, 'compartment_intersection_plane', planes, 'connection_types.{}'.format(self.name))
 
 	def connect(self):
+		# Create a dictionary to cache loaded morphologies.
+		self.morphology_cache = {}
+		# Intersect cells on the widest possible search radius.
 		candidates = self.intersect_cells()
-		connections, compartments = self.intersect_compartments(candidates)
-		self.scaffold.connect_cells(self, connections, compartments=compartments)
-
-	def connect_cells(from_cell, to_cell):
-		from_type = self.from_cell_types[0]
-		to_type = self.to_cell_types[0]
+		# Intersect cell compartments between matched cells.
+		connections, morphology_names, compartments = self.intersect_compartments(candidates)
+		# Connect the cells and store the morphologies and selected compartments that connect them.
+		print('connected {} cells'.format(len(connections)))
+		self.scaffold.connect_cells(self, connections, morphologies=morphology_names, compartments=compartments)
+		# Remove the morphology cache
+		self.morphology_cache = None
 
 	def intersect_cells(self):
 		cell_plane = self.cell_intersection_plane
 		from_type = self.from_cell_types[0]
 		to_type = self.to_cell_types[0]
-		from_cell_tree = self.scaffold.tree_handler.get_tree('cells', from_type.name, plane=cell_plane)
-		to_cell_tree = self.scaffold.tree_handler.get_tree('cells', to_type.name, plane=cell_plane)
+		from_cell_tree = self.scaffold.trees.cells.get_planar_tree(from_type.name, plane=cell_plane)
+		to_cell_tree = self.scaffold.trees.cells.get_planar_tree(to_type.name, plane=cell_plane)
 		from_count = self.scaffold.get_placed_count(from_type.name)
 		to_count = self.scaffold.get_placed_count(to_type.name)
-		radius = from_cell_type.get_search_radius() + to_cell_type.get_search_radius()
+		radius = self.get_search_radius(from_type) + self.get_search_radius(to_type)
 		# TODO: Profile whether the reverse lookup with the smaller tree and then reversing the matches array
 		# gains us any speed.
 		if from_count < to_count:
 			return to_cell_tree.query_radius(from_cell_tree.get_arrays()[0], radius)
 		else:
 			reversed_matches = from_cell_tree.query_radius(to_cell_tree.get_arrays()[0], radius)
-			matches = [[] for _ in range(len(reversed_matches))]
-			for i in len(reversed_matches):
+			matches = [[] for _ in range(len(from_cell_tree.get_arrays()[0]))]
+			print(len(matches), len(reversed_matches))
+			for i in range(len(reversed_matches)):
 				for match in reversed_matches[i]:
 					matches[match].append(i)
 			return matches
 
-	def intersect_compartments(candidate_map, reversed_map=False):
-		id_map_from = self.scaffold.translate_cell_ids(list(range(len(cell_matches))), from_type.name)
-		id_map_to = self.scaffold.translate_cell_ids(list(range(len(cell_matches))), to_type.name)
+	def intersect_compartments(self, candidate_map, reversed_map=False):
+		from_type = self.from_cell_types[0]
+		to_type = self.to_cell_types[0]
+		id_map_from = self.scaffold.translate_cell_ids(list(range(from_type.get_placed_count())), from_type.name)
+		id_map_to = self.scaffold.translate_cell_ids(list(range(to_type.get_placed_count())), to_type.name)
 		connected_cells = []
+		morphology_names = []
 		connected_compartments = []
 		for i in range(len(candidate_map)):
-			from_id = id_map_from[i]
-			to_id = id_map_to[cell_matches]
-			# Pass positions instead of ID's to prevent having to load them again.
-			intersections = self.get_compartment_intersections(from_id, to_id)
-			if len(intersections) > 0:
-				connected_cells.append([from_id, to_id])
-				connected_compartments.append(random_element(intersections))
-		return connected_cells, connected_compartments
+			for to_id in candidate_map[i]:
+				from_id = id_map_from[i]
+				from_morphology = self.get_random_morphology(from_type)
+				to_morphology = self.get_random_morphology(to_type)
+				morphology_names.append([from_morphology.morphology_name, to_morphology.morphology_name])
+				intersections = self.get_compartment_intersections(from_morphology, to_morphology, from_id, to_id)
+				if len(intersections) > 0:
+					connected_cells.append([from_id, to_id])
+					connected_compartments.append(random_element(intersections))
+				else:
+					connected_cells.append([])
+					connected_compartments.append([])
+		return connected_cells, morphology_names, connected_compartments
+
+	def get_compartment_intersections(self, from_morphology, to_morphology, from_cell_id, to_cell_id):
+		from_pos = self.scaffold.get_cell_position(from_cell_id)
+		to_pos = self.scaffold.get_cell_position(to_cell_id)
+		query_points = np.array(to_morphology.compartment_tree.get_arrays()[0]) + to_pos - from_pos
+		compartment_hits = from_morphology.compartment_tree.query_radius(query_points, self.tolerance)
+		intersections = []
+		for i in range(len(compartment_hits)):
+			hits = compartment_hits[i]
+			if len(hits) > 0:
+				for j in range(len(hits)):
+					intersections.append([i, hits[j]])
+		return intersections
+
+	def list_all_morphologies(self, cell_type):
+		if not cell_type.name in self.morphologies:
+			raise Exception("No morphologies configured for '{}'".format(cell_type.name))
+		morphology_config = self.morphologies[cell_type.name]
+		if 'names' in morphology_config:
+			m_names = morphology_config['names']
+			return m_names
+		else:
+			raise NotImplementedError("Morphologies can only be selected by name at the moment.")
+
+	def get_random_morphology(self, cell_type):
+		'''
+			Return a morphology suited to represent a cell of the given `cell_type`.
+		'''
+		# TODO: Multiple selection methods such as tags, and maybe position or callback based selection?
+		m_name = random_element(self.list_all_morphologies(cell_type))
+		if not m_name in self.morphology_cache:
+			self.morphology_cache[m_name] = self.scaffold.morphology_repository.get_morphology(m_name)
+		return self.morphology_cache[m_name]
+
+	def get_all_morphologies(self, cell_type):
+		all_morphologies = []
+		for m_name in self.list_all_morphologies(cell_type):
+			if not m_name in self.morphology_cache:
+				self.morphology_cache[m_name] = self.scaffold.morphology_repository.get_morphology(m_name)
+			all_morphologies.append(self.morphology_cache[m_name])
+		return all_morphologies
+
+	def get_search_radius(self, cell_type):
+		morphologies = self.get_all_morphologies(cell_type)
+		max_radius = 0.
+		for morphology in morphologies:
+			max_radius = max(max_radius, np.max(np.sqrt(np.sum(np.power(morphology.compartment_tree.get_arrays()[0], 2),axis=1))))
+		return max_radius

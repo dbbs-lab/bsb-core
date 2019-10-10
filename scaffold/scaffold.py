@@ -210,3 +210,11 @@ class Scaffold:
 
 	def translate_cell_ids(self, data, cell_type):
 		return data + self.output_formatter.get_type_map(cell_type)[0]
+
+	def get_cell_position(self, id):
+		if not id < len(self.cells):
+			raise Exception("Cell {} does not exist. (highest id is {})".format(id, len(self.cells) - 1))
+		return self.cells[id,2:5]
+
+	def get_placed_count(self, cell_type_name):
+		return self.statistics.cells_placed[cell_type_name]

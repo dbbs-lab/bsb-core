@@ -1,6 +1,8 @@
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from .networks import depth_first_branches
+import matplotlib.pyplot as plt
+from mpl_toolkits import mplot3d
 import numpy as np, math
 
 def plotNetwork(scaffold, file=None, from_memory=False, block=True):
@@ -61,7 +63,8 @@ def get_branch_trace(compartments, offset = [0., 0., 0.]):
 
 def plot_morphology(morphology, return_traces=False, offset=[0., 0., 0.]):
     compartments = morphology.compartments.copy()
-    compartments.insert(0, type('Compartment', (object,), {'start': [0., 0., 0.], 'end': [0., 0., 0.]})())
+    compartments.insert(0, type('Compartment', (object,), {'start': compartments[0].start, 'end': compartments[0].end})())
+    print(compartments[0].start, compartments[0].end)
     compartments = np.array(compartments)
     dfs_list = depth_first_branches(morphology.get_compartment_network())
     traces = []
