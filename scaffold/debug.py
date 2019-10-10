@@ -52,6 +52,10 @@ def debug_voxel_cloud(scaffold):
             file = state.command[(eof_name+1):]
             repo.import_swc(file, name, overwrite=True)
             state.reply = "Added '{}' as '{}' to the repository.".format(file, name)
+        elif state.command[:6] == 'import':
+            file = state.command[7:]
+            repo.import_repository(MorphologyRepository(file))
+            state.reply = "Imported '{}' morphology repository.".format(file)
         elif state.command[:6] == "remove":
             repo.remove_morphology(state.command[7:])
         elif state.command[:4] == "plot":
