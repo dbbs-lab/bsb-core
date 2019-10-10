@@ -6,3 +6,5 @@ dist/
 *.egg-info/
 *.swc
 dev/
+dev_env/
+test_env/

@@ -32,6 +32,15 @@ class NestConnection(SimulationComponent):
 
     required = ['weight', 'delay']
 
+    defaults = {
+        'plastic': False,
+        'hetero': None,
+        'model_plast': None,
+        'ltd': None,
+        'ltp': None,
+        'teaching': None
+    }
+
     def validate(self):
         pass
 
@@ -185,6 +194,7 @@ class NestAdapter(SimulatorAdapter):
         '''
             Connect the cells in NEST according to the connection model configurations
         '''
+        # TODO: with CopyModels()!!!! And SetDefaults()!!!!
         default_model = self.default_synapse_model
         for connection_model in connection_models.values():
             dataset_name = 'cells/connections/' + connection_model.name
