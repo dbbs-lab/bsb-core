@@ -36,6 +36,9 @@ class CellType:
     def get_placed_count(self):
         return self.scaffold.statistics.cells_placed[self.name]
 
+    def get_ids(self):
+        return np.array(self.scaffold.cells_by_type[self.name][:,0], dtype=int)
+
 class Layer(dimensions, origin):
 
     def __init__(self, name, origin, dimensions, scaling=True):
