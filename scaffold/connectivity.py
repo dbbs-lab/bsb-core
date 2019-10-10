@@ -851,25 +851,26 @@ class TouchDetector(ConnectionStrategy):
 	def intersect_compartments(self, candidate_map, reversed_map=False):
 		from_type = self.from_cell_types[0]
 		to_type = self.to_cell_types[0]
-		id_map_from = self.scaffold.translate_cell_ids(list(range(from_type.get_placed_count())), from_type.name)
-		id_map_to = self.scaffold.translate_cell_ids(list(range(to_type.get_placed_count())), to_type.name)
+		id_map_from = from_type.get_ids()
+		id_map_to = to_type.get_ids()
 		connected_cells = []
 		morphology_names = []
 		connected_compartments = []
+		c_check = 0
 		for i in range(len(candidate_map)):
+			from_id = id_map_from[i]
+			from_morphology = self.get_random_morphology(from_type)
 			for to_id in candidate_map[i]:
-				from_id = id_map_from[i]
-				from_morphology = self.get_random_morphology(from_type)
+				c_check += 1
 				to_morphology = self.get_random_morphology(to_type)
-				morphology_names.append([from_morphology.morphology_name, to_morphology.morphology_name])
 				intersections = self.get_compartment_intersections(from_morphology, to_morphology, from_id, to_id)
 				if len(intersections) > 0:
 					connected_cells.append([from_id, to_id])
 					connected_compartments.append(random_element(intersections))
-				else:
-					connected_cells.append([])
-					connected_compartments.append([])
-		return connected_cells, morphology_names, connected_compartments
+					morphology_names.append([from_morphology.morphology_name, to_morphology.morphology_name])
+		print("Checked {} candidate cell pairs".format(c_check))
+		print("Result conns: ", np.array(connected_cells, dtype=int))
+		return np.array(connected_cells, dtype=int), np.array(morphology_names,dtype=np.string_), np.array(connected_compartments, dtype=int)
 
 	def get_compartment_intersections(self, from_morphology, to_morphology, from_cell_id, to_cell_id):
 		from_pos = self.scaffold.get_cell_position(from_cell_id)

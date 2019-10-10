@@ -332,7 +332,7 @@ class HDF5Formatter(OutputFormatter, MorphologyRepository):
         was_compiled = self.exists()
         if was_compiled:
             with h5py.File('__backup__.hdf5', 'w') as backup:
-                with self.morphology_repository.load() as repo:
+                with self.load() as repo:
                     repo.copy('/morphologies', backup)
 
         if self.save_file_as:
@@ -345,6 +345,9 @@ class HDF5Formatter(OutputFormatter, MorphologyRepository):
             self.store_statistics()
             self.store_appendices()
             self.store_morphology_repository(was_compiled)
+
+        if was_compiled:
+            os.remove('__backup__.hdf5')
 
     def init_scaffold(self):
         with self.load() as resource:
@@ -382,7 +385,9 @@ class HDF5Formatter(OutputFormatter, MorphologyRepository):
     def store_cell_connections(self, cells_group):
         connections_group = cells_group.create_group('connections')
         for tag, connectome_data in self.scaffold.cell_connections_by_tag.items():
-            print(type(connectome_data))
+            # print(type(connectome_data))
+            # print(connectome_data)
+            # print(tag)
             related_types = list(filter(lambda x: tag in x.tags, self.scaffold.configuration.connection_types.values()))
             connection_dataset = connections_group.create_dataset(tag, data=connectome_data)
             connection_dataset.attrs['tag'] = tag
@@ -407,13 +412,13 @@ class HDF5Formatter(OutputFormatter, MorphologyRepository):
         with self.load() as resource:
             if was_compiled: # File already existed?
                 # Copy from the backup of previous version
-                with h5py.File('__backup__.hdf5', 'w') as backup:
+                with h5py.File('__backup__.hdf5', 'r') as backup:
+                    if 'morphologies' in resource:
+                        del resource['/morphologies']
                     backup.copy('/morphologies', resource)
             else: # Fresh compilation
-                if self.morphology_repository is None: # No repo specified
-                    # Initialise empty repo.
-                    self.initialise_repo_structure(resource)
-                else: # Repo specified
+                self.initialise_repo_structure(resource)
+                if not self.morphology_repository is None: # Repo specified
                     self.import_repository(self.scaffold.morphology_repository)
 
     def get_simulator_output_path(self, simulator_name):
