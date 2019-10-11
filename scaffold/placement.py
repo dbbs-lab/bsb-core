@@ -356,8 +356,8 @@ class ParallelArrayPlacement(PlacementStrategy):
 			# Place the cells in their z-position with slight jitter
 			z = layer.origin[2] + np.array([zPositions[i] + ϵ * (np.random.rand() - 0.5) for _ in np.arange(x.shape[0])])
 			# Store this stack's cells
-			cells[(i * zShape):(i * (zShape + 1)), 0] = x
-			cells[(i * zShape):(i * (zShape + 1)), 1] = y
-			cells[(i * zShape):(i * (zShape + 1)), 2] = z
+			cells[(i * len(x)):((i + 1) * len(x)), 0] = x
+			cells[(i * len(x)):((i + 1) * len(x)), 1] = y
+			cells[(i * len(x)):((i + 1) * len(x)), 2] = z
 		# Place all the cells in 1 stitch
 		self.scaffold.place_cells(cell_type, layer, cells)
