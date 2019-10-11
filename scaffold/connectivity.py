@@ -817,20 +817,21 @@ class TouchDetector(ConnectionStrategy):
 	def connect(self):
 		# Create a dictionary to cache loaded morphologies.
 		self.morphology_cache = {}
-		# Intersect cells on the widest possible search radius.
-		candidates = self.intersect_cells()
-		# Intersect cell compartments between matched cells.
-		connections, morphology_names, compartments = self.intersect_compartments(candidates)
-		# Connect the cells and store the morphologies and selected compartments that connect them.
-		print('connected {} cells'.format(len(connections)))
-		self.scaffold.connect_cells(self, connections, morphologies=morphology_names, compartments=compartments)
+		from time import time, sleep
+		t = time()
+		for from_type in self.from_cell_types:
+			for to_type in self.to_cell_types:
+				# Intersect cells on the widest possible search radius.
+				candidates = self.intersect_cells(from_type, to_type)
+				# Intersect cell compartments between matched cells.
+				connections, morphology_names, compartments = self.intersect_compartments(from_type, to_type, candidates)
+				# Connect the cells and store the morphologies and selected compartments that connect them.
+				self.scaffold.connect_cells(self, connections, morphologies=morphology_names, compartments=compartments)
 		# Remove the morphology cache
 		self.morphology_cache = None
 
-	def intersect_cells(self):
+	def intersect_cells(self, from_type, to_type):
 		cell_plane = self.cell_intersection_plane
-		from_type = self.from_cell_types[0]
-		to_type = self.to_cell_types[0]
 		from_cell_tree = self.scaffold.trees.cells.get_planar_tree(from_type.name, plane=cell_plane)
 		to_cell_tree = self.scaffold.trees.cells.get_planar_tree(to_type.name, plane=cell_plane)
 		from_count = self.scaffold.get_placed_count(from_type.name)
@@ -848,10 +849,8 @@ class TouchDetector(ConnectionStrategy):
 					matches[match].append(i)
 			return matches
 
-	def intersect_compartments(self, candidate_map, reversed_map=False):
+	def intersect_compartments(self, from_type, to_type, candidate_map, reversed_map=False):
 		from .plotting import plot_morphology, set_scene_range, plot_intersections
-		from_type = self.from_cell_types[0]
-		to_type = self.to_cell_types[0]
 		id_map_from = from_type.get_ids()
 		id_map_to = to_type.get_ids()
 		connected_cells = []
@@ -868,23 +867,12 @@ class TouchDetector(ConnectionStrategy):
 				to_morphology = self.get_random_morphology(to_type)
 				intersections = self.get_compartment_intersections(from_morphology, to_morphology, from_id, to_id)
 				if len(intersections) > 0:
-					if np.random.rand() > 0.8:
-						from_pos = self.scaffold.get_cell_position(from_id)
-						to_pos = self.scaffold.get_cell_position(to_id)
-						print('{} {} ({}) at {}'.format(from_type.name, i, from_id, from_pos))
-						print('{} {} ({}) at {}'.format(to_type.name, j, to_id, to_pos))
-						plots += 1
-						fig = plot_morphology(from_morphology, offset=from_pos, show=False, set_range=False)
-						set_scene_range(fig, [[0., 1000.], [0., 1000.], [0., 1000.]])
-						plot_intersections(from_morphology, from_pos, to_morphology, to_pos, intersections, fig=fig)
-						plot_morphology(to_morphology, offset=to_pos, fig=fig, set_range=False, color='blue')
 					connected_cells.append([from_id, to_id])
 					connected_compartments.append(random_element(intersections))
 					morphology_names.append([from_morphology.morphology_name, to_morphology.morphology_name])
-					if plots > 3:
-						exit()
-		print("Checked {} candidate cell pairs".format(c_check))
-		print("Result conns: ", np.array(connected_cells, dtype=int))
+		if self.scaffold.configuration.verbosity > 1:
+			print("Checked {} candidate cell pairs".format(c_check))
+			print("Result conns: ", np.array(connected_cells, dtype=int))
 		return np.array(connected_cells, dtype=int), np.array(morphology_names,dtype=np.string_), np.array(connected_compartments, dtype=int)
 
 	def get_compartment_intersections(self, from_morphology, to_morphology, from_cell_id, to_cell_id):
