@@ -64,7 +64,6 @@ def get_branch_trace(compartments, offset = [0., 0., 0.]):
 def plot_morphology(morphology, return_traces=False, offset=[0., 0., 0.]):
     compartments = morphology.compartments.copy()
     compartments.insert(0, type('Compartment', (object,), {'start': compartments[0].start, 'end': compartments[0].end})())
-    print(compartments[0].start, compartments[0].end)
     compartments = np.array(compartments)
     dfs_list = depth_first_branches(morphology.get_compartment_network())
     traces = []
