@@ -1,5 +1,4 @@
 from scipy.stats import truncnorm
-import matplotlib.pyplot as plt
 import numpy as np
 
 def get_parallel_fiber_heights(scaffold, granule_geometry, granules):

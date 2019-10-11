@@ -1,6 +1,4 @@
 from scaffold.helpers import dimensions, origin
-import matplotlib.pyplot as plt
-from mpl_toolkits import mplot3d
 import numpy as np
 from .plotting import plot_voxelize_results
 from scipy import ndimage
