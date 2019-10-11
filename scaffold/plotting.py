@@ -1,5 +1,8 @@
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
+try:
+    import plotly.graph_objects as go
+    from plotly.subplots import make_subplots
+except Exception as e:
+    pass
 from .networks import depth_first_branches
 import numpy as np, math
 from contextlib import contextmanager
