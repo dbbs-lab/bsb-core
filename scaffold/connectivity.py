@@ -849,6 +849,7 @@ class TouchDetector(ConnectionStrategy):
 			return matches
 
 	def intersect_compartments(self, candidate_map, reversed_map=False):
+		from .plotting import plot_morphology, set_scene_range, plot_intersections
 		from_type = self.from_cell_types[0]
 		to_type = self.to_cell_types[0]
 		id_map_from = from_type.get_ids()
@@ -857,17 +858,31 @@ class TouchDetector(ConnectionStrategy):
 		morphology_names = []
 		connected_compartments = []
 		c_check = 0
+		plots = 0
 		for i in range(len(candidate_map)):
 			from_id = id_map_from[i]
 			from_morphology = self.get_random_morphology(from_type)
-			for to_id in candidate_map[i]:
+			for j in candidate_map[i]:
 				c_check += 1
+				to_id = id_map_to[j]
 				to_morphology = self.get_random_morphology(to_type)
 				intersections = self.get_compartment_intersections(from_morphology, to_morphology, from_id, to_id)
 				if len(intersections) > 0:
+					if np.random.rand() > 0.8:
+						from_pos = self.scaffold.get_cell_position(from_id)
+						to_pos = self.scaffold.get_cell_position(to_id)
+						print('{} {} ({}) at {}'.format(from_type.name, i, from_id, from_pos))
+						print('{} {} ({}) at {}'.format(to_type.name, j, to_id, to_pos))
+						plots += 1
+						fig = plot_morphology(from_morphology, offset=from_pos, show=False, set_range=False)
+						set_scene_range(fig, [[0., 1000.], [0., 1000.], [0., 1000.]])
+						plot_intersections(from_morphology, from_pos, to_morphology, to_pos, intersections, fig=fig)
+						plot_morphology(to_morphology, offset=to_pos, fig=fig, set_range=False, color='blue')
 					connected_cells.append([from_id, to_id])
 					connected_compartments.append(random_element(intersections))
 					morphology_names.append([from_morphology.morphology_name, to_morphology.morphology_name])
+					if plots > 3:
+						exit()
 		print("Checked {} candidate cell pairs".format(c_check))
 		print("Result conns: ", np.array(connected_cells, dtype=int))
 		return np.array(connected_cells, dtype=int), np.array(morphology_names,dtype=np.string_), np.array(connected_compartments, dtype=int)
@@ -882,7 +897,7 @@ class TouchDetector(ConnectionStrategy):
 			hits = compartment_hits[i]
 			if len(hits) > 0:
 				for j in range(len(hits)):
-					intersections.append([i, hits[j]])
+					intersections.append([hits[j], i])
 		return intersections
 
 	def list_all_morphologies(self, cell_type):

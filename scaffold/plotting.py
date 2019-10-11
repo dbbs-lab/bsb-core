@@ -45,7 +45,7 @@ def plot_voxel_cloud(cloud, fig_ax_tuple=None, selected_voxels=None):
     # Plot and return the voxel's artist dictionary
     return ax.voxels(np.swapaxes(voxels, 1, 2), facecolors=colors, edgecolor='k', linewidth=.25)
 
-def get_branch_trace(compartments, offset = [0., 0., 0.]):
+def get_branch_trace(compartments, offset = [0., 0., 0.], **kwargs):
     x = [c.start[0] + offset[0] for c in compartments]
     y = [c.start[1] + offset[1] for c in compartments]
     z = [c.start[2] + offset[2] for c in compartments]
@@ -57,27 +57,53 @@ def get_branch_trace(compartments, offset = [0., 0., 0.]):
         x=x, y=z, z=y, mode='lines',
         line=dict(
             width=1.,
-            color='black'
+            color=kwargs['color']
         )
     )
 
-def plot_morphology(morphology, return_traces=False, offset=[0., 0., 0.]):
+def plot_morphology(morphology, return_traces=False, offset=[0., 0., 0.], fig=None, show=True, set_range=True, color='black'):
     compartments = morphology.compartments.copy()
     compartments.insert(0, type('Compartment', (object,), {'start': compartments[0].start, 'end': compartments[0].end})())
     compartments = np.array(compartments)
     dfs_list = depth_first_branches(morphology.get_compartment_network())
     traces = []
     for branch in dfs_list[::-1]:
-        traces.append(get_branch_trace(compartments[branch], offset))
+        traces.append(get_branch_trace(compartments[branch], offset, color=color))
     if return_traces:
         return traces
     else:
-        fig = go.Figure(data=traces)
+        if fig is None:
+            fig = go.Figure()
+            fig.update_layout(showlegend=False)
+        for trace in traces:
+            fig.add_trace(trace)
+        if set_range:
+            set_scene_range(fig.layout.scene, morphology.get_plot_range(), offset=offset)
+        if show:
+            fig.show()
+        return fig
+
+def plot_intersections(from_morphology, from_pos, to_morphology, to_pos, intersections, offset=[0., 0., 0.], fig=None):
+    from_compartments = np.array(from_morphology.compartment_tree.get_arrays()[0]) + np.array(offset) + np.array(from_pos)
+    to_compartments = np.array(to_morphology.compartment_tree.get_arrays()[0]) + np.array(offset) + np.array(to_pos)
+    if fig is None:
+        fig = go.Figure()
         fig.update_layout(showlegend=False)
-        set_scene_range(fig.layout.scene, morphology.get_plot_range(), offset=offset)
-        fig.show()
+    xyz = np.empty((2, 3))
+    for i in range(len(intersections)):
+        xyz[0] = from_compartments[intersections[i][0]]
+        xyz[1] = to_compartments[intersections[i][1]]
+        fig.add_trace(go.Scatter3d(
+            x=xyz[:,0],y=xyz[:,2],z=xyz[:,1], mode='lines', line=dict(
+                color='red',
+                width=.5,
+            )
+        ))
+    return fig
 
 def set_scene_range(scene, bounds, offset=[0., 0., 0.]):
+    if hasattr(scene, 'layout'):
+        scene = scene.layout.scene
     scene.xaxis.range=np.array(bounds[0]) + offset[0]
     scene.yaxis.range=np.array(bounds[2]) + offset[2]
     scene.zaxis.range=np.array(bounds[1]) + offset[1]
