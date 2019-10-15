@@ -101,7 +101,7 @@ if cl_args.output:
 if cl_args.task == 'compile' or cl_args.task == 'run':
 	scaffoldInstance.compile_network()
 	if cl_args.p:
-		scaffoldInstance.plotNetworkCache()
+		scaffoldInstance.plot_network_cache()
 
 if cl_args.task == 'run' or cl_args.task == 'simulate':
 	scaffoldInstance.run_simulation(cl_args.simulation)
