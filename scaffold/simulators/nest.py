@@ -206,6 +206,82 @@ class NestAdapter(SimulatorAdapter):
             # Translate the id's from 0 based scaffold ID's to NEST's 1 based ID's with '+ 1'
             presynaptic_cells = np.array(connectivity_matrix[:,0] + 1, dtype=int)
             postsynaptic_cells = np.array(connectivity_matrix[:,1] + 1, dtype=int)
+
+
+
+#######################checking plasticity######################
+            if connection_model.plastic==True:                # PLASTIC CONNECTIONS
+                if WR:
+                    # Weight recorders
+                    weight_rec[name] = nest.Create('weight_recorder', params={"to_memory": False,
+                                                                                    "to_file": True,
+                                                                                    "label": name,
+                                                                                    "senders": neurons[conn_param[name]['sender']],
+                                                                                    "targets": neurons[conn_param[name]['receiver']]})
+
+                plastic_conn.append(name)
+                name_plast = 'plast'+name
+                print('checked plastic')
+                if conn_param[name]['hetero']==True:                # heterosynaptic plasticity
+                    print('checked heterosyn')
+
+                    # Volume transmitter
+                    vt[conn_param[name]['receiver']] = nest.Create("volume_transmitter_alberto",len(neurons[conn_param[name]['receiver']]))
+                    print("Created vt: ",conn_param[name]['receiver'])
+                    for n,vti in enumerate(vt[conn_param[name]['receiver']]):
+                		nest.SetStatus([vti],{"deliver_interval" : 2})            # TO CHECK
+                		nest.SetStatus([vti],{"n" : n})
+
+                    nest.CopyModel(conn_param[name]['model_plast'],name_plast)
+                    nest.SetDefaults(name_plast,{"A_minus":   conn_param[name]['ltd'],   # double - Amplitude of weight change for depression
+                								 "A_plus":    conn_param[name]['ltp'],   # double - Amplitude of weight change for facilitation
+                								 "Wmin":      0.0,    # double - Minimal synaptic weight
+                								 "Wmax":      4000.0,     # double - Maximal synaptic weight
+                								 "vt": vt[conn_param[name]['receiver']][0]})
+                    if WR:
+                        nest.SetDefaults(name_plast,{"weight_recorder": weight_rec[name][0]})
+
+                    syn_param = {"model": name_plast, "weight": conn_param[name]['weight'], "delay": conn_param[name]['delay'], "receptor_type":conn_param[name]['receptor']}
+                    nest.Connect(pre, post, conn_dict, syn_param)
+
+
+                    # Associate volume transmitter
+                    for i,tar in enumerate(neurons[conn_param[name]['receiver']]):
+                        A=nest.GetConnections(pre,[tar])
+                        nest.SetStatus(A,{'n': float(i)})
+                else:           # homosynaptic plasticity
+                    print('checked homosyn')
+                    nest.SetDefaults(conn_param[name]['model_plast'],{"tau_plus": 30.0,
+                									            "lambda": conn_param[name]['ltp'],
+                									            "alpha": conn_param[name]['ltd']/conn_param[name]['ltp'],
+                									            "mu_plus": 0.0,  # Additive STDP
+                									            "mu_minus": 0.0, # Additive STDP
+                									            "Wmax": 4000.0})
+                    if WR:
+                        nest.SetDefaults(conn_param[name]['model_plast'],{"weight_recorder": weight_rec[name][0]})
+
+                    syn_param = {"model": conn_param[name]['model_plast'], "weight": conn_param[name]['weight'], "delay": conn_param[name]['delay'], "receptor_type":conn_param[name]['receptor']}
+                    nest.Connect(pre, post, conn_dict, syn_param)
+                #created_conn = nest.GetConnections(pre,post)
+
+            else:           # STATIC CONNECTIONS
+                print('checked static')
+                if name == 'io_bc' or name == 'io_sc':              # Spillover-mediated synapses
+                    syn_param = {"model": "static_synapse", "weight": conn_param[name]['weight'],
+                    "delay": {'distribution': 'normal_clipped', 'low': sim_param.min_iomli, 'mu': conn_param[name]['delay'],'sigma': sim_param.sd_iomli},"receptor_type":conn_param[name]['receptor']}
+                else:
+                    syn_param = {"model": "static_synapse", "weight": conn_param[name]['weight'], "delay": conn_param[name]['delay'], "receptor_type":conn_param[name]['receptor']}
+            	nest.Connect(pre, post, conn_dict, syn_param)
+
+
+
+            for plast in plastic_conn:                            # If the connection is also a teaching connection, the volume transmitter should be connected
+                if conn_param[plast]['teaching'] == name:
+                    post = [x - neurons[conn_param[plast]['receiver']][0] + vt[conn_param[plast]['receiver']][0] for x in post]
+                    nest.Connect(pre, post, conn_dict, {"model": "static_synapse", "weight": 0.0, "delay": 1.0})
+
+
+
             # Filter the parameter keys from the connection_model
             parameter_keys = ['weight', 'delay']
             synaptic_parameters = {}
@@ -217,6 +293,7 @@ class NestAdapter(SimulatorAdapter):
             connection_specifications = {'rule': 'one_to_one'}
             # Create the connections in NEST
             self.nest.Connect(presynaptic_cells, postsynaptic_cells, connection_specifications, synaptic_parameters)
+
 
     def create_devices(self, devices):
         '''
