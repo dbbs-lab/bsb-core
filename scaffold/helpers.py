@@ -56,7 +56,10 @@ class ConfigurableClass(abc.ABC):
             shouldCast = attr in castingDict
             if not hasattr(self, attr):
                 if hasDefault:
-                    self.__dict__[attr] = defaultDict[attr]
+                    if isinstance(defaultDict[attr], dict):
+                        self.__dict__[attr] = defaultDict[attr].copy()
+                    else:
+                        self.__dict__[attr] = defaultDict[attr]
                 elif isRequired:
                     raise Exception("Required attribute '{}' missing from '{}' section.".format(attr, name))
             elif shouldCast:
