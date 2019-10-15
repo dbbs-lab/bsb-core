@@ -444,86 +444,223 @@
       },
       "connection_models": {
         "glomerulus_to_granule": {
-          "weight": 9.0,
-          "delay": 4.0
+          "connection": {
+            "parameters": {
+              "weight": 9.0,
+              "delay": 4.0
+            },
+            "static_synapse": {
+
+            }
+          },
+          "synapse": {
+
+          }
         },
         "golgi_to_granule": {
-          "weight": -5.0,
-          "delay": 2.0
+          "connection": {
+            "parameters": {
+              "weight": -5.0,
+              "delay": 2.0
+            },
+            "static_synapse": {
+
+            }
+          },
+          "synapse": {
+
+          }
         },
         "ascending_axon_to_purkinje": {
-          "weight": 75.0,
-          "delay": 2.0
+          "connection": {
+            "parameters": {
+              "weight": 75.0,
+              "delay": 2.0
+            },
+            "static_synapse": {
+
+            }
+          },
+          "synapse": {
+
+          }
         },
         "ascending_axon_to_golgi": {
-          "weight": 20.0,
-          "delay": 2.0
+          "connection": {
+            "parameters": {
+              "weight": 20.0,
+              "delay": 2.0
+            },
+            "static_synapse": {
+
+            }
+          },
+          "synapse": {
+
+          }
         },
         "parallel_fiber_to_golgi": {
-          "weight": 0.2,
-          "delay": 5.0
+          "connection": {
+            "parameters": {
+              "weight": 0.2,
+              "delay": 5.0
+            },
+            "static_synapse": {
+
+            }
+          },
+          "synapse": {
+
+          }
         },
         "parallel_fiber_to_purkinje": {
-          "weight": 0.2,
-          "delay": 5.0,
           "plastic": true,
           "hetero": true,
           "synapse_model": "stdp_connection_sinexp",
-          "ltd": 0.0,
-          "ltp": 0.0
+          "connection": {
+            "parameters": {
+              "weight": 0.2,
+              "delay": 5.0
+            },
+            "static_synapse": {
+
+            }
+          },
+          "synapse": {
+
+          }
         },
         "parallel_fiber_to_basket": {
-          "weight": 0.2,
-          "delay": 5.0
+          "connection": {
+            "parameters": {
+              "weight": 0.2,
+              "delay": 5.0
+            },
+            "static_synapse": {
+
+            }
+          },
+          "synapse": {
+
+          }
         },
         "parallel_fiber_to_stellate": {
-          "weight": 0.2,
-          "delay": 5.0
+          "connection": {
+            "parameters": {
+              "weight": 0.2,
+              "delay": 5.0
+            },
+            "static_synapse": {
+
+            }
+          },
+          "synapse": {
+
+          }
         },
         "stellate_to_purkinje": {
-          "weight": -8.5,
-          "delay": 4.0
+          "connection": {
+            "parameters": {
+              "weight": -8.5,
+              "delay": 4.0
+            },
+            "static_synapse": {
+
+            }
+          },
+          "synapse": {
+
+          }
         },
         "basket_to_purkinje": {
-          "weight": -9.0,
-          "delay": 4.0
+          "connection": {
+            "parameters": {
+              "weight": -9.0,
+              "delay": 4.0
+            },
+            "static_synapse": {
+
+            }
+          },
+          "synapse": {
+
+          }
         },
         "stellate_gap_junctions": {
-          "weight": -2.0,
-          "delay": 1.0
+          "connection": {
+            "parameters": {
+              "weight": -2.0,
+              "delay": 1.0
+            },
+            "static_synapse": {
+
+            }
+          },
+          "synapse": {
+
+          }
         },
         "basket_gap_junctions": {
-          "weight": -2.5,
-          "delay": 1.0
+          "connection": {
+            "parameters": {
+              "weight": -2.5,
+              "delay": 1.0
+            },
+            "static_synapse": {
+
+            }
+          },
+          "synapse": {
+
+          }
         },
         "golgi_gap_junctions" : {
-          "weight": -8.0,
-          "delay": 1.0
+          "connection": {
+            "parameters": {
+              "weight": -8.0,
+              "delay": 1.0
+            },
+            "static_synapse": {
+
+            }
+          },
+          "synapse": {
+
+          }
         },
         "purkinje_to_dcn": {
-          "weight": -0.03,
-          "delay": 4.0
+          "connection": {
+            "parameters": {
+              "weight": -0.03,
+              "delay": 4.0
+            },
+            "static_synapse": {
+
+            }
+          },
+          "synapse": {
+
+          }
         },
         "glomerulus_to_dcn": {
           "plastic": true,
           "hetero": true,
           "synapse_model": "stdp_connection_cosexp",
           "teaching": "purkinje_to_dcn",
-          "connection":
-          {
+          "connection": {
             "parameters": {
               "weight": 0.0006,
               "delay": 4.0
+            },
+            "static_synapse": {
+
             },
             "eglif": {
               "receptor": 1
             }
           },
           "synapse": {
-            "ltd": 0.0,
-            "ltp": 0.0,
-            "wmin": 0.0,
-            "wmax": 4000.0
+
           }
         }
       },
