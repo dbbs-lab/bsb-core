@@ -26,23 +26,37 @@ class NestConnection(SimulationComponent):
     node_name = 'simulations.?.connection_models'
 
     casts = {
-        'weight': float,
-        'delay': float
+
     }
 
-    required = ['weight', 'delay']
+    required = []
 
     defaults = {
         'plastic': False,
         'hetero': None,
-        'model_plast': None,
-        'ltd': None,
-        'ltp': None,
         'teaching': None
     }
 
     def validate(self):
         pass
+
+    def get_synapse_parameters(self):
+        # Get the default synapse parameters
+        return self.synapse
+
+
+    def get_connection_parameters(self, default_model):
+        # Use the default model unless another one is specified in the configuration.
+        nest_synapse_name = self.neuron_model if hasattr(self, "synapse_model") else default_model
+        # Get the default synapse parameters
+        params = self.connection.parameters.copy()
+        # Raise an exception if the requested model is not configured.
+        if not hasattr(self, nest_synapse_name):
+            raise Exception("Missing connection parameters for '{}' model in '{}'".format(nest_synapse_name, self.name))
+        # Merge in the model specific parameters
+        params.update(self.connection.__dict__[nest_synapse_name])
+        return params
+
 
 class NestDevice(SimulationComponent):
     node_name = 'simulations.?.devices'
@@ -182,7 +196,7 @@ class NestAdapter(SimulatorAdapter):
             name = self.scaffold.configuration.cell_type_map[cell_type_id]
             if name not in track_models: # Is this the first time encountering this model?
                 # Create the cell model in the simulator
-                self.create_model(cell_models[name], self.default_neuron_model)
+                self.create_model(cell_models[name])
                 track_models.append(name)
             # Create the same amount of cells that were placed in this stitch.
             identifiers = self.nest.Create(name, count)
@@ -196,103 +210,28 @@ class NestAdapter(SimulatorAdapter):
         '''
         # TODO: with CopyModels()!!!! And SetDefaults()!!!!
         default_model = self.default_synapse_model
+        track_models = [] # Keeps track of already added models if there'smodel=synapse_model more than 1 stitch per model
         for connection_model in connection_models.values():
-            dataset_name = 'cells/connections/' + connection_model.name
+            name = connection_model.name
+            dataset_name = 'cells/connections/' + name
             if not dataset_name in hdf5:
                 if self.scaffold.configuration.verbosity > 0:
                     print('[WARNING] Expected connection dataset "{}" not found. Skipping it.'.format(dataset_name))
                 continue
             connectivity_matrix = hdf5[dataset_name]
-            # Translate the id's from 0 based scaffold ID's to NEST's 1 based ID's with '+ 1'
+            # Transdefault_modellate the id's from 0 based scaffold ID's to NEST's 1 based ID's with '+ 1'
             presynaptic_cells = np.array(connectivity_matrix[:,0] + 1, dtype=int)
             postsynaptic_cells = np.array(connectivity_matrix[:,1] + 1, dtype=int)
-
-
-
-#######################checking plasticity######################
-            if connection_model.plastic==True:                # PLASTIC CONNECTIONS
-                if WR:
-                    # Weight recorders
-                    weight_rec[name] = nest.Create('weight_recorder', params={"to_memory": False,
-                                                                                    "to_file": True,
-                                                                                    "label": name,
-                                                                                    "senders": neurons[conn_param[name]['sender']],
-                                                                                    "targets": neurons[conn_param[name]['receiver']]})
-
-                plastic_conn.append(name)
-                name_plast = 'plast'+name
-                print('checked plastic')
-                if conn_param[name]['hetero']==True:                # heterosynaptic plasticity
-                    print('checked heterosyn')
-
-                    # Volume transmitter
-                    vt[conn_param[name]['receiver']] = nest.Create("volume_transmitter_alberto",len(neurons[conn_param[name]['receiver']]))
-                    print("Created vt: ",conn_param[name]['receiver'])
-                    for n,vti in enumerate(vt[conn_param[name]['receiver']]):
-                		nest.SetStatus([vti],{"deliver_interval" : 2})            # TO CHECK
-                		nest.SetStatus([vti],{"n" : n})
-
-                    nest.CopyModel(conn_param[name]['model_plast'],name_plast)
-                    nest.SetDefaults(name_plast,{"A_minus":   conn_param[name]['ltd'],   # double - Amplitude of weight change for depression
-                								 "A_plus":    conn_param[name]['ltp'],   # double - Amplitude of weight change for facilitation
-                								 "Wmin":      0.0,    # double - Minimal synaptic weight
-                								 "Wmax":      4000.0,     # double - Maximal synaptic weight
-                								 "vt": vt[conn_param[name]['receiver']][0]})
-                    if WR:
-                        nest.SetDefaults(name_plast,{"weight_recorder": weight_rec[name][0]})
-
-                    syn_param = {"model": name_plast, "weight": conn_param[name]['weight'], "delay": conn_param[name]['delay'], "receptor_type":conn_param[name]['receptor']}
-                    nest.Connect(pre, post, conn_dict, syn_param)
-
-
-                    # Associate volume transmitter
-                    for i,tar in enumerate(neurons[conn_param[name]['receiver']]):
-                        A=nest.GetConnections(pre,[tar])
-                        nest.SetStatus(A,{'n': float(i)})
-                else:           # homosynaptic plasticity
-                    print('checked homosyn')
-                    nest.SetDefaults(conn_param[name]['model_plast'],{"tau_plus": 30.0,
-                									            "lambda": conn_param[name]['ltp'],
-                									            "alpha": conn_param[name]['ltd']/conn_param[name]['ltp'],
-                									            "mu_plus": 0.0,  # Additive STDP
-                									            "mu_minus": 0.0, # Additive STDP
-                									            "Wmax": 4000.0})
-                    if WR:
-                        nest.SetDefaults(conn_param[name]['model_plast'],{"weight_recorder": weight_rec[name][0]})
-
-                    syn_param = {"model": conn_param[name]['model_plast'], "weight": conn_param[name]['weight'], "delay": conn_param[name]['delay'], "receptor_type":conn_param[name]['receptor']}
-                    nest.Connect(pre, post, conn_dict, syn_param)
-                #created_conn = nest.GetConnections(pre,post)
-
-            else:           # STATIC CONNECTIONS
-                print('checked static')
-                if name == 'io_bc' or name == 'io_sc':              # Spillover-mediated synapses
-                    syn_param = {"model": "static_synapse", "weight": conn_param[name]['weight'],
-                    "delay": {'distribution': 'normal_clipped', 'low': sim_param.min_iomli, 'mu': conn_param[name]['delay'],'sigma': sim_param.sd_iomli},"receptor_type":conn_param[name]['receptor']}
-                else:
-                    syn_param = {"model": "static_synapse", "weight": conn_param[name]['weight'], "delay": conn_param[name]['delay'], "receptor_type":conn_param[name]['receptor']}
-            	nest.Connect(pre, post, conn_dict, syn_param)
-
-
-
-            for plast in plastic_conn:                            # If the connection is also a teaching connection, the volume transmitter should be connected
-                if conn_param[plast]['teaching'] == name:
-                    post = [x - neurons[conn_param[plast]['receiver']][0] + vt[conn_param[plast]['receiver']][0] for x in post]
-                    nest.Connect(pre, post, conn_dict, {"model": "static_synapse", "weight": 0.0, "delay": 1.0})
-
-
-
-            # Filter the parameter keys from the connection_model
-            parameter_keys = ['weight', 'delay']
-            synaptic_parameters = {}
-            for key in parameter_keys:
-                if hasattr(connection_model, key):
-                    synaptic_parameters[key] = connection_model.__dict__[key]
+            if name not in track_models: # Is this the first time encountering this model?
+                # Create the cell model in the simulator
+                self.create_synapse_model(connection_model)
+                track_models.append(name)
 
             # Set the specifications NEST allows like: 'rule', 'autapses', 'multapses'
             connection_specifications = {'rule': 'one_to_one'}
+            connection_parameters = connection_model.get_connection_parameters(default_model=default_model)
             # Create the connections in NEST
-            self.nest.Connect(presynaptic_cells, postsynaptic_cells, connection_specifications, synaptic_parameters)
+            self.nest.Connect(presynaptic_cells, postsynaptic_cells, connection_specifications, connection_parameters)
 
 
     def create_devices(self, devices):
@@ -308,15 +247,28 @@ class NestAdapter(SimulatorAdapter):
             else:
                 self.nest.Connect(device_targets, device)
 
-    def create_model(self, cell_model, default_model):
+    def create_model(self, cell_model):
         '''
             Create a NEST cell model in the simulator based on a cell model configuration.
         '''
         # Use the default model unless another one is specified in the configuration.
-        nest_model_name = cell_model.neuron_model if hasattr(cell_model, "neuron_model") else default_model
+        nest_model_name = cell_model.neuron_model if hasattr(cell_model, "neuron_model") else self.default_neuron_model
         # Alias the nest model name under our cell model name.
         self.nest.CopyModel(nest_model_name, cell_model.name)
         # Get the synapse parameters
         params = cell_model.get_parameters(model=nest_model_name)
         # Set the parameters in NEST
         self.nest.SetDefaults(cell_model.name, params)
+
+    def create_synapse_model(self, synapse_model, default_model):
+        '''
+            Create a NEST cell model in the simulator based on a cell model configuration.
+        '''
+        # Use the default model unless another one is specified in the configuration.
+        nest_synapse_name = synapse_model.neuron_model if hasattr(synapse_model, "synapse_model") else self.default_synapse_model
+        # Alias the nest model name under our cell model name.
+        self.nest.CopyModel(nest_synapse_name, synapse_model.name)
+        # Get the synapse parameters
+        params = synapse_model.get_synapse_parameters()
+        # Set the parameters in NEST
+        self.nest.SetDefaults(synapse_model.name, params)

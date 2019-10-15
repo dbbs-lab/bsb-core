@@ -465,7 +465,12 @@
         },
         "parallel_fiber_to_purkinje": {
           "weight": 0.2,
-          "delay": 5.0
+          "delay": 5.0,
+          "plastic": true,
+          "hetero": true,
+          "synapse_model": "stdp_connection_sinexp",
+          "ltd": 0.0,
+          "ltp": 0.0
         },
         "parallel_fiber_to_basket": {
           "weight": 0.2,
@@ -500,8 +505,26 @@
           "delay": 4.0
         },
         "glomerulus_to_dcn": {
-          "weight": 0.0006,
-          "delay": 4.0
+          "plastic": true,
+          "hetero": true,
+          "synapse_model": "stdp_connection_cosexp",
+          "teaching": "purkinje_to_dcn",
+          "connection":
+          {
+            "parameters": {
+              "weight": 0.0006,
+              "delay": 4.0
+            },
+            "eglif": {
+              "receptor": 1
+            }
+          },
+          "synapse": {
+            "ltd": 0.0,
+            "ltp": 0.0,
+            "wmin": 0.0,
+            "wmax": 4000.0
+          }
         }
       },
       "devices": {
