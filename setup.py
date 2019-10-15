@@ -3,11 +3,10 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 setuptools.setup(
      name='dbbs-scaffold',
-     version='2.3.0',
+     version='2.3.3',
      author="Robin De Schepper, Alice Geminiani, Elisa Marenzi, Stefano Casali, Claudia Casselato, Egidio D'Angelo",
      author_email="robingilbert.deschepper@unipv.it",
      description="A morphologically detailed scaffolding package for the scientific modelling of the cerebellum.",
-     scripts=['bin/scaffold', 'bin/scaffold.bat'],
      include_package_data=True,
      data_files=[
         ('configurations', ['scaffold/configurations/mouse_cerebellum.json'])
@@ -21,6 +20,11 @@ setuptools.setup(
          "Programming Language :: Python :: 3",
          "Operating System :: OS Independent",
      ],
+     entry_points={
+        'console_scripts': [
+            'scaffold = scaffold.cli:scaffold_cli'
+        ]
+     },
      install_requires= [
          'cycler>=0.10.0',
          'h5py>=2.9.0',

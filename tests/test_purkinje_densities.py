@@ -5,7 +5,7 @@ from scaffold.scaffold import Scaffold
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
-from scaffold.plotting import plotNetwork
+from scaffold.plotting import plot_network
 import imageio
 
 

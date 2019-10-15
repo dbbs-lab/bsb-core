@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits import mplot3d
 import numpy as np, math
 
-def plotNetwork(scaffold, file=None, from_memory=False, block=True):
+def plot_network(scaffold, file=None, from_memory=False, block=True):
     if from_memory:
         plt.interactive(True)
         fig = plt.figure()
