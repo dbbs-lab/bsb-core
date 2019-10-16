@@ -47,10 +47,10 @@ scaffoldInstance.compile_network()
 
 #### Plotting network architecture
 
-After calling `compile_network` the scaffold instance can be passed to `plotNetwork` from the `scaffold.plotting` module for plotting:
+After calling `compile_network` the scaffold instance can be passed to `plot_network` from the `scaffold.plotting` module for plotting:
 
 ```python
-from scaffold.plotting import plotNetwork
+from scaffold.plotting import plot_network
 
-plotNetwork(scaffoldInstance)
+plot_network(scaffoldInstance)
 ```

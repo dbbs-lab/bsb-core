@@ -274,6 +274,21 @@ class MorphologyRepository(HDF5TreeHandler):
                 voxel_kwargs['voxel_map'] = pickle.loads(voxels['map'][()])
             return Morphology.from_repo_data(repo_data, repo_meta, **voxel_kwargs)
 
+    def store_voxel_cloud(self, morphology, overwrite=False):
+        with self.load('a') as repo:
+            if self.voxel_cloud_exists(morphology.morphology_name):
+                if not overwrite:
+                    print("[WARNING] Did not overwrite existing voxel cloud for '{}'".format(morphology.morphology_name))
+                    return
+                else:
+                    del repo['/morphologies/voxel_clouds/' + morphology.morphology_name]
+            voxel_cloud_group = repo['/morphologies/voxel_clouds/'].create_group(morphology.morphology_name)
+            voxel_cloud_group.attrs['name'] = morphology.morphology_name
+            voxel_cloud_group.attrs['bounds'] = morphology.cloud.bounds
+            voxel_cloud_group.attrs['grid_size'] = morphology.cloud.grid_size
+            voxel_cloud_group.create_dataset('positions', data=morphology.cloud.voxels)
+            voxel_cloud_group.create_dataset('map', data=string_(pickle.dumps(morphology.cloud.map)))
+
     def morphology_exists(self, name):
         with self.load() as repo:
             return name in self.handle['morphologies']

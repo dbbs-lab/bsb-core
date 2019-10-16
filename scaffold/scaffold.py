@@ -1,5 +1,5 @@
 from .statistics import Statistics
-from .plotting import plotNetwork
+from .plotting import plot_network
 import numpy as np
 import time
 from .trees import TreeCollection
@@ -112,8 +112,8 @@ class Scaffold:
 			if self.configuration.verbosity > 1:
 				print('Average runtime: {}'.format(np.average(times)))
 
-	def plotNetworkCache(self):
-		plotNetwork(self, from_memory=True)
+	def plot_network_cache(self):
+		plot_network(self, from_memory=True)
 
 
 	def reset_network_cache(self):

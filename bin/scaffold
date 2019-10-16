@@ -4,8 +4,6 @@ if __file__[-12:] == "bin/scaffold" or __file__[-12:] == "bin\\scaffold":
 	import os, sys
 	print("Using test source code from", os.path.dirname(__file__)[0:-3])
 	sys.path.insert(0, os.path.dirname(__file__)[0:-3])
-import configparser
-import builtins
 import argparse
 import scaffold
 from scaffold.scaffold import Scaffold
@@ -103,7 +101,7 @@ if cl_args.output:
 if cl_args.task == 'compile' or cl_args.task == 'run':
 	scaffoldInstance.compile_network()
 	if cl_args.p:
-		scaffoldInstance.plotNetworkCache()
+		scaffoldInstance.plot_network_cache()
 
 if cl_args.task == 'run' or cl_args.task == 'simulate':
 	scaffoldInstance.run_simulation(cl_args.simulation)
