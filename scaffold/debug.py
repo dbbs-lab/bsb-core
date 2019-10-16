@@ -1,6 +1,6 @@
 import sys, argparse, h5py
 from .output import MorphologyRepository
-from .plotting import plot_morphology, plot_voxel_morpho_map
+from .plotting import plot_morphology
 import matplotlib.pyplot as plt
 
 class ReplState:
@@ -52,6 +52,13 @@ def debug_voxel_cloud(scaffold):
             file = state.command[(eof_name+1):]
             repo.import_swc(file, name, overwrite=True)
             state.reply = "Added '{}' as '{}' to the repository.".format(file, name)
+        elif state.command[:8] == 'voxelize':
+            eof_name = state.command[9:].find(' ') + 9
+            name = state.command[9:eof_name]
+            voxels = int(state.command[(eof_name+1):])
+            m = repo.get_morphology(name)
+            m.voxelize(voxels)
+            repo.store_voxel_cloud(m)
         elif state.command[:6] == 'import':
             file = state.command[7:]
             repo.import_repository(MorphologyRepository(file))
@@ -62,10 +69,7 @@ def debug_voxel_cloud(scaffold):
             name = state.command[5:]
             if repo.morphology_exists(name):
                 morphology = repo.get_morphology(name)
-                if repo.voxel_cloud_exists(name):
-                    plot_voxel_morpho_map(morphology)
-                else:
-                    plot_morphology(morphology)
+                plot_morphology(morphology)
                 plt.show()
             else:
                 state.reply = "Unknown morphology '{}'".format(name)
