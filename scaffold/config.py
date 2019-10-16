@@ -447,7 +447,7 @@ class JSONConfig(ScaffoldConfig):
         placement.layer = assert_attr(section, 'layer', node_name)
         # Radius of the cell soma
         placement.soma_radius = assert_attr_float(section, 'soma_radius', node_name)
-        placement.radius = placement.radius # Alias it to the radius shorthand.
+        placement.radius = placement.soma_radius # Alias it to the radius shorthand.
         # Density configurations all rely on a float or a float and relation
         density_attr, density_value = assert_strictly_one(section, ['density', 'planar_density', 'placement_count_ratio', 'density_ratio'], node_name)
         density_value = assert_float(density_value, '{}.{}'.format(node_name, density_attr))
