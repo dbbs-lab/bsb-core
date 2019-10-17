@@ -270,6 +270,7 @@
       "simulator": "nest",
       "default_neuron_model": "iaf_cond_alpha",
       "default_synapse_model": "static_synapse",
+      "modules": ["cerebmodule"],
       "duration": 10,
       "cell_models": {
         "granule_cell": {
@@ -516,7 +517,7 @@
         "parallel_fiber_to_purkinje": {
           "plastic": true,
           "hetero": true,
-          "synapse_model": "stdp_connection_sinexp",
+          "synapse_model": "stdp_synapse_sinexp",
           "connection": {
             "parameters": {
               "weight": 0.2,
@@ -524,6 +525,9 @@
             },
             "static_synapse": {
 
+            },
+            "stdp_synapse_sinexp": {
+              "receptor_type": 1
             }
           },
           "synapse": {
@@ -645,7 +649,7 @@
         "glomerulus_to_dcn": {
           "plastic": true,
           "hetero": true,
-          "synapse_model": "stdp_connection_cosexp",
+          "synapse_model": "stdp_synapse_cosexp",
           "teaching": "purkinje_to_dcn",
           "connection": {
             "parameters": {
@@ -655,8 +659,8 @@
             "static_synapse": {
 
             },
-            "eglif": {
-              "receptor": 1
+            "stdp_synapse_cosexp": {
+              "receptor_type": 1
             }
           },
           "synapse": {

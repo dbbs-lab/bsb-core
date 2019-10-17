@@ -156,7 +156,8 @@ class NestAdapter(SimulatorAdapter):
 
     casts = {
         'threads': int,
-        'virtual_processes': int
+        'virtual_processes': int,
+        'modules': list
     }
 
     defaults = {
@@ -164,7 +165,8 @@ class NestAdapter(SimulatorAdapter):
         'default_neuron_model': 'iaf',
         'verbosity': 'M_ERROR',
         'threads': 1,
-        'virtual_processes': 1
+        'virtual_processes': 1,
+        'modules': []
     }
 
     required = ['default_neuron_model', 'default_synapse_model', 'duration']
@@ -174,6 +176,8 @@ class NestAdapter(SimulatorAdapter):
 
     def prepare(self, hdf5):
         import nest
+        self.nest = nest
+        self.install_modules()
         nest.set_verbosity(self.verbosity)
         nest.ResetKernel()
         nest.SetKernelStatus({
@@ -182,7 +186,6 @@ class NestAdapter(SimulatorAdapter):
             'overwrite_files': True,
             'data_path': self.scaffold.output_formatter.get_simulator_output_path(self.simulator_name)
         })
-        self.nest = nest
         self.create_neurons(self.cell_models)
         self.connect_neurons(self.connection_models, hdf5)
         self.create_devices(self.devices)
@@ -193,6 +196,12 @@ class NestAdapter(SimulatorAdapter):
 
     def validate(self):
         pass
+
+    def install_modules(self):
+        for module in self.modules:
+            print('Installing NEST module {}'.format(module))
+            self.nest.Install(module)
+            print(self.nest.Models())
 
     def create_neurons(self, cell_models):
         '''
@@ -219,7 +228,6 @@ class NestAdapter(SimulatorAdapter):
         '''
             Connect the cells in NEST according to the connection model configurations
         '''
-        # TODO: with CopyModels()!!!! And SetDefaults()!!!!
         default_model = self.default_synapse_model
         track_models = [] # Keeps track of already added models if there'smodel=synapse_model more than 1 stitch per model
         for connection_model in connection_models.values():
@@ -234,26 +242,29 @@ class NestAdapter(SimulatorAdapter):
             presynaptic_cells = np.array(connectivity_matrix[:,0] + 1, dtype=int)
             postsynaptic_cells = np.array(connectivity_matrix[:,1] + 1, dtype=int)
             if name not in track_models: # Is this the first time encountering this model?
+                track_models.append(name)
                 # Create the synapse model in the simulator
                 self.create_synapse_model(connection_model, default_model)
-                if synapse_model.plastic == True:
-                    self.create_volume_transmitter(len(postsynaptic_cells),connection_model)
-                track_models.append(name)
+                if connection_model.plastic == True:
+                    # Create the volume transmitters
+                    self.create_volume_transmitter(connection_model, postsynaptic_cells)
 
             # Set the specifications NEST allows like: 'rule', 'autapses', 'multapses'
             connection_specifications = {'rule': 'one_to_one'}
+            # Get the connection parameters from the configuration
             connection_parameters = connection_model.get_connection_parameters(default_model=default_model)
             # Create the connections in NEST
             self.nest.Connect(presynaptic_cells, postsynaptic_cells, connection_specifications, connection_parameters)
 
-            if synapse_model.plastic == True:
+            # Workaround for https://github.com/alberto-antonietti/CerebNEST/issues/10
+            if connection_model.plastic == True:
                 # Associate the presynaptic cells of each target cell to the
                 # volume transmitter of that target cell
                 for i,target in enumerate(postsynaptic_cells):
                     # Get connections between all presynaptic cells and target postsynaptic cell
                     connections_to_target = nest.GetConnections(presynaptic_cells,[target])
                     # Associate the volume transmitter number to them
-                    nest.SetStatus(connections_to_target ,{'n': float(i)})
+                    nest.SetStatus(connections_to_target ,{"vt_num": float(i)})
 
 
     def create_devices(self, devices):
@@ -295,13 +306,16 @@ class NestAdapter(SimulatorAdapter):
         # Set the parameters in NEST
         self.nest.SetDefaults(model.name, params)
 
-        # Create volume transmitter if it is plastic
-    def create_volume_transmitter(self, synapse_model, ):
-        vt = nest.Create("volume_transmitter_alberto",len_target)
+    # This function should be simplified by providing a CreateTeacher function in the
+    # CerebNEST module. See https://github.com/nest/nest-simulator/issues/1317
+    # And https://github.com/alberto-antonietti/CerebNEST/issues/10
+    def create_volume_transmitter(self, synapse_model, postsynaptic_cells):
+        vt = self.nest.Create("volume_transmitter_alberto", len(postsynaptic_cells))
+        teacher = vt[0]
         # Assign the volume transmitters to their synapse model
-        nest.SetDefaults(synapse_model.name,{"vt":   vt[0]}
+        self.nest.SetDefaults(synapse_model.name,{"vt": teacher})
         # Assign an ID to each volume transmitter
         for n,vti in enumerate(vt):
-        	nest.SetStatus([vti],{"deliver_interval" : 2})            # TO CHECK
+        	self.nest.SetStatus([vti],{"deliver_interval" : 2})            # TO CHECK
             # Waiting for Albe to clarify necessity of this parameter
-        	nest.SetStatus([vti],{"n" : n})
+        	self.nest.SetStatus([vti],{"vt_num" : n})
