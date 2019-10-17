@@ -224,7 +224,9 @@ class NestAdapter(SimulatorAdapter):
             postsynaptic_cells = np.array(connectivity_matrix[:,1] + 1, dtype=int)
             if name not in track_models: # Is this the first time encountering this model?
                 # Create the cell model in the simulator
-                self.create_synapse_model(connection_model, default_model, len(postsynaptic_cells))
+                self.create_synapse_model(connection_model, default_model)
+                if synapse_model.plastic == True:
+                    self.create_volume_transmitter(len(postsynaptic_cells))
                 track_models.append(name)
 
             # Set the specifications NEST allows like: 'rule', 'autapses', 'multapses'
@@ -266,12 +268,12 @@ class NestAdapter(SimulatorAdapter):
         # Set the parameters in NEST
         self.nest.SetDefaults(cell_model.name, params)
 
-    def create_synapse_model(self, synapse_model, default_model, len_target):
+    def create_synapse_model(self, synapse_model, default_model):
         '''
             Create a NEST cell model in the simulator based on a cell model configuration.
         '''
         # Use the default model unless another one is specified in the configuration.
-        nest_synapse_name = synapse_model.neuron_model if hasattr(synapse_model, "synapse_model") else self.default_synapse_model
+        nest_synapse_name = synapse_model.synapse_model if hasattr(synapse_model, "synapse_model") else self.default_synapse_model
         # Alias the nest model name under our cell model name.
         self.nest.CopyModel(nest_synapse_name, synapse_model.name)
         # Get the synapse parameters
@@ -280,12 +282,12 @@ class NestAdapter(SimulatorAdapter):
         self.nest.SetDefaults(synapse_model.name, params)
 
         # Create volume transmitter if it is plastic
-        if synapse_model.plastic == True:
-            vt = nest.Create("volume_transmitter_alberto",len_target)
+    def create_volume_transmitter(self, len_target, nest_synapse_name):
+        vt = nest.Create("volume_transmitter_alberto",len_target)
 
-            nest.SetDefaults(name_plast,{"vt":   vt[0]}
+        nest.SetDefaults(nest_synapse_name,{"vt":   vt[0]}
 
             # vt properties
-            for n,vti in enumerate(vt):
-        		nest.SetStatus([vti],{"deliver_interval" : 2})            # TO CHECK
-        		nest.SetStatus([vti],{"n" : n})
+        for n,vti in enumerate(vt):
+        	nest.SetStatus([vti],{"deliver_interval" : 2})            # TO CHECK
+        	nest.SetStatus([vti],{"n" : n})
