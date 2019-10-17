@@ -297,7 +297,11 @@
             "k1": 0.311,
             "k2": 0.041,
             "A1": 0.01,
-            "A2":-0.94
+            "A2":-0.94,
+            "receptors": {
+              "glomerulus": 1,
+              "golgi": 2
+            }
           }
         },
         "glomerulus": {
@@ -333,7 +337,13 @@
             "k1": 0.1950,
             "k2": 0.041,
             "A1": 157.622,
-            "A2":172.622
+            "A2": 172.622,
+            "receptors": {
+              "granule_cell": 1,
+              "basket_cell": 2,
+              "stellate_cell": 2,
+              "inferior_olivary_cell": 3
+            }
           }
         },
         "golgi_cell": {
@@ -344,7 +354,8 @@
             "V_reset": -75.0,
             "E_L": -65.0,
             "tau_syn_ex": 0.5,
-            "tau_syn_in": 10.0,
+            "tau_syn_in": 10.0,            dataset_name = 'cells/connections/' + name
+
             "g_L": 3.6
           },
           "iaf_cond_alpha": {
@@ -360,7 +371,12 @@
             "k1": 0.031,
             "k2": 0.023,
             "A1": 259.988,
-            "A2":178.01
+            "A2":178.01,
+            "receptors": {
+              "glomerulus": 1,
+              "golgi_cell": 2,
+              "granule_cell": 3
+            }
            }
 
         },
@@ -388,7 +404,13 @@
             "k1": 1.887,
             "k2": 1.096,
             "A1": 5.953,
-            "A2":5.863}
+            "A2":5.863,
+            "receptors": {
+              "granule_cell": 1,
+              "stellate_cell": 2,
+              "inferior_olivary_cell": 3
+            }
+          }
         },
         "basket_cell": {
           "parameters": {
@@ -414,7 +436,12 @@
             "k1": 1.887,
             "k2": 1.096,
             "A1": 5.953,
-            "A2":5.863}
+            "A2":5.863,
+            "receptors": {
+              "granule_cell": 1,
+              "basket_cell": 2,
+              "inferior_olivary_cell": 3
+            }}
         },
         "dcn_cell": {
           "parameters": {
@@ -440,7 +467,12 @@
             "k1": 0.697,
             "k2": 0.047,
             "A1": 13.857,
-            "A2":3.477}
+            "A2":3.477,
+            "receptors": {
+              "glomerulus": 1,
+              "purkinje_cell": 2,
+              "inferior_olivary_cell": 1
+            }}
         }
       },
       "connection_models": {
