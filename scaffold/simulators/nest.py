@@ -233,6 +233,12 @@ class NestAdapter(SimulatorAdapter):
             # Create the connections in NEST
             self.nest.Connect(presynaptic_cells, postsynaptic_cells, connection_specifications, connection_parameters)
 
+            # Associate volume transmitter if plastic
+            if synapse_model.plastic == True:
+                for i,tar in enumerate(postsynaptic_cells):
+                    A=nest.GetConnections(presynaptic_cells,[tar])
+                    nest.SetStatus(A,{'n': float(i)})
+
 
     def create_devices(self, devices):
         '''
@@ -264,14 +270,6 @@ class NestAdapter(SimulatorAdapter):
         '''
             Create a NEST cell model in the simulator based on a cell model configuration.
         '''
-        ########Create volume transmitter if it is plastic!!!
-        if synapse_model.plastic == True:
-            vt = nest.Create("volume_transmitter_alberto",len_target)
-            # vt properties
-            for n,vti in enumerate(vt):
-        		nest.SetStatus([vti],{"deliver_interval" : 2})            # TO CHECK
-        		nest.SetStatus([vti],{"n" : n})
-
         # Use the default model unless another one is specified in the configuration.
         nest_synapse_name = synapse_model.neuron_model if hasattr(synapse_model, "synapse_model") else self.default_synapse_model
         # Alias the nest model name under our cell model name.
@@ -280,3 +278,14 @@ class NestAdapter(SimulatorAdapter):
         params = synapse_model.get_synapse_parameters()
         # Set the parameters in NEST
         self.nest.SetDefaults(synapse_model.name, params)
+
+        # Create volume transmitter if it is plastic
+        if synapse_model.plastic == True:
+            vt = nest.Create("volume_transmitter_alberto",len_target)
+
+            nest.SetDefaults(name_plast,{"vt":   vt[0]}
+
+            # vt properties
+            for n,vti in enumerate(vt):
+        		nest.SetStatus([vti],{"deliver_interval" : 2})            # TO CHECK
+        		nest.SetStatus([vti],{"n" : n})
