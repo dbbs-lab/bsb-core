@@ -246,11 +246,14 @@ class NestAdapter(SimulatorAdapter):
             # Create the connections in NEST
             self.nest.Connect(presynaptic_cells, postsynaptic_cells, connection_specifications, connection_parameters)
 
-            # Associate volume transmitter if plastic
             if synapse_model.plastic == True:
-                for i,tar in enumerate(postsynaptic_cells):
-                    A=nest.GetConnections(presynaptic_cells,[tar])
-                    nest.SetStatus(A,{'n': float(i)})
+                # Associate the presynaptic cells of each target cell to the
+                # volume transmitter of that target cell
+                for i,target in enumerate(postsynaptic_cells):
+                    # Get connections between all presynaptic cells and target postsynaptic cell
+                    connections_to_target = nest.GetConnections(presynaptic_cells,[target])
+                    # Associate the volume transmitter number to them
+                    nest.SetStatus(connections_to_target ,{'n': float(i)})
 
 
     def create_devices(self, devices):
@@ -283,15 +286,6 @@ class NestAdapter(SimulatorAdapter):
         '''
             Create a NEST synapse model in the simulator based on a synapse model configuration.
         '''
-        # Create volume transmitter if it is plastic
-        if model.plastic == True:
-            vt = nest.Create("volume_transmitter_alberto",num_targets)
-
-            # Set vt get_parameters
-            for n,vti in enumerate(vt):
-        		nest.SetStatus([vti],{"deliver_interval" : 2})            # TO CHECK
-        		nest.SetStatus([vti],{"n" : n})
-
         # Use the default model unless another one is specified in the configuration.
         nest_synapse_name = model.synapse_model if hasattr(model, "synapse_model") else self.default_synapse_model
         # Alias the nest model name under our cell model name.
@@ -302,12 +296,12 @@ class NestAdapter(SimulatorAdapter):
         self.nest.SetDefaults(model.name, params)
 
         # Create volume transmitter if it is plastic
-    def create_volume_transmitter(self, model, ):
+    def create_volume_transmitter(self, synapse_model, ):
         vt = nest.Create("volume_transmitter_alberto",len_target)
-
-        nest.SetDefaults(model.name,{"vt":   vt[0]}
-
+        # Assign the volume transmitters to their synapse model
+        nest.SetDefaults(synapse_model.name,{"vt":   vt[0]}
         # Assign an ID to each volume transmitter
         for n,vti in enumerate(vt):
         	nest.SetStatus([vti],{"deliver_interval" : 2})            # TO CHECK
+            # Waiting for Albe to clarify necessity of this parameter
         	nest.SetStatus([vti],{"n" : n})
