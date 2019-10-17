@@ -272,7 +272,11 @@ class NestAdapter(SimulatorAdapter):
         self.nest.SetDefaults(cell_model.name, params)
 
 <<<<<<< HEAD
+<<<<<<< HEAD
     def create_synapse_model(self, synapse_model, default_model, num_targets):
+=======
+    def create_synapse_model(self, synapse_model):
+>>>>>>> 96e89dee5eb76246de5d67b3864793ba91e544f9
 =======
     def create_synapse_model(self, synapse_model):
 >>>>>>> 96e89dee5eb76246de5d67b3864793ba91e544f9
