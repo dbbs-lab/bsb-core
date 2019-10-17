@@ -224,7 +224,7 @@ class NestAdapter(SimulatorAdapter):
             postsynaptic_cells = np.array(connectivity_matrix[:,1] + 1, dtype=int)
             if name not in track_models: # Is this the first time encountering this model?
                 # Create the cell model in the simulator
-                self.create_synapse_model(connection_model)
+                self.create_synapse_model(connection_model, len(postsynaptic_cells))
                 track_models.append(name)
 
             # Set the specifications NEST allows like: 'rule', 'autapses', 'multapses'
@@ -251,7 +251,7 @@ class NestAdapter(SimulatorAdapter):
         '''
             Create a NEST cell model in the simulator based on a cell model configuration.
         '''
-        # Use the default model unless another one is specified in the configuration.
+        # Use the default model unless another one is specified in the configuration.A_minus
         nest_model_name = cell_model.neuron_model if hasattr(cell_model, "neuron_model") else self.default_neuron_model
         # Alias the nest model name under our cell model name.
         self.nest.CopyModel(nest_model_name, cell_model.name)
@@ -260,10 +260,19 @@ class NestAdapter(SimulatorAdapter):
         # Set the parameters in NEST
         self.nest.SetDefaults(cell_model.name, params)
 
-    def create_synapse_model(self, synapse_model, default_model):
+    def create_synapse_model(self, synapse_model, default_model, num_targets):
         '''
             Create a NEST cell model in the simulator based on a cell model configuration.
         '''
+        # Create volume transmitter if it is plastic
+        if synapse_model.plastic == True:
+            vt = nest.Create("volume_transmitter_alberto",num_targets)
+
+            # Set vt get_parameters
+            for n,vti in enumerate(vt):
+        		nest.SetStatus([vti],{"deliver_interval" : 2})            # TO CHECK
+        		nest.SetStatus([vti],{"n" : n})
+
         # Use the default model unless another one is specified in the configuration.
         nest_synapse_name = synapse_model.neuron_model if hasattr(synapse_model, "synapse_model") else self.default_synapse_model
         # Alias the nest model name under our cell model name.
