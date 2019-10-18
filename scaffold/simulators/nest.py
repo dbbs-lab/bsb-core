@@ -10,16 +10,15 @@ class NestCell(SimulationComponent):
     def validate(self):
         pass
 
-    def get_parameters(self, model=None):
+    def get_parameters(self):
         # Get the default synapse parameters
         params = self.parameters.copy()
-        # If a model is specified, fetch model specific parameters
-        if not model is None:
-            # Raise an exception if the requested model is not configured.
-            if not hasattr(self, model):
-                raise Exception("Missing parameters for '{}' model in '{}'".format(model, self.name))
-            # Merge in the model specific parameters
-            params.update(self.__dict__[model])
+        # Raise an exception if the requested model is not configured.
+        if not hasattr(self, model):
+            raise Exception("Missing parameters for '{}' model in '{}'".format(self.neuron_model, self.name))
+        # Merge in the model specific parameters
+        params.update(self.__dict__[self.neuron_model])
+        print(self.name, self.neuron_model, params)
         return params
 
 class NestConnection(SimulationComponent):
@@ -56,16 +55,14 @@ class NestConnection(SimulationComponent):
         return self.synapse
 
 
-    def get_connection_parameters(self, default_model):
-        # Use the default model unless another one is specified in the configuration.
-        nest_synapse_name = self.synapse_model if hasattr(self, "synapse_model") else default_model
+    def get_connection_parameters(self):
         # Get the default synapse parameters
         params = self.connection["parameters"].copy()
         # Raise an exception if the requested model is not configured.
-        if not nest_synapse_name in self.connection:
-            raise Exception("Missing connection parameters for '{}' model in '{}'".format(nest_synapse_name, self.name + '.connection'))
+        if not self.synapse_model in self.connection:
+            raise Exception("Missing connection parameters for '{}' model in '{}'".format(self.synapse_model, self.name + '.connection'))
         # Merge in the model specific parameters
-        params.update(self.connection[nest_synapse_name])
+        params.update(self.connection[self.synapse_model])
         return params
 
 
@@ -195,7 +192,10 @@ class NestAdapter(SimulatorAdapter):
         simulator.Simulate(self.duration)
 
     def validate(self):
-        pass
+        for cell_model in self.cell_models.values():
+            cell_model.neuron_model = self.default_neuron_model
+        for connection_model in self.connection_models.values():
+            connection_model.synapse_model = self.default_synapse_model
 
     def install_modules(self):
         for module in self.modules:
@@ -285,26 +285,24 @@ class NestAdapter(SimulatorAdapter):
             Create a NEST cell model in the simulator based on a cell model configuration.
         '''
         # Use the default model unless another one is specified in the configuration.A_minus
-        nest_model_name = cell_model.neuron_model if hasattr(cell_model, "neuron_model") else self.default_neuron_model
         # Alias the nest model name under our cell model name.
-        self.nest.CopyModel(nest_model_name, cell_model.name)
+        self.nest.CopyModel(cell_model.neuron_model, cell_model.name)
         # Get the synapse parameters
-        params = cell_model.get_parameters(model=nest_model_name)
+        params = cell_model.get_parameters()
         # Set the parameters in NEST
         self.nest.SetDefaults(cell_model.name, params)
 
-    def create_synapse_model(self, model, default_model):
+    def create_synapse_model(self, connection_model):
         '''
             Create a NEST synapse model in the simulator based on a synapse model configuration.
         '''
         # Use the default model unless another one is specified in the configuration.
-        nest_synapse_name = model.synapse_model if hasattr(model, "synapse_model") else self.default_synapse_model
         # Alias the nest model name under our cell model name.
-        self.nest.CopyModel(nest_synapse_name, model.name)
+        self.nest.CopyModel(connection_model.synapse_model, model.name)
         # Get the synapse parameters
-        params = model.get_synapse_parameters()
+        params = connection_model.get_synapse_parameters()
         # Set the parameters in NEST
-        self.nest.SetDefaults(model.name, params)
+        self.nest.SetDefaults(connection_model.name, params)
 
     # This function should be simplified by providing a CreateTeacher function in the
     # CerebNEST module. See https://github.com/nest/nest-simulator/issues/1317

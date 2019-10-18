@@ -287,7 +287,7 @@
           "iaf_cond_alpha": {
             "I_e": 0.0
           },
-          "eglif": {
+          "eglif_cond_alpha_multisyn": {
             "Vinit": -62.0,
             "lambda":1.0,
             "deltaV":0.3,
@@ -300,7 +300,7 @@
             "A2":-0.94,
             "receptors": {
               "glomerulus": 1,
-              "golgi": 2
+              "golgi_cell": 2
             }
           }
         },
@@ -310,7 +310,7 @@
 
           },
           "parrot_neuron": {
-
+            "oioi": "b"
           }
         },
         "purkinje_cell": {
@@ -327,7 +327,7 @@
           "iaf_cond_alpha": {
             "I_e": 700.0
           },
-          "eglif": {
+          "eglif_cond_alpha_multisyn": {
             "Vinit": -59.0,
             "lambda":4.0,
             "deltaV":3.5,
@@ -354,14 +354,13 @@
             "V_reset": -75.0,
             "E_L": -65.0,
             "tau_syn_ex": 0.5,
-            "tau_syn_in": 10.0,            dataset_name = 'cells/connections/' + name
-
+            "tau_syn_in": 10.0,
             "g_L": 3.6
           },
           "iaf_cond_alpha": {
             "I_e": 36.75
           },
-          "eglif": {
+          "eglif_cond_alpha_multisyn": {
             "Vinit": -62.0,
             "lambda":1.0,
             "deltaV":0.4,
@@ -394,7 +393,7 @@
           "iaf_cond_alpha": {
             "I_e": 15.6
           },
-          "eglif": {
+          "eglif_cond_alpha_multisyn": {
             "Vinit": -68.0,
             "lambda":1.8,
             "deltaV":1.1,
@@ -426,7 +425,7 @@
           "iaf_cond_alpha": {
             "I_e": 15.6
           },
-          "eglif": {
+          "eglif_cond_alpha_multisyn": {
             "Vinit": -68.0,
             "lambda":1.8,
             "deltaV":1.1,
@@ -457,7 +456,7 @@
           "iaf_cond_alpha": {
             "I_e": 55.75
           },
-          "eglif": {
+          "eglif_cond_alpha_multisyn": {
             "Vinit": -45.0,
             "lambda":3.5,
             "deltaV":3.0,
