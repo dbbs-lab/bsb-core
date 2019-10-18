@@ -21,7 +21,11 @@ class ConfigurableClass(abc.ABC):
     def initialise(self, scaffold):
         self.scaffold = scaffold
         self.castConfig()
+        self.boot()
         self.validate()
+
+    def boot(self):
+        pass
 
     @abc.abstractmethod
     def validate(self):
