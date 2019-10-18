@@ -325,10 +325,14 @@ class NestAdapter(SimulatorAdapter):
             device = self.nest.Create(device_model.device)
             device_targets = device_model.get_targets()
             self.nest.SetStatus(device, device_model.parameters)
-            if device_model.io == "input":
-                self.nest.Connect(device, device_targets)
-            else:
-                self.nest.Connect(device_targets, device)
+            try:
+                if device_model.io == "input":
+                    self.nest.Connect(device, device_targets)
+                else:
+                    self.nest.Connect(device_targets, device)
+            except Exception as e:
+                if e.errorname == 'IllegalConnection':
+                    raise Exception("IllegalConnection error for '{}'".format(device_model.get_config_node())) from None
 
     def create_model(self, cell_model):
         '''
