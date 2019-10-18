@@ -147,6 +147,13 @@ class OutputFormatter(ConfigurableClass, TreeHandler):
         '''
         pass
 
+    @abstractmethod
+    def get_connection_tag_types(self, tag):
+        '''
+            Return the connection types that contributed to this connectome tag.
+        '''
+        pass
+
 class MorphologyRepository(HDF5TreeHandler):
 
     defaults = {
@@ -394,3 +401,10 @@ class HDF5Formatter(OutputFormatter, MorphologyRepository):
     def get_type_map(self, type):
         with self.load() as resource:
             return self.handle['/cells/type_maps/{}_map'.format(type)][()]
+
+    def get_connection_tag_types(self, tag):
+        with self.load() as f:
+            # Get list of contributing types
+            type_list = f['cells/connections/' + tag].attrs['connection_types']
+            # Map contributing type names to contributing types
+            return list(map(lambda name: self.scaffold.get_connection_type(name), type_list))
