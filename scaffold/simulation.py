@@ -8,6 +8,9 @@ class SimulationComponent(ConfigurableClass):
         self.adapter = adapter
         self.simulation = None
 
+    def get_config_node(self):
+        return self.node_name + '.' + self.name
+
 class SimulatorAdapter(ConfigurableClass):
 
     def __init__(self):
