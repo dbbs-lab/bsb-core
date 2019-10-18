@@ -210,3 +210,8 @@ class Scaffold:
 
 	def translate_cell_ids(self, data, cell_type):
 		return data + self.output_formatter.get_type_map(cell_type)[0]
+
+	def get_connection_type(self, name):
+		if not name in self.configuration.connection_types:
+			raise Exception("Unknown connection type '{}'".format(name))
+		return self.configuration.connection_types[name]
