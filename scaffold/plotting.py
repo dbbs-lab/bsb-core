@@ -198,6 +198,5 @@ def plot_eli_voxels(morphology, voxel_positions, voxel_compartment_map, selected
         else:
             fig.add_trace(plotly_block_edges(voxel, Δ), row=1, col=2)
         voxel_compartments = voxel_compartment_map[voxel_id]
-        print(voxel_color_values[voxel_id])
     set_scene_range(fig.layout.scene1, morphology.get_plot_range())
     fig.write_html("../test_figure.html", auto_open=True)

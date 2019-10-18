@@ -14,7 +14,6 @@ class ResourceHandler(ABC):
         # id = np.random.randint(0, 100)
         already_open = True
         if self.handle is None: # Is the handle not open yet? Open it.
-            # print('opening handle', id)
             # Pass the mode argument if it is given, otherwise allow child to rely
             # on its own default value for the mode argument.
             self.handle = self.get_handle(mode) if not mode is None else self.get_handle()
@@ -22,9 +21,7 @@ class ResourceHandler(ABC):
         try:
             yield self.handle # Return the handle
         finally: # This is always called after the context manager closes.
-            # print('finishing', id)
             if not already_open: # Did we open the handle? We close it.
-                # print('closing handle', id)
                 self.release_handle(self.handle)
                 self.handle = None
 
@@ -95,7 +92,6 @@ class HDF5TreeHandler(HDF5ResourceHandler, TreeHandler):
 
     def load_tree(self, collection_name, tree_name):
         with self.load() as f:
-            print(collection_name, tree_name)
             try:
                 return pickle.loads(f['/trees/{}/{}'.format(collection_name, tree_name)][()])
             except KeyError as e:
