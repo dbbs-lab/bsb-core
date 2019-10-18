@@ -7,7 +7,7 @@ from .placement import PlacementStrategy
 from .output import OutputFormatter
 from .simulation import SimulatorAdapter, SimulationComponent
 from .helpers import (
-    copyIniKey, assert_float, assert_array, assert_attr_array,
+    assert_float, assert_array, assert_attr_array,
     assert_attr_float, assert_attr, if_attr, assert_strictly_one,
     assert_attr_in, ConfigurableClass
 )
