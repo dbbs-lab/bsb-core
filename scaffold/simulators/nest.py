@@ -28,6 +28,9 @@ class NestCell(SimulationComponent):
         params.update(self.__dict__[self.neuron_model])
         return params
 
+    def get_receptor_specifications(self):
+        return self.receptor_specifications[self.neuron_model] if self.neuron_model in self.receptor_specifications else {}
+
 class NestConnection(SimulationComponent):
     node_name = 'simulations.?.connection_models'
 
@@ -74,12 +77,49 @@ class NestConnection(SimulationComponent):
             params["receptor_type"] = self.get_receptor_type()
         return params
 
+    def _get_cell_types(self, key="from"):
+        meta = self.scaffold.output_formatter.get_connectivity_set_meta(self.name)
+        if key + '_cell_types' in meta:
+            cell_types = set()
+            for name in meta[key + '_cell_types']:
+                cell_types.add(self.scaffold.get_cell_type(name))
+            return list(cell_types)
+        connection_types = self.scaffold.output_formatter.get_connectivity_set_connection_types(self.name)
+        cell_types = set()
+        for connection_type in connection_types:
+            cell_types |= set(connection_type.__dict__[key + "_cell_types"])
+        return list(cell_types)
+
+    def get_cell_types(self):
+        return self._get_cell_types(key="from"), self._get_cell_types(key="to")
+
     def should_specify_receptor_type(self):
-        pass
+        _, to_cell_types = self.get_cell_types()
+        if len(to_cell_types) > 1:
+            raise NotImplementedError("Specifying receptor types of connections consisiting of more than 1 cell type is currently undefined behaviour.")
+        to_cell_type = to_cell_types[0]
+        to_cell_model = self.adapter.cell_models[to_cell_type.name]
+        return to_cell_model.neuron_model in to_cell_model.receptor_specifications
 
     def get_receptor_type(self):
-        pass
-
+        from_cell_types, to_cell_types = self.get_cell_types()
+        if len(to_cell_types) > 1:
+            raise NotImplementedError("Specifying receptor types of connections consisiting of more than 1 target cell type is currently undefined behaviour.")
+        if len(from_cell_types) > 1:
+            raise NotImplementedError("Specifying receptor types of connections consisting of more than 1 origin cell type is currently undefined behaviour.")
+        to_cell_type = to_cell_types[0]
+        from_cell_type = from_cell_types[0]
+        to_cell_model = self.adapter.cell_models[to_cell_type.name]
+        from_cell_model = self.adapter.cell_models[from_cell_type.name]
+        receptors = to_cell_model.get_receptor_specifications()
+        if not from_cell_model.name in receptors:
+            raise Exception("Missing receptor specification for cell model '{}' in '{}' while attempting to connect a '{}' to it during '{}'".format(
+                to_cell_model.name,
+                self.node_name,
+                from_cell_model.name,
+                self.name
+            ))
+        return receptors[from_cell_model.name]
 
 class NestDevice(SimulationComponent):
     node_name = 'simulations.?.devices'
@@ -214,7 +254,6 @@ class NestAdapter(SimulatorAdapter):
 
     def install_modules(self):
         for module in self.modules:
-            print('Installing NEST module {}'.format(module))
             self.nest.Install(module)
 
     def create_neurons(self, cell_models):
@@ -251,7 +290,7 @@ class NestAdapter(SimulatorAdapter):
                     print('[WARNING] Expected connection dataset "{}" not found. Skipping it.'.format(dataset_name))
                 continue
             connectivity_matrix = hdf5[dataset_name]
-            # Transdefault_modellate the id's from 0 based scaffold ID's to NEST's 1 based ID's with '+ 1'
+            # Translate the id's from 0 based scaffold ID's to NEST's 1 based ID's with '+ 1'
             presynaptic_cells = np.array(connectivity_matrix[:,0] + 1, dtype=int)
             postsynaptic_cells = np.array(connectivity_matrix[:,1] + 1, dtype=int)
             if name not in track_models: # Is this the first time encountering this model?
@@ -261,23 +300,21 @@ class NestAdapter(SimulatorAdapter):
                 if connection_model.plastic == True:
                     # Create the volume transmitters
                     self.create_volume_transmitter(connection_model, postsynaptic_cells)
-
             # Set the specifications NEST allows like: 'rule', 'autapses', 'multapses'
             connection_specifications = {'rule': 'one_to_one'}
             # Get the connection parameters from the configuration
             connection_parameters = connection_model.get_connection_parameters()
             # Create the connections in NEST
             self.nest.Connect(presynaptic_cells, postsynaptic_cells, connection_specifications, connection_parameters)
-
             # Workaround for https://github.com/alberto-antonietti/CerebNEST/issues/10
             if connection_model.plastic == True:
                 # Associate the presynaptic cells of each target cell to the
                 # volume transmitter of that target cell
                 for i,target in enumerate(postsynaptic_cells):
                     # Get connections between all presynaptic cells and target postsynaptic cell
-                    connections_to_target = nest.GetConnections(presynaptic_cells,[target])
+                    connections_to_target = self.nest.GetConnections(presynaptic_cells.tolist(),[target])
                     # Associate the volume transmitter number to them
-                    nest.SetStatus(connections_to_target ,{"vt_num": float(i)})
+                    self.nest.SetStatus(connections_to_target ,{"vt_num": float(i)})
 
 
     def create_devices(self, devices):

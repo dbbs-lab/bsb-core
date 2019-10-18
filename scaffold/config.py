@@ -197,9 +197,9 @@ class ScaffoldConfig(object):
                 layer.dimensions[0] *= scaling_x
                 layer.dimensions[2] *= scaling_z
 
-    def load_configurable_class(self, name, configured_class_name, parent_class):
+    def load_configurable_class(self, name, configured_class_name, parent_class, parameters={}):
         if isclass(configured_class_name):
-            instance = configured_class_name()
+            instance = configured_class_name(**parameters)
         else:
             class_parts = configured_class_name.split('.')
             class_name = class_parts[-1]
@@ -484,7 +484,8 @@ class JSONConfig(ScaffoldConfig):
                 component = self.init_simulation_component(
                     component_name,
                     component_config,
-                    component_class
+                    component_class,
+                    simulation
                 )
                 component.simulation = simulation
                 component.node_name = 'simulations.' + simulation.name + '.' + component_type
@@ -544,8 +545,8 @@ class JSONConfig(ScaffoldConfig):
         connection.__dict__['from_cell_types'] = from_cell_types
         connection.__dict__['to_cell_types'] = to_cell_types
 
-    def init_simulation_component(self, name, section, component_class):
-        component = self.load_configurable_class(name, component_class, SimulationComponent)
+    def init_simulation_component(self, name, section, component_class, adapter):
+        component = self.load_configurable_class(name, component_class, SimulationComponent, parameters={'adapter': adapter})
         self.fill_configurable_class(component, section)
         return component
 

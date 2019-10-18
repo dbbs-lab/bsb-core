@@ -122,6 +122,7 @@ class Scaffold:
 		self.cell_connections_by_tag = {}
 		self.appends = {}
 		self.placement_stitching = []
+		self._connectivity_set_meta = {}
 
 	def run_simulation(self, simulation_name):
 		if not simulation_name in self.configuration.simulations:
@@ -177,7 +178,7 @@ class Scaffold:
 		self._nextId += count
 		return IDs
 
-	def connect_cells(self, connection_type, connectome_data, tag=None):
+	def connect_cells(self, connection_type, connectome_data, tag=None, meta=None):
 		# Allow 1 connection type to store multiple connectivity datasets by utilizing tags
 		tag = tag or connection_type.name
 		# Keep track of relevant tags in the connection_type object
@@ -189,6 +190,8 @@ class Scaffold:
 			self.cell_connections_by_tag[tag] = np.concatenate((cache, connectome_data))
 		else:
 			self.cell_connections_by_tag[tag] = np.copy(connectome_data)
+		if not meta is None:
+			self._connectivity_set_meta[tag] = meta
 
 	def append_dset(self, name, data):
 		self.appends[name] = data
@@ -215,3 +218,8 @@ class Scaffold:
 		if not name in self.configuration.connection_types:
 			raise Exception("Unknown connection type '{}'".format(name))
 		return self.configuration.connection_types[name]
+
+	def get_cell_type(self, name):
+		if not name in self.configuration.cell_types:
+			raise Exception("Unknown cell type '{}'".format(name))
+		return self.configuration.cell_types[name]

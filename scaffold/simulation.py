@@ -3,8 +3,9 @@ import numpy as np
 from .helpers import ConfigurableClass, assert_attr
 
 class SimulationComponent(ConfigurableClass):
-    def __init__(self):
+    def __init__(self, adapter):
         super().__init__()
+        self.adapter = adapter
         self.simulation = None
 
 class SimulatorAdapter(ConfigurableClass):
