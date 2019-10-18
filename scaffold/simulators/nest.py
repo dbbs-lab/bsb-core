@@ -7,6 +7,14 @@ class NestCell(SimulationComponent):
     node_name = 'simulations.?.cell_models'
     required = ['parameters']
 
+    def boot(self):
+        self.receptor_specifications = {}
+        for key in self.__dict__:
+            value = self.__dict__[key]
+            if key != "parameters" and isinstance(value, dict) and "receptors" in value:
+                self.receptor_specifications[key] = value["receptors"]
+                del value["receptors"]
+
     def validate(self):
         pass
 
@@ -14,11 +22,10 @@ class NestCell(SimulationComponent):
         # Get the default synapse parameters
         params = self.parameters.copy()
         # Raise an exception if the requested model is not configured.
-        if not hasattr(self, model):
+        if not hasattr(self, self.neuron_model):
             raise Exception("Missing parameters for '{}' model in '{}'".format(self.neuron_model, self.name))
         # Merge in the model specific parameters
         params.update(self.__dict__[self.neuron_model])
-        print(self.name, self.neuron_model, params)
         return params
 
 class NestConnection(SimulationComponent):
@@ -63,7 +70,15 @@ class NestConnection(SimulationComponent):
             raise Exception("Missing connection parameters for '{}' model in '{}'".format(self.synapse_model, self.name + '.connection'))
         # Merge in the model specific parameters
         params.update(self.connection[self.synapse_model])
+        if self.should_specify_receptor_type():
+            params["receptor_type"] = self.get_receptor_type()
         return params
+
+    def should_specify_receptor_type(self):
+        pass
+
+    def get_receptor_type(self):
+        pass
 
 
 class NestDevice(SimulationComponent):
@@ -193,15 +208,14 @@ class NestAdapter(SimulatorAdapter):
 
     def validate(self):
         for cell_model in self.cell_models.values():
-            cell_model.neuron_model = self.default_neuron_model
+            cell_model.neuron_model = cell_model.neuron_model if hasattr(cell_model, "neuron_model") else self.default_neuron_model
         for connection_model in self.connection_models.values():
-            connection_model.synapse_model = self.default_synapse_model
+            connection_model.synapse_model = connection_model.synapse_model if hasattr(connection_model, "synapse_model") else self.default_synapse_model
 
     def install_modules(self):
         for module in self.modules:
             print('Installing NEST module {}'.format(module))
             self.nest.Install(module)
-            print(self.nest.Models())
 
     def create_neurons(self, cell_models):
         '''
@@ -228,7 +242,6 @@ class NestAdapter(SimulatorAdapter):
         '''
             Connect the cells in NEST according to the connection model configurations
         '''
-        default_model = self.default_synapse_model
         track_models = [] # Keeps track of already added models if there'smodel=synapse_model more than 1 stitch per model
         for connection_model in connection_models.values():
             name = connection_model.name
@@ -244,7 +257,7 @@ class NestAdapter(SimulatorAdapter):
             if name not in track_models: # Is this the first time encountering this model?
                 track_models.append(name)
                 # Create the synapse model in the simulator
-                self.create_synapse_model(connection_model, default_model)
+                self.create_synapse_model(connection_model)
                 if connection_model.plastic == True:
                     # Create the volume transmitters
                     self.create_volume_transmitter(connection_model, postsynaptic_cells)
@@ -252,7 +265,7 @@ class NestAdapter(SimulatorAdapter):
             # Set the specifications NEST allows like: 'rule', 'autapses', 'multapses'
             connection_specifications = {'rule': 'one_to_one'}
             # Get the connection parameters from the configuration
-            connection_parameters = connection_model.get_connection_parameters(default_model=default_model)
+            connection_parameters = connection_model.get_connection_parameters()
             # Create the connections in NEST
             self.nest.Connect(presynaptic_cells, postsynaptic_cells, connection_specifications, connection_parameters)
 
@@ -298,7 +311,7 @@ class NestAdapter(SimulatorAdapter):
         '''
         # Use the default model unless another one is specified in the configuration.
         # Alias the nest model name under our cell model name.
-        self.nest.CopyModel(connection_model.synapse_model, model.name)
+        self.nest.CopyModel(connection_model.synapse_model, connection_model.name)
         # Get the synapse parameters
         params = connection_model.get_synapse_parameters()
         # Set the parameters in NEST
