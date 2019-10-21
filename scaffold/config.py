@@ -91,7 +91,7 @@ class ScaffoldConfig(object):
         self._raw = stream
         self._name = '<stream>'
 
-    def addCellType(self, cell_type):
+    def add_cell_type(self, cell_type):
         '''
             Adds a cell type to the config object. Cell types are used to populate
             cells into the layers of the simulation.
@@ -103,7 +103,7 @@ class ScaffoldConfig(object):
         self.cell_types[cell_type.name] = cell_type
         self.cell_type_map.append(cell_type.name)
 
-    def addMorphology(self, morphology):
+    def add_morphology(self, morphology):
         '''
             Adds a morphology to the config object. Mrophologies are used to determine
             which cells touch and form synapses.
@@ -340,7 +340,7 @@ class JSONConfig(ScaffoldConfig):
         if 'plotting' in section:
             cell_type.plotting.color = if_attr(section['plotting'], 'color', '#000000')
         # Register cell type
-        self.addCellType(cell_type)
+        self.add_cell_type(cell_type)
         return cell_type
 
     def init_layer(self, name, config):
@@ -413,7 +413,7 @@ class JSONConfig(ScaffoldConfig):
         morphology_class = assert_attr(section, 'class', node_name)
         morphology = self.load_configurable_class(name, morphology_class, BaseMorphology)
         self.fill_configurable_class(morphology, section, excluded=['class'])
-        self.addMorphology(morphology)
+        self.add_morphology(morphology)
         return morphology
 
     def init_connection(self, name, section):
@@ -526,7 +526,9 @@ class JSONConfig(ScaffoldConfig):
         node_name = 'connection_types.{}'
         connection = self.connection_types[connection_name]
         from_cell_types = []
+        from_cell_compartments = []
         to_cell_types = []
+        to_cell_compartments = []
         i = 0
         for connected_cell in connection._from_cell_types:
             type = assert_attr(connected_cell, 'type', node_name + '.{}'.format(i))
@@ -534,6 +536,10 @@ class JSONConfig(ScaffoldConfig):
             if not type in self.cell_types:
                 raise Exception("Unknown cell type '{}' in '{}.from_cell_types'".format(type, node_name))
             from_cell_types.append(self.cell_types[type])
+            if "compartments" in connected_cell:
+                from_cell_compartments.append(connected_cell["compartments"])
+            else:
+                from_cell_compartments.append([])
         i = 0
         for connected_cell in connection._to_cell_types:
             type = assert_attr(connected_cell, 'type', node_name + '.{}'.format(i))
@@ -541,8 +547,14 @@ class JSONConfig(ScaffoldConfig):
             if not type in self.cell_types:
                 raise Exception("Unknown cell type '{}' in '{}.to_cell_types'".format(type, node_name))
             to_cell_types.append(self.cell_types[type])
+            if "compartments" in connected_cell:
+                to_cell_compartments.append(connected_cell["compartments"])
+            else:
+                to_cell_compartments.append([])
         connection.__dict__['from_cell_types'] = from_cell_types
         connection.__dict__['to_cell_types'] = to_cell_types
+        connection.__dict__['from_cell_compartments'] = from_cell_compartments
+        connection.__dict__['to_cell_compartments'] = to_cell_compartments
 
     def init_simulation_component(self, name, section, component_class):
         component = self.load_configurable_class(name, component_class, SimulationComponent)
