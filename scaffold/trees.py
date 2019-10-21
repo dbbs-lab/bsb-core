@@ -65,6 +65,16 @@ class TreeCollection:
             self.make_planar_tree(name, plane)
         return self.trees[planar_name]
 
+    def get_sub_tree(self, name, subset=None, filter=None, factory=None):
+        if subset is None:
+            return self.get_tree(name)
+        subtree_name = '{}({})'.format(name, subset)
+        if not subtree_name in self.trees:
+            self.load_tree(subtree_name)
+        if self.trees[subtree_name] is None:
+            self.make_sub_tree(name, subset, filter, factory)
+        return self.trees[planar_name]
+
     def make_planar_tree(self, name, plane):
         full_tree = self.get_tree(name)
         if full_tree is None:
@@ -75,6 +85,21 @@ class TreeCollection:
         self.trees['{}:{}'.format(plane, name)] = planar_tree
         self.save()
         return planar_tree
+
+    def make_sub_tree(self, name, subset, set_filter, factory=None):
+        if full_tree is None:
+            raise Exception("Cannot make sub tree from unknown tree '{}'".format(name))
+        if not factory is None:
+            data = factory(subset)
+        else:
+            full_tree = self.get_tree(name)
+            def closure(node):
+                return set_filter(subset, node)
+            data = np.array(list(filter(full_tree.get_arrays()[0], closure)))
+        sub_tree = KDTree(data)
+        self.trees['{}({})'.format(name, subset)] = sub_tree
+        self.save()
+        return sub_tree
 
     def save(self):
         self.handler.store_tree_collections([self])
