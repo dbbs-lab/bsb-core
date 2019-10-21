@@ -242,7 +242,7 @@ class MorphologyRepository(HDF5TreeHandler):
             dset = repo['morphologies'].create_dataset(name, data=dataset_data)
             # Set attributes
             dset.attrs['name'] = name
-			dset.attrs['search_radii'] = np.max(np.abs(np.array([pos[:,d] for d in range(3)])), axis=1)
+            dset.attrs['search_radii'] = np.max(np.abs(np.array([pos[:,d] for d in range(3)])), axis=1)
             dset.attrs['type'] = 'swc'
 
     def import_repository(self, repository, overwrite=False):
