@@ -43,8 +43,14 @@ class Morphology(ConfigurableClass):
 			compartment = Compartment(repo_record)
 			self.compartments.append(compartment)
 		# Create a tree from the compartment object list
-		# TODO: Create and store this tree when importing from morphology file.
-		self.compartment_tree = KDTree(np.array(list(map(lambda c: c.end, self.compartments))))
+		self.compartment_tree = None
+		morphology_trees = self.scaffold.trees["morphologies"]
+		if self.scaffold:
+			self.compartment_tree = morphology_trees.get_tree(morphology_name)
+		if self.compartment_tree is None:
+			self.compartment_tree = KDTree(np.array(list(map(lambda c: c.end, self.compartments))))
+			morphology_trees.add_tree(morphology_name, self.compartment_tree)
+			morphology_trees.save()
 
 	def init_voxel_cloud(self, voxel_data, voxel_meta, voxel_map):
 		'''
@@ -142,6 +148,9 @@ class TrueMorphology(Morphology):
 		max = np.max(np.array([np.max(compartments[:, i]) - mins[i] for i in n_dimensions]))
 		return list(zip(mins.tolist(), (mins + max).tolist()))
 
+	def get_compartments_tree(self, type=None):
+		if not type is None:
+			return self.scaffold.trees["morphologies"].get_sub_tree()
 
 class GranuleCellGeometry(Morphology):
 	casts = {
