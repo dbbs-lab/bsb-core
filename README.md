@@ -35,7 +35,7 @@ The central object is the `scaffold.Scaffold` class. This object requires a `sca
 from scaffold import Scaffold
 from scaffold.config import JSONConfig
 
-config = new JSONConfig('mouse_cerebellum.json')
+config = new JSONConfig(file='mouse_cerebellum.json')
 scaffoldInstance = new Scaffold(config)
 ```
 
