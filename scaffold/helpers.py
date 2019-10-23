@@ -1,4 +1,5 @@
 import abc, numpy as np
+from .exceptions import ConfigurableCastException
 
 def get_qualified_class_name(x):
     return x.__class__.__module__ + '.' + str(x.__class__.__name__)
@@ -35,6 +36,11 @@ class ConfigurableClass(abc.ABC):
         '''
         pass
 
+    def fill(self, conf, excluded=[]):
+        for name, prop in conf.items():
+            if not name in excluded:
+                obj.__dict__[name] = prop
+
     def castConfig(self):
         '''
             Casts/validates values imported onto this object from configuration files to their final form.
@@ -70,6 +76,9 @@ class ConfigurableClass(abc.ABC):
                         try:
                             return cast(value)
                         except Exception as e:
+                            if isinstance(e, ConfigurableCastException):
+                                # Just reraise the exception to show why the child configurable couldn't be cast.
+                                raise
                             raise Exception("{}.{}: Could not cast '{}' to a {}".format(
                                 name,
                                 attr,
@@ -93,6 +102,19 @@ class ConfigurableClass(abc.ABC):
                         return try_cast(value, cast)
 
                 self.__dict__[attr] = cast_node(self.__dict__[attr], cast, attr)
+
+class CastableConfigurableClass(ConfigurableClass):
+
+    @classmethod
+    def cast(cast_class, value):
+        class_instance = cast_class()
+        class_instance.fill(value)
+
+class NormalDistributionConfig(CastableConfigurableClass):
+
+    def validate(self):
+        pass
+
 
 def assert_attr(section, attr, section_name):
     if not attr in section:
