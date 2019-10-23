@@ -794,8 +794,7 @@ class TouchDetector(ConnectionStrategy):
 	'''
 
 	casts = {
-		'tolerance': float,
-		'morphologies': dict
+		'tolerance': float
 	}
 
 	defaults = {
@@ -804,7 +803,7 @@ class TouchDetector(ConnectionStrategy):
 		'tolerance': 5.
 	}
 
-	required = ['cell_intersection_plane', 'compartment_intersection_plane', 'tolerance', 'morphologies']
+	required = ['cell_intersection_plane', 'compartment_intersection_plane', 'tolerance']
 
 	def validate(self):
 		planes = ['xyz', 'xy', 'xz', 'yz', 'x', 'y', 'z']
@@ -889,14 +888,7 @@ class TouchDetector(ConnectionStrategy):
 		return intersections
 
 	def list_all_morphologies(self, cell_type):
-		if not cell_type.name in self.morphologies:
-			raise Exception("No morphologies configured for '{}' in '{}'".format(cell_type.name, self.name))
-		morphology_config = self.morphologies[cell_type.name]
-		if 'names' in morphology_config:
-			m_names = morphology_config['names']
-			return m_names
-		else:
-			raise NotImplementedError("Morphologies can only be selected by name at the moment.")
+		return cell_type.list_all_morphologies()
 
 	def get_random_morphology(self, cell_type):
 		'''
