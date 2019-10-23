@@ -890,7 +890,7 @@ class TouchDetector(ConnectionStrategy):
 
 	def list_all_morphologies(self, cell_type):
 		if not cell_type.name in self.morphologies:
-			raise Exception("No morphologies configured for '{}'".format(cell_type.name))
+			raise Exception("No morphologies configured for '{}' in '{}'".format(cell_type.name, self.name))
 		morphology_config = self.morphologies[cell_type.name]
 		if 'names' in morphology_config:
 			m_names = morphology_config['names']
@@ -905,14 +905,14 @@ class TouchDetector(ConnectionStrategy):
 		# TODO: Multiple selection methods such as tags, and maybe position or callback based selection?
 		m_name = random_element(self.list_all_morphologies(cell_type))
 		if not m_name in self.morphology_cache:
-			self.morphology_cache[m_name] = self.scaffold.morphology_repository.get_morphology(m_name)
+			self.morphology_cache[m_name] = self.scaffold.morphology_repository.get_morphology(m_name, scaffold=self.scaffold)
 		return self.morphology_cache[m_name]
 
 	def get_all_morphologies(self, cell_type):
 		all_morphologies = []
 		for m_name in self.list_all_morphologies(cell_type):
 			if not m_name in self.morphology_cache:
-				self.morphology_cache[m_name] = self.scaffold.morphology_repository.get_morphology(m_name)
+				self.morphology_cache[m_name] = self.scaffold.morphology_repository.get_morphology(m_name, scaffold=self.scaffold)
 			all_morphologies.append(self.morphology_cache[m_name])
 		return all_morphologies
 

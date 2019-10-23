@@ -14,19 +14,22 @@ class TreeCollection:
     '''
         Keeps track of a collection of KDTrees in cooperation with a TreeHandler.
     '''
-    trees = {}
 
     def __init__(self, name, handler):
         self.handler = handler
         self.name = name
+        self.trees = {}
 
     def list_trees(self):
         return self.handler.list_trees(self.name)
 
+    def has_tree(self, name):
+        return name in self.list_trees()
+
     def create_tree(self, name, nodes):
         if not is_valid_tree_name(name):
             raise Exception("Tree names must not contain any : or + signs.")
-        if(len(nodes) == 0):
+        if len(nodes) == 0:
             return
         self.add_tree(name, KDTree(nodes))
 

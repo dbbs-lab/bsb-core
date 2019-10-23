@@ -256,7 +256,7 @@ class MorphologyRepository(HDF5TreeHandler):
                         else:
                             print("[WARNING] Did not import '{}' because it already existed and overwrite=False".format(m_key))
 
-    def get_morphology(self, name):
+    def get_morphology(self, name, scaffold=None):
         '''
             Load a morphology from repository data
         '''
@@ -275,7 +275,7 @@ class MorphologyRepository(HDF5TreeHandler):
                 voxel_kwargs['voxel_data'] = voxels['positions'][()]
                 voxel_kwargs['voxel_meta'] = dict(voxels.attrs)
                 voxel_kwargs['voxel_map'] = pickle.loads(voxels['map'][()])
-            return Morphology.from_repo_data(repo_data, repo_meta, **voxel_kwargs)
+            return Morphology.from_repo_data(repo_data, repo_meta, scaffold=scaffold, **voxel_kwargs)
 
     def morphology_exists(self, name):
         with self.load() as repo:

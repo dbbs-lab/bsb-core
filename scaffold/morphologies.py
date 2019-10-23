@@ -29,6 +29,11 @@ class Morphology(ConfigurableClass):
 		self.has_morphology = False
 		self.has_voxels = False
 
+	def boot(self):
+		if self.has_morphology:
+			print(self.morphology_name, "has morphology")
+			self.store_compartment_tree()
+
 	def init_morphology(self, repo_data, repo_meta):
 		'''
 			Initialize this Morphology with detailed morphology data from a MorphologyRepository.
@@ -43,14 +48,14 @@ class Morphology(ConfigurableClass):
 			compartment = Compartment(repo_record)
 			self.compartments.append(compartment)
 		# Create a tree from the compartment object list
-		self.compartment_tree = None
-		morphology_trees = self.scaffold.trees["morphologies"]
-		if self.scaffold:
-			self.compartment_tree = morphology_trees.get_tree(morphology_name)
-		if self.compartment_tree is None:
-			self.compartment_tree = KDTree(np.array(list(map(lambda c: c.end, self.compartments))))
-			morphology_trees.add_tree(morphology_name, self.compartment_tree)
-			morphology_trees.save()
+		self.compartment_tree = KDTree(np.array(list(map(lambda c: c.end, self.compartments))))
+		if hasattr(self, "scaffold") and self.scaffold: # Is the scaffold ready at this point?
+			self.store_compartment_tree()
+
+	def store_compartment_tree(self):
+		morphology_trees = self.scaffold.trees.morphologies
+		morphology_trees.add_tree(self.morphology_name, self.compartment_tree)
+		morphology_trees.save()
 
 	def init_voxel_cloud(self, voxel_data, voxel_meta, voxel_map):
 		'''
@@ -150,7 +155,7 @@ class TrueMorphology(Morphology):
 
 	def get_compartments_tree(self, type=None):
 		if not type is None:
-			return self.scaffold.trees["morphologies"].get_sub_tree()
+			return self.scaffold.trees.morphologies.get_sub_tree()
 
 class GranuleCellGeometry(Morphology):
 	casts = {
