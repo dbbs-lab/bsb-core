@@ -23,9 +23,9 @@ class Compartment:
 class Morphology(ConfigurableClass):
 
 	compartment_types = {
+		"soma": 1,
 		"axon": 2,
-		"dendrites": 3,
-		"soma": 1
+		"dendrites": 3
 	}
 
 	def __init__(self):
