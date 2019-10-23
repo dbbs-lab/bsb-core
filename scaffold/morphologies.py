@@ -22,6 +22,12 @@ class Compartment:
 
 class Morphology(ConfigurableClass):
 
+	compartment_types = {
+		"axon": 2,
+		"dendrites": 3,
+		"soma": 1
+	}
+
 	def __init__(self):
 		super().__init__()
 		self.compartments = None
@@ -146,6 +152,13 @@ class TrueMorphology(Morphology):
 			node_list[int(node.parent)].add(int(node.id))
 		return node_list
 
+	def get_compartment_positions(self, types=None):
+		if types is None:
+			return self.compartment_tree.get_arrays()[0]
+		type_ids = list(map(lambda t: Morphology.compartment_types[t], types))
+		# print("Comp --", len(self.compartments), len(list(map(lambda c: c.end, filter(lambda c: c.type in type_ids, self.compartments)))))
+		return list(map(lambda c: c.end, filter(lambda c: c.type in type_ids, self.compartments)))
+
 	def get_plot_range(self):
 		compartments = self.compartment_tree.get_arrays()[0]
 		n_dimensions = range(compartments.shape[1])
@@ -153,9 +166,20 @@ class TrueMorphology(Morphology):
 		max = np.max(np.array([np.max(compartments[:, i]) - mins[i] for i in n_dimensions]))
 		return list(zip(mins.tolist(), (mins + max).tolist()))
 
-	def get_compartments_tree(self, type=None):
-		if not type is None:
-			return self.scaffold.trees.morphologies.get_sub_tree()
+	def _comp_tree_factory(self, types):
+		type_map = list(map(lambda t: Morphology.compartment_types[t], types))
+		def _comp_tree_product(_):
+			print('making subset tree from factory.')
+			return np.array(list(map(lambda c: c.end, filter(lambda c: c.type in type_map, self.compartments))))
+		return _comp_tree_product
+
+	def get_compartment_tree(self, compartment_types=None):
+		if not compartment_types is None:
+			if len(compartment_types) == 1:
+				return self.scaffold.trees.morphologies.get_sub_tree(self.morphology_name, "+".join(compartment_types), factory=self._comp_tree_factory(compartment_types))
+			else:
+				raise NotImplementedError("Multicompartmental touch detection not implemented yet.")
+		return self.compartment_tree
 
 class GranuleCellGeometry(Morphology):
 	casts = {

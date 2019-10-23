@@ -788,6 +788,13 @@ class ConnectomeGlomDCN(TouchingConvergenceDivergence):
 		results = connectome_glom_dcn(first_glomerulus, glomeruli, dcn_cells, convergence)
 		self.scaffold.connect_cells(self, results)
 
+class TouchInformation():
+	def __init__(self, from_cell_type, from_cell_compartments, to_cell_type, to_cell_compartments):
+		self.from_cell_type = from_cell_type
+		self.from_cell_compartments = from_cell_compartments
+		self.to_cell_type = to_cell_type
+		self.to_cell_compartments = to_cell_compartments
+
 class TouchDetector(ConnectionStrategy):
 	'''
 		Connectivity based on intersection of detailed morphologies
@@ -816,26 +823,33 @@ class TouchDetector(ConnectionStrategy):
 	def connect(self):
 		# Create a dictionary to cache loaded morphologies.
 		self.morphology_cache = {}
-		from time import time, sleep
-		t = time()
-		for from_type in self.from_cell_types:
-			for to_type in self.to_cell_types:
+
+		for from_cell_type_index in range(len(self.from_cell_types)):
+			from_cell_type = self.from_cell_types[from_cell_type_index]
+			from_cell_compartments = self.from_cell_compartments[from_cell_type_index]
+			print('from comps:', from_cell_compartments)
+			for to_cell_type_index in range(len(self.to_cell_types)):
+				to_cell_type = self.to_cell_types[to_cell_type_index]
+				to_cell_compartments = self.to_cell_compartments[to_cell_type_index]
+				touch_info = TouchInformation(from_cell_type, from_cell_compartments, to_cell_type, to_cell_compartments)
 				# Intersect cells on the widest possible search radius.
-				candidates = self.intersect_cells(from_type, to_type)
+				candidates = self.intersect_cells(touch_info)
 				# Intersect cell compartments between matched cells.
-				connections, morphology_names, compartments = self.intersect_compartments(from_type, to_type, candidates)
+				connections, morphology_names, compartments = self.intersect_compartments(touch_info, candidates)
 				# Connect the cells and store the morphologies and selected compartments that connect them.
 				self.scaffold.connect_cells(self, connections, morphologies=morphology_names, compartments=compartments)
 		# Remove the morphology cache
 		self.morphology_cache = None
 
-	def intersect_cells(self, from_type, to_type):
+	def intersect_cells(self, touch_info):
+		from_cell_type = touch_info.from_cell_type
+		to_cell_type = touch_info.to_cell_type
 		cell_plane = self.cell_intersection_plane
-		from_cell_tree = self.scaffold.trees.cells.get_planar_tree(from_type.name, plane=cell_plane)
-		to_cell_tree = self.scaffold.trees.cells.get_planar_tree(to_type.name, plane=cell_plane)
-		from_count = self.scaffold.get_placed_count(from_type.name)
-		to_count = self.scaffold.get_placed_count(to_type.name)
-		radius = self.get_search_radius(from_type) + self.get_search_radius(to_type)
+		from_cell_tree = self.scaffold.trees.cells.get_planar_tree(from_cell_type.name, plane=cell_plane)
+		to_cell_tree = self.scaffold.trees.cells.get_planar_tree(to_cell_type.name, plane=cell_plane)
+		from_count = self.scaffold.get_placed_count(from_cell_type.name)
+		to_count = self.scaffold.get_placed_count(to_cell_type.name)
+		radius = self.get_search_radius(from_cell_type) + self.get_search_radius(to_cell_type)
 		# TODO: Profile whether the reverse lookup with the smaller tree and then reversing the matches array
 		# gains us any speed.
 		if from_count < to_count:
@@ -848,10 +862,9 @@ class TouchDetector(ConnectionStrategy):
 					matches[match].append(i)
 			return matches
 
-	def intersect_compartments(self, from_type, to_type, candidate_map, reversed_map=False):
-		from .plotting import plot_morphology, set_scene_range, plot_intersections
-		id_map_from = from_type.get_ids()
-		id_map_to = to_type.get_ids()
+	def intersect_compartments(self, touch_info, candidate_map):
+		id_map_from = touch_info.from_cell_type.get_ids()
+		id_map_to = touch_info.to_cell_type.get_ids()
 		connected_cells = []
 		morphology_names = []
 		connected_compartments = []
@@ -859,26 +872,31 @@ class TouchDetector(ConnectionStrategy):
 		plots = 0
 		for i in range(len(candidate_map)):
 			from_id = id_map_from[i]
-			from_morphology = self.get_random_morphology(from_type)
+			touch_info.from_morphology = self.get_random_morphology(touch_info.from_cell_type)
 			for j in candidate_map[i]:
 				c_check += 1
 				to_id = id_map_to[j]
-				to_morphology = self.get_random_morphology(to_type)
-				intersections = self.get_compartment_intersections(from_morphology, to_morphology, from_id, to_id)
+				touch_info.to_morphology = self.get_random_morphology(touch_info.to_cell_type)
+				intersections = self.get_compartment_intersections(touch_info, from_id, to_id)
 				if len(intersections) > 0:
 					connected_cells.append([from_id, to_id])
 					connected_compartments.append(random_element(intersections))
-					morphology_names.append([from_morphology.morphology_name, to_morphology.morphology_name])
+					morphology_names.append([touch_info.from_morphology.morphology_name, touch_info.to_morphology.morphology_name])
 		if self.scaffold.configuration.verbosity > 1:
 			print("Checked {} candidate cell pairs".format(c_check))
 			print("Result conns: ", np.array(connected_cells, dtype=int))
 		return np.array(connected_cells, dtype=int), np.array(morphology_names,dtype=np.string_), np.array(connected_compartments, dtype=int)
 
-	def get_compartment_intersections(self, from_morphology, to_morphology, from_cell_id, to_cell_id):
+	def get_compartment_intersections(self, touch_info, from_cell_id, to_cell_id):
+		from_cell_type = touch_info.from_cell_type
+		to_cell_type = touch_info.to_cell_type
+		from_morphology = touch_info.from_morphology
+		to_morphology = touch_info.to_morphology
 		from_pos = self.scaffold.get_cell_position(from_cell_id)
 		to_pos = self.scaffold.get_cell_position(to_cell_id)
-		query_points = np.array(to_morphology.compartment_tree.get_arrays()[0]) + to_pos - from_pos
-		compartment_hits = from_morphology.compartment_tree.query_radius(query_points, self.tolerance)
+		query_points = to_morphology.get_compartment_positions(types=touch_info.to_cell_compartments) + to_pos - from_pos
+		from_tree = from_morphology.get_compartment_tree(compartment_types=touch_info.from_cell_compartments)
+		compartment_hits = from_tree.query_radius(query_points, self.tolerance)
 		intersections = []
 		for i in range(len(compartment_hits)):
 			hits = compartment_hits[i]

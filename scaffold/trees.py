@@ -76,7 +76,7 @@ class TreeCollection:
             self.load_tree(subtree_name)
         if self.trees[subtree_name] is None:
             self.make_sub_tree(name, subset, filter, factory)
-        return self.trees[planar_name]
+        return self.trees[subtree_name]
 
     def make_planar_tree(self, name, plane):
         full_tree = self.get_tree(name)
@@ -90,15 +90,15 @@ class TreeCollection:
         return planar_tree
 
     def make_sub_tree(self, name, subset, set_filter, factory=None):
-        if full_tree is None:
-            raise Exception("Cannot make sub tree from unknown tree '{}'".format(name))
         if not factory is None:
             data = factory(subset)
         else:
             full_tree = self.get_tree(name)
+            if full_tree is None:
+                raise Exception("Cannot make sub tree from unknown tree '{}'".format(name))
             def closure(node):
                 return set_filter(subset, node)
-            data = np.array(list(filter(full_tree.get_arrays()[0], closure)))
+            data = np.array(list(filter(closure, full_tree.get_arrays()[0])))
         sub_tree = KDTree(data)
         self.trees['{}({})'.format(name, subset)] = sub_tree
         self.save()
