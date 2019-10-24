@@ -522,7 +522,7 @@
           "synapse": {}
         },
         "parallel_fiber_to_purkinje": {
-          "plastic": true,
+          "plastic": false,
           "hetero": true,
           "synapse_model": "stdp_synapse_sinexp",
           "connection": {
@@ -659,7 +659,7 @@
         },
         "purkinje_multimeter": {
           "device": "multimeter",
-          "io": "output",
+          "io": "input",
           "type": "cell_type",
           "cell_types": ["purkinje_cell"],
           "parameters": {

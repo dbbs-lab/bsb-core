@@ -75,6 +75,7 @@ class NestConnection(SimulationComponent):
         params.update(self.connection[self.synapse_model])
         if self.should_specify_receptor_type():
             params["receptor_type"] = self.get_receptor_type()
+        params["model"] = self.synapse_model
         return params
 
     def _get_cell_types(self, key="from"):
@@ -238,13 +239,17 @@ class NestAdapter(SimulatorAdapter):
             'overwrite_files': True,
             'data_path': self.scaffold.output_formatter.get_simulator_output_path(self.simulator_name)
         })
+        self.scaffold.report("Creating neurons...",2)
         self.create_neurons(self.cell_models)
+        self.scaffold.report("Creating connections...",2)
         self.connect_neurons(self.connection_models, hdf5)
+        self.scaffold.report("Creating devices...",2)
         self.create_devices(self.devices)
         return nest
 
     def simulate(self, simulator):
         simulator.Simulate(self.duration)
+        self.scaffold.report("Simulating...",2)
 
     def validate(self):
         for cell_model in self.cell_models.values():
@@ -270,6 +275,7 @@ class NestAdapter(SimulatorAdapter):
             if name not in track_models: # Is this the first time encountering this model?
                 # Create the cell model in the simulator
                 self.create_model(cell_models[name])
+                self.scaffold.report("Creating "+name+"...", 3)
                 track_models.append(name)
             # Create the same amount of cells that were placed in this stitch.
             identifiers = self.nest.Create(name, count)
@@ -299,12 +305,14 @@ class NestAdapter(SimulatorAdapter):
                 self.create_synapse_model(connection_model)
                 if connection_model.plastic == True:
                     # Create the volume transmitters
+                    self.scaffold.report("Creating volume transmitter for "+name,3)
                     self.create_volume_transmitter(connection_model, postsynaptic_cells)
             # Set the specifications NEST allows like: 'rule', 'autapses', 'multapses'
             connection_specifications = {'rule': 'one_to_one'}
             # Get the connection parameters from the configuration
             connection_parameters = connection_model.get_connection_parameters()
             # Create the connections in NEST
+            self.scaffold.report("Creating connections "+name,3)
             self.nest.Connect(presynaptic_cells, postsynaptic_cells, connection_specifications, connection_parameters)
             # Workaround for https://github.com/alberto-antonietti/CerebNEST/issues/10
             if connection_model.plastic == True:
@@ -317,12 +325,14 @@ class NestAdapter(SimulatorAdapter):
                     self.nest.SetStatus(connections_to_target ,{"vt_num": float(i)})
 
 
+
     def create_devices(self, devices):
         '''
             Create the configured NEST devices in the simulator
         '''
         for device_model in devices.values():
             device = self.nest.Create(device_model.device)
+            self.scaffold.report("Creating device:  "+device_model.device,3)
             device_targets = device_model.get_targets()
             self.nest.SetStatus(device, device_model.parameters)
             try:
@@ -352,6 +362,7 @@ class NestAdapter(SimulatorAdapter):
         '''
         # Use the default model unless another one is specified in the configuration.
         # Alias the nest model name under our cell model name.
+        self.scaffold.report("Creating synapse model '{}' for {}".format(connection_model.synapse_model, connection_model.name), 0)
         self.nest.CopyModel(connection_model.synapse_model, connection_model.name)
         # Get the synapse parameters
         params = connection_model.get_synapse_parameters()
