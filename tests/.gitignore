@@ -3,3 +3,4 @@
 !profiling/
 !profiling.py
 !test_*
+!.hdf5
