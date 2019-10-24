@@ -17,7 +17,7 @@ class TestSingleNeuronTypeSetup(unittest.TestCase):
     def test_single_neuron(self):
         self.scaffold.run_simulation("test_single_neuron")
         test_cell_model = self.nest_adapter.cell_models["test_cell"]
-        self.assertEqual(test_cell_model.identifiers, [1, 2, 3])
+        self.assertEqual(test_cell_model.identifiers, [1, 2, 3, 4])
 
 
 class TestDoubleNeuronTypeSetup(unittest.TestCase):
