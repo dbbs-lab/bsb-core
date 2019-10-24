@@ -149,7 +149,7 @@ class LayeredRandomWalk(PlacementStrategy):
 		## Placement
 		min_ϵ = self.distance_multiplier_min * cell_type.ϵ
 		max_ϵ = self.distance_multiplier_max * cell_type.ϵ
-		cells_per_sublayer = np.round(n_cells_to_place / n_sublayers)
+		cells_per_sublayer = max(1, np.round(n_cells_to_place / n_sublayers))
 
 		layer_cell_positions = np.empty((0, 3))
 		previously_placed_cells = scaffold.cells_by_layer[layer.name][:,[2,3,4]]
