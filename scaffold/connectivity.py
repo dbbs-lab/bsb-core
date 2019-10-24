@@ -1,5 +1,5 @@
 import abc
-from .helpers import ConfigurableClass, assert_attr_in
+from .helpers import ConfigurableClass, DistributionConfig, assert_attr_in
 from .postprocessing import get_parallel_fiber_heights, get_dcn_rotations
 import numpy as np
 from random import choice as random_element
@@ -801,7 +801,8 @@ class TouchDetector(ConnectionStrategy):
 	'''
 
 	casts = {
-		'tolerance': float
+		'tolerance': float,
+		'synapses': DistributionConfig.cast
 	}
 
 	defaults = {
@@ -827,7 +828,6 @@ class TouchDetector(ConnectionStrategy):
 		for from_cell_type_index in range(len(self.from_cell_types)):
 			from_cell_type = self.from_cell_types[from_cell_type_index]
 			from_cell_compartments = self.from_cell_compartments[from_cell_type_index]
-			print('from comps:', from_cell_compartments)
 			for to_cell_type_index in range(len(self.to_cell_types)):
 				to_cell_type = self.to_cell_types[to_cell_type_index]
 				to_cell_compartments = self.to_cell_compartments[to_cell_type_index]
