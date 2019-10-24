@@ -450,7 +450,7 @@ class JSONConfig(ScaffoldConfig):
         # Radius of the cell soma
         placement.radius = assert_attr_float(section, 'soma_radius', node_name)
         # Density configurations all rely on a float or a float and relation
-        density_attr, density_value = assert_strictly_one(section, ['density', 'planar_density', 'placement_count_ratio', 'density_ratio'], node_name)
+        density_attr, density_value = assert_strictly_one(section, ['density', 'planar_density', 'placement_count_ratio', 'density_ratio', 'count'], node_name)
         density_value = assert_float(density_value, '{}.{}'.format(node_name, density_attr))
         placement.__dict__[density_attr] = density_value
         # Does this density configuration rely on a relation to another cell_type?

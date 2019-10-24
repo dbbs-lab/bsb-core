@@ -35,6 +35,8 @@ class PlacementStrategy(ConfigurableClass):
 		layer = self.layer_instance
 		available_volume = layer.available_volume
 		placement = cell_type.placement
+		if not placement.count is None:
+			return int(placement.count)
 		if not placement.placement_count_ratio is None:
 			# Get the placement count of the ratio cell type and multiply their count by the ratio.
 			ratioCellType = scaffold.configuration.cell_types[placement.placement_relative_to]
