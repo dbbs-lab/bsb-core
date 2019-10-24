@@ -2,4 +2,5 @@
 !.gitignore
 !profiling/
 !profiling.py
-!test_purkinje_densities.py
+!test_*
+!.hdf5
