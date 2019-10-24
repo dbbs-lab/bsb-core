@@ -1,0 +1,84 @@
+{
+  "name": "DBBS Mouse cerebellum configuration v4.0",
+  "output": {
+    "format": "scaffold.output.HDF5Formatter",
+    "file": "single_neuron_test.hdf5"
+  },
+  "network_architecture": {
+    "simulation_volume_x": 150.0,
+    "simulation_volume_z": 150.0,
+    "store_kd_trees": true,
+    "store_compound_kd_tree": true,
+    "store_pf_kd_trees": true
+  },
+  "layers": {
+    "test_layer": {
+      "thickness": 600,
+      "stack": {
+        "stack_id": 0,
+        "position_in_stack": 0,
+        "position": [0.0, 0.0, 0.0]
+      }
+    }
+  },
+  "cell_types": {
+    "test_cell": {
+      "placement": {
+        "class": "scaffold.placement.LayeredRandomWalk",
+        "layer": "test_layer",
+        "soma_radius": 2.5,
+        "count": 1
+      },
+      "morphology": {
+        "class": "scaffold.morphologies.NoGeometry"
+      },
+      "plotting": {
+        "display_name": "lonely cell",
+        "color": "#E62214"
+      }
+    }
+  },
+  "connection_types": {
+
+  },
+  "simulations": {
+    "test_single_neuron": {
+      "simulator": "nest",
+      "default_neuron_model": "iaf_cond_alpha",
+      "default_synapse_model": "static_synapse",
+      "duration": 10,
+      "cell_models": {
+        "test_cell": {
+          "parameters": {
+            "t_ref": 1.5,
+            "C_m": 7.0,
+            "V_th": -41.0,
+            "V_reset": -70.0,
+            "E_L": -62.0
+          },
+          "iaf_cond_alpha": {
+            "I_e": 0.0
+          },
+          "eglif": {
+            "Vinit": -62.0,
+            "lambda":1.0,
+            "deltaV":0.3,
+            "tau_m": 24.15,
+            "I_e": -0.888,
+            "k_adap": 0.022,
+            "k1": 0.311,
+            "k2": 0.041,
+            "A1": 0.01,
+            "A2":-0.94
+          }
+        }
+      },
+      "connection_models": {
+
+      },
+      "devices": {
+
+      }
+    }
+  }
+}
