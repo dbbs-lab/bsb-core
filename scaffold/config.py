@@ -91,7 +91,7 @@ class ScaffoldConfig(object):
         self._raw = stream
         self._name = '<stream>'
 
-    def addCellType(self, cell_type):
+    def add_cell_type(self, cell_type):
         '''
             Adds a cell type to the config object. Cell types are used to populate
             cells into the layers of the simulation.
@@ -340,7 +340,7 @@ class JSONConfig(ScaffoldConfig):
         if 'plotting' in section:
             cell_type.plotting.color = if_attr(section['plotting'], 'color', '#000000')
         # Register cell type
-        self.addCellType(cell_type)
+        self.add_cell_type(cell_type)
         return cell_type
 
     def init_layer(self, name, config):
