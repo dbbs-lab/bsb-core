@@ -46,7 +46,7 @@ class TestSingleNeuronSetup(unittest.TestCase):
         self.nest_adapter = nest_adapter
 
 
-    def test_neuron_number(self):
+    def test_single_neuron(self):
         # self.nest_adapter.create_neurons(self.nest_adapter.cell_models)
         with h5py.File("test_single_connection.hdf5") as handle:
             self.nest_adapter.prepare(handle)
