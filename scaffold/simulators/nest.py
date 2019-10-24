@@ -8,6 +8,7 @@ class NestCell(SimulationComponent):
     required = ['parameters']
 
     def boot(self):
+        self.identifiers = []
         self.receptor_specifications = {}
         for key in self.__dict__:
             value = self.__dict__[key]
@@ -215,7 +216,7 @@ class NestAdapter(SimulatorAdapter):
 
     defaults = {
         'default_synapse_model': 'static_synapse',
-        'default_neuron_model': 'iaf',
+        'default_neuron_model': 'iaf_cond_alpha',
         'verbosity': 'M_ERROR',
         'threads': 1,
         'virtual_processes': 1,
@@ -274,11 +275,13 @@ class NestAdapter(SimulatorAdapter):
             name = self.scaffold.configuration.cell_type_map[cell_type_id]
             if name not in track_models: # Is this the first time encountering this model?
                 # Create the cell model in the simulator
-                self.create_model(cell_models[name])
                 self.scaffold.report("Creating "+name+"...", 3)
+                self.create_model(cell_models[name])
                 track_models.append(name)
             # Create the same amount of cells that were placed in this stitch.
+            self.scaffold.report("Creating {} {}...".format(count, name), 3)
             identifiers = self.nest.Create(name, count)
+            self.cell_models[name].identifiers.extend(identifiers)
             # Check if the stitching is going OK.
             if identifiers[0] != start_id + 1:
                 raise Exception("Could not match the scaffold cell identifiers to NEST identifiers! Cannot continue.")

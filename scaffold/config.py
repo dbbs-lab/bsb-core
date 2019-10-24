@@ -4,7 +4,7 @@ from .models import CellType, Layer
 from .morphologies import Morphology as BaseMorphology
 from .connectivity import ConnectionStrategy
 from .placement import PlacementStrategy
-from .output import OutputFormatter
+from .output import OutputFormatter, HDF5Formatter
 from .simulation import SimulatorAdapter, SimulationComponent
 from .helpers import (
     assert_float, assert_array, assert_attr_array,
@@ -51,14 +51,16 @@ class ScaffoldConfig(object):
             self._extension = ''
         self.simulators = simulators
         self.simulators['nest'] = NestAdapter
+        self.output_formatter = HDF5Formatter()
 
         # Fallback simulation values
         self.X = 200    # Transverse simulation space size (µm)
         self.Z = 200    # Longitudinal simulation space size (µm)
 
-        self.read_config(file, stream)
-        # Execute the load handler set by the child configuration implementation
-        self._parsed_config = self._load_handler(self._raw)
+        if not file is None or not stream is None:
+            self.read_config(file, stream)
+            # Execute the load handler set by the child configuration implementation
+            self._parsed_config = self._load_handler(self._raw)
 
     def read_config(self, file=None, stream=None):
         if not stream is None:

@@ -22,7 +22,7 @@ class PlacementStrategy(ConfigurableClass):
 		self.placement_relative_to = None
 
 	@abc.abstractmethod
-	def place(self, scaffold, cell_type):
+	def place(self, cell_type):
 		pass
 
 	def get_placement_count(self, cell_type):
