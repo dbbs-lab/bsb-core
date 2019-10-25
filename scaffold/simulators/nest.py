@@ -220,7 +220,7 @@ class NestAdapter(SimulatorAdapter):
         'verbosity': 'M_ERROR',
         'threads': 1,
         'virtual_processes': 1,
-        'resolution': 0.1,
+        'resolution': 1.0,
         'modules': []
     }
 
