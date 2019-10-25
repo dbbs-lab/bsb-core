@@ -220,10 +220,13 @@ class NestAdapter(SimulatorAdapter):
         'verbosity': 'M_ERROR',
         'threads': 1,
         'virtual_processes': 1,
+        'resolution': 0.1,
         'modules': []
     }
 
-    required = ['default_neuron_model', 'default_synapse_model', 'duration']
+    required = ['default_neuron_model', 'default_synapse_model',
+        'duration', 'resolution', 'threads', 'virtual_processes'
+    ]
 
     def __init__(self):
         super().__init__()
@@ -235,6 +238,7 @@ class NestAdapter(SimulatorAdapter):
         nest.set_verbosity(self.verbosity)
         nest.ResetKernel()
         nest.SetKernelStatus({
+            'resolution': self.resolution,
             'local_num_threads': self.threads,
             'total_num_virtual_procs': self.virtual_processes,
             'overwrite_files': True,
