@@ -801,17 +801,18 @@ class TouchDetector(ConnectionStrategy):
 	'''
 
 	casts = {
-		'tolerance': float,
+		'compartment_intersection_radius': float,
+		'cell_intersection_radius': float,
 		'synapses': DistributionConfig.cast
 	}
 
 	defaults = {
 		'cell_intersection_plane': 'xyz',
 		'compartment_intersection_plane': 'xyz',
-		'tolerance': 5.
+		'compartment_intersection_radius': 5.,
 	}
 
-	required = ['cell_intersection_plane', 'compartment_intersection_plane', 'tolerance']
+	required = ['cell_intersection_plane', 'compartment_intersection_plane', 'compartment_intersection_radius']
 
 	def validate(self):
 		planes = ['xyz', 'xy', 'xz', 'yz', 'x', 'y', 'z']
@@ -849,7 +850,10 @@ class TouchDetector(ConnectionStrategy):
 		to_cell_tree = self.scaffold.trees.cells.get_planar_tree(to_cell_type.name, plane=cell_plane)
 		from_count = self.scaffold.get_placed_count(from_cell_type.name)
 		to_count = self.scaffold.get_placed_count(to_cell_type.name)
-		radius = self.get_search_radius(from_cell_type) + self.get_search_radius(to_cell_type)
+		if hasattr(self, 'cell_intersection_radius'):
+			radius = self.cell_intersection_radius
+		else:
+			radius = self.get_search_radius(from_cell_type) + self.get_search_radius(to_cell_type)
 		# TODO: Profile whether the reverse lookup with the smaller tree and then reversing the matches array
 		# gains us any speed.
 		if from_count < to_count:
