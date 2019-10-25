@@ -232,9 +232,12 @@ class NestAdapter(SimulatorAdapter):
         super().__init__()
 
     def prepare(self, hdf5):
+        self.scaffold.report("Importing  NEST...", 2)
         import nest
         self.nest = nest
+        self.scaffold.report("Installing  NEST modules...", 2)
         self.install_modules()
+        self.scaffold.report("Initializing NEST kernel...", 2)
         nest.set_verbosity(self.verbosity)
         nest.ResetKernel()
         nest.SetKernelStatus({
@@ -253,8 +256,9 @@ class NestAdapter(SimulatorAdapter):
         return nest
 
     def simulate(self, simulator):
-        simulator.Simulate(self.duration)
         self.scaffold.report("Simulating...",2)
+        simulator.Simulate(self.duration)
+        self.scaffold.report("Simulation finished.", 2)
 
     def validate(self):
         for cell_model in self.cell_models.values():
