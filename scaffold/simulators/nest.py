@@ -218,8 +218,7 @@ class NestAdapter(SimulatorAdapter):
         'default_synapse_model': 'static_synapse',
         'default_neuron_model': 'iaf_cond_alpha',
         'verbosity': 'M_ERROR',
-        'threads': 1,
-        'virtual_processes': 1,
+        'cores': 1,
         'resolution': 1.0,
         'modules': []
     }
@@ -238,15 +237,7 @@ class NestAdapter(SimulatorAdapter):
         self.scaffold.report("Installing  NEST modules...", 2)
         self.install_modules()
         self.scaffold.report("Initializing NEST kernel...", 2)
-        nest.set_verbosity(self.verbosity)
-        nest.ResetKernel()
-        nest.SetKernelStatus({
-            'resolution': self.resolution,
-            'local_num_threads': self.threads,
-            'total_num_virtual_procs': self.virtual_processes,
-            'overwrite_files': True,
-            'data_path': self.scaffold.output_formatter.get_simulator_output_path(self.simulator_name)
-        })
+        self.reset_kernel()
         self.scaffold.report("Creating neurons...",2)
         self.create_neurons(self.cell_models)
         self.scaffold.report("Creating connections...",2)
@@ -254,6 +245,37 @@ class NestAdapter(SimulatorAdapter):
         self.scaffold.report("Creating devices...",2)
         self.create_devices(self.devices)
         return nest
+
+    def reset_kernel(self):
+        self.nest.set_verbosity(self.verbosity)
+        self.nest.ResetKernel()
+        self.nest.SetKernelStatus({
+            'resolution': self.resolution,
+            'overwrite_files': True,
+            'data_path': self.scaffold.output_formatter.get_simulator_output_path(self.simulator_name)
+        })
+        self.setCores(self.cores)
+
+    def get_master_seed(self):
+        # Use a constant reproducible master seed
+        return 1989
+
+    def setCores(self, n_cores):
+        master_seed = self.get_master_seed()
+        # Update the internal reference to the amount of cores
+        self.threads = n_cores
+        self.virtual_processes = n_cores
+        # Create a range of random seeds and generators.
+        random_generator_seeds = range(master_seed, master_seed + n_cores)
+        self.random_generators = [np.random.RandomState(seed) for seed in random_generator_seeds]
+        # Create a different range of random seeds for the kernel.
+        core_seeds = range(master_seed + n_cores + 1, master_seed + 1 + 2 * n_cores)
+        # Update the kernel with the new RNG and cores state.
+        nest.SetKernelStatus({'grng_seed' : master_seed + n_cores,
+                              'rng_seeds' : core_seeds,
+                              'local_num_threads': self.threads,
+                              'total_num_virtual_procs': self.virtual_processes,
+                             })
 
     def simulate(self, simulator):
         self.scaffold.report("Simulating...",2)
