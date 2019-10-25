@@ -208,6 +208,7 @@ class MorphologyRepository(HDF5TreeHandler):
         starts = {-1: [0., 0., 0.]}
         id_map = {-1: -1}
         next_id = 1
+		# Get translation for a new space with compartment 0 as origin.
         translation = swc_data[0, 2:5]
         # Iterate over the compartments
         for i in range(dataset_length):
@@ -228,6 +229,7 @@ class MorphologyRepository(HDF5TreeHandler):
             compartment_parent = id_map[compartment[6]]
             # Use parent endpoint as startpoint, get endpoint and store it as a startpoint for child compartments
             compartment_start = starts[compartment_parent]
+			# Translate each compartment to a new space with compartment 0 as origin.
             compartment_end = compartment[2:5] - translation
             starts[compartment_id] = compartment_end
             # Get more compartment radius
@@ -251,6 +253,7 @@ class MorphologyRepository(HDF5TreeHandler):
             dset = repo['morphologies'].create_dataset(name, data=dataset_data)
             # Set attributes
             dset.attrs['name'] = name
+            dset.attrs['search_radii'] = np.max(np.abs(np.array([pos[:,d] for d in range(3)])), axis=1)
             dset.attrs['type'] = 'swc'
 
     def import_repository(self, repository, overwrite=False):
@@ -264,7 +267,7 @@ class MorphologyRepository(HDF5TreeHandler):
                         else:
                             print("[WARNING] Did not import '{}' because it already existed and overwrite=False".format(m_key))
 
-    def get_morphology(self, name):
+    def get_morphology(self, name, scaffold=None):
         '''
             Load a morphology from repository data
         '''
@@ -283,7 +286,7 @@ class MorphologyRepository(HDF5TreeHandler):
                 voxel_kwargs['voxel_data'] = voxels['positions'][()]
                 voxel_kwargs['voxel_meta'] = dict(voxels.attrs)
                 voxel_kwargs['voxel_map'] = pickle.loads(voxels['map'][()])
-            return Morphology.from_repo_data(repo_data, repo_meta, **voxel_kwargs)
+            return Morphology.from_repo_data(repo_data, repo_meta, scaffold=scaffold, **voxel_kwargs)
 
     def store_voxel_cloud(self, morphology, overwrite=False):
         with self.load('a') as repo:

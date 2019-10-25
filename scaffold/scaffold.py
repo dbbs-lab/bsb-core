@@ -22,6 +22,7 @@ class Scaffold:
 		self._initialise_output_formatter()
 		self.trees = type('scaffold.trees', (object,), {})()
 		self.trees.__dict__['cells'] = TreeCollection('cells', self.output_formatter)
+		self.trees.__dict__['morphologies'] = TreeCollection('morphologies', self.output_formatter)
 		self._nextId = 0
 		# Use the configuration to initialise all components such as cells and layers
 		# to prepare for the network architecture compilation.

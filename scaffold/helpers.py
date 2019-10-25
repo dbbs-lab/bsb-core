@@ -1,4 +1,5 @@
-import abc, numpy as np
+import abc, inspect, numpy as np
+from .exceptions import *
 
 def get_qualified_class_name(x):
     return x.__class__.__module__ + '.' + str(x.__class__.__name__)
@@ -24,6 +25,13 @@ class ConfigurableClass(abc.ABC):
             are received.
         '''
         pass
+
+    def fill(self, conf, excluded=[]):
+        self._raw_config = conf
+        print('added raw', self._raw_config)
+        for name, prop in conf.items():
+            if not name in excluded:
+                self.__dict__[name] = prop
 
     def castConfig(self):
         '''
@@ -61,34 +69,117 @@ class ConfigurableClass(abc.ABC):
                     raise Exception("Required attribute '{}' missing from '{}' section.".format(attr, name))
             elif shouldCast:
                 cast = castingDict[attr]
-                def cast_node(value, cast, attr):
-                    def try_cast(value, cast):
-                        try:
-                            return cast(value)
-                        except Exception as e:
-                            raise Exception("{}.{}: Could not cast '{}' to a {}".format(
-                                name,
-                                attr,
-                                value,
-                                cast.__name__
-                            ))
+                self.__dict__[attr] = cast_node(self.__dict__[attr], cast, attr, name)
 
-                    if type(cast) is list:
-                        if len(cast) != 1:
-                            raise Exception("Invalid list casting configuration of {} in {}: can only cast a one-element list. The one element being the casting type of the list elements.".format(attr, name))
-                        cast = cast[0]
-                        # Try casting value to a list
-                        value = try_cast(value, list)
-                        # Try casting each element of value to the cast type
-                        for i in range(len(value)):
-                            value[i] = cast_node(value[i], cast, attr + '[{}]'.format(i))
-                        return value
-                    elif type(cast) is dict:
-                        raise Exception("Dictionary casting not implemented yet. (no use case)")
-                    else:
-                        return try_cast(value, cast)
+def cast_node(value, cast, attr, name):
+    if type(cast) is tuple:
+        for union_cast in cast:
+            # Try casting to each type in the union. Follows order.
+            try:
+                return cast_node(value, union_cast, attr, name)
+            except Exception as e:
+                pass
+        # If this code path is reached, it means none of the casts succeeded without
+        # an error so we should raise an error that the union cast failed.
+        raise_union_cast(value, cast, attr, name)
+    elif type(cast) is list:
+        if len(cast) != 1:
+            raise Exception("Invalid list casting configuration of {} in {}: can only cast a one-element list. The one element being the casting type of the list elements.".format(attr, name))
+        cast = cast[0]
+        # Try casting value to a list
+        value = try_cast(value, list, attr, name)
+        # Try casting each element of value to the cast type
+        for i in range(len(value)):
+            value[i] = cast_node(value[i], cast, attr + '[{}]'.format(i), name)
+        return value
+    elif type(cast) is dict:
+        raise Exception("Dictionary casting not implemented yet. (no use case)")
+    else:
+        return try_cast(value, cast, attr, name)
 
-                self.__dict__[attr] = cast_node(self.__dict__[attr], cast, attr)
+def try_cast(value, cast, attr, name):
+    try:
+        # Try to cast using the specified cast function.
+        v = cast(value)
+        return v
+    except Exception as e:
+        if isinstance(e, ConfigurableCastException): # Is this an error raised by a child configurable class?
+            # Format context and pass along the child cast exception.
+            raise e.__class__("{}.{}: ".format(name, attr) + str(e)) from None
+        # Use the function name, unless it is a class method called 'cast', then use the class name
+        cast_name = cast.__name__ if not hasattr(cast, "__self__") or cast.__name__ != "cast" else cast.__self__.__name__
+        # Else, replace by generic "we couldn't" error.
+        raise CastException("{}.{}: Could not cast '{}' to a {}".format(
+            name, attr, value, cast_name
+        ))
+
+def raise_union_cast(value, cast, attr, name):
+    cast_names = []
+    for c in cast:
+        if c.__name__ == "cast" and hasattr(c, '__self__'):
+            cast_names.append(c.__self__.__name__)
+        else:
+            cast_names.append(c.__name__)
+    raise UnionCastException("{}.{}: Could not cast '{}' to any of the following: {}".format(
+        name, attr, value, ", ".join(cast_names)
+    ))
+
+class CastableConfigurableClass(ConfigurableClass):
+
+    excluded = []
+
+    @classmethod
+    def cast(cast_class, value):
+        class_instance = cast_class()
+        class_instance.fill(value, cast_class.excluded)
+        return class_instance
+
+class DistributionConfiguration(CastableConfigurableClass):
+
+    casts = {
+        "mean": float,
+        "sd": float,
+        "type": str
+    }
+
+    @classmethod
+    def cast(cast_class, value):
+        class_instance = cast_class()
+        if isinstance(value, dict): # Configured by dictionary
+            class_instance.fill(value, cast_class.excluded)
+            class_instance.validate()
+        else: # Try for int configuration
+            try:
+                value = int(value)
+            except Exception as e:
+                raise
+            class_instance.type = "const"
+            class_instance.value = value
+        return class_instance
+
+    def validate(self):
+        from scipy.stats import distributions
+        if self.type[-4:] == "_gen":
+            raise InvalidDistributionException("Distributions can not be created through their constructors but need to use their factory methods. (Those do not end in _gen)")
+        if not self.type in dir(distributions):
+            raise UnknownDistributionException("'{}' is not a distribution of scipy.stats".format(self.type))
+        try:
+            distribution_factory = distributions.__dict__[self.type]
+            distribution_kwargs = self._raw_config.copy()
+            del distribution_kwargs['type']
+            self.distribution = distribution_factory(**distribution_kwargs)
+        except TypeError as e:
+            error_msg = str(e).replace("_parse_args()", "scipy.stats.distributions." + self.type)
+            raise InvalidDistributionException(error_msg) from None
+
+    def draw(self, n):
+        if self.type == "const":
+            return [self.value for _ in range(n)]
+        else:
+            return self.distribution.rvs(size=n)
+
+    def sample(self):
+        return self.draw(1)[0]
 
 def assert_attr(section, attr, section_name):
     if not attr in section:
