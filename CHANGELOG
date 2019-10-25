@@ -1,6 +1,18 @@
-# 3.0 - Release candidate 2
+# 3.0
 
-## Major changes
+## Alpha version 3
+
+### Major changes
+* Merged touch detection branch
+  * 3D touch detection, can be reduced to 2 or 1 dimension cell intersection.
+  * Select from & to cell type & compartment type.
+  * Ability to auto-discover cell search radius or to specify it yourself. Compartment needs to be specified (default 5µm)
+  * Configure amount of synapses with a constant or distribution
+
+## Alpha version 2
+
+### Major changes
+
 * Cross-platform pip entry-points (console scripts such as `scaffold compile`)
 * Merged in the plasticity branch
   * Setting `"plastic": true` in a NestConnection configuration will set it up as a plastic connection
@@ -17,7 +29,8 @@ installed using `pip install dbbs-scaffold[with-plotting]`
   actually contained within the dataset when the ConnectionStrategy has multiple types.
 * Added a overloadable `boot` method to ConfigurableClass that is executed after `__init__` and before `validate`
 
-## Minor changes
+### Minor changes
+
 * NEST simulator resolution can be set
 * Cells can be placed by an absolute amount instead of just densities.
   * For very low amounts of cells to be placed there is a minimum of 1 per sublayer.
@@ -25,7 +38,8 @@ installed using `pip install dbbs-scaffold[with-plotting]`
 * Added a `report` function to `scaffold.py` for verbosity compliant prints.
 * IllegalConnection errors by NEST are now caught to display the device that causes them.
 
-## Tests
+### Tests
+
 * Added single and double cell type creation tests for NEST adapter.
 
 # 2.3
