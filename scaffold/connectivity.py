@@ -1,8 +1,8 @@
 import abc
-from .helpers import ConfigurableClass, DistributionConfig, assert_attr_in
+from .helpers import ConfigurableClass, DistributionConfiguration, assert_attr_in
 from .postprocessing import get_parallel_fiber_heights, get_dcn_rotations
 import numpy as np
-from random import choice as random_element
+from random import choice as random_element, sample as sample_elements
 
 class ConnectionStrategy(ConfigurableClass):
 
@@ -803,13 +803,16 @@ class TouchDetector(ConnectionStrategy):
 	casts = {
 		'compartment_intersection_radius': float,
 		'cell_intersection_radius': float,
-		'synapses': DistributionConfig.cast
+		'synapses': DistributionConfiguration.cast,
+		'allow_zero_synapses': bool
 	}
 
 	defaults = {
 		'cell_intersection_plane': 'xyz',
 		'compartment_intersection_plane': 'xyz',
 		'compartment_intersection_radius': 5.,
+		'synapses': DistributionConfiguration.cast(1),
+		'allow_zero_synapses': False
 	}
 
 	required = ['cell_intersection_plane', 'compartment_intersection_plane', 'compartment_intersection_radius']
@@ -817,9 +820,6 @@ class TouchDetector(ConnectionStrategy):
 	def validate(self):
 		planes = ['xyz', 'xy', 'xz', 'yz', 'x', 'y', 'z']
 		assert_attr_in(self.__dict__, 'cell_intersection_plane', planes, 'connection_types.{}'.format(self.name))
-		# Preselection: preselect candidate compartments
-		# Preselection uses placement point (?)
-		# Preselection plane
 		assert_attr_in(self.__dict__, 'compartment_intersection_plane', planes, 'connection_types.{}'.format(self.name))
 
 	def connect(self):
@@ -873,6 +873,7 @@ class TouchDetector(ConnectionStrategy):
 		morphology_names = []
 		connected_compartments = []
 		c_check = 0
+		touching_cells = 0
 		plots = 0
 		for i in range(len(candidate_map)):
 			from_id = id_map_from[i]
@@ -883,12 +884,17 @@ class TouchDetector(ConnectionStrategy):
 				touch_info.to_morphology = self.get_random_morphology(touch_info.to_cell_type)
 				intersections = self.get_compartment_intersections(touch_info, from_id, to_id)
 				if len(intersections) > 0:
-					connected_cells.append([from_id, to_id])
-					connected_compartments.append(random_element(intersections))
-					morphology_names.append([touch_info.from_morphology.morphology_name, touch_info.to_morphology.morphology_name])
+					touching_cells += 1
+					number_of_synapses = max(min(int(self.synapses.sample()), len(intersections)), int(not self.allow_zero_synapses))
+					cell_connections = [[from_id, to_id] for _ in range(number_of_synapses)]
+					compartment_connections = sample_elements(intersections, k=number_of_synapses)
+					connected_cells.extend(cell_connections)
+					connected_compartments.extend(compartment_connections)
+					# Pad the morphology names with the right names for the amount of compartment connections made
+					morphology_names.extend([[touch_info.from_morphology.morphology_name, touch_info.to_morphology.morphology_name] for _ in range(len(compartment_connections))])
 		if self.scaffold.configuration.verbosity > 1:
-			print("Checked {} candidate cell pairs".format(c_check))
-			print("Result conns: ", np.array(connected_cells, dtype=int))
+			print("Checked {} candidate cell pairs from {} to {}".format(c_check, touch_info.from_cell_type.name, touch_info.to_cell_type.name))
+			print("Touch connection results: \n* Touching pairs: ", touching_cells, "\n* Synapses:", len(connected_compartments))
 		return np.array(connected_cells, dtype=int), np.array(morphology_names,dtype=np.string_), np.array(connected_compartments, dtype=int)
 
 	def get_compartment_intersections(self, touch_info, from_cell_id, to_cell_id):
@@ -900,7 +906,7 @@ class TouchDetector(ConnectionStrategy):
 		to_pos = self.scaffold.get_cell_position(to_cell_id)
 		query_points = to_morphology.get_compartment_positions(types=touch_info.to_cell_compartments) + to_pos - from_pos
 		from_tree = from_morphology.get_compartment_tree(compartment_types=touch_info.from_cell_compartments)
-		compartment_hits = from_tree.query_radius(query_points, self.tolerance)
+		compartment_hits = from_tree.query_radius(query_points, self.compartment_intersection_radius)
 		intersections = []
 		for i in range(len(compartment_hits)):
 			hits = compartment_hits[i]

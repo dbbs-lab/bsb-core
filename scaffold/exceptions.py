@@ -9,9 +9,9 @@ class UnionCastException(CastException):
 
 class ConfigurableCastException(CastException):
     pass
-
-class UnknownDistributionException(ConfigurationException):
+    
+class UnknownDistributionException(ConfigurableCastException):
     pass
 
-class InvalidDistributionException(ConfigurationException):
+class InvalidDistributionException(ConfigurableCastException):
     pass
