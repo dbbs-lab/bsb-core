@@ -133,6 +133,7 @@ class Scaffold:
 		self.connection_compartments = {}
 		self.appends = {}
 		self.placement_stitching = []
+		self._connectivity_set_meta = {}
 
 	def run_simulation(self, simulation_name):
 		if not simulation_name in self.configuration.simulations:
@@ -188,7 +189,7 @@ class Scaffold:
 		self._nextId += count
 		return IDs
 
-	def connect_cells(self, connection_type, connectome_data, tag=None, morphologies=None, compartments=None):
+	def connect_cells(self, connection_type, connectome_data, tag=None, morphologies=None, compartments=None, meta=None):
 		# Allow 1 connection type to store multiple connectivity datasets by utilizing tags
 		tag = tag or connection_type.name
 		# Keep track of relevant tags in the connection_type object
@@ -200,6 +201,8 @@ class Scaffold:
 				raise Exception("The morphological data did not match the connectome data.")
 			self._append_tagged('connection_morphologies', tag, morphologies)
 			self._append_tagged('connection_compartments', tag, compartments)
+		if not meta is None:
+			self._connectivity_set_meta[tag] = meta
 
 	def _append_tagged(self, attr, tag, data):
 		'''
@@ -235,6 +238,16 @@ class Scaffold:
 			return self.cells_by_type[cell_type.name][data,0]
 		else:
 			return np.array(self.output_formatter.get_type_map(cell_type))[data]
+
+	def get_connection_type(self, name):
+		if not name in self.configuration.connection_types:
+			raise Exception("Unknown connection type '{}'".format(name))
+		return self.configuration.connection_types[name]
+
+	def get_cell_type(self, name):
+		if not name in self.configuration.cell_types:
+			raise Exception("Unknown cell type '{}'".format(name))
+		return self.configuration.cell_types[name]
 
 	def get_cell_position(self, id):
 		if not id < len(self.cells):

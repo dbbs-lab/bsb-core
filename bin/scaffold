@@ -2,7 +2,7 @@
 
 if __file__[-12:] == "bin/scaffold" or __file__[-12:] == "bin\\scaffold":
 	import os, sys
-	print("Using test source code from", os.path.dirname(__file__)[0:-3])
+	print("Using test source code from", os.path.abspath(os.path.dirname(__file__)[0:-3]))
 	sys.path.insert(0, os.path.dirname(__file__)[0:-3])
 import argparse
 import scaffold

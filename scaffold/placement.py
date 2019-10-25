@@ -22,7 +22,7 @@ class PlacementStrategy(ConfigurableClass):
 		self.placement_relative_to = None
 
 	@abc.abstractmethod
-	def place(self, scaffold, cell_type):
+	def place(self, cell_type):
 		pass
 
 	def get_placement_count(self, cell_type):
@@ -35,6 +35,8 @@ class PlacementStrategy(ConfigurableClass):
 		layer = self.layer_instance
 		available_volume = layer.available_volume
 		placement = cell_type.placement
+		if not placement.count is None:
+			return int(placement.count)
 		if not placement.placement_count_ratio is None:
 			# Get the placement count of the ratio cell type and multiply their count by the ratio.
 			ratioCellType = scaffold.configuration.cell_types[placement.placement_relative_to]
@@ -147,7 +149,7 @@ class LayeredRandomWalk(PlacementStrategy):
 		## Placement
 		min_ϵ = self.distance_multiplier_min * cell_type.ϵ
 		max_ϵ = self.distance_multiplier_max * cell_type.ϵ
-		cells_per_sublayer = np.round(n_cells_to_place / n_sublayers)
+		cells_per_sublayer = max(1, np.round(n_cells_to_place / n_sublayers))
 
 		layer_cell_positions = np.empty((0, 3))
 		previously_placed_cells = scaffold.cells_by_layer[layer.name][:,[2,3,4]]

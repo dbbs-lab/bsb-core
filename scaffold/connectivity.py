@@ -568,8 +568,8 @@ class ConnectomeBCSCPurkinje(ConnectionStrategy):
 			return sc_pc[0:sc_i], bc_pc[0:bc_i]
 
 		result_sc, result_bc = connectome_sc_bc_pc(first_stellate, first_basket, baskets, stellates, purkinjes, distx, distz, conv)
-		self.scaffold.connect_cells(self, result_sc, self.tag_sc)
-		self.scaffold.connect_cells(self, result_bc, self.tag_bc)
+		self.scaffold.connect_cells(self, result_sc, self.tag_sc, {'from_cell_types': [stellate_cell_type.name]})
+		self.scaffold.connect_cells(self, result_bc, self.tag_bc, {'from_cell_types': [basket_cell_type.name]})
 
 class ConnectomeGapJunctions(ConnectionStrategy):
 	'''

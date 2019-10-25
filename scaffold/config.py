@@ -4,10 +4,10 @@ from .models import CellType, Layer
 from .morphologies import Morphology as BaseMorphology
 from .connectivity import ConnectionStrategy
 from .placement import PlacementStrategy
-from .output import OutputFormatter
+from .output import OutputFormatter, HDF5Formatter
 from .simulation import SimulatorAdapter, SimulationComponent
 from .helpers import (
-    copyIniKey, assert_float, assert_array, assert_attr_array,
+    assert_float, assert_array, assert_attr_array,
     assert_attr_float, assert_attr, if_attr, assert_strictly_one,
     assert_attr_in, ConfigurableClass
 )
@@ -51,14 +51,16 @@ class ScaffoldConfig(object):
             self._extension = ''
         self.simulators = simulators
         self.simulators['nest'] = NestAdapter
+        self.output_formatter = HDF5Formatter()
 
         # Fallback simulation values
         self.X = 200    # Transverse simulation space size (µm)
         self.Z = 200    # Longitudinal simulation space size (µm)
 
-        self.read_config(file, stream)
-        # Execute the load handler set by the child configuration implementation
-        self._parsed_config = self._load_handler(self._raw)
+        if not file is None or not stream is None:
+            self.read_config(file, stream)
+            # Execute the load handler set by the child configuration implementation
+            self._parsed_config = self._load_handler(self._raw)
 
     def read_config(self, file=None, stream=None):
         if not stream is None:
@@ -91,7 +93,7 @@ class ScaffoldConfig(object):
         self._raw = stream
         self._name = '<stream>'
 
-    def addCellType(self, cell_type):
+    def add_cell_type(self, cell_type):
         '''
             Adds a cell type to the config object. Cell types are used to populate
             cells into the layers of the simulation.
@@ -197,9 +199,9 @@ class ScaffoldConfig(object):
                 layer.dimensions[0] *= scaling_x
                 layer.dimensions[2] *= scaling_z
 
-    def load_configurable_class(self, name, configured_class_name, parent_class):
+    def load_configurable_class(self, name, configured_class_name, parent_class, parameters={}):
         if isclass(configured_class_name):
-            instance = configured_class_name()
+            instance = configured_class_name(**parameters)
         else:
             class_parts = configured_class_name.split('.')
             class_name = class_parts[-1]
@@ -340,7 +342,7 @@ class JSONConfig(ScaffoldConfig):
         if 'plotting' in section:
             cell_type.plotting.color = if_attr(section['plotting'], 'color', '#000000')
         # Register cell type
-        self.addCellType(cell_type)
+        self.add_cell_type(cell_type)
         return cell_type
 
     def init_layer(self, name, config):
@@ -449,7 +451,7 @@ class JSONConfig(ScaffoldConfig):
         placement.soma_radius = assert_attr_float(section, 'soma_radius', node_name)
         placement.radius = placement.soma_radius # Alias it to the radius shorthand.
         # Density configurations all rely on a float or a float and relation
-        density_attr, density_value = assert_strictly_one(section, ['density', 'planar_density', 'placement_count_ratio', 'density_ratio'], node_name)
+        density_attr, density_value = assert_strictly_one(section, ['density', 'planar_density', 'placement_count_ratio', 'density_ratio', 'count'], node_name)
         density_value = assert_float(density_value, '{}.{}'.format(node_name, density_attr))
         placement.__dict__[density_attr] = density_value
         # Does this density configuration rely on a relation to another cell_type?
@@ -485,7 +487,8 @@ class JSONConfig(ScaffoldConfig):
                 component = self.init_simulation_component(
                     component_name,
                     component_config,
-                    component_class
+                    component_class,
+                    simulation
                 )
                 component.simulation = simulation
                 component.node_name = 'simulations.' + simulation.name + '.' + component_type
@@ -545,8 +548,8 @@ class JSONConfig(ScaffoldConfig):
         connection.__dict__['from_cell_types'] = from_cell_types
         connection.__dict__['to_cell_types'] = to_cell_types
 
-    def init_simulation_component(self, name, section, component_class):
-        component = self.load_configurable_class(name, component_class, SimulationComponent)
+    def init_simulation_component(self, name, section, component_class, adapter):
+        component = self.load_configurable_class(name, component_class, SimulationComponent, parameters={'adapter': adapter})
         self.fill_configurable_class(component, section)
         return component
 

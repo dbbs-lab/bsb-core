@@ -14,7 +14,6 @@ class ResourceHandler(ABC):
         # id = np.random.randint(0, 100)
         already_open = True
         if self.handle is None: # Is the handle not open yet? Open it.
-            # print('opening handle', id)
             # Pass the mode argument if it is given, otherwise allow child to rely
             # on its own default value for the mode argument.
             self.handle = self.get_handle(mode) if not mode is None else self.get_handle()
@@ -22,9 +21,7 @@ class ResourceHandler(ABC):
         try:
             yield self.handle # Return the handle
         finally: # This is always called after the context manager closes.
-            # print('finishing', id)
             if not already_open: # Did we open the handle? We close it.
-                # print('closing handle', id)
                 self.release_handle(self.handle)
                 self.handle = None
 
@@ -150,6 +147,20 @@ class OutputFormatter(ConfigurableClass, TreeHandler):
     def exists(self):
         '''
             Check if the resource exists.
+        '''
+        pass
+
+    @abstractmethod
+    def get_connectivity_set_connection_types(self, tag):
+        '''
+            Return the connection types that contributed to this connectivity set.
+        '''
+        pass
+
+    @abstractmethod
+    def get_connectivity_set_meta(self, tag):
+        '''
+            Return the meta dictionary of this connectivity set.
         '''
         pass
 
@@ -407,9 +418,12 @@ class HDF5Formatter(OutputFormatter, MorphologyRepository):
             connection_dataset.attrs['tag'] = tag
             connection_dataset.attrs['connection_types'] = list(map(lambda x: x.name, related_types))
             connection_dataset.attrs['connection_type_classes'] = list(map(get_qualified_class_name, related_types))
+            if tag in self.scaffold._connectivity_set_meta:
+                meta_dict = self.scaffold._connectivity_set_meta[tag]
+                for key in meta_dict:
+                    connection_dataset.attrs[key] = meta_dict[key]
             if tag in self.scaffold.connection_compartments:
                 compartments_group.create_dataset(tag, data=self.scaffold.connection_compartments[tag])
-                morphologies_group.create_dataset(tag, data=self.scaffold.connection_morphologies[tag])
 
     def store_statistics(self):
         statistics = self.handle.create_group('statistics')
@@ -460,3 +474,14 @@ class HDF5Formatter(OutputFormatter, MorphologyRepository):
 
     def exists(self):
         return os.path.exists(self.file)
+
+    def get_connectivity_set_connection_types(self, tag):
+        with self.load() as f:
+            # Get list of contributing types
+            type_list = f['cells/connections/' + tag].attrs['connection_types']
+            # Map contributing type names to contributing types
+            return list(map(lambda name: self.scaffold.get_connection_type(name), type_list))
+
+    def get_connectivity_set_meta(self, tag):
+        with self.load() as f:
+            return dict(f['cells/connections/' + tag].attrs)

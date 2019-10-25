@@ -3,16 +3,6 @@ import abc, numpy as np
 def get_qualified_class_name(x):
     return x.__class__.__module__ + '.' + str(x.__class__.__name__)
 
-def copyIniKey(obj, section, key_config):
-    ini_key = key_config['key']
-    if not ini_key in section: # Only copy values that exist in the config
-        return
-
-    # Process the config values based on the type in their key_config.
-    morph_map = {'micrometer': float, 'float': float, 'string': str}
-    obj.__dict__[ini_key] = morph_map[key_config['type']](section[ini_key])
-
-
 class ConfigurableClass(abc.ABC):
     '''
         A class that can be configured.
@@ -21,7 +11,11 @@ class ConfigurableClass(abc.ABC):
     def initialise(self, scaffold):
         self.scaffold = scaffold
         self.castConfig()
+        self.boot()
         self.validate()
+
+    def boot(self):
+        pass
 
     @abc.abstractmethod
     def validate(self):
@@ -56,7 +50,13 @@ class ConfigurableClass(abc.ABC):
             shouldCast = attr in castingDict
             if not hasattr(self, attr):
                 if hasDefault:
-                    self.__dict__[attr] = defaultDict[attr]
+                    default_value = defaultDict[attr]
+                    if isinstance(default_value, dict):
+                        self.__dict__[attr] = default_value.copy()
+                    elif isinstance(default_value, list):
+                        self.__dict__[attr] = list(default_value)
+                    else:
+                        self.__dict__[attr] = default_value
                 elif isRequired:
                     raise Exception("Required attribute '{}' missing from '{}' section.".format(attr, name))
             elif shouldCast:
