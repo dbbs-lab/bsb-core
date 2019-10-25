@@ -539,7 +539,7 @@ class JSONConfig(ScaffoldConfig):
             if "compartments" in connected_cell:
                 from_cell_compartments.append(connected_cell["compartments"])
             else:
-                from_cell_compartments.append([])
+                from_cell_compartments.append(["axon"])
         i = 0
         for connected_cell in connection._to_cell_types:
             type = assert_attr(connected_cell, 'type', node_name + '.{}'.format(i))
@@ -550,7 +550,7 @@ class JSONConfig(ScaffoldConfig):
             if "compartments" in connected_cell:
                 to_cell_compartments.append(connected_cell["compartments"])
             else:
-                to_cell_compartments.append([])
+                to_cell_compartments.append(["dendrites"])
         connection.__dict__['from_cell_types'] = from_cell_types
         connection.__dict__['to_cell_types'] = to_cell_types
         connection.__dict__['from_cell_compartments'] = from_cell_compartments
