@@ -7,6 +7,7 @@ if __file__[-12:] == "bin/scaffold" or __file__[-12:] == "bin\\scaffold":
 import argparse
 import scaffold
 from scaffold.scaffold import Scaffold
+from scaffold.config import JSONConfig, from_hdf5
 
 ##
 ## This is the high-level API: It receives a command from the CLI, which is translated
@@ -87,10 +88,10 @@ if hasattr(cl_args, 'hdf5'):
 	cl_args.ctype = 'hdf5'
 if cl_args.ctype == 'json':
 	# Load the .json configuration
-	scaffoldConfig = scaffold.config.JSONConfig(file=cl_args.config, verbosity=cl_args.verbose)
+	scaffoldConfig = JSONConfig(file=cl_args.config, verbosity=cl_args.verbose)
 elif cl_args.ctype == 'hdf5':
 	file = cl_args.hdf5
-	scaffoldConfig = scaffold.config.from_hdf5(file)
+	scaffoldConfig = from_hdf5(file)
 
 # Create the scaffold instance
 scaffoldInstance = Scaffold(scaffoldConfig, from_file=file)
