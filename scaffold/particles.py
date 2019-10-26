@@ -10,6 +10,7 @@ class Particle:
     def __init__(self, radius, position):
         self.radius = radius
         self.position = position
+        self.colliding = False
 
 class ParticleVoxel:
     def __init__(self, origin, dimensions):
@@ -104,8 +105,11 @@ class ParticleSystem:
         return particles_volume / total_volume
 
 def plot_particle_system(system):
-    trace = get_particles_trace(system.particles)
-    fig = go.Figure(data=trace)
+    nc_particles = list(filter(lambda p: not p.colliding, system.particles))
+    c_particles = list(filter(lambda p: p.colliding, system.particles))
+    nc_trace = get_particles_trace(nc_particles)
+    c_trace = get_particles_trace(c_particles, marker=dict(color="rgba(200, 100, 0, 1)", size=2))
+    fig = go.Figure(data=[c_trace, nc_trace])
     if system.dimensions == 3:
         fig.update_layout(scene_aspectmode='cube')
         fig.layout.scene.xaxis.range = [0., system.size[0]]
@@ -115,7 +119,7 @@ def plot_particle_system(system):
 
 
 def get_particles_trace(particles, dimensions=3, axes={'x': 0, 'y': 1, 'z': 2}, **kwargs):
-    trace_kwargs = {"mode": "markers", "marker": {"color": "rgba(100, 100, 100, 1)", "size": 1}}
+    trace_kwargs = {"mode": "markers", "marker": {"color": "rgba(100, 100, 100, 0.7)", "size": 1}}
     trace_kwargs.update(kwargs)
     if dimensions > 3:
         raise Exception("Maximum 3 dimensional plots. Unless you have mutant eyes.")
@@ -137,3 +141,25 @@ def get_particles_trace(particles, dimensions=3, axes={'x': 0, 'y': 1, 'z': 2}, 
             x=list(map(lambda p: p.position[axes['x']], particles)),
             **trace_kwargs
         )
+
+def plot_detailed_system(system):
+    fig = go.Figure()
+    fig.update_layout(showlegend=False)
+    for particle in system.particles:
+        trace = get_particle_trace(particle)
+        fig.add_trace(trace)
+    fig.show()
+
+def get_particle_trace(particle):
+    theta = np.linspace(0,2*np.pi,10)
+    phi = np.linspace(0,np.pi,10)
+    x = np.outer(np.cos(theta),np.sin(phi)) * particle.radius + particle.position[0]
+    y = np.outer(np.sin(theta),np.sin(phi)) * particle.radius + particle.position[1]
+    z = np.outer(np.ones(10),np.cos(phi)) * particle.radius + particle.position[2]
+    return go.Surface(
+        x=x, y=y, z=z,
+        surfacecolor=np.zeros(10) + int(particle.colliding),
+        colorscale=[[0, "rgb(100, 100, 100)"], [1, "rgb(200, 100, 0)"]],
+        opacity = 0.5 + 0.5 * int(particle.colliding),
+        showscale=False
+    )
