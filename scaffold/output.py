@@ -479,10 +479,10 @@ class HDF5Formatter(OutputFormatter, MorphologyRepository):
         return os.path.exists(self.file)
 
     def get_connectivity_set_connection_types(self, tag):
-		'''
-			Return all the ConnectionStrategies that contributed to the creation of this
-			connectivity set.
-		'''
+        '''
+            Return all the ConnectionStrategies that contributed to the creation of this
+            connectivity set.
+        '''
         with self.load() as f:
             # Get list of contributing types
             type_list = f['cells/connections/' + tag].attrs['connection_types']
@@ -490,8 +490,8 @@ class HDF5Formatter(OutputFormatter, MorphologyRepository):
             return list(map(lambda name: self.scaffold.get_connection_type(name), type_list))
 
     def get_connectivity_set_meta(self, tag):
-		'''
-			Return the metadata associated with this connectivity set.
-		'''
+        '''
+            Return the metadata associated with this connectivity set.
+        '''
         with self.load() as f:
             return dict(f['cells/connections/' + tag].attrs)
