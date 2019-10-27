@@ -1,5 +1,6 @@
 import numpy as np
 from sklearn.neighbors import KDTree
+from random import choice
 try:
     import plotly.graph_objects as go
     from plotly.subplots import make_subplots
@@ -11,6 +12,71 @@ class Particle:
         self.radius = radius
         self.position = position
         self.colliding = False
+        self.locked = False
+        self.volume = sphere_volume(radius)
+        self.reset_displacement()
+
+    def displace_by(self, other):
+        A = self.position - other.position
+        d = np.sqrt(np.sum(A ** 2))
+        collision_radius = self.radius + other.radius
+        f = Particle.get_displacement_force(collision_radius, d)
+        f_inert = f * other.volume / (other.volume + self.volume)
+        A_norm = A / d
+        self.displacement = self.displacement + A_norm * f_inert * collision_radius
+        # print()
+        # print(self.id, "being displaced by", other.id)
+        # print("---")
+        # print("Initial: Displacing particles were {} cr away from eachother".format(d / collision_radius))
+        # print("Repulsion: Particles will now move {} cr away from each other".format(f))
+        # print("Intertia: I make up {} of the total volume".format(self.volume / (other.volume + self.volume)))
+        # print("Intertia: This particle moving {} cr".format(f_inert))
+        # print("Final: ".format(d / collision_radius + f))
+        # print("Displacement: particles end up {} cr away from eachother", A_norm * f_inert * collision_radius)
+
+    def displace(self):
+        # TODO: STAY INSIDE OF PARTNER RADIUS
+        self.position = self.position + self.displacement
+        self.reset_displacement()
+
+    def reset_displacement(self):
+        self.displacement = np.zeros((len(self.position)))
+
+    @staticmethod
+    def get_displacement_force(radius, distance):
+        if distance == 0.:
+            return 0.9
+        return min(0.9, 0.3 / ((distance / radius) ** 2))
+
+
+class Neighbourhood:
+    def __init__(self, epicenter, neighbours, neighbour_radius, partners, partner_radius):
+        self.epicenter = epicenter
+        self.neighbours = neighbours
+        self.neighbour_radius = neighbour_radius
+        self.partners = partners
+        self.partner_radius = partner_radius
+
+    def get_overlap(self):
+        overlap = 0
+        neighbours = self.neighbours
+        n_neighbours = len(neighbours)
+        for partner in self.partners:
+            for neighbour in self.neighbours:
+                if partner.id == neighbour.id:
+                    continue
+                overlap -= min(0, distance(partner.position, neighbour.position) - partner.radius - neighbour.radius)
+        return overlap
+
+    def colliding(self):
+        neighbours = self.neighbours
+        for partner in self.partners:
+            for neighbour in self.neighbours:
+                if partner.id == neighbour.id:
+                    continue
+                if distance(partner.position, neighbour.position) - partner.radius - neighbour.radius < 0:
+                    return True
+        return False
 
 class ParticleVoxel:
     def __init__(self, origin, dimensions):
@@ -59,8 +125,7 @@ class ParticleSystem:
         self.radii = [p.radius for p in self.particles]
         self.tree = KDTree(self.positions)
 
-    def find_collisions(self):
-        collisions = []
+    def find_colliding_particles(self):
         if not hasattr(self, "tree"):
             self.freeze()
         # Do an O(n * log(n)) search of all particles by the maximum radius
@@ -82,9 +147,85 @@ class ParticleSystem:
                 if distances[j] <= min_radius:
                     particle.colliding = True
                     neighbour.colliding = True
-                    collisions.append([particle, neighbour])
-        self.collisions = collisions
-        return collisions
+        self.colliding_particles = list(filter(lambda p: p.colliding, self.particles))
+        self.colliding_count = len(self.colliding_particles)
+        return self.colliding_particles
+
+    def solve_collisions(self):
+        if not hasattr(self, "colliding_particles"):
+            self.find_colliding_particles()
+        while self.colliding_count > 0:
+            # print("Untangling {} collisions".format(self.colliding_count))
+            while self.colliding_count > 0:
+                epicenter_particle = choice(self.colliding_particles)
+                neighbourhood = self.find_neighbourhood(epicenter_particle)
+                self.resolve_neighbourhood(neighbourhood)
+            # Double check that there's no collisions left
+            self.freeze()
+            self.find_colliding_particles()
+            # print("Neighbourhood solved.", len(self.colliding_particles), "colliding particles remaining.")
+        # print("Tadaa! Placement complete.")
+
+    def resolve_neighbourhood(self, neighbourhood):
+        # for neighbour in neighbourhood.neighbours:
+        #     neighbour.locked = True
+        # for partner in neighbourhood.partners:
+        #     partner.locked = False
+        i = 0
+        # print("Solving neighbourhood", neighbourhood.epicenter.id)
+        # print("---")
+        stuck = False
+        while neighbourhood.colliding():
+            i += 1
+            overlap = neighbourhood.get_overlap()
+            # print(i, "Neighbourhood overlap:", overlap)
+            for partner in neighbourhood.partners:
+                for neighbour in neighbourhood.neighbours:
+                    if partner.id == neighbour.id:
+                        continue
+                    partner.displace_by(neighbour)
+            for partner in neighbourhood.partners:
+                partner.displace()
+            overlap = neighbourhood.get_overlap()
+            # print()
+            if i > 10000:
+                stuck = True
+                print("STUCK")
+                break
+        if not stuck:
+            self.colliding_count -= len(neighbourhood.partners)
+            for partner in neighbourhood.partners:
+                partner.colliding = False
+
+
+    def find_neighbourhood(self, particle):
+        # print("Finding collision neighbourhood for particle", particle.id)
+        neighbourhood_radius = self.max_radius * 2
+        neighbourhood_ok = False
+        expansions = 0
+        while not neighbourhood_ok:
+            expansions += 1
+            neighbourhood_radius += self.max_radius / min(expansions, 6)
+            neighbour_ids = set(self.tree.query_radius([particle.position], r=neighbourhood_radius)[0])
+            neighbours = [self.particles[id] for id in neighbour_ids]
+            neighbourhood_packing_factor = self.get_packing_factor(neighbours, sphere_volume(neighbourhood_radius))
+            partner_radius = neighbourhood_radius - self.max_radius
+            partner_ids = set(self.tree.query_radius([particle.position], r=partner_radius)[0])
+            partners = []
+            for id in partner_ids:
+                partner = self.particles[id]
+                if not partner.locked:
+                    partners.append(partner)
+            partner_packing_factor = self.get_packing_factor(partners, sphere_volume(partner_radius))
+            neighbourhood_ok = neighbourhood_packing_factor < 0.5 and partner_packing_factor < 0.5
+            if expansions > 100:
+                print("ERROR! Unable to find suited neighbourhood around", particle.position)
+                exit()
+        # print("Neighbourhood of {} particles with radius {} and packing factor of {}. Found after {} expansions.".format(
+        #     len(neighbour_ids), neighbourhood_radius, partner_packing_factor, expansions
+        # ))
+        # print(len(partner_ids), "particles will be moved.")
+        return Neighbourhood(particle, neighbours, neighbourhood_radius, partners, partner_radius)
 
     def add_particle(self, radius, position):
         particle = Particle(radius, position)
@@ -99,9 +240,12 @@ class ParticleSystem:
         if nearest_neighbours is None:
             nearest_neighbours = self.estimate_nearest_neighbours()
 
-    def get_packing_factor(self):
-        particles_volume = np.sum([p["count"] * (4 / 3 * np.pi * p["radius"] ** 3) for p in self.particle_types])
-        total_volume = np.product(self.size)
+    def get_packing_factor(self, particles=None, volume=None):
+        if particles is None:
+            particles_volume = np.sum([p["count"] * sphere_volume(p["radius"]) for p in self.particle_types])
+        else:
+            particles_volume = np.sum([sphere_volume(p.radius) for p in particles])
+        total_volume = np.product(self.size) if volume is None else volume
         return particles_volume / total_volume
 
 def plot_particle_system(system):
@@ -163,3 +307,9 @@ def get_particle_trace(particle):
         opacity = 0.5 + 0.5 * int(particle.colliding),
         showscale=False
     )
+
+def sphere_volume(radius):
+    return 4 / 3 * np.pi * radius ** 3
+
+def distance(a, b):
+    return np.sqrt(np.sum((b - a) ** 2))
