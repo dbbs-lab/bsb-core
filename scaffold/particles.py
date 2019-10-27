@@ -159,7 +159,7 @@ class ParticleSystem:
             t = self.colliding_count
             for epicenter_particle in self.colliding_particles:
                 i += 1
-                neighbourhood = self.find_neighbourhood(epicenter_particle.position)
+                neighbourhood = self.find_neighbourhood(epicenter_particle)
                 self.resolve_neighbourhood(neighbourhood)
                 print(i,"/",t,end="\r")
             # Double check that there's no collisions left
@@ -201,7 +201,8 @@ class ParticleSystem:
                 partner.colliding = False
 
 
-    def find_neighbourhood(self, epicenter):
+    def find_neighbourhood(self, particle):
+        epicenter = particle.position
         # print("Finding collision neighbourhood for particle", particle.id)
         neighbourhood_radius = self.max_radius * 2
         neighbourhood_ok = False
