@@ -152,13 +152,11 @@ class ParticleSystem:
         return self.colliding_particles
 
     def solve_collisions(self):
-        if not hasattr(self, "colliding_particles"):
-            self.find_colliding_particles()
+        self.find_colliding_particles()
         while self.colliding_count > 0:
-            # print("Untangling {} collisions".format(self.colliding_count))
-            while self.colliding_count > 0:
-                epicenter_particle = choice(self.colliding_particles)
-                neighbourhood = self.find_neighbourhood(epicenter_particle)
+            print("Untangling {} collisions".format(self.colliding_count))
+            for epicenter_particle in self.colliding_particles:
+                neighbourhood = self.find_neighbourhood(epicenter_particle.position)
                 self.resolve_neighbourhood(neighbourhood)
             # Double check that there's no collisions left
             self.freeze()
@@ -175,6 +173,7 @@ class ParticleSystem:
         # print("Solving neighbourhood", neighbourhood.epicenter.id)
         # print("---")
         stuck = False
+        overlap = 0.
         while neighbourhood.colliding():
             i += 1
             overlap = neighbourhood.get_overlap()
@@ -188,7 +187,7 @@ class ParticleSystem:
                 partner.displace()
             overlap = neighbourhood.get_overlap()
             # print()
-            if i > 10000:
+            if i > 100:
                 stuck = True
                 print("STUCK")
                 break
@@ -198,7 +197,7 @@ class ParticleSystem:
                 partner.colliding = False
 
 
-    def find_neighbourhood(self, particle):
+    def find_neighbourhood(self, epicenter):
         # print("Finding collision neighbourhood for particle", particle.id)
         neighbourhood_radius = self.max_radius * 2
         neighbourhood_ok = False
@@ -206,26 +205,23 @@ class ParticleSystem:
         while not neighbourhood_ok:
             expansions += 1
             neighbourhood_radius += self.max_radius / min(expansions, 6)
-            neighbour_ids = set(self.tree.query_radius([particle.position], r=neighbourhood_radius)[0])
+            neighbour_ids = set(self.tree.query_radius([epicenter], r=neighbourhood_radius)[0])
             neighbours = [self.particles[id] for id in neighbour_ids]
             neighbourhood_packing_factor = self.get_packing_factor(neighbours, sphere_volume(neighbourhood_radius))
             partner_radius = neighbourhood_radius - self.max_radius
-            partner_ids = set(self.tree.query_radius([particle.position], r=partner_radius)[0])
-            partners = []
-            for id in partner_ids:
-                partner = self.particles[id]
-                if not partner.locked:
-                    partners.append(partner)
+            partner_ids = set(self.tree.query_radius([epicenter], r=partner_radius)[0])
+            partners = [self.particles[id] for id in partner_ids]
             partner_packing_factor = self.get_packing_factor(partners, sphere_volume(partner_radius))
+            partners = list(filter(lambda p: not p.locked and p.colliding, partners))
             neighbourhood_ok = neighbourhood_packing_factor < 0.5 and partner_packing_factor < 0.5
             if expansions > 100:
-                print("ERROR! Unable to find suited neighbourhood around", particle.position)
+                print("ERROR! Unable to find suited neighbourhood around", epicenter)
                 exit()
         # print("Neighbourhood of {} particles with radius {} and packing factor of {}. Found after {} expansions.".format(
         #     len(neighbour_ids), neighbourhood_radius, partner_packing_factor, expansions
         # ))
         # print(len(partner_ids), "particles will be moved.")
-        return Neighbourhood(particle, neighbours, neighbourhood_radius, partners, partner_radius)
+        return Neighbourhood(epicenter, neighbours, neighbourhood_radius, partners, partner_radius)
 
     def add_particle(self, radius, position):
         particle = Particle(radius, position)
