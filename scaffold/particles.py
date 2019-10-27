@@ -83,7 +83,7 @@ class ParticleVoxel:
         self.origin = np.array(origin)
         self.size = np.array(dimensions)
 
-class ParticleSystem:
+class ParticleSystem():
     def __init__(self):
         self.particle_types = []
         self.voxels = []
@@ -97,6 +97,7 @@ class ParticleSystem:
         self.particle_types.extend(particles)
         # Max particle type radius
         self.max_radius = max([pt["radius"] for pt in self.particle_types])
+        self.min_radius = min([pt["radius"] for pt in self.particle_types])
         # Set initial radius for collision/rearrangement to 2 times the largest particle type radius
         self.search_radius = self.max_radius * 2
         # Create a list of voxels where the particles can be placed.
@@ -210,11 +211,11 @@ class ParticleSystem:
         while not neighbourhood_ok:
             expansions += 1
             neighbourhood_radius += self.max_radius / min(expansions, 6)
-            neighbour_ids = set(self.tree.query_radius([epicenter], r=neighbourhood_radius)[0])
+            neighbour_ids = self.tree.query_radius([epicenter], r=neighbourhood_radius)[0]
             neighbours = [self.particles[id] for id in neighbour_ids]
             neighbourhood_packing_factor = self.get_packing_factor(neighbours, sphere_volume(neighbourhood_radius))
             partner_radius = neighbourhood_radius - self.max_radius
-            partner_ids = set(self.tree.query_radius([epicenter], r=partner_radius)[0])
+            partner_ids = self.tree.query_radius([epicenter], r=partner_radius)[0]
             partners = [self.particles[id] for id in partner_ids]
             partner_packing_factor = self.get_packing_factor(partners, sphere_volume(partner_radius))
             partners = list(filter(lambda p: not p.locked and p.colliding, partners))
@@ -314,3 +315,77 @@ def sphere_volume(radius):
 
 def distance(a, b):
     return np.sqrt(np.sum((b - a) ** 2))
+
+class AdaptiveNeighbourhood(ParticleSystem):
+    def find_neighbourhood(self, particle):
+        epicenter = particle.position
+        # print("Finding collision neighbourhood for particle", particle.id)
+        precautious_radius = particle.radius + self.max_radius
+        partner_ids = self.tree.query_radius([epicenter], r=precautious_radius)[0]
+        if len(partner_ids) == 0:
+            return Neighbourhood(epicenter, [], precautious_radius, [], precautious_radius)
+        # partner_radius = rA + rB where B is the largest particle around.
+        partner_radius = np.max([self.particles[id].radius if id != particle.id else 0. for id in partner_ids])
+        neighbourhood_ok = False
+        expansions = 0
+        while not neighbourhood_ok:
+            expansions += 1
+            partner_radius += particle.radius / min(expansions, 6)
+            partner_ids = self.tree.query_radius([epicenter], r=partner_radius)[0]
+            partners = [self.particles[id] for id in partner_ids]
+            partner_packing_factor = self.get_packing_factor(partners, sphere_volume(partner_radius))
+            if partner_packing_factor > 0.5:
+                continue
+
+            neighbourhood_radius = partner_radius + self.max_radius
+            neighbour_ids = self.tree.query_radius([epicenter], r=neighbourhood_radius)[0]
+            neighbours = [self.particles[id] for id in neighbour_ids]
+            strictly_neighbours = list(filter(lambda n: not n.id in partner_ids, neighbours))
+            if len(strictly_neighbours) > 0:
+                max_neighbour_radius = np.max([n.radius for n in strictly_neighbours])
+                if max_neighbour_radius != self.max_radius:
+                    neighbourhood_radius = partner_radius + max_neighbour_radius
+                    neighbour_ids = self.tree.query_radius([epicenter], r=neighbourhood_radius)[0]
+                    neighbours = [self.particles[id] for id in neighbour_ids]
+            neighbourhood_packing_factor = self.get_packing_factor(neighbours, sphere_volume(neighbourhood_radius))
+            neighbourhood_ok = neighbourhood_packing_factor < 0.5
+            if expansions > 100:
+                print("ERROR! Unable to find suited neighbourhood around", epicenter)
+                exit()
+        # print("Neighbourhood of {} particles with radius {} and packing factor of {}. Found after {} expansions.".format(
+        #     len(neighbour_ids), neighbourhood_radius, partner_packing_factor, expansions
+        # ))
+        # print(len(partner_ids), "particles will be moved.")
+        return Neighbourhood(epicenter, neighbours, neighbourhood_radius, partners, partner_radius)
+
+class SmallestNeighbourhood(ParticleSystem):
+
+    def find_neighbourhood(self, particle):
+        epicenter = particle.position
+        # print("Finding collision neighbourhood for particle", particle.id)
+        neighbourhood_radius = particle.radius + self.min_radius
+        neighbourhood_ok = False
+        expansions = 0
+        while not neighbourhood_ok:
+            expansions += 1
+            neighbourhood_radius += self.min_radius
+            neighbour_ids = self.tree.query_radius([epicenter], r=neighbourhood_radius)[0]
+            if len(neighbour_ids) == 0:
+                return Neighbourhood(epicenter, [], 0, [], 0)
+            neighbours = [self.particles[id] for id in neighbour_ids]
+            max_neighbour_radius = np.max([n.radius for n in neighbours])
+            neighbourhood_packing_factor = self.get_packing_factor(neighbours, sphere_volume(neighbourhood_radius))
+            partner_radius = neighbourhood_radius - max_neighbour_radius
+            partner_ids = self.tree.query_radius([epicenter], r=partner_radius)[0]
+            partners = [self.particles[id] for id in partner_ids]
+            partner_packing_factor = self.get_packing_factor(partners, sphere_volume(partner_radius))
+            partners = list(filter(lambda p: not p.locked and p.colliding, partners))
+            neighbourhood_ok = neighbourhood_packing_factor < 0.5 and partner_packing_factor < 0.5
+            if expansions > 100:
+                print("ERROR! Unable to find suited neighbourhood around", epicenter)
+                exit()
+        # print("Neighbourhood of {} particles with radius {} and packing factor of {}. Found after {} expansions.".format(
+        #     len(neighbour_ids), neighbourhood_radius, partner_packing_factor, expansions
+        # ))
+        # print(len(partner_ids), "particles will be moved.")
+        return Neighbourhood(epicenter, neighbours, neighbourhood_radius, partners, partner_radius)
