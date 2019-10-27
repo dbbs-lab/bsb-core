@@ -155,9 +155,13 @@ class ParticleSystem:
         self.find_colliding_particles()
         while self.colliding_count > 0:
             print("Untangling {} collisions".format(self.colliding_count))
+            i = 0
+            t = self.colliding_count
             for epicenter_particle in self.colliding_particles:
+                i += 1
                 neighbourhood = self.find_neighbourhood(epicenter_particle.position)
                 self.resolve_neighbourhood(neighbourhood)
+                print(i,"/",t,end="\r")
             # Double check that there's no collisions left
             self.freeze()
             self.find_colliding_particles()
