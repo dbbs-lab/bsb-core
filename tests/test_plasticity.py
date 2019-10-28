@@ -17,7 +17,6 @@ class TestSingleNeuronTypeSetup(unittest.TestCase):
     def test_single_neuron(self):
         self.scaffold.run_simulation("test_single_neuron")
         test_cell_model = self.nest_adapter.cell_models["test_cell"]
-<<<<<<< HEAD
         self.assertEqual(test_cell_model.identifiers, list(range(1,5)))
         test_neuron_status = self.nest_adapter.nest.GetStatus(test_cell_model.identifiers)
         self.assertEqual(test_neuron_status[0]['t_ref'], 1.5)
@@ -25,10 +24,6 @@ class TestSingleNeuronTypeSetup(unittest.TestCase):
         self.assertEqual(test_neuron_status[0]['V_th'], -41.0)
         self.assertEqual(test_neuron_status[0]['V_reset'], -70.0)
         self.assertEqual(test_neuron_status[0]['E_L'], -62.0)
-
-        #if self.sca
-=======
-        self.assertEqual(test_cell_model.identifiers, [1, 2, 3, 4])
 
 
 class TestDoubleNeuronTypeSetup(unittest.TestCase):
@@ -45,4 +40,3 @@ class TestDoubleNeuronTypeSetup(unittest.TestCase):
         self.assertEqual(test_cell_model.identifiers, [1, 2, 3, 4])
         test_cell_model = self.nest_adapter.cell_models["to_cell"]
         self.assertEqual(test_cell_model.identifiers, [5, 6, 7, 8])
->>>>>>> 5a50df15eb07598ed10bab470391f72dd44f7a6f
