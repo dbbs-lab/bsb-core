@@ -25,8 +25,9 @@ def get_parallel_fiber_heights(scaffold, granule_geometry, granules):
 
 def get_dcn_rotations(dcn_glut):
     dend_tree_coeff = np.zeros((dcn_glut.shape[0],4))
-    for idx1 in enumerate(dcn_glut):
-        dend_tree_coeff[idx1[0]] = np.random.rand(4) * 2. - 1.
-        dend_tree_coeff[idx1[0],3] = (-1)*((dend_tree_coeff[idx1[0],0]*dcn_glut[idx1[0],2])+(dend_tree_coeff[idx1[0],1]*dcn_glut[idx1[0],3])+(dend_tree_coeff[idx1[0],2]*dcn_glut[idx1[0],4]))
+    for i in range(len(dcn_glut)):
+        dend_tree_coeff[i] = np.random.rand(4) * 2. - 1.
+        # Calculate the planar coefficient d from a * x + b * y + c * z - d = 0
+        dend_tree_coeff[i,3] = - ((dend_tree_coeff[i,0] * dcn_glut[i,2]) + (dend_tree_coeff[i,1] * dcn_glut[i,3]) + (dend_tree_coeff[i,2] * dcn_glut[i,4]))
 
     return np.column_stack((dcn_glut[:,0], dend_tree_coeff))
