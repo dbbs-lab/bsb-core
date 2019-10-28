@@ -68,3 +68,15 @@ class TestDoubleNeuronTypeSetup(unittest.TestCase):
         self.assertEqual(test_neuron_status[0]['k2'], 0.041)
         self.assertEqual(test_neuron_status[0]['A1'], 0.01)
         self.assertEqual(test_neuron_status[0]['A2'], -0.94)
+
+
+class TestDoubleNeuronNetworkSetup(unittest.TestCase):
+
+    def setUp(self):
+        config = JSONConfig(file="test_double_neuron_network.json")
+        self.scaffold = Scaffold(config)
+        self.scaffold.compile_network()
+        self.nest_adapter = self.scaffold.configuration.simulations['test_double_neuron_network_static']
+
+    def test_double_neuron_network(self):
+        self.scaffold.run_simulation("test_double_neuron_network_static")
