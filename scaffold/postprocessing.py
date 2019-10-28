@@ -31,8 +31,9 @@ def get_dcn_rotations(dcn_matrix):
     dend_tree_coeff = np.zeros((dcn_matrix.shape[0],4))
     for i in range(len(dcn_matrix)):
         # Make the planar coefficients a, b and c.
-        dend_tree_coeff[i,:3] = np.random.rand(3) * 2. - 1.
-        # Calculate the last planar coefficient d from a * x + b * y + c * z - d = 0
-        dend_tree_coeff[i,3] = - ((dend_tree_coeff[i,0] * dcn_matrix[i,2]) + (dend_tree_coeff[i,1] * dcn_matrix[i,3]) + (dend_tree_coeff[i,2] * dcn_matrix[i,4]))
+        dend_tree_coeff[i] = np.random.rand(4) * 2. - 1.
+        # Calculate the last planar coefficient d from ax + by + cz - d = 0
+        # => d = - (ax + by + cz)
+        dend_tree_coeff[i, 3] = - np.sum(dend_tree_coeff[i, 0:2] * dcn_matrix[i, 2:4])
     # Compose the matrix
-    return np.column_stack((dcn_matrix[:,0], dend_tree_coeff))
+    return np.column_stack((dcn_matrix[:, 0], dend_tree_coeff))
