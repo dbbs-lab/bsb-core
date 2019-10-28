@@ -27,11 +27,7 @@
         "class": "scaffold.placement.LayeredRandomWalk",
         "layer": "test_layer",
         "soma_radius": 2.5,
-<<<<<<< HEAD
         "count": 4
-=======
-        "count": 3
->>>>>>> 5a50df15eb07598ed10bab470391f72dd44f7a6f
       },
       "morphology": {
         "class": "scaffold.morphologies.NoGeometry"
