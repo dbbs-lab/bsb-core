@@ -18,6 +18,7 @@ class TestSingleNeuronTypeSetup(unittest.TestCase):
         self.scaffold.run_simulation("test_single_neuron")
         test_cell_model = self.nest_adapter.cell_models["test_cell"]
         self.assertEqual(test_cell_model.identifiers, list(range(1,5)))
+        # Parameters
         test_neuron_status = self.nest_adapter.nest.GetStatus(test_cell_model.identifiers)
         self.assertEqual(test_neuron_status[0]['t_ref'], 1.5)
         self.assertEqual(test_neuron_status[0]['C_m'], 7.0)
@@ -39,5 +40,31 @@ class TestDoubleNeuronTypeSetup(unittest.TestCase):
         self.scaffold.run_simulation("test_double_neuron")
         test_cell_model = self.nest_adapter.cell_models["from_cell"]
         self.assertEqual(test_cell_model.identifiers, [1, 2, 3, 4])
+        # Parameters IAF
+        test_neuron_status = self.nest_adapter.nest.GetStatus(test_cell_model.identifiers)
+        self.assertEqual(test_neuron_status[0]['t_ref'], 1.5)
+        self.assertEqual(test_neuron_status[0]['C_m'], 7.0)
+        self.assertEqual(test_neuron_status[0]['V_th'], -41.0)
+        self.assertEqual(test_neuron_status[0]['V_reset'], -70.0)
+        self.assertEqual(test_neuron_status[0]['E_L'], -62.0)
+        self.assertEqual(test_neuron_status[0]['I_e'], 0.0)
+
         test_cell_model = self.nest_adapter.cell_models["to_cell"]
         self.assertEqual(test_cell_model.identifiers, [5, 6, 7, 8])
+        # Parameters EGLIF
+        test_neuron_status = self.nest_adapter.nest.GetStatus(test_cell_model.identifiers)
+        self.assertEqual(test_neuron_status[0]['t_ref'], 1.5)
+        self.assertEqual(test_neuron_status[0]['C_m'], 7.0)
+        self.assertEqual(test_neuron_status[0]['Vth_init'], -41.0)
+        self.assertEqual(test_neuron_status[0]['V_reset'], -70.0)
+        self.assertEqual(test_neuron_status[0]['E_L'], -62.0)
+        self.assertEqual(test_neuron_status[0]['Ie_const'], -0.888)
+        self.assertEqual(test_neuron_status[0]['Vinit'], -62.0)
+        self.assertEqual(test_neuron_status[0]['lambda_0'], 1.0)
+        self.assertEqual(test_neuron_status[0]['delta_V'], 0.3)
+        self.assertEqual(test_neuron_status[0]['Ie_const'], -0.888)
+        self.assertEqual(test_neuron_status[0]['adaptC'], 0.022)
+        self.assertEqual(test_neuron_status[0]['k1'], 0.311)
+        self.assertEqual(test_neuron_status[0]['k2'], 0.041)
+        self.assertEqual(test_neuron_status[0]['A1'], 0.01)
+        self.assertEqual(test_neuron_status[0]['A2'], -0.94)
