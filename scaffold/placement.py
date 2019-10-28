@@ -20,6 +20,7 @@ class PlacementStrategy(ConfigurableClass):
 		self.placement_count_ratio = None
 		self.density_ratio = None
 		self.placement_relative_to = None
+		self.count = None
 
 	@abc.abstractmethod
 	def place(self, cell_type):
@@ -140,7 +141,7 @@ class LayeredRandomWalk(PlacementStrategy):
 			# Calculate the cell epsilon: This is the length of the 'spare space' a cell has inside of its volume
 			cell_type.ϵ = cell_type.placement_radius - cell_radius
 			# Calculate the amount of sublayers
-			n_sublayers = np.round(layer_thickness / (1.5 * cell_type.placement_radius))
+			n_sublayers = int(np.round(layer_thickness / (1.5 * cell_type.placement_radius)))
 		## Sublayer partitioning
 		partitions = self.partition_layer(n_sublayers)
 		# Adjust partitions for cell radius.
@@ -149,7 +150,7 @@ class LayeredRandomWalk(PlacementStrategy):
 		## Placement
 		min_ϵ = self.distance_multiplier_min * cell_type.ϵ
 		max_ϵ = self.distance_multiplier_max * cell_type.ϵ
-		cells_per_sublayer = max(1, np.round(n_cells_to_place / n_sublayers))
+		cells_per_sublayer = max(1, int(np.round(n_cells_to_place / n_sublayers)))
 
 		layer_cell_positions = np.empty((0, 3))
 		previously_placed_cells = scaffold.cells_by_layer[layer.name][:,[2,3,4]]
@@ -243,8 +244,9 @@ class LayeredRandomWalk(PlacementStrategy):
 								cell_bounds[2, 0] + (cell_bounds[2, 1] - cell_bounds[2, 0]) / 2.  # Z
 							])
 						else:
-							if scaffold.configuration.verbosity > 2:
-								print( "Finished after placing {} out of {} cells".format(current_cell_count, cells_per_sublayer))
+							scaffold.report( "Only placed {} out of {} cells in sublayer {}".format(
+								current_cell_count, cells_per_sublayer, sublayer_id + 1
+							), 3)
 							break
 				else:
 					random_index = random.sample(good_indices, 1)[0]
@@ -256,8 +258,7 @@ class LayeredRandomWalk(PlacementStrategy):
 					last_position = new_position
 
 			layer_cell_positions = np.concatenate((layer_cell_positions, placed_positions))
-			if scaffold.configuration.verbosity > 2:
-				print( "{} sublayer number {} out of {} filled".format(cell_type.name, sublayer_id + 1, n_sublayers))
+			scaffold.report("Filling {} sublayer {}/{}...".format(cell_type.name, sublayer_id + 1, n_sublayers), 3, ongoing=True)
 
 		scaffold.place_cells(cell_type, layer, layer_cell_positions)
 
