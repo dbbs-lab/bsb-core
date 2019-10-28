@@ -43,9 +43,9 @@ class Scaffold:
 		self._initialise_connection_types()
 		self._initialise_simulations()
 
-	def report(self, message, level=2):
+	def report(self, message, level=2, ongoing=False):
 		if self.configuration.verbosity >= level:
-			print(message)
+			print(message, end="\n" if not ongoing else "\r")
 
 	def initialiseSimulators(self):
 		self.simulators = self.configuration.simulators
