@@ -17,4 +17,12 @@ class TestSingleNeuronSetup(unittest.TestCase):
     def test_single_neuron(self):
         self.scaffold.run_simulation("test_single_neuron")
         test_cell_model = self.nest_adapter.cell_models["test_cell"]
-        self.assertEqual(test_cell_model.identifiers, [1])
+        self.assertEqual(test_cell_model.identifiers, list(range(1,5)))
+        test_neuron_status = self.nest_adapter.nest.GetStatus(test_cell_model.identifiers)
+        self.assertEqual(test_neuron_status[0]['t_ref'], 1.5)
+        self.assertEqual(test_neuron_status[0]['C_m'], 7.0)
+        self.assertEqual(test_neuron_status[0]['V_th'], -41.0)
+        self.assertEqual(test_neuron_status[0]['V_reset'], -70.0)
+        self.assertEqual(test_neuron_status[0]['E_L'], -62.0)
+
+        #if self.sca

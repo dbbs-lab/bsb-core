@@ -27,7 +27,7 @@
         "class": "scaffold.placement.LayeredRandomWalk",
         "layer": "test_layer",
         "soma_radius": 2.5,
-        "count": 100
+        "count": 4
       },
       "morphology": {
         "class": "scaffold.morphologies.NoGeometry"
@@ -59,7 +59,7 @@
           "iaf_cond_alpha": {
             "I_e": 0.0
           },
-          "eglif": {
+          "eglif_cond_alpha_multisyn": {
             "Vinit": -62.0,
             "lambda":1.0,
             "deltaV":0.3,
