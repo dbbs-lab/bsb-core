@@ -24,6 +24,7 @@ class TestSingleNeuronTypeSetup(unittest.TestCase):
         self.assertEqual(test_neuron_status[0]['V_th'], -41.0)
         self.assertEqual(test_neuron_status[0]['V_reset'], -70.0)
         self.assertEqual(test_neuron_status[0]['E_L'], -62.0)
+        self.assertEqual(test_neuron_status[0]['I_e'], 0.0)
 
 
 class TestDoubleNeuronTypeSetup(unittest.TestCase):
