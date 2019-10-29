@@ -94,8 +94,8 @@
             "A1": 0.01,
             "A2":-0.94,
             "receptors": {
-              "glomerulus": 1,
-              "golgi_cell": 2
+              "to_cell": 1,
+              "from_cell": 2
             }
           }
         },
@@ -124,8 +124,8 @@
             "A1": 0.01,
             "A2":-0.94,
             "receptors": {
-              "glomerulus": 1,
-              "golgi_cell": 2
+              "from_cell": 1,
+              "to_cell": 2
             }
           }
         }
@@ -175,8 +175,8 @@
             "A1": 0.01,
             "A2":-0.94,
             "receptors": {
-              "glomerulus": 1,
-              "golgi_cell": 2
+              "to_cell": 1,
+              "from_cell": 2
             }
           }
         },
@@ -205,17 +205,18 @@
             "A1": 0.01,
             "A2":-0.94,
             "receptors": {
-              "glomerulus": 1,
-              "golgi_cell": 2
+              "from_cell": 1,
+              "to_cell": 2
             }
           }
         }
       },
       "connection_models": {
-        "connection": {
-          "plastic": true,
-          "synapse_model": "stdp_synapse",
-          "parameters": {
+        "from_cell_to_cell": {
+          "connection": {
+            "plastic": true,
+            "synapse_model": "stdp_synapse",
+            "parameters": {
             "weight": 9.0,
             "delay": 4.0
           },
@@ -225,6 +226,7 @@
           }
         },
         "synapse": {}
+      }
       },
       "devices": {}
     }
