@@ -231,9 +231,9 @@ class NestAdapter(SimulatorAdapter):
     def prepare(self, hdf5):
         import nest
         self.nest = nest
-        self.install_modules()
         nest.set_verbosity(self.verbosity)
         nest.ResetKernel()
+        self.install_modules()
         nest.SetKernelStatus({
             'local_num_threads': self.threads,
             'total_num_virtual_procs': self.virtual_processes,
