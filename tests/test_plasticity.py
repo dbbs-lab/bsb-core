@@ -80,3 +80,18 @@ class TestDoubleNeuronNetworkSetup(unittest.TestCase):
 
     def test_double_neuron_network(self):
         self.scaffold.run_simulation("test_double_neuron_network_static")
+        source_cell_model = self.nest_adapter.cell_models["from_cell"]
+        target_cell_model = self.nest_adapter.cell_models["to_cell"]
+        self.assertIsNotNone(self.nest_adapter.nest.GetConnections(source_cell_model.identifiers,target_cell_model.identifiers))
+
+
+class TestDoubleNeuronNetworkPlasticity(unittest.TestCase):
+
+    def setUp(self):
+        config = JSONConfig(file="test_double_neuron_network.json")
+        self.scaffold = Scaffold(config)
+        self.scaffold.compile_network()
+        self.nest_adapter = self.scaffold.configuration.simulations['test_double_neuron_network_homosyn']
+
+    def test_double_neuron_network(self):
+        self.scaffold.run_simulation("test_double_neuron_network_homosyn")
