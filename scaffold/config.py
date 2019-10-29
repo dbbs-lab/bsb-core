@@ -32,7 +32,7 @@ def from_hdf5(file):
 
 class ScaffoldConfig(object):
 
-    def __init__(self, file=None, stream=None, verbosity=0, simulators={}):
+    def __init__(self, file=None, stream=None, verbosity=1, simulators={}):
         # Initialise empty config object.
 
         # Dictionaries and lists
