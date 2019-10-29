@@ -354,6 +354,8 @@ class NestAdapter(SimulatorAdapter):
             except Exception as e:
                 if e.errorname == 'IllegalConnection':
                     raise Exception("IllegalConnection error for '{}'".format(device_model.get_config_node())) from None
+                else:
+                    raise
 
     def create_model(self, cell_model):
         '''
