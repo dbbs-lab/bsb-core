@@ -2,7 +2,7 @@
   "name": "DBBS Mouse cerebellum configuration v4.0",
   "output": {
     "format": "scaffold.output.HDF5Formatter",
-    "file": "double_neuron_network_test_static.hdf5"
+    "file": "double_neuron_network_test_homosyn.hdf5"
   },
   "network_architecture": {
     "simulation_volume_x": 150.0,
@@ -63,66 +63,64 @@
     }
   },
   "simulations": {
-    "test_double_neuron_network_static": {
+    "test_double_neuron_network_homosyn": {
       "simulator": "nest",
       "default_neuron_model": "iaf_cond_alpha",
       "default_synapse_model": "static_synapse",
       "modules": ["cerebmodule"],
-      "duration": 10,
+      "duration": 1000,
       "cell_models": {
         "from_cell": {
           "parameters": {
-            "t_ref": 1.5,
-            "C_m": 7.0,
-            "V_reset": -70.0,
+            "t_ref": 0.8,
+            "C_m": 620.0,
+            "V_reset": -72.0,
             "E_L": -62.0
           },
           "iaf_cond_alpha": {
-            "I_e": 0.0,
-            "V_th": -41.0
+            "I_e": 700.0,
+            "V_th": -47.0
           },
           "eglif_cond_alpha_multisyn": {
-            "Vinit": -62.0,
-            "lambda_0":1.0,
-            "delta_V":0.3,
-            "tau_m": 24.15,
-            "Vth_init": -41.0,
-            "Ie_const": -0.888,
-            "adaptC": 0.022,
-            "k1": 0.311,
+            "Vinit": -59.0,
+            "lambda_0":4.0,
+            "delta_V":3.5,
+            "tau_m": 47.0,
+            "Ie_const": 742.54,
+            "adaptC": 1.492,
+            "k1": 0.1950,
             "k2": 0.041,
-            "A1": 0.01,
-            "A2":-0.94,
+            "A1": 157.622,
+            "A2": 172.622,
             "receptors": {
-              "to_cell": 1,
-              "from_cell": 2
+              "from_cell": 1,
+              "to_cell": 2
             }
           }
         },
         "to_cell": {
           "neuron_model": "eglif_cond_alpha_multisyn",
           "parameters": {
-            "t_ref": 1.5,
-            "C_m": 7.0,
-            "V_reset": -70.0,
+            "t_ref": 0.8,
+            "C_m": 620.0,
+            "V_reset": -72.0,
             "E_L": -62.0
           },
           "iaf_cond_alpha": {
-            "I_e": 0.0,
-            "V_th": -41.0
+            "I_e": 700.0,
+            "V_th": -47.0
           },
           "eglif_cond_alpha_multisyn": {
-            "Vinit": -62.0,
-            "lambda_0":1.0,
-            "delta_V":0.3,
-            "tau_m": 24.15,
-            "Vth_init": -41.0,
-            "Ie_const": -0.888,
-            "adaptC": 0.022,
-            "k1": 0.311,
+            "Vinit": -59.0,
+            "lambda_0":4.0,
+            "delta_V":3.5,
+            "tau_m": 47.0,
+            "Ie_const": 742.54,
+            "adaptC": 1.492,
+            "k1": 0.1950,
             "k2": 0.041,
-            "A1": 0.01,
-            "A2":-0.94,
+            "A1": 157.622,
+            "A2": 172.622,
             "receptors": {
               "from_cell": 1,
               "to_cell": 2
@@ -133,16 +131,48 @@
       "connection_models": {
         "from_cell_to_cell": {
           "connection": {
+            "plastic": true,
+            "synapse_model": "stdp_synapse",
             "parameters": {
-              "weight": -9.0,
-              "delay": 4.0
-            },
-            "static_synapse": {}
+            "weight": 9.0,
+            "delay": 4.0
           },
-          "synapse": {}
-        }
+          "static_synapse": {},
+          "stdp_synapse":{
+            "tau_plus":30.0,
+            "lambda":0.5,
+            "alpha":0.1
+          }
+        },
+        "synapse": {}
+      }
       },
-        "devices": {}
+      "devices": {
+        "record_from_cell_spikes": {
+          "device": "spike_detector",
+          "io": "output",
+          "type": "cell_type",
+          "cell_types": ["from_cell"],
+          "parameters": {
+            "withgid": true,
+            "withtime": true,
+            "to_file": true,
+            "label": "from_cell_spikes"
+          }
+        },
+        "record_to_cell_spikes": {
+          "device": "spike_detector",
+          "io": "output",
+          "type": "cell_type",
+          "cell_types": ["to_cell"],
+          "parameters": {
+            "withgid": true,
+            "withtime": true,
+            "to_file": true,
+            "label": "to_cell_spikes"
+          }
+        }
+      }
     }
   }
 }
