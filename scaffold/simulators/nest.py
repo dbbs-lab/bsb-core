@@ -260,7 +260,14 @@ class NestAdapter(SimulatorAdapter):
 
     def install_modules(self):
         for module in self.modules:
-            self.nest.Install(module)
+            try:
+                self.nest.Install(module)
+            except Exception as e:
+                if e.errorname == "DynamicModuleManagementError":
+                    scaffold.report("[WARNING] Module {} already installed".format(module),1)
+                else:
+                    raise
+
 
     def create_neurons(self, cell_models):
         '''
