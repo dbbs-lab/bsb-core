@@ -264,7 +264,7 @@ class NestAdapter(SimulatorAdapter):
                 self.nest.Install(module)
             except Exception as e:
                 if e.errorname == "DynamicModuleManagementError":
-                    scaffold.report("[WARNING] Module {} already installed".format(module),1)
+                    self.scaffold.report("[WARNING] Module {} already installed".format(module),1)
                 else:
                     raise
 
