@@ -129,5 +129,6 @@ class TestDoubleNeuronNetworkHomosyn(unittest.TestCase):
         source_cell_model = self.nest_adapter.cell_models["from_cell"]
         target_cell_model = self.nest_adapter.cell_models["to_cell"]
         conn = self.nest_adapter.nest.GetConnections(source_cell_model.identifiers,target_cell_model.identifiers)
-        print((self.nest_adapter.nest.GetStatus(conn,"weight")))
-        self.assertEqual(self.nest_adapter.nest.GetStatus(conn,"weight"), tuple(9.0*np.ones(len(conn))))
+        # Verify that weights re changing
+        self.assertNotEqual(self.nest_adapter.nest.GetStatus(conn,"weight"), tuple(9.0*np.ones(len(conn))))
+        self.assertEqual(self.nest_adapter.nest.GetStatus(conn,"delay"), tuple(4.0*np.ones(len(conn))))
