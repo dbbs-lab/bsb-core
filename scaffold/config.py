@@ -359,6 +359,9 @@ class JSONConfig(ScaffoldConfig):
         if not 'thickness' in config:
             raise Exception('Required attribute thickness missing in {} config.'.format(name))
         thickness = float(config['thickness'])
+        if 'thickness_scale' in config:
+            thickness = thickness/config['thickness_scale']
+
         # Set the position of this layer in the space.
         if not 'position' in config:
             origin = [0., 0., 0.]
@@ -390,10 +393,11 @@ class JSONConfig(ScaffoldConfig):
                 stack['position'] = stack_config['position']
         # Set the layer dimensions
         #   scale by the XZ-scaling factor, if present
-        xzScale = 1.
+        xzScale = [1.,1.]
         if 'xz_scale' in config:
-            xzScale = float(config['xz_scale'])
-        dimensions = [self.X * xzScale, thickness, self.Z * xzScale]
+            xzScale[0] = float(config['xz_scale'][0])
+            xzScale[1] = float(config['xz_scale'][1])
+        dimensions = [self.X * xzScale[0], thickness, self.Z * xzScale[1]]
         #   and center the layer on the XZ plane, if present
         if 'xz_center' in config and config['xz_center'] == True:
             origin[0] = (self.X - dimensions[0]) / 2.
