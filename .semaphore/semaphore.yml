@@ -19,10 +19,10 @@ blocks:
       jobs:
         - name: Test configuration
           commands:
-            - python3 -m unittest test_configuration
+            - python3 -m unittest test_configuration -v
         - name: Test compilation
           commands:
-            - python3 -m unittest test_compilation
+            - python3 -m unittest test_compilation -v
       epilogue:
         always:
           commands:
