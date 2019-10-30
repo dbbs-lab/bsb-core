@@ -183,7 +183,8 @@
         "layer": "dcn_layer",
         "soma_radius": 6.0,
         "placement_relative_to": "dcn_cell",
-        "placement_count_ratio": 1.0
+        "placement_count_ratio": 1.0,
+        "after": ["dcn_cell"]
       },
       "morphology": {
         "class": "scaffold.morphologies.NoGeometry"
