@@ -9,7 +9,12 @@ blocks:
     task:
       prologue:
         commands:
+          - 'export PATH=$HOME/.local/bin:$PATH'
           - checkout
+          - mkdir .pip_cache
+          - cache restore
+          - pip install --user --cache-dir .pip_cache -r requirements.txt
+          - cache store
       jobs:
         - name: Unit tests 1/3
           commands:
@@ -30,6 +35,6 @@ blocks:
     dependencies: []
     task:
       jobs:
-        - name: Use sem-version tool
+        - name: Set up Python
           commands:
             - sem-version python 3.7
