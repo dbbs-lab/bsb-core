@@ -179,7 +179,7 @@
     },
     "dcn_interneuron": {
       "placement": {
-        "class": "scaffold.placement.LayeredRandomWalk",
+        "class": "scaffold.placement.Satellite",
         "layer": "dcn_layer",
         "soma_radius": 6.0,
         "placement_relative_to": "dcn_cell",

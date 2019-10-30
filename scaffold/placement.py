@@ -20,6 +20,7 @@ class PlacementStrategy(ConfigurableClass):
 		self.placement_count_ratio = None
 		self.density_ratio = None
 		self.placement_relative_to = None
+		self.count = None
 
 	@abc.abstractmethod
 	def place(self, cell_type):
@@ -385,6 +386,34 @@ class Satellite(PlacementStrategy):
 		'''
 			Cell placement: place a satellite cell to each associated cell at a random distance depending on the radius of both cells.
 		'''
+
+		# Variables
+		scaffold = self.scaffold
+		config = scaffold.configuration
 		layer = self.layer_instance
-		radius = cell_type.placement.radius
-		
+		radius_satellite = cell_type.placement.radius
+		after_cells = [self.scaffold.configuration.cell_types[type_after] for type_after in self.after]
+		after_cell_ids = np.empty(0)
+		after_cell_pos = np.empty([0, 3])
+		after_cell_radii = np.empty(0)
+		for after_cell_type in after_cells:
+			cells = self.scaffold.get_cells_by_type(after_cell_type.name)
+			after_cell_ids = np.vstack((after_cell_ids, cells[0]))
+			after_cell_pos = np.vstack((after_cell_matrix, cells[:,[2, 3, 4]]))
+			after_cell_radii = np.vstack((after_cell_radii, np.ones(cells.shape[0]) * after_cell_type.placement.radius))
+
+		ind = 1
+		for I in range(len(after_cell_pos)):
+			for J in range(len(after_cell_pos)):
+				dist[ind] = np.linalg.norm(after_cell_pos[I,:]-after_cell_pos[J,:])
+				ind = ind+1
+
+		mean_dist_after_cells = np.mean(dist[np.nonzero(dist)])
+
+		# Place satellites
+		alfa = np.random.uniform(0, 2*pi, len(after_cell_pos))
+		beta = np.random.uniform(0, 2*pi, len(after_cell_pos))
+		distance_satellite = np.random.uniform((radius_center+radius_satellite), (mean_dist_centers/4-radius_center-radius_satellite), len(after_cell_pos))
+		satellitePositions = distance_satellite*cos(alfa) + after_cell_pos
+
+		scaffold.place_cells(cell_type, layer, satellitePositions)
