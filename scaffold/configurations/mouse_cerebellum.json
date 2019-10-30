@@ -41,6 +41,14 @@
         "stack_id": 0,
         "position_in_stack": 3
       }
+    },
+    "io_layer": {
+      "thickness": 200,
+      "stack": {
+        "stack_id": 1,
+        "position_in_stack": 0,
+        "position": [260.0, -400.0, 0.0]
+      }
     }
   },
   "cell_types": {

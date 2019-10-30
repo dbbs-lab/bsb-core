@@ -130,9 +130,9 @@
       },
       "connection_models": {
         "from_cell_to_cell": {
+          "plastic": true,
           "synapse_model": "stdp_synapse",
           "connection": {
-            "plastic": true,
             "parameters": {
             "weight": 9.0,
             "delay": 4.0
