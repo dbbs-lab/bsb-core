@@ -128,7 +128,6 @@ class LayeredRandomWalk(PlacementStrategy):
 		))
 		# Get the number of cells that belong in the available volume.
 		n_cells_to_place = self.get_placement_count(cell_type)
-		print(cell_type.name, " to place: ", n_cells_to_place)
 		if n_cells_to_place == 0:
 			if scaffold.configuration.verbosity > 0:
 				print("[WARNING] Volume or density too low, no '{}' cells will be placed".format(cell_type.name))
