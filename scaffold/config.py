@@ -84,10 +84,15 @@ class ScaffoldConfig(object):
             with open('scaffold/configurations/' + file, 'r') as file:
                 self._raw = file.read()
                 self._name = file.name
+                return
         except Exception as e:
+            pass
+        try:
             with open(file, 'r') as file:
                 self._raw = file.read()
                 self._name = file.name
+        except FileNotFoundError as e:
+            raise FileNotFoundError("Could not find the configuration file '{}' in the specified folder or included in the package.".format(file)) from None
 
     def read_config_stream(self, stream):
         self._raw = stream
