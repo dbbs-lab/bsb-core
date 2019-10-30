@@ -10,7 +10,7 @@ from scaffold.models import Layer, CellType
 class TestSingleNeuronTypeSetup(unittest.TestCase):
 
     def setUp(self):
-        config = JSONConfig(file="test_single_neuron.json")
+        config = JSONConfig(file="configs/test_single_neuron.json")
         self.scaffold = Scaffold(config)
         self.scaffold.compile_network()
         self.nest_adapter = self.scaffold.configuration.simulations['test_single_neuron']
@@ -36,7 +36,7 @@ class TestDoubleNeuronTypeSetup(unittest.TestCase):
     @classmethod
     def setUpClass(self):
         super(TestDoubleNeuronTypeSetup, self).setUpClass()
-        config = JSONConfig(file="test_double_neuron.json")
+        config = JSONConfig(file="configs/test_double_neuron.json")
         self.scaffold = Scaffold(config)
         self.scaffold.compile_network()
         self.nest_adapter = self.scaffold.configuration.simulations['test_double_neuron']
@@ -83,7 +83,7 @@ class TestDoubleNeuronNetworkStatic(unittest.TestCase):
     @classmethod
     def setUpClass(self):
         super(TestDoubleNeuronNetworkStatic, self).setUpClass()
-        config = JSONConfig(file="test_double_neuron_network.json")
+        config = JSONConfig(file="configs/test_double_neuron_network.json")
         self.scaffold = Scaffold(config)
         self.scaffold.compile_network()
         self.nest_adapter = self.scaffold.configuration.simulations['test_double_neuron_network_static']
@@ -111,7 +111,7 @@ class TestDoubleNeuronNetworkHomosyn(unittest.TestCase):
     @classmethod
     def setUpClass(self):
         super(TestDoubleNeuronNetworkHomosyn, self).setUpClass()
-        config = JSONConfig(file="test_double_neuron_network_homosyn.json")
+        config = JSONConfig(file="configs/test_double_neuron_network_homosyn.json")
         self.scaffold = Scaffold(config)
         self.scaffold.compile_network()
         self.nest_adapter = self.scaffold.configuration.simulations['test_double_neuron_network_homosyn']
