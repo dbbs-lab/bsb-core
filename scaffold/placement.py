@@ -127,6 +127,7 @@ class LayeredRandomWalk(PlacementStrategy):
 		))
 		# Get the number of cells that belong in the available volume.
 		n_cells_to_place = self.get_placement_count(cell_type)
+		print(cell_type.name, " to place: ", n_cells_to_place)
 		if n_cells_to_place == 0:
 			if scaffold.configuration.verbosity > 0:
 				print("[WARNING] Volume or density too low, no '{}' cells will be placed".format(cell_type.name))
@@ -363,3 +364,27 @@ class ParallelArrayPlacement(PlacementStrategy):
 			cells[(i * zShape):(i * (zShape + 1)), 2] = z
 		# Place all the cells in 1 stitch
 		self.scaffold.place_cells(cell_type, layer, cells)
+
+
+class Satellite(PlacementStrategy):
+	'''
+		Implementation of the placement of cells in layers as satellites of existing cells
+	'''
+
+	def validate(self):
+		# Check if the layer is given and exists.
+		config = self.scaffold.configuration
+		if not hasattr(self, 'layer'):
+			raise Exception("Required attribute Layer missing from {}".format(self.name))
+		if not self.layer in config.layers:
+			raise Exception("Unknown layer '{}' in {}".format(self.layer, self.name))
+		self.layer_instance = self.scaffold.configuration.layers[self.layer]
+
+	def place(self, cell_type):
+
+		'''
+			Cell placement: place a satellite cell to each associated cell at a random distance depending on the radius of both cells.
+		'''
+		layer = self.layer_instance
+		radius = cell_type.placement.radius
+		

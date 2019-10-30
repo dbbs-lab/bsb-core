@@ -13,7 +13,7 @@
   "layers": {
     "dcn_layer": {
       "thickness": 600,
-      "xz_scale": 0.5,
+      "xz_scale": [0.5, 0.5],
       "xz_center": true,
       "stack": {
         "stack_id": 0,
@@ -43,7 +43,8 @@
       }
     },
     "io_layer": {
-      "thickness": 200,
+      "thickness": 200.0,
+      "xz_scale": [0.25, 0.1],
       "stack": {
         "stack_id": 1,
         "position_in_stack": 0,
@@ -175,6 +176,37 @@
         "display_name": "dcn cell",
         "color": "#15118B"
       }
+    },
+    "dcn_interneuron": {
+      "placement": {
+        "class": "scaffold.placement.LayeredRandomWalk",
+        "layer": "dcn_layer",
+        "soma_radius": 6.0,
+        "placement_relative_to": "dcn_cell",
+        "placement_count_ratio": 1.0
+      },
+      "morphology": {
+        "class": "scaffold.morphologies.NoGeometry"
+      },
+      "plotting": {
+        "display_name": "dcn interneuron",
+        "color": "#15118B"
+      }
+    },
+    "io_cell": {
+      "placement": {
+        "class": "scaffold.placement.LayeredRandomWalk",
+        "layer": "io_layer",
+        "soma_radius": 7.5,
+        "density": 1.52e-5
+      },
+      "morphology": {
+        "class": "scaffold.morphologies.NoGeometry"
+      },
+      "plotting": {
+        "display_name": "io cell",
+        "color": "#FF8C00"
+      }
     }
   },
   "connection_types": {
@@ -278,7 +310,6 @@
       "simulator": "nest",
       "default_neuron_model": "iaf_cond_alpha",
       "default_synapse_model": "static_synapse",
-      "modules": ["cerebmodule"],
       "duration": 10,
       "cell_models": {
         "granule_cell": {
@@ -295,7 +326,7 @@
           "iaf_cond_alpha": {
             "I_e": 0.0
           },
-          "eglif_cond_alpha_multisyn": {
+          "eglif": {
             "Vinit": -62.0,
             "lambda":1.0,
             "deltaV":0.3,
@@ -305,17 +336,17 @@
             "k1": 0.311,
             "k2": 0.041,
             "A1": 0.01,
-            "A2":-0.94,
-            "receptors": {
-              "glomerulus": 1,
-              "golgi_cell": 2
-            }
+            "A2":-0.94
           }
         },
         "glomerulus": {
           "neuron_model": "parrot_neuron",
-          "parameters": {},
-          "parrot_neuron": {}
+          "parameters": {
+
+          },
+          "parrot_neuron": {
+
+          }
         },
         "purkinje_cell": {
           "parameters": {
@@ -331,7 +362,7 @@
           "iaf_cond_alpha": {
             "I_e": 700.0
           },
-          "eglif_cond_alpha_multisyn": {
+          "eglif": {
             "Vinit": -59.0,
             "lambda":4.0,
             "deltaV":3.5,
@@ -341,13 +372,7 @@
             "k1": 0.1950,
             "k2": 0.041,
             "A1": 157.622,
-            "A2": 172.622,
-            "receptors": {
-              "granule_cell": 1,
-              "basket_cell": 2,
-              "stellate_cell": 2,
-              "inferior_olivary_cell": 3
-            }
+            "A2":172.622
           }
         },
         "golgi_cell": {
@@ -364,7 +389,7 @@
           "iaf_cond_alpha": {
             "I_e": 36.75
           },
-          "eglif_cond_alpha_multisyn": {
+          "eglif": {
             "Vinit": -62.0,
             "lambda":1.0,
             "deltaV":0.4,
@@ -374,12 +399,7 @@
             "k1": 0.031,
             "k2": 0.023,
             "A1": 259.988,
-            "A2":178.01,
-            "receptors": {
-              "glomerulus": 1,
-              "golgi_cell": 2,
-              "granule_cell": 3
-            }
+            "A2":178.01
            }
 
         },
@@ -397,7 +417,7 @@
           "iaf_cond_alpha": {
             "I_e": 15.6
           },
-          "eglif_cond_alpha_multisyn": {
+          "eglif": {
             "Vinit": -68.0,
             "lambda":1.8,
             "deltaV":1.1,
@@ -407,13 +427,7 @@
             "k1": 1.887,
             "k2": 1.096,
             "A1": 5.953,
-            "A2":5.863,
-            "receptors": {
-              "granule_cell": 1,
-              "stellate_cell": 2,
-              "inferior_olivary_cell": 3
-            }
-          }
+            "A2":5.863}
         },
         "basket_cell": {
           "parameters": {
@@ -429,7 +443,7 @@
           "iaf_cond_alpha": {
             "I_e": 15.6
           },
-          "eglif_cond_alpha_multisyn": {
+          "eglif": {
             "Vinit": -68.0,
             "lambda":1.8,
             "deltaV":1.1,
@@ -439,12 +453,7 @@
             "k1": 1.887,
             "k2": 1.096,
             "A1": 5.953,
-            "A2":5.863,
-            "receptors": {
-              "granule_cell": 1,
-              "basket_cell": 2,
-              "inferior_olivary_cell": 3
-            }}
+            "A2":5.863}
         },
         "dcn_cell": {
           "parameters": {
@@ -460,7 +469,7 @@
           "iaf_cond_alpha": {
             "I_e": 55.75
           },
-          "eglif_cond_alpha_multisyn": {
+          "eglif": {
             "Vinit": -45.0,
             "lambda":3.5,
             "deltaV":3.0,
@@ -470,173 +479,144 @@
             "k1": 0.697,
             "k2": 0.047,
             "A1": 13.857,
-            "A2":3.477,
-            "receptors": {
-              "glomerulus": 1,
-              "purkinje_cell": 2,
-              "inferior_olivary_cell": 1
-            }}
+            "A2":3.477}
         }
       },
       "connection_models": {
         "glomerulus_to_granule": {
           "connection": {
-            "parameters": {
+            "params":{
               "weight": 9.0,
               "delay": 4.0
-            },
-            "static_synapse": {}
+            }
           },
           "synapse": {}
         },
         "golgi_to_granule": {
           "connection": {
-            "parameters": {
+            "params":{
               "weight": -5.0,
               "delay": 2.0
-            },
-            "static_synapse": {}
+            }
           },
           "synapse": {}
         },
         "ascending_axon_to_purkinje": {
           "connection": {
-            "parameters": {
+            "params":{
               "weight": 75.0,
               "delay": 2.0
-            },
-            "static_synapse": {}
+            }
           },
           "synapse": {}
         },
         "ascending_axon_to_golgi": {
           "connection": {
-            "parameters": {
+            "params":{
               "weight": 20.0,
               "delay": 2.0
-            },
-            "static_synapse": {}
+            }
           },
           "synapse": {}
         },
         "parallel_fiber_to_golgi": {
           "connection": {
-            "parameters": {
+            "params":{
               "weight": 0.2,
               "delay": 5.0
-            },
-            "static_synapse": {}
+            }
           },
           "synapse": {}
         },
         "parallel_fiber_to_purkinje": {
-          "plastic": false,
-          "hetero": true,
-          "synapse_model": "stdp_synapse_sinexp",
           "connection": {
-            "parameters": {
+            "params":{
               "weight": 0.2,
               "delay": 5.0
-            },
-            "static_synapse": {},
-            "stdp_synapse_sinexp": {}
+            }
           },
           "synapse": {}
         },
         "parallel_fiber_to_basket": {
           "connection": {
-            "parameters": {
+            "params":{
               "weight": 0.2,
               "delay": 5.0
-            },
-            "static_synapse": {}
+            }
           },
           "synapse": {}
         },
         "parallel_fiber_to_stellate": {
           "connection": {
-            "parameters": {
+            "params":{
               "weight": 0.2,
               "delay": 5.0
-            },
-            "static_synapse": {}
+            }
           },
           "synapse": {}
         },
         "stellate_to_purkinje": {
           "connection": {
-            "parameters": {
-              "weight": -8.5,
-              "delay": 4.0
-            },
-            "static_synapse": {}
-          },
-          "synapse": {}
+            "params":{
+              "weight":-8.5,
+          "delay": 4.0
+        }
+      },
+      "synapse": {}
         },
         "basket_to_purkinje": {
           "connection": {
-            "parameters": {
-              "weight": -9.0,
-              "delay": 4.0
-            },
-            "static_synapse": {}
-          },
-          "synapse": {}
+            "params":{
+              "weight":-9.0,
+          "delay": 4.0
+        }
+      },
+      "synapse": {}
         },
         "stellate_gap_junctions": {
           "connection": {
-            "parameters": {
-              "weight": -2.0,
-              "delay": 1.0
-            },
-            "static_synapse": {}
-          },
-          "synapse": {}
+            "params":{
+              "weight":-2.0,
+          "delay": 1.0
+        }
+      },
+      "synapse": {}
         },
         "basket_gap_junctions": {
           "connection": {
-            "parameters": {
-              "weight": -2.5,
-              "delay": 1.0
-            },
-            "static_synapse": {}
-          },
-          "synapse": {}
+            "params":{
+              "weight":-2.5,
+          "delay": 1.0
+        }
+      },
+      "synapse": {}
         },
         "golgi_gap_junctions" : {
           "connection": {
-            "parameters": {
-              "weight": -8.0,
-              "delay": 1.0
-            },
-            "static_synapse": {}
-          },
-          "synapse": {}
+            "params":{
+              "weight":-8.0,
+          "delay": 1.0
+        }
+      },
+      "synapse": {}
         },
         "purkinje_to_dcn": {
           "connection": {
-            "parameters": {
-              "weight": -0.03,
-              "delay": 4.0
-            },
-            "static_synapse": {}
-          },
-          "synapse": {}
+            "params":{
+              "weight":-0.03,
+          "delay": 4.0
+        }
+      },
+      "synapse": {}
         },
         "glomerulus_to_dcn": {
-          "plastic": true,
-          "hetero": true,
-          "synapse_model": "stdp_synapse_cosexp",
-          "teaching": "purkinje_to_dcn",
           "connection": {
-            "parameters": {
-              "weight": 0.0006,
-              "delay": 4.0
-            },
-            "static_synapse": {},
-            "stdp_synapse_cosexp": {}
-          },
-          "synapse": {}
+            "params":{
+              "weight":0.0006,
+          "delay": 4.0
+        }
+      },
+      "synapse": {}
         }
       },
       "devices": {
@@ -667,7 +647,7 @@
         },
         "purkinje_multimeter": {
           "device": "multimeter",
-          "io": "input",
+          "io": "output",
           "type": "cell_type",
           "cell_types": ["purkinje_cell"],
           "parameters": {
