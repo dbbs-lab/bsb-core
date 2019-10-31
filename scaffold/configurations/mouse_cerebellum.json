@@ -124,7 +124,7 @@
         "layer": "molecular_layer",
         "soma_radius": 4.0,
         "density": 0.5e-4,
-        "y_restriction": [0.66, 1.0]
+        "y_restriction": [0.0, 0.66]
       },
       "morphology": {
         "class": "scaffold.morphologies.RadialGeometry",
@@ -141,7 +141,7 @@
         "layer": "molecular_layer",
         "soma_radius": 6.0,
         "density": 0.5e-4,
-        "y_restriction": [0.0, 0.66]
+        "y_restriction": [0.66, 1.0]
       },
       "morphology": {
         "class": "scaffold.morphologies.RadialGeometry",
