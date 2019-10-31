@@ -89,7 +89,7 @@
         "planar_density": 0.0017,
         "extension_x": 130.0,
         "extension_z": 3.5,
-        "angle": 4
+        "angle": 70
       },
       "morphology": {
         "class": "scaffold.morphologies.PurkinjeCellGeometry"
