@@ -86,7 +86,7 @@
         "class": "scaffold.placement.ParallelArrayPlacement",
         "layer": "purkinje_layer",
         "soma_radius": 7.5,
-        "planar_density": 0.003125,
+        "planar_density": 0.0013,
         "extension_x": 130.0,
         "extension_z": 3.5,
         "angle": 4
