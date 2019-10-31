@@ -400,6 +400,13 @@ class JSONConfig(ScaffoldConfig):
         #   scale by the XZ-scaling factor, if present
         xzScale = [1.,1.]
         if 'xz_scale' in config:
+            if not isinstance(config['xz_scale'], list): # Not a list?
+                # Try to convert it to a float and make a 2 element list out of it
+                try:
+                    xzScaleValue = float(config['xz_scale'])
+                except Exception as e:
+                    raise Exception("Could not convert xz_scale value '{}' to a float.".format(config['xz_scale']))
+                config['xz_scale'] = [xzScaleValue, xzScaleValue]
             xzScale[0] = float(config['xz_scale'][0])
             xzScale[1] = float(config['xz_scale'][1])
         dimensions = [self.X * xzScale[0], thickness, self.Z * xzScale[1]]
