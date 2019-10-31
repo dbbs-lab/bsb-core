@@ -14,19 +14,19 @@ blocks:
           - mkdir .pip_cache
           - cache restore
           - >-
-            python-3.7 -m pip install --user --cache-dir .pip_cache -r
+            python3.7 -m pip install --user --cache-dir .pip_cache -r
             requirements.txt
           - cache store
           - python3 --version
-          - python-3.7 --version
+          - python3.7 --version
           - cd tests
       jobs:
         - name: Test configuration
           commands:
-            - python-3.7 -m unittest test_configuration -v
+            - python3.7 -m unittest test_configuration -v
         - name: Test compilation
           commands:
-            - python-3.7 -m unittest test_compilation -v
+            - python3.7 -m unittest test_compilation -v
       epilogue:
         always:
           commands:
