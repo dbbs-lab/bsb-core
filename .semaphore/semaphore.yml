@@ -21,11 +21,9 @@ blocks:
           - python3.7 --version
           - cd tests
       jobs:
-        - name: Test configuration
+        - name: Unit tests
           commands:
             - python3.7 -m unittest test_configuration -v
-        - name: Test compilation
-          commands:
             - python3.7 -m unittest test_compilation -v
       epilogue:
         always:
