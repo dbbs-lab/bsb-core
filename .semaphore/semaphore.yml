@@ -13,7 +13,7 @@ blocks:
           - checkout
           - mkdir .pip_cache
           - cache restore
-          - pip install --user --cache-dir .pip_cache -r requirements.txt
+          - pip3 install --user --cache-dir .pip_cache -r requirements.txt
           - cache store
           - cd tests
       jobs:
