@@ -66,7 +66,7 @@ def plot_voxel_cloud(cloud, bounds, selected_voxels=None):
             fig.add_trace(trace)
         set_scene_range(fig.layout.scene, bounds)
 
-def get_branch_trace(compartments, offset = [0., 0., 0.]):
+def get_branch_trace(compartments, offset = [0., 0., 0.], **kwargs):
     x = [c.start[0] + offset[0] for c in compartments]
     y = [c.start[1] + offset[1] for c in compartments]
     z = [c.start[2] + offset[2] for c in compartments]
