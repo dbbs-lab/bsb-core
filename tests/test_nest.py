@@ -6,6 +6,11 @@ from scaffold.simulators.nest import NestCell
 from scaffold.models import Layer, CellType
 
 @unittest.skipIf(importlib.find_loader('nest') is None, "NEST is not importable.")
+class TestKernelManagement(unittest.TestCase):
+    # TODO: Add set_threads exception tests here
+    pass
+
+@unittest.skipIf(importlib.find_loader('nest') is None, "NEST is not importable.")
 class TestSingleNeuronTypeSetup(unittest.TestCase):
 
     def setUp(self):
