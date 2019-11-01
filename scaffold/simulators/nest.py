@@ -1,4 +1,5 @@
 from ..simulation import SimulatorAdapter, SimulationComponent
+from ..exceptions import NestKernelException
 import numpy as np
 from sklearn.neighbors import KDTree
 
@@ -263,21 +264,31 @@ class NestAdapter(SimulatorAdapter):
     def set_threads(self, threads, virtual=None):
         master_seed = self.get_master_seed()
         # Update the internal reference to the amount of threads
-        self.threads = threads
         if virtual is None:
             virtual = threads
-        self.virtual_processes = virtual
         # Create a range of random seeds and generators.
         random_generator_seeds = range(master_seed, master_seed + virtual)
-        self.random_generators = [np.random.RandomState(seed) for seed in random_generator_seeds]
         # Create a different range of random seeds for the kernel.
         thread_seeds = range(master_seed + virtual + 1, master_seed + 1 + 2 * virtual)
-        # Update the kernel with the new RNG and thread state.
-        self.nest.SetKernelStatus({'grng_seed' : master_seed + virtual,
-                              'rng_seeds' : thread_seeds,
-                              'local_num_threads': self.threads,
-                              'total_num_virtual_procs': self.virtual_processes,
-                             })
+        success = True
+        try:
+            # Update the kernel with the new RNG and thread state.
+            self.nest.SetKernelStatus({'grng_seed' : master_seed + virtual,
+                                  'rng_seeds' : thread_seeds,
+                                  'local_num_threads': threads,
+                                  'total_num_virtual_procs': virtual,
+                                 })
+        except Exception as e:
+            if hasattr(e, "errorname") and e.errorname[0:27] == "The resolution has been set":
+                # Threads can't be updated at this point in time.
+                raise NestKernelException("Updating the NEST threads or virtual processes must occur before setting the resolution.") from None
+                success = False
+            else:
+                raise
+        if success:
+            self.threads = threads
+            self.virtual_processes = virtual
+            self.random_generators = [np.random.RandomState(seed) for seed in random_generator_seeds]
 
     def simulate(self, simulator):
         self.scaffold.report("Simulating...",2)
