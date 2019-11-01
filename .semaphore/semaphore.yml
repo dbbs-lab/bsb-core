@@ -27,16 +27,11 @@ blocks:
         - name: Compilation
           commands:
             - python3.7 -m unittest test_compilation -v
+        - name: NEST
+          commands:
+            - python3.7 -m unittest test_nest -v
       epilogue:
         always:
           commands:
             - ls -la
-    dependencies:
-      - Python version
-  - name: Python version
     dependencies: []
-    task:
-      jobs:
-        - name: Set up Python
-          commands:
-            - sem-version python 3.7
