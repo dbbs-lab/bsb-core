@@ -12,6 +12,10 @@ from .output import MorphologyRepository
 #    * Creates network architecture
 #    * Sets up simulation
 
+class TreeCollectionGroup:
+	def add_collection(self, name, handler):
+		self.__dict__[name] = TreeCollection(name, handler)
+
 class Scaffold:
 
 	def __init__(self, config, from_file=None):
@@ -20,9 +24,9 @@ class Scaffold:
 		# Debug statistics, unused.
 		self.statistics = Statistics(self)
 		self._initialise_output_formatter()
-		self.trees = type('scaffold.trees', (object,), {})()
-		self.trees.__dict__['cells'] = TreeCollection('cells', self.output_formatter)
-		self.trees.__dict__['morphologies'] = TreeCollection('morphologies', self.output_formatter)
+		self.trees = TreeCollectionGroup()
+		self.trees.add_collection('cells', self.output_formatter)
+		self.trees.add_collection('morphologies', self.output_formatter)
 		self._nextId = 0
 		# Use the configuration to initialise all components such as cells and layers
 		# to prepare for the network architecture compilation.

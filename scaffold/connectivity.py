@@ -4,11 +4,14 @@ from .postprocessing import get_parallel_fiber_heights, get_dcn_rotations
 import numpy as np
 from random import choice as random_element, sample as sample_elements
 
+class SimulationPlaceholder:
+	pass
+
 class ConnectionStrategy(ConfigurableClass):
 
 	def __init__(self):
 		super().__init__()
-		self.simulation = type('simulation_configuration', (object,), {})()
+		self.simulation = SimulationPlaceholder()
 		self.tags = []
 
 	@abc.abstractmethod

@@ -5,6 +5,7 @@ except Exception as e:
     pass
 from .networks import depth_first_branches
 import numpy as np, math
+from .morphologies import Compartment
 from contextlib import contextmanager
 
 @contextmanager
@@ -84,7 +85,7 @@ def get_branch_trace(compartments, offset = [0., 0., 0.]):
 
 def plot_morphology(morphology, return_traces=False, offset=[0., 0., 0.], fig=None, show=True, set_range=True, color='black'):
     compartments = morphology.compartments.copy()
-    compartments.insert(0, type('Compartment', (object,), {'start': compartments[0].start, 'end': compartments[0].end})())
+    compartments.insert(0, Compartment([0, 0, *compartments[0].start, *compartments[0].end, 1., 0]))
     compartments = np.array(compartments)
     dfs_list = depth_first_branches(morphology.get_compartment_network())
     traces = []
