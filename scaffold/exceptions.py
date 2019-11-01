@@ -9,9 +9,15 @@ class UnionCastException(CastException):
 
 class ConfigurableCastException(CastException):
     pass
-    
+
 class UnknownDistributionException(ConfigurableCastException):
     pass
 
 class InvalidDistributionException(ConfigurableCastException):
+    pass
+
+class NestException(Exception):
+    pass
+
+class NestKernelException(Exception):
     pass
