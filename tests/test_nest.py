@@ -1,12 +1,11 @@
-import unittest, os, sys, numpy as np, h5py
+import unittest, os, sys, numpy as np, h5py, importlib
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from scaffold import Scaffold
 from scaffold.config import JSONConfig
 from scaffold.simulators.nest import NestCell
 from scaffold.models import Layer, CellType
 
-
-
+@unittest.skipIf(importlib.find_loader('nest') is None, "NEST is not importable.")
 class TestSingleNeuronTypeSetup(unittest.TestCase):
 
     def setUp(self):
@@ -30,7 +29,7 @@ class TestSingleNeuronTypeSetup(unittest.TestCase):
         self.assertEqual(test_neuron_status[0]['E_L'], -62.0)
         self.assertEqual(test_neuron_status[0]['I_e'], 0.0)
 
-
+@unittest.skipIf(importlib.find_loader('nest') is None, "NEST is not importable.")
 class TestDoubleNeuronTypeSetup(unittest.TestCase):
 
     @classmethod
@@ -77,7 +76,7 @@ class TestDoubleNeuronTypeSetup(unittest.TestCase):
         self.assertEqual(to_neuron_status[0]['A1'], 0.01)
         self.assertEqual(to_neuron_status[0]['A2'], -0.94)
 
-
+@unittest.skipIf(importlib.find_loader('nest') is None, "NEST is not importable.")
 class TestDoubleNeuronNetworkStatic(unittest.TestCase):
 
     @classmethod
@@ -104,8 +103,7 @@ class TestDoubleNeuronNetworkStatic(unittest.TestCase):
         self.assertEqual(self.nest_adapter.nest.GetStatus(conn,"weight"), tuple(-9.0*np.ones(len(conn))))
         self.assertEqual(self.nest_adapter.nest.GetStatus(conn,"delay"), tuple(4.0*np.ones(len(conn))))
 
-
-
+@unittest.skipIf(importlib.find_loader('nest') is None, "NEST is not importable.")
 class TestDoubleNeuronNetworkHomosyn(unittest.TestCase):
 
     @classmethod
