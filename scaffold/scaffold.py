@@ -141,7 +141,7 @@ class Scaffold:
 		self._connectivity_set_meta = {}
 
 	def run_simulation(self, simulation_name):
-		simulation = self.prepare_simulation(simulation_name)[0]
+		simulation, simulator = self.prepare_simulation(simulation_name)
 		simulation.simulate(simulator)
 
 	def get_simulation(self, simulation_name):
