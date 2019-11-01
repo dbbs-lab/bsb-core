@@ -3,6 +3,7 @@ from .plotting import plotNetwork
 import numpy as np
 import time
 from .trees import TreeCollection
+from .models import CellType
 
 ###############################
 ## Scaffold class
@@ -90,8 +91,8 @@ class Scaffold:
 		# Place the cells starting from the lowest density cell_types.
 		for i in np.arange(tries, dtype=int):
 			t = time.time()
-			cell_types = sorted(self.configuration.cell_types.values(), key=lambda x: x.placement.get_placement_count(x))
-			for cell_type in cell_types:
+			sorted_cell_types = CellType.resolve_placement_order(self.configuration.cell_types)
+			for cell_type in sorted_cell_types:
 				# Place cell type according to PlacementStrategy
 				cell_type.placement.place(cell_type)
 				# Construct a tree of the placed cells
