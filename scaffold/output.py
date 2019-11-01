@@ -253,7 +253,7 @@ class MorphologyRepository(HDF5TreeHandler):
             dset = repo['morphologies'].create_dataset(name, data=dataset_data)
             # Set attributes
             dset.attrs['name'] = name
-            dset.attrs['search_radii'] = np.max(np.abs(np.array([pos[:,d] for d in range(3)])), axis=1)
+            dset.attrs['search_radii'] = np.max(np.abs(dataset_data[:, 2:5]), axis=0)
             dset.attrs['type'] = 'swc'
 
     def import_repository(self, repository, overwrite=False):
@@ -263,6 +263,8 @@ class MorphologyRepository(HDF5TreeHandler):
                 for m_key in external_handle['morphologies'].keys():
                     if m_key not in self.protected_keys:
                         if overwrite or not m_key in m_group:
+                            if m_key in m_group:
+                                del m_group[m_key]
                             external_handle.copy('/morphologies/' + m_key, m_group)
                         else:
                             print("[WARNING] Did not import '{}' because it already existed and overwrite=False".format(m_key))
