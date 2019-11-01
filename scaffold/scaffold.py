@@ -141,7 +141,7 @@ class Scaffold:
 		self._connectivity_set_meta = {}
 
 	def run_simulation(self, simulation_name):
-		simulation = self.prepare_simulation(simulation_name)
+		simulation = self.prepare_simulation(simulation_name)[0]
 		simulation.simulate(simulator)
 
 	def get_simulation(self, simulation_name):
@@ -157,7 +157,7 @@ class Scaffold:
 		simulation = self.get_simulation(simulation_name)
 		with (hdf5 or self.output_formatter.load()) as hdf5:
 			simulator = simulation.prepare(hdf5)
-		return simulator
+		return simulation, simulator
 
 	def place_cells(self, cell_type, layer, positions):
 		cell_count = positions.shape[0]
