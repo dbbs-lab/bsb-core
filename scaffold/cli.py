@@ -45,8 +45,11 @@ def start_repl():
     '''
     # TODO: Add a python environment with access to globals like a scaffold or morphology repository
     state = ReplState()
-    while not state.exit:
-        state.repl()
+    try:
+        while not state.exit:
+            state.repl()
+    finally:
+        state.destroy_globals()
 
 def start_cli():
     '''
@@ -179,7 +182,6 @@ class ReplState:
         else:
             raise Exception("Unparsable state: {}".format(self.state))
 
-
     def set_parser_base_state(self):
         parser_open = self.add_subparser("open", description="Open various scaffold files like output files, repositories and tree collections.")
         open_subparsers = parser_open.add_subparsers()
@@ -188,6 +190,9 @@ class ReplState:
         mr_parser.add_argument('file', action='store', help='Path of the morphology repository to load.')
         mr_parser.set_defaults(func=self.open_morphology_repository)
 
+        hdf5_parser = open_subparsers.add_parser("hdf5", description="Open a HDF5 file.")
+        hdf5_parser.add_argument('file', action='store', help='Path of the HDF5 file to load.')
+        hdf5_parser.set_defaults(func=self.open_hdf5)
 
     def set_parser_base_mr_state(self):
         mr = self.globals["mr"]
@@ -199,14 +204,10 @@ class ReplState:
         list_subparsers = list_parser.add_subparsers()
 
         all_parser = list_subparsers.add_parser("all", description="List all morphologies in the repository")
-        all_parser.set_defaults(func=
-            lambda args: self.set_reply(self.globals["mr"].list_all_morphologies())
-        )
+        all_parser.set_defaults(func=lambda args: self.set_reply(self.globals["mr"].list_all_morphologies()))
 
         voxelized_parser = list_subparsers.add_parser("voxelized", description="List voxelized morphologies in the repository")
-        voxelized_parser.set_defaults(func=
-            lambda args: self.set_reply(self.globals["mr"].list_all_voxelized())
-        )
+        voxelized_parser.set_defaults(func=lambda args: self.set_reply(self.globals["mr"].list_all_voxelized()))
 
         import_parser = self.add_subparser("import", description="Import a morphology or repository into the repository")
         types_subparsers = import_parser.add_subparsers()
@@ -234,6 +235,17 @@ class ReplState:
         plot_parser.add_argument("name", help="Name of the morphology")
         plot_parser.set_defaults(func=lambda args: repl_plot_morphology(mr, args))
 
+    def set_parser_base_hdf5_state(self):
+        h = self.globals["hdf5"]
+        def close(args):
+            self.clear_prefix()
+            self.close_hdf5()
+            self.set_next_state("base")
+        close_parser = self.add_subparser("close", description="Close the currently opened HDF5 file.")
+        close_parser.set_defaults(func=lambda args: close)
+        view_parser = self.add_subparser("view", description="Explore the hierarchical components of the HDF5 file.")
+        view_parser.set_defaults(func=lambda args: repl_view_hdf5(h, args))
+
     def add_parser_globals(self):
         exit_parser = self.add_subparser("exit")
         exit_parser.set_defaults(func=self.exit_repl)
@@ -253,11 +265,25 @@ class ReplState:
     def set_reply(self, message):
         self.reply = str(message)
 
+    def close_hdf5(self):
+        self.globals["hdf5"].close()
+        self.globals["hdf5"] = None
+
+    def destroy_globals(self):
+        if "hdf5" in self.globals and not self.globals["hdf5"] is None:
+            self.close_hdf5()
+
     def open_morphology_repository(self, args):
         mr = MorphologyRepository(args.file)
         self.globals["mr"] = mr
         self.next = "base_mr"
         self.prefix = "repo <'{}'".format(args.file)
+
+    def open_hdf5(self, args):
+        import h5py
+        self.globals["hdf5"] = h5py.File(args.file, 'a')
+        self.next = "base_hdf5"
+        self.prefix = "hdf5 <'{}'".format(args.file)
 
 class ParseException(Exception):
     pass
@@ -276,3 +302,19 @@ def repl_voxelize(morphology_repository, args):
     m = morphology_repository.get_morphology(args.name)
     m.voxelize(args.voxels)
     morphology_repository.store_voxel_cloud(m, overwrite=True)
+
+def repl_view_hdf5(handle, args):
+    df = chr(172)
+    def format_level(lvl, sub=None):
+        return ' ' * (lvl * 3) + (sub or df)
+
+    def format_self(obj, name, lvl):
+        print(format_level(lvl) + name)
+        if hasattr(obj, "attrs"):
+            for attr in obj.attrs.keys():
+                print(' ' + format_level(lvl, '.') + attr + ' = ' + str(obj.attrs[attr])[:min(100, len(str(obj.attrs[attr])))] + ('...' if len(str(obj.attrs[attr])) > 100 else ''))
+        if hasattr(obj, "keys"):
+            for key in obj.keys():
+                format_self(obj[key], obj[key].name, lvl + 1)
+
+    format_self(handle, str(handle.file), 0)
