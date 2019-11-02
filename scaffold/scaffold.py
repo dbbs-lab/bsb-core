@@ -4,6 +4,7 @@ import numpy as np
 import time
 from .trees import TreeCollection
 from .output import MorphologyRepository
+from .helpers import map_ndarray
 
 ###############################
 ## Scaffold class
@@ -212,7 +213,7 @@ class Scaffold:
 		if not morphologies is None:
 			if len(morphologies) != len(connectome_data) or len(compartments) != len(connectome_data):
 				raise Exception("The morphological data did not match the connectome data.")
-			self._append_tagged('connection_morphologies', tag, morphologies)
+			self._append_mapped('connection_morphologies', tag, morphologies)
 			self._append_tagged('connection_compartments', tag, compartments)
 		if not meta is None:
 			self._connectivity_set_meta[tag] = meta
@@ -226,6 +227,19 @@ class Scaffold:
 			self.__dict__[attr][tag] = np.concatenate((cache, data))
 		else:
 			self.__dict__[attr][tag] = np.copy(data)
+
+	def _append_mapped(self, attr, tag, data):
+		'''
+			Appends or creates the data with a map to a tagged numpy array in a dictionary attribute of the scaffold.
+		'''
+		if not attr + '_map' in self.__dict__[attr]:
+			self.__dict__[attr][tag + '_map'] = []
+		mapped_data, data_map = map_ndarray(data, _map=self.__dict__[attr][tag + '_map'])
+		if tag in self.__dict__[attr]:
+			cache = self.__dict__[attr][tag]
+			self.__dict__[attr][tag] = np.concatenate((cache, mapped_data))
+		else:
+			self.__dict__[attr][tag] = np.copy(mapped_data)
 
 
 	def append_dset(self, name, data):
