@@ -43,6 +43,7 @@ class CellType:
         if not hasattr(self.morphology, "detailed_morphologies"):
             return []
         morphology_config = self.morphology.detailed_morphologies
+        # TODO: More selection mechanisms like tags
         if 'names' in morphology_config:
             m_names = morphology_config['names']
             return m_names
