@@ -22,7 +22,7 @@ class NestException(Exception):
 class NestKernelException(Exception):
     pass
 
-class MissingMorphologyException(Exception):
+class MorphologyException(Exception):
     pass
 
 class MissingMorphologyException(MorphologyException):
