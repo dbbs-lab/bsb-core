@@ -925,8 +925,10 @@ class TouchDetector(ConnectionStrategy):
 		'''
 			Return a morphology suited to represent a cell of the given `cell_type`.
 		'''
-		# TODO: Multiple selection methods such as tags, and maybe position or callback based selection?
-		m_name = random_element(self.list_all_morphologies(cell_type))
+		available_morphologies = self.list_all_morphologies(cell_type)
+		if len(available_morphologies) == 0:
+			raise MissingMorphologyException("Can't perform touch detection without detailed morphologies for {}".format(cell_type.name))
+		m_name = random_element(available_morphologies)
 		if not m_name in self.morphology_cache:
 			self.morphology_cache[m_name] = self.scaffold.morphology_repository.get_morphology(m_name, scaffold=self.scaffold)
 		return self.morphology_cache[m_name]

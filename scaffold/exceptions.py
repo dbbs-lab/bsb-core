@@ -21,3 +21,9 @@ class NestException(Exception):
 
 class NestKernelException(Exception):
     pass
+
+class MissingMorphologyException(Exception):
+    pass
+
+class MissingMorphologyException(MorphologyException):
+    pass
