@@ -429,6 +429,8 @@ class HDF5Formatter(OutputFormatter, MorphologyRepository):
                     connection_dataset.attrs[key] = meta_dict[key]
             if tag in self.scaffold.connection_compartments:
                 compartments_group.create_dataset(tag, data=self.scaffold.connection_compartments[tag])
+                morphology_dataset = morphologies_group.create_dataset(tag, data=self.scaffold.connection_morphologies[tag])
+                morphology_dataset.attrs['map'] = self.scaffold.connection_morphologies[tag + '_map']
 
     def store_statistics(self):
         statistics = self.handle.create_group('statistics')
