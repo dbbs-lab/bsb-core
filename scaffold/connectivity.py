@@ -3,6 +3,7 @@ from .helpers import ConfigurableClass, DistributionConfiguration, assert_attr_i
 from .postprocessing import get_parallel_fiber_heights, get_dcn_rotations
 import numpy as np
 from random import choice as random_element, sample as sample_elements
+from .exceptions import MissingMorphologyException
 
 class SimulationPlaceholder:
 	pass
