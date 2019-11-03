@@ -40,7 +40,13 @@ class VoxelCloud:
         if error == 0:
             return VoxelCloud(bounds, voxels, length, voxel_map)
         else:
-            raise NotImplementedError("Voxelization error: could not find the right amount of voxels.")
+            raise NotImplementedError("Voxelization error: could not find the right amount of voxels. Try N {}".format(
+                # Suggest the closest we got to N for a next attempt
+                ("+" if error > 0 else "") + str(error)
+            ))
+
+    def intersect(self, other):
+        raise NotImplementedError("Intersecting 2 voxel clouds is a to do")
 
 _class_dimensions = dimensions
 _class_origin = origin
@@ -62,7 +68,7 @@ def m_grid(bounds, size):
         bounds[2, 0]:bounds[2, 1]:size
     ]
 
-def voxelize(N, box_data, hit_detector, max_iterations=200, precision_iterations=30):
+def voxelize(N, box_data, hit_detector, max_iterations=80, precision_iterations=30):
     # Initialise
     bounds = np.column_stack((box_data.origin - box_data.dimensions / 2, box_data.origin + box_data.dimensions / 2))
     box_length = np.max(box_data.dimensions) # Size of the edge of a cube in the box counting grid

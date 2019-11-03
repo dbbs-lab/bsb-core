@@ -1,0 +1,35 @@
+version: v1.0
+name: Unit testing
+agent:
+  machine:
+    type: e1-standard-2
+    os_image: ubuntu1804
+blocks:
+  - name: Unit tests
+    task:
+      prologue:
+        commands:
+          - checkout
+      jobs:
+        - name: Unit tests 1/3
+          commands:
+            - echo "run 1/3"
+        - name: Unit tests 2/3
+          commands:
+            - echo "run 2/3"
+        - name: Unit tests 3/3
+          commands:
+            - echo "run 3/3"
+      epilogue:
+        always:
+          commands:
+            - ls -la
+    dependencies:
+      - Python version
+  - name: Python version
+    dependencies: []
+    task:
+      jobs:
+        - name: Use sem-version tool
+          commands:
+            - sem-version python 3.7

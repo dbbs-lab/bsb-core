@@ -1,4 +1,5 @@
 from ..simulation import SimulatorAdapter, SimulationComponent
+from ..exceptions import NestKernelException
 import numpy as np
 from sklearn.neighbors import KDTree
 
@@ -218,13 +219,13 @@ class NestAdapter(SimulatorAdapter):
         'default_synapse_model': 'static_synapse',
         'default_neuron_model': 'iaf_cond_alpha',
         'verbosity': 'M_ERROR',
-        'cores': 1,
+        'threads': 1,
         'resolution': 1.0,
         'modules': []
     }
 
     required = ['default_neuron_model', 'default_synapse_model',
-        'duration', 'resolution', 'threads', 'virtual_processes'
+        'duration', 'resolution', 'threads'
     ]
 
     def __init__(self):
@@ -249,33 +250,45 @@ class NestAdapter(SimulatorAdapter):
     def reset_kernel(self):
         self.nest.set_verbosity(self.verbosity)
         self.nest.ResetKernel()
+        self.set_threads(self.threads)
         self.nest.SetKernelStatus({
             'resolution': self.resolution,
             'overwrite_files': True,
             'data_path': self.scaffold.output_formatter.get_simulator_output_path(self.simulator_name)
         })
-        self.setCores(self.cores)
 
     def get_master_seed(self):
         # Use a constant reproducible master seed
         return 1989
 
-    def setCores(self, n_cores):
+    def set_threads(self, threads, virtual=None):
         master_seed = self.get_master_seed()
-        # Update the internal reference to the amount of cores
-        self.threads = n_cores
-        self.virtual_processes = n_cores
+        # Update the internal reference to the amount of threads
+        if virtual is None:
+            virtual = threads
         # Create a range of random seeds and generators.
-        random_generator_seeds = range(master_seed, master_seed + n_cores)
-        self.random_generators = [np.random.RandomState(seed) for seed in random_generator_seeds]
+        random_generator_seeds = range(master_seed, master_seed + virtual)
         # Create a different range of random seeds for the kernel.
-        core_seeds = range(master_seed + n_cores + 1, master_seed + 1 + 2 * n_cores)
-        # Update the kernel with the new RNG and cores state.
-        nest.SetKernelStatus({'grng_seed' : master_seed + n_cores,
-                              'rng_seeds' : core_seeds,
-                              'local_num_threads': self.threads,
-                              'total_num_virtual_procs': self.virtual_processes,
-                             })
+        thread_seeds = range(master_seed + virtual + 1, master_seed + 1 + 2 * virtual)
+        success = True
+        try:
+            # Update the kernel with the new RNG and thread state.
+            self.nest.SetKernelStatus({'grng_seed' : master_seed + virtual,
+                                  'rng_seeds' : thread_seeds,
+                                  'local_num_threads': threads,
+                                  'total_num_virtual_procs': virtual,
+                                 })
+        except Exception as e:
+            if hasattr(e, "errorname") and e.errorname[0:27] == "The resolution has been set":
+                # Threads can't be updated at this point in time.
+                raise NestKernelException("Updating the NEST threads or virtual processes must occur before setting the resolution.") from None
+                success = False
+            else:
+                raise
+        if success:
+            self.threads = threads
+            self.virtual_processes = virtual
+            self.random_generators = [np.random.RandomState(seed) for seed in random_generator_seeds]
 
     def simulate(self, simulator):
         self.scaffold.report("Simulating...",2)
@@ -376,6 +389,8 @@ class NestAdapter(SimulatorAdapter):
             except Exception as e:
                 if e.errorname == 'IllegalConnection':
                     raise Exception("IllegalConnection error for '{}'".format(device_model.get_config_node())) from None
+                else:
+                    raise
 
     def create_model(self, cell_model):
         '''

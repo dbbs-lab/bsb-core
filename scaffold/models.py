@@ -39,6 +39,17 @@ class CellType:
     def get_ids(self):
         return np.array(self.scaffold.cells_by_type[self.name][:,0], dtype=int)
 
+    def list_all_morphologies(self):
+        if not hasattr(self.morphology, "detailed_morphologies"):
+            return []
+        morphology_config = self.morphology.detailed_morphologies
+        # TODO: More selection mechanisms like tags
+        if 'names' in morphology_config:
+            m_names = morphology_config['names']
+            return m_names
+        else:
+            raise NotImplementedError("Detailed morphologies can currently only be selected by name.")
+
 class Layer(dimensions, origin):
 
     def __init__(self, name, origin, dimensions, scaling=True):

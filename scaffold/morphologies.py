@@ -22,12 +22,23 @@ class Compartment:
 
 class Morphology(ConfigurableClass):
 
+	compartment_types = {
+		"soma": 1,
+		"axon": 2,
+		"dendrites": 3
+	}
+
 	def __init__(self):
 		super().__init__()
 		self.compartments = None
 		self.cloud = None
 		self.has_morphology = False
 		self.has_voxels = False
+
+	def boot(self):
+		if self.has_morphology:
+			print(self.morphology_name, "has morphology")
+			self.store_compartment_tree()
 
 	def init_morphology(self, repo_data, repo_meta):
 		'''
@@ -43,8 +54,14 @@ class Morphology(ConfigurableClass):
 			compartment = Compartment(repo_record)
 			self.compartments.append(compartment)
 		# Create a tree from the compartment object list
-		# TODO: Create and store this tree when importing from morphology file.
 		self.compartment_tree = KDTree(np.array(list(map(lambda c: c.end, self.compartments))))
+		if hasattr(self, "scaffold") and self.scaffold: # Is the scaffold ready at this point?
+			self.store_compartment_tree()
+
+	def store_compartment_tree(self):
+		morphology_trees = self.scaffold.trees.morphologies
+		morphology_trees.add_tree(self.morphology_name, self.compartment_tree)
+		morphology_trees.save()
 
 	def init_voxel_cloud(self, voxel_data, voxel_meta, voxel_map):
 		'''
@@ -134,6 +151,13 @@ class TrueMorphology(Morphology):
 			node_list[int(node.parent)].add(int(node.id))
 		return node_list
 
+	def get_compartment_positions(self, types=None):
+		if types is None:
+			return self.compartment_tree.get_arrays()[0]
+		type_ids = list(map(lambda t: Morphology.compartment_types[t], types))
+		# print("Comp --", len(self.compartments), len(list(map(lambda c: c.end, filter(lambda c: c.type in type_ids, self.compartments)))))
+		return list(map(lambda c: c.end, filter(lambda c: c.type in type_ids, self.compartments)))
+
 	def get_plot_range(self):
 		compartments = self.compartment_tree.get_arrays()[0]
 		n_dimensions = range(compartments.shape[1])
@@ -141,6 +165,20 @@ class TrueMorphology(Morphology):
 		max = np.max(np.array([np.max(compartments[:, i]) - mins[i] for i in n_dimensions]))
 		return list(zip(mins.tolist(), (mins + max).tolist()))
 
+	def _comp_tree_factory(self, types):
+		type_map = list(map(lambda t: Morphology.compartment_types[t], types))
+		def _comp_tree_product(_):
+			print('making subset tree from factory.')
+			return np.array(list(map(lambda c: c.end, filter(lambda c: c.type in type_map, self.compartments))))
+		return _comp_tree_product
+
+	def get_compartment_tree(self, compartment_types=None):
+		if not compartment_types is None:
+			if len(compartment_types) == 1:
+				return self.scaffold.trees.morphologies.get_sub_tree(self.morphology_name, "+".join(compartment_types), factory=self._comp_tree_factory(compartment_types))
+			else:
+				raise NotImplementedError("Multicompartmental touch detection not implemented yet.")
+		return self.compartment_tree
 
 class GranuleCellGeometry(Morphology):
 	casts = {

@@ -32,7 +32,7 @@ def from_hdf5(file):
 
 class ScaffoldConfig(object):
 
-    def __init__(self, file=None, stream=None, verbosity=0, simulators={}):
+    def __init__(self, file=None, stream=None, verbosity=1, simulators={}):
         # Initialise empty config object.
 
         # Dictionaries and lists
@@ -81,13 +81,19 @@ class ScaffoldConfig(object):
                 ))
             file += self._extension
         try:
-            with open('scaffold/configurations/' + file, 'r') as file:
+            with open(os.path.dirname(__file__) + '/configurations/' + file, 'r') as file:
                 self._raw = file.read()
                 self._name = file.name
+                return
         except Exception as e:
+            pass
+        try:
             with open(file, 'r') as file:
                 self._raw = file.read()
                 self._name = file.name
+        except FileNotFoundError as e:
+            raise FileNotFoundError("Could not find the configuration file '{}' in the specified folder or included in the package.".format(file)) from None
+
 
     def read_config_stream(self, stream):
         self._raw = stream
@@ -105,7 +111,7 @@ class ScaffoldConfig(object):
         self.cell_types[cell_type.name] = cell_type
         self.cell_type_map.append(cell_type.name)
 
-    def addMorphology(self, morphology):
+    def add_morphology(self, morphology):
         '''
             Adds a morphology to the config object. Mrophologies are used to determine
             which cells touch and form synapses.
@@ -338,7 +344,8 @@ class JSONConfig(ScaffoldConfig):
         # Get the morphology configuration node
         morphology = assert_attr(section, 'morphology', node_name)
         cell_type.morphology = self.init_morphology(morphology, name)
-        cell_type.plotting = type('Plotting', (object,), {'color': '#000000'})()
+
+        cell_type.plotting = PlottingConfig('#000000')
         if 'plotting' in section:
             cell_type.plotting.color = if_attr(section['plotting'], 'color', '#000000')
         # Register cell type
@@ -359,6 +366,9 @@ class JSONConfig(ScaffoldConfig):
         if not 'thickness' in config:
             raise Exception('Required attribute thickness missing in {} config.'.format(name))
         thickness = float(config['thickness'])
+        if 'thickness_scale' in config:
+            thickness = thickness/config['thickness_scale']
+
         # Set the position of this layer in the space.
         if not 'position' in config:
             origin = [0., 0., 0.]
@@ -390,10 +400,18 @@ class JSONConfig(ScaffoldConfig):
                 stack['position'] = stack_config['position']
         # Set the layer dimensions
         #   scale by the XZ-scaling factor, if present
-        xzScale = 1.
+        xzScale = [1.,1.]
         if 'xz_scale' in config:
-            xzScale = float(config['xz_scale'])
-        dimensions = [self.X * xzScale, thickness, self.Z * xzScale]
+            if not isinstance(config['xz_scale'], list): # Not a list?
+                # Try to convert it to a float and make a 2 element list out of it
+                try:
+                    xzScaleValue = float(config['xz_scale'])
+                except Exception as e:
+                    raise Exception("Could not convert xz_scale value '{}' to a float.".format(config['xz_scale']))
+                config['xz_scale'] = [xzScaleValue, xzScaleValue]
+            xzScale[0] = float(config['xz_scale'][0])
+            xzScale[1] = float(config['xz_scale'][1])
+        dimensions = [self.X * xzScale[0], thickness, self.Z * xzScale[1]]
         #   and center the layer on the XZ plane, if present
         if 'xz_center' in config and config['xz_center'] == True:
             origin[0] = (self.X - dimensions[0]) / 2.
@@ -415,7 +433,7 @@ class JSONConfig(ScaffoldConfig):
         morphology_class = assert_attr(section, 'class', node_name)
         morphology = self.load_configurable_class(name, morphology_class, BaseMorphology)
         self.fill_configurable_class(morphology, section, excluded=['class'])
-        self.addMorphology(morphology)
+        self.add_morphology(morphology)
         return morphology
 
     def init_connection(self, name, section):
@@ -530,7 +548,9 @@ class JSONConfig(ScaffoldConfig):
         node_name = 'connection_types.{}'
         connection = self.connection_types[connection_name]
         from_cell_types = []
+        from_cell_compartments = []
         to_cell_types = []
+        to_cell_compartments = []
         i = 0
         for connected_cell in connection._from_cell_types:
             type = assert_attr(connected_cell, 'type', node_name + '.{}'.format(i))
@@ -538,6 +558,10 @@ class JSONConfig(ScaffoldConfig):
             if not type in self.cell_types:
                 raise Exception("Unknown cell type '{}' in '{}.from_cell_types'".format(type, node_name))
             from_cell_types.append(self.cell_types[type])
+            if "compartments" in connected_cell:
+                from_cell_compartments.append(connected_cell["compartments"])
+            else:
+                from_cell_compartments.append(["axon"])
         i = 0
         for connected_cell in connection._to_cell_types:
             type = assert_attr(connected_cell, 'type', node_name + '.{}'.format(i))
@@ -545,8 +569,14 @@ class JSONConfig(ScaffoldConfig):
             if not type in self.cell_types:
                 raise Exception("Unknown cell type '{}' in '{}.to_cell_types'".format(type, node_name))
             to_cell_types.append(self.cell_types[type])
+            if "compartments" in connected_cell:
+                to_cell_compartments.append(connected_cell["compartments"])
+            else:
+                to_cell_compartments.append(["dendrites"])
         connection.__dict__['from_cell_types'] = from_cell_types
         connection.__dict__['to_cell_types'] = to_cell_types
+        connection.__dict__['from_cell_compartments'] = from_cell_compartments
+        connection.__dict__['to_cell_compartments'] = to_cell_compartments
 
     def init_simulation_component(self, name, section, component_class, adapter):
         component = self.load_configurable_class(name, component_class, SimulationComponent, parameters={'adapter': adapter})
@@ -555,3 +585,7 @@ class JSONConfig(ScaffoldConfig):
 
 class ConfigurableClassNotFoundException(Exception):
     pass
+
+class PlottingConfig:
+    def __init__(self, color):
+        self.color = color

@@ -23,10 +23,17 @@ def get_parallel_fiber_heights(scaffold, granule_geometry, granules):
         parallel_fibers[idx,0] = granule[0] # ID
     return parallel_fibers
 
-def get_dcn_rotations(dcn_glut):
-    dend_tree_coeff = np.zeros((dcn_glut.shape[0],4))
-    for idx1 in enumerate(dcn_glut):
-        dend_tree_coeff[idx1[0]] = np.random.rand(4) * 2. - 1.
-        dend_tree_coeff[idx1[0],3] = (-1)*((dend_tree_coeff[idx1[0],0]*dcn_glut[idx1[0],2])+(dend_tree_coeff[idx1[0],1]*dcn_glut[idx1[0],3])+(dend_tree_coeff[idx1[0],2]*dcn_glut[idx1[0],4]))
-
-    return np.column_stack((dcn_glut[:,0], dend_tree_coeff))
+def get_dcn_rotations(dcn_matrix):
+    '''
+        Create a matrix of planes tilted between -45° and 45°,
+        storing id and the planar coeffecients a, b, c and d for each DCN cell
+    '''
+    dend_tree_coeff = np.zeros((dcn_matrix.shape[0],4))
+    for i in range(len(dcn_matrix)):
+        # Make the planar coefficients a, b and c.
+        dend_tree_coeff[i] = np.random.rand(4) * 2. - 1.
+        # Calculate the last planar coefficient d from ax + by + cz - d = 0
+        # => d = - (ax + by + cz)
+        dend_tree_coeff[i, 3] = - np.sum(dend_tree_coeff[i, 0:2] * dcn_matrix[i, 2:4])
+    # Compose the matrix
+    return np.column_stack((dcn_matrix[:, 0], dend_tree_coeff))
