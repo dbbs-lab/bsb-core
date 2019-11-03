@@ -96,13 +96,9 @@ class LayeredRandomWalk(PlacementStrategy):
 
     def place(self, cell_type):
         '''
-            Cell placement.
-
-            1. Sublayer partitioning:
-                Divide the layer into Y-stacked sublayers dependent on the volume still available in the
-                layer, the cell radius and the cell density.
-            2. Cell placement:
-
+            The LayeredRandomWalk subdivides the available volume into
+            sublayers and distributes cells into each sublayer using a
+            self-avoiding random walk.
         '''
         # Variables
         scaffold = self.scaffold

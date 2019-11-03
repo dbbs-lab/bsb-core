@@ -9,3 +9,4 @@ Configuration
   configuration/cell-type
   configuration/connection-type
   configuration/layer
+  configuration/placement-strategies

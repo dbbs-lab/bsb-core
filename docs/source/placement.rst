@@ -29,6 +29,28 @@ place with their density multiplied by the given ratio or
 ``placement_count_ratio`` to place with their count multiplied by the given
 ratio
 
+.. _specifying_placement_order:
+
+Specifying order
+================
+
+By default the cell types are placed sorted from least to most cells per type.
+This default order can be influenced by specifying an ``after`` attribute
+in the cell type's placement configuration. This is an array of cell type names
+after which this cell type has to be placed.
+
+.. _cell_epsilon:
+
+Cell epsilon
+============
+The :class:`.placement.LayeredRandomWalk` calculates the total volume of the layer
+and divides that by the amount of cells to place, to yield a per cell volume
+(not taking into account sphere packing).
+The sphere of that volume is calculated and taken as the per cell radius.
+Subtracting the cell type radius yields the cell epsilon. This is the amount of
+"wiggle room" each cell has in its assigned placement volume. This epsilon is
+also used to determine how far to place cells from eachother.
+
 .. _placement_strategy:
 
 ****************************
