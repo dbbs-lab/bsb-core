@@ -317,6 +317,16 @@
       "divergence": 6,
       "convergence": 1
     },
+    "io_to_basket": {
+      "class": "scaffold.connectivity.ConnectomeIOMolecular",
+      "from_cell_types": [{"type": "io_cell", "compartments": ["axon"]}],
+      "to_cell_types": [{"type": "basket_cell", "compartments": ["dendrites"]}]
+    },
+    "io_to_stellate": {
+      "class": "scaffold.connectivity.ConnectomeIOMolecular",
+      "from_cell_types": [{"type": "io_cell", "compartments": ["axon"]}],
+      "to_cell_types": [{"type": "stellate_cell", "compartments": ["dendrites"]}]
+    },
     "io_to_dcn": {
       "class": "scaffold.connectivity.ConnectomeAllToAll",
       "from_cell_types": [{"type": "io_cell", "compartments": ["axon"]}],
