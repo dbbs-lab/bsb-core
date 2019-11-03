@@ -30,7 +30,8 @@ Basic usage
   * ``density``: Cell density, see :ref:`specifying_cell_count` for more possibilities.
 
 2. Select one of the morphologies that suits your cell type and configure its required
-attributes.
+attributes. Inside of the morphology attribute, a ``detailed_morphologies`` attribute
+can be specified to select detailed morphologies from the morphology repository.
 
 3. The cell type will now be placed, but you'll need to configure connection types
 to connect it to other cells.
