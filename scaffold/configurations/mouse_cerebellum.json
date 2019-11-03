@@ -304,6 +304,33 @@
       "from_cell_types": [{"type": "purkinje_cell", "compartments": ["axon"]}],
       "to_cell_types": [{"type": "dcn_cell", "compartments": ["dendrites"]}],
       "divergence": 5
+    },
+    "purkinje_to_dcn_interneuron": {
+      "class": "scaffold.connectivity.ConnectomeSatellite",
+      "from_cell_types": [{"type": "purkinje_cell", "compartments": ["axon"]}],
+      "to_cell_types": [{"type": "dcn_interneuron", "compartments": ["dendrites"]}]
+    },
+    "io_to_purkinje": {
+      "class": "scaffold.connectivity.ConnectomeIOPurkinje",
+      "from_cell_types": [{"type": "io_cell", "compartments": ["axon"]}],
+      "to_cell_types": [{"type": "purkinje_cell", "compartments": ["dendrites"]}],
+      "divergence": 6,
+      "convergence": 1
+    },
+    "io_to_dcn": {
+      "class": "scaffold.connectivity.ConnectomeAllToAll",
+      "from_cell_types": [{"type": "io_cell", "compartments": ["axon"]}],
+      "to_cell_types": [{"type": "dcn_cell", "compartments": ["dendrites"]}]
+    },
+    "io_to_dcn_interneuron": {
+      "class": "scaffold.connectivity.ConnectomeAllToAll",
+      "from_cell_types": [{"type": "io_cell", "compartments": ["axon"]}],
+      "to_cell_types": [{"type": "dcn_interneuron", "compartments": ["dendrites"]}]
+    },
+    "dcn_interneuron_to_io": {
+      "class": "scaffold.connectivity.ConnectomeAllToAll",
+      "from_cell_types": [{"type": "dcn_interneuron", "compartments": ["axon"]}],
+      "to_cell_types": [{"type": "io_cell", "compartments": ["dendrites"]}]
     }
   },
   "simulations": {
