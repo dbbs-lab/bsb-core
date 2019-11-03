@@ -416,11 +416,20 @@ class Satellite(PlacementStrategy):
 
 		# Place satellites
 		satellitePositions = np.empty([len(after_cell_ids),3])
-		alfa = np.random.uniform(0, 2*math.pi, len(after_cell_pos))
-		beta = np.random.uniform(0, 2*math.pi, len(after_cell_pos))
-		distance_satellite = np.random.uniform((after_cell_radius+radius_satellite), (mean_dist_after_cells/4-after_cell_radius-radius_satellite), len(after_cell_pos))
-		satellitePositions[:,0] = distance_satellite*np.cos(alfa) + after_cell_pos[:,0]
-		satellitePositions[:,1] = distance_satellite*np.sin(alfa) + after_cell_pos[:,1]
-		satellitePositions[:,2] = distance_satellite*np.sin(beta) + after_cell_pos[:,2]
+		for to_place in range(len(after_cell_pos)):
+			place_satellite = True
+			while place_satellite:
+				alfa = np.random.uniform(0, 2*math.pi)
+				beta = np.random.uniform(0, 2*math.pi)
+				distance_satellite = np.random.uniform((after_cell_radius+radius_satellite), (mean_dist_after_cells/4-after_cell_radius-radius_satellite))
+				satellitePositions[to_place,0] = distance_satellite*np.cos(alfa) + after_cell_pos[to_place,0]
+				satellitePositions[to_place,1] = distance_satellite*np.sin(alfa) + after_cell_pos[to_place,1]
+				satellitePositions[to_place,2] = distance_satellite*np.sin(beta) + after_cell_pos[to_place,2]
+
+				# Check overlapping
+				for after_cell in range(len(after_cell_pos)):
+					if np.linalg.norm(satellitePositions[to_place,:]-after_cell_pos[after_cell,:])>(after_cell_radius+radius_satellite):
+						place_satellite = False
+
 
 		scaffold.place_cells(cell_type, layer, satellitePositions)
