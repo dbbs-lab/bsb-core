@@ -11,6 +11,13 @@ Welcome to DBBS Cerebellum Scaffold's documentation!
    :caption: Contents:
 
    usage/installation
+   usage/getting-started
+   configuration
+   placement
+   connectivity
+   output
+   output/formats
+   reference
 
 
 Indices and tables
