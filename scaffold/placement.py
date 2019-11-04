@@ -309,10 +309,9 @@ class ParallelArrayPlacement(PlacementStrategy):
 		'''
 		layer = self.layer_instance
 		radius = cell_type.placement.radius
-		diameter = 2 * radius
 		# Extension of a single array in the X dimension
 		extensionX = self.extension_x
-		spanX = diameter + extensionX
+		spanX = extensionX
 		# Surface area of the plane to place the cells on
 		surfaceArea = layer.width * layer.depth
 		# Number of cells
