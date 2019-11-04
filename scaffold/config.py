@@ -61,6 +61,8 @@ class ScaffoldConfig(object):
             self.read_config(file, stream)
             # Execute the load handler set by the child configuration implementation
             self._parsed_config = self._load_handler(self._raw)
+            # Remove the load handler so that the scaffold can be pickled. (#76)
+            delattr(self, "_load_handler")
 
     def read_config(self, file=None, stream=None):
         if not stream is None:
