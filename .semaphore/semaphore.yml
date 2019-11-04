@@ -9,29 +9,89 @@ blocks:
     task:
       prologue:
         commands:
+          - sem-version python 3.7
           - 'export PATH=$HOME/.local/bin:$PATH'
           - checkout
           - mkdir .pip_cache
-          - cache restore
-          - >-
-            python3.7 -m pip install --user --cache-dir .pip_cache -r
-            requirements.txt
-          - cache store
-          - python3 --version
-          - python3.7 --version
+          - cache restore pip
+          - pip install --cache-dir .pip_cache -r requirements.txt
           - cd tests
       jobs:
         - name: Configuration
           commands:
-            - python3.7 -m unittest test_configuration -v
+            - python -m unittest test_configuration -v
         - name: Compilation
           commands:
-            - python3.7 -m unittest test_compilation -v
+            - python -m unittest test_compilation -v
         - name: NEST
           commands:
-            - python3.7 -m unittest test_nest -v
+            - python -m unittest test_nest -v
       epilogue:
         always:
           commands:
             - ls -la
+    dependencies:
+      - Cache NEST install
+      - Cache pip dependencies
+  - name: Cache NEST install
     dependencies: []
+    task:
+      prologue:
+        commands:
+          - cache remove nest-$NEST_VERSION
+          - cache restore nest-$NEST_VERSION
+          - >-
+            if `cache has_key nest-$NEST_VERSION`; then : ; else sudo apt-get
+            install -y build-essential cmake cython libgsl-dev libltdl-dev
+            libncurses-dev libreadline-dev python3-all-dev python3-numpy
+            python3-scipy python3-matplotlib python3-nose openmpi-bin
+            libopenmpi-dev; fi
+          - >-
+            if `cache has_key nest-$NEST_VERSION`; then : ; else sem-version
+            python 3.7; fi
+          - >-
+            if `cache has_key nest-$NEST_VERSION`; then : ; else wget
+            https://github.com/nest/nest-simulator/archive/v$NEST_VERSION.tar.gz
+            -O nest-simulator-$NEST_VERSION.tar.gz; fi
+          - >-
+            if `cache has_key nest-$NEST_VERSION`; then : ; else tar -xzvf
+            nest-simulator-$NEST_VERSION.tar.gz; fi
+          - mkdir nest-simulator-$NEST_VERSION-build
+          - mkdir nest-install-$NEST_VERSION
+          - cd nest-simulator-$NEST_VERSION-build
+          - >-
+            if `cache has_key nest-$NEST_VERSION`; then : ; else cmake
+            -Dwith-python=3
+            -DCMAKE_INSTALL_PREFIX:PATH=/home/semaphore/nest-$NEST_VERSION
+            /home/semaphore/nest-simulator-$NEST_VERSION; fi
+          - >-
+            if `cache has_key nest-$NEST_VERSION`; then : ; else make install;
+            fi
+          - >-
+            if `cache has_key nest-$NEST_VERSION`; then : ; else source
+            /home/semaphore/nest-$NEST_VERSION/bin/nest_vars.sh; fi
+          - cd /home/semaphore
+          - cache store nest-$NEST_VERSION nest-$NEST_VERSION
+      jobs:
+        - name: Try importing NEST
+          commands:
+            - python --version
+            - python -c "import nest"
+      env_vars:
+        - name: NEST_VERSION
+          value: 2.18.0
+    skip:
+      when: 'true'
+  - name: Cache pip dependencies
+    dependencies: []
+    task:
+      jobs:
+        - name: Install
+          commands:
+            - sem-version python 3.7
+            - 'export PATH=$HOME/.local/bin:$PATH'
+            - checkout
+            - mkdir .pip_cache
+            - cache restore pip
+            - pip install --cache-dir .pip_cache -r requirements.txt
+            - cache store pip
