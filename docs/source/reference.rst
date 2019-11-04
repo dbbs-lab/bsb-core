@@ -11,3 +11,4 @@ Full reference guide to the most important parts of the documentation.
   scaffold/scaffold
   scaffold/config
   scaffold/placement
+  scaffold/connectivity

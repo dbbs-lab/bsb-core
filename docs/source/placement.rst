@@ -11,6 +11,8 @@ Placement occurs as the first step during network architecture compilation.
 The placement order happens in a lowest cell count first fashion unless specified
 otherwise in the cell type's placement configuration.
 
+See the :doc:`/configuration/placement-strategies`
+
 .. contents::
 
 *************
@@ -62,3 +64,9 @@ used to place cells. The most common placement strategy in the scaffold is the
 :class:`LayeredRandomWalk <.placement.LayeredRandomWalk>`.
 The placement strategy is an interface whose ``place`` method is called when
 placement occurs.
+
+Placing cells
+=============
+
+Call the scaffold instance's :func:`.scaffold.Scaffold.place_cells` function to
+place cells in the simulation volume.

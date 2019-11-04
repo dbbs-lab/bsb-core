@@ -10,3 +10,4 @@ Configuration
   configuration/connection-type
   configuration/layer
   configuration/placement-strategies
+  configuration/connection-strategies
