@@ -285,7 +285,7 @@ class ParallelArrayPlacement(PlacementStrategy):
 	casts = {
 		'extension_x': float,
 		'extension_z': float,
-		'angle': lambda x: float(x) / 360 * math.pi
+		'angle': lambda x: float(x) * 2 * math.pi / 360
 	}
 
 	defaults = {
