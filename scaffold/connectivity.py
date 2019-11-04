@@ -901,4 +901,11 @@ class AllToAll(ConnectionStrategy):
 		pass
 
 	def connect(self):
-		pass
+		from_type = self.from_cell_types[0]
+		to_type = self.to_cell_types[0]
+		from_cells = self.scaffold.get_cells_by_type(from_type.name)
+		to_cells = self.scaffold.get_cells_by_type(to_type.name)
+		connections = np.empty([0,2])
+		for from_cell in from_cells[:,0]:
+			connections = np.vstack((connections, np.column_stack((np.repeat(from_cell,len(to_cells)),to_cells[:,0]))))
+		self.scaffold.connect_cells(self, connections)
