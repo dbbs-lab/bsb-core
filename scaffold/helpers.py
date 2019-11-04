@@ -248,7 +248,7 @@ class SortableByAfter:
     @classmethod
     def resolve_order(cls, objects):
         '''
-            Orders a given array of objects by the class's default mechanism and
+            Orders a given dictionary of objects by the class's default mechanism and
             then apply the `after` attribute for further restrictions.
         '''
         # Sort by the default approach
