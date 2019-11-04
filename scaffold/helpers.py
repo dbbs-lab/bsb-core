@@ -189,6 +189,18 @@ class origin:
         return self.origin[2]
 
 class SortableByAfter:
+    @abc.abstractmethod
+    def has_after(self):
+        pass
+
+    @abc.abstractmethod
+    def get_after(self):
+        pass
+
+    @abc.abstractmethod
+    def get_ordered(self, objects):
+        pass
+
     def is_after_satisfied(self, objects):
         '''
             Determine whether the `after` specification of this cell type is met.
