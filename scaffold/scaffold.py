@@ -91,7 +91,7 @@ class Scaffold:
 		# Place the cells starting from the lowest density cell_types.
 		for i in np.arange(tries, dtype=int):
 			t = time.time()
-			sorted_cell_types = CellType.resolve_placement_order(self.configuration.cell_types)
+			sorted_cell_types = CellType.resolve_order(self.configuration.cell_types)
 			for cell_type in sorted_cell_types:
 				# Place cell type according to PlacementStrategy
 				cell_type.placement.place(cell_type)

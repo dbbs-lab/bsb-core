@@ -187,3 +187,74 @@ class origin:
     @property
     def Z(self):
         return self.origin[2]
+
+class SortableByAfter:
+    def is_after_satisfied(self, objects):
+        '''
+            Determine whether the `after` specification of this cell type is met.
+            Any cell types appearing in `self.after` need to occur before this cell type,
+            so that this cell type appears "after" all these cell types.
+        '''
+        if not hasattr(self.placement, "after"): # No after?
+            # Condition without constraints always True.
+            return True
+        is_met = False
+        # Determine whether this cell type is out of order.
+        for type in objects:
+            if is_met and type.name in self.placement.after:
+                # After conditions not met if we have we seen ourself and
+                # find something that's supposed to be in front of us.
+                return False
+            elif type == self: # Is this us?
+                # From this point on, nothing that appears in the after array is allowed to be encountered
+                is_met = True
+        # We didn't meet anything behind us that was supposed to be in front of us
+        # => Condition met.
+        return True
+
+    def satisfy_after(self, objects):
+        '''
+            Given an array of cell types, place this cell type after all of the
+            cell types specified in `self.after`. If cell types in `self.after`
+            are missing from the given array this cell type is placed at the end
+            of the array. Modifies the `objects` array in place.
+        '''
+        before_types = self.get_after().copy()
+        i = 0
+        place_after = False
+        while len(before_types) > 0 and i < len(objects):
+            if objects[i].name in before_types:
+                before_types.remove(objects[i].name)
+            if objects[i] == self:
+                objects.remove(self)
+                place_after = True
+            else:
+                i += 1
+        if place_after:
+            objects.insert(i, self)
+
+    @classmethod
+    def resolve_order(cls, objects):
+        '''
+            Orders a given array of objects by the class's default mechanism and
+            then apply the `after` attribute for further restrictions.
+        '''
+        # Sort by the default approach
+        sorting_objects = cls.get_ordered(objects)
+        # Afterwards cell types can be specified that need to be placed after other types.
+        after_specifications = list(filter(lambda c: c.has_after(), objects.values()))
+        j = 0
+        # Keep rearranging as long as any cell type's after condition isn't satisfied.
+        while any(map(lambda c: not c.is_after_satisfied(sorting_objects), after_specifications)):
+            j += 1
+            # Rearrange each element that is out of place.
+            for after_type in after_specifications:
+                if not after_type.is_after_satisfied(sorting_objects):
+                    after_type.satisfy_after(sorting_objects)
+            # If we have had to rearrange all elements more than there are elements, the
+            # conditions cannot be met, and a circular dependency is at play.
+            if j > len(objects):
+                raise Exception("Couldn't resolve order, probably a circular dependency including: {}".format(
+                    ", ".join(list(map(lambda c: c.name, filter(lambda c: not c.is_after_satisfied(sorting_objects), after_specifications))))))
+        # Return the sorted array.
+        return sorting_objects
