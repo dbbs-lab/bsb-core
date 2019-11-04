@@ -309,7 +309,7 @@
       "class": "scaffold.connectivity.SatelliteCommonPresynaptic",
       "from_cell_types": [{"type": "purkinje_cell", "compartments": ["axon"]}],
       "to_cell_types": [{"type": "dcn_interneuron", "compartments": ["dendrites"]}],
-      "after_conn": ["purkinje_to_dcn"]
+      "after": ["purkinje_to_dcn"]
     },
     "io_to_purkinje": {
       "class": "scaffold.connectivity.ConnectomeIOPurkinje",

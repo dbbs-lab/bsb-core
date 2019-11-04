@@ -1,10 +1,10 @@
 import abc
-from .helpers import ConfigurableClass, assert_attr_in
+from .helpers import ConfigurableClass, assert_attr_in, SortableByAfter
 from .postprocessing import get_parallel_fiber_heights, get_dcn_rotations
 import numpy as np
 from random import choice as random_element
 
-class ConnectionStrategy(ConfigurableClass):
+class ConnectionStrategy(ConfigurableClass, SortableByAfter):
 
 	def __init__(self):
 		super().__init__()
@@ -14,6 +14,17 @@ class ConnectionStrategy(ConfigurableClass):
 	@abc.abstractmethod
 	def connect(self):
 		pass
+
+	@classmethod
+	def get_ordered(cls, objects):
+		return objects # No sorting of connection types required.
+
+	def get_after(self):
+		return None if not self.has_after() else self.after
+
+	def has_after(self):
+		return hasattr(self, "after")
+
 
 class ReciprocalGolgiGlomerulus(ConnectionStrategy):
 	def validate(self):
@@ -879,7 +890,7 @@ class SatelliteCommonPresynaptic(ConnectionStrategy):
 		config = self.scaffold.configuration
 		from_type = self.from_cell_types[0]
 		to_type = self.to_cell_types[0]
-		after_connection = self.after_conn
+		after_connection = self.after
 		after_cell_type = []
 		for num_after in range(len(config.cell_types[to_type.name].placement.after)):
 			after_cell_type.append(config.cell_types[to_type.name].placement.after[num_after])

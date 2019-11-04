@@ -207,13 +207,14 @@ class SortableByAfter:
             Any cell types appearing in `self.after` need to occur before this cell type,
             so that this cell type appears "after" all these cell types.
         '''
-        if not hasattr(self.placement, "after"): # No after?
+        if not self.has_after(): # No after?
             # Condition without constraints always True.
             return True
         is_met = False
+        after = self.get_after()
         # Determine whether this cell type is out of order.
         for type in objects:
-            if is_met and type.name in self.placement.after:
+            if is_met and type.name in after:
                 # After conditions not met if we have we seen ourself and
                 # find something that's supposed to be in front of us.
                 return False

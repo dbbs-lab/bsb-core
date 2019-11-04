@@ -4,6 +4,7 @@ import numpy as np
 import time
 from .trees import TreeCollection
 from .models import CellType
+from .connectivity import ConnectionStrategy
 
 ###############################
 ## Scaffold class
@@ -97,6 +98,7 @@ class Scaffold:
 				cell_type.placement.place(cell_type)
 				# Construct a tree of the placed cells
 				self.trees.cells.create_tree(cell_type.name, self.cells_by_type[cell_type.name][:, 2:5])
+			sorted_connection_types = ConnectionStrategy.resolve_order(self.configuration.connection_types)
 			for connection_type in self.configuration.connection_types.values():
 				connection_type.connect()
 			times[i] = time.time() - t
