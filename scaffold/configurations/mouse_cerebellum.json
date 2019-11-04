@@ -306,7 +306,7 @@
       "divergence": 5
     },
     "purkinje_to_dcn_interneuron": {
-      "class": "scaffold.connectivity.Satellite",
+      "class": "scaffold.connectivity.SatelliteCommonPresynaptic",
       "from_cell_types": [{"type": "purkinje_cell", "compartments": ["axon"]}],
       "to_cell_types": [{"type": "dcn_interneuron", "compartments": ["dendrites"]}],
       "after_conn": ["purkinje_to_dcn"]

@@ -866,7 +866,7 @@ class TouchDetector(ConnectionStrategy):
 		return connected_cells, connected_compartments
 
 
-class Satellite(ConnectionStrategy):
+class SatelliteCommonPresynaptic(ConnectionStrategy):
 	'''
 		Connectivity for satellite neurons (homologous to center neurons)
 	'''
