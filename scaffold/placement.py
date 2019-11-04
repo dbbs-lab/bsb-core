@@ -352,7 +352,7 @@ class ParallelArrayPlacement(PlacementStrategy):
 			# Apply shift and offset
 			x = xPositions + angleShift
 			# Place the cells in a bounded lattice with a little modulus magic
-			x = layer.origin[0] + x % boundedX - np.floor(x / boundedX) * latticeError + radius
+			x = layer.origin[0] + x % boundedX + radius
 			# Place them at a uniformly random height throughout the layer.
 			y = layer.origin[1] + np.random.uniform(radius, layer.height - radius, x.shape[0])
 			# Place the cells in their z-position with slight jitter
