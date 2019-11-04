@@ -788,6 +788,20 @@ class ConnectomeGlomDCN(TouchingConvergenceDivergence):
 		results = connectome_glom_dcn(first_glomerulus, glomeruli, dcn_cells, convergence)
 		self.scaffold.connect_cells(self, results)
 
+class ConnectomeIOPurkinje(TouchingConvergenceDivergence):
+	def validate(self):
+		pass
+
+	def connect(self):
+		pass
+
+class ConnectomeIOMolecular(ConnectionStrategy):
+	def validate(self):
+		pass
+
+	def connect(self):
+		pass
+
 class TouchDetector(ConnectionStrategy):
 	'''
 		Connectivity based on intersection of detailed morphologies
@@ -850,3 +864,41 @@ class TouchDetector(ConnectionStrategy):
 				connected_cells.append([from_id, to_id])
 				connected_compartments.append(random_element(intersections))
 		return connected_cells, connected_compartments
+
+
+class Satellite(ConnectionStrategy):
+	'''
+		Connectivity for satellite neurons (homologous to center neurons)
+	'''
+
+
+	def validate(self):
+		pass
+
+	def connect(self):
+		config = self.scaffold.configuration
+		from_type = self.from_cell_types[0]
+		to_type = self.to_cell_types[0]
+		after_connection = self.after_conn
+		after_cell_type = []
+		for num_after in range(len(config.cell_types[to_type.name].placement.after)):
+			after_cell_type.append(config.cell_types[to_type.name].placement.after[num_after])
+			after_connections = self.scaffold.cell_connections_by_tag[after_connection[num_after]]
+		first_after = np.amin(after_connections[:,1])
+		to_cells = self.scaffold.get_cells_by_type(to_type.name)
+		first_to = np.amin(to_cells)
+		connections = np.column_stack((after_connections[:,0], after_connections[:,1]-first_after+first_to))
+		self.scaffold.connect_cells(self, connections)
+
+
+class AllToAll(ConnectionStrategy):
+	'''
+		All to all connectivity between two neural populations
+	'''
+
+
+	def validate(self):
+		pass
+
+	def connect(self):
+		pass
