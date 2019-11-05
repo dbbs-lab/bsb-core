@@ -828,11 +828,17 @@ class ConnectomeIOPurkinje(ConnectionStrategy):
 			kmeans = KMeans(n_clusters=number_clusters).fit(purkinje_cells[:,2:4])
 			label_clusters = kmeans.labels_
 			target_clusters = {i: np.where(kmeans.labels_ == i)[0] for i in range(kmeans.n_clusters)}
-			io_purkinje = np.empty([0, 2])
-
+			io_purkinje = np.empty([len(purkinje_cells), 2])
+			mi = 0
 			for io in range(len(io_cells)):
-				io_purkinje = np.vstack((io_purkinje,np.column_stack((np.repeat(io,len(target_clusters[io])),target_clusters[io]))))
+				target_purkinje_ids = purkinje_cells[target_clusters[io], 0]
+				io_ids = np.repeat(io,len(target_clusters[io]))
+				nmi = mi + len(target_purkinje_ids)
+				io_purkinje[mi:nmi] = np.column_stack((io_ids, target_purkinje_ids))
+				mi = nmi
 			return io_purkinje
+
+		print("purkinje cells cehck", purkinje_cells)
 
 		results = connectome_io_purkinje(io_cells, purkinje_cells, divergence)
 		self.scaffold.connect_cells(self, results)
@@ -843,7 +849,39 @@ class ConnectomeIOMolecular(ConnectionStrategy):
 		pass
 
 	def connect(self):
-		pass
+
+		io_cell_type = self.from_cell_types[0]
+		molecular_cell_type = self.to_cell_types[0]
+
+		def connectome_io_molecular(io_cell_type, molecular_cell_type):
+			io_molecular = []
+			io_cells = self.scaffold.get_cells_by_type(io_cell_type.name)
+			molecular_cell_purkinje_connections = self.scaffold.get_connections_by_cell_type(postsynaptic="purkinje_cell",presynaptic=molecular_cell_type.name)
+			molecular_cell_purkinje_matrix = molecular_cell_purkinje_connections[0][1]
+			io_cell_purkinje_connections = self.scaffold.get_connections_by_cell_type(postsynaptic="purkinje_cell",presynaptic=io_cell_type.name)
+			io_cell_purkinje_matrix = io_cell_purkinje_connections[0][1]
+			print(molecular_cell_purkinje_matrix)
+			print("IIIIIIIIIIIIIIIIIOOOOOOOOOOOOOOOOOOOOOOOOOOOO", io_cell_purkinje_matrix)
+			purkinje_dict = {}
+			for conn in range(len(molecular_cell_purkinje_matrix)):
+				purkinje_id = molecular_cell_purkinje_matrix[conn][1]
+				if not purkinje_id in purkinje_dict:
+					print("adding purkinje cell", purkinje_id)
+					purkinje_dict[purkinje_id] = []
+				purkinje_dict[purkinje_id].append(molecular_cell_purkinje_matrix[conn][0])
+
+			for io_conn in range(len(io_cell_purkinje_matrix)):
+				purkinje_id = io_cell_purkinje_matrix[io_conn][1]
+				if not purkinje_id in purkinje_dict:
+					continue
+				target_molecular_cells = purkinje_dict[purkinje_id]
+				matrix = np.column_stack((np.repeat(io_cell_purkinje_matrix[io_conn][0],len(target_molecular_cells)),target_molecular_cells))
+				io_molecular.extend(matrix)
+			return np.array(io_molecular)
+
+		results = connectome_io_molecular(io_cell_type,molecular_cell_type)
+		self.scaffold.connect_cells(self,results)
+
 
 class TouchDetector(ConnectionStrategy):
 	'''
