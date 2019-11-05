@@ -1,6 +1,6 @@
 import sys, argparse, h5py
 from .output import MorphologyRepository
-from .plotting import plot_morphology
+from .plotting import plot_morphology, plot_voxel_morpho_map
 import matplotlib.pyplot as plt
 
 class ReplState:

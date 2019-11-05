@@ -241,10 +241,10 @@ class NestAdapter(SimulatorAdapter):
         self.reset_kernel()
         self.scaffold.report("Creating neurons...",2)
         self.create_neurons(self.cell_models)
-        self.scaffold.report("Creating connections...",2)
-        self.connect_neurons(self.connection_models, hdf5)
         self.scaffold.report("Creating devices...",2)
         self.create_devices(self.devices)
+        self.scaffold.report("Creating connections...",2)
+        self.connect_neurons(self.connection_models, hdf5)
         return nest
 
     def reset_kernel(self):
@@ -303,7 +303,14 @@ class NestAdapter(SimulatorAdapter):
 
     def install_modules(self):
         for module in self.modules:
-            self.nest.Install(module)
+            try:
+                self.nest.Install(module)
+            except Exception as e:
+                if e.errorname == "DynamicModuleManagementError":
+                    self.scaffold.report("[WARNING] Module {} already installed".format(module),1)
+                else:
+                    raise
+
 
     def create_neurons(self, cell_models):
         '''
@@ -379,13 +386,16 @@ class NestAdapter(SimulatorAdapter):
         for device_model in devices.values():
             device = self.nest.Create(device_model.device)
             self.scaffold.report("Creating device:  "+device_model.device,3)
-            device_targets = device_model.get_targets()
             self.nest.SetStatus(device, device_model.parameters)
+            device_targets = device_model.get_targets()
+            #self.devices[device_model.name].identifiers.extend(device)
             try:
                 if device_model.io == "input":
                     self.nest.Connect(device, device_targets)
-                else:
+                elif device_model.io == "output":
                     self.nest.Connect(device_targets, device)
+                else:
+                    pass                # Weight recorder device is not connected to any node; just linked to a connection
             except Exception as e:
                 if e.errorname == 'IllegalConnection':
                     raise Exception("IllegalConnection error for '{}'".format(device_model.get_config_node())) from None

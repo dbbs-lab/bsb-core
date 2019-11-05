@@ -363,3 +363,72 @@ class ParallelArrayPlacement(PlacementStrategy):
 			cells[(i * len(x)):((i + 1) * len(x)), 2] = z
 		# Place all the cells in 1 stitch
 		self.scaffold.place_cells(cell_type, layer, cells)
+
+
+class Satellite(PlacementStrategy):
+	'''
+		Implementation of the placement of cells in layers as satellites of existing cells
+	'''
+
+	def validate(self):
+		# Check if the layer is given and exists.
+		config = self.scaffold.configuration
+		if not hasattr(self, 'layer'):
+			raise Exception("Required attribute Layer missing from {}".format(self.name))
+		if not self.layer in config.layers:
+			raise Exception("Unknown layer '{}' in {}".format(self.layer, self.name))
+		self.layer_instance = self.scaffold.configuration.layers[self.layer]
+
+	def place(self, cell_type):
+
+		'''
+			Cell placement: place a satellite cell to each associated cell at a random distance depending on the radius of both cells.
+		'''
+
+		# Variables
+		scaffold = self.scaffold
+		config = scaffold.configuration
+		layer = self.layer_instance
+		radius_satellite = cell_type.placement.radius
+		after_cells = [self.scaffold.configuration.cell_types[type_after] for type_after in self.after]
+		after_cell_ids = np.empty([0])
+		after_cell_pos = np.empty([0, 3])
+		after_cell_radii = np.empty(0)
+		for after_cell_type in after_cells:
+			cells = self.scaffold.get_cells_by_type(after_cell_type.name)
+			after_cell_ids = np.concatenate((after_cell_ids, cells[:,0]))
+			after_cell_pos = np.vstack((after_cell_pos, cells[:,[2, 3, 4]]))
+			after_cell_radii = np.concatenate((after_cell_radii, np.ones(cells.shape[0]) * after_cell_type.placement.radius))
+
+		if all(i == after_cell_radii[0] for i in after_cell_radii):
+			after_cell_radius = after_cell_radii[0]
+		else:
+			after_cell_radius = np.mean(after_cell_radii)
+
+		dist = np.empty([0])
+		for I in range(len(after_cell_pos)):
+			for J in range(len(after_cell_pos)):
+				dist = np.append(dist,np.linalg.norm(after_cell_pos[I,:]-after_cell_pos[J,:]))
+
+
+		mean_dist_after_cells = np.mean(dist[np.nonzero(dist)])
+
+		# Place satellites
+		satellitePositions = np.empty([len(after_cell_ids),3])
+		for to_place in range(len(after_cell_pos)):
+			place_satellite = True
+			while place_satellite:
+				alfa = np.random.uniform(0, 2*math.pi)
+				beta = np.random.uniform(0, 2*math.pi)
+				distance_satellite = np.random.uniform((after_cell_radius+radius_satellite), (mean_dist_after_cells/4-after_cell_radius-radius_satellite))
+				satellitePositions[to_place,0] = distance_satellite*np.cos(alfa) + after_cell_pos[to_place,0]
+				satellitePositions[to_place,1] = distance_satellite*np.sin(alfa) + after_cell_pos[to_place,1]
+				satellitePositions[to_place,2] = distance_satellite*np.sin(beta) + after_cell_pos[to_place,2]
+
+				# Check overlapping
+				for after_cell in range(len(after_cell_pos)):
+					if np.linalg.norm(satellitePositions[to_place,:]-after_cell_pos[after_cell,:])>(after_cell_radius+radius_satellite):
+						place_satellite = False
+
+
+		scaffold.place_cells(cell_type, layer, satellitePositions)
