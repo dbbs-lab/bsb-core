@@ -83,6 +83,8 @@ blocks:
       env_vars:
         - name: NEST_VERSION
           value: 2.18.0
+    skip:
+      when: 'true'
   - name: Cache pip dependencies
     dependencies: []
     task:
