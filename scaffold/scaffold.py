@@ -215,6 +215,39 @@ class Scaffold:
 		else:
 			return self.cells_by_type[name]
 
+	def get_connection_types_by_cell_type(self, postsynaptic=[], presynaptic=[]):
+		def any_intersect(l1, l2, f=lambda x: x):
+			if not l2: # Return True if there's no pre/post targets specified
+				return True
+			for e1 in l1:
+				if f(e1) in l2:
+					return True
+			return False
+
+		connection_types = self.configuration.connection_types
+		connection_items = connection_types.items()
+		filtered_connection_items = list(filter(lambda c:
+			any_intersect(c[1].to_cell_types, postsynaptic, lambda x: x.name) and
+			any_intersect(c[1].from_cell_types, presynaptic, lambda x: x.name),
+			connection_items
+		))
+		return dict(filtered_connection_items)
+
+	def get_connections_by_cell_type(self, any=None, postsynaptic=None, presynaptic=None):
+		if any is None and postsynaptic is None and presynaptic is None:
+			raise ArgumentError("No cell types specified")
+		# Initialize empty omitted lists
+		postsynaptic = postsynaptic if not postsynaptic is None else []
+		presynaptic = presynaptic if not presynaptic is None else []
+		if not any is None: # Add any cell types as both post and presynaptic targets
+			postsynaptic.extend(any)
+			presynaptic.extend(any)
+		# Find the connection types that have the specified targets
+		connection_types = self.get_connection_types_by_cell_type(postsynaptic, presynaptic)
+		# Map them to a list of tuples with the 1st element the connection type
+		# and the connection matrices appended behind it.
+		return list(map(lambda x: (x, *x.get_connection_matrices()), connection_types.values()))
+
 	def save(self):
 		self.output_formatter.save()
 
