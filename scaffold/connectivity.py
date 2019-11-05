@@ -3,6 +3,7 @@ from .helpers import ConfigurableClass, assert_attr_in, SortableByAfter
 from .postprocessing import get_parallel_fiber_heights, get_dcn_rotations
 import numpy as np
 from random import choice as random_element
+from sklearn.cluster import KMeans
 
 class ConnectionStrategy(ConfigurableClass, SortableByAfter):
 
@@ -802,12 +803,40 @@ class ConnectomeGlomDCN(TouchingConvergenceDivergence):
 		results = connectome_glom_dcn(first_glomerulus, glomeruli, dcn_cells, convergence)
 		self.scaffold.connect_cells(self, results)
 
-class ConnectomeIOPurkinje(TouchingConvergenceDivergence):
+class ConnectomeIOPurkinje(ConnectionStrategy):
+
+	required = ['divergence']
+
 	def validate(self):
 		pass
 
 	def connect(self):
-		pass
+		io_cell_type = self.from_cell_types[0]
+		purkinje_cell_type = self.to_cell_types[0]
+		io_cells = self.scaffold.cells_by_type[io_cell_type.name]
+		purkinje_cells = self.scaffold.cells_by_type[purkinje_cell_type.name]
+		convergence = 1 			# Purkinje cells should be always constrained to receive signal from only 1 Inferior Olive neuron
+		divergence = self.divergence
+		tolerance = self.tolerance_divergence
+
+
+		def connectome_io_purkinje(io_cells, purkinje_cells, div_io):
+
+			## TODO: Check divergence, number of io_cells and number of purkinje_cells consistency
+
+			number_clusters = len(io_cells)
+			kmeans = KMeans(n_clusters=number_clusters).fit(purkinje_cells[:,2:4])
+			label_clusters = kmeans.labels_
+			target_clusters = {i: np.where(kmeans.labels_ == i)[0] for i in range(kmeans.n_clusters)}
+			io_purkinje = np.empty([0, 2])
+
+			for io in range(len(io_cells)):
+				io_purkinje = np.vstack((io_purkinje,np.column_stack((np.repeat(io,len(target_clusters[io])),target_clusters[io]))))
+			return io_purkinje
+
+		results = connectome_io_purkinje(io_cells, purkinje_cells, divergence)
+		self.scaffold.connect_cells(self, results)
+
 
 class ConnectomeIOMolecular(ConnectionStrategy):
 	def validate(self):
