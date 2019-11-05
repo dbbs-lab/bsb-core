@@ -38,8 +38,10 @@ blocks:
     task:
       prologue:
         commands:
-          - cache remove nest-$NEST_VERSION
           - cache restore nest-$NEST_VERSION
+          - >-
+            if `cache has_key nest-$NEST_VERSION`; then echo "NEST cache found,
+            skipping NEST build." ; else : ; fi
           - >-
             if `cache has_key nest-$NEST_VERSION`; then : ; else sudo apt-get
             install -y build-essential cmake cython libgsl-dev libltdl-dev
@@ -64,6 +66,7 @@ blocks:
             -Dwith-python=3
             -DCMAKE_INSTALL_PREFIX:PATH=/home/semaphore/nest-$NEST_VERSION
             /home/semaphore/nest-simulator-$NEST_VERSION; fi
+          - 'if `cache has_key nest-$NEST_VERSION`; then : ; else make; fi'
           - >-
             if `cache has_key nest-$NEST_VERSION`; then : ; else make install;
             fi
@@ -80,8 +83,6 @@ blocks:
       env_vars:
         - name: NEST_VERSION
           value: 2.18.0
-    skip:
-      when: 'true'
   - name: Cache pip dependencies
     dependencies: []
     task:
