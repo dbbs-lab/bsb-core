@@ -15,7 +15,9 @@
 import os
 import sys
 sys.path.insert(0, os.path.abspath('../..'))
+import cakephp_theme
 
+html_theme_path = [cakephp_theme.get_html_theme_path()]
 
 # -- Project information -----------------------------------------------------
 
@@ -45,6 +47,7 @@ extensions = [
     'sphinx.ext.imgmath',
     'sphinx.ext.ifconfig',
     'sphinx.ext.viewcode',
+    'cakephp_theme'
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -80,7 +83,15 @@ pygments_style = None
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'alabaster'
+html_theme = 'cakephp_theme'
+
+html_context = {
+    'maintainer': 'Robin De Schepper',
+    'project_pretty_name': 'DBBS Scaffold',
+    'projects': {
+        'DBBS Scaffold': 'https://github.com/dbbs/scaffold'
+    }
+}
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the

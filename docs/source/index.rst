@@ -23,6 +23,6 @@ Welcome to DBBS Cerebellum Scaffold's documentation!
 Indices and tables
 ==================
 
-* :ref:`genindex`
-* :ref:`modindex`
+* :doc:`genindex`
+* :doc:`py-modindex`
 * :ref:`search`

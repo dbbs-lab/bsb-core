@@ -22,12 +22,12 @@ Basic usage
 
 1. Configure the following attributes in ``placement``:
 
-  * ``class``: the importable name of the placement strategy class. 2 built-in
-    implementation of the placement strategy are available:
-    :class:`.placement.LayeredRandomWalk` and :class:`.placement.ParallelArrayPlacement`
-  * ``layer``: The topological layer in which this cell type appears.
-  * ``soma_radius``: Radius of the cell soma in µm.
-  * ``density``: Cell density, see :ref:`specifying_cell_count` for more possibilities.
+* ``class``: the importable name of the placement strategy class. 2 built-in
+  implementation of the placement strategy are available:
+  :class:`.placement.LayeredRandomWalk` and :class:`.placement.ParallelArrayPlacement`
+* ``layer``: The topological layer in which this cell type appears.
+* ``soma_radius``: Radius of the cell soma in µm.
+* ``density``: Cell density, see :ref:`specifying_cell_count` for more possibilities.
 
 2. Select one of the morphologies that suits your cell type and configure its required
 attributes. Inside of the morphology attribute, a ``detailed_morphologies`` attribute
