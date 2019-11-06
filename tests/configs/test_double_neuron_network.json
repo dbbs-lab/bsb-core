@@ -2,7 +2,7 @@
   "name": "DBBS Mouse cerebellum configuration v4.0",
   "output": {
     "format": "scaffold.output.HDF5Formatter",
-    "file": "double_neuron_test.hdf5"
+    "file": "double_neuron_network_test_static.hdf5"
   },
   "network_architecture": {
     "simulation_volume_x": 150.0,
@@ -54,70 +54,95 @@
     }
   },
   "connection_types": {
-
+    "from_cell_to_cell": {
+      "class": "scaffold.connectivity.ConnectomeGlomDCN",
+      "from_cell_types": [{"type": "from_cell", "compartments": ["soma"]}],
+      "to_cell_types": [{"type": "to_cell", "compartments": ["soma"]}],
+      "divergence": 2,
+      "convergence": 4
+    }
   },
   "simulations": {
-    "test_double_neuron": {
+    "test_double_neuron_network_static": {
       "simulator": "nest",
       "default_neuron_model": "iaf_cond_alpha",
       "default_synapse_model": "static_synapse",
+      "modules": ["cerebmodule"],
       "duration": 10,
       "cell_models": {
         "from_cell": {
           "parameters": {
             "t_ref": 1.5,
             "C_m": 7.0,
-            "V_th": -41.0,
             "V_reset": -70.0,
             "E_L": -62.0
           },
           "iaf_cond_alpha": {
-            "I_e": 0.0
+            "I_e": 0.0,
+            "V_th": -41.0
           },
-          "eglif": {
+          "eglif_cond_alpha_multisyn": {
             "Vinit": -62.0,
-            "lambda":1.0,
-            "deltaV":0.3,
+            "lambda_0":1.0,
+            "delta_V":0.3,
             "tau_m": 24.15,
-            "I_e": -0.888,
-            "k_adap": 0.022,
+            "Vth_init": -41.0,
+            "Ie_const": -0.888,
+            "adaptC": 0.022,
             "k1": 0.311,
             "k2": 0.041,
             "A1": 0.01,
-            "A2":-0.94
+            "A2":-0.94,
+            "receptors": {
+              "to_cell": 1,
+              "from_cell": 2
+            }
           }
         },
         "to_cell": {
+          "neuron_model": "eglif_cond_alpha_multisyn",
           "parameters": {
             "t_ref": 1.5,
             "C_m": 7.0,
-            "V_th": -41.0,
             "V_reset": -70.0,
             "E_L": -62.0
           },
           "iaf_cond_alpha": {
-            "I_e": 0.0
+            "I_e": 0.0,
+            "V_th": -41.0
           },
-          "eglif": {
+          "eglif_cond_alpha_multisyn": {
             "Vinit": -62.0,
-            "lambda":1.0,
-            "deltaV":0.3,
+            "lambda_0":1.0,
+            "delta_V":0.3,
             "tau_m": 24.15,
-            "I_e": -0.888,
-            "k_adap": 0.022,
+            "Vth_init": -41.0,
+            "Ie_const": -0.888,
+            "adaptC": 0.022,
             "k1": 0.311,
             "k2": 0.041,
             "A1": 0.01,
-            "A2":-0.94
+            "A2":-0.94,
+            "receptors": {
+              "from_cell": 1,
+              "to_cell": 2
+            }
           }
         }
       },
       "connection_models": {
-
+        "from_cell_to_cell": {
+          "connection": {
+            "parameters": {
+              "weight": -9.0,
+              "delay": 4.0
+            },
+            "static_synapse": {}
+          },
+          "synapse": {}
+        }
       },
-      "devices": {
-
-      }
+        "devices": {}
     }
   }
 }

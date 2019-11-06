@@ -1,0 +1,178 @@
+{
+  "name": "DBBS Mouse cerebellum configuration v4.0",
+  "output": {
+    "format": "scaffold.output.HDF5Formatter",
+    "file": "double_neuron_network_test_homosyn.hdf5"
+  },
+  "network_architecture": {
+    "simulation_volume_x": 150.0,
+    "simulation_volume_z": 150.0,
+    "store_kd_trees": true,
+    "store_compound_kd_tree": true,
+    "store_pf_kd_trees": true
+  },
+  "layers": {
+    "test_layer": {
+      "thickness": 600,
+      "stack": {
+        "stack_id": 0,
+        "position_in_stack": 0,
+        "position": [0.0, 0.0, 0.0]
+      }
+    }
+  },
+  "cell_types": {
+    "from_cell": {
+      "placement": {
+        "class": "scaffold.placement.LayeredRandomWalk",
+        "layer": "test_layer",
+        "soma_radius": 2.5,
+        "count": 4
+      },
+      "morphology": {
+        "class": "scaffold.morphologies.NoGeometry"
+      },
+      "plotting": {
+        "display_name": "less lonely cell",
+        "color": "#E62214"
+      }
+    },
+    "to_cell": {
+      "placement": {
+        "class": "scaffold.placement.LayeredRandomWalk",
+        "layer": "test_layer",
+        "soma_radius": 2.5,
+        "count": 4
+      },
+      "morphology": {
+        "class": "scaffold.morphologies.NoGeometry"
+      },
+      "plotting": {
+        "display_name": "new friendly cells",
+        "color": "#E62214"
+      }
+    }
+  },
+  "connection_types": {
+    "from_cell_to_cell": {
+      "class": "scaffold.connectivity.ConnectomeGlomDCN",
+      "from_cell_types": [{"type": "from_cell", "compartments": ["soma"]}],
+      "to_cell_types": [{"type": "to_cell", "compartments": ["soma"]}],
+      "divergence": 2,
+      "convergence": 4
+    }
+  },
+  "simulations": {
+    "test_double_neuron_network_homosyn": {
+      "simulator": "nest",
+      "default_neuron_model": "iaf_cond_alpha",
+      "default_synapse_model": "static_synapse",
+      "modules": ["cerebmodule"],
+      "duration": 1000,
+      "cell_models": {
+        "from_cell": {
+          "parameters": {
+            "t_ref": 0.8,
+            "C_m": 620.0,
+            "V_reset": -72.0,
+            "E_L": -62.0
+          },
+          "iaf_cond_alpha": {
+            "I_e": 700.0,
+            "V_th": -47.0
+          },
+          "eglif_cond_alpha_multisyn": {
+            "Vinit": -59.0,
+            "lambda_0":4.0,
+            "delta_V":3.5,
+            "tau_m": 47.0,
+            "Ie_const": 742.54,
+            "adaptC": 1.492,
+            "k1": 0.1950,
+            "k2": 0.041,
+            "A1": 157.622,
+            "A2": 172.622,
+            "receptors": {
+              "from_cell": 1,
+              "to_cell": 2
+            }
+          }
+        },
+        "to_cell": {
+          "neuron_model": "eglif_cond_alpha_multisyn",
+          "parameters": {
+            "t_ref": 0.8,
+            "C_m": 620.0,
+            "V_reset": -72.0,
+            "E_L": -62.0
+          },
+          "iaf_cond_alpha": {
+            "I_e": 700.0,
+            "V_th": -47.0
+          },
+          "eglif_cond_alpha_multisyn": {
+            "Vinit": -59.0,
+            "lambda_0":4.0,
+            "delta_V":3.5,
+            "tau_m": 47.0,
+            "Ie_const": 742.54,
+            "adaptC": 1.492,
+            "k1": 0.1950,
+            "k2": 0.041,
+            "A1": 157.622,
+            "A2": 172.622,
+            "receptors": {
+              "from_cell": 1,
+              "to_cell": 2
+            }
+          }
+        }
+      },
+      "connection_models": {
+        "from_cell_to_cell": {
+          "plastic": true,
+          "synapse_model": "stdp_synapse",
+          "connection": {
+            "parameters": {
+            "weight": 9.0,
+            "delay": 4.0
+          },
+          "static_synapse": {},
+          "stdp_synapse":{
+            "tau_plus":30.0,
+            "lambda":0.5,
+            "alpha":0.1
+          }
+        },
+        "synapse": {}
+      }
+      },
+      "devices": {
+        "record_from_cell_spikes": {
+          "device": "spike_detector",
+          "io": "output",
+          "type": "cell_type",
+          "cell_types": ["from_cell"],
+          "parameters": {
+            "withgid": true,
+            "withtime": true,
+            "to_file": true,
+            "label": "from_cell_spikes"
+          }
+        },
+        "record_to_cell_spikes": {
+          "device": "spike_detector",
+          "io": "output",
+          "type": "cell_type",
+          "cell_types": ["to_cell"],
+          "parameters": {
+            "withgid": true,
+            "withtime": true,
+            "to_file": true,
+            "label": "to_cell_spikes"
+          }
+        }
+      }
+    }
+  }
+}

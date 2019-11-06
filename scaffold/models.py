@@ -1,8 +1,8 @@
 import numpy as np
 from .morphologies import Morphology as BaseMorphology
-from .helpers import ConfigurableClass, dimensions, origin
+from .helpers import ConfigurableClass, dimensions, origin, SortableByAfter
 
-class CellType:
+class CellType(SortableByAfter):
 
     def __init__(self, name, placement=None):
         self.name = name
@@ -31,7 +31,20 @@ class CellType:
         self.morphology = morphology
 
     def set_placement(self, placement):
+        '''
+            Set the placement strategy for this cell type.
+        '''
         self.placement = placement
+
+    @classmethod
+    def get_ordered(cls, objects):
+        return sorted(objects.values(), key=lambda x: x.placement.get_placement_count(x))
+
+    def has_after(self):
+        return hasattr(self.placement, "after")
+
+    def get_after(self):
+        return None if not self.has_after() else self.placement.after
 
     def get_placed_count(self):
         return self.scaffold.statistics.cells_placed[self.name]

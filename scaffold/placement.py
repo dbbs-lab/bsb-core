@@ -275,14 +275,14 @@ class LayeredRandomWalk(PlacementStrategy):
         return self.layer_instance.thickness * (self.restriction_maximum - self.restriction_minimum)
 
 class ParallelArrayPlacement(PlacementStrategy):
-    '''
-        Implementation of the placement of cells in parallel arrays.
-    '''
-    casts = {
-        'extension_x': float,
-        'extension_z': float,
-        'angle': lambda x: float(x) / 360 * math.pi
-    }
+	'''
+		Implementation of the placement of cells in parallel arrays.
+	'''
+	casts = {
+		'extension_x': float,
+		'extension_z': float,
+		'angle': lambda x: float(x) * 2 * math.pi / 360
+	}
 
     defaults = {
         'angle': 0.08726646259971647 # 5 degrees
@@ -299,64 +299,132 @@ class ParallelArrayPlacement(PlacementStrategy):
             raise Exception("Unknown layer '{}' in {}".format(self.layer, self.name))
         self.layer_instance = self.scaffold.configuration.layers[self.layer]
 
-    def place(self, cell_type):
-        '''
-            Cell placement: Create a lattice of parallel arrays/lines in the layer's surface.
-        '''
-        layer = self.layer_instance
-        radius = cell_type.placement.radius
-        diameter = 2 * radius
-        # Extension of a single array in the X dimension
-        extensionX = self.extension_x
-        spanX = diameter + extensionX
-        # Surface area of the plane to place the cells on
-        surfaceArea = layer.width * layer.depth
-        # Number of cells
-        N = self.get_placement_count(cell_type)
-        # Add a random shift to the starting points of the arrays for variation.
-        startOffset = np.random.rand() * extensionX
-        # Place purkinje cells equally spaced over the entire length of the X axis kept apart by their dendritic trees.
-        # They are placed in straight lines, tilted by a certain angle by adding a shifting value.
-        xPositions = np.arange(start=0., stop=layer.width, step=extensionX)[:-1] + startOffset
-        if xPositions.shape[0] == 0: # This only happens if the extensionX of a purkinje cell is larger than the simulation volume
-            # Place a single row on a random position along the x axis
-            xPositions = np.array([startOffset])
-        # Amount of parallel arrays of cells
-        nArrays = xPositions.shape[0]
-        # cells to distribute along the rows
-        cellsPerRow = round(N / nArrays)
-        # The rounded amount of cells that will be placed
-        cellsPlaced = cellsPerRow * nArrays
-        # Calculate the position of the cells along the z-axis.
-        zPositions, lengthPerCell = np.linspace(start=0., stop=layer.depth - radius, num=cellsPerRow, retstep=True, endpoint=False)
-        # Center the cell soma center to the middle of the unit cell
-        zPositions += radius + lengthPerCell / 2
-        # The length of the X axis where cells can be placed in.
-        boundedX = layer.width - radius * 2
-        # The length of the X axis rounded up to a multiple of the unit cell size.
-        latticeX = nArrays * extensionX
-        # Error introduced in the lattice when it is broken by the modulus.
-        latticeError = latticeX - boundedX
-        # Epsilon: jitter along the z-axis
-        ϵ = self.extension_z / 2
-        # Storage array for the cells
-        cells = np.empty((cellsPlaced,3))
-        # See the Wiki `Placement > Purkinje placement` for detailed explanations of the following steps
-        zShape = zPositions.shape[0]
-        for i in np.arange(zShape):
-            # Shift the arrays at an angle
-            angleShift = zPositions[i] * math.tan(self.angle)
-            # Apply shift and offset
-            x = xPositions + angleShift
-            # Place the cells in a bounded lattice with a little modulus magic
-            x = layer.origin[0] + x % boundedX - np.floor(x / boundedX) * latticeError + radius
-            # Place them at a uniformly random height throughout the layer.
-            y = layer.origin[1] + np.random.uniform(radius, layer.height - radius, x.shape[0])
-            # Place the cells in their z-position with slight jitter
-            z = layer.origin[2] + np.array([zPositions[i] + ϵ * (np.random.rand() - 0.5) for _ in np.arange(x.shape[0])])
-            # Store this stack's cells
-            cells[(i * len(x)):((i + 1) * len(x)), 0] = x
-            cells[(i * len(x)):((i + 1) * len(x)), 1] = y
-            cells[(i * len(x)):((i + 1) * len(x)), 2] = z
-        # Place all the cells in 1 stitch
-        self.scaffold.place_cells(cell_type, layer, cells)
+	def place(self, cell_type):
+		'''
+			Cell placement: Create a lattice of parallel arrays/lines in the layer's surface.
+		'''
+		layer = self.layer_instance
+		radius = cell_type.placement.radius
+		# Extension of a single array in the X dimension
+		extensionX = self.extension_x
+		spanX = extensionX
+		# Surface area of the plane to place the cells on
+		surfaceArea = layer.width * layer.depth
+		# Number of cells
+		N = self.get_placement_count(cell_type)
+		# Add a random shift to the starting points of the arrays for variation.
+		startOffset = np.random.rand() * extensionX
+		# Place purkinje cells equally spaced over the entire length of the X axis kept apart by their dendritic trees.
+		# They are placed in straight lines, tilted by a certain angle by adding a shifting value.
+		xPositions = np.arange(start=0., stop=layer.width, step=extensionX)[:-1] + startOffset
+		if xPositions.shape[0] == 0: # This only happens if the extensionX of a purkinje cell is larger than the simulation volume
+			# Place a single row on a random position along the x axis
+			xPositions = np.array([startOffset])
+		# Amount of parallel arrays of cells
+		nArrays = xPositions.shape[0]
+		# cells to distribute along the rows
+		cellsPerRow = round(N / nArrays)
+		# The rounded amount of cells that will be placed
+		cellsPlaced = cellsPerRow * nArrays
+		# Calculate the position of the cells along the z-axis.
+		zPositions, lengthPerCell = np.linspace(start=0., stop=layer.depth - radius, num=cellsPerRow, retstep=True, endpoint=False)
+		# Center the cell soma center to the middle of the unit cell
+		zPositions += radius + lengthPerCell / 2
+		# The length of the X axis where cells can be placed in.
+		boundedX = layer.width - radius * 2
+		# The length of the X axis rounded up to a multiple of the unit cell size.
+		latticeX = nArrays * extensionX
+		# Error introduced in the lattice when it is broken by the modulus.
+		latticeError = latticeX - boundedX
+		# Epsilon: jitter along the z-axis
+		ϵ = self.extension_z / 2
+		# Storage array for the cells
+		cells = np.empty((cellsPlaced,3))
+		# See the Wiki `Placement > Purkinje placement` for detailed explanations of the following steps
+		zShape = zPositions.shape[0]
+		for i in np.arange(zShape):
+			# Shift the arrays at an angle
+			angleShift = zPositions[i] * math.tan(self.angle)
+			# Apply shift and offset
+			x = xPositions + angleShift
+			# Place the cells in a bounded lattice with a little modulus magic
+			x = layer.origin[0] + x % boundedX + radius
+			# Place them at a uniformly random height throughout the layer.
+			y = layer.origin[1] + np.random.uniform(radius, layer.height - radius, x.shape[0])
+			# Place the cells in their z-position with slight jitter
+			z = layer.origin[2] + np.array([zPositions[i] + ϵ * (np.random.rand() - 0.5) for _ in np.arange(x.shape[0])])
+			# Store this stack's cells
+			cells[(i * len(x)):((i + 1) * len(x)), 0] = x
+			cells[(i * len(x)):((i + 1) * len(x)), 1] = y
+			cells[(i * len(x)):((i + 1) * len(x)), 2] = z
+		# Place all the cells in 1 stitch
+		self.scaffold.place_cells(cell_type, layer, cells)
+
+
+class Satellite(PlacementStrategy):
+	'''
+		Implementation of the placement of cells in layers as satellites of existing cells
+	'''
+
+	def validate(self):
+		# Check if the layer is given and exists.
+		config = self.scaffold.configuration
+		if not hasattr(self, 'layer'):
+			raise Exception("Required attribute Layer missing from {}".format(self.name))
+		if not self.layer in config.layers:
+			raise Exception("Unknown layer '{}' in {}".format(self.layer, self.name))
+		self.layer_instance = self.scaffold.configuration.layers[self.layer]
+
+	def place(self, cell_type):
+
+		'''
+			Cell placement: place a satellite cell to each associated cell at a random distance depending on the radius of both cells.
+		'''
+
+		# Variables
+		scaffold = self.scaffold
+		config = scaffold.configuration
+		layer = self.layer_instance
+		radius_satellite = cell_type.placement.radius
+		after_cells = [self.scaffold.configuration.cell_types[type_after] for type_after in self.after]
+		after_cell_ids = np.empty([0])
+		after_cell_pos = np.empty([0, 3])
+		after_cell_radii = np.empty(0)
+		for after_cell_type in after_cells:
+			cells = self.scaffold.get_cells_by_type(after_cell_type.name)
+			after_cell_ids = np.concatenate((after_cell_ids, cells[:,0]))
+			after_cell_pos = np.vstack((after_cell_pos, cells[:,[2, 3, 4]]))
+			after_cell_radii = np.concatenate((after_cell_radii, np.ones(cells.shape[0]) * after_cell_type.placement.radius))
+
+		if all(i == after_cell_radii[0] for i in after_cell_radii):
+			after_cell_radius = after_cell_radii[0]
+		else:
+			after_cell_radius = np.mean(after_cell_radii)
+
+		dist = np.empty([0])
+		for I in range(len(after_cell_pos)):
+			for J in range(len(after_cell_pos)):
+				dist = np.append(dist,np.linalg.norm(after_cell_pos[I,:]-after_cell_pos[J,:]))
+
+
+		mean_dist_after_cells = np.mean(dist[np.nonzero(dist)])
+
+		# Place satellites
+		satellitePositions = np.empty([len(after_cell_ids),3])
+		for to_place in range(len(after_cell_pos)):
+			place_satellite = True
+			while place_satellite:
+				alfa = np.random.uniform(0, 2*math.pi)
+				beta = np.random.uniform(0, 2*math.pi)
+				distance_satellite = np.random.uniform((after_cell_radius+radius_satellite), (mean_dist_after_cells/4-after_cell_radius-radius_satellite))
+				satellitePositions[to_place,0] = distance_satellite*np.cos(alfa) + after_cell_pos[to_place,0]
+				satellitePositions[to_place,1] = distance_satellite*np.sin(alfa) + after_cell_pos[to_place,1]
+				satellitePositions[to_place,2] = distance_satellite*np.sin(beta) + after_cell_pos[to_place,2]
+
+				# Check overlapping
+				for after_cell in range(len(after_cell_pos)):
+					if np.linalg.norm(satellitePositions[to_place,:]-after_cell_pos[after_cell,:])>(after_cell_radius+radius_satellite):
+						place_satellite = False
+
+
+		scaffold.place_cells(cell_type, layer, satellitePositions)

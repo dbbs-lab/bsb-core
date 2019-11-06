@@ -1,15 +1,15 @@
 import abc
-from .helpers import ConfigurableClass, DistributionConfiguration, assert_attr_in
+from .helpers import ConfigurableClass, DistributionConfiguration, assert_attr_in, SortableByAfter
 from .postprocessing import get_parallel_fiber_heights, get_dcn_rotations
 import numpy as np
 from random import choice as random_element, sample as sample_elements
 from .exceptions import MissingMorphologyException
+from sklearn.cluster import KMeans
 
 class SimulationPlaceholder:
 	pass
 
-class ConnectionStrategy(ConfigurableClass):
-
+class ConnectionStrategy(ConfigurableClass, SortableByAfter):
 	def __init__(self):
 		super().__init__()
 		self.simulation = SimulationPlaceholder()
@@ -18,6 +18,20 @@ class ConnectionStrategy(ConfigurableClass):
 	@abc.abstractmethod
 	def connect(self):
 		pass
+
+	@classmethod
+	def get_ordered(cls, objects):
+		return objects # No sorting of connection types required.
+
+	def get_after(self):
+		return None if not self.has_after() else self.after
+
+	def has_after(self):
+		return hasattr(self, "after")
+
+	def get_connection_matrices(self):
+		return list(map(lambda tag: self.scaffold.cell_connections_by_tag[tag], self.tags))
+
 
 class ReciprocalGolgiGlomerulus(ConnectionStrategy):
 	def validate(self):
@@ -792,6 +806,83 @@ class ConnectomeGlomDCN(TouchingConvergenceDivergence):
 		results = connectome_glom_dcn(first_glomerulus, glomeruli, dcn_cells, convergence)
 		self.scaffold.connect_cells(self, results)
 
+class ConnectomeIOPurkinje(ConnectionStrategy):
+
+	required = ['divergence']
+
+	def validate(self):
+		pass
+
+	def connect(self):
+		io_cell_type = self.from_cell_types[0]
+		purkinje_cell_type = self.to_cell_types[0]
+		io_cells = self.scaffold.cells_by_type[io_cell_type.name]
+		purkinje_cells = self.scaffold.cells_by_type[purkinje_cell_type.name]
+		convergence = 1 			# Purkinje cells should be always constrained to receive signal from only 1 Inferior Olive neuron
+		divergence = self.divergence
+		tolerance = self.tolerance_divergence
+
+
+		def connectome_io_purkinje(io_cells, purkinje_cells, div_io):
+
+			## TODO: Check divergence, number of io_cells and number of purkinje_cells consistency
+
+			number_clusters = len(io_cells)
+			kmeans = KMeans(n_clusters=number_clusters).fit(purkinje_cells[:,2:4])
+			label_clusters = kmeans.labels_
+			target_clusters = {i: np.where(kmeans.labels_ == i)[0] for i in range(kmeans.n_clusters)}
+			io_purkinje = np.empty([len(purkinje_cells), 2])
+			mi = 0
+			for io in range(len(io_cells)):
+				target_purkinje_ids = purkinje_cells[target_clusters[io], 0]
+				io_ids = np.repeat(io,len(target_clusters[io]))
+				nmi = mi + len(target_purkinje_ids)
+				io_purkinje[mi:nmi] = np.column_stack((io_ids, target_purkinje_ids))
+				mi = nmi
+			return io_purkinje
+
+		results = connectome_io_purkinje(io_cells, purkinje_cells, divergence)
+		self.scaffold.connect_cells(self, results)
+
+
+class ConnectomeIOMolecular(ConnectionStrategy):
+	def validate(self):
+		pass
+
+	def connect(self):
+
+		io_cell_type = self.from_cell_types[0]
+		molecular_cell_type = self.to_cell_types[0]
+
+		def connectome_io_molecular(io_cell_type, molecular_cell_type):
+			io_molecular = []
+			io_cells = self.scaffold.get_cells_by_type(io_cell_type.name)
+			molecular_cell_purkinje_connections = self.scaffold.get_connections_by_cell_type(postsynaptic="purkinje_cell",presynaptic=molecular_cell_type.name)
+			molecular_cell_purkinje_matrix = molecular_cell_purkinje_connections[0][1]
+			io_cell_purkinje_connections = self.scaffold.get_connections_by_cell_type(postsynaptic="purkinje_cell",presynaptic=io_cell_type.name)
+			io_cell_purkinje_matrix = io_cell_purkinje_connections[0][1]
+			print(molecular_cell_purkinje_matrix)
+			print("IIIIIIIIIIIIIIIIIOOOOOOOOOOOOOOOOOOOOOOOOOOOO", io_cell_purkinje_matrix)
+			purkinje_dict = {}
+			for conn in range(len(molecular_cell_purkinje_matrix)):
+				purkinje_id = molecular_cell_purkinje_matrix[conn][1]
+				if not purkinje_id in purkinje_dict:
+					print("adding purkinje cell", purkinje_id)
+					purkinje_dict[purkinje_id] = []
+				purkinje_dict[purkinje_id].append(molecular_cell_purkinje_matrix[conn][0])
+
+			for io_conn in range(len(io_cell_purkinje_matrix)):
+				purkinje_id = io_cell_purkinje_matrix[io_conn][1]
+				if not purkinje_id in purkinje_dict:
+					continue
+				target_molecular_cells = purkinje_dict[purkinje_id]
+				matrix = np.column_stack((np.repeat(io_cell_purkinje_matrix[io_conn][0],len(target_molecular_cells)),target_molecular_cells))
+				io_molecular.extend(matrix)
+			return np.array(io_molecular)
+
+		results = connectome_io_molecular(io_cell_type,molecular_cell_type)
+		self.scaffold.connect_cells(self,results)
+
 class TouchInformation():
 	def __init__(self, from_cell_type, from_cell_compartments, to_cell_type, to_cell_compartments):
 		self.from_cell_type = from_cell_type
@@ -948,3 +1039,48 @@ class TouchDetector(ConnectionStrategy):
 		for morphology in morphologies:
 			max_radius = max(max_radius, np.max(np.sqrt(np.sum(np.power(morphology.compartment_tree.get_arrays()[0], 2),axis=1))))
 		return max_radius
+
+
+class SatelliteCommonPresynaptic(ConnectionStrategy):
+	'''
+		Connectivity for satellite neurons (homologous to center neurons)
+	'''
+
+
+	def validate(self):
+		pass
+
+	def connect(self):
+		config = self.scaffold.configuration
+		from_type = self.from_cell_types[0]
+		to_type = self.to_cell_types[0]
+		after_connection = self.after
+		after_cell_type = []
+		for num_after in range(len(config.cell_types[to_type.name].placement.after)):
+			after_cell_type.append(config.cell_types[to_type.name].placement.after[num_after])
+			after_connections = self.scaffold.cell_connections_by_tag[after_connection[num_after]]
+		first_after = np.amin(after_connections[:,1])
+		to_cells = self.scaffold.get_cells_by_type(to_type.name)
+		first_to = np.amin(to_cells)
+		connections = np.column_stack((after_connections[:,0], after_connections[:,1]-first_after+first_to))
+		self.scaffold.connect_cells(self, connections)
+
+
+class AllToAll(ConnectionStrategy):
+	'''
+		All to all connectivity between two neural populations
+	'''
+
+
+	def validate(self):
+		pass
+
+	def connect(self):
+		from_type = self.from_cell_types[0]
+		to_type = self.to_cell_types[0]
+		from_cells = self.scaffold.get_cells_by_type(from_type.name)
+		to_cells = self.scaffold.get_cells_by_type(to_type.name)
+		connections = np.empty([0,2])
+		for from_cell in from_cells[:,0]:
+			connections = np.vstack((connections, np.column_stack((np.repeat(from_cell,len(to_cells)),to_cells[:,0]))))
+		self.scaffold.connect_cells(self, connections)

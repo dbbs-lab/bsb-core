@@ -1,0 +1,21 @@
+{
+  "output": {
+    "format": "scaffold.output.HDF5Formatter"
+  },
+  "network_architecture": {
+    "simulation_volume_x": 150.0,
+    "simulation_volume_z": 150.0
+  },
+  "layers": {
+
+  },
+  "cell_types": {
+
+  },
+  "connection_types": {
+
+  },
+  "simulations": {
+
+  }
+}
