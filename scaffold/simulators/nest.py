@@ -62,9 +62,9 @@ class NestConnection(SimulationComponent):
                 if not key in self.synapse:
                     self.synapse[key] = value
 
-    def get_synapse_parameters(self):
+    def get_synapse_parameters(self, synapse_model_name):
         # Get the default synapse parameters
-        return self.synapse
+        return self.synapse.synapse_model_name
 
 
     def get_connection_parameters(self):
@@ -423,7 +423,7 @@ class NestAdapter(SimulatorAdapter):
         self.scaffold.report("Creating synapse model '{}' for {}".format(connection_model.synapse_model, connection_model.name), 0)
         self.nest.CopyModel(connection_model.synapse_model, connection_model.name)
         # Get the synapse parameters
-        params = connection_model.get_synapse_parameters()
+        params = connection_model.get_synapse_parameters(connection_model.synapse_model)
         # Set the parameters in NEST
         self.nest.SetDefaults(connection_model.name, params)
 

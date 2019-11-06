@@ -523,23 +523,6 @@
         }
       },
       "connection_models": {
-        "from_cell_to_cell": {
-          "plastic": true,
-          "synapse_model": "stdp_synapse",
-          "connection": {
-            "parameters": {
-              "weight": 9.0,
-              "delay": 4.0
-            },
-            "static_synapse": {},
-            "stdp_synapse":{
-              "tau_plus":30.0,
-              "lambda":0.5,
-              "alpha":0.1
-            }
-          },
-          "synapse": {}
-        },
         "glomerulus_to_granule": {
           "connection": {
             "parameters":{
@@ -599,11 +582,12 @@
             "parameters":{
               "weight": 0.2,
               "delay": 5.0
-            },
+            }
+          },
+          "synapse": {
             "static_synapse": {},
             "stdp_synapse_sinexp": {}
-          },
-          "synapse": {}
+          }
         },
         "parallel_fiber_to_basket": {
           "plastic": true,
@@ -614,11 +598,12 @@
             "parameters":{
               "weight": 0.2,
               "delay": 5.0
-            },
+            }
+          },
+          "synapse": {
             "static_synapse": {},
             "stdp_synapse_alpha": {}
-          },
-          "synapse": {}
+          }
         },
         "parallel_fiber_to_stellate": {
           "plastic": true,
@@ -629,11 +614,12 @@
             "parameters":{
               "weight": 0.2,
               "delay": 5.0
-            },
+            }
+          },
+          "synapse": {
             "static_synapse": {},
             "stdp_synapse_alpha": {}
-          },
-          "synapse": {}
+          }
         },
         "stellate_to_purkinje": {
           "connection": {
@@ -686,24 +672,37 @@
           "synapse": {}
         },
         "purkinje_to_dcn": {
+          "plastic": true,
+          "synapse_model": "stdp_synapse",
           "connection": {
             "parameters":{
               "weight":-0.03,
               "delay": 4.0
             },
-            "static_synapse": {}
+            "static_synapse": {},
+            "stdp_synapse": {
+              "tau_plus":30.0,
+              "alpha": 0.5,
+              "lambda": 0.1
+            }
           },
           "synapse": {}
         },
         "glomerulus_to_dcn": {
+          "plastic": true,
+          "hetero": true,
+          "teaching": "purkinje_to_dcn",
+          "synapse_model": "stdp_synapse_cosexp",
           "connection": {
             "parameters":{
               "weight":0.0006,
               "delay": 4.0
-            },
-            "static_synapse": {}
+            }
           },
-          "synapse": {}
+          "synapse": {
+            "static_synapse": {},
+            "stdp_synapse_cosexp": {}
+          }
         }
       },
       "devices": {
