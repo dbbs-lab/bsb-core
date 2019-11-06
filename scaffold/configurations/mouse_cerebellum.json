@@ -366,7 +366,7 @@
           "iaf_cond_alpha": {
             "I_e": 0.0
           },
-          "eglif": {
+          "eglif_cond_alpha_multisyn": {
             "Vinit": -62.0,
             "lambda":1.0,
             "deltaV":0.3,
@@ -402,7 +402,7 @@
           "iaf_cond_alpha": {
             "I_e": 700.0
           },
-          "eglif": {
+          "eglif_cond_alpha_multisyn": {
             "Vinit": -59.0,
             "lambda":4.0,
             "deltaV":3.5,
@@ -429,7 +429,7 @@
           "iaf_cond_alpha": {
             "I_e": 36.75
           },
-          "eglif": {
+          "eglif_cond_alpha_multisyn": {
             "Vinit": -62.0,
             "lambda":1.0,
             "deltaV":0.4,
@@ -457,7 +457,7 @@
           "iaf_cond_alpha": {
             "I_e": 15.6
           },
-          "eglif": {
+          "eglif_cond_alpha_multisyn": {
             "Vinit": -68.0,
             "lambda":1.8,
             "deltaV":1.1,
@@ -483,7 +483,7 @@
           "iaf_cond_alpha": {
             "I_e": 15.6
           },
-          "eglif": {
+          "eglif_cond_alpha_multisyn": {
             "Vinit": -68.0,
             "lambda":1.8,
             "deltaV":1.1,
@@ -509,7 +509,7 @@
           "iaf_cond_alpha": {
             "I_e": 55.75
           },
-          "eglif": {
+          "eglif_cond_alpha_multisyn": {
             "Vinit": -45.0,
             "lambda":3.5,
             "deltaV":3.0,
