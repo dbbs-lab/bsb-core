@@ -528,56 +528,61 @@
             "parameters":{
               "weight": 9.0,
               "delay": 4.0
-            },
-            "static_synapse": {}
+            }
           },
-          "synapse": {}
+          "synapse": {
+            "static_synapse": {}
+          }
         },
         "golgi_to_granule": {
           "connection": {
             "parameters":{
               "weight": -5.0,
               "delay": 2.0
-            },
-            "static_synapse": {}
+            }
           },
-          "synapse": {}
+          "synapse": {
+            "static_synapse": {}
+          }
         },
         "ascending_axon_to_purkinje": {
           "connection": {
             "parameters":{
               "weight": 75.0,
               "delay": 2.0
-            },
-            "static_synapse": {}
+            }
           },
-          "synapse": {}
+          "synapse": {
+            "static_synapse": {}
+          }
         },
         "ascending_axon_to_golgi": {
           "connection": {
             "parameters":{
               "weight": 20.0,
               "delay": 2.0
-            },
-            "static_synapse": {}
+            }
           },
-          "synapse": {}
+          "synapse": {
+            "static_synapse": {}
+          }
         },
         "parallel_fiber_to_golgi": {
           "connection": {
             "parameters":{
               "weight": 0.2,
               "delay": 5.0
-            },
-            "static_synapse": {}
+            }
           },
-          "synapse": {}
+          "synapse": {
+            "static_synapse": {}
+          }
         },
         "parallel_fiber_to_purkinje": {
           "plastic": true,
           "hetero": true,
           "teaching": "io_to_purkinje",
-          "synapse_model": "stdp_synapse_sinexp",
+          "synapse_model": "stdp_connection_sinexp",
           "connection": {
             "parameters":{
               "weight": 0.2,
@@ -586,14 +591,19 @@
           },
           "synapse": {
             "static_synapse": {},
-            "stdp_synapse_sinexp": {}
+            "stdp_connection_sinexp": {
+              "A_minus": 0.5,
+              "A_plus": 0.05,
+              "Wmin": 0.0,
+              "Wmax": 100.0
+            }
           }
         },
         "parallel_fiber_to_basket": {
           "plastic": true,
           "hetero":true,
           "teaching": "io_to_basket",
-          "synapse_model": "stdp_synapse_alpha",
+          "synapse_model": "stdp_connection_alpha",
           "connection": {
             "parameters":{
               "weight": 0.2,
@@ -602,14 +612,19 @@
           },
           "synapse": {
             "static_synapse": {},
-            "stdp_synapse_alpha": {}
+            "stdp_connection_alpha": {
+              "A_minus": 0.5,
+              "A_plus": 0.05,
+              "Wmin": 0.0,
+              "Wmax": 100.0
+            }
           }
         },
         "parallel_fiber_to_stellate": {
           "plastic": true,
           "hetero":true,
           "teaching": "io_to_basket",
-          "synapse_model": "stdp_synapse_alpha",
+          "synapse_model": "stdp_connection_alpha",
           "connection": {
             "parameters":{
               "weight": 0.2,
@@ -618,7 +633,12 @@
           },
           "synapse": {
             "static_synapse": {},
-            "stdp_synapse_alpha": {}
+            "stdp_connection_alpha": {
+              "A_minus": 0.5,
+              "A_plus": 0.05,
+              "Wmin": 0.0,
+              "Wmax": 100.0
+            }
           }
         },
         "stellate_to_purkinje": {
@@ -626,50 +646,55 @@
             "parameters":{
               "weight":-8.5,
               "delay": 4.0
-            },
-            "static_synapse": {}
+            }
           },
-          "synapse": {}
+          "synapse": {
+            "static_synapse": {}
+          }
         },
         "basket_to_purkinje": {
           "connection": {
             "parameters":{
               "weight":-9.0,
               "delay": 4.0
-            },
-            "static_synapse": {}
+            }
           },
-          "synapse": {}
+          "synapse": {
+            "static_synapse": {}
+          }
         },
         "stellate_gap_junctions": {
           "connection": {
             "parameters":{
               "weight":-2.0,
               "delay": 1.0
-            },
-            "static_synapse": {}
+            }
           },
-          "synapse": {}
+          "synapse": {
+            "static_synapse": {}
+          }
         },
         "basket_gap_junctions": {
           "connection": {
             "parameters":{
               "weight":-2.5,
               "delay": 1.0
-            },
-            "static_synapse": {}
+            }
           },
-          "synapse": {}
+          "synapse": {
+            "static_synapse": {}
+          }
         },
         "golgi_gap_junctions" : {
           "connection": {
             "parameters":{
               "weight":-8.0,
               "delay": 1.0
-            },
-            "static_synapse": {}
+            }
           },
-          "synapse": {}
+          "synapse": {
+            "static_synapse": {}
+          }
         },
         "purkinje_to_dcn": {
           "plastic": true,
@@ -678,21 +703,25 @@
             "parameters":{
               "weight":-0.03,
               "delay": 4.0
-            },
+            }
+          },
+          "synapse": {
             "static_synapse": {},
             "stdp_synapse": {
               "tau_plus":30.0,
               "alpha": 0.5,
-              "lambda": 0.1
+              "lambda": 0.1,
+              "mu_plus": 0.0,
+              "mu_minus": 0.0,
+              "Wmax": 100.0
             }
-          },
-          "synapse": {}
+          }
         },
         "glomerulus_to_dcn": {
           "plastic": true,
           "hetero": true,
           "teaching": "purkinje_to_dcn",
-          "synapse_model": "stdp_synapse_cosexp",
+          "synapse_model": "stdp_connection_cosexp",
           "connection": {
             "parameters":{
               "weight":0.0006,
@@ -701,7 +730,12 @@
           },
           "synapse": {
             "static_synapse": {},
-            "stdp_synapse_cosexp": {}
+            "stdp_synapse_cosexp": {
+              "A_minus": 0.5,
+              "A_plus": 0.05,
+              "Wmin": 0.0,
+              "Wmax": 100.0
+            }
           }
         }
       },
