@@ -39,7 +39,19 @@ Placement order
 By default the cell types are placed sorted from least to most cells per type.
 This default order can be influenced by specifying an ``after`` attribute
 in the cell type's placement configuration. This is an array of cell type names
-which need to be placed before this cell type.
+which need to be placed before this cell type:
+
+.. code-block:: json
+
+  {
+    "cell_types": {
+      "later_cell_type": {
+        "...": "...",
+        "after": ["first_cell_type"]
+      },
+      "first_cell_type": { "...": "..." },
+    }
+  }
 
 .. _cell_epsilon:
 
