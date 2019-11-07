@@ -8,8 +8,8 @@ This module will place the cell types in the layers based on a certain
 
 Placement occurs as the first step during network architecture compilation.
 
-The placement order happens in a lowest cell count first fashion unless specified
-otherwise in the cell type's placement configuration.
+The placement order starts from cell type with the lowest cell count first
+unless specified otherwise in the cell type's placement configuration.
 
 See the :doc:`/configuration/placement-strategies`
 
