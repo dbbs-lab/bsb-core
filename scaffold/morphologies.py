@@ -158,11 +158,11 @@ class TrueMorphology(Morphology):
 		# print("Comp --", len(self.compartments), len(list(map(lambda c: c.end, filter(lambda c: c.type in type_ids, self.compartments)))))
 		return list(map(lambda c: c.end, filter(lambda c: c.type in type_ids, self.compartments)))
 
-	def get_plot_range(self):
+	def get_plot_range(self, offset):
 		compartments = self.compartment_tree.get_arrays()[0]
 		n_dimensions = range(compartments.shape[1])
-		mins = np.array([np.min(compartments[:, i]) for i in n_dimensions])
-		max = np.max(np.array([np.max(compartments[:, i]) - mins[i] for i in n_dimensions]))
+		mins = np.array([np.min(compartments[:, i]) + offset[i] for i in n_dimensions])
+		max = np.max(np.array([np.max(compartments[:, i]) - mins[i] + offset[i] for i in n_dimensions]))
 		return list(zip(mins.tolist(), (mins + max).tolist()))
 
 	def _comp_tree_factory(self, types):

@@ -21,3 +21,14 @@ def depth_first_branches(adjacency_list):
     # Start the first branch at the root node.
     branches.append(dfs_branch([], 0))
     return branches
+
+def get_branch_points(branch_list):
+    return list(map(lambda b: b[0], branch_list))
+
+def reduce_branch(branch, branch_points):
+    reduced_branch = [branch[0]]
+    for bp in branch:
+        if bp in branch_points:
+            reduced_branch.append(bp)
+    reduced_branch.append(branch[-1])
+    return reduced_branch

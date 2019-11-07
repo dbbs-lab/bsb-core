@@ -3,7 +3,7 @@ try:
     from plotly.subplots import make_subplots
 except Exception as e:
     pass
-from .networks import depth_first_branches
+from .networks import depth_first_branches, get_branch_points, reduce_branch
 import numpy as np, math
 from .morphologies import Compartment
 from contextlib import contextmanager
@@ -83,11 +83,14 @@ def get_branch_trace(compartments, offset = [0., 0., 0.], **kwargs):
         )
     )
 
-def plot_morphology(morphology, return_traces=False, offset=[0., 0., 0.], fig=None, show=True, set_range=True, color='black'):
+def plot_morphology(morphology, return_traces=False, offset=[0., 0., 0.], fig=None, show=True, set_range=True, color='black', reduce_branches=False):
     compartments = morphology.compartments.copy()
     compartments.insert(0, Compartment([0, 0, *compartments[0].start, *compartments[0].end, 1., 0]))
     compartments = np.array(compartments)
     dfs_list = depth_first_branches(morphology.get_compartment_network())
+    if reduce_branches:
+        branch_points = get_branch_points(dfs_list)
+        dfs_list = list(map(lambda b: reduce_branch(b, branch_points), dfs_list))
     traces = []
     for branch in dfs_list[::-1]:
         traces.append(get_branch_trace(compartments[branch], offset, color=color))
@@ -100,10 +103,11 @@ def plot_morphology(morphology, return_traces=False, offset=[0., 0., 0.], fig=No
         for trace in traces:
             fig.add_trace(trace)
         if set_range:
-            set_scene_range(fig.layout.scene, morphology.get_plot_range(), offset=offset)
+            set_scene_range(fig.layout.scene, morphology.get_plot_range(offset=offset))
         if show:
             fig.show()
         return fig
+
 
 def plot_intersections(from_morphology, from_pos, to_morphology, to_pos, intersections, offset=[0., 0., 0.], fig=None):
     from_compartments = np.array(from_morphology.compartment_tree.get_arrays()[0]) + np.array(offset) + np.array(from_pos)
@@ -215,7 +219,16 @@ def plot_eli_voxels(morphology, voxel_positions, voxel_compartment_map, selected
         fig.update_layout(scene_aspectmode='cube')
         fig.update_layout(scene2_aspectmode='cube')
 
-def set_scene_range(scene, bounds, offset=[0., 0., 0.]):
-    scene.xaxis.range=np.array(bounds[0]) + offset[0]
-    scene.yaxis.range=np.array(bounds[2]) + offset[2]
-    scene.zaxis.range=np.array(bounds[1]) + offset[1]
+def set_scene_range(scene, bounds):
+    if hasattr(scene, "layout"):
+        scene = scene.layout.scene # Scene was a figure
+    scene.xaxis.range=bounds[0]
+    scene.yaxis.range=bounds[2]
+    scene.zaxis.range=bounds[1]
+
+def set_morphology_scene_range(scene, offset_morphologies):
+    bounds = np.array(list(map(lambda m: m[1].get_plot_range(m[0]), offset_morphologies)))
+    combined_bounds = np.array(list(zip(np.min(bounds, axis=0)[:,0], np.max(bounds, axis=0)[:,1])))
+    span = max(map(lambda b: b[1] - b[0], combined_bounds))
+    combined_bounds[:,1] = combined_bounds[:,0] + span
+    set_scene_range(scene, combined_bounds)
