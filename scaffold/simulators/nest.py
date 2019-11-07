@@ -230,6 +230,7 @@ class NestAdapter(SimulatorAdapter):
 
     def __init__(self):
         super().__init__()
+        self.is_prepared = False
 
     def prepare(self, hdf5):
         self.scaffold.report("Importing  NEST...", 2)
@@ -245,6 +246,7 @@ class NestAdapter(SimulatorAdapter):
         self.create_devices(self.devices)
         self.scaffold.report("Creating connections...",2)
         self.connect_neurons(self.connection_models, hdf5)
+        self.is_prepared = True
         return nest
 
     def reset_kernel(self):
@@ -291,7 +293,9 @@ class NestAdapter(SimulatorAdapter):
             self.random_generators = [np.random.RandomState(seed) for seed in random_generator_seeds]
 
     def simulate(self, simulator):
-        self.scaffold.report("Simulating...",2)
+        if self.is_prepared == False:
+            self.scaffold.report("[WARNING] Scaffold has not been prepared", 1)
+        self.scaffold.report("Simulating...", 2)
         simulator.Simulate(self.duration)
         self.scaffold.report("Simulation finished.", 2)
 
