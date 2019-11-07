@@ -11,8 +11,8 @@ class Compartment:
 		# Transfer basic data to properties.
 		self.id = repo_record[0]
 		self.type = repo_record[1]
-		self.start = repo_record[2:5]
-		self.end = repo_record[5:8]
+		self.start = np.array(repo_record[2:5])
+		self.end = np.array(repo_record[5:8])
 		self.radius = repo_record[8]
 		self.parent = repo_record[9]
 		# Calculate midpoint of the compartment
