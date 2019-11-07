@@ -12,6 +12,7 @@ Welcome to DBBS Cerebellum Scaffold's documentation!
 
    usage/installation
    usage/getting-started
+   usage/cli
    configuration
    placement
    connectivity

@@ -90,32 +90,32 @@ class Scaffold:
         for geometry in self.configuration.morphologies.values():
             geometry.initialise(self)
 
-	def compile_network(self, tries=1):
-		times = np.zeros(tries)
-		# Place the cells starting from the lowest density cell_types.
-		for i in np.arange(tries, dtype=int):
-			t = time.time()
-			sorted_cell_types = CellType.resolve_order(self.configuration.cell_types)
-			for cell_type in sorted_cell_types:
-				# Place cell type according to PlacementStrategy
-				cell_type.placement.place(cell_type)
-				# Construct a tree of the placed cells
-				self.trees.cells.create_tree(cell_type.name, self.cells_by_type[cell_type.name][:, 2:5])
-			sorted_connection_types = ConnectionStrategy.resolve_order(self.configuration.connection_types)
-			for connection_type in self.configuration.connection_types.values():
-				connection_type.connect()
-			times[i] = time.time() - t
-			self.compile_output()
-			for type in self.configuration.cell_types.values():
-				count = self.cells_by_type[type.name].shape[0]
-				volume = self.configuration.layers[type.placement.layer].volume
-				density_gotten = '%.4g' % (count / volume)
-				density_wanted = '%.4g' % (type.placement.get_placement_count(type) / volume)
-				percent = int((count / type.placement.get_placement_count(type)) * 100)
-				if self.configuration.verbosity > 1:
-					print('{} {} placed ({}%). Desired density: {}. Actual density: {}'.format(count, type.name, percent, density_wanted, density_gotten))
-			if self.configuration.verbosity > 1:
-				print('Average runtime: {}'.format(np.average(times)))
+    def compile_network(self, tries=1):
+        times = np.zeros(tries)
+        # Place the cells starting from the lowest density cell_types.
+        for i in np.arange(tries, dtype=int):
+            t = time.time()
+            sorted_cell_types = CellType.resolve_order(self.configuration.cell_types)
+            for cell_type in sorted_cell_types:
+                # Place cell type according to PlacementStrategy
+                cell_type.placement.place(cell_type)
+                # Construct a tree of the placed cells
+                self.trees.cells.create_tree(cell_type.name, self.cells_by_type[cell_type.name][:, 2:5])
+            sorted_connection_types = ConnectionStrategy.resolve_order(self.configuration.connection_types)
+            for connection_type in self.configuration.connection_types.values():
+                connection_type.connect()
+            times[i] = time.time() - t
+            self.compile_output()
+            for type in self.configuration.cell_types.values():
+                count = self.cells_by_type[type.name].shape[0]
+                volume = self.configuration.layers[type.placement.layer].volume
+                density_gotten = '%.4g' % (count / volume)
+                density_wanted = '%.4g' % (type.placement.get_placement_count(type) / volume)
+                percent = int((count / type.placement.get_placement_count(type)) * 100)
+                if self.configuration.verbosity > 1:
+                    print('{} {} placed ({}%). Desired density: {}. Actual density: {}'.format(count, type.name, percent, density_wanted, density_gotten))
+            if self.configuration.verbosity > 1:
+                print('Average runtime: {}'.format(np.average(times)))
 
     def _initialise_output_formatter(self):
         self.output_formatter = self.configuration.output_formatter
@@ -274,47 +274,47 @@ class Scaffold:
             self.__dict__[attr][tag] = np.copy(mapped_data)
 
 
-	def compile_output(self):
-		self.output_formatter.create_output()
-	def get_connection_types_by_cell_type(self, postsynaptic=[], presynaptic=[]):
-		def any_intersect(l1, l2, f=lambda x: x):
-			if not l2: # Return True if there's no pre/post targets specified
-				return True
-			for e1 in l1:
-				if f(e1) in l2:
-					return True
-			return False
+    def compile_output(self):
+        self.output_formatter.create_output()
+    def get_connection_types_by_cell_type(self, postsynaptic=[], presynaptic=[]):
+        def any_intersect(l1, l2, f=lambda x: x):
+            if not l2: # Return True if there's no pre/post targets specified
+                return True
+            for e1 in l1:
+                if f(e1) in l2:
+                    return True
+            return False
 
-		connection_types = self.configuration.connection_types
-		connection_items = connection_types.items()
-		filtered_connection_items = list(filter(lambda c:
-			any_intersect(c[1].to_cell_types, postsynaptic, lambda x: x.name) and
-			any_intersect(c[1].from_cell_types, presynaptic, lambda x: x.name),
-			connection_items
-		))
-		return dict(filtered_connection_items)
+        connection_types = self.configuration.connection_types
+        connection_items = connection_types.items()
+        filtered_connection_items = list(filter(lambda c:
+            any_intersect(c[1].to_cell_types, postsynaptic, lambda x: x.name) and
+            any_intersect(c[1].from_cell_types, presynaptic, lambda x: x.name),
+            connection_items
+        ))
+        return dict(filtered_connection_items)
 
-	def get_connections_by_cell_type(self, any=None, postsynaptic=None, presynaptic=None):
-		if any is None and postsynaptic is None and presynaptic is None:
-			raise ArgumentError("No cell types specified")
-		# Initialize empty omitted lists
-		postsynaptic = postsynaptic if not postsynaptic is None else []
-		presynaptic = presynaptic if not presynaptic is None else []
-		if not any is None: # Add any cell types as both post and presynaptic targets
-			postsynaptic.extend(any)
-			presynaptic.extend(any)
-		# Find the connection types that have the specified targets
-		connection_types = self.get_connection_types_by_cell_type(postsynaptic, presynaptic)
-		# Map them to a list of tuples with the 1st element the connection type
-		# and the connection matrices appended behind it.
-		return list(map(lambda x: (x, *x.get_connection_matrices()), connection_types.values()))
+    def get_connections_by_cell_type(self, any=None, postsynaptic=None, presynaptic=None):
+        if any is None and postsynaptic is None and presynaptic is None:
+            raise ArgumentError("No cell types specified")
+        # Initialize empty omitted lists
+        postsynaptic = postsynaptic if not postsynaptic is None else []
+        presynaptic = presynaptic if not presynaptic is None else []
+        if not any is None: # Add any cell types as both post and presynaptic targets
+            postsynaptic.extend(any)
+            presynaptic.extend(any)
+        # Find the connection types that have the specified targets
+        connection_types = self.get_connection_types_by_cell_type(postsynaptic, presynaptic)
+        # Map them to a list of tuples with the 1st element the connection type
+        # and the connection matrices appended behind it.
+        return list(map(lambda x: (x, *x.get_connection_matrices()), connection_types.values()))
 
 
-	def translate_cell_ids(self, data, cell_type):
-		if not self.is_compiled():
-			return self.cells_by_type[cell_type.name][data,0]
-		else:
-			return np.array(self.output_formatter.get_type_map(cell_type))[data]
+    def translate_cell_ids(self, data, cell_type):
+        if not self.is_compiled():
+            return self.cells_by_type[cell_type.name][data,0]
+        else:
+            return np.array(self.output_formatter.get_type_map(cell_type))[data]
 
     def compile_output(self):
         self.output_formatter.create_output()

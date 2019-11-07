@@ -11,6 +11,7 @@ Full reference guide to the most important parts of the documentation.
   genindex
   py-modindex
   scaffold/scaffold
+  scaffold/cli
   scaffold/config
   scaffold/placement
   scaffold/connectivity
