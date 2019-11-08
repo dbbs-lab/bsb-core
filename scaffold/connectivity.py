@@ -21,7 +21,7 @@ class ConnectionStrategy(ConfigurableClass, SortableByAfter):
 
 	@classmethod
 	def get_ordered(cls, objects):
-		return objects # No sorting of connection types required.
+		return objects.values() # No sorting of connection types required.
 
 	def get_after(self):
 		return None if not self.has_after() else self.after
@@ -861,13 +861,10 @@ class ConnectomeIOMolecular(ConnectionStrategy):
 			molecular_cell_purkinje_matrix = molecular_cell_purkinje_connections[0][1]
 			io_cell_purkinje_connections = self.scaffold.get_connections_by_cell_type(postsynaptic="purkinje_cell",presynaptic=io_cell_type.name)
 			io_cell_purkinje_matrix = io_cell_purkinje_connections[0][1]
-			print(molecular_cell_purkinje_matrix)
-			print("IIIIIIIIIIIIIIIIIOOOOOOOOOOOOOOOOOOOOOOOOOOOO", io_cell_purkinje_matrix)
 			purkinje_dict = {}
 			for conn in range(len(molecular_cell_purkinje_matrix)):
 				purkinje_id = molecular_cell_purkinje_matrix[conn][1]
 				if not purkinje_id in purkinje_dict:
-					print("adding purkinje cell", purkinje_id)
 					purkinje_dict[purkinje_id] = []
 				purkinje_dict[purkinje_id].append(molecular_cell_purkinje_matrix[conn][0])
 
