@@ -9,8 +9,6 @@ There are 2 entry points in the command line interface:
 * **The shell**: Can be opened by giving typing ``scaffold`` into a command line
   prompt.
 
-Take a look at the :doc:`commands`.
-
 **************
 Scaffold shell
 **************
@@ -77,3 +75,41 @@ List of hdf5 commands:
 
 * ``view``: Create a hierarchical print of the HDF5 file, groups, datasets, and
   attributes.
+
+*****************************
+List of command line commands
+*****************************
+
+.. note::
+  Parameters included between square brackets are optional, the brackets need
+  not be included in the actual command. 
+
+``scaffold [-v=1 -c=mouse_cerebellum] compile [-p -o]``
+=========================================================
+
+Compiles a network architecture: Places cells in a simulated volume and connects
+them to eachother. All this information is then stored in a single HDF5 file.
+
+.. include:: commands_defaults.txt
+
+* ``-p``: Plot the created network.
+* ``-o=<file>``, ``--output=<file>``: Output the result to a specific file.
+
+``scaffold [-v=1] simulate <name> --hdf5=<file>``
+======================================================================
+
+Run a simulation from a compiled network architecture.
+
+.. include:: commands_defaults.txt
+
+* ``name``: Name of the simulation.
+* ``--hdf5``: Path to the compiled network architecture.
+
+``scaffold [-v=1 -c=mouse_cerebellum] run <name> [-p]``
+========================================================
+
+Run a simulation creating a new network architecture.
+
+.. include:: commands_defaults.txt
+
+* ``-p``: Plot the created network.
