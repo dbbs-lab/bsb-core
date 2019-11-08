@@ -244,7 +244,8 @@
     "golgi_to_granule": {
       "class": "scaffold.connectivity.ConnectomeGolgiGranule",
       "from_cell_types": [{"type": "golgi_cell", "compartments": ["axon"]}],
-      "to_cell_types": [{"type": "granule_cell", "compartments": ["dendrites"]}]
+      "to_cell_types": [{"type": "granule_cell", "compartments": ["dendrites"]}],
+      "after": ["golgi_to_glomerulus", "glomerulus_to_granule"],
     },
     "ascending_axon_to_purkinje": {
       "class": "scaffold.connectivity.ConnectomeAscAxonPurkinje",
@@ -278,7 +279,7 @@
       "limit_x": 500.0,
       "limit_z": 100.0
     },
-    "stellate_gap_junctions": {
+    "stellate_to_stellate": {
       "class": "scaffold.connectivity.ConnectomeGapJunctions",
       "from_cell_types": [{"type": "stellate_cell", "compartments": ["axon"]}],
       "to_cell_types": [{"type": "stellate_cell", "compartments": ["dendrites"]}],
@@ -286,7 +287,7 @@
       "limit_xy": 150.0,
       "limit_z": 50.0
     },
-    "basket_gap_junctions": {
+    "basket_to_basket": {
       "class": "scaffold.connectivity.ConnectomeGapJunctions",
       "from_cell_types": [{"type": "basket_cell", "compartments": ["axon"]}],
       "to_cell_types": [{"type": "basket_cell", "compartments": ["dendrites"]}],
@@ -323,6 +324,7 @@
       "class": "scaffold.connectivity.ConnectomeIOMolecular",
       "from_cell_types": [{"type": "io_cell", "compartments": ["axon"]}],
       "to_cell_types": [{"type": "basket_cell", "compartments": ["dendrites"]}]
+      "after": ["io_to_purkinje", "basket_and_stellate_to_purkinje"],
     },
     "io_to_stellate": {
       "class": "scaffold.connectivity.ConnectomeIOMolecular",
@@ -613,7 +615,7 @@
       },
       "synapse": {}
         },
-        "stellate_gap_junctions": {
+        "stellate_to_stellate": {
           "connection": {
             "params":{
               "weight":-2.0,
@@ -622,7 +624,7 @@
       },
       "synapse": {}
         },
-        "basket_gap_junctions": {
+        "basket_to_basket": {
           "connection": {
             "params":{
               "weight":-2.5,
