@@ -90,42 +90,42 @@ class Scaffold:
         for geometry in self.configuration.morphologies.values():
             geometry.initialise(self)
 
-	def _initialise_simulations(self):
-		for simulation in self.configuration.simulations.values():
-			simulation.initialise(self)
-			for sim_cell in simulation.cell_models.values():
-				sim_cell.initialise(self)
-			for sim_connection in simulation.connection_models.values():
-				sim_connection.initialise(self)
-			for stimulus in simulation.devices.values():
-				stimulus.initialise(self)
+    def _initialise_simulations(self):
+        for simulation in self.configuration.simulations.values():
+            simulation.initialise(self)
+            for sim_cell in simulation.cell_models.values():
+                sim_cell.initialise(self)
+            for sim_connection in simulation.connection_models.values():
+                sim_connection.initialise(self)
+            for stimulus in simulation.devices.values():
+                stimulus.initialise(self)
 
-	def compile_network(self, tries=1):
-		times = np.zeros(tries)
-		# Place the cells starting from the lowest density cell_types.
-		for i in np.arange(tries, dtype=int):
-			t = time.time()
-			sorted_cell_types = CellType.resolve_order(self.configuration.cell_types)
-			for cell_type in sorted_cell_types:
-				# Place cell type according to PlacementStrategy
-				cell_type.placement.place(cell_type)
-				# Construct a tree of the placed cells
-				self.trees.cells.create_tree(cell_type.name, self.cells_by_type[cell_type.name][:, 2:5])
-			sorted_connection_types = ConnectionStrategy.resolve_order(self.configuration.connection_types)
-			for connection_type in sorted_connection_types:
-				connection_type.connect()
-			times[i] = time.time() - t
-			self.compile_output()
-			for type in self.configuration.cell_types.values():
-				count = self.cells_by_type[type.name].shape[0]
-				volume = self.configuration.layers[type.placement.layer].volume
-				density_gotten = '%.4g' % (count / volume)
-				density_wanted = '%.4g' % (type.placement.get_placement_count(type) / volume)
-				percent = int((count / type.placement.get_placement_count(type)) * 100)
-				if self.configuration.verbosity > 1:
-					print('{} {} placed ({}%). Desired density: {}. Actual density: {}'.format(count, type.name, percent, density_wanted, density_gotten))
-			if self.configuration.verbosity > 1:
-				print('Average runtime: {}'.format(np.average(times)))
+    def compile_network(self, tries=1):
+        times = np.zeros(tries)
+        # Place the cells starting from the lowest density cell_types.
+        for i in np.arange(tries, dtype=int):
+            t = time.time()
+            sorted_cell_types = CellType.resolve_order(self.configuration.cell_types)
+            for cell_type in sorted_cell_types:
+                # Place cell type according to PlacementStrategy
+                cell_type.placement.place(cell_type)
+                # Construct a tree of the placed cells
+                self.trees.cells.create_tree(cell_type.name, self.cells_by_type[cell_type.name][:, 2:5])
+            sorted_connection_types = ConnectionStrategy.resolve_order(self.configuration.connection_types)
+            for connection_type in sorted_connection_types:
+                connection_type.connect()
+            times[i] = time.time() - t
+            self.compile_output()
+            for type in self.configuration.cell_types.values():
+                count = self.cells_by_type[type.name].shape[0]
+                volume = self.configuration.layers[type.placement.layer].volume
+                density_gotten = '%.4g' % (count / volume)
+                density_wanted = '%.4g' % (type.placement.get_placement_count(type) / volume)
+                percent = int((count / type.placement.get_placement_count(type)) * 100)
+                if self.configuration.verbosity > 1:
+                    print('{} {} placed ({}%). Desired density: {}. Actual density: {}'.format(count, type.name, percent, density_wanted, density_gotten))
+            if self.configuration.verbosity > 1:
+                print('Average runtime: {}'.format(np.average(times)))
 
     def _initialise_output_formatter(self):
         self.output_formatter = self.configuration.output_formatter

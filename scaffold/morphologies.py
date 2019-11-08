@@ -4,21 +4,21 @@ from .voxels import VoxelCloud, detect_box_compartments, Box
 from sklearn.neighbors import KDTree
 
 class Compartment:
-	def __init__(self, repo_record):
-		'''
-			Create a compartment from repository data.
-		'''
-		# Transfer basic data to properties.
-		self.id = repo_record[0]
-		self.type = repo_record[1]
-		self.start = np.array(repo_record[2:5])
-		self.end = np.array(repo_record[5:8])
-		self.radius = repo_record[8]
-		self.parent = repo_record[9]
-		# Calculate midpoint of the compartment
-		self.midpoint = (self.end - self.start) / 2 + self.start
-		# Calculate the radius of the outer sphere of this compartment
-		self.spherical = np.sqrt((self.start[:] - self.end[:]) ** 2) / 2
+    def __init__(self, repo_record):
+        '''
+            Create a compartment from repository data.
+        '''
+        # Transfer basic data to properties.
+        self.id = repo_record[0]
+        self.type = repo_record[1]
+        self.start = np.array(repo_record[2:5])
+        self.end = np.array(repo_record[5:8])
+        self.radius = repo_record[8]
+        self.parent = repo_record[9]
+        # Calculate midpoint of the compartment
+        self.midpoint = (self.end - self.start) / 2 + self.start
+        # Calculate the radius of the outer sphere of this compartment
+        self.spherical = np.sqrt((self.start[:] - self.end[:]) ** 2) / 2
 
 class Morphology(ConfigurableClass):
 
@@ -158,12 +158,12 @@ class TrueMorphology(Morphology):
         # print("Comp --", len(self.compartments), len(list(map(lambda c: c.end, filter(lambda c: c.type in type_ids, self.compartments)))))
         return list(map(lambda c: c.end, filter(lambda c: c.type in type_ids, self.compartments)))
 
-	def get_plot_range(self, offset):
-		compartments = self.compartment_tree.get_arrays()[0]
-		n_dimensions = range(compartments.shape[1])
-		mins = np.array([np.min(compartments[:, i]) + offset[i] for i in n_dimensions])
-		max = np.max(np.array([np.max(compartments[:, i]) - mins[i] + offset[i] for i in n_dimensions]))
-		return list(zip(mins.tolist(), (mins + max).tolist()))
+    def get_plot_range(self, offset):
+        compartments = self.compartment_tree.get_arrays()[0]
+        n_dimensions = range(compartments.shape[1])
+        mins = np.array([np.min(compartments[:, i]) + offset[i] for i in n_dimensions])
+        max = np.max(np.array([np.max(compartments[:, i]) - mins[i] + offset[i] for i in n_dimensions]))
+        return list(zip(mins.tolist(), (mins + max).tolist()))
 
     def _comp_tree_factory(self, types):
         type_map = list(map(lambda t: Morphology.compartment_types[t], types))
