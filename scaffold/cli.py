@@ -1,3 +1,8 @@
+'''
+    This module contains all classes and functions required to run the scaffold
+    from the command line.
+'''
+
 import sys
 import configparser
 import builtins
@@ -145,33 +150,44 @@ class ReplState:
         '''
             Execute the next repl step.
         '''
+        # Ask for user input
         self.command = input('{}{}{}> '.format(
             (self.reply or '') + ('\n' if self.reply else ''),
             (self.question or '') + ('\n' if self.question else ''),
             self.prefix or ''
         ))
-        if self.command == "":
+        if self.command == "": # Empty command? Next step.
             return
-        self.exit = self.command == "exit"
+        # Update state with next if set, or keep last state.
         self.state = self.next or self.state
+        # Reset transient values
         self.next = None
         self.question = None
         self.reply = None
+        # Add subparsers and arguments based on the state
         self.update_parser()
 
         try:
+            # Parse the command
             args = self.parser.parse_args(self.command.split(" "))
         except ParseException as e:
             print(str(e))
             return
 
-        if hasattr(args, "func"):
+        if hasattr(args, "func"): # Was a command found?
             try:
+                # Execute the command
                 args.func(args)
             except Exception as e:
+                # Catch and print all exceptions
                 traceback.print_exc()
 
     def update_parser(self):
+        '''
+            Creates a new parser for the next REPL step. Tries to add
+            subparsers and arguments if the method "set_parser_``state``_state"
+            is callable.
+        '''
         self.parser = StateParser(add_help=False)
         self.subparsers = self.parser.add_subparsers()
         self.add_parser_globals()
@@ -183,6 +199,9 @@ class ReplState:
             raise Exception("Unparsable state: {}".format(self.state))
 
     def set_parser_base_state(self):
+        '''
+            Adds the initial subparsers and arguments to the REPL parser.
+        '''
         parser_open = self.add_subparser("open", description="Open various scaffold files like output files, repositories and tree collections.")
         open_subparsers = parser_open.add_subparsers()
 
@@ -195,6 +214,10 @@ class ReplState:
         hdf5_parser.set_defaults(func=self.open_hdf5)
 
     def set_parser_base_mr_state(self):
+        '''
+            Adds the morphology repository state subparsers and arguments to
+            the REPL parser.
+        '''
         mr = self.globals["mr"]
 
         close_parser = self.add_subparser("close", description="Close the currently opened repository.")
@@ -236,6 +259,9 @@ class ReplState:
         plot_parser.set_defaults(func=lambda args: repl_plot_morphology(mr, args))
 
     def set_parser_base_hdf5_state(self):
+        '''
+            Adds the HDF5 state subparsers and arguments to the REPL parser.
+        '''
         h = self.globals["hdf5"]
         def close(args):
             self.clear_prefix()
@@ -247,63 +273,141 @@ class ReplState:
         view_parser.set_defaults(func=lambda args: repl_view_hdf5(h, args))
 
     def add_parser_globals(self):
+        '''
+            Adds subparsers and arguments that should be there in any state.
+        '''
         exit_parser = self.add_subparser("exit")
         exit_parser.set_defaults(func=self.exit_repl)
 
     def add_subparser(self, *args, **kwargs):
+        '''
+            Add a top level subparser to the current REPL parser.
+        '''
         return self.subparsers.add_parser(*args, **kwargs)
 
     def exit_repl(self, args):
-        exit()
+        '''
+            Exit the REPL.
+        '''
+        self.exit = True
 
     def clear_prefix(self):
+        '''
+            Clear the REPL prefix.
+        '''
         self.prefix = None
 
     def set_next_state(self, state):
+        '''
+            Set the next REPL state.
+
+            :param state: The next state. For each state there should be a set_parser_``state``_state function (e.g. :func:`set_parser_base_state`).
+            :type state: string
+            :rtype: None
+        '''
         self.next = state
 
     def set_reply(self, message):
+        '''
+            Set the REPL reply, to be printed to the user at the end of this step.
+
+            :param message: The reply to print.
+            :type message: string
+            :rtype: None
+        '''
         self.reply = str(message)
 
     def close_hdf5(self):
+        '''
+            Closes the currently open HDF5 file.
+
+            :raises ParseException: Raised if there's no open HDF5 file.
+            :rtype: None
+        '''
+        if self.globals["hdf5"] is None:
+            raise ParseException("No HDF5 file is currently opened.")
         self.globals["hdf5"].close()
         self.globals["hdf5"] = None
 
     def destroy_globals(self):
+        '''
+            Always called before the REPL exits to clean up open resources.
+        '''
         if "hdf5" in self.globals and not self.globals["hdf5"] is None:
             self.close_hdf5()
 
     def open_morphology_repository(self, args):
+        '''
+            Callback function that handles the ``open mr`` command.
+
+            :param args: Result of ArgumentParser.parse_args()
+            :type args: Namespace
+            :rtype: None
+        '''
+        # Create the morphology repository instance.
         mr = MorphologyRepository(args.file)
+        # Store it as a global REPL variable.
         self.globals["mr"] = mr
+        # Switch to the base_mr state.
         self.next = "base_mr"
+        # Indicate the open mr state with a prefix.
         self.prefix = "repo <'{}'".format(args.file)
 
     def open_hdf5(self, args):
+        '''
+            Callback function that handles the ``open hdf5`` command.
+
+            :param args: Result of ArgumentParser.parse_args()
+            :type args: Namespace
+            :rtype: None
+        '''
+        # Import the HDF5 library.
         import h5py
+        # Add the h5py file handle as a global REPL variable.
         self.globals["hdf5"] = h5py.File(args.file, 'a')
+        # Switch to the base_hdf5 state.
         self.next = "base_hdf5"
+        # Indicate the open hdf5 state with a prefix
         self.prefix = "hdf5 <'{}'".format(args.file)
 
 class ParseException(Exception):
+    '''
+        Thrown when the parsing of a command string fails.
+    '''
     pass
 
 class StateParser(argparse.ArgumentParser):
-
+    '''
+        Inherits from argparse.ArgumentParser and overloads the ``error``
+        method so that when an error occurs, instead of exiting and exception
+        is thrown.
+    '''
     def error(self, message):
+        '''
+            Overloads default exit behavior with throwing ParseException.
+        '''
         raise ParseException(message)
 
 def repl_plot_morphology(morphology_repository, args):
+    '''
+        Callback function that handles ``plot`` command in the *base_mr* state.
+    '''
     m = morphology_repository.get_morphology(args.name)
     from .plotting import plot_morphology
     plot_morphology(m)
 
 def repl_voxelize(morphology_repository, args):
+    '''
+        Callback function that handles ``voxelize`` command in the *base_mr* state.
+    '''
     m = morphology_repository.get_morphology(args.name)
     m.voxelize(args.voxels)
     morphology_repository.store_voxel_cloud(m, overwrite=True)
 
 def repl_view_hdf5(handle, args):
+    '''
+        Callback function that handles ``view`` command in the *base_hdf5* state.
+    '''
     df = chr(172)
     def format_level(lvl, sub=None):
         return ' ' * (lvl * 3) + (sub or df)

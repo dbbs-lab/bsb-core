@@ -177,7 +177,7 @@ class MorphologyRepository(HDF5TreeHandler):
         if not file is None:
             self.file = file
 
-	# Abstract function from ResourceHandler
+    # Abstract function from ResourceHandler
     def get_handle(self, mode='a'):
         '''
             Open the HDF5 storage resource and initialise the MorphologyRepository structure.
@@ -208,7 +208,7 @@ class MorphologyRepository(HDF5TreeHandler):
         starts = {-1: [0., 0., 0.]}
         id_map = {-1: -1}
         next_id = 1
-		# Get translation for a new space with compartment 0 as origin.
+        # Get translation for a new space with compartment 0 as origin.
         translation = swc_data[0, 2:5]
         # Iterate over the compartments
         for i in range(dataset_length):
@@ -229,7 +229,7 @@ class MorphologyRepository(HDF5TreeHandler):
             compartment_parent = id_map[compartment[6]]
             # Use parent endpoint as startpoint, get endpoint and store it as a startpoint for child compartments
             compartment_start = starts[compartment_parent]
-			# Translate each compartment to a new space with compartment 0 as origin.
+            # Translate each compartment to a new space with compartment 0 as origin.
             compartment_end = compartment[2:5] - translation
             starts[compartment_id] = compartment_end
             # Get more compartment radius
@@ -338,7 +338,7 @@ class MorphologyRepository(HDF5TreeHandler):
             Return the morphology dataset
         '''
         with self.load() as repo:
-        	return repo['morphologies/' + name]
+            return repo['morphologies/' + name]
 
     def raw_voxel_cloud(self, name):
         '''
@@ -349,8 +349,8 @@ class MorphologyRepository(HDF5TreeHandler):
 
 class HDF5Formatter(OutputFormatter, MorphologyRepository):
     '''
-    	Stores the output of the scaffold as a single HDF5 file. Is also a MorphologyRepository
-    	and an HDF5TreeHandler.
+        Stores the output of the scaffold as a single HDF5 file. Is also a MorphologyRepository
+        and an HDF5TreeHandler.
     '''
 
     defaults = {
