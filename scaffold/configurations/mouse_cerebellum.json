@@ -297,7 +297,7 @@
       "limit_xy": 150.0,
       "limit_z": 50.0
     },
-    "golgi_gap_junctions": {
+    "golgi_to_golgi": {
       "class": "scaffold.connectivity.ConnectomeGapJunctionsGolgi",
       "from_cell_types": [{"type": "golgi_cell", "compartments": ["axon"]}],
       "to_cell_types": [{"type": "golgi_cell", "compartments": ["dendrites"]}]
@@ -636,7 +636,7 @@
       },
       "synapse": {}
         },
-        "golgi_gap_junctions" : {
+        "golgi_to_golgi" : {
           "connection": {
             "params":{
               "weight":-8.0,
