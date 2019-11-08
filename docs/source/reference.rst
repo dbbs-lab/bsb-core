@@ -25,7 +25,6 @@ Full reference guide to the most important parts of the documentation.
   scaffold/postprocessing
   scaffold/scaffold
   scaffold/simulation
-  scaffold/simulators/nest
-  scaffold/simulators/neuron
+  scaffold/simulators
   scaffold/trees
   scaffold/voxels
