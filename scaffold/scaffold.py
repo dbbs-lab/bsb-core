@@ -110,7 +110,7 @@ class Scaffold:
 				# Construct a tree of the placed cells
 				self.trees.cells.create_tree(cell_type.name, self.cells_by_type[cell_type.name][:, 2:5])
 			sorted_connection_types = ConnectionStrategy.resolve_order(self.configuration.connection_types)
-			for connection_type in self.configuration.connection_types.values():
+			for connection_type in sorted_connection_types:
 				connection_type.connect()
 			times[i] = time.time() - t
 			self.compile_output()
