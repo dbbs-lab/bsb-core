@@ -344,9 +344,9 @@ class SortableByAfter:
             then apply the `after` attribute for further restrictions.
         '''
         # Sort by the default approach
-        sorting_objects = cls.get_ordered(objects)
+        sorting_objects = list(cls.get_ordered(objects))
         # Afterwards cell types can be specified that need to be placed after other types.
-        after_specifications = list(filter(lambda c: c.has_after(), objects.values()))
+        after_specifications = list(filter(lambda c: c.has_after(), sorting_objects))
         j = 0
         # Keep rearranging as long as any cell type's after condition isn't satisfied.
         while any(map(lambda c: not c.is_after_satisfied(sorting_objects), after_specifications)):
