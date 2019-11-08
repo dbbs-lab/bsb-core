@@ -10,8 +10,22 @@ Full reference guide to the most important parts of the documentation.
 
   genindex
   py-modindex
-  scaffold/scaffold
   scaffold/cli
   scaffold/config
-  scaffold/placement
   scaffold/connectivity
+  scaffold/exceptions
+  scaffold/functions
+  scaffold/helpers
+  scaffold/models
+  scaffold/morphologies
+  scaffold/networks
+  scaffold/output
+  scaffold/placement
+  scaffold/plotting
+  scaffold/postprocessing
+  scaffold/scaffold
+  scaffold/simulation
+  scaffold/simulators/nest
+  scaffold/simulators/neuron
+  scaffold/trees
+  scaffold/voxels

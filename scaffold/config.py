@@ -1,3 +1,7 @@
+'''
+    This module handles all configuration of the scaffold.
+'''
+
 import os, abc
 from inspect import isclass
 from .models import CellType, Layer
@@ -14,10 +18,16 @@ from .helpers import (
 from .simulators.nest import NestAdapter
 
 def from_hdf5(file):
+    '''
+        Restore a configuration object from an HDF5 file.
+    '''
     import h5py
+    # Open read only
     with h5py.File(file, 'r') as resource:
+        # Get the serialized configuration details
         config_class = resource.attrs['configuration_class']
         config_string = resource.attrs['configuration_string']
+    # Determine the class and module name and import them
     class_parts = config_class.split('.')
     class_name = class_parts[-1]
     module_name = '.'.join(class_parts[:-1])
@@ -31,8 +41,20 @@ def from_hdf5(file):
     return module_dict[class_name](stream=config_string)
 
 class ScaffoldConfig(object):
+    '''
+        Main configuration object. Is passed into the scaffold constructor
+        to configurate it.
+    '''
 
     def __init__(self, file=None, stream=None, verbosity=1, simulators={}):
+        '''
+            :param file: The path to a configuration file
+            :type file: string
+            :param stream: A string containing configuration content you'd find in a configuration file.
+            :type stream: string
+            :param verbosity: Sets the level of detail on the console feedback that the scaffold reports. 0: Errors only. 1: 0 + warnings. 2: 1 + updates. 3: 2 + progress
+            :type verbosity: int
+        '''
         # Initialise empty config object.
 
         # Dictionaries and lists
@@ -57,7 +79,7 @@ class ScaffoldConfig(object):
         self.X = 200    # Transverse simulation space size (µm)
         self.Z = 200    # Longitudinal simulation space size (µm)
 
-        if not file is None or not stream is None:
+        if not file is None or not stream is None: # Load config from file or stream of data
             self.read_config(file, stream)
             # Execute the load handler set by the child configuration implementation
             self._parsed_config = self._load_handler(self._raw)
@@ -73,7 +95,7 @@ class ScaffoldConfig(object):
     def read_config_file(self, file):
         # Determine extension of file.
         head, tail = os.path.splitext(file)
-        # Append .ini and send warning if .ini extension is not present.
+        # Append extension and send warning if extension is not present.
         if tail != self._extension:
             if self.verbosity > 0:
                 print("[WARNING] No {} extension on given config file '{}', config file changed to : '{}'".format(
@@ -82,20 +104,21 @@ class ScaffoldConfig(object):
                     file + self._extension
                 ))
             file += self._extension
+        # Try to open the config file from the specified directory
         try:
-            with open(os.path.dirname(__file__) + '/configurations/' + file, 'r') as file:
+            with open(file, 'r') as file:
                 self._raw = file.read()
                 self._name = file.name
                 return
         except Exception as e:
             pass
+        # Try to open the config file from the default directory
         try:
-            with open(file, 'r') as file:
+            with open(os.path.dirname(__file__) + '/configurations/' + file, 'r') as file:
                 self._raw = file.read()
                 self._name = file.name
         except FileNotFoundError as e:
             raise FileNotFoundError("Could not find the configuration file '{}' in the specified folder or included in the package.".format(file)) from None
-
 
     def read_config_stream(self, stream):
         self._raw = stream
@@ -115,10 +138,10 @@ class ScaffoldConfig(object):
 
     def add_morphology(self, morphology):
         '''
-            Adds a morphology to the config object. Mrophologies are used to determine
-            which cells touch and form synapses.
+            Adds a :class:`Morphology` to the config object. Morphologies are
+            used to determine which cells can be connected to eachother.
 
-            :param morphology: Morphology object to add
+            :param morphology: :class:`Morphology` object to add
             :type morphology: Morphology
         '''
         # Register a new Geometry.
@@ -126,18 +149,18 @@ class ScaffoldConfig(object):
 
     def add_placement_strategy(self, placement):
         '''
-            Adds a placement to the config object. Placement strategies are used to
-            place cells in the simulation volume.
+            Adds a :class:`PlacementStrategy` to the config object. Placement
+            strategies are used to place cells in the simulation volume.
 
-            :param placement: PlacementStrategy object to add
-            :type placement: PlacementStrategy
+            :param placement: :class:`PlacementStrategy` object to add
+            :type placement: :class:`PlacementStrategy`
         '''
         # Register a new Geometry.
         self.placement_strategies[placement.name] = placement
 
     def add_connection(self, connection):
         '''
-            Adds a ConnectionStrategy to the config object. ConnectionStrategies
+            Adds a :class:`ConnectionStrategy` to the config object. ConnectionStrategies
             are used to determine which touching cells to connect.
 
             :param connection: ConnectionStrategy object to add
@@ -147,6 +170,13 @@ class ScaffoldConfig(object):
         self.connection_types[connection.name] = connection
 
     def add_simulation(self, simulation):
+        '''
+            Adds a :class:`SimulatorAdapter` to the config object. S
+            are used to determine which touching cells to connect.
+
+            :param connection: ConnectionStrategy object to add
+            :type connection: ConnectionStrategy
+        '''
         # Register a new simulation
         self.simulations[simulation.name] = simulation
 
