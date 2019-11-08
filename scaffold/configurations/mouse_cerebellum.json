@@ -245,7 +245,7 @@
       "class": "scaffold.connectivity.ConnectomeGolgiGranule",
       "from_cell_types": [{"type": "golgi_cell", "compartments": ["axon"]}],
       "to_cell_types": [{"type": "granule_cell", "compartments": ["dendrites"]}],
-      "after": ["golgi_to_glomerulus", "glomerulus_to_granule"],
+      "after": ["golgi_to_glomerulus", "glomerulus_to_granule"]
     },
     "ascending_axon_to_purkinje": {
       "class": "scaffold.connectivity.ConnectomeAscAxonPurkinje",
@@ -260,12 +260,14 @@
     "parallel_fiber_to_basket": {
       "class": "scaffold.connectivity.ConnectomePFInterneuron",
       "from_cell_types": [{"type": "granule_cell", "compartments": ["parallel_fiber"]}],
-      "to_cell_types": [{"type": "basket_cell", "compartments": ["dendrites"]}]
+      "to_cell_types": [{"type": "basket_cell", "compartments": ["dendrites"]}],
+      "after": ["granule_to_golgi"]
     },
     "parallel_fiber_to_stellate": {
       "class": "scaffold.connectivity.ConnectomePFInterneuron",
       "from_cell_types": [{"type": "granule_cell", "compartments": ["parallel_fiber"]}],
-      "to_cell_types": [{"type": "stellate_cell", "compartments": ["dendrites"]}]
+      "to_cell_types": [{"type": "stellate_cell", "compartments": ["dendrites"]}],
+      "after": ["granule_to_golgi"]
     },
     "basket_and_stellate_to_purkinje": {
       "class": "scaffold.connectivity.ConnectomeBCSCPurkinje",
@@ -323,13 +325,14 @@
     "io_to_basket": {
       "class": "scaffold.connectivity.ConnectomeIOMolecular",
       "from_cell_types": [{"type": "io_cell", "compartments": ["axon"]}],
-      "to_cell_types": [{"type": "basket_cell", "compartments": ["dendrites"]}]
-      "after": ["io_to_purkinje", "basket_and_stellate_to_purkinje"],
+      "to_cell_types": [{"type": "basket_cell", "compartments": ["dendrites"]}],
+      "after": ["io_to_purkinje", "basket_and_stellate_to_purkinje"]
     },
     "io_to_stellate": {
       "class": "scaffold.connectivity.ConnectomeIOMolecular",
       "from_cell_types": [{"type": "io_cell", "compartments": ["axon"]}],
-      "to_cell_types": [{"type": "stellate_cell", "compartments": ["dendrites"]}]
+      "to_cell_types": [{"type": "stellate_cell", "compartments": ["dendrites"]}],
+      "after": ["io_to_purkinje", "basket_and_stellate_to_purkinje"]
     },
     "io_to_dcn": {
       "class": "scaffold.connectivity.AllToAll",
