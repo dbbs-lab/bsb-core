@@ -27,3 +27,6 @@ class MorphologyException(Exception):
 
 class MissingMorphologyException(MorphologyException):
     pass
+
+class DynamicClassException(ConfigurationException):
+    pass

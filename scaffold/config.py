@@ -16,10 +16,15 @@ from .helpers import (
     assert_attr_in, ConfigurableClass
 )
 from .simulators.nest import NestAdapter
+from .exceptions import DynamicClassException
 
 def from_hdf5(file):
     '''
         Restore a configuration object from an HDF5 file.
+
+        :param file: Path of the HDF5 file.
+        :type file: string
+        :rtype: None
     '''
     import h5py
     # Open read only
@@ -36,7 +41,7 @@ def from_hdf5(file):
     else:
         module_dict = __import__(module_name, globals(), locals(), [class_name], 0).__dict__
     if not class_name in module_dict:
-        raise Exception('Can not load HDF5 file \'{}\'. Configuration class not found:'.format(file) + config_class)
+        raise DynamicClassException('Can not load HDF5 file \'{}\'. Configuration class not found:'.format(file) + config_class)
     # Instantiate the configuration class with a configuration stream
     return module_dict[class_name](stream=config_string)
 
@@ -54,6 +59,8 @@ class ScaffoldConfig(object):
             :type stream: string
             :param verbosity: Sets the level of detail on the console feedback that the scaffold reports. 0: Errors only. 1: 0 + warnings. 2: 1 + updates. 3: 2 + progress
             :type verbosity: int
+            :param simulators: Additional simulators to register. A dictionary of :class:`SimulatorAdapter`s
+            :type simulators: dict
         '''
         # Initialise empty config object.
 
@@ -126,11 +133,11 @@ class ScaffoldConfig(object):
 
     def add_cell_type(self, cell_type):
         '''
-            Adds a cell type to the config object. Cell types are used to populate
-            cells into the layers of the simulation.
+            Adds a :class:`CellType` to the config object. Cell types are used
+            to populate cells into the layers of the simulation.
 
             :param cell_type: CellType object to add
-            :type cell_type: CellType
+            :type cell_type: :class:`CellType`
         '''
         # Register a new cell type model.
         self.cell_types[cell_type.name] = cell_type
@@ -174,19 +181,19 @@ class ScaffoldConfig(object):
             Adds a :class:`SimulatorAdapter` to the config object. S
             are used to determine which touching cells to connect.
 
-            :param connection: ConnectionStrategy object to add
-            :type connection: ConnectionStrategy
+            :param connection: :class:`ConnectionStrategy` object to add
+            :type connection: :class:`ConnectionStrategy`
         '''
         # Register a new simulation
         self.simulations[simulation.name] = simulation
 
     def add_layer(self, layer):
         '''
-            Adds a layer to the config object. layers are regions of the simulation
-            to be populated by cells.
+            Adds a :class:`Layer` to the config object. layers are regions of
+            the simulation to be populated by cells.
 
-            :param layer: Layer object to add
-            :type layer: Layer
+            :param layer: :class:`Layer` object to add
+            :type layer: :class:`Layer`
         '''
         # Register a new layer model.
         self.layers[layer.name] = layer
@@ -202,7 +209,9 @@ class ScaffoldConfig(object):
             :type id: int
 
             :returns: A :class:`Layer`: object.
-            :rtype: Layer
+            :rtype: :class:`Layer`
+            :raises: **Exception:** If the name or id isn't found.
+                **ArgumentError:** If no name or id is provided.
         '''
         if id > -1:
             if len(self.layer_map) <= id:
@@ -212,18 +221,55 @@ class ScaffoldConfig(object):
             if not name in self.layers:
                 raise Exception("Layer with name '{}' not found".format(name))
             return self.layers[name]
-        raise Exception("Invalid arguments for ScaffoldConfig.get_layer: name='{}', id={}".format(name, id))
+        raise ArgumentError("Invalid arguments for ScaffoldConfig.get_layer: name='{}', id={}".format(name, id))
 
-    def get_layerID(self, name):
+    def get_layer_id(self, name):
+        '''
+            Get the ID of a layer.
+
+            :param name: Name of the layer
+            :type name: string
+            :returns: The ID of the layer
+            :rtype: int
+            :raises: **ValueError** if the name is not found.
+        '''
         return self.layer_map.index(name)
 
     def get_layer_list(self):
+        '''
+            Get a list of the layers.
+
+            :returns: A list of :class:`Layer`.
+            :rtype: list
+        '''
         return list(self.layers.values())
 
     def get_cell_type(self, id):
+        '''
+            Get cell type by id.
+
+            :param id: ID of the cell type.
+            :type id: int
+            :returns: The cell type with given id.
+            :rtype: :class:`CellType`
+        '''
         return self.cell_types[self.cell_type_map[id]]
 
     def resize(self, X=None, Z=None):
+        '''
+            Resize the configured simulation volume.
+
+            .. warning::
+                Do not change the ``X`` or ``Z`` values directly as it will not
+                resize all :class:`Layer` objects and cause undefined behavior.
+
+            :param X: The new X size.
+            :type X: float
+            :param Z: The new Z size.
+            :type Z: float
+            :rtype: None
+        '''
+
         scaling_x = 1.
         scaling_z = 1.
         if not X is None:
