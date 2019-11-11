@@ -250,7 +250,7 @@ class NestAdapter(SimulatorAdapter):
         return nest
 
     def reset_kernel(self):
-        self.nest.set_verbosity(self.verbosity)
+        self.nest.SetVerbosity(self.verbosity)
         self.nest.ResetKernel()
         self.set_threads(self.threads)
         self.nest.SetKernelStatus({
