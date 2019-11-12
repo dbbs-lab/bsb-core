@@ -83,7 +83,7 @@ def get_branch_trace(compartments, offset = [0., 0., 0.], **kwargs):
         )
     )
 
-def get_soma_trace(soma_radius, offset=[0., 0., 0.], color='black', colorID=1):
+def get_soma_trace(soma_radius, offset=[0., 0., 0.], color='black'):
     theta = np.linspace(0,2*np.pi,10)
     phi = np.linspace(0,np.pi,10)
     x = np.outer(np.cos(theta),np.sin(phi)) * soma_radius + offset[0]
@@ -91,12 +91,12 @@ def get_soma_trace(soma_radius, offset=[0., 0., 0.], color='black', colorID=1):
     z = np.outer(np.ones(10),np.cos(phi)) * soma_radius + offset[1]
     return go.Surface(
         x=x, y=y, z=z,
-        surfacecolor=np.zeros(10) + colorID,
+        surfacecolor=np.zeros(10),
         colorscale=[[0, color], [1, color]],
         showscale=False
     )
 
-def plot_morphology(morphology, return_traces=False, offset=[0., 0., 0.], fig=None, show=True, set_range=True, color='black', reduce_branches=False, soma_radius=None, colorID=1):
+def plot_morphology(morphology, return_traces=False, offset=[0., 0., 0.], fig=None, show=True, set_range=True, color='black', reduce_branches=False, soma_radius=None):
     compartments = morphology.compartments.copy()
     compartments.insert(0, Compartment([0, 0, *compartments[0].start, *compartments[0].end, 1., 0]))
     compartments = np.array(compartments)
@@ -107,7 +107,7 @@ def plot_morphology(morphology, return_traces=False, offset=[0., 0., 0.], fig=No
     traces = []
     for branch in dfs_list[::-1]:
         traces.append(get_branch_trace(compartments[branch], offset,color=color))
-    traces.append(get_soma_trace(soma_radius if not soma_radius is None else compartments[0].radius, offset, color, colorID))
+    traces.append(get_soma_trace(soma_radius if not soma_radius is None else compartments[0].radius, offset, color))
     if return_traces:
         return traces
     else:
