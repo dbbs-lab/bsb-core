@@ -64,17 +64,17 @@ class NestConnection(SimulationComponent):
 
     def get_synapse_parameters(self, synapse_model_name):
         # Get the default synapse parameters
-        return self.synapse.synapse_model_name
+        return self.synapse[synapse_model_name]
 
 
     def get_connection_parameters(self):
         # Get the default synapse parameters
         params = self.connection["parameters"].copy()
         # Raise an exception if the requested model is not configured.
-        if not self.synapse_model in self.connection:
-            raise Exception("Missing connection parameters for '{}' model in '{}'".format(self.synapse_model, self.name + '.connection'))
+        #if not self.synapse_model in self.connection:
+        #     raise Exception("Missing connection parameters for '{}' model in '{}'".format(self.synapse_model, self.name + '.connection'))
         # Merge in the model specific parameters
-        params.update(self.connection[self.synapse_model])
+        params.update(self.connection["parameters"])
         if self.should_specify_receptor_type():
             params["receptor_type"] = self.get_receptor_type()
         params["model"] = self.synapse_model
@@ -221,7 +221,7 @@ class NestAdapter(SimulatorAdapter):
         'verbosity': 'M_ERROR',
         'threads': 1,
         'resolution': 1.0,
-        'modules': []
+        'modules': ["CerebNEST"]
     }
 
     required = ['default_neuron_model', 'default_synapse_model',
@@ -356,7 +356,8 @@ class NestAdapter(SimulatorAdapter):
                 track_models.append(name)
                 # Create the synapse model in the simulator
                 self.create_synapse_model(connection_model)
-                if connection_model.plastic == True:
+                # Create the volume transmitter if the connection is plastic with heterosynaptic plasticity
+                if connection_model.plastic == True and connection_model.hetero == True:
                     # Create the volume transmitters
                     self.scaffold.report("Creating volume transmitter for "+name,3)
                     self.create_volume_transmitter(connection_model, postsynaptic_cells)

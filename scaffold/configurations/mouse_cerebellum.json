@@ -4,8 +4,8 @@
     "format": "scaffold.output.HDF5Formatter"
   },
   "network_architecture": {
-    "simulation_volume_x": 400.0,
-    "simulation_volume_z": 400.0,
+    "simulation_volume_x": 250.0,
+    "simulation_volume_z": 250.0,
     "store_kd_trees": true,
     "store_compound_kd_tree": true,
     "store_pf_kd_trees": true
@@ -520,6 +520,58 @@
             "k2": 0.047,
             "A1": 13.857,
             "A2":3.477}
+        },
+        "dcn_interneuron": {
+          "parameters": {
+            "t_ref": 3.7,
+            "C_m": 89.0,
+            "V_th": -48.0,
+            "V_reset": -69.0,
+            "E_L": -59.0,
+            "tau_syn_ex": 7.1,
+            "tau_syn_in": 13.6,
+            "g_L": 1.56
+          },
+          "iaf_cond_alpha": {
+            "I_e": 55.75
+          },
+          "eglif_cond_alpha_multisyn": {
+            "Vinit": -45.0,
+            "lambda":3.5,
+            "deltaV":3.0,
+            "tau_m": 33.0,
+            "I_e": 75.385,
+            "k_adap": 0.408,
+            "k1": 0.697,
+            "k2": 0.047,
+            "A1": 13.857,
+            "A2":3.477}
+        },
+        "io_cell": {
+          "parameters": {
+            "t_ref": 3.7,
+            "C_m": 89.0,
+            "V_th": -48.0,
+            "V_reset": -69.0,
+            "E_L": -59.0,
+            "tau_syn_ex": 7.1,
+            "tau_syn_in": 13.6,
+            "g_L": 1.56
+          },
+          "iaf_cond_alpha": {
+            "I_e": 55.75
+          },
+          "eglif_cond_alpha_multisyn": {
+            "Vinit": -45.0,
+            "lambda":3.5,
+            "deltaV":3.0,
+            "tau_m": 33.0,
+            "I_e": 75.385,
+            "k_adap": 0.408,
+            "k1": 0.697,
+            "k2": 0.047,
+            "A1": 13.857,
+            "A2":3.477}
         }
       },
       "connection_models": {
@@ -579,10 +631,9 @@
           }
         },
         "parallel_fiber_to_purkinje": {
-          "plastic": true,
-          "hetero": true,
+          "plastic": false,
+          "hetero": false,
           "teaching": "io_to_purkinje",
-          "synapse_model": "stdp_connection_sinexp",
           "connection": {
             "parameters":{
               "weight": 0.2,
@@ -600,10 +651,9 @@
           }
         },
         "parallel_fiber_to_basket": {
-          "plastic": true,
-          "hetero":true,
+          "plastic": false,
+          "hetero":false,
           "teaching": "io_to_basket",
-          "synapse_model": "stdp_connection_alpha",
           "connection": {
             "parameters":{
               "weight": 0.2,
@@ -621,10 +671,9 @@
           }
         },
         "parallel_fiber_to_stellate": {
-          "plastic": true,
-          "hetero":true,
+          "plastic": false,
+          "hetero":false,
           "teaching": "io_to_basket",
-          "synapse_model": "stdp_connection_alpha",
           "connection": {
             "parameters":{
               "weight": 0.2,
@@ -697,8 +746,7 @@
           }
         },
         "purkinje_to_dcn": {
-          "plastic": true,
-          "synapse_model": "stdp_synapse",
+          "plastic": false,
           "connection": {
             "parameters":{
               "weight":-0.03,
@@ -718,10 +766,9 @@
           }
         },
         "glomerulus_to_dcn": {
-          "plastic": true,
-          "hetero": true,
+          "plastic": false,
+          "hetero": false,
           "teaching": "purkinje_to_dcn",
-          "synapse_model": "stdp_connection_cosexp",
           "connection": {
             "parameters":{
               "weight":0.0006,
@@ -736,6 +783,72 @@
               "Wmin": 0.0,
               "Wmax": 100.0
             }
+          }
+        },
+        "io_to_purkinje": {
+          "connection": {
+            "parameters":{
+              "weight":-2.0,
+              "delay": 1.0
+            }
+          },
+          "synapse": {
+            "static_synapse": {}
+          }
+        },
+        "io_to_basket": {
+          "connection": {
+            "parameters":{
+              "weight":-2.0,
+              "delay": 1.0
+            }
+          },
+          "synapse": {
+            "static_synapse": {}
+          }
+        },
+        "io_to_stellate": {
+          "connection": {
+            "parameters":{
+              "weight":-2.0,
+              "delay": 1.0
+            }
+          },
+          "synapse": {
+            "static_synapse": {}
+          }
+        },
+        "io_to_dcn": {
+          "connection": {
+            "parameters":{
+              "weight":-2.0,
+              "delay": 1.0
+            }
+          },
+          "synapse": {
+            "static_synapse": {}
+          }
+        },
+        "io_to_dcn_interneuron": {
+          "connection": {
+            "parameters":{
+              "weight":-2.0,
+              "delay": 1.0
+            }
+          },
+          "synapse": {
+            "static_synapse": {}
+          }
+        },
+        "dcn_interneuron_to_io": {
+          "connection": {
+            "parameters":{
+              "weight":-2.0,
+              "delay": 1.0
+            }
+          },
+          "synapse": {
+            "static_synapse": {}
           }
         }
       },
@@ -763,19 +876,6 @@
             "withtime": true,
             "to_file": true,
             "label": "glom_spikes"
-          }
-        },
-        "purkinje_multimeter": {
-          "device": "multimeter",
-          "io": "output",
-          "type": "cell_type",
-          "cell_types": ["purkinje_cell"],
-          "parameters": {
-            "withgid": true,
-            "withtime": true,
-            "to_file": true,
-            "label": "glom_multimeter",
-            "record_from": ["V_m"]
           }
         }
       }
