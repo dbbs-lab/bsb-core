@@ -43,7 +43,7 @@
       }
     },
     "io_layer": {
-      "thickness": 200.0,
+      "thickness": 184.0, #pow( simulation_volume_x * simulation_volume_z * ( granular_layer.thickness+ purkinje_layer.thickness + molecular_layer.thickness ) * 8 / 68 ), 1/3)
       "xz_scale": [0.25, 0.1],
       "stack": {
         "stack_id": 1,
