@@ -43,7 +43,7 @@
       }
     },
     "io_layer": {
-      "thickness": 184.0,
+      "thickness": 200.0,
       "xz_scale": [0.25, 0.1],
       "stack": {
         "stack_id": 1,
@@ -199,7 +199,9 @@
         "class": "scaffold.placement.LayeredRandomWalk",
         "layer": "io_layer",
         "soma_radius": 7.5,
-        "density": 1.52e-5
+        "density": 1.52e-5,
+        "distance_multiplier_min": 0.0,
+        "distance_multiplier_max": 0.2
       },
       "morphology": {
         "class": "scaffold.morphologies.NoGeometry"
