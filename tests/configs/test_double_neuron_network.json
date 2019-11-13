@@ -136,10 +136,11 @@
             "parameters": {
               "weight": -9.0,
               "delay": 4.0
-            },
-            "static_synapse": {}
+            }
           },
-          "synapse": {}
+          "synapse": {
+            "static_synapse": {}
+          }
         }
       },
         "devices": {}

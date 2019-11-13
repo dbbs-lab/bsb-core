@@ -94,6 +94,7 @@ def start_cli():
     # Run subparser
     parser_run.add_argument('simulation', action='store', help='Preconfigured simulation to run.')
     parser_run.add_argument('-p', action='store_true',help='Plot the created network')
+    parser_run.add_argument("-o", "--output", help="Specify an output file path")
 
     # Simulate subparser
     parser_sim.add_argument('simulation', action='store', help='Name of the preconfigured simulation.')
