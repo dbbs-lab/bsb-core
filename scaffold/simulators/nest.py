@@ -11,11 +11,15 @@ class NestCell(SimulationComponent):
     def boot(self):
         self.identifiers = []
         self.receptor_specifications = {}
-        for key in self.__dict__:
-            value = self.__dict__[key]
-            if key != "parameters" and isinstance(value, dict) and "receptors" in value:
-                self.receptor_specifications[key] = value["receptors"]
-                del value["receptors"]
+        # The cell model contains a 'parameters' attribute and many sets of
+        # neuron model specific sets of parameters. Each set of neuron model
+        # specific parameters can define receptor specifications.
+        # Extract those if present to the designated receptor_specifications dict.
+        for neuron_model in self.__dict__:
+            model_parameters = self.__dict__[neuron_model]
+            if neuron_model != "parameters" and isinstance(model_parameters, dict) and "receptors" in model_parameters:
+                self.receptor_specifications[neuron_model] = model_parameters["receptors"]
+                del model_parameters["receptors"]
 
     def validate(self):
         pass
