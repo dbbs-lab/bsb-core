@@ -1,4 +1,5 @@
 *
 !.gitignore
 !mouse_cerebellum.json
+!extended_mouse_cerebellum.json
 !human_cerebellum.json
