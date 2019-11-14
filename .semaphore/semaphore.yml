@@ -21,11 +21,10 @@ blocks:
         - name: Unit tests
           commands:
             - coverage run --source=scaffold -m unittest discover -s tests/
-            - codecov --token=7c8a792c-0fa2-4f6b-9bb9-94a309912554
       epilogue:
         always:
           commands:
-            - ls -la
+            - codecov --token=7c8a792c-0fa2-4f6b-9bb9-94a309912554
     dependencies:
       - Cache NEST install
   - name: Cache NEST install
