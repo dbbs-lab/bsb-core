@@ -4,8 +4,8 @@
     "format": "scaffold.output.HDF5Formatter"
   },
   "network_architecture": {
-    "simulation_volume_x": 250.0,
-    "simulation_volume_z": 250.0,
+    "simulation_volume_x": 400.0,
+    "simulation_volume_z": 400.0,
     "store_kd_trees": true,
     "store_compound_kd_tree": true,
     "store_pf_kd_trees": true
@@ -40,15 +40,6 @@
       "stack": {
         "stack_id": 0,
         "position_in_stack": 3
-      }
-    },
-    "io_layer": {
-      "thickness": 200.0,
-      "xz_scale": [0.25, 0.1],
-      "stack": {
-        "stack_id": 1,
-        "position_in_stack": 0,
-        "position": [260.0, -400.0, 0.0]
       }
     }
   },
@@ -176,40 +167,6 @@
         "display_name": "dcn cell",
         "color": "#15118B"
       }
-    },
-    "dcn_interneuron": {
-      "placement": {
-        "class": "scaffold.placement.Satellite",
-        "layer": "dcn_layer",
-        "soma_radius": 6.0,
-        "placement_relative_to": "dcn_cell",
-        "placement_count_ratio": 1.0,
-        "after": ["dcn_cell"]
-      },
-      "morphology": {
-        "class": "scaffold.morphologies.NoGeometry"
-      },
-      "plotting": {
-        "display_name": "dcn interneuron",
-        "color": "#15118B"
-      }
-    },
-    "io_cell": {
-      "placement": {
-        "class": "scaffold.placement.LayeredRandomWalk",
-        "layer": "io_layer",
-        "soma_radius": 7.5,
-        "density": 1.52e-5,
-        "distance_multiplier_min": 0.0,
-        "distance_multiplier_max": 0.2
-      },
-      "morphology": {
-        "class": "scaffold.morphologies.NoGeometry"
-      },
-      "plotting": {
-        "display_name": "io cell",
-        "color": "#FF8C00"
-      }
     }
   },
   "connection_types": {
@@ -309,47 +266,6 @@
       "from_cell_types": [{"type": "purkinje_cell", "compartments": ["axon"]}],
       "to_cell_types": [{"type": "dcn_cell", "compartments": ["dendrites"]}],
       "divergence": 5
-    },
-    "purkinje_to_dcn_interneuron": {
-      "class": "scaffold.connectivity.SatelliteCommonPresynaptic",
-      "from_cell_types": [{"type": "purkinje_cell", "compartments": ["axon"]}],
-      "to_cell_types": [{"type": "dcn_interneuron", "compartments": ["dendrites"]}],
-      "after": ["purkinje_to_dcn"],
-      "common":[""]
-    },
-    "io_to_purkinje": {
-      "class": "scaffold.connectivity.ConnectomeIOPurkinje",
-      "from_cell_types": [{"type": "io_cell", "compartments": ["axon"]}],
-      "to_cell_types": [{"type": "purkinje_cell", "compartments": ["dendrites"]}],
-      "divergence": 6,
-      "tolerance_divergence": 3
-    },
-    "io_to_basket": {
-      "class": "scaffold.connectivity.ConnectomeIOMolecular",
-      "from_cell_types": [{"type": "io_cell", "compartments": ["axon"]}],
-      "to_cell_types": [{"type": "basket_cell", "compartments": ["dendrites"]}],
-      "after": ["io_to_purkinje", "basket_and_stellate_to_purkinje"]
-    },
-    "io_to_stellate": {
-      "class": "scaffold.connectivity.ConnectomeIOMolecular",
-      "from_cell_types": [{"type": "io_cell", "compartments": ["axon"]}],
-      "to_cell_types": [{"type": "stellate_cell", "compartments": ["dendrites"]}],
-      "after": ["io_to_purkinje", "basket_and_stellate_to_purkinje"]
-    },
-    "io_to_dcn": {
-      "class": "scaffold.connectivity.AllToAll",
-      "from_cell_types": [{"type": "io_cell", "compartments": ["axon"]}],
-      "to_cell_types": [{"type": "dcn_cell", "compartments": ["dendrites"]}]
-    },
-    "io_to_dcn_interneuron": {
-      "class": "scaffold.connectivity.AllToAll",
-      "from_cell_types": [{"type": "io_cell", "compartments": ["axon"]}],
-      "to_cell_types": [{"type": "dcn_interneuron", "compartments": ["dendrites"]}]
-    },
-    "dcn_interneuron_to_io": {
-      "class": "scaffold.connectivity.AllToAll",
-      "from_cell_types": [{"type": "dcn_interneuron", "compartments": ["axon"]}],
-      "to_cell_types": [{"type": "io_cell", "compartments": ["dendrites"]}]
     }
   },
   "simulations": {
@@ -357,8 +273,7 @@
       "simulator": "nest",
       "default_neuron_model": "iaf_cond_alpha",
       "default_synapse_model": "static_synapse",
-      "duration": 10,
-      "modules": ["cereb-nest"],
+      "duration": 1000,
       "cell_models": {
         "granule_cell": {
           "parameters": {
@@ -861,15 +776,26 @@
         }
       },
       "devices": {
-        "center_stimulation": {
+        "background_stimulation": {
           "device": "poisson_generator",
           "io": "input",
-          "type": "local",
-          "radius": 50.0,
-          "origin": [0.0, 0.0, 0.0],
+          "type": "cell_type",
           "cell_types": ["glomerulus"],
           "parameters": {
-            "rate": 4.0,
+            "rate": 1.0,
+            "start": 0.0,
+            "stop": 1000.0
+          }
+        },
+        "center_stimulation": {
+          "device": "spike_generator",
+          "io": "input",
+          "type": "local",
+          "radius": 70.,
+          "origin": [200., 675., 200.],
+          "cell_types": ["glomerulus"],
+          "parameters": {
+            "rate": 1.0,
             "start": 0.0,
             "stop": 1000.0
           }
@@ -883,7 +809,79 @@
             "withgid": true,
             "withtime": true,
             "to_file": true,
-            "label": "glom_spikes"
+            "label": "glomerulus_spikes"
+          }
+        },
+        "record_granule_spikes": {
+          "device": "spike_detector",
+          "io": "output",
+          "type": "cell_type",
+          "cell_types": ["granule"],
+          "parameters": {
+            "withgid": true,
+            "withtime": true,
+            "to_file": true,
+            "label": "granule_spikes"
+          }
+        },
+        "record_golgi_spikes": {
+          "device": "spike_detector",
+          "io": "output",
+          "type": "cell_type",
+          "cell_types": ["golgi"],
+          "parameters": {
+            "withgid": true,
+            "withtime": true,
+            "to_file": true,
+            "label": "golgi_spikes"
+          }
+        },
+        "record_purkinje_spikes": {
+          "device": "spike_detector",
+          "io": "output",
+          "type": "cell_type",
+          "cell_types": ["purkinje"],
+          "parameters": {
+            "withgid": true,
+            "withtime": true,
+            "to_file": true,
+            "label": "purkinje_spikes"
+          }
+        },
+        "record_stellate_spikes": {
+          "device": "spike_detector",
+          "io": "output",
+          "type": "cell_type",
+          "cell_types": ["stellate"],
+          "parameters": {
+            "withgid": true,
+            "withtime": true,
+            "to_file": true,
+            "label": "stellate_spikes"
+          }
+        },
+        "record_basket_spikes": {
+          "device": "spike_detector",
+          "io": "output",
+          "type": "cell_type",
+          "cell_types": ["basket"],
+          "parameters": {
+            "withgid": true,
+            "withtime": true,
+            "to_file": true,
+            "label": "basket_spikes"
+          }
+        },
+        "record_dcn_spikes": {
+          "device": "spike_detector",
+          "io": "output",
+          "type": "cell_type",
+          "cell_types": ["dcn"],
+          "parameters": {
+            "withgid": true,
+            "withtime": true,
+            "to_file": true,
+            "label": "dcn_spikes"
           }
         }
       }
