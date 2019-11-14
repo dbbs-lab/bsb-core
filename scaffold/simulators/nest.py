@@ -17,6 +17,7 @@ class NestCell(SimulationComponent):
         # Extract those if present to the designated receptor_specifications dict.
         for neuron_model in self.__dict__:
             model_parameters = self.__dict__[neuron_model]
+            # Exclude the default parameters dict and transfer the receptor specifications
             if neuron_model != "parameters" and isinstance(model_parameters, dict) and "receptors" in model_parameters:
                 self.receptor_specifications[neuron_model] = model_parameters["receptors"]
                 del model_parameters["receptors"]
