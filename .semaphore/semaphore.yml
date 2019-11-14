@@ -15,7 +15,7 @@ blocks:
           - mkdir .pip_cache
           - cache restore pip
           - pip install --cache-dir .pip_cache -r requirements.txt
-          - 'pip install git+git@github.com:Helveg/codecov-python.git'
+          - 'pip install git+https://github.com/Helveg/codecov-python.git'
           - cache store pip .pip_cache
       jobs:
         - name: Unit tests
