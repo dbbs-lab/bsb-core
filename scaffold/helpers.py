@@ -212,7 +212,7 @@ def assert_float(val, section_name):
     return ret
 
 def assert_array(val, section_name):
-    from collections import Sequence
+    from collections.abc import Sequence
     if isinstance(val, Sequence):
         return val
     raise Exception("Invalid array '{}' given for '{}'".format(val, section_name))
