@@ -70,11 +70,7 @@ class NestConnection(SimulationComponent):
     def get_connection_parameters(self):
         # Get the default synapse parameters
         params = self.connection["parameters"].copy()
-        # Raise an exception if the requested model is not configured.
-        #if not self.synapse_model in self.connection:
-        #     raise Exception("Missing connection parameters for '{}' model in '{}'".format(self.synapse_model, self.name + '.connection'))
-        # Merge in the model specific parameters
-        params.update(self.connection["parameters"])
+
         if self.should_specify_receptor_type():
             params["receptor_type"] = self.get_receptor_type()
         params["model"] = self.synapse_model
