@@ -4,6 +4,12 @@ from scaffold.scaffold import Scaffold
 from scaffold.config import JSONConfig
 from scaffold.models import Layer, CellType
 
+def relative_to_tests_folder(path):
+    return os.path.join(os.path.dirname(__file__), path)
+
+single_neuron_config = relative_to_tests_folder("configs/test_single_neuron.json")
+default_config = relative_to_tests_folder("../scaffold/configurations/mouse_cerebellum.json")
+
 class TestSingleTypeCompilation(unittest.TestCase):
     '''
     Check if the scaffold can create a single cell type.
@@ -12,7 +18,7 @@ class TestSingleTypeCompilation(unittest.TestCase):
     @classmethod
     def setUpClass(self):
         super(TestSingleTypeCompilation, self).setUpClass()
-        config = JSONConfig(file="configs/test_single_neuron.json")
+        config = JSONConfig(file=single_neuron_config)
         self.scaffold = Scaffold(config)
         self.scaffold.compile_network()
 
@@ -35,7 +41,7 @@ class TestPlacement(unittest.TestCase):
     @classmethod
     def setUpClass(self):
         super(TestPlacement, self).setUpClass()
-        config = JSONConfig(file="../scaffold/configurations/mouse_cerebellum.json")
+        config = JSONConfig(file=default_config)
         self.scaffold = Scaffold(config)
 
     def test_purkinje(self):
