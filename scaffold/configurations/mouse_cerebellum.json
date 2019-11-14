@@ -890,7 +890,7 @@
     },
     "Casali_2019": {
       "simulator": "nest",
-      "default_neuron_model": "iaf_cond_alpha",
+      "default_neuron_model": "iaf_cond_exp",
       "default_synapse_model": "static_synapse",
       "duration": 10,
       "modules": ["cereb-nest"],
@@ -903,7 +903,7 @@
             "V_reset": -84.0,
             "E_L": -74.0
           },
-          "iaf_cond_alpha": {
+          "iaf_cond_exp": {
             "I_e": 0.0,
             "tau_syn_ex": 0.5,
             "tau_syn_in": 10.0,
@@ -939,8 +939,8 @@
             "V_reset": -72.0,
             "E_L": -62.0
           },
-          "iaf_cond_alpha": {
-            "I_e": 700.0,
+          "iaf_cond_exp": {
+            "I_e": 600.0,
             "tau_syn_ex": 0.5,
             "tau_syn_in": 1.6,
             "g_L": 7.0
@@ -966,7 +966,7 @@
             "V_reset": -75.0,
             "E_L": -65.0
           },
-          "iaf_cond_alpha": {
+          "iaf_cond_exp": {
             "I_e": 36.75,
             "tau_syn_ex": 0.5,
             "tau_syn_in": 10.0,
@@ -994,7 +994,7 @@
             "V_reset": -78.0,
             "E_L": -68.0
           },
-          "iaf_cond_alpha": {
+          "iaf_cond_exp": {
             "I_e": 15.6,
             "tau_syn_ex": 0.64,
             "tau_syn_in": 2.0,
@@ -1020,7 +1020,7 @@
             "V_reset": -78.0,
             "E_L": -68.0
           },
-          "iaf_cond_alpha": {
+          "iaf_cond_exp": {
             "I_e": 15.6,
             "tau_syn_ex": 0.64,
             "tau_syn_in": 2.0,
@@ -1046,7 +1046,7 @@
             "V_reset": -69.0,
             "E_L": -59.0
           },
-          "iaf_cond_alpha": {
+          "iaf_cond_exp": {
             "I_e": 55.75,
             "tau_syn_ex": 7.1,
             "tau_syn_in": 13.6,
@@ -1065,56 +1065,14 @@
             "A2":3.477}
         },
         "dcn_interneuron": {
-          "parameters": {
-            "t_ref": 3.02,
-            "C_m": 55.0,
-            "V_th": -39.0,
-            "V_reset": -69.0,
-            "E_L": -40.0
-          },
-          "iaf_cond_alpha": {
-            "I_e": 55.75,
-            "tau_syn_ex": 7.1,
-            "tau_syn_in": 13.6,
-            "g_L": 1.56
-          },
-          "eglif_cond_alpha_multisyn": {
-            "Vinit": -40.0,
-            "lambda":0.9,
-            "deltaV":1.0,
-            "tau_m": 56.0,
-            "I_e": 2.384,
-            "k_adap": 0.079,
-            "k1": 0.041,
-            "k2": 0.044,
-            "A1": 176.358,
-            "A2":176.358}
+          "parameters": {},
+          "iaf_cond_exp": {},
+          "eglif_cond_alpha_multisyn": {}
         },
         "io_cell": {
-          "parameters": {
-            "t_ref": 3.7,
-            "C_m": 189.0,
-            "V_th": -35.0,
-            "V_reset": -45.0,
-            "E_L": -45.0
-          },
-          "iaf_cond_alpha": {
-            "I_e": 55.75,
-            "tau_syn_ex": 1.0,
-            "tau_syn_in": 60.0,
-            "g_L": 1.56
-          },
-          "eglif_cond_alpha_multisyn": {
-            "Vinit": -45.0,
-            "lambda":1.2,
-            "deltaV":0.8,
-            "tau_m": 11.0,
-            "I_e": -10.101,
-            "k_adap": 1.928,
-            "k1": 0.191,
-            "k2": 0.091,
-            "A1": 1810.923,
-            "A2":1358.197}
+          "parameters": {},
+          "iaf_cond_exp": {},
+          "eglif_cond_alpha_multisyn": {}
         }
       },
       "connection_models": {
