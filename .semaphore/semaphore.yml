@@ -15,24 +15,18 @@ blocks:
           - mkdir .pip_cache
           - cache restore pip
           - pip install --cache-dir .pip_cache -r requirements.txt
-          - cd tests
+          - 'pip install git+https://github.com/Helveg/codecov-python.git'
+          - cache store pip .pip_cache
       jobs:
-        - name: Configuration
+        - name: Unit tests
           commands:
-            - python -m unittest test_configuration -v
-        - name: Compilation
-          commands:
-            - python -m unittest test_compilation -v
-        - name: NEST
-          commands:
-            - python -m unittest test_nest -v
+            - coverage run --source=scaffold -m unittest discover -s tests/
       epilogue:
         always:
           commands:
-            - ls -la
+            - codecov --token=7c8a792c-0fa2-4f6b-9bb9-94a309912554
     dependencies:
       - Cache NEST install
-      - Cache pip dependencies
   - name: Cache NEST install
     dependencies: []
     task:
@@ -85,16 +79,3 @@ blocks:
           value: 2.18.0
     skip:
       when: 'true'
-  - name: Cache pip dependencies
-    dependencies: []
-    task:
-      jobs:
-        - name: Install
-          commands:
-            - sem-version python 3.7
-            - 'export PATH=$HOME/.local/bin:$PATH'
-            - checkout
-            - mkdir .pip_cache
-            - cache restore pip
-            - pip install --cache-dir .pip_cache -r requirements.txt
-            - cache store pip

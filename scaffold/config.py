@@ -18,7 +18,7 @@ from .helpers import (
 from .simulators.nest import NestAdapter
 from .exceptions import DynamicClassException
 
-def from_hdf5(file):
+def from_hdf5(file, verbosity=1):
     '''
         Restore a configuration object from an HDF5 file.
 
@@ -43,7 +43,7 @@ def from_hdf5(file):
     if not class_name in module_dict:
         raise DynamicClassException('Can not load HDF5 file \'{}\'. Configuration class not found:'.format(file) + config_class)
     # Instantiate the configuration class with a configuration stream
-    return module_dict[class_name](stream=config_string)
+    return module_dict[class_name](stream=config_string, verbosity=verbosity)
 
 class ScaffoldConfig(object):
     '''

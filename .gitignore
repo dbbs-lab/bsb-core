@@ -9,3 +9,5 @@ dev/
 dev_env/
 test_env/
 nrnmech.dll
+.coverage
+htmlcov/

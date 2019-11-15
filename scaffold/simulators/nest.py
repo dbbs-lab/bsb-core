@@ -1,5 +1,5 @@
 from ..simulation import SimulatorAdapter, SimulationComponent
-from ..exceptions import NestKernelException
+from ..exceptions import NestKernelException, NestModelException
 import numpy as np
 from sklearn.neighbors import KDTree
 
@@ -11,11 +11,16 @@ class NestCell(SimulationComponent):
     def boot(self):
         self.identifiers = []
         self.receptor_specifications = {}
-        for key in self.__dict__:
-            value = self.__dict__[key]
-            if key != "parameters" and isinstance(value, dict) and "receptors" in value:
-                self.receptor_specifications[key] = value["receptors"]
-                del value["receptors"]
+        # The cell model contains a 'parameters' attribute and many sets of
+        # neuron model specific sets of parameters. Each set of neuron model
+        # specific parameters can define receptor specifications.
+        # Extract those if present to the designated receptor_specifications dict.
+        for neuron_model in self.__dict__:
+            model_parameters = self.__dict__[neuron_model]
+            # Exclude the default parameters dict and transfer the receptor specifications
+            if neuron_model != "parameters" and isinstance(model_parameters, dict) and "receptors" in model_parameters:
+                self.receptor_specifications[neuron_model] = model_parameters["receptors"]
+                del model_parameters["receptors"]
 
     def validate(self):
         pass
@@ -69,12 +74,8 @@ class NestConnection(SimulationComponent):
 
     def get_connection_parameters(self):
         # Get the default synapse parameters
-        params = self.connection["parameters"].copy()
-        # Raise an exception if the requested model is not configured.
-        #if not self.synapse_model in self.connection:
-        #     raise Exception("Missing connection parameters for '{}' model in '{}'".format(self.synapse_model, self.name + '.connection'))
-        # Merge in the model specific parameters
-        params.update(self.connection["parameters"])
+        params = self.connection.copy()
+        # Add the receptor specifications, if required.
         if self.should_specify_receptor_type():
             # If specific receptors are specified, the weight should always be positive.
             params["weight"] = np.abs(params["weight"])
@@ -196,7 +197,6 @@ class NestDevice(SimulationComponent):
             # Retrieve a single list
             cells = self.scaffold.get_cells_by_type(self.cell_types[0])
             return cells[:, 0]
-
 
 class NestAdapter(SimulatorAdapter):
     '''
@@ -384,8 +384,6 @@ class NestAdapter(SimulatorAdapter):
                     # Associate the volume transmitter number to them
                     self.nest.SetStatus(connections_to_target ,{"vt_num": float(i)})
 
-
-
     def create_devices(self, devices):
         '''
             Create the configured NEST devices in the simulator
@@ -393,9 +391,17 @@ class NestAdapter(SimulatorAdapter):
         for device_model in devices.values():
             device = self.nest.Create(device_model.device)
             self.scaffold.report("Creating device:  "+device_model.device,3)
-            self.nest.SetStatus(device, device_model.parameters)
+            # Execute SetStatus and catch DictError
+            self.execute_command(self.nest.SetStatus, device, device_model.parameters,
+                exceptions={
+                'DictError': {
+                    'from': None,
+                    'exception': catch_dict_error("Could not create {} device '{}': ".format(
+                        device_model.device, device_model.name
+                    ))
+                }
+            })
             device_targets = device_model.get_targets()
-            #self.devices[device_model.name].identifiers.extend(device)
             try:
                 if device_model.io == "input":
                     self.nest.Connect(device, device_targets)
@@ -447,3 +453,25 @@ class NestAdapter(SimulatorAdapter):
         	self.nest.SetStatus([vti],{"deliver_interval" : 2})            # TO CHECK
             # Waiting for Albe to clarify necessity of this parameter
         	self.nest.SetStatus([vti],{"vt_num" : n})
+
+    def execute_command(self, command, *args, exceptions={}):
+        try:
+            command(*args)
+        except Exception as e:
+            if not hasattr(e, "errorname"):
+                raise
+            if e.errorname in exceptions:
+                handler = exceptions[e.errorname ]
+                if "from" in handler:
+                    raise handler["exception"](e) from handler["from"]
+                else:
+                    raise handler["exception"]
+            else:
+                raise
+
+def catch_dict_error(message):
+    def handler(e):
+        attributes = list(map(lambda x: x.strip(), e.errormessage.split(":")[-1].split(",")))
+        return NestModelException(message + "Unknown attributes {}".format("'" + "', '".join(attributes) + "'"))
+
+    return handler

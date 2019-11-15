@@ -116,7 +116,7 @@ def start_cli():
             scaffoldConfig = JSONConfig(file=cl_args.config, verbosity=cl_args.verbose)
         elif cl_args.ctype == 'hdf5': # Should we config from hdf5?
             file = cl_args.hdf5
-            scaffoldConfig = from_hdf5(file) # Extract the config stored in the hdf5 file.
+            scaffoldConfig = from_hdf5(file, verbosity=cl_args.verbose) # Extract the config stored in the hdf5 file.
 
         # Create the scaffold instance
         scaffoldInstance = Scaffold(scaffoldConfig, from_file=file) # `from_file` notifies the scaffold instance that we might've loaded from a file.

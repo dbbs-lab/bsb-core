@@ -1,9 +1,17 @@
 import unittest, os, sys, numpy as np, h5py, importlib
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from scaffold import Scaffold
+from scaffold.scaffold import Scaffold
 from scaffold.config import JSONConfig
 from scaffold.simulators.nest import NestCell
 from scaffold.models import Layer, CellType
+
+def relative_to_tests_folder(path):
+    return os.path.join(os.path.dirname(__file__), path)
+
+single_neuron_config = relative_to_tests_folder("configs/test_single_neuron.json")
+double_neuron_config = relative_to_tests_folder("configs/test_double_neuron.json")
+double_nn_config = relative_to_tests_folder("configs/test_double_neuron_network.json")
+homosyn_config = relative_to_tests_folder("configs/test_double_neuron_network_homosyn.json")
 
 @unittest.skipIf(importlib.find_loader('nest') is None, "NEST is not importable.")
 class TestKernelManagement(unittest.TestCase):
@@ -14,7 +22,7 @@ class TestKernelManagement(unittest.TestCase):
 class TestSingleNeuronTypeSetup(unittest.TestCase):
 
     def setUp(self):
-        config = JSONConfig(file="configs/test_single_neuron.json")
+        config = JSONConfig(file=single_neuron_config)
         self.scaffold = Scaffold(config)
         self.scaffold.compile_network()
         self.nest_adapter = self.scaffold.configuration.simulations['test_single_neuron']
@@ -40,7 +48,7 @@ class TestDoubleNeuronTypeSetup(unittest.TestCase):
     @classmethod
     def setUpClass(self):
         super(TestDoubleNeuronTypeSetup, self).setUpClass()
-        config = JSONConfig(file="configs/test_double_neuron.json")
+        config = JSONConfig(file=double_neuron_config)
         self.scaffold = Scaffold(config)
         self.scaffold.compile_network()
         self.nest_adapter = self.scaffold.configuration.simulations['test_double_neuron']
@@ -87,7 +95,7 @@ class TestDoubleNeuronNetworkStatic(unittest.TestCase):
     @classmethod
     def setUpClass(self):
         super(TestDoubleNeuronNetworkStatic, self).setUpClass()
-        config = JSONConfig(file="configs/test_double_neuron_network.json")
+        config = JSONConfig(file=double_nn_config)
         self.scaffold = Scaffold(config)
         self.scaffold.compile_network()
         self.nest_adapter = self.scaffold.configuration.simulations['test_double_neuron_network_static']
@@ -114,7 +122,7 @@ class TestDoubleNeuronNetworkHomosyn(unittest.TestCase):
     @classmethod
     def setUpClass(self):
         super(TestDoubleNeuronNetworkHomosyn, self).setUpClass()
-        config = JSONConfig(file="configs/test_double_neuron_network_homosyn.json")
+        config = JSONConfig(file=homosyn_config)
         self.scaffold = Scaffold(config)
         self.scaffold.compile_network()
         self.nest_adapter = self.scaffold.configuration.simulations['test_double_neuron_network_homosyn']
