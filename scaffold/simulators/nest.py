@@ -76,6 +76,8 @@ class NestConnection(SimulationComponent):
         # Merge in the model specific parameters
         params.update(self.connection["parameters"])
         if self.should_specify_receptor_type():
+            # If specific receptors are specified, the weight should always be positive.
+            params["weight"] = np.abs(params["weight"])
             params["receptor_type"] = self.get_receptor_type()
         params["model"] = self.synapse_model
         return params
