@@ -1,4 +1,5 @@
 __pycache__/
+*.gdf
 *.pyc
 *.hdf5
 build/
