@@ -12,3 +12,4 @@ test_env/
 nrnmech.dll
 .coverage
 htmlcov/
+.idea/
