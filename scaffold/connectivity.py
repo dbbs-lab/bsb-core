@@ -807,6 +807,11 @@ class ConnectomeGlomDCN(TouchingConvergenceDivergence):
         self.scaffold.connect_cells(self, results)
 
 class ConnectomeIOPurkinje(ConnectionStrategy):
+    '''
+        Legacy implementation for the connection between inferior olive and Purkinje cells.
+        Purkinje cells are clustered (number of clusters is the number of IO cells), and each clusters
+        is innervated by 1 IO cell
+    '''
 
     required = ['divergence']
 
@@ -846,6 +851,11 @@ class ConnectomeIOPurkinje(ConnectionStrategy):
 
 
 class ConnectomeIOMolecular(ConnectionStrategy):
+    '''
+        Legacy implementation for the connection between inferior olive and Molecular layer interneurons.
+        As this is a spillover-mediated non-synaptic connection depending on the IO to Purkinje cells, each interneuron connected
+        to a PC which is receving input from one IO, is also receiving input from that IO
+    '''
     def validate(self):
         pass
 
