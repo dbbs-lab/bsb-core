@@ -16,7 +16,9 @@ from .helpers import (
     assert_attr_in, ConfigurableClass
 )
 from .simulators.nest import NestAdapter
-from .exceptions import DynamicClassException
+from .exceptions import DynamicClassException, ConfigurationException
+import numpy as np
+
 
 def from_hdf5(file, verbosity=1):
     '''
@@ -441,11 +443,14 @@ class JSONConfig(ScaffoldConfig):
             :rtype: Layer
         '''
         # Get thickness of the layer
-        if not 'thickness' in config:
-            raise Exception('Required attribute thickness missing in {} config.'.format(name))
-        thickness = float(config['thickness'])
+        if not 'thickness' in config and not 'volume_scale' in config:
+            raise ConfigurationException('Either a thickness attribute or volume_scale required in {} config.'.format(name))
+        thickness = 0.
+        if 'thickness' in config:
+            thickness = float(config['thickness'])
+
         if 'thickness_scale' in config:
-            thickness = thickness/config['thickness_scale']
+            thickness = thickness / config['thickness_scale']
 
         # Set the position of this layer in the space.
         if not 'position' in config:
@@ -605,6 +610,54 @@ class JSONConfig(ScaffoldConfig):
         pass
 
     def finalize_layers(self):
+        for layer in self.layers.values():
+            config = self._parsed_config["layers"][layer.name]
+            if 'volume_scale' in config:
+                volume_scale = config["volume_scale"]
+                # Check if the config file specifies with respect to which layer volumes we are scaling the current volume
+                if not 'scale_from_layers' in config:
+                    raise ConfigurationException("Required attribute scale_from_layers missing in {} config.".format(name))
+                reference_layers = config["scale_from_layers"]
+                # Ratio between dimensions (x,y,z) of the layer volume; if not specified, the layer is a cube
+                dimension_ratios = [1.,1.,1.]
+                if 'volume_dimension_ratio' in config:
+                    dimension_ratios = config['volume_dimension_ratio']
+                # Normalize dimension ratios to y dimension
+                dimension_ratios = np.array(dimension_ratios) / dimension_ratios[1]
+                volume_reference_layers = np.sum(list(map(lambda layer: self.layers[layer].volume, reference_layers)))
+
+                # Compute scaled layer volume
+                #
+                # To compute layer thickness, we scale the current layer to the
+                # combined volume of the reference layers.
+                # A ratio between the dimension can be specified to alter the
+                # shape of the layer. By default equal ratios are used and a
+                # cubic layer is obtained (given by `dimension_ratios`).
+                #
+                # The volume of the current layer (= X*Y*Z) is scaled with
+                # respect to the volume of reference layers by a factor
+                # `volume_scale`, so:
+                #
+                # X*Y*Z = volume_reference_layers / volume_scale                [A]
+                #
+                # Supposing that the current layer dimensions (X,Y,Z) are each
+                # one depending on the dimension Y according to
+                # `dimension_ratios`, we obtain:
+                #
+                # X*Y*Z = (Y*dimension_ratios[0] * Y * (Y*dimension_ratios[2])  [B]
+                # X*Y*Z = (Y^3) * prod(dimension_ratios)                        [C]
+                #
+                # Therefore putting together [A] and [C]:
+                # (Y^3) * prod(dimension_ratios) = volume_reference_layers / volume_scale
+                #
+                # from which we derive the normalized_size Y,
+                # according to the following formula:
+                # Y = cubic_root(volume_reference_layers / volume_scale * prod(dimension_ratios))
+                normalized_size = pow(volume_reference_layers / (volume_scale * np.prod(dimension_ratios)), 1/3)
+                # Apply the normalized size with their ratios to each dimension
+                layer.dimensions = np.multiply(np.repeat(normalized_size,3), dimension_ratios)
+
+
         for stack in self._layer_stacks.values():
             if not 'position' in stack:
                 stack['position'] = [0., 0., 0.]
