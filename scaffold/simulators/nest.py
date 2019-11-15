@@ -230,24 +230,18 @@ class NestAdapter(SimulatorAdapter):
         'duration', 'resolution', 'threads'
     ]
 
-    def start_kernel(self):
-        self.scaffold.report("Importing  NEST...", 2)
-        import nest
-        self.__class__.nest = nest
-        self.scaffold.report("Installing  NEST modules...", 2)
-        self.install_modules()
-        self.scaffold.report("Initializing NEST kernel...", 2)
-        self.reset_kernel()
-
     def __init__(self):
         super().__init__()
         self.is_prepared = False
 
-    def boot(self):
-        if not hasattr(self.__class__, "nest"):
-            self.start_kernel()
-
     def prepare(self, hdf5):
+        self.scaffold.report("Importing  NEST...", 2)
+        import nest
+        self.nest = nest
+        self.scaffold.report("Installing  NEST modules...", 2)
+        self.install_modules()
+        self.scaffold.report("Initializing NEST kernel...", 2)
+        self.reset_kernel()
         self.scaffold.report("Creating neurons...",2)
         self.create_neurons(self.cell_models)
         self.scaffold.report("Creating devices...",2)
@@ -255,7 +249,7 @@ class NestAdapter(SimulatorAdapter):
         self.scaffold.report("Creating connections...",2)
         self.connect_neurons(self.connection_models, hdf5)
         self.is_prepared = True
-        return self.nest
+        return nest
 
     def reset_kernel(self):
         self.nest.set_verbosity(self.verbosity)
@@ -318,8 +312,6 @@ class NestAdapter(SimulatorAdapter):
             try:
                 self.nest.Install(module)
             except Exception as e:
-                if e.errormessage.find("could not be opened") != -1:
-                    raise
                 if e.errorname == "DynamicModuleManagementError":
                     self.scaffold.report("[WARNING] Module {} already installed".format(module),1)
                 else:
