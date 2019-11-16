@@ -4,6 +4,7 @@ from contextlib import contextmanager
 from abc import abstractmethod, ABC
 import h5py, os, time, pickle, numpy as np
 from numpy import string_
+from .exceptions import RepositoryWarning
 
 class ResourceHandler(ABC):
     def __init__(self):
@@ -267,7 +268,7 @@ class MorphologyRepository(HDF5TreeHandler):
                                 del m_group[m_key]
                             external_handle.copy('/morphologies/' + m_key, m_group)
                         else:
-                            print("[WARNING] Did not import '{}' because it already existed and overwrite=False".format(m_key))
+                            self.scaffold.warn("Did not import '{}' because it already existed and overwrite=False".format(m_key), RepositoryWarning)
 
     def get_morphology(self, name, scaffold=None):
         '''
@@ -294,7 +295,7 @@ class MorphologyRepository(HDF5TreeHandler):
         with self.load('a') as repo:
             if self.voxel_cloud_exists(morphology.morphology_name):
                 if not overwrite:
-                    print("[WARNING] Did not overwrite existing voxel cloud for '{}'".format(morphology.morphology_name))
+                    self.scaffold.warn("Did not overwrite existing voxel cloud for '{}'".format(morphology.morphology_name), RepositoryWarning)
                     return
                 else:
                     del repo['/morphologies/voxel_clouds/' + morphology.morphology_name]

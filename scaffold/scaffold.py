@@ -7,6 +7,7 @@ from .output import MorphologyRepository
 from .helpers import map_ndarray
 from .models import CellType
 from .connectivity import ConnectionStrategy
+from warnings import warn as std_warn
 
 ###############################
 ## Scaffold class
@@ -66,6 +67,9 @@ class Scaffold:
     def report(self, message, level=2, ongoing=False):
         if self.configuration.verbosity >= level:
             print(message, end="\n" if not ongoing else "\r")
+
+    def warn(self, message, category=None):
+        std_warn(message, category, stacklevel=2)
 
     def initialiseSimulators(self):
         self.simulators = self.configuration.simulators

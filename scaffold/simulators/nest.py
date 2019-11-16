@@ -1,5 +1,6 @@
 from ..simulation import SimulatorAdapter, SimulationComponent
-from ..exceptions import NestKernelException, NestModelException
+from ..exceptions import NestKernelException, NestModelException,
+    SimulationWarning, KernelWarning
 import numpy as np
 from sklearn.neighbors import KDTree
 
@@ -295,8 +296,8 @@ class NestAdapter(SimulatorAdapter):
             self.random_generators = [np.random.RandomState(seed) for seed in random_generator_seeds]
 
     def simulate(self, simulator):
-        if self.is_prepared == False:
-            self.scaffold.report("[WARNING] Scaffold has not been prepared", 1)
+        if not self.is_prepared:
+            self.scaffold.warn("Adapter has not been prepared", SimulationWarning)
         self.scaffold.report("Simulating...", 2)
         simulator.Simulate(self.duration)
         self.scaffold.report("Simulation finished.", 2)
@@ -315,7 +316,7 @@ class NestAdapter(SimulatorAdapter):
                 if e.errormessage.find("could not be opened") != -1:
                     raise
                 if e.errorname == "DynamicModuleManagementError":
-                    self.scaffold.report("[WARNING] Module {} already installed".format(module),1)
+                    self.scaffold.warn("Module {} already installed".format(module), KernelWarning)
                 else:
                     raise
 
@@ -353,8 +354,7 @@ class NestAdapter(SimulatorAdapter):
             name = connection_model.name
             dataset_name = 'cells/connections/' + name
             if not dataset_name in hdf5:
-                if self.scaffold.configuration.verbosity > 0:
-                    print('[WARNING] Expected connection dataset "{}" not found. Skipping it.'.format(dataset_name))
+                self.scaffold.warn('Expected connection dataset "{}" not found. Skipping it.'.format(dataset_name), ConnectivityWarning)
                 continue
             connectivity_matrix = hdf5[dataset_name]
             # Translate the id's from 0 based scaffold ID's to NEST's 1 based ID's with '+ 1'

@@ -33,3 +33,21 @@ class MissingMorphologyException(MorphologyException):
 
 class DynamicClassException(ConfigurationException):
     pass
+
+class ScaffoldWarning(UserWarning):
+    pass
+
+class PlacementWarning(ScaffoldWarning):
+    pass
+
+class ConnectivityWarning(ScaffoldWarning):
+    pass
+
+class RepositoryWarning(ScaffoldWarning):
+    pass
+
+class SimulationWarning(ScaffoldWarning):
+    pass
+
+class KernelWarning(SimulationWarning):
+    pass

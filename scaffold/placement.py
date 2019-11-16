@@ -9,6 +9,7 @@ from .functions import (
     add_y_axis,
     exclude_index
 )
+from .exceptions import PlacementWarning
 
 class PlacementStrategy(ConfigurableClass):
     def __init__(self):
@@ -125,8 +126,7 @@ class LayeredRandomWalk(PlacementStrategy):
         # Get the number of cells that belong in the available volume.
         n_cells_to_place = self.get_placement_count(cell_type)
         if n_cells_to_place == 0:
-            if scaffold.configuration.verbosity > 0:
-                print("[WARNING] Volume or density too low, no '{}' cells will be placed".format(cell_type.name))
+            self.scaffold.warn("Volume or density too low, no '{}' cells will be placed".format(cell_type.name), PlacementWarning)
             n_sublayers = 1
             cell_type.ϵ = 0.
         else:
@@ -185,10 +185,10 @@ class LayeredRandomWalk(PlacementStrategy):
                 planar_candidates = get_candidate_points(planar_start, cell_radius, cell_bounds, min_ϵ, max_ϵ)
                 if planar_candidates.shape[0] == 0:
                     if scaffold.configuration.verbosity > 0:
-                        print("[WARNING] Could not place a single cell in {} {} starting from the middle of the simulation volume: Maybe the volume is too low or cell radius/epsilon too big. Sublayer skipped!".format(
+                        self.scaffold.warn("Could not place a single cell in {} {} starting from the middle of the simulation volume: Maybe the volume is too low or cell radius/epsilon too big. Sublayer skipped!".format(
                             layer.name,
                             sublayer_id
-                        ))
+                        ), PlacementWarning)
                     continue
             placed_positions = np.array([starting_position])
             planar_placed_positions = np.array([starting_position[[0,2]]])

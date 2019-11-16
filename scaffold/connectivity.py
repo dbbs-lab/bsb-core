@@ -3,7 +3,7 @@ from .helpers import ConfigurableClass, DistributionConfiguration, assert_attr_i
 from .postprocessing import get_parallel_fiber_heights, get_dcn_rotations
 import numpy as np
 from random import choice as random_element, sample as sample_elements
-from .exceptions import MissingMorphologyException
+from .exceptions import MissingMorphologyException, ConnectivityWarning
 from sklearn.cluster import KMeans
 
 class SimulationPlaceholder:
@@ -304,7 +304,7 @@ class ConnectomeGranuleGolgi(ConnectionStrategy):
                     if not densityWarningSent:
                         densityWarningSent = True
                         if scaffold.configuration.verbosity > 0:
-                            print("[WARNING] The granule cell density is too low compared to the Golgi cell density to make physiological connections!")
+                            scaffold.warn("The granule cell density is too low compared to the Golgi cell density to make physiological connections!", ConnectivityWarning)
                 else:
                     connected_pf = np.random.choice(good_pf, tot_conn-len(connectedAA), replace = False)
                     totalConnectionsMade = tot_conn
