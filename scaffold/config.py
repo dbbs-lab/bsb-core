@@ -106,12 +106,6 @@ class ScaffoldConfig(object):
         head, tail = os.path.splitext(file)
         # Append extension and send warning if extension is not present.
         if tail != self._extension:
-            if self.verbosity > 0:
-                print("[WARNING] No {} extension on given config file '{}', config file changed to : '{}'".format(
-                    self._extension,
-                    file,
-                    file + self._extension
-                ))
             file += self._extension
         # Try to open the config file from the specified directory
         try:
