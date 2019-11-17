@@ -1,5 +1,5 @@
 from ..simulation import SimulatorAdapter, SimulationComponent
-from ..exceptions import NestKernelException, NestModelException,
+from ..exceptions import NestKernelException, NestModelException, \
     SimulationWarning, KernelWarning
 import numpy as np
 from sklearn.neighbors import KDTree
