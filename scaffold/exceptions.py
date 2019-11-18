@@ -1,6 +1,12 @@
 class ConfigurationException(Exception):
     pass
 
+class DynamicClassException(ConfigurationException):
+    pass
+    
+class ConfigurableClassNotFoundException(DynamicClassException):
+    pass
+
 class CastException(ConfigurationException):
     pass
 
@@ -16,6 +22,7 @@ class UnknownDistributionException(ConfigurableCastException):
 class InvalidDistributionException(ConfigurableCastException):
     pass
 
+
 class NestException(Exception):
     pass
 
@@ -29,9 +36,6 @@ class MorphologyException(Exception):
     pass
 
 class MissingMorphologyException(MorphologyException):
-    pass
-
-class DynamicClassException(ConfigurationException):
     pass
 
 class ScaffoldWarning(UserWarning):

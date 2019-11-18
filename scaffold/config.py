@@ -16,7 +16,7 @@ from .helpers import (
     assert_attr_in, ConfigurableClass
 )
 from .simulators.nest import NestAdapter
-from .exceptions import DynamicClassException, ConfigurationException
+from .exceptions import DynamicClassException, ConfigurationException, ConfigurableClassNotFoundException
 import numpy as np
 
 
@@ -280,29 +280,67 @@ class ScaffoldConfig(object):
                 layer.dimensions[2] *= scaling_z
 
     def load_configurable_class(self, name, configured_class_name, parent_class, parameters={}):
+        '''
+            Load a dot notation class from a string by dynamically importing
+            the parent modules.
+
+            :param name: Name.
+            :type name: string
+            :param configured_class_name: Name or class object of the class.
+            :type configured_class_name: string/class
+            :param parent_class: Asserts that the imported class inherits from
+            this parent class.
+            :type parent_class: class
+            :param parameters: Parameters to pass to the constructor.
+            :type parameters: dict
+        '''
         if isclass(configured_class_name):
+            # Construct from class object
             instance = configured_class_name(**parameters)
         else:
+            # Construct from class string
+            # Split into parts, treat all but the last as modules, and the last
+            # as the class
             class_parts = configured_class_name.split('.')
             class_name = class_parts[-1]
             module_name = '.'.join(class_parts[:-1])
+            # Use the dynamic import mechanism to load the module and the class
             module_ref = __import__(module_name, globals(), locals(), [class_name], 0)
+            # Check whether the class was found.
             if not class_name in module_ref.__dict__:
                 raise ConfigurableClassNotFoundException('Class not found:' + configured_class_name)
+            # Get the class reference from the module's internal dictionary.
             class_ref = module_ref.__dict__[class_name]
+            # Check whether the class is a subclass of the parent class
             if not issubclass(class_ref, parent_class):
-                raise Exception("Configurable class '{}.{}' must derive from {}.{}".format(
+                raise DynamicClassException("Configurable class '{}.{}' must derive from {}.{}".format(
                     module_name,
                     class_name,
                     parent_class.__module__,
                     parent_class.__qualname__,
                 ))
-            instance = class_ref()
+            # Construct an instance of the class.
+            instance = class_ref(**parameters)
+        # Set the name
         instance.__dict__['name'] = name
+        # Return class instance
         return instance
 
     def fill_configurable_class(self, obj, conf, excluded=[]):
+        '''
+            Fill a class object with the values found in a configuration
+            dictionary.
+
+            :param obj: Class instance to be filled.
+            :type obj: object
+            :param conf: Configuration section holding the configuration values.
+            :type conf: dict
+            :param excluded: Keys of values that shouldn't be copied to `obj`
+            :type excluded: list
+        '''
+        # Loop over all items in the configuration section.
         for name, prop in conf.items():
+            # If the key isn't excluded, copy the value to the internal dictionary
             if not name in excluded:
                 obj.__dict__[name] = prop
 
@@ -322,7 +360,7 @@ class JSONConfig(ScaffoldConfig):
             :param verbosity: Verbosity (output level) of the scaffold.
             :type file: int
             :param simulators: Dictionary with extra simulators to register
-            :type simulators: {string: SimulatorAdapter}
+            :type simulators: {string: :class:`SimulatorAdapter`}
         '''
 
         def load_handler(config_string):
@@ -385,7 +423,33 @@ class JSONConfig(ScaffoldConfig):
 
     def load_attr(self, config, attr, init, final=None, single=False, node_name=None, ):
         '''
-            Load an attribute of a config node containing a group of definitions .
+            Initialize and finalize a collection of children that are contained
+            within a dictionary which is in turn inside of the given `config`
+            node under the `attr` key.
+
+            :param config: Parent configuration section that contains the
+                dictionary of child definitions.
+            :type config: dict
+            :param attr: Key of the dictionary that contains the child
+                definitions.
+            :type attr: string
+            :param init: The initializer function that turns each child
+                definition into a semi-configured child object. Takes 2
+                arguments: name and child configuration section.
+            :type init: function
+            :param final: The finalizer function that completes configuration of
+                each child definition after they've all been initialized. Takes
+                0 (if `single`=`True`) or 2 arguments: name and child
+                configuration section.
+            :type final: function
+            :param single: Should the finalizer be called for each child or a
+                single time? This allows you more control over the finalization
+                process.
+            :type single: bool
+            :param node_name: The full location of the root node inside of the
+                configuration file. This gives more accurate exceptions.
+            :type node_name: string
+
         '''
         if not attr in config:
             raise Exception("Missing '{}' attribute in {}.".format(attr, node_name or 'configuration'))
@@ -462,7 +526,7 @@ class JSONConfig(ScaffoldConfig):
                 raise Exception("A 'stack_id' attribute is required in '{}.stack'.".format(name))
             stack_id = int(stack_config['stack_id'])
             stack = {'layers': {}}
-            # Get or add stack from/to layer_stacks
+            # Get or add stack to layer_stacks
             if stack_id in self._layer_stacks:
                 stack = self._layer_stacks[stack_id]
             else:
@@ -470,14 +534,14 @@ class JSONConfig(ScaffoldConfig):
             if not 'position_in_stack' in stack_config:
                 raise Exception("A 'position_in_stack' attribute is required in '{}.stack'.".format(name))
             stack['layers'][stack_config['position_in_stack']] = name
-            # This config determines the position of the stack
+            # Configurate the position of the stack
             if 'position' in stack_config:
                 if 'position' in stack:
                     raise Exception("Duplicate positioning attribute found for stack with id '{}'".format(stack_id))
                 stack['position'] = stack_config['position']
         # Set the layer dimensions
-        #   scale by the XZ-scaling factor, if present
         xzScale = [1.,1.]
+        # Scale by the XZ-scaling factor, if present
         if 'xz_scale' in config:
             if not isinstance(config['xz_scale'], list): # Not a list?
                 # Try to convert it to a float and make a 2 element list out of it
@@ -563,6 +627,10 @@ class JSONConfig(ScaffoldConfig):
         return placement
 
     def init_simulation(self, name, section):
+        '''
+            Initialize a simulation from a configuration node. Also initializes
+            the subcomponents: `cell_models`, `connection_models` and `devices`.
+        '''
         node_name = 'simulations.{}'.format(name)
         # Get the simulator name from the config
         simulator_name = assert_attr_in(section, 'simulator', self.simulators.keys(), node_name)
@@ -707,9 +775,6 @@ class JSONConfig(ScaffoldConfig):
         component = self.load_configurable_class(name, component_class, SimulationComponent, parameters={'adapter': adapter})
         self.fill_configurable_class(component, section)
         return component
-
-class ConfigurableClassNotFoundException(Exception):
-    pass
 
 class PlottingConfig:
     def __init__(self, color):
