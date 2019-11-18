@@ -1,6 +1,7 @@
 import abc, math, random, numpy as np
 from .helpers import ConfigurableClass
 from scipy.spatial import distance
+from scaffold.particles import Particle, ParticleSystem
 from .functions import (
     compute_circle,
     define_bounds,
@@ -355,7 +356,6 @@ class ParallelArrayPlacement(PlacementStrategy):
         # Place all the cells in 1 stitch
         self.scaffold.place_cells(cell_type, layer, cells[cells[:,0] < layer.width - radius])
 
-
 class Satellite(PlacementStrategy):
     '''
         Implementation of the placement of cells in layers as satellites of existing cells
@@ -423,3 +423,41 @@ class Satellite(PlacementStrategy):
 
 
         scaffold.place_cells(cell_type, layer, satellitePositions)
+
+class ParticlePlacement(PlacementStrategy):
+    def validate(self):
+        # Check if the layer is given and exists.
+        config = self.scaffold.configuration
+        if not hasattr(self, 'layer'):
+            raise Exception("Required attribute 'layer' missing from {}".format(self.name))
+        if not self.layer in config.layers:
+            raise Exception("Unknown layer '{}' in {}".format(self.layer, self.name))
+        self.layer_instance = self.scaffold.configuration.layers[self.layer]
+
+    def place(self, cell_type):
+        layer = self.layer_instance
+        volume = [layer.width, layer.thickness, layer.depth]
+
+        voxels = [
+          [[0., 0., 0.], [layer.width, layer.thickness, layer.depth]]
+        ]
+
+        particles = [
+          {
+            "name": cell_type.name,
+            "voxels": [0],
+            "radius": cell_type.placement.radius,
+            "count": self.get_placement_count(cell_type)
+          }
+        ]
+
+        d = [Particle.get_displacement_force(1, i / 200) for i in range(800)]
+
+
+        system = ParticleSystem()
+        system.fill(volume, voxels, particles)
+        system.find_colliding_particles()
+        system.solve_collisions()
+        particle_positions = system.positions
+
+        self.scaffold.place_cells(cell_type, layer, particle_positions)

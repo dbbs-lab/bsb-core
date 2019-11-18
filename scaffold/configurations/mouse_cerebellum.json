@@ -4,8 +4,8 @@
     "format": "scaffold.output.HDF5Formatter"
   },
   "network_architecture": {
-    "simulation_volume_x": 250.0,
-    "simulation_volume_z": 250.0,
+    "simulation_volume_x": 400.0,
+    "simulation_volume_z": 400.0,
     "store_kd_trees": true,
     "store_compound_kd_tree": true,
     "store_pf_kd_trees": true
@@ -197,7 +197,7 @@
     },
     "io_cell": {
       "placement": {
-        "class": "scaffold.placement.LayeredRandomWalk",
+        "class": "scaffold.placement.ParticlePlacement",
         "layer": "io_layer",
         "soma_radius": 7.5,
         "density": 1.52e-5,

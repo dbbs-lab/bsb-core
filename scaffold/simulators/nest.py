@@ -313,8 +313,6 @@ class NestAdapter(SimulatorAdapter):
             try:
                 self.nest.Install(module)
             except Exception as e:
-                if e.errormessage.find("could not be opened") != -1:
-                    raise
                 if e.errorname == "DynamicModuleManagementError":
                     self.scaffold.warn("Module {} already installed".format(module), KernelWarning)
                 else:

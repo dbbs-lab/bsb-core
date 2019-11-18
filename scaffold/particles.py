@@ -122,7 +122,7 @@ class ParticleSystem():
                 self.add_particle(radius, particle_position)
 
     def freeze(self):
-        self.positions = [p.position for p in self.particles]
+        self.positions = np.array([p.position for p in self.particles])
         self.radii = [p.radius for p in self.particles]
         self.tree = KDTree(self.positions)
 
