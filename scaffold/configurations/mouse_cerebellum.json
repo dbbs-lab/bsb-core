@@ -359,7 +359,7 @@
       "default_neuron_model": "iaf_cond_alpha",
       "default_synapse_model": "static_synapse",
       "duration": 10,
-      "modules": ["cerebnest"],
+      "modules": ["cerebmodule"],
       "cell_models": {
         "granule_cell": {
           "parameters": {
@@ -914,7 +914,7 @@
       "default_neuron_model": "iaf_cond_exp",
       "default_synapse_model": "static_synapse",
       "duration": 10,
-      "modules": ["cerebnest"],
+      "modules": ["cerebmodule"],
       "cell_models": {
         "granule_cell": {
           "parameters": {
