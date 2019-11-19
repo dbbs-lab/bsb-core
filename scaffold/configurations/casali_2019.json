@@ -795,16 +795,12 @@
           "radius": 70.0,
           "origin": [200.0, 675.0, 200.0],
           "cell_types": ["glomerulus"],
-          "parameters": {
-            "rate": 1.0,
-            "start": 0.0,
-            "stop": 1000.0
-          },
+          "parameters": {},
           "stimulus": {
             "parameter_name": "spike_times",
             "variables": {
-              "start": 0,
-              "end": 200,
+              "start": 20.0,
+              "end": 200.0,
               "n": 50
             },
             "statement": "np.round(np.linspace(start, end, n))"
@@ -826,7 +822,7 @@
           "device": "spike_detector",
           "io": "output",
           "type": "cell_type",
-          "cell_types": ["granule"],
+          "cell_types": ["granule_cell"],
           "parameters": {
             "withgid": true,
             "withtime": true,
