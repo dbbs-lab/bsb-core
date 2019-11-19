@@ -9,7 +9,7 @@ import builtins
 import argparse
 from .config import JSONConfig, from_hdf5
 from .scaffold import Scaffold
-from .output import MorphologyRepository
+from .output import MorphologyRepository, HDF5Formatter
 import traceback
 
 ##
@@ -95,11 +95,16 @@ def start_cli():
     parser_run.add_argument('simulation', action='store', help='Preconfigured simulation to run.')
     parser_run.add_argument('-p', action='store_true',help='Plot the created network')
     parser_run.add_argument("-o", "--output", help="Specify an output file path")
+    parser_run.add_argument("-rc", "--reconfigure",
+        help="Specify the path of the new configuration file."
+    )
 
     # Simulate subparser
     parser_sim.add_argument('simulation', action='store', help='Name of the preconfigured simulation.')
     parser_sim.add_argument('--hdf5', action='store', required=True, help='Name of the HDF5 file to load.')
-
+    parser_sim.add_argument("-rc", "--reconfigure",
+        help="Specify the path of the new configuration file."
+    )
     # Repl subparser
     parser_repl.set_defaults(func=start_repl)
 
@@ -116,6 +121,10 @@ def start_cli():
             scaffoldConfig = JSONConfig(file=cl_args.config, verbosity=cl_args.verbose)
         elif cl_args.ctype == 'hdf5': # Should we config from hdf5?
             file = cl_args.hdf5
+            if not cl_args.reconfigure is None:
+                print(cl_args.reconfigure)
+                config = JSONConfig(file=cl_args.reconfigure)
+                HDF5Formatter.reconfigure(file, config)
             scaffoldConfig = from_hdf5(file, verbosity=cl_args.verbose) # Extract the config stored in the hdf5 file.
 
         # Create the scaffold instance

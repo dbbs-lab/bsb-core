@@ -401,14 +401,15 @@ class HDF5Formatter(OutputFormatter, MorphologyRepository):
     def validate(self):
         pass
 
-    def store_configuration(self):
-        f = self.handle
-        f.attrs['shdf_version'] = 3.0
-        f.attrs['configuration_version'] = 3.0
-        f.attrs['configuration_name'] = self.scaffold.configuration._name
-        f.attrs['configuration_type'] = self.scaffold.configuration._type
-        f.attrs['configuration_class'] = get_qualified_class_name(self.scaffold.configuration)
-        f.attrs['configuration_string'] = self.scaffold.configuration._raw
+    def store_configuration(self, config=None):
+        config = config if not config is None else self.scaffold.configuration
+        with self.load() as f:
+            f.attrs['shdf_version'] = 3.0
+            f.attrs['configuration_version'] = 3.0
+            f.attrs['configuration_name'] = config._name
+            f.attrs['configuration_type'] = config._type
+            f.attrs['configuration_class'] = get_qualified_class_name(config)
+            f.attrs['configuration_string'] = config._raw
 
     def store_cells(self):
         cells_group = self.handle.create_group('cells')
@@ -510,3 +511,9 @@ class HDF5Formatter(OutputFormatter, MorphologyRepository):
         '''
         with self.load() as f:
             return dict(f['cells/connections/' + tag].attrs)
+
+    @classmethod
+    def reconfigure(cls, hdf5_file, config):
+        hdf5_formatter = cls()
+        hdf5_formatter.file = hdf5_file
+        hdf5_formatter.store_configuration(config)
