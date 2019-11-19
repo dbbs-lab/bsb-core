@@ -407,6 +407,7 @@ class NestAdapter(SimulatorAdapter):
                 }
             })
             device_targets = device_model.get_targets()
+            self.scaffold.report("Connecting to {} device targets.".format(len(device_targets)), 3)
             try:
                 if device_model.io == "input":
                     self.nest.Connect(device, device_targets)
