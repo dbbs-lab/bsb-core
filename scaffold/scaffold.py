@@ -292,20 +292,17 @@ class Scaffold:
         self.appends[name] = data
 
     def get_cells_by_type(self, name):
-        try:
-            if not name in self.cells_by_type or self.cells_by_type[name].shape[0] == 0:
-                if self.output_formatter.has_cells_of_type(name):
-                    if not name in self.configuration.cell_types.keys():
-                        raise Exception("Attempting to load a cell type '{}' that is present in the output storage, but not in the currently loaded configuration.".format(name))
-                        self.cells_by_type[name] = self.output_formatter.get_cells_of_type(name)
-                    return self.cells_by_type[name]
-                else:
-                    raise Exception("Cell type '{}' not found in network cache or output storage".format(name))
-        except KeyError as e:
-            pass
-        if not name in self.configuration.cell_types.keys():
-            raise Exception("Attempting to load a cell type '{}' that isn't present in the currently loaded configuration.".format(name))
-        return self.cells_by_type[name]
+        if not name in self.cells_by_type:
+            raise Exception("Attempting to load unknown cell type '{}'".format(name))
+        if self.cells_by_type[name].shape[0] == 0:
+            if not self.output_formatter.exists():
+                return self.cells_by_type[name]
+            if self.output_formatter.has_cells_of_type(name):
+                self.cells_by_type[name] = self.output_formatter.get_cells_of_type(name)
+                return self.cells_by_type[name]
+            else:
+                raise Exception("Cell type '{}' not found in output storage".format(name))
+
 
     def compile_output(self):
         self.output_formatter.create_output()
