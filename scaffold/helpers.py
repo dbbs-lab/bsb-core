@@ -11,7 +11,7 @@ class ConfigurableClass(abc.ABC):
 
     def initialise(self, scaffold):
         self.scaffold = scaffold
-        self.castConfig()
+        self.cast_config()
         self.boot()
         self.validate()
 
@@ -28,16 +28,15 @@ class ConfigurableClass(abc.ABC):
 
     def fill(self, conf, excluded=[]):
         self._raw_config = conf
-        print('added raw', self._raw_config)
         for name, prop in conf.items():
             if not name in excluded:
                 self.__dict__[name] = prop
 
-    def castConfig(self):
+    def cast_config(self):
         '''
             Casts/validates values imported onto this object from configuration files to their final form.
             The `casts` dictionary should contain the key of the attribute and a function that takes
-            a value as only argument. This dictionary will be used to cast the attributes when castConfig
+            a value as only argument. This dictionary will be used to cast the attributes when cast_config
             is called.
         '''
         name = ''
