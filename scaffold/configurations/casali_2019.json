@@ -501,10 +501,8 @@
       "connection_models": {
         "glomerulus_to_granule": {
           "connection": {
-            "parameters":{
-              "weight": 9.0,
-              "delay": 4.0
-            }
+            "weight": 9.0,
+            "delay": 4.0
           },
           "synapse": {
             "static_synapse": {}
@@ -512,10 +510,8 @@
         },
         "golgi_to_granule": {
           "connection": {
-            "parameters":{
-              "weight": -5.0,
-              "delay": 2.0
-            }
+            "weight": -5.0,
+            "delay": 2.0
           },
           "synapse": {
             "static_synapse": {}
@@ -523,10 +519,8 @@
         },
         "ascending_axon_to_purkinje": {
           "connection": {
-            "parameters":{
-              "weight": 75.0,
-              "delay": 2.0
-            }
+            "weight": 75.0,
+            "delay": 2.0
           },
           "synapse": {
             "static_synapse": {}
@@ -534,10 +528,8 @@
         },
         "ascending_axon_to_golgi": {
           "connection": {
-            "parameters":{
-              "weight": 20.0,
-              "delay": 2.0
-            }
+            "weight": 20.0,
+            "delay": 2.0
           },
           "synapse": {
             "static_synapse": {}
@@ -545,10 +537,8 @@
         },
         "parallel_fiber_to_golgi": {
           "connection": {
-            "parameters":{
-              "weight": 0.2,
-              "delay": 5.0
-            }
+            "weight": 0.2,
+            "delay": 5.0
           },
           "synapse": {
             "static_synapse": {}
@@ -559,10 +549,8 @@
           "hetero": false,
           "teaching": "io_to_purkinje",
           "connection": {
-            "parameters":{
-              "weight": 0.2,
-              "delay": 5.0
-            }
+            "weight": 0.2,
+            "delay": 5.0
           },
           "synapse": {
             "static_synapse": {},
@@ -579,10 +567,8 @@
           "hetero":false,
           "teaching": "io_to_basket",
           "connection": {
-            "parameters":{
-              "weight": 0.2,
-              "delay": 5.0
-            }
+            "weight": 0.2,
+            "delay": 5.0
           },
           "synapse": {
             "static_synapse": {},
@@ -599,10 +585,8 @@
           "hetero":false,
           "teaching": "io_to_basket",
           "connection": {
-            "parameters":{
-              "weight": 0.2,
-              "delay": 5.0
-            }
+            "weight": 0.2,
+            "delay": 5.0
           },
           "synapse": {
             "static_synapse": {},
@@ -616,10 +600,8 @@
         },
         "stellate_to_purkinje": {
           "connection": {
-            "parameters":{
-              "weight":-8.5,
-              "delay": 4.0
-            }
+            "weight":-8.5,
+            "delay": 4.0
           },
           "synapse": {
             "static_synapse": {}
@@ -627,10 +609,8 @@
         },
         "basket_to_purkinje": {
           "connection": {
-            "parameters":{
-              "weight":-9.0,
-              "delay": 4.0
-            }
+            "weight":-9.0,
+            "delay": 4.0
           },
           "synapse": {
             "static_synapse": {}
@@ -638,10 +618,8 @@
         },
         "stellate_to_stellate": {
           "connection": {
-            "parameters":{
-              "weight":-2.0,
-              "delay": 1.0
-            }
+            "weight":-2.0,
+            "delay": 1.0
           },
           "synapse": {
             "static_synapse": {}
@@ -649,10 +627,8 @@
         },
         "basket_to_basket": {
           "connection": {
-            "parameters":{
-              "weight":-2.5,
-              "delay": 1.0
-            }
+            "weight":-2.5,
+            "delay": 1.0
           },
           "synapse": {
             "static_synapse": {}
@@ -660,10 +636,8 @@
         },
         "golgi_to_golgi" : {
           "connection": {
-            "parameters":{
-              "weight":-8.0,
-              "delay": 1.0
-            }
+            "weight":-8.0,
+            "delay": 1.0
           },
           "synapse": {
             "static_synapse": {}
@@ -672,10 +646,8 @@
         "purkinje_to_dcn": {
           "plastic": false,
           "connection": {
-            "parameters":{
-              "weight":-0.03,
-              "delay": 4.0
-            }
+            "weight":-0.03,
+            "delay": 4.0
           },
           "synapse": {
             "static_synapse": {},
@@ -694,10 +666,8 @@
           "hetero": false,
           "teaching": "purkinje_to_dcn",
           "connection": {
-            "parameters":{
-              "weight":0.0006,
-              "delay": 4.0
-            }
+            "weight":0.0006,
+            "delay": 4.0
           },
           "synapse": {
             "static_synapse": {},
@@ -711,10 +681,8 @@
         },
         "io_to_purkinje": {
           "connection": {
-            "parameters":{
-              "weight":-2.0,
-              "delay": 1.0
-            }
+            "weight":-2.0,
+            "delay": 1.0
           },
           "synapse": {
             "static_synapse": {}
@@ -722,10 +690,8 @@
         },
         "io_to_basket": {
           "connection": {
-            "parameters":{
-              "weight":-2.0,
-              "delay": 1.0
-            }
+            "weight":-2.0,
+            "delay": 1.0
           },
           "synapse": {
             "static_synapse": {}
@@ -733,10 +699,8 @@
         },
         "io_to_stellate": {
           "connection": {
-            "parameters":{
-              "weight":-2.0,
-              "delay": 1.0
-            }
+            "weight":-2.0,
+            "delay": 1.0
           },
           "synapse": {
             "static_synapse": {}
@@ -744,10 +708,8 @@
         },
         "io_to_dcn": {
           "connection": {
-            "parameters":{
-              "weight":-2.0,
-              "delay": 1.0
-            }
+            "weight":-2.0,
+            "delay": 1.0
           },
           "synapse": {
             "static_synapse": {}
@@ -755,10 +717,8 @@
         },
         "io_to_dcn_interneuron": {
           "connection": {
-            "parameters":{
-              "weight":-2.0,
-              "delay": 1.0
-            }
+            "weight":-2.0,
+            "delay": 1.0
           },
           "synapse": {
             "static_synapse": {}
@@ -766,10 +726,8 @@
         },
         "dcn_interneuron_to_io": {
           "connection": {
-            "parameters":{
-              "weight":-2.0,
-              "delay": 1.0
-            }
+            "weight":-2.0,
+            "delay": 1.0
           },
           "synapse": {
             "static_synapse": {}
@@ -834,7 +792,7 @@
           "device": "spike_detector",
           "io": "output",
           "type": "cell_type",
-          "cell_types": ["golgi"],
+          "cell_types": ["golgi_cell"],
           "parameters": {
             "withgid": true,
             "withtime": true,
@@ -846,7 +804,7 @@
           "device": "spike_detector",
           "io": "output",
           "type": "cell_type",
-          "cell_types": ["purkinje"],
+          "cell_types": ["purkinje_cell"],
           "parameters": {
             "withgid": true,
             "withtime": true,
@@ -858,7 +816,7 @@
           "device": "spike_detector",
           "io": "output",
           "type": "cell_type",
-          "cell_types": ["stellate"],
+          "cell_types": ["stellate_cell"],
           "parameters": {
             "withgid": true,
             "withtime": true,
@@ -870,7 +828,7 @@
           "device": "spike_detector",
           "io": "output",
           "type": "cell_type",
-          "cell_types": ["basket"],
+          "cell_types": ["basket_cell"],
           "parameters": {
             "withgid": true,
             "withtime": true,
@@ -882,7 +840,7 @@
           "device": "spike_detector",
           "io": "output",
           "type": "cell_type",
-          "cell_types": ["dcn"],
+          "cell_types": ["dcn_cell"],
           "parameters": {
             "withgid": true,
             "withtime": true,
