@@ -69,7 +69,8 @@ class Scaffold:
             print(message, end="\n" if not ongoing else "\r")
 
     def warn(self, message, category=None):
-        std_warn(message, category, stacklevel=2)
+        if self.configuration.verbosity > 0:
+            std_warn(message, category, stacklevel=2)
 
     def initialiseSimulators(self):
         self.simulators = self.configuration.simulators
