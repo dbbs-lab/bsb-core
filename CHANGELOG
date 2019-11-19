@@ -1,5 +1,9 @@
 # 3.0
 
+## Alpha version 6
+* Particle placement for IO
+* EvalConfigurations
+
 ## Alpha version 5
 * Merged in the plasticity branch
 * IO placement & connectivity
