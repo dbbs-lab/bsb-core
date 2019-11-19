@@ -369,7 +369,7 @@ class JSONConfig(ScaffoldConfig):
             try:
                 return json.loads(config_string)
             except json.decoder.JSONDecodeError as e:
-                raise Exception("Error while loading JSON configuration: {}".format(e))
+                raise Exception("Error while loading JSON configuration: {}".format(e)) from None
 
         # Set flags to indicate we expect a json configuration.
         self._type = 'json'
