@@ -299,10 +299,9 @@ class Scaffold:
                 return self.cells_by_type[name]
             if self.output_formatter.has_cells_of_type(name):
                 self.cells_by_type[name] = self.output_formatter.get_cells_of_type(name)
-                return self.cells_by_type[name]
             else:
                 raise Exception("Cell type '{}' not found in output storage".format(name))
-
+        return self.cells_by_type[name]
 
     def compile_output(self):
         self.output_formatter.create_output()
