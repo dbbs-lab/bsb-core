@@ -799,6 +799,15 @@
             "rate": 1.0,
             "start": 0.0,
             "stop": 1000.0
+          },
+          "stimulus": {
+            "parameter_name": "spike_times",
+            "variables": {
+              "start": 0,
+              "end": 200,
+              "n": 50
+            },
+            "statement": "np.round(np.linspace(start, end, n))"
           }
         },
         "record_glomerulus_spikes": {

@@ -108,6 +108,7 @@ def try_cast(value, cast, attr, name):
         # Use the function name, unless it is a class method called 'cast', then use the class name
         cast_name = cast.__name__ if not hasattr(cast, "__self__") or cast.__name__ != "cast" else cast.__self__.__name__
         # Else, replace by generic "we couldn't" error.
+        raise
         raise CastException("{}.{}: Could not cast '{}' to a {}".format(
             name, attr, value, cast_name
         ))
@@ -131,33 +132,46 @@ class CastableConfigurableClass(ConfigurableClass):
     def cast(cast_class, value):
         class_instance = cast_class()
         class_instance.fill(value, cast_class.excluded)
+        class_instance.cast_config()
+        class_instance.boot()
+        class_instance.validate()
         return class_instance
 
-class DistributionConfiguration(CastableConfigurableClass):
+class OptionallyCastable(CastableConfigurableClass):
+    @classmethod
+    def cast(cast_class, value):
+        class_instance = cast_class()
+        if isinstance(value, dict): # Configured by dictionary
+            class_instance.type = "class"
+            class_instance.fill(value, cast_class.excluded)
+            class_instance.cast_config()
+        else: # Try fallback constant casting
+            if not hasattr(cast_class, "fallback"):
+                raise ConfigurableCastException("OptionallyCastable configuration classes require a fallback cast function. Missing for '{}'".format(cast_class.__name__))
+            try:
+                value = cast_class.fallback(value)
+            except Exception as e:
+                raise
+            class_instance.type = "const"
+            class_instance.value = value
+        class_instance.boot()
+        class_instance.validate()
+        return class_instance
 
+class DistributionConfiguration(OptionallyCastable):
+    # Fall back to float casting if no dictionary is given.
+    fallback = float
     casts = {
         "mean": float,
         "sd": float,
         "type": str
     }
-
-    @classmethod
-    def cast(cast_class, value):
-        class_instance = cast_class()
-        if isinstance(value, dict): # Configured by dictionary
-            class_instance.fill(value, cast_class.excluded)
-            class_instance.validate()
-        else: # Try for int configuration
-            try:
-                value = int(value)
-            except Exception as e:
-                raise
-            class_instance.type = "const"
-            class_instance.value = value
-        return class_instance
+    required = ['type']
 
     def validate(self):
         from scipy.stats import distributions
+        if self.type == 'const':
+            return
         if self.type[-4:] == "_gen":
             raise InvalidDistributionException("Distributions can not be created through their constructors but need to use their factory methods. (Those do not end in _gen)")
         if not self.type in dir(distributions):
@@ -179,6 +193,36 @@ class DistributionConfiguration(CastableConfigurableClass):
 
     def sample(self):
         return self.draw(1)[0]
+
+class EvalConfiguration(OptionallyCastable):
+
+    casts = {
+        'statement': str,
+        'variables': dict
+    }
+    required = ['statement']
+
+    def eval(self, locals=None):
+        if self.type == 'const':
+            return self.value
+        else:
+            locals = {} if locals is None else locals
+            globals = {
+                'np': np
+            }
+            if hasattr(self, "variables"):
+                locals.update(self.variables)
+            result = eval(self.statement, globals, locals)
+            return result
+
+    def validate(self):
+        pass
+
+class ListEvalConfiguration(EvalConfiguration):
+    fallback = list
+
+class FloatEvalConfiguration(EvalConfiguration):
+    fallback = float
 
 def assert_attr(section, attr, section_name):
     if not attr in section:

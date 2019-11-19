@@ -1,4 +1,5 @@
 from ..simulation import SimulatorAdapter, SimulationComponent
+from ..helpers import ListEvalConfiguration
 from ..exceptions import NestKernelException, NestModelException, \
     SimulationWarning, KernelWarning
 import numpy as np
@@ -134,7 +135,8 @@ class NestDevice(SimulationComponent):
     casts = {
         'radius': float,
         'origin': [float],
-        'parameters': dict
+        'parameters': dict,
+        'stimulus': ListEvalConfiguration.cast
     }
 
     required = ['type', 'device', 'io', 'parameters']
@@ -152,6 +154,9 @@ class NestDevice(SimulationComponent):
         self._get_targets = method
         if not self.io == "input" and not self.io == "output":
             raise Exception("Attribute io needs to be either 'input' or 'output' in {}".format(self.node_name))
+        if hasattr(self, "stimulus"):
+            stimulus_name = "stimulus" if not hasattr(self.stimulus, "parameter_name") else self.stimulus.parameter_name
+            self.parameters[stimulus_name] = self.stimulus.eval()
 
     def get_targets(self):
         '''
