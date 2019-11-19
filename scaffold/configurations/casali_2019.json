@@ -757,9 +757,9 @@
           "stimulus": {
             "parameter_name": "spike_times",
             "variables": {
-              "start": 20.0,
-              "end": 200.0,
-              "n": 50
+              "start": 300.0,
+              "end": 400.0,
+              "n": 15
             },
             "statement": "np.round(np.linspace(start, end, n))"
           }
