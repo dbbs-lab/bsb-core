@@ -28,8 +28,10 @@ class PlacementStrategy(ConfigurableClass):
 
     def get_placement_count(self, cell_type):
         '''
-            Get the placement count, assuming that it is proportional to the available volume times the density.
-            If it is not, overload this function in your derived class to attain correct placement counts.
+            Get the placement count, assuming that it is proportional to the
+            available volume times the density.
+            If it is not, overload this function in your derived class to obtain
+            correct placement counts.
         '''
 
         scaffold = self.scaffold
@@ -256,6 +258,7 @@ class LayeredRandomWalk(PlacementStrategy):
             scaffold.report("Filling {} sublayer {}/{}...".format(cell_type.name, sublayer_id + 1, n_sublayers), 3, ongoing=True)
 
         scaffold.place_cells(cell_type, layer, layer_cell_positions)
+        scaffold.report("Finished placing {} {} cells.".format(len(layer_cell_positions), cell_type.name), 2)
 
     def partition_layer(self, n_sublayers):
         # Allow restricted placement along the Y-axis.
