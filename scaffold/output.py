@@ -117,6 +117,13 @@ class OutputFormatter(ConfigurableClass, TreeHandler):
         pass
 
     @abstractmethod
+    def exists(self):
+        '''
+            Check if the output file exists.
+        '''
+        pass
+
+    @abstractmethod
     def init_scaffold(self):
         '''
             Initialize the scaffold when it has been loaded from an output file.
@@ -380,6 +387,9 @@ class HDF5Formatter(OutputFormatter, MorphologyRepository):
 
         if was_compiled:
             os.remove('__backup__.hdf5')
+
+    def exists(self):
+        return os.path.exists(self.file)
 
     def init_scaffold(self):
         with self.load() as resource:
