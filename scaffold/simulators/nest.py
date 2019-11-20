@@ -267,6 +267,10 @@ class NestAdapter(SimulatorAdapter):
             'data_path': self.scaffold.output_formatter.get_simulator_output_path(self.simulator_name)
         })
 
+    def reset(self):
+        self.is_prepared = False
+        self.nest.ResetKernel()
+
     def get_master_seed(self):
         # Use a constant reproducible master seed
         return 1989
