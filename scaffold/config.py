@@ -670,7 +670,9 @@ class JSONConfig(ScaffoldConfig):
         # Add the simulation into the configuration
         self.add_simulation(simulation)
 
-    def finalize_simulation(self, simulation_name, section):
+    def finalize_simulation(self, simulation_name, section, simulation=None):
+        if simulation is None:
+            simulation = self.simulations[simulation_name]
         pass
 
     def finalize_layers(self):
