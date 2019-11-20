@@ -83,7 +83,7 @@ class NestConnection(SimulationComponent):
             # If specific receptors are specified, the weight should always be positive.
             params["weight"] = np.abs(params["weight"])
             params["receptor_type"] = self.get_receptor_type()
-        params["model"] = self.synapse_model
+        params["model"] = self.suffixed(self.synapse_model)
         return params
 
     def _get_cell_types(self, key="from"):
@@ -414,14 +414,15 @@ class NestAdapter(SimulatorAdapter):
         for cell_type_id, start_id, count in self.scaffold.placement_stitching:
             # Get the cell_type name from the type id to type name map.
             name = self.scaffold.configuration.cell_type_map[cell_type_id]
+            nest_name = self.suffixed(name)
             if name not in track_models: # Is this the first time encountering this model?
                 # Create the cell model in the simulator
-                self.scaffold.report("Creating "+name+"...", 3)
+                self.scaffold.report("Creating " + nest_name + "...", 3)
                 self.create_model(cell_models[name])
                 track_models.append(name)
             # Create the same amount of cells that were placed in this stitch.
-            self.scaffold.report("Creating {} {}...".format(count, name), 3)
-            identifiers = self.nest.Create(name, count)
+            self.scaffold.report("Creating {} {}...".format(count, nest_name), 3)
+            identifiers = self.nest.Create(nest_name, count)
             self.cell_models[name].identifiers.extend(identifiers)
 
     def connect_neurons(self, connection_models, hdf5):
@@ -431,14 +432,15 @@ class NestAdapter(SimulatorAdapter):
         track_models = [] # Keeps track of already added models if there'smodel=synapse_model more than 1 stitch per model
         for connection_model in connection_models.values():
             name = connection_model.name
+            nest_name = self.suffixed(name)
             dataset_name = 'cells/connections/' + name
             if not dataset_name in hdf5:
                 self.scaffold.warn('Expected connection dataset "{}" not found. Skipping it.'.format(dataset_name), ConnectivityWarning)
                 continue
             connectivity_matrix = hdf5[dataset_name]
-            # Translate the id's from 0 based scaffold ID's to NEST's 1 based ID's with '+ 1'
-            presynaptic_cells = np.array(connectivity_matrix[:,0] + 1, dtype=int)
-            postsynaptic_cells = np.array(connectivity_matrix[:,1] + 1, dtype=int)
+            # Get the NEST identifiers for the connections made in the connectivity matrix
+            presynaptic_cells = self.get_nest_ids(np.array(connectivity_matrix[:,0], dtype=int))
+            postsynaptic_cells = self.get_nest_ids(np.array(connectivity_matrix[:,1], dtype=int))
             if name not in track_models: # Is this the first time encountering this model?
                 track_models.append(name)
                 # Create the synapse model in the simulator
@@ -446,14 +448,14 @@ class NestAdapter(SimulatorAdapter):
                 # Create the volume transmitter if the connection is plastic with heterosynaptic plasticity
                 if connection_model.plastic == True and connection_model.hetero == True:
                     # Create the volume transmitters
-                    self.scaffold.report("Creating volume transmitter for "+name,3)
+                    self.scaffold.report("Creating volume transmitter for " + nest_name,3)
                     self.create_volume_transmitter(connection_model, postsynaptic_cells)
             # Set the specifications NEST allows like: 'rule', 'autapses', 'multapses'
             connection_specifications = {'rule': 'one_to_one'}
             # Get the connection parameters from the configuration
             connection_parameters = connection_model.get_connection_parameters()
             # Create the connections in NEST
-            self.scaffold.report("Creating connections "+name,3)
+            self.scaffold.report("Creating connections " + nest_name,3)
             self.nest.Connect(presynaptic_cells, postsynaptic_cells, connection_specifications, connection_parameters)
             # Workaround for https://github.com/alberto-antonietti/CerebNEST/issues/10
             if connection_model.plastic == True:
@@ -503,24 +505,26 @@ class NestAdapter(SimulatorAdapter):
         '''
         # Use the default model unless another one is specified in the configuration.A_minus
         # Alias the nest model name under our cell model name.
-        self.nest.CopyModel(cell_model.neuron_model, cell_model.name)
+        nest_name = self.suffixed(cell_model.name)
+        self.nest.CopyModel(cell_model.neuron_model, nest_name)
         # Get the synapse parameters
         params = cell_model.get_parameters()
         # Set the parameters in NEST
-        self.nest.SetDefaults(cell_model.name, params)
+        self.nest.SetDefaults(nest_name, params)
 
     def create_synapse_model(self, connection_model):
         '''
             Create a NEST synapse model in the simulator based on a synapse model configuration.
         '''
+        nest_name = self.suffixed(connection_model.name)
         # Use the default model unless another one is specified in the configuration.
         # Alias the nest model name under our cell model name.
-        self.scaffold.report("Creating synapse model '{}' for {}".format(connection_model.synapse_model, connection_model.name), 0)
-        self.nest.CopyModel(connection_model.synapse_model, connection_model.name)
+        self.scaffold.report("Creating synapse model '{}' for {}".format(connection_model.synapse_model, nest_name), 0)
+        self.nest.CopyModel(connection_model.synapse_model, nest_name)
         # Get the synapse parameters
         params = connection_model.get_synapse_parameters(connection_model.synapse_model)
         # Set the parameters in NEST
-        self.nest.SetDefaults(connection_model.name, params)
+        self.nest.SetDefaults(nest_name, params)
 
     # This function should be simplified by providing a CreateTeacher function in the
     # CerebNEST module. See https://github.com/nest/nest-simulator/issues/1317
@@ -550,6 +554,11 @@ class NestAdapter(SimulatorAdapter):
                     raise handler["exception"]
             else:
                 raise
+
+    def suffixed(self, str):
+        if self.suffix == '':
+            return str
+        return str + '_' + self.suffix
 
 def catch_dict_error(message):
     def handler(e):
