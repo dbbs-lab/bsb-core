@@ -3,7 +3,7 @@ class ConfigurationException(Exception):
 
 class DynamicClassException(ConfigurationException):
     pass
-    
+
 class ConfigurableClassNotFoundException(DynamicClassException):
     pass
 
@@ -27,6 +27,12 @@ class NestException(Exception):
     pass
 
 class NestKernelException(Exception):
+    pass
+
+class KernelLockedException(NestKernelException):
+    pass
+
+class SuffixTakenException(KernelLockedException):
     pass
 
 class NestModelException(Exception):
