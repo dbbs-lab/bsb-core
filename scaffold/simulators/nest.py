@@ -1,8 +1,9 @@
 from ..simulation import SimulatorAdapter, SimulationComponent
 from ..helpers import ListEvalConfiguration
 from ..exceptions import NestKernelException, NestModelException, \
-    SimulationWarning, KernelWarning, ConnectivityWarning
-import numpy as np
+    SimulationWarning, KernelWarning, ConnectivityWarning, \
+    KernelLockedException, SuffixTakenException, AdapterException
+import numpy as np, os, json
 from sklearn.neighbors import KDTree
 
 class NestCell(SimulationComponent):
@@ -239,11 +240,22 @@ class NestAdapter(SimulatorAdapter):
     def __init__(self):
         super().__init__()
         self.is_prepared = False
+        self.suffix = ''
+        self.multi = False
+        self.has_lock = False
+
+    def __del__(self):
+        if self.has_lock:
+            self.release_lock()
 
     def prepare(self, hdf5):
+        if self.is_prepared:
+            raise AdapterException("Attempting to prepare the same adapter twice. Please use `scaffold.create_adapter` for multiple adapter instances of the same simulation.")
         self.scaffold.report("Importing  NEST...", 2)
         import nest
         self.nest = nest
+        self.scaffold.report("Locking NEST kernel...", 2)
+        self.lock()
         self.scaffold.report("Installing  NEST modules...", 2)
         self.install_modules()
         self.scaffold.report("Initializing NEST kernel...", 2)
@@ -256,6 +268,69 @@ class NestAdapter(SimulatorAdapter):
         self.connect_neurons(self.connection_models, hdf5)
         self.is_prepared = True
         return nest
+
+    def lock(self):
+        if not self.multi:
+            self.single_lock()
+        else:
+            self.multi_lock()
+        self.has_lock = True
+
+    def single_lock(self):
+        try:
+            lock_data = {"multi": False}
+            self.write_lock(lock_data, mode="x")
+        except FileExistsError as e:
+            raise KernelLockedException("This adapter is not in multi-instance mode and another adapter is already managing the kernel.") from None
+
+    def multi_lock(self):
+        lock_data = self.read_lock()
+        if lock_data is None:
+            lock_data = {"multi": True, "suffixes": []}
+        if not lock_data["multi"]:
+            raise KernelLockedException("The kernel is locked by a single-instance adapter and cannot be managed by multiple instances.")
+        if self.suffix in lock_data["suffixes"]:
+            raise SuffixTakenException("The kernel is already locked by an instance with the same suffix.")
+        lock_data["suffixes"].append(self.suffix)
+        self.write_lock(lock_data)
+
+    def read_lock(self):
+        try:
+            with open(self.get_lock_path(), "r") as lock:
+                return json.loads(lock.read())
+        except FileNotFoundError as e:
+            return None
+
+    def write_lock(self, lock_data, mode="w"):
+        with open(self.get_lock_path(), mode) as lock:
+            lock.write(json.dumps(lock_data))
+
+    def enable_multi(self, suffix):
+        self.suffix = suffix
+        self.multi = True
+
+    def release_lock(self):
+        if not self.has_lock:
+            raise AdapterException("Cannot unlock kernel from an adapter that has no lock on it.")
+        self.has_lock = False
+        lock_data = self.read_lock()
+        if lock_data["multi"]:
+            if len(lock_data["suffixes"]) == 1:
+                self.delete_lock_file()
+            else:
+                lock_data["suffixes"].remove(self.suffix)
+                self.write_lock(lock_data)
+        else:
+            self.delete_lock_file()
+
+    def delete_lock_file(self):
+        os.remove(self.get_lock_path())
+
+    def get_lock_name(self):
+        return "kernel_" + str(os.getpid()) + ".lck"
+
+    def get_lock_path(self):
+        return self.nest.__path__[0] + '/' + self.get_lock_name()
 
     def reset_kernel(self):
         self.nest.set_verbosity(self.verbosity)
@@ -348,9 +423,6 @@ class NestAdapter(SimulatorAdapter):
             self.scaffold.report("Creating {} {}...".format(count, name), 3)
             identifiers = self.nest.Create(name, count)
             self.cell_models[name].identifiers.extend(identifiers)
-            # Check if the stitching is going OK.
-            if identifiers[0] != start_id + 1:
-                raise Exception("Could not match the scaffold cell identifiers to NEST identifiers! Cannot continue.")
 
     def connect_neurons(self, connection_models, hdf5):
         '''
