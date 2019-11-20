@@ -22,8 +22,10 @@ class UnknownDistributionException(ConfigurableCastException):
 class InvalidDistributionException(ConfigurableCastException):
     pass
 
-
 class NestException(Exception):
+    pass
+
+class AdapterException(NestException):
     pass
 
 class NestKernelException(Exception):
