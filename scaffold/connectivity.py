@@ -1086,16 +1086,16 @@ class TouchDetector(ConnectionStrategy):
                 "Can't perform touch detection without detailed morphologies for {}".format(cell_type.name))
         m_name = random_element(available_morphologies)
         if not m_name in self.morphology_cache:
-            self.morphology_cache[m_name] = self.scaffold.morphology_repository.get_morphology(m_name,
-                                                                                               scaffold=self.scaffold)
+            mr = self.scaffold.morphology_repository
+            self.morphology_cache[m_name] = mr.get_morphology(m_name, scaffold=self.scaffold)
         return self.morphology_cache[m_name]
 
     def get_all_morphologies(self, cell_type):
         all_morphologies = []
         for m_name in self.list_all_morphologies(cell_type):
             if not m_name in self.morphology_cache:
-                self.morphology_cache[m_name] = self.scaffold.morphology_repository.get_morphology(m_name,
-                                                                                                   scaffold=self.scaffold)
+                mr = self.scaffold.morphology_repository
+                self.morphology_cache[m_name] = mr.get_morphology(m_name, scaffold=self.scaffold)
             all_morphologies.append(self.morphology_cache[m_name])
         return all_morphologies
 
