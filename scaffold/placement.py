@@ -258,7 +258,6 @@ class LayeredRandomWalk(PlacementStrategy):
             scaffold.report("Filling {} sublayer {}/{}...".format(cell_type.name, sublayer_id + 1, n_sublayers), 3, ongoing=True)
 
         scaffold.place_cells(cell_type, layer, layer_cell_positions)
-        scaffold.report("Finished placing {} {} cells.".format(len(layer_cell_positions), cell_type.name), 2)
 
     def partition_layer(self, n_sublayers):
         # Allow restricted placement along the Y-axis.
