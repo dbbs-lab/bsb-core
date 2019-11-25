@@ -72,8 +72,8 @@
         "dendrite_length": 40
       },
       "plotting": {
-        "display_name": "granule cell",
-        "color": "#E62214"
+        "display_name": "Granule cell",
+        "color": "#BF0000"
       }
     },
     "glomerulus": {
@@ -87,7 +87,7 @@
         "class": "scaffold.morphologies.NoGeometry"
       },
       "plotting": {
-        "display_name": "glomerulus",
+        "display_name": "Glomerulus",
         "color": "#0E1030"
       }
     },
@@ -105,7 +105,7 @@
         "class": "scaffold.morphologies.PurkinjeCellGeometry"
       },
       "plotting": {
-        "display_name": "purkinje cell",
+        "display_name": "Purkinje cell",
         "color": "#0F8944"
       }
     },
@@ -124,8 +124,8 @@
         "axon_z": 30.0
       },
       "plotting": {
-        "display_name": "golgi cell",
-        "color": "#332EBC"
+        "display_name": "Golgi cell",
+        "color": "#03396C"
       }
     },
     "stellate_cell": {
@@ -141,8 +141,8 @@
         "dendrite_radius": 15.0
       },
       "plotting": {
-        "display_name": "stellate cell",
-        "color": "#876506"
+        "display_name": "Stellate cell",
+        "color": "#FFC425"
       }
     },
     "basket_cell": {
@@ -158,8 +158,8 @@
         "dendrite_radius": 15.0
       },
       "plotting": {
-        "display_name": "basket cell",
-        "color": "#7A1607"
+        "display_name": "Basket cell",
+        "color": "#F37735"
       }
     },
     "dcn_cell": {
@@ -174,8 +174,8 @@
         "class": "scaffold.morphologies.NoGeometry"
       },
       "plotting": {
-        "display_name": "dcn cell",
-        "color": "#15118B"
+        "display_name": "DCN cell",
+        "color": "#3C2F2F"
       }
     },
     "dcn_interneuron": {
@@ -191,7 +191,7 @@
         "class": "scaffold.morphologies.NoGeometry"
       },
       "plotting": {
-        "display_name": "dcn interneuron",
+        "display_name": "DCN interneuron",
         "color": "#15118B"
       }
     },
@@ -209,7 +209,7 @@
       },
       "plotting": {
         "display_name": "io cell",
-        "color": "#FF8C00"
+        "color": "#890089"
       }
     }
   },

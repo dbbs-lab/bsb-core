@@ -26,9 +26,9 @@ def show_figure(fig=None, cubic=True, show=True, legend=True, swapaxes=True):
         if show:
             fig.show()
 
-def plot_network(scaffold, file=None, from_memory=True, block=True):
+def plot_network(scaffold, file=None, from_memory=True, block=True, show=True):
     if from_memory:
-        with show_figure() as fig:
+        with show_figure(show=show) as fig:
             for type in scaffold.configuration.cell_types.values():
                 pos = scaffold.cells_by_type[type.name][:, [2,3,4]]
                 color = type.plotting.color
@@ -37,6 +37,7 @@ def plot_network(scaffold, file=None, from_memory=True, block=True):
                     marker=dict(color=color, size=type.placement.radius),
                     name=type.plotting.display_name if hasattr(type.plotting, 'display_name') else type.name
                 ))
+            return fig
     else:
         raise NotImplementedError("Only network caches can be plot at this point.")
 
@@ -69,7 +70,7 @@ def plot_voxel_cloud(cloud, bounds, selected_voxels=None):
             fig.add_trace(trace)
         set_scene_range(fig.layout.scene, bounds)
 
-def get_branch_trace(compartments, offset = [0., 0., 0.], **kwargs):
+def get_branch_trace(compartments, offset = [0., 0., 0.], color='black', width=1.):
     x = [c.start[0] + offset[0] for c in compartments]
     y = [c.start[1] + offset[1] for c in compartments]
     z = [c.start[2] + offset[2] for c in compartments]
@@ -80,8 +81,8 @@ def get_branch_trace(compartments, offset = [0., 0., 0.], **kwargs):
     return go.Scatter3d(
         x=x, y=z, z=y, mode='lines',
         line=dict(
-            width=1.,
-            color=kwargs['color']
+            width=width,
+            color=color
         )
     )
 
@@ -98,7 +99,7 @@ def get_soma_trace(soma_radius, offset=[0., 0., 0.], color='black'):
         showscale=False
     )
 
-def plot_morphology(morphology, return_traces=False, offset=[0., 0., 0.], fig=None, show=True, set_range=True, color='black', reduce_branches=False, soma_radius=None):
+def plot_morphology(morphology, return_traces=False, offset=[0., 0., 0.], fig=None, show=True, set_range=True, color='black', reduce_branches=False, soma_radius=None, segment_radius=1.):
     compartments = morphology.compartments.copy()
     compartments.insert(0, Compartment([0, 0, *compartments[0].start, *compartments[0].end, 1., 0]))
     compartments = np.array(compartments)
@@ -108,7 +109,7 @@ def plot_morphology(morphology, return_traces=False, offset=[0., 0., 0.], fig=No
         dfs_list = list(map(lambda b: reduce_branch(b, branch_points), dfs_list))
     traces = []
     for branch in dfs_list[::-1]:
-        traces.append(get_branch_trace(compartments[branch], offset,color=color))
+        traces.append(get_branch_trace(compartments[branch], offset,color=color, width=segment_radius))
     traces.append(get_soma_trace(soma_radius if not soma_radius is None else compartments[0].radius, offset, color))
     if return_traces:
         return traces
