@@ -73,7 +73,8 @@
       },
       "plotting": {
         "display_name": "Granule cell",
-        "color": "#BF0000"
+        "color": "#BF0000",
+        "opacity": 0.3
       }
     },
     "glomerulus": {

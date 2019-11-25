@@ -483,9 +483,11 @@ class JSONConfig(ScaffoldConfig):
         morphology = assert_attr(section, 'morphology', node_name)
         cell_type.morphology = self.init_morphology(morphology, name)
 
-        cell_type.plotting = PlottingConfig('#000000')
+        cell_type.plotting = PlottingConfig(name, color='#000000')
         if 'plotting' in section:
+            cell_type.plotting.label = if_attr(section['plotting'], 'display_name', name)
             cell_type.plotting.color = if_attr(section['plotting'], 'color', '#000000')
+            cell_type.plotting.opacity = if_attr(section['plotting'], 'opacity', 1.)
         # Register cell type
         self.add_cell_type(cell_type)
         return cell_type
@@ -777,5 +779,7 @@ class JSONConfig(ScaffoldConfig):
         return component
 
 class PlottingConfig:
-    def __init__(self, color):
+    def __init__(self, name, color='#000000', opacity=1.):
+        self.label = name
         self.color = color
+        self.opacity = opacity

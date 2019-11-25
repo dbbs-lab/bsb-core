@@ -26,7 +26,7 @@ def show_figure(fig=None, cubic=True, show=True, legend=True, swapaxes=True):
         if show:
             fig.show()
 
-def plot_network(scaffold, file=None, from_memory=True, block=True, show=True):
+def plot_network(scaffold, from_memory=True, show=True):
     if from_memory:
         with show_figure(show=show) as fig:
             for type in scaffold.configuration.cell_types.values():
@@ -35,11 +35,16 @@ def plot_network(scaffold, file=None, from_memory=True, block=True, show=True):
                 fig.add_trace(go.Scatter3d(
                     x=pos[:,0], y=pos[:,2], z=pos[:,1], mode='markers',
                     marker=dict(color=color, size=type.placement.radius),
-                    name=type.plotting.display_name if hasattr(type.plotting, 'display_name') else type.name
+                    opacity=type.plotting.opacity,
+                    name=type.plotting.label
                 ))
             return fig
     else:
-        raise NotImplementedError("Only network caches can be plot at this point.")
+        scaffold.reset_network_cache()
+        for cell_type in scaffold.configuration.cell_types.values():
+            # Load from HDF5
+            scaffold.get_cells_by_type(cell_type.name)
+        plot_network(scaffold, from_memory=True, show=show)
 
 def get_voxel_cloud_traces(cloud, selected_voxels=None):
     # Calculate the 3D voxel indices based on the voxel positions and the grid size.
