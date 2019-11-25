@@ -21,7 +21,7 @@ def compute_circle(center, radius, n_samples=50):
         :type n_samples: int
     '''
     nodes = np.linspace(0,2*np.pi,n_samples, endpoint=False)
-    x, y = np.sin(nodes)*radius+center[0], np.cos(nodes)*radius+center[1]
+    x, y = np.cos(nodes)*radius+center[0], np.sin(nodes)*radius+center[1]
     return np.column_stack([x,y])
 
 def apply_2d_bounds(possible_points, cell_bounds):
