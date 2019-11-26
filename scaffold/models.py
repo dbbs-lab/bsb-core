@@ -93,6 +93,7 @@ class Layer(dimensions, origin):
 class Resource:
     def __init__(self, handler, path):
         self.handler = handler
+        self.path = path
 
     def get_dataset(self):
         with self.handler.load("r") as f:
@@ -100,7 +101,7 @@ class Resource:
 
 class ConnectivitySet(Resource):
     def __init__(self, handler, tag):
-        super().__init__(self, handler, '/cells/connections/' + tag)
+        super().__init__(handler, '/cells/connections/' + tag)
 
     @property
     def connections(self):
