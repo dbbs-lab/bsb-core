@@ -258,6 +258,7 @@ class Scaffold:
         if not attr + '_map' in self.__dict__[attr]:
             self.__dict__[attr][tag + '_map'] = []
         mapped_data, data_map = map_ndarray(data, _map=self.__dict__[attr][tag + '_map'])
+        mapped_data = np.array(mapped_data, dtype=int)
         if tag in self.__dict__[attr]:
             cache = self.__dict__[attr][tag]
             self.__dict__[attr][tag] = np.concatenate((cache, mapped_data))
