@@ -90,7 +90,7 @@ class Layer(dimensions, origin):
     def initialise(self, scaffoldInstance):
         self.scaffold = scaffoldInstance
 
-def Resource:
+class Resource:
     def __init__(self, handler, path):
         self.handler = handler
 
@@ -98,7 +98,7 @@ def Resource:
         with self.handler.load("r") as f:
             return f[self.path][()]
 
-def ConnectivitySet(Resource):
+class ConnectivitySet(Resource):
     def __init__(self, handler, tag):
         super().__init__(self, handler, '/cells/connections/' + tag)
 
