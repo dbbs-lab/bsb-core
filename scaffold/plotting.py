@@ -248,8 +248,28 @@ def set_scene_range(scene, bounds):
     scene.zaxis.range=bounds[1]
 
 def set_morphology_scene_range(scene, offset_morphologies):
+    '''
+        Set the range on a scene containing multiple morphologies.
+
+        :param scene: A scene of the figure. If the figure itself is given, ``figure.layout.scene`` will be used.
+        :param offset_morphologies: A list of tuples where the first element is offset and the 2nd is the :class:`Morphology`
+    '''
     bounds = np.array(list(map(lambda m: m[1].get_plot_range(m[0]), offset_morphologies)))
     combined_bounds = np.array(list(zip(np.min(bounds, axis=0)[:,0], np.max(bounds, axis=0)[:,1])))
     span = max(map(lambda b: b[1] - b[0], combined_bounds))
     combined_bounds[:,1] = combined_bounds[:,0] + span
     set_scene_range(scene, combined_bounds)
+
+class MorphologyScene:
+    def __init__(self, fig=None):
+        self.fig = fig or go.Figure()
+        self._morphologies = []
+
+    def add_morphology(self, morphology, offset=[0., 0., 0.], **kwargs):
+        self._morphologies.append((offset, morphology, kwargs))
+
+    def show(self):
+        for o, m, k in self._morphologies:
+            plot_morphology(m, offset=o, show=False, fig=self.fig, **k)
+        set_morphology_scene_range(self.fig.layout.scene, self._morphologies)
+        self.fig.show()
