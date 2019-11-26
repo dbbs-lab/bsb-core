@@ -1065,12 +1065,14 @@ class TouchDetector(ConnectionStrategy):
             types=touch_info.to_cell_compartments) + to_pos - from_pos
         from_tree = from_morphology.get_compartment_tree(compartment_types=touch_info.from_cell_compartments)
         compartment_hits = from_tree.query_radius(query_points, self.compartment_intersection_radius)
+        from_map = from_morphology.get_compartment_submask(compartment_types=touch_info.from_cell_compartments)
+        to_map = to_morphology.get_compartment_submask(compartment_types=touch_info.to_cell_compartments)
         intersections = []
         for i in range(len(compartment_hits)):
             hits = compartment_hits[i]
             if len(hits) > 0:
                 for j in range(len(hits)):
-                    intersections.append([hits[j], i])
+                    intersections.append([from_map[hits[j]], to_map[i]])
         return intersections
 
     def list_all_morphologies(self, cell_type):
