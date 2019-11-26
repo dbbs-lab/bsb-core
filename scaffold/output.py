@@ -4,7 +4,8 @@ from contextlib import contextmanager
 from abc import abstractmethod, ABC
 import h5py, os, time, pickle, numpy as np
 from numpy import string_
-from .exceptions import RepositoryWarning
+from .exceptions import RepositoryWarning, DatasetNotFoundException
+from .models import ConnectivitySet
 
 class ResourceHandler(ABC):
     def __init__(self):
@@ -155,6 +156,19 @@ class OutputFormatter(ConfigurableClass, TreeHandler):
     def exists(self):
         '''
             Check if the resource exists.
+        '''
+        pass
+
+    @abstractmethod
+    def get_connectivity_set(self, tag):
+        '''
+            Return a connectivity set.
+
+            :param tag: Key of the connectivity set in the `connections` group.
+            :type tag: string
+            :return: The connectivity set.
+            :rtype: :class:`ConnectivitySet`
+            :raises: DatasetNotFoundException
         '''
         pass
 
@@ -511,6 +525,9 @@ class HDF5Formatter(OutputFormatter, MorphologyRepository):
         '''
         with self.load() as f:
             return dict(f['cells/connections/' + tag].attrs)
+
+    def get_connectivity_set(self, tag):
+        return ConnectivitySet(self, tag)
 
     @classmethod
     def reconfigure(cls, hdf5_file, config):
