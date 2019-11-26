@@ -1,6 +1,7 @@
 import numpy as np
 from .morphologies import Morphology as BaseMorphology
 from .helpers import ConfigurableClass, dimensions, origin, SortableByAfter
+from .exceptions import MissingMorphologyException, AttributeMissingException
 
 class CellType(SortableByAfter):
 
@@ -95,14 +96,79 @@ class Resource:
         self.handler = handler
         self.path = path
 
-    def get_dataset(self):
+    def get_dataset(self, selector=()):
         with self.handler.load("r") as f:
-            return f[self.path][()]
+            return f[self.path][selector]
+
+    @property
+    def attributes(self):
+        with self.handler.load("r") as f:
+            return dict(f[self.path].attrs)
+
+    def get_attribute(self, name):
+        attrs = self.attributes
+        if not name in attrs:
+            raise AttributeMissingException("Attribute '{}' not found in '{}'".format(name, self.path))
+        return attrs[name]
+
+    def exists(self):
+        with self.handler.load("r") as f:
+            return self.path in f
+
+    def unmap(self, selector=(), mapping=lambda m, x: m[x], data=None):
+        if data is None:
+            data = self.get_dataset(selector)
+        map = self.get_attribute('map')
+        unmapped = []
+        for record in data:
+            print(record)
+            unmapped.append(mapping(map, record))
+        return np.array(unmapped)
+
+    def unmap_one(self, data, mapping=None):
+        if mapping is None:
+            return self.unmap(data=[data])
+        else:
+            return self.unmap(data=[data], mapping=mapping)
+
+class Connection:
+    def __init__(self, from_id, to_id, from_compartment, to_compartment, from_morphology, to_morphology):
+        self.from_id = from_id
+        self.to_id = to_id
+        self.from_compartment = from_morphology.compartments[from_compartment]
+        self.to_compartment = from_morphology.compartments[to_compartment]
 
 class ConnectivitySet(Resource):
     def __init__(self, handler, tag):
         super().__init__(handler, '/cells/connections/' + tag)
+        self.compartment_set = Resource(handler, '/cells/connection_compartments/' + tag)
+        self.morphology_set = Resource(handler, '/cells/connection_morphologies/' + tag)
 
     @property
     def connections(self):
         return self.get_dataset()
+
+    @property
+    def intersections(self):
+        if not self.compartment_set.exists():
+            raise MissingMorphologyException("No intersection/morphology information for this connectivity set.")
+        else:
+            return self.get_intersections()
+
+    def get_intersections(self):
+        intersections = []
+        morphos = {}
+        cells = self.get_dataset()
+        for cell_ids, comp_ids, morpho_ids in zip(cells, self.compartment_set.get_dataset(), self.morphology_set.get_dataset()):
+            if not int(morpho_ids[0]) in morphos:
+                print('loading morpho')
+                name = self.morphology_set.unmap_one(int(morpho_ids[0]))[0].decode('UTF-8')
+                print('loaded', name)
+                morphos[int(morpho_ids[0])] = self.handler.scaffold.morphology_repository.get_morphology(name)
+            if not int(morpho_ids[1]) in morphos:
+                print('loading morpho')
+                name = self.morphology_set.unmap_one(int(morpho_ids[1]))[0].decode('UTF-8')
+                print('loaded', name)
+                morphos[int(morpho_ids[1])] = self.handler.scaffold.morphology_repository.get_morphology(name)
+            intersections.append(Connection(*cell_ids, *comp_ids, morphos[int(morpho_ids[0])], morphos[int(morpho_ids[1])]))
+        return intersections
