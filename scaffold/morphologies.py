@@ -168,7 +168,6 @@ class TrueMorphology(Morphology):
     def _comp_tree_factory(self, types):
         type_map = list(map(lambda t: Morphology.compartment_types[t], types))
         def _comp_tree_product(_):
-            print('making subset tree from factory.')
             return np.array(list(map(lambda c: c.end, filter(lambda c: c.type in type_map, self.compartments))))
         return _comp_tree_product
 
@@ -179,6 +178,17 @@ class TrueMorphology(Morphology):
             else:
                 raise NotImplementedError("Multicompartmental touch detection not implemented yet.")
         return self.compartment_tree
+
+    def get_compartment_submask(self, compartment_types):
+        i = 0
+        type_ids = list(map(lambda t: Morphology.compartment_types[t], compartment_types))
+        mask = []
+        for comp in self.compartments:
+            if comp.type in type_ids:
+                # mask[n] = original id
+                # Where n is the index of the compartment in the filtered collection
+                mask.append(comp.id)
+        return mask
 
 class GranuleCellGeometry(Morphology):
     casts = {
