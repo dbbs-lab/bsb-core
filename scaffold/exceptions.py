@@ -54,6 +54,9 @@ class ResourceException(ScaffoldException):
 class DatasetNotFoundException(ResourceException):
     pass
 
+class AttributeMissingException(ResourceException):
+    pass
+
 
 ## Warnings
 
