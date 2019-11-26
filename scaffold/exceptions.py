@@ -1,9 +1,14 @@
-class ConfigurationException(Exception):
+class ScaffoldException(Exception):
+    pass
+
+## Configuration
+
+class ConfigurationException(ScaffoldException):
     pass
 
 class DynamicClassException(ConfigurationException):
     pass
-    
+
 class ConfigurableClassNotFoundException(DynamicClassException):
     pass
 
@@ -22,21 +27,35 @@ class UnknownDistributionException(ConfigurableCastException):
 class InvalidDistributionException(ConfigurableCastException):
     pass
 
+## Nest
 
-class NestException(Exception):
+class NestException(ScaffoldException):
     pass
 
-class NestKernelException(Exception):
+class NestKernelException(NestException):
     pass
 
-class NestModelException(Exception):
+class NestModelException(NestException):
     pass
 
-class MorphologyException(Exception):
+## Morphologies
+
+class MorphologyException(ScaffoldException):
     pass
 
 class MissingMorphologyException(MorphologyException):
     pass
+
+## Resources (HDF5, ...)
+
+class ResourceException(ScaffoldException):
+    pass
+
+class DatasetNotFoundException(ResourceException):
+    pass
+
+
+## Warnings
 
 class ScaffoldWarning(UserWarning):
     pass
