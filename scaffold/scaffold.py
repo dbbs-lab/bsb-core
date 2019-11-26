@@ -349,6 +349,12 @@ class Scaffold:
             raise Exception("Cell {} does not exist. (highest id is {})".format(id, len(self.cells) - 1))
         return self.cells[id,2:5]
 
+    def get_cell_positions(self, selector):
+        return self.cells[selector,2:5]
+
+    def get_cells(self, selector):
+        return self.cells[selector]
+
     def get_placed_count(self, cell_type_name):
         return self.statistics.cells_placed[cell_type_name]
 
