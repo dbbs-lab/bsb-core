@@ -6,8 +6,8 @@
     "file": "touch.hdf5"
   },
   "network_architecture": {
-    "simulation_volume_x": 150.0,
-    "simulation_volume_z": 150.0,
+    "simulation_volume_x": 400.0,
+    "simulation_volume_z": 400.0,
     "store_kd_trees": true,
     "store_compound_kd_tree": true,
     "store_pf_kd_trees": true
@@ -65,7 +65,7 @@
       },
       "plotting": {
         "display_name": "granule cell",
-        "color": "#E62214"
+        "color": "#BF0000"
       }
     },
     "glomerulus": {
@@ -120,7 +120,7 @@
       },
       "plotting": {
         "display_name": "golgi cell",
-        "color": "#332EBC"
+        "color": "#03396C"
       }
     },
     "stellate_cell": {
@@ -140,7 +140,7 @@
       },
       "plotting": {
         "display_name": "stellate cell",
-        "color": "#876506"
+        "color": "#FFC425"
       }
     },
     "basket_cell": {
@@ -160,7 +160,7 @@
       },
       "plotting": {
         "display_name": "basket cell",
-        "color": "#7A1607"
+        "color": "#F37735"
       }
     },
     "dcn_cell": {
@@ -176,7 +176,7 @@
       },
       "plotting": {
         "display_name": "dcn cell",
-        "color": "#15118B"
+        "color": "#3C2F2F"
       }
     }
   },
