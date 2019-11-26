@@ -316,6 +316,8 @@ class Scaffold:
         # and the connection matrices appended behind it.
         return list(map(lambda x: (x, *x.get_connection_matrices()), connection_types.values()))
 
+    def get_connectivity_set(self, tag):
+        return self.output_formatter.get_connectivity_set(tag)
 
     def translate_cell_ids(self, data, cell_type):
         if not self.is_compiled():
