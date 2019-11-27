@@ -67,6 +67,8 @@ class NestConnection(SimulationComponent):
     }
 
     def validate(self):
+        if not 'weight' in self.connection:
+            raise ConfigurationException("Missing 'weight' in the connection parameters of " + self.node_name + "." + self.name)
         if self.plastic:
             # Set plasticity synapse dict defaults
             synapse_defaults = {
