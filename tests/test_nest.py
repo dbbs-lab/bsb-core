@@ -60,16 +60,14 @@ class TestDoubleNeuronTypeSetup(unittest.TestCase):
         self.scaffold = Scaffold(config)
         self.scaffold.compile_network()
         self.nest_adapter = self.scaffold.configuration.simulations['test_double_neuron']
+        self.scaffold.run_simulation("test_double_neuron")
 
-    def setUp(self):
-        self.nest_adapter.reset()
-
-    def tearDown(self):
+    @classmethod
+    def tearDownClass(self):
         if self.nest_adapter.has_lock:
             self.nest_adapter.release_lock()
 
     def test_double_neuron_creation(self):
-        self.scaffold.run_simulation("test_double_neuron")
         from_cell_model = self.nest_adapter.cell_models["from_cell"]
         self.assertEqual(from_cell_model.nest_identifiers, [1, 2, 3, 4])
         to_cell_model = self.nest_adapter.cell_models["to_cell"].nest_identifiers
