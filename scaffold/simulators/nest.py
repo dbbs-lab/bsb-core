@@ -426,6 +426,8 @@ class NestAdapter(SimulatorAdapter):
                 else:
                     raise
 
+    def get_nest_ids(self, ids):
+        return [self.global_identifier_map[id] for id in ids]
 
     def create_neurons(self, cell_models):
         '''
