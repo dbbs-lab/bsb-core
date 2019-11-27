@@ -496,7 +496,7 @@ class NestAdapter(SimulatorAdapter):
                 # volume transmitter of that target cell
                 for i,target in enumerate(postsynaptic_cells):
                     # Get connections between all presynaptic cells and target postsynaptic cell
-                    connections_to_target = self.nest.GetConnections(presynaptic_cells.tolist(),[target])
+                    connections_to_target = self.nest.GetConnections(presynaptic_cells,[target])
                     # Associate the volume transmitter number to them
                     self.nest.SetStatus(connections_to_target ,{"vt_num": float(i)})
 
