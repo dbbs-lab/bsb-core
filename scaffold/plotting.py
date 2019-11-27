@@ -104,7 +104,9 @@ def get_soma_trace(soma_radius, offset=[0., 0., 0.], color='black'):
         showscale=False
     )
 
-def plot_morphology(morphology, return_traces=False, offset=[0., 0., 0.], fig=None, show=True, set_range=True, color='black', reduce_branches=False, soma_radius=None, segment_radius=1.):
+def plot_morphology(morphology, return_traces=False, offset=[0., 0., 0.], \
+    fig=None, show=True, set_range=True, color='black', reduce_branches=False, \
+    soma_radius=None, segment_radius=1.):
     compartments = morphology.compartments.copy()
     compartments.insert(0, Compartment(morphology, [0, 0, *compartments[0].start, *compartments[0].end, 1., 0]))
     compartments = np.array(compartments)
