@@ -256,7 +256,8 @@ class NestAdapter(SimulatorAdapter):
         self.has_lock = False
 
         def finalize_self(weak_obj):
-            weak_obj().__safedel__()
+            if weak_obj() is not None:
+                weak_obj().__safedel__()
 
         r = weakref.ref(self)
         weakref.finalize(self, finalize_self, r)
