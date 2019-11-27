@@ -10,8 +10,7 @@ class NestCell(SimulationComponent):
     required = ['parameters']
 
     def boot(self):
-        self.identifiers = []
-        self.receptor_specifications = {}
+        self.reset()
         # The cell model contains a 'parameters' attribute and many sets of
         # neuron model specific sets of parameters. Each set of neuron model
         # specific parameters can define receptor specifications.
@@ -25,6 +24,12 @@ class NestCell(SimulationComponent):
 
     def validate(self):
         pass
+
+    def reset(self):
+        self.nest_identifiers = []
+        self.scaffold_identifiers = []
+        self.scaffold_to_nest_map = {}
+        self.receptor_specifications = {}
 
     def get_parameters(self):
         # Get the default synapse parameters
