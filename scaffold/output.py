@@ -506,9 +506,6 @@ class HDF5Formatter(OutputFormatter, MorphologyRepository):
         with self.load() as resource:
             return self.handle['/cells/type_maps/{}_map'.format(type)][()]
 
-    def exists(self):
-        return os.path.exists(self.file)
-
     def get_connectivity_set_connection_types(self, tag):
         '''
             Return all the ConnectionStrategies that contributed to the creation of this
