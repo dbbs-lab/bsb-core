@@ -28,7 +28,7 @@ class NestException(Exception):
 class AdapterException(NestException):
     pass
 
-class NestKernelException(Exception):
+class NestKernelException(AdapterException):
     pass
 
 class KernelLockedException(NestKernelException):
