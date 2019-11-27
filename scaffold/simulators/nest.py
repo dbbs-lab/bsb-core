@@ -363,9 +363,10 @@ class NestAdapter(SimulatorAdapter):
 
     def reset(self):
         self.is_prepared = False
-        self.nest.ResetKernel()
+        if hasattr(self, "nest"):
+            self.nest.ResetKernel()
         self.global_identifier_map = {}
-        for cell_model in self.cell_models:
+        for cell_model in self.cell_models.values():
             cell_model.reset()
 
     def get_master_seed(self):
