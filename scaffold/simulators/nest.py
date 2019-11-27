@@ -1,8 +1,6 @@
 from ..simulation import SimulatorAdapter, SimulationComponent
 from ..helpers import ListEvalConfiguration
-from ..exceptions import NestKernelException, NestModelException, \
-    SimulationWarning, KernelWarning, ConnectivityWarning, \
-    KernelLockedException, SuffixTakenException, AdapterException
+from ..exceptions import *
 import os, json, weakref, numpy as np
 from sklearn.neighbors import KDTree
 
