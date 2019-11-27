@@ -44,6 +44,12 @@ class NestCell(SimulationComponent):
     def get_receptor_specifications(self):
         return self.receptor_specifications[self.neuron_model] if self.neuron_model in self.receptor_specifications else {}
 
+    def build_identifier_map(self):
+        self.scaffold_to_nest_map = dict(zip(self.scaffold_identifiers, self.nest_identifiers))
+
+    def get_nest_ids(self, ids):
+        return [self.scaffold_to_nest_map[id] for id in ids]
+
 class NestConnection(SimulationComponent):
     node_name = 'simulations.?.connection_models'
 
