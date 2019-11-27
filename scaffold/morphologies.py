@@ -4,7 +4,7 @@ from .voxels import VoxelCloud, detect_box_compartments, Box
 from sklearn.neighbors import KDTree
 
 class Compartment:
-    def __init__(self, repo_record):
+    def __init__(self, morphology, repo_record):
         '''
             Create a compartment from repository data.
         '''
@@ -19,6 +19,8 @@ class Compartment:
         self.midpoint = (self.end - self.start) / 2 + self.start
         # Calculate the radius of the outer sphere of this compartment
         self.spherical = np.sqrt((self.start[:] - self.end[:]) ** 2) / 2
+
+        self.morphology = morphology
 
 class Morphology(ConfigurableClass):
 
@@ -51,7 +53,7 @@ class Morphology(ConfigurableClass):
         # Iterate over the data to create compartment objects
         for i in range(len(repo_data)):
             repo_record = repo_data[i, :]
-            compartment = Compartment(repo_record)
+            compartment = Compartment(self, repo_record)
             self.compartments.append(compartment)
         # Create a tree from the compartment object list
         self.compartment_tree = KDTree(np.array(list(map(lambda c: c.end, self.compartments))))
