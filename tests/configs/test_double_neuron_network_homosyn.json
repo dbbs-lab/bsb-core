@@ -133,20 +133,18 @@
           "plastic": true,
           "synapse_model": "stdp_synapse",
           "connection": {
-            "parameters": {
             "weight": 9.0,
             "delay": 4.0
-          }
-        },
-        "synapse": {
-          "static_synapse": {},
-          "stdp_synapse":{
-            "tau_plus":30.0,
-            "lambda":0.5,
-            "alpha":0.1
+          },
+          "synapse": {
+            "static_synapse": {},
+            "stdp_synapse":{
+              "tau_plus":30.0,
+              "lambda":0.5,
+              "alpha":0.1
+            }
           }
         }
-      }
       },
       "devices": {
         "record_from_cell_spikes": {

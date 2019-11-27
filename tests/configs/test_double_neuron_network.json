@@ -133,10 +133,8 @@
       "connection_models": {
         "from_cell_to_cell": {
           "connection": {
-            "parameters": {
-              "weight": -9.0,
-              "delay": 4.0
-            }
+            "weight": -9.0,
+            "delay": 4.0
           },
           "synapse": {
             "static_synapse": {}
