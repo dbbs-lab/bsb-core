@@ -362,8 +362,6 @@ class NestAdapter(SimulatorAdapter):
         })
 
     def reset(self):
-        if self.multi:
-            raise NotImplementedError("Multi-instance adapters can't reset themselves or the kernel yet.")
         self.is_prepared = False
         self.nest.ResetKernel()
         self.global_identifier_map = {}
