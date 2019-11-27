@@ -447,7 +447,14 @@ class NestAdapter(SimulatorAdapter):
             # Create the same amount of cells that were placed in this stitch.
             self.scaffold.report("Creating {} {}...".format(count, nest_name), 3)
             identifiers = self.nest.Create(nest_name, count)
-            self.cell_models[name].identifiers.extend(identifiers)
+            self.cell_models[name].scaffold_identifiers.extend([start_id + i for i in range(count)])
+            self.cell_models[name].nest_identifiers.extend(identifiers)
+
+        # Build the identifier map after stitch reconstruction
+        for cell_model in self.cell_models.values():
+            cell_model.build_identifier_map()
+            # Add the cell model map to the global map
+            self.global_identifier_map.update(cell_model.scaffold_to_nest_map)
 
     def connect_neurons(self, connection_models, hdf5):
         '''
