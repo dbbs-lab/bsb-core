@@ -3,7 +3,7 @@ from ..helpers import ListEvalConfiguration
 from ..exceptions import NestKernelException, NestModelException, \
     SimulationWarning, KernelWarning, ConnectivityWarning, \
     KernelLockedException, SuffixTakenException, AdapterException
-import numpy as np, os, json
+import os, json, weakref, numpy as np
 from sklearn.neighbors import KDTree
 
 class NestCell(SimulationComponent):
@@ -244,7 +244,13 @@ class NestAdapter(SimulatorAdapter):
         self.multi = False
         self.has_lock = False
 
-    def __del__(self):
+        def finalize_self(weak_obj):
+            weak_obj().__safedel__()
+
+        r = weakref.ref(self)
+        weakref.finalize(self, finalize_self, r)
+
+    def __safedel__(self):
         if self.has_lock:
             self.release_lock()
 
