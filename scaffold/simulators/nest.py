@@ -254,6 +254,7 @@ class NestAdapter(SimulatorAdapter):
         self.suffix = ''
         self.multi = False
         self.has_lock = False
+        self.global_identifier_map = {}
 
         def finalize_self(weak_obj):
             if weak_obj() is not None:
@@ -361,8 +362,13 @@ class NestAdapter(SimulatorAdapter):
         })
 
     def reset(self):
+        if self.multi:
+            raise NotImplementedError("Multi-instance adapters can't reset themselves or the kernel yet.")
         self.is_prepared = False
         self.nest.ResetKernel()
+        self.global_identifier_map = {}
+        for cell_model in self.cell_models:
+            cell_model.reset()
 
     def get_master_seed(self):
         # Use a constant reproducible master seed
