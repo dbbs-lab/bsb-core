@@ -409,6 +409,8 @@ class NestAdapter(SimulatorAdapter):
         self.scaffold.report("Simulating...", 2)
         simulator.Simulate(self.duration)
         self.scaffold.report("Simulation finished.", 2)
+        if self.has_lock:
+            self.release_lock()
 
     def validate(self):
         for cell_model in self.cell_models.values():
