@@ -71,7 +71,8 @@ def start_cli():
     parser_compile = subparsers.add_parser('compile', help='Build a network of neurons in a volume and compile it to an HDF5 network architecture file.')
     parser_run = subparsers.add_parser('run', help='Run a simulation from scratch.')
     parser_sim = subparsers.add_parser('simulate', help='Run a simulation from a compiled HDF5 network architecture file.')
-    parser_repl = subparsers.add_parser('repl')
+    parser_config = subparsers.add_parser('mkcfg', help='Create a config file in the current directory.')
+    parser_repl = subparsers.add_parser('repl', help='Start the interactive scaffold shell.')
 
     # Main arguments
     parser.add_argument("-c", "--config",
@@ -105,6 +106,11 @@ def start_cli():
     parser_sim.add_argument("-rc", "--reconfigure",
         help="Specify the path of the new configuration file."
     )
+
+    # Create config subparser
+    parser_config.add_argument('-t', '--template', action='store', default='mouse_cerebellum.json',help='Name of the template config file.')
+    parser_config.set_defaults(func=create_config)
+
     # Repl subparser
     parser_repl.set_defaults(func=start_repl)
 
@@ -140,6 +146,11 @@ def start_cli():
 
         if cl_args.task == 'run' or cl_args.task == 'simulate': # Do we need to run a simulation?
             scaffoldInstance.run_simulation(cl_args.simulation)
+
+def create_config(args):
+    from shutil import copy2 as copy_file
+    import os
+    copy_file(os.path.join(os.path.dirname(__file__), "configurations", args.template), ".")
 
 class ReplState:
     '''
