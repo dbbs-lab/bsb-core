@@ -277,8 +277,9 @@ class NestAdapter(SimulatorAdapter):
         self.lock()
         self.scaffold.report("Installing  NEST modules...", 2)
         self.install_modules()
-        self.scaffold.report("Initializing NEST kernel...", 2)
-        self.reset_kernel()
+        if self.in_full_control():
+            self.scaffold.report("Initializing NEST kernel...", 2)
+            self.reset_kernel()
         self.scaffold.report("Creating neurons...",2)
         self.create_neurons(self.cell_models)
         self.scaffold.report("Creating devices...",2)
@@ -287,6 +288,11 @@ class NestAdapter(SimulatorAdapter):
         self.connect_neurons(self.connection_models, hdf5)
         self.is_prepared = True
         return nest
+
+    def in_full_control(self):
+        if not self.has_lock or not self.read_lock():
+            raise AdapterException("Can't check if we're in full control of the kernel: we have no lock on the kernel.")
+        return not self.multi or len(self.read_lock()["suffixes"]) == 1
 
     def lock(self):
         if not self.multi:
