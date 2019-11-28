@@ -370,7 +370,7 @@ class NestAdapter(SimulatorAdapter):
     def reset(self):
         self.is_prepared = False
         if hasattr(self, "nest"):
-            self.nest.ResetKernel()
+            self.reset_kernel()
         self.global_identifier_map = {}
         for cell_model in self.cell_models.values():
             cell_model.reset()
