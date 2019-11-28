@@ -178,6 +178,8 @@ class TestMultiInstance(unittest.TestCase):
     @classmethod
     def setUpClass(self):
         super(TestMultiInstance, self).setUpClass()
+        import nest
+        self.nest = nest
         config = JSONConfig(file=single_neuron_config)
         self.scaffold = Scaffold(config)
         self.scaffold.compile_network()
@@ -191,6 +193,20 @@ class TestMultiInstance(unittest.TestCase):
         self.nest_adapter_multi_1b.enable_multi('first')
         self.nest_adapter_multi_2 = self.scaffold.create_adapter('test_single_neuron')
         self.nest_adapter_multi_2.enable_multi('second')
+
+    def tearDown(self):
+        if self.nest_adapter_0.has_lock:
+            self.nest_adapter_0.release_lock()
+        if self.nest_adapter_1.has_lock:
+            self.nest_adapter_1.release_lock()
+        if self.nest_adapter_2.has_lock:
+            self.nest_adapter_2.release_lock()
+        if self.nest_adapter_multi_1.has_lock:
+            self.nest_adapter_multi_1.release_lock()
+        if self.nest_adapter_multi_1b.has_lock:
+            self.nest_adapter_multi_1b.release_lock()
+        if self.nest_adapter_multi_2.has_lock:
+            self.nest_adapter_multi_2.release_lock()
 
     def test_single_instance_unwanted_usage(self):
         # Test AdapterException when trying to unlock unlocked adapter
@@ -264,6 +280,16 @@ class TestMultiInstance(unittest.TestCase):
         # Check that we have 2 locks
         lock_data = self.nest_adapter_multi_1.read_lock()
         self.assertEqual(len(lock_data["suffixes"]), 2)
+
+        # Test that we set the right parameters on the right classes.
+        try:
+            params = self.nest.GetDefaults("test_cell_first")
+        except Exception as e:
+            self.fail("First suffixed NEST models not found")
+        try:
+            params = self.nest.GetDefaults("test_cell_second")
+        except Exception as e:
+            self.fail("Second suffixed NEST models not found")
 
         # Check duplicate suffixes
         with h5py.File(self.hdf5, "r") as handle:
