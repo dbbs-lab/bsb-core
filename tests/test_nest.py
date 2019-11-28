@@ -276,6 +276,7 @@ class TestMultiInstance(unittest.TestCase):
         lock_data = self.nest_adapter_multi_1.read_lock()
         # Check multi instance multi lock
         with h5py.File(self.hdf5, "r") as handle:
+            self.nest_adapter_multi_2.cell_models["test_cell"].parameters["t_ref"] = 3.0
             self.nest_adapter_multi_2.prepare(handle)
         # Check that we have 2 locks
         lock_data = self.nest_adapter_multi_1.read_lock()
@@ -290,6 +291,20 @@ class TestMultiInstance(unittest.TestCase):
             params = self.nest.GetDefaults("test_cell_second")
         except Exception as e:
             self.fail("Second suffixed NEST models not found")
+
+        # Test that the adapters have the correct nest_identifiers
+        id1 = self.nest_adapter_multi_1.cell_models["test_cell"].nest_identifiers
+        id2 = self.nest_adapter_multi_2.cell_models["test_cell"].nest_identifiers
+        self.assertEqual(id1, [1, 2, 3, 4])
+        self.assertEqual(id2, [5, 6, 7, 8])
+
+        # Test that the adapter nodes have the right model
+        self.assertTrue(all(map(lambda x: str(x['model']) == 'test_cell_first', self.nest.GetStatus(id1))))
+        self.assertTrue(all(map(lambda x: str(x['model']) == 'test_cell_second', self.nest.GetStatus(id2))))
+
+        # Test that the adapter nodes have the right differential parameter t_ref
+        self.assertTrue(all(map(lambda x: x['t_ref'] == 1.5, self.nest.GetStatus(id1))))
+        self.assertTrue(all(map(lambda x: x['t_ref'] == 3.0, self.nest.GetStatus(id2))))
 
         # Check duplicate suffixes
         with h5py.File(self.hdf5, "r") as handle:
