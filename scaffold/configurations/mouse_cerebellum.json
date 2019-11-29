@@ -793,6 +793,7 @@
         },
         "purkinje_to_dcn": {
           "plastic": false,
+          "is_teaching": true,
           "connection": {
             "weight":-0.4,
             "delay": 4.0
@@ -828,6 +829,7 @@
           }
         },
         "io_to_purkinje": {
+          "is_teaching": true,
           "connection": {
             "weight":350.0,
             "delay": 4.0
@@ -837,6 +839,7 @@
           }
         },
         "io_to_basket": {
+          "is_teaching": true,
           "connection": {
             "weight": 1.0,
             "delay": 70.0
@@ -846,6 +849,7 @@
           }
         },
         "io_to_stellate": {
+          "is_teaching": true,
           "connection": {
             "weight":1.0,
             "delay": 70.0
