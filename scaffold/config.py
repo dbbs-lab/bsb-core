@@ -509,9 +509,6 @@ class JSONConfig(ScaffoldConfig):
         if 'thickness' in config:
             thickness = float(config['thickness'])
 
-        if 'thickness_scale' in config:
-            thickness = thickness / config['thickness_scale']
-
         # Set the position of this layer in the space.
         if not 'position' in config:
             origin = [0., 0., 0.]
