@@ -54,6 +54,7 @@ class NestConnection(SimulationComponent):
         'plastic': False,
         'hetero': None,
         'teaching': None,
+        'is_teaching': False,
     }
 
     def validate(self):
@@ -372,6 +373,9 @@ class NestAdapter(SimulatorAdapter):
                     # Create the volume transmitters
                     self.scaffold.report("Creating volume transmitter for "+name,3)
                     self.create_volume_transmitter(connection_model, postsynaptic_cells)
+                    # volume_transmitters = self.create_volume_transmitter(connection_model, postsynaptic_cells)
+                    # self.cell_models["vt_"+connection_model.teaching].identifiers.extend(volume_transmitters)
+
             # Set the specifications NEST allows like: 'rule', 'autapses', 'multapses'
             connection_specifications = {'rule': 'one_to_one'}
             # Get the connection parameters from the configuration
@@ -388,6 +392,12 @@ class NestAdapter(SimulatorAdapter):
                     connections_to_target = self.nest.GetConnections(presynaptic_cells.tolist(),[target])
                     # Associate the volume transmitter number to them
                     self.nest.SetStatus(connections_to_target ,{"vt_num": float(i)})
+
+            # if connection_model.is_teaching == True:
+            #     # We need to connect the pre-synaptic neurons also to the volume transmitter associated to each post-synaptic create_neurons
+            #     # suppose that the vt ids are stored in a variable self.cell_models["vt_"+name].identifiers
+            #     postsynaptic_volume_transmitters = postsynaptic_cells - postsynaptic_cells[0] + self.cell_models["vt_"+name].identifiers[0]
+            #     self.nest.Connect(presynaptic_cells, postsynaptic_volume_transmitters, connection_specifications, {"model": "static_synapse", "weight": 1.0, "delay": 1.0})
 
     def create_devices(self, devices):
         '''
@@ -459,6 +469,7 @@ class NestAdapter(SimulatorAdapter):
         	self.nest.SetStatus([vti],{"deliver_interval" : 2})            # TO CHECK
             # Waiting for Albe to clarify necessity of this parameter
         	self.nest.SetStatus([vti],{"vt_num" : n})
+        #return vt
 
     def execute_command(self, command, *args, exceptions={}):
         try:
