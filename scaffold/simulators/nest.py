@@ -374,11 +374,7 @@ class NestAdapter(SimulatorAdapter):
                     self.scaffold.report("Creating volume transmitter for "+name,3)
                     self.create_volume_transmitter(connection_model, postsynaptic_cells)
                     # volume_transmitters = self.create_volume_transmitter(connection_model, postsynaptic_cells)
-<<<<<<< HEAD
                     # self.cell_models["vt_"+connection_model.teaching].identifiers.extend(volume_transmitters)
-=======
-                    # self.cell_models["vt_"+name].identifiers.extend(volume_transmitters)
->>>>>>> acc2a2376c79c546d0b60d241dc5c51aa1ca7e82
 
             # Set the specifications NEST allows like: 'rule', 'autapses', 'multapses'
             connection_specifications = {'rule': 'one_to_one'}
