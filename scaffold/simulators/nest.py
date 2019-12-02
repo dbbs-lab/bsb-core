@@ -174,7 +174,7 @@ class NestDevice(SimulationComponent):
         '''
             Return the targets of the stimulation to pass into the nest.Connect call.
         '''
-        return (np.array(self._get_targets(), dtype=int) + 1).tolist()
+        return self.adapter.get_nest_ids(np.array(self._get_targets(), dtype=int))
 
     def _targets_local(self):
         '''
