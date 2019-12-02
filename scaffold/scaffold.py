@@ -228,24 +228,43 @@ class Scaffold:
         return IDs
 
     def connect_cells(self, connection_type, connectome_data, tag=None, morphologies=None, compartments=None, meta=None):
+        '''
+            Store connections for a connection type. Will store the
+            ``connectome_data`` under ``scaffold.cell_connections_by_tag``, a
+            mapped version of the morphology names under
+            ``scaffold.connection_morphologies`` and the compartments under
+            ``scaffold.connection_compartments``.
+
+            :param connection_type: The connection type. The name of the connection type will be used by default as the tag.
+            :type connection_type: :class:`ConnectionStrategy`
+            :param connectome_data: A 2D ndarray with 2 columns: the presynaptic cell id and the postsynaptic cell id.
+            :type connectome_data: :class:`numpy.ndarray`
+            :param tag: The name of the dataset in the storage. If no tag is given, the name of the connection type is used. This parameter can be used to create multiple different connection set per connection type.
+            :type tag: string
+            :param morphologies: A 2D ndarray with 2 columns: the presynaptic morphology name and the postsynaptic morphology name.
+            :type morphologies: :class:`numpy.ndarray`
+            :param compartments: A 2D ndarray with 2 columns: the presynaptic compartment id and the postsynaptic compartment id.
+            :type compartments: :class:`numpy.ndarray`
+            :param meta: Additional metadata to be stored on the connectivity set.
+            :type meta: dict
+        '''
         # Allow 1 connection type to store multiple connectivity datasets by utilizing tags
         tag = tag or connection_type.name
         # Keep track of relevant tags in the connection_type object
         if not tag in connection_type.tags:
             connection_type.tags.append(tag)
         self._append_tagged('cell_connections_by_tag', tag, connectome_data)
-        if not morphologies is None:
+        if not compartments is None or not morphologies is None:
             if len(morphologies) != len(connectome_data) or len(compartments) != len(connectome_data):
                 raise Exception("The morphological data did not match the connectome data.")
             self._append_mapped('connection_morphologies', tag, morphologies)
             self._append_tagged('connection_compartments', tag, compartments)
+        # Store the metadata internally until the output is compiled.
         if not meta is None:
             self._connectivity_set_meta[tag] = meta
 
     def _append_tagged(self, attr, tag, data):
-        '''
-            Appends or creates data to a tagged numpy array in a dictionary attribute of the scaffold.
-        '''
+        # Appends or creates data to a tagged numpy array in a dictionary attribute of the scaffold.
         if tag in self.__dict__[attr]:
             cache = self.__dict__[attr][tag]
             self.__dict__[attr][tag] = np.concatenate((cache, data))
@@ -253,9 +272,7 @@ class Scaffold:
             self.__dict__[attr][tag] = np.copy(data)
 
     def _append_mapped(self, attr, tag, data):
-        '''
-            Appends or creates the data with a map to a tagged numpy array in a dictionary attribute of the scaffold.
-        '''
+        # Appends or creates the data with a map to a tagged numpy array in a dictionary attribute of the scaffold.
         if not attr + '_map' in self.__dict__[attr]:
             self.__dict__[attr][tag + '_map'] = []
         mapped_data, data_map = map_ndarray(data, _map=self.__dict__[attr][tag + '_map'])
