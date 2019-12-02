@@ -93,27 +93,27 @@ class Layer(dimensions, origin):
 
 class Resource:
     def __init__(self, handler, path):
-        self.handler = handler
-        self.path = path
+        self._handler = handler
+        self._path = path
 
     def get_dataset(self, selector=()):
-        with self.handler.load("r") as f:
-            return f[self.path][selector]
+        with self._handler.load("r") as f:
+            return f[self._path][selector]
 
     @property
     def attributes(self):
-        with self.handler.load("r") as f:
-            return dict(f[self.path].attrs)
+        with self._handler.load("r") as f:
+            return dict(f[self._path].attrs)
 
     def get_attribute(self, name):
         attrs = self.attributes
         if not name in attrs:
-            raise AttributeMissingException("Attribute '{}' not found in '{}'".format(name, self.path))
+            raise AttributeMissingException("Attribute '{}' not found in '{}'".format(name, self._path))
         return attrs[name]
 
     def exists(self):
-        with self.handler.load("r") as f:
-            return self.path in f
+        with self._handler.load("r") as f:
+            return self._path in f
 
     def unmap(self, selector=(), mapping=lambda m, x: m[x], data=None):
         if data is None:
@@ -161,14 +161,32 @@ class ConnectivitySet(Resource):
         cells = self.get_dataset()
         for cell_ids, comp_ids, morpho_ids in zip(cells, self.compartment_set.get_dataset(), self.morphology_set.get_dataset()):
             if not int(morpho_ids[0]) in morphos:
-                print('loading morpho')
                 name = self.morphology_set.unmap_one(int(morpho_ids[0]))[0].decode('UTF-8')
-                print('loaded', name)
-                morphos[int(morpho_ids[0])] = self.handler.scaffold.morphology_repository.get_morphology(name)
+                morphos[int(morpho_ids[0])] = self._handler.scaffold.morphology_repository.get_morphology(name)
             if not int(morpho_ids[1]) in morphos:
-                print('loading morpho')
                 name = self.morphology_set.unmap_one(int(morpho_ids[1]))[0].decode('UTF-8')
-                print('loaded', name)
-                morphos[int(morpho_ids[1])] = self.handler.scaffold.morphology_repository.get_morphology(name)
+                morphos[int(morpho_ids[1])] = self._handler.scaffold.morphology_repository.get_morphology(name)
             intersections.append(Connection(*cell_ids, *comp_ids, morphos[int(morpho_ids[0])], morphos[int(morpho_ids[1])]))
         return intersections
+
+    @property
+    def meta(self):
+        '''
+            Retrieve the metadata associated with this connectivity set. Returns
+            ``None`` if the connectivity set does not exist.
+
+            :return: Metadata
+            :rtype: dict
+        '''
+        return self.attributes
+
+    @property
+    def connection_types(self):
+        '''
+            Return all the ConnectionStrategies that contributed to the creation of this
+            connectivity set.
+        '''
+        # Get list of contributing types
+        type_list = self.attributes['connection_types']
+        # Map contributing type names to contributing types
+        return list(map(lambda name: self._handler.scaffold.get_connection_type(name), type_list))
