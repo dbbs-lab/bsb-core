@@ -347,12 +347,6 @@ class Scaffold:
     def compile_output(self):
         self.output_formatter.create_output()
 
-    def translate_cell_ids(self, data, cell_type):
-        if not self.is_compiled():
-            return self.cells_by_type[cell_type.name][data,0]
-        else:
-            return np.array(self.output_formatter.get_type_map(cell_type))[data]
-
     def get_connection_type(self, name):
         if not name in self.configuration.connection_types:
             raise Exception("Unknown connection type '{}'".format(name))
