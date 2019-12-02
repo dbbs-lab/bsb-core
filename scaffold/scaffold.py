@@ -188,7 +188,7 @@ class Scaffold:
         if cell_count == 0:
             return
         # Create an ID for each cell.
-        cell_ids = self.allocate_ids(positions.shape[0])
+        cell_ids = self._allocate_ids(positions.shape[0])
         # Store cells as ID, typeID, X, Y, Z
         cell_data = np.column_stack((
             cell_ids,
@@ -221,7 +221,8 @@ class Scaffold:
         # Keep track of the order of placement, so that it can be emulated in simulators
         self.placement_stitching.append((cell_type.id, cell_ids[0], cell_count))
 
-    def allocate_ids(self, count):
+    def _allocate_ids(self, count):
+        # Allocate a set of unique cell IDs in the scaffold.
         IDs = np.array(range(self._nextId, self._nextId + count), dtype=int)
         self._nextId += count
         return IDs
