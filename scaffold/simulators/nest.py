@@ -94,7 +94,7 @@ class NestConnection(SimulationComponent):
             # If specific receptors are specified, the weight should always be positive.
             params["weight"] = np.abs(params["weight"])
             params["receptor_type"] = self.get_receptor_type()
-        params["model"] = self.adapter.suffixed(self.synapse_model)
+        params["model"] = self.adapter.suffixed(self.name)
         return params
 
     def _get_cell_types(self, key="from"):
