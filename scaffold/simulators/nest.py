@@ -556,11 +556,10 @@ class NestAdapter(SimulatorAdapter):
         '''
             Create a NEST synapse model in the simulator based on a synapse model configuration.
         '''
-        model_name = self.suffixed(connection_model.name)
-        nest_name = connection_model.synapse_model + '_' + model_name
+        nest_name = self.suffixed(connection_model.name)
         # Use the default model unless another one is specified in the configuration.
         # Alias the nest model name under our cell model name.
-        self.scaffold.report("Creating synapse model '{}' for {}".format(nest_name, model_name), 3)
+        self.scaffold.report("Copying synapse model '{}' to {}".format(connection_model.synapse_model, nest_name), 3)
         self.nest.CopyModel(connection_model.synapse_model, nest_name)
         # Get the synapse parameters
         params = connection_model.get_synapse_parameters(connection_model.synapse_model)
