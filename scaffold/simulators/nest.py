@@ -1,7 +1,7 @@
 from ..simulation import SimulatorAdapter, SimulationComponent
+from ..models import ConnectivitySet
 from ..helpers import ListEvalConfiguration
-from ..exceptions import NestKernelException, NestModelException, \
-    SimulationWarning, KernelWarning, ConnectivityWarning
+from ..exceptions import *
 import numpy as np
 from sklearn.neighbors import KDTree
 
@@ -54,6 +54,7 @@ class NestConnection(SimulationComponent):
         'plastic': False,
         'hetero': None,
         'teaching': None,
+        'is_teaching': False,
     }
 
     def validate(self):
@@ -312,6 +313,17 @@ class NestAdapter(SimulatorAdapter):
             cell_model.neuron_model = cell_model.neuron_model if hasattr(cell_model, "neuron_model") else self.default_neuron_model
         for connection_model in self.connection_models.values():
             connection_model.synapse_model = connection_model.synapse_model if hasattr(connection_model, "synapse_model") else self.default_synapse_model
+            connection_model.plastic = connection_model.plastic if hasattr(connection_model, "plastic") else connection_model.defaults['plastic']
+            connection_model.hetero = connection_model.hetero if hasattr(connection_model, "hetero") else connection_model.defaults['hetero']
+            if connection_model.plastic and connection_model.hetero:
+                if not hasattr(connection_model, "teaching"):
+                    raise ConfigurationException("Required attribute 'teaching' is missing for heteroplastic connection '{}'".format(connection_model.get_config_node()))
+                if connection_model.teaching not in self.connection_models:
+                    raise ConfigurationException("Teaching connection '{}' does not exist".format(connection_model.teaching))
+                # Set the is_teaching parameter of teaching connection to true
+                teaching_connection = self.connection_models[connection_model.teaching]
+                teaching_connection.is_teaching = True
+                teaching_connection.add_after(connection_model.name)
 
     def install_modules(self):
         for module in self.modules:
@@ -352,8 +364,8 @@ class NestAdapter(SimulatorAdapter):
         '''
             Connect the cells in NEST according to the connection model configurations
         '''
-        track_models = [] # Keeps track of already added models if there'smodel=synapse_model more than 1 stitch per model
-        for connection_model in connection_models.values():
+        order = NestConnection.resolve_order(connection_models)
+        for connection_model in order:
             name = connection_model.name
             dataset_name = 'cells/connections/' + name
             if not dataset_name in hdf5:
@@ -363,31 +375,36 @@ class NestAdapter(SimulatorAdapter):
             # Translate the id's from 0 based scaffold ID's to NEST's 1 based ID's with '+ 1'
             presynaptic_cells = np.array(connectivity_matrix[:,0] + 1, dtype=int)
             postsynaptic_cells = np.array(connectivity_matrix[:,1] + 1, dtype=int)
-            if name not in track_models: # Is this the first time encountering this model?
-                track_models.append(name)
-                # Create the synapse model in the simulator
-                self.create_synapse_model(connection_model)
-                # Create the volume transmitter if the connection is plastic with heterosynaptic plasticity
-                if connection_model.plastic == True and connection_model.hetero == True:
-                    # Create the volume transmitters
-                    self.scaffold.report("Creating volume transmitter for "+name,3)
-                    self.create_volume_transmitter(connection_model, postsynaptic_cells)
+            # Accessing the postsynaptic type to be associated to the volume transmitter of the synapse
+            cs = ConnectivitySet(self.scaffold.output_formatter, name)
+            postsynaptic_type = cs.connection_types[0].to_cell_types[0]
+
+            # Create the synapse model in the simulator
+            self.create_synapse_model(connection_model)
             # Set the specifications NEST allows like: 'rule', 'autapses', 'multapses'
             connection_specifications = {'rule': 'one_to_one'}
             # Get the connection parameters from the configuration
             connection_parameters = connection_model.get_connection_parameters()
             # Create the connections in NEST
-            self.scaffold.report("Creating connections "+name,3)
+            self.scaffold.report("Creating connections " + name,3)
             self.nest.Connect(presynaptic_cells, postsynaptic_cells, connection_specifications, connection_parameters)
+
             # Workaround for https://github.com/alberto-antonietti/CerebNEST/issues/10
-            if connection_model.plastic == True:
-                # Associate the presynaptic cells of each target cell to the
-                # volume transmitter of that target cell
-                for i,target in enumerate(postsynaptic_cells):
-                    # Get connections between all presynaptic cells and target postsynaptic cell
-                    connections_to_target = self.nest.GetConnections(presynaptic_cells.tolist(),[target])
-                    # Associate the volume transmitter number to them
-                    self.nest.SetStatus(connections_to_target ,{"vt_num": float(i)})
+            if connection_model.plastic and connection_model.hetero:
+                # Create the volume transmitter if the connection is plastic with heterosynaptic plasticity
+                self.scaffold.report("Creating volume transmitter for "+name,3)
+                volume_transmitters = self.create_volume_transmitter(connection_model, postsynaptic_cells)
+                postsynaptic_type._vt_id = volume_transmitters
+                # # Associate the volume transmitters to their ids
+                # for i,vti in enumerate(volume_transmitters):
+                #     self.nest.SetStatus([vti],{"vt_num" : float(i)})
+
+
+            if connection_model.is_teaching:
+                # We need to connect the pre-synaptic neurons also to the volume transmitter associated to each post-synaptic create_neurons
+                # suppose that the vt ids are stored in a variable self.cell_models["vt_"+name].identifiers
+                postsynaptic_volume_transmitters = postsynaptic_cells - postsynaptic_cells[0] + postsynaptic_type._vt_id[0]
+                self.nest.Connect(presynaptic_cells, postsynaptic_volume_transmitters, connection_specifications, {"model": "static_synapse", "weight": 1.0, "delay": 1.0})
 
     def create_devices(self, devices):
         '''
@@ -459,6 +476,7 @@ class NestAdapter(SimulatorAdapter):
         	self.nest.SetStatus([vti],{"deliver_interval" : 2})            # TO CHECK
             # Waiting for Albe to clarify necessity of this parameter
         	self.nest.SetStatus([vti],{"vt_num" : n})
+        return vt
 
     def execute_command(self, command, *args, exceptions={}):
         try:

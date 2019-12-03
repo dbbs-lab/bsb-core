@@ -31,6 +31,9 @@ class ConnectionStrategy(ConfigurableClass, SortableByAfter):
     def has_after(self):
         return hasattr(self, "after")
 
+    def create_after(self):
+        self.after = []
+
     def get_connection_matrices(self):
         return list(map(lambda tag: self.scaffold.cell_connections_by_tag[tag], self.tags))
 

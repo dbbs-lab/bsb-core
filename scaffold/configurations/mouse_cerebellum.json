@@ -693,16 +693,17 @@
           }
         },
         "parallel_fiber_to_purkinje": {
-          "plastic": false,
+          "plastic": true,
           "hetero": false,
           "teaching": "io_to_purkinje",
+          "synapse_model": "stdp_synapse_sinexp",
           "connection": {
             "weight": 0.007,
             "delay": 5.0
           },
           "synapse": {
             "static_synapse": {},
-            "stdp_connection_sinexp": {
+            "stdp_synapse_sinexp": {
               "A_minus": 0.5,
               "A_plus": 0.05,
               "Wmin": 0.0,
@@ -720,7 +721,7 @@
           },
           "synapse": {
             "static_synapse": {},
-            "stdp_connection_alpha": {
+            "stdp_synapse_alpha": {
               "A_minus": 0.5,
               "A_plus": 0.05,
               "Wmin": 0.0,
@@ -738,7 +739,7 @@
           },
           "synapse": {
             "static_synapse": {},
-            "stdp_connection_alpha": {
+            "stdp_synapse_alpha": {
               "A_minus": 0.5,
               "A_plus": 0.05,
               "Wmin": 0.0,

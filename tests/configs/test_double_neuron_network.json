@@ -84,11 +84,11 @@
           "eglif_cond_alpha_multisyn": {
             "Vinit": -62.0,
             "lambda_0":1.0,
-            "delta_V":0.3,
+            "tau_V":0.3,
             "tau_m": 24.15,
-            "Vth_init": -41.0,
-            "Ie_const": -0.888,
-            "adaptC": 0.022,
+            "V_th": -41.0,
+            "I_e": -0.888,
+            "kadap": 0.022,
             "k1": 0.311,
             "k2": 0.041,
             "A1": 0.01,
@@ -114,11 +114,11 @@
           "eglif_cond_alpha_multisyn": {
             "Vinit": -62.0,
             "lambda_0":1.0,
-            "delta_V":0.3,
+            "tau_V":0.3,
             "tau_m": 24.15,
-            "Vth_init": -41.0,
-            "Ie_const": -0.888,
-            "adaptC": 0.022,
+            "V_th": -41.0,
+            "I_e": -0.888,
+            "kadap": 0.022,
             "k1": 0.311,
             "k2": 0.041,
             "A1": 0.01,
@@ -133,10 +133,8 @@
       "connection_models": {
         "from_cell_to_cell": {
           "connection": {
-            "parameters": {
               "weight": -9.0,
               "delay": 4.0
-            }
           },
           "synapse": {
             "static_synapse": {}

@@ -328,12 +328,21 @@ class SortableByAfter:
         pass
 
     @abc.abstractmethod
+    def create_after(self):
+        pass
+
+    @abc.abstractmethod
     def get_after(self):
         pass
 
     @abc.abstractmethod
     def get_ordered(self, objects):
         pass
+
+    def add_after(self, after_item):
+        if not self.has_after():
+            self.create_after()
+        self.get_after().append(after_item)
 
     def is_after_satisfied(self, objects):
         '''

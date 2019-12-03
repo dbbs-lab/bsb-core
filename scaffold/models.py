@@ -47,6 +47,9 @@ class CellType(SortableByAfter):
     def get_after(self):
         return None if not self.has_after() else self.placement.after
 
+    def create_after(self):
+        self.placement.after = []
+
     def get_placed_count(self):
         return self.scaffold.statistics.cells_placed[self.name]
 
