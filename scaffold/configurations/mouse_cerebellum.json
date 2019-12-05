@@ -732,7 +732,7 @@
         "parallel_fiber_to_stellate": {
           "plastic": false,
           "hetero":false,
-          "teaching": "io_to_basket",
+          "teaching": "io_to_stellate",
           "connection": {
             "weight": 0.015,
             "delay": 5.0
