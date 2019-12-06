@@ -3,14 +3,10 @@ import setuptools
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
-extras = {
-    'with-plotting': ['plotly>=4.1.0']
-}
-
 setuptools.setup(
      name='dbbs-scaffold',
-     version='3.0.0a6',
-     author="Robin De Schepper, Alice Geminiani, Elisa Marenzi, Stefano Casali, Alberto Antonietti, Claudia Casselato, Egidio D'Angelo",
+     version='3.0.0',
+     author="Robin De Schepper, Alice Geminiani, Stefano Casali, Alberto Antonietti, Claudia Casselato, Egidio D'Angelo",
      author_email="robingilbert.deschepper@unipv.it",
      description="A morphologically detailed scaffolding package for the scientific modelling of the cerebellum.",
      include_package_data=True,
@@ -35,7 +31,7 @@ setuptools.setup(
          'h5py>=2.9.0',
          'numpy>=1.16.4',
          'scipy>=1.3.1',
-         'scikit-learn>=0.20.3'
-     ],
-     extras_require=extras
+         'scikit-learn>=0.20.3',
+         'plotly>=4.1.0'
+     ]
  )
