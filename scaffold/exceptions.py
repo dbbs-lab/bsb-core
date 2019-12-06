@@ -32,10 +32,19 @@ class InvalidDistributionException(ConfigurableCastException):
 class NestException(ScaffoldException):
     pass
 
-class NestKernelException(NestException):
+class AdapterException(NestException):
     pass
 
-class NestModelException(NestException):
+class NestKernelException(AdapterException):
+    pass
+
+class KernelLockedException(NestKernelException):
+    pass
+
+class SuffixTakenException(KernelLockedException):
+    pass
+
+class NestModelException(Exception):
     pass
 
 ## Morphologies

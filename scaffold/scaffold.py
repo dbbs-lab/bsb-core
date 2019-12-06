@@ -97,6 +97,9 @@ class Scaffold:
 
     def _initialise_simulations(self):
         for simulation in self.configuration.simulations.values():
+            self._initialise_simulation(simulation)
+
+    def _initialise_simulation(self, simulation):
             simulation.initialise(self)
             for sim_cell in simulation.cell_models.values():
                 sim_cell.initialise(self)
@@ -373,3 +376,13 @@ class Scaffold:
 
     def is_compiled(self):
         return self.output_formatter.exists()
+
+    def create_adapter(self, simulation_name):
+        if not simulation_name in self.configuration.simulations:
+            raise Exception("Unknown simulation '{}'".format(simulation_name))
+        simulations = self.configuration._parsed_config["simulations"]
+        simulation_config = simulations[simulation_name]
+        adapter = self.configuration.init_simulation(simulation_name, simulation_config, return_obj=True)
+        self.configuration.finalize_simulation(simulation_name, simulation_config, adapter)
+        self._initialise_simulation(adapter)
+        return adapter

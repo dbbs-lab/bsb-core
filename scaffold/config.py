@@ -625,7 +625,7 @@ class JSONConfig(ScaffoldConfig):
         self.add_placement_strategy(placement)
         return placement
 
-    def init_simulation(self, name, section):
+    def init_simulation(self, name, section, return_obj=False):
         '''
             Initialize a simulation from a configuration node. Also initializes
             the subcomponents: `cell_models`, `connection_models` and `devices`.
@@ -664,10 +664,14 @@ class JSONConfig(ScaffoldConfig):
         self.load_attr(config=section, attr='connection_models', init=init_component_factory('connection_models'), node_name=node_name)
         self.load_attr(config=section, attr='devices', init=init_component_factory('devices'), node_name=node_name)
 
+        if return_obj:
+            return simulation
         # Add the simulation into the configuration
         self.add_simulation(simulation)
 
-    def finalize_simulation(self, simulation_name, section):
+    def finalize_simulation(self, simulation_name, section, simulation=None):
+        if simulation is None:
+            simulation = self.simulations[simulation_name]
         pass
 
     def finalize_layers(self):

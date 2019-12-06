@@ -17,6 +17,18 @@
 
   },
   "simulations": {
+    "test": {
+      "simulator": "nest",
+      "duration": 10,
+      "cell_models": {
 
+      },
+      "connection_models": {
+
+      },
+      "devices": {
+
+      }
+    }
   }
 }

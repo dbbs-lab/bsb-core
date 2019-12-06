@@ -2,7 +2,7 @@ from ..simulation import SimulatorAdapter, SimulationComponent
 from ..models import ConnectivitySet
 from ..helpers import ListEvalConfiguration
 from ..exceptions import *
-import numpy as np
+import os, json, weakref, numpy as np
 from sklearn.neighbors import KDTree
 
 class NestCell(SimulationComponent):
@@ -11,8 +11,7 @@ class NestCell(SimulationComponent):
     required = ['parameters']
 
     def boot(self):
-        self.identifiers = []
-        self.receptor_specifications = {}
+        self.reset()
         # The cell model contains a 'parameters' attribute and many sets of
         # neuron model specific sets of parameters. Each set of neuron model
         # specific parameters can define receptor specifications.
@@ -27,6 +26,12 @@ class NestCell(SimulationComponent):
     def validate(self):
         pass
 
+    def reset(self):
+        self.nest_identifiers = []
+        self.scaffold_identifiers = []
+        self.scaffold_to_nest_map = {}
+        self.receptor_specifications = {}
+
     def get_parameters(self):
         # Get the default synapse parameters
         params = self.parameters.copy()
@@ -39,6 +44,12 @@ class NestCell(SimulationComponent):
 
     def get_receptor_specifications(self):
         return self.receptor_specifications[self.neuron_model] if self.neuron_model in self.receptor_specifications else {}
+
+    def build_identifier_map(self):
+        self.scaffold_to_nest_map = dict(zip(self.scaffold_identifiers, self.nest_identifiers))
+
+    def get_nest_ids(self, ids):
+        return [self.scaffold_to_nest_map[id] for id in ids]
 
 class NestConnection(SimulationComponent):
     node_name = 'simulations.?.connection_models'
@@ -58,6 +69,8 @@ class NestConnection(SimulationComponent):
     }
 
     def validate(self):
+        if not 'weight' in self.connection:
+            raise ConfigurationException("Missing 'weight' in the connection parameters of " + self.node_name + "." + self.name)
         if self.plastic:
             # Set plasticity synapse dict defaults
             synapse_defaults = {
@@ -83,7 +96,7 @@ class NestConnection(SimulationComponent):
             # If specific receptors are specified, the weight should always be positive.
             params["weight"] = np.abs(params["weight"])
             params["receptor_type"] = self.get_receptor_type()
-        params["model"] = self.synapse_model
+        params["model"] = self.adapter.suffixed(self.name)
         return params
 
     def _get_cell_types(self, key="from"):
@@ -163,7 +176,7 @@ class NestDevice(SimulationComponent):
         '''
             Return the targets of the stimulation to pass into the nest.Connect call.
         '''
-        return (np.array(self._get_targets(), dtype=int) + 1).tolist()
+        return self.adapter.get_nest_ids(np.array(self._get_targets(), dtype=int))
 
     def _targets_local(self):
         '''
@@ -240,15 +253,35 @@ class NestAdapter(SimulatorAdapter):
     def __init__(self):
         super().__init__()
         self.is_prepared = False
+        self.suffix = ''
+        self.multi = False
+        self.has_lock = False
+        self.global_identifier_map = {}
+
+        def finalize_self(weak_obj):
+            if weak_obj() is not None:
+                weak_obj().__safedel__()
+
+        r = weakref.ref(self)
+        weakref.finalize(self, finalize_self, r)
+
+    def __safedel__(self):
+        if self.has_lock:
+            self.release_lock()
 
     def prepare(self, hdf5):
+        if self.is_prepared:
+            raise AdapterException("Attempting to prepare the same adapter twice. Please use `scaffold.create_adapter` for multiple adapter instances of the same simulation.")
         self.scaffold.report("Importing  NEST...", 2)
         import nest
         self.nest = nest
+        self.scaffold.report("Locking NEST kernel...", 2)
+        self.lock()
         self.scaffold.report("Installing  NEST modules...", 2)
         self.install_modules()
-        self.scaffold.report("Initializing NEST kernel...", 2)
-        self.reset_kernel()
+        if self.in_full_control():
+            self.scaffold.report("Initializing NEST kernel...", 2)
+            self.reset_kernel()
         self.scaffold.report("Creating neurons...",2)
         self.create_neurons(self.cell_models)
         self.scaffold.report("Creating devices...",2)
@@ -257,6 +290,74 @@ class NestAdapter(SimulatorAdapter):
         self.connect_neurons(self.connection_models, hdf5)
         self.is_prepared = True
         return nest
+
+    def in_full_control(self):
+        if not self.has_lock or not self.read_lock():
+            raise AdapterException("Can't check if we're in full control of the kernel: we have no lock on the kernel.")
+        return not self.multi or len(self.read_lock()["suffixes"]) == 1
+
+    def lock(self):
+        if not self.multi:
+            self.single_lock()
+        else:
+            self.multi_lock()
+        self.has_lock = True
+
+    def single_lock(self):
+        try:
+            lock_data = {"multi": False}
+            self.write_lock(lock_data, mode="x")
+        except FileExistsError as e:
+            raise KernelLockedException("This adapter is not in multi-instance mode and another adapter is already managing the kernel.") from None
+
+    def multi_lock(self):
+        lock_data = self.read_lock()
+        if lock_data is None:
+            lock_data = {"multi": True, "suffixes": []}
+        if not lock_data["multi"]:
+            raise KernelLockedException("The kernel is locked by a single-instance adapter and cannot be managed by multiple instances.")
+        if self.suffix in lock_data["suffixes"]:
+            raise SuffixTakenException("The kernel is already locked by an instance with the same suffix.")
+        lock_data["suffixes"].append(self.suffix)
+        self.write_lock(lock_data)
+
+    def read_lock(self):
+        try:
+            with open(self.get_lock_path(), "r") as lock:
+                return json.loads(lock.read())
+        except FileNotFoundError as e:
+            return None
+
+    def write_lock(self, lock_data, mode="w"):
+        with open(self.get_lock_path(), mode) as lock:
+            lock.write(json.dumps(lock_data))
+
+    def enable_multi(self, suffix):
+        self.suffix = suffix
+        self.multi = True
+
+    def release_lock(self):
+        if not self.has_lock:
+            raise AdapterException("Cannot unlock kernel from an adapter that has no lock on it.")
+        self.has_lock = False
+        lock_data = self.read_lock()
+        if lock_data["multi"]:
+            if len(lock_data["suffixes"]) == 1:
+                self.delete_lock_file()
+            else:
+                lock_data["suffixes"].remove(self.suffix)
+                self.write_lock(lock_data)
+        else:
+            self.delete_lock_file()
+
+    def delete_lock_file(self):
+        os.remove(self.get_lock_path())
+
+    def get_lock_name(self):
+        return "kernel_" + str(os.getpid()) + ".lck"
+
+    def get_lock_path(self):
+        return self.nest.__path__[0] + '/' + self.get_lock_name()
 
     def reset_kernel(self):
         self.nest.set_verbosity(self.verbosity)
@@ -267,6 +368,14 @@ class NestAdapter(SimulatorAdapter):
             'overwrite_files': True,
             'data_path': self.scaffold.output_formatter.get_simulator_output_path(self.simulator_name)
         })
+
+    def reset(self):
+        self.is_prepared = False
+        if hasattr(self, "nest"):
+            self.reset_kernel()
+        self.global_identifier_map = {}
+        for cell_model in self.cell_models.values():
+            cell_model.reset()
 
     def get_master_seed(self):
         # Use a constant reproducible master seed
@@ -307,6 +416,8 @@ class NestAdapter(SimulatorAdapter):
         self.scaffold.report("Simulating...", 2)
         simulator.Simulate(self.duration)
         self.scaffold.report("Simulation finished.", 2)
+        if self.has_lock:
+            self.release_lock()
 
     def validate(self):
         for cell_model in self.cell_models.values():
@@ -335,6 +446,8 @@ class NestAdapter(SimulatorAdapter):
                 else:
                     raise
 
+    def get_nest_ids(self, ids):
+        return [self.global_identifier_map[id] for id in ids]
 
     def create_neurons(self, cell_models):
         '''
@@ -347,18 +460,23 @@ class NestAdapter(SimulatorAdapter):
         for cell_type_id, start_id, count in self.scaffold.placement_stitching:
             # Get the cell_type name from the type id to type name map.
             name = self.scaffold.configuration.cell_type_map[cell_type_id]
+            nest_name = self.suffixed(name)
             if name not in track_models: # Is this the first time encountering this model?
                 # Create the cell model in the simulator
-                self.scaffold.report("Creating "+name+"...", 3)
+                self.scaffold.report("Creating " + nest_name + "...", 3)
                 self.create_model(cell_models[name])
                 track_models.append(name)
             # Create the same amount of cells that were placed in this stitch.
-            self.scaffold.report("Creating {} {}...".format(count, name), 3)
-            identifiers = self.nest.Create(name, count)
-            self.cell_models[name].identifiers.extend(identifiers)
-            # Check if the stitching is going OK.
-            if identifiers[0] != start_id + 1:
-                raise Exception("Could not match the scaffold cell identifiers to NEST identifiers! Cannot continue.")
+            self.scaffold.report("Creating {} {}...".format(count, nest_name), 3)
+            identifiers = self.nest.Create(nest_name, count)
+            self.cell_models[name].scaffold_identifiers.extend([start_id + i for i in range(count)])
+            self.cell_models[name].nest_identifiers.extend(identifiers)
+
+        # Build the identifier map after stitch reconstruction
+        for cell_model in self.cell_models.values():
+            cell_model.build_identifier_map()
+            # Add the cell model map to the global map
+            self.global_identifier_map.update(cell_model.scaffold_to_nest_map)
 
     def connect_neurons(self, connection_models, hdf5):
         '''
@@ -367,14 +485,15 @@ class NestAdapter(SimulatorAdapter):
         order = NestConnection.resolve_order(connection_models)
         for connection_model in order:
             name = connection_model.name
+            nest_name = self.suffixed(name)
             dataset_name = 'cells/connections/' + name
             if not dataset_name in hdf5:
                 self.scaffold.warn('Expected connection dataset "{}" not found. Skipping it.'.format(dataset_name), ConnectivityWarning)
                 continue
             connectivity_matrix = hdf5[dataset_name]
-            # Translate the id's from 0 based scaffold ID's to NEST's 1 based ID's with '+ 1'
-            presynaptic_cells = np.array(connectivity_matrix[:,0] + 1, dtype=int)
-            postsynaptic_cells = np.array(connectivity_matrix[:,1] + 1, dtype=int)
+            # Get the NEST identifiers for the connections made in the connectivity matrix
+            presynaptic_cells = self.get_nest_ids(np.array(connectivity_matrix[:,0], dtype=int))
+            postsynaptic_cells = self.get_nest_ids(np.array(connectivity_matrix[:,1], dtype=int))
             # Accessing the postsynaptic type to be associated to the volume transmitter of the synapse
             cs = ConnectivitySet(self.scaffold.output_formatter, name)
             postsynaptic_type = cs.connection_types[0].to_cell_types[0]
@@ -386,7 +505,7 @@ class NestAdapter(SimulatorAdapter):
             # Get the connection parameters from the configuration
             connection_parameters = connection_model.get_connection_parameters()
             # Create the connections in NEST
-            self.scaffold.report("Creating connections " + name,3)
+            self.scaffold.report("Creating connections " + nest_name,3)
             self.nest.Connect(presynaptic_cells, postsynaptic_cells, connection_specifications, connection_parameters)
 
             # Workaround for https://github.com/alberto-antonietti/CerebNEST/issues/10
@@ -444,24 +563,26 @@ class NestAdapter(SimulatorAdapter):
         '''
         # Use the default model unless another one is specified in the configuration.A_minus
         # Alias the nest model name under our cell model name.
-        self.nest.CopyModel(cell_model.neuron_model, cell_model.name)
+        nest_name = self.suffixed(cell_model.name)
+        self.nest.CopyModel(cell_model.neuron_model, nest_name)
         # Get the synapse parameters
         params = cell_model.get_parameters()
         # Set the parameters in NEST
-        self.nest.SetDefaults(cell_model.name, params)
+        self.nest.SetDefaults(nest_name, params)
 
     def create_synapse_model(self, connection_model):
         '''
             Create a NEST synapse model in the simulator based on a synapse model configuration.
         '''
+        nest_name = self.suffixed(connection_model.name)
         # Use the default model unless another one is specified in the configuration.
         # Alias the nest model name under our cell model name.
-        self.scaffold.report("Creating synapse model '{}' for {}".format(connection_model.synapse_model, connection_model.name), 0)
-        self.nest.CopyModel(connection_model.synapse_model, connection_model.name)
+        self.scaffold.report("Copying synapse model '{}' to {}".format(connection_model.synapse_model, nest_name), 3)
+        self.nest.CopyModel(connection_model.synapse_model, nest_name)
         # Get the synapse parameters
         params = connection_model.get_synapse_parameters(connection_model.synapse_model)
         # Set the parameters in NEST
-        self.nest.SetDefaults(connection_model.name, params)
+        self.nest.SetDefaults(nest_name, params)
 
     # This function should be simplified by providing a CreateTeacher function in the
     # CerebNEST module. See https://github.com/nest/nest-simulator/issues/1317
@@ -492,6 +613,11 @@ class NestAdapter(SimulatorAdapter):
                     raise handler["exception"]
             else:
                 raise
+
+    def suffixed(self, str):
+        if self.suffix == '':
+            return str
+        return str + '_' + self.suffix
 
 def catch_dict_error(message):
     def handler(e):

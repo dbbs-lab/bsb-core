@@ -4,10 +4,13 @@ from scaffold.scaffold import Scaffold
 from scaffold.config import JSONConfig
 from scaffold.simulators.nest import NestCell
 from scaffold.models import Layer, CellType
+from scaffold.exceptions import AdapterException, KernelLockedException, \
+    SuffixTakenException
 
 def relative_to_tests_folder(path):
     return os.path.join(os.path.dirname(__file__), path)
 
+minimal_config = relative_to_tests_folder("configs/test_minimal_simulation.json")
 single_neuron_config = relative_to_tests_folder("configs/test_single_neuron.json")
 double_neuron_config = relative_to_tests_folder("configs/test_double_neuron.json")
 double_nn_config = relative_to_tests_folder("configs/test_double_neuron_network.json")
@@ -19,6 +22,7 @@ class TestKernelManagement(unittest.TestCase):
     # TODO: Add set_threads exception tests here
     pass
 
+
 @unittest.skipIf(importlib.find_loader('nest') is None, "NEST is not importable.")
 class TestSingleNeuronTypeSetup(unittest.TestCase):
 
@@ -27,21 +31,25 @@ class TestSingleNeuronTypeSetup(unittest.TestCase):
         self.scaffold = Scaffold(config)
         self.scaffold.compile_network()
         self.nest_adapter = self.scaffold.configuration.simulations['test_single_neuron']
+        self.nest_adapter.reset()
 
+    def tearDown(self):
+        if self.nest_adapter.has_lock:
+            self.nest_adapter.release_lock()
 
     def test_single_neuron(self):
         self.scaffold.run_simulation("test_single_neuron")
         test_cell_model = self.nest_adapter.cell_models["test_cell"]
-        self.assertEqual(test_cell_model.identifiers, list(range(1,5)))
+        self.assertEqual(test_cell_model.nest_identifiers, list(range(1,5)))
 
-    #def test_single_neuron_parameters(self):    # Parameters
-        test_neuron_status = self.nest_adapter.nest.GetStatus(test_cell_model.identifiers)
+        test_neuron_status = self.nest_adapter.nest.GetStatus(test_cell_model.nest_identifiers)
         self.assertEqual(test_neuron_status[0]['t_ref'], 1.5)
         self.assertEqual(test_neuron_status[0]['C_m'], 7.0)
         self.assertEqual(test_neuron_status[0]['V_th'], -41.0)
         self.assertEqual(test_neuron_status[0]['V_reset'], -70.0)
         self.assertEqual(test_neuron_status[0]['E_L'], -62.0)
         self.assertEqual(test_neuron_status[0]['I_e'], 0.0)
+
 
 @unittest.skipIf(importlib.find_loader('nest') is None, "NEST is not importable.")
 class TestDoubleNeuronTypeSetup(unittest.TestCase):
@@ -53,17 +61,22 @@ class TestDoubleNeuronTypeSetup(unittest.TestCase):
         cls.scaffold = Scaffold(config)
         cls.scaffold.compile_network()
         cls.nest_adapter = cls.scaffold.configuration.simulations['test_double_neuron']
+        cls.scaffold.run_simulation("test_double_neuron")
+
+    @classmethod
+    def tearDownClass(self):
+        if self.nest_adapter.has_lock:
+            self.nest_adapter.release_lock()
 
     def test_double_neuron_creation(self):
-        self.scaffold.run_simulation("test_double_neuron")
         from_cell_model = self.nest_adapter.cell_models["from_cell"]
-        self.assertEqual(from_cell_model.identifiers, [1, 2, 3, 4])
-        to_cell_model = self.nest_adapter.cell_models["to_cell"].identifiers
+        self.assertEqual(from_cell_model.nest_identifiers, [1, 2, 3, 4])
+        to_cell_model = self.nest_adapter.cell_models["to_cell"].nest_identifiers
         self.assertEqual(to_cell_model, [5, 6, 7, 8])
 
     def test_double_neuron_iaf_params(self):
         from_cell_model = self.nest_adapter.cell_models["from_cell"]
-        from_neuron_status = self.nest_adapter.nest.GetStatus(from_cell_model.identifiers)
+        from_neuron_status = self.nest_adapter.nest.GetStatus(from_cell_model.nest_identifiers)
         self.assertEqual(from_neuron_status[0]['t_ref'], 1.5)
         self.assertEqual(from_neuron_status[0]['C_m'], 7.0)
         self.assertEqual(from_neuron_status[0]['V_th'], -41.0)
@@ -73,7 +86,7 @@ class TestDoubleNeuronTypeSetup(unittest.TestCase):
 
     def test_double_neuron_eglif_params(self):
         to_cell_model = self.nest_adapter.cell_models["to_cell"]
-        to_neuron_status = self.nest_adapter.nest.GetStatus(to_cell_model.identifiers)
+        to_neuron_status = self.nest_adapter.nest.GetStatus(to_cell_model.nest_identifiers)
         self.assertEqual(to_neuron_status[0]['t_ref'], 1.5)
         self.assertEqual(to_neuron_status[0]['C_m'], 7.0)
         self.assertEqual(to_neuron_status[0]['V_th'], -41.0)
@@ -89,6 +102,7 @@ class TestDoubleNeuronTypeSetup(unittest.TestCase):
         self.assertEqual(to_neuron_status[0]['A1'], 0.01)
         self.assertEqual(to_neuron_status[0]['A2'], -0.94)
 
+
 @unittest.skipIf(importlib.find_loader('nest') is None, "NEST is not importable.")
 class TestDoubleNeuronNetworkStatic(unittest.TestCase):
 
@@ -100,12 +114,18 @@ class TestDoubleNeuronNetworkStatic(unittest.TestCase):
         cls.scaffold.compile_network()
         cls.nest_adapter = cls.scaffold.configuration.simulations['test_double_neuron_network_static']
 
+    def setUp(self):
+        self.nest_adapter.reset()
+
+    def tearDown(self):
+        if self.nest_adapter.has_lock:
+            self.nest_adapter.release_lock()
 
     def test_double_neuron_network(self):
         self.scaffold.run_simulation("test_double_neuron_network_static")
         source_cell_model = self.nest_adapter.cell_models["from_cell"]
         target_cell_model = self.nest_adapter.cell_models["to_cell"]
-        conn = self.nest_adapter.nest.GetConnections(source_cell_model.identifiers,target_cell_model.identifiers)
+        conn = self.nest_adapter.nest.GetConnections(source_cell_model.nest_identifiers,target_cell_model.nest_identifiers)
         self.assertIsNotNone(conn)
 
     def test_double_neuron_network_params(self):
@@ -113,11 +133,9 @@ class TestDoubleNeuronNetworkStatic(unittest.TestCase):
         source_cell_model = self.nest_adapter.cell_models["from_cell"]
         target_cell_model = self.nest_adapter.cell_models["to_cell"]
         conn = self.nest_adapter.nest.GetConnections(source_cell_model.identifiers,target_cell_model.identifiers)
-        if target_cell_model.neuron_model == "eglif_cond_alpha_multisyn":
-            self.assertEqual(self.nest_adapter.nest.GetStatus(conn,"weight"), tuple(9.0*np.ones(len(conn))))
-        else:
-            self.assertEqual(self.nest_adapter.nest.GetStatus(conn,"weight"), tuple(-9.0*np.ones(len(conn))))
+        self.assertEqual(self.nest_adapter.nest.GetStatus(conn,"weight"), tuple(-9.0*np.ones(len(conn))))
         self.assertEqual(self.nest_adapter.nest.GetStatus(conn,"delay"), tuple(4.0*np.ones(len(conn))))
+
 
 @unittest.skipIf(importlib.find_loader('nest') is None, "NEST is not importable.")
 class TestDoubleNeuronNetworkHomosyn(unittest.TestCase):
@@ -130,19 +148,25 @@ class TestDoubleNeuronNetworkHomosyn(unittest.TestCase):
         cls.scaffold.compile_network()
         cls.nest_adapter = cls.scaffold.configuration.simulations['test_double_neuron_network_homosyn']
 
+    def setUp(self):
+        self.nest_adapter.reset()
+
+    def tearDown(self):
+        if self.nest_adapter.has_lock:
+            self.nest_adapter.release_lock()
 
     def test_double_neuron_network(self):
         self.scaffold.run_simulation("test_double_neuron_network_homosyn")
         source_cell_model = self.nest_adapter.cell_models["from_cell"]
         target_cell_model = self.nest_adapter.cell_models["to_cell"]
-        conn = self.nest_adapter.nest.GetConnections(source_cell_model.identifiers,target_cell_model.identifiers)
+        conn = self.nest_adapter.nest.GetConnections(source_cell_model.nest_identifiers,target_cell_model.nest_identifiers)
         self.assertIsNotNone(conn)
 
     def test_double_neuron_network_plasticity(self):
         import numpy as np
         source_cell_model = self.nest_adapter.cell_models["from_cell"]
         target_cell_model = self.nest_adapter.cell_models["to_cell"]
-        conn = self.nest_adapter.nest.GetConnections(source_cell_model.identifiers,target_cell_model.identifiers)
+        conn = self.nest_adapter.nest.GetConnections(source_cell_model.nest_identifiers,target_cell_model.nest_identifiers)
         # Verify that weights re changing
         self.assertNotEqual(self.nest_adapter.nest.GetStatus(conn,"weight"), tuple(9.0*np.ones(len(conn))))
         self.assertEqual(self.nest_adapter.nest.GetStatus(conn,"delay"), tuple(4.0*np.ones(len(conn))))
@@ -158,10 +182,10 @@ class TestDoubleNeuronNetworkHeterosyn(unittest.TestCase):
         cls.scaffold = Scaffold(config)
         cls.scaffold.compile_network()
         cls.nest_adapter = cls.scaffold.configuration.simulations['test_double_neuron_network_heterosyn']
+        self.scaffold.run_simulation("test_double_neuron_network_heterosyn")
 
 
     def test_double_neuron_network(self):
-        self.scaffold.run_simulation("test_double_neuron_network_heterosyn")
         source_cell_model = self.nest_adapter.cell_models["from_cell"]
         target_cell_model = self.nest_adapter.cell_models["to_cell"]
         conn = self.nest_adapter.nest.GetConnections(source_cell_model.identifiers,target_cell_model.identifiers)
@@ -200,3 +224,151 @@ class TestDoubleNeuronNetworkHeterosyn(unittest.TestCase):
         with self.assertRaises(ConfigurationException) as ce:
             config = JSONConfig(stream=stream)
             self.scaffold = Scaffold(config)
+
+
+@unittest.skipIf(importlib.find_loader('nest') is None, "NEST is not importable.")
+class TestMultiInstance(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(self):
+        super(TestMultiInstance, self).setUpClass()
+        import nest
+        self.nest = nest
+        config = JSONConfig(file=single_neuron_config)
+        self.scaffold = Scaffold(config)
+        self.scaffold.compile_network()
+        self.hdf5 = self.scaffold.output_formatter.file
+        self.nest_adapter_0 = self.scaffold.get_simulation('test_single_neuron')
+        self.nest_adapter_1 = self.scaffold.create_adapter('test_single_neuron')
+        self.nest_adapter_2 = self.scaffold.create_adapter('test_single_neuron')
+        self.nest_adapter_multi_1 = self.scaffold.create_adapter('test_single_neuron')
+        self.nest_adapter_multi_1.enable_multi('first')
+        self.nest_adapter_multi_1b = self.scaffold.create_adapter('test_single_neuron')
+        self.nest_adapter_multi_1b.enable_multi('first')
+        self.nest_adapter_multi_2 = self.scaffold.create_adapter('test_single_neuron')
+        self.nest_adapter_multi_2.enable_multi('second')
+
+    def tearDown(self):
+        if self.nest_adapter_0.has_lock:
+            self.nest_adapter_0.release_lock()
+        if self.nest_adapter_1.has_lock:
+            self.nest_adapter_1.release_lock()
+        if self.nest_adapter_2.has_lock:
+            self.nest_adapter_2.release_lock()
+        if self.nest_adapter_multi_1.has_lock:
+            self.nest_adapter_multi_1.release_lock()
+        if self.nest_adapter_multi_1b.has_lock:
+            self.nest_adapter_multi_1b.release_lock()
+        if self.nest_adapter_multi_2.has_lock:
+            self.nest_adapter_multi_2.release_lock()
+
+    def test_single_instance_unwanted_usage(self):
+        # Test AdapterException when trying to unlock unlocked adapter
+        self.assertRaises(AdapterException, self.nest_adapter_0.release_lock)
+        # Test whether the scaffold throws an AdapterException when the same
+        # adapter is prepared twice.
+        with h5py.File(self.hdf5, "r") as handle:
+            self.nest_adapter_0.prepare(handle)
+
+        with h5py.File(self.hdf5, "r") as handle:
+            self.assertRaises(AdapterException, self.nest_adapter_0.prepare, handle)
+
+        self.nest_adapter_0.release_lock()
+        self.nest_adapter_0.reset()
+
+    def test_single_instance_single_lock(self):
+        # Lock kernel. Prepare adapter and thereby lock NEST kernel
+        with h5py.File(self.hdf5, "r") as handle:
+            self.nest_adapter_1.prepare(handle)
+        lock_data = self.nest_adapter_1.read_lock()
+        self.assertEqual(lock_data["multi"], False)
+        self.assertEqual(self.nest_adapter_1.multi, False)
+        self.assertEqual(self.nest_adapter_1.has_lock, True)
+
+        # Release lock.
+        self.nest_adapter_1.release_lock()
+        self.assertEqual(self.nest_adapter_1.read_lock(), None)
+        self.assertEqual(self.nest_adapter_1.has_lock, False)
+        self.nest_adapter_1.reset()
+
+    def test_multi_instance_single_lock(self):
+        # Test that a 2nd single-instance adapter can't manage a locked kernel.
+        with h5py.File(self.hdf5, "r") as handle:
+            self.nest_adapter_1.prepare(handle)
+
+        with h5py.File(self.hdf5, "r") as handle:
+            self.assertRaises(KernelLockedException, self.nest_adapter_2.prepare, handle)
+        self.assertEqual(self.nest_adapter_2.is_prepared, False)
+
+        self.nest_adapter_1.release_lock()
+        self.nest_adapter_1.reset()
+        self.nest_adapter_2.reset()
+
+    def test_single_instance_multi_lock(self):
+        # Test functionality of the multi lock.
+        with h5py.File(self.hdf5, "r") as handle:
+            self.nest_adapter_multi_1.prepare(handle)
+        lock_data = self.nest_adapter_multi_1.read_lock()
+        self.assertEqual(self.nest_adapter_multi_1.suffix, "first")
+        self.assertEqual(lock_data["multi"], True)
+        self.assertEqual(lock_data["suffixes"][0], self.nest_adapter_multi_1.suffix)
+        self.assertEqual(self.nest_adapter_multi_1.multi, True)
+        self.assertEqual(self.nest_adapter_multi_1.is_prepared, True)
+        self.assertEqual(self.nest_adapter_multi_1.has_lock, True)
+
+        self.nest_adapter_multi_1.release_lock()
+        self.assertEqual(self.nest_adapter_multi_1.multi, True)
+        self.assertEqual(self.nest_adapter_multi_1.has_lock, False)
+        self.nest_adapter_multi_1.reset()
+        self.assertEqual(self.nest_adapter_multi_1.is_prepared, False)
+
+    def test_multi_instance_multi_lock(self):
+        # Test functionality of the multi lock.
+        with h5py.File(self.hdf5, "r") as handle:
+            self.nest_adapter_multi_1.prepare(handle)
+        # Test that we have 1 lock.
+        lock_data = self.nest_adapter_multi_1.read_lock()
+        # Check multi instance multi lock
+        with h5py.File(self.hdf5, "r") as handle:
+            self.nest_adapter_multi_2.cell_models["test_cell"].parameters["t_ref"] = 3.0
+            self.nest_adapter_multi_2.prepare(handle)
+        # Check that we have 2 locks
+        lock_data = self.nest_adapter_multi_1.read_lock()
+        self.assertEqual(len(lock_data["suffixes"]), 2)
+
+        # Test that we set the right parameters on the right classes.
+        try:
+            params = self.nest.GetDefaults("test_cell_first")
+        except Exception as e:
+            self.fail("First suffixed NEST models not found")
+        try:
+            params = self.nest.GetDefaults("test_cell_second")
+        except Exception as e:
+            self.fail("Second suffixed NEST models not found")
+
+        # Test that the adapters have the correct nest_identifiers
+        id1 = self.nest_adapter_multi_1.cell_models["test_cell"].nest_identifiers
+        id2 = self.nest_adapter_multi_2.cell_models["test_cell"].nest_identifiers
+        self.assertEqual(id1, [1, 2, 3, 4])
+        self.assertEqual(id2, [5, 6, 7, 8])
+
+        # Test that the adapter nodes have the right model
+        self.assertTrue(all(map(lambda x: str(x['model']) == 'test_cell_first', self.nest.GetStatus(id1))))
+        self.assertTrue(all(map(lambda x: str(x['model']) == 'test_cell_second', self.nest.GetStatus(id2))))
+
+        # Test that the adapter nodes have the right differential parameter t_ref
+        self.assertTrue(all(map(lambda x: x['t_ref'] == 1.5, self.nest.GetStatus(id1))))
+        self.assertTrue(all(map(lambda x: x['t_ref'] == 3.0, self.nest.GetStatus(id2))))
+
+        # Check duplicate suffixes
+        with h5py.File(self.hdf5, "r") as handle:
+            self.assertRaises(SuffixTakenException, self.nest_adapter_multi_1b.prepare, handle)
+
+
+        self.nest_adapter_multi_1.release_lock()
+        self.nest_adapter_multi_1.reset()
+        # Test that we have 1 lock again after release.
+        lock_data = self.nest_adapter_multi_1.read_lock()
+        self.assertEqual(lock_data["suffixes"][0], "second")
+        self.nest_adapter_multi_2.release_lock()
+        self.nest_adapter_multi_2.reset()
