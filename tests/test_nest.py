@@ -7,8 +7,10 @@ from scaffold.models import Layer, CellType
 from scaffold.exceptions import AdapterException, KernelLockedException, \
     SuffixTakenException
 
+
 def relative_to_tests_folder(path):
     return os.path.join(os.path.dirname(__file__), path)
+
 
 minimal_config = relative_to_tests_folder("configs/test_minimal_simulation.json")
 single_neuron_config = relative_to_tests_folder("configs/test_single_neuron.json")
@@ -16,6 +18,7 @@ double_neuron_config = relative_to_tests_folder("configs/test_double_neuron.json
 double_nn_config = relative_to_tests_folder("configs/test_double_neuron_network.json")
 homosyn_config = relative_to_tests_folder("configs/test_double_neuron_network_homosyn.json")
 heterosyn_config = relative_to_tests_folder("configs/test_double_neuron_network_heterosyn.json")
+
 
 @unittest.skipIf(importlib.find_loader('nest') is None, "NEST is not importable.")
 class TestKernelManagement(unittest.TestCase):
@@ -40,7 +43,7 @@ class TestSingleNeuronTypeSetup(unittest.TestCase):
     def test_single_neuron(self):
         self.scaffold.run_simulation("test_single_neuron")
         test_cell_model = self.nest_adapter.cell_models["test_cell"]
-        self.assertEqual(test_cell_model.nest_identifiers, list(range(1,5)))
+        self.assertEqual(test_cell_model.nest_identifiers, list(range(1, 5)))
 
         test_neuron_status = self.nest_adapter.nest.GetStatus(test_cell_model.nest_identifiers)
         self.assertEqual(test_neuron_status[0]['t_ref'], 1.5)
@@ -125,16 +128,16 @@ class TestDoubleNeuronNetworkStatic(unittest.TestCase):
         self.scaffold.run_simulation("test_double_neuron_network_static")
         source_cell_model = self.nest_adapter.cell_models["from_cell"]
         target_cell_model = self.nest_adapter.cell_models["to_cell"]
-        conn = self.nest_adapter.nest.GetConnections(source_cell_model.nest_identifiers,target_cell_model.nest_identifiers)
+        conn = self.nest_adapter.nest.GetConnections(source_cell_model.nest_identifiers, target_cell_model.nest_identifiers)
         self.assertIsNotNone(conn)
 
     def test_double_neuron_network_params(self):
         import numpy as np
         source_cell_model = self.nest_adapter.cell_models["from_cell"]
         target_cell_model = self.nest_adapter.cell_models["to_cell"]
-        conn = self.nest_adapter.nest.GetConnections(source_cell_model.identifiers,target_cell_model.identifiers)
-        self.assertEqual(self.nest_adapter.nest.GetStatus(conn,"weight"), tuple(-9.0*np.ones(len(conn))))
-        self.assertEqual(self.nest_adapter.nest.GetStatus(conn,"delay"), tuple(4.0*np.ones(len(conn))))
+        conn = self.nest_adapter.nest.GetConnections(source_cell_model.identifiers, target_cell_model.identifiers)
+        self.assertEqual(self.nest_adapter.nest.GetStatus(conn, "weight"), tuple(-9.0*np.ones(len(conn))))
+        self.assertEqual(self.nest_adapter.nest.GetStatus(conn, "delay"), tuple(4.0*np.ones(len(conn))))
 
 
 @unittest.skipIf(importlib.find_loader('nest') is None, "NEST is not importable.")
@@ -159,17 +162,17 @@ class TestDoubleNeuronNetworkHomosyn(unittest.TestCase):
         self.scaffold.run_simulation("test_double_neuron_network_homosyn")
         source_cell_model = self.nest_adapter.cell_models["from_cell"]
         target_cell_model = self.nest_adapter.cell_models["to_cell"]
-        conn = self.nest_adapter.nest.GetConnections(source_cell_model.nest_identifiers,target_cell_model.nest_identifiers)
+        conn = self.nest_adapter.nest.GetConnections(source_cell_model.nest_identifiers, target_cell_model.nest_identifiers)
         self.assertIsNotNone(conn)
 
     def test_double_neuron_network_plasticity(self):
         import numpy as np
         source_cell_model = self.nest_adapter.cell_models["from_cell"]
         target_cell_model = self.nest_adapter.cell_models["to_cell"]
-        conn = self.nest_adapter.nest.GetConnections(source_cell_model.nest_identifiers,target_cell_model.nest_identifiers)
+        conn = self.nest_adapter.nest.GetConnections(source_cell_model.nest_identifiers, target_cell_model.nest_identifiers)
         # Verify that weights re changing
-        self.assertNotEqual(self.nest_adapter.nest.GetStatus(conn,"weight"), tuple(9.0*np.ones(len(conn))))
-        self.assertEqual(self.nest_adapter.nest.GetStatus(conn,"delay"), tuple(4.0*np.ones(len(conn))))
+        self.assertNotEqual(self.nest_adapter.nest.GetStatus(conn, "weight"), tuple(9.0*np.ones(len(conn))))
+        self.assertEqual(self.nest_adapter.nest.GetStatus(conn, "delay"), tuple(4.0*np.ones(len(conn))))
 
 
 @unittest.skipIf(importlib.find_loader('nest') is None, "NEST is not importable.")
@@ -184,27 +187,24 @@ class TestDoubleNeuronNetworkHeterosyn(unittest.TestCase):
         cls.nest_adapter = cls.scaffold.configuration.simulations['test_double_neuron_network_heterosyn']
         self.scaffold.run_simulation("test_double_neuron_network_heterosyn")
 
-
     def test_double_neuron_network(self):
         source_cell_model = self.nest_adapter.cell_models["from_cell"]
         target_cell_model = self.nest_adapter.cell_models["to_cell"]
-        conn = self.nest_adapter.nest.GetConnections(source_cell_model.identifiers,target_cell_model.identifiers)
+        conn = self.nest_adapter.nest.GetConnections(source_cell_model.identifiers, target_cell_model.identifiers)
         self.assertIsNotNone(conn)
         teaching_cell_model = self.nest_adapter.cell_models["teaching_cell"]
         target_cell_model = self.nest_adapter.cell_models["to_cell"]
-        conn_teaching = self.nest_adapter.nest.GetConnections(teaching_cell_model.identifiers,target_cell_model.identifiers)
+        conn_teaching = self.nest_adapter.nest.GetConnections(teaching_cell_model.identifiers, target_cell_model.identifiers)
         self.assertIsNotNone(conn_teaching)
 
     def test_double_neuron_network_plasticity(self):
         import numpy as np
         source_cell_model = self.nest_adapter.cell_models["from_cell"]
         target_cell_model = self.nest_adapter.cell_models["to_cell"]
-        conn = self.nest_adapter.nest.GetConnections(source_cell_model.identifiers,target_cell_model.identifiers)
+        conn = self.nest_adapter.nest.GetConnections(source_cell_model.identifiers, target_cell_model.identifiers)
         # Verify that weights re changing
-        self.assertNotEqual(self.nest_adapter.nest.GetStatus(conn,"weight"), tuple(9.0*np.ones(len(conn))))
-        self.assertEqual(self.nest_adapter.nest.GetStatus(conn,"delay"), tuple(4.0*np.ones(len(conn))))
-
-
+        self.assertNotEqual(self.nest_adapter.nest.GetStatus(conn, "weight"), tuple(9.0*np.ones(len(conn))))
+        self.assertEqual(self.nest_adapter.nest.GetStatus(conn, "delay"), tuple(4.0*np.ones(len(conn))))
 
     def test_teaching_connection_missing(self):
         with open(heterosyn_config, "r") as f:
@@ -214,7 +214,6 @@ class TestDoubleNeuronNetworkHeterosyn(unittest.TestCase):
         with self.assertRaises(ConfigurationException) as ce:
             config = JSONConfig(stream=stream)
             self.scaffold = Scaffold(config)
-
 
     def test_teaching_connection_configuration(self):
         with open(heterosyn_config, "r") as f:
@@ -363,7 +362,6 @@ class TestMultiInstance(unittest.TestCase):
         # Check duplicate suffixes
         with h5py.File(self.hdf5, "r") as handle:
             self.assertRaises(SuffixTakenException, self.nest_adapter_multi_1b.prepare, handle)
-
 
         self.nest_adapter_multi_1.release_lock()
         self.nest_adapter_multi_1.reset()

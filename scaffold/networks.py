@@ -1,6 +1,7 @@
 def depth_first_branches(adjacency_list):
     branches = []
     visited = set([])
+
     def dfs_branch(branch, node):
         # Grow the branch with current node.
         branch.append(node)
@@ -22,8 +23,10 @@ def depth_first_branches(adjacency_list):
     branches.append(dfs_branch([], 0))
     return branches
 
+
 def get_branch_points(branch_list):
     return list(map(lambda b: b[0], branch_list))
+
 
 def reduce_branch(branch, branch_points):
     reduced_branch = [branch[0]]

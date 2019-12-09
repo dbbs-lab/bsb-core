@@ -1,8 +1,10 @@
 import abc, inspect, numpy as np
 from .exceptions import *
 
+
 def get_qualified_class_name(x):
     return x.__class__.__module__ + '.' + str(x.__class__.__name__)
+
 
 class ConfigurableClass(abc.ABC):
     '''
@@ -29,7 +31,7 @@ class ConfigurableClass(abc.ABC):
     def fill(self, conf, excluded=[]):
         self._raw_config = conf
         for name, prop in conf.items():
-            if not name in excluded:
+            if name not in excluded:
                 self.__dict__[name] = prop
 
     def cast_config(self):
@@ -48,7 +50,7 @@ class ConfigurableClass(abc.ABC):
             name = str(self)
         castingDict = getattr(self.__class__, 'casts', {})
         defaultDict = getattr(self.__class__, 'defaults', {})
-        required =    getattr(self.__class__, 'required', [])
+        required = getattr(self.__class__, 'required', [])
         # Get unique keys
         attrKeys = set([*castingDict.keys(), *defaultDict.keys(), *required])
         for attr in attrKeys:
@@ -69,6 +71,7 @@ class ConfigurableClass(abc.ABC):
             elif shouldCast:
                 cast = castingDict[attr]
                 self.__dict__[attr] = cast_node(self.__dict__[attr], cast, attr, name)
+
 
 def cast_node(value, cast, attr, name):
     if type(cast) is tuple:
@@ -96,22 +99,23 @@ def cast_node(value, cast, attr, name):
     else:
         return try_cast(value, cast, attr, name)
 
+
 def try_cast(value, cast, attr, name):
     try:
         # Try to cast using the specified cast function.
         v = cast(value)
         return v
     except Exception as e:
-        if isinstance(e, ConfigurableCastException): # Is this an error raised by a child configurable class?
+        if isinstance(e, ConfigurableCastException):  # Is this an error raised by a child configurable class?
             # Format context and pass along the child cast exception.
             raise e.__class__("{}.{}: ".format(name, attr) + str(e)) from None
         # Use the function name, unless it is a class method called 'cast', then use the class name
         cast_name = cast.__name__ if not hasattr(cast, "__self__") or cast.__name__ != "cast" else cast.__self__.__name__
         # Else, replace by generic "we couldn't" error.
-        raise
         raise CastException("{}.{}: Could not cast '{}' to a {}".format(
             name, attr, value, cast_name
         ))
+
 
 def raise_union_cast(value, cast, attr, name):
     cast_names = []
@@ -123,6 +127,7 @@ def raise_union_cast(value, cast, attr, name):
     raise UnionCastException("{}.{}: Could not cast '{}' to any of the following: {}".format(
         name, attr, value, ", ".join(cast_names)
     ))
+
 
 class CastableConfigurableClass(ConfigurableClass):
 
@@ -137,15 +142,16 @@ class CastableConfigurableClass(ConfigurableClass):
         class_instance.validate()
         return class_instance
 
+
 class OptionallyCastable(CastableConfigurableClass):
     @classmethod
     def cast(cast_class, value):
         class_instance = cast_class()
-        if isinstance(value, dict): # Configured by dictionary
+        if isinstance(value, dict):  # Configured by dictionary
             class_instance.type = "class"
             class_instance.fill(value, cast_class.excluded)
             class_instance.cast_config()
-        else: # Try fallback constant casting
+        else:  # Try fallback constant casting
             if not hasattr(cast_class, "fallback"):
                 raise ConfigurableCastException("OptionallyCastable configuration classes require a fallback cast function. Missing for '{}'".format(cast_class.__name__))
             try:
@@ -157,6 +163,7 @@ class OptionallyCastable(CastableConfigurableClass):
         class_instance.boot()
         class_instance.validate()
         return class_instance
+
 
 class DistributionConfiguration(OptionallyCastable):
     # Fall back to float casting if no dictionary is given.
@@ -174,7 +181,7 @@ class DistributionConfiguration(OptionallyCastable):
             return
         if self.type[-4:] == "_gen":
             raise InvalidDistributionException("Distributions can not be created through their constructors but need to use their factory methods. (Those do not end in _gen)")
-        if not self.type in dir(distributions):
+        if self.type not in dir(distributions):
             raise UnknownDistributionException("'{}' is not a distribution of scipy.stats".format(self.type))
         try:
             distribution_factory = distributions.__dict__[self.type]
@@ -193,6 +200,7 @@ class DistributionConfiguration(OptionallyCastable):
 
     def sample(self):
         return self.draw(1)[0]
+
 
 class EvalConfiguration(OptionallyCastable):
 
@@ -218,21 +226,26 @@ class EvalConfiguration(OptionallyCastable):
     def validate(self):
         pass
 
+
 class ListEvalConfiguration(EvalConfiguration):
     fallback = list
+
 
 class FloatEvalConfiguration(EvalConfiguration):
     fallback = float
 
+
 def assert_attr(section, attr, section_name):
-    if not attr in section:
+    if attr not in section:
         raise Exception("Required attribute '{}' missing in '{}'".format(attr, section_name))
     return section[attr]
 
+
 def if_attr(section, attr, default_value):
-    if not attr in section:
+    if attr not in section:
         return default_value
     return section[attr]
+
 
 def assert_strictly_one(section, attrs, section_name):
     attr_list = []
@@ -247,6 +260,7 @@ def assert_strictly_one(section, attrs, section_name):
     else:
         return attr_list[0], section[attr_list[0]]
 
+
 def assert_float(val, section_name):
     try:
         ret = float(val)
@@ -254,28 +268,32 @@ def assert_float(val, section_name):
         raise Exception("Invalid float '{}' given for '{}'".format(val, section_name))
     return ret
 
+
 def assert_array(val, section_name):
     from collections.abc import Sequence
     if isinstance(val, Sequence):
         return val
     raise Exception("Invalid array '{}' given for '{}'".format(val, section_name))
 
+
 def assert_attr_float(section, attr, section_name):
-    if not attr in section:
+    if attr not in section:
         raise Exception("Required attribute '{}' missing in '{}'".format(attr, section_name))
     return assert_float(section[attr], "{}.{}".format(section_name, attr))
 
+
 def assert_attr_array(section, attr, section_name):
-    if not attr in section:
+    if attr not in section:
         raise Exception("Required attribute '{}' missing in '{}'".format(attr, section_name))
     return assert_array(section[attr], "{}.{}".format(section_name, attr))
+
 
 def assert_attr_in(section, attr, values, section_name):
     '''
         Assert that the attribute is present in the section dictionary and that its value is included
         in the given array.
     '''
-    if not attr in section:
+    if attr not in section:
         raise Exception("Required attribute '{}' missing in '{}'".format(attr, section_name))
     if not section[attr] in values:
         raise Exception("Attribute '{}.{}' with value '{}' must be one of the following values: {}".format(
@@ -307,6 +325,7 @@ class dimensions:
     def volume(self):
         return np.prod(self.dimensions)
 
+
 class origin:
     def __init__(self, origin=None):
         self.origin = np.array([0., 0., 0.]) if origin is None else origin
@@ -321,6 +340,7 @@ class origin:
     @property
     def Z(self):
         return self.origin[2]
+
 
 class SortableByAfter:
     @abc.abstractmethod
@@ -350,7 +370,7 @@ class SortableByAfter:
             Any cell types appearing in `self.after` need to occur before this cell type,
             so that this cell type appears "after" all these cell types.
         '''
-        if not self.has_after(): # No after?
+        if not self.has_after():  # No after?
             # Condition without constraints always True.
             return True
         is_met = False
@@ -361,7 +381,7 @@ class SortableByAfter:
                 # After conditions not met if we have we seen ourself and
                 # find something that's supposed to be in front of us.
                 return False
-            elif type == self: # Is this us?
+            elif type == self:  # Is this us?
                 # From this point on, nothing that appears in the after array is allowed to be encountered
                 is_met = True
         # We didn't meet anything behind us that was supposed to be in front of us
@@ -415,11 +435,13 @@ class SortableByAfter:
         # Return the sorted array.
         return sorting_objects
 
+
 def map_ndarray(data, _map=None):
     if _map is None:
         _map = []
     last_index = -1
     last_value = None
+
     def map_1d_array(e):
         nonlocal last_index, last_value, _map
         if last_index == -1 or e != last_value:

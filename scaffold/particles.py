@@ -7,6 +7,7 @@ try:
 except Exception as e:
     pass
 
+
 class Particle:
     def __init__(self, radius, position):
         self.radius = radius
@@ -78,10 +79,12 @@ class Neighbourhood:
                     return True
         return False
 
+
 class ParticleVoxel:
     def __init__(self, origin, dimensions):
         self.origin = np.array(origin)
         self.size = np.array(dimensions)
+
 
 class ParticleSystem():
     def __init__(self):
@@ -135,7 +138,7 @@ class ParticleSystem():
         neighbour_distances = neighbours[1]
         for i in range(len(neighbour_ids)):
             distances = neighbour_distances[i]
-            if len(distances) == 1: # No neighbours
+            if len(distances) == 1:  # No neighbours
                 continue
             ids = neighbour_ids[i]
             particle = self.particles[i]
@@ -162,7 +165,7 @@ class ParticleSystem():
                 i += 1
                 neighbourhood = self.find_neighbourhood(epicenter_particle)
                 self.resolve_neighbourhood(neighbourhood)
-                print(i,"/",t,end="\r")
+                print(i, "/", t, end="\r")
             # Double check that there's no collisions left
             self.freeze()
             self.find_colliding_particles()
@@ -200,7 +203,6 @@ class ParticleSystem():
             self.colliding_count -= len(neighbourhood.partners)
             for partner in neighbourhood.partners:
                 partner.colliding = False
-
 
     def find_neighbourhood(self, particle):
         epicenter = particle.position
@@ -250,6 +252,7 @@ class ParticleSystem():
         total_volume = np.product(self.size) if volume is None else volume
         return particles_volume / total_volume
 
+
 def plot_particle_system(system):
     nc_particles = list(filter(lambda p: not p.colliding, system.particles))
     c_particles = list(filter(lambda p: p.colliding, system.particles))
@@ -288,6 +291,7 @@ def get_particles_trace(particles, dimensions=3, axes={'x': 0, 'y': 1, 'z': 2}, 
             **trace_kwargs
         )
 
+
 def plot_detailed_system(system):
     fig = go.Figure()
     fig.update_layout(showlegend=False)
@@ -296,25 +300,29 @@ def plot_detailed_system(system):
         fig.add_trace(trace)
     fig.show()
 
+
 def get_particle_trace(particle):
-    theta = np.linspace(0,2*np.pi,10)
-    phi = np.linspace(0,np.pi,10)
-    x = np.outer(np.cos(theta),np.sin(phi)) * particle.radius + particle.position[0]
-    y = np.outer(np.sin(theta),np.sin(phi)) * particle.radius + particle.position[1]
-    z = np.outer(np.ones(10),np.cos(phi)) * particle.radius + particle.position[2]
+    theta = np.linspace(0, 2*np.pi, 10)
+    phi = np.linspace(0, np.pi, 10)
+    x = np.outer(np.cos(theta), np.sin(phi)) * particle.radius + particle.position[0]
+    y = np.outer(np.sin(theta), np.sin(phi)) * particle.radius + particle.position[1]
+    z = np.outer(np.ones(10), np.cos(phi)) * particle.radius + particle.position[2]
     return go.Surface(
         x=x, y=y, z=z,
         surfacecolor=np.zeros(10) + int(particle.colliding),
         colorscale=[[0, "rgb(100, 100, 100)"], [1, "rgb(200, 100, 0)"]],
-        opacity = 0.5 + 0.5 * int(particle.colliding),
+        opacity=0.5 + 0.5 * int(particle.colliding),
         showscale=False
     )
+
 
 def sphere_volume(radius):
     return 4 / 3 * np.pi * radius ** 3
 
+
 def distance(a, b):
     return np.sqrt(np.sum((b - a) ** 2))
+
 
 class AdaptiveNeighbourhood(ParticleSystem):
     def find_neighbourhood(self, particle):
@@ -340,7 +348,7 @@ class AdaptiveNeighbourhood(ParticleSystem):
             neighbourhood_radius = partner_radius + self.max_radius
             neighbour_ids = self.tree.query_radius([epicenter], r=neighbourhood_radius)[0]
             neighbours = [self.particles[id] for id in neighbour_ids]
-            strictly_neighbours = list(filter(lambda n: not n.id in partner_ids, neighbours))
+            strictly_neighbours = list(filter(lambda n: n.id not in partner_ids, neighbours))
             if len(strictly_neighbours) > 0:
                 max_neighbour_radius = np.max([n.radius for n in strictly_neighbours])
                 if max_neighbour_radius != self.max_radius:
@@ -357,6 +365,7 @@ class AdaptiveNeighbourhood(ParticleSystem):
         # ))
         # print(len(partner_ids), "particles will be moved.")
         return Neighbourhood(epicenter, neighbours, neighbourhood_radius, partners, partner_radius)
+
 
 class SmallestNeighbourhood(ParticleSystem):
 

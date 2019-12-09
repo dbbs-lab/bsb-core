@@ -2,6 +2,7 @@ import abc
 import numpy as np
 from .helpers import ConfigurableClass, assert_attr, SortableByAfter
 
+
 class SimulationComponent(ConfigurableClass, SortableByAfter):
     def __init__(self, adapter):
         super().__init__()
@@ -24,6 +25,7 @@ class SimulationComponent(ConfigurableClass, SortableByAfter):
     def has_after(self):
         return hasattr(self, "after")
 
+
 class SimulatorAdapter(ConfigurableClass):
 
     def __init__(self):
@@ -40,11 +42,11 @@ class SimulatorAdapter(ConfigurableClass):
             raise Exception("The '{}' adapter class needs to set the 'configuration_classes' class attribute to a dictionary of configurable classes (str or class).".format(self.simulator_name))
         classes = self.configuration_classes
         # Check for the presence of required classes
-        if not 'cell_models' in classes:
+        if 'cell_models' not in classes:
             raise Exception("{} adapter: The 'configuration_classes' dictionary requires a class to handle the simulation configuration of cells under the 'cell_models' key.".format(self.simulator_name))
-        if not 'connection_models' in classes:
+        if 'connection_models' not in classes:
             raise Exception("{} adapter: The 'configuration_classes' dictionary requires a class to handle the simulation configuration of cell connections under the 'connection_models' key.".format(self.simulator_name))
-        if not 'devices' in classes:
+        if 'devices' not in classes:
             raise Exception("{} adapter: The 'configuration_classes' dictionary requires a class to handle the simulation configuration of devices under the 'devices' key.".format(self.simulator_name))
 
         # Test if they are all children of the ConfigurableClass class

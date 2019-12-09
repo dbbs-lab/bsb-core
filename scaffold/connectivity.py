@@ -155,7 +155,7 @@ class ConnectomeGlomerulusGolgi(TouchingConvergenceDivergence):
             for golgi_id, golgi_type, golgi_x, golgi_y, golgi_z in golgicells:
                 # Geometric constraints: glom less than `r_goc_vol` away from golgi and golgi cell soma above glom.
                 volume_matrix = (((glom_x - golgi_x) ** 2) + ((glom_y - golgi_y) ** 2) + ((glom_z - golgi_z) ** 2) - (
-                            r_goc_vol ** 2)).__le__(0) & (glom_y).__le__(golgi_y)
+                            r_goc_vol ** 2)).__le__(0) & glom_y.__le__(golgi_y)
                 good_gloms = np.where(volume_matrix == True)[
                     0]  # finds indexes of granules that can potentially be connected
                 connected_gloms = good_gloms + first_glomerulus  # Translate local id to simulation id
@@ -235,7 +235,7 @@ class ConnectomeGolgiGlomerulus(TouchingConvergenceDivergence):
                 for candidate_index, glomerulus in enumerate(good_gloms_matrix):
                     if idx <= n_conn_goc:
                         ra = np.random.random()
-                        if (ra).__gt__(probability_treshold[candidate_index]):
+                        if ra.__gt__(probability_treshold[candidate_index]):
                             glomerulus_id = glomerulus[0]
                             connections[new_connection_index, 0] = golgi_id
                             connections[new_connection_index, 1] = glomerulus_id + first_glomerulus
@@ -922,13 +922,13 @@ class ConnectomeIOMolecular(ConnectionStrategy):
             purkinje_dict = {}
             for conn in range(len(molecular_cell_purkinje_matrix)):
                 purkinje_id = molecular_cell_purkinje_matrix[conn][1]
-                if not purkinje_id in purkinje_dict:
+                if purkinje_id not in purkinje_dict:
                     purkinje_dict[purkinje_id] = []
                 purkinje_dict[purkinje_id].append(molecular_cell_purkinje_matrix[conn][0])
 
             for io_conn in range(len(io_cell_purkinje_matrix)):
                 purkinje_id = io_cell_purkinje_matrix[io_conn][1]
-                if not purkinje_id in purkinje_dict:
+                if purkinje_id not in purkinje_dict:
                     continue
                 target_molecular_cells = purkinje_dict[purkinje_id]
                 matrix = np.column_stack((np.repeat(io_cell_purkinje_matrix[io_conn][0], len(target_molecular_cells)),
@@ -1090,7 +1090,7 @@ class TouchDetector(ConnectionStrategy):
             raise MissingMorphologyException(
                 "Can't perform touch detection without detailed morphologies for {}".format(cell_type.name))
         m_name = random_element(available_morphologies)
-        if not m_name in self.morphology_cache:
+        if m_name not in self.morphology_cache:
             mr = self.scaffold.morphology_repository
             self.morphology_cache[m_name] = mr.get_morphology(m_name, scaffold=self.scaffold)
         return self.morphology_cache[m_name]
@@ -1098,7 +1098,7 @@ class TouchDetector(ConnectionStrategy):
     def get_all_morphologies(self, cell_type):
         all_morphologies = []
         for m_name in self.list_all_morphologies(cell_type):
-            if not m_name in self.morphology_cache:
+            if m_name not in self.morphology_cache:
                 mr = self.scaffold.morphology_repository
                 self.morphology_cache[m_name] = mr.get_morphology(m_name, scaffold=self.scaffold)
             all_morphologies.append(self.morphology_cache[m_name])

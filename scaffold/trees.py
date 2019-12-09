@@ -2,6 +2,8 @@ from sklearn.neighbors import KDTree
 import re, abc, numpy as np
 
 TREE_NAME_REGEX = re.compile(r'^[^\:\+\(\)]+$')
+
+
 def is_valid_tree_name(name):
     '''
         Validate whether a given string is fit to be the name of a tree in a TreeCollection.
@@ -9,6 +11,7 @@ def is_valid_tree_name(name):
     '''
     # re.match() returns a MatchObject with a boolean value of True, or None
     return not not TREE_NAME_REGEX.match(name)
+
 
 class TreeCollection:
     '''
@@ -54,7 +57,7 @@ class TreeCollection:
             return None
 
     def get_tree(self, name):
-        if not name in self.trees:
+        if name not in self.trees:
             self.load_tree(name)
         return self.trees[name]
 
@@ -62,7 +65,7 @@ class TreeCollection:
         if plane == 'xyz':
             return self.get_tree(name)
         planar_name = '{}:{}'.format(plane, name)
-        if not planar_name in self.trees:
+        if planar_name not in self.trees:
             self.load_tree(planar_name)
         if self.trees[planar_name] is None:
             self.make_planar_tree(name, plane)
@@ -72,7 +75,7 @@ class TreeCollection:
         if subset is None:
             return self.get_tree(name)
         subtree_name = '{}({})'.format(name, subset)
-        if not subtree_name in self.trees:
+        if subtree_name not in self.trees:
             self.load_tree(subtree_name)
         if self.trees[subtree_name] is None:
             self.make_sub_tree(name, subset, filter, factory)
@@ -84,18 +87,19 @@ class TreeCollection:
             raise Exception("Cannot make planar tree from unknown tree '{}'".format(name))
         dimensions = ["x", "y", "z"]
         selected_dimensions = [e in plane for e in dimensions]
-        planar_tree = KDTree(np.array(full_tree.get_arrays()[0])[:,selected_dimensions])
+        planar_tree = KDTree(np.array(full_tree.get_arrays()[0])[:, selected_dimensions])
         self.trees['{}:{}'.format(plane, name)] = planar_tree
         self.save()
         return planar_tree
 
     def make_sub_tree(self, name, subset, set_filter, factory=None):
-        if not factory is None:
+        if factory is not None:
             data = factory(subset)
         else:
             full_tree = self.get_tree(name)
             if full_tree is None:
                 raise Exception("Cannot make sub tree from unknown tree '{}'".format(name))
+
             def closure(node):
                 return set_filter(subset, node)
             data = np.array(list(filter(closure, full_tree.get_arrays()[0])))

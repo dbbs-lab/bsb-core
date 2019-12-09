@@ -3,65 +3,84 @@ class ScaffoldException(Exception):
 
 ## Configuration
 
+
 class ConfigurationException(ScaffoldException):
     pass
+
 
 class DynamicClassException(ConfigurationException):
     pass
 
+
 class ConfigurableClassNotFoundException(DynamicClassException):
     pass
+
 
 class CastException(ConfigurationException):
     pass
 
+
 class UnionCastException(CastException):
     pass
+
 
 class ConfigurableCastException(CastException):
     pass
 
+
 class UnknownDistributionException(ConfigurableCastException):
     pass
+
 
 class InvalidDistributionException(ConfigurableCastException):
     pass
 
 ## Nest
 
+
 class NestException(ScaffoldException):
     pass
+
 
 class AdapterException(NestException):
     pass
 
+
 class NestKernelException(AdapterException):
     pass
+
 
 class KernelLockedException(NestKernelException):
     pass
 
+
 class SuffixTakenException(KernelLockedException):
     pass
+
 
 class NestModelException(Exception):
     pass
 
 ## Morphologies
 
+
 class MorphologyException(ScaffoldException):
     pass
+
 
 class MissingMorphologyException(MorphologyException):
     pass
 
 ## Resources (HDF5, ...)
 
+
 class ResourceException(ScaffoldException):
     pass
 
+
 class DatasetNotFoundException(ResourceException):
     pass
+
 
 class AttributeMissingException(ResourceException):
     pass
@@ -72,17 +91,22 @@ class AttributeMissingException(ResourceException):
 class ScaffoldWarning(UserWarning):
     pass
 
+
 class PlacementWarning(ScaffoldWarning):
     pass
+
 
 class ConnectivityWarning(ScaffoldWarning):
     pass
 
+
 class RepositoryWarning(ScaffoldWarning):
     pass
 
+
 class SimulationWarning(ScaffoldWarning):
     pass
+
 
 class KernelWarning(SimulationWarning):
     pass
