@@ -4,11 +4,14 @@ from scaffold.scaffold import Scaffold
 from scaffold.config import JSONConfig
 from scaffold.models import Layer, CellType
 
+
 def relative_to_tests_folder(path):
     return os.path.join(os.path.dirname(__file__), path)
 
+
 single_neuron_config = relative_to_tests_folder("configs/test_single_neuron.json")
 default_config = relative_to_tests_folder("../scaffold/configurations/mouse_cerebellum.json")
+
 
 class TestSingleTypeCompilation(unittest.TestCase):
     '''
@@ -33,6 +36,7 @@ class TestSingleTypeCompilation(unittest.TestCase):
         pass
         # TODO: Implement a check that the hdf5 file contains the right datasets under 'cells'
 
+
 class TestPlacement(unittest.TestCase):
     '''
     Check if the placement of all cell types is correct
@@ -53,16 +57,18 @@ class TestPlacement(unittest.TestCase):
         pc.placement.place(pc)
         pcCount = self.scaffold.cells_by_type['purkinje_cell'].shape[0]
         density = pcCount / layer.width / layer.depth
-        pc_pos = self.scaffold.cells_by_type['purkinje_cell'][:, [2,3,4]]
-        Dist2D = dist.pdist(np.column_stack((pc_pos[:,0],pc_pos[:,2])), 'euclidean')
-        overlapSomata = np.where(Dist2D < 80/100*pc.placement.soma_radius)[0] #
-        Dist1Dsqr=np.zeros(( pc_pos.shape[0],pc_pos.shape[0],2))
-        Dist1Dsqr[:,:,0] = dist.squareform(dist.pdist(pc_pos[:,[0]], 'euclidean'))
-        Dist1Dsqr[:,:,1] = dist.squareform(dist.pdist(pc_pos[:,[2]], 'euclidean'))
-        overlapDend_whichPairs = np.where ( np.logical_and (Dist1Dsqr[:,:,0] <80/100*pc.placement.extension_x, Dist1Dsqr[:,:,1]<80/100*pc.placement.extension_z ) )
-        overlapDend_whichPairs = np.column_stack((overlapDend_whichPairs[0],overlapDend_whichPairs[1]))
-        overlapDend_whichPairs = overlapDend_whichPairs[np.where (overlapDend_whichPairs[:,0]!=overlapDend_whichPairs[:,1])[0],:]
+        pc_pos = self.scaffold.cells_by_type['purkinje_cell'][:, [2, 3, 4]]
+        Dist2D = dist.pdist(np.column_stack((pc_pos[:, 0], pc_pos[:, 2])), 'euclidean')
+        overlapSomata = np.where(Dist2D < 80 / 100 * pc.placement.soma_radius)[0]  #
+        Dist1Dsqr = np.zeros((pc_pos.shape[0], pc_pos.shape[0], 2))
+        Dist1Dsqr[:, :, 0] = dist.squareform(dist.pdist(pc_pos[:, [0]], 'euclidean'))
+        Dist1Dsqr[:, :, 1] = dist.squareform(dist.pdist(pc_pos[:, [2]], 'euclidean'))
+        overlapDend_whichPairs = np.where(np.logical_and(Dist1Dsqr[:, :, 0] < 80 / 100 * pc.placement.extension_x,
+                                                         Dist1Dsqr[:, :, 1] < 80 / 100 * pc.placement.extension_z))
+        overlapDend_whichPairs = np.column_stack((overlapDend_whichPairs[0], overlapDend_whichPairs[1]))
+        overlapDend_whichPairs = overlapDend_whichPairs[
+                                 np.where(overlapDend_whichPairs[:, 0] != overlapDend_whichPairs[:, 1])[0], :]
 
         # Asserts
-        self.assertAlmostEqual(overlapSomata.shape[0],0, delta=pcCount*1/100)
-        self.assertAlmostEqual(overlapDend_whichPairs.shape[0]/2,0, delta=pcCount*4/100)
+        self.assertAlmostEqual(overlapSomata.shape[0], 0, delta=pcCount * 1 / 100)
+        self.assertAlmostEqual(overlapDend_whichPairs.shape[0] / 2, 0, delta=pcCount * 4 / 100)

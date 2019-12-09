@@ -2,7 +2,7 @@
     This module handles all configuration of the scaffold.
 '''
 
-import os, abc
+import os
 from inspect import isclass
 from .models import CellType, Layer
 from .morphologies import Morphology as BaseMorphology
@@ -11,9 +11,9 @@ from .placement import PlacementStrategy
 from .output import OutputFormatter, HDF5Formatter
 from .simulation import SimulatorAdapter, SimulationComponent
 from .helpers import (
-    assert_float, assert_array, assert_attr_array,
+    assert_float, assert_attr_array,
     assert_attr_float, assert_attr, if_attr, assert_strictly_one,
-    assert_attr_in, ConfigurableClass
+    assert_attr_in
 )
 from .simulators.nest import NestAdapter
 from .exceptions import DynamicClassException, ConfigurationException, ConfigurableClassNotFoundException
@@ -25,6 +25,7 @@ def from_hdf5(file, verbosity=1):
         Restore a configuration object from an HDF5 file.
 
         :param file: Path of the HDF5 file.
+        :param verbosity: Verbosity level of the reporting
         :type file: string
         :rtype: None
     '''
@@ -42,10 +43,11 @@ def from_hdf5(file, verbosity=1):
         module_dict = globals()
     else:
         module_dict = __import__(module_name, globals(), locals(), [class_name], 0).__dict__
-    if not class_name in module_dict:
+    if class_name not in module_dict:
         raise DynamicClassException('Can not load HDF5 file \'{}\'. Configuration class not found:'.format(file) + config_class)
     # Instantiate the configuration class with a configuration stream
     return module_dict[class_name](stream=config_string, verbosity=verbosity)
+
 
 class ScaffoldConfig(object):
     '''
@@ -85,10 +87,10 @@ class ScaffoldConfig(object):
         self.output_formatter = HDF5Formatter()
 
         # Fallback simulation values
-        self.X = 200    # Transverse simulation space size (µm)
-        self.Z = 200    # Longitudinal simulation space size (µm)
+        self.X = 200  # Transverse simulation space size (µm)
+        self.Z = 200  # Longitudinal simulation space size (µm)
 
-        if not file is None or not stream is None: # Load config from file or stream of data
+        if file is not None or stream is not None:  # Load config from file or stream of data
             self.read_config(file, stream)
             # Execute the load handler set by the child configuration implementation
             self._parsed_config = self._load_handler(self._raw)
@@ -96,9 +98,9 @@ class ScaffoldConfig(object):
             delattr(self, "_load_handler")
 
     def read_config(self, file=None, stream=None):
-        if not stream is None:
+        if stream is not None:
             self.read_config_stream(stream)
-        elif not file is None:
+        elif file is not None:
             self.read_config_file(file)
 
     def read_config_file(self, file):
@@ -195,7 +197,7 @@ class ScaffoldConfig(object):
         self.layers[layer.name] = layer
         self.layer_map.append(layer.name)
 
-    def get_layer(self, name='',id=-1):
+    def get_layer(self, name='', id=-1):
         '''
             Finds a layer by its name or id.
 
@@ -214,7 +216,7 @@ class ScaffoldConfig(object):
                 raise Exception("Layer with id {} not found.".format(id))
             return list(self.layers.values())[id]
         if name != '':
-            if not name in self.layers:
+            if name not in self.layers:
                 raise Exception("Layer with name '{}' not found".format(name))
             return self.layers[name]
         raise ArgumentError("Invalid arguments for ScaffoldConfig.get_layer: name='{}', id={}".format(name, id))
@@ -268,10 +270,10 @@ class ScaffoldConfig(object):
 
         scaling_x = 1.
         scaling_z = 1.
-        if not X is None:
+        if X is not None:
             scaling_x = X / self.X
             self.X = X
-        if not Z is None:
+        if Z is not None:
             scaling_z = Z / self.Z
             self.Z = Z
         for layer in self.layers.values():
@@ -307,7 +309,7 @@ class ScaffoldConfig(object):
             # Use the dynamic import mechanism to load the module and the class
             module_ref = __import__(module_name, globals(), locals(), [class_name], 0)
             # Check whether the class was found.
-            if not class_name in module_ref.__dict__:
+            if class_name not in module_ref.__dict__:
                 raise ConfigurableClassNotFoundException('Class not found:' + configured_class_name)
             # Get the class reference from the module's internal dictionary.
             class_ref = module_ref.__dict__[class_name]
@@ -341,8 +343,9 @@ class ScaffoldConfig(object):
         # Loop over all items in the configuration section.
         for name, prop in conf.items():
             # If the key isn't excluded, copy the value to the internal dictionary
-            if not name in excluded:
+            if name not in excluded:
                 obj.__dict__[name] = prop
+
 
 class JSONConfig(ScaffoldConfig):
     '''
@@ -399,12 +402,12 @@ class JSONConfig(ScaffoldConfig):
         '''
             Load the general segment in a JSON configuration file.
         '''
-        if not 'network_architecture' in config:
+        if 'network_architecture' not in config:
             raise Exception("Missing 'network_architecture' attribute in configuration.")
         netw_config = config['network_architecture']
-        if not 'simulation_volume_x' in netw_config:
+        if 'simulation_volume_x' not in netw_config:
             raise Exception("Missing 'simulation_volume_x' attribute in 'network_architecture' configuration.")
-        if not 'simulation_volume_z' in netw_config:
+        if 'simulation_volume_z' not in netw_config:
             raise Exception("Missing 'simulation_volume_x' attribute in 'network_architecture' configuration.")
         self.X = float(netw_config['simulation_volume_x'])
         self.Z = float(netw_config['simulation_volume_z'])
@@ -413,10 +416,10 @@ class JSONConfig(ScaffoldConfig):
         '''
             Load the output segment in a JSON configuration file.
         '''
-        if not 'output' in config:
+        if 'output' not in config:
             raise Exception("Missing 'output' attribute in configuration.")
         output_config = config['output']
-        if not 'format' in output_config:
+        if 'format' not in output_config:
             raise Exception("Missing 'format' attribute in 'output' configuration.")
         self.output_formatter = self.load_configurable_class('output_formatter', output_config['format'], OutputFormatter)
         self.fill_configurable_class(self.output_formatter, output_config, excluded=['format'])
@@ -451,7 +454,7 @@ class JSONConfig(ScaffoldConfig):
             :type node_name: string
 
         '''
-        if not attr in config:
+        if attr not in config:
             raise Exception("Missing '{}' attribute in {}.".format(attr, node_name or 'configuration'))
         for def_name, def_config in config[attr].items():
             init(def_name, def_config)
@@ -503,14 +506,14 @@ class JSONConfig(ScaffoldConfig):
             :rtype: Layer
         '''
         # Get thickness of the layer
-        if not 'thickness' in config and not 'volume_scale' in config:
+        if 'thickness' not in config and 'volume_scale' not in config:
             raise ConfigurationException('Either a thickness attribute or volume_scale required in {} config.'.format(name))
         thickness = 0.
         if 'thickness' in config:
             thickness = float(config['thickness'])
 
         # Set the position of this layer in the space.
-        if not 'position' in config:
+        if 'position' not in config:
             origin = [0., 0., 0.]
         else:
             # TODO: Catch possible casting errors to float.
@@ -521,7 +524,7 @@ class JSONConfig(ScaffoldConfig):
         # Parse the layer stack config
         if 'stack' in config:
             stack_config = config['stack']
-            if not 'stack_id' in stack_config:
+            if 'stack_id' not in stack_config:
                 raise Exception("A 'stack_id' attribute is required in '{}.stack'.".format(name))
             stack_id = int(stack_config['stack_id'])
             stack = {'layers': {}}
@@ -530,7 +533,7 @@ class JSONConfig(ScaffoldConfig):
                 stack = self._layer_stacks[stack_id]
             else:
                 self._layer_stacks[stack_id] = stack
-            if not 'position_in_stack' in stack_config:
+            if 'position_in_stack' not in stack_config:
                 raise Exception("A 'position_in_stack' attribute is required in '{}.stack'.".format(name))
             stack['layers'][stack_config['position_in_stack']] = name
             # Configurate the position of the stack
@@ -539,10 +542,10 @@ class JSONConfig(ScaffoldConfig):
                     raise Exception("Duplicate positioning attribute found for stack with id '{}'".format(stack_id))
                 stack['position'] = stack_config['position']
         # Set the layer dimensions
-        xzScale = [1.,1.]
+        xzScale = [1., 1.]
         # Scale by the XZ-scaling factor, if present
         if 'xz_scale' in config:
-            if not isinstance(config['xz_scale'], list): # Not a list?
+            if not isinstance(config['xz_scale'], list):  # Not a list?
                 # Try to convert it to a float and make a 2 element list out of it
                 try:
                     xzScaleValue = float(config['xz_scale'])
@@ -553,7 +556,7 @@ class JSONConfig(ScaffoldConfig):
             xzScale[1] = float(config['xz_scale'][1])
         dimensions = [self.X * xzScale[0], thickness, self.Z * xzScale[1]]
         #   and center the layer on the XZ plane, if present
-        if 'xz_center' in config and config['xz_center'] == True:
+        if 'xz_center' in config and config['xz_center'] is True:
             origin[0] = (self.X - dimensions[0]) / 2.
             origin[2] = (self.Z - dimensions[2]) / 2.
         # Put together the layer object from the extracted values.
@@ -607,7 +610,7 @@ class JSONConfig(ScaffoldConfig):
         placement.layer = assert_attr(section, 'layer', node_name)
         # Radius of the cell soma
         placement.soma_radius = assert_attr_float(section, 'soma_radius', node_name)
-        placement.radius = placement.soma_radius # Alias it to the radius shorthand.
+        placement.radius = placement.soma_radius  # Alias it to the radius shorthand.
         # Density configurations all rely on a float or a float and relation
         density_attr, density_value = assert_strictly_one(section, ['density', 'planar_density', 'placement_count_ratio', 'density_ratio', 'count'], node_name)
         density_value = assert_float(density_value, '{}.{}'.format(node_name, density_attr))
@@ -645,6 +648,7 @@ class JSONConfig(ScaffoldConfig):
         # Factory that produces initialization functions for the simulation components
         def init_component_factory(component_type):
             component_class = config_classes[component_type]
+
             def init_component(component_name, component_config):
                 component = self.init_simulation_component(
                     component_name,
@@ -660,7 +664,7 @@ class JSONConfig(ScaffoldConfig):
             return init_component
 
         # Load the simulations' cell models, connection models and devices from the configuration.
-        self.load_attr(config=section, attr='cell_models', init=init_component_factory('cell_models') ,node_name=node_name)
+        self.load_attr(config=section, attr='cell_models', init=init_component_factory('cell_models'), node_name=node_name)
         self.load_attr(config=section, attr='connection_models', init=init_component_factory('connection_models'), node_name=node_name)
         self.load_attr(config=section, attr='devices', init=init_component_factory('devices'), node_name=node_name)
 
@@ -680,11 +684,11 @@ class JSONConfig(ScaffoldConfig):
             if 'volume_scale' in config:
                 volume_scale = config["volume_scale"]
                 # Check if the config file specifies with respect to which layer volumes we are scaling the current volume
-                if not 'scale_from_layers' in config:
+                if 'scale_from_layers' not in config:
                     raise ConfigurationException("Required attribute scale_from_layers missing in {} config.".format(name))
                 reference_layers = config["scale_from_layers"]
                 # Ratio between dimensions (x,y,z) of the layer volume; if not specified, the layer is a cube
-                dimension_ratios = [1.,1.,1.]
+                dimension_ratios = [1., 1., 1.]
                 if 'volume_dimension_ratio' in config:
                     dimension_ratios = config['volume_dimension_ratio']
                 # Normalize dimension ratios to y dimension
@@ -718,13 +722,12 @@ class JSONConfig(ScaffoldConfig):
                 # from which we derive the normalized_size Y,
                 # according to the following formula:
                 # Y = cubic_root(volume_reference_layers / volume_scale * prod(dimension_ratios))
-                normalized_size = pow(volume_reference_layers / (volume_scale * np.prod(dimension_ratios)), 1/3)
+                normalized_size = pow(volume_reference_layers / (volume_scale * np.prod(dimension_ratios)), 1 / 3)
                 # Apply the normalized size with their ratios to each dimension
-                layer.dimensions = np.multiply(np.repeat(normalized_size,3), dimension_ratios)
-
+                layer.dimensions = np.multiply(np.repeat(normalized_size, 3), dimension_ratios)
 
         for stack in self._layer_stacks.values():
-            if not 'position' in stack:
+            if 'position' not in stack:
                 stack['position'] = [0., 0., 0.]
             # Get the current roof of the stack
             stack_roof = stack['position'][1]
@@ -751,7 +754,7 @@ class JSONConfig(ScaffoldConfig):
         for connected_cell in connection._from_cell_types:
             type = assert_attr(connected_cell, 'type', node_name + '.{}'.format(i))
             i += 1
-            if not type in self.cell_types:
+            if type not in self.cell_types:
                 raise Exception("Unknown cell type '{}' in '{}.from_cell_types'".format(type, node_name))
             from_cell_types.append(self.cell_types[type])
             if "compartments" in connected_cell:
@@ -762,7 +765,7 @@ class JSONConfig(ScaffoldConfig):
         for connected_cell in connection._to_cell_types:
             type = assert_attr(connected_cell, 'type', node_name + '.{}'.format(i))
             i += 1
-            if not type in self.cell_types:
+            if type not in self.cell_types:
                 raise Exception("Unknown cell type '{}' in '{}.to_cell_types'".format(type, node_name))
             to_cell_types.append(self.cell_types[type])
             if "compartments" in connected_cell:
@@ -778,6 +781,7 @@ class JSONConfig(ScaffoldConfig):
         component = self.load_configurable_class(name, component_class, SimulationComponent, parameters={'adapter': adapter})
         self.fill_configurable_class(component, section)
         return component
+
 
 class PlottingConfig:
     def __init__(self, name, color='#000000', opacity=1.):

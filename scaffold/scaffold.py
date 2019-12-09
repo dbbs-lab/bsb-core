@@ -16,9 +16,11 @@ from warnings import warn as std_warn
 #    * Creates network architecture
 #    * Sets up simulation
 
+
 class TreeCollectionGroup:
     def add_collection(self, name, handler):
         self.__dict__[name] = TreeCollection(name, handler)
+
 
 class Scaffold:
     """
@@ -100,13 +102,13 @@ class Scaffold:
             self._initialise_simulation(simulation)
 
     def _initialise_simulation(self, simulation):
-            simulation.initialise(self)
-            for sim_cell in simulation.cell_models.values():
-                sim_cell.initialise(self)
-            for sim_connection in simulation.connection_models.values():
-                sim_connection.initialise(self)
-            for stimulus in simulation.devices.values():
-                stimulus.initialise(self)
+        simulation.initialise(self)
+        for sim_cell in simulation.cell_models.values():
+            sim_cell.initialise(self)
+        for sim_connection in simulation.connection_models.values():
+            sim_connection.initialise(self)
+        for stimulus in simulation.devices.values():
+            stimulus.initialise(self)
 
     def compile_network(self, tries=1):
         times = np.zeros(tries)
@@ -125,6 +127,13 @@ class Scaffold:
             sorted_connection_types = ConnectionStrategy.resolve_order(self.configuration.connection_types)
             for connection_type in sorted_connection_types:
                 connection_type.connect()
+                # Iterates for each tag of the connection_type
+                for tag in range(len(connection_type.tags)):
+                    conn_num = np.shape(connection_type.get_connection_matrices()[tag])[0]
+                    source_name = connection_type.from_cell_types[0].name
+                    target_name = connection_type.to_cell_types[0].name
+                    self.report("Finished connecting {} with {} (tag: {} - total connections: {})."
+                                .format(source_name, target_name, connection_type.tags[tag], conn_num), 2)
             times[i] = time.time() - t
             self.compile_output()
             for type in self.configuration.cell_types.values():
@@ -133,10 +142,8 @@ class Scaffold:
                 density_gotten = '%.4g' % (count / volume)
                 density_wanted = '%.4g' % (type.placement.get_placement_count(type) / volume)
                 percent = int((count / type.placement.get_placement_count(type)) * 100)
-                if self.configuration.verbosity > 1:
-                    print('{} {} placed ({}%). Desired density: {}. Actual density: {}'.format(count, type.name, percent, density_wanted, density_gotten))
-            if self.configuration.verbosity > 1:
-                print('Average runtime: {}'.format(np.average(times)))
+                self.report('{} {} placed ({}%). Desired density: {}. Actual density: {}'.format(count, type.name, percent, density_wanted, density_gotten), 2)
+            self.report('Average runtime: {}'.format(np.average(times)), 2)
 
     def _initialise_output_formatter(self):
         self.output_formatter = self.configuration.output_formatter
@@ -145,7 +152,7 @@ class Scaffold:
         self.morphology_repository = self.output_formatter
         self.tree_handler = self.output_formatter
         # Load an actual morphology repository if it is provided
-        if not self.is_compiled() and not self.output_formatter.morphology_repository is None:
+        if not self.is_compiled() and self.output_formatter.morphology_repository is not None:
             # We are in a precompilation state and the configuration specifies us to use a morpho repo.
             self.morphology_repository = MorphologyRepository(self.output_formatter.morphology_repository)
 
@@ -172,7 +179,7 @@ class Scaffold:
         simulation.simulate(simulator)
 
     def get_simulation(self, simulation_name):
-        if not simulation_name in self.configuration.simulations:
+        if simulation_name not in self.configuration.simulations:
             raise Exception("Unknown simulation '{}', choose from: {}".format(
                 simulation_name,
                 ", ".join(self.configuration.simulations.keys())
@@ -215,7 +222,7 @@ class Scaffold:
         ))
 
         placement_dict = self.statistics.cells_placed
-        if not cell_type.name in placement_dict:
+        if cell_type.name not in placement_dict:
             placement_dict[cell_type.name] = 0
         placement_dict[cell_type.name] += cell_count
         if not hasattr(cell_type.placement, 'cells_placed'):
@@ -254,16 +261,16 @@ class Scaffold:
         # Allow 1 connection type to store multiple connectivity datasets by utilizing tags
         tag = tag or connection_type.name
         # Keep track of relevant tags in the connection_type object
-        if not tag in connection_type.tags:
+        if tag not in connection_type.tags:
             connection_type.tags.append(tag)
         self._append_tagged('cell_connections_by_tag', tag, connectome_data)
-        if not compartments is None or not morphologies is None:
+        if compartments is not None or morphologies is not None:
             if len(morphologies) != len(connectome_data) or len(compartments) != len(connectome_data):
                 raise Exception("The morphological data did not match the connectome data.")
             self._append_mapped('connection_morphologies', tag, morphologies)
             self._append_tagged('connection_compartments', tag, compartments)
         # Store the metadata internally until the output is compiled.
-        if not meta is None:
+        if meta is not None:
             self._connectivity_set_meta[tag] = meta
 
     def _append_tagged(self, attr, tag, data):
@@ -286,12 +293,11 @@ class Scaffold:
         else:
             self.__dict__[attr][tag] = np.copy(mapped_data)
 
-
     def append_dset(self, name, data):
         self.appends[name] = data
 
     def get_cells_by_type(self, name):
-        if not name in self.cells_by_type:
+        if name not in self.cells_by_type:
             raise Exception("Attempting to load unknown cell type '{}'".format(name))
         if self.cells_by_type[name].shape[0] == 0:
             if not self.output_formatter.exists():
@@ -307,7 +313,7 @@ class Scaffold:
 
     def get_connection_types_by_cell_type(self, postsynaptic=[], presynaptic=[]):
         def any_intersect(l1, l2, f=lambda x: x):
-            if not l2: # Return True if there's no pre/post targets specified
+            if not l2:  # Return True if there's no pre/post targets specified
                 return True
             for e1 in l1:
                 if f(e1) in l2:
@@ -327,9 +333,9 @@ class Scaffold:
         if any is None and postsynaptic is None and presynaptic is None:
             raise ArgumentError("No cell types specified")
         # Initialize empty omitted lists
-        postsynaptic = postsynaptic if not postsynaptic is None else []
-        presynaptic = presynaptic if not presynaptic is None else []
-        if not any is None: # Add any cell types as both post and presynaptic targets
+        postsynaptic = postsynaptic if postsynaptic is not None else []
+        presynaptic = presynaptic if presynaptic is not None else []
+        if any is not None:  # Add any cell types as both post and presynaptic targets
             postsynaptic.extend(any)
             presynaptic.extend(any)
         # Find the connection types that have the specified targets
@@ -343,7 +349,7 @@ class Scaffold:
 
     def translate_cell_ids(self, data, cell_type):
         if not self.is_compiled():
-            return self.cells_by_type[cell_type.name][data,0]
+            return self.cells_by_type[cell_type.name][data, 0]
         else:
             return np.array(self.output_formatter.get_type_map(cell_type))[data]
 
@@ -351,22 +357,22 @@ class Scaffold:
         self.output_formatter.create_output()
 
     def get_connection_type(self, name):
-        if not name in self.configuration.connection_types:
+        if name not in self.configuration.connection_types:
             raise Exception("Unknown connection type '{}'".format(name))
         return self.configuration.connection_types[name]
 
     def get_cell_type(self, name):
-        if not name in self.configuration.cell_types:
+        if name not in self.configuration.cell_types:
             raise Exception("Unknown cell type '{}'".format(name))
         return self.configuration.cell_types[name]
 
     def get_cell_position(self, id):
         if not id < len(self.cells):
             raise Exception("Cell {} does not exist. (highest id is {})".format(id, len(self.cells) - 1))
-        return self.cells[id,2:5]
+        return self.cells[id, 2:5]
 
     def get_cell_positions(self, selector):
-        return self.cells[selector,2:5]
+        return self.cells[selector, 2:5]
 
     def get_cells(self, selector):
         return self.cells[selector]
@@ -378,7 +384,7 @@ class Scaffold:
         return self.output_formatter.exists()
 
     def create_adapter(self, simulation_name):
-        if not simulation_name in self.configuration.simulations:
+        if simulation_name not in self.configuration.simulations:
             raise Exception("Unknown simulation '{}'".format(simulation_name))
         simulations = self.configuration._parsed_config["simulations"]
         simulation_config = simulations[simulation_name]
