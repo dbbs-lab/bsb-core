@@ -99,10 +99,8 @@ class ConnectomeGlomerulusGranule(TouchingConvergenceDivergence):
             # Find glomeruli to connect to each granule cell
             for gran_id, gran_type, gran_x, gran_y, gran_z in granules:
                 # Use a naive approach to find all glomeruli at a maximum distance of `dendrite_length`
-                distance_vector = ((glom_x - gran_x) ** 2) + ((glom_y - gran_y) ** 2) + ((glom_z - gran_z) ** 2) - (
-                            dend_len ** 2)
-                good_gloms = np.where((distance_vector < 0.) == True)[
-                    0]  # indexes of glomeruli that can potentially be connected
+                distance_vector = ((glom_x - gran_x) ** 2) + ((glom_y - gran_y) ** 2) + ((glom_z - gran_z) ** 2) - (dend_len ** 2)
+                good_gloms = np.where((distance_vector < 0.) == True)[0]  # indexes of glomeruli that can potentially be connected
                 good_gloms_len = len(good_gloms)
                 # Do we find more than enough candidates?
                 if good_gloms_len > n_conn_glom:  # Yes: select the closest ones
@@ -154,10 +152,8 @@ class ConnectomeGlomerulusGolgi(TouchingConvergenceDivergence):
             # for all Golgi cells: calculate which glomeruli fall into the volume of GoC basolateral dendrites, then choose 40 of them for the connection and delete them from successive computations, since 1 axon is connected to 1 GoC
             for golgi_id, golgi_type, golgi_x, golgi_y, golgi_z in golgicells:
                 # Geometric constraints: glom less than `r_goc_vol` away from golgi and golgi cell soma above glom.
-                volume_matrix = (((glom_x - golgi_x) ** 2) + ((glom_y - golgi_y) ** 2) + ((glom_z - golgi_z) ** 2) - (
-                            r_goc_vol ** 2)).__le__(0) & (glom_y).__le__(golgi_y)
-                good_gloms = np.where(volume_matrix == True)[
-                    0]  # finds indexes of granules that can potentially be connected
+                volume_matrix = (((glom_x - golgi_x) ** 2) + ((glom_y - golgi_y) ** 2) + ((glom_z - golgi_z) ** 2) - (r_goc_vol ** 2)).__le__(0) & glom_y.__le__(golgi_y)
+                good_gloms = np.where(volume_matrix == True)[0]  # finds indexes of granules that can potentially be connected
                 connected_gloms = good_gloms + first_glomerulus  # Translate local id to simulation id
 
                 matrix = np.zeros((len(good_gloms), 2))
@@ -209,22 +205,18 @@ class ConnectomeGolgiGlomerulus(TouchingConvergenceDivergence):
             for golgi_id, golgi_type, golgi_x, golgi_y, golgi_z in new_golgicells:
                 # Check geometrical constraints
                 # glomerulus falls into the x range of values?
-                bool_vector = (((glom_x + r_glom).__ge__(golgi_x - GoCaxon_x / 2.)) & (
-                    (glom_x - r_glom).__le__(golgi_x + GoCaxon_x / 2.)))
+                bool_vector = (((glom_x + r_glom).__ge__(golgi_x - GoCaxon_x / 2.)) & ((glom_x - r_glom).__le__(golgi_x + GoCaxon_x / 2.)))
                 # glomerulus falls into the y range of values?
-                bool_vector = bool_vector & (((glom_y + r_glom).__ge__(golgi_y - GoCaxon_y / 2.)) & (
-                    (glom_y - r_glom).__le__(golgi_y + GoCaxon_y / 2.)))
+                bool_vector = bool_vector & (((glom_y + r_glom).__ge__(golgi_y - GoCaxon_y / 2.)) & ((glom_y - r_glom).__le__(golgi_y + GoCaxon_y / 2.)))
                 # glomerulus falls into the z range of values?
-                bool_vector = bool_vector & (((glom_z + r_glom).__ge__(golgi_z - GoCaxon_z / 2.)) & (
-                    (glom_z - r_glom).__le__(golgi_z + GoCaxon_z / 2.)))
+                bool_vector = bool_vector & (((glom_z + r_glom).__ge__(golgi_z - GoCaxon_z / 2.)) & ((glom_z - r_glom).__le__(golgi_z + GoCaxon_z / 2.)))
 
                 # Make a permutation of all candidate glomeruli
                 good_gloms = np.where(bool_vector)[0]
                 chosen_rand = np.random.permutation(good_gloms)
                 good_gloms_matrix = new_glomeruli[chosen_rand]
                 # Calculate the distance between the golgi cell and all glomerulus candidates, normalize distance by layer thickness
-                normalized_distance_vector = np.sqrt((good_gloms_matrix[:, 2] - golgi_x) ** 2 + (
-                            good_gloms_matrix[:, 3] - golgi_y) ** 2) / layer_thickness
+                normalized_distance_vector = np.sqrt((good_gloms_matrix[:, 2] - golgi_x) ** 2 + (good_gloms_matrix[:, 3] - golgi_y) ** 2) / layer_thickness
                 sorting_map = normalized_distance_vector.argsort()
                 # Sort the candidate glomerulus matrix and distance vector by the distance vector
                 good_gloms_matrix = good_gloms_matrix[sorting_map]
@@ -235,7 +227,7 @@ class ConnectomeGolgiGlomerulus(TouchingConvergenceDivergence):
                 for candidate_index, glomerulus in enumerate(good_gloms_matrix):
                     if idx <= n_conn_goc:
                         ra = np.random.random()
-                        if (ra).__gt__(probability_treshold[candidate_index]):
+                        if ra.__gt__(probability_treshold[candidate_index]):
                             glomerulus_id = glomerulus[0]
                             connections[new_connection_index, 0] = golgi_id
                             connections[new_connection_index, 1] = glomerulus_id + first_glomerulus
@@ -244,8 +236,7 @@ class ConnectomeGolgiGlomerulus(TouchingConvergenceDivergence):
                             idx += 1
             return connections[0:new_connection_index]
 
-        result = connectome_goc_glom(first_glomerulus, glomeruli, golgis, GoCaxon_x, GoCaxon_y, GoCaxon_z, r_glom,
-                                     n_conn_goc, layer_thickness, oob)
+        result = connectome_goc_glom(first_glomerulus, glomeruli, golgis, GoCaxon_x, GoCaxon_y, GoCaxon_z, r_glom, n_conn_goc, layer_thickness, oob)
         self.scaffold.connect_cells(self, result)
 
 
@@ -284,8 +275,7 @@ class ConnectomeGranuleGolgi(ConnectionStrategy):
         pf_heights = get_parallel_fiber_heights(self.scaffold, granule_cell_type.morphology, granules)
         self.scaffold.append_dset('cells/ascending_axon_lengths', data=pf_heights)
 
-        def connectome_grc_goc(first_granule, granules, golgicells, r_goc_vol, OoB_value, n_connAA, n_conn_pf, tot_conn,
-                               scaffold):
+        def connectome_grc_goc(first_granule, granules, golgicells, r_goc_vol, OoB_value, n_connAA, n_conn_pf, tot_conn, scaffold):
             aa_goc = np.empty((0, 2))
             pf_goc = np.empty((0, 2))
             densityWarningSent = False
@@ -294,13 +284,11 @@ class ConnectomeGranuleGolgi(ConnectionStrategy):
             granules_z = new_granules[:, 4]
             new_golgicells = np.random.permutation(golgicells)
             if new_granules.shape[0] <= new_golgicells.shape[0]:
-                raise Exception(
-                    "The number of granule cells was less than the number of golgi cells. Simulation cannot continue.")
+                raise Exception("The number of granule cells was less than the number of golgi cells. Simulation cannot continue.")
             for golgi_id, _, golgi_x, golgi_y, golgi_z in new_golgicells:
                 # Distance of this golgi cell to all ascending axons
                 distance_vector = ((granules_x - golgi_x) ** 2) + ((granules_z - golgi_z) ** 2)
-                AA_candidates = np.where((distance_vector).__le__(r_goc_vol ** 2))[
-                    0]  # finds indexes of ascending axons that can potentially be connected
+                AA_candidates = np.where((distance_vector).__le__(r_goc_vol ** 2))[0]  # finds indexes of ascending axons that can potentially be connected
                 chosen_rand = np.random.permutation(AA_candidates)
                 selected_granules = new_granules[chosen_rand]
                 selected_distances = np.sqrt(distance_vector[chosen_rand])
@@ -318,25 +306,20 @@ class ConnectomeGranuleGolgi(ConnectionStrategy):
                             idx += 1
                 connectedAA = connectedAA[0:idx]
                 good_grc = np.delete(granules, np.array(connectedAA - first_granule, dtype=int), 0)
-                intersections = (good_grc[:, 2]).__ge__(golgi_x - r_goc_vol) & (good_grc[:, 2]).__le__(
-                    golgi_x + r_goc_vol)
-                good_pf = np.where(intersections == True)[
-                    0]  # finds indexes of granules that can potentially be connected
+                intersections = (good_grc[:, 2]).__ge__(golgi_x - r_goc_vol) & (good_grc[:, 2]).__le__(golgi_x + r_goc_vol)
+                good_pf = np.where(intersections == True)[0]  # finds indexes of granules that can potentially be connected
                 # The remaining amount of parallel fibres to connect after subtracting the amount of already connected ascending axons.
                 AA_connected_count = len(connectedAA)
                 parallelFibersToConnect = tot_conn - AA_connected_count
                 # Randomly select parallel fibers to be connected with a GoC, to a maximum of tot_conn connections
                 if good_pf.shape[0] < parallelFibersToConnect:
-                    connected_pf = np.random.choice(good_pf, min(tot_conn - AA_connected_count, good_pf.shape[0]),
-                                                    replace=False)
+                    connected_pf = np.random.choice(good_pf, min(tot_conn - AA_connected_count, good_pf.shape[0]), replace=False)
                     totalConnectionsMade = connected_pf.shape[0] + AA_connected_count
                     # Warn the user once if not enough granule cells are present to connect to the Golgi cell.
                     if not densityWarningSent:
                         densityWarningSent = True
                         if scaffold.configuration.verbosity > 0:
-                            scaffold.warn(
-                                "The granule cell density is too low compared to the Golgi cell density to make physiological connections!",
-                                ConnectivityWarning)
+                            scaffold.warn("The granule cell density is too low compared to the Golgi cell density to make physiological connections!", ConnectivityWarning)
                 else:
                     connected_pf = np.random.choice(good_pf, tot_conn - len(connectedAA), replace=False)
                     totalConnectionsMade = tot_conn
@@ -356,8 +339,7 @@ class ConnectomeGranuleGolgi(ConnectionStrategy):
             pf_goc = pf_goc[pf_goc[:, 1].argsort()]  # sorting of the resulting vector on the post-synaptic neurons
             return aa_goc, pf_goc
 
-        result_aa, result_pf = connectome_grc_goc(first_granule, granules, golgis, r_goc_vol, oob, n_connAA, n_conn_pf,
-                                                  tot_conn, self.scaffold)
+        result_aa, result_pf = connectome_grc_goc(first_granule, granules, golgis, r_goc_vol, oob, n_connAA, n_conn_pf, tot_conn, self.scaffold)
         self.scaffold.connect_cells(self, result_aa, self.tag_aa)
         self.scaffold.connect_cells(self, result_pf, self.tag_pf)
 
@@ -386,8 +368,7 @@ class ConnectomeGolgiGranule(ConnectionStrategy):
                 # Fetch all the glomeruli this golgi is connected to
                 connected_glomeruli = goc_glom[goc_glom[:, 0] == golgi_id, 1]
                 # Append a new set of connections after the existing set of goc_grc connections.
-                connected_granules_via_gloms = list(
-                    map(lambda row: row[1], filter(lambda row: row[0] in connected_glomeruli, glom_grc)))
+                connected_granules_via_gloms = list(map(lambda row: row[1], filter(lambda row: row[0] in connected_glomeruli, glom_grc)))
                 goc_grc = np.vstack((
                     goc_grc,
                     # Create a matrix with 2 columns where the 1st column is the golgi id
@@ -430,14 +411,10 @@ class ConnectomeAscAxonPurkinje(ConnectionStrategy):
             # for all Purkinje cells: calculate and choose which granules fall into the area of PC dendritic tree, then delete them from successive computations, since 1 ascending axon is connected to only 1 PC
             for i in purkinjes:
                 # ascending axon falls into the z range of values?
-                bool_vector = (new_granules[:, 4]).__ge__(i[4] - z_pc / 2.) & (new_granules[:, 4]).__le__(
-                    i[4] + z_pc / 2.)
+                bool_vector = (new_granules[:, 4]).__ge__(i[4] - z_pc / 2.) & (new_granules[:, 4]).__le__(i[4] + z_pc / 2.)
                 # ascending axon falls into the x range of values?
-                bool_vector = bool_vector & (
-                            (new_granules[:, 2]).__ge__(i[2] - x_pc / 2.) & (new_granules[:, 2]).__le__(
-                        i[2] + x_pc / 2.))
-                good_aa = np.where(bool_vector)[
-                    0]  # finds indexes of ascending axons that, on the selected axis, have the correct sum value
+                bool_vector = bool_vector & ((new_granules[:, 2]).__ge__(i[2] - x_pc / 2.) & (new_granules[:, 2]).__le__(i[2] + x_pc / 2.))
+                good_aa = np.where(bool_vector)[0]  # finds indexes of ascending axons that, on the selected axis, have the correct sum value
 
                 # construction of the output matrix: the first column has the GrC id, while the second column has the PC id
                 matrix = np.zeros((len(good_aa), 2))
@@ -445,13 +422,11 @@ class ConnectomeAscAxonPurkinje(ConnectionStrategy):
                 matrix[:, 0] = good_aa + first_granule
                 aa_pc = np.vstack((aa_pc, matrix))
 
-                new_granules[good_aa,
-                :] = OoB_value  # update the granules matrix used for computation by deleting the coordinates of connected ones
+                new_granules[good_aa,:] = OoB_value  # update the granules matrix used for computation by deleting the coordinates of connected ones
 
             return aa_pc
 
-        result = connectome_aa_pc(first_granule, granules, purkinjes, purkinje_extension_x, purkinje_extension_z,
-                                  OoB_value)
+        result = connectome_aa_pc(first_granule, granules, purkinjes, purkinje_extension_x, purkinje_extension_z, OoB_value)
         self.scaffold.connect_cells(self, result)
 
 
@@ -477,10 +452,8 @@ class ConnectomePFPurkinje(ConnectionStrategy):
             # for all Purkinje cells: calculate and choose which parallel fibers fall into the area of PC dendritic tree (then delete them from successive computations, since 1 parallel fiber is connected to a maximum of PCs)
             for i in purkinjes:
                 # which parallel fibers fall into the x range of values?
-                bool_matrix = (granules[:, 2]).__ge__(i[2] - x_pc / 2.) & (granules[:, 2]).__le__(
-                    i[2] + x_pc / 2.)  # CAMBIARE IN new_granules SE VINCOLO SU 30 pfs
-                good_pf = np.where(bool_matrix)[
-                    0]  # finds indexes of parallel fibers that, on the selected axis, satisfy the condition
+                bool_matrix = (granules[:, 2]).__ge__(i[2] - x_pc / 2.) & (granules[:, 2]).__le__(i[2] + x_pc / 2.)  # CAMBIARE IN new_granules SE VINCOLO SU 30 pfs
+                good_pf = np.where(bool_matrix)[0]  # finds indexes of parallel fibers that, on the selected axis, satisfy the condition
 
                 # construction of the output matrix: the first column has the GrC id, while the second column has the PC id
                 matrix = np.zeros((len(good_pf), 2))
@@ -510,8 +483,7 @@ class ConnectomePFInterneuron(ConnectionStrategy):
         interneurons = self.scaffold.cells_by_type[interneuron_cell_type.name]
         first_granule = int(granules[0, 0])
         dendrite_radius = interneuron_cell_type.morphology.dendrite_radius
-        pf_heights = self.scaffold.appends['cells/ascending_axon_lengths'][:, 1] + granules[:,
-                                                                                   3]  # Add granule Y to height of its pf
+        pf_heights = self.scaffold.appends['cells/ascending_axon_lengths'][:, 1] + granules[:, 3]  # Add granule Y to height of its pf
 
         def connectome_pf_inter(first_granule, interneurons, granules, r_sb, h_pf):
             pf_interneuron = np.zeros((0, 2))
@@ -586,8 +558,7 @@ class ConnectomeBCSCPurkinje(ConnectionStrategy):
                 idx_sc = 1
 
                 # find all cells that satisfy the distance condition for both types
-                sc_matrix = (np.absolute(stellates_z - p_z)).__lt__(distz) & (np.absolute(stellates_x - p_x)).__lt__(
-                    distx)
+                sc_matrix = (np.absolute(stellates_z - p_z)).__lt__(distz) & (np.absolute(stellates_x - p_x)).__lt__(distx)
                 bc_matrix = (np.absolute(baskets_z - p_z)).__lt__(distx) & (np.absolute(baskets_x - p_x)).__lt__(distz)
 
                 good_bc = np.where(bc_matrix)[0]  # indexes of basket cells that can potentially be connected
@@ -604,8 +575,7 @@ class ConnectomeBCSCPurkinje(ConnectionStrategy):
                     if idx_bc <= conv:
 
                         ra = np.random.random()
-                        if (ra).__gt__((np.absolute(j[4] - p_z)) / distx) & (ra).__gt__(
-                                (np.absolute(j[2] - p_x)) / distz):
+                        if (ra).__gt__((np.absolute(j[4] - p_z)) / distx) & (ra).__gt__((np.absolute(j[2] - p_x)) / distz):
                             idx_bc += 1
                             bc_pc[bc_i, 0] = j[0]
                             bc_pc[bc_i, 1] = p_id
@@ -617,8 +587,7 @@ class ConnectomeBCSCPurkinje(ConnectionStrategy):
                     if idx_sc <= conv:
 
                         ra = np.random.random()
-                        if (ra).__gt__((np.absolute(k[4] - p_z)) / distz) & (ra).__gt__(
-                                (np.absolute(k[2] - p_x)) / distx):
+                        if (ra).__gt__((np.absolute(k[4] - p_z)) / distz) & (ra).__gt__((np.absolute(k[2] - p_x)) / distx):
                             idx_sc += 1
                             sc_pc[sc_i, 0] = k[0]
                             sc_pc[sc_i, 1] = p_id
@@ -669,8 +638,7 @@ class ConnectomeGapJunctions(ConnectionStrategy):
                 idx = 1
 
                 # find all cells that satisfy the distance condition
-                constraint_vector = (np.absolute(cells_z - z)).__lt__(d_z) & (np.absolute(cells_z - z)).__ne__(0) & (
-                    np.sqrt((cells_x - x) ** 2 + (cells_y - y) ** 2)).__lt__(d_xy)
+                constraint_vector = (np.absolute(cells_z - z)).__lt__(d_z) & (np.absolute(cells_z - z)).__ne__(0) & (np.sqrt((cells_x - x) ** 2 + (cells_y - y) ** 2)).__lt__(d_xy)
                 good_sc = np.where(constraint_vector)[0]  # indexes of stellate cells that can potentially be connected
                 chosen_rand = np.random.permutation(good_sc)
                 candidates = cells[chosen_rand]
@@ -680,8 +648,7 @@ class ConnectomeGapJunctions(ConnectionStrategy):
                     if idx <= dc_gj:
 
                         ra = np.random.random()
-                        if (ra).__gt__((np.absolute(j[4] - z)) / float(d_z)) & (ra).__gt__(
-                                (np.sqrt((j[2] - x) ** 2 + (j[3] - y) ** 2)) / float(d_xy)):
+                        if (ra).__gt__((np.absolute(j[4] - z)) / float(d_z)) & (ra).__gt__((np.sqrt((j[2] - x) ** 2 + (j[3] - y) ** 2)) / float(d_xy)):
                             idx += 1
                             gj_sc[gj_i, 0] = id
                             gj_sc[gj_i, 1] = j[0]
@@ -773,9 +740,7 @@ class ConnectomePurkinjeDCN(ConnectionStrategy):
             for i in purkinjes:  # for all Purkinje cells: calculate the distance with the area around glutamatergic DCN cells soma, then choose 4-5 of them
 
                 distance = np.zeros((dcn_cells.shape[0]))
-                distance = (np.absolute((dend_tree_coeff[:, 0] * i[2]) + (dend_tree_coeff[:, 1] * i[3]) + (
-                            dend_tree_coeff[:, 2] * i[4]) + dend_tree_coeff[:, 3])) / (np.sqrt(
-                    (dend_tree_coeff[:, 0] ** 2) + (dend_tree_coeff[:, 1] ** 2) + (dend_tree_coeff[:, 2] ** 2)))
+                distance = (np.absolute((dend_tree_coeff[:, 0] * i[2]) + (dend_tree_coeff[:, 1] * i[3]) + (dend_tree_coeff[:, 2] * i[4]) + dend_tree_coeff[:, 3])) / (np.sqrt((dend_tree_coeff[:, 0] ** 2) + (dend_tree_coeff[:, 1] ** 2) + (dend_tree_coeff[:, 2] ** 2)))
 
                 dist_matrix = np.zeros((dcn_cells.shape[0], 2))
                 dist_matrix[:, 1] = dcn_cells[:, 0]
@@ -922,13 +887,13 @@ class ConnectomeIOMolecular(ConnectionStrategy):
             purkinje_dict = {}
             for conn in range(len(molecular_cell_purkinje_matrix)):
                 purkinje_id = molecular_cell_purkinje_matrix[conn][1]
-                if not purkinje_id in purkinje_dict:
+                if purkinje_id not in purkinje_dict:
                     purkinje_dict[purkinje_id] = []
                 purkinje_dict[purkinje_id].append(molecular_cell_purkinje_matrix[conn][0])
 
             for io_conn in range(len(io_cell_purkinje_matrix)):
                 purkinje_id = io_cell_purkinje_matrix[io_conn][1]
-                if not purkinje_id in purkinje_dict:
+                if purkinje_id not in purkinje_dict:
                     continue
                 target_molecular_cells = purkinje_dict[purkinje_id]
                 matrix = np.column_stack((np.repeat(io_cell_purkinje_matrix[io_conn][0], len(target_molecular_cells)),
@@ -985,8 +950,7 @@ class TouchDetector(ConnectionStrategy):
             for to_cell_type_index in range(len(self.to_cell_types)):
                 to_cell_type = self.to_cell_types[to_cell_type_index]
                 to_cell_compartments = self.to_cell_compartments[to_cell_type_index]
-                touch_info = TouchInformation(from_cell_type, from_cell_compartments, to_cell_type,
-                                              to_cell_compartments)
+                touch_info = TouchInformation(from_cell_type, from_cell_compartments, to_cell_type, to_cell_compartments)
                 # Intersect cells on the widest possible search radius.
                 candidates = self.intersect_cells(touch_info)
                 # Intersect cell compartments between matched cells.
@@ -1039,23 +1003,17 @@ class TouchDetector(ConnectionStrategy):
                 intersections = self.get_compartment_intersections(touch_info, from_id, to_id)
                 if len(intersections) > 0:
                     touching_cells += 1
-                    number_of_synapses = max(min(int(self.synapses.sample()), len(intersections)),
-                                             int(not self.allow_zero_synapses))
+                    number_of_synapses = max(min(int(self.synapses.sample()), len(intersections)), int(not self.allow_zero_synapses))
                     cell_connections = [[from_id, to_id] for _ in range(number_of_synapses)]
                     compartment_connections = sample_elements(intersections, k=number_of_synapses)
                     connected_cells.extend(cell_connections)
                     connected_compartments.extend(compartment_connections)
                     # Pad the morphology names with the right names for the amount of compartment connections made
-                    morphology_names.extend(
-                        [[touch_info.from_morphology.morphology_name, touch_info.to_morphology.morphology_name] for _ in
-                         range(len(compartment_connections))])
+                    morphology_names.extend([[touch_info.from_morphology.morphology_name, touch_info.to_morphology.morphology_name] for _ in range(len(compartment_connections))])
         if self.scaffold.configuration.verbosity > 1:
-            print("Checked {} candidate cell pairs from {} to {}".format(c_check, touch_info.from_cell_type.name,
-                                                                         touch_info.to_cell_type.name))
-            print("Touch connection results: \n* Touching pairs: ", touching_cells, "\n* Synapses:",
-                  len(connected_compartments))
-        return np.array(connected_cells, dtype=int), np.array(morphology_names, dtype=np.string_), np.array(
-            connected_compartments, dtype=int)
+            print("Checked {} candidate cell pairs from {} to {}".format(c_check, touch_info.from_cell_type.name, touch_info.to_cell_type.name))
+            print("Touch connection results: \n* Touching pairs: ", touching_cells, "\n* Synapses:", len(connected_compartments))
+        return np.array(connected_cells, dtype=int), np.array(morphology_names, dtype=np.string_), np.array(connected_compartments, dtype=int)
 
     def get_compartment_intersections(self, touch_info, from_cell_id, to_cell_id):
         from_cell_type = touch_info.from_cell_type
@@ -1064,8 +1022,7 @@ class TouchDetector(ConnectionStrategy):
         to_morphology = touch_info.to_morphology
         from_pos = self.scaffold.get_cell_position(from_cell_id)
         to_pos = self.scaffold.get_cell_position(to_cell_id)
-        query_points = to_morphology.get_compartment_positions(
-            types=touch_info.to_cell_compartments) + to_pos - from_pos
+        query_points = to_morphology.get_compartment_positions(types=touch_info.to_cell_compartments) + to_pos - from_pos
         from_tree = from_morphology.get_compartment_tree(compartment_types=touch_info.from_cell_compartments)
         compartment_hits = from_tree.query_radius(query_points, self.compartment_intersection_radius)
         from_map = from_morphology.get_compartment_submask(compartment_types=touch_info.from_cell_compartments)
@@ -1087,10 +1044,9 @@ class TouchDetector(ConnectionStrategy):
         '''
         available_morphologies = self.list_all_morphologies(cell_type)
         if len(available_morphologies) == 0:
-            raise MissingMorphologyException(
-                "Can't perform touch detection without detailed morphologies for {}".format(cell_type.name))
+            raise MissingMorphologyException("Can't perform touch detection without detailed morphologies for {}".format(cell_type.name))
         m_name = random_element(available_morphologies)
-        if not m_name in self.morphology_cache:
+        if m_name not in self.morphology_cache:
             mr = self.scaffold.morphology_repository
             self.morphology_cache[m_name] = mr.get_morphology(m_name, scaffold=self.scaffold)
         return self.morphology_cache[m_name]
@@ -1098,7 +1054,7 @@ class TouchDetector(ConnectionStrategy):
     def get_all_morphologies(self, cell_type):
         all_morphologies = []
         for m_name in self.list_all_morphologies(cell_type):
-            if not m_name in self.morphology_cache:
+            if m_name not in self.morphology_cache:
                 mr = self.scaffold.morphology_repository
                 self.morphology_cache[m_name] = mr.get_morphology(m_name, scaffold=self.scaffold)
             all_morphologies.append(self.morphology_cache[m_name])
@@ -1108,8 +1064,7 @@ class TouchDetector(ConnectionStrategy):
         morphologies = self.get_all_morphologies(cell_type)
         max_radius = 0.
         for morphology in morphologies:
-            max_radius = max(max_radius,
-                             np.max(np.sqrt(np.sum(np.power(morphology.compartment_tree.get_arrays()[0], 2), axis=1))))
+            max_radius = max(max_radius, np.max(np.sqrt(np.sum(np.power(morphology.compartment_tree.get_arrays()[0], 2), axis=1))))
         return max_radius
 
 
@@ -1152,6 +1107,5 @@ class AllToAll(ConnectionStrategy):
         to_cells = self.scaffold.get_cells_by_type(to_type.name)
         connections = np.empty([0, 2])
         for from_cell in from_cells[:, 0]:
-            connections = np.vstack(
-                (connections, np.column_stack((np.repeat(from_cell, len(to_cells)), to_cells[:, 0]))))
+            connections = np.vstack((connections, np.column_stack((np.repeat(from_cell, len(to_cells)), to_cells[:, 0]))))
         self.scaffold.connect_cells(self, connections)

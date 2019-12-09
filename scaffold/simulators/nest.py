@@ -5,6 +5,7 @@ from ..exceptions import *
 import os, json, weakref, numpy as np
 from sklearn.neighbors import KDTree
 
+
 class NestCell(SimulationComponent):
 
     node_name = 'simulations.?.cell_models'
@@ -51,6 +52,7 @@ class NestCell(SimulationComponent):
     def get_nest_ids(self, ids):
         return [self.scaffold_to_nest_map[id] for id in ids]
 
+
 class NestConnection(SimulationComponent):
     node_name = 'simulations.?.connection_models'
 
@@ -69,7 +71,7 @@ class NestConnection(SimulationComponent):
     }
 
     def validate(self):
-        if not 'weight' in self.connection:
+        if 'weight' not in self.connection:
             raise ConfigurationException("Missing 'weight' in the connection parameters of " + self.node_name + "." + self.name)
         if self.plastic:
             # Set plasticity synapse dict defaults
@@ -80,13 +82,12 @@ class NestConnection(SimulationComponent):
                 "Wmax": 4000.0
             }
             for key, value in synapse_defaults.items():
-                if not key in self.synapse:
+                if key not in self.synapse:
                     self.synapse[key] = value
 
     def get_synapse_parameters(self, synapse_model_name):
         # Get the default synapse parameters
         return self.synapse[synapse_model_name]
-
 
     def get_connection_parameters(self):
         # Get the default synapse parameters
@@ -134,7 +135,7 @@ class NestConnection(SimulationComponent):
         to_cell_model = self.adapter.cell_models[to_cell_type.name]
         from_cell_model = self.adapter.cell_models[from_cell_type.name]
         receptors = to_cell_model.get_receptor_specifications()
-        if not from_cell_model.name in receptors:
+        if from_cell_model.name not in receptors:
             raise Exception("Missing receptor specification for cell model '{}' in '{}' while attempting to connect a '{}' to it during '{}'".format(
                 to_cell_model.name,
                 self.node_name,
@@ -142,6 +143,7 @@ class NestConnection(SimulationComponent):
                 self.name
             ))
         return receptors[from_cell_model.name]
+
 
 class NestDevice(SimulationComponent):
     node_name = 'simulations.?.devices'
@@ -159,7 +161,7 @@ class NestDevice(SimulationComponent):
         # Fill in the _get_targets method, so that get_target functions
         # according to `type`.
         types = ['local', 'cell_type']
-        if not self.type in types:
+        if self.type not in types:
             raise Exception("Unknown NEST targetting type '{}' in {}".format(self.type, self.node_name))
         get_targets_name = '_targets_' + self.type
         method = getattr(self, get_targets_name) if hasattr(self, get_targets_name) else None
@@ -185,7 +187,7 @@ class NestDevice(SimulationComponent):
         if len(self.cell_types) != 1:
             # Compile a list of the cells and build a compound tree.
             target_cells = np.empty((0, 5))
-            id_map = np.empty((0,1))
+            id_map = np.empty((0, 1))
             for t in self.cell_types:
                 cells = self.scaffold.get_cells_by_type(t)
                 target_cells = np.vstack((target_cells, cells[:, 2:5]))
@@ -217,6 +219,7 @@ class NestDevice(SimulationComponent):
             # Retrieve a single list
             cells = self.scaffold.get_cells_by_type(self.cell_types[0])
             return cells[:, 0]
+
 
 class NestAdapter(SimulatorAdapter):
     '''
@@ -282,11 +285,11 @@ class NestAdapter(SimulatorAdapter):
         if self.in_full_control():
             self.scaffold.report("Initializing NEST kernel...", 2)
             self.reset_kernel()
-        self.scaffold.report("Creating neurons...",2)
+        self.scaffold.report("Creating neurons...", 2)
         self.create_neurons(self.cell_models)
-        self.scaffold.report("Creating devices...",2)
+        self.scaffold.report("Creating devices...", 2)
         self.create_devices(self.devices)
-        self.scaffold.report("Creating connections...",2)
+        self.scaffold.report("Creating connections...", 2)
         self.connect_neurons(self.connection_models, hdf5)
         self.is_prepared = True
         return nest
@@ -393,16 +396,15 @@ class NestAdapter(SimulatorAdapter):
         success = True
         try:
             # Update the kernel with the new RNG and thread state.
-            self.nest.SetKernelStatus({'grng_seed' : master_seed + virtual,
-                                  'rng_seeds' : thread_seeds,
-                                  'local_num_threads': threads,
-                                  'total_num_virtual_procs': virtual,
-                                 })
+            self.nest.SetKernelStatus({'grng_seed': master_seed + virtual,
+                'rng_seeds': thread_seeds, 'local_num_threads': threads,
+                'total_num_virtual_procs': virtual
+            })
         except Exception as e:
             if hasattr(e, "errorname") and e.errorname[0:27] == "The resolution has been set":
                 # Threads can't be updated at this point in time.
-                raise NestKernelException("Updating the NEST threads or virtual processes must occur before setting the resolution.") from None
                 success = False
+                raise NestKernelException("Updating the NEST threads or virtual processes must occur before setting the resolution.") from None
             else:
                 raise
         if success:
@@ -454,14 +456,14 @@ class NestAdapter(SimulatorAdapter):
             Recreate the scaffold neurons in the same order as they were placed,
             inside of the NEST simulator based on the cell model configuration.
         '''
-        track_models = [] # Keeps track of already added models if there's more than 1 stitch per model
+        track_models = []  # Keeps track of already added models if there's more than 1 stitch per model
         # Iterate over all the placement stitches: each stitch was a batch of cells placed together and
         # if we don't follow the same order as during the placement, the cell IDs can not be easily matched
         for cell_type_id, start_id, count in self.scaffold.placement_stitching:
             # Get the cell_type name from the type id to type name map.
             name = self.scaffold.configuration.cell_type_map[cell_type_id]
             nest_name = self.suffixed(name)
-            if name not in track_models: # Is this the first time encountering this model?
+            if name not in track_models:  # Is this the first time encountering this model?
                 # Create the cell model in the simulator
                 self.scaffold.report("Creating " + nest_name + "...", 3)
                 self.create_model(cell_models[name])
@@ -487,13 +489,13 @@ class NestAdapter(SimulatorAdapter):
             name = connection_model.name
             nest_name = self.suffixed(name)
             dataset_name = 'cells/connections/' + name
-            if not dataset_name in hdf5:
+            if dataset_name not in hdf5:
                 self.scaffold.warn('Expected connection dataset "{}" not found. Skipping it.'.format(dataset_name), ConnectivityWarning)
                 continue
             connectivity_matrix = hdf5[dataset_name]
             # Get the NEST identifiers for the connections made in the connectivity matrix
-            presynaptic_cells = self.get_nest_ids(np.array(connectivity_matrix[:,0], dtype=int))
-            postsynaptic_cells = self.get_nest_ids(np.array(connectivity_matrix[:,1], dtype=int))
+            presynaptic_cells = self.get_nest_ids(np.array(connectivity_matrix[:, 0], dtype=int))
+            postsynaptic_cells = self.get_nest_ids(np.array(connectivity_matrix[:, 1], dtype=int))
             # Accessing the postsynaptic type to be associated to the volume transmitter of the synapse
             cs = ConnectivitySet(self.scaffold.output_formatter, name)
             postsynaptic_type = cs.connection_types[0].to_cell_types[0]
@@ -505,19 +507,18 @@ class NestAdapter(SimulatorAdapter):
             # Get the connection parameters from the configuration
             connection_parameters = connection_model.get_connection_parameters()
             # Create the connections in NEST
-            self.scaffold.report("Creating connections " + nest_name,3)
+            self.scaffold.report("Creating connections " + nest_name, 3)
             self.nest.Connect(presynaptic_cells, postsynaptic_cells, connection_specifications, connection_parameters)
 
             # Workaround for https://github.com/alberto-antonietti/CerebNEST/issues/10
             if connection_model.plastic and connection_model.hetero:
                 # Create the volume transmitter if the connection is plastic with heterosynaptic plasticity
-                self.scaffold.report("Creating volume transmitter for "+name,3)
+                self.scaffold.report("Creating volume transmitter for "+name, 3)
                 volume_transmitters = self.create_volume_transmitter(connection_model, postsynaptic_cells)
                 postsynaptic_type._vt_id = volume_transmitters
                 # # Associate the volume transmitters to their ids
                 # for i,vti in enumerate(volume_transmitters):
                 #     self.nest.SetStatus([vti],{"vt_num" : float(i)})
-
 
             if connection_model.is_teaching:
                 # We need to connect the pre-synaptic neurons also to the volume transmitter associated to each post-synaptic create_neurons
@@ -531,7 +532,7 @@ class NestAdapter(SimulatorAdapter):
         '''
         for device_model in devices.values():
             device = self.nest.Create(device_model.device)
-            self.scaffold.report("Creating device:  "+device_model.device,3)
+            self.scaffold.report("Creating device:  "+device_model.device, 3)
             # Execute SetStatus and catch DictError
             self.execute_command(self.nest.SetStatus, device, device_model.parameters,
                 exceptions={
@@ -591,12 +592,12 @@ class NestAdapter(SimulatorAdapter):
         vt = self.nest.Create("volume_transmitter_alberto", len(postsynaptic_cells))
         teacher = vt[0]
         # Assign the volume transmitters to their synapse model
-        self.nest.SetDefaults(synapse_model.name,{"vt": teacher})
+        self.nest.SetDefaults(synapse_model.name, {"vt": teacher})
         # Assign an ID to each volume transmitter
-        for n,vti in enumerate(vt):
-        	self.nest.SetStatus([vti],{"deliver_interval" : 2})            # TO CHECK
+        for n, vti in enumerate(vt):
+            self.nest.SetStatus([vti], {"deliver_interval": 2})            # TO CHECK
             # Waiting for Albe to clarify necessity of this parameter
-        	self.nest.SetStatus([vti],{"vt_num" : n})
+            self.nest.SetStatus([vti], {"vt_num": n})
         return vt
 
     def execute_command(self, command, *args, exceptions={}):
@@ -606,7 +607,7 @@ class NestAdapter(SimulatorAdapter):
             if not hasattr(e, "errorname"):
                 raise
             if e.errorname in exceptions:
-                handler = exceptions[e.errorname ]
+                handler = exceptions[e.errorname]
                 if "from" in handler:
                     raise handler["exception"](e) from handler["from"]
                 else:
@@ -618,6 +619,7 @@ class NestAdapter(SimulatorAdapter):
         if self.suffix == '':
             return str
         return str + '_' + self.suffix
+
 
 def catch_dict_error(message):
     def handler(e):

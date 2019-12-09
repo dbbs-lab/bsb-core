@@ -1,13 +1,14 @@
 from scipy.stats import truncnorm
 import numpy as np
 
+
 def get_parallel_fiber_heights(scaffold, granule_geometry, granules):
-    parallel_fibers = np.zeros((len(granules),2))
+    parallel_fibers = np.zeros((len(granules), 2))
     pf_height = granule_geometry.pf_height
     pf_height_sd = granule_geometry.pf_height_sd
     molecular_layer = scaffold.configuration.get_layer(name='molecular_layer')
     floor_ml = molecular_layer.Y
-    roof_ml = floor_ml + molecular_layer.height # Roof of the molecular layer
+    roof_ml = floor_ml + molecular_layer.height  # Roof of the molecular layer
 
     for idx, granule in enumerate(granules):
         granule_y = granule[3]
@@ -19,16 +20,17 @@ def get_parallel_fiber_heights(scaffold, granule_geometry, granules):
         a, b = (pf_height_min - pf_height) / pf_height_sd, (pf_height_max - pf_height) / pf_height_sd
         # Draw a sample for the parallel fiber height from a truncated normal distribution
         # with sd `pf_height_sd` and mean `pf_height`, truncated by the molecular layer bounds.
-        parallel_fibers[idx,1] = truncnorm.rvs(a, b, size=1) * pf_height_sd + pf_height # Height
-        parallel_fibers[idx,0] = granule[0] # ID
+        parallel_fibers[idx, 1] = truncnorm.rvs(a, b, size=1) * pf_height_sd + pf_height  # Height
+        parallel_fibers[idx, 0] = granule[0]  # ID
     return parallel_fibers
+
 
 def get_dcn_rotations(dcn_matrix):
     '''
         Create a matrix of planes tilted between -45° and 45°,
-        storing id and the planar coeffecients a, b, c and d for each DCN cell
+        storing id and the planar coefficients a, b, c and d for each DCN cell
     '''
-    dend_tree_coeff = np.zeros((dcn_matrix.shape[0],4))
+    dend_tree_coeff = np.zeros((dcn_matrix.shape[0], 4))
     for i in range(len(dcn_matrix)):
         # Make the planar coefficients a, b and c.
         dend_tree_coeff[i] = np.random.rand(4) * 2. - 1.

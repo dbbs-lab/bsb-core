@@ -16,15 +16,17 @@ import traceback
 ## This is the package entry point API and REPL.
 ##
 
+
 def scaffold_cli():
     '''
         console_scripts entry point for the scaffold package. Will start the CLI handler or REPL handler.
     '''
     args = sys.argv[1:]
-    if len(args) == 0: # Start the REPL?
+    if len(args) == 0:  # Start the REPL?
         start_repl()
     else:
         start_cli()
+
 
 def check_positive_factory(name):
     '''
@@ -33,16 +35,17 @@ def check_positive_factory(name):
     '''
     # Define factory product function.
     def f(x):
-        try: # Try to cast the parameter to an int
+        try:  # Try to cast the parameter to an int
             x = int(x)
-            if x >= 0: # If x is positive, return it.
+            if x >= 0:  # If x is positive, return it.
                 return x
             # x is not positive, raise an exception.
             raise
-        except Exception as e: # Catch the conversion or no-return exception and raise ArgumentTypeError.
+        except Exception as e:  # Catch the conversion or no-return exception and raise ArgumentTypeError.
             raise argparse.ArgumentTypeError("{} is an invalid {} value (positive int expected)".format(x, name))
     # Return factory product function.
     return f
+
 
 def start_repl():
     '''
@@ -55,6 +58,7 @@ def start_repl():
             state.repl()
     finally:
         state.destroy_globals()
+
 
 def start_cli():
     '''
@@ -119,38 +123,40 @@ def start_cli():
         cl_args.func(cl_args)
     else:
         file = None
-        if hasattr(cl_args, 'hdf5'): # Is an HDF5 file specified?
-            cl_args.ctype = 'hdf5' # Load from the config stored in the HDF5 file.
+        if hasattr(cl_args, 'hdf5'):  # Is an HDF5 file specified?
+            cl_args.ctype = 'hdf5'  # Load from the config stored in the HDF5 file.
 
-        if cl_args.ctype == 'json': # Should we config from JSON?
+        if cl_args.ctype == 'json':  # Should we config from JSON?
             # Load the .json configuration
             scaffoldConfig = JSONConfig(file=cl_args.config, verbosity=cl_args.verbose)
-        elif cl_args.ctype == 'hdf5': # Should we config from hdf5?
+        elif cl_args.ctype == 'hdf5':  # Should we config from hdf5?
             file = cl_args.hdf5
-            if not cl_args.reconfigure is None:
+            if cl_args.reconfigure is not None:
                 print(cl_args.reconfigure)
                 config = JSONConfig(file=cl_args.reconfigure)
                 HDF5Formatter.reconfigure(file, config)
-            scaffoldConfig = from_hdf5(file, verbosity=cl_args.verbose) # Extract the config stored in the hdf5 file.
+            scaffoldConfig = from_hdf5(file, verbosity=cl_args.verbose)  # Extract the config stored in the hdf5 file.
 
         # Create the scaffold instance
-        scaffoldInstance = Scaffold(scaffoldConfig, from_file=file) # `from_file` notifies the scaffold instance that we might've loaded from a file.
+        scaffoldInstance = Scaffold(scaffoldConfig, from_file=file)  # `from_file` notifies the scaffold instance that we might've loaded from a file.
 
-        if cl_args.output: # Is a new output file name specified?
+        if cl_args.output:  # Is a new output file name specified?
             scaffoldInstance.output_formatter.save_file_as = cl_args.output
 
-        if cl_args.task == 'compile' or cl_args.task == 'run': # Do we need to compile a network architecture?
+        if cl_args.task == 'compile' or cl_args.task == 'run':  # Do we need to compile a network architecture?
             scaffoldInstance.compile_network()
-            if cl_args.p: # Is a plot requested?
+            if cl_args.p:  # Is a plot requested?
                 scaffoldInstance.plot_network_cache()
 
-        if cl_args.task == 'run' or cl_args.task == 'simulate': # Do we need to run a simulation?
+        if cl_args.task == 'run' or cl_args.task == 'simulate':  # Do we need to run a simulation?
             scaffoldInstance.run_simulation(cl_args.simulation)
+
 
 def create_config(args):
     from shutil import copy2 as copy_file
     import os
     copy_file(os.path.join(os.path.dirname(__file__), "configurations", args.template), ".")
+
 
 class ReplState:
     '''
@@ -177,7 +183,7 @@ class ReplState:
             (self.question or '') + ('\n' if self.question else ''),
             self.prefix or ''
         ))
-        if self.command == "": # Empty command? Next step.
+        if self.command == "":  # Empty command? Next step.
             return
         # Update state with next if set, or keep last state.
         self.state = self.next or self.state
@@ -195,7 +201,7 @@ class ReplState:
             print(str(e))
             return
 
-        if hasattr(args, "func"): # Was a command found?
+        if hasattr(args, "func"):  # Was a command found?
             try:
                 # Execute the command
                 args.func(args)
@@ -284,6 +290,7 @@ class ReplState:
             Adds the HDF5 state subparsers and arguments to the REPL parser.
         '''
         h = self.globals["hdf5"]
+
         def close(args):
             self.clear_prefix()
             self.close_hdf5()
@@ -391,11 +398,13 @@ class ReplState:
         # Indicate the open hdf5 state with a prefix
         self.prefix = "hdf5 <'{}'".format(args.file)
 
+
 class ParseException(Exception):
     '''
         Thrown when the parsing of a command string fails.
     '''
     pass
+
 
 class StateParser(argparse.ArgumentParser):
     '''
@@ -409,6 +418,7 @@ class StateParser(argparse.ArgumentParser):
         '''
         raise ParseException(message)
 
+
 def repl_plot_morphology(morphology_repository, args):
     '''
         Callback function that handles ``plot`` command in the *base_mr* state.
@@ -416,6 +426,7 @@ def repl_plot_morphology(morphology_repository, args):
     m = morphology_repository.get_morphology(args.name)
     from .plotting import plot_morphology
     plot_morphology(m)
+
 
 def repl_voxelize(morphology_repository, args):
     '''
@@ -425,11 +436,13 @@ def repl_voxelize(morphology_repository, args):
     m.voxelize(args.voxels)
     morphology_repository.store_voxel_cloud(m, overwrite=True)
 
+
 def repl_view_hdf5(handle, args):
     '''
         Callback function that handles ``view`` command in the *base_hdf5* state.
     '''
     df = chr(172)
+
     def format_level(lvl, sub=None):
         return ' ' * (lvl * 3) + (sub or df)
 

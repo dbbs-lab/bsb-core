@@ -3,6 +3,7 @@ from .morphologies import Morphology as BaseMorphology
 from .helpers import ConfigurableClass, dimensions, origin, SortableByAfter
 from .exceptions import MissingMorphologyException, AttributeMissingException
 
+
 class CellType(SortableByAfter):
 
     def __init__(self, name, placement=None):
@@ -54,7 +55,7 @@ class CellType(SortableByAfter):
         return self.scaffold.statistics.cells_placed[self.name]
 
     def get_ids(self):
-        return np.array(self.scaffold.cells_by_type[self.name][:,0], dtype=int)
+        return np.array(self.scaffold.cells_by_type[self.name][:, 0], dtype=int)
 
     def list_all_morphologies(self):
         if not hasattr(self.morphology, "detailed_morphologies"):
@@ -66,6 +67,7 @@ class CellType(SortableByAfter):
             return m_names
         else:
             raise NotImplementedError("Detailed morphologies can currently only be selected by name.")
+
 
 class Layer(dimensions, origin):
 
@@ -94,6 +96,7 @@ class Layer(dimensions, origin):
     def initialise(self, scaffoldInstance):
         self.scaffold = scaffoldInstance
 
+
 class Resource:
     def __init__(self, handler, path):
         self._handler = handler
@@ -110,7 +113,7 @@ class Resource:
 
     def get_attribute(self, name):
         attrs = self.attributes
-        if not name in attrs:
+        if name not in attrs:
             raise AttributeMissingException("Attribute '{}' not found in '{}'".format(name, self._path))
         return attrs[name]
 
@@ -134,12 +137,14 @@ class Resource:
         else:
             return self.unmap(data=[data], mapping=mapping)
 
+
 class Connection:
     def __init__(self, from_id, to_id, from_compartment, to_compartment, from_morphology, to_morphology):
         self.from_id = from_id
         self.to_id = to_id
         self.from_compartment = from_morphology.compartments[from_compartment]
         self.to_compartment = from_morphology.compartments[to_compartment]
+
 
 class ConnectivitySet(Resource):
     def __init__(self, handler, tag):

@@ -3,6 +3,7 @@ from .helpers import ConfigurableClass
 from .voxels import VoxelCloud, detect_box_compartments, Box
 from sklearn.neighbors import KDTree
 
+
 class Compartment:
     def __init__(self, morphology, repo_record):
         '''
@@ -21,6 +22,7 @@ class Compartment:
         self.spherical = np.sqrt((self.start[:] - self.end[:]) ** 2) / 2
 
         self.morphology = morphology
+
 
 class Morphology(ConfigurableClass):
 
@@ -57,7 +59,7 @@ class Morphology(ConfigurableClass):
             self.compartments.append(compartment)
         # Create a tree from the compartment object list
         self.compartment_tree = KDTree(np.array(list(map(lambda c: c.end, self.compartments))))
-        if hasattr(self, "scaffold") and self.scaffold: # Is the scaffold ready at this point?
+        if hasattr(self, "scaffold") and self.scaffold:  # Is the scaffold ready at this point?
             self.store_compartment_tree()
 
     def store_compartment_tree(self):
@@ -75,19 +77,20 @@ class Morphology(ConfigurableClass):
         self.cloud = VoxelCloud(bounds, voxel_data, grid_size, voxel_map)
 
     @staticmethod
-    def from_repo_data(repo_data, repo_meta, voxel_data=None, voxel_map=None, voxel_meta=None, scaffold = None):
+    def from_repo_data(repo_data, repo_meta, voxel_data=None, voxel_map=None, voxel_meta=None, scaffold=None):
         # Instantiate morphology instance
         m = TrueMorphology()
-        if not scaffold is None:
+        if scaffold is not None:
             # Initialise configurable class
             m.initialise(scaffold)
         # Load the morphology data into this morphology instance
         m.init_morphology(repo_data, repo_meta)
-        if not voxel_data is None:
+        if voxel_data is not None:
             if voxel_map is None or voxel_meta is None:
                 raise Exception("If voxel_data is provided, voxel_meta and voxel_map must be provided aswell.")
             m.init_voxel_cloud(voxel_data, voxel_meta, voxel_map)
         return m
+
 
 class TrueMorphology(Morphology):
     '''
@@ -137,7 +140,7 @@ class TrueMorphology(Morphology):
         pos = np.array(self.compartment_tree.get_arrays()[0])
         dimensions = ['x', 'y', 'z']
         try:
-            max_dists = np.max(np.abs(np.array([pos[:,dimensions.index(d)] for d in plane])), axis=1)
+            max_dists = np.max(np.abs(np.array([pos[:, dimensions.index(d)] for d in plane])), axis=1)
         except ValueError as e:
             raise Exception("Unknown dimensions in dimension string '{}'".format(plane))
         return np.sqrt(np.sum(max_dists ** 2))
@@ -169,12 +172,13 @@ class TrueMorphology(Morphology):
 
     def _comp_tree_factory(self, types):
         type_map = list(map(lambda t: Morphology.compartment_types[t], types))
+
         def _comp_tree_product(_):
             return np.array(list(map(lambda c: c.end, filter(lambda c: c.type in type_map, self.compartments))))
         return _comp_tree_product
 
     def get_compartment_tree(self, compartment_types=None):
-        if not compartment_types is None:
+        if compartment_types is not None:
             if len(compartment_types) == 1:
                 return self.scaffold.trees.morphologies.get_sub_tree(self.morphology_name, "+".join(compartment_types), factory=self._comp_tree_factory(compartment_types))
             else:
@@ -192,9 +196,10 @@ class TrueMorphology(Morphology):
                 mask.append(comp.id)
         return mask
 
+
 class GranuleCellGeometry(Morphology):
     casts = {
-        'dendrite_length' : float,
+        'dendrite_length': float,
         'pf_height': float,
         'pf_height_sd': float,
     }
@@ -203,9 +208,11 @@ class GranuleCellGeometry(Morphology):
     def validate(self):
         pass
 
+
 class PurkinjeCellGeometry(Morphology):
     def validate(self):
         pass
+
 
 class GolgiCellGeometry(Morphology):
     casts = {
@@ -220,6 +227,7 @@ class GolgiCellGeometry(Morphology):
     def validate(self):
         pass
 
+
 class RadialGeometry(Morphology):
     casts = {
         'dendrite_radius': float,
@@ -229,6 +237,7 @@ class RadialGeometry(Morphology):
 
     def validate(self):
         pass
+
 
 class NoGeometry(Morphology):
     def validate(self):
