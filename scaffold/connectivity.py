@@ -99,10 +99,8 @@ class ConnectomeGlomerulusGranule(TouchingConvergenceDivergence):
             # Find glomeruli to connect to each granule cell
             for gran_id, gran_type, gran_x, gran_y, gran_z in granules:
                 # Use a naive approach to find all glomeruli at a maximum distance of `dendrite_length`
-                distance_vector = ((glom_x - gran_x) ** 2) + ((glom_y - gran_y) ** 2) + ((glom_z - gran_z) ** 2) - (
-                            dend_len ** 2)
-                good_gloms = np.where((distance_vector < 0.) == True)[
-                    0]  # indexes of glomeruli that can potentially be connected
+                distance_vector = ((glom_x - gran_x) ** 2) + ((glom_y - gran_y) ** 2) + ((glom_z - gran_z) ** 2) - (dend_len ** 2)
+                good_gloms = np.where((distance_vector < 0.) == True)[0]  # indexes of glomeruli that can potentially be connected
                 good_gloms_len = len(good_gloms)
                 # Do we find more than enough candidates?
                 if good_gloms_len > n_conn_glom:  # Yes: select the closest ones
