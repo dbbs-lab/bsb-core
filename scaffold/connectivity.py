@@ -153,8 +153,7 @@ class ConnectomeGlomerulusGolgi(TouchingConvergenceDivergence):
             for golgi_id, golgi_type, golgi_x, golgi_y, golgi_z in golgicells:
                 # Geometric constraints: glom less than `r_goc_vol` away from golgi and golgi cell soma above glom.
                 volume_matrix = (((glom_x - golgi_x) ** 2) + ((glom_y - golgi_y) ** 2) + ((glom_z - golgi_z) ** 2) - (r_goc_vol ** 2)).__le__(0) & glom_y.__le__(golgi_y)
-                good_gloms = np.where(volume_matrix == True)[
-                    0]  # finds indexes of granules that can potentially be connected
+                good_gloms = np.where(volume_matrix == True)[0]  # finds indexes of granules that can potentially be connected
                 connected_gloms = good_gloms + first_glomerulus  # Translate local id to simulation id
 
                 matrix = np.zeros((len(good_gloms), 2))
