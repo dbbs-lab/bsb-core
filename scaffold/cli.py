@@ -95,6 +95,8 @@ def start_cli():
 
     # Compile subparser
     parser_compile.add_argument('-p', action='store_true',help='Plot the created network')
+    parser_compile.add_argument("-x", help="Resize volume X")
+    parser_compile.add_argument("-z", help="Resize volume Z")
 
     # Run subparser
     parser_run.add_argument('simulation', action='store', help='Preconfigured simulation to run.')
@@ -103,6 +105,8 @@ def start_cli():
     parser_run.add_argument("-rc", "--reconfigure",
         help="Specify the path of the new configuration file."
     )
+    parser_run.add_argument("-x", help="Resize volume X")
+    parser_run.add_argument("-z", help="Resize volume Z")
 
     # Simulate subparser
     parser_sim.add_argument('simulation', action='store', help='Name of the preconfigured simulation.')
@@ -139,6 +143,11 @@ def start_cli():
 
         # Create the scaffold instance
         scaffoldInstance = Scaffold(scaffoldConfig, from_file=file)  # `from_file` notifies the scaffold instance that we might've loaded from a file.
+
+        if cl_args.x or cl_args.z:
+            kwargs = {"X": float(cl_args.x), "Z": float(cl_args.z)}
+            print('resizing:', kwargs)
+            scaffoldInstance.configuration.resize(**kwargs)
 
         if cl_args.output:  # Is a new output file name specified?
             scaffoldInstance.output_formatter.save_file_as = cl_args.output
