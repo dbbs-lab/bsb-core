@@ -444,7 +444,10 @@ class NestAdapter(SimulatorAdapter):
                 self.nest.Install(module)
             except Exception as e:
                 if e.errorname == "DynamicModuleManagementError":
-                    self.scaffold.warn("Module {} already installed".format(module), KernelWarning)
+                    if "loaded already" in e.message:
+                        self.scaffold.warn("Module {} already installed".format(module), KernelWarning)
+                    elif "file not found" in e.message:
+                        raise NestModuleException("Module {} not found".format(module)) from None
                 else:
                     raise
 

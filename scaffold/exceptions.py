@@ -61,6 +61,10 @@ class SuffixTakenException(KernelLockedException):
 class NestModelException(Exception):
     pass
 
+
+class NestModuleException(NestKernelException):
+    pass
+
 ## Morphologies
 
 
