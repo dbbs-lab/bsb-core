@@ -91,6 +91,13 @@ class Morphology(ConfigurableClass):
             m.init_voxel_cloud(voxel_data, voxel_meta, voxel_map)
         return m
 
+    def unused(self):
+        return m
+        return m
+        return m
+        return m
+        
+
 
 class TrueMorphology(Morphology):
     '''
