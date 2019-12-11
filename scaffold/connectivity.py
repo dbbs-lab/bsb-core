@@ -1105,7 +1105,9 @@ class AllToAll(ConnectionStrategy):
         to_type = self.to_cell_types[0]
         from_cells = self.scaffold.get_cells_by_type(from_type.name)
         to_cells = self.scaffold.get_cells_by_type(to_type.name)
-        connections = np.empty([0, 2])
-        for from_cell in from_cells[:, 0]:
-            connections = np.vstack((connections, np.column_stack((np.repeat(from_cell, len(to_cells)), to_cells[:, 0]))))
-        self.scaffold.connect_cells(self, connections)
+        l = len(to_cells)
+        connections = np.empty([len(from_cells) * l, 2])
+        to_cell_ids = to_cells[:, 0]
+        for i, from_cell in enumerate(from_cells[:, 0]):
+            connections[range(i * l, (i + 1) * l), 0] = from_cell
+            connections[range(i * l, (i + 1) * l), 1] = to_cell_ids
