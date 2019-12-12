@@ -24,7 +24,6 @@ install:
     else
       echo "CEREBNEST cache found, skipping installation";
     fi
-  - echo "Checking CEREBNEST $HAS_CEREBNEST_CACHE and nest $HAS_NEST_CACHE"
   - source devops/post_install_env_vars.sh
   - pip3 install --upgrade pip
   - pip3 install -r requirements.txt
