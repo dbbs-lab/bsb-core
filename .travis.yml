@@ -8,6 +8,7 @@ jobs:
   include:
       python: 3.6
       before_install:
+        - export NEST_INSTALL_DIR=/home/travis/nest-$NEST_VERSION
         - wget https://neuron.yale.edu/ftp/neuron/versions/v7.7/nrn-7.7.x86_64-linux.deb
         - sudo dpkg -i nrn-7.7.x86_64-linux.deb
 install:
@@ -18,8 +19,12 @@ install:
     else
       echo "NEST cache found, skipping installation";
     fi
-  - source /home/travis/nest-$NEST_VERSION/bin/nest_vars.sh
-  - source devops/install_nest_modules.sh
+  - if [ "$HAS_CEREBNEST_CACHE" = "0" ]; then
+      source devops/install_nest_modules.sh
+    else
+      echo "CEREBNEST cache found, skipping installation";
+    fi
+  - source devops/post_install_env_vars.sh
   - pip3 install --upgrade pip
   - pip3 install -r requirements.txt
   - pip3 install coverage
