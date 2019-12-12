@@ -246,7 +246,7 @@ class NestAdapter(SimulatorAdapter):
         'verbosity': 'M_ERROR',
         'threads': 1,
         'resolution': 1.0,
-        'modules': ["CerebNEST"]
+        'modules': []
     }
 
     required = ['default_neuron_model', 'default_synapse_model',
