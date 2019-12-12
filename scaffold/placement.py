@@ -442,7 +442,7 @@ class ParticlePlacement(PlacementStrategy):
         volume = [layer.width, layer.thickness, layer.depth]
 
         voxels = [
-          [[0., 0., 0.], [layer.width, layer.thickness, layer.depth]]
+          [layer.origin, [layer.width, layer.thickness, layer.depth]]
         ]
 
         particles = [
