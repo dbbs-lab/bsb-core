@@ -361,6 +361,17 @@ class Scaffold:
             raise Exception("Unknown connection type '{}'".format(name))
         return self.configuration.connection_types[name]
 
+    def get_cell_types(self):
+        '''
+            Return a collection of all configured cell types.
+
+            ::
+
+              for cell_type in scaffold.get_cell_types():
+                  print(cell_type.name)
+        '''
+        return self.configuration.cell_types.values()
+
     def get_cell_type(self, name):
         if name not in self.configuration.cell_types:
             raise Exception("Unknown cell type '{}'".format(name))

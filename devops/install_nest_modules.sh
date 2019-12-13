@@ -1,6 +1,5 @@
 PREVIOUS_DIR=$PWD
 cd /home/travis
-export NEST_INSTALL_DIR=/home/travis/nest-$NEST_VERSION
 git clone https://github.com/dbbs-lab/cereb-nest/
 cd cereb-nest
 mkdir build

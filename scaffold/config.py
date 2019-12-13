@@ -291,7 +291,7 @@ class ScaffoldConfig(object):
             :param configured_class_name: Name or class object of the class.
             :type configured_class_name: string/class
             :param parent_class: Asserts that the imported class inherits from
-            this parent class.
+              this parent class.
             :type parent_class: class
             :param parameters: Parameters to pass to the constructor.
             :type parameters: dict
