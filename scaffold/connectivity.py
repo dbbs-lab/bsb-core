@@ -1111,3 +1111,4 @@ class AllToAll(ConnectionStrategy):
         for i, from_cell in enumerate(from_cells[:, 0]):
             connections[range(i * l, (i + 1) * l), 0] = from_cell
             connections[range(i * l, (i + 1) * l), 1] = to_cell_ids
+        self.scaffold.connect_cells(self, connections)
