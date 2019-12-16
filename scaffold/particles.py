@@ -1,5 +1,6 @@
 import numpy as np
 from sklearn.neighbors import KDTree
+from rtree import index
 from random import choice
 try:
     import plotly.graph_objects as go
@@ -240,6 +241,11 @@ class ParticleSystem():
         for position in positions:
             self.add_particle(radius, position)
 
+    def remove_particles(self, particles_id):
+        # Remove particles with a certain id
+        for index in sorted(particles_id,  reverse = True):
+            del self.particles[index]
+
     def deintersect(self, nearest_neighbours=None):
         if nearest_neighbours is None:
             nearest_neighbours = self.estimate_nearest_neighbours()
@@ -251,6 +257,45 @@ class ParticleSystem():
             particles_volume = np.sum([sphere_volume(p.radius) for p in particles])
         total_volume = np.product(self.size) if volume is None else volume
         return particles_volume / total_volume
+
+    def prune(self,colliding_particles):
+        # Among the colliding_particles, check for the ones that have been reallocated outside the volume
+        # and remove from particle system. Rtree algorithm is used to check for particles outside  the volume,
+        # taking the voxels as the rtree elements and the particle point as the volume for which to check the intersection
+        property = index.Property()
+        property.dimension = 3
+        idx = index.Index(properties=property, interleaved=True)
+        for x in range(len(self.voxels)):
+            print(self.voxels[x].origin[0])
+            idx.insert(x, (self.voxels[x].origin[0], self.voxels[x].origin[1], self.voxels[x].origin[2], self.voxels[x].origin[0]+self.voxels[x].size[0], self.voxels[x].origin[1]+self.voxels[x].size[1], self.voxels[x].origin[2]+self.voxels[x].size[2]))
+        colliding_external = list(filter(lambda p: not(list(idx.intersection((p.position[0],p.position[1],p.position[2],p.position[0],p.position[1],p.position[2])))), colliding_particles))
+        colliding_particles_id = list(map(lambda c: c.id, colliding_external))
+        pruned = self.remove_particles(colliding_particles_id)
+        number_pruned = len(colliding_particles_id)
+        return number_pruned
+
+
+class LargeParticleSystem(ParticleSystem):
+    def __init__(self):
+        ParticleSystem.__init__()
+
+
+
+    def placing(self):
+        pass
+
+
+    def fill(self):
+        super().fill()
+
+
+    def solve_collisions(self):
+        #todo: take smaller particle systems
+
+        super().solve_collisions()
+
+
+
 
 
 def plot_particle_system(system):
@@ -298,7 +343,14 @@ def plot_detailed_system(system):
     for particle in system.particles:
         trace = get_particle_trace(particle)
         fig.add_trace(trace)
+    fig.update_layout(scene_aspectmode='data')
+    fig.update_layout(scene = dict(
+        xaxis = dict(tick0=0, dtick=system.voxels[0].size[0],),         # Use the size of the first voxel to set ticks of axes
+                     yaxis = dict(tick0=650, dtick=system.voxels[0].size[1],),
+                     zaxis = dict(tick0=800, dtick=system.voxels[0].size[2],)
+                     ))
     fig.show()
+    return fig
 
 
 def get_particle_trace(particle):

@@ -143,6 +143,10 @@ class Scaffold:
                     count = self.entities_by_type[type.name].shape[0]
                 else:
                     count = self.cells_by_type[type.name].shape[0]
+                placed = type.placement.get_placement_count(type)
+                if placed == 0 or count == 0:
+                    self.report("0 {} placed (0%)".format(type.name), 1)
+                    continue
                 volume = self.configuration.layers[type.placement.layer].volume
                 density_gotten = '%.4g' % (count / volume)
                 density_wanted = '%.4g' % (type.placement.get_placement_count(type) / volume)
@@ -176,7 +180,7 @@ class Scaffold:
         # Cells collection. Columns: Cell ID, Type, X, Y, Z.
         self.cells = np.empty((0, 5))
         # Cell connections per connection type. Columns: From ID, To ID.
-        self.cell_connections_by_tag = {}
+        self.cell_connections_by_tag = {key: np.empty((0, 2)) for key in self.configuration.connection_types.keys()}
         self.connection_morphologies = {}
         self.connection_compartments = {}
         self.appends = {}

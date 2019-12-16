@@ -508,8 +508,21 @@ class ParticlePlacement(PlacementStrategy):
 
         system = ParticleSystem()
         system.fill(volume, voxels, particles)
-        system.find_colliding_particles()
-        system.solve_collisions()
-        particle_positions = system.positions
+        # Raise a warning if no cells could be placed in the volume
+        if len(system.particles)==0:
+            self.scaffold.warn("Could not place any {} cell in {} layer of the simulation volume!".format(cell_type.name,layer.name), PlacementWarning)
+            return
 
+        colliding = system.find_colliding_particles()
+        if len(colliding)>0:
+            system.solve_collisions()
+            number_pruned = system.prune(colliding)
+            self.scaffold.report("{} {} cells pruned, {}% of the total count, {}% of the colliding {} cells.".format(
+              number_pruned,
+              cell_type.name,
+              int((number_pruned/self.get_placement_count(cell_type))*100),
+              int((number_pruned/len(colliding))*100),
+              cell_type.name
+            ))
+        particle_positions = system.positions
         self.scaffold.place_cells(cell_type, layer, particle_positions)

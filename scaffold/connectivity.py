@@ -858,24 +858,22 @@ class ConnectomeIOPurkinje(ConnectionStrategy):
         divergence = self.divergence
         tolerance = self.tolerance_divergence
 
-        def connectome_io_purkinje(io_cells, purkinje_cells, div_io):
-            ## TODO: Check divergence, number of io_cells and number of purkinje_cells consistency
+        number_clusters = len(io_cells)
+        if number_clusters==0:
+            return
+        kmeans = KMeans(n_clusters=number_clusters).fit(purkinje_cells[:, 2:4])
+        label_clusters = kmeans.labels_
+        target_clusters = {i: np.where(kmeans.labels_ == i)[0] for i in range(kmeans.n_clusters)}
+        io_purkinje = np.empty([len(purkinje_cells), 2])
+        mi = 0
+        for io in range(len(io_cells)):
+            target_purkinje_ids = purkinje_cells[target_clusters[io], 0]
+            io_ids = np.repeat(io, len(target_clusters[io]))
+            nmi = mi + len(target_purkinje_ids)
+            io_purkinje[mi:nmi] = np.column_stack((io_ids, target_purkinje_ids))
+            mi = nmi
 
-            number_clusters = len(io_cells)
-            kmeans = KMeans(n_clusters=number_clusters).fit(purkinje_cells[:, 2:4])
-            label_clusters = kmeans.labels_
-            target_clusters = {i: np.where(kmeans.labels_ == i)[0] for i in range(kmeans.n_clusters)}
-            io_purkinje = np.empty([len(purkinje_cells), 2])
-            mi = 0
-            for io in range(len(io_cells)):
-                target_purkinje_ids = purkinje_cells[target_clusters[io], 0]
-                io_ids = np.repeat(io, len(target_clusters[io]))
-                nmi = mi + len(target_purkinje_ids)
-                io_purkinje[mi:nmi] = np.column_stack((io_ids, target_purkinje_ids))
-                mi = nmi
-            return io_purkinje
-
-        results = connectome_io_purkinje(io_cells, purkinje_cells, divergence)
+        results = io_purkinje
         self.scaffold.connect_cells(self, results)
 
 
@@ -894,33 +892,35 @@ class ConnectomeIOMolecular(ConnectionStrategy):
         io_cell_type = self.from_cell_types[0]
         molecular_cell_type = self.to_cell_types[0]
 
-        def connectome_io_molecular(io_cell_type, molecular_cell_type):
-            io_molecular = []
-            io_cells = self.scaffold.get_cells_by_type(io_cell_type.name)
-            molecular_cell_purkinje_connections = self.scaffold.get_connections_by_cell_type(
-                postsynaptic="purkinje_cell", presynaptic=molecular_cell_type.name)
-            molecular_cell_purkinje_matrix = molecular_cell_purkinje_connections[0][1]
-            io_cell_purkinje_connections = self.scaffold.get_connections_by_cell_type(postsynaptic="purkinje_cell",
-                                                                                      presynaptic=io_cell_type.name)
-            io_cell_purkinje_matrix = io_cell_purkinje_connections[0][1]
-            purkinje_dict = {}
-            for conn in range(len(molecular_cell_purkinje_matrix)):
-                purkinje_id = molecular_cell_purkinje_matrix[conn][1]
-                if purkinje_id not in purkinje_dict:
-                    purkinje_dict[purkinje_id] = []
-                purkinje_dict[purkinje_id].append(molecular_cell_purkinje_matrix[conn][0])
+        io_molecular = []
+        io_cells = self.scaffold.get_cells_by_type(io_cell_type.name)
+        molecular_cell_purkinje_connections = self.scaffold.get_connections_by_cell_type(
+            postsynaptic="purkinje_cell", presynaptic=molecular_cell_type.name)
+        molecular_cell_purkinje_matrix = molecular_cell_purkinje_connections[0][1]
+        io_cell_purkinje_connections = self.scaffold.get_connections_by_cell_type(
+            postsynaptic="purkinje_cell",
+            presynaptic=io_cell_type.name
+        )
 
-            for io_conn in range(len(io_cell_purkinje_matrix)):
-                purkinje_id = io_cell_purkinje_matrix[io_conn][1]
-                if purkinje_id not in purkinje_dict:
-                    continue
-                target_molecular_cells = purkinje_dict[purkinje_id]
-                matrix = np.column_stack((np.repeat(io_cell_purkinje_matrix[io_conn][0], len(target_molecular_cells)),
-                                          target_molecular_cells))
-                io_molecular.extend(matrix)
-            return np.array(io_molecular)
+        if len(io_cell_purkinje_connections[0]) < 2:
+            return
+        io_cell_purkinje_matrix = io_cell_purkinje_connections[0][1]
+        purkinje_dict = {}
+        for conn in range(len(molecular_cell_purkinje_matrix)):
+            purkinje_id = molecular_cell_purkinje_matrix[conn][1]
+            if not purkinje_id in purkinje_dict:
+                purkinje_dict[purkinje_id] = []
+            purkinje_dict[purkinje_id].append(molecular_cell_purkinje_matrix[conn][0])
 
-        results = connectome_io_molecular(io_cell_type, molecular_cell_type)
+        for io_conn in range(len(io_cell_purkinje_matrix)):
+            purkinje_id = io_cell_purkinje_matrix[io_conn][1]
+            if not purkinje_id in purkinje_dict:
+                continue
+            target_molecular_cells = purkinje_dict[purkinje_id]
+            matrix = np.column_stack((np.repeat(io_cell_purkinje_matrix[io_conn][0], len(target_molecular_cells)),
+                                      target_molecular_cells))
+            io_molecular.extend(matrix)
+        results = np.array(io_molecular)
         self.scaffold.connect_cells(self, results)
 
 
@@ -1104,6 +1104,8 @@ class SatelliteCommonPresynaptic(ConnectionStrategy):
         for num_after in range(len(config.cell_types[to_type.name].placement.after)):
             after_cell_type.append(config.cell_types[to_type.name].placement.after[num_after])
             after_connections = self.scaffold.cell_connections_by_tag[after_connection[num_after]]
+        if len(after_connections)==0:
+            return
         first_after = np.amin(after_connections[:, 1])
         to_cells = self.scaffold.get_cells_by_type(to_type.name)
         first_to = np.amin(to_cells)

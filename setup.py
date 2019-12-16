@@ -32,6 +32,7 @@ setuptools.setup(
          'numpy>=1.16.4',
          'scipy>=1.3.1',
          'scikit-learn>=0.20.3',
-         'plotly>=4.1.0'
+         'plotly>=4.1.0',
+         'rtree>=0.9.3'
      ]
  )

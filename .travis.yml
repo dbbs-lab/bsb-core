@@ -13,7 +13,7 @@ jobs:
         - sudo dpkg -i nrn-7.7.x86_64-linux.deb
 install:
   - source devops/check_nest_cache.sh
-  - sudo apt-get install -y build-essential cmake cython libgsl-dev libltdl-dev libncurses-dev libreadline-dev openmpi-bin libopenmpi-dev
+  - sudo apt-get install -y python3-rtree build-essential cmake cython libgsl-dev libltdl-dev libncurses-dev libreadline-dev openmpi-bin libopenmpi-dev
   - if [ "$HAS_NEST_CACHE" = "0" ]; then
       source devops/install_nest.sh
     else

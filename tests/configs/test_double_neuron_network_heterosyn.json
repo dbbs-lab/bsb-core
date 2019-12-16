@@ -184,9 +184,9 @@
       "connection_models": {
         "from_cell_to_cell": {
           "plastic": true,
+          "teaching": "teaching_cell_to_cell",
           "synapse_model": "stdp_synapse_sinexp",
           "hetero": true,
-          "teaching": "teaching_cell_to_cell",
           "connection": {
             "weight": 9.0,
             "delay": 4.0
