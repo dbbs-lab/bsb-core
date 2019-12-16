@@ -24,7 +24,7 @@
   "cell_types": {
     "from_cell": {
       "placement": {
-        "class": "scaffold.placement.LayeredRandomWalk",
+        "class": "scaffold.placement.ParticlePlacement",
         "layer": "test_layer",
         "soma_radius": 2.5,
         "count": 4
@@ -39,7 +39,7 @@
     },
     "to_cell": {
       "placement": {
-        "class": "scaffold.placement.LayeredRandomWalk",
+        "class": "scaffold.placement.ParticlePlacement",
         "layer": "test_layer",
         "soma_radius": 2.5,
         "count": 4

@@ -12,6 +12,7 @@ class NestCell(SimulationComponent):
     required = ['parameters']
 
     def boot(self):
+        self.receptor_specifications = {}
         self.reset()
         # The cell model contains a 'parameters' attribute and many sets of
         # neuron model specific sets of parameters. Each set of neuron model
@@ -31,8 +32,7 @@ class NestCell(SimulationComponent):
         self.nest_identifiers = []
         self.scaffold_identifiers = []
         self.scaffold_to_nest_map = {}
-        self.receptor_specifications = {}
-
+        
     def get_parameters(self):
         # Get the default synapse parameters
         params = self.parameters.copy()
@@ -511,7 +511,14 @@ class NestAdapter(SimulatorAdapter):
             connection_parameters = connection_model.get_connection_parameters()
             # Create the connections in NEST
             self.scaffold.report("Creating connections " + nest_name, 3)
-            self.nest.Connect(presynaptic_cells, postsynaptic_cells, connection_specifications, connection_parameters)
+            self.execute_command(self.nest.Connect, presynaptic_cells, postsynaptic_cells, connection_specifications, connection_parameters,
+                exceptions={
+                    'IncompatibleReceptorType': {
+                        'from': None,
+                        'exception': catch_receptor_error("Invalid receptor specifications in {}: ".format(name))
+                    }
+                }
+            )
 
             # Workaround for https://github.com/alberto-antonietti/CerebNEST/issues/10
             if connection_model.plastic and connection_model.hetero:
@@ -526,7 +533,7 @@ class NestAdapter(SimulatorAdapter):
             if connection_model.is_teaching:
                 # We need to connect the pre-synaptic neurons also to the volume transmitter associated to each post-synaptic create_neurons
                 # suppose that the vt ids are stored in a variable self.cell_models["vt_"+name].identifiers
-                postsynaptic_volume_transmitters = postsynaptic_cells - postsynaptic_cells[0] + postsynaptic_type._vt_id[0]
+                postsynaptic_volume_transmitters = [pc - postsynaptic_cells[0] + postsynaptic_type._vt_id[0] for pc in postsynaptic_cells]
                 self.nest.Connect(presynaptic_cells, postsynaptic_volume_transmitters, connection_specifications, {"model": "static_synapse", "weight": 1.0, "delay": 1.0})
 
     def create_devices(self, devices):
@@ -628,5 +635,11 @@ def catch_dict_error(message):
     def handler(e):
         attributes = list(map(lambda x: x.strip(), e.errormessage.split(":")[-1].split(",")))
         return NestModelException(message + "Unknown attributes {}".format("'" + "', '".join(attributes) + "'"))
+
+    return handler
+
+def catch_receptor_error(message):
+    def handler(e):
+        return NestModelException(message + e.errormessage.split(":")[-1].strip())
 
     return handler

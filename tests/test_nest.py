@@ -115,17 +115,14 @@ class TestDoubleNeuronNetworkStatic(unittest.TestCase):
         config = JSONConfig(file=double_nn_config)
         cls.scaffold = Scaffold(config)
         cls.scaffold.compile_network()
-        cls.nest_adapter = cls.scaffold.configuration.simulations['test_double_neuron_network_static']
+        cls.nest_adapter = cls.scaffold.run_simulation("test_double_neuron_network_static")
 
-    def setUp(self):
-        self.nest_adapter.reset()
-
-    def tearDown(self):
-        if self.nest_adapter.has_lock:
-            self.nest_adapter.release_lock()
+    @classmethod
+    def tearDownClass(cls):
+        if cls.nest_adapter.has_lock:
+            cls.nest_adapter.release_lock()
 
     def test_double_neuron_network(self):
-        self.scaffold.run_simulation("test_double_neuron_network_static")
         source_cell_model = self.nest_adapter.cell_models["from_cell"]
         target_cell_model = self.nest_adapter.cell_models["to_cell"]
         conn = self.nest_adapter.nest.GetConnections(source_cell_model.nest_identifiers, target_cell_model.nest_identifiers)
@@ -135,8 +132,8 @@ class TestDoubleNeuronNetworkStatic(unittest.TestCase):
         import numpy as np
         source_cell_model = self.nest_adapter.cell_models["from_cell"]
         target_cell_model = self.nest_adapter.cell_models["to_cell"]
-        conn = self.nest_adapter.nest.GetConnections(source_cell_model.identifiers, target_cell_model.identifiers)
-        self.assertEqual(self.nest_adapter.nest.GetStatus(conn, "weight"), tuple(-9.0*np.ones(len(conn))))
+        conn = self.nest_adapter.nest.GetConnections(source_cell_model.nest_identifiers, target_cell_model.nest_identifiers)
+        self.assertEqual(self.nest_adapter.nest.GetStatus(conn, "weight"), tuple(9.0*np.ones(len(conn))))
         self.assertEqual(self.nest_adapter.nest.GetStatus(conn, "delay"), tuple(4.0*np.ones(len(conn))))
 
 
@@ -151,12 +148,10 @@ class TestDoubleNeuronNetworkHomosyn(unittest.TestCase):
         cls.scaffold.compile_network()
         cls.nest_adapter = cls.scaffold.configuration.simulations['test_double_neuron_network_homosyn']
 
-    def setUp(self):
-        self.nest_adapter.reset()
-
-    def tearDown(self):
-        if self.nest_adapter.has_lock:
-            self.nest_adapter.release_lock()
+    @classmethod
+    def tearDownClass(cls):
+        if cls.nest_adapter.has_lock:
+            cls.nest_adapter.release_lock()
 
     def test_double_neuron_network(self):
         self.scaffold.run_simulation("test_double_neuron_network_homosyn")
@@ -184,24 +179,28 @@ class TestDoubleNeuronNetworkHeterosyn(unittest.TestCase):
         config = JSONConfig(file=heterosyn_config)
         cls.scaffold = Scaffold(config)
         cls.scaffold.compile_network()
-        cls.nest_adapter = cls.scaffold.configuration.simulations['test_double_neuron_network_heterosyn']
-        self.scaffold.run_simulation("test_double_neuron_network_heterosyn")
+        cls.nest_adapter = cls.scaffold.run_simulation("test_double_neuron_network_heterosyn")
+
+    @classmethod
+    def tearDownClass(cls):
+        if cls.nest_adapter.has_lock:
+            cls.nest_adapter.release_lock()
 
     def test_double_neuron_network(self):
         source_cell_model = self.nest_adapter.cell_models["from_cell"]
         target_cell_model = self.nest_adapter.cell_models["to_cell"]
-        conn = self.nest_adapter.nest.GetConnections(source_cell_model.identifiers, target_cell_model.identifiers)
+        conn = self.nest_adapter.nest.GetConnections(source_cell_model.nest_identifiers, target_cell_model.nest_identifiers)
         self.assertIsNotNone(conn)
         teaching_cell_model = self.nest_adapter.cell_models["teaching_cell"]
         target_cell_model = self.nest_adapter.cell_models["to_cell"]
-        conn_teaching = self.nest_adapter.nest.GetConnections(teaching_cell_model.identifiers, target_cell_model.identifiers)
+        conn_teaching = self.nest_adapter.nest.GetConnections(teaching_cell_model.nest_identifiers, target_cell_model.nest_identifiers)
         self.assertIsNotNone(conn_teaching)
 
     def test_double_neuron_network_plasticity(self):
         import numpy as np
         source_cell_model = self.nest_adapter.cell_models["from_cell"]
         target_cell_model = self.nest_adapter.cell_models["to_cell"]
-        conn = self.nest_adapter.nest.GetConnections(source_cell_model.identifiers, target_cell_model.identifiers)
+        conn = self.nest_adapter.nest.GetConnections(source_cell_model.nest_identifiers, target_cell_model.nest_identifiers)
         # Verify that weights re changing
         self.assertNotEqual(self.nest_adapter.nest.GetStatus(conn, "weight"), tuple(9.0*np.ones(len(conn))))
         self.assertEqual(self.nest_adapter.nest.GetStatus(conn, "delay"), tuple(4.0*np.ones(len(conn))))

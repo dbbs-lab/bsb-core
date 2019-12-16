@@ -177,6 +177,7 @@ class Scaffold:
     def run_simulation(self, simulation_name):
         simulation, simulator = self.prepare_simulation(simulation_name)
         simulation.simulate(simulator)
+        return simulation
 
     def get_simulation(self, simulation_name):
         if simulation_name not in self.configuration.simulations:
