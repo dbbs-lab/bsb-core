@@ -391,6 +391,10 @@ class Satellite(PlacementStrategy):
         after_cell_radii = np.empty(0)
         for after_cell_type in after_cells:
             cells = self.scaffold.get_cells_by_type(after_cell_type.name)
+            # Exit the placement of satellites if no corresponding planet after cells were created before
+            if len(cells)==0:
+                self.scaffold.warn("Could not place any satellite after '{}' because no planet cells were created".format(after_cell_type.name),PlacementWarning)
+                return
             after_cell_ids = np.concatenate((after_cell_ids, cells[:, 0]))
             after_cell_pos = np.vstack((after_cell_pos, cells[:, [2, 3, 4]]))
             after_cell_radii = np.concatenate((after_cell_radii, np.ones(cells.shape[0]) * after_cell_type.placement.radius))
@@ -410,8 +414,13 @@ class Satellite(PlacementStrategy):
         # Place satellites
         satellitePositions = np.empty([len(after_cell_ids), 3])
         for to_place in range(len(after_cell_pos)):
-            place_satellite = True
-            while place_satellite:
+            not_overlapping = True
+            not_out = True
+            iter = 0
+            not_placed_num = 0          # To keep track of not placed particles that are not respecting the
+            # Place satellite and replace if it is overlapping or going out of the layer bounds
+            while not_overlapping and not_out and iter<1000:
+                iter=iter+1
                 alfa = np.random.uniform(0, 2*math.pi)
                 beta = np.random.uniform(0, 2*math.pi)
                 distance_satellite = np.random.uniform((after_cell_radius+radius_satellite), (mean_dist_after_cells/4-after_cell_radius-radius_satellite))
@@ -422,7 +431,21 @@ class Satellite(PlacementStrategy):
                 # Check overlapping
                 for after_cell in range(len(after_cell_pos)):
                     if np.linalg.norm(satellitePositions[to_place, :]-after_cell_pos[after_cell, :]) > (after_cell_radius+radius_satellite):
-                        place_satellite = False
+                        not_overlapping = False
+
+                # Check out of bounds of layer
+                volume = [layer.width, layer.thickness, layer.depth]
+                if all([abs(cell) < abs(origin) or abs(cell) > abs(origin) + size for cell, origin, size in zip(satellitePositions[to_place,:], layer.origin, volume)]):
+                    not_out = False
+
+            if iter>=1000:
+                satellitePositions = numpy.delete(satellitePositions, (to_place), axis=0)
+                not_placed_num += 1
+
+        if not_placed_num>0:
+            # Print warning that some satellite cells have not been placed
+            self.scaffold.warn("'{}' satellite cells out of '{}' have not been placed, due to overlapping or out of volume issues".format(not_placed_num,len(after_cell_pos)), PlacementWarning)
+
 
         scaffold.place_cells(cell_type, layer, satellitePositions)
 
