@@ -27,6 +27,8 @@ class PlacementStrategy(ConfigurableClass):
     def place(self, cell_type):
         pass
 
+    def is_entities(self):
+        return "entities" in self.__class__.__dict__ and self.__class__.entities
     def get_placement_count(self, cell_type):
         '''
             Get the placement count, assuming that it is proportional to the
@@ -276,6 +278,31 @@ class LayeredRandomWalk(PlacementStrategy):
 
     def get_restricted_thickness(self):
         return self.layer_instance.thickness * (self.restriction_maximum - self.restriction_minimum)
+
+
+class Entities(PlacementStrategy):
+    '''
+        Implementation of the placement of entities (e.g., mossy fibers) that do not have a
+        a 3D position, but that need to be connected with other cells of the scaffold.
+        MFs are 1/20 of the Glomeruli
+    '''
+
+    entities = True
+
+    def validate(self):
+        self.layer_instance = self.scaffold.configuration.layers[self.layer]
+
+    def place(self, cell_type):
+        # Variables
+        scaffold = self.scaffold
+
+        # Get the number of cells that belong in the available volume.
+        n_cells_to_place = self.get_placement_count(cell_type)
+        if n_cells_to_place == 0:
+            self.scaffold.warn("Volume or density too low, no '{}' cells will be placed".format(cell_type.name), PlacementWarning)
+
+        scaffold.create_entities(cell_type, n_cells_to_place)
+        scaffold.report("Finished placing {} {} cells.".format(n_cells_to_place, cell_type.name), 2)
 
 
 class ParallelArrayPlacement(PlacementStrategy):

@@ -482,9 +482,11 @@ class JSONConfig(ScaffoldConfig):
         # Get the placement configuration node
         placement = assert_attr(section, 'placement', node_name)
         cell_type.placement = self.init_placement(placement, name)
-        # Get the morphology configuration node
-        morphology = assert_attr(section, 'morphology', node_name)
-        cell_type.morphology = self.init_morphology(morphology, name)
+        cell_type.entity = "entity" in section and section["entity"]
+        if not cell_type.entity:
+            # Get the morphology configuration node
+            morphology = assert_attr(section, 'morphology', node_name)
+            cell_type.morphology = self.init_morphology(morphology, name)
 
         cell_type.plotting = PlottingConfig(name, color='#000000')
         if 'plotting' in section:
@@ -608,9 +610,10 @@ class JSONConfig(ScaffoldConfig):
             raise Exception("Couldn't find class '{}' specified in '{}'".format(placement_class, node_name))
         # Placement layer
         placement.layer = assert_attr(section, 'layer', node_name)
-        # Radius of the cell soma
-        placement.soma_radius = assert_attr_float(section, 'soma_radius', node_name)
-        placement.radius = placement.soma_radius  # Alias it to the radius shorthand.
+        if not placement.is_entities():
+            # Radius of the cell soma
+            placement.soma_radius = assert_attr_float(section, 'soma_radius', node_name)
+            placement.radius = placement.soma_radius  # Alias it to the radius shorthand.
         # Density configurations all rely on a float or a float and relation
         density_attr, density_value = assert_strictly_one(section, ['density', 'planar_density', 'placement_count_ratio', 'density_ratio', 'count'], node_name)
         density_value = assert_float(density_value, '{}.{}'.format(node_name, density_attr))
@@ -641,7 +644,7 @@ class JSONConfig(ScaffoldConfig):
         # Initialise a new simulator adapter for this simulation
         simulation = self.load_configurable_class(name, simulator, SimulatorAdapter)
         # Configure the simulation's adapter
-        self.fill_configurable_class(simulation, section, excluded=['simulator', 'cell_models', 'connection_models', 'devices'])
+        self.fill_configurable_class(simulation, section, excluded=['simulator', 'cell_models', 'connection_models', 'devices', 'entities'])
         # Get the classes required to configure cells and connections in this simulation
         config_classes = simulation.get_configuration_classes()
 
@@ -667,6 +670,8 @@ class JSONConfig(ScaffoldConfig):
         self.load_attr(config=section, attr='cell_models', init=init_component_factory('cell_models'), node_name=node_name)
         self.load_attr(config=section, attr='connection_models', init=init_component_factory('connection_models'), node_name=node_name)
         self.load_attr(config=section, attr='devices', init=init_component_factory('devices'), node_name=node_name)
+        if "entities" in section:
+            self.load_attr(config=section, attr='entities', init=init_component_factory('entities'), node_name=node_name)
 
         if return_obj:
             return simulation

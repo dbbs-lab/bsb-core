@@ -70,14 +70,14 @@
   },
   "connection_types": {
     "from_cell_to_cell": {
-      "class": "scaffold.connectivity.ConnectomeGlomDCN",
+      "class": "scaffold.connectivity.ConnectomeGeneralConvergence",
       "from_cell_types": [{"type": "from_cell", "compartments": ["soma"]}],
       "to_cell_types": [{"type": "to_cell", "compartments": ["soma"]}],
       "divergence": 2,
       "convergence": 4
     },
     "teaching_cell_to_cell": {
-      "class": "scaffold.connectivity.ConnectomeGlomDCN",
+      "class": "scaffold.connectivity.ConnectomeGeneralConvergence",
       "from_cell_types": [{"type": "teaching_cell", "compartments": ["soma"]}],
       "to_cell_types": [{"type": "to_cell", "compartments": ["soma"]}],
       "divergence": 1,

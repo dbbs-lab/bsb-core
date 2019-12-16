@@ -422,7 +422,7 @@ class ConnectomeAscAxonPurkinje(ConnectionStrategy):
                 matrix[:, 0] = good_aa + first_granule
                 aa_pc = np.vstack((aa_pc, matrix))
 
-                new_granules[good_aa,:] = OoB_value  # update the granules matrix used for computation by deleting the coordinates of connected ones
+                new_granules[good_aa, :] = OoB_value  # update the granules matrix used for computation by deleting the coordinates of connected ones
 
             return aa_pc
 
@@ -784,38 +784,57 @@ class ConnectomePurkinjeDCN(ConnectionStrategy):
         self.scaffold.connect_cells(self, results)
 
 
-class ConnectomeGlomDCN(TouchingConvergenceDivergence):
+class ConnectomeMossyDCN(TouchingConvergenceDivergence):
     '''
-        Legacy implementation for the connection between glomeruli and DCN cells.
+        Implementation for the connection between mossy fibers and DCN cells.
     '''
 
     def validate(self):
         pass
 
     def connect(self):
-        # Gather information for the legacy code block below.
-        glomerulus_cell_type = self.from_cell_types[0]
+        # Source and target neurons are extracted
+        mossy_cell_type = self.from_cell_types[0]
         dcn_cell_type = self.to_cell_types[0]
-        glomeruli = self.scaffold.cells_by_type[glomerulus_cell_type.name]
+        mossy = self.scaffold.entities_by_type[mossy_cell_type.name]
         dcn_cells = self.scaffold.cells_by_type[dcn_cell_type.name]
-        first_glomerulus = int(glomeruli[0, 0])
+
         convergence = self.convergence
 
-        def connectome_glom_dcn(first_glomerulus, glomeruli, dcn_glut, conv_dcn):
-            glom_dcn = np.zeros((0, 2))
-            for i in dcn_glut:
-                connected_gloms = np.random.choice(glomeruli[:, 0], conv_dcn, replace=False)
+        mf_dcn = np.zeros((convergence*len(dcn_cells), 2))
+        for i, dcn in enumerate(dcn_cells):
+            connected_mfs = np.random.choice(mossy, convergence, replace=False)
+            range_i = range(i*convergence, (i+1)*convergence)
+            mf_dcn[range_i, 0] = connected_mfs.astype(int)
+            mf_dcn[range_i, 1] = dcn[0]
 
-                matrix = np.zeros((conv_dcn, 2))
-                matrix[:, 0] = connected_gloms.astype(int)
-                matrix[:, 1] = i[0]
+        self.scaffold.connect_cells(self, mf_dcn)
 
-                glom_dcn = np.vstack((glom_dcn, matrix))
+class ConnectomeGeneralConvergence(TouchingConvergenceDivergence):
+    '''
+        Implementation of a general convergence connectivity between
+        two populations of cells (this does not work with entities)
+    '''
 
-            return glom_dcn
+    def validate(self):
+        pass
 
-        results = connectome_glom_dcn(first_glomerulus, glomeruli, dcn_cells, convergence)
-        self.scaffold.connect_cells(self, results)
+    def connect(self):
+        # Source and target neurons are extracted
+        pre_type = self.from_cell_types[0]
+        post_type = self.to_cell_types[0]
+        pre = self.scaffold.cells_by_type[pre_type.name]
+        post = self.scaffold.cells_by_type[post_type.name]
+        convergence = self.convergence
+
+        pre_post = np.zeros((convergence*len(post), 2))
+        for i, neuron in enumerate(post):
+            connected_pre = np.random.choice(pre[:, 0], convergence, replace=False)
+            range_i = range(i*convergence, (i+1)*convergence)
+            pre_post[range_i, 0] = connected_pre.astype(int)
+            pre_post[range_i, 1] = neuron[0]
+
+        self.scaffold.connect_cells(self, pre_post)
 
 
 class ConnectomeIOPurkinje(ConnectionStrategy):
@@ -1111,4 +1130,106 @@ class AllToAll(ConnectionStrategy):
         for i, from_cell in enumerate(from_cells[:, 0]):
             connections[range(i * l, (i + 1) * l), 0] = from_cell
             connections[range(i * l, (i + 1) * l), 1] = to_cell_ids
+        self.scaffold.connect_cells(self, connections)
+
+class ConnectomeMossyGlomerulus(ConnectionStrategy):
+    '''
+        Implementation for the connections between mossy fibers and glomeruli.
+        The connectivity is somatotopic and
+    '''
+
+    def validate(self):
+        pass
+
+    def connect(self):
+
+        def probability_mapping(input, center, std):
+            # input: input array that has to be transformed
+            # center: center of the sigmoid
+            # std: value at which the sigmoid reaches the 54% of its value
+            output = np.empty(input.size, dtype=float)
+            input_rect = np.fabs(input - center)
+            output[np.where(input <= center)] = 0.5 + 0.5*(input[np.where(input <= center)]) / center
+            output[np.where(input > center)] = 2.0 * (1.0 - 1.0 / (1.0 + np.exp(-input_rect[np.where(input > center)] * (1.0 / std))))
+            return output
+
+        def compute_likelihood(x, z, gloms):
+            # Based on the distance between the x and z position of each
+            # MF and the x z positions of the glomeruli
+            # the likelihood of a glomerulus to belong to the MF
+            # is computed
+            dist_x = np.fabs(gloms[:, 0] - x)
+            dist_z = np.fabs(gloms[:, 1] - z)
+
+            prob_x = probability_mapping(dist_x, center=30.0, std=3.0)  # As in Sultan, 2001 for the parasagittal axis
+            prob_z = probability_mapping(dist_z, center=10.0, std=1.0)  # As in Sultan, 2001 for the mediolateral axis
+
+            probabilities = prob_x * prob_z
+            return probabilities
+
+        # Source and target neurons are extracted
+        mossy_cell_type = self.from_cell_types[0]
+        glomerulus_cell_type = self.to_cell_types[0]
+        mossy = self.scaffold.entities_by_type[mossy_cell_type.name].astype(int)
+        glomeruli = self.scaffold.cells_by_type[glomerulus_cell_type.name]
+        # Number of MFs placed and ID of the first MF
+        MF_num = np.shape(mossy)[0]
+        First_MF = np.min(mossy)
+
+        # Glom x, y and ID
+        Glom_xzID = glomeruli[:, [2, 4, 0]]
+        total_glom = np.shape(Glom_xzID)[0]
+
+        # Boundaries of X and Z space for glomeruli
+        BoundsX = np.array([np.min(Glom_xzID[:, 0]), np.max(Glom_xzID[:, 0])])
+        BoundsZ = np.array([np.min(Glom_xzID[:, 1]), np.max(Glom_xzID[:, 1])])
+
+        # Computation of how many MFs do we need to "place" for the two axes
+        XZ_Area = (BoundsX[1] - BoundsX[0]) * (BoundsZ[1] - BoundsZ[0])
+        MF_per_Area = MF_num / XZ_Area
+        MF_per_X = np.ceil((BoundsX[1] - BoundsX[0]) * np.sqrt(MF_per_Area)).astype(int)
+        MF_per_Z = np.ceil((BoundsZ[1] - BoundsZ[0]) * np.sqrt(MF_per_Area)).astype(int)
+
+        # Create uniform grid in the X-Z plane
+        MF_X = np.linspace(BoundsX[0], BoundsX[1], num=MF_per_X)
+        MF_Z = np.linspace(BoundsZ[0], BoundsZ[1], num=MF_per_Z)
+        xv, zv = np.meshgrid(MF_X, MF_Z, sparse=False, indexing='ij')
+        xv = xv.flatten()
+        zv = zv.flatten()
+
+        # Limit the number of MFs (xv and zv) to MF_num
+        if np.size(xv) > MF_num:
+            delete_points = np.random.randint(0, np.size(xv), size=np.size(xv) - MF_num)
+            xv = np.delete(xv, delete_points)
+            zv = np.delete(zv, delete_points)
+
+        # labels store the assigned MF to each glomerulus
+        labels = -1 * np.ones(np.shape(Glom_xzID)[0], dtype=int)
+        best_glom = -1 * np.ones(MF_num * MF_num, dtype=int)
+        best_prob = np.zeros(MF_num, dtype=float)
+        min_glom = np.min(Glom_xzID[:, 2]).astype(int)
+
+        # This loop iterates associating at each time one glomeurlus to the MF
+        # that has the maximum likelihood to be connected to it
+        while np.shape(Glom_xzID)[0] > 0:
+            # Every time the array is shuffled to avoid bias toward the first glumeruli in the list
+            np.random.shuffle(Glom_xzID)
+            # For each MF, the highest probability (best_prob) and the corresponding glumerulus (best_blom)
+            # are computed
+            for i in range(MF_num):
+                probabilities = compute_likelihood(xv[i], zv[i], Glom_xzID)
+                best_glom[i] = np.argmax(probabilities)
+                best_prob[i] = np.max(probabilities)
+            # We select the best glomerulus among the best ones for each MF
+            highest_glom_MF = np.argmax(best_prob)
+            # The label of that glomerulus is assigned
+            labels[int(Glom_xzID[best_glom[highest_glom_MF], 2]) - min_glom] = highest_glom_MF
+            # That glomerulus is deleted from the list
+            Glom_xzID = np.delete(Glom_xzID, best_glom[highest_glom_MF], axis=0)
+            self.scaffold.report("Associated " + str(int(100 * (1 - np.shape(Glom_xzID)[0] / total_glom))) + "% glomeruli", ongoing=True, level=3)
+            if np.shape(Glom_xzID)[0] == 0:
+                break
+        # Labels range from 0 to MF_num, while they should range from First_MF to First_MF+MF_num
+        labels += First_MF
+        connections = np.column_stack((labels, glomeruli[:, 0]))
         self.scaffold.connect_cells(self, connections)

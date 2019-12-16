@@ -119,6 +119,8 @@ class Scaffold:
             for cell_type in sorted_cell_types:
                 # Place cell type according to PlacementStrategy
                 cell_type.placement.place(cell_type)
+                if cell_type.entity:
+                    continue
                 # Get the placed cells
                 cells = self.cells_by_type[cell_type.name][:, 2:5]
                 # Construct a tree of the placed cells
@@ -137,7 +139,10 @@ class Scaffold:
             times[i] = time.time() - t
             self.compile_output()
             for type in self.configuration.cell_types.values():
-                count = self.cells_by_type[type.name].shape[0]
+                if type.entity:
+                    count = self.entities_by_type[type.name].shape[0]
+                else:
+                    count = self.cells_by_type[type.name].shape[0]
                 volume = self.configuration.layers[type.placement.layer].volume
                 density_gotten = '%.4g' % (count / volume)
                 density_wanted = '%.4g' % (type.placement.get_placement_count(type) / volume)
@@ -161,7 +166,11 @@ class Scaffold:
 
     def reset_network_cache(self):
         # Cell positions dictionary per cell type. Columns: X, Y, Z.
-        self.cells_by_type = {key: np.empty((0, 5)) for key in self.configuration.cell_types.keys()}
+        cell_types = list(filter(lambda c: not hasattr(c, "entity") or not c.entity, self.configuration.cell_types.values()))
+        entities = list(filter(lambda c: hasattr(c, "entity") and c.entity, self.configuration.cell_types.values()))
+        self.cells_by_type = {c.name: np.empty((0, 5)) for c in cell_types}
+        # Entity IDs per cell type.
+        self.entities_by_type = {e.name: np.empty((0)) for e in entities}
         # Cell positions dictionary per layer. Columns: Type, X, Y, Z.
         self.cells_by_layer = {key: np.empty((0, 5)) for key in self.configuration.layers.keys()}
         # Cells collection. Columns: Cell ID, Type, X, Y, Z.
@@ -274,6 +283,29 @@ class Scaffold:
         if meta is not None:
             self._connectivity_set_meta[tag] = meta
 
+    def create_entities(self, cell_type, n_cells_to_place):
+        if n_cells_to_place == 0:
+            return
+        # Create an ID for each entity.
+        entities_ids = self._allocate_ids(n_cells_to_place)
+
+        # Cache them per type
+        if not cell_type.name in self.entities_by_type:
+            self.entities_by_type[cell_type.name] = entities_ids
+        else:
+            self.entities_by_type[cell_type.name] = np.concatenate((
+                self.entities_by_type[cell_type.name], entities_ids
+            ))
+
+        placement_dict = self.statistics.cells_placed
+        if not cell_type.name in placement_dict:
+            placement_dict[cell_type.name] = 0
+        placement_dict[cell_type.name] += n_cells_to_place
+        if not hasattr(cell_type.placement, 'cells_placed'):
+            cell_type.placement.__dict__['cells_placed'] = 0
+        cell_type.placement.cells_placed += n_cells_to_place
+
+
     def _append_tagged(self, attr, tag, data):
         # Appends or creates data to a tagged numpy array in a dictionary attribute of the scaffold.
         if tag in self.__dict__[attr]:
@@ -308,6 +340,18 @@ class Scaffold:
             else:
                 raise Exception("Cell type '{}' not found in output storage".format(name))
         return self.cells_by_type[name]
+
+    def get_entities_by_type(self, name):
+        if name not in self.entities_by_type:
+            raise Exception("Attempting to load unknown entity type '{}'".format(name))
+        if self.entities_by_type[name].shape[0] == 0:
+            if not self.output_formatter.exists():
+                return self.entities_by_type[name]
+            if self.output_formatter.has_cells_of_type(name, entity=True):
+                self.entities_by_type[name] = self.output_formatter.get_cells_of_type(name, entity=True)
+            else:
+                raise Exception("Entity type '{}' not found in output storage".format(name))
+        return self.entities_by_type[name]
 
     def compile_output(self):
         self.output_formatter.create_output()
@@ -372,6 +416,13 @@ class Scaffold:
                   print(cell_type.name)
         '''
         return self.configuration.cell_types.values()
+
+    def get_entity_types(self):
+        '''
+            Return a list of connection types that describe entities instead
+            of cells.
+        '''
+        return list(filter(lambda t: hasattr(t, "entity") and t.entity is True, self.configuration.connection_types.values()))
 
     def get_cell_type(self, name):
         if name not in self.configuration.cell_types:

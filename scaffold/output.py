@@ -401,6 +401,7 @@ class HDF5Formatter(OutputFormatter, MorphologyRepository):
         with self.load('w') as output:
             self.store_configuration()
             self.store_cells()
+            self.store_entities()
             self.store_tree_collections(self.scaffold.trees.__dict__.values())
             self.store_statistics()
             self.store_appendices()
@@ -438,6 +439,11 @@ class HDF5Formatter(OutputFormatter, MorphologyRepository):
         self.store_cell_positions(cells_group)
         self.store_cell_connections(cells_group)
 
+    def store_entities(self):
+        cells_group = self.handle.create_group('entities')
+        for key, data in self.scaffold.entities_by_type.items():
+            cells_group.create_dataset(key, data=data)
+
     def store_cell_positions(self, cells_group):
         position_dataset = cells_group.create_dataset('positions', data=self.scaffold.cells)
         cell_type_names = self.scaffold.configuration.cell_type_map
@@ -462,7 +468,6 @@ class HDF5Formatter(OutputFormatter, MorphologyRepository):
                     connection_dataset.attrs[key] = meta_dict[key]
             if tag in self.scaffold.connection_compartments:
                 compartments_group.create_dataset(tag, data=self.scaffold.connection_compartments[tag], dtype=int)
-                print(self.scaffold.connection_morphologies[tag])
                 morphology_dataset = morphologies_group.create_dataset(tag, data=self.scaffold.connection_morphologies[tag], dtype=int)
                 morphology_dataset.attrs['map'] = self.scaffold.connection_morphologies[tag + '_map']
 
@@ -496,14 +501,21 @@ class HDF5Formatter(OutputFormatter, MorphologyRepository):
     def get_simulator_output_path(self, simulator_name):
         return self.simulator_output_path or os.getcwd()
 
-    def has_cells_of_type(self, name):
-        with self.load() as resource:
-            return name in list(resource['/cells'].attrs['types'])
+    def has_cells_of_type(self, name, entity=False):
+        if entity:
+            with self.load() as resource:
+                return name in list(resource['/entities'])
+        else:
+            with self.load() as resource:
+                return name in list(resource['/cells'].attrs['types'])
 
-    def get_cells_of_type(self, name):
+    def get_cells_of_type(self, name, entity=False):
         # Check if cell type is present
-        if not self.has_cells_of_type(name):
-            raise Exception("Attempting to load cell type '{}' that isn't defined in the storage.".format(name))
+        if not self.has_cells_of_type(name, entity=entity):
+            raise Exception("Attempting to load {} type '{}' that isn't defined in the storage.".format("cell" if not entity else "entity", name))
+        if entity:
+            with self.load() as resource:
+                return resource['/entities/' + name][()]
         # Slice out the cells of this type based on the map in the position dataset attributes.
         with self.load() as resource:
             type_map = self.get_type_map(name)

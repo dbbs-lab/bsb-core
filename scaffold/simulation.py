@@ -33,6 +33,7 @@ class SimulatorAdapter(ConfigurableClass):
         self.cell_models = {}
         self.connection_models = {}
         self.devices = {}
+        self.entities = {}
 
     def get_configuration_classes(self):
         if not hasattr(self.__class__, 'simulator_name'):

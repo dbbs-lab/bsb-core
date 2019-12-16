@@ -146,7 +146,7 @@ class TestDoubleNeuronNetworkHomosyn(unittest.TestCase):
         config = JSONConfig(file=homosyn_config)
         cls.scaffold = Scaffold(config)
         cls.scaffold.compile_network()
-        cls.nest_adapter = cls.scaffold.configuration.simulations['test_double_neuron_network_homosyn']
+        cls.nest_adapter = cls.scaffold.run_simulation("test_double_neuron_network_homosyn")
 
     @classmethod
     def tearDownClass(cls):
@@ -154,7 +154,6 @@ class TestDoubleNeuronNetworkHomosyn(unittest.TestCase):
             cls.nest_adapter.release_lock()
 
     def test_double_neuron_network(self):
-        self.scaffold.run_simulation("test_double_neuron_network_homosyn")
         source_cell_model = self.nest_adapter.cell_models["from_cell"]
         target_cell_model = self.nest_adapter.cell_models["to_cell"]
         conn = self.nest_adapter.nest.GetConnections(source_cell_model.nest_identifiers, target_cell_model.nest_identifiers)

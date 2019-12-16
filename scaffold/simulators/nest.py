@@ -3,10 +3,24 @@ from ..models import ConnectivitySet
 from ..helpers import ListEvalConfiguration
 from ..exceptions import *
 import os, json, weakref, numpy as np
+from itertools import chain
 from sklearn.neighbors import KDTree
 
+class MapsScaffoldIdentifiers:
 
-class NestCell(SimulationComponent):
+    def reset_identifiers(self):
+        self.nest_identifiers = []
+        self.scaffold_identifiers = []
+        self.scaffold_to_nest_map = {}
+
+    def _build_identifier_map(self):
+        self.scaffold_to_nest_map = dict(zip(self.scaffold_identifiers, self.nest_identifiers))
+
+    def get_nest_ids(self, ids):
+        return [self.scaffold_to_nest_map[id] for id in ids]
+
+
+class NestCell(SimulationComponent, MapsScaffoldIdentifiers):
 
     node_name = 'simulations.?.cell_models'
     required = ['parameters']
@@ -29,10 +43,8 @@ class NestCell(SimulationComponent):
         pass
 
     def reset(self):
-        self.nest_identifiers = []
-        self.scaffold_identifiers = []
-        self.scaffold_to_nest_map = {}
-        
+        self.reset_identifiers()
+
     def get_parameters(self):
         # Get the default synapse parameters
         params = self.parameters.copy()
@@ -45,12 +57,6 @@ class NestCell(SimulationComponent):
 
     def get_receptor_specifications(self):
         return self.receptor_specifications[self.neuron_model] if self.neuron_model in self.receptor_specifications else {}
-
-    def build_identifier_map(self):
-        self.scaffold_to_nest_map = dict(zip(self.scaffold_identifiers, self.nest_identifiers))
-
-    def get_nest_ids(self, ids):
-        return [self.scaffold_to_nest_map[id] for id in ids]
 
 
 class NestConnection(SimulationComponent):
@@ -221,6 +227,13 @@ class NestDevice(SimulationComponent):
             return cells[:, 0]
 
 
+class NestEntity(NestDevice, MapsScaffoldIdentifiers):
+    node_name = 'simulations.?.entities'
+
+    def boot(self):
+        super().boot()
+        self.reset_identifiers()
+
 class NestAdapter(SimulatorAdapter):
     '''
         Interface between the scaffold model and the NEST simulator.
@@ -231,7 +244,8 @@ class NestAdapter(SimulatorAdapter):
     configuration_classes = {
         'cell_models': NestCell,
         'connection_models': NestConnection,
-        'devices': NestDevice
+        'devices': NestDevice,
+        'entities': NestEntity
     }
 
     casts = {
@@ -286,11 +300,15 @@ class NestAdapter(SimulatorAdapter):
             self.scaffold.report("Initializing NEST kernel...", 2)
             self.reset_kernel()
         self.scaffold.report("Creating neurons...", 2)
-        self.create_neurons(self.cell_models)
+        self.create_neurons()
+        self.scaffold.report("Creating entities...", 2)
+        self.create_entities()
+        self.scaffold.report("Building identifier map...", 2)
+        self._build_identifier_map()
         self.scaffold.report("Creating devices...", 2)
-        self.create_devices(self.devices)
+        self.create_devices()
         self.scaffold.report("Creating connections...", 2)
-        self.connect_neurons(self.connection_models, hdf5)
+        self.connect_neurons(hdf5)
         self.is_prepared = True
         return nest
 
@@ -451,10 +469,20 @@ class NestAdapter(SimulatorAdapter):
                 else:
                     raise
 
+    def _build_identifier_map(self):
+        # Iterate over all simulation components that contain representations
+        # of scaffold components with an ID to create a map of all scaffold ID's
+        # to all NEST ID's this adapter manages
+        for mapping_type in chain(self.entities.values(), self.cell_models.values()):
+            # "Freeze" the type's identifiers into a map
+            mapping_type._build_identifier_map()
+            # Add the type's map to the global map
+            self.global_identifier_map.update(mapping_type.scaffold_to_nest_map)
+
     def get_nest_ids(self, ids):
         return [self.global_identifier_map[id] for id in ids]
 
-    def create_neurons(self, cell_models):
+    def create_neurons(self):
         '''
             Recreate the scaffold neurons in the same order as they were placed,
             inside of the NEST simulator based on the cell model configuration.
@@ -465,29 +493,48 @@ class NestAdapter(SimulatorAdapter):
         for cell_type_id, start_id, count in self.scaffold.placement_stitching:
             # Get the cell_type name from the type id to type name map.
             name = self.scaffold.configuration.cell_type_map[cell_type_id]
+            cell_model = self.cell_models[name]
             nest_name = self.suffixed(name)
             if name not in track_models:  # Is this the first time encountering this model?
                 # Create the cell model in the simulator
                 self.scaffold.report("Creating " + nest_name + "...", 3)
-                self.create_model(cell_models[name])
+                self.create_model(cell_model)
                 track_models.append(name)
             # Create the same amount of cells that were placed in this stitch.
             self.scaffold.report("Creating {} {}...".format(count, nest_name), 3)
             identifiers = self.nest.Create(nest_name, count)
-            self.cell_models[name].scaffold_identifiers.extend([start_id + i for i in range(count)])
-            self.cell_models[name].nest_identifiers.extend(identifiers)
+            cell_model.scaffold_identifiers.extend([start_id + i for i in range(count)])
+            cell_model.nest_identifiers.extend(identifiers)
 
-        # Build the identifier map after stitch reconstruction
-        for cell_model in self.cell_models.values():
-            cell_model.build_identifier_map()
-            # Add the cell model map to the global map
-            self.global_identifier_map.update(cell_model.scaffold_to_nest_map)
+    def create_entities(self):
+        # Create entities
+        for entity_type in self.entities.values():
+            name = entity_type.name
+            nest_name = self.suffixed(name)
+            count = self.scaffold.statistics.cells_placed[entity_type.name]
+            # Create the cell model in the simulator
+            self.scaffold.report("Creating " + nest_name + "...", 3)
+            entity_nodes = list(self.nest.Create(entity_type.device, count))
+            self.scaffold.report("Creating {} {}...".format(count, nest_name), 3)
+            if hasattr(entity_type, "parameters"):
+                # Execute SetStatus and catch DictError
+                self.execute_command(self.nest.SetStatus, entity_nodes, entity_type.parameters,
+                    exceptions={
+                    'DictError': {
+                        'from': None,
+                        'exception': catch_dict_error("Could not create {} device '{}': ".format(
+                            entity_type.device, entity_type.name
+                        ))
+                    }
+                })
+            entity_type.scaffold_identifiers = self.scaffold.get_entities_by_type(entity_type.name)
+            entity_type.nest_identifiers = entity_nodes
 
-    def connect_neurons(self, connection_models, hdf5):
+    def connect_neurons(self, hdf5):
         '''
             Connect the cells in NEST according to the connection model configurations
         '''
-        order = NestConnection.resolve_order(connection_models)
+        order = NestConnection.resolve_order(self.connection_models)
         for connection_model in order:
             name = connection_model.name
             nest_name = self.suffixed(name)
@@ -536,23 +583,24 @@ class NestAdapter(SimulatorAdapter):
                 postsynaptic_volume_transmitters = [pc - postsynaptic_cells[0] + postsynaptic_type._vt_id[0] for pc in postsynaptic_cells]
                 self.nest.Connect(presynaptic_cells, postsynaptic_volume_transmitters, connection_specifications, {"model": "static_synapse", "weight": 1.0, "delay": 1.0})
 
-    def create_devices(self, devices):
+    def create_devices(self):
         '''
             Create the configured NEST devices in the simulator
         '''
-        for device_model in devices.values():
+        for device_model in self.devices.values():
             device = self.nest.Create(device_model.device)
             self.scaffold.report("Creating device:  "+device_model.device, 3)
             # Execute SetStatus and catch DictError
             self.execute_command(self.nest.SetStatus, device, device_model.parameters,
                 exceptions={
-                'DictError': {
-                    'from': None,
-                    'exception': catch_dict_error("Could not create {} device '{}': ".format(
-                        device_model.device, device_model.name
-                    ))
+                    'DictError': {
+                        'from': None,
+                        'exception': catch_dict_error("Could not create {} device '{}': ".format(
+                            device_model.device, device_model.name
+                        ))
+                    }
                 }
-            })
+            )
             device_targets = device_model.get_targets()
             self.scaffold.report("Connecting to {} device targets.".format(len(device_targets)), 3)
             try:

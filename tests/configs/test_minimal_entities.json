@@ -1,0 +1,53 @@
+{
+  "output": {
+    "format": "scaffold.output.HDF5Formatter",
+    "file": "minimal_entities.hdf5"
+  },
+  "network_architecture": {
+    "simulation_volume_x": 400.0,
+    "simulation_volume_z": 400.0
+  },
+  "layers": {
+    "granular_layer": {
+      "thickness": 150.0,
+      "origin": [0.0, 0.0, 0.0]
+    }
+  },
+  "cell_types": {
+    "entity_type": {
+      "entity": true,
+      "placement": {
+        "class": "scaffold.placement.Entities",
+        "layer": "granular_layer",
+        "count": 100
+      }
+    }
+  },
+  "connection_types": {
+
+  },
+  "simulations": {
+    "test": {
+      "simulator": "nest",
+      "duration": 10,
+      "modules": ["cerebmodule"],
+      "cell_models": {
+
+      },
+      "connection_models": {
+
+      },
+      "devices": {
+
+      },
+      "entities": {
+        "entity_type": {
+          "device": "parrot_neuron",
+          "io": "input",
+          "type": "local",
+          "cell_types": ["entity_type"]
+        }
+      }
+    }
+  }
+}
