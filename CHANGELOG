@@ -1,5 +1,17 @@
 # 3.0
 
+## 3.0.1
+
+* Fixed particle placement for layers that don't originate in the coordinate
+  system origin. (PR #150)
+* Better NEST warnings/errors for module errors.
+* CLI commands `compile` and `run` can resize the configuration with -x and -z.
+* Switched to Travis CI
+* Optimized AllToAll connectivity strategy.
+* Sattelite placement strategy now respects simulation volume bounds.
+* Addition of mossy fiber to glomerulus connectivity. (PR #167)
+* Fixed some of the issues with ParticlePlacement.
+
 ## 3.0.0
 
 * Multi-instancing
