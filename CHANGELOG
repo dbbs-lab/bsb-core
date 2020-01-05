@@ -1,5 +1,10 @@
 # 3.0
 
+## 3.0.2
+
+* Added obfuscation scripts to create distributions that are obfuscated and
+  expire after a certain date.
+
 ## 3.0.1
 
 * Fixed particle placement for layers that don't originate in the coordinate
@@ -37,7 +42,8 @@
 * Merged touch detection branch
   * 3D touch detection, can be reduced to 2 or 1 dimension cell intersection.
   * Select from & to cell type & compartment type.
-  * Ability to auto-discover cell search radius or to specify it yourself. Compartment needs to be specified (default 5µm)
+  * Ability to auto-discover cell search radius or to specify it yourself.
+    Compartment needs to be specified (default 5µm)
   * Configure amount of synapses with a constant or distribution
 
 ## Alpha version 2
@@ -46,43 +52,53 @@
 
 * Cross-platform pip entry-points (console scripts such as `scaffold compile`)
 * Merged in the plasticity branch
-  * Setting `"plastic": true` in a NestConnection configuration will set it up as a plastic connection
-  with volume transmitters attached
-  * Specifying to which receptor type a plastic connection is connected can be done by providing
-  a dictionary mapping the partner cell type to a receptor type id in the configuration of cell types
-  under `receptors`
-* Removed dependency on archaic `matplotlib` and added `plotly`. Plotting dependencies are optionally
-installed using `pip install dbbs-scaffold[with-plotting]`
+  * Setting `"plastic": true` in a NestConnection configuration will set it up
+    as a plastic connection with volume transmitters attached
+  * Specifying to which receptor type a plastic connection is connected can be
+    done by providing a dictionary mapping the partner cell type to a receptor
+    type id in the configuration of cell types under `receptors`
+* Removed dependency on archaic `matplotlib` and added `plotly`. Plotting
+  dependencies are optionally installed using `pip install
+  dbbs-scaffold[with-plotting]`
 * NEST modules to load can be specified in the configuration.
-* scipy.stats.distributions classes can be configured using DistributionConfigurations.
-* Datasets in the `/cells/connections` group of an output HDF5 file can store metadata on them
-  * The metadata keys `from_cell_types` and `to_cell_types` can help clarify which cell_types are
-  actually contained within the dataset when the ConnectionStrategy has multiple types.
-* Added a overloadable `boot` method to ConfigurableClass that is executed after `__init__` and before `validate`
+* scipy.stats.distributions classes can be configured using
+  `DistributionConfiguration`s.
+* Datasets in the `/cells/connections` group of an output HDF5 file can store
+  metadata on them
+  * The metadata keys `from_cell_types` and `to_cell_types` can help clarify
+    which cell_types are actually contained within the dataset when the
+    ConnectionStrategy has multiple types.
+* Added a overloadable `boot` method to ConfigurableClass that is executed after
+  `__init__` and before `validate`
 
 ### Minor changes
 
 * NEST simulator resolution can be set
 * Cells can be placed by an absolute amount instead of just densities.
-  * For very low amounts of cells to be placed there is a minimum of 1 per sublayer.
+  * For very low amounts of cells to be placed there is a minimum of 1 per
+    sublayer.
 * Renamed `addCellType` to `add_cell_type` in `configuration.py`.
 * Added a `report` function to `scaffold.py` for verbosity compliant prints.
-* IllegalConnection errors by NEST are now caught to display the device that causes them.
+* IllegalConnection errors by NEST are now caught to display the device that
+  causes them.
 
 ### Tests
 
 * Added single and double cell type creation tests for NEST adapter.
 
 # 2.3
-This release is a prerelease of version 3.0 with finished simulator handling for the NEST simulator
-and preliminary support for TreeCollections, tree pickling, MorphologyRepositories, morphologies, voxelization
-and touch detection.
+This release is a prerelease of version 3.0 with finished simulator handling for
+the NEST simulator and preliminary support for TreeCollections, tree pickling,
+MorphologyRepositories, morphologies, voxelization and touch detection.
 
-* Added MorphologyRepositories to preprocess and store morphologies before they are used in the placement/connectivity.
-* Added TreeCollections to load, cache and store trees. OutputFormatters should know how to handle trees.
+* Added MorphologyRepositories to preprocess and store morphologies before they
+  are used in the placement/connectivity.
+* Added TreeCollections to load, cache and store trees. OutputFormatters should
+  know how to handle trees.
 * HDF5Formatter can pickle trees.
-* Simulations can be configured through SimulatorAdapters, should provide ConfigurableClasses to configure `cell_models`,
-`connection_models` and `devices`.
+* Simulations can be configured through SimulatorAdapters, should provide
+  ConfigurableClasses to configure `cell_models`, `connection_models` and
+  `devices`.
 * Implemented a NestAdapter with NestCells, NestConnections and NestDevices.
 
 # 2.2
@@ -120,5 +136,6 @@ and touch detection.
 * README updated.
 
 ## 2.0.0
-* Complete rework of the codebase to ensure flexibility, scalability and adoption by the community.
+* Complete rework of the codebase to ensure flexibility, scalability and
+  adoption by the community.
 * First steps of distribution as a Python package.

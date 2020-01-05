@@ -209,22 +209,22 @@ def plot_eli_voxels(morphology, voxel_positions, voxel_compartment_map, selected
             )
         fig.update_layout(scene2_aspectmode='cube')
         # Determine voxel grid sizes.
-        Δx, Δy, Δz = 0., 0., 0.
+        delta_x, delta_y, delta_z = 0., 0., 0.
         no_dx, no_dy, no_dz = True, True, True
         for i in range(len(voxel_positions) - 1):
             if no_dx and voxel_positions[i, 0] != voxel_positions[i + 1, 0]:
-                Δx = np.abs(voxel_positions[i, 0] - voxel_positions[i + 1, 0])
+                delta_x = np.abs(voxel_positions[i, 0] - voxel_positions[i + 1, 0])
                 no_dx = False
             if no_dy and voxel_positions[i, 1] != voxel_positions[i + 1, 1]:
-                Δy = np.abs(voxel_positions[i, 1] - voxel_positions[i + 1, 1])
+                delta_y = np.abs(voxel_positions[i, 1] - voxel_positions[i + 1, 1])
                 no_dy = False
             if no_dz and voxel_positions[i, 2] != voxel_positions[i + 1, 2]:
-                Δz = np.abs(voxel_positions[i, 2] - voxel_positions[i + 1, 2])
+                delta_z = np.abs(voxel_positions[i, 2] - voxel_positions[i + 1, 2])
                 no_dz = False
             if not no_dy and not no_dz and not no_dx:
                 break
         # Resulting voxel grid sizes.
-        Δ = [Δx, Δy, Δz]
+        delta = [delta_x, delta_y, delta_z]
         voxel_origins = np.min(voxel_positions, axis=0)
         total_grid_size = np.max(voxel_positions, axis=0) - voxel_origins
         diagonal = np.sum(total_grid_size ** 2)
@@ -233,7 +233,7 @@ def plot_eli_voxels(morphology, voxel_positions, voxel_compartment_map, selected
             voxel = voxel_positions[voxel_id]
             voxel_compartments = voxel_compartment_map[voxel_id]
             if voxel_id in selected_voxel_ids:
-                plot_block(fig, voxel, Δ, row=1, col=2, color=voxel_color_values[voxel_id] + 0.0001)
+                plot_block(fig, voxel, delta, row=1, col=2, color=voxel_color_values[voxel_id] + 0.0001)
                 fig.add_trace(
                     go.Scatter3d(
                         x=list(map(lambda c: morphology.compartments[c].end[0], voxel_compartments)),
@@ -250,7 +250,7 @@ def plot_eli_voxels(morphology, voxel_positions, voxel_compartment_map, selected
                     ), row=1, col=1
                 )
             else:
-                fig.add_trace(plotly_block_edges(voxel, Δ), row=1, col=2)
+                fig.add_trace(plotly_block_edges(voxel, delta), row=1, col=2)
         fig.update_layout(scene_aspectmode='cube')
         fig.update_layout(scene2_aspectmode='cube')
 

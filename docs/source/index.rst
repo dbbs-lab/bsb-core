@@ -28,3 +28,14 @@ Indices and tables
 * :doc:`genindex`
 * :doc:`py-modindex`
 * :ref:`search`
+
+Developer Guides
+================
+
+.. toctree::
+  :maxdepth: 2
+  :caption: Developer Guides:
+
+  dev/installation
+  dev/documentation
+  dev/obfuscation

@@ -1,17 +1,18 @@
 import setuptools
 
-with open("README.md", "r") as fh:
+with open("../README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
      name='dbbs-scaffold',
-     version='3.0.2',
+     version='3.0.2rc1',
      author="Robin De Schepper, Alice Geminiani, Stefano Casali, Alberto Antonietti, Claudia Casselato, Egidio D'Angelo",
      author_email="robingilbert.deschepper@unipv.it",
      description="A morphologically detailed scaffolding package for the scientific modelling of the cerebellum.",
      include_package_data=True,
      data_files=[
-        ('configurations', ['scaffold/configurations/mouse_cerebellum.json'])
+        ('configurations', ['../scaffold/configurations/mouse_cerebellum.json']),
+        ('pytransform', ['scaffold/pytransform/_pytransform.dll', 'scaffold/pytransform/license.lic', 'scaffold/pytransform/pytransform.key'])
      ],
      long_description=long_description,
      long_description_content_type="text/markdown",
