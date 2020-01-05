@@ -230,7 +230,7 @@ class ConnectomeGolgiGlomerulus(TouchingConvergenceDivergence):
                         if ra.__gt__(probability_treshold[candidate_index]):
                             glomerulus_id = glomerulus[0]
                             connections[new_connection_index, 0] = golgi_id
-                            connections[new_connection_index, 1] = glomerulus_id + first_glomerulus
+                            connections[new_connection_index, 1] = glomerulus_id
                             new_glomeruli[int(glomerulus_id - first_glomerulus), :] = oob
                             new_connection_index += 1
                             idx += 1
@@ -696,7 +696,7 @@ class ConnectomeGapJunctionsGolgi(ConnectionStrategy):
 
                 end_index = start_index + len(good_goc)
                 gj_goc[start_index:end_index, 0] = i[0]
-                gj_goc[start_index:end_index, 1] = good_goc
+                gj_goc[start_index:end_index, 1] = golgicells[good_goc][:,0]
                 start_index = end_index
                 self_index += 1
 

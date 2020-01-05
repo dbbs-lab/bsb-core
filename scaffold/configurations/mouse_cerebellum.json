@@ -140,7 +140,7 @@
     },
     "stellate_cell": {
       "placement": {
-        "class": "scaffold.placement.LayeredRandomWalk",
+        "class": "scaffold.placement.ParticlePlacement",
         "layer": "molecular_layer",
         "soma_radius": 4.0,
         "density": 0.5e-4,
@@ -157,7 +157,7 @@
     },
     "basket_cell": {
       "placement": {
-        "class": "scaffold.placement.LayeredRandomWalk",
+        "class": "scaffold.placement.ParticlePlacement",
         "layer": "molecular_layer",
         "soma_radius": 6.0,
         "density": 0.5e-4,
@@ -174,7 +174,7 @@
     },
     "dcn_cell": {
       "placement": {
-        "class": "scaffold.placement.LayeredRandomWalk",
+        "class": "scaffold.placement.ParticlePlacement",
         "layer": "dcn_layer",
         "soma_radius": 10.0,
         "placement_relative_to": "purkinje_cell",
@@ -235,6 +235,13 @@
       "to_cell_types": [{"type": "granule_cell", "compartments": ["dendrites"]}],
       "divergence": 50,
       "convergence": 4
+    },
+    "glomerulus_to_golgi": {
+      "class": "scaffold.connectivity.ConnectomeGlomerulusGolgi",
+      "from_cell_types": [{"type": "glomerulus", "compartments": ["soma"]}],
+      "to_cell_types": [{"type": "golgi_cell", "compartments": ["dendrites"]}],
+      "divergence": 2,
+      "convergence": 65
     },
     "golgi_to_glomerulus": {
       "class": "scaffold.connectivity.ConnectomeGolgiGlomerulus",
@@ -374,7 +381,7 @@
       "default_neuron_model": "iaf_cond_alpha",
       "default_synapse_model": "static_synapse",
       "duration": 10,
-      "modules": ["cerebmodule"],
+      "modules": [],
       "cell_models": {
         "granule_cell": {
           "parameters": {
@@ -688,6 +695,15 @@
             "static_synapse": {}
           }
         },
+        "glomerulus_to_golgi": {
+          "connection": {
+            "weight": 1.5,
+            "delay": 4.0
+          },
+          "synapse": {
+            "static_synapse": {}
+          }
+        },
         "ascending_axon_to_purkinje": {
           "connection": {
             "weight": 0.7,
@@ -716,10 +732,10 @@
           }
         },
         "parallel_fiber_to_purkinje": {
-          "plastic": true,
+          "plastic": false,
           "hetero": false,
           "teaching": "io_to_purkinje",
-          "synapse_model": "stdp_synapse_sinexp",
+          "synapse_model": "static_synapse",
           "connection": {
             "weight": 0.007,
             "delay": 5.0
@@ -907,17 +923,19 @@
         }
       },
       "devices": {
-        "center_stimulation": {
-          "device": "poisson_generator",
+        "overall_stimulation": {
+          "device": "spike_generator",
           "io": "input",
-          "type": "local",
-          "radius": 50.0,
-          "origin": [0.0, 0.0, 0.0],
+          "type": "cell_type",
           "cell_types": ["glomerulus"],
-          "parameters": {
-            "rate": 4.0,
-            "start": 0.0,
-            "stop": 1000.0
+          "parameters": {},
+          "stimulus": {
+            "parameter_name": "spike_times",
+            "statement": "list(np.round(np.linspace(1, duration, num_spikes)))",
+            "variables": {
+              "duration": 10,
+              "num_spikes": 5
+            }
           }
         },
         "record_glomerulus_spikes": {
@@ -930,6 +948,18 @@
             "withtime": true,
             "to_file": true,
             "label": "glom_spikes"
+          }
+        },
+        "record_dcn_spikes": {
+         "device": "spike_detector",
+         "io": "output",
+         "type": "cell_type",
+         "cell_types": ["dcn_cell"],
+         "parameters": {
+           "withgid": true,
+           "withtime": true,
+           "to_file": true,
+           "label": "dcn_spikes"
           }
         }
       },

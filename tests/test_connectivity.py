@@ -43,3 +43,27 @@ class TestConnectivity(unittest.TestCase):
         hist_dcn = np.histogram(mf_dcn[:, 1], bins=np.append(dcn, np.max(dcn)+1))[0]
         self.assertEqual(np.mean(hist_dcn), 50)
         self.assertTrue(1 <= np.mean(hist_mf) <= 4)
+
+
+    def test_Glom_GoC(self):
+        glom = self.nest_adapter.cell_models['glomerulus'].nest_identifiers
+        goc = self.nest_adapter.cell_models['golgi_cell'].nest_identifiers
+        glom_goc = self.nest_adapter.nest.GetConnections(glom, goc)
+        self.assertTrue(glom_goc)
+
+
+    def test_GoC_GoC(self):
+        goc = self.nest_adapter.cell_models['golgi_cell'].nest_identifiers
+        goc_goc = self.nest_adapter.nest.GetConnections(goc, goc)
+        self.assertTrue(goc_goc)
+
+
+# Test goc_glom connectivity in the scaffold creation (not used in NEST)
+    def test_GoC_Glom(self):
+        first_goc_id=np.int(  min(self.scaffold.get_cells_by_type('golgi_cell')[:, 0]) )
+        last_goc_id=np.int(  max(self.scaffold.get_cells_by_type('golgi_cell')[:, 0]) )
+        first_glom_id=np.int(  min(self.scaffold.get_cells_by_type('glomerulus')[:, 0]) )
+        last_glom_id=np.int(  max(self.scaffold.get_cells_by_type('glomerulus')[:, 0]) )
+        goc_glom = self.scaffold.get_connections_by_cell_type(postsynaptic='glomerulus',presynaptic='golgi_cell')
+        self.assertTrue(first_goc_id <= min(goc_glom[0][1][:,0]) <= last_goc_id)
+        self.assertTrue(first_glom_id <= min(goc_glom[0][1][:,1]) <= last_glom_id)
