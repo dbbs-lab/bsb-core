@@ -3,9 +3,18 @@ import setuptools
 with open("../README.md", "r") as fh:
     long_description = fh.read()
 
+try:
+    from wheel.bdist_wheel import bdist_wheel as _bdist_wheel
+    class bdist_wheel(_bdist_wheel):
+        def finalize_options(self):
+            _bdist_wheel.finalize_options(self)
+            self.root_is_pure = False
+except ImportError:
+    bdist_wheel = None
+
 setuptools.setup(
      name='dbbs-scaffold',
-     version='3.0.2rc1',
+     version='3.0.2rc2',
      author="Robin De Schepper, Alice Geminiani, Stefano Casali, Alberto Antonietti, Claudia Casselato, Egidio D'Angelo",
      author_email="robingilbert.deschepper@unipv.it",
      description="A morphologically detailed scaffolding package for the scientific modelling of the cerebellum.",
@@ -38,5 +47,6 @@ setuptools.setup(
      ],
      extras_require= {
         'dev': ['sphinx', 'pyarmor']
-     }
+     },
+     cmdclass={'bdist_wheel': bdist_wheel}
  )
