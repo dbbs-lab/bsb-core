@@ -927,7 +927,7 @@
           "device": "spike_generator",
           "io": "input",
           "type": "cell_type",
-          "cell_types": ["glomerulus"],
+          "cell_types": ["mossy_fibers"],
           "parameters": {},
           "stimulus": {
             "parameter_name": "spike_times",
