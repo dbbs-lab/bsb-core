@@ -6,6 +6,7 @@ The scaffold framework can be installed using Pip for Python 3
 
   .. code-block:: bash
 
+    sudo apt-get install python3-rtree
     pip3 install --index-url=https://dbbs.glia-pkg.org dbbs-scaffold
 
 The user name is ``hack2019`` and the password is ``hackathon2019``.
