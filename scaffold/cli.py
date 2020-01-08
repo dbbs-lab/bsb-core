@@ -7,7 +7,7 @@ import sys
 import configparser
 import builtins
 import argparse
-from .config import JSONConfig, from_hdf5
+from .config import JSONConfig, from_hdf5, get_config_path
 from .scaffold import Scaffold
 from .output import MorphologyRepository, HDF5Formatter
 import traceback
@@ -81,7 +81,7 @@ def start_cli():
     # Main arguments
     parser.add_argument("-c", "--config",
         help="Specify the path of the configuration file.",
-        default="{}/configurations/mouse_cerebellum.json".format(sys.modules[globals()['__package__']].__path__[0])
+        default="mouse_cerebellum.json"
     )
     parser.add_argument("-ct", "--ctype",
         help="Specify the type of the configuration file.",
@@ -164,7 +164,7 @@ def start_cli():
 def create_config(args):
     from shutil import copy2 as copy_file
     import os
-    copy_file(os.path.join(os.path.dirname(__file__), "configurations", args.template), ".")
+    copy_file(get_config_path(args.template), ".")
 
 
 class ReplState:

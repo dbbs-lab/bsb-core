@@ -2,7 +2,7 @@
     This module handles all configuration of the scaffold.
 '''
 
-import os
+import os, sys, site
 from inspect import isclass
 from .models import CellType, Layer
 from .morphologies import Morphology as BaseMorphology
@@ -19,6 +19,22 @@ from .simulators.nest import NestAdapter
 from .exceptions import DynamicClassException, ConfigurationException, ConfigurableClassNotFoundException
 import numpy as np
 
+def get_config_path(file = None):
+    packaged_configs = os.path.join(os.path.dirname(__file__), "configurations")
+    global_install_configs = os.path.join(sys.prefix, "configurations")
+    user_install_configs = os.path.join(site.USER_BASE, "configurations")
+    if os.path.exists(packaged_configs):
+        configs = packaged_configs
+    elif os.path.exists(global_install_configs):
+        configs = global_install_configs
+    elif os.path.exists(user_install_configs):
+        configs = user_install_configs
+    else:
+        raise FileNotFoundError('Could not locate configuration directory.')
+    if file is not None:
+        return os.path.join(configs, file)
+    else:
+        return configs
 
 def from_hdf5(file, verbosity=1):
     '''
@@ -119,7 +135,7 @@ class ScaffoldConfig(object):
             pass
         # Try to open the config file from the default directory
         try:
-            with open(os.path.dirname(__file__) + '/configurations/' + file, 'r') as file:
+            with open(get_config_path(file), 'r') as file:
                 self._raw = file.read()
                 self._name = file.name
         except FileNotFoundError as e:
