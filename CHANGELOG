@@ -1,5 +1,10 @@
 # 3.0
 
+## 3.0.3
+
+* Added changes for the hackathon.
+* Fixed bugs that would have been encountered during the workshop.
+
 ## 3.0.2
 
 * Added obfuscation scripts to create distributions that are obfuscated and
