@@ -1,3 +1,5 @@
+:tocdepth: 2
+
 #############
 Configuration
 #############
@@ -8,7 +10,6 @@ Configuration
 
   configuration/cell-type
   configuration/connection-type
-  configuration/layer
   configuration/placement-strategies
   configuration/connection-strategies
 
@@ -18,9 +19,9 @@ Configuration
   hardcoded into the package and the names of the standard configuration objects
   should not be changed.
 
-==========
-Attributes
-==========
+===============
+Root attributes
+===============
 
 The root node accepts the following attributes:
 
@@ -62,11 +63,12 @@ The root node accepts the following attributes:
     }
   }
 
+=================
 Output attributes
 =================
 
 Format
-------
+======
 
 This attribute is a string that refers to the implementation of the OutputFormatter
 that should be used::
@@ -89,7 +91,7 @@ Here is an example for ``MyOutputFormatter`` in a package called ``my_package``:
 Your own implementations must inherit from :class:`.output.OutputFormatter`.
 
 File
-----
+====
 
 Determines the path and filename of the output file produced by the output
 formatter. This path is relative to Python's current working directory.
@@ -102,16 +104,17 @@ formatter. This path is relative to Python's current working directory.
     }
   }
 
+===============================
 Network architecture attributes
 ===============================
 
 simulation_volume_x
--------------------
+===================
 
 The size of the X dimension of the simulation volume. See :doc:`/usage/simulation-volume`
 
 simulation_volume_z
--------------------
+===================
 
 The size of the Z dimension of the simulation volume. See :doc:`/usage/simulation-volume`
 
@@ -135,19 +138,20 @@ The size of the Z dimension of the simulation volume. See :doc:`/usage/simulatio
   Do not modify these values directly on the configuration object: It will not
   rescale your layers. Use :func:`.configuration.ScaffoldConfig.resize` instead.
 
+================
 Layer attributes
 ================
 
 
 thickness
----------
+=========
 
 A fixed value of Y units that this layer will be high/thick/deep.
 
 Required unless the layer is scaled to other layers.
 
 xz_scale
---------
+========
 
 *(Optional)* The scaling of this layer compared to the simulation volume. By
 default a layer's X and Z scaling are ``[1.0, 1.0]`` and so are equal to the
@@ -160,13 +164,13 @@ simulation volume.
   }
 
 xz_center
----------
+=========
 
 *(Optional)* Should this layer be aligned to the corner or the center of the
 simulation volume? Defaults to ``False``.
 
 stack
------
+=====
 
 Layers can be stacked on top of eachother if you define this attribute and give
 their stack configurations the same ``stack_id``. The ``position_in_stack`` will

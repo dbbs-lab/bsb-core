@@ -1,10 +1,26 @@
 import abc, inspect, numpy as np
+import os, sys, site
 from .exceptions import *
 
+def get_config_path(file = None):
+    packaged_configs = os.path.join(os.path.dirname(__file__), "configurations")
+    global_install_configs = os.path.join(sys.prefix, "configurations")
+    user_install_configs = os.path.join(site.USER_BASE, "configurations")
+    if os.path.exists(packaged_configs):
+        configs = packaged_configs
+    elif os.path.exists(global_install_configs):
+        configs = global_install_configs
+    elif os.path.exists(user_install_configs):
+        configs = user_install_configs
+    else:
+        raise FileNotFoundError('Could not locate configuration directory.')
+    if file is not None:
+        return os.path.join(configs, file)
+    else:
+        return configs
 
 def get_qualified_class_name(x):
     return x.__class__.__module__ + '.' + str(x.__class__.__name__)
-
 
 class ConfigurableClass(abc.ABC):
     '''

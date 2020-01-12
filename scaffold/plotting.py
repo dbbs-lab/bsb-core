@@ -1,8 +1,5 @@
-try:
-    import plotly.graph_objects as go
-    from plotly.subplots import make_subplots
-except Exception as e:
-    pass
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 from .networks import depth_first_branches, get_branch_points, reduce_branch
 import numpy as np, math
 from .morphologies import Compartment
@@ -32,6 +29,8 @@ def plot_network(scaffold, from_memory=True, show=True):
     if from_memory:
         with show_figure(show=show) as fig:
             for type in scaffold.configuration.cell_types.values():
+                if type.entity:
+                    continue
                 pos = scaffold.cells_by_type[type.name][:, [2, 3, 4]]
                 color = type.plotting.color
                 fig.add_trace(go.Scatter3d(
@@ -44,6 +43,8 @@ def plot_network(scaffold, from_memory=True, show=True):
     else:
         scaffold.reset_network_cache()
         for cell_type in scaffold.configuration.cell_types.values():
+            if type.entity:
+                continue
             # Load from HDF5
             scaffold.get_cells_by_type(cell_type.name)
         plot_network(scaffold, from_memory=True, show=show)

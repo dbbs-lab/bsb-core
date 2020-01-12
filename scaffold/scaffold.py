@@ -28,7 +28,7 @@ class Scaffold:
         with a :doc:`configuration </configuration>`.
 
         During the compilation phase it can :doc:`place </placement>` and
-        :doc:`connect </connectivity>` cells based on :doc:`layer </configuration/layer>`,
+        :doc:`connect </connectivity>` cells based on Layers,
         :doc:`cell type </configuration/cell-type>` and :doc:`connection type
         </configuration/connection-type>` configuration.
 
@@ -110,34 +110,45 @@ class Scaffold:
         for stimulus in simulation.devices.values():
             stimulus.initialise(self)
 
-    def compile_network(self, tries=1):
-        times = np.zeros(tries)
-        # Place the cells starting from the lowest density cell_types.
-        for i in np.arange(tries, dtype=int):
-            t = time.time()
-            sorted_cell_types = CellType.resolve_order(self.configuration.cell_types)
-            for cell_type in sorted_cell_types:
-                # Place cell type according to PlacementStrategy
-                cell_type.placement.place(cell_type)
-                if cell_type.entity:
-                    continue
+    def place_cell_types(self):
+        sorted_cell_types = CellType.resolve_order(self.configuration.cell_types)
+        for cell_type in sorted_cell_types:
+            # Place cell type according to PlacementStrategy
+            cell_type.placement.place(cell_type)
+            if cell_type.entity:
+                entities = self.entities_by_type[cell_type.name]
+                self.report("Finished placing {} {} entities.".format(len(entities), cell_type.name), 2)
+            else:
                 # Get the placed cells
                 cells = self.cells_by_type[cell_type.name][:, 2:5]
                 # Construct a tree of the placed cells
                 self.trees.cells.create_tree(cell_type.name, cells)
                 self.report("Finished placing {} {} cells.".format(len(cells), cell_type.name), 2)
-            sorted_connection_types = ConnectionStrategy.resolve_order(self.configuration.connection_types)
-            for connection_type in sorted_connection_types:
-                connection_type.connect()
-                # Iterates for each tag of the connection_type
-                for tag in range(len(connection_type.tags)):
-                    conn_num = np.shape(connection_type.get_connection_matrices()[tag])[0]
-                    source_name = connection_type.from_cell_types[0].name
-                    target_name = connection_type.to_cell_types[0].name
-                    self.report("Finished connecting {} with {} (tag: {} - total connections: {})."
-                                .format(source_name, target_name, connection_type.tags[tag], conn_num), 2)
+
+    def connect_cell_types(self):
+        sorted_connection_types = ConnectionStrategy.resolve_order(self.configuration.connection_types)
+        for connection_type in sorted_connection_types:
+            connection_type.connect()
+            # Iterates for each tag of the connection_type
+            for tag in range(len(connection_type.tags)):
+                conn_num = np.shape(connection_type.get_connection_matrices()[tag])[0]
+                source_name = connection_type.from_cell_types[0].name
+                target_name = connection_type.to_cell_types[0].name
+                self.report("Finished connecting {} with {} (tag: {} - total connections: {})."
+                            .format(source_name, target_name, connection_type.tags[tag], conn_num), 2)
+
+    def compile_network(self, tries=1, output=True):
+        times = np.zeros(tries)
+        # Place the cells starting from the lowest density cell_types.
+        for i in np.arange(tries, dtype=int):
+            t = time.time()
+            self.place_cell_types()
+            self.connect_cell_types()
             times[i] = time.time() - t
-            self.compile_output()
+
+            if output:
+                self.compile_output()
+                
             for type in self.configuration.cell_types.values():
                 if type.entity:
                     count = self.entities_by_type[type.name].shape[0]
