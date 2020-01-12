@@ -139,7 +139,10 @@ class NestConnection(SimulationComponent):
         to_cell_type = to_cell_types[0]
         from_cell_type = from_cell_types[0]
         to_cell_model = self.adapter.cell_models[to_cell_type.name]
-        from_cell_model = self.adapter.cell_models[from_cell_type.name]
+        if from_cell_type.name in self.adapter.cell_models.keys():
+            from_cell_model = self.adapter.cell_models[from_cell_type.name]
+        else:   # For neurons receiving from entities
+            from_cell_model = self.adapter.entities[from_cell_type.name]
         receptors = to_cell_model.get_receptor_specifications()
         if from_cell_model.name not in receptors:
             raise Exception("Missing receptor specification for cell model '{}' in '{}' while attempting to connect a '{}' to it during '{}'".format(
@@ -161,12 +164,17 @@ class NestDevice(SimulationComponent):
         'stimulus': ListEvalConfiguration.cast
     }
 
+    defaults = {
+        'connection_rule': None,
+        'connection_parameters': None
+    }
+
     required = ['type', 'device', 'io', 'parameters']
 
     def validate(self):
         # Fill in the _get_targets method, so that get_target functions
         # according to `type`.
-        types = ['local', 'cell_type']
+        types = ['local', 'cylinder', 'cell_type']
         if self.type not in types:
             raise Exception("Unknown NEST targetting type '{}' in {}".format(self.type, self.node_name))
         get_targets_name = '_targets_' + self.type
@@ -209,6 +217,36 @@ class NestDevice(SimulationComponent):
         # Query the tree for all the targets
         target_ids = tree.query_radius(np.array(self.origin).reshape(1, -1), self.radius)[0].tolist()
         return id_map[target_ids]
+
+    def _targets_cylinder(self):
+        '''
+            Target all or certain cells within a cylinder of specified radius.
+        '''
+        if len(self.cell_types) != 1:
+            # Compile a list of the cells.
+            target_cells = np.empty((0, 5))
+            id_map = np.empty((0, 1))
+            for t in self.cell_types:
+                cells = self.scaffold.get_cells_by_type(t)
+                target_cells = np.vstack((target_cells, cells[:, 2:5]))
+                id_map = np.vstack((id_map, cells[:, 0]))
+            target_positions = target_cells
+        else:
+            # Retrieve the prebuilt tree from the SHDF file
+            #tree = self.scaffold.trees.cells.get_tree(self.cell_types[0])
+            target_cells = self.scaffold.get_cells_by_type(self.cell_types[0])
+            #id_map = target_cells[:, 0]
+            target_positions = target_cells[:, 2:5]
+            # Query the tree for all the targets
+            center_scaffold = [self.scaffold.configuration.X/2, self.scaffold.configuration.Z/2]
+
+            # Find cells falling into the cylinder volume
+            target_cells_idx = np.sum((target_positions[:,[0,2]] - np.array(center_scaffold))**2, axis=1).__lt__(self.radius**2)
+            cylinder_target_cells = target_cells[target_cells_idx,0]
+            cylinder_target_cells = cylinder_target_cells.astype(int)
+            cylinder_target_cells = cylinder_target_cells.tolist()
+            # print(id_stim)
+            return cylinder_target_cells
 
     def _targets_cell_type(self):
         '''
@@ -466,6 +504,7 @@ class NestAdapter(SimulatorAdapter):
 
     def install_modules(self):
         for module in self.modules:
+            print(module)
             try:
                 self.nest.Install(module)
             except Exception as e:
@@ -611,11 +650,12 @@ class NestAdapter(SimulatorAdapter):
             )
             device_targets = device_model.get_targets()
             self.scaffold.report("Connecting to {} device targets.".format(len(device_targets)), 3)
+
             try:
                 if device_model.io == "input":
-                    self.nest.Connect(device, device_targets)
+                    self.nest.Connect(device, device_targets, {'rule':'all_to_all'}, device_model.connection_parameters)
                 elif device_model.io == "output":
-                    self.nest.Connect(device_targets, device)
+                    self.nest.Connect(device_targets, device, {'rule':'all_to_all'}, device_model.connection_parameters)
                 else:
                     pass                # Weight recorder device is not connected to any node; just linked to a connection
             except Exception as e:

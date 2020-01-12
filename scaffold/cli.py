@@ -145,7 +145,7 @@ def start_cli():
         # Create the scaffold instance
         scaffoldInstance = Scaffold(scaffoldConfig, from_file=file)  # `from_file` notifies the scaffold instance that we might've loaded from a file.
 
-        if cl_args.x or cl_args.z:
+        if hasattr(cl_args, "x") and hasattr(cl_args, "z") and (cl_args.x or cl_args.z):
             kwargs = {"X": float(cl_args.x), "Z": float(cl_args.z)}
             print('resizing:', kwargs)
             scaffoldInstance.configuration.resize(**kwargs)

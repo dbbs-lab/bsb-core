@@ -380,8 +380,8 @@
       "simulator": "nest",
       "default_neuron_model": "iaf_cond_alpha",
       "default_synapse_model": "static_synapse",
-      "duration": 10,
-      "modules": [],
+      "duration": 1000,
+      "modules": ["cerebmodule"],
       "cell_models": {
         "granule_cell": {
           "parameters": {
@@ -398,6 +398,7 @@
             "g_L": 0.29
           },
           "eglif_cond_alpha_multisyn": {
+            "Vmin": -150.0,
             "Vinit": -62.0,
             "lambda_0":1.0,
             "tau_V":0.3,
@@ -440,6 +441,7 @@
             "g_L": 7.1
           },
           "eglif_cond_alpha_multisyn": {
+            "Vmin": -350.0,
             "Vinit": -59.0,
             "lambda_0":4.0,
             "tau_V":3.5,
@@ -476,6 +478,7 @@
             "g_L": 3.3
           },
           "eglif_cond_alpha_multisyn": {
+            "Vmin": -150.0,
             "Vinit": -62.0,
             "lambda_0":1.0,
             "tau_V":0.4,
@@ -562,7 +565,7 @@
             "tau_syn3": 1.2,
             "receptors": {
               "granule_cell": 1,
-              "stellate_cell": 2,
+              "basket_cell": 2,
               "io_cell": 3
             }
           }
@@ -595,7 +598,7 @@
             "tau_syn1": 1.0,
             "tau_syn2": 0.7,
             "receptors": {
-              "glomerulus": 1,
+              "mossy_fibers": 1,
               "purkinje_cell": 2,
               "io_cell": 1
             }
@@ -649,6 +652,7 @@
             "g_L": 17.18
           },
           "eglif_cond_alpha_multisyn": {
+            "Vmin": -60.0,
             "Vinit": -45.0,
             "lambda_0":1.2,
             "tau_V":0.8,
@@ -662,6 +666,7 @@
             "tau_syn1": 1.0,
             "tau_syn2": 60.0,
             "receptors": {
+              "device": 1,
               "dcn_interneuron": 2
             }
           }
@@ -923,20 +928,46 @@
         }
       },
       "devices": {
-        "overall_stimulation": {
+        "background_noise": {
+          "device": "poisson_generator",
+          "io": "input",
+          "type": "cylinder",
+          "radius": 150,
+          "cell_types": ["glomerulus"],
+          "parameters": {
+            "rate": 4.0,
+            "start": 0.0,
+            "stop": 1000.0
+          }
+        },
+        "tone_stim": {
+          "device": "poisson_generator",
+          "io": "input",
+          "type": "cylinder",
+          "radius": 150,
+          "cell_types": ["glomerulus"],
+          "parameters": {
+            "rate": 36.0,
+            "start": 500.0,
+            "stop": 760.0
+          }
+        },
+        "puff_stim": {
           "device": "spike_generator",
           "io": "input",
           "type": "cell_type",
-          "cell_types": ["mossy_fibers"],
+          "cell_types": ["io_cell"],
           "parameters": {},
           "stimulus": {
             "parameter_name": "spike_times",
-            "statement": "list(np.round(np.linspace(1, duration, num_spikes)))",
+            "statement": "list(np.round(np.linspace(750, 760, num_spikes)))",
             "variables": {
               "duration": 10,
               "num_spikes": 5
             }
-          }
+          },
+          "connection_rule": {"rule": "one_to_one"},
+          "connection_parameters": {"model": "static_synapse", "weight":555.0, "delay": 1.0}
         },
         "record_glomerulus_spikes": {
           "device": "spike_detector",
@@ -961,8 +992,32 @@
            "to_file": true,
            "label": "dcn_spikes"
           }
+        },
+        "record_pc_spikes": {
+         "device": "spike_detector",
+         "io": "output",
+         "type": "cell_type",
+         "cell_types": ["purkinje_cell"],
+         "parameters": {
+           "withgid": true,
+           "withtime": true,
+           "to_file": true,
+           "label": "pc_spikes"
+          }
+        },
+        "record_io_spikes": {
+         "device": "spike_detector",
+         "io": "output",
+         "type": "cell_type",
+         "cell_types": ["io_cell"],
+         "parameters": {
+           "withgid": true,
+           "withtime": true,
+           "to_file": true,
+           "label": "io_spikes"
+          }
         }
-      },
+    },
       "entities": {
         "mossy_fibers": {
           "device": "parrot_neuron",
