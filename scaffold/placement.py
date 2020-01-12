@@ -302,7 +302,6 @@ class Entities(PlacementStrategy):
             self.scaffold.warn("Volume or density too low, no '{}' cells will be placed".format(cell_type.name), PlacementWarning)
 
         scaffold.create_entities(cell_type, n_cells_to_place)
-        scaffold.report("Finished placing {} {} cells.".format(n_cells_to_place, cell_type.name), 2)
 
 
 class ParallelArrayPlacement(PlacementStrategy):
@@ -450,7 +449,12 @@ class Satellite(PlacementStrategy):
                 iter=iter+1
                 alfa = np.random.uniform(0, 2*math.pi)
                 beta = np.random.uniform(0, 2*math.pi)
-                distance_satellite = np.random.uniform((after_cell_radius+radius_satellite), (mean_dist_after_cells/4-after_cell_radius-radius_satellite))
+
+                # If we have only one planet and one satellite cell, we should place it near the planet without considering the mean distance of planets
+                if len(after_cell_ids)<2:
+                    distance_satellite = np.random.uniform((after_cell_radius+radius_satellite), (after_cell_radius+radius_satellite)*3)
+                else:
+                    distance_satellite = np.random.uniform((after_cell_radius+radius_satellite), (mean_dist_after_cells/4-after_cell_radius-radius_satellite))
                 satellitePositions[to_place, 0] = distance_satellite*np.cos(alfa) + after_cell_pos[to_place, 0]
                 satellitePositions[to_place, 1] = distance_satellite*np.sin(alfa) + after_cell_pos[to_place, 1]
                 satellitePositions[to_place, 2] = distance_satellite*np.sin(beta) + after_cell_pos[to_place, 2]

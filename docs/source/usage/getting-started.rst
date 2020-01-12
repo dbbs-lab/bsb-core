@@ -11,7 +11,7 @@ architectures and run simulations.
 
 Let's try out the most basic command, using the default configuration::
 
-  scaffold -v=3 compile
+  scaffold -v=3 compile -x=200 -z=200
 
 This should produce prints and generate a timestamped HDF5 file in your current
 directory.
@@ -43,6 +43,22 @@ objects to the configuration file. By building new configuration files the
 placement and connection strategies used to construct the cerebellum scaffold
 model could be leveraged to build any general brain area topology.
 
+You can use the default configuration of the mouse cerebellum as a starting
+point for your own scaffold model::
+
+  scaffold make-config my_config.json
+
+You can modify values in there and create a network from it like so::
+
+  scaffold -c=my_config compile -p
+
+Open the configuration file in your favorite editor and reduce the simulation
+volume::
+
+  "network_architecture": {
+    "simulation_volume_x": 400.0, # For local single core 150 by 150 is doable.
+    "simulation_volume_z": 400.0,
+
 See :doc:`/configuration` for more on the configuration interface. Complex
 brain scaffolds can be constructed purely using these files, but there might be
 cases where it isn't enough, that's why it's also possible to augment the
@@ -69,7 +85,13 @@ keyword argument with a path to the configuration file::
   from scaffold.config import JSONConfig
 
   config = JSONConfig(file="my_config.json")
+  config.verbosity = 3 # This way we can follow what's going on.
   scaffold = Scaffold(config)
+
+.. note::
+  The verbosity is 1 by default, which only displays errors. You could also add
+  a `verbosity` attribute to the root node of the `my_config.json` file to set
+  the verbosity.
 
 Let's find the purkinje cell configuration::
 
@@ -95,7 +117,7 @@ will be stored in the Python ``CellType`` object under
     purkinje.placement.planar_density = i * 20 / 100 * max_density
     scaffold.compile_network()
 
-    # Maybe do something useful with the network here
+    scaffold.plot_network_cache()
 
     scaffold.reset_network_cache()
 
@@ -113,14 +135,17 @@ Full code example
   from scaffold.config import JSONConfig
 
   config = JSONConfig(file="my_config.json")
+  config.verbosity = 3 # This way we can follow what's going on.
   scaffold = Scaffold(config)
+
   purkinje = scaffold.get_cell_type("purkinje_cell")
   max_density = purkinje.placement.planar_density
+
   for i in range(5):
     purkinje.placement.planar_density = i * 20 / 100 * max_density
     scaffold.compile_network()
 
-    # Maybe do something useful with the network here
+    scaffold.plot_network_cache()
 
     scaffold.reset_network_cache()
 

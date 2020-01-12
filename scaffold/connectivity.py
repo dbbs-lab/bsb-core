@@ -859,7 +859,7 @@ class ConnectomeIOPurkinje(ConnectionStrategy):
         tolerance = self.tolerance_divergence
 
         number_clusters = len(io_cells)
-        if number_clusters==0:
+        if number_clusters == 0 or len(purkinje_cells) == 0:
             return
         kmeans = KMeans(n_clusters=number_clusters).fit(purkinje_cells[:, 2:4])
         label_clusters = kmeans.labels_

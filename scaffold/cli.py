@@ -7,9 +7,6 @@ import sys
 import configparser
 import builtins
 import argparse
-from .config import JSONConfig, from_hdf5, get_config_path
-from .scaffold import Scaffold
-from .output import MorphologyRepository, HDF5Formatter
 import traceback
 
 ##
@@ -75,7 +72,7 @@ def start_cli():
     parser_compile = subparsers.add_parser('compile', help='Build a network of neurons in a volume and compile it to an HDF5 network architecture file.')
     parser_run = subparsers.add_parser('run', help='Run a simulation from scratch.')
     parser_sim = subparsers.add_parser('simulate', help='Run a simulation from a compiled HDF5 network architecture file.')
-    parser_config = subparsers.add_parser('mkcfg', help='Create a config file in the current directory.')
+    parser_config = subparsers.add_parser('make-config', help='Create a config file in the current directory.')
     parser_repl = subparsers.add_parser('repl', help='Start the interactive scaffold shell.')
 
     # Main arguments
@@ -117,6 +114,7 @@ def start_cli():
 
     # Create config subparser
     parser_config.add_argument('-t', '--template', action='store', default='mouse_cerebellum.json',help='Name of the template config file.')
+    parser_config.add_argument('output', action='store', default='scaffold_configuration.json', nargs="?", help='Name of the output configuration file.')
     parser_config.set_defaults(func=create_config)
 
     # Repl subparser
@@ -126,6 +124,9 @@ def start_cli():
     if hasattr(cl_args, 'func'):
         cl_args.func(cl_args)
     else:
+        from .config import JSONConfig, from_hdf5
+        from .scaffold import Scaffold
+        from .output import MorphologyRepository, HDF5Formatter
         file = None
         if hasattr(cl_args, 'hdf5'):  # Is an HDF5 file specified?
             cl_args.ctype = 'hdf5'  # Load from the config stored in the HDF5 file.
@@ -162,9 +163,10 @@ def start_cli():
 
 
 def create_config(args):
+    from .helpers import get_config_path
     from shutil import copy2 as copy_file
     import os
-    copy_file(get_config_path(args.template), ".")
+    copy_file(get_config_path(args.template), "./" + args.output)
 
 
 class ReplState:

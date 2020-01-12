@@ -13,28 +13,11 @@ from .simulation import SimulatorAdapter, SimulationComponent
 from .helpers import (
     assert_float, assert_attr_array,
     assert_attr_float, assert_attr, if_attr, assert_strictly_one,
-    assert_attr_in
+    assert_attr_in, get_config_path
 )
 from .simulators.nest import NestAdapter
 from .exceptions import DynamicClassException, ConfigurationException, ConfigurableClassNotFoundException
 import numpy as np
-
-def get_config_path(file = None):
-    packaged_configs = os.path.join(os.path.dirname(__file__), "configurations")
-    global_install_configs = os.path.join(sys.prefix, "configurations")
-    user_install_configs = os.path.join(site.USER_BASE, "configurations")
-    if os.path.exists(packaged_configs):
-        configs = packaged_configs
-    elif os.path.exists(global_install_configs):
-        configs = global_install_configs
-    elif os.path.exists(user_install_configs):
-        configs = user_install_configs
-    else:
-        raise FileNotFoundError('Could not locate configuration directory.')
-    if file is not None:
-        return os.path.join(configs, file)
-    else:
-        return configs
 
 def from_hdf5(file, verbosity=1):
     '''
@@ -296,6 +279,9 @@ class ScaffoldConfig(object):
             if layer.scaling:
                 layer.dimensions[0] *= scaling_x
                 layer.dimensions[2] *= scaling_z
+            if layer.xz_center:
+                layer.origin[0] = self.X / 2 - layer.dimensions[0] / 2
+                layer.origin[2] = self.Z / 2 - layer.dimensions[2] / 2
 
     def load_configurable_class(self, name, configured_class_name, parent_class, parameters={}):
         '''
@@ -482,13 +468,13 @@ class JSONConfig(ScaffoldConfig):
 
     def init_cell_type(self, name, section):
         '''
-            Initialise a CellType from a .ini object.
+            Initialise a CellType from a configuration object.
 
-            :param section: A section of a .ini file, parsed by configparser.
+            :param section: A section of a configuration file, parsed by configparser.
             :type section: /
 
-            :returns: A :class:`CellType`: object.
-            :rtype: CellType
+            :returns: A :class:`CellType` object.
+            :rtype: :class:`CellType`
         '''
         cell_type = CellType(name)
         node_name = 'cell_types.{}'.format(name)
@@ -579,6 +565,7 @@ class JSONConfig(ScaffoldConfig):
             origin[2] = (self.Z - dimensions[2]) / 2.
         # Put together the layer object from the extracted values.
         layer = Layer(name, origin, dimensions)
+        layer.xz_center = 'xz_center' in config and config['xz_center'] is True
         # Add layer to the config object
         self.add_layer(layer)
         return layer
