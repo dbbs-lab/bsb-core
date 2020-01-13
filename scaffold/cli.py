@@ -74,6 +74,7 @@ def start_cli():
     parser_sim = subparsers.add_parser('simulate', help='Run a simulation from a compiled HDF5 network architecture file.')
     parser_config = subparsers.add_parser('make-config', help='Create a config file in the current directory.')
     parser_repl = subparsers.add_parser('repl', help='Start the interactive scaffold shell.')
+    parser_plot = subparsers.add_parser('plot', help='Plot networks.')
 
     # Main arguments
     parser.add_argument("-c", "--config",
@@ -116,6 +117,9 @@ def start_cli():
     parser_config.add_argument('-t', '--template', action='store', default='mouse_cerebellum.json',help='Name of the template config file.')
     parser_config.add_argument('output', action='store', default='scaffold_configuration.json', nargs="?", help='Name of the output configuration file.')
     parser_config.set_defaults(func=create_config)
+
+    parser_plot.add_argument('hdf5', action='store', help="Path of the HDF5 file")
+    parser_plot.set_defaults(func=cli_plot)
 
     # Repl subparser
     parser_repl.set_defaults(func=start_repl)
@@ -161,6 +165,11 @@ def start_cli():
         if cl_args.task == 'run' or cl_args.task == 'simulate':  # Do we need to run a simulation?
             scaffoldInstance.run_simulation(cl_args.simulation)
 
+def cli_plot(args):
+    from .scaffold import from_hdf5
+    from .plotting import plot_network
+    scaffold = from_hdf5(args.hdf5)
+    plot_network(scaffold, from_memory=False)
 
 def create_config(args):
     from .helpers import get_config_path
@@ -310,6 +319,13 @@ class ReplState:
         close_parser.set_defaults(func=lambda args: close)
         view_parser = self.add_subparser("view", description="Explore the hierarchical components of the HDF5 file.")
         view_parser.set_defaults(func=lambda args: repl_view_hdf5(h, args))
+
+        plot_parser = self.add_subparser("plot", description="Plot the HDF5 network.")
+        def plot_handler(args):
+            args.hdf5 = h.filename
+            cli_plot(args)
+        
+        plot_parser.set_defaults(func=plot_handler)
 
     def add_parser_globals(self):
         '''

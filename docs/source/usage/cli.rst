@@ -53,8 +53,8 @@ List of mr commands
 * ``list all``: Show a list of all morphologies available in the repository.
 * ``list voxelized``: Show a list of all morphologies with voxel cloud
   information available.
-* ``import repo <filename>``: Import all morphologies from another repository
-  * ``-f``/``--overwrite``: Overwrite existing morphologies.
+* ``import repo <filename>``: Import all morphologies from another repository.
+  ``-f``/``--overwrite``: Overwrite existing morphologies.
 * ``import swc <file> <name>``: Import an SWC morphology and store it under the
   given name.
 * ``remove <name>``: Remove a morphology from the repository.
@@ -76,16 +76,20 @@ List of hdf5 commands:
 * ``view``: Create a hierarchical print of the HDF5 file, groups, datasets, and
   attributes.
 
+* ``plot``: Display a plot of the HDF5 network.
+
 *****************************
 List of command line commands
 *****************************
 
 .. note::
   Parameters included between square brackets are optional, the brackets need
-  not be included in the actual command. 
+  not be included in the actual command.
+
+compile
+=======
 
 ``scaffold [-v=1 -c=mouse_cerebellum] compile [-p -o]``
-=========================================================
 
 Compiles a network architecture: Places cells in a simulated volume and connects
 them to eachother. All this information is then stored in a single HDF5 file.
@@ -95,8 +99,10 @@ them to eachother. All this information is then stored in a single HDF5 file.
 * ``-p``: Plot the created network.
 * ``-o=<file>``, ``--output=<file>``: Output the result to a specific file.
 
-``scaffold [-v=1] simulate <name> --hdf5=<file>``
-======================================================================
+simulate
+========
+
+``scaffold [-v=1] simulate <name> [-rc=<config>] --hdf5=<file>``
 
 Run a simulation from a compiled network architecture.
 
@@ -104,12 +110,23 @@ Run a simulation from a compiled network architecture.
 
 * ``name``: Name of the simulation.
 * ``--hdf5``: Path to the compiled network architecture.
+* ``-rc``, ``--reconfigure``: The path to a new configuration file for the HDF5
+  file.
+
+run
+===
 
 ``scaffold [-v=1 -c=mouse_cerebellum] run <name> [-p]``
-========================================================
 
 Run a simulation creating a new network architecture.
 
 .. include:: commands_defaults.txt
 
 * ``-p``: Plot the created network.
+
+plot
+====
+
+``scaffold plot <file>``
+
+Create a plot of the network in an HDF5 file.

@@ -42,11 +42,11 @@ def plot_network(scaffold, from_memory=True, show=True):
             return fig
     else:
         scaffold.reset_network_cache()
-        for cell_type in scaffold.configuration.cell_types.values():
+        for type in scaffold.configuration.cell_types.values():
             if type.entity:
                 continue
             # Load from HDF5
-            scaffold.get_cells_by_type(cell_type.name)
+            scaffold.get_cells_by_type(type.name)
         plot_network(scaffold, from_memory=True, show=show)
 
 
