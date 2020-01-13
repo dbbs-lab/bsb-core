@@ -1,7 +1,7 @@
 import unittest, os, sys, numpy as np, h5py
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from scaffold.scaffold import Scaffold
-from scaffold.config import JSONConfig, from_hdf5
+from scaffold.config import JSONConfig, _from_hdf5
 from scaffold.models import Layer, CellType
 
 
@@ -20,7 +20,7 @@ class TestEntities(unittest.TestCase):
         config = JSONConfig(file=minimal_config_entities)
         self.scaffold = Scaffold(config)
         self.scaffold.compile_network()
-        hdf_config = from_hdf5('minimal_entities.hdf5')
+        hdf_config = _from_hdf5('minimal_entities.hdf5')
         self.scaffold_fresh = Scaffold(hdf_config, from_file='minimal_entities.hdf5')
 
     def test_placement_statistics(self):

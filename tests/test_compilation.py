@@ -1,6 +1,6 @@
 import unittest, os, sys, numpy as np, h5py
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from scaffold.scaffold import Scaffold
+from scaffold.scaffold import Scaffold, from_hdf5
 from scaffold.config import JSONConfig
 from scaffold.models import Layer, CellType
 
@@ -35,6 +35,16 @@ class TestSingleTypeCompilation(unittest.TestCase):
     def test_hdf5_cells(self):
         pass
         # TODO: Implement a check that the hdf5 file contains the right datasets under 'cells'
+
+    def test_from_hdf5(self):
+        scaffold_copy = from_hdf5(self.scaffold.output_formatter.file)
+        for key in self.scaffold.statistics.cells_placed:
+            self.assertEqual(
+                scaffold_copy.statistics.cells_placed[key],
+                self.scaffold.statistics.cells_placed[key]
+            )
+        self.assertRaises(OSError, from_hdf5, "doesntexist")
+
 
 
 class TestPlacement(unittest.TestCase):

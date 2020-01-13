@@ -124,7 +124,7 @@ def start_cli():
     if hasattr(cl_args, 'func'):
         cl_args.func(cl_args)
     else:
-        from .config import JSONConfig, from_hdf5
+        from .config import JSONConfig, _from_hdf5
         from .scaffold import Scaffold
         from .output import MorphologyRepository, HDF5Formatter
         file = None
@@ -140,7 +140,7 @@ def start_cli():
                 print(cl_args.reconfigure)
                 config = JSONConfig(file=cl_args.reconfigure)
                 HDF5Formatter.reconfigure(file, config)
-            scaffoldConfig = from_hdf5(file, verbosity=cl_args.verbose)  # Extract the config stored in the hdf5 file.
+            scaffoldConfig = _from_hdf5(file, verbosity=cl_args.verbose)  # Extract the config stored in the hdf5 file.
 
         # Create the scaffold instance
         scaffoldInstance = Scaffold(scaffoldConfig, from_file=file)  # `from_file` notifies the scaffold instance that we might've loaded from a file.

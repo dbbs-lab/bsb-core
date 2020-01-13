@@ -19,7 +19,7 @@ from .simulators.nest import NestAdapter
 from .exceptions import DynamicClassException, ConfigurationException, ConfigurableClassNotFoundException
 import numpy as np
 
-def from_hdf5(file, verbosity=1):
+def _from_hdf5(file, verbosity=1):
     '''
         Restore a configuration object from an HDF5 file.
 

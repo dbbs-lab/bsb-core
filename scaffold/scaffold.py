@@ -22,6 +22,19 @@ class TreeCollectionGroup:
         self.__dict__[name] = TreeCollection(name, handler)
 
 
+def from_hdf5(file, verbosity=1):
+    """
+        Generate a :class:`Scaffold` from an HDF5 file.
+
+        :param file: Path to the HDF5 file.
+        :returns: A scaffold object
+        :rtype: :class:`Scaffold`
+    """
+    from .config import _from_hdf5
+    config = _from_hdf5(file, verbosity)
+    return Scaffold(config, from_file=file)
+
+
 class Scaffold:
     """
         This is the main object of the dbbs-scaffold package and bootstraps itself
@@ -148,7 +161,7 @@ class Scaffold:
 
             if output:
                 self.compile_output()
-                
+
             for type in self.configuration.cell_types.values():
                 if type.entity:
                     count = self.entities_by_type[type.name].shape[0]
