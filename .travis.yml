@@ -3,7 +3,8 @@ dist: bionic
 cache:
   pip: true
   directories:
-    - /home/travis/nest-$NEST_VERSION
+    - $HOME/nest-$NEST_VERSION
+    - $HOME/.cache/pre-commit
 jobs:
   include:
       python: 3.6
