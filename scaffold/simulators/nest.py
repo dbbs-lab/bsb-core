@@ -648,21 +648,31 @@ class NestAdapter(SimulatorAdapter):
                     }
                 }
             )
+            # Execute targetting mechanism to fetch target NEST ID's
             device_targets = device_model.get_targets()
             self.scaffold.report("Connecting to {} device targets.".format(len(device_targets)), 3)
-
-            try:
-                if device_model.io == "input":
-                    self.nest.Connect(device, device_targets, {'rule':'all_to_all'}, device_model.connection_parameters)
-                elif device_model.io == "output":
-                    self.nest.Connect(device_targets, device, {'rule':'all_to_all'}, device_model.connection_parameters)
-                else:
-                    pass                # Weight recorder device is not connected to any node; just linked to a connection
-            except Exception as e:
-                if e.errorname == 'IllegalConnection':
-                    raise Exception("IllegalConnection error for '{}'".format(device_model.get_config_node())) from None
-                else:
-                    raise
+            # Collect the NEST Connect parameters
+            connect_params = [{'rule':'all_to_all'}, device_model.connection_parameters]
+            if device_model.io == "input":
+                # Connect device to nodes
+                connect_params[0:0] = [device, device_targets]
+            elif device_model.io == "output":
+                # Connect nodes to device
+                connect_params[0:0] = [device_targets, device]
+            elif device_model.io == "none":
+                # Weight recorder device is not connected to any node; just linked to a connection
+                return
+            else:
+                raise ConfigurationException("Unknown device type '{}' for {}".format(
+                    device_model.io, device_model.name
+                ))
+            # Send the Connect command to NEST and catch IllegalConnection errors.
+            self.execute_command(self.nest.Connect, *connect_params, exceptions={
+                'IllegalConnection': {
+                    'from': None,
+                    'exception': catch_connection_error(device_model.get_config_node())
+                }
+            })
 
     def create_model(self, cell_model):
         '''
@@ -737,5 +747,11 @@ def catch_dict_error(message):
 def catch_receptor_error(message):
     def handler(e):
         return NestModelException(message + e.errormessage.split(":")[-1].strip())
+
+    return handler
+
+def catch_connection_error(source):
+    def handler(e):
+        return NestModelException("Illegal connections for '{}'".format(source) + ": " + e.errormessage)
 
     return handler
