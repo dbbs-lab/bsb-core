@@ -1,7 +1,12 @@
-import setuptools
+import setuptools, sys, os
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
+
+
+if sys.argv[1] == "develop":
+    os.system("pre-commit install")
+
 
 setuptools.setup(
      name='dbbs-scaffold',
@@ -36,6 +41,6 @@ setuptools.setup(
          'rtree>=0.9.3'
      ],
      extras_require= {
-        'dev': ['sphinx', 'pyarmor']
+        'dev': ['sphinx', 'pyarmor', 'pre-commit']
      }
  )

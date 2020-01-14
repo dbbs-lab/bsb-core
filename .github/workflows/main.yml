@@ -1,0 +1,15 @@
+name: Black
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: Black Check
+      uses: jpetrucciani/black-check@19.10b0
+      with:
+        path: 'scaffold'
