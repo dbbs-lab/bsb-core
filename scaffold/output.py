@@ -30,38 +30,38 @@ class ResourceHandler(ABC):
 
     @abstractmethod
     def get_handle(self, mode=None):
-        '''
+        """
             Open the output resource and return a handle.
-        '''
+        """
         pass
 
     @abstractmethod
     def release_handle(self, handle):
-        '''
+        """
             Close the open output resource and release the handle.
-        '''
+        """
         pass
 
 
 class HDF5ResourceHandler(ResourceHandler):
-    def get_handle(self, mode='a'):
-        '''
+    def get_handle(self, mode="a"):
+        """
             Open an HDF5 resource.
-        '''
+        """
         # Open a new handle to the resource.
         return h5py.File(self.file, mode)
 
     def release_handle(self, handle):
-        '''
+        """
             Close the MorphologyRepository storage resource.
-        '''
+        """
         return handle.close()
 
 
 class TreeHandler(ResourceHandler):
-    '''
+    """
         Interface that allows a ResourceHandler to handle storage of TreeCollections.
-    '''
+    """
 
     @abstractmethod
     def load_tree(collection_name, tree_name):
@@ -77,15 +77,16 @@ class TreeHandler(ResourceHandler):
 
 
 class HDF5TreeHandler(HDF5ResourceHandler, TreeHandler):
-    '''
+    """
         TreeHandler that uses HDF5 as resource storage
-    '''
+    """
+
     def store_tree_collections(self, tree_collections):
         with self.load() as f:
-            if 'trees' not in f:
-                tree_group = f.create_group('trees')
+            if "trees" not in f:
+                tree_group = f.create_group("trees")
             else:
-                tree_group = f['trees']
+                tree_group = f["trees"]
             for tree_collection in tree_collections:
                 if tree_collection.name not in tree_group:
                     tree_collection_group = tree_group.create_group(tree_collection.name)
@@ -94,25 +95,32 @@ class HDF5TreeHandler(HDF5ResourceHandler, TreeHandler):
                 for tree_name, tree in tree_collection.items():
                     if tree_name in tree_collection_group:
                         del tree_collection_group[tree_name]
-                    tree_dataset = tree_collection_group.create_dataset(tree_name, data=string_(pickle.dumps(tree)))
+                    tree_dataset = tree_collection_group.create_dataset(
+                        tree_name, data=string_(pickle.dumps(tree))
+                    )
 
     def load_tree(self, collection_name, tree_name):
         with self.load() as f:
             try:
-                return pickle.loads(f['/trees/{}/{}'.format(collection_name, tree_name)][()])
+                return pickle.loads(
+                    f["/trees/{}/{}".format(collection_name, tree_name)][()]
+                )
             except KeyError as e:
-                raise Exception("Tree not found in HDF5 file '{}', path does not exist: '{}'".format(f.file))
+                raise Exception(
+                    "Tree not found in HDF5 file '{}', path does not exist: '{}'".format(
+                        f.file
+                    )
+                )
 
     def list_trees(self, collection_name):
         with self.load() as f:
             try:
-                return list(f['trees'][collection_name].keys())
+                return list(f["trees"][collection_name].keys())
             except KeyError as e:
                 return Exception("Tree collection '{}' not found".format(collection_name))
 
 
 class OutputFormatter(ConfigurableClass, TreeHandler):
-
     def __init__(self):
         ConfigurableClass.__init__(self)
         TreeHandler.__init__(self)
@@ -124,49 +132,49 @@ class OutputFormatter(ConfigurableClass, TreeHandler):
 
     @abstractmethod
     def exists(self):
-        '''
+        """
             Check if the output file exists.
-        '''
+        """
         pass
 
     @abstractmethod
     def init_scaffold(self):
-        '''
+        """
             Initialize the scaffold when it has been loaded from an output file.
-        '''
+        """
         pass
 
     @abstractmethod
     def get_simulator_output_path(self, simulator_name):
-        '''
+        """
             Return the path where a simulator can dump preliminary output.
-        '''
+        """
         pass
 
     @abstractmethod
     def has_cells_of_type(self, name):
-        '''
+        """
             Check whether the position matrix for a certain cell type is present.
-        '''
+        """
         pass
 
     @abstractmethod
     def get_cells_of_type(self, name):
-        '''
+        """
             Return the position matrix for a specific cell type.
-        '''
+        """
         pass
 
     @abstractmethod
     def exists(self):
-        '''
+        """
             Check if the resource exists.
-        '''
+        """
         pass
 
     @abstractmethod
     def get_connectivity_set(self, tag):
-        '''
+        """
             Return a connectivity set.
 
             :param tag: Key of the connectivity set in the `connections` group.
@@ -174,31 +182,29 @@ class OutputFormatter(ConfigurableClass, TreeHandler):
             :return: The connectivity set.
             :rtype: :class:`ConnectivitySet`
             :raises: DatasetNotFoundException
-        '''
+        """
         pass
 
     @abstractmethod
     def get_connectivity_set_connection_types(self, tag):
-        '''
+        """
             Return the connection types that contributed to this connectivity set.
-        '''
+        """
         pass
 
     @abstractmethod
     def get_connectivity_set_meta(self, tag):
-        '''
+        """
             Return the meta dictionary of this connectivity set.
-        '''
+        """
         pass
 
 
 class MorphologyRepository(HDF5TreeHandler):
 
-    defaults = {
-        'file': 'morphology_repository.hdf5'
-    }
+    defaults = {"file": "morphology_repository.hdf5"}
 
-    protected_keys = ['voxel_clouds']
+    protected_keys = ["voxel_clouds"]
 
     def __init__(self, file=None):
         super().__init__()
@@ -206,10 +212,10 @@ class MorphologyRepository(HDF5TreeHandler):
             self.file = file
 
     # Abstract function from ResourceHandler
-    def get_handle(self, mode='a'):
-        '''
+    def get_handle(self, mode="a"):
+        """
             Open the HDF5 storage resource and initialise the MorphologyRepository structure.
-        '''
+        """
         # Open a new handle to the HDF5 resource.
         handle = HDF5TreeHandler.get_handle(self, mode)
         # Repository structure missing from resource? Create it.
@@ -218,22 +224,22 @@ class MorphologyRepository(HDF5TreeHandler):
         return handle
 
     def initialise_repo_structure(self, handle):
-        if 'morphologies' not in handle:
-            handle.create_group('morphologies')
-        if 'morphologies/voxel_clouds' not in handle:
-            handle.create_group('morphologies/voxel_clouds')
+        if "morphologies" not in handle:
+            handle.create_group("morphologies")
+        if "morphologies/voxel_clouds" not in handle:
+            handle.create_group("morphologies/voxel_clouds")
 
     def import_swc(self, file, name, tags=[], overwrite=False):
-        '''
+        """
             Import and store .swc file contents as a morphology in the repository.
-        '''
+        """
         # Read as CSV
         swc_data = np.loadtxt(file)
         # Create empty dataset
         dataset_length = len(swc_data)
         dataset_data = np.empty((dataset_length, 10))
         # Map parent id's to start coordinates. Root node (id: -1) is at 0., 0., 0.
-        starts = {-1: [0., 0., 0.]}
+        starts = {-1: [0.0, 0.0, 0.0]}
         id_map = {-1: -1}
         next_id = 1
         # Get translation for a new space with compartment 0 as origin.
@@ -252,7 +258,11 @@ class MorphologyRepository(HDF5TreeHandler):
             compartment_type = compartment[1]
             # Check if parent id is known
             if not compartment[6] in id_map:
-                raise Exception("Node {} references a parent node {} that isn't known yet".format(compartment_old_id, compartment[6]))
+                raise Exception(
+                    "Node {} references a parent node {} that isn't known yet".format(
+                        compartment_old_id, compartment[6]
+                    )
+                )
             # Map the old parent ID to the new parent ID
             compartment_parent = id_map[compartment[6]]
             # Use parent endpoint as startpoint, get endpoint and store it as a startpoint for child compartments
@@ -269,38 +279,47 @@ class MorphologyRepository(HDF5TreeHandler):
                 *compartment_start,
                 *compartment_end,
                 compartment_radius,
-                compartment_parent
+                compartment_parent,
             ]
         # Save the dataset in the repository
         with self.load() as repo:
             if overwrite:  # Do we overwrite previously existing dataset with same name?
-                self.remove_morphology(name)  # Delete anything that might be under this name.
+                self.remove_morphology(
+                    name
+                )  # Delete anything that might be under this name.
             elif self.morphology_exists(name):
-                raise Exception("A morphology called '{}' already exists in this repository.")
+                raise Exception(
+                    "A morphology called '{}' already exists in this repository."
+                )
             # Create the dataset
-            dset = repo['morphologies'].create_dataset(name, data=dataset_data)
+            dset = repo["morphologies"].create_dataset(name, data=dataset_data)
             # Set attributes
-            dset.attrs['name'] = name
-            dset.attrs['search_radii'] = np.max(np.abs(dataset_data[:, 2:5]), axis=0)
-            dset.attrs['type'] = 'swc'
+            dset.attrs["name"] = name
+            dset.attrs["search_radii"] = np.max(np.abs(dataset_data[:, 2:5]), axis=0)
+            dset.attrs["type"] = "swc"
 
     def import_repository(self, repository, overwrite=False):
         with repository.load() as external_handle:
             with self.load() as internal_handle:
-                m_group = internal_handle['morphologies']
-                for m_key in external_handle['morphologies'].keys():
+                m_group = internal_handle["morphologies"]
+                for m_key in external_handle["morphologies"].keys():
                     if m_key not in self.protected_keys:
                         if overwrite or m_key not in m_group:
                             if m_key in m_group:
                                 del m_group[m_key]
-                            external_handle.copy('/morphologies/' + m_key, m_group)
+                            external_handle.copy("/morphologies/" + m_key, m_group)
                         else:
-                            self.scaffold.warn("Did not import '{}' because it already existed and overwrite=False".format(m_key), RepositoryWarning)
+                            self.scaffold.warn(
+                                "Did not import '{}' because it already existed and overwrite=False".format(
+                                    m_key
+                                ),
+                                RepositoryWarning,
+                            )
 
     def get_morphology(self, name, scaffold=None):
-        '''
+        """
             Load a morphology from repository data
-        '''
+        """
         # Open repository and close afterwards
         with self.load() as repo:
             # Check if morphology exists
@@ -313,92 +332,107 @@ class MorphologyRepository(HDF5TreeHandler):
             voxel_kwargs = {}
             if self.voxel_cloud_exists(name):
                 voxels = self.raw_voxel_cloud(name)
-                voxel_kwargs['voxel_data'] = voxels['positions'][()]
-                voxel_kwargs['voxel_meta'] = dict(voxels.attrs)
-                voxel_kwargs['voxel_map'] = pickle.loads(voxels['map'][()])
-            return Morphology.from_repo_data(repo_data, repo_meta, scaffold=scaffold, **voxel_kwargs)
+                voxel_kwargs["voxel_data"] = voxels["positions"][()]
+                voxel_kwargs["voxel_meta"] = dict(voxels.attrs)
+                voxel_kwargs["voxel_map"] = pickle.loads(voxels["map"][()])
+            return Morphology.from_repo_data(
+                repo_data, repo_meta, scaffold=scaffold, **voxel_kwargs
+            )
 
     def store_voxel_cloud(self, morphology, overwrite=False):
-        with self.load('a') as repo:
+        with self.load("a") as repo:
             if self.voxel_cloud_exists(morphology.morphology_name):
                 if not overwrite:
-                    self.scaffold.warn("Did not overwrite existing voxel cloud for '{}'".format(morphology.morphology_name), RepositoryWarning)
+                    self.scaffold.warn(
+                        "Did not overwrite existing voxel cloud for '{}'".format(
+                            morphology.morphology_name
+                        ),
+                        RepositoryWarning,
+                    )
                     return
                 else:
-                    del repo['/morphologies/voxel_clouds/' + morphology.morphology_name]
-            voxel_cloud_group = repo['/morphologies/voxel_clouds/'].create_group(morphology.morphology_name)
-            voxel_cloud_group.attrs['name'] = morphology.morphology_name
-            voxel_cloud_group.attrs['bounds'] = morphology.cloud.bounds
-            voxel_cloud_group.attrs['grid_size'] = morphology.cloud.grid_size
-            voxel_cloud_group.create_dataset('positions', data=morphology.cloud.voxels)
-            voxel_cloud_group.create_dataset('map', data=string_(pickle.dumps(morphology.cloud.map)))
+                    del repo["/morphologies/voxel_clouds/" + morphology.morphology_name]
+            voxel_cloud_group = repo["/morphologies/voxel_clouds/"].create_group(
+                morphology.morphology_name
+            )
+            voxel_cloud_group.attrs["name"] = morphology.morphology_name
+            voxel_cloud_group.attrs["bounds"] = morphology.cloud.bounds
+            voxel_cloud_group.attrs["grid_size"] = morphology.cloud.grid_size
+            voxel_cloud_group.create_dataset("positions", data=morphology.cloud.voxels)
+            voxel_cloud_group.create_dataset(
+                "map", data=string_(pickle.dumps(morphology.cloud.map))
+            )
 
     def morphology_exists(self, name):
         with self.load() as repo:
-            return name in self.handle['morphologies']
+            return name in self.handle["morphologies"]
 
     def voxel_cloud_exists(self, name):
         with self.load() as repo:
-            return name in self.handle['morphologies/voxel_clouds']
+            return name in self.handle["morphologies/voxel_clouds"]
 
     def remove_morphology(self, name):
         with self.load() as repo:
             if self.morphology_exists(name):
-                del self.handle['morphologies/' + name]
+                del self.handle["morphologies/" + name]
 
     def remove_voxel_cloud(self, name):
         with self.load() as repo:
             if self.voxel_cloud_exists(name):
-                del self.handle['morphologies/voxel_clouds/' + name]
+                del self.handle["morphologies/voxel_clouds/" + name]
 
     def list_all_morphologies(self):
         with self.load() as repo:
-            return list(filter(lambda x: x != 'voxel_clouds', repo['morphologies'].keys()))
+            return list(
+                filter(lambda x: x != "voxel_clouds", repo["morphologies"].keys())
+            )
 
     def list_all_voxelized(self):
         with self.load() as repo:
-            all = list(repo['morphologies'].keys())
-            voxelized = list(filter(lambda x: x in repo['/morphologies/voxel_clouds'], all))
+            all = list(repo["morphologies"].keys())
+            voxelized = list(
+                filter(lambda x: x in repo["/morphologies/voxel_clouds"], all)
+            )
             return voxelized
 
     def raw_morphology(self, name):
-        '''
+        """
             Return the morphology dataset
-        '''
+        """
         with self.load() as repo:
-            return repo['morphologies/' + name]
+            return repo["morphologies/" + name]
 
     def raw_voxel_cloud(self, name):
-        '''
+        """
             Return the morphology dataset
-        '''
+        """
         with self.load() as repo:
-            return repo['morphologies/voxel_clouds/' + name]
+            return repo["morphologies/voxel_clouds/" + name]
 
 
 class HDF5Formatter(OutputFormatter, MorphologyRepository):
-    '''
+    """
         Stores the output of the scaffold as a single HDF5 file. Is also a MorphologyRepository
         and an HDF5TreeHandler.
-    '''
+    """
 
     defaults = {
-        'file': 'scaffold_network_{}.hdf5'.format(time.strftime("%Y_%m_%d-%H%M%S")),
-        'simulator_output_path': False,
-        'morphology_repository': None
+        "file": "scaffold_network_{}.hdf5".format(time.strftime("%Y_%m_%d-%H%M%S")),
+        "simulator_output_path": False,
+        "morphology_repository": None,
     }
 
     def create_output(self):
         was_compiled = self.exists()
         if was_compiled:
-            with h5py.File('__backup__.hdf5', 'w') as backup:
+            with h5py.File("__backup__.hdf5", "w") as backup:
                 with self.load() as repo:
-                    repo.copy('/morphologies', backup)
+                    repo.copy("/morphologies", backup)
 
         if self.save_file_as:
             self.file = self.save_file_as
 
-        with self.load('w') as output:
+        with self.load("w") as output:
             self.store_configuration()
             self.store_cells()
             self.store_entities()
@@ -408,16 +442,18 @@ class HDF5Formatter(OutputFormatter, MorphologyRepository):
             self.store_morphology_repository(was_compiled)
 
         if was_compiled:
-            os.remove('__backup__.hdf5')
+            os.remove("__backup__.hdf5")
 
     def exists(self):
         return os.path.exists(self.file)
 
     def init_scaffold(self):
         with self.load() as resource:
-            self.scaffold.configuration.cell_type_map = resource['cells'].attrs['types']
-            self.scaffold.placement_stitching = resource['cells/stitching'][:]
-            for cell_type_name, count in resource['statistics/cells_placed'].attrs.items():
+            self.scaffold.configuration.cell_type_map = resource["cells"].attrs["types"]
+            self.scaffold.placement_stitching = resource["cells/stitching"][:]
+            for cell_type_name, count in resource[
+                "statistics/cells_placed"
+            ].attrs.items():
                 self.scaffold.statistics.cells_placed[cell_type_name] = count
 
     def validate(self):
@@ -426,57 +462,81 @@ class HDF5Formatter(OutputFormatter, MorphologyRepository):
     def store_configuration(self, config=None):
         config = config if config is not None else self.scaffold.configuration
         with self.load() as f:
-            f.attrs['shdf_version'] = 3.0
-            f.attrs['configuration_version'] = 3.0
-            f.attrs['configuration_name'] = config._name
-            f.attrs['configuration_type'] = config._type
-            f.attrs['configuration_class'] = get_qualified_class_name(config)
-            f.attrs['configuration_string'] = config._raw
+            f.attrs["shdf_version"] = 3.0
+            f.attrs["configuration_version"] = 3.0
+            f.attrs["configuration_name"] = config._name
+            f.attrs["configuration_type"] = config._type
+            f.attrs["configuration_class"] = get_qualified_class_name(config)
+            f.attrs["configuration_string"] = config._raw
 
     def store_cells(self):
-        cells_group = self.handle.create_group('cells')
-        cells_group.create_dataset('stitching', data=self.scaffold.placement_stitching)
+        cells_group = self.handle.create_group("cells")
+        cells_group.create_dataset("stitching", data=self.scaffold.placement_stitching)
         self.store_cell_positions(cells_group)
         self.store_cell_connections(cells_group)
 
     def store_entities(self):
-        cells_group = self.handle.create_group('entities')
+        cells_group = self.handle.create_group("entities")
         for key, data in self.scaffold.entities_by_type.items():
             cells_group.create_dataset(key, data=data)
 
     def store_cell_positions(self, cells_group):
-        position_dataset = cells_group.create_dataset('positions', data=self.scaffold.cells)
+        position_dataset = cells_group.create_dataset(
+            "positions", data=self.scaffold.cells
+        )
         cell_type_names = self.scaffold.configuration.cell_type_map
-        cells_group.attrs['types'] = cell_type_names
-        type_maps_group = cells_group.create_group('type_maps')
+        cells_group.attrs["types"] = cell_type_names
+        type_maps_group = cells_group.create_group("type_maps")
         for type in self.scaffold.configuration.cell_types.keys():
-            type_maps_group.create_dataset(type + '_map', data=np.where(self.scaffold.cells[:, 1] == cell_type_names.index(type))[0])
+            type_maps_group.create_dataset(
+                type + "_map",
+                data=np.where(self.scaffold.cells[:, 1] == cell_type_names.index(type))[
+                    0
+                ],
+            )
 
     def store_cell_connections(self, cells_group):
-        connections_group = cells_group.create_group('connections')
-        compartments_group = cells_group.create_group('connection_compartments')
-        morphologies_group = cells_group.create_group('connection_morphologies')
+        connections_group = cells_group.create_group("connections")
+        compartments_group = cells_group.create_group("connection_compartments")
+        morphologies_group = cells_group.create_group("connection_morphologies")
         for tag, connectome_data in self.scaffold.cell_connections_by_tag.items():
-            related_types = list(filter(lambda x: tag in x.tags, self.scaffold.configuration.connection_types.values()))
-            connection_dataset = connections_group.create_dataset(tag, data=connectome_data)
-            connection_dataset.attrs['tag'] = tag
-            connection_dataset.attrs['connection_types'] = list(map(lambda x: x.name, related_types))
-            connection_dataset.attrs['connection_type_classes'] = list(map(get_qualified_class_name, related_types))
+            related_types = list(
+                filter(
+                    lambda x: tag in x.tags,
+                    self.scaffold.configuration.connection_types.values(),
+                )
+            )
+            connection_dataset = connections_group.create_dataset(
+                tag, data=connectome_data
+            )
+            connection_dataset.attrs["tag"] = tag
+            connection_dataset.attrs["connection_types"] = list(
+                map(lambda x: x.name, related_types)
+            )
+            connection_dataset.attrs["connection_type_classes"] = list(
+                map(get_qualified_class_name, related_types)
+            )
             if tag in self.scaffold._connectivity_set_meta:
                 meta_dict = self.scaffold._connectivity_set_meta[tag]
                 for key in meta_dict:
                     connection_dataset.attrs[key] = meta_dict[key]
             if tag in self.scaffold.connection_compartments:
-                compartments_group.create_dataset(tag, data=self.scaffold.connection_compartments[tag], dtype=int)
-                morphology_dataset = morphologies_group.create_dataset(tag, data=self.scaffold.connection_morphologies[tag], dtype=int)
-                morphology_dataset.attrs['map'] = self.scaffold.connection_morphologies[tag + '_map']
+                compartments_group.create_dataset(
+                    tag, data=self.scaffold.connection_compartments[tag], dtype=int
+                )
+                morphology_dataset = morphologies_group.create_dataset(
+                    tag, data=self.scaffold.connection_morphologies[tag], dtype=int
+                )
+                morphology_dataset.attrs["map"] = self.scaffold.connection_morphologies[
+                    tag + "_map"
+                ]
 
     def store_statistics(self):
-        statistics = self.handle.create_group('statistics')
+        statistics = self.handle.create_group("statistics")
         self.store_placement_statistics(statistics)
 
     def store_placement_statistics(self, statistics_group):
-        storage_group = statistics_group.create_group('cells_placed')
+        storage_group = statistics_group.create_group("cells_placed")
         for key, value in self.scaffold.statistics.cells_placed.items():
             storage_group.attrs[key] = value
 
@@ -489,10 +549,10 @@ class HDF5Formatter(OutputFormatter, MorphologyRepository):
         with self.load() as resource:
             if was_compiled:  # File already existed?
                 # Copy from the backup of previous version
-                with h5py.File('__backup__.hdf5', 'r') as backup:
-                    if 'morphologies' in resource:
-                        del resource['/morphologies']
-                    backup.copy('/morphologies', resource)
+                with h5py.File("__backup__.hdf5", "r") as backup:
+                    if "morphologies" in resource:
+                        del resource["/morphologies"]
+                    backup.copy("/morphologies", resource)
             else:  # Fresh compilation
                 self.initialise_repo_structure(resource)
                 if self.morphology_repository is not None:  # Repo specified
@@ -504,44 +564,50 @@ class HDF5Formatter(OutputFormatter, MorphologyRepository):
     def has_cells_of_type(self, name, entity=False):
         if entity:
             with self.load() as resource:
-                return name in list(resource['/entities'])
+                return name in list(resource["/entities"])
         else:
             with self.load() as resource:
-                return name in list(resource['/cells'].attrs['types'])
+                return name in list(resource["/cells"].attrs["types"])
 
     def get_cells_of_type(self, name, entity=False):
         # Check if cell type is present
         if not self.has_cells_of_type(name, entity=entity):
-            raise Exception("Attempting to load {} type '{}' that isn't defined in the storage.".format("cell" if not entity else "entity", name))
+            raise Exception(
+                "Attempting to load {} type '{}' that isn't defined in the storage.".format(
+                    "cell" if not entity else "entity", name
+                )
+            )
         if entity:
             with self.load() as resource:
-                return resource['/entities/' + name][()]
+                return resource["/entities/" + name][()]
         # Slice out the cells of this type based on the map in the position dataset attributes.
         with self.load() as resource:
             type_map = self.get_type_map(name)
-            return resource['/cells/positions'][()][type_map]
+            return resource["/cells/positions"][()][type_map]
 
     def get_type_map(self, type):
         with self.load() as resource:
-            return self.handle['/cells/type_maps/{}_map'.format(type)][()]
+            return self.handle["/cells/type_maps/{}_map".format(type)][()]
 
     def get_connectivity_set_connection_types(self, tag):
-        '''
+        """
             Return all the ConnectionStrategies that contributed to the creation of this
             connectivity set.
-        '''
+        """
         with self.load() as f:
             # Get list of contributing types
-            type_list = f['cells/connections/' + tag].attrs['connection_types']
+            type_list = f["cells/connections/" + tag].attrs["connection_types"]
             # Map contributing type names to contributing types
-            return list(map(lambda name: self.scaffold.get_connection_type(name), type_list))
+            return list(
+                map(lambda name: self.scaffold.get_connection_type(name), type_list)
+            )
 
     def get_connectivity_set_meta(self, tag):
-        '''
+        """
             Return the metadata associated with this connectivity set.
-        '''
+        """
         with self.load() as f:
-            return dict(f['cells/connections/' + tag].attrs)
+            return dict(f["cells/connections/" + tag].attrs)
 
     def get_connectivity_set(self, tag):
         return ConnectivitySet(self, tag)

@@ -1,22 +1,22 @@
 from sklearn.neighbors import KDTree
 import re, abc, numpy as np
 
-TREE_NAME_REGEX = re.compile(r'^[^\:\+\(\)]+$')
+TREE_NAME_REGEX = re.compile(r"^[^\:\+\(\)]+$")
 
 
 def is_valid_tree_name(name):
-    '''
+    """
         Validate whether a given string is fit to be the name of a tree in a TreeCollection.
         Must not contain any plus signs, parentheses or colons.
-    '''
+    """
     # re.match() returns a MatchObject with a boolean value of True, or None
     return not not TREE_NAME_REGEX.match(name)
 
 
 class TreeCollection:
-    '''
+    """
         Keeps track of a collection of KDTrees in cooperation with a TreeHandler.
-    '''
+    """
 
     def __init__(self, name, handler):
         self.handler = handler
@@ -61,10 +61,10 @@ class TreeCollection:
             self.load_tree(name)
         return self.trees[name]
 
-    def get_planar_tree(self, name, plane='xyz'):
-        if plane == 'xyz':
+    def get_planar_tree(self, name, plane="xyz"):
+        if plane == "xyz":
             return self.get_tree(name)
-        planar_name = '{}:{}'.format(plane, name)
+        planar_name = "{}:{}".format(plane, name)
         if planar_name not in self.trees:
             self.load_tree(planar_name)
         if self.trees[planar_name] is None:
@@ -74,7 +74,7 @@ class TreeCollection:
     def get_sub_tree(self, name, subset=None, filter=None, factory=None):
         if subset is None:
             return self.get_tree(name)
-        subtree_name = '{}({})'.format(name, subset)
+        subtree_name = "{}({})".format(name, subset)
         if subtree_name not in self.trees:
             self.load_tree(subtree_name)
         if self.trees[subtree_name] is None:
@@ -88,7 +88,7 @@ class TreeCollection:
         dimensions = ["x", "y", "z"]
         selected_dimensions = [e in plane for e in dimensions]
         planar_tree = KDTree(np.array(full_tree.get_arrays()[0])[:, selected_dimensions])
-        self.trees['{}:{}'.format(plane, name)] = planar_tree
+        self.trees["{}:{}".format(plane, name)] = planar_tree
         self.save()
         return planar_tree
 
@@ -98,13 +98,16 @@ class TreeCollection:
         else:
             full_tree = self.get_tree(name)
             if full_tree is None:
-                raise Exception("Cannot make sub tree from unknown tree '{}'".format(name))
+                raise Exception(
+                    "Cannot make sub tree from unknown tree '{}'".format(name)
+                )
 
             def closure(node):
                 return set_filter(subset, node)
+
             data = np.array(list(filter(closure, full_tree.get_arrays()[0])))
         sub_tree = KDTree(data)
-        self.trees['{}({})'.format(name, subset)] = sub_tree
+        self.trees["{}({})".format(name, subset)] = sub_tree
         self.save()
         return sub_tree
 

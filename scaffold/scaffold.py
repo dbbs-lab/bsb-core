@@ -44,8 +44,8 @@ class Scaffold:
         self.statistics = Statistics(self)
         self._initialise_output_formatter()
         self.trees = TreeCollectionGroup()
-        self.trees.add_collection('cells', self.output_formatter)
-        self.trees.add_collection('morphologies', self.output_formatter)
+        self.trees.add_collection("cells", self.output_formatter)
+        self.trees.add_collection("morphologies", self.output_formatter)
         self._nextId = 0
         # Use the configuration to initialise all components such as cells and layers
         # to prepare for the network architecture compilation.
@@ -117,16 +117,25 @@ class Scaffold:
             cell_type.placement.place(cell_type)
             if cell_type.entity:
                 entities = self.entities_by_type[cell_type.name]
-                self.report("Finished placing {} {} entities.".format(len(entities), cell_type.name), 2)
+                self.report(
+                    "Finished placing {} {} entities.".format(
+                        len(entities), cell_type.name
+                    ),
+                    2,
+                )
             else:
                 # Get the placed cells
                 cells = self.cells_by_type[cell_type.name][:, 2:5]
                 # Construct a tree of the placed cells
                 self.trees.cells.create_tree(cell_type.name, cells)
-                self.report("Finished placing {} {} cells.".format(len(cells), cell_type.name), 2)
+                self.report(
+                    "Finished placing {} {} cells.".format(len(cells), cell_type.name), 2
+                )
 
     def connect_cell_types(self):
-        sorted_connection_types = ConnectionStrategy.resolve_order(self.configuration.connection_types)
+        sorted_connection_types = ConnectionStrategy.resolve_order(
+            self.configuration.connection_types
+        )
         for connection_type in sorted_connection_types:
             connection_type.connect()
             # Iterates for each tag of the connection_type
@@ -134,8 +143,12 @@ class Scaffold:
                 conn_num = np.shape(connection_type.get_connection_matrices()[tag])[0]
                 source_name = connection_type.from_cell_types[0].name
                 target_name = connection_type.to_cell_types[0].name
-                self.report("Finished connecting {} with {} (tag: {} - total connections: {})."
-                            .format(source_name, target_name, connection_type.tags[tag], conn_num), 2)
+                self.report(
+                    "Finished connecting {} with {} (tag: {} - total connections: {}).".format(
+                        source_name, target_name, connection_type.tags[tag], conn_num
+                    ),
+                    2,
+                )
 
     def compile_network(self, tries=1, output=True):
         times = np.zeros(tries)
@@ -148,7 +161,7 @@ class Scaffold:
 
             if output:
                 self.compile_output()
-                
+
             for type in self.configuration.cell_types.values():
                 if type.entity:
                     count = self.entities_by_type[type.name].shape[0]
@@ -159,11 +172,18 @@ class Scaffold:
                     self.report("0 {} placed (0%)".format(type.name), 1)
                     continue
                 volume = self.configuration.layers[type.placement.layer].volume
-                density_gotten = '%.4g' % (count / volume)
-                density_wanted = '%.4g' % (type.placement.get_placement_count(type) / volume)
+                density_gotten = "%.4g" % (count / volume)
+                density_wanted = "%.4g" % (
+                    type.placement.get_placement_count(type) / volume
+                )
                 percent = int((count / type.placement.get_placement_count(type)) * 100)
-                self.report('{} {} placed ({}%). Desired density: {}. Actual density: {}'.format(count, type.name, percent, density_wanted, density_gotten), 2)
-            self.report('Average runtime: {}'.format(np.average(times)), 2)
+                self.report(
+                    "{} {} placed ({}%). Desired density: {}. Actual density: {}".format(
+                        count, type.name, percent, density_wanted, density_gotten
+                    ),
+                    2,
+                )
+            self.report("Average runtime: {}".format(np.average(times)), 2)
 
     def _initialise_output_formatter(self):
         self.output_formatter = self.configuration.output_formatter
@@ -172,26 +192,45 @@ class Scaffold:
         self.morphology_repository = self.output_formatter
         self.tree_handler = self.output_formatter
         # Load an actual morphology repository if it is provided
-        if not self.is_compiled() and self.output_formatter.morphology_repository is not None:
+        if (
+            not self.is_compiled()
+            and self.output_formatter.morphology_repository is not None
+        ):
             # We are in a precompilation state and the configuration specifies us to use a morpho repo.
-            self.morphology_repository = MorphologyRepository(self.output_formatter.morphology_repository)
+            self.morphology_repository = MorphologyRepository(
+                self.output_formatter.morphology_repository
+            )
 
     def plot_network_cache(self):
         plot_network(self, from_memory=True)
 
     def reset_network_cache(self):
         # Cell positions dictionary per cell type. Columns: X, Y, Z.
-        cell_types = list(filter(lambda c: not hasattr(c, "entity") or not c.entity, self.configuration.cell_types.values()))
-        entities = list(filter(lambda c: hasattr(c, "entity") and c.entity, self.configuration.cell_types.values()))
+        cell_types = list(
+            filter(
+                lambda c: not hasattr(c, "entity") or not c.entity,
+                self.configuration.cell_types.values(),
+            )
+        )
+        entities = list(
+            filter(
+                lambda c: hasattr(c, "entity") and c.entity,
+                self.configuration.cell_types.values(),
+            )
+        )
         self.cells_by_type = {c.name: np.empty((0, 5)) for c in cell_types}
         # Entity IDs per cell type.
         self.entities_by_type = {e.name: np.empty((0)) for e in entities}
         # Cell positions dictionary per layer. Columns: Type, X, Y, Z.
-        self.cells_by_layer = {key: np.empty((0, 5)) for key in self.configuration.layers.keys()}
+        self.cells_by_layer = {
+            key: np.empty((0, 5)) for key in self.configuration.layers.keys()
+        }
         # Cells collection. Columns: Cell ID, Type, X, Y, Z.
         self.cells = np.empty((0, 5))
         # Cell connections per connection type. Columns: From ID, To ID.
-        self.cell_connections_by_tag = {key: np.empty((0, 2)) for key in self.configuration.connection_types.keys()}
+        self.cell_connections_by_tag = {
+            key: np.empty((0, 2)) for key in self.configuration.connection_types.keys()
+        }
         self.connection_morphologies = {}
         self.connection_compartments = {}
         self.appends = {}
@@ -205,10 +244,11 @@ class Scaffold:
 
     def get_simulation(self, simulation_name):
         if simulation_name not in self.configuration.simulations:
-            raise Exception("Unknown simulation '{}', choose from: {}".format(
-                simulation_name,
-                ", ".join(self.configuration.simulations.keys())
-            ))
+            raise Exception(
+                "Unknown simulation '{}', choose from: {}".format(
+                    simulation_name, ", ".join(self.configuration.simulations.keys())
+                )
+            )
         simulation = self.configuration.simulations[simulation_name]
         return simulation
 
@@ -225,33 +265,26 @@ class Scaffold:
         # Create an ID for each cell.
         cell_ids = self._allocate_ids(positions.shape[0])
         # Store cells as ID, typeID, X, Y, Z
-        cell_data = np.column_stack((
-            cell_ids,
-            np.ones(positions.shape[0]) * cell_type.id,
-            positions
-        ))
+        cell_data = np.column_stack(
+            (cell_ids, np.ones(positions.shape[0]) * cell_type.id, positions)
+        )
         # Cache them per type
-        self.cells_by_type[cell_type.name] = np.concatenate((
-            self.cells_by_type[cell_type.name],
-            cell_data
-        ))
+        self.cells_by_type[cell_type.name] = np.concatenate(
+            (self.cells_by_type[cell_type.name], cell_data)
+        )
         # Cache them per layer
-        self.cells_by_layer[layer.name] = np.concatenate((
-            self.cells_by_layer[layer.name],
-            cell_data
-        ))
+        self.cells_by_layer[layer.name] = np.concatenate(
+            (self.cells_by_layer[layer.name], cell_data)
+        )
         # Store
-        self.cells = np.concatenate((
-            self.cells,
-            cell_data
-        ))
+        self.cells = np.concatenate((self.cells, cell_data))
 
         placement_dict = self.statistics.cells_placed
         if cell_type.name not in placement_dict:
             placement_dict[cell_type.name] = 0
         placement_dict[cell_type.name] += cell_count
-        if not hasattr(cell_type.placement, 'cells_placed'):
-            cell_type.placement.__dict__['cells_placed'] = 0
+        if not hasattr(cell_type.placement, "cells_placed"):
+            cell_type.placement.__dict__["cells_placed"] = 0
         cell_type.placement.cells_placed += cell_count
         # Keep track of the order of placement, so that it can be emulated in simulators
         self.placement_stitching.append((cell_type.id, cell_ids[0], cell_count))
@@ -262,8 +295,16 @@ class Scaffold:
         self._nextId += count
         return IDs
 
-    def connect_cells(self, connection_type, connectome_data, tag=None, morphologies=None, compartments=None, meta=None):
-        '''
+    def connect_cells(
+        self,
+        connection_type,
+        connectome_data,
+        tag=None,
+        morphologies=None,
+        compartments=None,
+        meta=None,
+    ):
+        """
             Store connections for a connection type. Will store the
             ``connectome_data`` under ``scaffold.cell_connections_by_tag``, a
             mapped version of the morphology names under
@@ -282,18 +323,22 @@ class Scaffold:
             :type compartments: :class:`numpy.ndarray`
             :param meta: Additional metadata to be stored on the connectivity set.
             :type meta: dict
-        '''
+        """
         # Allow 1 connection type to store multiple connectivity datasets by utilizing tags
         tag = tag or connection_type.name
         # Keep track of relevant tags in the connection_type object
         if tag not in connection_type.tags:
             connection_type.tags.append(tag)
-        self._append_tagged('cell_connections_by_tag', tag, connectome_data)
+        self._append_tagged("cell_connections_by_tag", tag, connectome_data)
         if compartments is not None or morphologies is not None:
-            if len(morphologies) != len(connectome_data) or len(compartments) != len(connectome_data):
-                raise Exception("The morphological data did not match the connectome data.")
-            self._append_mapped('connection_morphologies', tag, morphologies)
-            self._append_tagged('connection_compartments', tag, compartments)
+            if len(morphologies) != len(connectome_data) or len(compartments) != len(
+                connectome_data
+            ):
+                raise Exception(
+                    "The morphological data did not match the connectome data."
+                )
+            self._append_mapped("connection_morphologies", tag, morphologies)
+            self._append_tagged("connection_compartments", tag, compartments)
         # Store the metadata internally until the output is compiled.
         if meta is not None:
             self._connectivity_set_meta[tag] = meta
@@ -308,18 +353,17 @@ class Scaffold:
         if not cell_type.name in self.entities_by_type:
             self.entities_by_type[cell_type.name] = entities_ids
         else:
-            self.entities_by_type[cell_type.name] = np.concatenate((
-                self.entities_by_type[cell_type.name], entities_ids
-            ))
+            self.entities_by_type[cell_type.name] = np.concatenate(
+                (self.entities_by_type[cell_type.name], entities_ids)
+            )
 
         placement_dict = self.statistics.cells_placed
         if not cell_type.name in placement_dict:
             placement_dict[cell_type.name] = 0
         placement_dict[cell_type.name] += n_cells_to_place
-        if not hasattr(cell_type.placement, 'cells_placed'):
-            cell_type.placement.__dict__['cells_placed'] = 0
+        if not hasattr(cell_type.placement, "cells_placed"):
+            cell_type.placement.__dict__["cells_placed"] = 0
         cell_type.placement.cells_placed += n_cells_to_place
-
 
     def _append_tagged(self, attr, tag, data):
         # Appends or creates data to a tagged numpy array in a dictionary attribute of the scaffold.
@@ -331,9 +375,9 @@ class Scaffold:
 
     def _append_mapped(self, attr, tag, data):
         # Appends or creates the data with a map to a tagged numpy array in a dictionary attribute of the scaffold.
-        if not attr + '_map' in self.__dict__[attr]:
-            self.__dict__[attr][tag + '_map'] = []
-        mapped_data, data_map = map_ndarray(data, _map=self.__dict__[attr][tag + '_map'])
+        if not attr + "_map" in self.__dict__[attr]:
+            self.__dict__[attr][tag + "_map"] = []
+        mapped_data, data_map = map_ndarray(data, _map=self.__dict__[attr][tag + "_map"])
         mapped_data = np.array(mapped_data, dtype=int)
         if tag in self.__dict__[attr]:
             cache = self.__dict__[attr][tag]
@@ -363,9 +407,13 @@ class Scaffold:
             if not self.output_formatter.exists():
                 return self.entities_by_type[name]
             if self.output_formatter.has_cells_of_type(name, entity=True):
-                self.entities_by_type[name] = self.output_formatter.get_cells_of_type(name, entity=True)
+                self.entities_by_type[name] = self.output_formatter.get_cells_of_type(
+                    name, entity=True
+                )
             else:
-                raise Exception("Entity type '{}' not found in output storage".format(name))
+                raise Exception(
+                    "Entity type '{}' not found in output storage".format(name)
+                )
         return self.entities_by_type[name]
 
     def compile_output(self):
@@ -382,11 +430,15 @@ class Scaffold:
 
         connection_types = self.configuration.connection_types
         connection_items = connection_types.items()
-        filtered_connection_items = list(filter(lambda c:
-            any_intersect(c[1].to_cell_types, postsynaptic, lambda x: x.name) and
-            any_intersect(c[1].from_cell_types, presynaptic, lambda x: x.name),
-            connection_items
-        ))
+        filtered_connection_items = list(
+            filter(
+                lambda c: any_intersect(
+                    c[1].to_cell_types, postsynaptic, lambda x: x.name
+                )
+                and any_intersect(c[1].from_cell_types, presynaptic, lambda x: x.name),
+                connection_items,
+            )
+        )
         return dict(filtered_connection_items)
 
     def get_connections_by_cell_type(self, any=None, postsynaptic=None, presynaptic=None):
@@ -399,10 +451,14 @@ class Scaffold:
             postsynaptic.extend(any)
             presynaptic.extend(any)
         # Find the connection types that have the specified targets
-        connection_types = self.get_connection_types_by_cell_type(postsynaptic, presynaptic)
+        connection_types = self.get_connection_types_by_cell_type(
+            postsynaptic, presynaptic
+        )
         # Map them to a list of tuples with the 1st element the connection type
         # and the connection matrices appended behind it.
-        return list(map(lambda x: (x, *x.get_connection_matrices()), connection_types.values()))
+        return list(
+            map(lambda x: (x, *x.get_connection_matrices()), connection_types.values())
+        )
 
     def get_connectivity_set(self, tag):
         return self.output_formatter.get_connectivity_set(tag)
@@ -422,22 +478,27 @@ class Scaffold:
         return self.configuration.connection_types[name]
 
     def get_cell_types(self):
-        '''
+        """
             Return a collection of all configured cell types.
 
             ::
 
               for cell_type in scaffold.get_cell_types():
                   print(cell_type.name)
-        '''
+        """
         return self.configuration.cell_types.values()
 
     def get_entity_types(self):
-        '''
+        """
             Return a list of connection types that describe entities instead
             of cells.
-        '''
-        return list(filter(lambda t: hasattr(t, "entity") and t.entity is True, self.configuration.connection_types.values()))
+        """
+        return list(
+            filter(
+                lambda t: hasattr(t, "entity") and t.entity is True,
+                self.configuration.connection_types.values(),
+            )
+        )
 
     def get_cell_type(self, name):
         if name not in self.configuration.cell_types:
@@ -446,7 +507,11 @@ class Scaffold:
 
     def get_cell_position(self, id):
         if not id < len(self.cells):
-            raise Exception("Cell {} does not exist. (highest id is {})".format(id, len(self.cells) - 1))
+            raise Exception(
+                "Cell {} does not exist. (highest id is {})".format(
+                    id, len(self.cells) - 1
+                )
+            )
         return self.cells[id, 2:5]
 
     def get_cell_positions(self, selector):
@@ -466,7 +531,11 @@ class Scaffold:
             raise Exception("Unknown simulation '{}'".format(simulation_name))
         simulations = self.configuration._parsed_config["simulations"]
         simulation_config = simulations[simulation_name]
-        adapter = self.configuration.init_simulation(simulation_name, simulation_config, return_obj=True)
-        self.configuration.finalize_simulation(simulation_name, simulation_config, adapter)
+        adapter = self.configuration.init_simulation(
+            simulation_name, simulation_config, return_obj=True
+        )
+        self.configuration.finalize_simulation(
+            simulation_name, simulation_config, adapter
+        )
         self._initialise_simulation(adapter)
         return adapter

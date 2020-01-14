@@ -36,15 +36,20 @@ class VoxelCloud:
     @staticmethod
     def create(morphology, N):
         hit_detector = morphology_detector_factory(morphology)
-        bounds, voxels, length, error = voxelize(N, morphology.get_bounding_box(), hit_detector)
+        bounds, voxels, length, error = voxelize(
+            N, morphology.get_bounding_box(), hit_detector
+        )
         voxel_map = morphology.get_compartment_map(m_grid(bounds, length), voxels, length)
         if error == 0:
             return VoxelCloud(bounds, voxels, length, voxel_map)
         else:
-            raise NotImplementedError("Voxelization error: could not find the right amount of voxels. Try N {}".format(
-                # Suggest the closest we got to N for a next attempt
-                ("+" if error > 0 else "") + str(error)
-            ))
+            raise NotImplementedError(
+                "Voxelization error: could not find the right amount of voxels. Try N {}".format(
+                    # Suggest the closest we got to N for a next attempt
+                    ("+" if error > 0 else "")
+                    + str(error)
+                )
+            )
 
     def intersect(self, other):
         raise NotImplementedError("Intersecting 2 voxel clouds is a to do")
@@ -68,30 +73,46 @@ class Box(dimensions, origin):
 
 def m_grid(bounds, size):
     return np.mgrid[
-        bounds[0, 0]:bounds[0, 1]:size,
-        bounds[1, 0]:bounds[1, 1]:size,
-        bounds[2, 0]:bounds[2, 1]:size
+        bounds[0, 0] : bounds[0, 1] : size,
+        bounds[1, 0] : bounds[1, 1] : size,
+        bounds[2, 0] : bounds[2, 1] : size,
     ]
 
 
 def voxelize(N, box_data, hit_detector, max_iterations=80, precision_iterations=30):
     # Initialise
-    bounds = np.column_stack((box_data.origin - box_data.dimensions / 2, box_data.origin + box_data.dimensions / 2))
-    box_length = np.max(box_data.dimensions)  # Size of the edge of a cube in the box counting grid
+    bounds = np.column_stack(
+        (
+            box_data.origin - box_data.dimensions / 2,
+            box_data.origin + box_data.dimensions / 2,
+        )
+    )
+    box_length = np.max(
+        box_data.dimensions
+    )  # Size of the edge of a cube in the box counting grid
     best_length, best_error = box_length, N  # Keep track of our best results so far
-    last_box_count, last_box_length = 0., 0.  # Keep track of the previous iteration for binary search jumps
-    precision_i, i = 0., 0.  # Keep track of the iterations
-    crossed_treshold = False  # Should we consider each next iteration as merely increasing precision?
+    last_box_count, last_box_length = (
+        0.0,
+        0.0,
+    )  # Keep track of the previous iteration for binary search jumps
+    precision_i, i = 0.0, 0.0  # Keep track of the iterations
+    crossed_treshold = (
+        False  # Should we consider each next iteration as merely increasing precision?
+    )
 
     # Refine the grid size each iteration to find the right amount of boxes that trigger the hit_detector
     while i < max_iterations and precision_i < precision_iterations:
         i += 1
-        if crossed_treshold:  # Are we doing these iterations just to increase precision, or still trying to find a solution?
+        if (
+            crossed_treshold
+        ):  # Are we doing these iterations just to increase precision, or still trying to find a solution?
             precision_i += 1
         box_count = 0  # Reset box count
         boxes_x, boxes_y, boxes_z = m_grid(bounds, box_length)  # Create box counting grid
         # Create a voxel grid where voxels are switched on if they trigger the hit_detector
-        voxels = np.zeros((boxes_x.shape[0], boxes_x.shape[1], boxes_x.shape[2]), dtype=bool)
+        voxels = np.zeros(
+            (boxes_x.shape[0], boxes_x.shape[1], boxes_x.shape[2]), dtype=bool
+        )
         # Iterate over all the boxes in the total grid.
         for x_i in range(boxes_x.shape[0]):
             for y_i in range(boxes_x.shape[1]):
@@ -100,7 +121,9 @@ def voxelize(N, box_data, hit_detector, max_iterations=80, precision_iterations=
                     x = boxes_x[x_i, y_i, z_i]
                     y = boxes_y[x_i, y_i, z_i]
                     z = boxes_z[x_i, y_i, z_i]
-                    hit = hit_detector(np.array([x, y, z]), box_length)  # Is this box a hit? (Does it cover some part of the object?)
+                    hit = hit_detector(
+                        np.array([x, y, z]), box_length
+                    )  # Is this box a hit? (Does it cover some part of the object?)
                     voxels[x_i, y_i, z_i] = hit  # If its a hit, turn on the voxel
                     box_count += int(hit)  # If its a hit, increase the box count
         if last_box_count < N and box_count >= N:
@@ -108,14 +131,18 @@ def voxelize(N, box_data, hit_detector, max_iterations=80, precision_iterations=
             # the box_length. A solution is found, but more precise values lie somewhere in between,
             # so start counting the precision iterations
             crossed_treshold = True
-        if box_count < N:  # If not enough boxes cover the object we should decrease the box length (and increase box count)
+        if (
+            box_count < N
+        ):  # If not enough boxes cover the object we should decrease the box length (and increase box count)
             new_box_length = box_length - np.abs(box_length - last_box_length) / 2
         else:  # If too many boxes cover the object we should increase the box length (and decrease box count)
             new_box_length = box_length + np.abs(box_length - last_box_length) / 2
         # Store the results of this iteration and prepare variables for the next iteration.
         last_box_length, last_box_count = box_length, box_count
         box_length = new_box_length
-        if abs(N - box_count) <= best_error:  # Only store the following values if they improve the previous best results.
+        if (
+            abs(N - box_count) <= best_error
+        ):  # Only store the following values if they improve the previous best results.
             best_error, best_length = abs(N - box_count), last_box_length
             best_bounds, best_voxels = bounds, voxels
 
@@ -124,11 +151,11 @@ def voxelize(N, box_data, hit_detector, max_iterations=80, precision_iterations=
 
 
 def detect_box_compartments(tree, box_origin, box_size):
-    '''
+    """
         Given a tree of compartment locations and a box, it will return the ids of all compartments in the outer sphere of the box
 
         :param box_origin: The lowermost corner of the box.
-    '''
+    """
     # Get the outer sphere radius of the cube by taking the length of a diagonal through the cube divided by 2
     search_radius = np.sqrt(np.sum([box_size ** 2 for i in range(len(box_origin))])) / 2
     # Translate the query point to the middle of the box and search within the outer sphere radius.
@@ -136,15 +163,16 @@ def detect_box_compartments(tree, box_origin, box_size):
 
 
 def morphology_detector_factory(morphology):
-    '''
+    """
         Will return a hit detector and outer box required to perform voxelization on the morphology.
-    '''
+    """
     tree = morphology.compartment_tree
     # Create the detector function
 
     def morphology_detector(box_origin, box_size):
         # Report a hit if more than 0 compartments are within the box.
         return len(detect_box_compartments(tree, box_origin, box_size)) > 0
+
     # Return the morphology detector function as the factory product
     return morphology_detector
 
@@ -153,23 +181,35 @@ def center_of_mass(points, weights=None):
     if weights is None:
         cog = [np.sum(points[dim, :]) / points.shape[1] for dim in range(points.shape[0])]
     else:
-        cog = [np.sum(points[dim, :] * weights) for dim in range(points.shape[0])] / np.sum(weights)
+        cog = [
+            np.sum(points[dim, :] * weights) for dim in range(points.shape[0])
+        ] / np.sum(weights)
     return cog
 
 
 def set_attraction(attractor, voxels):
     attraction_voxels = np.indices(voxels.shape)[:, voxels].T
     attraction_map = np.zeros(voxels.shape)
-    dist = np.sqrt(np.sum((attraction_voxels - attractor + np.ones(len(attractor)) * 0.5)**2, axis=1))
+    dist = np.sqrt(
+        np.sum(
+            (attraction_voxels - attractor + np.ones(len(attractor)) * 0.5) ** 2, axis=1
+        )
+    )
     distance_sorting = dist.argsort()[::-1]
     attraction = 1
     first_voxel = distance_sorting[0]
-    attraction_map[attraction_voxels[first_voxel, 0], attraction_voxels[first_voxel, 1], attraction_voxels[first_voxel, 2]] = 1
+    attraction_map[
+        attraction_voxels[first_voxel, 0],
+        attraction_voxels[first_voxel, 1],
+        attraction_voxels[first_voxel, 2],
+    ] = 1
     last_distance = dist[first_voxel]
     for v in distance_sorting[1:]:
         distance = dist[v]
         attraction += int(distance < last_distance)
-        attraction_map[attraction_voxels[v, 0], attraction_voxels[v, 1], attraction_voxels[v, 2]] = attraction
+        attraction_map[
+            attraction_voxels[v, 0], attraction_voxels[v, 1], attraction_voxels[v, 2]
+        ] = attraction
         last_distance = distance
     return attraction_map
 

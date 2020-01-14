@@ -6,7 +6,7 @@ def get_parallel_fiber_heights(scaffold, granule_geometry, granules):
     parallel_fibers = np.zeros((len(granules), 2))
     pf_height = granule_geometry.pf_height
     pf_height_sd = granule_geometry.pf_height_sd
-    molecular_layer = scaffold.configuration.get_layer(name='molecular_layer')
+    molecular_layer = scaffold.configuration.get_layer(name="molecular_layer")
     floor_ml = molecular_layer.Y
     roof_ml = floor_ml + molecular_layer.height  # Roof of the molecular layer
 
@@ -17,25 +17,30 @@ def get_parallel_fiber_heights(scaffold, granule_geometry, granules):
         pf_height_max = roof_ml - granule_y
         # Determine the shape parameters a and b of the truncated normal distribution.
         # See https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.truncnorm.html
-        a, b = (pf_height_min - pf_height) / pf_height_sd, (pf_height_max - pf_height) / pf_height_sd
+        a, b = (
+            (pf_height_min - pf_height) / pf_height_sd,
+            (pf_height_max - pf_height) / pf_height_sd,
+        )
         # Draw a sample for the parallel fiber height from a truncated normal distribution
         # with sd `pf_height_sd` and mean `pf_height`, truncated by the molecular layer bounds.
-        parallel_fibers[idx, 1] = truncnorm.rvs(a, b, size=1) * pf_height_sd + pf_height  # Height
+        parallel_fibers[idx, 1] = (
+            truncnorm.rvs(a, b, size=1) * pf_height_sd + pf_height
+        )  # Height
         parallel_fibers[idx, 0] = granule[0]  # ID
     return parallel_fibers
 
 
 def get_dcn_rotations(dcn_matrix):
-    '''
+    """
         Create a matrix of planes tilted between -45° and 45°,
         storing id and the planar coefficients a, b, c and d for each DCN cell
-    '''
+    """
     dend_tree_coeff = np.zeros((dcn_matrix.shape[0], 4))
     for i in range(len(dcn_matrix)):
         # Make the planar coefficients a, b and c.
-        dend_tree_coeff[i] = np.random.rand(4) * 2. - 1.
+        dend_tree_coeff[i] = np.random.rand(4) * 2.0 - 1.0
         # Calculate the last planar coefficient d from ax + by + cz - d = 0
         # => d = - (ax + by + cz)
-        dend_tree_coeff[i, 3] = - np.sum(dend_tree_coeff[i, 0:2] * dcn_matrix[i, 2:4])
+        dend_tree_coeff[i, 3] = -np.sum(dend_tree_coeff[i, 0:2] * dcn_matrix[i, 2:4])
     # Compose the matrix
     return np.column_stack((dcn_matrix[:, 0], dend_tree_coeff))
