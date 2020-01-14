@@ -157,6 +157,14 @@ class ConnectivitySet(Resource):
         return self.get_dataset()
 
     @property
+    def from_identifiers(self):
+        return self.connections[:, 0]
+
+    @property
+    def to_identifiers(self):
+        return self.connections[:, 1]
+
+    @property
     def intersections(self):
         if not self.compartment_set.exists():
             raise MissingMorphologyException("No intersection/morphology information for this connectivity set.")

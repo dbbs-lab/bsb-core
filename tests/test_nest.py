@@ -264,19 +264,15 @@ class TestMultiInstance(unittest.TestCase):
         self.assertRaises(AdapterException, self.nest_adapter_0.release_lock)
         # Test whether the scaffold throws an AdapterException when the same
         # adapter is prepared twice.
-        with h5py.File(self.hdf5, "r") as handle:
-            self.nest_adapter_0.prepare(handle)
-
-        with h5py.File(self.hdf5, "r") as handle:
-            self.assertRaises(AdapterException, self.nest_adapter_0.prepare, handle)
+        self.nest_adapter_0.prepare()
+        self.assertRaises(AdapterException, self.nest_adapter_0.prepare)
 
         self.nest_adapter_0.release_lock()
         self.nest_adapter_0.reset()
 
     def test_single_instance_single_lock(self):
         # Lock kernel. Prepare adapter and thereby lock NEST kernel
-        with h5py.File(self.hdf5, "r") as handle:
-            self.nest_adapter_1.prepare(handle)
+        self.nest_adapter_1.prepare()
         lock_data = self.nest_adapter_1.read_lock()
         self.assertEqual(lock_data["multi"], False)
         self.assertEqual(self.nest_adapter_1.multi, False)
@@ -290,11 +286,9 @@ class TestMultiInstance(unittest.TestCase):
 
     def test_multi_instance_single_lock(self):
         # Test that a 2nd single-instance adapter can't manage a locked kernel.
-        with h5py.File(self.hdf5, "r") as handle:
-            self.nest_adapter_1.prepare(handle)
+        self.nest_adapter_1.prepare()
 
-        with h5py.File(self.hdf5, "r") as handle:
-            self.assertRaises(KernelLockedException, self.nest_adapter_2.prepare, handle)
+        self.assertRaises(KernelLockedException, self.nest_adapter_2.prepare)
         self.assertEqual(self.nest_adapter_2.is_prepared, False)
 
         self.nest_adapter_1.release_lock()
@@ -303,8 +297,7 @@ class TestMultiInstance(unittest.TestCase):
 
     def test_single_instance_multi_lock(self):
         # Test functionality of the multi lock.
-        with h5py.File(self.hdf5, "r") as handle:
-            self.nest_adapter_multi_1.prepare(handle)
+        self.nest_adapter_multi_1.prepare()
         lock_data = self.nest_adapter_multi_1.read_lock()
         self.assertEqual(self.nest_adapter_multi_1.suffix, "first")
         self.assertEqual(lock_data["multi"], True)
@@ -321,14 +314,12 @@ class TestMultiInstance(unittest.TestCase):
 
     def test_multi_instance_multi_lock(self):
         # Test functionality of the multi lock.
-        with h5py.File(self.hdf5, "r") as handle:
-            self.nest_adapter_multi_1.prepare(handle)
+        self.nest_adapter_multi_1.prepare()
         # Test that we have 1 lock.
         lock_data = self.nest_adapter_multi_1.read_lock()
         # Check multi instance multi lock
-        with h5py.File(self.hdf5, "r") as handle:
-            self.nest_adapter_multi_2.cell_models["test_cell"].parameters["t_ref"] = 3.0
-            self.nest_adapter_multi_2.prepare(handle)
+        self.nest_adapter_multi_2.cell_models["test_cell"].parameters["t_ref"] = 3.0
+        self.nest_adapter_multi_2.prepare()
         # Check that we have 2 locks
         lock_data = self.nest_adapter_multi_1.read_lock()
         self.assertEqual(len(lock_data["suffixes"]), 2)
@@ -358,8 +349,7 @@ class TestMultiInstance(unittest.TestCase):
         self.assertTrue(all(map(lambda x: x['t_ref'] == 3.0, self.nest.GetStatus(id2))))
 
         # Check duplicate suffixes
-        with h5py.File(self.hdf5, "r") as handle:
-            self.assertRaises(SuffixTakenException, self.nest_adapter_multi_1b.prepare, handle)
+        self.assertRaises(SuffixTakenException, self.nest_adapter_multi_1b.prepare)
 
         self.nest_adapter_multi_1.release_lock()
         self.nest_adapter_multi_1.reset()

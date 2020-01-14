@@ -7,7 +7,7 @@ from scaffold.models import Layer, CellType
 
 def relative_to_tests_folder(path):
     return os.path.join(os.path.dirname(__file__), path)
-    
+
 
 minimal_config_entities = relative_to_tests_folder("configs/test_minimal_entities.json")
 
@@ -35,11 +35,7 @@ class TestEntities(unittest.TestCase):
 
         # Try to load the network directly from the hdf5 file
         nest_adapter = self.scaffold_fresh.get_simulation("test")
-        with h5py.File('minimal_entities.hdf5', "a") as hdf_handle:
-            simulator = nest_adapter.prepare(hdf_handle)
+        simulator = nest_adapter.prepare()
         nest_adapter.simulate(simulator)
         nest_ids = nest_adapter.entities['entity_type'].nest_identifiers
         self.assertEqual(list(nest_ids), list(range(1, 101)))
-
-
-

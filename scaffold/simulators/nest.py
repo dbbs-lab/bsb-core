@@ -332,7 +332,7 @@ class NestAdapter(SimulatorAdapter):
         if self.has_lock:
             self.release_lock()
 
-    def prepare(self, hdf5):
+    def prepare(self):
         if self.is_prepared:
             raise AdapterException("Attempting to prepare the same adapter twice. Please use `scaffold.create_adapter` for multiple adapter instances of the same simulation.")
         self.scaffold.report("Importing  NEST...", 2)
@@ -354,7 +354,7 @@ class NestAdapter(SimulatorAdapter):
         self.scaffold.report("Creating devices...", 2)
         self.create_devices()
         self.scaffold.report("Creating connections...", 2)
-        self.connect_neurons(hdf5)
+        self.connect_neurons()
         self.is_prepared = True
         return nest
 
@@ -577,7 +577,7 @@ class NestAdapter(SimulatorAdapter):
             entity_type.scaffold_identifiers = self.scaffold.get_entities_by_type(entity_type.name)
             entity_type.nest_identifiers = entity_nodes
 
-    def connect_neurons(self, hdf5):
+    def connect_neurons(self):
         '''
             Connect the cells in NEST according to the connection model configurations
         '''
@@ -585,16 +585,14 @@ class NestAdapter(SimulatorAdapter):
         for connection_model in order:
             name = connection_model.name
             nest_name = self.suffixed(name)
-            dataset_name = 'cells/connections/' + name
-            if dataset_name not in hdf5:
-                self.scaffold.warn('Expected connection dataset "{}" not found. Skipping it.'.format(dataset_name), ConnectivityWarning)
-                continue
-            connectivity_matrix = hdf5[dataset_name]
-            # Get the NEST identifiers for the connections made in the connectivity matrix
-            presynaptic_cells = self.get_nest_ids(np.array(connectivity_matrix[:, 0], dtype=int))
-            postsynaptic_cells = self.get_nest_ids(np.array(connectivity_matrix[:, 1], dtype=int))
-            # Accessing the postsynaptic type to be associated to the volume transmitter of the synapse
             cs = ConnectivitySet(self.scaffold.output_formatter, name)
+            if not cs.exists():
+                self.scaffold.warn('Expected connection dataset "{}" not found. Skipping it.'.format(name), ConnectivityWarning)
+                continue
+            # Get the NEST identifiers for the connections made in the connectivity matrix
+            presynaptic_cells = self.get_nest_ids(np.array(cs.from_identifiers, dtype=int))
+            postsynaptic_cells = self.get_nest_ids(np.array(cs.to_identifiers, dtype=int))
+            # Accessing the postsynaptic type to be associated to the volume transmitter of the synapse
             postsynaptic_type = cs.connection_types[0].to_cell_types[0]
 
             # Create the synapse model in the simulator

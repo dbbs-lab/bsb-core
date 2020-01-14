@@ -227,8 +227,7 @@ class Scaffold:
 
     def prepare_simulation(self, simulation_name, hdf5=None):
         simulation = self.get_simulation(simulation_name)
-        with (hdf5 or self.output_formatter.load()) as hdf5:
-            simulator = simulation.prepare(hdf5)
+        simulator = simulation.prepare()
         return simulation, simulator
 
     def place_cells(self, cell_type, layer, positions):
