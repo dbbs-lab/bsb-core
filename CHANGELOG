@@ -1,5 +1,10 @@
 # 3.0
 
+## 3.0.4
+
+* Cilindrical targetting mechanism for devices.
+* Fixed `scaffold simulate`
+
 ## 3.0.3
 
 * Added changes for the hackathon.

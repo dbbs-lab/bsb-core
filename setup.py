@@ -7,13 +7,10 @@ with open("README.md", "r") as fh:
 if sys.argv[1] == "develop":
     os.system("pre-commit install")
 
-print("eeeee")
-print("eeeee")
-print("eeeee")
 
 setuptools.setup(
     name="dbbs-scaffold",
-    version="3.0.3",
+    version="3.0.4",
     author="Robin De Schepper, Alice Geminiani, Stefano Casali, Alberto Antonietti, Claudia Casselato, Egidio D'Angelo",
     author_email="robingilbert.deschepper@unipv.it",
     description="A morphologically detailed scaffolding package for the scientific modelling of the cerebellum.",
