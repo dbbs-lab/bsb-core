@@ -9,6 +9,7 @@ if sys.argv[1] == "develop":
 
 print("eeeee")
 print("eeeee")
+print("eeeee")
 
 setuptools.setup(
     name="dbbs-scaffold",
