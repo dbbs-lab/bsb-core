@@ -1,3 +1,7 @@
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![Build Status](https://travis-ci.com/Helveg/cerebellum-scaffold.svg?token=XSpW8taq6yXK53yq1am2&branch=master)](https://travis-ci.com/Helveg/cerebellum-scaffold)
+[![codecov](https://codecov.io/gh/Helveg/cerebellum-scaffold/branch/master/graph/badge.svg?token=iMOwEbV0AZ)](https://codecov.io/gh/Helveg/cerebellum-scaffold)
+
 # Scaffold: A scaffold model for the cerebellum
 This package is intended to facilitate spatially, topologically and morphologically detailed simulations of the cerebellum developed by the Department of Brain and Behavioral Sciences at the University of Pavia.
 
