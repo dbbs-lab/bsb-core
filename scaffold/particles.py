@@ -2,6 +2,7 @@ import numpy as np
 from sklearn.neighbors import KDTree
 from rtree import index
 from random import choice
+
 try:
     import plotly.graph_objects as go
     from plotly.subplots import make_subplots
@@ -46,7 +47,7 @@ class Particle:
 
     @staticmethod
     def get_displacement_force(radius, distance):
-        if distance == 0.:
+        if distance == 0.0:
             return 0.9
         return min(0.9, 0.3 / ((distance / radius) ** 2))
 
@@ -67,7 +68,12 @@ class Neighbourhood:
             for neighbour in self.neighbours:
                 if partner.id == neighbour.id:
                     continue
-                overlap -= min(0, distance(partner.position, neighbour.position) - partner.radius - neighbour.radius)
+                overlap -= min(
+                    0,
+                    distance(partner.position, neighbour.position)
+                    - partner.radius
+                    - neighbour.radius,
+                )
         return overlap
 
     def colliding(self):
@@ -76,7 +82,12 @@ class Neighbourhood:
             for neighbour in self.neighbours:
                 if partner.id == neighbour.id:
                     continue
-                if distance(partner.position, neighbour.position) - partner.radius - neighbour.radius < 0:
+                if (
+                    distance(partner.position, neighbour.position)
+                    - partner.radius
+                    - neighbour.radius
+                    < 0
+                ):
                     return True
         return False
 
@@ -87,7 +98,7 @@ class ParticleVoxel:
         self.size = np.array(dimensions)
 
 
-class ParticleSystem():
+class ParticleSystem:
     def __init__(self):
         self.particle_types = []
         self.voxels = []
@@ -121,7 +132,9 @@ class ParticleSystem():
                 particle_voxel_id = int(positions[0] * len(placement_voxels))
                 particle_voxel = self.voxels[particle_voxel_id]
                 # Translate the particle into the voxel based on the remaining dimensions
-                particle_position = particle_voxel.origin + positions[1:] * particle_voxel.size
+                particle_position = (
+                    particle_voxel.origin + positions[1:] * particle_voxel.size
+                )
                 # Store the particle object
                 self.add_particle(radius, particle_position)
 
@@ -134,7 +147,9 @@ class ParticleSystem():
         if not hasattr(self, "tree"):
             self.freeze()
         # Do an O(n * log(n)) search of all particles by the maximum radius
-        neighbours = self.tree.query_radius(self.positions, r=self.search_radius, return_distance=True)
+        neighbours = self.tree.query_radius(
+            self.positions, r=self.search_radius, return_distance=True
+        )
         neighbour_ids = neighbours[0]
         neighbour_distances = neighbours[1]
         for i in range(len(neighbour_ids)):
@@ -182,7 +197,7 @@ class ParticleSystem():
         # print("Solving neighbourhood", neighbourhood.epicenter.id)
         # print("---")
         stuck = False
-        overlap = 0.
+        overlap = 0.0
         while neighbourhood.colliding():
             i += 1
             overlap = neighbourhood.get_overlap()
@@ -216,13 +231,19 @@ class ParticleSystem():
             neighbourhood_radius += self.max_radius / min(expansions, 6)
             neighbour_ids = self.tree.query_radius([epicenter], r=neighbourhood_radius)[0]
             neighbours = [self.particles[id] for id in neighbour_ids]
-            neighbourhood_packing_factor = self.get_packing_factor(neighbours, sphere_volume(neighbourhood_radius))
+            neighbourhood_packing_factor = self.get_packing_factor(
+                neighbours, sphere_volume(neighbourhood_radius)
+            )
             partner_radius = neighbourhood_radius - self.max_radius
             partner_ids = self.tree.query_radius([epicenter], r=partner_radius)[0]
             partners = [self.particles[id] for id in partner_ids]
-            partner_packing_factor = self.get_packing_factor(partners, sphere_volume(partner_radius))
+            partner_packing_factor = self.get_packing_factor(
+                partners, sphere_volume(partner_radius)
+            )
             partners = list(filter(lambda p: not p.locked and p.colliding, partners))
-            neighbourhood_ok = neighbourhood_packing_factor < 0.5 and partner_packing_factor < 0.5
+            neighbourhood_ok = (
+                neighbourhood_packing_factor < 0.5 and partner_packing_factor < 0.5
+            )
             if expansions > 100:
                 print("ERROR! Unable to find suited neighbourhood around", epicenter)
                 exit()
@@ -230,7 +251,9 @@ class ParticleSystem():
         #     len(neighbour_ids), neighbourhood_radius, partner_packing_factor, expansions
         # ))
         # print(len(partner_ids), "particles will be moved.")
-        return Neighbourhood(epicenter, neighbours, neighbourhood_radius, partners, partner_radius)
+        return Neighbourhood(
+            epicenter, neighbours, neighbourhood_radius, partners, partner_radius
+        )
 
     def add_particle(self, radius, position):
         particle = Particle(radius, position)
@@ -243,7 +266,7 @@ class ParticleSystem():
 
     def remove_particles(self, particles_id):
         # Remove particles with a certain id
-        for index in sorted(particles_id,  reverse = True):
+        for index in sorted(particles_id, reverse=True):
             del self.particles[index]
 
     def deintersect(self, nearest_neighbours=None):
@@ -252,13 +275,15 @@ class ParticleSystem():
 
     def get_packing_factor(self, particles=None, volume=None):
         if particles is None:
-            particles_volume = np.sum([p["count"] * sphere_volume(p["radius"]) for p in self.particle_types])
+            particles_volume = np.sum(
+                [p["count"] * sphere_volume(p["radius"]) for p in self.particle_types]
+            )
         else:
             particles_volume = np.sum([sphere_volume(p.radius) for p in particles])
         total_volume = np.product(self.size) if volume is None else volume
         return particles_volume / total_volume
 
-    def prune(self,colliding_particles):
+    def prune(self, colliding_particles):
         # Among the colliding_particles, check for the ones that have been reallocated outside the volume
         # and remove from particle system. Rtree algorithm is used to check for particles outside  the volume,
         # taking the voxels as the rtree elements and the particle point as the volume for which to check the intersection
@@ -267,8 +292,36 @@ class ParticleSystem():
         idx = index.Index(properties=property, interleaved=True)
         for x in range(len(self.voxels)):
             print(self.voxels[x].origin[0])
-            idx.insert(x, (self.voxels[x].origin[0], self.voxels[x].origin[1], self.voxels[x].origin[2], self.voxels[x].origin[0]+self.voxels[x].size[0], self.voxels[x].origin[1]+self.voxels[x].size[1], self.voxels[x].origin[2]+self.voxels[x].size[2]))
-        colliding_external = list(filter(lambda p: not(list(idx.intersection((p.position[0],p.position[1],p.position[2],p.position[0],p.position[1],p.position[2])))), colliding_particles))
+            idx.insert(
+                x,
+                (
+                    self.voxels[x].origin[0],
+                    self.voxels[x].origin[1],
+                    self.voxels[x].origin[2],
+                    self.voxels[x].origin[0] + self.voxels[x].size[0],
+                    self.voxels[x].origin[1] + self.voxels[x].size[1],
+                    self.voxels[x].origin[2] + self.voxels[x].size[2],
+                ),
+            )
+        colliding_external = list(
+            filter(
+                lambda p: not (
+                    list(
+                        idx.intersection(
+                            (
+                                p.position[0],
+                                p.position[1],
+                                p.position[2],
+                                p.position[0],
+                                p.position[1],
+                                p.position[2],
+                            )
+                        )
+                    )
+                ),
+                colliding_particles,
+            )
+        )
         colliding_particles_id = list(map(lambda c: c.id, colliding_external))
         pruned = self.remove_particles(colliding_particles_id)
         number_pruned = len(colliding_particles_id)
@@ -279,61 +332,58 @@ class LargeParticleSystem(ParticleSystem):
     def __init__(self):
         ParticleSystem.__init__()
 
-
-
     def placing(self):
         pass
-
 
     def fill(self):
         super().fill()
 
-
     def solve_collisions(self):
-        #todo: take smaller particle systems
+        # todo: take smaller particle systems
 
         super().solve_collisions()
-
-
-
 
 
 def plot_particle_system(system):
     nc_particles = list(filter(lambda p: not p.colliding, system.particles))
     c_particles = list(filter(lambda p: p.colliding, system.particles))
     nc_trace = get_particles_trace(nc_particles)
-    c_trace = get_particles_trace(c_particles, marker=dict(color="rgba(200, 100, 0, 1)", size=2))
+    c_trace = get_particles_trace(
+        c_particles, marker=dict(color="rgba(200, 100, 0, 1)", size=2)
+    )
     fig = go.Figure(data=[c_trace, nc_trace])
     if system.dimensions == 3:
-        fig.update_layout(scene_aspectmode='cube')
-        fig.layout.scene.xaxis.range = [0., system.size[0]]
-        fig.layout.scene.yaxis.range = [0., system.size[1]]
-        fig.layout.scene.zaxis.range = [0., system.size[2]]
+        fig.update_layout(scene_aspectmode="cube")
+        fig.layout.scene.xaxis.range = [0.0, system.size[0]]
+        fig.layout.scene.yaxis.range = [0.0, system.size[1]]
+        fig.layout.scene.zaxis.range = [0.0, system.size[2]]
     fig.show()
 
 
-def get_particles_trace(particles, dimensions=3, axes={'x': 0, 'y': 1, 'z': 2}, **kwargs):
-    trace_kwargs = {"mode": "markers", "marker": {"color": "rgba(100, 100, 100, 0.7)", "size": 1}}
+def get_particles_trace(particles, dimensions=3, axes={"x": 0, "y": 1, "z": 2}, **kwargs):
+    trace_kwargs = {
+        "mode": "markers",
+        "marker": {"color": "rgba(100, 100, 100, 0.7)", "size": 1},
+    }
     trace_kwargs.update(kwargs)
     if dimensions > 3:
         raise Exception("Maximum 3 dimensional plots. Unless you have mutant eyes.")
     elif dimensions == 3:
         return go.Scatter3d(
-            x=list(map(lambda p: p.position[axes['x']], particles)),
-            y=list(map(lambda p: p.position[axes['y']], particles)),
-            z=list(map(lambda p: p.position[axes['z']], particles)),
+            x=list(map(lambda p: p.position[axes["x"]], particles)),
+            y=list(map(lambda p: p.position[axes["y"]], particles)),
+            z=list(map(lambda p: p.position[axes["z"]], particles)),
             **trace_kwargs
         )
     elif dimensions == 2:
         return go.Scatter(
-            x=list(map(lambda p: p.position[axes['x']], particles)),
-            y=list(map(lambda p: p.position[axes['y']], particles)),
+            x=list(map(lambda p: p.position[axes["x"]], particles)),
+            y=list(map(lambda p: p.position[axes["y"]], particles)),
             **trace_kwargs
         )
     elif dimensions == 1:
         return go.Scatter(
-            x=list(map(lambda p: p.position[axes['x']], particles)),
-            **trace_kwargs
+            x=list(map(lambda p: p.position[axes["x"]], particles)), **trace_kwargs
         )
 
 
@@ -343,28 +393,34 @@ def plot_detailed_system(system):
     for particle in system.particles:
         trace = get_particle_trace(particle)
         fig.add_trace(trace)
-    fig.update_layout(scene_aspectmode='data')
-    fig.update_layout(scene = dict(
-        xaxis = dict(tick0=0, dtick=system.voxels[0].size[0],),         # Use the size of the first voxel to set ticks of axes
-                     yaxis = dict(tick0=650, dtick=system.voxels[0].size[1],),
-                     zaxis = dict(tick0=800, dtick=system.voxels[0].size[2],)
-                     ))
+    fig.update_layout(scene_aspectmode="data")
+    fig.update_layout(
+        scene=dict(
+            xaxis=dict(
+                tick0=0, dtick=system.voxels[0].size[0],
+            ),  # Use the size of the first voxel to set ticks of axes
+            yaxis=dict(tick0=650, dtick=system.voxels[0].size[1],),
+            zaxis=dict(tick0=800, dtick=system.voxels[0].size[2],),
+        )
+    )
     fig.show()
     return fig
 
 
 def get_particle_trace(particle):
-    theta = np.linspace(0, 2*np.pi, 10)
+    theta = np.linspace(0, 2 * np.pi, 10)
     phi = np.linspace(0, np.pi, 10)
     x = np.outer(np.cos(theta), np.sin(phi)) * particle.radius + particle.position[0]
     y = np.outer(np.sin(theta), np.sin(phi)) * particle.radius + particle.position[1]
     z = np.outer(np.ones(10), np.cos(phi)) * particle.radius + particle.position[2]
     return go.Surface(
-        x=x, y=y, z=z,
+        x=x,
+        y=y,
+        z=z,
         surfacecolor=np.zeros(10) + int(particle.colliding),
         colorscale=[[0, "rgb(100, 100, 100)"], [1, "rgb(200, 100, 0)"]],
         opacity=0.5 + 0.5 * int(particle.colliding),
-        showscale=False
+        showscale=False,
     )
 
 
@@ -383,9 +439,16 @@ class AdaptiveNeighbourhood(ParticleSystem):
         precautious_radius = particle.radius + self.max_radius
         partner_ids = self.tree.query_radius([epicenter], r=precautious_radius)[0]
         if len(partner_ids) == 0:
-            return Neighbourhood(epicenter, [], precautious_radius, [], precautious_radius)
+            return Neighbourhood(
+                epicenter, [], precautious_radius, [], precautious_radius
+            )
         # partner_radius = rA + rB where B is the largest particle around.
-        partner_radius = np.max([self.particles[id].radius if id != particle.id else 0. for id in partner_ids])
+        partner_radius = np.max(
+            [
+                self.particles[id].radius if id != particle.id else 0.0
+                for id in partner_ids
+            ]
+        )
         neighbourhood_ok = False
         expansions = 0
         while not neighbourhood_ok:
@@ -393,21 +456,29 @@ class AdaptiveNeighbourhood(ParticleSystem):
             partner_radius += particle.radius / min(expansions, 6)
             partner_ids = self.tree.query_radius([epicenter], r=partner_radius)[0]
             partners = [self.particles[id] for id in partner_ids]
-            partner_packing_factor = self.get_packing_factor(partners, sphere_volume(partner_radius))
+            partner_packing_factor = self.get_packing_factor(
+                partners, sphere_volume(partner_radius)
+            )
             if partner_packing_factor > 0.5:
                 continue
 
             neighbourhood_radius = partner_radius + self.max_radius
             neighbour_ids = self.tree.query_radius([epicenter], r=neighbourhood_radius)[0]
             neighbours = [self.particles[id] for id in neighbour_ids]
-            strictly_neighbours = list(filter(lambda n: n.id not in partner_ids, neighbours))
+            strictly_neighbours = list(
+                filter(lambda n: n.id not in partner_ids, neighbours)
+            )
             if len(strictly_neighbours) > 0:
                 max_neighbour_radius = np.max([n.radius for n in strictly_neighbours])
                 if max_neighbour_radius != self.max_radius:
                     neighbourhood_radius = partner_radius + max_neighbour_radius
-                    neighbour_ids = self.tree.query_radius([epicenter], r=neighbourhood_radius)[0]
+                    neighbour_ids = self.tree.query_radius(
+                        [epicenter], r=neighbourhood_radius
+                    )[0]
                     neighbours = [self.particles[id] for id in neighbour_ids]
-            neighbourhood_packing_factor = self.get_packing_factor(neighbours, sphere_volume(neighbourhood_radius))
+            neighbourhood_packing_factor = self.get_packing_factor(
+                neighbours, sphere_volume(neighbourhood_radius)
+            )
             neighbourhood_ok = neighbourhood_packing_factor < 0.5
             if expansions > 100:
                 print("ERROR! Unable to find suited neighbourhood around", epicenter)
@@ -416,11 +487,12 @@ class AdaptiveNeighbourhood(ParticleSystem):
         #     len(neighbour_ids), neighbourhood_radius, partner_packing_factor, expansions
         # ))
         # print(len(partner_ids), "particles will be moved.")
-        return Neighbourhood(epicenter, neighbours, neighbourhood_radius, partners, partner_radius)
+        return Neighbourhood(
+            epicenter, neighbours, neighbourhood_radius, partners, partner_radius
+        )
 
 
 class SmallestNeighbourhood(ParticleSystem):
-
     def find_neighbourhood(self, particle):
         epicenter = particle.position
         # print("Finding collision neighbourhood for particle", particle.id)
@@ -435,13 +507,19 @@ class SmallestNeighbourhood(ParticleSystem):
                 return Neighbourhood(epicenter, [], 0, [], 0)
             neighbours = [self.particles[id] for id in neighbour_ids]
             max_neighbour_radius = np.max([n.radius for n in neighbours])
-            neighbourhood_packing_factor = self.get_packing_factor(neighbours, sphere_volume(neighbourhood_radius))
+            neighbourhood_packing_factor = self.get_packing_factor(
+                neighbours, sphere_volume(neighbourhood_radius)
+            )
             partner_radius = neighbourhood_radius - max_neighbour_radius
             partner_ids = self.tree.query_radius([epicenter], r=partner_radius)[0]
             partners = [self.particles[id] for id in partner_ids]
-            partner_packing_factor = self.get_packing_factor(partners, sphere_volume(partner_radius))
+            partner_packing_factor = self.get_packing_factor(
+                partners, sphere_volume(partner_radius)
+            )
             partners = list(filter(lambda p: not p.locked and p.colliding, partners))
-            neighbourhood_ok = neighbourhood_packing_factor < 0.5 and partner_packing_factor < 0.5
+            neighbourhood_ok = (
+                neighbourhood_packing_factor < 0.5 and partner_packing_factor < 0.5
+            )
             if expansions > 100:
                 print("ERROR! Unable to find suited neighbourhood around", epicenter)
                 exit()
@@ -449,4 +527,6 @@ class SmallestNeighbourhood(ParticleSystem):
         #     len(neighbour_ids), neighbourhood_radius, partner_packing_factor, expansions
         # ))
         # print(len(partner_ids), "particles will be moved.")
-        return Neighbourhood(epicenter, neighbours, neighbourhood_radius, partners, partner_radius)
+        return Neighbourhood(
+            epicenter, neighbours, neighbourhood_radius, partners, partner_radius
+        )

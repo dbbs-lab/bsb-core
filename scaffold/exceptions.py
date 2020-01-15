@@ -1,6 +1,7 @@
 class ScaffoldException(Exception):
     pass
 
+
 ## Configuration
 
 
@@ -35,6 +36,7 @@ class UnknownDistributionException(ConfigurableCastException):
 class InvalidDistributionException(ConfigurableCastException):
     pass
 
+
 ## Nest
 
 
@@ -65,6 +67,7 @@ class NestModelException(Exception):
 class NestModuleException(NestKernelException):
     pass
 
+
 ## Morphologies
 
 
@@ -74,6 +77,7 @@ class MorphologyException(ScaffoldException):
 
 class MissingMorphologyException(MorphologyException):
     pass
+
 
 ## Resources (HDF5, ...)
 
@@ -91,6 +95,7 @@ class AttributeMissingException(ResourceException):
 
 
 ## Warnings
+
 
 class ScaffoldWarning(UserWarning):
     pass

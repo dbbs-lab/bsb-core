@@ -5,15 +5,14 @@ from .exceptions import MissingMorphologyException, AttributeMissingException
 
 
 class CellType(SortableByAfter):
-
     def __init__(self, name, placement=None):
         self.name = name
         self.placement = placement
 
     def validate(self):
-        '''
+        """
             Check whether this CellType is valid to be used in the simulation.
-        '''
+        """
         pass
 
     def initialise(self, scaffoldInstance):
@@ -22,20 +21,22 @@ class CellType(SortableByAfter):
         self.validate()
 
     def set_morphology(self, morphology):
-        '''
+        """
             Set the Morphology class for this cell type.
 
             :param morphology: Defines the geometrical constraints for the axon and dendrites of the cell type.
             :type morphology: Instance of a subclass of scaffold.morphologies.Morphology
-        '''
+        """
         if not issubclass(type(morphology), BaseMorphology):
-            raise Exception("Only subclasses of scaffold.morphologies.Morphology can be used as cell morphologies.")
+            raise Exception(
+                "Only subclasses of scaffold.morphologies.Morphology can be used as cell morphologies."
+            )
         self.morphology = morphology
 
     def set_placement(self, placement):
-        '''
+        """
             Set the placement strategy for this cell type.
-        '''
+        """
         self.placement = placement
 
     @classmethod
@@ -62,15 +63,16 @@ class CellType(SortableByAfter):
             return []
         morphology_config = self.morphology.detailed_morphologies
         # TODO: More selection mechanisms like tags
-        if 'names' in morphology_config:
-            m_names = morphology_config['names']
+        if "names" in morphology_config:
+            m_names = morphology_config["names"]
             return m_names
         else:
-            raise NotImplementedError("Detailed morphologies can currently only be selected by name.")
+            raise NotImplementedError(
+                "Detailed morphologies can currently only be selected by name."
+            )
 
 
 class Layer(dimensions, origin):
-
     def __init__(self, name, origin, dimensions, scaling=True):
         # Name of the layer
         self.name = name
@@ -78,7 +80,7 @@ class Layer(dimensions, origin):
         self.origin = np.array(origin)
         # Dimensions in the XYZ axes.
         self.dimensions = np.array(dimensions)
-        self.volumeOccupied = 0.
+        self.volumeOccupied = 0.0
         # Should this layer scale when the simulation volume is resized?
         self.scaling = scaling
 
@@ -114,7 +116,9 @@ class Resource:
     def get_attribute(self, name):
         attrs = self.attributes
         if name not in attrs:
-            raise AttributeMissingException("Attribute '{}' not found in '{}'".format(name, self._path))
+            raise AttributeMissingException(
+                "Attribute '{}' not found in '{}'".format(name, self._path)
+            )
         return attrs[name]
 
     def exists(self):
@@ -124,7 +128,7 @@ class Resource:
     def unmap(self, selector=(), mapping=lambda m, x: m[x], data=None):
         if data is None:
             data = self.get_dataset(selector)
-        map = self.get_attribute('map')
+        map = self.get_attribute("map")
         unmapped = []
         for record in data:
             print(record)
@@ -139,7 +143,15 @@ class Resource:
 
 
 class Connection:
-    def __init__(self, from_id, to_id, from_compartment, to_compartment, from_morphology, to_morphology):
+    def __init__(
+        self,
+        from_id,
+        to_id,
+        from_compartment,
+        to_compartment,
+        from_morphology,
+        to_morphology,
+    ):
         self.from_id = from_id
         self.to_id = to_id
         self.from_compartment = from_morphology.compartments[from_compartment]
@@ -148,9 +160,9 @@ class Connection:
 
 class ConnectivitySet(Resource):
     def __init__(self, handler, tag):
-        super().__init__(handler, '/cells/connections/' + tag)
-        self.compartment_set = Resource(handler, '/cells/connection_compartments/' + tag)
-        self.morphology_set = Resource(handler, '/cells/connection_morphologies/' + tag)
+        super().__init__(handler, "/cells/connections/" + tag)
+        self.compartment_set = Resource(handler, "/cells/connection_compartments/" + tag)
+        self.morphology_set = Resource(handler, "/cells/connection_morphologies/" + tag)
 
     @property
     def connections(self):
@@ -167,7 +179,9 @@ class ConnectivitySet(Resource):
     @property
     def intersections(self):
         if not self.compartment_set.exists():
-            raise MissingMorphologyException("No intersection/morphology information for this connectivity set.")
+            raise MissingMorphologyException(
+                "No intersection/morphology information for this connectivity set."
+            )
         else:
             return self.get_intersections()
 
@@ -175,34 +189,53 @@ class ConnectivitySet(Resource):
         intersections = []
         morphos = {}
         cells = self.get_dataset()
-        for cell_ids, comp_ids, morpho_ids in zip(cells, self.compartment_set.get_dataset(), self.morphology_set.get_dataset()):
+        for cell_ids, comp_ids, morpho_ids in zip(
+            cells, self.compartment_set.get_dataset(), self.morphology_set.get_dataset()
+        ):
             if not int(morpho_ids[0]) in morphos:
-                name = self.morphology_set.unmap_one(int(morpho_ids[0]))[0].decode('UTF-8')
-                morphos[int(morpho_ids[0])] = self._handler.scaffold.morphology_repository.get_morphology(name)
+                name = self.morphology_set.unmap_one(int(morpho_ids[0]))[0].decode(
+                    "UTF-8"
+                )
+                morphos[
+                    int(morpho_ids[0])
+                ] = self._handler.scaffold.morphology_repository.get_morphology(name)
             if not int(morpho_ids[1]) in morphos:
-                name = self.morphology_set.unmap_one(int(morpho_ids[1]))[0].decode('UTF-8')
-                morphos[int(morpho_ids[1])] = self._handler.scaffold.morphology_repository.get_morphology(name)
-            intersections.append(Connection(*cell_ids, *comp_ids, morphos[int(morpho_ids[0])], morphos[int(morpho_ids[1])]))
+                name = self.morphology_set.unmap_one(int(morpho_ids[1]))[0].decode(
+                    "UTF-8"
+                )
+                morphos[
+                    int(morpho_ids[1])
+                ] = self._handler.scaffold.morphology_repository.get_morphology(name)
+            intersections.append(
+                Connection(
+                    *cell_ids,
+                    *comp_ids,
+                    morphos[int(morpho_ids[0])],
+                    morphos[int(morpho_ids[1])]
+                )
+            )
         return intersections
 
     @property
     def meta(self):
-        '''
+        """
             Retrieve the metadata associated with this connectivity set. Returns
             ``None`` if the connectivity set does not exist.
 
             :return: Metadata
             :rtype: dict
-        '''
+        """
         return self.attributes
 
     @property
     def connection_types(self):
-        '''
+        """
             Return all the ConnectionStrategies that contributed to the creation of this
             connectivity set.
-        '''
+        """
         # Get list of contributing types
-        type_list = self.attributes['connection_types']
+        type_list = self.attributes["connection_types"]
         # Map contributing type names to contributing types
-        return list(map(lambda name: self._handler.scaffold.get_connection_type(name), type_list))
+        return list(
+            map(lambda name: self._handler.scaffold.get_connection_type(name), type_list)
+        )
