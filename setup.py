@@ -3,11 +3,6 @@ import setuptools, sys, os
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
-
-if sys.argv[1] == "develop":
-    os.system("pre-commit install")
-
-
 setuptools.setup(
      name='dbbs-scaffold',
      version='3.0.4',
@@ -38,9 +33,9 @@ setuptools.setup(
          'scipy>=1.3.1',
          'scikit-learn>=0.20.3',
          'plotly>=4.1.0',
-         'rtree>=0.9.3'
+         'rtree>=0.9.3',
      ],
      extras_require= {
-        'dev': ['sphinx', 'pyarmor', 'pre-commit']
+        'dev': ['sphinx', 'pyarmor', 'pre-commit', 'black']
      }
  )
