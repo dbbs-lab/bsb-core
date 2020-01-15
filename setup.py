@@ -8,6 +8,7 @@ if sys.argv[1] == "develop":
     os.system("pre-commit install")
 
 print("eeeee")
+print("eeeee")
 
 setuptools.setup(
     name="dbbs-scaffold",
