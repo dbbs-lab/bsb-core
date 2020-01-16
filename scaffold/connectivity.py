@@ -1039,6 +1039,7 @@ class ConnectomeMossyDCN(TouchingConvergenceDivergence):
 
         convergence = self.convergence
         if convergence > len(mossy):
+            convergence = len(mossy)
             self.scaffold.warn(
                 "Convergence for MF-DCN saturated at MF number. Network too small",
                 ConnectivityWarning,
