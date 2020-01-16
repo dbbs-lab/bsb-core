@@ -1038,6 +1038,11 @@ class ConnectomeMossyDCN(TouchingConvergenceDivergence):
         dcn_cells = self.scaffold.cells_by_type[dcn_cell_type.name]
 
         convergence = self.convergence
+        if convergence > len(mossy):
+            self.scaffold.warn(
+                "Convergence for MF-DCN saturated at MF number. Network too small",
+                ConnectivityWarning,
+            )
 
         mf_dcn = np.zeros((convergence * len(dcn_cells), 2))
         for i, dcn in enumerate(dcn_cells):
