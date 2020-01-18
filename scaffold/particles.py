@@ -99,14 +99,21 @@ class ParticleVoxel:
 
 
 class ParticleSystem:
-    def __init__(self):
+    def __init__(self, track_displaced=False, scaffold=None):
         self.particle_types = []
         self.voxels = []
+        self.track_displaced = track_displaced
+        self.scaffold = scaffold
+
+    def report(self, msg, level=1, ongoing=False):
+        if self.scaffold:
+            self.scaffold.report(msg, level=level, ongoing=ongoing)
+        else:
+            print(msg, end="\n" if not ongoing else "\r")
 
     def fill(self, volume, voxels, particles):
         # Amount of spatial dimensions
         self.dimensions = len(volume)
-        #
         self.size = volume
         # Extend list of particle types in the system
         self.particle_types.extend(particles)
@@ -136,26 +143,34 @@ class ParticleSystem:
                     particle_voxel.origin + positions[1:] * particle_voxel.size
                 )
                 # Store the particle object
-                self.add_particle(radius, particle_position)
+                self.add_particle(radius, particle_position, type=particle_type)
 
     def freeze(self):
-        self.positions = np.array([p.position for p in self.particles])
+        self.__frozen_positions = np.array([p.position for p in self.particles])
         self.radii = [p.radius for p in self.particles]
-        self.tree = KDTree(self.positions)
+        self.tree = KDTree(self.__frozen_positions)
 
-    def find_colliding_particles(self):
-        if not hasattr(self, "tree"):
+    @property
+    def positions(self):
+        x = np.array([p.position for p in self.particles])
+        return x
+
+    def find_colliding_particles(self, freeze=False):
+        if not hasattr(self, "tree") or freeze:
             self.freeze()
         # Do an O(n * log(n)) search of all particles by the maximum radius
         neighbours = self.tree.query_radius(
-            self.positions, r=self.search_radius, return_distance=True
+            self.__frozen_positions, r=self.search_radius, return_distance=True
         )
+        # An array of arrays representing a list of neighbour ids per cell
         neighbour_ids = neighbours[0]
+        # Analog for the distances
         neighbour_distances = neighbours[1]
         for i in range(len(neighbour_ids)):
             distances = neighbour_distances[i]
             if len(distances) == 1:  # No neighbours
                 continue
+            # This cell's neighbours' ids
             ids = neighbour_ids[i]
             particle = self.particles[i]
             for j in range(len(ids)):
@@ -173,20 +188,21 @@ class ParticleSystem:
 
     def solve_collisions(self):
         self.find_colliding_particles()
+        self.displaced_particles = set()
         while self.colliding_count > 0:
-            print("Untangling {} collisions".format(self.colliding_count))
-            i = 0
+            self.report("Untangling {} collisions".format(self.colliding_count), level=2)
             t = self.colliding_count
-            for epicenter_particle in self.colliding_particles:
-                i += 1
+            for i, epicenter_particle in enumerate(self.colliding_particles):
                 neighbourhood = self.find_neighbourhood(epicenter_particle)
+                if self.track_displaced:
+                    self.displaced_particles.update(neighbourhood.partners)
                 self.resolve_neighbourhood(neighbourhood)
-                print(i, "/", t, end="\r")
+                self.report(str(i) + " / " + str(t), level=3, ongoing=True)
             # Double check that there's no collisions left
             self.freeze()
             self.find_colliding_particles()
             # print("Neighbourhood solved.", len(self.colliding_particles), "colliding particles remaining.")
-        # print("Tadaa! Placement complete.")
+        self.displaced_particles = list(self.displaced_particles)
 
     def resolve_neighbourhood(self, neighbourhood):
         # for neighbour in neighbourhood.neighbours:
@@ -255,14 +271,15 @@ class ParticleSystem:
             epicenter, neighbours, neighbourhood_radius, partners, partner_radius
         )
 
-    def add_particle(self, radius, position):
+    def add_particle(self, radius, position, type=None):
         particle = Particle(radius, position)
         particle.id = len(self.particles)
+        particle.type = type
         self.particles.append(particle)
 
-    def add_particles(self, radius, positions):
+    def add_particles(self, radius, positions, type=None):
         for position in positions:
-            self.add_particle(radius, position)
+            self.add_particle(radius, position, type=type)
 
     def remove_particles(self, particles_id):
         # Remove particles with a certain id
@@ -283,48 +300,40 @@ class ParticleSystem:
         total_volume = np.product(self.size) if volume is None else volume
         return particles_volume / total_volume
 
-    def prune(self, colliding_particles):
-        # Among the colliding_particles, check for the ones that have been reallocated outside the volume
-        # and remove from particle system. Rtree algorithm is used to check for particles outside  the volume,
-        # taking the voxels as the rtree elements and the particle point as the volume for which to check the intersection
-        property = index.Property()
-        property.dimension = 3
+    def prune(self, at_risk_particles=None, voxels=None):
+        """
+            Remove particles that have been moved outside of the bounds of the voxels.
+
+            :param at_risk_particles: Subset of particles that might've been moved and might need to be moved, if omitted check all particles.
+            :type at_risk_particles: :class:`numpy.ndarray`
+            :param voxels: A subset of the voxels that the particles have to be in bounds of, if omitted all voxels are used.
+        """
+        # Define affected particles and voxels
+        if at_risk_particles is None:
+            at_risk_particles = self.particles
+        if voxels is None:
+            voxels = self.voxels
+        # Initialize Rtree index.
+        property = index.Property(dimension=3)
         idx = index.Index(properties=property, interleaved=True)
-        for x in range(len(self.voxels)):
-            print(self.voxels[x].origin[0])
+        # Insert voxel bounds in index.
+        for i, voxel in enumerate(self.voxels):
             idx.insert(
-                x,
-                (
-                    self.voxels[x].origin[0],
-                    self.voxels[x].origin[1],
-                    self.voxels[x].origin[2],
-                    self.voxels[x].origin[0] + self.voxels[x].size[0],
-                    self.voxels[x].origin[1] + self.voxels[x].size[1],
-                    self.voxels[x].origin[2] + self.voxels[x].size[2],
-                ),
+                i, (*voxel.origin, *(voxel.origin + voxel.size)),
             )
-        colliding_external = list(
-            filter(
-                lambda p: not (
-                    list(
-                        idx.intersection(
-                            (
-                                p.position[0],
-                                p.position[1],
-                                p.position[2],
-                                p.position[0],
-                                p.position[1],
-                                p.position[2],
-                            )
-                        )
-                    )
+        # Query index, filter whether the intersection returns any hits, map to id.
+        out_of_bounds_ids = list(
+            map(
+                lambda p: p.id,
+                filter(
+                    lambda p: not (list(idx.intersection((*p.position, *p.position)))),
+                    at_risk_particles,
                 ),
-                colliding_particles,
             )
         )
-        colliding_particles_id = list(map(lambda c: c.id, colliding_external))
-        pruned = self.remove_particles(colliding_particles_id)
-        number_pruned = len(colliding_particles_id)
+        # Remove out of bounds particles and return number of affected particles.
+        pruned = self.remove_particles(out_of_bounds_ids)
+        number_pruned = len(out_of_bounds_ids)
         return number_pruned
 
 

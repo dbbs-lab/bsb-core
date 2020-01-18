@@ -2,5 +2,5 @@
 Scaffold class
 ==============
 
-.. autoclass:: scaffold.scaffold.Scaffold
+.. autoclass:: scaffold.core.Scaffold
   :members:

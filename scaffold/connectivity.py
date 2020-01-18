@@ -6,6 +6,7 @@ from .helpers import (
     SortableByAfter,
 )
 from .postprocessing import get_parallel_fiber_heights, get_dcn_rotations
+from .models import ConnectivitySet
 import numpy as np
 from random import choice as random_element, sample as sample_elements
 from .exceptions import MissingMorphologyException, ConnectivityWarning
@@ -40,9 +41,10 @@ class ConnectionStrategy(ConfigurableClass, SortableByAfter):
         self.after = []
 
     def get_connection_matrices(self):
-        return list(
-            map(lambda tag: self.scaffold.cell_connections_by_tag[tag], self.tags)
-        )
+        return [self.scaffold.cell_connections_by_tag[tag] for tag in self.tags]
+
+    def get_connectivity_sets(self):
+        return [ConnectivitySet(self.scaffold.output_formatter, tag) for tag in self.tags]
 
 
 class ReciprocalGolgiGlomerulus(ConnectionStrategy):
@@ -1135,23 +1137,27 @@ class ConnectomeIOMolecular(ConnectionStrategy):
         pass
 
     def connect(self):
-
+        # Gather connection information
         io_cell_type = self.from_cell_types[0]
         molecular_cell_type = self.to_cell_types[0]
-
-        io_molecular = []
         io_cells = self.scaffold.get_cells_by_type(io_cell_type.name)
-        molecular_cell_purkinje_connections = self.scaffold.get_connections_by_cell_type(
+
+        # Get connection between molecular layer cells and Purkinje cells.
+        molecular_cell_purkinje_connections = self.scaffold.get_connection_cache_by_cell_type(
             postsynaptic="purkinje_cell", presynaptic=molecular_cell_type.name
         )
         molecular_cell_purkinje_matrix = molecular_cell_purkinje_connections[0][1]
-        io_cell_purkinje_connections = self.scaffold.get_connections_by_cell_type(
+
+        # Get connections between the IO cells and Purkinje cells.
+        io_cell_purkinje_connections = self.scaffold.get_connection_cache_by_cell_type(
             postsynaptic="purkinje_cell", presynaptic=io_cell_type.name
         )
-
         if len(io_cell_purkinje_connections[0]) < 2:
+            # No IO to purkinje connections found. Do nothing.
             return
         io_cell_purkinje_matrix = io_cell_purkinje_connections[0][1]
+
+        # Make a dictionary of which Purkinje cell is contacted by which molecular cells.
         purkinje_dict = {}
         for conn in range(len(molecular_cell_purkinje_matrix)):
             purkinje_id = molecular_cell_purkinje_matrix[conn][1]
@@ -1159,20 +1165,24 @@ class ConnectomeIOMolecular(ConnectionStrategy):
                 purkinje_dict[purkinje_id] = []
             purkinje_dict[purkinje_id].append(molecular_cell_purkinje_matrix[conn][0])
 
+        # Use the above dictionary to connect each IO cell to the molecular cells that
+        # contact the Purkinje cells this IO cell contacts.
+        io_molecular = []
+        # Loop over all IO-Purkinje connections
         for io_conn in range(len(io_cell_purkinje_matrix)):
+            io_id = io_cell_purkinje_matrix[io_conn][0]
             purkinje_id = io_cell_purkinje_matrix[io_conn][1]
+            # No molecular cells contact this Purkinje cell
             if not purkinje_id in purkinje_dict:
                 continue
             target_molecular_cells = purkinje_dict[purkinje_id]
+            # Make a matrix that connects this IO cell to the target molecular cells
             matrix = np.column_stack(
-                (
-                    np.repeat(
-                        io_cell_purkinje_matrix[io_conn][0], len(target_molecular_cells)
-                    ),
-                    target_molecular_cells,
-                )
+                (np.repeat(io_id, len(target_molecular_cells)), target_molecular_cells,)
             )
+            # Add the matrix to the output dataset.
             io_molecular.extend(matrix)
+        # Store the connections.
         results = np.array(io_molecular)
         self.scaffold.connect_cells(self, results)
 

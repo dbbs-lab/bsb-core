@@ -1,14 +1,15 @@
 import abc, math, random, numpy as np
-from .helpers import ConfigurableClass
+from .helpers import ConfigurableClass, assert_attr_array
 from scipy.spatial import distance
 from scaffold.particles import Particle, ParticleSystem
 from .functions import compute_circle, get_candidate_points, add_y_axis, exclude_index
-from .exceptions import PlacementWarning
+from .exceptions import PlacementWarning, ConfigurationException
 
 
 class PlacementStrategy(ConfigurableClass):
-    def __init__(self):
+    def __init__(self, cell_type):
         super().__init__()
+        self.cell_type = cell_type
         self.layer = None
         self.radius = None
         self.density = None
@@ -19,46 +20,105 @@ class PlacementStrategy(ConfigurableClass):
         self.count = None
 
     @abc.abstractmethod
-    def place(self, cell_type):
+    def place(self):
         pass
 
     def is_entities(self):
         return "entities" in self.__class__.__dict__ and self.__class__.entities
 
-    def get_placement_count(self, cell_type):
-        """
-            Get the placement count, assuming that it is proportional to the
-            available volume times the density.
-            If it is not, overload this function in your derived class to obtain
-            correct placement counts.
-        """
+    @abc.abstractmethod
+    def get_placement_count(self):
+        pass
 
-        scaffold = self.scaffold
+
+class MightBeRelative:
+    """
+        Validation class for PlacementStrategies that can be configured relative to other
+        cell types.
+    """
+
+    def validate(self):
+        if self.placement_relative_to is not None:
+            # Store the relation.
+            self.relation = self.scaffold.configuration.cell_types[
+                self.placement_relative_to
+            ]
+            if self.density_ratio is not None and self.relation.placement.layer is None:
+                # A layer volume is required for relative density calculations.
+                raise ConfigurationException(
+                    "Cannot place cells relative to the density of a placement strategy that isn't tied to a layer."
+                )
+
+    def get_relative_count(self):
+        # Get the placement count of the ratio cell type and multiply their count by the ratio.
+        return int(
+            self.relation.placement.get_placement_count() * self.placement_count_ratio
+        )
+
+    def get_relative_density_count(self):
+        # Get the density of the ratio cell type and multiply it by the ratio.
+        ratio = placement.placement_count_ratio
+        n1 = self.relation.placement.get_placement_count()
+        V1 = self.relation.placement.layer_instance.volume
+        V2 = layer.volume
+        return int(n1 * ratio * V2 / V1)
+
+
+class MustBeRelative(MightBeRelative):
+    """
+        Validation class for PlacementStrategies that must be configured relative to other
+        cell types.
+    """
+
+    def validate(self):
+        if (
+            not hasattr(self, "placement_relative_to")
+            or self.placement_relative_to is None
+        ):
+            raise ConfigurationException(
+                "The {} requires you to configure another cell type under `placement_relative_to`."
+            )
+        super().validate()
+
+
+class Layered(MightBeRelative):
+    """
+        Class for placement strategies that depend on Layer objects.
+    """
+
+    def validate(self):
+        super().validate()
+        # Check if the layer is given and exists.
+        config = self.scaffold.configuration
+        if not hasattr(self, "layer"):
+            raise Exception(
+                "Required attribute 'layer' missing from {}".format(self.name)
+            )
+        if self.layer not in config.layers:
+            raise Exception("Unknown layer '{}' in {}".format(self.layer, self.name))
+        self.layer_instance = self.scaffold.configuration.layers[self.layer]
+        if hasattr(self, "y_restriction"):
+            self.restriction_minimum = float(self.y_restriction[0])
+            self.restriction_maximum = float(self.y_restriction[1])
+        else:
+            self.restriction_minimum = 0.0
+            self.restriction_maximum = 1.0
+        self.restriction_factor = self.restriction_maximum - self.restriction_minimum
+
+    def get_placement_count(self):
+        """
+            Get the placement count proportional to the available volume in the layer
+            times the cell type density.
+        """
         layer = self.layer_instance
         available_volume = layer.available_volume
-        placement = cell_type.placement
+        placement = self.cell_type.placement
         if placement.count is not None:
             return int(placement.count)
         if placement.placement_count_ratio is not None:
-            # Get the placement count of the ratio cell type and multiply their count by the ratio.
-            ratioCellType = scaffold.configuration.cell_types[
-                placement.placement_relative_to
-            ]
-            return int(
-                ratioCellType.placement.get_placement_count(ratioCellType)
-                * placement.placement_count_ratio
-            )
+            return self.get_relative_count()
         if placement.density_ratio is not None:
-            # Get the density of the ratio cell type and multiply it by the ratio.
-            ratioCellType = scaffold.configuration.cell_types[
-                placement.placement_relative_to
-            ]
-            relation = ratioCellType.placement
-            ratio = placement.placement_count_ratio
-            n1 = relation.get_placement_count(ratioCellType)
-            V1 = relation.layer_instance.volume
-            V2 = layer.volume
-            return int(n1 * ratio * V2 / V1)
+            return self.get_relative_density_count()
         if placement.planar_density is not None:
             # Calculate the planar density
             return int(layer.width * layer.depth * placement.planar_density)
@@ -69,7 +129,7 @@ class PlacementStrategy(ConfigurableClass):
         return int(available_volume * placement.density)
 
 
-class LayeredRandomWalk(PlacementStrategy):
+class LayeredRandomWalk(Layered, PlacementStrategy):
     """
         Implementation of the placement of cells in sublayers via a self avoiding random walk.
     """
@@ -79,37 +139,16 @@ class LayeredRandomWalk(PlacementStrategy):
     defaults = {"distance_multiplier_min": 0.75, "distance_multiplier_max": 1.25}
 
     def validate(self):
-        # Check if the layer is given and exists.
-        config = self.scaffold.configuration
-        if not hasattr(self, "layer"):
-            raise Exception(
-                "Required attribute 'layer' missing from {}".format(self.name)
-            )
-        if self.layer not in config.layers:
-            raise Exception("Unknown layer '{}' in {}".format(self.layer, self.name))
-        self.layer_instance = self.scaffold.configuration.layers[self.layer]
-        try:
-            if hasattr(self, "y_restriction"):
-                self.restriction_minimum = float(self.y_restriction[0])
-                self.restriction_maximum = float(self.y_restriction[1])
-            else:
-                self.restriction_minimum = 0.0
-                self.restriction_maximum = 1.0
-            self.restriction_factor = self.restriction_maximum - self.restriction_minimum
-        except Exception as e:
-            raise Exception(
-                "Invalid y_restriction attribute '{}' of {}".format(
-                    self.y_restriction, self.layer
-                )
-            )
+        super().validate()
 
-    def place(self, cell_type):
+    def place(self):
         """
             The LayeredRandomWalk subdivides the available volume into
             sublayers and distributes cells into each sublayer using a
             self-avoiding random walk.
         """
         # Variables
+        cell_type = self.cell_type
         scaffold = self.scaffold
         config = scaffold.configuration
         layer = self.layer_instance
@@ -134,7 +173,7 @@ class LayeredRandomWalk(PlacementStrategy):
             )
         )
         # Get the number of cells that belong in the available volume.
-        n_cells_to_place = self.get_placement_count(cell_type)
+        n_cells_to_place = self.get_placement_count()
         if n_cells_to_place == 0:
             self.scaffold.warn(
                 "Volume or density too low, no '{}' cells will be placed".format(
@@ -383,7 +422,7 @@ class LayeredRandomWalk(PlacementStrategy):
         )
 
 
-class Entities(PlacementStrategy):
+class Entities(Layered, PlacementStrategy):
     """
         Implementation of the placement of entities (e.g., mossy fibers) that do not have a
         a 3D position, but that need to be connected with other cells of the scaffold.
@@ -392,15 +431,13 @@ class Entities(PlacementStrategy):
 
     entities = True
 
-    def validate(self):
-        self.layer_instance = self.scaffold.configuration.layers[self.layer]
-
-    def place(self, cell_type):
+    def place(self):
         # Variables
+        cell_type = self.cell_type
         scaffold = self.scaffold
 
         # Get the number of cells that belong in the available volume.
-        n_cells_to_place = self.get_placement_count(cell_type)
+        n_cells_to_place = self.get_placement_count()
         if n_cells_to_place == 0:
             self.scaffold.warn(
                 "Volume or density too low, no '{}' cells will be placed".format(
@@ -412,7 +449,7 @@ class Entities(PlacementStrategy):
         scaffold.create_entities(cell_type, n_cells_to_place)
 
 
-class ParallelArrayPlacement(PlacementStrategy):
+class ParallelArrayPlacement(Layered, PlacementStrategy):
     """
         Implementation of the placement of cells in parallel arrays.
     """
@@ -436,10 +473,11 @@ class ParallelArrayPlacement(PlacementStrategy):
             raise Exception("Unknown layer '{}' in {}".format(self.layer, self.name))
         self.layer_instance = self.scaffold.configuration.layers[self.layer]
 
-    def place(self, cell_type):
+    def place(self):
         """
             Cell placement: Create a lattice of parallel arrays/lines in the layer's surface.
         """
+        cell_type = self.cell_type
         layer = self.layer_instance
         radius = cell_type.placement.radius
         # Extension of a single array in the X dimension
@@ -459,7 +497,7 @@ class ParallelArrayPlacement(PlacementStrategy):
         # Amount of parallel arrays of cells
         n_arrays = x_positions.shape[0]
         # Number of cells
-        n = self.get_placement_count(cell_type)
+        n = self.get_placement_count()
         # Add extra cells to fill the lattice error volume which will be pruned
         n += int((n_arrays * extension_x % layer.width) / layer.width * n)
         # cells to distribute along the rows
@@ -515,197 +553,199 @@ class ParallelArrayPlacement(PlacementStrategy):
 class Satellite(PlacementStrategy):
     """
         Implementation of the placement of cells in layers as satellites of existing cells
+
+        Places cells as a satellite cell to each associated cell at a random distance
+        depending on the radius of both cells.
     """
 
+    defaults = {"per_planet": 1.0}
+
     def validate(self):
-        # Check if the layer is given and exists.
-        config = self.scaffold.configuration
-        if not hasattr(self, "layer"):
-            raise Exception("Required attribute Layer missing from {}".format(self.name))
-        if self.layer not in config.layers:
-            raise Exception("Unknown layer '{}' in {}".format(self.layer, self.name))
-        self.layer_instance = self.scaffold.configuration.layers[self.layer]
+        self.after = assert_attr_array(self, "planet_types", self.name)
+        self.planet_cell_types = [self.scaffold.get_cell_type(p) for p in self.after]
 
-    def place(self, cell_type):
-
+    def get_placement_count(self):
         """
-            Cell placement: place a satellite cell to each associated cell at a random distance depending on the radius of both cells.
+            Takes the sum of the planets and multiplies it with the `per_planet` factor.
         """
+        return (
+            sum(
+                [
+                    planet.placement.get_placement_count()
+                    for planet in self.planet_cell_types
+                ]
+            )
+            * self.per_planet
+        )
 
-        # Variables
+    def place(self):
+        # Initialize
+        cell_type = self.cell_type
         scaffold = self.scaffold
         config = scaffold.configuration
-        layer = self.layer_instance
         radius_satellite = cell_type.placement.radius
-        after_cells = [
+        # Collect all planet cell types.
+        after_cell_types = [
             self.scaffold.configuration.cell_types[type_after]
             for type_after in self.after
         ]
-        after_cell_ids = np.empty([0])
-        after_cell_pos = np.empty([0, 3])
-        after_cell_radii = np.empty(0)
-        for after_cell_type in after_cells:
-            cells = self.scaffold.get_cells_by_type(after_cell_type.name)
+        all_satellites = np.empty((0))
+        # Assemble the parallel arrays from all the planet cell types.
+        for after_cell_type in after_cell_types:
+            layer = after_cell_type.placement.layer_instance
+            layer_min = layer.origin
+            layer_max = layer.origin + layer.dimensions
+            planet_cell_radius = after_cell_type.placement.radius
+            planet_cells = self.scaffold.get_cells_by_type(after_cell_type.name)
             # Exit the placement of satellites if no corresponding planet after cells were created before
-            if len(cells) == 0:
+            if len(planet_cells) == 0:
                 self.scaffold.warn(
-                    "Could not place any satellite after '{}' because no planet cells were created".format(
+                    "Could not place any satellites for '{}' because no planet cells were created".format(
                         after_cell_type.name
                     ),
                     PlacementWarning,
                 )
-                return
-            after_cell_ids = np.concatenate((after_cell_ids, cells[:, 0]))
-            after_cell_pos = np.vstack((after_cell_pos, cells[:, [2, 3, 4]]))
-            after_cell_radii = np.concatenate(
-                (
-                    after_cell_radii,
-                    np.ones(cells.shape[0]) * after_cell_type.placement.radius,
-                )
-            )
+                continue
 
-        if all(i == after_cell_radii[0] for i in after_cell_radii):
-            after_cell_radius = after_cell_radii[0]
-        else:
-            after_cell_radius = np.mean(after_cell_radii)
-
-        dist = np.empty([0])
-        for I in range(len(after_cell_pos)):
-            for J in range(len(after_cell_pos)):
-                dist = np.append(
-                    dist, np.linalg.norm(after_cell_pos[I, :] - after_cell_pos[J, :])
-                )
-
-        mean_dist_after_cells = np.mean(dist[np.nonzero(dist)])
-
-        # Place satellites
-        satellitePositions = np.empty([len(after_cell_ids), 3])
-        for to_place in range(len(after_cell_pos)):
-            not_overlapping = True
-            not_out = True
-            iter = 0
-            not_placed_num = (
-                0  # To keep track of not placed particles that are not respecting the
-            )
-            # Place satellite and replace if it is overlapping or going out of the layer bounds
-            while not_overlapping and not_out and iter < 1000:
-                iter = iter + 1
-                alfa = np.random.uniform(0, 2 * math.pi)
-                beta = np.random.uniform(0, 2 * math.pi)
-
-                # If we have only one planet and one satellite cell, we should place it near the planet without considering the mean distance of planets
-                if len(after_cell_ids) < 2:
-                    distance_satellite = np.random.uniform(
-                        (after_cell_radius + radius_satellite),
-                        (after_cell_radius + radius_satellite) * 3,
+            planets_pos = planet_cells[:, 2:5]
+            planet_count = len(planets_pos)
+            dist = np.empty((planet_count ** 2))
+            for I in range(planet_count):
+                for J in range(planet_count):
+                    dist[I * planet_count + J] = np.linalg.norm(
+                        planets_pos[I] - planets_pos[J]
                     )
-                else:
-                    distance_satellite = np.random.uniform(
-                        (after_cell_radius + radius_satellite),
-                        (
-                            mean_dist_after_cells / 4
-                            - after_cell_radius
-                            - radius_satellite
-                        ),
-                    )
-                satellitePositions[to_place, 0] = (
-                    distance_satellite * np.cos(alfa) + after_cell_pos[to_place, 0]
-                )
-                satellitePositions[to_place, 1] = (
-                    distance_satellite * np.sin(alfa) + after_cell_pos[to_place, 1]
-                )
-                satellitePositions[to_place, 2] = (
-                    distance_satellite * np.sin(beta) + after_cell_pos[to_place, 2]
-                )
 
-                # Check overlapping
-                for after_cell in range(len(after_cell_pos)):
-                    if np.linalg.norm(
-                        satellitePositions[to_place, :] - after_cell_pos[after_cell, :]
-                    ) > (after_cell_radius + radius_satellite):
-                        not_overlapping = False
+            mean_dist_after_cells = np.mean(dist[np.nonzero(dist)])
 
-                # Check out of bounds of layer
-                volume = [layer.width, layer.thickness, layer.depth]
-                if all(
-                    [
-                        abs(cell) < abs(origin) or abs(cell) > abs(origin) + size
-                        for cell, origin, size in zip(
-                            satellitePositions[to_place, :], layer.origin, volume
-                        )
-                    ]
-                ):
-                    not_out = False
-
-            if iter >= 1000:
-                satellitePositions = numpy.delete(satellitePositions, (to_place), axis=0)
-                not_placed_num += 1
-
-        if not_placed_num > 0:
-            # Print warning that some satellite cells have not been placed
-            self.scaffold.warn(
-                "'{}' satellite cells out of '{}' have not been placed, due to overlapping or out of volume issues".format(
-                    not_placed_num, len(after_cell_pos)
+            # Initialise satellite position array
+            satellites_pos = np.empty([len(planet_cells), 3])
+            scaffold.report(
+                "Checking overlap and bounds of satellite {} cells...".format(
+                    cell_type.name,
                 ),
-                PlacementWarning,
+                3,
             )
+            # To keep track of not placed particles that are not respecting the bounds or distances.
+            not_placed_num = 0
 
-        scaffold.place_cells(cell_type, layer, satellitePositions)
+            for i in reversed(range(len(planets_pos))):
+                overlapping = True
+                out = True
+                attempts = 0
+                # Place satellite and replace if it is overlapping or going out of the layer bounds
+                while (overlapping or out_of_bounds) and attempts < 1000:
+                    attempts += 1
+                    alfa = np.random.uniform(0, 2 * math.pi)
+                    beta = np.random.uniform(0, 2 * math.pi)
+                    angles = np.array([np.cos(alfa), np.sin(alfa), np.sin(beta)])
+
+                    # If we have only one planet and one satellite cell, we should place
+                    # it near the planet without considering the mean distance of planets
+                    if planet_count == 1:
+                        distance = np.random.uniform(
+                            (planet_cell_radius + radius_satellite),
+                            (planet_cell_radius + radius_satellite) * 3,
+                        )
+                    else:
+                        distance = np.random.uniform(
+                            (planet_cell_radius + radius_satellite),
+                            (
+                                mean_dist_after_cells / 4
+                                - planet_cell_radius
+                                - radius_satellite
+                            ),
+                        )
+                    # Calculate the satellite's position
+                    satellites_pos[i] = distance * angles + planets_pos[i]
+
+                    # Check overlapping: the distance of all planets to this satellite
+                    # should be greater than the sum of their radii
+                    distances_to_satellite = np.linalg.norm(
+                        planets_pos - satellites_pos[i], axis=1
+                    )
+                    overlapping = not np.all(
+                        distances_to_satellite > (planet_cell_radius + radius_satellite)
+                    )
+
+                    # Check out of bounds of layer: if any element of the satellite
+                    # position is larger than the layer max or smaller than the layer min
+                    # it is out of bounds.
+                    out_of_bounds = np.any(
+                        (satellites_pos[i] < layer_min) | (satellites_pos[i] > layer_max)
+                    )
+
+                if attempts >= 1000:
+                    # The satellite cell cannot be placed. Remove it from the positions.
+                    satellites_pos = np.delete(satellites_pos, (i), axis=0)
+                    not_placed_num += 1
+
+            if not_placed_num > 0:
+                # Print warning that some satellite cells have not been placed
+                self.scaffold.warn(
+                    "'{}' satellite cells out of '{}' have not been placed, due to overlapping or out of volume issues".format(
+                        not_placed_num, len(planets_pos)
+                    ),
+                    PlacementWarning,
+                )
+
+        scaffold.place_cells(cell_type, layer, satellites_pos)
 
 
-class ParticlePlacement(PlacementStrategy):
-    def validate(self):
-        # Check if the layer is given and exists.
-        config = self.scaffold.configuration
-        if not hasattr(self, "layer"):
-            raise Exception(
-                "Required attribute 'layer' missing from {}".format(self.name)
-            )
-        if self.layer not in config.layers:
-            raise Exception("Unknown layer '{}' in {}".format(self.layer, self.name))
-        self.layer_instance = self.scaffold.configuration.layers[self.layer]
+class ParticlePlacement(Layered, PlacementStrategy):
 
-    def place(self, cell_type):
+    casts = {
+        "prune": bool,
+        "bounded": bool,
+    }
+
+    defaults = {
+        "prune": True,
+        "bounded": False,
+    }
+
+    def place(self):
+        cell_type = self.cell_type
         layer = self.layer_instance
-        volume = [layer.width, layer.thickness, layer.depth]
-
-        voxels = [[layer.origin, [layer.width, layer.thickness, layer.depth]]]
-
+        origin = layer.origin.copy()
+        # Shift voxel origin up based on y_restriction.
+        origin[1] = layer.origin[1] + layer.thickness * self.restriction_minimum
+        # Computing voxel thickness based on y_restriction
+        volume = [layer.width, layer.thickness * self.restriction_factor, layer.depth]
+        # Create a list of voxels with the current restricted layer as only voxel.
+        voxels = [[origin, volume]]
+        # Define the particles for the particle system.
         particles = [
             {
                 "name": cell_type.name,
                 "voxels": [0],
                 "radius": cell_type.placement.radius,
-                "count": self.get_placement_count(cell_type),
+                "count": self.get_placement_count(),
             }
         ]
-
-        d = [Particle.get_displacement_force(1, i / 200) for i in range(800)]
-
-        system = ParticleSystem()
+        # Create and fill the particle system.
+        system = ParticleSystem(track_displaced=True, scaffold=self.scaffold)
         system.fill(volume, voxels, particles)
         # Raise a warning if no cells could be placed in the volume
         if len(system.particles) == 0:
             self.scaffold.warn(
-                "Could not place any {} cell in {} layer of the simulation volume!".format(
-                    cell_type.name, layer.name
-                ),
+                "Did not place any {} cell in the {}!".format(cell_type.name, layer.name),
                 PlacementWarning,
             )
             return
 
+        # Find the set of colliding particles
         colliding = system.find_colliding_particles()
         if len(colliding) > 0:
             system.solve_collisions()
-            number_pruned = system.prune(colliding)
-            self.scaffold.report(
-                "{} {} cells pruned, {}% of the total count, {}% of the colliding {} cells.".format(
-                    number_pruned,
-                    cell_type.name,
-                    int((number_pruned / self.get_placement_count(cell_type)) * 100),
-                    int((number_pruned / len(colliding)) * 100),
-                    cell_type.name,
+            if self.prune:
+                number_pruned = system.prune(at_risk_particles=system.displaced_particles)
+                self.scaffold.report(
+                    "{} {} ({}%) cells pruned.".format(
+                        number_pruned,
+                        cell_type.name,
+                        int((number_pruned / self.get_placement_count()) * 100),
+                    )
                 )
-            )
         particle_positions = system.positions
         self.scaffold.place_cells(cell_type, layer, particle_positions)

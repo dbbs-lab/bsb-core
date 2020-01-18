@@ -170,7 +170,7 @@ def start_cli():
         cl_args.func(cl_args)
     else:
         from .config import JSONConfig, _from_hdf5
-        from .scaffold import Scaffold
+        from .core import Scaffold
         from .output import MorphologyRepository, HDF5Formatter
 
         file = None
@@ -217,7 +217,7 @@ def start_cli():
 
 
 def cli_plot(args):
-    from .scaffold import from_hdf5
+    from .core import from_hdf5
     from .plotting import plot_network
 
     scaffold = from_hdf5(args.hdf5)

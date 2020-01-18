@@ -1,5 +1,5 @@
 import abc, inspect, numpy as np
-import os, sys, site
+import os, sys, site, collections
 from .exceptions import *
 
 
@@ -162,6 +162,26 @@ def raise_union_cast(value, cast, attr, name):
             name, attr, value, ", ".join(cast_names)
         )
     )
+
+
+def listify_input(value):
+    """
+        Turn any non-list values into a list containing the value. Sequences will be
+        converted to a list using `list()`, `None` will  be replaced by an empty list.
+    """
+    # Replace None by empty array
+    value = value if value is not None else []
+    # Is `value` not a list?
+    if not isinstance(value, (collections.abc.Sequence, np.ndarray)) or isinstance(
+        value, str
+    ):
+        # Encapsulate any non-list input to a 1 element list
+        value = [value]
+    else:
+        # Turn the sequence into a Python list.
+        value = list(value)
+    # Return listified value
+    return value
 
 
 class CastableConfigurableClass(ConfigurableClass):
@@ -329,11 +349,25 @@ def assert_attr_float(section, attr, section_name):
 
 
 def assert_attr_array(section, attr, section_name):
-    if attr not in section:
-        raise Exception(
-            "Required attribute '{}' missing in '{}'".format(attr, section_name)
-        )
-    return assert_array(section[attr], "{}.{}".format(section_name, attr))
+    """
+        Asserts that an attribute exists on a dictionary or object, and that it is an
+        array.
+
+        :param section: Dictionary or object that needs to contain the attribute.
+        :type section: dict, object
+        :param attr: Attribute name.
+        :type attr: string
+        :param section_name: Name of the section to print out the location of the missing attribute.
+        :type section_name: string
+    """
+    if isinstance(section, dict) and attr in section:
+        return assert_array(section[attr], "{}.{}".format(section_name, attr))
+    elif hasattr(section, attr):
+        return assert_array(section.__dict__[attr], "{}.{}".format(section_name, attr))
+
+    raise ConfigurationException(
+        "Required attribute '{}' missing in '{}'".format(attr, section_name)
+    )
 
 
 def assert_attr_in(section, attr, values, section_name):

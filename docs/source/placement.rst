@@ -80,5 +80,5 @@ placement occurs.
 Placing cells
 =============
 
-Call the scaffold instance's :func:`.scaffold.Scaffold.place_cells` function to
+Call the scaffold instance's :func:`.core.Scaffold.place_cells` function to
 place cells in the simulation volume.

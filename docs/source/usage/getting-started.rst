@@ -75,13 +75,13 @@ the scaffold with things impossible to achieve using the configuration files.
 Let's go over an example first script that creates 5 networks with different
 densities of Purkinje cells.
 
-To use the scaffold in your script you should import the :class:`scaffold.scaffold.Scaffold`
+To use the scaffold in your script you should import the :class:`scaffold.core.Scaffold`
 and construct a new instance by passing it a :class:`scaffold.config.ScaffoldConfig`.
 The only provided configuration is the :class:`scaffold.config.JSONConfig`.
 To load a configuration file, construct a JSONConfig object providing the `file`
 keyword argument with a path to the configuration file::
 
-  from scaffold.scaffold import Scaffold
+  from scaffold.core import Scaffold
   from scaffold.config import JSONConfig
 
   config = JSONConfig(file="my_config.json")
@@ -131,7 +131,7 @@ Full code example
 
 ::
 
-  from scaffold.scaffold import Scaffold
+  from scaffold.core import Scaffold
   from scaffold.config import JSONConfig
 
   config = JSONConfig(file="my_config.json")
@@ -156,7 +156,7 @@ Network compilation
 network with cells placed according to the specified placement strategies and
 connected to each other according to the specified connection strategies::
 
-  from scaffold.scaffold import Scaffold
+  from scaffold.core import Scaffold
   from scaffold.config import JSONConfig
 
   config = JSONConfig(file="my_config.json")

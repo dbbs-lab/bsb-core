@@ -41,7 +41,7 @@ class CellType(SortableByAfter):
 
     @classmethod
     def get_ordered(cls, objects):
-        return sorted(objects.values(), key=lambda x: x.placement.get_placement_count(x))
+        return sorted(objects.values(), key=lambda x: x.placement.get_placement_count())
 
     def has_after(self):
         return hasattr(self.placement, "after")
@@ -90,13 +90,55 @@ class Layer(dimensions, origin):
 
     @property
     def thickness(self):
-        return self.dimensions[1]
+        return self.height
 
     def allocateVolume(volume):
         self.volumeOccupied += volume
 
     def initialise(self, scaffoldInstance):
         self.scaffold = scaffoldInstance
+
+    def scale_to_reference(self):
+        """
+            Compute scaled layer volume
+
+            To compute layer thickness, we scale the current layer to the combined volume
+            of the reference layers. A ratio between the dimension can be specified to
+            alter the shape of the layer. By default equal ratios are used and a cubic
+            layer is obtained (given by `dimension_ratios`).
+
+            The volume of the current layer (= X*Y*Z) is scaled with respect to the volume
+            of reference layers by a factor `volume_scale`, so:
+
+            X*Y*Z = volume_reference_layers / volume_scale                [A]
+
+            Supposing that the current layer dimensions (X,Y,Z) are each one depending on
+            the dimension Y according to `dimension_ratios`, we obtain:
+
+            X*Y*Z = (Y*dimension_ratios[0] * Y * (Y*dimension_ratios[2])  [B]
+            X*Y*Z = (Y^3) * prod(dimension_ratios)                        [C]
+
+            Therefore putting together [A] and [C]:
+            (Y^3) * prod(dimension_ratios) = volume_reference_layers / volume_scale
+
+            from which we derive the normalized_size Y, according to the following
+            formula:
+
+            Y = cubic_root(volume_reference_layers / volume_scale * prod(dimension_ratios))
+        """
+        volume_reference_layers = np.sum(
+            list(map(lambda layer: layer.volume, self.reference_layers))
+        )
+        # Compute volume: see docstring.
+        normalized_size = pow(
+            volume_reference_layers
+            / (self.volume_scale * np.prod(self.dimension_ratios)),
+            1 / 3,
+        )
+        # Apply the normalized size with their ratios to each dimension
+        self.dimensions = np.multiply(
+            np.repeat(normalized_size, 3), self.dimension_ratios
+        )
 
 
 class Resource:
@@ -147,15 +189,32 @@ class Connection:
         self,
         from_id,
         to_id,
-        from_compartment,
-        to_compartment,
-        from_morphology,
-        to_morphology,
+        from_compartment=None,
+        to_compartment=None,
+        from_morphology=None,
+        to_morphology=None,
     ):
         self.from_id = from_id
         self.to_id = to_id
-        self.from_compartment = from_morphology.compartments[from_compartment]
-        self.to_compartment = from_morphology.compartments[to_compartment]
+        if (
+            from_compartment is not None
+            or to_compartment is not None
+            or from_morphology is not None
+            or to_morphology is not None
+        ):
+            # If one of the 4 arguments for a detailed connection is given, all 4 are required.
+            if (
+                from_compartment is None
+                or to_compartment is None
+                or from_morphology is None
+                or to_morphology is None
+            ):
+                raise Exception(
+                    "Insufficient arguments given to Connection constructor."
+                    + " If one of the 4 arguments for a detailed connection is given, all 4 are required."
+                )
+            self.from_compartment = from_morphology.compartments[from_compartment]
+            self.to_compartment = from_morphology.compartments[to_compartment]
 
 
 class ConnectivitySet(Resource):
@@ -166,15 +225,15 @@ class ConnectivitySet(Resource):
 
     @property
     def connections(self):
-        return self.get_dataset()
+        return [Connection(c[0], c[1]) for c in self.get_dataset()]
 
     @property
     def from_identifiers(self):
-        return self.connections[:, 0]
+        return self.get_dataset()[:, 0]
 
     @property
     def to_identifiers(self):
-        return self.connections[:, 1]
+        return self.get_dataset()[:, 1]
 
     @property
     def intersections(self):
@@ -215,6 +274,12 @@ class ConnectivitySet(Resource):
                 )
             )
         return intersections
+
+    def __iter__(self):
+        if self.compartment_set.exists():
+            return self.intersections
+        else:
+            return self.connections
 
     @property
     def meta(self):

@@ -308,6 +308,13 @@ class ScaffoldConfig(object):
             if layer.xz_center:
                 layer.origin[0] = self.X / 2 - layer.dimensions[0] / 2
                 layer.origin[2] = self.Z / 2 - layer.dimensions[2] / 2
+        # Scale layers that depend on the size of other layers.
+        self.scale_layers()
+
+    def scale_layers(self):
+        for layer in self.layers.values():
+            if hasattr(layer, "volume_scale"):
+                layer.scale_to_reference()
 
     def load_configurable_class(
         self, name, configured_class_name, parent_class, parameters={}
@@ -386,7 +393,7 @@ class JSONConfig(ScaffoldConfig):
         Create a scaffold configuration from a JSON formatted file/string.
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, file=None, **kwargs):
         """
             Initialize config from .json file.
 
@@ -417,7 +424,7 @@ class JSONConfig(ScaffoldConfig):
         # Tells the base configuration class how to parse the configuration string
         self._load_handler = load_handler
         # Initialize base config class, handling the reading of file/stream to string
-        ScaffoldConfig.__init__(self, **kwargs)
+        ScaffoldConfig.__init__(self, file=file, **kwargs)
 
         # Use the parsed configuration as a basis for loading all parts of the scaffold
         parsed_config = self._parsed_config
@@ -551,7 +558,7 @@ class JSONConfig(ScaffoldConfig):
         placement_kwargs = {}
         # Get the placement configuration node
         placement = assert_attr(section, "placement", node_name)
-        cell_type.placement = self.init_placement(placement, name)
+        cell_type.placement = self.init_placement(placement, cell_type)
         cell_type.entity = "entity" in section and section["entity"]
         if not cell_type.entity:
             # Get the morphology configuration node
@@ -621,7 +628,15 @@ class JSONConfig(ScaffoldConfig):
                         name
                     )
                 )
-            stack["layers"][stack_config["position_in_stack"]] = name
+            stack_index = int(stack_config["position_in_stack"])
+            if stack_index in stack["layers"]:
+                raise ConfigurationException(
+                    "Stack position {} already occupied by {} in stack {}".format(
+                        stack_index, stack["layers"][stack_index], stack_id
+                    )
+                )
+            else:
+                stack["layers"][stack_config["position_in_stack"]] = name
             # Configurate the position of the stack
             if "position" in stack_config:
                 if "position" in stack:
@@ -698,18 +713,21 @@ class JSONConfig(ScaffoldConfig):
         )
         self.add_connection(connection)
 
-    def init_placement(self, section, cell_type_name):
+    def init_placement(self, section, cell_type):
         """
             Initialize a PlacementStrategy-subclass from the configuration. Uses __import__
             to fetch placement class, then copies all keys as is from config section to instance
             and adds it to the PlacementStrategies dictionary.
         """
-        name = cell_type_name + "_placement"
-        node_name = "cell_types.{}.placement".format(cell_type_name)
+        name = cell_type.name + "_placement"
+        node_name = "cell_types.{}.placement".format(cell_type.name)
         placement_class = assert_attr(section, "class", node_name)
         try:
             placement = self.load_configurable_class(
-                name, placement_class, PlacementStrategy
+                name,
+                placement_class,
+                PlacementStrategy,
+                parameters={"cell_type": cell_type},
             )
         except ConfigurableClassNotFoundException as e:
             raise Exception(
@@ -717,8 +735,6 @@ class JSONConfig(ScaffoldConfig):
                     placement_class, node_name
                 )
             )
-        # Placement layer
-        placement.layer = assert_attr(section, "layer", node_name)
         if not placement.is_entities():
             # Radius of the cell soma
             placement.soma_radius = assert_attr_float(section, "soma_radius", node_name)
@@ -732,6 +748,7 @@ class JSONConfig(ScaffoldConfig):
                 "placement_count_ratio",
                 "density_ratio",
                 "count",
+                "per_planet",
             ],
             node_name,
         )
@@ -751,12 +768,12 @@ class JSONConfig(ScaffoldConfig):
             section,
             excluded=[
                 "class",
-                "layer",
                 "soma_radius",
                 "density",
                 "planar_density",
                 "placement_count_ratio",
                 "density_ratio",
+                "per_planet",
             ],
         )
 
@@ -848,64 +865,36 @@ class JSONConfig(ScaffoldConfig):
         pass
 
     def finalize_layers(self):
+        # Parse layer scaling config
         for layer in self.layers.values():
             config = self._parsed_config["layers"][layer.name]
             if "volume_scale" in config:
-                volume_scale = config["volume_scale"]
-                # Check if the config file specifies with respect to which layer volumes we are scaling the current volume
+                layer.volume_scale = config["volume_scale"]
+                # Check if the config file specifies with respect to which layer volumes
+                # we are scaling the current volume
                 if "scale_from_layers" not in config:
                     raise ConfigurationException(
                         "Required attribute scale_from_layers missing in {} config.".format(
                             name
                         )
                     )
-                reference_layers = config["scale_from_layers"]
+                layer.reference_layers = [
+                    self.layers[l] for l in config["scale_from_layers"]
+                ]
                 # Ratio between dimensions (x,y,z) of the layer volume; if not specified, the layer is a cube
                 dimension_ratios = [1.0, 1.0, 1.0]
                 if "volume_dimension_ratio" in config:
                     dimension_ratios = config["volume_dimension_ratio"]
                 # Normalize dimension ratios to y dimension
-                dimension_ratios = np.array(dimension_ratios) / dimension_ratios[1]
-                volume_reference_layers = np.sum(
-                    list(map(lambda layer: self.layers[layer].volume, reference_layers))
-                )
+                layer.dimension_ratios = np.array(dimension_ratios) / dimension_ratios[1]
+                layer.scale_to_reference()
+        # Update layer stacks: set layer Y positions.
+        self.layout_stacks()
 
-                # Compute scaled layer volume
-                #
-                # To compute layer thickness, we scale the current layer to the
-                # combined volume of the reference layers.
-                # A ratio between the dimension can be specified to alter the
-                # shape of the layer. By default equal ratios are used and a
-                # cubic layer is obtained (given by `dimension_ratios`).
-                #
-                # The volume of the current layer (= X*Y*Z) is scaled with
-                # respect to the volume of reference layers by a factor
-                # `volume_scale`, so:
-                #
-                # X*Y*Z = volume_reference_layers / volume_scale                [A]
-                #
-                # Supposing that the current layer dimensions (X,Y,Z) are each
-                # one depending on the dimension Y according to
-                # `dimension_ratios`, we obtain:
-                #
-                # X*Y*Z = (Y*dimension_ratios[0] * Y * (Y*dimension_ratios[2])  [B]
-                # X*Y*Z = (Y^3) * prod(dimension_ratios)                        [C]
-                #
-                # Therefore putting together [A] and [C]:
-                # (Y^3) * prod(dimension_ratios) = volume_reference_layers / volume_scale
-                #
-                # from which we derive the normalized_size Y,
-                # according to the following formula:
-                # Y = cubic_root(volume_reference_layers / volume_scale * prod(dimension_ratios))
-                normalized_size = pow(
-                    volume_reference_layers / (volume_scale * np.prod(dimension_ratios)),
-                    1 / 3,
-                )
-                # Apply the normalized size with their ratios to each dimension
-                layer.dimensions = np.multiply(
-                    np.repeat(normalized_size, 3), dimension_ratios
-                )
-
+    def layout_stacks(self):
+        """
+            Arrange layers according to their stack specifications.
+        """
         for stack in self._layer_stacks.values():
             if "position" not in stack:
                 stack["position"] = [0.0, 0.0, 0.0]
@@ -913,8 +902,19 @@ class JSONConfig(ScaffoldConfig):
             stack_roof = stack["position"][1]
             for (id, name) in sorted(stack["layers"].items()):
                 layer = self.layers[name]
-                # Place the layer on top of the roof of the stack, and move up the roof by the thickness of the stacked layer.
+                # Place the layer on top of the roof of the stack, and move up the roof by
+                # the thickness of the stacked layer.
                 layer.origin[1] = stack_roof
+                if layer.xz_center:
+                    layer.origin[0] = stack["position"][0] + (
+                        (self.X - layer.dimensions[0]) / 2.0
+                    )
+                    layer.origin[2] = stack["position"][2] + (
+                        (self.Z - layer.dimensions[2]) / 2.0
+                    )
+                else:
+                    layer.origin[0] = stack["position"][0]
+                    layer.origin[2] = stack["position"][2]
                 stack_roof += layer.thickness
 
     def finalize_cell_type(self, cell_type_name, section):

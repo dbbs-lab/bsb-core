@@ -4,7 +4,7 @@ import numpy as np
 import time
 from .trees import TreeCollection
 from .output import MorphologyRepository
-from .helpers import map_ndarray
+from .helpers import map_ndarray, listify_input
 from .models import CellType
 from .connectivity import ConnectionStrategy
 from warnings import warn as std_warn
@@ -128,7 +128,7 @@ class Scaffold:
         sorted_cell_types = CellType.resolve_order(self.configuration.cell_types)
         for cell_type in sorted_cell_types:
             # Place cell type according to PlacementStrategy
-            cell_type.placement.place(cell_type)
+            cell_type.placement.place()
             if cell_type.entity:
                 entities = self.entities_by_type[cell_type.name]
                 self.report(
@@ -168,6 +168,8 @@ class Scaffold:
         times = np.zeros(tries)
         # Place the cells starting from the lowest density cell_types.
         for i in np.arange(tries, dtype=int):
+            if i > 0:
+                self.reset_network_cache()
             t = time.time()
             self.place_cell_types()
             self.connect_cell_types()
@@ -181,21 +183,23 @@ class Scaffold:
                     count = self.entities_by_type[type.name].shape[0]
                 else:
                     count = self.cells_by_type[type.name].shape[0]
-                placed = type.placement.get_placement_count(type)
+                placed = type.placement.get_placement_count()
                 if placed == 0 or count == 0:
                     self.report("0 {} placed (0%)".format(type.name), 1)
                     continue
-                volume = self.configuration.layers[type.placement.layer].volume
-                density_gotten = "%.4g" % (count / volume)
-                density_wanted = "%.4g" % (
-                    type.placement.get_placement_count(type) / volume
-                )
-                percent = int((count / type.placement.get_placement_count(type)) * 100)
+                density_msg = ""
+                percent = int((count / type.placement.get_placement_count()) * 100)
+                if type.placement.layer is not None:
+                    volume = type.placement.layer_instance.volume
+                    density_gotten = "%.4g" % (count / volume)
+                    density_wanted = "%.4g" % (
+                        type.placement.get_placement_count() / volume
+                    )
+                    density_msg = " Desired density: {}. Actual density: {}".format(
+                        density_wanted, density_gotten
+                    )
                 self.report(
-                    "{} {} placed ({}%). Desired density: {}. Actual density: {}".format(
-                        count, type.name, percent, density_wanted, density_gotten
-                    ),
-                    2,
+                    "{} {} placed ({}%).".format(count, type.name, percent,), 2,
                 )
             self.report("Average runtime: {}".format(np.average(times)), 2)
 
@@ -432,7 +436,15 @@ class Scaffold:
     def compile_output(self):
         self.output_formatter.create_output()
 
-    def get_connection_types_by_cell_type(self, postsynaptic=[], presynaptic=[]):
+    def _connection_types_query(self, postsynaptic=[], presynaptic=[]):
+        # This function searches through all connection types that include the given
+        # pre- and/or postsynaptic cell types.
+
+        # Make sure the inputs are lists.
+        postsynaptic = listify_input(postsynaptic)
+        presynaptic = listify_input(presynaptic)
+
+        # Local function that checks for any intersection between 2 lists based on a given f.
         def any_intersect(l1, l2, f=lambda x: x):
             if not l2:  # Return True if there's no pre/post targets specified
                 return True
@@ -441,36 +453,82 @@ class Scaffold:
                     return True
             return False
 
-        connection_types = self.configuration.connection_types
-        connection_items = connection_types.items()
-        filtered_connection_items = list(
-            filter(
-                lambda c: any_intersect(
-                    c[1].to_cell_types, postsynaptic, lambda x: x.name
-                )
-                and any_intersect(c[1].from_cell_types, presynaptic, lambda x: x.name),
-                connection_items,
-            )
-        )
+        # Extract the connection types as tuples so that they can be turned back into a
+        # dictionary after filtering
+        connection_items = self.configuration.connection_types.items()
+        # Lambda that includes any connection type with at least one of the specified
+        # presynaptic and one of the specified postsynaptic connections.
+        # If the post- or presynaptic constraints are empty all connection types pass for
+        # that constraint.
+        intersect = lambda c: any_intersect(
+            c[1].to_cell_types, postsynaptic, lambda x: x.name
+        ) and any_intersect(c[1].from_cell_types, presynaptic, lambda x: x.name)
+        # Filter all connection types based on the lambda function.
+        filtered_connection_items = list(filter(intersect, connection_items,))
+        # Turn the filtered result into a dictionary.
         return dict(filtered_connection_items)
 
-    def get_connections_by_cell_type(self, any=None, postsynaptic=None, presynaptic=None):
+    def get_connection_types_by_cell_type(
+        self, any=None, postsynaptic=None, presynaptic=None
+    ):
+        """
+            Search for connection types that include specific cell types as pre- or postsynaptic targets.
+
+            :param any: Cell type names that will include connection types that have the given cell types as either pre- or postsynaptic targets.
+            :type any: string or sequence of strings.
+            :param postsynaptic: Cell type names that will include connection types that have the given cell types as postsynaptic targets.
+            :type postsynaptic: string or sequence of strings.
+            :param presynaptic: Cell type names that will include connection types that have the given cell types as presynaptic targets.
+            :type presynaptic: string or sequence of strings.
+            :returns: The connection types that meet the specified criteria.
+            :rtype: dict
+        """
         if any is None and postsynaptic is None and presynaptic is None:
             raise ArgumentError("No cell types specified")
+        # Make a list out of the input elements
+        postsynaptic = listify_input(postsynaptic)
+        presynaptic = listify_input(presynaptic)
         # Initialize empty omitted lists
-        postsynaptic = postsynaptic if postsynaptic is not None else []
-        presynaptic = presynaptic if presynaptic is not None else []
         if any is not None:  # Add any cell types as both post and presynaptic targets
+            any = listify_input(any)
             postsynaptic.extend(any)
             presynaptic.extend(any)
+        # Execute the query and return results.
+        return self._connection_types_query(postsynaptic, presynaptic)
+
+    def get_connection_cache_by_cell_type(
+        self, any=None, postsynaptic=None, presynaptic=None
+    ):
+        """
+            Get the connections currently in the cache for connection types that include certain cell types as targets.
+
+            :see: get_connection_types_by_cell_type
+        """
         # Find the connection types that have the specified targets
         connection_types = self.get_connection_types_by_cell_type(
-            postsynaptic, presynaptic
+            any, postsynaptic, presynaptic
         )
         # Map them to a list of tuples with the 1st element the connection type
         # and the connection matrices appended behind it.
         return list(
             map(lambda x: (x, *x.get_connection_matrices()), connection_types.values())
+        )
+
+    def get_connections_by_cell_type(self, any=None, postsynaptic=None, presynaptic=None):
+        """
+            Get the connectivity sets from storage for connection types that include certain cell types as targets.
+
+            :see: get_connection_types_by_cell_type
+            :rtype: :class:`scaffold.models.ConnectivitySet`
+        """
+        # Find the connection types that have the specified targets
+        connection_types = self.get_connection_types_by_cell_type(
+            any, postsynaptic, presynaptic
+        )
+        # Map them to a list of tuples with the 1st element the connection type
+        # and the connection matrices appended behind it.
+        return list(
+            map(lambda x: (x, *x.get_connectivity_sets()), connection_types.values())
         )
 
     def get_connectivity_set(self, tag):
@@ -490,7 +548,7 @@ class Scaffold:
             raise Exception("Unknown connection type '{}'".format(name))
         return self.configuration.connection_types[name]
 
-    def get_cell_types(self):
+    def get_cell_types(self, entities=True):
         """
             Return a collection of all configured cell types.
 
@@ -499,7 +557,10 @@ class Scaffold:
               for cell_type in scaffold.get_cell_types():
                   print(cell_type.name)
         """
-        return self.configuration.cell_types.values()
+        if entities:
+            return self.configuration.cell_types.values()
+        else:
+            return list(filter(lambda c: not c.entity, self.get_cell_types()))
 
     def get_entity_types(self):
         """

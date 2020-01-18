@@ -1,5 +1,5 @@
 {
-  "name": "DBBS Mouse cerebellum configuration v3.0.0a1",
+  "name": "DBBS Mouse cerebellum configuration v3.1.0",
   "output": {
     "format": "scaffold.output.HDF5Formatter"
   },
@@ -191,11 +191,9 @@
     "dcn_interneuron": {
       "placement": {
         "class": "scaffold.placement.Satellite",
-        "layer": "dcn_layer",
         "soma_radius": 6.0,
-        "placement_relative_to": "dcn_cell",
-        "placement_count_ratio": 1.0,
-        "after": ["dcn_cell"]
+        "planet_types": ["dcn_cell"],
+        "per_planet": 1.0
       },
       "morphology": {
         "class": "scaffold.morphologies.NoGeometry"
