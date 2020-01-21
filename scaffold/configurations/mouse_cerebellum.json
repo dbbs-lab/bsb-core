@@ -929,7 +929,7 @@
         "background_noise": {
           "device": "poisson_generator",
           "io": "input",
-          "type": "cylinder",
+          "targetting": "cylinder",
           "radius": 150,
           "cell_types": ["glomerulus"],
           "parameters": {
@@ -941,7 +941,7 @@
         "tone_stim": {
           "device": "poisson_generator",
           "io": "input",
-          "type": "cylinder",
+          "targetting": "cylinder",
           "radius": 150,
           "cell_types": ["glomerulus"],
           "parameters": {
@@ -953,7 +953,7 @@
         "puff_stim": {
           "device": "spike_generator",
           "io": "input",
-          "type": "cell_type",
+          "targetting": "cell_type",
           "cell_types": ["io_cell"],
           "parameters": {},
           "stimulus": {
@@ -970,7 +970,7 @@
         "record_glomerulus_spikes": {
           "device": "spike_detector",
           "io": "output",
-          "type": "cell_type",
+          "targetting": "cell_type",
           "cell_types": ["glomerulus"],
           "parameters": {
             "withgid": true,
@@ -982,7 +982,7 @@
         "record_dcn_spikes": {
          "device": "spike_detector",
          "io": "output",
-         "type": "cell_type",
+         "targetting": "cell_type",
          "cell_types": ["dcn_cell"],
          "parameters": {
            "withgid": true,
@@ -994,7 +994,7 @@
         "record_pc_spikes": {
          "device": "spike_detector",
          "io": "output",
-         "type": "cell_type",
+         "targetting": "cell_type",
          "cell_types": ["purkinje_cell"],
          "parameters": {
            "withgid": true,
@@ -1006,7 +1006,7 @@
         "record_io_spikes": {
          "device": "spike_detector",
          "io": "output",
-         "type": "cell_type",
+         "targetting": "cell_type",
          "cell_types": ["io_cell"],
          "parameters": {
            "withgid": true,
@@ -1020,7 +1020,7 @@
         "mossy_fibers": {
           "device": "parrot_neuron",
           "io": "input",
-          "type": "local",
+          "targetting": "local",
           "cell_types": ["mossy_fibers"]
         }
       }

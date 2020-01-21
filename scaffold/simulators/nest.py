@@ -189,16 +189,15 @@ class NestDevice(TargetsNeurons, SimulationComponent):
 
     defaults = {"connection_rule": None, "connection_parameters": None}
 
-    required = ["type", "device", "io", "parameters"]
+    required = ["targetting", "device", "io", "parameters"]
 
     def validate(self):
         # Fill in the _get_targets method, so that get_target functions
-        # according to `type`.
-        types = ["local", "cylinder", "cell_type"]
-        if self.type not in types:
+        # according to `targetting`.
+        if self.targetting not in self.__class__.neuron_targetting_types:
             raise Exception(
                 "Unknown NEST targetting type '{}' in {}".format(
-                    self.type, self.node_name
+                    self.targetting, self.node_name
                 )
             )
         if not self.io == "input" and not self.io == "output":

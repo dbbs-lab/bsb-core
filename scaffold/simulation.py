@@ -98,17 +98,19 @@ class SimulatorAdapter(ConfigurableClass):
 
 
 class TargetsNeurons:
+    neuron_targetting_types = ["local", "cylinder", "cell_type"]
+
     def initialise(self, scaffold):
         super().initialise(scaffold)
         # Set targetting method
-        get_targets_name = "_targets_" + self.type
+        get_targets_name = "_targets_" + self.targetting
         method = (
             getattr(self, get_targets_name) if hasattr(self, get_targets_name) else None
         )
         if not callable(method):
             raise Exception(
                 "Unimplemented neuron targetting type '{}' in {}".format(
-                    self.type, self.node_name
+                    self.targetting, self.node_name
                 )
             )
         self._get_targets = method
