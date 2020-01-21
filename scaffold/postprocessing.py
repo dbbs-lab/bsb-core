@@ -2,6 +2,23 @@ from scipy.stats import truncnorm
 import numpy as np
 
 
+class PostProcessingHook:
+    def after_placement(self):
+        raise NotImplementedError(
+            "`after_placement` hook not defined on " + self.__class__.__name__
+        )
+
+    def after_connectivity(self):
+        raise NotImplementedError(
+            "`after_connectivity` hook not defined on " + self.__class__.__name__
+        )
+
+
+class LabelMicrozones(PostProcessingHook):
+    def after_placement(self):
+        pass
+
+
 def get_parallel_fiber_heights(scaffold, granule_geometry, granules):
     parallel_fibers = np.zeros((len(granules), 2))
     pf_height = granule_geometry.pf_height

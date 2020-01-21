@@ -21,6 +21,7 @@ from .helpers import (
     get_config_path,
 )
 from .simulators.nest import NestAdapter
+from .postprocessing import PostProcessingHook
 from .exceptions import (
     DynamicClassException,
     ConfigurationException,
@@ -91,6 +92,7 @@ class ScaffoldConfig(object):
         self.connection_types = {}
         self.morphologies = {}
         self.placement_strategies = {}
+        self.after_placement_hooks = {}
         self.simulations = {}
         self.verbosity = verbosity
         self._raw = ""
@@ -183,6 +185,17 @@ class ScaffoldConfig(object):
         """
         # Register a new Geometry.
         self.placement_strategies[placement.name] = placement
+
+    def add_after_placement_hook(self, hook):
+        """
+            Adds a :class:`PlacementStrategy` to the config object. Placement
+            strategies are used to place cells in the simulation volume.
+
+            :param placement: :class:`PlacementStrategy` object to add
+            :type placement: :class:`PlacementStrategy`
+        """
+        # Register a new Geometry.
+        self.after_placement_hooks[hook.name] = hook
 
     def add_connection(self, connection):
         """
@@ -448,6 +461,13 @@ class JSONConfig(ScaffoldConfig):
             init=self.init_cell_type,
             final=self.finalize_cell_type,
         )
+        # Load the cell types
+        self.load_attr(
+            config=parsed_config,
+            attr="after_placement",
+            init=self.init_after_placement_hook,
+            optional=True,
+        )
         # Load the connection types
         self.load_attr(
             config=parsed_config,
@@ -498,7 +518,7 @@ class JSONConfig(ScaffoldConfig):
         )
 
     def load_attr(
-        self, config, attr, init, final=None, single=False, node_name=None,
+        self, config, attr, init, final=None, single=False, node_name=None, optional=False
     ):
         """
             Initialize and finalize a collection of children that are contained
@@ -530,6 +550,8 @@ class JSONConfig(ScaffoldConfig):
 
         """
         if attr not in config:
+            if optional:
+                return
             raise Exception(
                 "Missing '{}' attribute in {}.".format(attr, node_name or "configuration")
             )
@@ -780,6 +802,19 @@ class JSONConfig(ScaffoldConfig):
         # Register the configured placement class
         self.add_placement_strategy(placement)
         return placement
+
+    def init_after_placement_hook(self, name, section):
+        """
+            Initialize a Geometry-subclass from the configuration. Uses __import__
+            to fetch geometry class, then copies all keys as is from config section to instance
+            and adds it to the Geometries dictionary.
+        """
+        node_name = "after_placement." + name
+        hook_class = assert_attr(section, "class", node_name)
+        hook = self.load_configurable_class(name, hook_class, PostProcessingHook)
+        self.fill_configurable_class(hook, section, excluded=["class"])
+        self.add_after_placement_hook(hook)
+        return hook
 
     def init_simulation(self, name, section, return_obj=False):
         """
