@@ -1,4 +1,4 @@
-from ..simulation import SimulatorAdapter, SimulationComponent
+from ..simulation import SimulatorAdapter, SimulationComponent, TargetsNeurons
 from ..models import ConnectivitySet
 from ..helpers import ListEvalConfiguration
 from ..exceptions import *
@@ -177,7 +177,7 @@ class NestConnection(SimulationComponent):
         return receptors[from_cell_model.name]
 
 
-class NestDevice(SimulationComponent):
+class NestDevice(TargetsNeurons, SimulationComponent):
     node_name = "simulations.?.devices"
 
     casts = {
@@ -201,17 +201,6 @@ class NestDevice(SimulationComponent):
                     self.type, self.node_name
                 )
             )
-        get_targets_name = "_targets_" + self.type
-        method = (
-            getattr(self, get_targets_name) if hasattr(self, get_targets_name) else None
-        )
-        if not callable(method):
-            raise Exception(
-                "Unimplemented NEST stimulation type '{}' in {}".format(
-                    self.type, self.node_name
-                )
-            )
-        self._get_targets = method
         if not self.io == "input" and not self.io == "output":
             raise Exception(
                 "Attribute io needs to be either 'input' or 'output' in {}".format(
@@ -231,91 +220,6 @@ class NestDevice(SimulationComponent):
             Return the targets of the stimulation to pass into the nest.Connect call.
         """
         return self.adapter.get_nest_ids(np.array(self._get_targets(), dtype=int))
-
-    def _targets_local(self):
-        """
-            Target all or certain cells in a spherical location.
-        """
-        if len(self.cell_types) != 1:
-            # Compile a list of the cells and build a compound tree.
-            target_cells = np.empty((0, 5))
-            id_map = np.empty((0, 1))
-            for t in self.cell_types:
-                cells = self.scaffold.get_cells_by_type(t)
-                target_cells = np.vstack((target_cells, cells[:, 2:5]))
-                id_map = np.vstack((id_map, cells[:, 0]))
-            tree = KDTree(target_cells)
-            target_positions = target_cells
-        else:
-            # Retrieve the prebuilt tree from the SHDF file
-            tree = self.scaffold.trees.cells.get_tree(self.cell_types[0])
-            target_cells = self.scaffold.get_cells_by_type(self.cell_types[0])
-            id_map = target_cells[:, 0]
-            target_positions = target_cells[:, 2:5]
-        # Query the tree for all the targets
-        target_ids = tree.query_radius(np.array(self.origin).reshape(1, -1), self.radius)[
-            0
-        ].tolist()
-        return id_map[target_ids]
-
-    def _targets_cylinder(self):
-        """
-            Target all or certain cells within a cylinder of specified radius.
-        """
-        if len(self.cell_types) != 1:
-            # Compile a list of the cells.
-            target_cells = np.empty((0, 5))
-            id_map = np.empty((0, 1))
-            for t in self.cell_types:
-                cells = self.scaffold.get_cells_by_type(t)
-                target_cells = np.vstack((target_cells, cells[:, 2:5]))
-                id_map = np.vstack((id_map, cells[:, 0]))
-            target_positions = target_cells
-        else:
-            # Retrieve the prebuilt tree from the SHDF file
-            # tree = self.scaffold.trees.cells.get_tree(self.cell_types[0])
-            target_cells = self.scaffold.get_cells_by_type(self.cell_types[0])
-            # id_map = target_cells[:, 0]
-            target_positions = target_cells[:, 2:5]
-            # Query the tree for all the targets
-            center_scaffold = [
-                self.scaffold.configuration.X / 2,
-                self.scaffold.configuration.Z / 2,
-            ]
-
-            # Find cells falling into the cylinder volume
-            target_cells_idx = np.sum(
-                (target_positions[:, [0, 2]] - np.array(center_scaffold)) ** 2, axis=1
-            ).__lt__(self.radius ** 2)
-            cylinder_target_cells = target_cells[target_cells_idx, 0]
-            cylinder_target_cells = cylinder_target_cells.astype(int)
-            cylinder_target_cells = cylinder_target_cells.tolist()
-            # print(id_stim)
-            return cylinder_target_cells
-
-    def _targets_cell_type(self):
-        """
-            Target all cells of certain cell types
-        """
-        cell_types = [self.scaffold.get_cell_type(t) for t in self.cell_types]
-        if len(cell_types) != 1:
-            # Compile a list of the different cell type cells.
-            target_cells = np.empty((0, 1))
-            for t in cell_types:
-                if t.entity:
-                    ids = self.scaffold.get_entities_by_type(t.name)
-                else:
-                    ids = self.scaffold.get_cells_by_type(t.name)[:, 0]
-                target_cells = np.vstack((target_cells, ids))
-            return target_cells
-        else:
-            # Retrieve a single list
-            t = cell_types[0]
-            if t.entity:
-                ids = self.scaffold.get_entities_by_type(t.name)
-            else:
-                ids = self.scaffold.get_cells_by_type(t.name)[:, 0]
-            return ids
 
 
 class NestEntity(NestDevice, MapsScaffoldIdentifiers):
