@@ -614,6 +614,10 @@ class HDF5Formatter(OutputFormatter, MorphologyRepository):
 
     @classmethod
     def reconfigure(cls, hdf5_file, config):
+        if not os.path.exists(hdf5_file):
+            raise FileNotFoundError(
+                "HDF5 file '{}' to reconfigure does not exist.".format(hdf5_file)
+            )
         hdf5_formatter = cls()
         hdf5_formatter.file = hdf5_file
         hdf5_formatter.store_configuration(config)

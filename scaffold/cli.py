@@ -179,7 +179,6 @@ def start_cli():
         elif cl_args.ctype == "hdf5":  # Should we config from hdf5?
             file = cl_args.hdf5
             if cl_args.reconfigure is not None:
-                print(cl_args.reconfigure)
                 config = JSONConfig(file=cl_args.reconfigure)
                 HDF5Formatter.reconfigure(file, config)
             scaffoldConfig = from_hdf5(
@@ -193,7 +192,6 @@ def start_cli():
 
         if hasattr(cl_args, "x") and hasattr(cl_args, "z") and (cl_args.x or cl_args.z):
             kwargs = {"X": float(cl_args.x), "Z": float(cl_args.z)}
-            print("resizing:", kwargs)
             scaffoldInstance.configuration.resize(**kwargs)
 
         if cl_args.output:  # Is a new output file name specified?
