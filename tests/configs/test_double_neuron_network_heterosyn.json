@@ -215,7 +215,7 @@
         "record_from_cell_spikes": {
           "device": "spike_detector",
           "io": "output",
-          "type": "cell_type",
+          "targetting": "cell_type",
           "cell_types": ["from_cell"],
           "parameters": {
             "withgid": true,
@@ -227,7 +227,7 @@
         "record_to_cell_spikes": {
           "device": "spike_detector",
           "io": "output",
-          "type": "cell_type",
+          "targetting": "cell_type",
           "cell_types": ["to_cell"],
           "parameters": {
             "withgid": true,
