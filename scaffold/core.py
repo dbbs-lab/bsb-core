@@ -629,6 +629,6 @@ class Scaffold:
 
     def label_cells(self, label, ids):
         if self.scaffold.labels == {}:
-            scaffold.labels[label] = ids
+            scaffold.labels[label] = np.array(ids)
         else:
             scaffold.labels[label] = np.append(scaffold.labels[label], ids)
