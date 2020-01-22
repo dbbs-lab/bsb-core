@@ -327,26 +327,23 @@
     },
     "purkinje_to_dcn": {
       "class": "scaffold.connectivity.ConnectomePurkinjeDCN",
-      "from_cell_types": [{"type": "purkinje_cell", "compartments": ["axon"]}],
+      "from_cell_types": [{"type": "purkinje_cell", "compartments": ["axon"], "with_label": "microzone-*"}],
       "to_cell_types": [{"type": "dcn_cell", "compartments": ["dendrites"]}],
-      "divergence": 5,
-      "with_label": "microzone-*"
+      "divergence": 5
     },
     "purkinje_to_dcn_interneuron": {
       "class": "scaffold.connectivity.SatelliteCommonPresynaptic",
-      "from_cell_types": [{"type": "purkinje_cell", "compartments": ["axon"]}],
+      "from_cell_types": [{"type": "purkinje_cell", "compartments": ["axon"], "with_label": "microzone-*"}],
       "to_cell_types": [{"type": "dcn_interneuron", "compartments": ["dendrites"]}],
       "after": ["purkinje_to_dcn"],
-      "common":[""],
-      "with_label": "microzone-*"
+      "common":[""]
     },
     "io_to_purkinje": {
       "class": "scaffold.connectivity.ConnectomeIOPurkinje",
-      "from_cell_types": [{"type": "io_cell", "compartments": ["axon"]}],
+      "from_cell_types": [{"type": "io_cell", "compartments": ["axon"], "with_label": "microzone-*"}],
       "to_cell_types": [{"type": "purkinje_cell", "compartments": ["dendrites"]}],
       "divergence": 6,
-      "tolerance_divergence": 3,
-      "with_label": "microzone-*"
+      "tolerance_divergence": 3
     },
     "io_to_basket": {
       "class": "scaffold.connectivity.ConnectomeIOMolecular",
@@ -362,29 +359,17 @@
     },
     "io_to_dcn": {
       "class": "scaffold.connectivity.AllToAll",
-      "from_cell_types": [{
-        "type": "io_cell",
-        "compartments": ["axon"],
-        "with_label": "microzone-*"
-      }],
+      "from_cell_types": [{"type": "io_cell", "compartments": ["axon"], "with_label": "microzone-*"}],
       "to_cell_types": [{"type": "dcn_cell", "compartments": ["dendrites"]}]
     },
     "io_to_dcn_interneuron": {
       "class": "scaffold.connectivity.AllToAll",
-      "from_cell_types": [{
-        "type": "io_cell",
-        "compartments": ["axon"],
-        "with_label": "microzone-*"
-      }],
+      "from_cell_types": [{"type": "io_cell", "compartments": ["axon"], "with_label": "microzone-*"}],
       "to_cell_types": [{"type": "dcn_interneuron", "compartments": ["dendrites"]}]
     },
     "dcn_interneuron_to_io": {
       "class": "scaffold.connectivity.AllToAll",
-      "from_cell_types": [{
-        "type": "dcn_interneuron",
-        "compartments": ["axon"],
-        "with_label": "microzone-*"
-      }],
+      "from_cell_types": [{"type": "dcn_interneuron", "compartments": ["axon"], "with_label": "microzone-*"}],
       "to_cell_types": [{"type": "io_cell", "compartments": ["dendrites"]}]
     }
   },
