@@ -107,6 +107,8 @@ class Scaffold:
     def _initialise_connection_types(self):
         for connection_type in self.configuration.connection_types.values():
             connection_type.initialise(self)
+            # Wrap the connect function.
+            connection_type._wrap_connect()
 
     def _initialise_morphologies(self):
         for geometry in self.configuration.morphologies.values():
@@ -158,7 +160,7 @@ class Scaffold:
             self.configuration.connection_types
         )
         for connection_type in sorted_connection_types:
-            connection_type._connect()
+            connection_type.connect()
             # Iterates for each tag of the connection_type
             for tag in range(len(connection_type.tags)):
                 conn_num = np.shape(connection_type.get_connection_matrices()[tag])[0]
@@ -632,3 +634,14 @@ class Scaffold:
             self.labels[label] = np.append(self.labels[label], ids)
         else:
             self.labels[label] = np.array(ids)
+
+    def get_labels(self, pattern):
+        if pattern.endswith("*"):
+            p = pattern[:-1]
+            finder = lambda l: l.startswith(p)
+        else:
+            finder = lambda l: l == pattern
+        return list(filter(finder, self.labels.keys()))
+
+    def get_labelled_ids(self, label):
+        return np.array(self.labels[label], dtype=int)

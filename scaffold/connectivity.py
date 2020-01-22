@@ -7,6 +7,7 @@ from .helpers import (
 )
 from .postprocessing import get_parallel_fiber_heights, get_dcn_rotations
 from .models import ConnectivitySet
+from .functions import compute_intersection_slice
 import numpy as np
 from random import choice as random_element, sample as sample_elements
 from .exceptions import MissingMorphologyException, ConnectivityWarning
@@ -22,20 +23,90 @@ class ConnectionStrategy(ConfigurableClass, SortableByAfter):
         super().__init__()
         self.simulation = SimulationPlaceholder()
         self.tags = []
+        self.label = None
 
     @abc.abstractmethod
     def connect(self):
         pass
 
-    def _connect(self):
-        if not hasattr(self, "_labels"):
-            # Set cells
-            self.connect()
-        else:
-            for label in self._labels:
-                # Filter cells
-                # Set cells
-                self.connect()
+    def _wrap_connect(this):
+        # This function is called after the ConnectionStrategy instance if constructed,
+        # and replaces its user-defined `connect` function with a wrapped version of
+        # itself. The wrapper provides the ConnectionStrategy with the cell type ids it
+        # needs and might execute it multiple times. The set(s) of provided cell ids are
+        # defined by the `from_cell_types` and `to_cell_types` arrays in the JSON config
+        # of the ConnectionStrategy. If it contains a `with_label` the cell types will be
+        # filtered to a subset of cells that are labelled with the label. If the
+        # with_label ends on a wilcard (e.g. "label-big-*") multiple labels might apply
+        # and the ConnectionStrategy is repeated for each label.
+        import types
+
+        # Store a local reference to the original connect function
+        connect = this.connect
+        # Wrapper closure that calls the local `connect`, referencing the original connect
+        def wrapped_connect(self):
+            print("Connect", self.name)
+            # Handle with_label specifications.
+            # This is a dirty solution that only implements the wanted microzone behavior
+            # See https://github.com/Helveg/cerebellum-scaffold/issues/236
+            if len(self._from_cell_types) == 0:
+                print("- No cell types")
+                # No specific type specification? No labelling either -> do connect.
+                self._set_cells()
+                connect()
+            elif not "with_label" in self._from_cell_types[0]:
+                print("- No labels")
+                # No labels specified -> select all cells and do connect.
+                self._set_cells()
+                connect()
+            else:
+                # Label specified. Currently only 1 with_label is allowed for all cell types.
+                label_specification = self._from_cell_types[0]["with_label"]
+                print("- Labelled:", label_specification)
+                if (
+                    len(self._to_cell_types) > 0
+                    and "with_label" in self._to_cell_types[0]
+                    and self._to_cell_types[0]["with_label"] != label_specification
+                ):
+                    raise NotImplementedError(
+                        "Only 1 label specification allowed. Only specify `with_label` on the first from_cell_type."
+                    )
+                labels = self.scaffold.get_labels(label_specification)
+                print("- Labels:", labels)
+                for label in labels:
+                    self.label = label
+                    self._set_cells(label)
+                    connect()
+                    self.label = None
+
+        # Replace the connect function of this instance with a wrapped version.
+        this.connect = types.MethodType(wrapped_connect, this)
+
+    def _set_cells(self, label=None):
+        self.from_cells = {}
+        self.to_cells = {}
+        types = ["from_cell", "to_cell"]
+        # Do it for the from cells and to cells
+        for t in types:
+            # Iterate over the from or to cell types.
+            for cell_type in self.__dict__[t + "_types"]:
+                # Get the cell matrix and ids for the type.
+                cells = cell_type.get_cells()
+                ids = cell_type.get_ids().tolist()
+                ids.sort()
+                if label is not None:
+                    labelled = self.scaffold.get_labelled_ids(label).tolist()
+                    labelled.sort()
+                    print(cell_type.name, label, len(cells), len(ids), len(labelled))
+                    # Compute intersect of sorted list
+                    label_slice = compute_intersection_slice(ids, labelled)
+                    print(ids, labelled, "intersection:", label_slice)
+                    print(cells[label_slice])
+                    # Store the labelled cells of the type.
+                    self.__dict__[t + "s"][cell_type.name] = cells[label_slice]
+                else:
+                    # Store all cells of the type.
+                    self.__dict__[t + "s"][cell_type.name] = cells
 
     @classmethod
     def get_ordered(cls, objects):
@@ -1503,6 +1574,9 @@ class AllToAll(ConnectionStrategy):
     def connect(self):
         from_type = self.from_cell_types[0]
         to_type = self.to_cell_types[0]
+        print("AllToAll", self.name, "with label", self.label)
+        print("from:", self.from_cells[from_type.name])
+        print("to:", self.to_cells[to_type.name])
         from_cells = self.scaffold.get_cells_by_type(from_type.name)
         to_cells = self.scaffold.get_cells_by_type(to_type.name)
         l = len(to_cells)

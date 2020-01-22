@@ -40,11 +40,11 @@ class LabelMicrozones(PostProcessingHook):
             )
             self.scaffold.label_cells(
                 self.scaffold.get_cells_by_type(neurons_2b_labeled)[index_pos, 0],
-                label="Microzone_positive",
+                label="microzone-positive",
             )
             self.scaffold.label_cells(
                 self.scaffold.get_cells_by_type(neurons_2b_labeled)[index_neg, 0],
-                label="Microzone_negative",
+                label="microzone-negative",
             )
 
 

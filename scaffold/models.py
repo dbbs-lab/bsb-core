@@ -56,10 +56,16 @@ class CellType(SortableByAfter):
         return self.scaffold.statistics.cells_placed[self.name]
 
     def get_ids(self):
-        return np.array(self.scaffold.cells_by_type[self.name][:, 0], dtype=int)
+        if self.entity:
+            dataset = self.scaffold.get_entities_by_type(self.name)
+        else:
+            dataset = self.scaffold.cells_by_type[self.name][:, 0]
+        return np.array(dataset, dtype=int)
 
     def get_cells(self):
-        return self.scaffold.get_cells_by_type(self, type.name)
+        if self.entity:
+            return self.scaffold.get_entities_by_type(self.name)
+        return self.scaffold.get_cells_by_type(self.name)
 
     def list_all_morphologies(self):
         if not hasattr(self.morphology, "detailed_morphologies"):

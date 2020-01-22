@@ -126,3 +126,27 @@ def compute_intersection_list(l1, l2):
         else:
             j += 1
     return intersection_list
+
+
+def compute_intersection_slice(l1, l2):
+    """
+        Returns the indices of elements in l1 that intersect with l2.
+    """
+    # find B, the smaller list
+    swapped = len(l1) < len(l2)
+    B = l1 if swapped else l2
+    A = l2 if l1 is B else l1
+    print("swapped", swapped)
+
+    # run the algorithm described at:
+    # https://stackoverflow.com/a/40538162/145349
+    i = 0
+    j = 0
+    intersection_list = []
+    for i, x in enumerate(B):
+        j = exponential_search(A, j, x)
+        if j != -1:
+            intersection_list.append(i if swapped else j)
+        else:
+            j += 1
+    return intersection_list
