@@ -4,8 +4,8 @@
     "format": "scaffold.output.HDF5Formatter"
   },
   "network_architecture": {
-    "simulation_volume_x": 400.0,
-    "simulation_volume_z": 400.0,
+    "simulation_volume_x": 200.0,
+    "simulation_volume_z": 200.0,
     "store_kd_trees": true,
     "store_compound_kd_tree": true,
     "store_pf_kd_trees": true
@@ -371,6 +371,11 @@
       "class": "scaffold.connectivity.AllToAll",
       "from_cell_types": [{"type": "dcn_interneuron", "compartments": ["axon"]}],
       "to_cell_types": [{"type": "io_cell", "compartments": ["dendrites"]}]
+    }
+  },
+  "after_placement": {
+    "microzones": {
+      "class": "LabelMicrozones"
     }
   },
   "simulations": {
