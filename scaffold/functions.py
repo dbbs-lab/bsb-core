@@ -136,7 +136,6 @@ def compute_intersection_slice(l1, l2):
     swapped = len(l1) < len(l2)
     B = l1 if swapped else l2
     A = l2 if l1 is B else l1
-    print("swapped", swapped)
 
     # run the algorithm described at:
     # https://stackoverflow.com/a/40538162/145349

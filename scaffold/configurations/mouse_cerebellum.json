@@ -329,21 +329,24 @@
       "class": "scaffold.connectivity.ConnectomePurkinjeDCN",
       "from_cell_types": [{"type": "purkinje_cell", "compartments": ["axon"]}],
       "to_cell_types": [{"type": "dcn_cell", "compartments": ["dendrites"]}],
-      "divergence": 5
+      "divergence": 5,
+      "with_label": "microzone-*"
     },
     "purkinje_to_dcn_interneuron": {
       "class": "scaffold.connectivity.SatelliteCommonPresynaptic",
       "from_cell_types": [{"type": "purkinje_cell", "compartments": ["axon"]}],
       "to_cell_types": [{"type": "dcn_interneuron", "compartments": ["dendrites"]}],
       "after": ["purkinje_to_dcn"],
-      "common":[""]
+      "common":[""],
+      "with_label": "microzone-*"
     },
     "io_to_purkinje": {
       "class": "scaffold.connectivity.ConnectomeIOPurkinje",
       "from_cell_types": [{"type": "io_cell", "compartments": ["axon"]}],
       "to_cell_types": [{"type": "purkinje_cell", "compartments": ["dendrites"]}],
       "divergence": 6,
-      "tolerance_divergence": 3
+      "tolerance_divergence": 3,
+      "with_label": "microzone-*"
     },
     "io_to_basket": {
       "class": "scaffold.connectivity.ConnectomeIOMolecular",
