@@ -151,7 +151,7 @@ class Scaffold:
             self.configuration.connection_types
         )
         for connection_type in sorted_connection_types:
-            connection_type.connect()
+            connection_type._connect()
             # Iterates for each tag of the connection_type
             for tag in range(len(connection_type.tags)):
                 conn_num = np.shape(connection_type.get_connection_matrices()[tag])[0]
@@ -176,7 +176,7 @@ class Scaffold:
                 self.reset_network_cache()
             t = time.time()
             self.place_cell_types()
-            self.after_placement_hooks()
+            self.run_after_placement_hooks()
             self.connect_cell_types()
             times[i] = time.time() - t
 

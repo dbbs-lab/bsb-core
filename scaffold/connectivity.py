@@ -27,6 +27,16 @@ class ConnectionStrategy(ConfigurableClass, SortableByAfter):
     def connect(self):
         pass
 
+    def _connect(self):
+        if not hasattr(self, "_labels"):
+            # Set cells
+            self.connect()
+        else:
+            for label in self._labels:
+                # Filter cells
+                # Set cells
+                self.connect()
+
     @classmethod
     def get_ordered(cls, objects):
         return objects.values()  # No sorting of connection types required.
