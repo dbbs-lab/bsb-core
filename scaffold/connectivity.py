@@ -11,7 +11,6 @@ from .functions import compute_intersection_slice
 import numpy as np
 from random import choice as random_element, sample as sample_elements
 from .exceptions import MissingMorphologyException, ConnectivityWarning
-from sklearn.cluster import KMeans
 
 
 class SimulationPlaceholder:
@@ -1177,24 +1176,11 @@ class ConnectomeIOPurkinje(ConnectionStrategy):
         convergence = 1  # Purkinje cells should be always constrained to receive signal from only 1 Inferior Olive neuron
         divergence = self.divergence
         tolerance = self.tolerance_divergence
-
-        number_clusters = len(io_cells)
-        if number_clusters == 0 or len(purkinje_cells) == 0:
-            return
-        kmeans = KMeans(n_clusters=number_clusters).fit(purkinje_cells[:, 2:4])
-        label_clusters = kmeans.labels_
-        target_clusters = {
-            i: np.where(kmeans.labels_ == i)[0] for i in range(kmeans.n_clusters)
-        }
         io_purkinje = np.empty([len(purkinje_cells), 2])
-        mi = 0
-        for io in range(len(io_cells)):
-            target_purkinje_ids = purkinje_cells[target_clusters[io], 0]
-            io_ids = np.repeat(io, len(target_clusters[io]))
-            nmi = mi + len(target_purkinje_ids)
-            io_purkinje[mi:nmi] = np.column_stack((io_ids, target_purkinje_ids))
-            mi = nmi
-
+        for i, pc in enumerate(purkinje_cells):
+            np.random.shuffle(io_cells)
+            io_purkinje[i, 0] = io_cells[0, 0]
+            io_purkinje[i, 1] = pc[0]
         results = io_purkinje
         self.scaffold.connect_cells(self, results)
 
