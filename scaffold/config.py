@@ -93,6 +93,7 @@ class ScaffoldConfig(object):
         self.morphologies = {}
         self.placement_strategies = {}
         self.after_placement_hooks = {}
+        self.after_connect_hooks = {}
         self.simulations = {}
         self.verbosity = verbosity
         self._raw = ""

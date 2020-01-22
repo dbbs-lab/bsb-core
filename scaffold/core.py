@@ -79,6 +79,7 @@ class Scaffold:
         self._initialise_placement_strategies()
         self._initialise_connection_types()
         self._initialise_simulations()
+        self._initialise_hooks()
 
     def report(self, message, level=2, ongoing=False):
         if self.configuration.verbosity >= level:
@@ -110,6 +111,12 @@ class Scaffold:
     def _initialise_morphologies(self):
         for geometry in self.configuration.morphologies.values():
             geometry.initialise(self)
+
+    def _initialise_hooks(self):
+        for hook in self.configuration.after_placement_hooks.values():
+            hook.initialise(self)
+        for hook in self.configuration.after_connect_hooks.values():
+            hook.initialise(self)
 
     def _initialise_simulations(self):
         for simulation in self.configuration.simulations.values():
