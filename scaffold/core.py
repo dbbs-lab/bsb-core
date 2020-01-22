@@ -176,7 +176,7 @@ class Scaffold:
                 self.reset_network_cache()
             t = time.time()
             self.place_cell_types()
-            self.after_placement_hooks()
+            self.run_after_placement_hooks()
             self.connect_cell_types()
             times[i] = time.time() - t
 
