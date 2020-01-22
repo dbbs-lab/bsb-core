@@ -164,6 +164,10 @@ class Scaffold:
                     2,
                 )
 
+    def run_after_placement_hooks(self):
+        for hook in self.after_placement_hooks:
+            hook.after_placement()
+
     def compile_network(self, tries=1, output=True):
         times = np.zeros(tries)
         # Place the cells starting from the lowest density cell_types.
@@ -172,6 +176,7 @@ class Scaffold:
                 self.reset_network_cache()
             t = time.time()
             self.place_cell_types()
+            self.after_placement_hooks()
             self.connect_cell_types()
             times[i] = time.time() - t
 
