@@ -1035,8 +1035,6 @@ class ConnectomePurkinjeDCN(ConnectionStrategy):
                 self.scaffold.connect_cells(self, results)
 
 
-
-
 class ConnectomeMossyDCN(TouchingConvergenceDivergence):
     """
         Implementation for the connection between mossy fibers and DCN cells.
