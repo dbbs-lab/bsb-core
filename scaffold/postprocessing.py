@@ -16,7 +16,33 @@ class PostProcessingHook:
 
 class LabelMicrozones(PostProcessingHook):
     def after_placement(self):
-        pass
+        # Divide the volume into two sub-parts (one positive and one negative)
+        for neurons_2b_labeled in [
+            "purkinje_cell",
+            "dcn_cell",
+            "dcn_interneuron",
+            "io_cell",
+        ]:
+            zeds = self.scaffold.get_cells_by_type(neurons_2b_labeled)[:, 4]
+            z_min = np.min(zeds)
+            z_sep = z_min + (np.max(zeds) - z_min) / 2.0
+            index_pos = np.where(zeds >= z_sep)
+            index_neg = np.where(zeds < z_sep)
+            self.scaffold.report(
+                neurons_2b_labeled
+                + " divided into microzones: {} positive, {} negative".format(
+                    len(index_pos), len(index_neg)
+                ),
+                level=3,
+            )
+            self.scaffold.label_cells(
+                self.scaffold.get_cells_by_type(neurons_2b_labeled)[index_pos, 0],
+                label="Microzone_positive",
+            )
+            self.scaffold.label_cells(
+                self.scaffold.get_cells_by_type(neurons_2b_labeled)[index_neg, 0],
+                label="Microzone_negative",
+            )
 
 
 def get_parallel_fiber_heights(scaffold, granule_geometry, granules):
