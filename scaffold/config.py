@@ -93,6 +93,7 @@ class ScaffoldConfig(object):
         self.morphologies = {}
         self.placement_strategies = {}
         self.after_placement_hooks = {}
+        self.after_connect_hooks = {}
         self.simulations = {}
         self.verbosity = verbosity
         self._raw = ""
@@ -188,11 +189,10 @@ class ScaffoldConfig(object):
 
     def add_after_placement_hook(self, hook):
         """
-            Adds a :class:`PlacementStrategy` to the config object. Placement
-            strategies are used to place cells in the simulation volume.
+            Adds a :class:`PostProcessingHook` to the config object. After placement has
+            completed the class's ``after_placement`` function will be called.
 
-            :param placement: :class:`PlacementStrategy` object to add
-            :type placement: :class:`PlacementStrategy`
+            :param hook: :class:`PostProcessingHook`
         """
         # Register a new Geometry.
         self.after_placement_hooks[hook.name] = hook

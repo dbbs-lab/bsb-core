@@ -1,8 +1,12 @@
+from .helpers import ConfigurableClass
 from scipy.stats import truncnorm
 import numpy as np
 
 
-class PostProcessingHook:
+class PostProcessingHook(ConfigurableClass):
+    def validate(self):
+        pass
+
     def after_placement(self):
         raise NotImplementedError(
             "`after_placement` hook not defined on " + self.__class__.__name__
