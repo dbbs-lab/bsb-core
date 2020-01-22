@@ -5,6 +5,7 @@
     contains a collection of mathematical functions.
 """
 
+import bisect
 import numpy as np
 import random
 from scipy.spatial import distance
@@ -83,3 +84,45 @@ def add_y_axis(points, min, max):
         Add random values to the 2nd column of a matrix of 2D points.
     """
     return np.insert(points, 1, np.random.uniform(min, max, points.shape[0]), axis=1)
+
+
+#############################
+# Gist from: https://gist.github.com/fjsj/9c9f7f36cfd3205343e333d86778433c
+#
+
+
+def bisect_index(arr, start, end, x):
+    i = bisect.bisect_left(arr, x, lo=start, hi=end)
+    if i != end and arr[i] == x:
+        return i
+    return -1
+
+
+def exponential_search(arr, start, x):
+    if x == arr[start]:
+        return 0
+
+    i = start + 1
+    while i < len(arr) and arr[i] <= x:
+        i = i * 2
+
+    return bisect_index(arr, i // 2, min(i, len(arr)), x)
+
+
+def compute_intersection_list(l1, l2):
+    # find B, the smaller list
+    B = l1 if len(l1) < len(l2) else l2
+    A = l2 if l1 is B else l1
+
+    # run the algorithm described at:
+    # https://stackoverflow.com/a/40538162/145349
+    i = 0
+    j = 0
+    intersection_list = []
+    for i, x in enumerate(B):
+        j = exponential_search(A, j, x)
+        if j != -1:
+            intersection_list.append(x)
+        else:
+            j += 1
+    return intersection_list
