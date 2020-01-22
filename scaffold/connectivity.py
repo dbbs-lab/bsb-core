@@ -1028,21 +1028,10 @@ class ConnectomePurkinjeDCN(ConnectionStrategy):
                         pc_dcn = np.vstack((pc_dcn, matrix))
             return pc_dcn
 
-        if self.scaffold.labels == {}:
-            results = connectome_pc_dcn(
-                first_dcn, purkinjes, dcn_cells, divergence, dcn_angles
-            )
-            self.scaffold.connect_cells(self, results)
-        else:
-            for label_i in self.scaffold.labels.keys():
-                dcn_cells_i = self.scaffold.filter_labels(dcn_cells, label_i)
-                purkinjes_i = self.scaffold.filter_labels(purkinjes, label_i)
-                first_dcn_i = int(dcn_cells_i[0, 0])
-                dcn_angles_i = get_dcn_rotations(dcn_cells_i)
-                results = connectome_pc_dcn(
-                    first_dcn_i, purkinjes_i, dcn_cells_i, divergence, dcn_angles_i
-                )
-                self.scaffold.connect_cells(self, results)
+        results = connectome_pc_dcn(
+            first_dcn, purkinjes, dcn_cells, divergence, dcn_angles
+        )
+        self.scaffold.connect_cells(self, results)
 
 
 class ConnectomeMossyDCN(TouchingConvergenceDivergence):

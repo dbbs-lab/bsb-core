@@ -28,14 +28,13 @@ class LabelMicrozones(PostProcessingHook):
             "io_cell",
         ]:
             zeds = self.scaffold.get_cells_by_type(neurons_2b_labeled)[:, 4]
-            z_min = np.min(zeds)
-            z_sep = z_min + (np.max(zeds) - z_min) / 2.0
-            index_pos = np.where(zeds >= z_sep)
-            index_neg = np.where(zeds < z_sep)
+            z_sep = np.median(zeds)
+            index_pos = np.where(zeds >= z_sep)[0]
+            index_neg = np.where(zeds < z_sep)[0]
             self.scaffold.report(
                 neurons_2b_labeled
                 + " divided into microzones: {} positive, {} negative".format(
-                    len(index_pos), len(index_neg)
+                    index_pos.shape[0], index_neg.shape[0]
                 ),
                 level=3,
             )

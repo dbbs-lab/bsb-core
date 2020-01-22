@@ -627,8 +627,8 @@ class Scaffold:
         self._initialise_simulation(adapter)
         return adapter
 
-    def label_cells(self, label, ids):
-        if self.scaffold.labels == {}:
-            scaffold.labels[label] = np.array(ids)
+    def label_cells(self, ids, label):
+        if label in self.labels.keys():
+            self.labels[label] = np.append(self.labels[label], ids)
         else:
-            scaffold.labels[label] = np.append(scaffold.labels[label], ids)
+            self.labels[label] = np.array(ids)
