@@ -1577,8 +1577,8 @@ class AllToAll(ConnectionStrategy):
         print("AllToAll", self.name, "with label", self.label)
         print("from:", self.from_cells[from_type.name])
         print("to:", self.to_cells[to_type.name])
-        from_cells = self.scaffold.get_cells_by_type(from_type.name)
-        to_cells = self.scaffold.get_cells_by_type(to_type.name)
+        from_cells = self.from_cells[from_type.name]
+        to_cells = self.to_cells[to_type.name]
         l = len(to_cells)
         connections = np.empty([len(from_cells) * l, 2])
         to_cell_ids = to_cells[:, 0]
