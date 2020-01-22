@@ -254,6 +254,7 @@ class Scaffold:
         self.appends = {}
         self.placement_stitching = []
         self._connectivity_set_meta = {}
+        self.labels = {}
 
     def run_simulation(self, simulation_name):
         simulation, simulator = self.prepare_simulation(simulation_name)
@@ -613,3 +614,9 @@ class Scaffold:
         )
         self._initialise_simulation(adapter)
         return adapter
+
+    def label_cells(self, label, ids):
+        if self.scaffold.labels == {}:
+            scaffold.labels[label] = ids
+        else:
+            scaffold.labels[label] = np.append(scaffold.labels[label], ids)
