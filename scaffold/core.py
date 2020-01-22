@@ -165,7 +165,7 @@ class Scaffold:
                 )
 
     def run_after_placement_hooks(self):
-        for hook in self.after_placement_hooks:
+        for hook in self.after_placement_hooks.values():
             hook.after_placement()
 
     def compile_network(self, tries=1, output=True):
