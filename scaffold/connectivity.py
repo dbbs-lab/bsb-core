@@ -1534,6 +1534,10 @@ class SatelliteCommonPresynaptic(ConnectionStrategy):
             return
         first_after = np.amin(after_connections[:, 1])
         to_cells = self.to_cells[to_type.name]
+        print(to_type.name, "to cells, new:", to_cells)
+        print(
+            to_type.name, "to cells, old:", self.scaffold.get_cells_by_type(to_type.name)
+        )
         first_to = np.amin(to_cells)
         connections = np.column_stack(
             (after_connections[:, 0], after_connections[:, 1] - first_after + first_to)
