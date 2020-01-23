@@ -1172,6 +1172,9 @@ class ConnectomeIOPurkinje(ConnectionStrategy):
         from_type = self.from_cell_types[0]
         to_type = self.to_cell_types[0]
         io_cells = self.from_cells[from_type.name]
+        if len(io_cells) == 0:
+            self.scaffold.connect_cells(self, np.empty((0, 2)))
+            return
         purkinje_cells = self.to_cells[to_type.name]
         convergence = 1  # Purkinje cells should be always constrained to receive signal from only 1 Inferior Olive neuron
         divergence = self.divergence
@@ -1242,7 +1245,7 @@ class ConnectomeIOMolecular(ConnectionStrategy):
             # Add the matrix to the output dataset.
             io_molecular.extend(matrix)
         # Store the connections.
-        results = np.array(io_molecular)
+        results = np.array(io_molecular or np.empty((0, 2)))
         self.scaffold.connect_cells(self, results)
 
 
@@ -1534,10 +1537,9 @@ class SatelliteCommonPresynaptic(ConnectionStrategy):
             return
         first_after = np.amin(after_connections[:, 1])
         to_cells = self.to_cells[to_type.name]
-        print(to_type.name, "to cells, new:", to_cells)
-        print(
-            to_type.name, "to cells, old:", self.scaffold.get_cells_by_type(to_type.name)
-        )
+        if len(to_cells) == 0:
+            self.scaffold.connect_cells(self, np.empty((0, 2)))
+            return
         first_to = np.amin(to_cells)
         connections = np.column_stack(
             (after_connections[:, 0], after_connections[:, 1] - first_after + first_to)
