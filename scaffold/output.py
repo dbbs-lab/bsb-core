@@ -461,6 +461,9 @@ class HDF5Formatter(OutputFormatter, MorphologyRepository):
                     self.scaffold.configuration.connection_types[
                         contributing_type
                     ].tags.append(tag)
+            self.scaffold.labels = {
+                l: resource["cells/labels/" + l][()] for l in resource["cells/labels"]
+            }
 
     def validate(self):
         pass
