@@ -482,6 +482,8 @@ class ReplState:
             :type args: Namespace
             :rtype: None
         """
+        from .output import MorphologyRepository
+
         # Create the morphology repository instance.
         mr = MorphologyRepository(args.file)
         # Store it as a global REPL variable.
