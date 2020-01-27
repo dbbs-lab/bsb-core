@@ -1144,7 +1144,25 @@ class ConnectomeIOMolecular(ConnectionStrategy):
         molecular_cell_purkinje_connections = self.scaffold.get_connections_by_cell_type(
             postsynaptic="purkinje_cell", presynaptic=molecular_cell_type.name
         )
-        molecular_cell_purkinje_matrix = molecular_cell_purkinje_connections[0][1]
+
+        # Extract a list of cell types objects that are sources in the MLI to PC connections.
+        # molecular_cell_purkinje_connections has the connection object from which we need to extract info as the first element
+        print(molecular_cell_purkinje_connections)
+        sources_mli_types = molecular_cell_purkinje_connections[0][0].from_cell_types
+        # Associate an index to each MLI type which is connected to Purkinje cells
+        index_mli_type = next(
+            (
+                index
+                for (index, d) in enumerate(sources_mli_types)
+                if d.name == molecular_cell_type.name
+            ),
+            None,
+        )
+        # second, third etc element in molecular_cell_purkinje_connections are the connection matrix for each element in from_cell_types
+        molecular_cell_purkinje_matrix = molecular_cell_purkinje_connections[0][
+            index_mli_type + 1
+        ]
+
         io_cell_purkinje_connections = self.scaffold.get_connections_by_cell_type(
             postsynaptic="purkinje_cell", presynaptic=io_cell_type.name
         )
