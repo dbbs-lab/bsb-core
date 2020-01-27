@@ -1,4 +1,4 @@
-import unittest, os, sys, numpy as np, h5py
+import unittest, os, sys, numpy as np, h5py, importlib
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from scaffold.core import Scaffold
@@ -26,6 +26,7 @@ class TestEntities(unittest.TestCase):
     def test_placement_statistics(self):
         self.assertEqual(self.scaffold.statistics.cells_placed["entity_type"], 100)
 
+    @unittest.skipIf(importlib.find_loader("nest") is None, "NEST is not importable.")
     def test_creation_in_nest(self):
 
         f = h5py.File("minimal_entities.hdf5", "r")
