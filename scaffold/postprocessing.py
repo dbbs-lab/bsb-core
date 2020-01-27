@@ -21,12 +21,7 @@ class PostProcessingHook(ConfigurableClass):
 class LabelMicrozones(PostProcessingHook):
     def after_placement(self):
         # Divide the volume into two sub-parts (one positive and one negative)
-        for neurons_2b_labeled in [
-            "purkinje_cell",
-            "dcn_cell",
-            "dcn_interneuron",
-            "io_cell",
-        ]:
+        for neurons_2b_labeled in self.targets:
             zeds = self.scaffold.get_cells_by_type(neurons_2b_labeled)[:, 4]
             z_sep = np.median(zeds)
             index_pos = np.where(zeds >= z_sep)[0]
