@@ -1524,26 +1524,16 @@ class SatelliteCommonPresynaptic(ConnectionStrategy):
         config = self.scaffold.configuration
         from_type = self.from_cell_types[0]
         to_type = self.to_cell_types[0]
-        after_connection = self.after
-        after_cell_type = []
-        for num_after in range(len(config.cell_types[to_type.name].placement.after)):
-            after_cell_type.append(
-                config.cell_types[to_type.name].placement.after[num_after]
-            )
-            after_connections = self.scaffold.cell_connections_by_tag[
-                after_connection[num_after]
-            ]
-        if len(after_connections) == 0:
-            return
-        first_after = np.amin(after_connections[:, 1])
         to_cells = self.to_cells[to_type.name]
+        print("IN CONN!", self.scaffold._planets, len(to_cells))
         if len(to_cells) == 0:
             self.scaffold.connect_cells(self, np.empty((0, 2)))
             return
-        first_to = np.amin(to_cells)
-        connections = np.column_stack(
-            (after_connections[:, 0], after_connections[:, 1] - first_after + first_to)
-        )
+
+
+
+        print("CONNECTIONSSSS", from_type.name, to_type.name, connections)
+        print("\n\n\n\n")
         self.scaffold.connect_cells(self, connections)
 
 
