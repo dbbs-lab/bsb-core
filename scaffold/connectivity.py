@@ -7,10 +7,10 @@ from .helpers import (
 )
 from .postprocessing import get_parallel_fiber_heights, get_dcn_rotations
 from .models import ConnectivitySet
+from .functions import compute_intersection_slice
 import numpy as np
 from random import choice as random_element, sample as sample_elements
 from .exceptions import MissingMorphologyException, ConnectivityWarning
-from sklearn.cluster import KMeans
 
 
 class SimulationPlaceholder:
@@ -22,10 +22,82 @@ class ConnectionStrategy(ConfigurableClass, SortableByAfter):
         super().__init__()
         self.simulation = SimulationPlaceholder()
         self.tags = []
+        self.label = None
 
     @abc.abstractmethod
     def connect(self):
         pass
+
+    def _wrap_connect(this):
+        # This function is called after the ConnectionStrategy instance if constructed,
+        # and replaces its user-defined `connect` function with a wrapped version of
+        # itself. The wrapper provides the ConnectionStrategy with the cell type ids it
+        # needs and might execute it multiple times. The set(s) of provided cell ids are
+        # defined by the `from_cell_types` and `to_cell_types` arrays in the JSON config
+        # of the ConnectionStrategy. If it contains a `with_label` the cell types will be
+        # filtered to a subset of cells that are labelled with the label. If the
+        # with_label ends on a wilcard (e.g. "label-big-*") multiple labels might apply
+        # and the ConnectionStrategy is repeated for each label.
+        import types
+
+        # Store a local reference to the original connect function
+        connect = this.connect
+        # Wrapper closure that calls the local `connect`, referencing the original connect
+        def wrapped_connect(self):
+            # Handle with_label specifications.
+            # This is a dirty solution that only implements the wanted microzone behavior
+            # See https://github.com/Helveg/cerebellum-scaffold/issues/236
+            if len(self._from_cell_types) == 0:
+                # No specific type specification? No labelling either -> do connect.
+                self._set_cells()
+                connect()
+            elif not "with_label" in self._from_cell_types[0]:
+                # No labels specified -> select all cells and do connect.
+                self._set_cells()
+                connect()
+            else:
+                # Label specified. Currently only 1 with_label is allowed for all cell types.
+                label_specification = self._from_cell_types[0]["with_label"]
+                if (
+                    len(self._to_cell_types) > 0
+                    and "with_label" in self._to_cell_types[0]
+                    and self._to_cell_types[0]["with_label"] != label_specification
+                ):
+                    raise NotImplementedError(
+                        "Only 1 label specification allowed. Only specify `with_label` on the first from_cell_type."
+                    )
+                labels = self.scaffold.get_labels(label_specification)
+                for label in labels:
+                    self.label = label
+                    self._set_cells(label)
+                    connect()
+                    self.label = None
+
+        # Replace the connect function of this instance with a wrapped version.
+        this.connect = types.MethodType(wrapped_connect, this)
+
+    def _set_cells(self, label=None):
+        self.from_cells = {}
+        self.to_cells = {}
+        types = ["from_cell", "to_cell"]
+        # Do it for the from cells and to cells
+        for t in types:
+            # Iterate over the from or to cell types.
+            for cell_type in self.__dict__[t + "_types"]:
+                # Get the cell matrix and ids for the type.
+                cells = cell_type.get_cells()
+                ids = cell_type.get_ids().tolist()
+                ids.sort()
+                if label is not None:
+                    labelled = self.scaffold.get_labelled_ids(label).tolist()
+                    labelled.sort()
+                    # Compute intersect of sorted list
+                    label_slice = compute_intersection_slice(ids, labelled)
+                    # Store the labelled cells of the type.
+                    self.__dict__[t + "s"][cell_type.name] = cells[label_slice]
+                else:
+                    # Store all cells of the type.
+                    self.__dict__[t + "s"][cell_type.name] = cells
 
     @classmethod
     def get_ordered(cls, objects):
@@ -944,10 +1016,10 @@ class ConnectomePurkinjeDCN(ConnectionStrategy):
 
     def connect(self):
         # Gather information for the legacy code block below.
-        purkinje_cell_type = self.from_cell_types[0]
-        dcn_cell_type = self.to_cell_types[0]
-        purkinjes = self.scaffold.cells_by_type[purkinje_cell_type.name]
-        dcn_cells = self.scaffold.cells_by_type[dcn_cell_type.name]
+        from_type = self.from_cell_types[0]
+        to_type = self.to_cell_types[0]
+        purkinjes = self.from_cells[from_type.name]
+        dcn_cells = self.to_cells[to_type.name]
         dcn_angles = get_dcn_rotations(dcn_cells)
         self.scaffold.append_dset("cells/dcn_orientations", data=dcn_angles)
         if len(dcn_cells) == 0:
@@ -1068,10 +1140,10 @@ class ConnectomeGeneralConvergence(TouchingConvergenceDivergence):
 
     def connect(self):
         # Source and target neurons are extracted
-        pre_type = self.from_cell_types[0]
-        post_type = self.to_cell_types[0]
-        pre = self.scaffold.cells_by_type[pre_type.name]
-        post = self.scaffold.cells_by_type[post_type.name]
+        from_type = self.from_cell_types[0]
+        to_type = self.to_cell_types[0]
+        pre = self.from_cells[from_type.name]
+        post = self.to_cells[to_type.name]
         convergence = self.convergence
 
         pre_post = np.zeros((convergence * len(post), 2))
@@ -1097,31 +1169,21 @@ class ConnectomeIOPurkinje(ConnectionStrategy):
         pass
 
     def connect(self):
-        io_cell_type = self.from_cell_types[0]
-        purkinje_cell_type = self.to_cell_types[0]
-        io_cells = self.scaffold.cells_by_type[io_cell_type.name]
-        purkinje_cells = self.scaffold.cells_by_type[purkinje_cell_type.name]
+        from_type = self.from_cell_types[0]
+        to_type = self.to_cell_types[0]
+        io_cells = self.from_cells[from_type.name]
+        if len(io_cells) == 0:
+            self.scaffold.connect_cells(self, np.empty((0, 2)))
+            return
+        purkinje_cells = self.to_cells[to_type.name]
         convergence = 1  # Purkinje cells should be always constrained to receive signal from only 1 Inferior Olive neuron
         divergence = self.divergence
         tolerance = self.tolerance_divergence
-
-        number_clusters = len(io_cells)
-        if number_clusters == 0 or len(purkinje_cells) == 0:
-            return
-        kmeans = KMeans(n_clusters=number_clusters).fit(purkinje_cells[:, 2:4])
-        label_clusters = kmeans.labels_
-        target_clusters = {
-            i: np.where(kmeans.labels_ == i)[0] for i in range(kmeans.n_clusters)
-        }
         io_purkinje = np.empty([len(purkinje_cells), 2])
-        mi = 0
-        for io in range(len(io_cells)):
-            target_purkinje_ids = purkinje_cells[target_clusters[io], 0]
-            io_ids = np.repeat(io, len(target_clusters[io]))
-            nmi = mi + len(target_purkinje_ids)
-            io_purkinje[mi:nmi] = np.column_stack((io_ids, target_purkinje_ids))
-            mi = nmi
-
+        for i, pc in enumerate(purkinje_cells):
+            np.random.shuffle(io_cells)
+            io_purkinje[i, 0] = io_cells[0, 0]
+            io_purkinje[i, 1] = pc[0]
         results = io_purkinje
         self.scaffold.connect_cells(self, results)
 
@@ -1199,7 +1261,7 @@ class ConnectomeIOMolecular(ConnectionStrategy):
             # Add the matrix to the output dataset.
             io_molecular.extend(matrix)
         # Store the connections.
-        results = np.array(io_molecular)
+        results = np.array(io_molecular or np.empty((0, 2)))
         self.scaffold.connect_cells(self, results)
 
 
@@ -1490,7 +1552,10 @@ class SatelliteCommonPresynaptic(ConnectionStrategy):
         if len(after_connections) == 0:
             return
         first_after = np.amin(after_connections[:, 1])
-        to_cells = self.scaffold.get_cells_by_type(to_type.name)
+        to_cells = self.to_cells[to_type.name]
+        if len(to_cells) == 0:
+            self.scaffold.connect_cells(self, np.empty((0, 2)))
+            return
         first_to = np.amin(to_cells)
         connections = np.column_stack(
             (after_connections[:, 0], after_connections[:, 1] - first_after + first_to)
@@ -1509,8 +1574,8 @@ class AllToAll(ConnectionStrategy):
     def connect(self):
         from_type = self.from_cell_types[0]
         to_type = self.to_cell_types[0]
-        from_cells = self.scaffold.get_cells_by_type(from_type.name)
-        to_cells = self.scaffold.get_cells_by_type(to_type.name)
+        from_cells = self.from_cells[from_type.name]
+        to_cells = self.to_cells[to_type.name]
         l = len(to_cells)
         connections = np.empty([len(from_cells) * l, 2])
         to_cell_ids = to_cells[:, 0]

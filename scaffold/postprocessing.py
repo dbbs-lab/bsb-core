@@ -1,5 +1,46 @@
+from .helpers import ConfigurableClass
 from scipy.stats import truncnorm
 import numpy as np
+
+
+class PostProcessingHook(ConfigurableClass):
+    def validate(self):
+        pass
+
+    def after_placement(self):
+        raise NotImplementedError(
+            "`after_placement` hook not defined on " + self.__class__.__name__
+        )
+
+    def after_connectivity(self):
+        raise NotImplementedError(
+            "`after_connectivity` hook not defined on " + self.__class__.__name__
+        )
+
+
+class LabelMicrozones(PostProcessingHook):
+    def after_placement(self):
+        # Divide the volume into two sub-parts (one positive and one negative)
+        for neurons_2b_labeled in self.targets:
+            zeds = self.scaffold.get_cells_by_type(neurons_2b_labeled)[:, 4]
+            z_sep = np.median(zeds)
+            index_pos = np.where(zeds >= z_sep)[0]
+            index_neg = np.where(zeds < z_sep)[0]
+            self.scaffold.report(
+                neurons_2b_labeled
+                + " divided into microzones: {} positive, {} negative".format(
+                    index_pos.shape[0], index_neg.shape[0]
+                ),
+                level=3,
+            )
+            self.scaffold.label_cells(
+                self.scaffold.get_cells_by_type(neurons_2b_labeled)[index_pos, 0],
+                label="microzone-positive",
+            )
+            self.scaffold.label_cells(
+                self.scaffold.get_cells_by_type(neurons_2b_labeled)[index_neg, 0],
+                label="microzone-negative",
+            )
 
 
 def get_parallel_fiber_heights(scaffold, granule_geometry, granules):

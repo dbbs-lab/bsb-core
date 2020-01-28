@@ -1,4 +1,4 @@
-import unittest, os, sys, numpy as np, h5py
+import unittest, os, sys, numpy as np, h5py, importlib
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from scaffold.core import Scaffold
@@ -10,14 +10,19 @@ def relative_to_tests_folder(path):
     return os.path.join(os.path.dirname(__file__), path)
 
 
+_nest_available = importlib.find_loader("nest") is not None
+
+
 class TestConnectivity(unittest.TestCase):
     @classmethod
     def setUpClass(self):
         super(TestConnectivity, self).setUpClass()
         self.scaffold = get_test_network(200, 200)
-        self.nest_adapter = self.scaffold.get_simulation("FCN_2019")
-        self.scaffold.run_simulation("FCN_2019")
+        if _nest_available:
+            self.nest_adapter = self.scaffold.get_simulation("FCN_2019")
+            self.scaffold.run_simulation("FCN_2019")
 
+    @unittest.skipIf(not _nest_available, "NEST is not importable.")
     def test_MF_Glom(self):
         mossy = self.nest_adapter.entities["mossy_fibers"].nest_identifiers
         glom = self.nest_adapter.cell_models["glomerulus"].nest_identifiers
@@ -27,6 +32,7 @@ class TestConnectivity(unittest.TestCase):
         self.assertEqual(np.mean(hist_glom), 1.0)
         self.assertTrue(19 <= np.mean(hist_mf) <= 21)
 
+    @unittest.skipIf(not _nest_available, "NEST is not importable.")
     def test_MF_DCN(self):
         mossy = self.nest_adapter.entities["mossy_fibers"].nest_identifiers
         dcn = self.nest_adapter.cell_models["dcn_cell"].nest_identifiers
@@ -36,12 +42,14 @@ class TestConnectivity(unittest.TestCase):
         self.assertEqual(np.mean(hist_dcn), 50)
         self.assertTrue(1 <= np.mean(hist_mf) <= 4)
 
+    @unittest.skipIf(not _nest_available, "NEST is not importable.")
     def test_Glom_GoC(self):
         glom = self.nest_adapter.cell_models["glomerulus"].nest_identifiers
         goc = self.nest_adapter.cell_models["golgi_cell"].nest_identifiers
         glom_goc = self.nest_adapter.nest.GetConnections(glom, goc)
         self.assertTrue(glom_goc)
 
+    @unittest.skipIf(not _nest_available, "NEST is not importable.")
     def test_GoC_GoC(self):
         goc = self.nest_adapter.cell_models["golgi_cell"].nest_identifiers
         goc_goc = self.nest_adapter.nest.GetConnections(goc, goc)

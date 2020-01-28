@@ -79,6 +79,7 @@ class Scaffold:
         self._initialise_placement_strategies()
         self._initialise_connection_types()
         self._initialise_simulations()
+        self._initialise_hooks()
 
     def report(self, message, level=2, ongoing=False):
         if self.configuration.verbosity >= level:
@@ -106,10 +107,18 @@ class Scaffold:
     def _initialise_connection_types(self):
         for connection_type in self.configuration.connection_types.values():
             connection_type.initialise(self)
+            # Wrap the connect function.
+            connection_type._wrap_connect()
 
     def _initialise_morphologies(self):
         for geometry in self.configuration.morphologies.values():
             geometry.initialise(self)
+
+    def _initialise_hooks(self):
+        for hook in self.configuration.after_placement_hooks.values():
+            hook.initialise(self)
+        for hook in self.configuration.after_connect_hooks.values():
+            hook.initialise(self)
 
     def _initialise_simulations(self):
         for simulation in self.configuration.simulations.values():
@@ -164,6 +173,10 @@ class Scaffold:
                     2,
                 )
 
+    def run_after_placement_hooks(self):
+        for hook in self.configuration.after_placement_hooks.values():
+            hook.after_placement()
+
     def compile_network(self, tries=1, output=True):
         times = np.zeros(tries)
         # Place the cells starting from the lowest density cell_types.
@@ -172,6 +185,7 @@ class Scaffold:
                 self.reset_network_cache()
             t = time.time()
             self.place_cell_types()
+            self.run_after_placement_hooks()
             self.connect_cell_types()
             times[i] = time.time() - t
 
@@ -254,6 +268,7 @@ class Scaffold:
         self.appends = {}
         self.placement_stitching = []
         self._connectivity_set_meta = {}
+        self.labels = {}
 
     def run_simulation(self, simulation_name):
         simulation, simulator = self.prepare_simulation(simulation_name)
@@ -613,3 +628,20 @@ class Scaffold:
         )
         self._initialise_simulation(adapter)
         return adapter
+
+    def label_cells(self, ids, label):
+        if label in self.labels.keys():
+            self.labels[label] = np.append(self.labels[label], ids)
+        else:
+            self.labels[label] = np.array(ids)
+
+    def get_labels(self, pattern):
+        if pattern.endswith("*"):
+            p = pattern[:-1]
+            finder = lambda l: l.startswith(p)
+        else:
+            finder = lambda l: l == pattern
+        return list(filter(finder, self.labels.keys()))
+
+    def get_labelled_ids(self, label):
+        return np.array(self.labels[label], dtype=int)

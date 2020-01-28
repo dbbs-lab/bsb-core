@@ -461,6 +461,9 @@ class HDF5Formatter(OutputFormatter, MorphologyRepository):
                     self.scaffold.configuration.connection_types[
                         contributing_type
                     ].tags.append(tag)
+            self.scaffold.labels = {
+                l: resource["cells/labels/" + l][()] for l in resource["cells/labels"]
+            }
 
     def validate(self):
         pass
@@ -485,6 +488,7 @@ class HDF5Formatter(OutputFormatter, MorphologyRepository):
         cells_group.create_dataset("stitching", data=self.scaffold.placement_stitching)
         self.store_cell_positions(cells_group)
         self.store_cell_connections(cells_group)
+        self.store_labels(cells_group)
 
     def store_entities(self):
         cells_group = self.handle.create_group("entities")
@@ -541,6 +545,11 @@ class HDF5Formatter(OutputFormatter, MorphologyRepository):
                 morphology_dataset.attrs["map"] = self.scaffold.connection_morphologies[
                     tag + "_map"
                 ]
+
+    def store_labels(self, cells_group):
+        labels_group = cells_group.create_group("labels")
+        for label in self.scaffold.labels.keys():
+            labels_group.create_dataset(label, data=self.scaffold.labels[label])
 
     def store_statistics(self):
         statistics = self.handle.create_group("statistics")
