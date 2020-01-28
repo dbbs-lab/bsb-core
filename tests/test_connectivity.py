@@ -70,3 +70,22 @@ class TestConnectivity(unittest.TestCase):
         self.assertTrue(
             first_glom_id <= min(goc_glom[0][1].to_identifiers) <= last_glom_id
         )
+
+        # Tests if labelled cells are connected only with cells with the same label
+    def test_Microzones(self):
+
+        micro_neg = self.scaffold.get_labelled_ids("microzone-negative")
+        micro_pos = self.scaffold.get_labelled_ids("microzone-positive")
+        for pre in ["purkinje_cell", "dcn_cell", "dcn_interneuron", "io_cell"]:
+            for post in ["purkinje_cell", "dcn_cell", "dcn_interneuron", "io_cell"]:
+                pre_post = self.scaffold.get_connections_by_cell_type(
+                    presynaptic=pre, postsynaptic=post
+                )
+                if len(pre_post) > 0:
+                    for conn_type in pre_post[0][1:]:
+                        A_to_B = np.column_stack((conn_type.from_identifiers, conn_type.to_identifiers))
+                        print(pre, post, A_to_B)
+                        for connection_i in A_to_B:
+                            if (connection_i[0] in micro_neg) != (connection_i[1] in micro_neg):
+                                print(micro_neg, connection_i)
+                            self.assertTrue((connection_i[0] in micro_neg) == (connection_i[1] in micro_neg))
