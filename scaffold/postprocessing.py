@@ -33,6 +33,14 @@ class LabelMicrozones(PostProcessingHook):
                 ),
                 level=3,
             )
+            labels = {
+                "microzone-positive": self.scaffold.get_cells_by_type(neurons_2b_labeled)[
+                    index_pos, 0
+                ],
+                "microzone-negative": self.scaffold.get_cells_by_type(neurons_2b_labeled)[
+                    index_neg, 0
+                ],
+            }
             self.scaffold.label_cells(
                 self.scaffold.get_cells_by_type(neurons_2b_labeled)[index_pos, 0],
                 label="microzone-positive",
@@ -41,6 +49,30 @@ class LabelMicrozones(PostProcessingHook):
                 self.scaffold.get_cells_by_type(neurons_2b_labeled)[index_neg, 0],
                 label="microzone-negative",
             )
+
+            self.label_satellites(neurons_2b_labeled, labels)
+
+    def label_satellites(self, planet_type, labels):
+        print("Labelling satellites for", planet_type)
+        for possible_satellites in self.scaffold.get_cell_types():
+            if (
+                hasattr(possible_satellites.placement, "planet_types")
+                and planet_type in possible_satellites.placement.planet_types
+            ):
+                satellites = self.scaffold.get_cells_by_type(possible_satellites.name)[
+                    :, 0
+                ]
+                satellite_map = self.scaffold._planets[possible_satellites.name].copy()
+                for i, satellite in enumerate(satellites):
+                    planet = satellite_map[i]
+                    if planet in labels["microzone-positive"]:
+                        self.scaffold.label_cells(
+                            np.array([satellite]), label="microzone-positive"
+                        )
+                    else:
+                        self.scaffold.label_cells(
+                            np.array([satellite]), label="microzone-negative"
+                        )
 
 
 def get_parallel_fiber_heights(scaffold, granule_geometry, granules):
