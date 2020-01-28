@@ -1211,7 +1211,6 @@ class ConnectomeIOMolecular(ConnectionStrategy):
 
         # Extract a list of cell types objects that are sources in the MLI to PC connections.
         # molecular_cell_purkinje_connections has the connection object from which we need to extract info as the first element
-        print(molecular_cell_purkinje_connections)
         sources_mli_types = molecular_cell_purkinje_connections[0][0].from_cell_types
         # Associate an index to each MLI type which is connected to Purkinje cells
         index_mli_type = next(
@@ -1427,18 +1426,19 @@ class TouchDetector(ConnectionStrategy):
                             for _ in range(len(compartment_connections))
                         ]
                     )
-        if self.scaffold.configuration.verbosity > 1:
-            print(
-                "Checked {} candidate cell pairs from {} to {}".format(
-                    c_check, touch_info.from_cell_type.name, touch_info.to_cell_type.name
-                )
-            )
-            print(
-                "Touch connection results: \n* Touching pairs: ",
-                touching_cells,
-                "\n* Synapses:",
-                len(connected_compartments),
-            )
+        self.scaffold.report(
+            "Checked {} candidate cell pairs from {} to {}".format(
+                c_check, touch_info.from_cell_type.name, touch_info.to_cell_type.name
+            ),
+            level=2,
+        )
+        self.scaffold.report(
+            "Touch connection results: \n* Touching pairs: {} \n* Synapses: {}".format(
+                touching_cells, len(connected_compartments)
+            ),
+            level=2,
+        )
+
         return (
             np.array(connected_cells, dtype=int),
             np.array(morphology_names, dtype=np.string_),
@@ -1556,7 +1556,9 @@ class SatelliteCommonPresynaptic(ConnectionStrategy):
         satellites = self.scaffold.get_cells_by_type(to_type.name)[:, 0]
         satellite_map = self.scaffold._planets[to_type.name].copy()
         # Get the connections already made between the "from" cells and the planet cells
-        to_planet_connections = self.scaffold.get_connection_cache_by_cell_type(presynaptic=from_type.name, postsynaptic=planet_type)# These are the connections from the "from_cells" to the "planet" cells
+        to_planet_connections = self.scaffold.get_connection_cache_by_cell_type(
+            presynaptic=from_type.name, postsynaptic=planet_type
+        )  # These are the connections from the "from_cells" to the "planet" cells
         to_satellite_connections = np.zeros(np.shape(to_planet_connections[0][1]))
         counter = 0
         # For each connection, change the post synaptic neuron (planet) substituting the relative satellite
