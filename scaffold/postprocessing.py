@@ -33,7 +33,7 @@ class LabelMicrozones(PostProcessingHook):
                 ),
                 level=3,
             )
-            
+
             labels = {
                 "microzone-positive": self.scaffold.get_cells_by_type(neurons_2b_labeled)[
                     index_pos, 0
@@ -55,7 +55,6 @@ class LabelMicrozones(PostProcessingHook):
             self.label_satellites(neurons_2b_labeled, labels)
 
     def label_satellites(self, planet_type, labels):
-        print("Labelling satellites for", planet_type)
         for possible_satellites in self.scaffold.get_cell_types():
             if (
                 hasattr(possible_satellites.placement, "planet_types")
@@ -65,16 +64,27 @@ class LabelMicrozones(PostProcessingHook):
                     :, 0
                 ]
                 satellite_map = self.scaffold._planets[possible_satellites.name].copy()
+                lab_pos = lab_neg = 0
                 for i, satellite in enumerate(satellites):
                     planet = satellite_map[i]
                     if planet in labels["microzone-positive"]:
                         self.scaffold.label_cells(
                             np.array([satellite]), label="microzone-positive"
                         )
+                        lab_pos += 1
                     else:
                         self.scaffold.label_cells(
                             np.array([satellite]), label="microzone-negative"
                         )
+                        lab_neg += 1
+                num_labelled_sat = lab_pos + lab_neg
+                if num_labelled_sat > 0:
+                    self.scaffold.report(
+                        "{} are satellites of {} and have been labelled as: {} positive, {} negative".format(
+                            possible_satellites.name, planet_type, lab_pos, lab_neg
+                        ),
+                        level=3,
+                    )
 
 
 def get_parallel_fiber_heights(scaffold, granule_geometry, granules):
