@@ -29,5 +29,10 @@ setuptools.setup(
         "plotly>=4.1.0",
         "rtree>=0.9.3",
     ],
+    project_urls={
+        "Bug Tracker": "https://github.com/dbbs-lab/scaffold/issues/",
+        "Documentation": "https://dbbs-docs.rf.gd/",
+        "Source Code": "https://github.com/dbbs-lab/scaffold/",
+    },
     extras_require={"dev": ["sphinx", "pyarmor", "pre-commit", "black"]},
 )
