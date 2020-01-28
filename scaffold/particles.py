@@ -137,7 +137,7 @@ class ParticleSystem:
             for positions in placement_matrix:
                 # Determine the voxel to be placed in.
                 particle_voxel_id = int(positions[0] * len(placement_voxels))
-                particle_voxel = self.voxels[particle_voxel_id]
+                particle_voxel = self.voxels[placement_voxels[particle_voxel_id]]
                 # Translate the particle into the voxel based on the remaining dimensions
                 particle_position = (
                     particle_voxel.origin + positions[1:] * particle_voxel.size
