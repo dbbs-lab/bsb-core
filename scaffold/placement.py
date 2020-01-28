@@ -606,7 +606,7 @@ class Satellite(PlacementStrategy):
                     PlacementWarning,
                 )
                 continue
-
+            planet_ids =  planet_cells[:, 0]
             planets_pos = planet_cells[:, 2:5]
             planet_count = len(planets_pos)
             dist = np.empty((planet_count ** 2))
@@ -678,6 +678,7 @@ class Satellite(PlacementStrategy):
                 if attempts >= 1000:
                     # The satellite cell cannot be placed. Remove it from the positions.
                     satellites_pos = np.delete(satellites_pos, (i), axis=0)
+                    planet_ids = np.delete(planet_ids, (i), axis=0)
                     not_placed_num += 1
 
             if not_placed_num > 0:
@@ -690,6 +691,11 @@ class Satellite(PlacementStrategy):
                 )
 
         scaffold.place_cells(cell_type, layer, satellites_pos)
+        if not hasattr(scaffold, "_planets"):
+            scaffold._planets = {}
+        if cell_type.name not in scaffold._planets:
+            scaffold._planets[cell_type.name] = []
+        scaffold._planets[cell_type.name].extend(planet_ids)
 
 
 class ParticlePlacement(Layered, PlacementStrategy):
