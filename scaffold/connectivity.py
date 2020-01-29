@@ -1552,6 +1552,12 @@ class SatelliteCommonPresynaptic(ConnectionStrategy):
         if planet_types == []:  # If the satellite does not have a planet
             self.scaffold.connect_cells(self, np.empty((0, 2)))
             return
+        if len(planet_types) > 1:
+            raise NotImplementedError(
+                "The SatelliteCommonPresynaptic strategy for {} does not handle multiple planet types".format(
+                    self.name
+                )
+            )
 
         satellites = self.scaffold.get_cells_by_type(to_type.name)[:, 0]
         satellite_map = self.scaffold._planets[to_type.name].copy()
@@ -1559,6 +1565,19 @@ class SatelliteCommonPresynaptic(ConnectionStrategy):
         to_planet_connections = self.scaffold.get_connection_cache_by_cell_type(
             presynaptic=from_type.name, postsynaptic=planet_types
         )  # These are the connections from the "from_cells" to the "planet" cells
+        if len(to_planet_connections) != 1:
+            raise NotImplementedError(
+                "The SatelliteCommonPresynaptic strategy for {} handles only single connection types".format(
+                    self.name
+                )
+            )
+        if len(to_planet_connections[0]) != 2:
+            raise NotImplementedError(
+                "The SatelliteCommonPresynaptic strategy for {} handles only single connection sets".format(
+                    self.name
+                )
+            )
+
         to_satellite_connections = np.zeros(np.shape(to_planet_connections[0][1]))
         counter = 0
         # For each connection, change the post synaptic neuron (planet) substituting the relative satellite
