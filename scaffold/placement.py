@@ -606,7 +606,7 @@ class Satellite(PlacementStrategy):
                     PlacementWarning,
                 )
                 continue
-            planet_ids =  planet_cells[:, 0]
+            planet_ids = planet_cells[:, 0]
             planets_pos = planet_cells[:, 2:5]
             planet_count = len(planets_pos)
             dist = np.empty((planet_count ** 2))
