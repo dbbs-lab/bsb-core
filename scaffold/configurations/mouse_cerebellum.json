@@ -376,7 +376,7 @@
   "after_placement": {
     "microzones": {
       "class": "scaffold.postprocessing.LabelMicrozones",
-      "targets": ["purkinje_cell", "dcn_cell", "dcn_interneuron", "io_cell"]
+      "targets": ["purkinje_cell", "dcn_cell", "io_cell"]
     }
   },
   "simulations": {
