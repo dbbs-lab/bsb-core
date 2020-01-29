@@ -1548,8 +1548,8 @@ class SatelliteCommonPresynaptic(ConnectionStrategy):
             return
 
         # We have to find the cell_type of the planets
-        planet_type = to_type.placement.planet_types
-        if planet_type == []:  # If the satellite does not have a planet
+        planet_types = to_type.placement.planet_types
+        if planet_types == []:  # If the satellite does not have a planet
             self.scaffold.connect_cells(self, np.empty((0, 2)))
             return
 
@@ -1557,7 +1557,7 @@ class SatelliteCommonPresynaptic(ConnectionStrategy):
         satellite_map = self.scaffold._planets[to_type.name].copy()
         # Get the connections already made between the "from" cells and the planet cells
         to_planet_connections = self.scaffold.get_connection_cache_by_cell_type(
-            presynaptic=from_type.name, postsynaptic=planet_type
+            presynaptic=from_type.name, postsynaptic=planet_types
         )  # These are the connections from the "from_cells" to the "planet" cells
         to_satellite_connections = np.zeros(np.shape(to_planet_connections[0][1]))
         counter = 0
