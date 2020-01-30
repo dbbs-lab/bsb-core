@@ -73,7 +73,7 @@
       },
       "plotting": {
         "display_name": "Granule cell",
-        "color": "#BF0000",
+        "color": "#e81005",
         "opacity": 0.3
       }
     },
@@ -98,7 +98,7 @@
       },
       "plotting": {
         "display_name": "Glomerulus",
-        "color": "#0E1030"
+        "color": "#6F6F70"
       }
     },
     "purkinje_cell": {
@@ -116,7 +116,7 @@
       },
       "plotting": {
         "display_name": "Purkinje cell",
-        "color": "#0F8944"
+        "color": "#068f0d"
       }
     },
     "golgi_cell": {
@@ -135,7 +135,7 @@
       },
       "plotting": {
         "display_name": "Golgi cell",
-        "color": "#03396C"
+        "color": "#1009e3"
       }
     },
     "stellate_cell": {
@@ -152,7 +152,7 @@
       },
       "plotting": {
         "display_name": "Stellate cell",
-        "color": "#FFC425"
+        "color": "#f5bb1d"
       }
     },
     "basket_cell": {
@@ -169,7 +169,7 @@
       },
       "plotting": {
         "display_name": "Basket cell",
-        "color": "#F37735"
+        "color": "#f5830a"
       }
     },
     "dcn_cell": {
@@ -185,7 +185,7 @@
       },
       "plotting": {
         "display_name": "DCN cell",
-        "color": "#3C2F2F"
+        "color": "#080808"
       }
     },
     "dcn_interneuron": {
@@ -200,7 +200,7 @@
       },
       "plotting": {
         "display_name": "DCN interneuron",
-        "color": "#15118B"
+        "color": "#260582"
       }
     },
     "io_cell": {
@@ -217,7 +217,7 @@
       },
       "plotting": {
         "display_name": "io cell",
-        "color": "#890089"
+        "color": "#7d1bbf"
       }
     }
   },
