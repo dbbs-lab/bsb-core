@@ -111,10 +111,9 @@ class ParticleSystem:
         else:
             print(msg, end="\n" if not ongoing else "\r")
 
-    def fill(self, volume, voxels, particles):
-        # Amount of spatial dimensions
-        self.dimensions = len(volume)
-        self.size = volume
+    def fill(self, voxels, particles):
+        # Amount of spatial dimensions, extracted from the dimensions of the first voxel
+        self.dimensions = len(voxels[0][0])
         # Extend list of particle types in the system
         self.particle_types.extend(particles)
         # Max particle type radius
@@ -297,8 +296,9 @@ class ParticleSystem:
             )
         else:
             particles_volume = np.sum([sphere_volume(p.radius) for p in particles])
-        total_volume = np.product(self.size) if volume is None else volume
-        return particles_volume / total_volume
+        if volume is None:
+            volume = np.sum([np.product(v.size) for v in self.voxels])
+        return particles_volume / volume
 
     def prune(self, at_risk_particles=None, voxels=None):
         """

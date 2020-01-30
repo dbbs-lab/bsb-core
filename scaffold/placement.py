@@ -731,7 +731,7 @@ class ParticlePlacement(Layered, PlacementStrategy):
         ]
         # Create and fill the particle system.
         system = ParticleSystem(track_displaced=True, scaffold=self.scaffold)
-        system.fill(volume, voxels, particles)
+        system.fill(voxels, particles)
         # Raise a warning if no cells could be placed in the volume
         if len(system.particles) == 0:
             self.scaffold.warn(
