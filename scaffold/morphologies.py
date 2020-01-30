@@ -16,6 +16,8 @@ class Compartment:
         self.end = np.array(repo_record[5:8])
         self.radius = repo_record[8]
         self.parent = repo_record[9]
+        if len(repo_record) == 11:
+            self.section_id = int(repo_record[10])
         # Calculate midpoint of the compartment
         self.midpoint = (self.end - self.start) / 2 + self.start
         # Calculate the radius of the outer sphere of this compartment
@@ -26,7 +28,34 @@ class Compartment:
 
 class Morphology(ConfigurableClass):
 
-    compartment_types = {"soma": 1, "axon": 2, "dendrites": 3}
+    compartment_types = {
+        "soma": 1,
+        "axon": 2,
+        "axon_hillock": 200,
+        "axon_initial_segment": 201,
+        "parallel_fiber": 202,  # parallel fibers should be differentiated by the ascending axon
+        "ascending_axon": 203,
+        "dendrites": 3,
+        "distal_dendrites": 301,
+        "proximal_dendrites": 302,
+        "apical_dendrites": 301,
+        "basal_dendrites": 302,
+    }
+
+    compartment_alias = {
+        "dendrites": [
+            "apical_dendrites",
+            "basal_dendrites",
+            "distal_dendrites",
+            "proximal_dendrites",
+        ],
+        "axon": [
+            "axon_hillock",
+            "axon_initial_segment",
+            "parallel_fiber",
+            "ascending_axon",
+        ],
+    }
 
     def __init__(self):
         super().__init__()
@@ -109,57 +138,38 @@ class TrueMorphology(Morphology):
     def validate(self):
         pass
 
-    def voxelize(self, N):
-        self.cloud = VoxelCloud.create(self, N)
+    def voxelize(self, N, compartments=None):
+        self.cloud = VoxelCloud.create(self, N, compartments=compartments)
 
-    def get_compartment_map(self, boxes, voxels, box_size):
-        tree = self.compartment_tree
+    def create_compartment_map(self, tree, boxes, voxels, box_size):
         compartment_map = []
         box_positions = np.column_stack(boxes[:, voxels])
-        compartments = tree.get_arrays()[0]
-        compartments_taken = set([])
         for i in range(box_positions.shape[0]):
             box_origin = box_positions[i, :]
-            compartments_in_outer_sphere = detect_box_compartments(
-                tree, box_origin, box_size
-            )
-            candidate_positions = compartments[compartments_in_outer_sphere]
-            bool_vector = np.ones(compartments_in_outer_sphere.shape, dtype=bool)
-            bool_vector &= (candidate_positions[:, 0] >= box_origin[0]) & (
-                candidate_positions[:, 0] <= box_origin[0] + box_size
-            )
-            bool_vector &= (candidate_positions[:, 1] >= box_origin[1]) & (
-                candidate_positions[:, 1] <= box_origin[1] + box_size
-            )
-            bool_vector &= (candidate_positions[:, 2] >= box_origin[2]) & (
-                candidate_positions[:, 2] <= box_origin[2] + box_size
-            )
-            compartments_in_box = (
-                set(compartments_in_outer_sphere[bool_vector]) - compartments_taken
-            )
-            compartments_taken |= set(compartments_in_box)
-            compartment_map.append(list(compartments_in_box))
+            compartment_map.append(detect_box_compartments(tree, box_origin, box_size))
         return compartment_map
 
-    def get_bounding_box(self, centered=True):
+    def get_bounding_box(self, compartments=None, centered=True):
         # Use the compartment tree to get a quick array of the compartments positions
-        tree = self.compartment_tree
-        compartments = tree.get_arrays()[0]
+        compartment_positions = np.array(
+            list(map(lambda c: c.midpoint, compartments or self.compartments))
+        )
         # Determine the amount of dimensions of the morphology. Let's hope 3 ;)
-        n_dimensions = range(compartments.shape[1])
+        n_dimensions = range(compartment_positions.shape[1])
         # Create a bounding box
         outer_box = Box()
         # The outer box dimensions are equal to the maximum distance between compartments in each of n dimensions
         outer_box.dimensions = np.array(
             [
-                np.max(compartments[:, i]) - np.min(compartments[:, i])
+                np.max(compartment_positions[:, i]) - np.min(compartment_positions[:, i])
                 for i in n_dimensions
             ]
         )
         # The outer box origin should be in the middle of the outer bounds if 'centered' is True. (So lowermost point + sometimes half of dimensions)
         outer_box.origin = np.array(
             [
-                np.min(compartments[:, i]) + (outer_box.dimensions[i] / 2) * int(centered)
+                np.min(compartment_positions[:, i])
+                + (outer_box.dimensions[i] / 2) * int(centered)
                 for i in n_dimensions
             ]
         )
@@ -179,24 +189,23 @@ class TrueMorphology(Morphology):
     def get_compartment_network(self):
         compartments = self.compartments
         node_list = [set([]) for c in compartments]
-        # Fix first and last compartments
-        node_list[0] = set([1])
-        node_list.append(set([]))
         # Add child nodes to their parent's adjacency set
         for node in compartments[1:]:
+            if int(node.parent) == -1:
+                continue
             node_list[int(node.parent)].add(int(node.id))
         return node_list
 
     def get_compartment_positions(self, types=None):
         if types is None:
             return self.compartment_tree.get_arrays()[0]
-        type_ids = list(map(lambda t: Morphology.compartment_types[t], types))
+        type_ids = TrueMorphology.get_compartment_type_ids(types)
         # print("Comp --", len(self.compartments), len(list(map(lambda c: c.end, filter(lambda c: c.type in type_ids, self.compartments)))))
         return list(
             map(lambda c: c.end, filter(lambda c: c.type in type_ids, self.compartments))
         )
 
-    def get_plot_range(self, offset):
+    def get_plot_range(self, offset=[0.0, 0.0, 0.0]):
         compartments = self.compartment_tree.get_arrays()[0]
         n_dimensions = range(compartments.shape[1])
         mins = np.array([np.min(compartments[:, i]) + offset[i] for i in n_dimensions])
@@ -208,7 +217,7 @@ class TrueMorphology(Morphology):
         return list(zip(mins.tolist(), (mins + max).tolist()))
 
     def _comp_tree_factory(self, types):
-        type_map = list(map(lambda t: Morphology.compartment_types[t], types))
+        type_map = TrueMorphology.get_compartment_type_ids(types)
 
         def _comp_tree_product(_):
             return np.array(
@@ -238,7 +247,7 @@ class TrueMorphology(Morphology):
 
     def get_compartment_submask(self, compartment_types):
         i = 0
-        type_ids = list(map(lambda t: Morphology.compartment_types[t], compartment_types))
+        type_ids = TrueMorphology.get_compartment_type_ids(compartment_types)
         mask = []
         for comp in self.compartments:
             if comp.type in type_ids:
@@ -246,6 +255,25 @@ class TrueMorphology(Morphology):
                 # Where n is the index of the compartment in the filtered collection
                 mask.append(comp.id)
         return mask
+
+    def get_compartments(self, compartment_types=None):
+        if compartment_types is None:
+            return self.compartments.copy()
+        i = 0
+        try:
+            type_ids = TrueMorphology.get_compartment_type_ids(compartment_types)
+        except Exception as e:
+            raise Exception("Unknown compartment types encountered")
+        return list(filter(lambda c: c.type in type_ids, self.compartments))
+
+    @classmethod
+    def get_compartment_type_ids(cls, types):
+        ids = []
+        for t in types:
+            ids.append(cls.compartment_types[t])
+            if t in cls.compartment_alias:
+                ids.extend(cls.get_compartment_type_ids(cls.compartment_alias[t]))
+        return ids
 
 
 class GranuleCellGeometry(Morphology):

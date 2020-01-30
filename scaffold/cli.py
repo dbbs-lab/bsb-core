@@ -370,6 +370,17 @@ class ReplState:
             func=lambda args: mr.import_swc(args.file, args.name, overwrite=True)
         )
 
+        dbbs_parser = types_subparsers.add_parser(
+            "arborize", description="Import an Arborize model"
+        )
+        dbbs_parser.add_argument(
+            "model", action="store", help="Importable class of the model"
+        )
+        dbbs_parser.add_argument(
+            "name", action="store", help="Unique name of the morphology."
+        )
+        dbbs_parser.set_defaults(func=lambda args: repl_import_dbbs(mr, args))
+
         remove_parser = self.add_subparser(
             "remove", description="Remove a morphology from the repository.."
         )
@@ -599,3 +610,10 @@ def repl_view_hdf5(handle, args):
                 format_self(obj[key], obj[key].name, lvl + 1)
 
     format_self(handle, str(handle.file), 0)
+
+
+def repl_import_dbbs(mr, args):
+    import_parts = args.model.split(".")
+    _class = import_parts[-1]
+    module = __import__(".".join(import_parts[:-1]), globals(), locals(), [_class], 0)
+    mr.import_dbbs(args.name, module.__dict__[_class], overwrite=True)

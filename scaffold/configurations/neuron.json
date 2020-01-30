@@ -1,51 +1,44 @@
 {
-  "name": "DBBS Mouse cerebellum configuration v4.0",
+  "name": "DBBS NEURON simulator configuration v3.1",
   "output": {
     "format": "scaffold.output.HDF5Formatter",
-    "morphology_repository": "test.hdf5",
-    "file": "neuron.hdf5"
+    "morphology_repository": "morphologies.hdf5"
   },
   "network_architecture": {
-    "simulation_volume_x": 150.0,
-    "simulation_volume_z": 150.0
+    "simulation_volume_x": 50.0,
+    "simulation_volume_z": 50.0,
+    "store_kd_trees": true,
+    "store_compound_kd_tree": true,
+    "store_pf_kd_trees": true
   },
   "layers": {
-    "dcn_layer": {
-      "thickness": 600,
-      "xz_scale": 0.5,
-      "xz_center": true,
+    "granular_layer": {
+      "thickness": 150.0,
       "stack": {
         "stack_id": 0,
         "position_in_stack": 0,
         "position": [0.0, 0.0, 0.0]
       }
     },
-    "granular_layer": {
-      "thickness": 150.0,
-      "stack": {
-        "stack_id": 0,
-        "position_in_stack": 1
-      }
-    },
     "purkinje_layer": {
       "thickness": 30.0,
       "stack": {
         "stack_id": 0,
-        "position_in_stack": 2
+        "position_in_stack": 1
       }
     },
     "molecular_layer": {
       "thickness": 150.0,
       "stack": {
         "stack_id": 0,
-        "position_in_stack": 3
+        "position_in_stack": 2
       }
     }
   },
   "cell_types": {
     "granule_cell": {
       "placement": {
-        "class": "scaffold.placement.LayeredRandomWalk",
+        "class": "scaffold.placement.ParticlePlacement",
         "layer": "granular_layer",
         "soma_radius": 2.5,
         "density": 3.9e-3,
@@ -58,7 +51,10 @@
         "pf_height_sd": 20,
         "pf_length": 3000,
         "pf_radius": 0.5,
-        "dendrite_length": 40
+        "dendrite_length": 40,
+        "detailed_morphologies": {
+          "names": ["granule_dbbs"]
+        }
       },
       "plotting": {
         "display_name": "granule cell",
@@ -66,8 +62,9 @@
       }
     },
     "glomerulus": {
+      "relay": true,
       "placement": {
-        "class": "scaffold.placement.LayeredRandomWalk",
+        "class": "scaffold.placement.ParticlePlacement",
         "layer": "granular_layer",
         "soma_radius": 1.5,
         "density": 3e-4
@@ -80,30 +77,9 @@
         "color": "#0E1030"
       }
     },
-    "purkinje_cell": {
-      "placement": {
-        "class": "scaffold.placement.ParallelArrayPlacement",
-        "layer": "purkinje_layer",
-        "soma_radius": 7.5,
-        "planar_density": 0.003125,
-        "extension_x": 130.0,
-        "extension_z": 3.5,
-        "angle": 4
-      },
-      "morphology": {
-        "class": "scaffold.morphologies.PurkinjeCellGeometry",
-        "detailed_morphologies": {
-          "names": ["purkinje_mouse"]
-        }
-      },
-      "plotting": {
-        "display_name": "purkinje cell",
-        "color": "#0F8944"
-      }
-    },
     "golgi_cell": {
       "placement": {
-        "class": "scaffold.placement.LayeredRandomWalk",
+        "class": "scaffold.placement.ParticlePlacement",
         "layer": "granular_layer",
         "soma_radius": 8.0,
         "density": 9e-6
@@ -113,77 +89,101 @@
         "dendrite_radius": 50.0,
         "axon_x": 150.0,
         "axon_y": 150.0,
-        "axon_z": 30.0
+        "axon_z": 30.0,
+        "detailed_morphologies": {
+          "names": ["golgi_dbbs"]
+        }
       },
       "plotting": {
         "display_name": "golgi cell",
         "color": "#332EBC"
       }
     },
+    "purkinje_cell": {
+      "placement": {
+        "class": "scaffold.placement.ParallelArrayPlacement",
+        "layer": "purkinje_layer",
+        "soma_radius": 7.5,
+        "planar_density": 0.0017,
+        "extension_x": 130.0,
+        "extension_z": 3.5,
+        "angle": 70
+      },
+      "morphology": {
+        "class": "scaffold.morphologies.PurkinjeCellGeometry",
+        "detailed_morphologies": {
+          "names": ["purkinje_dbbs"]
+        }
+      },
+      "plotting": {
+        "display_name": "Purkinje cell",
+        "color": "#0F8944"
+      }
+    },
     "stellate_cell": {
       "placement": {
-        "class": "scaffold.placement.LayeredRandomWalk",
+        "class": "scaffold.placement.ParticlePlacement",
         "layer": "molecular_layer",
         "soma_radius": 4.0,
         "density": 0.5e-4,
-        "y_restriction": [0.66, 1.0]
+        "y_restriction": [0.33, 1.00]
       },
       "morphology": {
         "class": "scaffold.morphologies.RadialGeometry",
         "dendrite_radius": 15.0,
         "detailed_morphologies": {
-          "names": ["stellate_mouse"]
+          "names": ["stellate_dbbs"]
         }
       },
       "plotting": {
-        "display_name": "stellate cell",
-        "color": "#876506"
+        "display_name": "Stellate cell",
+        "color": "#FFC425"
       }
     },
     "basket_cell": {
       "placement": {
-        "class": "scaffold.placement.LayeredRandomWalk",
+        "class": "scaffold.placement.ParticlePlacement",
         "layer": "molecular_layer",
         "soma_radius": 6.0,
         "density": 0.5e-4,
-        "y_restriction": [0.0, 0.66]
+        "y_restriction": [0.00, 0.33]
       },
       "morphology": {
         "class": "scaffold.morphologies.RadialGeometry",
         "dendrite_radius": 15.0,
         "detailed_morphologies": {
-          "names": ["stellate_mouse"]
+          "names": ["stellate_dbbs"]
         }
       },
       "plotting": {
-        "display_name": "basket cell",
-        "color": "#7A1607"
+        "display_name": "Basket cell",
+        "color": "#F37735"
       }
     },
-    "dcn_cell": {
+    "mossy_fibers": {
+      "entity": true,
       "placement": {
-        "class": "scaffold.placement.LayeredRandomWalk",
-        "layer": "dcn_layer",
-        "soma_radius": 10.0,
-        "placement_relative_to": "purkinje_cell",
-        "placement_count_ratio": 0.090909
-      },
-      "morphology": {
-        "class": "scaffold.morphologies.NoGeometry"
-      },
-      "plotting": {
-        "display_name": "dcn cell",
-        "color": "#15118B"
+        "class": "scaffold.placement.Entities",
+        "layer": "granular_layer",
+        "placement_relative_to": "glomerulus",
+        "placement_count_ratio": 0.05
       }
     }
   },
+  "after_placement": {
+    "microzones": {
+      "class": "scaffold.postprocessing.LabelMicrozones",
+      "targets": ["purkinje_cell"]
+    },
+    "aa_lengths": {
+      "class": "scaffold.postprocessing.AscendingAxonLengths"
+    }
+  },
   "connection_types": {
-    "golgi_to_glomerulus": {
-      "class": "scaffold.connectivity.ConnectomeGolgiGlomerulus",
-      "from_cell_types": [{"type": "golgi_cell", "compartment": "axon"}],
-      "to_cell_types": [{"type": "glomerulus", "compartment": "soma"}],
-      "divergence": 40,
-      "convergence": 4
+    "mossy_to_glomerulus": {
+      "class": "scaffold.connectivity.ConnectomeMossyGlomerulus",
+      "from_cell_types": [{"type": "mossy_fibers", "compartments": ["soma"]}],
+      "to_cell_types": [{"type": "glomerulus", "compartments": ["soma"]}]
     },
     "glomerulus_to_granule": {
       "class": "scaffold.connectivity.ConnectomeGlomerulusGranule",
@@ -192,19 +192,29 @@
       "divergence": 50,
       "convergence": 4
     },
-    "granule_to_golgi": {
-      "class": "scaffold.connectivity.ConnectomeGranuleGolgi",
-      "from_cell_types": [{"type": "granule_cell", "compartments": ["parallel_fiber", "ascending_axon"]}],
-      "to_cell_types": [{"type": "golgi_cell", "compartments": ["dendrites"]}],
-      "tag_aa": "ascending_axon_to_golgi",
-      "tag_pf": "parallel_fiber_to_golgi",
-      "aa_convergence": 400,
-      "pf_convergence": 1200
-    },
-    "golgi_to_granule": {
-      "class": "scaffold.connectivity.ConnectomeGolgiGranule",
+    "golgi_to_glomerulus": {
+      "class": "scaffold.connectivity.ConnectomeGolgiGlomerulus",
       "from_cell_types": [{"type": "golgi_cell", "compartments": ["axon"]}],
-      "to_cell_types": [{"type": "granule_cell", "compartments": ["dendrites"]}]
+      "to_cell_types": [{"type": "glomerulus", "compartments": ["soma"]}],
+      "divergence": 40,
+      "convergence": 4
+    },
+    "glomerulus_to_golgi": {
+      "class": "scaffold.connectivity.ConnectomeGlomerulusGolgi",
+      "from_cell_types": [{"type": "glomerulus", "compartments": ["soma"]}],
+      "to_cell_types": [{"type": "golgi_cell", "compartments": ["dendrites"]}],
+      "divergence": 2,
+      "convergence": 65
+    },
+    "golgi_gap_junctions": {
+      "class": "scaffold.connectivity.ConnectomeGapJunctionsGolgi",
+      "from_cell_types": [{"type": "golgi_cell", "compartments": ["axon"]}],
+      "to_cell_types": [{"type": "golgi_cell", "compartments": ["dendrites"]}]
+    },
+    "granule_to_golgi": {
+      "class": "scaffold.connectivity.VoxelIntersection",
+      "from_cell_types": [{"type": "granule_cell", "compartments": ["parallel_fiber", "ascending_axon"]}],
+      "to_cell_types": [{"type": "golgi_cell", "compartments": ["dendrites"]}]
     },
     "ascending_axon_to_purkinje": {
       "class": "scaffold.connectivity.ConnectomeAscAxonPurkinje",
@@ -219,14 +229,28 @@
     "parallel_fiber_to_basket": {
       "class": "scaffold.connectivity.ConnectomePFInterneuron",
       "from_cell_types": [{"type": "granule_cell", "compartments": ["parallel_fiber"]}],
-      "to_cell_types": [{"type": "basket_cell", "compartments": ["dendrites"]}]
+      "to_cell_types": [{"type": "basket_cell", "compartments": ["dendrites"]}],
+      "after": ["granule_to_golgi"]
     },
     "parallel_fiber_to_stellate": {
       "class": "scaffold.connectivity.ConnectomePFInterneuron",
       "from_cell_types": [{"type": "granule_cell", "compartments": ["parallel_fiber"]}],
-      "to_cell_types": [{"type": "stellate_cell", "compartments": ["dendrites"]}]
+      "to_cell_types": [{"type": "stellate_cell", "compartments": ["dendrites"]}],
+      "after": ["granule_to_golgi"]
     },
-    "stellate_gap_junctions": {
+    "basket_and_stellate_to_purkinje": {
+      "class": "scaffold.connectivity.ConnectomeBCSCPurkinje",
+      "from_cell_types": [
+        {"type": "basket_cell", "compartments": ["axon"]},
+        {"type": "stellate_cell", "compartments": ["axon"]}
+      ],
+      "to_cell_types": [{"type": "purkinje_cell", "compartments": ["dendrites"]}],
+      "divergence": 2,
+      "convergence": 20,
+      "limit_x": 500.0,
+      "limit_z": 100.0
+    },
+    "stellate_to_stellate": {
       "class": "scaffold.connectivity.ConnectomeGapJunctions",
       "from_cell_types": [{"type": "stellate_cell", "compartments": ["axon"]}],
       "to_cell_types": [{"type": "stellate_cell", "compartments": ["dendrites"]}],
@@ -234,45 +258,59 @@
       "limit_xy": 150.0,
       "limit_z": 50.0
     },
-    "basket_gap_junctions": {
+    "basket_to_basket": {
       "class": "scaffold.connectivity.ConnectomeGapJunctions",
       "from_cell_types": [{"type": "basket_cell", "compartments": ["axon"]}],
       "to_cell_types": [{"type": "basket_cell", "compartments": ["dendrites"]}],
       "divergence": 4,
       "limit_xy": 150.0,
       "limit_z": 50.0
-    },
-    "golgi_gap_junctions": {
-      "class": "scaffold.connectivity.ConnectomeGapJunctionsGolgi",
-      "from_cell_types": [{"type": "golgi_cell", "compartments": ["axon"]}],
-      "to_cell_types": [{"type": "golgi_cell", "compartments": ["dendrites"]}]
-    },
-    "purkinje_to_dcn": {
-      "class": "scaffold.connectivity.ConnectomePurkinjeDCN",
-      "from_cell_types": [{"type": "purkinje_cell", "compartments": ["axon"]}],
-      "to_cell_types": [{"type": "dcn_cell", "compartments": ["dendrites"]}],
-      "divergence": 5
     }
   },
   "simulations": {
-    "neuron_test": {
+    "poc": {
       "simulator": "neuron",
-      "temperature": 30.0,
-      "resolution": 0.025,
-      "duration": 20,
+      "duration": 500,
+      "temperature": 25,
+      "resolution": 0.1,
+      "record_soma": true,
       "cell_models": {
+        "glomerulus": {
+          "relay": true
+        },
         "granule_cell": {
-          "model": "scaffold.simulators.models.Granule_py.GrC2018.Grc_regular",
-          "parameters": {
-
-          }
+          "model": "dbbs_models.GranuleCell",
+          "record_soma": false
+        },
+        "golgi_cell": {
+          "model": "dbbs_models.GolgiCell",
+          "record_soma": false
+        },
+        "purkinje_cell": {
+          "model": "dbbs_models.PurkinjeCell",
+          "record_soma": false
+        },
+        "stellate_cell": {
+          "model": "dbbs_models.StellateCell",
+          "record_soma": false
+        },
+        "basket_cell": {
+          "model": "dbbs_models.StellateCell",
+          "record_soma": false
         }
       },
       "connection_models": {
-
+        "granule_to_golgi": {
+          "synapse": "AMPA"
+        }
       },
       "devices": {
-
+        "mossy_fiber_input": {
+          "io": "input",
+          "device": "spike_generator",
+          "targetting": "cell_type",
+          "type": "glomerulus"
+        }
       }
     }
   }

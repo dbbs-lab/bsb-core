@@ -5,12 +5,13 @@ from .helpers import (
     assert_attr_in,
     SortableByAfter,
 )
-from .postprocessing import get_parallel_fiber_heights, get_dcn_rotations
 from .models import ConnectivitySet
 from .functions import compute_intersection_slice
 import numpy as np
 from random import choice as random_element, sample as sample_elements
 from .exceptions import MissingMorphologyException, ConnectivityWarning
+from .models import MorphologySet
+from sklearn.cluster import KMeans
 
 
 class SimulationPlaceholder:
@@ -406,10 +407,7 @@ class ConnectomeGranuleGolgi(ConnectionStrategy):
         n_connAA = self.aa_convergence
         n_conn_pf = self.pf_convergence
         tot_conn = n_connAA + n_conn_pf
-        pf_heights = get_parallel_fiber_heights(
-            self.scaffold, granule_cell_type.morphology, granules
-        )
-        self.scaffold.append_dset("cells/ascending_axon_lengths", data=pf_heights)
+        pf_heights = self.scaffold.appends["cells/ascending_axon_lengths"]
 
         def connectome_grc_goc(
             first_granule,
@@ -1020,8 +1018,7 @@ class ConnectomePurkinjeDCN(ConnectionStrategy):
         to_type = self.to_cell_types[0]
         purkinjes = self.from_cells[from_type.name]
         dcn_cells = self.to_cells[to_type.name]
-        dcn_angles = get_dcn_rotations(dcn_cells)
-        self.scaffold.append_dset("cells/dcn_orientations", data=dcn_angles)
+        dcn_angles = self.scaffold.appends["cells/dcn_orientations"]
         if len(dcn_cells) == 0:
             return
         first_dcn = int(dcn_cells[0, 0])
@@ -1030,13 +1027,8 @@ class ConnectomePurkinjeDCN(ConnectionStrategy):
         def connectome_pc_dcn(first_dcn, purkinjes, dcn_cells, div_pc, dend_tree_coeff):
             pc_dcn = np.zeros((0, 2))
 
-            for (
-                i
-            ) in (
-                purkinjes
-            ):  # for all Purkinje cells: calculate the distance with the area around glutamatergic DCN cells soma, then choose 4-5 of them
-
-                distance = np.zeros((dcn_cells.shape[0]))
+            # For all Purkinje cells: calculate the distance with the area around glutamatergic DCN cells soma, then choose 4-5 of them
+            for i in purkinjes:
                 distance = (
                     np.absolute(
                         (dend_tree_coeff[:, 0] * i[2])
@@ -1264,6 +1256,41 @@ class ConnectomeIOMolecular(ConnectionStrategy):
         self.scaffold.connect_cells(self, results)
 
 
+class MorphologyStrategy:
+    def list_all_morphologies(self, cell_type):
+        return cell_type.list_all_morphologies()
+
+    def get_random_morphology(self, cell_type):
+        """
+            Return a morphology suited to represent a cell of the given `cell_type`.
+        """
+        available_morphologies = self.list_all_morphologies(cell_type)
+        if len(available_morphologies) == 0:
+            raise MissingMorphologyException(
+                "Can't perform touch detection without detailed morphologies for {}".format(
+                    cell_type.name
+                )
+            )
+        m_name = random_element(available_morphologies)
+        if not m_name in self.morphology_cache:
+            mr = self.scaffold.morphology_repository
+            self.morphology_cache[m_name] = mr.get_morphology(
+                m_name, scaffold=self.scaffold
+            )
+        return self.morphology_cache[m_name]
+
+    def get_all_morphologies(self, cell_type):
+        all_morphologies = []
+        for m_name in self.list_all_morphologies(cell_type):
+            if not m_name in self.morphology_cache:
+                mr = self.scaffold.morphology_repository
+                self.morphology_cache[m_name] = mr.get_morphology(
+                    m_name, scaffold=self.scaffold
+                )
+            all_morphologies.append(self.morphology_cache[m_name])
+        return all_morphologies
+
+
 class TouchInformation:
     def __init__(
         self, from_cell_type, from_cell_compartments, to_cell_type, to_cell_compartments
@@ -1274,7 +1301,7 @@ class TouchInformation:
         self.to_cell_compartments = to_cell_compartments
 
 
-class TouchDetector(ConnectionStrategy):
+class TouchDetector(ConnectionStrategy, MorphologyStrategy):
     """
         Connectivity based on intersection of detailed morphologies
     """
@@ -1476,39 +1503,6 @@ class TouchDetector(ConnectionStrategy):
                 for j in range(len(hits)):
                     intersections.append([from_map[hits[j]], to_map[i]])
         return intersections
-
-    def list_all_morphologies(self, cell_type):
-        return cell_type.list_all_morphologies()
-
-    def get_random_morphology(self, cell_type):
-        """
-            Return a morphology suited to represent a cell of the given `cell_type`.
-        """
-        available_morphologies = self.list_all_morphologies(cell_type)
-        if len(available_morphologies) == 0:
-            raise MissingMorphologyException(
-                "Can't perform touch detection without detailed morphologies for {}".format(
-                    cell_type.name
-                )
-            )
-        m_name = random_element(available_morphologies)
-        if m_name not in self.morphology_cache:
-            mr = self.scaffold.morphology_repository
-            self.morphology_cache[m_name] = mr.get_morphology(
-                m_name, scaffold=self.scaffold
-            )
-        return self.morphology_cache[m_name]
-
-    def get_all_morphologies(self, cell_type):
-        all_morphologies = []
-        for m_name in self.list_all_morphologies(cell_type):
-            if m_name not in self.morphology_cache:
-                mr = self.scaffold.morphology_repository
-                self.morphology_cache[m_name] = mr.get_morphology(
-                    m_name, scaffold=self.scaffold
-                )
-            all_morphologies.append(self.morphology_cache[m_name])
-        return all_morphologies
 
     def get_search_radius(self, cell_type):
         morphologies = self.get_all_morphologies(cell_type)
@@ -1731,3 +1725,137 @@ class ConnectomeMossyGlomerulus(ConnectionStrategy):
         labels += First_MF
         connections = np.column_stack((labels, glomeruli[:, 0]))
         self.scaffold.connect_cells(self, connections)
+
+
+class VoxelIntersection(ConnectionStrategy, MorphologyStrategy):
+    """
+        Description
+    """
+
+    casts = {"convergence": int, "divergence": int}
+
+    def validate(self):
+        pass
+
+    def connect(self):
+        scaffold = self.scaffold
+
+        # Import rtree & instantiate the index with its properties.
+        from rtree import index
+        from rtree.index import Rtree
+
+        p = index.Property(dimension=3)
+        to_cell_tree = index.Index(properties=p)
+
+        # Select all the cells from the pre- & postsynaptic type for a specific connection.
+        from_type = self.from_cell_types[0]
+        from_compartments = self.from_cell_compartments[0]
+        to_compartments = self.to_cell_compartments[0]
+        to_type = self.to_cell_types[0]
+        from_cells = self.scaffold.get_cells_by_type(from_type.name)
+        to_cells = self.scaffold.get_cells_by_type(to_type.name)
+
+        # Load the morphology and voxelization data for the entrire morphology, for each cell type.
+        from_morphology_set = MorphologySet(
+            scaffold, from_type, from_cells, compartment_types=from_compartments
+        )
+        to_morphology_set = MorphologySet(
+            scaffold, to_type, to_cells, compartment_types=to_compartments
+        )
+        joined_map = (
+            from_morphology_set._morphology_map + to_morphology_set._morphology_map
+        )
+        joined_map_offset = len(from_morphology_set._morphology_map)
+
+        # For every postsynaptic cell, derive the box incorporating all voxels,
+        # and store that box in the tree, to later find intersections with that cell.
+        for i, (to_cell, morphology) in enumerate(to_morphology_set):
+            to_offset = np.concatenate((to_cell.position, to_cell.position))
+            if len(morphology.cloud.get_voxels()) == 0:
+                raise Exception(
+                    "Can't intersect without any {} in the {} morphology".format(
+                        ", ".join(to_compartments), morphology.morphology_name
+                    )
+                )
+            to_box = morphology.cloud.get_voxel_box()
+            to_cell_tree.insert(i, tuple(to_box + to_offset))
+
+        # For each presynaptic cell, find all postsynaptic cells that its outer
+        # box intersects with.
+        connections_out = []
+        compartments_out = []
+        morphologies_out = []
+        for from_cell, from_morpho in from_morphology_set:
+            from_box = from_morpho.cloud.get_voxel_box()
+            from_map = from_morpho.cloud.map
+            this_box = tuple(
+                from_box + np.concatenate((from_cell.position, from_cell.position))
+            )
+            cell_intersections = list(to_cell_tree.intersection(this_box, objects=False))
+            for partner in cell_intersections:
+                to_cell, to_morpho = to_morphology_set[partner]
+                to_map = to_morpho.cloud.map
+                voxel_intersections = self.intersect_clouds(
+                    from_morpho.cloud,
+                    to_morpho.cloud,
+                    from_cell.position,
+                    to_cell.position,
+                )
+                # Find non-empty lists: these voxels have intersections
+                intersecting_from_voxels = np.nonzero(voxel_intersections)[0]
+                if not len(intersecting_from_voxels):
+                    continue
+                # Data structure to contain the compartment pairs of this cell pair.
+                cell_pair_compartment_pairs = {}
+                for from_voxel_id in intersecting_from_voxels:
+                    # Get the list of voxels that the from_voxel intersects with.
+                    intersecting_voxels = voxel_intersections[from_voxel_id]
+                    to_voxel_candidates = []
+                    for to_voxel_id in intersecting_voxels:
+                        # Store all of the compartments in the to_voxel as
+                        # possible candidates for this cell pair's connection
+                        to_voxel_candidates.extend(to_map[to_voxel_id])
+                    cell_pair_compartment_pairs[from_voxel_id] = to_voxel_candidates
+                # Weigh the random sampling by the amount of compartment pairs
+                voxel_weights = list(
+                    map(
+                        lambda item: len(from_map[item[0]]) * len(item[1]),
+                        cell_pair_compartment_pairs.items(),
+                    )
+                )
+                weight_sum = sum(voxel_weights)
+                voxel_weights = [w / weight_sum for w in voxel_weights]
+                pair_items = list(cell_pair_compartment_pairs.items())
+                random_pair_id = np.random.choice(
+                    range(len(pair_items)), 1, p=voxel_weights
+                )[0]
+                random_voxel_id, to_compartments = pair_items[random_pair_id]
+                # Pick a random from and to compartment of the chosen voxel pair
+                from_compartment = np.random.choice(from_map[random_voxel_id], 1)[0]
+                to_compartment = np.random.choice(to_compartments, 1)[0]
+                compartments_out.append([from_compartment, to_compartment])
+                morphologies_out.append(
+                    [from_morpho._set_index, joined_map_offset + to_morpho._set_index]
+                )
+                connections_out.append([from_cell.id, to_cell.id])
+
+        if len(connections_out) > 0:
+            self.scaffold.connect_cells(
+                self,
+                np.array(connections_out),
+                morphologies=np.array(morphologies_out),
+                compartments=np.array(compartments_out),
+                morpho_map=joined_map,
+            )
+
+    def intersect_clouds(self, from_cloud, to_cloud, from_pos, to_pos):
+        voxel_intersections = []
+        translation = to_pos - from_pos
+        for v, voxel in enumerate(to_cloud.get_voxels(cache=True)):
+            relative_position = np.add(voxel, translation)
+            relative_box = np.add(relative_position, to_cloud.grid_size)
+            box = np.concatenate((relative_position, relative_box))
+            voxel_intersections.append(
+                list(from_cloud.tree.intersection(tuple(box), objects=False))
+            )
+        return voxel_intersections

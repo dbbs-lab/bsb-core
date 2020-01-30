@@ -14,6 +14,8 @@ nrnmech.dll
 .coverage
 htmlcov/
 .idea/
+obfuscation/licenses
+obfuscation/scaffold
 
 # Ignore obfuscation files
 obfuscation/scaffold/

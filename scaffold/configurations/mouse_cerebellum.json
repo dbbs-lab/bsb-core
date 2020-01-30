@@ -377,6 +377,12 @@
     "microzones": {
       "class": "scaffold.postprocessing.LabelMicrozones",
       "targets": ["purkinje_cell", "dcn_cell", "io_cell"]
+    },
+    "aa_lengths": {
+      "class": "scaffold.postprocessing.AscendingAxonLengths"
+    },
+    "dcn_rotations": {
+      "class": "scaffold.postprocessing.DCNRotations"
     }
   },
   "simulations": {

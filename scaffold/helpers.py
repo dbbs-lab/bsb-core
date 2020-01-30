@@ -1,6 +1,22 @@
-import abc, inspect, numpy as np
-import os, sys, site, collections
+import abc, numpy as np, os, sys, collections
+from contextlib import contextmanager
+from inspect import isclass
+import inspect, site
 from .exceptions import *
+
+
+@contextmanager
+def suppress_stdout():
+    with open(os.devnull, "w") as devnull:
+        old_stdout = sys.stdout
+        old_stderr = sys.stderr
+        sys.stdout = devnull
+        sys.stderr = devnull
+        try:
+            yield
+        finally:
+            sys.stdout = old_stdout
+            sys.stderr = old_stderr
 
 
 def get_config_path(file=None):
@@ -53,6 +69,18 @@ class ConfigurableClass(abc.ABC):
             if name not in excluded:
                 self.__dict__[name] = prop
 
+    def resolve_required(self, raw_required):
+        requirements = []
+        for required_condition in raw_required:
+            if callable(required_condition):
+                resolved = required_condition(self.__dict__)
+                if resolved is None:
+                    continue
+                requirements.extend(listify_input(resolved))
+            else:
+                requirements.append(required_condition)
+        return requirements
+
     def cast_config(self):
         """
             Casts/validates values imported onto this object from configuration files to their final form.
@@ -69,7 +97,8 @@ class ConfigurableClass(abc.ABC):
             name = str(self)
         castingDict = getattr(self.__class__, "casts", {})
         defaultDict = getattr(self.__class__, "defaults", {})
-        required = getattr(self.__class__, "required", [])
+        required = self.resolve_required(getattr(self.__class__, "required", []))
+
         # Get unique keys
         attrKeys = set([*castingDict.keys(), *defaultDict.keys(), *required])
         for attr in attrKeys:
@@ -554,12 +583,50 @@ def map_ndarray(data, _map=None):
         return last_index
 
     def n_dim_map(a):
+        n = np.empty(a.shape, dtype=int)
         if len(a.shape) > 1:
             for i, b in enumerate(a):
-                a[i] = n_dim_map(b)
-            return a
+                n[i] = n_dim_map(b)
+            return n
         else:
             return list(map(map_1d_array, a))
 
     _mapped = n_dim_map(data)
     return _mapped, _map
+
+
+def load_configurable_class(name, configured_class_name, parent_class, parameters={}):
+    if isclass(configured_class_name):
+        instance = configured_class_name(**parameters)
+    else:
+        class_ref = get_configurable_class(name, configured_class_name)
+        if not parent_class is None and not issubclass(class_ref, parent_class):
+            raise Exception(
+                "Configurable class '{}.{}' must derive from {}.{}".format(
+                    module_name,
+                    class_name,
+                    parent_class.__module__,
+                    parent_class.__qualname__,
+                )
+            )
+        instance = class_ref(**parameters)
+    instance.__dict__["name"] = name
+    return instance
+
+
+def fill_configurable_class(obj, conf, excluded=[]):
+    for name, prop in conf.items():
+        if not name in excluded:
+            obj.__dict__[name] = prop
+
+
+def get_configurable_class(name, configured_class_name):
+    class_parts = configured_class_name.split(".")
+    class_name = class_parts[-1]
+    module_name = ".".join(class_parts[:-1])
+    module_ref = __import__(module_name, globals(), locals(), [class_name], 0)
+    if not class_name in module_ref.__dict__:
+        raise ConfigurableClassNotFoundException(
+            "Class not found:" + configured_class_name
+        )
+    return module_ref.__dict__[class_name]

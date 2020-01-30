@@ -8,14 +8,37 @@ from sklearn.neighbors import KDTree
 
 class VoxelCloud:
     def __init__(self, bounds, voxels, grid_size, map, occupancies=None):
+        from rtree import index
+
         self.bounds = bounds
         self.grid_size = grid_size
         self.voxels = voxels
+        self.voxel_cache = None
         self.map = map
         self.occupancies = occupancies
+        p = index.Property(dimension=3)
+        voxel_tree = index.Index(properties=p)
+        voxel_positions = self.get_voxels()
+        # Add each voxel box to an Rtree index
+        for v, voxel_position in enumerate(voxel_positions):
+            av = np.add(voxel_position, grid_size)
+            bv = np.concatenate((voxel_position, av))
+            voxel_tree.insert(v, tuple(bv))
+        self.tree = voxel_tree
 
     def get_boxes(self):
         return m_grid(self.bounds, self.grid_size)
+
+    def get_voxels(self, cache=False):
+        def _voxels():
+            return self.get_boxes()[:, self.voxels].T
+
+        if cache:
+            if self.voxel_cache is not None:
+                return self.voxel_cache
+            self.voxel_cache = _voxels()
+            return self.voxel_cache
+        return _voxels()
 
     def get_occupancies(self):
         if self.occupancies is None:
@@ -34,12 +57,26 @@ class VoxelCloud:
         return center_of_mass(point_positions, occupancies)
 
     @staticmethod
-    def create(morphology, N):
-        hit_detector = morphology_detector_factory(morphology)
+    def create(morphology, N, compartments=None):
+        from rtree import index
+        from rtree.index import Rtree
+
+        p = index.Property(dimension=3)
+        tree = index.Index(properties=p)
+        if compartments is None:
+            compartments = morphology.compartments
+        N = min(len(compartments), N)
+        for compartment in compartments:
+            tree.insert(
+                int(compartment.id), tuple([*compartment.midpoint, *compartment.midpoint])
+            )
+        hit_detector = HitDetector.for_rtree(tree)
         bounds, voxels, length, error = voxelize(
-            N, morphology.get_bounding_box(), hit_detector
+            N, morphology.get_bounding_box(compartments=compartments), hit_detector
         )
-        voxel_map = morphology.get_compartment_map(m_grid(bounds, length), voxels, length)
+        voxel_map = morphology.create_compartment_map(
+            tree, m_grid(bounds, length), voxels, length
+        )
         if error == 0:
             return VoxelCloud(bounds, voxels, length, voxel_map)
         else:
@@ -53,6 +90,30 @@ class VoxelCloud:
 
     def intersect(self, other):
         raise NotImplementedError("Intersecting 2 voxel clouds is a to do")
+
+    def get_voxel_box(self):
+        """
+            Return the box encompassing the voxels.
+        """
+        voxel_positions = self.get_voxels()
+        min_x, min_y, min_z, max_x, max_y, max_z = (
+            np.min(voxel_positions[:, 0]),
+            np.min(voxel_positions[:, 1]),
+            np.min(voxel_positions[:, 2]),
+            np.max(voxel_positions[:, 0]),
+            np.max(voxel_positions[:, 1]),
+            np.max(voxel_positions[:, 2]),
+        )
+        box = [
+            min_x,
+            min_y,
+            min_z,
+            max_x + self.grid_size,
+            max_y + self.grid_size,
+            max_z + self.grid_size,
+        ]
+        # print(min_x, min_y, min_z, max_x, max_y, max_z)
+        return box
 
 
 _class_dimensions = dimensions
@@ -70,6 +131,15 @@ class Box(dimensions, origin):
         origin = np.amin(bounds, axis=1) + dimensions / 2
         return Box(dimensions=dimensions, origin=origin)
 
+    def bounds(self):
+        dim = self.dimensions
+        dim[dim < 5.0] = 5.0
+        # Moving the bounds by a fraction helps prevent points on a plane being
+        # sorted into multiple voxels
+        return np.column_stack(
+            (self.origin - dim / 2 - 0.0001, self.origin + dim / 2 + 0.0004)
+        )
+
 
 def m_grid(bounds, size):
     return np.mgrid[
@@ -81,12 +151,7 @@ def m_grid(bounds, size):
 
 def voxelize(N, box_data, hit_detector, max_iterations=80, precision_iterations=30):
     # Initialise
-    bounds = np.column_stack(
-        (
-            box_data.origin - box_data.dimensions / 2,
-            box_data.origin + box_data.dimensions / 2,
-        )
-    )
+    bounds = box_data.bounds()
     box_length = np.max(
         box_data.dimensions
     )  # Size of the edge of a cube in the box counting grid
@@ -156,25 +221,10 @@ def detect_box_compartments(tree, box_origin, box_size):
 
         :param box_origin: The lowermost corner of the box.
     """
-    # Get the outer sphere radius of the cube by taking the length of a diagonal through the cube divided by 2
-    search_radius = np.sqrt(np.sum([box_size ** 2 for i in range(len(box_origin))])) / 2
-    # Translate the query point to the middle of the box and search within the outer sphere radius.
-    return tree.query_radius([box_origin + box_size / 2], search_radius)[0]
-
-
-def morphology_detector_factory(morphology):
-    """
-        Will return a hit detector and outer box required to perform voxelization on the morphology.
-    """
-    tree = morphology.compartment_tree
-    # Create the detector function
-
-    def morphology_detector(box_origin, box_size):
-        # Report a hit if more than 0 compartments are within the box.
-        return len(detect_box_compartments(tree, box_origin, box_size)) > 0
-
-    # Return the morphology detector function as the factory product
-    return morphology_detector
+    # Return all compartment id's that intersect with this box
+    return list(
+        tree.intersection(tuple([*box_origin, *(box_origin + box_size)]), objects=False)
+    )
 
 
 def center_of_mass(points, weights=None):
@@ -253,8 +303,7 @@ class VoxelTransformer:
         return np.array(self.carriers)[np.argsort(distances)[::-1]]
 
     def get_attractor_distances(self, candidates):
-        dists = get_distances(candidates, self.attractor - 0.5)
-        return dists
+        return get_distances(candidates, self.attractor - 0.5)
 
 
 class VoxelTransformCarrier:
@@ -265,6 +314,36 @@ class VoxelTransformCarrier:
         self.payload = payload
         self.position = pos
         self.color = np.random.rand(3)
+
+
+class HitDetector:
+    """
+        Wrapper class for commonly used hit detectors in the voxelization process.
+    """
+
+    def __init__(self, detector):
+        self.detector = detector
+
+    def __call__(self, position, size):
+        return self.detector(position, size)
+
+    @classmethod
+    def for_rtree(cls, tree):
+        """
+            Factory function that creates a hit detector for the given morphology.
+
+            :param morphology: A morphology.
+            :type morphology: :class:`TrueMorphology`
+            :returns: A hit detector
+            :rtype: :class:`HitDetector`
+        """
+        # Create the detector function
+        def tree_detector(box_origin, box_size):
+            # Report a hit if more than 0 compartments are within the box.
+            return len(detect_box_compartments(tree, box_origin, box_size)) > 0
+
+        # Return the tree detector function as the factory product
+        return cls(tree_detector)
 
 
 def get_distances(candidates, point):

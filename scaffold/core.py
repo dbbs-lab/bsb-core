@@ -335,6 +335,7 @@ class Scaffold:
         morphologies=None,
         compartments=None,
         meta=None,
+        morpho_map=None,
     ):
         """
             Store connections for a connection type. Will store the
@@ -369,7 +370,9 @@ class Scaffold:
                 raise Exception(
                     "The morphological data did not match the connectome data."
                 )
-            self._append_mapped("connection_morphologies", tag, morphologies)
+            self._append_mapped(
+                "connection_morphologies", tag, morphologies, use_map=morpho_map
+            )
             self._append_tagged("connection_compartments", tag, compartments)
         # Store the metadata internally until the output is compiled.
         if meta is not None:
@@ -405,12 +408,27 @@ class Scaffold:
         else:
             self.__dict__[attr][tag] = np.copy(data)
 
-    def _append_mapped(self, attr, tag, data):
-        # Appends or creates the data with a map to a tagged numpy array in a dictionary attribute of the scaffold.
-        if not attr + "_map" in self.__dict__[attr]:
-            self.__dict__[attr][tag + "_map"] = []
-        mapped_data, data_map = map_ndarray(data, _map=self.__dict__[attr][tag + "_map"])
-        mapped_data = np.array(mapped_data, dtype=int)
+    def _append_mapped(self, attr, tag, data, use_map=None):
+        """
+            Appends or creates the data with a map to a tagged numpy array in a dictionary attribute of the scaffold.
+        """
+        # Map data
+        if use_map:  # Is the data already mapped and should we use the given map?
+            if not attr + "_map" in self.__dict__[attr]:
+                self.__dict__[attr][tag + "_map"] = use_map.copy()
+            else:
+                data += len(self.__dict__[attr][tag + "_map"])
+                self.__dict__[attr][tag + "_map"].extend(use_map)
+            mapped_data = np.array(data, dtype=int)
+        else:
+            if not attr + "_map" in self.__dict__[attr]:
+                self.__dict__[attr][tag + "_map"] = []
+            mapped_data, data_map = map_ndarray(
+                data, _map=self.__dict__[attr][tag + "_map"]
+            )
+            mapped_data = np.array(mapped_data, dtype=int)
+
+        # Append data
         if tag in self.__dict__[attr]:
             cache = self.__dict__[attr][tag]
             self.__dict__[attr][tag] = np.concatenate((cache, mapped_data))

@@ -1,4 +1,4 @@
-import numpy as np
+import numpy as np, random
 from .morphologies import Morphology as BaseMorphology
 from .helpers import ConfigurableClass, dimensions, origin, SortableByAfter
 from .exceptions import MissingMorphologyException, AttributeMissingException
@@ -68,13 +68,17 @@ class CellType(SortableByAfter):
         return self.scaffold.get_cells_by_type(self.name)
 
     def list_all_morphologies(self):
+        """
+            Return a list of all the morphology identifiers that can represent
+            this cell type in the simulation volume.
+        """
         if not hasattr(self.morphology, "detailed_morphologies"):
             return []
         morphology_config = self.morphology.detailed_morphologies
         # TODO: More selection mechanisms like tags
         if "names" in morphology_config:
             m_names = morphology_config["names"]
-            return m_names
+            return m_names.copy()
         else:
             raise NotImplementedError(
                 "Detailed morphologies can currently only be selected by name."
@@ -182,7 +186,6 @@ class Resource:
         map = self.get_attribute("map")
         unmapped = []
         for record in data:
-            print(record)
             unmapped.append(mapping(map, record))
         return np.array(unmapped)
 
@@ -223,12 +226,13 @@ class Connection:
                     + " If one of the 4 arguments for a detailed connection is given, all 4 are required."
                 )
             self.from_compartment = from_morphology.compartments[from_compartment]
-            self.to_compartment = from_morphology.compartments[to_compartment]
+            self.to_compartment = to_morphology.compartments[to_compartment]
 
 
 class ConnectivitySet(Resource):
     def __init__(self, handler, tag):
         super().__init__(handler, "/cells/connections/" + tag)
+        self.tag = tag
         self.compartment_set = Resource(handler, "/cells/connection_compartments/" + tag)
         self.morphology_set = Resource(handler, "/cells/connection_morphologies/" + tag)
 
@@ -248,7 +252,9 @@ class ConnectivitySet(Resource):
     def intersections(self):
         if not self.compartment_set.exists():
             raise MissingMorphologyException(
-                "No intersection/morphology information for this connectivity set."
+                "No intersection/morphology information for the '{}' connectivity set.".format(
+                    self.tag
+                )
             )
         else:
             return self.get_intersections()
@@ -256,30 +262,35 @@ class ConnectivitySet(Resource):
     def get_intersections(self):
         intersections = []
         morphos = {}
+
+        def _cache_morpho(id):
+            # Keep a cache of the morphologies so that all morphologies with the same
+            # id refer to the same object, and so that they aren't redundandly loaded.
+            id = int(id)
+            if not id in morphos:
+                name = self.morphology_set.unmap_one(id)[0]
+                if isinstance(name, bytes):
+                    name = name.decode("UTF-8")
+                morphos[id] = self._handler.scaffold.morphology_repository.get_morphology(
+                    name
+                )
+
         cells = self.get_dataset()
         for cell_ids, comp_ids, morpho_ids in zip(
             cells, self.compartment_set.get_dataset(), self.morphology_set.get_dataset()
         ):
-            if not int(morpho_ids[0]) in morphos:
-                name = self.morphology_set.unmap_one(int(morpho_ids[0]))[0].decode(
-                    "UTF-8"
-                )
-                morphos[
-                    int(morpho_ids[0])
-                ] = self._handler.scaffold.morphology_repository.get_morphology(name)
-            if not int(morpho_ids[1]) in morphos:
-                name = self.morphology_set.unmap_one(int(morpho_ids[1]))[0].decode(
-                    "UTF-8"
-                )
-                morphos[
-                    int(morpho_ids[1])
-                ] = self._handler.scaffold.morphology_repository.get_morphology(name)
+            from_morpho_id = int(morpho_ids[0])
+            to_morpho_id = int(morpho_ids[1])
+            # Load morphologies from the map if they're not in the cache yet
+            _cache_morpho(from_morpho_id)
+            _cache_morpho(to_morpho_id)
+            # Append the intersection with a new connection
             intersections.append(
                 Connection(
-                    *cell_ids,
-                    *comp_ids,
-                    morphos[int(morpho_ids[0])],
-                    morphos[int(morpho_ids[1])]
+                    *cell_ids,  # zipped dataset: from id & to id
+                    *comp_ids,  # zipped morphologyset: from comp & to comp
+                    morphos[from_morpho_id],  # cached: from TrueMorphology
+                    morphos[to_morpho_id]  # cached: to TrueMorphology
                 )
             )
         return intersections
@@ -313,3 +324,52 @@ class ConnectivitySet(Resource):
         return list(
             map(lambda name: self._handler.scaffold.get_connection_type(name), type_list)
         )
+
+
+class Cell:
+    def __init__(self, id, cell_type, position):
+        self.id = int(id)
+        self.type = cell_type
+        self.position = position
+
+    @classmethod
+    def from_repo_data(cls, cell_type, data):
+        return cls(data[0], cell_type, data[2:5])
+
+
+class MorphologySet:
+    def __init__(self, scaffold, cell_type, cells, compartment_types=None, N=50):
+        self.scaffold = scaffold
+        self.cell_type = cell_type
+        self._morphology_map = cell_type.list_all_morphologies()
+        # Select a random morphology for each cell.
+        self._morphology_index = [
+            random.choice(range(len(self._morphology_map))) for _ in range(len(cells))
+        ]
+        # Voxelize a morphology `i` of the available morphologies
+        def morpho(i):
+            m = scaffold.morphology_repository.get_morphology(self._morphology_map[i])
+            m._set_index = i
+            m.voxelize(
+                N, compartments=m.get_compartments(compartment_types=compartment_types)
+            )
+            return m
+
+        # Voxelize each morphology
+        self._morphologies = [morpho(i) for i in range(len(self._morphology_map))]
+        self._cells = [Cell.from_repo_data(cell_type, cell) for cell in cells]
+
+    def __len__(self):
+        return len(self._cells)
+
+    def __iter__(self):
+        return zip(self._cells, self._unmap_morphologies())
+
+    def __getitem__(self, id):
+        return self._cells[id], self._unmap_morphology(id)
+
+    def _unmap_morphology(self, id):
+        return self._morphologies[self._morphology_index[id]]
+
+    def _unmap_morphologies(self):
+        return [self._morphologies[i] for i in self._morphology_index]

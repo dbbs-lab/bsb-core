@@ -1,11 +1,16 @@
 from .helpers import ConfigurableClass, get_qualified_class_name
-from .morphologies import Morphology
+from .morphologies import Morphology, TrueMorphology, Compartment
+from scaffold.helpers import suppress_stdout
 from contextlib import contextmanager
 from abc import abstractmethod, ABC
 import h5py, os, time, pickle, numpy as np
 from numpy import string_
 from .exceptions import RepositoryWarning, DatasetNotFoundException
 from .models import ConnectivitySet
+from sklearn.neighbors import KDTree
+import os, sys
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "dbbs-models"))
 
 
 class ResourceHandler(ABC):
@@ -282,6 +287,70 @@ class MorphologyRepository(HDF5TreeHandler):
                 compartment_parent,
             ]
         # Save the dataset in the repository
+        self.save_morphology_dataset(name, dataset_data, overwrite=overwrite)
+
+    def import_dbbs(self, name, cls, overwrite=False):
+        from neuron import h
+
+        cell = cls()
+        c_types = Morphology.compartment_types
+        # Initialization
+        idx = 0
+        orphans = []
+        section_to_id = dict()
+        compartments = []
+        dataset = []
+        # Translate all points so that soma[0] = 0., 0., 0.
+        tx = cell.sections[0].x3d(0)
+        ty = cell.sections[0].y3d(0)
+        tz = cell.sections[0].z3d(0)
+        # Loop over sections to extract compartments
+        for id, section in enumerate(cell.sections):
+            section_to_id[section.name()] = id
+            for p in range(section.n3d() - 1):
+                data = [
+                    idx + p,
+                    c_types[section.labels[-1]],
+                    section.x3d(p) - tx,
+                    section.y3d(p) - ty,
+                    section.z3d(p) - tz,
+                    section.x3d(p + 1) - tx,
+                    section.y3d(p + 1) - ty,
+                    section.z3d(p + 1) - tz,
+                    section.diam3d(p) / 2.0,
+                    idx + p - 1,
+                    id,
+                ]
+                c = Compartment(None, data)
+                if p == 0:
+                    c.parent = -1
+                    orphans.append(c)
+                compartments.append(c)
+                dataset.append(data)
+            idx += p + 1
+        # Fix orphans
+        for orphan in orphans:
+            # Tricky NEURON workaround to get the parent section id.
+            section = cell.sections[orphan.section_id]
+            sec_ref = h.SectionRef(sec=section.__neuron__())
+            try:
+                with suppress_stdout():
+                    parent_section = sec_ref.parent().sec
+            except Exception as e:
+                continue
+            parent_section_id = section_to_id[parent_section.name()]
+            # Get the id of the last compartment of the parent section.
+            last_compartment = list(
+                filter(lambda c: c.section_id == parent_section_id, compartments)
+            )[-1]
+            # Overwrite the parent id column of the orphan.
+            dataset[orphan.id][9] = last_compartment.id
+        self.save_morphology_dataset(name, dataset, overwrite=overwrite)
+
+        # Load imported morphology to test it
+        morphology = self.get_morphology(name)
+
+    def save_morphology_dataset(self, name, data, overwrite=False):
         with self.load() as repo:
             if overwrite:  # Do we overwrite previously existing dataset with same name?
                 self.remove_morphology(
@@ -289,14 +358,17 @@ class MorphologyRepository(HDF5TreeHandler):
                 )  # Delete anything that might be under this name.
             elif self.morphology_exists(name):
                 raise Exception(
-                    "A morphology called '{}' already exists in this repository."
+                    "A morphology called '{}' already exists in this repository.".format(
+                        name
+                    )
                 )
+            data = np.array(data)
             # Create the dataset
-            dset = repo["morphologies"].create_dataset(name, data=dataset_data)
+            dataset = repo["morphologies"].create_dataset(name, data=data)
             # Set attributes
-            dset.attrs["name"] = name
-            dset.attrs["search_radii"] = np.max(np.abs(dataset_data[:, 2:5]), axis=0)
-            dset.attrs["type"] = "swc"
+            dataset.attrs["name"] = name
+            dataset.attrs["search_radii"] = np.max(np.abs(data[:, 2:5]), axis=0)
+            dataset.attrs["type"] = "swc"
 
     def import_repository(self, repository, overwrite=False):
         with repository.load() as external_handle:
@@ -326,7 +398,7 @@ class MorphologyRepository(HDF5TreeHandler):
             if not self.morphology_exists(name):
                 raise Exception("Attempting to load unknown morphology '{}'".format(name))
             # Take out all the data with () index, and send along the metadata stored in the attributes
-            data = self.raw_morphology(name)
+            data = self._raw_morphology(name)
             repo_data = data[()]
             repo_meta = dict(data.attrs)
             voxel_kwargs = {}
@@ -395,7 +467,7 @@ class MorphologyRepository(HDF5TreeHandler):
             )
             return voxelized
 
-    def raw_morphology(self, name):
+    def _raw_morphology(self, name):
         """
             Return the morphology dataset
         """

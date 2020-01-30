@@ -18,10 +18,14 @@ from .helpers import (
     if_attr,
     assert_strictly_one,
     assert_attr_in,
+    ConfigurableClass,
+    load_configurable_class,
+    fill_configurable_class,
     get_config_path,
 )
 from .simulators.nest import NestAdapter
 from .postprocessing import PostProcessingHook
+from .simulators.neuron import NeuronAdapter
 from .exceptions import (
     DynamicClassException,
     ConfigurationException,
@@ -102,6 +106,7 @@ class ScaffoldConfig(object):
             self._extension = ""
         self.simulators = simulators
         self.simulators["nest"] = NestAdapter
+        self.simulators["neuron"] = NeuronAdapter
         self.output_formatter = HDF5Formatter()
 
         # Fallback simulation values
@@ -329,77 +334,6 @@ class ScaffoldConfig(object):
             if hasattr(layer, "volume_scale"):
                 layer.scale_to_reference()
 
-    def load_configurable_class(
-        self, name, configured_class_name, parent_class, parameters={}
-    ):
-        """
-            Load a dot notation class from a string by dynamically importing
-            the parent modules.
-
-            :param name: Name.
-            :type name: string
-            :param configured_class_name: Name or class object of the class.
-            :type configured_class_name: string/class
-            :param parent_class: Asserts that the imported class inherits from
-              this parent class.
-            :type parent_class: class
-            :param parameters: Parameters to pass to the constructor.
-            :type parameters: dict
-        """
-        if isclass(configured_class_name):
-            # Construct from class object
-            instance = configured_class_name(**parameters)
-        else:
-            # Construct from class string
-            # Split into parts, treat all but the last as modules, and the last
-            # as the class
-            class_parts = configured_class_name.split(".")
-            class_name = class_parts[-1]
-            module_name = ".".join(class_parts[:-1])
-            # Use the dynamic import mechanism to load the module and the class
-            module_ref = __import__(module_name, globals(), locals(), [class_name], 0)
-            # Check whether the class was found.
-            if class_name not in module_ref.__dict__:
-                raise ConfigurableClassNotFoundException(
-                    "Class not found:" + configured_class_name
-                )
-            # Get the class reference from the module's internal dictionary.
-            class_ref = module_ref.__dict__[class_name]
-            # Check whether the class is a subclass of the parent class
-            if not issubclass(class_ref, parent_class):
-                raise DynamicClassException(
-                    "Configurable class '{}.{}' must derive from {}.{}".format(
-                        module_name,
-                        class_name,
-                        parent_class.__module__,
-                        parent_class.__qualname__,
-                    )
-                )
-            # Construct an instance of the class.
-            instance = class_ref(**parameters)
-        # Set the name
-        instance.__dict__["name"] = name
-        # Return class instance
-        return instance
-
-    def fill_configurable_class(self, obj, conf, excluded=[]):
-        """
-            Fill a class object with the values found in a configuration
-            dictionary.
-
-            :param obj: Class instance to be filled.
-            :type obj: object
-            :param conf: Configuration section holding the configuration values.
-            :type conf: dict
-            :param excluded: Keys of values that shouldn't be copied to `obj`
-            :type excluded: list
-        """
-        # Loop over all items in the configuration section.
-        for name, prop in conf.items():
-            # If the key isn't excluded, copy the value to the internal dictionary
-            if name not in excluded:
-                obj.__dict__[name] = prop
-
 
 class JSONConfig(ScaffoldConfig):
     """
@@ -510,12 +444,10 @@ class JSONConfig(ScaffoldConfig):
         output_config = config["output"]
         if "format" not in output_config:
             raise Exception("Missing 'format' attribute in 'output' configuration.")
-        self.output_formatter = self.load_configurable_class(
+        self.output_formatter = load_configurable_class(
             "output_formatter", output_config["format"], OutputFormatter
         )
-        self.fill_configurable_class(
-            self.output_formatter, output_config, excluded=["format"]
-        )
+        fill_configurable_class(self.output_formatter, output_config, excluded=["format"])
 
     def load_attr(
         self, config, attr, init, final=None, single=False, node_name=None, optional=False
@@ -706,8 +638,8 @@ class JSONConfig(ScaffoldConfig):
         name = cell_type_name + "_morphology"
         node_name = "cell_types.{}.morphology".format(cell_type_name)
         morphology_class = assert_attr(section, "class", node_name)
-        morphology = self.load_configurable_class(name, morphology_class, BaseMorphology)
-        self.fill_configurable_class(morphology, section, excluded=["class"])
+        morphology = load_configurable_class(name, morphology_class, BaseMorphology)
+        fill_configurable_class(morphology, section, excluded=["class"])
         self.add_morphology(morphology)
         return morphology
 
@@ -719,10 +651,8 @@ class JSONConfig(ScaffoldConfig):
         """
         node_name = "connection_types.{}".format(name)
         connection_class = assert_attr(section, "class", node_name)
-        connection = self.load_configurable_class(
-            name, connection_class, ConnectionStrategy
-        )
-        self.fill_configurable_class(
+        connection = load_configurable_class(name, connection_class, ConnectionStrategy)
+        fill_configurable_class(
             connection,
             section,
             excluded=["class", "from_cell_types", "to_cell_types", "simulation"],
@@ -745,7 +675,7 @@ class JSONConfig(ScaffoldConfig):
         node_name = "cell_types.{}.placement".format(cell_type.name)
         placement_class = assert_attr(section, "class", node_name)
         try:
-            placement = self.load_configurable_class(
+            placement = load_configurable_class(
                 name,
                 placement_class,
                 PlacementStrategy,
@@ -785,7 +715,7 @@ class JSONConfig(ScaffoldConfig):
             placement.placement_relative_to = relation
 
         # Copy other information to be validated by the placement class
-        self.fill_configurable_class(
+        fill_configurable_class(
             placement,
             section,
             excluded=[
@@ -811,8 +741,8 @@ class JSONConfig(ScaffoldConfig):
         """
         node_name = "after_placement." + name
         hook_class = assert_attr(section, "class", node_name)
-        hook = self.load_configurable_class(name, hook_class, PostProcessingHook)
-        self.fill_configurable_class(hook, section, excluded=["class"])
+        hook = load_configurable_class(name, hook_class, PostProcessingHook)
+        fill_configurable_class(hook, section, excluded=["class"])
         self.add_after_placement_hook(hook)
         return hook
 
@@ -829,18 +759,12 @@ class JSONConfig(ScaffoldConfig):
         # Get the simulator adapter class for this simulation
         simulator = self.simulators[simulator_name]
         # Initialise a new simulator adapter for this simulation
-        simulation = self.load_configurable_class(name, simulator, SimulatorAdapter)
+        simulation = load_configurable_class(name, simulator, SimulatorAdapter)
         # Configure the simulation's adapter
-        self.fill_configurable_class(
+        fill_configurable_class(
             simulation,
             section,
-            excluded=[
-                "simulator",
-                "cell_models",
-                "connection_models",
-                "devices",
-                "entities",
-            ],
+            excluded=["simulator", "cell_models", "connection_models", "devices"],
         )
         # Get the classes required to configure cells and connections in this simulation
         config_classes = simulation.get_configuration_classes()
@@ -999,10 +923,10 @@ class JSONConfig(ScaffoldConfig):
         connection.__dict__["to_cell_compartments"] = to_cell_compartments
 
     def init_simulation_component(self, name, section, component_class, adapter):
-        component = self.load_configurable_class(
+        component = load_configurable_class(
             name, component_class, SimulationComponent, parameters={"adapter": adapter}
         )
-        self.fill_configurable_class(component, section)
+        fill_configurable_class(component, section)
         return component
 
 

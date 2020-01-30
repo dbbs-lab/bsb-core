@@ -1,6 +1,6 @@
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-from .networks import depth_first_branches, get_branch_points, reduce_branch
+from .networks import all_depth_first_branches, get_branch_points, reduce_branch
 import numpy as np, math
 from .morphologies import Compartment
 from contextlib import contextmanager
@@ -54,7 +54,7 @@ def plot_network(scaffold, from_memory=True, show=True):
         plot_network(scaffold, from_memory=True, show=show)
 
 
-def get_voxel_cloud_traces(cloud, selected_voxels=None):
+def get_voxel_cloud_traces(cloud, selected_voxels=None, offset=[0.0, 0.0, 0.0]):
     # Calculate the 3D voxel indices based on the voxel positions and the grid size.
     boxes = cloud.get_boxes()
     voxels = cloud.voxels.copy()
@@ -72,6 +72,7 @@ def get_voxel_cloud_traces(cloud, selected_voxels=None):
         colors[voxels] = list(map(lambda o: "rgba(255, 0, 0, {})".format(o), occupancies))
     traces = []
     for box, color in zip(box_positions, colors[voxels]):
+        box += offset
         traces.extend(
             plotly_block(box, [cloud.grid_size, cloud.grid_size, cloud.grid_size], color)
         )
@@ -79,12 +80,17 @@ def get_voxel_cloud_traces(cloud, selected_voxels=None):
     return traces
 
 
-def plot_voxel_cloud(cloud, bounds, selected_voxels=None):
-    with show_figure(legend=False) as fig:
-        traces = get_voxel_cloud_traces(cloud, selected_voxels=selected_voxels)
+def plot_voxel_cloud(
+    cloud, bounds, selected_voxels=None, fig=None, show=True, offset=[0.0, 0.0, 0.0]
+):
+    with show_figure(legend=False, fig=fig, show=show) as fig:
+        traces = get_voxel_cloud_traces(
+            cloud, selected_voxels=selected_voxels, offset=offset
+        )
         for trace in traces:
             fig.add_trace(trace)
-        set_scene_range(fig.layout.scene, bounds)
+        # set_scene_range(fig.layout.scene, bounds)
+        return fig
 
 
 def get_branch_trace(compartments, offset=[0.0, 0.0, 0.0], color="black", width=1.0):
@@ -126,15 +132,8 @@ def plot_morphology(
     soma_radius=None,
     segment_radius=1.0,
 ):
-    compartments = morphology.compartments.copy()
-    compartments.insert(
-        0,
-        Compartment(
-            morphology, [0, 0, *compartments[0].start, *compartments[0].end, 1.0, 0]
-        ),
-    )
-    compartments = np.array(compartments)
-    dfs_list = depth_first_branches(morphology.get_compartment_network())
+    compartments = np.array(morphology.compartments.copy())
+    dfs_list = all_depth_first_branches(morphology.get_compartment_network())
     if reduce_branches:
         branch_points = get_branch_points(dfs_list)
         dfs_list = list(map(lambda b: reduce_branch(b, branch_points), dfs_list))
