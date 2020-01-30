@@ -1,12 +1,13 @@
 import setuptools, sys, os
+import scaffold
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
     name="dbbs-scaffold",
-    version="3.0.4",
-    author="Robin De Schepper, Alice Geminiani, Stefano Casali, Alberto Antonietti, Claudia Casselato, Egidio D'Angelo",
+    version=scaffold.__version__,
+    author="Robin De Schepper, Alice Geminiani, Alberto Antonietti, Stefano Casali, Claudia Casselato, Egidio D'Angelo",
     author_email="robingilbert.deschepper@unipv.it",
     description="A morphologically detailed scaffolding package for the scientific modelling of the cerebellum.",
     include_package_data=True,
