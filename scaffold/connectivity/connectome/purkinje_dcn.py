@@ -22,8 +22,15 @@ class ConnectomePurkinjeDCN(ConnectionStrategy):
         purkinjes = self.from_cells[from_type.name]
         dcn_cells = self.to_cells[to_type.name]
         dcn_angles = self.scaffold.appends["cells/dcn_orientations"]
+
+        # Filter the DCN angles for the subset of labelled DCN cells.
+        all_dcn_ids = self.scaffold.get_cells_by_type(to_type.name)[:, 0]
+        dcn_map = [id in dcn_cells[:, 0] for id in all_dcn_ids]
+        dcn_angles = dcn_angles[dcn_map]
+
         if len(dcn_cells) == 0:
             return
+
         first_dcn = int(dcn_cells[0, 0])
         divergence = self.divergence
 

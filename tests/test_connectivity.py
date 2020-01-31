@@ -72,6 +72,7 @@ class TestConnectivity(unittest.TestCase):
         )
 
         # Tests if labelled cells are connected only with cells with the same label
+
     def test_Microzones(self):
 
         micro_neg = self.scaffold.get_labelled_ids("microzone-negative")
@@ -83,9 +84,11 @@ class TestConnectivity(unittest.TestCase):
                 )
                 if len(pre_post) > 0:
                     for conn_type in pre_post[0][1:]:
-                        A_to_B = np.column_stack((conn_type.from_identifiers, conn_type.to_identifiers))
-                        print(pre, post, A_to_B)
+                        A_to_B = np.column_stack(
+                            (conn_type.from_identifiers, conn_type.to_identifiers)
+                        )
                         for connection_i in A_to_B:
-                            if (connection_i[0] in micro_neg) != (connection_i[1] in micro_neg):
-                                print(micro_neg, connection_i)
-                            self.assertTrue((connection_i[0] in micro_neg) == (connection_i[1] in micro_neg))
+                            self.assertTrue(
+                                (connection_i[0] in micro_neg)
+                                == (connection_i[1] in micro_neg)
+                            )
