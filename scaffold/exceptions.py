@@ -1,96 +1,163 @@
-class ScaffoldException(Exception):
+class ScaffoldError(Exception):
+    pass
+
+
+class SpatialDimensionError(ScaffoldError):
     pass
 
 
 ## Configuration
 
 
-class ConfigurationException(ScaffoldException):
+class ConfigurationError(ScaffoldError):
     pass
 
 
-class DynamicClassException(ConfigurationException):
+class DynamicClassError(ConfigurationError):
     pass
 
 
-class ConfigurableClassNotFoundException(DynamicClassException):
+class ConfigurableClassNetFoundError(DynamicClassError):
     pass
 
 
-class CastException(ConfigurationException):
+class CastError(ConfigurationError):
     pass
 
 
-class UnionCastException(CastException):
+class CastConfigurationError(ConfigurationError):
     pass
 
 
-class ConfigurableCastException(CastException):
+class UnionCastError(CastError):
     pass
 
 
-class UnknownDistributionException(ConfigurableCastException):
+class ConfigurableCastError(CastError):
     pass
 
 
-class InvalidDistributionException(ConfigurableCastException):
+class UnknownDistributionError(ConfigurableCastError):
+    pass
+
+
+class InvalidDistributionError(ConfigurableCastError):
+    pass
+
+
+class TypeNotFoundError(ScaffoldError):
+    pass
+
+
+class LayerNotFoundError(ScaffoldError):
+    pass
+
+
+class SimulationNotFoundError(ScaffoldError):
     pass
 
 
 ## Nest
 
 
-class NestException(ScaffoldException):
+class NestError(ScaffoldError):
     pass
 
 
-class AdapterException(NestException):
+class AdapterError(NestError):
     pass
 
 
-class NestKernelException(AdapterException):
+class NestKernelError(AdapterError):
     pass
 
 
-class KernelLockedException(NestKernelException):
+class KernelLockedError(NestKernelError):
     pass
 
 
-class SuffixTakenException(KernelLockedException):
+class SuffixTakenError(KernelLockedError):
     pass
 
 
-class NestModelException(Exception):
+class NestModelError(NestError):
     pass
 
 
-class NestModuleException(NestKernelException):
+class NestModuleError(NestKernelError):
+    pass
+
+
+class ReceptorSpecificationError(NestError):
+    pass
+
+
+## Connectivity
+
+
+class ConnectivityError(ScaffoldError):
     pass
 
 
 ## Morphologies
 
 
-class MorphologyException(ScaffoldException):
+class MorphologyError(ScaffoldError):
     pass
 
 
-class MissingMorphologyException(MorphologyException):
+class MorphologyRepositoryError(MorphologyError):
+    pass
+
+
+class MissingMorphologyError(MorphologyError):
+    pass
+
+
+class IncompleteMorphologyError(MorphologyError):
+    pass
+
+
+class MorphologyDataError(MorphologyError):
+    pass
+
+
+class CompartmentError(MorphologyError):
+    pass
+
+
+class TreeError(ScaffoldError):
+    pass
+
+
+class VoxelizationError(ScaffoldError):
+    pass
+
+
+class VoxelTransformError(VoxelizationError):
     pass
 
 
 ## Resources (HDF5, ...)
 
 
-class ResourceException(ScaffoldException):
+class ResourceError(ScaffoldError):
     pass
 
 
-class DatasetNotFoundException(ResourceException):
+class DatasetNotFoundError(ResourceError):
     pass
 
 
-class AttributeMissingException(ResourceException):
+class DataNotFoundError(ResourceError):
+    pass
+
+
+class DataNotProvidedError(ScaffoldError):
+    pass
+
+
+class AttributeMissingError(ResourceError):
     pass
 
 
@@ -118,4 +185,15 @@ class SimulationWarning(ScaffoldWarning):
 
 
 class KernelWarning(SimulationWarning):
+    pass
+
+
+## Misc
+
+
+class OrderError(ScaffoldError):
+    pass
+
+
+class ClassError(ScaffoldError):
     pass

@@ -273,11 +273,11 @@ class VoxelTransformer:
 
     def occupy(self, position):
         if position in self.occupied:
-            raise Exception("Position already occupied")
+            raise VoxelTransformError("Position already occupied")
 
     def add_carrier(self, payload, position):
         if position in self.occupied:
-            raise Exception("Position already occupied")
+            raise VoxelTransformError("Position already occupied")
         carrier = VoxelTransformCarrier(self, payload, position)
         self.carriers.append(carrier)
 

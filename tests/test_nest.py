@@ -5,11 +5,7 @@ from scaffold.core import Scaffold
 from scaffold.config import JSONConfig
 from scaffold.simulators.nest import NestCell
 from scaffold.models import Layer, CellType
-from scaffold.exceptions import (
-    AdapterException,
-    KernelLockedException,
-    SuffixTakenException,
-)
+from scaffold.exceptions import *
 
 
 def relative_to_tests_folder(path):
@@ -255,24 +251,26 @@ class TestDoubleNeuronNetworkHeterosyn(unittest.TestCase):
         )
 
     def test_teaching_connection_missing(self):
+        from scaffold.exceptions import ConfigurationError
+
         with open(heterosyn_config, "r") as f:
             stream = f.read()
         stream = stream.replace('"teaching": "teaching_cell_to_cell",', "")
-        from scaffold.exceptions import ConfigurationException
 
-        with self.assertRaises(ConfigurationException) as ce:
+        with self.assertRaises(ConfigurationError) as ce:
             config = JSONConfig(stream=stream)
             self.scaffold = Scaffold(config)
 
     def test_teaching_connection_configuration(self):
+        from scaffold.exceptions import ConfigurationError
+
         with open(heterosyn_config, "r") as f:
             stream = f.read()
         stream = stream.replace(
             '"teaching": "teaching_cell_to_cell",', '"teaching": "random_connection",'
         )
-        from scaffold.exceptions import ConfigurationException
 
-        with self.assertRaises(ConfigurationException) as ce:
+        with self.assertRaises(ConfigurationError) as ce:
             config = JSONConfig(stream=stream)
             self.scaffold = Scaffold(config)
 
@@ -314,12 +312,12 @@ class TestMultiInstance(unittest.TestCase):
             self.nest_adapter_multi_2.release_lock()
 
     def test_single_instance_unwanted_usage(self):
-        # Test AdapterException when trying to unlock unlocked adapter
-        self.assertRaises(AdapterException, self.nest_adapter_0.release_lock)
-        # Test whether the scaffold throws an AdapterException when the same
+        # Test AdapterError when trying to unlock unlocked adapter
+        self.assertRaises(AdapterError, self.nest_adapter_0.release_lock)
+        # Test whether the scaffold throws an AdapterError when the same
         # adapter is prepared twice.
         self.nest_adapter_0.prepare()
-        self.assertRaises(AdapterException, self.nest_adapter_0.prepare)
+        self.assertRaises(AdapterError, self.nest_adapter_0.prepare)
 
         self.nest_adapter_0.release_lock()
         self.nest_adapter_0.reset()
@@ -342,7 +340,7 @@ class TestMultiInstance(unittest.TestCase):
         # Test that a 2nd single-instance adapter can't manage a locked kernel.
         self.nest_adapter_1.prepare()
 
-        self.assertRaises(KernelLockedException, self.nest_adapter_2.prepare)
+        self.assertRaises(KernelLockedError, self.nest_adapter_2.prepare)
         self.assertEqual(self.nest_adapter_2.is_prepared, False)
 
         self.nest_adapter_1.release_lock()
@@ -417,7 +415,7 @@ class TestMultiInstance(unittest.TestCase):
         self.assertTrue(all(map(lambda x: x["t_ref"] == 3.0, self.nest.GetStatus(id2))))
 
         # Check duplicate suffixes
-        self.assertRaises(SuffixTakenException, self.nest_adapter_multi_1b.prepare)
+        self.assertRaises(SuffixTakenError, self.nest_adapter_multi_1b.prepare)
 
         self.nest_adapter_multi_1.release_lock()
         self.nest_adapter_multi_1.reset()

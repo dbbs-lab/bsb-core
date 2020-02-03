@@ -2,6 +2,7 @@ import abc, numpy as np, pickle, h5py
 from .helpers import ConfigurableClass
 from .voxels import VoxelCloud, detect_box_compartments, Box
 from sklearn.neighbors import KDTree
+from .exceptions import *
 
 
 class Compartment:
@@ -123,7 +124,7 @@ class Morphology(ConfigurableClass):
         m.init_morphology(repo_data, repo_meta)
         if voxel_data is not None:
             if voxel_map is None or voxel_meta is None:
-                raise Exception(
+                raise DataNotProvidedError(
                     "If voxel_data is provided, voxel_meta and voxel_map must be provided aswell."
                 )
             m.init_voxel_cloud(voxel_data, voxel_meta, voxel_map)
@@ -183,7 +184,7 @@ class TrueMorphology(Morphology):
                 np.abs(np.array([pos[:, dimensions.index(d)] for d in plane])), axis=1
             )
         except ValueError as e:
-            raise Exception("Unknown dimensions in dimension string '{}'".format(plane))
+            raise ValueError("Unknown dimensions in dimension string '{}'".format(plane))
         return np.sqrt(np.sum(max_dists ** 2))
 
     def get_compartment_network(self):
@@ -263,7 +264,7 @@ class TrueMorphology(Morphology):
         try:
             type_ids = TrueMorphology.get_compartment_type_ids(compartment_types)
         except Exception as e:
-            raise Exception("Unknown compartment types encountered")
+            raise CompartmentError("Unknown compartment types encountered")
         return list(filter(lambda c: c.type in type_ids, self.compartments))
 
     @classmethod

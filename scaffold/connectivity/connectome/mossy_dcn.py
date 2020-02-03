@@ -1,6 +1,6 @@
 import numpy as np
 from ..strategy import TouchingConvergenceDivergence
-from ...exceptions import ConnectivityWarning
+from ...exceptions import *
 
 
 class ConnectomeMossyDCN(TouchingConvergenceDivergence):

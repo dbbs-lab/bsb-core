@@ -272,7 +272,7 @@ class ReplState:
         try:
             # Parse the command
             args = self.parser.parse_args(self.command.split(" "))
-        except ParseException as e:
+        except ParseError as e:
             print(str(e))
             return
 
@@ -298,7 +298,7 @@ class ReplState:
         if callable(state_method):
             state_method(self)
         else:
-            raise Exception("Unparsable state: {}".format(self.state))
+            raise ParseError("Unparsable state: {}".format(self.state))
 
     def set_parser_base_state(self):
         """
@@ -490,11 +490,11 @@ class ReplState:
         """
             Closes the currently open HDF5 file.
 
-            :raises ParseException: Raised if there's no open HDF5 file.
+            :raises ParseError: Raised if there's no open HDF5 file.
             :rtype: None
         """
         if self.globals["hdf5"] is None:
-            raise ParseException("No HDF5 file is currently opened.")
+            raise ParseError("No HDF5 file is currently opened.")
         self.globals["hdf5"].close()
         self.globals["hdf5"] = None
 
@@ -543,7 +543,7 @@ class ReplState:
         self.prefix = "hdf5 <'{}'".format(args.file)
 
 
-class ParseException(Exception):
+class ParseError(Exception):
     """
         Thrown when the parsing of a command string fails.
     """
@@ -560,9 +560,9 @@ class StateParser(argparse.ArgumentParser):
 
     def error(self, message):
         """
-            Overloads default exit behavior with throwing ParseException.
+            Overloads default exit behavior with throwing ParseError.
         """
-        raise ParseException(message)
+        raise ParseError(message)
 
 
 def repl_plot_morphology(morphology_repository, args):

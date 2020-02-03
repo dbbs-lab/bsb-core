@@ -3,7 +3,7 @@ from .helpers import ConfigurableClass, assert_attr_array
 from scipy.spatial import distance
 from scaffold.particles import Particle, ParticleSystem
 from .functions import compute_circle, get_candidate_points, add_y_axis, exclude_index
-from .exceptions import PlacementWarning, ConfigurationException
+from .exceptions import *
 
 
 class PlacementStrategy(ConfigurableClass):
@@ -45,7 +45,7 @@ class MightBeRelative:
             ]
             if self.density_ratio is not None and self.relation.placement.layer is None:
                 # A layer volume is required for relative density calculations.
-                raise ConfigurationException(
+                raise ConfigurationError(
                     "Cannot place cells relative to the density of a placement strategy that isn't tied to a layer."
                 )
 
@@ -75,7 +75,7 @@ class MustBeRelative(MightBeRelative):
             not hasattr(self, "placement_relative_to")
             or self.placement_relative_to is None
         ):
-            raise ConfigurationException(
+            raise ConfigurationError(
                 "The {} requires you to configure another cell type under `placement_relative_to`."
             )
         super().validate()
@@ -91,11 +91,13 @@ class Layered(MightBeRelative):
         # Check if the layer is given and exists.
         config = self.scaffold.configuration
         if not hasattr(self, "layer"):
-            raise Exception(
+            raise AttributeMissingError(
                 "Required attribute 'layer' missing from {}".format(self.name)
             )
         if self.layer not in config.layers:
-            raise Exception("Unknown layer '{}' in {}".format(self.layer, self.name))
+            raise LayerNotFoundError(
+                "Unknown layer '{}' in {}".format(self.layer, self.name)
+            )
         self.layer_instance = self.scaffold.configuration.layers[self.layer]
         if hasattr(self, "y_restriction"):
             self.restriction_minimum = float(self.y_restriction[0])
@@ -463,15 +465,6 @@ class ParallelArrayPlacement(Layered, PlacementStrategy):
     defaults = {"angle": 0.08726646259971647}  # 5 degrees
 
     required = ["extension_x", "extension_z", "angle"]
-
-    def validate(self):
-        # Check if the layer is given and exists.
-        config = self.scaffold.configuration
-        if not hasattr(self, "layer"):
-            raise Exception("Required attribute Layer missing from {}".format(self.name))
-        if self.layer not in config.layers:
-            raise Exception("Unknown layer '{}' in {}".format(self.layer, self.name))
-        self.layer_instance = self.scaffold.configuration.layers[self.layer]
 
     def place(self):
         """

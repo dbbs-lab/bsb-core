@@ -36,44 +36,32 @@ class SimulatorAdapter(ConfigurableClass):
 
     def get_configuration_classes(self):
         if not hasattr(self.__class__, "simulator_name"):
-            raise Exception(
+            raise AttributeMissingError(
                 "The SimulatorAdapter {} is missing the class attribute 'simulator_name'".format(
                     self.__class__
                 )
             )
         # Check for the 'configuration_classes' class attribute
         if not hasattr(self.__class__, "configuration_classes"):
-            raise Exception(
+            raise AdapterError(
                 "The '{}' adapter class needs to set the 'configuration_classes' class attribute to a dictionary of configurable classes (str or class).".format(
                     self.simulator_name
                 )
             )
         classes = self.configuration_classes
-        # Check for the presence of required classes
-        if "cell_models" not in classes:
-            raise Exception(
-                "{} adapter: The 'configuration_classes' dictionary requires a class to handle the simulation configuration of cells under the 'cell_models' key.".format(
-                    self.simulator_name
-                )
-            )
-        if "connection_models" not in classes:
-            raise Exception(
-                "{} adapter: The 'configuration_classes' dictionary requires a class to handle the simulation configuration of cell connections under the 'connection_models' key.".format(
-                    self.simulator_name
-                )
-            )
-        if "devices" not in classes:
-            raise Exception(
-                "{} adapter: The 'configuration_classes' dictionary requires a class to handle the simulation configuration of devices under the 'devices' key.".format(
-                    self.simulator_name
-                )
-            )
-
-        # Test if they are all children of the ConfigurableClass class
         keys = ["cell_models", "connection_models", "devices"]
+        # Check for the presence of required classes
+        for requirement in keys:
+            if requirement not in classes:
+                raise AdapterError(
+                    "{} adapter: The 'configuration_classes' dictionary requires a class under the '{}' key.".format(
+                        self.simulator_name, requirement
+                    )
+                )
+        # Test if they are all children of the ConfigurableClass class
         for class_key in keys:
             if not issubclass(classes[class_key], ConfigurableClass):
-                raise Exception(
+                raise AdapterError(
                     "{} adapter: The configuration class '{}' should inherit from ConfigurableClass".format(
                         self.simulator_name, class_key
                     )
@@ -108,7 +96,7 @@ class TargetsNeurons:
             getattr(self, get_targets_name) if hasattr(self, get_targets_name) else None
         )
         if not callable(method):
-            raise Exception(
+            raise NotImplementedError(
                 "Unimplemented neuron targetting type '{}' in {}".format(
                     self.targetting, self.node_name
                 )

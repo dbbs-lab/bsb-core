@@ -8,7 +8,7 @@ class MorphologyStrategy:
         """
         available_morphologies = self.list_all_morphologies(cell_type)
         if len(available_morphologies) == 0:
-            raise MissingMorphologyException(
+            raise MissingMorphologyError(
                 "Can't perform touch detection without detailed morphologies for {}".format(
                     cell_type.name
                 )

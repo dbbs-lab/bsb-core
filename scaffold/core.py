@@ -8,6 +8,7 @@ from .helpers import map_ndarray, listify_input
 from .models import CellType
 from .connectivity import ConnectionStrategy
 from warnings import warn as std_warn
+from .exceptions import *
 
 ###############################
 ## Scaffold class
@@ -277,7 +278,7 @@ class Scaffold:
 
     def get_simulation(self, simulation_name):
         if simulation_name not in self.configuration.simulations:
-            raise Exception(
+            raise SimulationNotFoundError(
                 "Unknown simulation '{}', choose from: {}".format(
                     simulation_name, ", ".join(self.configuration.simulations.keys())
                 )
@@ -367,7 +368,7 @@ class Scaffold:
             if len(morphologies) != len(connectome_data) or len(compartments) != len(
                 connectome_data
             ):
-                raise Exception(
+                raise MorphologyDataError(
                     "The morphological data did not match the connectome data."
                 )
             self._append_mapped(
@@ -440,19 +441,25 @@ class Scaffold:
 
     def get_cells_by_type(self, name):
         if name not in self.cells_by_type:
-            raise Exception("Attempting to load unknown cell type '{}'".format(name))
+            raise TypeNotFoundError(
+                "Attempting to load unknown cell type '{}'".format(name)
+            )
         if self.cells_by_type[name].shape[0] == 0:
             if not self.output_formatter.exists():
                 return self.cells_by_type[name]
             if self.output_formatter.has_cells_of_type(name):
                 self.cells_by_type[name] = self.output_formatter.get_cells_of_type(name)
             else:
-                raise Exception("Cell type '{}' not found in output storage".format(name))
+                raise TypeNotFoundError(
+                    "Cell type '{}' not found in output storage".format(name)
+                )
         return self.cells_by_type[name]
 
     def get_entities_by_type(self, name):
         if name not in self.entities_by_type:
-            raise Exception("Attempting to load unknown entity type '{}'".format(name))
+            raise TypeNotFoundError(
+                "Attempting to load unknown entity type '{}'".format(name)
+            )
         if self.entities_by_type[name].shape[0] == 0:
             if not self.output_formatter.exists():
                 return self.entities_by_type[name]
@@ -461,7 +468,7 @@ class Scaffold:
                     name, entity=True
                 )
             else:
-                raise Exception(
+                raise TypeNotFoundError(
                     "Entity type '{}' not found in output storage".format(name)
                 )
         return self.entities_by_type[name]
@@ -578,7 +585,7 @@ class Scaffold:
 
     def get_connection_type(self, name):
         if name not in self.configuration.connection_types:
-            raise Exception("Unknown connection type '{}'".format(name))
+            raise TypeNotFoundError("Unknown connection type '{}'".format(name))
         return self.configuration.connection_types[name]
 
     def get_cell_types(self, entities=True):
@@ -609,12 +616,12 @@ class Scaffold:
 
     def get_cell_type(self, name):
         if name not in self.configuration.cell_types:
-            raise Exception("Unknown cell type '{}'".format(name))
+            raise TypeNotFoundError("Unknown cell type '{}'".format(name))
         return self.configuration.cell_types[name]
 
     def get_cell_position(self, id):
         if not id < len(self.cells):
-            raise Exception(
+            raise DataNotFoundError(
                 "Cell {} does not exist. (highest id is {})".format(
                     id, len(self.cells) - 1
                 )
@@ -635,7 +642,9 @@ class Scaffold:
 
     def create_adapter(self, simulation_name):
         if simulation_name not in self.configuration.simulations:
-            raise Exception("Unknown simulation '{}'".format(simulation_name))
+            raise SimulationNotFoundError(
+                "Unknown simulation '{}'".format(simulation_name)
+            )
         simulations = self.configuration._parsed_config["simulations"]
         simulation_config = simulations[simulation_name]
         adapter = self.configuration.init_simulation(

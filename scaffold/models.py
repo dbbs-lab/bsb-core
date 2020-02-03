@@ -1,7 +1,7 @@
 import numpy as np, random
 from .morphologies import Morphology as BaseMorphology
 from .helpers import ConfigurableClass, dimensions, origin, SortableByAfter
-from .exceptions import MissingMorphologyException, AttributeMissingException
+from .exceptions import *
 
 
 class CellType(SortableByAfter):
@@ -28,7 +28,7 @@ class CellType(SortableByAfter):
             :type morphology: Instance of a subclass of scaffold.morphologies.Morphology
         """
         if not issubclass(type(morphology), BaseMorphology):
-            raise Exception(
+            raise ClassError(
                 "Only subclasses of scaffold.morphologies.Morphology can be used as cell morphologies."
             )
         self.morphology = morphology
@@ -171,7 +171,7 @@ class Resource:
     def get_attribute(self, name):
         attrs = self.attributes
         if name not in attrs:
-            raise AttributeMissingException(
+            raise AttributeMissingError(
                 "Attribute '{}' not found in '{}'".format(name, self._path)
             )
         return attrs[name]
@@ -221,7 +221,7 @@ class Connection:
                 or from_morphology is None
                 or to_morphology is None
             ):
-                raise Exception(
+                raise RuntimeError(
                     "Insufficient arguments given to Connection constructor."
                     + " If one of the 4 arguments for a detailed connection is given, all 4 are required."
                 )
@@ -251,7 +251,7 @@ class ConnectivitySet(Resource):
     @property
     def intersections(self):
         if not self.compartment_set.exists():
-            raise MissingMorphologyException(
+            raise MissingMorphologyError(
                 "No intersection/morphology information for the '{}' connectivity set.".format(
                     self.tag
                 )

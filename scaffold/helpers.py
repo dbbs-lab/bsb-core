@@ -115,7 +115,7 @@ class ConfigurableClass(abc.ABC):
                     else:
                         self.__dict__[attr] = default_value
                 elif isRequired:
-                    raise Exception(
+                    raise AttributeMissingError(
                         "Required attribute '{}' missing from '{}' section.".format(
                             attr, name
                         )
@@ -138,7 +138,7 @@ def cast_node(value, cast, attr, name):
         raise_union_cast(value, cast, attr, name)
     elif type(cast) is list:
         if len(cast) != 1:
-            raise Exception(
+            raise CastConfigurationError(
                 "Invalid list casting configuration of {} in {}: can only cast a one-element list. The one element being the casting type of the list elements.".format(
                     attr, name
                 )
@@ -151,7 +151,7 @@ def cast_node(value, cast, attr, name):
             value[i] = cast_node(value[i], cast, attr + "[{}]".format(i), name)
         return value
     elif type(cast) is dict:
-        raise Exception("Dictionary casting not implemented yet. (no use case)")
+        raise NotImplementedError("Dictionary casting not implemented yet.")
     else:
         return try_cast(value, cast, attr, name)
 
@@ -163,7 +163,7 @@ def try_cast(value, cast, attr, name):
         return v
     except Exception as e:
         if isinstance(
-            e, ConfigurableCastException
+            e, ConfigurableCastError
         ):  # Is this an error raised by a child configurable class?
             # Format context and pass along the child cast exception.
             raise e.__class__("{}.{}: ".format(name, attr) + str(e)) from None
@@ -174,7 +174,7 @@ def try_cast(value, cast, attr, name):
             else cast.__self__.__name__
         )
         # Else, replace by generic "we couldn't" error.
-        raise CastException(
+        raise CastError(
             "{}.{}: Could not cast '{}' to a {}".format(name, attr, value, cast_name)
         )
 
@@ -186,7 +186,7 @@ def raise_union_cast(value, cast, attr, name):
             cast_names.append(c.__self__.__name__)
         else:
             cast_names.append(c.__name__)
-    raise UnionCastException(
+    raise UnionCastError(
         "{}.{}: Could not cast '{}' to any of the following: {}".format(
             name, attr, value, ", ".join(cast_names)
         )
@@ -237,7 +237,7 @@ class OptionallyCastable(CastableConfigurableClass):
             class_instance.cast_config()
         else:  # Try fallback constant casting
             if not hasattr(cast_class, "fallback"):
-                raise ConfigurableCastException(
+                raise ConfigurableCastError(
                     "OptionallyCastable configuration classes require a fallback cast function. Missing for '{}'".format(
                         cast_class.__name__
                     )
@@ -265,11 +265,11 @@ class DistributionConfiguration(OptionallyCastable):
         if self.type == "const":
             return
         if self.type[-4:] == "_gen":
-            raise InvalidDistributionException(
+            raise InvalidDistributionError(
                 "Distributions can not be created through their constructors but need to use their factory methods. (Those do not end in _gen)"
             )
         if self.type not in dir(distributions):
-            raise UnknownDistributionException(
+            raise UnknownDistributionError(
                 "'{}' is not a distribution of scipy.stats".format(self.type)
             )
         try:
@@ -281,7 +281,7 @@ class DistributionConfiguration(OptionallyCastable):
             error_msg = str(e).replace(
                 "_parse_args()", "scipy.stats.distributions." + self.type
             )
-            raise InvalidDistributionException(error_msg) from None
+            raise InvalidDistributionError(error_msg) from None
 
     def draw(self, n):
         if self.type == "const":
@@ -323,7 +323,7 @@ class FloatEvalConfiguration(EvalConfiguration):
 
 def assert_attr(section, attr, section_name):
     if attr not in section:
-        raise Exception(
+        raise AttributeMissingError(
             "Required attribute '{}' missing in '{}'".format(attr, section_name)
         )
     return section[attr]
@@ -344,7 +344,7 @@ def assert_strictly_one(section, attrs, section_name):
         msg = "{} found: ".format(len(attr_list)) + ", ".join(attr_list)
         if len(attr_list) == 0:
             msg = "None found."
-        raise Exception(
+        raise AttributeError(
             "Strictly one of the following attributes is expected in {}: {}. {}".format(
                 section_name, ", ".join(attrs), msg
             )
@@ -357,7 +357,7 @@ def assert_float(val, section_name):
     try:
         ret = float(val)
     except ValueError as e:
-        raise Exception("Invalid float '{}' given for '{}'".format(val, section_name))
+        raise TypeError("Invalid float '{}' given for '{}'".format(val, section_name))
     return ret
 
 
@@ -366,12 +366,12 @@ def assert_array(val, section_name):
 
     if isinstance(val, Sequence):
         return val
-    raise Exception("Invalid array '{}' given for '{}'".format(val, section_name))
+    raise TypeError("Invalid array '{}' given for '{}'".format(val, section_name))
 
 
 def assert_attr_float(section, attr, section_name):
     if attr not in section:
-        raise Exception(
+        raise AttributeMissingError(
             "Required attribute '{}' missing in '{}'".format(attr, section_name)
         )
     return assert_float(section[attr], "{}.{}".format(section_name, attr))
@@ -394,7 +394,7 @@ def assert_attr_array(section, attr, section_name):
     elif hasattr(section, attr):
         return assert_array(section.__dict__[attr], "{}.{}".format(section_name, attr))
 
-    raise ConfigurationException(
+    raise AttributeMissingError(
         "Required attribute '{}' missing in '{}'".format(attr, section_name)
     )
 
@@ -405,11 +405,11 @@ def assert_attr_in(section, attr, values, section_name):
         in the given array.
     """
     if attr not in section:
-        raise Exception(
+        raise AttributeMissingError(
             "Required attribute '{}' missing in '{}'".format(attr, section_name)
         )
     if not section[attr] in values:
-        raise Exception(
+        raise AttributeError(
             "Attribute '{}.{}' with value '{}' must be one of the following values: {}".format(
                 section_name, attr, section[attr], "'" + "', '".join(values) + "'"
             )
@@ -544,7 +544,7 @@ class SortableByAfter:
             # If we have had to rearrange all elements more than there are elements, the
             # conditions cannot be met, and a circular dependency is at play.
             if j > len(objects):
-                raise Exception(
+                raise OrderError(
                     "Couldn't resolve order, probably a circular dependency including: {}".format(
                         ", ".join(
                             list(
@@ -601,7 +601,7 @@ def load_configurable_class(name, configured_class_name, parent_class, parameter
     else:
         class_ref = get_configurable_class(name, configured_class_name)
         if not parent_class is None and not issubclass(class_ref, parent_class):
-            raise Exception(
+            raise DynamicClassError(
                 "Configurable class '{}.{}' must derive from {}.{}".format(
                     module_name,
                     class_name,
@@ -626,7 +626,5 @@ def get_configurable_class(name, configured_class_name):
     module_name = ".".join(class_parts[:-1])
     module_ref = __import__(module_name, globals(), locals(), [class_name], 0)
     if not class_name in module_ref.__dict__:
-        raise ConfigurableClassNotFoundException(
-            "Class not found:" + configured_class_name
-        )
+        raise ConfigurableClassNetFoundError("Class not found:" + configured_class_name)
     return module_ref.__dict__[class_name]

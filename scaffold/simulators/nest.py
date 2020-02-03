@@ -56,7 +56,7 @@ class NestCell(SimulationComponent, MapsScaffoldIdentifiers):
         params = self.parameters.copy()
         # Raise an exception if the requested model is not configured.
         if not hasattr(self, self.neuron_model):
-            raise Exception(
+            raise ConfigurationError(
                 "Missing parameters for '{}' model in '{}'".format(
                     self.neuron_model, self.name
                 )
@@ -89,7 +89,7 @@ class NestConnection(SimulationComponent):
 
     def validate(self):
         if "weight" not in self.connection:
-            raise ConfigurationException(
+            raise ConfigurationError(
                 "Missing 'weight' in the connection parameters of "
                 + self.node_name
                 + "."
@@ -169,7 +169,7 @@ class NestConnection(SimulationComponent):
             from_cell_model = self.adapter.entities[from_cell_type.name]
         receptors = to_cell_model.get_receptor_specifications()
         if from_cell_model.name not in receptors:
-            raise Exception(
+            raise ReceptorSpecificationError(
                 "Missing receptor specification for cell model '{}' in '{}' while attempting to connect a '{}' to it during '{}'".format(
                     to_cell_model.name, self.node_name, from_cell_model.name, self.name
                 )
@@ -195,13 +195,13 @@ class NestDevice(TargetsNeurons, SimulationComponent):
         # Fill in the _get_targets method, so that get_target functions
         # according to `targetting`.
         if self.targetting not in self.__class__.neuron_targetting_types:
-            raise Exception(
+            raise ConfigurationError(
                 "Unknown NEST targetting type '{}' in {}".format(
                     self.targetting, self.node_name
                 )
             )
         if not self.io == "input" and not self.io == "output":
-            raise Exception(
+            raise ConfigurationError(
                 "Attribute io needs to be either 'input' or 'output' in {}".format(
                     self.node_name
                 )
@@ -283,7 +283,7 @@ class NestAdapter(SimulatorAdapter):
 
     def prepare(self):
         if self.is_prepared:
-            raise AdapterException(
+            raise AdapterError(
                 "Attempting to prepare the same adapter twice. Please use `scaffold.create_adapter` for multiple adapter instances of the same simulation."
             )
         self.scaffold.report("Importing  NEST...", 2)
@@ -312,7 +312,7 @@ class NestAdapter(SimulatorAdapter):
 
     def in_full_control(self):
         if not self.has_lock or not self.read_lock():
-            raise AdapterException(
+            raise AdapterError(
                 "Can't check if we're in full control of the kernel: we have no lock on the kernel."
             )
         return not self.multi or len(self.read_lock()["suffixes"]) == 1
@@ -329,7 +329,7 @@ class NestAdapter(SimulatorAdapter):
             lock_data = {"multi": False}
             self.write_lock(lock_data, mode="x")
         except FileExistsError as e:
-            raise KernelLockedException(
+            raise KernelLockedError(
                 "This adapter is not in multi-instance mode and another adapter is already managing the kernel."
             ) from None
 
@@ -338,11 +338,11 @@ class NestAdapter(SimulatorAdapter):
         if lock_data is None:
             lock_data = {"multi": True, "suffixes": []}
         if not lock_data["multi"]:
-            raise KernelLockedException(
+            raise KernelLockedError(
                 "The kernel is locked by a single-instance adapter and cannot be managed by multiple instances."
             )
         if self.suffix in lock_data["suffixes"]:
-            raise SuffixTakenException(
+            raise SuffixTakenError(
                 "The kernel is already locked by an instance with the same suffix."
             )
         lock_data["suffixes"].append(self.suffix)
@@ -365,7 +365,7 @@ class NestAdapter(SimulatorAdapter):
 
     def release_lock(self):
         if not self.has_lock:
-            raise AdapterException(
+            raise AdapterError(
                 "Cannot unlock kernel from an adapter that has no lock on it."
             )
         self.has_lock = False
@@ -441,7 +441,7 @@ class NestAdapter(SimulatorAdapter):
             ):
                 # Threads can't be updated at this point in time.
                 success = False
-                raise NestKernelException(
+                raise NestKernelError(
                     "Updating the NEST threads or virtual processes must occur before setting the resolution."
                 ) from None
             else:
@@ -487,13 +487,13 @@ class NestAdapter(SimulatorAdapter):
             )
             if connection_model.plastic and connection_model.hetero:
                 if not hasattr(connection_model, "teaching"):
-                    raise ConfigurationException(
+                    raise ConfigurationError(
                         "Required attribute 'teaching' is missing for heteroplastic connection '{}'".format(
                             connection_model.get_config_node()
                         )
                     )
                 if connection_model.teaching not in self.connection_models:
-                    raise ConfigurationException(
+                    raise ConfigurationError(
                         "Teaching connection '{}' does not exist".format(
                             connection_model.teaching
                         )
@@ -515,7 +515,7 @@ class NestAdapter(SimulatorAdapter):
                             "Module {} already installed".format(module), KernelWarning
                         )
                     elif "file not found" in e.message:
-                        raise NestModuleException(
+                        raise NestModuleError(
                             "Module {} not found".format(module)
                         ) from None
                 else:
@@ -709,7 +709,7 @@ class NestAdapter(SimulatorAdapter):
                 # Weight recorder device is not connected to any node; just linked to a connection
                 return
             else:
-                raise ConfigurationException(
+                raise ConfigurationError(
                     "Unknown device type '{}' for {}".format(
                         device_model.io, device_model.name
                     )
@@ -801,7 +801,7 @@ def catch_dict_error(message):
         attributes = list(
             map(lambda x: x.strip(), e.errormessage.split(":")[-1].split(","))
         )
-        return NestModelException(
+        return NestModelError(
             message + "Unknown attributes {}".format("'" + "', '".join(attributes) + "'")
         )
 
@@ -810,14 +810,14 @@ def catch_dict_error(message):
 
 def catch_receptor_error(message):
     def handler(e):
-        return NestModelException(message + e.errormessage.split(":")[-1].strip())
+        return NestModelError(message + e.errormessage.split(":")[-1].strip())
 
     return handler
 
 
 def catch_connection_error(source):
     def handler(e):
-        return NestModelException(
+        return NestModelError(
             "Illegal connections for '{}'".format(source) + ": " + e.errormessage
         )
 

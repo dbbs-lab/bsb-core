@@ -26,11 +26,7 @@ from .helpers import (
 from .simulators.nest import NestAdapter
 from .postprocessing import PostProcessingHook
 from .simulators.neuron import NeuronAdapter
-from .exceptions import (
-    DynamicClassException,
-    ConfigurationException,
-    ConfigurableClassNotFoundException,
-)
+from .exceptions import *
 import numpy as np
 
 
@@ -61,7 +57,7 @@ def _from_hdf5(file, verbosity=1):
             module_name, globals(), locals(), [class_name], 0
         ).__dict__
     if class_name not in module_dict:
-        raise DynamicClassException(
+        raise DynamicClassError(
             "Can not load HDF5 file '{}'. Configuration class not found:".format(file)
             + config_class
         )
@@ -252,11 +248,11 @@ class ScaffoldConfig(object):
         """
         if id > -1:
             if len(self.layer_map) <= id:
-                raise Exception("Layer with id {} not found.".format(id))
+                raise LayerNotFoundError("Layer with id {} not found.".format(id))
             return list(self.layers.values())[id]
         if name != "":
             if name not in self.layers:
-                raise Exception("Layer with name '{}' not found".format(name))
+                raise LayerNotFoundError("Layer with name '{}' not found".format(name))
             return self.layers[name]
         raise ArgumentError(
             "Invalid arguments for ScaffoldConfig.get_layer: name='{}', id={}".format(
@@ -361,7 +357,7 @@ class JSONConfig(ScaffoldConfig):
             try:
                 return json.loads(config_string)
             except json.decoder.JSONDecodeError as e:
-                raise Exception(
+                raise json.decoder.JSONDecodeError(
                     "Error while loading JSON configuration: {}".format(e)
                 ) from None
 
@@ -422,14 +418,16 @@ class JSONConfig(ScaffoldConfig):
             Load the general segment in a JSON configuration file.
         """
         if "network_architecture" not in config:
-            raise Exception("Missing 'network_architecture' attribute in configuration.")
+            raise ConfigurationError(
+                "Missing 'network_architecture' attribute in configuration."
+            )
         netw_config = config["network_architecture"]
         if "simulation_volume_x" not in netw_config:
-            raise Exception(
+            raise ConfigurationError(
                 "Missing 'simulation_volume_x' attribute in 'network_architecture' configuration."
             )
         if "simulation_volume_z" not in netw_config:
-            raise Exception(
+            raise ConfigurationError(
                 "Missing 'simulation_volume_x' attribute in 'network_architecture' configuration."
             )
         self.X = float(netw_config["simulation_volume_x"])
@@ -440,10 +438,12 @@ class JSONConfig(ScaffoldConfig):
             Load the output segment in a JSON configuration file.
         """
         if "output" not in config:
-            raise Exception("Missing 'output' attribute in configuration.")
+            raise ConfigurationError("Missing 'output' attribute in configuration.")
         output_config = config["output"]
         if "format" not in output_config:
-            raise Exception("Missing 'format' attribute in 'output' configuration.")
+            raise ConfigurationError(
+                "Missing 'format' attribute in 'output' configuration."
+            )
         self.output_formatter = load_configurable_class(
             "output_formatter", output_config["format"], OutputFormatter
         )
@@ -484,7 +484,7 @@ class JSONConfig(ScaffoldConfig):
         if attr not in config:
             if optional:
                 return
-            raise Exception(
+            raise ConfigurationError(
                 "Missing '{}' attribute in {}.".format(attr, node_name or "configuration")
             )
         for def_name, def_config in config[attr].items():
@@ -540,7 +540,7 @@ class JSONConfig(ScaffoldConfig):
         """
         # Get thickness of the layer
         if "thickness" not in config and "volume_scale" not in config:
-            raise ConfigurationException(
+            raise ConfigurationError(
                 "Either a thickness attribute or volume_scale required in {} config.".format(
                     name
                 )
@@ -556,7 +556,7 @@ class JSONConfig(ScaffoldConfig):
             # TODO: Catch possible casting errors to float.
             origin = [float(coord) for coord in config["position"]]
             if len(origin) != 3:
-                raise Exception(
+                raise ConfigurationError(
                     "Invalid position '{}' given in config '{}'".format(
                         config["position"], name
                     )
@@ -566,7 +566,7 @@ class JSONConfig(ScaffoldConfig):
         if "stack" in config:
             stack_config = config["stack"]
             if "stack_id" not in stack_config:
-                raise Exception(
+                raise ConfigurationError(
                     "A 'stack_id' attribute is required in '{}.stack'.".format(name)
                 )
             stack_id = int(stack_config["stack_id"])
@@ -577,14 +577,14 @@ class JSONConfig(ScaffoldConfig):
             else:
                 self._layer_stacks[stack_id] = stack
             if "position_in_stack" not in stack_config:
-                raise Exception(
+                raise ConfigurationError(
                     "A 'position_in_stack' attribute is required in '{}.stack'.".format(
                         name
                     )
                 )
             stack_index = int(stack_config["position_in_stack"])
             if stack_index in stack["layers"]:
-                raise ConfigurationException(
+                raise ConfigurationError(
                     "Stack position {} already occupied by {} in stack {}".format(
                         stack_index, stack["layers"][stack_index], stack_id
                     )
@@ -594,7 +594,7 @@ class JSONConfig(ScaffoldConfig):
             # Configurate the position of the stack
             if "position" in stack_config:
                 if "position" in stack:
-                    raise Exception(
+                    raise ConfigurationError(
                         "Duplicate positioning attribute found for stack with id '{}'".format(
                             stack_id
                         )
@@ -609,7 +609,7 @@ class JSONConfig(ScaffoldConfig):
                 try:
                     xzScaleValue = float(config["xz_scale"])
                 except Exception as e:
-                    raise Exception(
+                    raise ConfigurationError(
                         "Could not convert xz_scale value '{}' to a float.".format(
                             config["xz_scale"]
                         )
@@ -681,8 +681,8 @@ class JSONConfig(ScaffoldConfig):
                 PlacementStrategy,
                 parameters={"cell_type": cell_type},
             )
-        except ConfigurableClassNotFoundException as e:
-            raise Exception(
+        except ConfigurableClassNetFoundError as e:
+            raise ConfigurableClassNetFoundError(
                 "Couldn't find class '{}' specified in '{}'".format(
                     placement_class, node_name
                 )
@@ -832,7 +832,7 @@ class JSONConfig(ScaffoldConfig):
                 # Check if the config file specifies with respect to which layer volumes
                 # we are scaling the current volume
                 if "scale_from_layers" not in config:
-                    raise ConfigurationException(
+                    raise ConfigurationError(
                         "Required attribute scale_from_layers missing in {} config.".format(
                             name
                         )
@@ -894,7 +894,7 @@ class JSONConfig(ScaffoldConfig):
             type = assert_attr(connected_cell, "type", node_name + ".{}".format(i))
             i += 1
             if type not in self.cell_types:
-                raise Exception(
+                raise ConfigurationError(
                     "Unknown cell type '{}' in '{}.from_cell_types'".format(
                         type, node_name
                     )
@@ -909,7 +909,7 @@ class JSONConfig(ScaffoldConfig):
             type = assert_attr(connected_cell, "type", node_name + ".{}".format(i))
             i += 1
             if type not in self.cell_types:
-                raise Exception(
+                raise ConfigurationError(
                     "Unknown cell type '{}' in '{}.to_cell_types'".format(type, node_name)
                 )
             to_cell_types.append(self.cell_types[type])

@@ -1,6 +1,6 @@
 import numpy as np
 from ..strategy import ConnectionStrategy
-from ...exceptions import ConnectivityWarning
+from ...exceptions import *
 
 
 class ConnectomeGranuleGolgi(ConnectionStrategy):
@@ -52,7 +52,7 @@ class ConnectomeGranuleGolgi(ConnectionStrategy):
             granules_z = new_granules[:, 4]
             new_golgicells = np.random.permutation(golgicells)
             if new_granules.shape[0] <= new_golgicells.shape[0]:
-                raise Exception(
+                raise ConnectivityError(
                     "The number of granule cells was less than the number of golgi cells. Simulation cannot continue."
                 )
             for golgi_id, _, golgi_x, golgi_y, golgi_z in new_golgicells:

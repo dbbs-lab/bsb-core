@@ -72,7 +72,7 @@ class NeuronDevice(TargetsNeurons, SimulationComponent):
 
     def validate(self):
         if self.device not in self.__class__.device_types:
-            raise ConfigurationException(
+            raise ConfigurationError(
                 "Unknown device '{}' for {}".format(self.device, self.get_config_node())
             )
 

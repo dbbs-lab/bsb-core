@@ -1,6 +1,7 @@
 import numpy as np
 from ..strategy import ConnectionStrategy
 from .shared import MorphologyStrategy
+from ...exceptions import *
 
 
 class VoxelIntersection(ConnectionStrategy, MorphologyStrategy):
@@ -48,7 +49,7 @@ class VoxelIntersection(ConnectionStrategy, MorphologyStrategy):
         for i, (to_cell, morphology) in enumerate(to_morphology_set):
             to_offset = np.concatenate((to_cell.position, to_cell.position))
             if len(morphology.cloud.get_voxels()) == 0:
-                raise Exception(
+                raise IncompleteMorphologyError(
                     "Can't intersect without any {} in the {} morphology".format(
                         ", ".join(to_compartments), morphology.morphology_name
                     )

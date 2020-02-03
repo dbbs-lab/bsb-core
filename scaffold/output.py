@@ -5,7 +5,7 @@ from contextlib import contextmanager
 from abc import abstractmethod, ABC
 import h5py, os, time, pickle, numpy as np
 from numpy import string_
-from .exceptions import RepositoryWarning, DatasetNotFoundException
+from .exceptions import *
 from .models import ConnectivitySet
 from sklearn.neighbors import KDTree
 import os, sys
@@ -111,7 +111,7 @@ class HDF5TreeHandler(HDF5ResourceHandler, TreeHandler):
                     f["/trees/{}/{}".format(collection_name, tree_name)][()]
                 )
             except KeyError as e:
-                raise Exception(
+                raise DatasetNotFoundError(
                     "Tree not found in HDF5 file '{}', path does not exist: '{}'".format(
                         f.file
                     )
@@ -122,7 +122,9 @@ class HDF5TreeHandler(HDF5ResourceHandler, TreeHandler):
             try:
                 return list(f["trees"][collection_name].keys())
             except KeyError as e:
-                return Exception("Tree collection '{}' not found".format(collection_name))
+                return DatasetNotFoundError(
+                    "Tree collection '{}' not found".format(collection_name)
+                )
 
 
 class OutputFormatter(ConfigurableClass, TreeHandler):
@@ -186,7 +188,7 @@ class OutputFormatter(ConfigurableClass, TreeHandler):
             :type tag: string
             :return: The connectivity set.
             :rtype: :class:`ConnectivitySet`
-            :raises: DatasetNotFoundException
+            :raises: DatasetNotFoundError
         """
         pass
 
@@ -263,7 +265,7 @@ class MorphologyRepository(HDF5TreeHandler):
             compartment_type = compartment[1]
             # Check if parent id is known
             if not compartment[6] in id_map:
-                raise Exception(
+                raise MorphologyDataError(
                     "Node {} references a parent node {} that isn't known yet".format(
                         compartment_old_id, compartment[6]
                     )
@@ -357,7 +359,7 @@ class MorphologyRepository(HDF5TreeHandler):
                     name
                 )  # Delete anything that might be under this name.
             elif self.morphology_exists(name):
-                raise Exception(
+                raise MorphologyRepositoryError(
                     "A morphology called '{}' already exists in this repository.".format(
                         name
                     )
@@ -396,7 +398,9 @@ class MorphologyRepository(HDF5TreeHandler):
         with self.load() as repo:
             # Check if morphology exists
             if not self.morphology_exists(name):
-                raise Exception("Attempting to load unknown morphology '{}'".format(name))
+                raise MorphologyRepositoryError(
+                    "Attempting to load unknown morphology '{}'".format(name)
+                )
             # Take out all the data with () index, and send along the metadata stored in the attributes
             data = self._raw_morphology(name)
             repo_data = data[()]
@@ -664,7 +668,7 @@ class HDF5Formatter(OutputFormatter, MorphologyRepository):
     def get_cells_of_type(self, name, entity=False):
         # Check if cell type is present
         if not self.has_cells_of_type(name, entity=entity):
-            raise Exception(
+            raise DatasetNotFoundError(
                 "Attempting to load {} type '{}' that isn't defined in the storage.".format(
                     "cell" if not entity else "entity", name
                 )

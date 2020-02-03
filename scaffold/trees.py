@@ -31,7 +31,7 @@ class TreeCollection:
 
     def create_tree(self, name, nodes):
         if not is_valid_tree_name(name):
-            raise Exception("Tree names must not contain any : or + signs.")
+            raise TreeError("Tree names must not contain any : or + signs.")
         if len(nodes) == 0:
             return
         self.add_tree(name, KDTree(nodes))
@@ -84,7 +84,7 @@ class TreeCollection:
     def make_planar_tree(self, name, plane):
         full_tree = self.get_tree(name)
         if full_tree is None:
-            raise Exception("Cannot make planar tree from unknown tree '{}'".format(name))
+            raise TreeError("Cannot make planar tree from unknown tree '{}'".format(name))
         dimensions = ["x", "y", "z"]
         selected_dimensions = [e in plane for e in dimensions]
         planar_tree = KDTree(np.array(full_tree.get_arrays()[0])[:, selected_dimensions])
@@ -98,7 +98,7 @@ class TreeCollection:
         else:
             full_tree = self.get_tree(name)
             if full_tree is None:
-                raise Exception(
+                raise TreeError(
                     "Cannot make sub tree from unknown tree '{}'".format(name)
                 )
 
