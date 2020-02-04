@@ -612,12 +612,15 @@ class NestAdapter(SimulatorAdapter):
                 )
                 continue
             # Get the NEST identifiers for the connections made in the connectivity matrix
-            presynaptic_cells = self.get_nest_ids(
-                np.array(cs.from_identifiers, dtype=int)
+            presynaptic_sources = np.array(
+                self.get_nest_ids(np.array(cs.from_identifiers, dtype=int))
             )
-            postsynaptic_cells = self.get_nest_ids(np.array(cs.to_identifiers, dtype=int))
+            postsynaptic_targets = np.array(
+                self.get_nest_ids(np.array(cs.to_identifiers, dtype=int))
+            )
             # Accessing the postsynaptic type to be associated to the volume transmitter of the synapse
             postsynaptic_type = cs.connection_types[0].to_cell_types[0]
+            postsynaptic_cells = np.unique(postsynaptic_targets)
 
             # Create the synapse model in the simulator
             self.create_synapse_model(connection_model)
@@ -625,45 +628,64 @@ class NestAdapter(SimulatorAdapter):
             connection_specifications = {"rule": "one_to_one"}
             # Get the connection parameters from the configuration
             connection_parameters = connection_model.get_connection_parameters()
-            # Create the connections in NEST
             self.scaffold.report("Creating connections " + nest_name, 3)
-            self.execute_command(
-                self.nest.Connect,
-                presynaptic_cells,
-                postsynaptic_cells,
-                connection_specifications,
-                connection_parameters,
-                exceptions={
-                    "IncompatibleReceptorType": {
-                        "from": None,
-                        "exception": catch_receptor_error(
-                            "Invalid receptor specifications in {}: ".format(name)
-                        ),
-                    }
-                },
-            )
-
-            # Workaround for https://github.com/alberto-antonietti/CerebNEST/issues/10
-            if connection_model.plastic and connection_model.hetero:
+            # Create the connections in NEST
+            if not (connection_model.plastic and connection_model.hetero):
+                self.execute_command(
+                    self.nest.Connect,
+                    presynaptic_sources,
+                    postsynaptic_targets,
+                    connection_specifications,
+                    connection_parameters,
+                    exceptions={
+                        "IncompatibleReceptorType": {
+                            "from": None,
+                            "exception": catch_receptor_error(
+                                "Invalid receptor specifications in {}: ".format(name)
+                            ),
+                        }
+                    },
+                )
+            else:
                 # Create the volume transmitter if the connection is plastic with heterosynaptic plasticity
                 self.scaffold.report("Creating volume transmitter for " + name, 3)
                 volume_transmitters = self.create_volume_transmitter(
                     connection_model, postsynaptic_cells
                 )
                 postsynaptic_type._vt_id = volume_transmitters
-                # # Associate the volume transmitters to their ids
-                # for i,vti in enumerate(volume_transmitters):
-                #     self.nest.SetStatus([vti],{"vt_num" : float(i)})
+
+                # Each post synaptic cell has to set its own vt_num for its synapses
+                for vt_num, post_cell in enumerate(postsynaptic_cells):
+                    connection_parameters = connection_model.get_connection_parameters()
+                    connection_parameters["vt_num"] = float(vt_num)
+                    indexes = np.where(postsynaptic_targets == post_cell)[0]
+                    pre_neurons = presynaptic_sources[indexes]
+                    post_neurons = postsynaptic_targets[indexes]
+
+                    self.execute_command(
+                        self.nest.Connect,
+                        pre_neurons,
+                        post_neurons,
+                        connection_specifications,
+                        connection_parameters,
+                        exceptions={
+                            "IncompatibleReceptorType": {
+                                "from": None,
+                                "exception": catch_receptor_error(
+                                    "Invalid receptor specifications in {}: ".format(name)
+                                ),
+                            }
+                        },
+                    )
 
             if connection_model.is_teaching:
-                # We need to connect the pre-synaptic neurons also to the volume transmitter associated to each post-synaptic create_neurons
-                # suppose that the vt ids are stored in a variable self.cell_models["vt_"+name].identifiers
-                postsynaptic_volume_transmitters = [
-                    pc - postsynaptic_cells[0] + postsynaptic_type._vt_id[0]
-                    for pc in postsynaptic_cells
-                ]
+                # We need to map the ID of the postsynaptic_target to its relative volume_transmitter
+                min_ID_postsynaptic = np.min(postsynaptic_targets)
+                min_ID_volume_transmitter = np.min(postsynaptic_type._vt_id)
+                delta_ID = min_ID_volume_transmitter - min_ID_postsynaptic
+                postsynaptic_volume_transmitters = postsynaptic_targets + delta_ID
                 self.nest.Connect(
-                    presynaptic_cells,
+                    presynaptic_sources,
                     postsynaptic_volume_transmitters,
                     connection_specifications,
                     {"model": "static_synapse", "weight": 1.0, "delay": 1.0},
@@ -770,8 +792,6 @@ class NestAdapter(SimulatorAdapter):
         self.nest.SetDefaults(synapse_model.name, {"vt": teacher})
         # Assign an ID to each volume transmitter
         for n, vti in enumerate(vt):
-            self.nest.SetStatus([vti], {"deliver_interval": 2})  # TO CHECK
-            # Waiting for Albe to clarify necessity of this parameter
             self.nest.SetStatus([vti], {"vt_num": n})
         return vt
 
