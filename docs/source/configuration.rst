@@ -12,6 +12,7 @@ Configuration
   configuration/connection-type
   configuration/placement-strategies
   configuration/connection-strategies
+  configuration/simulation
 
 .. note::
   The key of a configuration object in its parent will be stored as its ``name``
@@ -111,12 +112,12 @@ Network architecture attributes
 simulation_volume_x
 ===================
 
-The size of the X dimension of the simulation volume. See :doc:`/usage/simulation-volume`
+The size of the X dimension of the simulation volume.
 
 simulation_volume_z
 ===================
 
-The size of the Z dimension of the simulation volume. See :doc:`/usage/simulation-volume`
+The size of the Z dimension of the simulation volume.
 
 ::
 
