@@ -617,6 +617,8 @@ def load_configurable_class(name, configured_class_name, parent_class, parameter
 def fill_configurable_class(obj, conf, excluded=[]):
     for name, prop in conf.items():
         if not name in excluded:
+            if isinstance(prop, dict) or isinstance(prop, list):
+                prop = prop.copy()
             obj.__dict__[name] = prop
 
 

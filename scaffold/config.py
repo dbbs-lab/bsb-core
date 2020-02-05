@@ -764,7 +764,13 @@ class JSONConfig(ScaffoldConfig):
         fill_configurable_class(
             simulation,
             section,
-            excluded=["simulator", "cell_models", "connection_models", "devices"],
+            excluded=[
+                "simulator",
+                "cell_models",
+                "connection_models",
+                "devices",
+                "entities",
+            ],
         )
         # Get the classes required to configure cells and connections in this simulation
         config_classes = simulation.get_configuration_classes()
