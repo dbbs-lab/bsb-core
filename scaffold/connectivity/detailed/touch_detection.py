@@ -194,8 +194,8 @@ class TouchDetector(ConnectionStrategy, MorphologyStrategy):
         to_cell_type = touch_info.to_cell_type
         from_morphology = touch_info.from_morphology
         to_morphology = touch_info.to_morphology
-        from_pos = self.scaffold.get_cell_position(from_cell_id)
-        to_pos = self.scaffold.get_cell_position(to_cell_id)
+        from_pos = self.scaffold._get_cell_position(from_cell_id)
+        to_pos = self.scaffold._get_cell_position(to_cell_id)
         query_points = (
             to_morphology.get_compartment_positions(types=touch_info.to_cell_compartments)
             + to_pos
