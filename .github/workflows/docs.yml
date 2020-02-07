@@ -1,0 +1,26 @@
+name: docs
+
+on: [push]
+
+jobs:
+  check-documentation:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python 3.7
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.7
+    - name: Install rtree
+      run: sudo apt-get install python3-rtree
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt --no-use-pep517
+        pip install sphinx
+    - name: Build documentations
+      run: cd docs && sphinx-build -n -b html source build/html
+    - name: Fail documentations on warnings
+      run: cd docs && sphinx-build -nW -b html source build/html

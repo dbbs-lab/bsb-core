@@ -8,3 +8,4 @@ rtree==0.9.3
 plotly==4.1.0
 pre-commit
 black
+sphinx_rtd_theme==0.4.3
