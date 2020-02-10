@@ -1,6 +1,8 @@
 from ..simulation import SimulatorAdapter, SimulationComponent, TargetsNeurons
 from ..helpers import get_configurable_class
 from ..models import ConnectivitySet
+from ..exceptions import MissingMorphologyError
+import random
 
 
 class NeuronCell(SimulationComponent):
@@ -170,19 +172,27 @@ class NeuronAdapter(SimulatorAdapter):
             # Get the connectivity set associated with this connection model
             connectivity_set = ConnectivitySet(output_handler, connection_model.name)
             synapse_type = connection_model.resolve_synapse()
-            intersections = connectivity_set.intersections
+            try:
+                intersections = connectivity_set.intersections
+            except MissingMorphologyError:
+                intersections = connectivity_set.connections
             self.scaffold.report(
                 "Connecting " + str(len(intersections)) + " " + connection_model.name, 2
             )
+            # This temporarily allows non morphological connections!!! Remove later
             # Iterate over all intersections (synaptic contacts)
-            for intersection in connectivity_set.intersections:
+            for intersection in intersections:
                 # Get the cells and sections of this synaptic contact
                 from_cell = self.cells[int(intersection.from_id)]
                 to_cell = self.cells[int(intersection.to_id)]
-                from_section_id = intersection.from_compartment.section_id
-                to_section_id = intersection.to_compartment.section_id
-                from_section = from_cell.sections[from_section_id]
-                to_section = to_cell.sections[to_section_id]
+                if not hasattr(intersection, "from_compartment"):
+                    from_section = from_cell.axon[-1]
+                    to_section = random.choice(to_cell.dendrites)
+                else:
+                    from_section_id = intersection.from_compartment.section_id
+                    to_section_id = intersection.to_compartment.section_id
+                    from_section = from_cell.sections[from_section_id]
+                    to_section = to_cell.sections[to_section_id]
                 # Create a Synapse (wrapper around a NEURON point process)
                 self.scaffold.report(
                     "Connecting "

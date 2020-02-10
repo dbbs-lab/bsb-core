@@ -1,6 +1,7 @@
 import numpy as np
 from ..strategy import ConnectionStrategy
 from .shared import MorphologyStrategy
+from ...models import MorphologySet
 from ...exceptions import *
 
 

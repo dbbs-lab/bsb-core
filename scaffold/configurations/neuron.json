@@ -280,27 +280,36 @@
         },
         "granule_cell": {
           "model": "dbbs_models.GranuleCell",
-          "record_soma": false
+          "record_soma": true
         },
         "golgi_cell": {
           "model": "dbbs_models.GolgiCell",
-          "record_soma": false
+          "record_soma": true
         },
         "purkinje_cell": {
           "model": "dbbs_models.PurkinjeCell",
-          "record_soma": false
+          "record_soma": true
         },
         "stellate_cell": {
           "model": "dbbs_models.StellateCell",
-          "record_soma": false
+          "record_soma": true
         },
         "basket_cell": {
           "model": "dbbs_models.StellateCell",
-          "record_soma": false
+          "record_soma": true
         }
       },
       "connection_models": {
         "granule_to_golgi": {
+          "synapse": "AMPA"
+        },
+        "parallel_fiber_to_purkinje": {
+          "synapse": "AMPA_PF"
+        },
+        "parallel_fiber_to_basket": {
+          "synapse": "AMPA"
+        },
+        "parallel_fiber_to_stellate": {
           "synapse": "AMPA"
         }
       },
