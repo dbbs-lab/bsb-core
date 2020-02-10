@@ -505,7 +505,6 @@ class NestAdapter(SimulatorAdapter):
 
     def install_modules(self):
         for module in self.modules:
-            print(module)
             try:
                 self.nest.Install(module)
             except Exception as e:

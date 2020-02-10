@@ -92,3 +92,22 @@ class TestConnectivity(unittest.TestCase):
                                 (connection_i[0] in micro_neg)
                                 == (connection_i[1] in micro_neg)
                             )
+
+    def test_connectivity_matrix(self):
+
+        for connections in self.scaffold.configuration.connection_types.values():
+            for connection_tag in connections.tags:
+                cs = self.scaffold.get_connectivity_set(connection_tag)
+                from_cells = cs.from_identifiers
+                to_cells = cs.to_identifiers
+                connections = cs.get_dataset()
+                pre = np.unique(connections[:, 0])
+                post = np.unique(connections[:, 1])
+
+                with self.subTest(name="PRE " + connection_tag):
+                    for conn in range(len(pre)):
+                        self.assertTrue(pre[conn] in from_cells)
+
+                with self.subTest(name="POST " + connection_tag):
+                    for conn in range(len(post)):
+                        self.assertTrue(post[conn] in to_cells)
