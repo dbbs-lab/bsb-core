@@ -35,5 +35,7 @@ setuptools.setup(
         "Documentation": "https://dbbs-docs.rf.gd/",
         "Source Code": "https://github.com/dbbs-lab/scaffold/",
     },
-    extras_require={"dev": ["sphinx", "pyarmor", "pre-commit", "black"]},
+    extras_require={
+        "dev": ["sphinx", "sphinx_rtd_theme>=0.4.3", "pyarmor", "pre-commit", "black"]
+    },
 )

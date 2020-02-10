@@ -28,12 +28,12 @@ The root node accepts the following attributes:
 
 * ``name``: *Unused*, a name for the configuration file. Is stored in the output
   files so it can be used for reference.
-* ``output``: Configuration object for the output :class:`HDF5Formatter`.
+* ``output``: Configuration object for the output :class:`.output.HDF5Formatter`.
 * ``network_architecture``: Configuration object for general simulation properties.
-* ``layers``: A dictionary containing the :class:`Layer` configurations.
-* ``cell_types``: A dictionary containing the :class:`CellType` configurations.
-* ``connection_types``: A dictionary containing the :class:`ConnectionStrategy` configurations.
-* ``simulations``: A dictionary containing the :class:`SimulationAdapter` configurations.
+* ``layers``: A dictionary containing the :class:`.models.Layer` configurations.
+* ``cell_types``: A dictionary containing the :class:`.models.CellType` configurations.
+* ``connection_types``: A dictionary containing the :class:`.connectivity.ConnectionStrategy` configurations.
+* ``simulations``: A dictionary containing the :class:`.simulation.SimulationAdapter` configurations.
 
 .. code-block:: json
 
