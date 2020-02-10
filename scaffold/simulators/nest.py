@@ -789,7 +789,8 @@ class NestAdapter(SimulatorAdapter):
         vt = self.nest.Create("volume_transmitter_alberto", len(postsynaptic_cells))
         teacher = vt[0]
         # Assign the volume transmitters to their synapse model
-        self.nest.SetDefaults(synapse_model.name, {"vt": teacher})
+        nest_name = self.suffixed(synapse_model.name)
+        self.nest.SetDefaults(nest_name, {"vt": teacher})
         # Assign an ID to each volume transmitter
         for n, vti in enumerate(vt):
             self.nest.SetStatus([vti], {"vt_num": n})
