@@ -43,7 +43,7 @@
       }
     },
     "io_layer": {
-      "volume_scale": 68.0,
+      "volume_scale": 0.0147,
       "scale_from_layers": ["granular_layer","purkinje_layer","molecular_layer"],
       "volume_dimension_ratio": [0.5, 1, 0.2],
       "stack": {

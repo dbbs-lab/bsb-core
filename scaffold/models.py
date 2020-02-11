@@ -137,15 +137,14 @@ class Layer(dimensions, origin):
             from which we derive the normalized_size Y, according to the following
             formula:
 
-            Y = cubic_root(volume_reference_layers / volume_scale * prod(dimension_ratios))
+            Y = cubic_root((volume_reference_layers * volume_scale) / prod(dimension_ratios))
         """
         volume_reference_layers = np.sum(
             list(map(lambda layer: layer.volume, self.reference_layers))
         )
         # Compute volume: see docstring.
         normalized_size = pow(
-            volume_reference_layers
-            / (self.volume_scale * np.prod(self.dimension_ratios)),
+            volume_reference_layers * self.volume_scale / np.prod(self.dimension_ratios),
             1 / 3,
         )
         # Apply the normalized size with their ratios to each dimension
