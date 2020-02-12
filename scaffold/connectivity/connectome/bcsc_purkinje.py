@@ -4,14 +4,14 @@ from ..strategy import ConnectionStrategy
 
 class ConnectomeBCSCPurkinje(ConnectionStrategy):
     """
-        Legacy implementation for the connections between stellate cells, basket cells and purkinje cells.
+        Legacy implementation for the connections between basket cells,stellate cells and purkinje cells.
     """
 
     casts = {"limit_x": float, "limit_z": float, "divergence": int, "convergence": int}
 
-    required = ["limit_x", "limit_z", "divergence", "convergence", "tag_sc", "tag_bc"]
+    required = ["limit_x", "limit_z", "divergence", "convergence", "tag_bc", "tag_sc"]
 
-    defaults = {"tag_sc": "stellate_to_purkinje", "tag_bc": "basket_to_purkinje"}
+    defaults = {"tag_bc": "basket_to_purkinje", "tag_sc": "stellate_to_purkinje"}
 
     def validate(self):
         pass
@@ -21,18 +21,18 @@ class ConnectomeBCSCPurkinje(ConnectionStrategy):
         basket_cell_type = self.from_cell_types[0]
         stellate_cell_type = self.from_cell_types[1]
         purkinje_cell_type = self.to_cell_types[0]
+        baskets = self.scaffold.cells_by_type[basket_cell_type.name]
         stellates = self.scaffold.cells_by_type[stellate_cell_type.name]
         purkinjes = self.scaffold.cells_by_type[purkinje_cell_type.name]
-        baskets = self.scaffold.cells_by_type[basket_cell_type.name]
-        first_stellate = int(stellates[0, 0])
         first_basket = int(baskets[0, 0])
+        first_stellate = int(stellates[0, 0])
         distx = self.limit_x
         distz = self.limit_z
         conv = self.convergence
 
-        def connectome_sc_bc_pc(
-            first_stellate,
+        def connectome_bc_sc_pc(
             first_basket,
+            first_stellate,
             basketcells,
             stellates,
             purkinjes,
@@ -41,15 +41,15 @@ class ConnectomeBCSCPurkinje(ConnectionStrategy):
             conv,
         ):
             n_purkinje = len(purkinjes)
-            sc_pc = np.empty((n_purkinje * conv, 2))
             bc_pc = np.empty((n_purkinje * conv, 2))
+            sc_pc = np.empty((n_purkinje * conv, 2))
             bc_i = 0
             sc_i = 0
 
-            stellates_x = stellates[:, 2]
-            stellates_z = stellates[:, 4]
             baskets_x = baskets[:, 2]
             baskets_z = baskets[:, 4]
+            stellates_x = stellates[:, 2]
+            stellates_z = stellates[:, 4]
             for (
                 p_id,
                 p_type,
@@ -64,12 +64,12 @@ class ConnectomeBCSCPurkinje(ConnectionStrategy):
                 idx_sc = 1
 
                 # find all cells that satisfy the distance condition for both types
-                sc_matrix = (np.absolute(stellates_z - p_z)).__lt__(distz) & (
-                    np.absolute(stellates_x - p_x)
-                ).__lt__(distx)
                 bc_matrix = (np.absolute(baskets_z - p_z)).__lt__(distx) & (
                     np.absolute(baskets_x - p_x)
                 ).__lt__(distz)
+                sc_matrix = (np.absolute(stellates_z - p_z)).__lt__(distz) & (
+                    np.absolute(stellates_x - p_x)
+                ).__lt__(distx)
 
                 good_bc = np.where(bc_matrix)[
                     0
@@ -111,11 +111,11 @@ class ConnectomeBCSCPurkinje(ConnectionStrategy):
                             sc_pc[sc_i, 1] = p_id
                             sc_i += 1
 
-            return sc_pc[0:sc_i], bc_pc[0:bc_i]
+            return bc_pc[0:bc_i], sc_pc[0:sc_i]
 
-        result_sc, result_bc = connectome_sc_bc_pc(
-            first_stellate,
+        result_bc, result_sc = connectome_bc_sc_pc(
             first_basket,
+            first_stellate,
             baskets,
             stellates,
             purkinjes,
@@ -125,13 +125,13 @@ class ConnectomeBCSCPurkinje(ConnectionStrategy):
         )
         self.scaffold.connect_cells(
             self,
-            result_sc,
-            self.tag_sc,
-            meta={"from_cell_types": [stellate_cell_type.name]},
-        )
-        self.scaffold.connect_cells(
-            self,
             result_bc,
             self.tag_bc,
             meta={"from_cell_types": [basket_cell_type.name]},
+        )
+        self.scaffold.connect_cells(
+            self,
+            result_sc,
+            self.tag_sc,
+            meta={"from_cell_types": [stellate_cell_type.name]},
         )
