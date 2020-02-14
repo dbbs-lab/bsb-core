@@ -155,7 +155,7 @@ class NeuronAdapter(SimulatorAdapter):
         from keyboard import kbhit, start_detection, stop_detection
 
         sys.path = sys.path[1:]
-        self.scaffold.report("Simulating (press )...", 2)
+        self.scaffold.report("Simulating (press any key to interrupt)...", 2)
         simulator.finitialize(self.initial)
         progression = 0
         start_detection()
