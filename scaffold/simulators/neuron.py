@@ -2,7 +2,7 @@ from ..simulation import SimulatorAdapter, SimulationComponent, TargetsNeurons
 from ..helpers import get_configurable_class
 from ..models import ConnectivitySet
 from ..exceptions import MissingMorphologyError
-import random
+import random, os, sys
 
 
 class NeuronCell(SimulationComponent):
@@ -20,6 +20,7 @@ class NeuronCell(SimulationComponent):
         "record_spikes": False,
         "parameters": {},
         "relay": False,
+        "entity": False,
     }
 
     required = [lambda c: "model" if "relay" not in c or not c["relay"] else None]
@@ -85,6 +86,22 @@ class NeuronDevice(TargetsNeurons, SimulationComponent):
         return self._get_targets()
 
 
+class NeuronEntity:
+    @classmethod
+    def instantiate(cls, **kwargs):
+        instance = cls()
+        instance.entity = True
+        for k, v in kwargs.items():
+            instance.__dict__[k] = v
+        return instance
+
+    def set_reference_id(self, id):
+        self.ref_id = id
+
+    def record_soma(self):
+        raise NotImplementedError("Entities do not have a soma to record.")
+
+
 class NeuronAdapter(SimulatorAdapter):
     """
         Interface between the scaffold model and the NEURON simulator.
@@ -132,34 +149,42 @@ class NeuronAdapter(SimulatorAdapter):
 
     def simulate(self, simulator):
         from plotly import graph_objects as go
-        import msvcrt
 
-        self.scaffold.report("Simulating...", 2)
+        # Import keyboard hit function.
+        sys.path.insert(0, os.path.dirname(__file__))
+        from keyboard import kbhit, start_detection, stop_detection
+
+        sys.path = sys.path[1:]
+        self.scaffold.report("Simulating (press any key to interrupt)...", 2)
         simulator.finitialize(self.initial)
         progression = 0
+        start_detection()
         while progression < self.duration:
             progression += 1
             simulator.continuerun(progression)
             self.scaffold.report(
                 "Simulated {}/{}ms".format(progression, self.duration), 3, ongoing=True
             )
-            if msvcrt.kbhit():
+            if kbhit():
                 self.scaffold.report("Key pressed. Stopping simulation.", 1)
                 break
+        stop_detection()
         self.scaffold.report("Finished simulation.", 2)
 
     def create_neurons(self):
         import glia as g
 
         for cell_model in self.cell_models.values():
-            if cell_model.relay:
-                continue
             cell_data = self.scaffold.get_cells_by_type(cell_model.name)
             self.scaffold.report("Placing " + str(len(cell_data)) + " " + cell_model.name)
             for cell in cell_data:
                 kwargs = cell_model.get_parameters()
                 kwargs["position"] = cell[2:5]
-                instance = cell_model.model_class(**kwargs)
+                if cell_model.entity or cell_model.relay:
+                    kwargs["relay"] = cell_model.relay
+                    instance = NeuronEntity.instantiate(**kwargs)
+                else:
+                    instance = cell_model.model_class(**kwargs)
                 instance.set_reference_id(cell[0])
                 if cell_model.record_soma:
                     instance.record_soma()
@@ -183,17 +208,22 @@ class NeuronAdapter(SimulatorAdapter):
             # Iterate over all intersections (synaptic contacts)
             for intersection in intersections:
                 # Get the cells and sections of this synaptic contact
-                from_cell = self.cells[int(intersection.from_id)]
-                to_cell = self.cells[int(intersection.to_id)]
-                if not hasattr(intersection, "from_compartment"):
-                    from_section = from_cell.axon[-1]
-                    to_section = random.choice(to_cell.dendrites)
-                else:
-                    from_section_id = intersection.from_compartment.section_id
-                    to_section_id = intersection.to_compartment.section_id
-                    from_section = from_cell.sections[from_section_id]
-                    to_section = to_cell.sections[to_section_id]
-                # Create a Synapse (wrapper around a NEURON point process)
+                self.connect_intersection(intersection, synapse_type)
+
+    def connect_intersection(self, intersection, synapse_type):
+        from_cell = self.cells[int(intersection.from_id)]
+        to_cell = self.cells[int(intersection.to_id)]
+        if from_cell.entity:
+            pass
+        if not hasattr(intersection, "from_compartment"):
+            from_section = from_cell.axon[-1]
+            to_section = random.choice(to_cell.dendrites)
+        else:
+            from_section_id = intersection.from_compartment.section_id
+            to_section_id = intersection.to_compartment.section_id
+            from_section = from_cell.sections[from_section_id]
+            to_section = to_cell.sections[to_section_id]
+            if self.scaffold.configuration.verbosity >= 4:
                 self.scaffold.report(
                     "Connecting "
                     + str(int(from_cell.ref_id))
@@ -208,7 +238,7 @@ class NeuronAdapter(SimulatorAdapter):
                     + " creating a {} synapse".format(synapse_type),
                     4,
                 )
-                to_cell.connect(from_cell, from_section, to_section, synapse_type)
+        to_cell.connect(from_cell, from_section, to_section, synapse_type)
 
     def create_devices(self):
         pass

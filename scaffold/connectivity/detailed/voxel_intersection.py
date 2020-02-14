@@ -48,13 +48,8 @@ class VoxelIntersection(ConnectionStrategy, MorphologyStrategy):
         # For every postsynaptic cell, derive the box incorporating all voxels,
         # and store that box in the tree, to later find intersections with that cell.
         for i, (to_cell, morphology) in enumerate(to_morphology_set):
+            self.assert_voxelization(morphology, to_compartments)
             to_offset = np.concatenate((to_cell.position, to_cell.position))
-            if len(morphology.cloud.get_voxels()) == 0:
-                raise IncompleteMorphologyError(
-                    "Can't intersect without any {} in the {} morphology".format(
-                        ", ".join(to_compartments), morphology.morphology_name
-                    )
-                )
             to_box = morphology.cloud.get_voxel_box()
             to_cell_tree.insert(i, tuple(to_box + to_offset))
 
@@ -64,6 +59,7 @@ class VoxelIntersection(ConnectionStrategy, MorphologyStrategy):
         compartments_out = []
         morphologies_out = []
         for from_cell, from_morpho in from_morphology_set:
+            self.assert_voxelization(from_morpho, from_compartments)
             from_box = from_morpho.cloud.get_voxel_box()
             from_map = from_morpho.cloud.map
             this_box = tuple(
@@ -137,3 +133,11 @@ class VoxelIntersection(ConnectionStrategy, MorphologyStrategy):
                 list(from_cloud.tree.intersection(tuple(box), objects=False))
             )
         return voxel_intersections
+
+    def assert_voxelization(self, morphology, compartment_types):
+        if len(morphology.cloud.get_voxels()) == 0:
+            raise IncompleteMorphologyError(
+                "Can't intersect without any {} in the {} morphology".format(
+                    ", ".join(compartment_types), morphology.morphology_name
+                )
+            )
