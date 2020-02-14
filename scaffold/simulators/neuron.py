@@ -149,20 +149,26 @@ class NeuronAdapter(SimulatorAdapter):
 
     def simulate(self, simulator):
         from plotly import graph_objects as go
-        import msvcrt
 
-        self.scaffold.report("Simulating...", 2)
+        # Import keyboard hit function.
+        sys.path.insert(0, os.path.dirname(__file__))
+        from keyboard import kbhit, start_detection, stop_detection
+
+        sys.path = sys.path[1:]
+        self.scaffold.report("Simulating (press )...", 2)
         simulator.finitialize(self.initial)
         progression = 0
+        start_detection()
         while progression < self.duration:
             progression += 1
             simulator.continuerun(progression)
             self.scaffold.report(
                 "Simulated {}/{}ms".format(progression, self.duration), 3, ongoing=True
             )
-            if msvcrt.kbhit():
+            if kbhit():
                 self.scaffold.report("Key pressed. Stopping simulation.", 1)
                 break
+        stop_detection()
         self.scaffold.report("Finished simulation.", 2)
 
     def create_neurons(self):
