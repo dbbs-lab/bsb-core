@@ -309,10 +309,12 @@ class MorphologyRepository(HDF5TreeHandler):
         # Loop over sections to extract compartments
         for id, section in enumerate(cell.sections):
             section_to_id[section.name()] = id
+            # Keep the highest ctype value to retain the most specific section label
+            label = np.max([c_types[l] for l in section.labels])
             for p in range(section.n3d() - 1):
                 data = [
                     idx + p,
-                    c_types[section.labels[-1]],
+                    label,
                     section.x3d(p) - tx,
                     section.y3d(p) - ty,
                     section.z3d(p) - tz,
