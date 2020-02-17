@@ -160,12 +160,12 @@ class Resource:
 
     def get_dataset(self, selector=()):
         with self._handler.load("r") as f:
-            return f[self._path][selector]
+            return f()[self._path][selector]
 
     @property
     def attributes(self):
         with self._handler.load("r") as f:
-            return dict(f[self._path].attrs)
+            return dict(f()[self._path].attrs)
 
     def get_attribute(self, name):
         attrs = self.attributes
@@ -177,7 +177,7 @@ class Resource:
 
     def exists(self):
         with self._handler.load("r") as f:
-            return self._path in f
+            return self._path in f()
 
     def unmap(self, selector=(), mapping=lambda m, x: m[x], data=None):
         if data is None:
