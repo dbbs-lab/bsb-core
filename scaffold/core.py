@@ -53,6 +53,14 @@ class Scaffold:
     """
 
     def __init__(self, config, from_file=None):
+        try:
+            import mpi4py
+            from mpi4py import MPI
+
+            self.MPI = MPI
+            self.has_mpi = True
+        except ImportError:
+            self.has_mpi = False
         self.configuration = config
         self.reset_network_cache()
         # Debug statistics, unused.
@@ -103,6 +111,8 @@ class Scaffold:
             :type level: int
             :param ongoing: The message is part of an ongoing progress report. This replaces the endline (`\\n`) character with a carriage return (`\\r`) character
         """
+        if self.has_mpi and self.MPI.COMM_WORLD.rank != 0:
+            return
         if self.configuration.verbosity >= level:
             print(message, end="\n" if not ongoing else "\r")
 
