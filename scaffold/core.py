@@ -136,7 +136,7 @@ class Scaffold:
             :type level: int
             :param ongoing: The message is part of an ongoing progress report. This replaces the endline (`\\n`) character with a carriage return (`\\r`) character
         """
-        if self.is_mpi_slave and self.configuration.verbosity >= level:
+        if self.is_mpi_master and self.configuration.verbosity >= level:
             print(message, end="\n" if not ongoing else "\r")
 
     def warn(self, message, category=None):
