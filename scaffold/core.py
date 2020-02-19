@@ -796,19 +796,17 @@ class Scaffold:
             )
         )
 
-    def get_cell_type(self, name):
+    def get_cell_type(self, identifier):
         """
             Return the specified cell type.
 
-            :param name: Unique identifier of the cell type in the configuration.
-            :type name: string
+            :param identifier: Unique identifier of the cell type in the configuration, either its name or ID.
+            :type identifier: string (name) or int (ID)
             :returns: The cell type
             :rtype: :class:`.models.CellType`
-            :raise TypeNotFoundError: When the specified name is not known.
+            :raise TypeNotFoundError: When the specified identifier is not known.
         """
-        if name not in self.configuration.cell_types:
-            raise TypeNotFoundError("Unknown cell type '{}'".format(name))
-        return self.configuration.cell_types[name]
+        return self.configuration.get_cell_type(identifier)
 
     def get_cell_position(self, id):
         """

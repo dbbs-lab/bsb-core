@@ -281,16 +281,25 @@ class ScaffoldConfig(object):
         """
         return list(self.layers.values())
 
-    def get_cell_type(self, id):
+    def get_cell_type(self, name):
         """
-            Get cell type by id.
+            Get cell type.
 
-            :param id: ID of the cell type.
-            :type id: int
-            :returns: The cell type with given id.
+            :param name: Name or id of the cell type.
+            :type name: string
+            :returns: The cell type with given identifier.
             :rtype: :class:`CellType`
         """
-        return self.cell_types[self.cell_type_map[id]]
+        if isinstance(name, str):
+            if name in self.cell_types:
+                return self.cell_types[name]
+            else:
+                raise TypeNotFoundError(
+                    "Cell type with name '{}' not found.".format(name)
+                )
+        # `name` is not a string, so use it as an ID in the cell type map
+        # to obtain the actual name.
+        return self.cell_types[self.cell_type_map[name]]
 
     def resize(self, X=None, Z=None):
         """
