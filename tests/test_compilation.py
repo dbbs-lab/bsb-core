@@ -29,6 +29,7 @@ class TestSingleTypeCompilation(unittest.TestCase):
 
     def test_placement_statistics(self):
         self.assertEqual(self.scaffold.statistics.cells_placed["test_cell"], 4)
+        self.assertEqual(self.scaffold.get_cell_total(), 4)
 
     def test_network_cache(self):
         pass
@@ -45,6 +46,7 @@ class TestSingleTypeCompilation(unittest.TestCase):
                 scaffold_copy.statistics.cells_placed[key],
                 self.scaffold.statistics.cells_placed[key],
             )
+        self.assertEqual(scaffold_copy.get_cell_total(), 4)
         self.assertRaises(OSError, from_hdf5, "doesntexist")
 
 

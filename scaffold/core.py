@@ -926,3 +926,9 @@ class Scaffold:
             Get all the global identifiers of cells labelled with the specific label.
         """
         return np.array(self.labels[label], dtype=int)
+
+    def get_cell_total(self):
+        """
+            Return the total amount of cells and entities placed.
+        """
+        return sum(list(self.statistics.cells_placed.values()))
