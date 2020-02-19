@@ -53,6 +53,7 @@ class Scaffold:
     """
 
     def __init__(self, config, from_file=None):
+        self._initialise_MPI()
         self.configuration = config
         self.reset_network_cache()
         # Debug statistics, unused.
@@ -71,6 +72,38 @@ class Scaffold:
         if from_file:
             self.output_formatter.file = from_file
             self.output_formatter.init_scaffold()
+
+    def _initialise_MPI(self):
+        try:
+            # Try to import mpi4py and its MPI submodule
+            import mpi4py
+
+            try:
+                import neuron
+
+                # If neuron is installed, the user might want to use parallel NEURON
+                # simulations. NEURON is incapable of properly initializing if MPI_Init
+                # has already been called (which happens when you import MPI from mpi4py)
+                # Therefor we must initialize NEURON first see
+                # https://github.com/neuronsimulator/nrn/issues/428
+                from patch import p
+
+                # Initialize the ParallelContext singleton to properly initialize NEURON's
+                # parallel simulation capabilities.
+                _ = p.pc
+            except:
+                pass
+            from mpi4py import MPI
+
+            self.MPI = MPI
+            self.MPI_rank = MPI.COMM_WORLD.rank
+            self.has_mpi_installed = True
+            self.is_mpi_master = self.MPI_rank == 0
+            self.is_mpi_slave = self.MPI_rank != 0
+        except ImportError:
+            self.has_mpi_installed = False
+            self.is_mpi_master = True
+            self.is_mpi_slave = False
 
     def _intialise_components(self):
         """
@@ -103,7 +136,7 @@ class Scaffold:
             :type level: int
             :param ongoing: The message is part of an ongoing progress report. This replaces the endline (`\\n`) character with a carriage return (`\\r`) character
         """
-        if self.configuration.verbosity >= level:
+        if self.is_mpi_slave and self.configuration.verbosity >= level:
             print(message, end="\n" if not ongoing else "\r")
 
     def warn(self, message, category=None):
