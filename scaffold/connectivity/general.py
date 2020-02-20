@@ -1,5 +1,5 @@
 import numpy as np
-from ..strategy import ConnectionStrategy, TouchingConvergenceDivergence
+from .strategy import ConnectionStrategy, TouchingConvergenceDivergence
 
 
 class Convergence(TouchingConvergenceDivergence):
