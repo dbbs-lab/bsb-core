@@ -44,10 +44,10 @@ class Scaffold:
 
         During the compilation phase it can :doc:`place </placement>` and
         :doc:`connect </connectivity>` cells based on Layers,
-        :doc:`cell type </configuration/cell-type>` and :doc:`connection type
-        </configuration/connection-type>` configuration.
+        :doc:`cell type </guides/cell-type>` and :doc:`connection type
+        </guides/connection-type>` configuration.
 
-        The output can be stored in different :doc:`formats </output/formats>` and
+        The output can be stored in different :doc:`formats </guides/formats>` and
         can be used to have the scaffold set up simulations in common neuroscience
         simulators such as NEST or NEURON.
     """

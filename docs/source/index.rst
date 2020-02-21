@@ -13,20 +13,23 @@ Welcome to DBBS Cerebellum Scaffold's documentation!
    usage/installation
    usage/getting-started
    usage/cli
-   configuration
+   guides
    placement
    connectivity
-   output
-   output/formats
-   reference
+
 
 
 Indices and tables
 ==================
 
-* :doc:`genindex`
-* :doc:`py-modindex`
-* :ref:`search`
+.. toctree::
+   :maxdepth: 2
+   :caption: References
+
+   configuration
+   reference
+   genindex
+   py-modindex
 
 Developer Guides
 ================

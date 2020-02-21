@@ -8,8 +8,6 @@ Full reference guide to the most important parts of the documentation.
   :maxdepth: 2
   :caption: References:
 
-  genindex
-  py-modindex
   scaffold/cli
   scaffold/config
   scaffold/connectivity

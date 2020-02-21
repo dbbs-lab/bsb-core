@@ -7,7 +7,7 @@ type configures one :class:`.connectivity.ConnectionStrategy` and can override
 the ``connect`` method to connect cells to eachother. Use the scaffold instance's
 :func:.core.Scaffold.connect_cells` to connect cells to eachother.
 
-See the :doc:`/configuration/connection-strategies`.
+See the :doc:`/guides/connection-strategies`.
 
 *************
 Configuration

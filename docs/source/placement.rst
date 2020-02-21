@@ -11,7 +11,7 @@ Placement occurs as the first step during network architecture compilation.
 The placement order starts from cell type with the lowest cell count first
 unless specified otherwise in the cell type's placement configuration.
 
-See the :doc:`/configuration/placement-strategies`
+See the :doc:`/guides/placement-strategies`
 
 .. contents::
 
