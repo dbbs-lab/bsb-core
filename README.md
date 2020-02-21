@@ -25,7 +25,7 @@ Developers best use pip's *editable* install. This creates a live link between t
 installed package and the local git repository:
 
 ```
- sudo apt-get python3-rtree
+ sudo apt-get install python3-rtree
  git clone git@github.com:Helveg/cerebellum-scaffold.git
  cd cerebellum-scaffold
  pip install -e .[dev]
