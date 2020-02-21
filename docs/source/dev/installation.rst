@@ -6,10 +6,11 @@ To install::
 
   git clone git@github.com:Helveg/cerbellum-scaffold
   cd cerebellum-scaffold
-  pip3 install -e .[dev]
+  sudo apt-get install python3-rtree
+  pip install -e .[dev]
   pre-commit install
 
 
 Test your install with::
 
-  python3 -m unittest discover -s tests
+  python -m unittest discover -s tests
