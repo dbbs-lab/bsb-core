@@ -87,6 +87,10 @@ def start_cli():
     parser_repl = subparsers.add_parser(
         "repl", help="Start the interactive scaffold shell."
     )
+    parser_reconfigure = subparsers.add_parser(
+        "reconfigure",
+        help="Insert a new configuration file in an existing network architecture.",
+    )
     parser_plot = subparsers.add_parser("plot", help="Plot networks.")
 
     # Main arguments
@@ -165,6 +169,13 @@ def start_cli():
     # Repl subparser
     parser_repl.set_defaults(func=start_repl)
 
+    # Reconfigure subparser
+    parser_reconfigure.add_argument("hdf5", action="store", help="Path of the HDF5 file")
+    parser_reconfigure.add_argument(
+        "config", action="store", help="Path of the configuration file"
+    )
+    parser_reconfigure.set_defaults(func=cli_reconfigure)
+
     cl_args = parser.parse_args()
     if hasattr(cl_args, "func"):
         cl_args.func(cl_args)
@@ -220,6 +231,14 @@ def cli_plot(args):
 
     scaffold = from_hdf5(args.hdf5)
     plot_network(scaffold, from_memory=False)
+
+
+def cli_reconfigure(args):
+    from .config import JSONConfig
+    from .output import HDF5Formatter
+
+    config = JSONConfig(file=args.config)
+    HDF5Formatter.reconfigure(args.hdf5, config)
 
 
 def create_config(args):
