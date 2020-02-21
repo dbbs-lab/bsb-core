@@ -918,7 +918,12 @@
         "io_to_basket": {
           "connection": {
             "weight": 1.0,
-            "delay": 70.0
+            "delay": {
+              "distribution": "normal_clipped",
+              "low": 40.0,
+              "mu": 70.0,
+              "sigma": 10.0
+            }
           },
           "synapse": {
             "static_synapse": {}
@@ -927,7 +932,12 @@
         "io_to_stellate": {
           "connection": {
             "weight":1.0,
-            "delay": 70.0
+            "delay": {
+              "distribution": "normal_clipped",
+              "low": 40.0,
+              "mu": 70.0,
+              "sigma": 10.0
+            }
           },
           "synapse": {
             "static_synapse": {}
@@ -994,8 +1004,9 @@
           "parameters": {},
           "stimulus": {
             "parameter_name": "spike_times",
-            "statement": "list(np.round(np.linspace(750, 760, num_spikes)))",
+            "statement": "list(np.round(np.linspace(start, start+duration, num_spikes)))",
             "variables": {
+              "start": 750,
               "duration": 10,
               "num_spikes": 5
             }
