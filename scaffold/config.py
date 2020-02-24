@@ -121,8 +121,8 @@ class ScaffoldConfig(object):
     def read_config(self, file=None, stream=None):
         if stream is not None:
             self.read_config_stream(stream)
-        elif file is not None:
-            self.read_config_file(file)
+        else:
+            self.read_config_file(file or "mouse_cerebellum")
 
     def read_config_file(self, file):
         # Determine extension of file.
@@ -345,7 +345,7 @@ class JSONConfig(ScaffoldConfig):
         Create a scaffold configuration from a JSON formatted file/string.
     """
 
-    def __init__(self, file=None, **kwargs):
+    def __init__(self, file=None, stream=None, **kwargs):
         """
             Initialize config from .json file.
 
@@ -375,8 +375,10 @@ class JSONConfig(ScaffoldConfig):
         self._extension = ".json"
         # Tells the base configuration class how to parse the configuration string
         self._load_handler = load_handler
+        if file is None and stream is None:
+            file = "mouse_cerebellum"
         # Initialize base config class, handling the reading of file/stream to string
-        ScaffoldConfig.__init__(self, file=file, **kwargs)
+        ScaffoldConfig.__init__(self, file=file, stream=stream, **kwargs)
 
         # Use the parsed configuration as a basis for loading all parts of the scaffold
         parsed_config = self._parsed_config

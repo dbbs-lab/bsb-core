@@ -57,6 +57,7 @@ List of mr commands
   ``-f``/``--overwrite``: Overwrite existing morphologies.
 * ``import swc <file> <name>``: Import an SWC morphology and store it under the
   given name.
+* ``arborize <class> <name>``: Import an Arborize model.
 * ``remove <name>``: Remove a morphology from the repository.
 * ``voxelize <name> [<n=130>]``: Generate a voxel cloud of ``n`` (optional,
   default=130) voxels for the morphology.

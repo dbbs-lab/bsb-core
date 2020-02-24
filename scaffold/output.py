@@ -304,7 +304,7 @@ class MorphologyRepository(HDF5TreeHandler):
         # Save the dataset in the repository
         self.save_morphology_dataset(name, dataset_data, overwrite=overwrite)
 
-    def import_dbbs(self, name, cls, overwrite=False):
+    def import_arbz(self, name, cls, overwrite=False):
         from neuron import h
 
         cell = cls()
@@ -355,7 +355,15 @@ class MorphologyRepository(HDF5TreeHandler):
                     parent_section = sec_ref.parent().sec
             except Exception as e:
                 continue
-            parent_section_id = section_to_id[parent_section.name()]
+            try:
+                parent_section_id = section_to_id[parent_section.name()]
+            except KeyError:
+                raise MorphologyDataError(
+                    "Arborize model {} connects section '{}' to '{}' which is not part of the morphology.".format(
+                        name, section.name(), parent_section.name()
+                    )
+                    + " In order to be a part of the morphology, the section needs to occur in `self.sections`"
+                )
             # Get the id of the last compartment of the parent section.
             last_compartment = list(
                 filter(lambda c: c.section_id == parent_section_id, compartments)
@@ -367,8 +375,20 @@ class MorphologyRepository(HDF5TreeHandler):
         # Load imported morphology to test it
         morphology = self.get_morphology(name)
 
+    def import_arbz_module(self, module):
+        import arborize, inspect
+
+        for n, c in module.__dict__.items():
+            if (
+                inspect.isclass(c)
+                and issubclass(c, arborize.NeuronModel)
+                and c != arborize.NeuronModel
+            ):
+                print("Importing", n)
+                self.import_arbz(n, c, overwrite=True)
+
     def save_morphology_dataset(self, name, data, overwrite=False):
-        with self.load() as repo:
+        with self.load("a") as repo:
             if overwrite:  # Do we overwrite previously existing dataset with same name?
                 self.remove_morphology(
                     name
@@ -463,12 +483,12 @@ class MorphologyRepository(HDF5TreeHandler):
             return name in repo()["morphologies/voxel_clouds"]
 
     def remove_morphology(self, name):
-        with self.load() as repo:
+        with self.load("a") as repo:
             if self.morphology_exists(name):
                 del repo()["morphologies/" + name]
 
     def remove_voxel_cloud(self, name):
-        with self.load() as repo:
+        with self.load("a") as repo:
             if self.voxel_cloud_exists(name):
                 del repo()["morphologies/voxel_clouds/" + name]
 

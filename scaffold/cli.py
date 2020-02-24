@@ -3,11 +3,12 @@
     from the command line.
 """
 
-import sys
+import sys, os
 import configparser
 import builtins
 import argparse
 import traceback
+from types import ModuleType
 
 ##
 ## This is the package entry point API and REPL.
@@ -335,6 +336,9 @@ class ReplState:
         mr_parser.add_argument(
             "file", action="store", help="Path of the morphology repository to load."
         )
+        mr_parser.add_argument(
+            "--create", action="store_true", help="Create the morphology repository."
+        )
         mr_parser.set_defaults(func=self.open_morphology_repository)
 
         hdf5_parser = open_subparsers.add_parser("hdf5", description="Open a HDF5 file.")
@@ -389,16 +393,16 @@ class ReplState:
             func=lambda args: mr.import_swc(args.file, args.name, overwrite=True)
         )
 
-        dbbs_parser = types_subparsers.add_parser(
+        arbz_parser = self.add_subparser(
             "arborize", description="Import an Arborize model"
         )
-        dbbs_parser.add_argument(
+        arbz_parser.add_argument(
             "model", action="store", help="Importable class of the model"
         )
-        dbbs_parser.add_argument(
-            "name", action="store", help="Unique name of the morphology."
+        arbz_parser.add_argument(
+            "name", action="store", help="Unique name of the morphology.", nargs="?",
         )
-        dbbs_parser.set_defaults(func=lambda args: repl_import_dbbs(mr, args))
+        arbz_parser.set_defaults(func=lambda args: repl_import_arbz(mr, args))
 
         remove_parser = self.add_subparser(
             "remove", description="Remove a morphology from the repository.."
@@ -536,6 +540,13 @@ class ReplState:
 
         # Create the morphology repository instance.
         mr = MorphologyRepository(args.file)
+        if args.create:
+            # Create and initialize file.
+            with mr.load("a"):
+                pass
+        elif not os.path.exists(args.file):
+            self.reply = "File not found."
+            return
         # Store it as a global REPL variable.
         self.globals["mr"] = mr
         # Switch to the base_mr state.
@@ -631,8 +642,19 @@ def repl_view_hdf5(handle, args):
     format_self(handle, str(handle.file), 0)
 
 
-def repl_import_dbbs(mr, args):
+def repl_import_arbz(mr, args):
     import_parts = args.model.split(".")
-    _class = import_parts[-1]
-    module = __import__(".".join(import_parts[:-1]), globals(), locals(), [_class], 0)
-    mr.import_dbbs(args.name, module.__dict__[_class], overwrite=True)
+    if len(import_parts) == 1:
+        # No module to load, check if it is in the global namespace.
+        try:
+            return globals()[args.model]
+        except KeyError:
+            obj = __import__(args.model, globals(), locals(), level=0)
+    else:
+        _class = import_parts[-1]
+        module = __import__(".".join(import_parts[:-1]), globals(), locals(), [_class], 0)
+        obj = module.__dict__[_class]
+    if isinstance(obj, ModuleType):
+        mr.import_arbz_module(obj)
+    else:
+        mr.import_arbz(args.name, obj, overwrite=True)
