@@ -207,7 +207,11 @@ def start_cli():
         )  # `from_file` notifies the scaffold instance that we might've loaded from a file.
 
         if hasattr(cl_args, "x") and hasattr(cl_args, "z") and (cl_args.x or cl_args.z):
-            kwargs = {"X": float(cl_args.x), "Z": float(cl_args.z)}
+            kwargs = {}
+            if hasattr(cl_args, "x") and cl_args.x is not None:
+                kwargs["X"] = float(cl_args.x)
+            if hasattr(cl_args, "z") and cl_args.z is not None:
+                kwargs["Z"] = float(cl_args.z)
             scaffoldInstance.configuration.resize(**kwargs)
 
         if cl_args.output:  # Is a new output file name specified?
