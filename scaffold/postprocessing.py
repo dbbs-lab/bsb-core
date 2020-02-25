@@ -138,3 +138,39 @@ class DCNRotations(PostProcessingHook):
         matrix = np.column_stack((dcn_matrix[:, 0], dend_tree_coeff))
         # Save the matrix
         self.scaffold.append_dset("cells/dcn_orientations", data=matrix)
+
+
+class SpoofGlomerulusGranuleDetailed(PostProcessingHook):
+    """
+        Create a detailed intersection for each glomerulus to granule connection.
+        Empty section data is created for the glomerulus as it has no morphology, and a
+        random granule dendrite is selected.
+    """
+
+    def after_connectivity(self):
+        connection_results = self.scaffold.get_connection_cache_by_cell_type(
+            presynaptic="glomerulus", postsynaptic="granule_cell"
+        )
+        connectivity_matrix = connection_results[0][1]
+        ctype = connection_results[0][0]
+        # Erase previous data so that .connect_cells can be used again
+        self.scaffold.cell_connections_by_tag["glomerulus_to_granule"] = np.empty((0, 2))
+        # Use a hardcoded granule morphology for both
+        morphologies = np.zeros((len(connectivity_matrix), 2))
+        morpho_map = ["granule_dbbs"]
+        m = self.scaffold.morphology_repository.get_morphology("granule_dbbs")
+        # Select random dendrites
+        dendrites = np.array([c.id for c in m.compartments if c.type == 3])
+        compartments = np.column_stack(
+            (
+                np.zeros(len(connectivity_matrix)),
+                dendrites[np.random.randint(0, len(dendrites), len(connectivity_matrix))],
+            )
+        )
+        self.scaffold.connect_cells(
+            ctype,
+            connectivity_matrix,
+            morphologies=morphologies,
+            compartments=compartments,
+            morpho_map=morpho_map,
+        )

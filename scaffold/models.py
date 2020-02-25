@@ -288,8 +288,8 @@ class ConnectivitySet(Resource):
                 Connection(
                     *cell_ids,  # zipped dataset: from id & to id
                     *comp_ids,  # zipped morphologyset: from comp & to comp
-                    morphos[from_morpho_id],  # cached: from TrueMorphology
-                    morphos[to_morpho_id]  # cached: to TrueMorphology
+                    morphos[from_morpho_id],  # cached: 'from' TrueMorphology
+                    morphos[to_morpho_id]  # cached: 'to' TrueMorphology
                 )
             )
         return intersections
@@ -299,6 +299,9 @@ class ConnectivitySet(Resource):
             return self.intersections
         else:
             return self.connections
+
+    def __len__(self):
+        return self.get_dataset().shape[0]
 
     @property
     def meta(self):

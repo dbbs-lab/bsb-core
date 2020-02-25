@@ -84,6 +84,13 @@ class SimulatorAdapter(ConfigurableClass):
         """
         pass
 
+    @abc.abstractmethod
+    def collect_output(self, simulator):
+        """
+            Collect the output of a simulation that completed
+        """
+        pass
+
 
 class TargetsNeurons:
     neuron_targetting_types = ["local", "cylinder", "cell_type"]
@@ -187,3 +194,13 @@ class TargetsNeurons:
             else:
                 ids = self.scaffold.get_cells_by_type(t.name)[:, 0]
             return ids
+
+    def get_targets(self):
+        """
+            Return the targets of the device.
+        """
+        return self._get_targets()
+
+
+class TargetsSections:
+    pass

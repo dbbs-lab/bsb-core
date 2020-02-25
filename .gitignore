@@ -6,6 +6,7 @@ build/
 dist/
 *.egg-info/
 pip-wheel-metadata/
+.python-version
 *.swc
 dev/
 dev_env/

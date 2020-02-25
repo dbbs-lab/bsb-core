@@ -355,6 +355,35 @@ def set_morphology_scene_range(scene, offset_morphologies):
     set_scene_range(scene, combined_bounds)
 
 
+def hdf5_plot_spike_raster(spike_recorders):
+    """
+        Create a spike raster plot from an HDF5 group of spike recorders.
+    """
+    cell_ids = [int(k) for k in spike_recorders.keys()]
+    x = []
+    y = []
+    for cell_id, dataset in spike_recorders.items():
+        cell_id = int(cell_id)
+        data = dataset[:, 0]
+        # Add the spike timings on the X axis.
+        x.extend(data)
+        # Set the cell id for the Y axis of each added spike timing.
+        y.extend(cell_id for _ in range(len(data)))
+    # Use the parallel arrays x & y to plot a spike raster
+    plot_spike_raster(x, y)
+
+
+def plot_spike_raster(spike_timings, cell_ids):
+    go.Figure(
+        go.Scatter(
+            x=spike_timings,
+            y=cell_ids,
+            mode="markers",
+            marker=dict(symbol="square", size=4, color="black"),
+        )
+    ).show()
+
+
 class MorphologyScene:
     def __init__(self, fig=None):
         self.fig = fig or go.Figure()

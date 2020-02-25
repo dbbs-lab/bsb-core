@@ -13,6 +13,10 @@ class ConfigurationError(ScaffoldError):
     pass
 
 
+class ConfigurationFormatError(ConfigurationError):
+    pass
+
+
 class DynamicClassError(ConfigurationError):
     pass
 
@@ -146,6 +150,10 @@ class ResourceError(ScaffoldError):
 
 
 class DatasetNotFoundError(ResourceError):
+    pass
+
+
+class IntersectionDataNotFoundError(DatasetNotFoundError):
     pass
 
 

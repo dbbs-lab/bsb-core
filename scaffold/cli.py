@@ -223,7 +223,7 @@ def start_cli():
         if (
             cl_args.task == "run" or cl_args.task == "simulate"
         ):  # Do we need to run a simulation?
-            scaffoldInstance.run_simulation(cl_args.simulation)
+            scaffoldInstance.run_simulation(cl_args.simulation, quit=True)
 
 
 def cli_plot(args):

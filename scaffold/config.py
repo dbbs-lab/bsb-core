@@ -198,6 +198,16 @@ class ScaffoldConfig(object):
         # Register a new Geometry.
         self.after_placement_hooks[hook.name] = hook
 
+    def add_after_connectivity_hook(self, hook):
+        """
+            Adds a :class:`PostProcessingHook` to the config object. After connectivity has
+            completed the class's ``after_connectivity`` function will be called.
+
+            :param hook: :class:`PostProcessingHook`
+        """
+        # Register a new Geometry.
+        self.after_connect_hooks[hook.name] = hook
+
     def add_connection(self, connection):
         """
             Adds a :class:`ConnectionStrategy` to the config object. ConnectionStrategies
@@ -366,7 +376,7 @@ class JSONConfig(ScaffoldConfig):
             try:
                 return json.loads(config_string)
             except json.decoder.JSONDecodeError as e:
-                raise json.decoder.JSONDecodeError(
+                raise ConfigurationFormatError(
                     "Error while loading JSON configuration: {}".format(e)
                 ) from None
 
@@ -402,11 +412,18 @@ class JSONConfig(ScaffoldConfig):
             init=self.init_cell_type,
             final=self.finalize_cell_type,
         )
-        # Load the cell types
+        # Load the after placement hooks
         self.load_attr(
             config=parsed_config,
             attr="after_placement",
             init=self.init_after_placement_hook,
+            optional=True,
+        )
+        # Load the after connectivity hooks
+        self.load_attr(
+            config=parsed_config,
+            attr="after_connectivity",
+            init=self.init_after_connectivity_hook,
             optional=True,
         )
         # Load the connection types
@@ -746,15 +763,24 @@ class JSONConfig(ScaffoldConfig):
 
     def init_after_placement_hook(self, name, section):
         """
-            Initialize a Geometry-subclass from the configuration. Uses __import__
-            to fetch geometry class, then copies all keys as is from config section to instance
-            and adds it to the Geometries dictionary.
+            Initialize an after-placement hook from the configuration.
         """
         node_name = "after_placement." + name
         hook_class = assert_attr(section, "class", node_name)
         hook = load_configurable_class(name, hook_class, PostProcessingHook)
         fill_configurable_class(hook, section, excluded=["class"])
         self.add_after_placement_hook(hook)
+        return hook
+
+    def init_after_connectivity_hook(self, name, section):
+        """
+            Initialize an after-connectivity hook from the configuration.
+        """
+        node_name = "after_connectivity." + name
+        hook_class = assert_attr(section, "class", node_name)
+        hook = load_configurable_class(name, hook_class, PostProcessingHook)
+        fill_configurable_class(hook, section, excluded=["class"])
+        self.add_after_connectivity_hook(hook)
         return hook
 
     def init_simulation(self, name, section, return_obj=False):

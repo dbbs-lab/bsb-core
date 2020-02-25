@@ -466,6 +466,9 @@ class NestAdapter(SimulatorAdapter):
         if self.has_lock:
             self.release_lock()
 
+    def collect_output(self):
+        pass
+
     def validate(self):
         for cell_model in self.cell_models.values():
             cell_model.neuron_model = (

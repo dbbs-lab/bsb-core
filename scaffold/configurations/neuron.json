@@ -2,7 +2,8 @@
   "name": "DBBS NEURON simulator configuration v3.1",
   "output": {
     "format": "scaffold.output.HDF5Formatter",
-    "morphology_repository": "morphologies.hdf5"
+    "morphology_repository": "morphologies.hdf5",
+    "file": "neuron.hdf5"
   },
   "network_architecture": {
     "simulation_volume_x": 50.0,
@@ -53,7 +54,7 @@
         "pf_radius": 0.5,
         "dendrite_length": 40,
         "detailed_morphologies": {
-          "names": ["granule_dbbs"]
+          "names": ["GranuleCell"]
         }
       },
       "plotting": {
@@ -91,7 +92,7 @@
         "axon_y": 150.0,
         "axon_z": 30.0,
         "detailed_morphologies": {
-          "names": ["golgi_dbbs"]
+          "names": ["GolgiCell"]
         }
       },
       "plotting": {
@@ -112,7 +113,7 @@
       "morphology": {
         "class": "scaffold.morphologies.PurkinjeCellGeometry",
         "detailed_morphologies": {
-          "names": ["purkinje_dbbs"]
+          "names": ["PurkinjeCell"]
         }
       },
       "plotting": {
@@ -132,7 +133,7 @@
         "class": "scaffold.morphologies.RadialGeometry",
         "dendrite_radius": 15.0,
         "detailed_morphologies": {
-          "names": ["stellate_dbbs"]
+          "names": ["StellateCell"]
         }
       },
       "plotting": {
@@ -152,7 +153,7 @@
         "class": "scaffold.morphologies.RadialGeometry",
         "dendrite_radius": 15.0,
         "detailed_morphologies": {
-          "names": ["stellate_dbbs"]
+          "names": ["StellateCell"]
         }
       },
       "plotting": {
@@ -162,6 +163,7 @@
     },
     "mossy_fibers": {
       "entity": true,
+      "relay": true,
       "placement": {
         "class": "scaffold.placement.Entities",
         "layer": "granular_layer",
@@ -222,33 +224,31 @@
       "to_cell_types": [{"type": "purkinje_cell", "compartments": ["dendrites"]}]
     },
     "parallel_fiber_to_purkinje": {
-      "class": "scaffold.connectivity.ConnectomePFPurkinje",
+      "class": "scaffold.connectivity.VoxelIntersection",
       "from_cell_types": [{"type": "granule_cell", "compartments": ["parallel_fiber"]}],
       "to_cell_types": [{"type": "purkinje_cell", "compartments": ["dendrites"]}]
     },
     "parallel_fiber_to_basket": {
-      "class": "scaffold.connectivity.ConnectomePFInterneuron",
+      "class": "scaffold.connectivity.VoxelIntersection",
       "from_cell_types": [{"type": "granule_cell", "compartments": ["parallel_fiber"]}],
       "to_cell_types": [{"type": "basket_cell", "compartments": ["dendrites"]}],
       "after": ["granule_to_golgi"]
     },
     "parallel_fiber_to_stellate": {
-      "class": "scaffold.connectivity.ConnectomePFInterneuron",
+      "class": "scaffold.connectivity.VoxelIntersection",
       "from_cell_types": [{"type": "granule_cell", "compartments": ["parallel_fiber"]}],
       "to_cell_types": [{"type": "stellate_cell", "compartments": ["dendrites"]}],
       "after": ["granule_to_golgi"]
     },
-    "basket_and_stellate_to_purkinje": {
-      "class": "scaffold.connectivity.ConnectomeBCSCPurkinje",
-      "from_cell_types": [
-        {"type": "basket_cell", "compartments": ["axon"]},
-        {"type": "stellate_cell", "compartments": ["axon"]}
-      ],
-      "to_cell_types": [{"type": "purkinje_cell", "compartments": ["dendrites"]}],
-      "divergence": 2,
-      "convergence": 20,
-      "limit_x": 500.0,
-      "limit_z": 100.0
+    "stellate_to_purkinje": {
+      "class": "scaffold.connectivity.VoxelIntersection",
+      "from_cell_types": [{"type": "stellate_cell", "compartments": ["axon"]}],
+      "to_cell_types": [{"type": "purkinje_cell", "compartments": ["dendrites"]}]
+    },
+    "basket_to_purkinje": {
+      "class": "scaffold.connectivity.VoxelIntersection",
+      "from_cell_types": [{"type": "basket_cell", "compartments": ["axon"]}],
+      "to_cell_types": [{"type": "purkinje_cell", "compartments": ["dendrites"]}]
     },
     "stellate_to_stellate": {
       "class": "scaffold.connectivity.ConnectomeGapJunctions",
@@ -267,6 +267,11 @@
       "limit_z": 50.0
     }
   },
+  "after_connectivity": {
+    "relay_spoof": {
+      "class": "scaffold.postprocessing.SpoofGlomerulusGranuleDetailed"
+    }
+  },
   "simulations": {
     "poc": {
       "simulator": "neuron",
@@ -278,28 +283,42 @@
         "glomerulus": {
           "relay": true
         },
+        "mossy_fibers": {
+          "relay": true
+        },
         "granule_cell": {
           "model": "dbbs_models.GranuleCell",
-          "record_soma": true
+          "record_soma": true,
+          "record_spikes": true
         },
         "golgi_cell": {
           "model": "dbbs_models.GolgiCell",
-          "record_soma": true
+          "record_soma": true,
+          "record_spikes": true
         },
         "purkinje_cell": {
           "model": "dbbs_models.PurkinjeCell",
-          "record_soma": true
+          "record_soma": true,
+          "record_spikes": true
         },
         "stellate_cell": {
           "model": "dbbs_models.StellateCell",
-          "record_soma": true
+          "record_soma": true,
+          "record_spikes": true
         },
         "basket_cell": {
           "model": "dbbs_models.StellateCell",
-          "record_soma": true
+          "record_soma": true,
+          "record_spikes": true
         }
       },
       "connection_models": {
+        "glomerulus_to_granule": {
+          "synapse": "AMPA"
+        },
+        "mossy_to_glomerulus": {
+          "synapse": null
+        },
         "granule_to_golgi": {
           "synapse": "AMPA"
         },
@@ -311,6 +330,12 @@
         },
         "parallel_fiber_to_stellate": {
           "synapse": "AMPA"
+        },
+        "stellate_to_purkinje": {
+          "synapse": "GABA"
+        },
+        "basket_to_purkinje": {
+          "synapse": "GABA"
         }
       },
       "devices": {
@@ -318,7 +343,14 @@
           "io": "input",
           "device": "spike_generator",
           "targetting": "cell_type",
-          "type": "glomerulus"
+          "cell_types": ["mossy_fibers"],
+          "synapses": ["AMPA", "NMDA"],
+          "parameters": {
+            "noise": true,
+            "start": 0,
+            "interval": 25,
+            "number": 4
+          }
         }
       }
     }

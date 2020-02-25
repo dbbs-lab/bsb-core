@@ -247,6 +247,13 @@ class Scaffold:
         for hook in self.configuration.after_placement_hooks.values():
             hook.after_placement()
 
+    def run_after_connectivity_hooks(self):
+        """
+            Run all after placement hooks.
+        """
+        for hook in self.configuration.after_connect_hooks.values():
+            hook.after_connectivity()
+
     def compile_network(self, tries=1, output=True):
         """
             Run all steps in the scaffold sequence to obtain a full network.
@@ -262,6 +269,7 @@ class Scaffold:
             self.place_cell_types()
             self.run_after_placement_hooks()
             self.connect_cell_types()
+            self.run_after_connectivity_hooks()
             times[i] = time.time() - t
 
             if output:
@@ -351,7 +359,7 @@ class Scaffold:
         self._connectivity_set_meta = {}
         self.labels = {}
 
-    def run_simulation(self, simulation_name):
+    def run_simulation(self, simulation_name, quit=False):
         """
             Run a simulation starting from the default single-instance adapter.
 
@@ -360,6 +368,9 @@ class Scaffold:
         """
         simulation, simulator = self.prepare_simulation(simulation_name)
         simulation.simulate(simulator)
+        simulation.collect_output()
+        if quit and hasattr(simulator, "quit"):
+            simulator.quit()
         return simulation
 
     def get_simulation(self, simulation_name):
