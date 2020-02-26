@@ -599,7 +599,7 @@ def load_configurable_class(name, configured_class_name, parent_class, parameter
     if isclass(configured_class_name):
         instance = configured_class_name(**parameters)
     else:
-        class_ref = get_configurable_class(name, configured_class_name)
+        class_ref = get_configurable_class(configured_class_name)
         if not parent_class is None and not issubclass(class_ref, parent_class):
             raise DynamicClassError(
                 "Configurable class '{}.{}' must derive from {}.{}".format(
@@ -622,11 +622,15 @@ def fill_configurable_class(obj, conf, excluded=[]):
             obj.__dict__[name] = prop
 
 
-def get_configurable_class(name, configured_class_name):
+def get_configurable_class(configured_class_name):
     class_parts = configured_class_name.split(".")
     class_name = class_parts[-1]
     module_name = ".".join(class_parts[:-1])
-    module_ref = __import__(module_name, globals(), locals(), [class_name], 0)
-    if not class_name in module_ref.__dict__:
-        raise ConfigurableClassNetFoundError("Class not found:" + configured_class_name)
-    return module_ref.__dict__[class_name]
+    if module_name == "":
+        module_dict = globals()
+    else:
+        module_ref = __import__(module_name, globals(), locals(), [class_name], 0)
+        module_dict = module_ref.__dict__
+    if not class_name in module_dict:
+        raise ConfigurableClassNotFoundError("Class not found: " + configured_class_name)
+    return module_dict[class_name]

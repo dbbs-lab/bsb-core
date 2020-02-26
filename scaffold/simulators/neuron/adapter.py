@@ -38,7 +38,7 @@ class NeuronCell(SimulationComponent):
     def boot(self):
         self.instances = []
         if not self.relay:
-            self.model_class = get_configurable_class(self.name + "_model", self.model)
+            self.model_class = get_configurable_class(self.model)
 
     def __getitem__(self, i):
         return self.instances[i]

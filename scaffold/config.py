@@ -709,8 +709,8 @@ class JSONConfig(ScaffoldConfig):
                 PlacementStrategy,
                 parameters={"cell_type": cell_type},
             )
-        except ConfigurableClassNetFoundError as e:
-            raise ConfigurableClassNetFoundError(
+        except ConfigurableClassNotFoundError as e:
+            raise ConfigurableClassNotFoundError(
                 "Couldn't find class '{}' specified in '{}'".format(
                     placement_class, node_name
                 )

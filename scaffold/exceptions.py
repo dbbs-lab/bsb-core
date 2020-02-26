@@ -21,7 +21,7 @@ class DynamicClassError(ConfigurationError):
     pass
 
 
-class ConfigurableClassNetFoundError(DynamicClassError):
+class ConfigurableClassNotFoundError(DynamicClassError):
     pass
 
 
