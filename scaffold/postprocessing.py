@@ -22,6 +22,7 @@ class LabelMicrozones(PostProcessingHook):
     def after_placement(self):
         # Divide the volume into two sub-parts (one positive and one negative)
         for neurons_2b_labeled in self.targets:
+            ids = self.scaffold.get_cells_by_type(neurons_2b_labeled)[:, 0]
             zeds = self.scaffold.get_cells_by_type(neurons_2b_labeled)[:, 4]
             z_sep = np.median(zeds)
             index_pos = np.where(zeds >= z_sep)[0]
@@ -35,53 +36,60 @@ class LabelMicrozones(PostProcessingHook):
             )
 
             labels = {
-                "microzone-positive": self.scaffold.get_cells_by_type(neurons_2b_labeled)[
-                    index_pos, 0
-                ],
-                "microzone-negative": self.scaffold.get_cells_by_type(neurons_2b_labeled)[
-                    index_neg, 0
-                ],
+                "microzone-positive": ids[index_pos],
+                "microzone-negative": ids[index_neg],
             }
 
             self.scaffold.label_cells(
-                self.scaffold.get_cells_by_type(neurons_2b_labeled)[index_pos, 0],
-                label="microzone-positive",
+                ids[index_pos], label="microzone-positive",
             )
             self.scaffold.label_cells(
-                self.scaffold.get_cells_by_type(neurons_2b_labeled)[index_neg, 0],
-                label="microzone-negative",
+                ids[index_neg], label="microzone-negative",
             )
 
             self.label_satellites(neurons_2b_labeled, labels)
 
     def label_satellites(self, planet_type, labels):
         for possible_satellites in self.scaffold.get_cell_types():
+            # Find all cell types that specify this type as their planet type
             if (
                 hasattr(possible_satellites.placement, "planet_types")
                 and planet_type in possible_satellites.placement.planet_types
             ):
+                # Get the IDs of this sattelite cell type.
                 satellites = self.scaffold.get_cells_by_type(possible_satellites.name)[
                     :, 0
                 ]
+                # Retrieve the planet map for this satellite type. A planet map is an
+                # array that lists the planet for each satellite. `sattelite_map[n]`` will
+                # hold the planet ID for sattelite `n`, where `n` the index of the
+                # satellites in their cell type, not their scaffold ID.
                 satellite_map = self.scaffold._planets[possible_satellites.name].copy()
-                lab_pos = lab_neg = 0
-                for i, satellite in enumerate(satellites):
-                    planet = satellite_map[i]
-                    if planet in labels["microzone-positive"]:
-                        self.scaffold.label_cells(
-                            np.array([satellite]), label="microzone-positive"
-                        )
-                        lab_pos += 1
-                    else:
-                        self.scaffold.label_cells(
-                            np.array([satellite]), label="microzone-negative"
-                        )
-                        lab_neg += 1
-                num_labelled_sat = lab_pos + lab_neg
-                if num_labelled_sat > 0:
+                # Create counters for each label for the report below
+                satellite_label_count = {l: 0 for l in labels.keys()}
+                # Iterate each label to check for any planets with that label, and label
+                # their sattelite with the same label. After iterating all labels, each
+                # satellite should have the same labels as their planet.
+                for label, labelled_cells in labels.items():
+                    for i, satellite in enumerate(satellites):
+                        planet = satellite_map[i]
+                        if planet in labelled_cells:
+                            self.scaffold.label_cells([satellite], label=label)
+                            # Increase the counter of this label
+                            satellite_label_count[label] += 1
+                if sum(satellite_label_count.values()) > 0:
+                    # Report how many labels have been applied to which cell type.
                     self.scaffold.report(
-                        "{} are satellites of {} and have been labelled as: {} positive, {} negative".format(
-                            possible_satellites.name, planet_type, lab_pos, lab_neg
+                        "{} are satellites of {} and have been labelled as: {}".format(
+                            possible_satellites.name,
+                            planet_type,
+                            ", ".join(
+                                map(
+                                    lambda label, count: str(count) + " " + label,
+                                    satellite_label_count.keys(),
+                                    satellite_label_count.values(),
+                                )
+                            ),
                         ),
                         level=3,
                     )

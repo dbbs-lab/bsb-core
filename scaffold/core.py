@@ -900,12 +900,13 @@ class Scaffold:
             Store labels for the given cells. Labels can be used to identify subsets of cells.
 
             :param ids: global identifiers of the cells that need to be labelled.
-            :type ids: Any valid ``np.append`` type.
+            :type ids: iterable
         """
-        if label in self.labels.keys():
-            self.labels[label] = np.append(self.labels[label], ids)
-        else:
-            self.labels[label] = np.array(ids)
+        # Initialize (if required)
+        if not label in self.labels.keys():
+            self.labels[label] = []
+        # Extend labels
+        self.labels[label].extend(ids)
 
     def get_labels(self, pattern):
         """
