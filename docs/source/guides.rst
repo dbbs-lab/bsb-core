@@ -13,3 +13,4 @@ Guides
   guides/simulation
   guides/placement-strategies
   guides/connection-strategies
+  guides/placement-set

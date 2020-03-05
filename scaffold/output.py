@@ -6,7 +6,7 @@ from abc import abstractmethod, ABC
 import h5py, os, time, pickle, numpy as np
 from numpy import string_
 from .exceptions import *
-from .models import ConnectivitySet
+from .models import ConnectivitySet, PlacementSet
 from sklearn.neighbors import KDTree
 import os, sys
 
@@ -600,6 +600,7 @@ class HDF5Formatter(OutputFormatter, MorphologyRepository):
                 "stitching", data=self.scaffold.placement_stitching
             )
             self.store_cell_positions(cells_group)
+            self.store_placement(cells_group)
             self.store_cell_connections(cells_group)
             self.store_labels(cells_group)
 
@@ -608,6 +609,18 @@ class HDF5Formatter(OutputFormatter, MorphologyRepository):
             cells_group = f().create_group("entities")
             for key, data in self.scaffold.entities_by_type.items():
                 cells_group.create_dataset(key, data=data)
+
+    def store_placement(self, cells_group):
+        placement = cells_group.create_group("placement")
+        for cell_type in self.scaffold.get_cell_types():
+            cell_type_group = placement.create_group(cell_type.name)
+            ids = cell_type_group.create_dataset(
+                "identifiers", data=cell_type.serialize_identifiers(), dtype=np.int32
+            )
+            if not cell_type.entity:
+                cell_type_group.create_dataset(
+                    "positions", data=self.scaffold.cells_by_type[cell_type.name][:, 2:5]
+                )
 
     def store_cell_positions(self, cells_group):
         position_dataset = cells_group.create_dataset(
@@ -747,6 +760,9 @@ class HDF5Formatter(OutputFormatter, MorphologyRepository):
 
     def get_connectivity_set(self, tag):
         return ConnectivitySet(self, tag)
+
+    def get_placement_set(self, tag):
+        return PlacementSet(self, tag)
 
     @classmethod
     def reconfigure(cls, hdf5_file, config):

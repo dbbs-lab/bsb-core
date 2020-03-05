@@ -743,6 +743,17 @@ class Scaffold:
         """
         return self.output_formatter.get_connectivity_set(tag)
 
+    def get_placement_set(self, tag):
+        """
+            Return a placement set from the output formatter.
+
+            :param tag: Unique identifier of the placement set in the output formatter
+            :type tag: string
+            :returns: A placement set
+            :rtype: :class:`.models.PlacementSet`
+        """
+        return self.output_formatter.get_placement_set(tag)
+
     def translate_cell_ids(self, data, cell_type):
         """
             Return the global ids of the N-th cells of a cell type

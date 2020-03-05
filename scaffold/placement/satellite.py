@@ -47,6 +47,8 @@ class Satellite(PlacementStrategy):
             for type_after in self.after
         ]
         all_satellites = np.empty((0))
+        # Initialise empty sattelite positions array
+        satellites_pos = np.empty([0, 3])
         # Assemble the parallel arrays from all the planet cell types.
         for after_cell_type in after_cell_types:
             layer = after_cell_type.placement.layer_instance
@@ -146,10 +148,13 @@ class Satellite(PlacementStrategy):
                     ),
                     PlacementWarning,
                 )
+            # Store the planet for each sattelite
+            # NOTE: If we ever implement multiple sattelites per planet this implementation
+            # will break.
+            if not hasattr(scaffold, "_planets"):
+                scaffold._planets = {}
+            if cell_type.name not in scaffold._planets:
+                scaffold._planets[cell_type.name] = []
+            scaffold._planets[cell_type.name].extend(planet_ids)
 
         scaffold.place_cells(cell_type, layer, satellites_pos)
-        if not hasattr(scaffold, "_planets"):
-            scaffold._planets = {}
-        if cell_type.name not in scaffold._planets:
-            scaffold._planets[cell_type.name] = []
-        scaffold._planets[cell_type.name].extend(planet_ids)

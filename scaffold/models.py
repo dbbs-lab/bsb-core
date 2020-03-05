@@ -1,6 +1,13 @@
 import numpy as np, random
 from .morphologies import Morphology as BaseMorphology
-from .helpers import ConfigurableClass, dimensions, origin, SortableByAfter
+from .helpers import (
+    ConfigurableClass,
+    dimensions,
+    origin,
+    SortableByAfter,
+    continuity_list,
+    expand_continuity_list,
+)
 from .exceptions import *
 
 
@@ -61,6 +68,10 @@ class CellType(SortableByAfter):
         else:
             dataset = self.scaffold.cells_by_type[self.name][:, 0]
         return np.array(dataset, dtype=int)
+
+    def serialize_identifiers(self):
+        raw_ids = self.get_ids()
+        return continuity_list(raw_ids)
 
     def get_cells(self):
         if self.entity:
@@ -194,6 +205,14 @@ class Resource:
         else:
             return self.unmap(data=[data], mapping=mapping)
 
+    def __iter__(self):
+        return iter(self.get_dataset())
+
+    @property
+    def shape(self):
+        with self._handler.load("r") as f:
+            return f()[self._path].shape
+
 
 class Connection:
     def __init__(
@@ -231,6 +250,9 @@ class Connection:
 class ConnectivitySet(Resource):
     def __init__(self, handler, tag):
         super().__init__(handler, "/cells/connections/" + tag)
+        if not self.exists():
+            raise DatasetNotFoundError("ConnectivitySet '{}' does not exist".format(tag))
+        self.scaffold = handler.scaffold
         self.tag = tag
         self.compartment_set = Resource(handler, "/cells/connection_compartments/" + tag)
         self.morphology_set = Resource(handler, "/cells/connection_morphologies/" + tag)
@@ -270,9 +292,7 @@ class ConnectivitySet(Resource):
                 name = self.morphology_set.unmap_one(id)[0]
                 if isinstance(name, bytes):
                     name = name.decode("UTF-8")
-                morphos[id] = self._handler.scaffold.morphology_repository.get_morphology(
-                    name
-                )
+                morphos[id] = self.scaffold.morphology_repository.get_morphology(name)
 
         cells = self.get_dataset()
         for cell_ids, comp_ids, morpho_ids in zip(
@@ -301,7 +321,7 @@ class ConnectivitySet(Resource):
             return self.connections
 
     def __len__(self):
-        return self.get_dataset().shape[0]
+        return self.shape[0]
 
     @property
     def meta(self):
@@ -323,16 +343,101 @@ class ConnectivitySet(Resource):
         # Get list of contributing types
         type_list = self.attributes["connection_types"]
         # Map contributing type names to contributing types
-        return list(
-            map(lambda name: self._handler.scaffold.get_connection_type(name), type_list)
+        return list(map(lambda name: self.scaffold.get_connection_type(name), type_list))
+
+
+class PlacementSet(Resource):
+    """
+        Fetches placement data from storage. You can either access the parallel-array
+        datasets ``.identifiers``, ``.positions`` and ``.rotations`` individually or
+        create a collection of :class:`Cells <.models.Cell>` that each contain their own
+        identifier, position and rotation.
+
+        .. note::
+
+            Use :func:`.core.get_placement_set` to correctly obtain a PlacementSet.
+    """
+
+    def __init__(self, handler, tag):
+        super().__init__(handler, "/cells/placement/" + tag + "/positions")
+        if not self.exists():
+            raise DatasetNotFoundError("PlacementSet '{}' does not exist".format(tag))
+        self.scaffold = handler.scaffold
+        self.tag = tag
+        self.identifier_set = Resource(
+            handler, "/cells/placement/" + tag + "/identifiers"
         )
+        self.rotation_set = Resource(handler, "/cells/placement/" + tag + "/rotations")
+
+    @property
+    def identifiers(self):
+        """
+            Return a list of cell identifiers.
+        """
+        return np.array(
+            expand_continuity_list(self.identifier_set.get_dataset()), dtype=int
+        )
+
+    @property
+    def positions(self):
+        """
+            Return a dataset of cell positions.
+        """
+        return self.get_dataset()
+
+    @property
+    def rotations(self):
+        """
+            Return a dataset of cell rotations.
+
+            :raises: DatasetNotFoundError when there is no rotation information for this
+               cell type.
+        """
+        if not self.rotation_set.exists():
+            raise DatasetNotFoundError(
+                "No rotation information for the '{}' placement set.".format(self.tag)
+            )
+        else:
+            return self.rotation_set.get_dataset()
+
+    @property
+    def cells(self):
+        """
+            Reorganize the available datasets into a collection of :class:`Cells
+            <.models.Cell>`
+        """
+        type = self.scaffold.get_cell_type(self.tag)
+        iterators = [iter(self.identifiers), iter(Resource.__iter__(self))]
+        if self.rotation_set.exists():
+            iterators.append(iter(self.rotation_set))
+        else:
+
+            def none_generator():
+                for i in range(len(self)):
+                    yield None
+
+            iterators.append(none_generator())
+        return [
+            Cell(id, type, position, rotation)
+            for id, position, rotation in zip(*iterators)
+        ]
+
+    def __iter__(self):
+        iterators = [iter(self.identifiers), Resource.__iter__(self)]
+        if self.rotation_set.exists():
+            iterators.append(iter(self.rotation_set))
+        return zip(*iterators)
+
+    def __len__(self):
+        return self.shape[0]
 
 
 class Cell:
-    def __init__(self, id, cell_type, position):
+    def __init__(self, id, cell_type, position, rotation=None):
         self.id = int(id)
         self.type = cell_type
         self.position = position
+        self.rotation = rotation
 
     @classmethod
     def from_repo_data(cls, cell_type, data):
