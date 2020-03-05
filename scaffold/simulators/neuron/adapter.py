@@ -284,7 +284,7 @@ class NeuronAdapter(SimulatorAdapter):
             if os.path.exists("interrupt_neuron"):
                 self.scaffold.report("Iterrupt requested. Stopping simulation.", 1)
                 break
-        self.scaffold.report("Finished simulation." + " Quitting" if quit else "", 2)
+        self.scaffold.report("Finished simulation.", 2)
 
     def collect_output(self):
         import h5py, time

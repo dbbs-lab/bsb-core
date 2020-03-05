@@ -330,12 +330,6 @@
         },
         "parallel_fiber_to_stellate": {
           "synapse": "AMPA"
-        },
-        "stellate_to_purkinje": {
-          "synapse": "GABA"
-        },
-        "basket_to_purkinje": {
-          "synapse": "GABA"
         }
       },
       "devices": {

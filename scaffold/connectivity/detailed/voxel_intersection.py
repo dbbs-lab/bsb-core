@@ -113,14 +113,13 @@ class VoxelIntersection(ConnectionStrategy, MorphologyStrategy):
                 )
                 connections_out.append([from_cell.id, to_cell.id])
 
-        if len(connections_out) > 0:
-            self.scaffold.connect_cells(
-                self,
-                np.array(connections_out),
-                morphologies=np.array(morphologies_out),
-                compartments=np.array(compartments_out),
-                morpho_map=joined_map,
-            )
+        self.scaffold.connect_cells(
+            self,
+            np.array(connections_out or np.empty((0, 2))),
+            morphologies=np.array(morphologies_out or np.empty((0, 2), dtype=str)),
+            compartments=np.array(compartments_out or np.empty((0, 2))),
+            morpho_map=joined_map,
+        )
 
     def intersect_clouds(self, from_cloud, to_cloud, from_pos, to_pos):
         voxel_intersections = []
