@@ -1,5 +1,13 @@
 # 3.2
 
+## 3.2.1
+
+* PlacementSets have been introduced (#303)
+* Obfuscated setup uses scaffold version plus "rc0". (#301, #308)
+* `placement.py` is now its own module. (#302)
+* ConfigurableClasses can specify classes in the global namespace instead of only inside
+  of modules. (#299)
+
 ## 3.2.0
 
 * Added parallel neuron simulations
