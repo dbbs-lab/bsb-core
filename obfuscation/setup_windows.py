@@ -20,7 +20,7 @@ except ImportError:
 
 setuptools.setup(
     name="dbbs-scaffold",
-    version=scaffold.__version__,
+    version=scaffold.__version__ + "rc0",
     author="Robin De Schepper, Alice Geminiani, Alberto Antonietti, Stefano Casali, Claudia Casselato, Egidio D'Angelo",
     author_email="robingilbert.deschepper@unipv.it",
     description="A morphologically detailed scaffolding package for the scientific modelling of the cerebellum.",
