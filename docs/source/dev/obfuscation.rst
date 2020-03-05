@@ -12,6 +12,7 @@ Distributing obfuscated releases
 
   cd obfuscation
   pyarmor obfuscate --recursive --output scaffold ../scaffold/__init__.py
+  cp -r ../scaffold/configurations ./scaffold
 
 2. Generate a license with expiration date
 
