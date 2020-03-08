@@ -1,3 +1,4 @@
+from . import __version__
 from .helpers import ConfigurableClass, get_qualified_class_name
 from .morphologies import Morphology, TrueMorphology, Compartment
 from scaffold.helpers import suppress_stdout
@@ -581,8 +582,7 @@ class HDF5Formatter(OutputFormatter, MorphologyRepository):
         config = config if config is not None else self.scaffold.configuration
         with self.load("a") as f:
             f = f()
-            f.attrs["shdf_version"] = 3.1
-            f.attrs["configuration_version"] = 3.1
+            f.attrs["version"] = __version__
             f.attrs["configuration_name"] = config._name
             f.attrs["configuration_type"] = config._type
             f.attrs["configuration_class"] = get_qualified_class_name(config)
