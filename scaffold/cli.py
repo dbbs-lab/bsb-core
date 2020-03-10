@@ -187,35 +187,27 @@ def start_cli():
     if hasattr(cl_args, "func"):
         cl_args.func(cl_args)
     else:
-        from .config import JSONConfig, _from_hdf5
-        from .core import Scaffold
+        from .config import JSONConfig
+        from .core import Scaffold, from_hdf5
         from .output import MorphologyRepository, HDF5Formatter
         from .reporting import set_verbosity, set_report_file
 
-        scaffold_kwargs = {}
         # Should we change the verbosity setting?
         if cl_args.verbose is not None:
             set_verbosity(cl_args.verbose)
         # Should we report to a file?
         if cl_args.report:
             set_report_file(cl_args.report)
-        if hasattr(cl_args, "hdf5"):  # Is an HDF5 file specified?
-            cl_args.ctype = "hdf5"  # Load from the config stored in the HDF5 file.
-
         if cl_args.ctype == "json":  # Should we config from JSON?
             # Load the .json configuration
-            scaffoldConfig = JSONConfig(file=cl_args.config)
+            scaffoldConfig = JSONConfig(file=cl_args.config, verbosity=cl_args.verbose)
+            scaffoldInstance = Scaffold(scaffoldConfig)
         elif cl_args.ctype == "hdf5":  # Should we config from hdf5?
             file = cl_args.hdf5
             if cl_args.reconfigure is not None:
                 config = JSONConfig(file=cl_args.reconfigure)
                 HDF5Formatter.reconfigure(file, config)
-            # Extract the config stored in the hdf5 file.
-            scaffoldConfig = _from_hdf5(file)
-            scaffold_kwargs["from_file"] = file
-
-        # Create the scaffold instance
-        scaffoldInstance = Scaffold(scaffoldConfig, **scaffold_kwargs)
+            scaffoldInstance = from_hdf5(file)
 
         if hasattr(cl_args, "x") and hasattr(cl_args, "z") and (cl_args.x or cl_args.z):
             resize_kwargs = {}
@@ -557,7 +549,7 @@ class ReplState:
         mr = MorphologyRepository(args.file)
         if args.create:
             # Create and initialize file.
-            with mr.load("a"):
+            with mr.open("a"):
                 pass
         elif not os.path.exists(args.file):
             self.reply = "File not found."

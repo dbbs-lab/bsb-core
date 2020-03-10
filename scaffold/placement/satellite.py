@@ -64,7 +64,7 @@ class Satellite(PlacementStrategy):
             layer_min = layer.origin
             layer_max = layer.origin + layer.dimensions
             planet_cell_radius = after_cell_type.placement.radius
-            planet_cells = self.scaffold.get_cells_by_type(after_cell_type.name)
+            planet_cells = self.scaffold.get_placement_set(after_cell_type.name)
             # Exit the placement of satellites if no corresponding planet after cells were created before
             if len(planet_cells) == 0:
                 warn(
@@ -74,8 +74,8 @@ class Satellite(PlacementStrategy):
                     PlacementWarning,
                 )
                 continue
-            planet_ids = planet_cells[:, 0]
-            planets_pos = planet_cells[:, 2:5]
+            planet_ids = planet_cells.identifiers
+            planets_pos = planet_cells.positions
             planet_count = len(planets_pos)
             dist = np.empty((planet_count ** 2))
             for I in range(planet_count):

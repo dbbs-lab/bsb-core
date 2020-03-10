@@ -8,7 +8,7 @@ from .models import CellType, Layer
 from .morphologies import Morphology as BaseMorphology
 from .connectivity import ConnectionStrategy
 from .placement import PlacementStrategy
-from .output import OutputFormatter, HDF5Formatter
+from .storage import Storage
 from .simulation import SimulatorAdapter, SimulationComponent
 from .helpers import (
     assert_float,
@@ -28,41 +28,6 @@ from .postprocessing import PostProcessingHook
 from .simulators.neuron import NeuronAdapter
 from .exceptions import *
 import numpy as np
-
-
-def _from_hdf5(file):
-    """
-        Restore a configuration object from an HDF5 file.
-
-        :param file: Path of the HDF5 file.
-        :param verbosity: Verbosity level of the reporting
-        :type file: string
-        :rtype: None
-    """
-    import h5py
-
-    # Open read only
-    with h5py.File(file, "r") as resource:
-        # Get the serialized configuration details
-        config_class = resource.attrs["configuration_class"]
-        config_string = resource.attrs["configuration_string"]
-    # Determine the class and module name and import them
-    class_parts = config_class.split(".")
-    class_name = class_parts[-1]
-    module_name = ".".join(class_parts[:-1])
-    if module_name == "":
-        module_dict = globals()
-    else:
-        module_dict = __import__(
-            module_name, globals(), locals(), [class_name], 0
-        ).__dict__
-    if class_name not in module_dict:
-        raise DynamicClassError(
-            "Can not load HDF5 file '{}'. Configuration class not found:".format(file)
-            + config_class
-        )
-    # Instantiate the configuration class with a configuration stream
-    return module_dict[class_name](stream=config_string)
 
 
 class ScaffoldConfig(object):
@@ -102,7 +67,6 @@ class ScaffoldConfig(object):
         self.simulators = simulators
         self.simulators["nest"] = NestAdapter
         self.simulators["neuron"] = NeuronAdapter
-        self.output_formatter = HDF5Formatter()
 
         # Fallback simulation values
         self.X = 200  # Transverse simulation space size (µm)
@@ -393,8 +357,8 @@ class JSONConfig(ScaffoldConfig):
         parsed_config = self._parsed_config
         # Load the general scaffold configuration
         self.load_general(parsed_config)
-        # Load the output module configuration
-        self.load_output(parsed_config)
+        # Load the storage module configuration
+        self.load_storage(parsed_config)
         self._layer_stacks = {}
         # Load the layers
         self.load_attr(
@@ -460,21 +424,26 @@ class JSONConfig(ScaffoldConfig):
         self.X = float(netw_config["simulation_volume_x"])
         self.Z = float(netw_config["simulation_volume_z"])
 
-    def load_output(self, config):
+    def load_storage(self, config):
         """
-            Load the output segment in a JSON configuration file.
+            Load the storage segment in a JSON configuration file.
         """
-        if "output" not in config:
-            raise ConfigurationError("Missing 'output' attribute in configuration.")
-        output_config = config["output"]
-        if "format" not in output_config:
+        import types
+
+        if "storage" not in config:
+            raise ConfigurationError("Missing 'storage' attribute in configuration.")
+        storage_config = config["storage"]
+        if "format" not in storage_config:
             raise ConfigurationError(
-                "Missing 'format' attribute in 'output' configuration."
+                "Missing 'format' attribute in 'storage' configuration."
             )
-        self.output_formatter = load_configurable_class(
-            "output_formatter", output_config["format"], OutputFormatter
-        )
-        fill_configurable_class(self.output_formatter, output_config, excluded=["format"])
+        if not "file" in storage_config:
+            import time
+
+            storage_config["file"] = "scaffold_network_{}.hdf5".format(
+                time.strftime("%Y_%m_%d-%H%M%S")
+            )
+        self.storage = types.SimpleNamespace(**storage_config)
 
     def load_attr(
         self, config, attr, init, final=None, single=False, node_name=None, optional=False

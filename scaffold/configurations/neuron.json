@@ -1,7 +1,7 @@
 {
   "name": "DBBS NEURON simulator configuration v3.1",
-  "output": {
-    "format": "scaffold.output.HDF5Formatter",
+  "storage": {
+    "format": "hdf5",
     "morphology_repository": "morphologies.hdf5",
     "file": "neuron.hdf5"
   },

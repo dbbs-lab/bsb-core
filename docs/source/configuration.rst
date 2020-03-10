@@ -59,7 +59,7 @@ Output attributes
 Format
 ======
 
-This attribute is a string that refers to the implementation of the OutputFormatter
+This attribute is a string that refers to the implementation of the Storage
 that should be used::
 
   {
@@ -69,15 +69,15 @@ that should be used::
   }
 
 If you write your own implementation the string should be discoverable by Python.
-Here is an example for ``MyOutputFormatter`` in a package called ``my_package``::
+Here is an example for ``MyStorage`` in a package called ``my_package``::
 
   {
     "output": {
-      "format": "my_package.MyOutputFormatter"
+      "format": "my_package.MyStorage"
     }
   }
 
-Your own implementations must inherit from :class:`.output.OutputFormatter`.
+Your own implementations must inherit from :class:`.output.Storage`.
 
 File
 ====

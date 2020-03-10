@@ -19,7 +19,7 @@ class ConnectomePFInterneuron(ConnectionStrategy):
         first_granule = int(granules[0, 0])
         dendrite_radius = interneuron_cell_type.morphology.dendrite_radius
         pf_heights = (
-            self.scaffold.appends["cells/ascending_axon_lengths"][:, 1] + granules[:, 3]
+            self.scaffold.appends["cells/ascending_axon_lengths"] + granules[:, 3]
         )  # Add granule Y to height of its pf
 
         def connectome_pf_inter(first_granule, interneurons, granules, r_sb, h_pf):

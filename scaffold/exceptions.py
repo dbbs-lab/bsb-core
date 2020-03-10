@@ -149,6 +149,10 @@ class ResourceError(ScaffoldError):
     pass
 
 
+class UnknownStorageEngineError(ResourceError):
+    pass
+
+
 class DatasetNotFoundError(ResourceError):
     pass
 

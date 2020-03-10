@@ -32,10 +32,10 @@ def from_hdf5(file):
         :returns: A scaffold object
         :rtype: :class:`Scaffold`
     """
-    from .config import _from_hdf5
+    from .storage import Storage
 
-    config = _from_hdf5(file)
-    return Scaffold(config, from_file=file)
+    storage = Storage("hdf5", file)
+    return storage.load()
 
 
 class Scaffold:
@@ -53,26 +53,28 @@ class Scaffold:
         simulators such as NEST or NEURON.
     """
 
-    def __init__(self, config, from_file=None):
+    def __init__(self, config, engine=None):
         self._initialise_MPI()
         self.configuration = config
+        if engine is None:
+            from scaffold.storage import Storage
+
+            storage = self.configuration.storage
+            self.storage = Storage(storage.format, storage.file)
+        else:
+            self.storage = engine
+        self.storage.init(self)
         self.reset_network_cache()
         # Debug statistics, unused.
         self.statistics = Statistics(self)
-        self._initialise_output_formatter()
         self.trees = TreeCollectionGroup()
-        self.trees.add_collection("cells", self.output_formatter)
-        self.trees.add_collection("morphologies", self.output_formatter)
+        self.trees.add_collection("cells", self.storage)
+        self.trees.add_collection("morphologies", self.storage)
         self._nextId = 0
         # Use the configuration to initialise all components such as cells and layers
         # to prepare for the network architecture compilation.
         self._intialise_components()
         self._intialise_simulators()
-
-        # Tell the output formatter that we've loaded from an output and initialise scaffold from it.
-        if from_file:
-            self.output_formatter.file = from_file
-            self.output_formatter.init_scaffold()
 
     def _initialise_MPI(self):
         # Delegate initialization of MPI to the reporting module. Which is weird, bu
@@ -101,8 +103,8 @@ class Scaffold:
             step then does the following:
 
             * Hand each component a reference to the scaffold they're a part of.
-            * Run the component specific validation (call `component.validate`)
-            * Boot each component.
+            * Run the component specific validation (call ``component.validate``)
+            * Boot each component. (call ``component.boot``)
         """
         # Initialise the components now that the scaffoldInstance is available
         self._initialise_layers()
@@ -193,22 +195,13 @@ class Scaffold:
         for cell_type in sorted_cell_types:
             # Place cell type according to PlacementStrategy
             cell_type.placement.place()
-            if cell_type.entity:
-                entities = self.entities_by_type[cell_type.name]
-                report(
-                    "Finished placing {} {} entities.".format(
-                        len(entities), cell_type.name
-                    ),
-                    2,
-                )
-            else:
-                # Get the placed cells
-                cells = self.cells_by_type[cell_type.name][:, 2:5]
-                # Construct a tree of the placed cells
-                self.trees.cells.create_tree(cell_type.name, cells)
-                report(
-                    "Finished placing {} {} cells.".format(len(cells), cell_type.name), 2
-                )
+            ps = self.get_placement_set(cell_type)
+            self.report(
+                "Finished placing {} {} {}.".format(
+                    len(ps), cell_type.name, "entities" if cell_type.entity else "cells"
+                ),
+                2,
+            )
 
     def connect_cell_types(self):
         """
@@ -412,37 +405,9 @@ class Scaffold:
         cell_count = positions.shape[0]
         if cell_count == 0:
             return
-        # Create an ID for each cell.
         cell_ids = self._allocate_ids(positions.shape[0])
-        # Store cells as ID, typeID, X, Y, Z
-        cell_data = np.column_stack(
-            (cell_ids, np.ones(positions.shape[0]) * cell_type.id, positions)
-        )
-        # Cache them per type
-        self.cells_by_type[cell_type.name] = np.concatenate(
-            (self.cells_by_type[cell_type.name], cell_data)
-        )
-        # Cache them per layer
-        self.cells_by_layer[layer.name] = np.concatenate(
-            (self.cells_by_layer[layer.name], cell_data)
-        )
-        # Store
-        self.cells = np.concatenate((self.cells, cell_data))
-
-        placement_dict = self.statistics.cells_placed
-        if cell_type.name not in placement_dict:
-            placement_dict[cell_type.name] = 0
-        placement_dict[cell_type.name] += cell_count
-        if not hasattr(cell_type.placement, "cells_placed"):
-            cell_type.placement.__dict__["cells_placed"] = 0
-        cell_type.placement.cells_placed += cell_count
-
-        if rotations is not None:
-            if cell_type.name not in self.rotations:
-                self.rotations[cell_type.name] = np.empty((0, 2))
-            self.rotations[cell_type.name] = np.concatenate(
-                (self.rotations[cell_type.name], rotations)
-            )
+        print("Placing", len(cell_ids), cell_type.name)
+        self.get_placement_set(cell_type).append_data(cell_ids, positions, rotations)
 
     def _allocate_ids(self, count):
         # Allocate a set of unique cell IDs in the scaffold.
@@ -518,22 +483,8 @@ class Scaffold:
             return
         # Create an ID for each entity.
         entities_ids = self._allocate_ids(count)
-
-        # Cache them per type
-        if not cell_type.name in self.entities_by_type:
-            self.entities_by_type[cell_type.name] = entities_ids
-        else:
-            self.entities_by_type[cell_type.name] = np.concatenate(
-                (self.entities_by_type[cell_type.name], entities_ids)
-            )
-
-        placement_dict = self.statistics.cells_placed
-        if not cell_type.name in placement_dict:
-            placement_dict[cell_type.name] = 0
-        placement_dict[cell_type.name] += count
-        if not hasattr(cell_type.placement, "cells_placed"):
-            cell_type.placement.__dict__["cells_placed"] = 0
-        cell_type.placement.cells_placed += count
+        ps = self.get_placement_set(cell_type)
+        ps.append_data(entities_ids)
 
     def _append_tagged(self, attr, tag, data):
         """
@@ -583,52 +534,6 @@ class Scaffold:
             :param data: The dataset
         """
         self.appends[name] = data
-
-    def get_cells_by_type(self, name):
-        """
-            Find all of the cells of a certain type. This information will be gathered
-            from the cache first, and if that isn't present, from persistent storage.
-
-            :param name: Name of the cell type.
-        """
-        if name not in self.cells_by_type:
-            raise TypeNotFoundError(
-                "Attempting to load unknown cell type '{}'".format(name)
-            )
-        if self.cells_by_type[name].shape[0] == 0:
-            if not self.output_formatter.exists():
-                return self.cells_by_type[name]
-            if self.output_formatter.has_cells_of_type(name):
-                self.cells_by_type[name] = self.output_formatter.get_cells_of_type(name)
-            else:
-                raise TypeNotFoundError(
-                    "Cell type '{}' not found in output storage".format(name)
-                )
-        return self.cells_by_type[name]
-
-    def get_entities_by_type(self, name):
-        """
-            Find all of the entities of a certain type. This information will be gathered
-            from the cache first, and if that isn't present, from persistent storage.
-
-            :param name: Name of the cell type.
-        """
-        if name not in self.entities_by_type:
-            raise TypeNotFoundError(
-                "Attempting to load unknown entity type '{}'".format(name)
-            )
-        if self.entities_by_type[name].shape[0] == 0:
-            if not self.output_formatter.exists():
-                return self.entities_by_type[name]
-            if self.output_formatter.has_cells_of_type(name, entity=True):
-                self.entities_by_type[name] = self.output_formatter.get_cells_of_type(
-                    name, entity=True
-                )
-            else:
-                raise TypeNotFoundError(
-                    "Entity type '{}' not found in output storage".format(name)
-                )
-        return self.entities_by_type[name]
 
     def compile_output(self):
         """
@@ -750,14 +655,14 @@ class Scaffold:
         """
             Return a cell type's placement set from the output formatter.
 
-            :param type: Unique identifier of the cell type in the scaffold.
-            :type type: :class:`.models.CellType` or string
+            :param tag: Unique identifier of the placement set in the storage
+            :type tag: string
             :returns: A placement set
             :rtype: :class:`.models.PlacementSet`
         """
         if isinstance(type, str):
             type = self.get_cell_type(type)
-        return self.output_formatter.get_placement_set(type)
+        return self.storage.get_placement_set(type)
 
     def translate_cell_ids(self, data, cell_type):
         """
@@ -918,11 +823,7 @@ class Scaffold:
             :param ids: global identifiers of the cells that need to be labelled.
             :type ids: iterable
         """
-        # Initialize (if required)
-        if not label in self.labels.keys():
-            self.labels[label] = []
-        # Extend labels
-        self.labels[label].extend(ids)
+        self.storage.label(label, ids)
 
     def get_labels(self, pattern):
         """
