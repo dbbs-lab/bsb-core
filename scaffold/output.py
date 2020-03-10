@@ -560,7 +560,6 @@ class HDF5Formatter(OutputFormatter, MorphologyRepository):
     def init_scaffold(self):
         with self.load() as resource:
             self.scaffold.configuration.cell_type_map = resource()["cells"].attrs["types"]
-            self.scaffold.placement_stitching = resource()["cells/stitching"][:]
             for cell_type_name, count in resource()[
                 "statistics/cells_placed"
             ].attrs.items():
@@ -596,9 +595,6 @@ class HDF5Formatter(OutputFormatter, MorphologyRepository):
     def store_cells(self):
         with self.load("a") as f:
             cells_group = f().create_group("cells")
-            cells_group.create_dataset(
-                "stitching", data=self.scaffold.placement_stitching
-            )
             self.store_cell_positions(cells_group)
             self.store_placement(cells_group)
             self.store_cell_connections(cells_group)

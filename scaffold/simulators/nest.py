@@ -542,31 +542,22 @@ class NestAdapter(SimulatorAdapter):
 
     def create_neurons(self):
         """
-            Recreate the scaffold neurons in the same order as they were placed,
-            inside of the NEST simulator based on the cell model configuration.
+            Create a population of nodes in the NEST simulator based on the cell model
+            configurations.
         """
-        track_models = (
-            []
-        )  # Keeps track of already added models if there's more than 1 stitch per model
-        # Iterate over all the placement stitches: each stitch was a batch of cells placed together and
-        # if we don't follow the same order as during the placement, the cell IDs can not be easily matched
-        for cell_type_id, start_id, count in self.scaffold.placement_stitching:
-            # Get the cell_type name from the type id to type name map.
-            name = self.scaffold.configuration.cell_type_map[cell_type_id]
-            cell_model = self.cell_models[name]
-            nest_name = self.suffixed(name)
-            if (
-                name not in track_models
-            ):  # Is this the first time encountering this model?
-                # Create the cell model in the simulator
-                self.scaffold.report("Creating " + nest_name + "...", 3)
-                self.create_model(cell_model)
-                track_models.append(name)
-            # Create the same amount of cells that were placed in this stitch.
-            self.scaffold.report("Creating {} {}...".format(count, nest_name), 3)
-            identifiers = self.nest.Create(nest_name, count)
-            cell_model.scaffold_identifiers.extend([start_id + i for i in range(count)])
-            cell_model.nest_identifiers.extend(identifiers)
+        for cell_model in self.cell_models.values():
+            # Get the cell type's placement information
+            ps = self.scaffold.get_placement_set(cell_model.name)
+            nest_name = self.suffixed(cell_model.name)
+            # Create the population's model
+            self.create_model(cell_model)
+            scaffold_identifiers = ps.identifiers
+            self.scaffold.report(
+                "Creating {} {}...".format(len(scaffold_identifiers), nest_name), 3
+            )
+            nest_identifiers = self.nest.Create(nest_name, len(scaffold_identifiers))
+            cell_model.scaffold_identifiers.extend(scaffold_identifiers)
+            cell_model.nest_identifiers.extend(nest_identifiers)
 
     def create_entities(self):
         # Create entities

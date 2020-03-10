@@ -355,7 +355,6 @@ class Scaffold:
         self.connection_morphologies = {}
         self.connection_compartments = {}
         self.appends = {}
-        self.placement_stitching = []
         self._connectivity_set_meta = {}
         self.labels = {}
 
@@ -438,8 +437,6 @@ class Scaffold:
         if not hasattr(cell_type.placement, "cells_placed"):
             cell_type.placement.__dict__["cells_placed"] = 0
         cell_type.placement.cells_placed += cell_count
-        # Keep track of the order of placement, so that it can be emulated in simulators
-        self.placement_stitching.append((cell_type.id, cell_ids[0], cell_count))
 
     def _allocate_ids(self, count):
         # Allocate a set of unique cell IDs in the scaffold.
