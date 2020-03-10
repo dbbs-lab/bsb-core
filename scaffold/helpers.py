@@ -684,23 +684,44 @@ def continuity_list(iterable, step=1):
     return serial
 
 
+def continuity_hop(iterator):
+    """
+        Hop over a continuity list in steps of 2, returning the start & count pairs.
+    """
+    try:
+        while True:
+            yield (next(iterator), next(iterator))
+    except StopIteration:
+        pass
+
+
 def expand_continuity_list(iterable, step=1):
     """
         Return the full set of items associated with the continuity list, as formatted by
         :func:`.helpers.continuity_list`.
     """
-    # Hop over the iterator in sets of 2 items.
-    def hop(iterator):
-        try:
-            while True:
-                yield (next(iterator), next(iterator))
-        except StopIteration:
-            pass
-
     deserialized = []
-    for start, count in hop(iter(iterable)):
+    for start, count in continuity_hop(iter(iterable)):
         # Each hop, expand a `count` long list starting from `start`
         # taking `step` sized steps, and append it to the deserialized list.
         end = start + count * step
         deserialized.extend(list(range(start, end, step)))
     return deserialized
+
+
+def iterate_continuity_list(iterable, step=1):
+    """
+        Generate the continuity list
+    """
+    for start, count in continuity_hop(iter(iterable)):
+        end = start + count * step
+        for i in range(start, end, step):
+            yield i
+
+
+def count_continuity_list(iterable):
+    total = 0
+    for _, count in continuity_hop(iter(iterable)):
+        # Each hop, add the count to the total
+        total += count
+    return total

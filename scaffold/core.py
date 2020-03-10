@@ -743,16 +743,18 @@ class Scaffold:
         """
         return self.output_formatter.get_connectivity_set(tag)
 
-    def get_placement_set(self, tag):
+    def get_placement_set(self, type):
         """
-            Return a placement set from the output formatter.
+            Return a cell type's placement set from the output formatter.
 
-            :param tag: Unique identifier of the placement set in the output formatter
-            :type tag: string
+            :param type: Unique identifier of the cell type in the scaffold.
+            :type type: :class:`.models.CellType` or string
             :returns: A placement set
             :rtype: :class:`.models.PlacementSet`
         """
-        return self.output_formatter.get_placement_set(tag)
+        if isinstance(type, str):
+            type = self.get_cell_type(type)
+        return self.output_formatter.get_placement_set(type)
 
     def translate_cell_ids(self, data, cell_type):
         """

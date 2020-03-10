@@ -761,8 +761,8 @@ class HDF5Formatter(OutputFormatter, MorphologyRepository):
     def get_connectivity_set(self, tag):
         return ConnectivitySet(self, tag)
 
-    def get_placement_set(self, tag):
-        return PlacementSet(self, tag)
+    def get_placement_set(self, type):
+        return PlacementSet(self, type)
 
     @classmethod
     def reconfigure(cls, hdf5_file, config):

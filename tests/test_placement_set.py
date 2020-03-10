@@ -69,7 +69,8 @@ class TestPlacementSets(unittest.TestCase):
 
     def test_placement_set_properties(self):
         for key in ["from", "to"]:
-            ps = PlacementSet(self.scaffold.output_formatter, key + "_cell")
+            cell_type = self.scaffold.get_cell_type(key + "_cell")
+            ps = PlacementSet(self.scaffold.output_formatter, cell_type)
             self.assertEqual(
                 ps.identifiers.shape,
                 (4,),

@@ -7,6 +7,8 @@ from .helpers import (
     SortableByAfter,
     continuity_list,
     expand_continuity_list,
+    count_continuity_list,
+    iterate_continuity_list,
 )
 from .exceptions import *
 
@@ -171,6 +173,12 @@ class Resource:
 
     def get_dataset(self, selector=()):
         with self._handler.load("r") as f:
+            if not self._path in f():
+                raise DatasetNotFoundError(
+                    "Dataset '{}' not found in '{}'.".format(
+                        self._path, self._handler.file
+                    )
+                )
             return f()[self._path][selector]
 
     @property
@@ -358,16 +366,17 @@ class PlacementSet(Resource):
             Use :func:`.core.get_placement_set` to correctly obtain a PlacementSet.
     """
 
-    def __init__(self, handler, tag):
-        super().__init__(handler, "/cells/placement/" + tag + "/positions")
+    def __init__(self, handler, cell_type):
+        root = "/cells/placement/"
+        tag = cell_type.name
+        super().__init__(handler, root + tag)
         if not self.exists():
             raise DatasetNotFoundError("PlacementSet '{}' does not exist".format(tag))
-        self.scaffold = handler.scaffold
+        self.type = cell_type
         self.tag = tag
-        self.identifier_set = Resource(
-            handler, "/cells/placement/" + tag + "/identifiers"
-        )
-        self.rotation_set = Resource(handler, "/cells/placement/" + tag + "/rotations")
+        self.identifier_set = Resource(handler, root + tag + "/identifiers")
+        self.positions_set = Resource(handler, root + tag + "/positions")
+        self.rotation_set = Resource(handler, root + tag + "/rotations")
 
     @property
     def identifiers(self):
@@ -383,7 +392,12 @@ class PlacementSet(Resource):
         """
             Return a dataset of cell positions.
         """
-        return self.get_dataset()
+        try:
+            return self.positions_set.get_dataset()
+        except DatasetNotFoundError:
+            raise DatasetNotFoundError(
+                "No position information for the '{}' placement set.".format(self.tag)
+            )
 
     @property
     def rotations(self):
@@ -393,12 +407,12 @@ class PlacementSet(Resource):
             :raises: DatasetNotFoundError when there is no rotation information for this
                cell type.
         """
-        if not self.rotation_set.exists():
+        try:
+            return self.rotation_set.get_dataset()
+        except DatasetNotFoundError:
             raise DatasetNotFoundError(
                 "No rotation information for the '{}' placement set.".format(self.tag)
             )
-        else:
-            return self.rotation_set.get_dataset()
 
     @property
     def cells(self):
@@ -406,30 +420,28 @@ class PlacementSet(Resource):
             Reorganize the available datasets into a collection of :class:`Cells
             <.models.Cell>`
         """
-        type = self.scaffold.get_cell_type(self.tag)
-        iterators = [iter(self.identifiers), iter(Resource.__iter__(self))]
-        if self.rotation_set.exists():
-            iterators.append(iter(self.rotation_set))
-        else:
-
-            def none_generator():
-                for i in range(len(self)):
-                    yield None
-
-            iterators.append(none_generator())
         return [
-            Cell(id, type, position, rotation)
-            for id, position, rotation in zip(*iterators)
+            Cell(id, self.type, position, rotation) for id, position, rotation in self
         ]
 
     def __iter__(self):
-        iterators = [iter(self.identifiers), Resource.__iter__(self)]
+        id_iter = iterate_continuity_list(self.identifier_set.get_dataset())
+        iterators = [iter(id_iter), self._none(), self._none()]
+        if self.positions_set.exists():
+            iterators[1] = iter(self.positions)
         if self.rotation_set.exists():
-            iterators.append(iter(self.rotation_set))
+            iterators[2] = iter(self.rotations)
         return zip(*iterators)
 
     def __len__(self):
-        return self.shape[0]
+        return count_continuity_list(self.identifier_set)
+
+    def _none(self):
+        """
+            Generate ``len(self)`` times ``None``
+        """
+        for i in range(len(self)):
+            yield None
 
 
 class Cell:
