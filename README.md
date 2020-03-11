@@ -34,7 +34,7 @@ installed package and the local git repository:
  sudo apt-get python3-rtree
  git clone git@github.com:Helveg/cerebellum-scaffold.git
  cd cerebellum-scaffold
- pip install -e .[dev]
+ pip install -e .[dev] --no-use-pep517
  pre-commit install
 ```
 
