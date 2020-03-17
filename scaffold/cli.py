@@ -373,7 +373,7 @@ class ReplState:
             "all", description="List all morphologies in the repository"
         )
         all_parser.set_defaults(
-            func=lambda args: self.set_reply(self.globals["mr"].list_all_morphologies())
+            func=lambda args: self.set_reply(self.globals["mr"].list_morphologies())
         )
 
         voxelized_parser = list_subparsers.add_parser(

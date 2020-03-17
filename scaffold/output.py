@@ -388,6 +388,19 @@ class MorphologyRepository(HDF5TreeHandler):
                 print("Importing", n)
                 self.import_arbz(n, c, overwrite=True)
 
+    def save_morphology(self, name, compartments):
+        ds = []
+        for c in compartments:
+            if hasattr(c, "section_id"):
+                ds.append(
+                    [c.id, c.type, *c.start, *c.end, c.radius, c.parent, c.section_id]
+                )
+            else:
+                ds.append([c.id, c.type, *c.start, *c.end, c.radius, c.parent])
+        # ds = list(map(list, zip(*ds)))
+
+        self.save_morphology_dataset(name, ds, overwrite=True)
+
     def save_morphology_dataset(self, name, data, overwrite=False):
         with self.load("a") as repo:
             if overwrite:  # Do we overwrite previously existing dataset with same name?
@@ -401,6 +414,7 @@ class MorphologyRepository(HDF5TreeHandler):
                     )
                 )
             data = np.array(data)
+
             # Create the dataset
             dataset = repo()["morphologies"].create_dataset(name, data=data)
             # Set attributes
@@ -493,11 +507,44 @@ class MorphologyRepository(HDF5TreeHandler):
             if self.voxel_cloud_exists(name):
                 del repo()["morphologies/voxel_clouds/" + name]
 
-    def list_all_morphologies(self):
-        with self.load() as repo:
-            return list(
-                filter(lambda x: x != "voxel_clouds", repo()["morphologies"].keys())
+    def list_morphologies(
+        self, include_rotations=False, only_rotations=False, cell_type=None
+    ):
+        """
+            Return a list of morphologies in a morphology repository, filtered by rotation
+            and/or cell type.
+
+            :param include_rotations: Include each cached rotation of each morphology.
+            :type include_rotations: bool
+            :param only_rotations: Get only the rotated caches of the morphologies.
+            :type only_rotations: bool
+            :param cell_type: Specify the cell type for which you want to extract the morphologies.
+            :param cell_type: CellType
+
+            :returns: List of morphology names
+            :rtype: list
+        """
+
+        with self.load("r") as repo:
+            # Filter out all morphology names, ignore the `voxel_clouds` category
+            morpho_filter = filter(
+                lambda x: x != "voxel_clouds", repo()["morphologies"].keys()
             )
+            if only_rotations:
+                # Exclude all non rotated names
+                morpho_filter = filter(lambda x: (x.find("__") != -1), morpho_filter)
+            elif not include_rotations:
+                # Exclude all rotated names
+                morpho_filter = filter(lambda x: (x.find("__") == -1), morpho_filter)
+
+            # Is a cell type restriction specified?
+            if cell_type is not None:
+                # Filter the morphologies related to the selected cell_type
+                ct_morpho = cell_type.list_all_morphologies()
+                morpho_filter = filter(lambda x: x in ct_morpho, morpho_filter)
+            # Apply the filter, turn it into a list.
+            morphologies = list(morpho_filter)
+        return morphologies
 
     def list_all_voxelized(self):
         with self.load() as repo:
@@ -518,6 +565,98 @@ class MorphologyRepository(HDF5TreeHandler):
             Return the morphology dataset
         """
         return handler()["morphologies/voxel_clouds/" + name]
+
+
+class MorphologyCache:
+    """
+        Loads and caches :class:`morphologies <.models.Morphology>` so that each
+        morphology is loaded only once and its instance is shared among all cells
+        with that Morphology. Saves a lot on memory, but the Morphology should be treated as read only.
+    """
+
+    def __init__(self, morphology_repository):
+        self.mr = morphology_repository
+
+    def rotate_all_morphologies(self, phi_value, theta_value=None):
+        """
+            Extracts all unrotated morphologies from a morphology_repository and creates rotated versions, at sampled orientations in the 3D space
+
+            :param phi_value: resolution of azimuth angle sampling, in degrees
+            :type phi_value: int
+            :param theta_value: resolution of elevation angle sampling, in degrees
+            :type phi_value: int, optional
+
+        """
+
+        # Checking resolution step along the two angles - equal for both if only one value is given
+        if theta_value is None:
+            resolution = [phi_value, phi_value]
+        else:
+            resolution = [phi_value, theta_value]
+
+        # Compute discretized orientations based on resolution
+        phi, theta = self._discretize_orientations(resolution)
+
+        # Get all unrotated morphologies from the morphology repository
+        morphologies_unrotated = self.mr.list_morphologies()
+
+        for morpho in morphologies_unrotated:
+            self._construct_morphology_rotations(morpho, phi, theta)
+
+    def _discretize_orientations(self, resolution):
+        """
+            Returns two arrays of azimuth and elevation angles discretized in the 3D space
+        """
+        # Computing the grid of angles to discretize the 360° orientation range
+        num_step = [
+            int(360) / r for r in resolution
+        ]  # Number of steps for sampling the 3D sphere
+
+        phi, theta = np.mgrid[
+            0.0 : 360 : (num_step[0] + 1) * 1j, 0.0 : 360 : (num_step[1] + 1) * 1j
+        ]
+        # From 2D to 1D arrays
+        phi = phi.flatten()
+        theta = theta.flatten()
+
+        return phi, theta
+
+    def _construct_morphology_rotations(self, morpho_name, phi, theta):
+        """
+            For each non existing rotation of the considered morphology morpho_name, it executes _construct_morphology_rotation
+        """
+        # Extract a list of rotated versions of the current morphology
+        morpho_rotated_all = self.mr.list_morphologies(only_rotations=True)
+        morpho_rotated = filter(lambda x: x.find(morpho_name) != -1, morpho_rotated_all)
+        # Rotating the morphology according to the discretized orientation vectors.
+        for d in range(len(phi)):
+            # For internal computation, angles are converted in radiants, while they are provided in degrees in function inputs or file names (more user-friendly)
+            phi_angle = phi[d] * np.pi / 180
+            theta_angle = theta[d] * np.pi / 180
+            # Check if rotated morphology already exists
+            if not any(
+                "__" + str(int(phi[d])) + "_" + str(int(theta[d])) in key
+                for key in morpho_rotated
+            ):
+                self._construct_morphology_rotation(morpho_name, phi_angle, theta_angle)
+
+    def _construct_morphology_rotation(self, morpho_name, phi_value, theta_value):
+        """
+            Construct the rotated morphology according to orientation vector identified by phi_value and theta_value and save in the morphology repository
+        """
+        morpho = self.mr.get_morphology(morpho_name)
+        start_vector = np.array([0, 0, 1])
+        end_vector = np.array([np.cos(phi_value), np.sin(phi_value), np.sin(theta_value)])
+        morpho.rotate(start_vector, end_vector)
+
+        self.mr.save_morphology(
+            morpho_name
+            + "__"
+            + str(int(round(phi_value * 180 / np.pi)))
+            + "_"
+            + str(int(round(theta_value * 180 / np.pi))),
+            morpho.compartments,
+        )
 
 
 class HDF5Formatter(OutputFormatter, MorphologyRepository):
@@ -616,6 +755,10 @@ class HDF5Formatter(OutputFormatter, MorphologyRepository):
             if not cell_type.entity:
                 cell_type_group.create_dataset(
                     "positions", data=self.scaffold.cells_by_type[cell_type.name][:, 2:5]
+                )
+            if cell_type.name in self.scaffold.rotations.keys():
+                cell_type_group.create_dataset(
+                    "rotations", data=self.scaffold.rotations[cell_type.name]
                 )
 
     def store_cell_positions(self, cells_group):

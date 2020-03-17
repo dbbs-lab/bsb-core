@@ -84,9 +84,7 @@ class Morphology(ConfigurableClass):
             compartment = Compartment(self, repo_record)
             self.compartments.append(compartment)
         # Create a tree from the compartment object list
-        self.compartment_tree = KDTree(
-            np.array(list(map(lambda c: c.end, self.compartments)))
-        )
+        self.update_compartment_tree()
         if (
             hasattr(self, "scaffold") and self.scaffold
         ):  # Is the scaffold ready at this point?
@@ -96,6 +94,11 @@ class Morphology(ConfigurableClass):
         morphology_trees = self.scaffold.trees.morphologies
         morphology_trees.add_tree(self.morphology_name, self.compartment_tree)
         morphology_trees.save()
+
+    def update_compartment_tree(self):
+        self.compartment_tree = KDTree(
+            np.array(list(map(lambda c: c.end, self.compartments)))
+        )
 
     def init_voxel_cloud(self, voxel_data, voxel_meta, voxel_map):
         """
@@ -275,6 +278,77 @@ class TrueMorphology(Morphology):
             if t in cls.compartment_alias:
                 ids.extend(cls.get_compartment_type_ids(cls.compartment_alias[t]))
         return ids
+
+    def rotate(self, v0, v):
+        """
+
+            Rotate a morphology to be oriented as vector v, supposing to start from orientation v0.
+            norm(v) = norm(v0) = 1
+            Rotation matrix R, representing a rotation of angle alpha around vector k
+
+        """
+
+        import math
+
+        # Reduce 1-size dimentions
+        v0 = v0.squeeze()
+        v = v.squeeze()
+
+        # Normalize orientation vectors
+        v0 = v0 / np.linalg.norm(v0)
+        v = v / np.linalg.norm(v0)
+
+        alpha = np.arccos(np.dot(v0, v))
+
+        I = np.identity(3)
+
+        if alpha == 0.0:
+            print(
+                "Rotating morphology between parallel orientation vectors, {} and {}!".format(
+                    v0, v
+                )
+            )
+            # We will not rotate the morphology, thus R = I
+            R = np.identity(3)
+        elif alpha == np.pi:
+            print(
+                "Rotating morphology between antiparallel orientation vectors, {} and {}!".format(
+                    v0, v
+                )
+            )
+            # We will rotate the morphology of 180° around a vector orthogonal to the starting vector v0 (the same would be if we take the ending vector v)
+            # We set the first and second components to 1; the third one is obtained to have the scalar product with v0 equal to 0
+            kx = 1
+            ky = 1
+            kz = -(v0[0] + v0[1]) / v0[2]
+            k = np.array([kx, ky, kz])
+            K = np.array([[0, -k[2], k[1]], [k[2], 0, -k[0]], [-k[1], k[0], 0]])
+
+            # Rodrigues formula
+            R = (
+                I
+                + math.sin(alpha) * K
+                + (1 - math.cos(alpha)) * np.linalg.matrix_power(K, 2)
+            )
+        else:
+
+            k = (np.cross(v0, v)) / math.sin(alpha)
+            k = k / np.linalg.norm(k)
+
+            K = np.array([[0, -k[2], k[1]], [k[2], 0, -k[0]], [-k[1], k[0], 0]])
+
+            # Rodrigues formula
+            R = (
+                I
+                + math.sin(alpha) * K
+                + (1 - math.cos(alpha)) * np.linalg.matrix_power(K, 2)
+            )
+
+        for c in range(len(self.compartments)):
+            self.compartments[c].start = R.dot(self.compartments[c].start)
+            self.compartments[c].end = R.dot(self.compartments[c].end)
+
+        self.update_compartment_tree()
 
 
 class GranuleCellGeometry(Morphology):

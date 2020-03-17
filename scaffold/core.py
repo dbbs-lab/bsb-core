@@ -357,6 +357,7 @@ class Scaffold:
         self.appends = {}
         self._connectivity_set_meta = {}
         self.labels = {}
+        self.rotations = {}
 
     def run_simulation(self, simulation_name, quit=False):
         """
@@ -393,7 +394,7 @@ class Scaffold:
         simulator = simulation.prepare()
         return simulation, simulator
 
-    def place_cells(self, cell_type, layer, positions):
+    def place_cells(self, cell_type, layer, positions, rotations=None):
         """
             Place cells inside of the scaffold
 
@@ -437,6 +438,13 @@ class Scaffold:
         if not hasattr(cell_type.placement, "cells_placed"):
             cell_type.placement.__dict__["cells_placed"] = 0
         cell_type.placement.cells_placed += cell_count
+
+        if rotations is not None:
+            if cell_type.name not in self.rotations:
+                self.rotations[cell_type.name] = np.empty((0, 2))
+            self.rotations[cell_type.name] = np.concatenate(
+                (self.rotations[cell_type.name], rotations)
+            )
 
     def _allocate_ids(self, count):
         # Allocate a set of unique cell IDs in the scaffold.

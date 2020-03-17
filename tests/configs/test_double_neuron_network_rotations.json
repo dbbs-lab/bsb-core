@@ -1,0 +1,162 @@
+{
+  "name": "DBBS Mouse cerebellum configuration v4.0",
+  "output": {
+    "format": "scaffold.output.HDF5Formatter",
+    "file": "double_neuron_network_test_rotations.hdf5"
+  },
+  "network_architecture": {
+    "simulation_volume_x": 150.0,
+    "simulation_volume_z": 150.0,
+    "store_kd_trees": true,
+    "store_compound_kd_tree": true,
+    "store_pf_kd_trees": true
+  },
+  "layers": {
+    "test_layer": {
+      "thickness": 600,
+      "stack": {
+        "stack_id": 0,
+        "position_in_stack": 0,
+        "position": [0.0, 0.0, 0.0]
+      }
+    }
+  },
+  "cell_types": {
+    "golgi_cell": {
+      "placement": {
+        "class": "scaffold.placement.ParticlePlacement",
+        "layer": "test_layer",
+        "soma_radius": 2.5,
+        "count": 4
+      },
+      "morphology": {
+        "class": "scaffold.morphologies.GolgiCellGeometry",
+        "dendrite_radius": 50.0,
+        "axon_x": 150.0,
+        "axon_y": 150.0,
+        "axon_z": 30.0,
+        "detailed_morphologies": {
+          "names": ["GolgiCell"]
+        }
+      },
+      "plotting": {
+        "display_name": "less lonely cell",
+        "color": "#E62214"
+      }
+    },
+    "granule_cell": {
+      "placement": {
+        "class": "scaffold.placement.ParticlePlacement",
+        "layer": "test_layer",
+        "soma_radius": 2.5,
+        "count": 4
+      },
+      "morphology": {
+        "class": "scaffold.morphologies.GranuleCellGeometry",
+        "pf_height": 180,
+        "pf_height_sd": 20,
+        "pf_length": 3000,
+        "pf_radius": 0.5,
+        "dendrite_length": 40,
+        "detailed_morphologies": {
+          "names": ["GranuleCell"]
+        }
+      },
+      "plotting": {
+        "display_name": "new friendly cells",
+        "color": "#E62214"
+      }
+    }
+  },
+  "connection_types": {
+    "golgi_cell_to_granule_cell": {
+      "class": "scaffold.connectivity.Convergence",
+      "from_cell_types": [{"type": "golgi_cell", "compartments": ["soma"]}],
+      "to_cell_types": [{"type": "granule_cell", "compartments": ["soma"]}],
+      "divergence": 2,
+      "convergence": 4
+    }
+  },
+  "simulations": {
+    "test_double_neuron_network_static": {
+      "simulator": "nest",
+      "default_neuron_model": "iaf_cond_alpha",
+      "default_synapse_model": "static_synapse",
+      "modules": ["cerebmodule"],
+      "duration": 10,
+      "cell_models": {
+        "golgi_cell": {
+          "parameters": {
+            "t_ref": 1.5,
+            "C_m": 7.0,
+            "V_reset": -70.0,
+            "E_L": -62.0
+          },
+          "iaf_cond_alpha": {
+            "I_e": 0.0,
+            "V_th": -41.0
+          },
+          "eglif_cond_alpha_multisyn": {
+            "Vinit": -62.0,
+            "lambda_0":1.0,
+            "tau_V":0.3,
+            "tau_m": 24.15,
+            "V_th": -41.0,
+            "I_e": -0.888,
+            "kadap": 0.022,
+            "k1": 0.311,
+            "k2": 0.041,
+            "A1": 0.01,
+            "A2":-0.94,
+            "receptors": {
+              "to_cell": 1,
+              "from_cell": 2
+            }
+          }
+        },
+        "granule_cell": {
+          "neuron_model": "eglif_cond_alpha_multisyn",
+          "parameters": {
+            "t_ref": 1.5,
+            "C_m": 7.0,
+            "V_reset": -70.0,
+            "E_L": -62.0
+          },
+          "iaf_cond_alpha": {
+            "I_e": 0.0,
+            "V_th": -41.0
+          },
+          "eglif_cond_alpha_multisyn": {
+            "Vinit": -62.0,
+            "lambda_0":1.0,
+            "tau_V":0.3,
+            "tau_m": 24.15,
+            "V_th": -41.0,
+            "I_e": -0.888,
+            "kadap": 0.022,
+            "k1": 0.311,
+            "k2": 0.041,
+            "A1": 0.01,
+            "A2":-0.94,
+            "receptors": {
+              "from_cell": 1,
+              "to_cell": 2
+            }
+          }
+        }
+      },
+      "connection_models": {
+        "golgi_cell_to_granule_cell": {
+          "connection": {
+            "weight": -9.0,
+            "delay": 4.0
+          },
+          "synapse": {
+            "static_synapse": {}
+          }
+        }
+      },
+        "devices": {}
+    }
+  }
+}
