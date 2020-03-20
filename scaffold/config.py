@@ -433,14 +433,14 @@ class JSONConfig(ScaffoldConfig):
         if "storage" not in config:
             raise ConfigurationError("Missing 'storage' attribute in configuration.")
         storage_config = config["storage"]
-        if "format" not in storage_config:
+        if "engine" not in storage_config:
             raise ConfigurationError(
-                "Missing 'format' attribute in 'storage' configuration."
+                "Missing 'engine' attribute in 'storage' configuration."
             )
-        if not "file" in storage_config:
+        if not "root" in storage_config:
             import time
 
-            storage_config["file"] = "scaffold_network_{}.hdf5".format(
+            storage_config["root"] = "scaffold_network_{}.hdf5".format(
                 time.strftime("%Y_%m_%d-%H%M%S")
             )
         self.storage = types.SimpleNamespace(**storage_config)
