@@ -1,9 +1,9 @@
 {
   "name": "DBBS NEURON simulator configuration v3.1",
   "storage": {
-    "format": "hdf5",
+    "engine": "hdf5",
     "morphology_repository": "morphologies.hdf5",
-    "file": "neuron.hdf5"
+    "root": "neuron.hdf5"
   },
   "network_architecture": {
     "simulation_volume_x": 50.0,

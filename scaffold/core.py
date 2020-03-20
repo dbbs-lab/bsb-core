@@ -60,7 +60,7 @@ class Scaffold:
             from scaffold.storage import Storage
 
             storage = self.configuration.storage
-            self.storage = Storage(storage.format, storage.file)
+            self.storage = Storage(storage.engine, storage.root)
         else:
             self.storage = engine
         self.storage.init(self)

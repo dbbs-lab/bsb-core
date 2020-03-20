@@ -1,8 +1,8 @@
 {
   "name": "Casali et al. 2019 Frontiers of Computational Neuroscience",
   "storage": {
-    "format": "hdf5",
-    "file": "casali_2019.hdf5"
+    "engine": "hdf5",
+    "root": "casali_2019.hdf5"
   },
   "network_architecture": {
     "simulation_volume_x": 400.0,
