@@ -7,7 +7,7 @@ class Interface(abc.ABC):
         self._handler = handler
 
 
-class ResourceManager(Interface):
+class Engine(Interface):
     def __init__(self, resource_identifier):
         self.resource_identifier = resource_identifier
 
@@ -44,7 +44,7 @@ class Configuration(Interface):
 
 class TreeCollectionHandler(Interface):
     """
-        Interface that allows a ResourceManager to handle storage of TreeCollections.
+        Interface that allows a Engine to handle storage of TreeCollections.
     """
 
     @abc.abstractmethod

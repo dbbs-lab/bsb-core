@@ -2,25 +2,25 @@ import numpy as np
 
 
 class Resource:
-    def __init__(self, handler, path):
-        self._handler = handler
+    def __init__(self, engine, path):
+        self._engine = engine
         self._path = path
 
     def create(self, data, *args, **kwargs):
-        with self._handler.open("a") as f:
+        with self._engine.open("a") as f:
             f().create_dataset(self._path, data=data, *args, **kwargs)
 
     def remove(self):
-        with self._handler.open("a") as f:
+        with self._engine.open("a") as f:
             del f()[self._path]
 
     def get_dataset(self, selector=()):
-        with self._handler.open("r") as f:
+        with self._engine.open("r") as f:
             return f()[self._path][selector]
 
     @property
     def attributes(self):
-        with self._handler.open("r") as f:
+        with self._engine.open("r") as f:
             return dict(f()[self._path].attrs)
 
     def get_attribute(self, name):
@@ -32,7 +32,7 @@ class Resource:
         return attrs[name]
 
     def exists(self):
-        with self._handler.open("r") as f:
+        with self._engine.open("r") as f:
             return self._path in f()
 
     def unmap(self, selector=(), mapping=lambda m, x: m[x], data=None):
@@ -55,7 +55,7 @@ class Resource:
 
     @property
     def shape(self):
-        with self._handler.open("r") as f:
+        with self._engine.open("r") as f:
             return f()[self._path].shape
 
     def __len__(self):

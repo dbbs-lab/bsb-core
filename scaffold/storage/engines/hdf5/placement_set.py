@@ -23,34 +23,34 @@ class PlacementSet(Resource, IPlacementSet):
             Use :func:`.core.get_placement_set` to correctly obtain a PlacementSet.
     """
 
-    def __init__(self, handler, cell_type):
+    def __init__(self, engine, cell_type):
         root = "/cells/placement/"
         tag = cell_type.name
-        super().__init__(handler, root + tag)
-        if not self.exists(handler, cell_type):
+        super().__init__(engine, root + tag)
+        if not self.exists(engine, cell_type):
             raise DatasetNotFoundError("PlacementSet '{}' does not exist".format(tag))
         self.type = cell_type
         self.tag = tag
-        self.identifier_set = Resource(handler, root + tag + "/identifiers")
-        self.positions_set = Resource(handler, root + tag + "/positions")
-        self.rotation_set = Resource(handler, root + tag + "/rotations")
+        self.identifier_set = Resource(engine, root + tag + "/identifiers")
+        self.positions_set = Resource(engine, root + tag + "/positions")
+        self.rotation_set = Resource(engine, root + tag + "/rotations")
 
     @classmethod
-    def create(cls, handler, cell_type):
+    def create(cls, engine, cell_type):
         root = "/cells/placement/"
         tag = cell_type.name
         path = root + tag
-        with handler.open("a") as h:
+        with engine.open("a") as h:
             g = h().create_group(path)
             g.create_dataset(path + "/identifiers", (0,), dtype=int)
             if not cell_type.entity:
                 g.create_dataset(path + "/positions", (0, 3), dtype=float)
             g.create_group(path + "/additional")
-        return cls(handler, cell_type)
+        return cls(engine, cell_type)
 
     @staticmethod
-    def exists(handler, cell_type):
-        with handler.open("r") as h:
+    def exists(engine, cell_type):
+        with engine.open("r") as h:
             return "/cells/placement/" + cell_type.name in h()
 
     @property
@@ -127,4 +127,4 @@ class PlacementSet(Resource, IPlacementSet):
 
     def append_cells(self, cells):
         for cell in cells:
-            raise NotImplementedError("Sorry")
+            raise NotImplementedError("Sorry. Not added yet.")

@@ -1,4 +1,4 @@
-from ...interfaces import ResourceManager
+from ...interfaces import Engine
 from contextlib import contextmanager
 import h5py, os
 from .placement_set import PlacementSet
@@ -6,7 +6,7 @@ from .configuration import Configuration
 from .label import Label
 
 
-class HDF5ResourceManager(ResourceManager):
+class HDF5Engine(Engine):
     def __init__(self, root):
         super().__init__(root)
         self.handle_mode = None
@@ -78,7 +78,7 @@ class HDF5ResourceManager(ResourceManager):
 #
 #
 #
-# class HDF5TreeHandler(HDF5ResourceManager, TreeHandler):
+# class HDF5TreeHandler(HDF5Engine, TreeHandler):
 #     """
 #         TreeHandler that uses HDF5 as resource storage
 #     """
@@ -135,7 +135,7 @@ class HDF5ResourceManager(ResourceManager):
 #         if file is not None:
 #             self.file = file
 #
-#     # Abstract function from ResourceManager
+#     # Abstract function from Engine
 #     def get_handle(self, mode="r"):
 #         """
 #             Open the HDF5 storage resource and initialise the MorphologyRepository structure.

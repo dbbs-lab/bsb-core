@@ -14,7 +14,7 @@ import os, sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "dbbs-models"))
 
 
-class ResourceManager(ABC):
+class Engine(ABC):
     def __init__(self):
         self.handle_mode = None
         self._handle = None
@@ -61,7 +61,7 @@ class ResourceManager(ABC):
         pass
 
 
-class HDF5ResourceManager(ResourceManager):
+class HDF5Engine(Engine):
     def get_handle(self, mode="r"):
         """
             Open an HDF5 resource.
@@ -76,9 +76,9 @@ class HDF5ResourceManager(ResourceManager):
         return handle.close()
 
 
-class TreeHandler(ResourceManager):
+class TreeHandler(Engine):
     """
-        Interface that allows a ResourceManager to handle storage of TreeCollections.
+        Interface that allows a Engine to handle storage of TreeCollections.
     """
 
     @abstractmethod
@@ -94,7 +94,7 @@ class TreeHandler(ResourceManager):
         pass
 
 
-class HDF5TreeHandler(HDF5ResourceManager, TreeHandler):
+class HDF5TreeHandler(HDF5Engine, TreeHandler):
     """
         TreeHandler that uses HDF5 as resource storage
     """
@@ -231,7 +231,7 @@ class MorphologyRepository(HDF5TreeHandler):
         if file is not None:
             self.file = file
 
-    # Abstract function from ResourceManager
+    # Abstract function from Engine
     def get_handle(self, mode="r"):
         """
             Open the HDF5 storage resource and initialise the MorphologyRepository structure.

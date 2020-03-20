@@ -70,7 +70,7 @@ class Storage:
             )
         for interface_name, interface in _engines[engine].items():
             self.__dict__[interface_name] = interface
-        self._handler = self.ResourceManager(root)
+        self._handler = self.Engine(root)
         if not self.exists():
             self.create()
 
