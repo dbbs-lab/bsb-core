@@ -823,7 +823,7 @@ class Scaffold:
             :param ids: global identifiers of the cells that need to be labelled.
             :type ids: iterable
         """
-        self.storage.label(label, ids)
+        self.storage.Label(label).add(ids)
 
     def get_labels(self, pattern):
         """
