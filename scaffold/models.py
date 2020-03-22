@@ -461,7 +461,7 @@ class MorphologySet:
         self.scaffold = scaffold
         self.cell_type = cell_type
 
-        self._construct_map(cell_type, placement_set)
+        self._construct_map(cell_type, placement_set, compartment_types, N)
 
         self._placement_set = placement_set
         self._cells = placement_set.cells
@@ -481,7 +481,7 @@ class MorphologySet:
     def _unmap_morphologies(self):
         return [self._morphologies[i] for i in self._morphology_index]
 
-    def _construct_map(self, cell_type, placement_set):
+    def _construct_map(self, cell_type, placement_set, compartment_types=None, N=50):
         """
             Associate to the placement_set an index map to only the morphologies
             in the MorphologyRepository needed for that placement set
@@ -529,18 +529,18 @@ class MorphologySet:
             self._morphology_map = morphology_names
 
         # Function to load and voxelize a morphology
-        def load_morpho(scaffold, morpho_ind):
+        def load_morpho(scaffold, morpho_ind, compartment_types=None, N=50):
             m = scaffold.morphology_repository.get_morphology(
                 self._morphology_map[morpho_ind]
             )
             m._set_index = morpho_ind
-            # How much is N?
-            # m.voxelize(
-            #     N, compartments=m.get_compartments(compartment_types=compartment_types)
-            # )
+            m.voxelize(
+                N, compartments=m.get_compartments(compartment_types=compartment_types)
+            )
             return m
 
         # Load and voxelize only the unique morphologies present in the morphology map.
         self._morphologies = [
-            load_morpho(self.scaffold, i) for i in range(len(self._morphology_map))
+            load_morpho(self.scaffold, i, compartment_types, N)
+            for i in range(len(self._morphology_map))
         ]
