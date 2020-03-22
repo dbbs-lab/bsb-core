@@ -229,7 +229,7 @@ class NeuronAdapter(SimulatorAdapter):
         t = time()
         self.create_neurons()
         t = time() - t
-        simulator.pc.barrier()
+        simulator.parallel.barrier()
         print("Cell creation on node", self.pc_id, "took", round(t, 2), "seconds")
         t = time()
         self.create_transmitters()
@@ -241,7 +241,7 @@ class NeuronAdapter(SimulatorAdapter):
             "seconds",
         )
         self.index_relays()
-        simulator.pc.barrier()
+        simulator.parallel.barrier()
         t = time()
         self.create_receivers()
         t = time() - t
@@ -249,13 +249,13 @@ class NeuronAdapter(SimulatorAdapter):
             "Receiver creation on node", self.pc_id, "took", round(t, 2), "seconds",
         )
 
-        simulator.pc.barrier()
+        simulator.parallel.barrier()
         self.prepare_devices()
         self.create_devices()
         return simulator
 
     def load_balance(self):
-        pc = self.h.pc
+        pc = self.h.parallel
         self.nhost = pc.nhost()
         self.pc_id = pc.id()
         self.cell_total = self.scaffold.get_cell_total()
@@ -266,7 +266,7 @@ class NeuronAdapter(SimulatorAdapter):
         from plotly import graph_objects as go
         from plotly.subplots import make_subplots
 
-        pc = simulator.pc
+        pc = simulator.parallel
         self.pc = pc
         pc.barrier()
         self.scaffold.report("Simulating...", 2)
