@@ -142,6 +142,29 @@
         }
       },
         "devices": {}
+    },
+    "neuron": {
+      "simulator": "neuron",
+      "duration": 10,
+      "temperature": 25.0,
+      "resolution": 0.1,
+      "cell_models": {
+        "from_cell": {
+          "model": "dbbs_models.GranuleCell"
+        },
+        "to_cell": {
+          "model": "dbbs_models.GranuleCell",
+          "relay": true
+        }
+      },
+      "connection_models": {},
+      "devices": {
+        "test_representatives": {
+          "device": "spike_generator",
+          "io": "input",
+          "targetting": "representatives"
+        }
+      }
     }
   }
 }

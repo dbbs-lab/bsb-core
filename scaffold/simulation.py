@@ -1,4 +1,4 @@
-import abc
+import abc, random
 import numpy as np
 from .helpers import ConfigurableClass, assert_attr, SortableByAfter
 
@@ -195,6 +195,20 @@ class TargetsNeurons:
                 ids = self.scaffold.get_cells_by_type(t.name)[:, 0]
             return ids
 
+    def _targets_representatives(self):
+        target_types = [
+            self.scaffold.get_cell_type(cell_model.name)
+            for cell_model in self.adapter.cell_models.values()
+            if not cell_model.relay
+        ]
+        if hasattr(self, "cell_types"):
+            target_types = list(filter(lambda c: c.name in self.cell_types, target_types))
+        target_ids = [cell_type.get_ids() for cell_type in target_types]
+        representatives = [
+            random.choice(type_ids) for type_ids in target_ids if len(target_ids) > 0
+        ]
+        return representatives
+
     def get_targets(self):
         """
             Return the targets of the device.
@@ -203,4 +217,7 @@ class TargetsNeurons:
 
 
 class TargetsSections:
-    pass
+    def target_section(self, cell):
+        if hasattr(self, "section_type"):
+            return random.choice(cell.__dict__[self.section_type])
+        return cell.soma[0]
