@@ -268,6 +268,8 @@ class Scaffold:
             t = time.time()
             self.place_cell_types()
             self.run_after_placement_hooks()
+            if output:
+                self.compile_output()
             self.connect_cell_types()
             self.run_after_connectivity_hooks()
             times[i] = time.time() - t
