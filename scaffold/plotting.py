@@ -1,57 +1,219 @@
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from .networks import all_depth_first_branches, get_branch_points, reduce_branch
-import numpy as np, math
+import numpy as np, math, functools
 from .morphologies import Compartment
 from contextlib import contextmanager
 
 
-@contextmanager
-def show_figure(fig=None, cubic=True, show=True, legend=True, swapaxes=True):
-    try:
+class CellTrace:
+    def __init__(self, meta, data):
+        self.meta = meta
+        self.data = data
+
+
+class CellTraces:
+    def __init__(self, id, title):
+        self.traces = []
+        self.cell_id = id
+        self.title = title
+
+    def add(self, meta, data):
+        self.traces.append(CellTrace(meta, data))
+
+    def __iter__(self):
+        return iter(self.traces)
+
+    def __len__(self):
+        return len(self.traces)
+
+
+class CellTraceCollection:
+    def __init__(self, cells=None):
+        if cells is None:
+            cells = {}
+        elif isinstance(cells, list):
+            cells = dict(map(lambda cell: (cell.cell_id, cell), cells))
+        self.cells = cells
+        self.legends = []
+        self.colors = []
+
+    def set_legends(self, legends):
+        self.legends = legends
+
+    def set_colors(self, colors):
+        self.colors = colors
+
+    def add(self, id, meta, data):
+        if not id in self.cells:
+            self.cells[id] = CellTraces(id, meta["display_label"])
+        self.cells[id].add(meta, data)
+
+    def __iter__(self):
+        return iter(self.cells.values())
+
+    def __len__(self):
+        return len(self.cells)
+
+
+def _figure(f):
+    """
+        Decorator for functions that produce a Figure. Can set defaults, create and show
+        figures and disable the legend.
+
+        Adds the `show` and `legend` keyword arguments.
+    """
+
+    @functools.wraps(f)
+    def wrapper_function(*args, fig=None, show=True, legend=True, **kwargs):
         if fig is None:
             fig = go.Figure()
-        yield fig
-    finally:
+        r = f(*args, fig=fig, show=show, legend=legend, **kwargs)
         fig.update_layout(showlegend=legend)
+        if show:
+            fig.show()
+        return r
+
+    return wrapper_function
+
+
+def _network_figure(f):
+    """
+        Decorator for functions that produce a Figure of a network. Applies ``@_figure``
+        and can create cubic perspective and swap the Y & Z axis labels.
+
+        Adds the `cubic` and `swapaxes` keyword arguments.
+    """
+
+    @functools.wraps(f)
+    @_figure
+    def wrapper_function(*args, fig=None, cubic=True, swapaxes=True, **kwargs):
+        r = f(*args, fig=fig, cubic=cubic, swapaxes=swapaxes, **kwargs)
         if cubic:
             fig.update_layout(scene_aspectmode="cube")
         if swapaxes:
-            fig.update_layout(
-                scene=dict(xaxis_title="X", yaxis_title="Z", zaxis_title="Y")
-            )
-        if show:
-            fig.show()
+            axis_labels = dict(xaxis_title="X", yaxis_title="Z", zaxis_title="Y")
+        else:
+            axis_labels = dict(xaxis_title="X", yaxis_title="Y", zaxis_title="Z")
+        fig.update_layout(scene=axis_labels)
+        return r
+
+    return wrapper_function
 
 
-def plot_network(scaffold, from_memory=True, show=True):
-    if from_memory:
-        with show_figure(show=show) as fig:
-            for type in scaffold.configuration.cell_types.values():
-                if type.entity:
-                    continue
-                pos = scaffold.cells_by_type[type.name][:, [2, 3, 4]]
-                color = type.plotting.color
-                fig.add_trace(
-                    go.Scatter3d(
-                        x=pos[:, 0],
-                        y=pos[:, 2],
-                        z=pos[:, 1],
-                        mode="markers",
-                        marker=dict(color=color, size=type.placement.radius),
-                        opacity=type.plotting.opacity,
-                        name=type.plotting.label,
-                    )
+def _input_highlight(f, required=False):
+    """
+        Decorator for functions that highlight an input region on a Figure.
+
+        Adds the `input_region` keyword argument. Decorated function has to have a `fig`
+        keyword argument.
+
+        :param required: If set to True, an ArgumentError is thrown if no `input_region`
+          is specified
+        :type required: bool
+    """
+
+    @functools.wraps(f)
+    def wrapper_function(*args, fig=None, input_region=None, **kwargs):
+        r = f(*args, fig=fig, **kwargs)
+        if input_region is not None:
+            shapes = [
+                dict(
+                    type="rect",
+                    xref="x",
+                    yref="paper",
+                    x0=input_region[0],
+                    y0=0,
+                    x1=input_region[1],
+                    y1=1,
+                    fillcolor="#d3d3d3",
+                    opacity=0.3,
+                    line=dict(width=0),
                 )
-            return fig
+            ]
+            fig.update_layout(shapes=shapes)
+        elif required:
+            raise ArgumentError("Required keyword argument `input_region` omitted.")
+        return r
+
+    return wrapper_function
+
+
+def _plot_network(network, fig, swapaxes):
+    for type in network.configuration.cell_types.values():
+        if type.entity:
+            continue
+        pos = network.cells_by_type[type.name][:, [2, 3, 4]]
+        color = type.plotting.color
+        fig.add_trace(
+            go.Scatter3d(
+                x=pos[:, 0],
+                y=pos[:, 1 if not swapaxes else 2],
+                z=pos[:, 2 if not swapaxes else 1],
+                mode="markers",
+                marker=dict(color=color, size=type.placement.radius),
+                opacity=type.plotting.opacity,
+                name=type.plotting.label,
+            )
+        )
+
+
+@_network_figure
+def plot_network(
+    network, fig=None, cubic=True, swapaxes=True, show=True, legend=True, from_memory=True
+):
+    """
+        Plot a network, either from the current cache or the storage.
+    """
+    if from_memory:
+        _plot_network(network, fig, swapaxes)
     else:
-        scaffold.reset_network_cache()
-        for type in scaffold.configuration.cell_types.values():
+        network.reset_network_cache()
+        for type in network.configuration.cell_types.values():
             if type.entity:
                 continue
             # Load from HDF5
-            scaffold.get_cells_by_type(type.name)
-        plot_network(scaffold, from_memory=True, show=show)
+            network.get_cells_by_type(type.name)
+        _plot_network(network, fig, swapaxes)
+
+
+@_network_figure
+def plot_detailed_network(
+    network, fig=None, cubic=True, swapaxes=True, show=True, legend=True, ids=None
+):
+    from .output import MorphologyRepository
+
+    ms = MorphologyScene(fig)
+    mr = network.morphology_repository
+
+    for cell_type in network.configuration.cell_types.values():
+        segment_radius = 1.0
+        if cell_type.name != "granule_cell":
+            segment_radius = 2.5
+        m_names = cell_type.list_all_morphologies()
+        if len(m_names) == 0:
+            continue
+        if len(m_names) > 1:
+            raise NotImplementedError(
+                "We haven't implemented plotting different morphologies per cell type yet. Open an issue if you need it."
+            )
+        cells = network.get_placement_set(cell_type.name).cells
+        morpho = mr.get_morphology(m_names[0])
+        for cell in cells:
+            if ids is not None and cell.id not in ids:
+                continue
+            ms.add_morphology(
+                morpho,
+                cell.position,
+                color=cell_type.plotting.color,
+                soma_radius=cell_type.placement.soma_radius,
+                segment_radius=segment_radius,
+            )
+    ms.prepare_plot()
+    scene = fig.layout.scene
+    scene.xaxis.range = [-200, 200]
+    scene.yaxis.range = [-200, 200]
+    scene.zaxis.range = [0, 600]
 
 
 def get_voxel_cloud_traces(cloud, selected_voxels=None, offset=[0.0, 0.0, 0.0]):
@@ -80,17 +242,20 @@ def get_voxel_cloud_traces(cloud, selected_voxels=None, offset=[0.0, 0.0, 0.0]):
     return traces
 
 
+@_figure
 def plot_voxel_cloud(
-    cloud, bounds, selected_voxels=None, fig=None, show=True, offset=[0.0, 0.0, 0.0]
+    cloud,
+    bounds,
+    selected_voxels=None,
+    fig=None,
+    show=True,
+    legend=True,
+    offset=[0.0, 0.0, 0.0],
 ):
-    with show_figure(legend=False, fig=fig, show=show) as fig:
-        traces = get_voxel_cloud_traces(
-            cloud, selected_voxels=selected_voxels, offset=offset
-        )
-        for trace in traces:
-            fig.add_trace(trace)
-        # set_scene_range(fig.layout.scene, bounds)
-        return fig
+    traces = get_voxel_cloud_traces(cloud, selected_voxels=selected_voxels, offset=offset)
+    for trace in traces:
+        fig.add_trace(trace)
+    return fig
 
 
 def get_branch_trace(compartments, offset=[0.0, 0.0, 0.0], color="black", width=1.0):
@@ -101,7 +266,9 @@ def get_branch_trace(compartments, offset=[0.0, 0.0, 0.0], color="black", width=
     x.append(compartments[-1].end[0] + offset[0])
     y.append(compartments[-1].end[1] + offset[1])
     z.append(compartments[-1].end[2] + offset[2])
-    return go.Scatter3d(x=x, y=z, z=y, mode="lines", line=dict(width=width, color=color))
+    return go.Scatter3d(
+        x=x, y=z, z=y, mode="lines", line=dict(width=width, color=color), showlegend=False
+    )
 
 
 def get_soma_trace(soma_radius, offset=[0.0, 0.0, 0.0], color="black"):
@@ -120,12 +287,13 @@ def get_soma_trace(soma_radius, offset=[0.0, 0.0, 0.0], color="black"):
     )
 
 
+@_figure
 def plot_morphology(
     morphology,
-    return_traces=False,
     offset=[0.0, 0.0, 0.0],
     fig=None,
     show=True,
+    legend=True,
     set_range=True,
     color="black",
     reduce_branches=False,
@@ -151,21 +319,14 @@ def plot_morphology(
             color,
         )
     )
-    if return_traces:
-        return traces
-    else:
-        if fig is None:
-            fig = go.Figure()
-            fig.update_layout(showlegend=False)
-        for trace in traces:
-            fig.add_trace(trace)
-        if set_range:
-            set_scene_range(fig.layout.scene, morphology.get_plot_range(offset=offset))
-        if show:
-            fig.show()
-        return fig
+    for trace in traces:
+        fig.add_trace(trace)
+    if set_range:
+        set_scene_range(fig.layout.scene, morphology.get_plot_range(offset=offset))
+    return fig
 
 
+@_figure
 def plot_intersections(
     from_morphology,
     from_pos,
@@ -174,6 +335,8 @@ def plot_intersections(
     intersections,
     offset=[0.0, 0.0, 0.0],
     fig=None,
+    show=True,
+    legend=True,
 ):
     from_compartments = (
         np.array(from_morphology.compartment_tree.get_arrays()[0])
@@ -185,10 +348,6 @@ def plot_intersections(
         + np.array(offset)
         + np.array(to_pos)
     )
-    if fig is None:
-        fig = go.Figure()
-        fig.update_layout(showlegend=False)
-        fig.show()
 
 
 def plot_block(fig, origin, sizes, color=None, colorscale="Cividis", **kwargs):
@@ -233,6 +392,7 @@ def plotly_block_faces(
         j=[3, 4, 1, 2, 5, 6, 5, 2, 0, 1, 6, 3],
         k=[0, 7, 2, 3, 6, 7, 1, 1, 5, 5, 7, 6],
         opacity=0.3,
+        showlegend=False,
         **color_args
     )
 
@@ -241,94 +401,9 @@ def plotly_block_edges(origin, sizes):
     x = origin[0] + np.array([0, 0, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0]) * sizes[0]
     y = origin[1] + np.array([0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 1, 1]) * sizes[1]
     z = origin[2] + np.array([0, 0, 0, 0, 0, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 0]) * sizes[2]
-    return go.Scatter3d(x=x, y=z, z=y, mode="lines", line=dict(width=1.0, color="black"))
-
-
-def plot_eli_voxels(
-    morphology, voxel_positions, voxel_compartment_map, selected_voxel_ids=None
-):
-    if selected_voxel_ids is None:
-        selected_voxel_ids = list(range(len(voxel_positions)))
-    fig = make_subplots(rows=1, cols=2, specs=[[{"type": "scene"}, {"type": "scene"}]],)
-    fig.update_layout(showlegend=False)
-    with show_figure(fig=fig) as fig:
-        for trace in plot_morphology(morphology, return_traces=True):
-            fig.add_trace(trace, row=1, col=1)
-        fig.update_layout(scene2_aspectmode="cube")
-        # Determine voxel grid sizes.
-        delta_x, delta_y, delta_z = 0.0, 0.0, 0.0
-        no_dx, no_dy, no_dz = True, True, True
-        for i in range(len(voxel_positions) - 1):
-            if no_dx and voxel_positions[i, 0] != voxel_positions[i + 1, 0]:
-                delta_x = np.abs(voxel_positions[i, 0] - voxel_positions[i + 1, 0])
-                no_dx = False
-            if no_dy and voxel_positions[i, 1] != voxel_positions[i + 1, 1]:
-                delta_y = np.abs(voxel_positions[i, 1] - voxel_positions[i + 1, 1])
-                no_dy = False
-            if no_dz and voxel_positions[i, 2] != voxel_positions[i + 1, 2]:
-                delta_z = np.abs(voxel_positions[i, 2] - voxel_positions[i + 1, 2])
-                no_dz = False
-            if not no_dy and not no_dz and not no_dx:
-                break
-        # Resulting voxel grid sizes.
-        delta = [delta_x, delta_y, delta_z]
-        voxel_origins = np.min(voxel_positions, axis=0)
-        total_grid_size = np.max(voxel_positions, axis=0) - voxel_origins
-        diagonal = np.sum(total_grid_size ** 2)
-        voxel_color_values = (
-            np.sum((voxel_positions - voxel_origins) ** 2, axis=1) / diagonal * 16.0
-        )
-        for voxel_id in range(len(voxel_color_values)):
-            voxel = voxel_positions[voxel_id]
-            voxel_compartments = voxel_compartment_map[voxel_id]
-            if voxel_id in selected_voxel_ids:
-                plot_block(
-                    fig,
-                    voxel,
-                    delta,
-                    row=1,
-                    col=2,
-                    color=voxel_color_values[voxel_id] + 0.0001,
-                )
-                fig.add_trace(
-                    go.Scatter3d(
-                        x=list(
-                            map(
-                                lambda c: morphology.compartments[c].end[0],
-                                voxel_compartments,
-                            )
-                        ),
-                        y=list(
-                            map(
-                                lambda c: morphology.compartments[c].end[2],
-                                voxel_compartments,
-                            )
-                        ),
-                        z=list(
-                            map(
-                                lambda c: morphology.compartments[c].end[1],
-                                voxel_compartments,
-                            )
-                        ),
-                        mode="markers",
-                        marker=dict(
-                            size=2.0,
-                            cmin=0.0,
-                            cmax=16.0,
-                            colorscale_value=[
-                                voxel_color_values[voxel_id]
-                                for _ in range(len(voxel_compartments))
-                            ],
-                            colorscale="Viridis",
-                        ),
-                    ),
-                    row=1,
-                    col=1,
-                )
-            else:
-                fig.add_trace(plotly_block_edges(voxel, delta), row=1, col=2)
-        fig.update_layout(scene_aspectmode="cube")
-        fig.update_layout(scene2_aspectmode="cube")
+    return go.Scatter3d(
+        x=x, y=z, z=y, mode="lines", line=dict(width=1.0, color="black"), showlegend=False
+    )
 
 
 def set_scene_range(scene, bounds):
@@ -355,33 +430,121 @@ def set_morphology_scene_range(scene, offset_morphologies):
     set_scene_range(scene, combined_bounds)
 
 
-def hdf5_plot_spike_raster(spike_recorders):
+def hdf5_plot_spike_raster(spike_recorders, input_region=None):
     """
         Create a spike raster plot from an HDF5 group of spike recorders.
     """
     cell_ids = [int(k) for k in spike_recorders.keys()]
-    x = []
-    y = []
+    x = {}
+    y = {}
+    colors = {}
+    ids = {}
     for cell_id, dataset in spike_recorders.items():
-        cell_id = int(cell_id)
         data = dataset[:, 0]
+        attrs = dict(dataset.attrs)
+        label = attrs["label"]
+        if not label in x:
+            x[label] = []
+        if not label in y:
+            y[label] = []
+        if not label in colors:
+            colors[label] = attrs["color"]
+        if not label in ids:
+            ids[label] = 0
+        cell_id = ids[label]
+        ids[label] += 1
         # Add the spike timings on the X axis.
-        x.extend(data)
+        x[label].extend(data)
         # Set the cell id for the Y axis of each added spike timing.
-        y.extend(cell_id for _ in range(len(data)))
+        y[label].extend(cell_id for _ in range(len(data)))
     # Use the parallel arrays x & y to plot a spike raster
-    plot_spike_raster(x, y)
+    fig = go.Figure(
+        layout=dict(
+            xaxis=dict(title_text="Time (ms)"), yaxis=dict(title_text="Cell (ID)")
+        )
+    )
+    sort_by_size = lambda d: {k: v for k, v in sorted(d.items(), key=lambda i: len(i[1]))}
+    start_id = 0
+    for label, x, y in [(label, x[label], y[label]) for label in sort_by_size(x).keys()]:
+        y = [yi + start_id for yi in y]
+        start_id += ids[label]
+        plot_spike_raster(
+            x,
+            y,
+            label=label,
+            fig=fig,
+            show=False,
+            color=colors[label],
+            input_region=input_region,
+        )
+    fig.show()
 
 
-def plot_spike_raster(spike_timings, cell_ids):
-    go.Figure(
+@_figure
+@_input_highlight
+def plot_spike_raster(
+    spike_timings, cell_ids, fig=None, show=True, legend=True, label="Cells", color=None
+):
+    fig.add_trace(
         go.Scatter(
             x=spike_timings,
             y=cell_ids,
             mode="markers",
-            marker=dict(symbol="square", size=4, color="black"),
+            marker=dict(symbol="square", size=4, color=color or "black"),
+            name=label,
         )
-    ).show()
+    )
+
+
+def hdf5_gather_voltage_traces(handle, root, groups=None):
+    if groups is None:
+        groups = [""]
+    if len(groups) == 0:
+        groups = [""]
+    traces = CellTraceCollection()
+    for group in groups:
+        path = root + group
+        for name, dataset in handle[path].items():
+            meta = {}
+            id = int(name.split(".")[0])
+            meta["id"] = id
+            meta["location"] = name
+            meta["group"] = path
+            for k, v in dataset.attrs.items():
+                meta[k] = v
+            traces.add(id, meta, dataset)
+    return traces
+
+
+@_figure
+@_input_highlight
+def plot_traces(traces, fig=None, show=True, legend=True):
+    subplots_fig = make_subplots(
+        cols=1, rows=len(traces), subplot_titles=[trace.title.title() for trace in traces]
+    )
+    # Overwrite the layout and grid of the single plot that is handed to us
+    # to turn it into a subplots figure.
+    fig._grid_ref = subplots_fig._grid_ref
+    fig._layout = subplots_fig._layout
+    legend_groups = set()
+    legends = traces.legends
+    for i, cell_traces in enumerate(traces):
+        for j, trace in enumerate(cell_traces):
+            showlegend = legends[j] not in legend_groups
+            fig.append_trace(
+                go.Scatter(
+                    x=trace.data[:, 0],
+                    y=trace.data[:, 1],
+                    legendgroup=legends[j],
+                    name=legends[j],
+                    showlegend=showlegend,
+                    mode="lines",
+                    marker=dict(color=traces.colors[j]),
+                ),
+                col=1,
+                row=i + 1,
+            )
+            legend_groups.add(legends[j])
 
 
 class MorphologyScene:
@@ -393,7 +556,12 @@ class MorphologyScene:
         self._morphologies.append((offset, morphology, kwargs))
 
     def show(self):
+        self.prepare_plot()
+        self.fig.show()
+
+    def prepare_plot(self):
+        if len(self._morphologies) == 0:
+            raise MorphologyError("Cannot show empty MorphologyScene")
         for o, m, k in self._morphologies:
             plot_morphology(m, offset=o, show=False, fig=self.fig, **k)
         set_morphology_scene_range(self.fig.layout.scene, self._morphologies)
-        self.fig.show()
