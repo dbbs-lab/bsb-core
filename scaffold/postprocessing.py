@@ -165,8 +165,8 @@ class SpoofGlomerulusGranuleDetailed(PostProcessingHook):
         self.scaffold.cell_connections_by_tag["glomerulus_to_granule"] = np.empty((0, 2))
         # Use a hardcoded granule morphology for both
         morphologies = np.zeros((len(connectivity_matrix), 2))
-        morpho_map = ["granule_dbbs"]
-        m = self.scaffold.morphology_repository.get_morphology("granule_dbbs")
+        morpho_map = ["GranuleCell"]
+        m = self.scaffold.morphology_repository.get_morphology("GranuleCell")
         # Select random dendrites
         dendrites = np.array([c.id for c in m.compartments if c.type == 3])
         compartments = np.column_stack(
