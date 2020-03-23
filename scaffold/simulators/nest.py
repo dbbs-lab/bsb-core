@@ -6,6 +6,8 @@ import os, json, weakref, numpy as np
 from itertools import chain
 from sklearn.neighbors import KDTree
 
+LOCK_ATTRIBUTE = "dbbs_scaffold_lock"
+
 
 class MapsScaffoldIdentifiers:
     def reset_identifiers(self):
@@ -266,6 +268,17 @@ class NestAdapter(SimulatorAdapter):
         "threads",
     ]
 
+    @property
+    def nest(self):
+        try:
+            return self._nest
+        except AttributeError:
+            self.scaffold.report("Importing  NEST...", 2)
+            import nest
+
+            self._nest = nest
+            return self._nest
+
     def __init__(self):
         super().__init__()
         self.is_prepared = False
@@ -274,26 +287,12 @@ class NestAdapter(SimulatorAdapter):
         self.has_lock = False
         self.global_identifier_map = {}
 
-        def finalize_self(weak_obj):
-            if weak_obj() is not None:
-                weak_obj().__safedel__()
-
-        r = weakref.ref(self)
-        weakref.finalize(self, finalize_self, r)
-
-    def __safedel__(self):
-        if self.has_lock:
-            self.release_lock()
-
     def prepare(self):
         if self.is_prepared:
             raise AdapterError(
                 "Attempting to prepare the same adapter twice. Please use `scaffold.create_adapter` for multiple adapter instances of the same simulation."
             )
-        self.scaffold.report("Importing  NEST...", 2)
-        import nest
 
-        self.nest = nest
         self.scaffold.report("Locking NEST kernel...", 2)
         self.lock()
         self.scaffold.report("Installing  NEST modules...", 2)
@@ -312,7 +311,7 @@ class NestAdapter(SimulatorAdapter):
         self.scaffold.report("Creating connections...", 2)
         self.connect_neurons()
         self.is_prepared = True
-        return nest
+        return self.nest
 
     def in_full_control(self):
         if not self.has_lock or not self.read_lock():
@@ -329,13 +328,13 @@ class NestAdapter(SimulatorAdapter):
         self.has_lock = True
 
     def single_lock(self):
-        try:
-            lock_data = {"multi": False}
-            self.write_lock(lock_data, mode="x")
-        except FileExistsError as e:
+        if hasattr(self.nest, LOCK_ATTRIBUTE):
             raise KernelLockedError(
                 "This adapter is not in multi-instance mode and another adapter is already managing the kernel."
-            ) from None
+            )
+        else:
+            lock_data = {"multi": False}
+            self.write_lock(lock_data)
 
     def multi_lock(self):
         lock_data = self.read_lock()
@@ -353,15 +352,13 @@ class NestAdapter(SimulatorAdapter):
         self.write_lock(lock_data)
 
     def read_lock(self):
-        try:
-            with open(self.get_lock_path(), "r") as lock:
-                return json.loads(lock.read())
-        except FileNotFoundError as e:
+        if hasattr(self.nest, LOCK_ATTRIBUTE):
+            return getattr(self.nest, LOCK_ATTRIBUTE)
+        else:
             return None
 
-    def write_lock(self, lock_data, mode="w"):
-        with open(self.get_lock_path(), mode) as lock:
-            lock.write(json.dumps(lock_data))
+    def write_lock(self, lock_data):
+        setattr(self.nest, LOCK_ATTRIBUTE, lock_data)
 
     def enable_multi(self, suffix):
         self.suffix = suffix
@@ -376,21 +373,18 @@ class NestAdapter(SimulatorAdapter):
         lock_data = self.read_lock()
         if lock_data["multi"]:
             if len(lock_data["suffixes"]) == 1:
-                self.delete_lock_file()
+                self.delete_lock()
             else:
                 lock_data["suffixes"].remove(self.suffix)
                 self.write_lock(lock_data)
         else:
-            self.delete_lock_file()
+            self.delete_lock()
 
-    def delete_lock_file(self):
-        os.remove(self.get_lock_path())
-
-    def get_lock_name(self):
-        return "kernel_" + str(os.getpid()) + ".lck"
-
-    def get_lock_path(self):
-        return self.nest.__path__[0] + "/" + self.get_lock_name()
+    def delete_lock(self):
+        try:
+            delattr(self.nest, LOCK_ATTRIBUTE)
+        except AttributeError:
+            pass
 
     def reset_kernel(self):
         self.nest.set_verbosity(self.verbosity)

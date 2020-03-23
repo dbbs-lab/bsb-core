@@ -40,8 +40,7 @@ class TestSingleNeuronTypeSetup(unittest.TestCase):
         self.nest_adapter.reset()
 
     def tearDown(self):
-        if self.nest_adapter.has_lock:
-            self.nest_adapter.release_lock()
+        self.nest_adapter.delete_lock()
 
     def test_single_neuron(self):
         self.scaffold.run_simulation("test_single_neuron")
@@ -71,9 +70,8 @@ class TestDoubleNeuronTypeSetup(unittest.TestCase):
         cls.scaffold.run_simulation("test_double_neuron")
 
     @classmethod
-    def tearDownClass(self):
-        if self.nest_adapter.has_lock:
-            self.nest_adapter.release_lock()
+    def tearDownClass(cls):
+        cls.nest_adapter.delete_lock()
 
     def test_double_neuron_creation(self):
         from_cell_model = self.nest_adapter.cell_models["from_cell"]
@@ -128,8 +126,7 @@ class TestDoubleNeuronNetworkStatic(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        if cls.nest_adapter.has_lock:
-            cls.nest_adapter.release_lock()
+        cls.nest_adapter.delete_lock()
 
     def test_double_neuron_network(self):
         source_cell_model = self.nest_adapter.cell_models["from_cell"]
@@ -171,8 +168,7 @@ class TestDoubleNeuronNetworkHomosyn(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        if cls.nest_adapter.has_lock:
-            cls.nest_adapter.release_lock()
+        cls.nest_adapter.delete_lock()
 
     def test_double_neuron_network(self):
         source_cell_model = self.nest_adapter.cell_models["from_cell"]
@@ -215,8 +211,7 @@ class TestDoubleNeuronNetworkHeterosyn(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        if cls.nest_adapter.has_lock:
-            cls.nest_adapter.release_lock()
+        cls.nest_adapter.delete_lock()
 
     def test_double_neuron_network(self):
         source_cell_model = self.nest_adapter.cell_models["from_cell"]
@@ -288,6 +283,8 @@ class TestMultiInstance(unittest.TestCase):
         self.scaffold.compile_network()
         self.hdf5 = self.scaffold.output_formatter.file
         self.nest_adapter_0 = self.scaffold.get_simulation("test_single_neuron")
+        # When another test errors, the lock might remain, and all locking tests fail
+        self.nest_adapter_0.delete_lock()
         self.nest_adapter_1 = self.scaffold.create_adapter("test_single_neuron")
         self.nest_adapter_2 = self.scaffold.create_adapter("test_single_neuron")
         self.nest_adapter_multi_1 = self.scaffold.create_adapter("test_single_neuron")
@@ -298,18 +295,9 @@ class TestMultiInstance(unittest.TestCase):
         self.nest_adapter_multi_2.enable_multi("second")
 
     def tearDown(self):
-        if self.nest_adapter_0.has_lock:
-            self.nest_adapter_0.release_lock()
-        if self.nest_adapter_1.has_lock:
-            self.nest_adapter_1.release_lock()
-        if self.nest_adapter_2.has_lock:
-            self.nest_adapter_2.release_lock()
-        if self.nest_adapter_multi_1.has_lock:
-            self.nest_adapter_multi_1.release_lock()
-        if self.nest_adapter_multi_1b.has_lock:
-            self.nest_adapter_multi_1b.release_lock()
-        if self.nest_adapter_multi_2.has_lock:
-            self.nest_adapter_multi_2.release_lock()
+        # Clean up any remaining locks to keep the test functions independent.
+        # Otherwise a chain reaction of failures is evoked.
+        self.nest_adapter_0.delete_lock()
 
     def test_single_instance_unwanted_usage(self):
         # Test AdapterError when trying to unlock unlocked adapter
@@ -323,6 +311,7 @@ class TestMultiInstance(unittest.TestCase):
         self.nest_adapter_0.reset()
 
     def test_single_instance_single_lock(self):
+        self.nest_adapter_1.reset()
         # Lock kernel. Prepare adapter and thereby lock NEST kernel
         self.nest_adapter_1.prepare()
         lock_data = self.nest_adapter_1.read_lock()
@@ -348,6 +337,7 @@ class TestMultiInstance(unittest.TestCase):
         self.nest_adapter_2.reset()
 
     def test_single_instance_multi_lock(self):
+        self.nest_adapter_multi_1.reset()
         # Test functionality of the multi lock.
         self.nest_adapter_multi_1.prepare()
         lock_data = self.nest_adapter_multi_1.read_lock()
