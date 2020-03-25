@@ -85,7 +85,9 @@ class CellType(SortableByAfter):
             Return a list of all the morphology identifiers that can represent
             this cell type in the simulation volume.
         """
-        if not hasattr(self.morphology, "detailed_morphologies"):
+        if not hasattr(self, "morphology") or not hasattr(
+            self.morphology, "detailed_morphologies"
+        ):
             return []
         morphology_config = self.morphology.detailed_morphologies
         # TODO: More selection mechanisms like tags
