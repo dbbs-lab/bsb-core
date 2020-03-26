@@ -1,6 +1,7 @@
 from .strategy import Layered, PlacementStrategy
 from ..particles import ParticleSystem
 from ..exceptions import *
+from ..reporting import report, warn
 
 
 class ParticlePlacement(Layered, PlacementStrategy):
@@ -39,7 +40,7 @@ class ParticlePlacement(Layered, PlacementStrategy):
         system.fill(voxels, particles)
         # Raise a warning if no cells could be placed in the volume
         if len(system.particles) == 0:
-            self.scaffold.warn(
+            warn(
                 "Did not place any {} cell in the {}!".format(cell_type.name, layer.name),
                 PlacementWarning,
             )
@@ -51,7 +52,7 @@ class ParticlePlacement(Layered, PlacementStrategy):
             system.solve_collisions()
             if self.prune:
                 number_pruned = system.prune(at_risk_particles=system.displaced_particles)
-                self.scaffold.report(
+                report(
                     "{} {} ({}%) cells pruned.".format(
                         number_pruned,
                         cell_type.name,

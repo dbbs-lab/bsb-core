@@ -1,4 +1,5 @@
 from .helpers import ConfigurableClass
+from .reporting import report, warn
 from scipy.stats import truncnorm
 import numpy as np
 
@@ -27,7 +28,7 @@ class LabelMicrozones(PostProcessingHook):
             z_sep = np.median(zeds)
             index_pos = np.where(zeds >= z_sep)[0]
             index_neg = np.where(zeds < z_sep)[0]
-            self.scaffold.report(
+            report(
                 neurons_2b_labeled
                 + " divided into microzones: {} positive, {} negative".format(
                     index_pos.shape[0], index_neg.shape[0]
@@ -79,7 +80,7 @@ class LabelMicrozones(PostProcessingHook):
                             satellite_label_count[label] += 1
                 if sum(satellite_label_count.values()) > 0:
                     # Report how many labels have been applied to which cell type.
-                    self.scaffold.report(
+                    report(
                         "{} are satellites of {} and have been labelled as: {}".format(
                             possible_satellites.name,
                             planet_type,

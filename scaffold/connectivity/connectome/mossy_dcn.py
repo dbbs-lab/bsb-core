@@ -1,5 +1,6 @@
 import numpy as np
 from ..strategy import TouchingConvergenceDivergence
+from ...reporting import report, warn
 from ...exceptions import *
 
 
@@ -21,7 +22,7 @@ class ConnectomeMossyDCN(TouchingConvergenceDivergence):
         convergence = self.convergence
         if convergence > len(mossy):
             convergence = len(mossy)
-            self.scaffold.warn(
+            warn(
                 "Convergence for MF-DCN saturated at MF number. Network too small",
                 ConnectivityWarning,
             )

@@ -83,9 +83,10 @@ keyword argument with a path to the configuration file::
 
   from scaffold.core import Scaffold
   from scaffold.config import JSONConfig
+  from scaffold.reporting import set_verbosity
 
   config = JSONConfig(file="my_config.json")
-  config.verbosity = 3 # This way we can follow what's going on.
+  set_verbosity(3) # This way we can follow what's going on.
   scaffold = Scaffold(config)
 
 .. note::
@@ -133,9 +134,10 @@ Full code example
 
   from scaffold.core import Scaffold
   from scaffold.config import JSONConfig
+  from scaffold.reporting import set_verbosity
 
   config = JSONConfig(file="my_config.json")
-  config.verbosity = 3 # This way we can follow what's going on.
+  set_verbosity(3) # This way we can follow what's going on.
   scaffold = Scaffold(config)
 
   purkinje = scaffold.get_cell_type("purkinje_cell")

@@ -2,6 +2,7 @@ from .strategy import Layered, PlacementStrategy
 from ..helpers import assert_attr_array
 import math, numpy as np
 from ..exceptions import *
+from ..reporting import report, warn
 
 
 class Satellite(PlacementStrategy):
@@ -58,7 +59,7 @@ class Satellite(PlacementStrategy):
             planet_cells = self.scaffold.get_cells_by_type(after_cell_type.name)
             # Exit the placement of satellites if no corresponding planet after cells were created before
             if len(planet_cells) == 0:
-                self.scaffold.warn(
+                warn(
                     "Could not place any satellites for '{}' because no planet cells were created".format(
                         after_cell_type.name
                     ),
@@ -79,7 +80,7 @@ class Satellite(PlacementStrategy):
 
             # Initialise satellite position array
             satellites_pos = np.empty([len(planet_cells), 3])
-            scaffold.report(
+            report(
                 "Checking overlap and bounds of satellite {} cells...".format(
                     cell_type.name,
                 ),
@@ -142,7 +143,7 @@ class Satellite(PlacementStrategy):
 
             if not_placed_num > 0:
                 # Print warning that some satellite cells have not been placed
-                self.scaffold.warn(
+                warn(
                     "'{}' satellite cells out of '{}' have not been placed, due to overlapping or out of volume issues".format(
                         not_placed_num, len(planets_pos)
                     ),

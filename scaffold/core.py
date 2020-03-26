@@ -9,6 +9,7 @@ from .models import CellType
 from .connectivity import ConnectionStrategy
 from warnings import warn as std_warn
 from .exceptions import *
+from .reporting import report, warn, has_mpi_installed
 
 ###############################
 ## Scaffold class
@@ -23,7 +24,7 @@ class TreeCollectionGroup:
         self.__dict__[name] = TreeCollection(name, handler)
 
 
-def from_hdf5(file, verbosity=1):
+def from_hdf5(file):
     """
         Generate a :class:`.core.Scaffold` from an HDF5 file.
 
@@ -33,7 +34,7 @@ def from_hdf5(file, verbosity=1):
     """
     from .config import _from_hdf5
 
-    config = _from_hdf5(file, verbosity)
+    config = _from_hdf5(file)
     return Scaffold(config, from_file=file)
 
 
@@ -74,25 +75,11 @@ class Scaffold:
             self.output_formatter.init_scaffold()
 
     def _initialise_MPI(self):
-        try:
-            # Try to import mpi4py and its MPI submodule
-            import mpi4py
-
-            try:
-                import neuron
-
-                # If neuron is installed, the user might want to use parallel NEURON
-                # simulations. NEURON is incapable of properly initializing if MPI_Init
-                # has already been called (which happens when you import MPI from mpi4py)
-                # Therefor we must initialize NEURON first see
-                # https://github.com/neuronsimulator/nrn/issues/428
-                from patch import p
-
-                # Initialize the ParallelContext singleton to properly initialize NEURON's
-                # parallel simulation capabilities.
-                _ = p.parallel
-            except:
-                pass
+        # Delegate initialization of MPI to the reporting module. Which is weird, bu
+        # required to make NEURON play nice. Check the results here and copy them over.
+        # `has_mpi_installed` is imported from the `.reporting` namespace.
+        if has_mpi_installed:
+            # Import mpi4py and its MPI submodule.
             from mpi4py import MPI
 
             self.MPI = MPI
@@ -100,7 +87,7 @@ class Scaffold:
             self.has_mpi_installed = True
             self.is_mpi_master = self.MPI_rank == 0
             self.is_mpi_slave = self.MPI_rank != 0
-        except ImportError:
+        else:
             self.has_mpi_installed = False
             self.is_mpi_master = True
             self.is_mpi_slave = False
@@ -135,9 +122,12 @@ class Scaffold:
             :param level: Verbosity level of the message.
             :type level: int
             :param ongoing: The message is part of an ongoing progress report. This replaces the endline (`\\n`) character with a carriage return (`\\r`) character
+            :deprecated: Use :func:`.reporting.report`
         """
-        if self.is_mpi_master and self.configuration.verbosity >= level:
-            print(message, end="\n" if not ongoing else "\r")
+        std_warn(
+            "Deprecated in favor of `scaffold.reporting.report`.", DeprecationWarning
+        )
+        report(message, level=level, ongoing=ongoing)
 
     def warn(self, message, category=None):
         """
@@ -146,9 +136,10 @@ class Scaffold:
             :param message: Warning message
             :type message: string
             :param category: The class of the warning.
+            :deprecated: Use :func:`.reporting.warn`
         """
-        if self.configuration.verbosity > 0:
-            std_warn(message, category, stacklevel=2)
+        std_warn("Deprecated in favor of `scaffold.reporting.warn`.", DeprecationWarning)
+        warn(message, category)
 
     def _intialise_simulators(self):
         self.simulators = self.configuration.simulators
@@ -204,7 +195,7 @@ class Scaffold:
             cell_type.placement.place()
             if cell_type.entity:
                 entities = self.entities_by_type[cell_type.name]
-                self.report(
+                report(
                     "Finished placing {} {} entities.".format(
                         len(entities), cell_type.name
                     ),
@@ -215,7 +206,7 @@ class Scaffold:
                 cells = self.cells_by_type[cell_type.name][:, 2:5]
                 # Construct a tree of the placed cells
                 self.trees.cells.create_tree(cell_type.name, cells)
-                self.report(
+                report(
                     "Finished placing {} {} cells.".format(len(cells), cell_type.name), 2
                 )
 
@@ -233,7 +224,7 @@ class Scaffold:
                 conn_num = np.shape(connection_type.get_connection_matrices()[tag])[0]
                 source_name = connection_type.from_cell_types[0].name
                 target_name = connection_type.to_cell_types[0].name
-                self.report(
+                report(
                     "Finished connecting {} with {} (tag: {} - total connections: {}).".format(
                         source_name, target_name, connection_type.tags[tag], conn_num
                     ),
@@ -284,7 +275,7 @@ class Scaffold:
                     count = self.cells_by_type[type.name].shape[0]
                 placed = type.placement.get_placement_count()
                 if placed == 0 or count == 0:
-                    self.report("0 {} placed (0%)".format(type.name), 1)
+                    report("0 {} placed (0%)".format(type.name), 1)
                     continue
                 density_msg = ""
                 percent = int((count / type.placement.get_placement_count()) * 100)
@@ -297,10 +288,10 @@ class Scaffold:
                     density_msg = " Desired density: {}. Actual density: {}".format(
                         density_wanted, density_gotten
                     )
-                self.report(
+                report(
                     "{} {} placed ({}%).".format(count, type.name, percent,), 2,
                 )
-            self.report("Average runtime: {}".format(np.average(times)), 2)
+            report("Average runtime: {}".format(np.average(times)), 2)
 
     def _initialise_output_formatter(self):
         self.output_formatter = self.configuration.output_formatter

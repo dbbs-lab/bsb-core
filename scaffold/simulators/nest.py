@@ -1,6 +1,7 @@
 from ..simulation import SimulatorAdapter, SimulationComponent, TargetsNeurons
 from ..models import ConnectivitySet
 from ..helpers import ListEvalConfiguration
+from ..reporting import report, warn
 from ..exceptions import *
 import os, json, weakref, numpy as np
 from itertools import chain
@@ -273,7 +274,7 @@ class NestAdapter(SimulatorAdapter):
         try:
             return self._nest
         except AttributeError:
-            self.scaffold.report("Importing  NEST...", 2)
+            report("Importing  NEST...", 2)
             import nest
 
             self._nest = nest
@@ -292,23 +293,22 @@ class NestAdapter(SimulatorAdapter):
             raise AdapterError(
                 "Attempting to prepare the same adapter twice. Please use `scaffold.create_adapter` for multiple adapter instances of the same simulation."
             )
-
-        self.scaffold.report("Locking NEST kernel...", 2)
+        report("Locking NEST kernel...", 2)
         self.lock()
-        self.scaffold.report("Installing  NEST modules...", 2)
+        report("Installing  NEST modules...", 2)
         self.install_modules()
         if self.in_full_control():
-            self.scaffold.report("Initializing NEST kernel...", 2)
+            report("Initializing NEST kernel...", 2)
             self.reset_kernel()
-        self.scaffold.report("Creating neurons...", 2)
+        report("Creating neurons...", 2)
         self.create_neurons()
-        self.scaffold.report("Creating entities...", 2)
+        report("Creating entities...", 2)
         self.create_entities()
-        self.scaffold.report("Building identifier map...", 2)
+        report("Building identifier map...", 2)
         self._build_identifier_map()
-        self.scaffold.report("Creating devices...", 2)
+        report("Creating devices...", 2)
         self.create_devices()
-        self.scaffold.report("Creating connections...", 2)
+        report("Creating connections...", 2)
         self.connect_neurons()
         self.is_prepared = True
         return self.nest
@@ -453,10 +453,10 @@ class NestAdapter(SimulatorAdapter):
 
     def simulate(self, simulator):
         if not self.is_prepared:
-            self.scaffold.warn("Adapter has not been prepared", SimulationWarning)
-        self.scaffold.report("Simulating...", 2)
+            warn("Adapter has not been prepared", SimulationWarning)
+        report("Simulating...", 2)
         simulator.Simulate(self.duration)
-        self.scaffold.report("Simulation finished.", 2)
+        report("Simulation finished.", 2)
         if self.has_lock:
             self.release_lock()
 
@@ -511,9 +511,7 @@ class NestAdapter(SimulatorAdapter):
             except Exception as e:
                 if e.errorname == "DynamicModuleManagementError":
                     if "loaded already" in e.message:
-                        self.scaffold.warn(
-                            "Module {} already installed".format(module), KernelWarning
-                        )
+                        warn("Module {} already installed".format(module), KernelWarning)
                     elif "file not found" in e.message:
                         raise NestModuleError(
                             "Module {} not found".format(module)
@@ -546,9 +544,7 @@ class NestAdapter(SimulatorAdapter):
             # Create the population's model
             self.create_model(cell_model)
             scaffold_identifiers = ps.identifiers
-            self.scaffold.report(
-                "Creating {} {}...".format(len(scaffold_identifiers), nest_name), 3
-            )
+            report("Creating {} {}...".format(len(scaffold_identifiers), nest_name), 3)
             nest_identifiers = self.nest.Create(nest_name, len(scaffold_identifiers))
             cell_model.scaffold_identifiers.extend(scaffold_identifiers)
             cell_model.nest_identifiers.extend(nest_identifiers)
@@ -560,9 +556,9 @@ class NestAdapter(SimulatorAdapter):
             nest_name = self.suffixed(name)
             count = self.scaffold.statistics.cells_placed[entity_type.name]
             # Create the cell model in the simulator
-            self.scaffold.report("Creating " + nest_name + "...", 3)
+            report("Creating " + nest_name + "...", 3)
             entity_nodes = list(self.nest.Create(entity_type.device, count))
-            self.scaffold.report("Creating {} {}...".format(count, nest_name), 3)
+            report("Creating {} {}...".format(count, nest_name), 3)
             if hasattr(entity_type, "parameters"):
                 # Execute SetStatus and catch DictError
                 self.execute_command(
@@ -595,7 +591,7 @@ class NestAdapter(SimulatorAdapter):
             nest_name = self.suffixed(name)
             cs = ConnectivitySet(self.scaffold.output_formatter, name)
             if not cs.exists():
-                self.scaffold.warn(
+                warn(
                     'Expected connection dataset "{}" not found. Skipping it.'.format(
                         name
                     ),
@@ -619,7 +615,7 @@ class NestAdapter(SimulatorAdapter):
             connection_specifications = {"rule": "one_to_one"}
             # Get the connection parameters from the configuration
             connection_parameters = connection_model.get_connection_parameters()
-            self.scaffold.report("Creating connections " + nest_name, 3)
+            report("Creating connections " + nest_name, 3)
             # Create the connections in NEST
             if not (connection_model.plastic and connection_model.hetero):
                 self.execute_command(
@@ -639,7 +635,7 @@ class NestAdapter(SimulatorAdapter):
                 )
             else:
                 # Create the volume transmitter if the connection is plastic with heterosynaptic plasticity
-                self.scaffold.report("Creating volume transmitter for " + name, 3)
+                report("Creating volume transmitter for " + name, 3)
                 volume_transmitters = self.create_volume_transmitter(
                     connection_model, postsynaptic_cells
                 )
@@ -688,7 +684,7 @@ class NestAdapter(SimulatorAdapter):
         """
         for device_model in self.devices.values():
             device = self.nest.Create(device_model.device)
-            self.scaffold.report("Creating device:  " + device_model.device, 3)
+            report("Creating device:  " + device_model.device, 3)
             # Execute SetStatus and catch DictError
             self.execute_command(
                 self.nest.SetStatus,
@@ -707,9 +703,7 @@ class NestAdapter(SimulatorAdapter):
             )
             # Execute targetting mechanism to fetch target NEST ID's
             device_targets = device_model.get_targets()
-            self.scaffold.report(
-                "Connecting to {} device targets.".format(len(device_targets)), 3
-            )
+            report("Connecting to {} device targets.".format(len(device_targets)), 3)
             # Collect the NEST Connect parameters
             connect_params = [{"rule": "all_to_all"}, device_model.connection_parameters]
             if device_model.io == "input":
@@ -761,7 +755,7 @@ class NestAdapter(SimulatorAdapter):
         nest_name = self.suffixed(connection_model.name)
         # Use the default model unless another one is specified in the configuration.
         # Alias the nest model name under our cell model name.
-        self.scaffold.report(
+        report(
             "Copying synapse model '{}' to {}".format(
                 connection_model.synapse_model, nest_name
             ),

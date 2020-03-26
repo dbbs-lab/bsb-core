@@ -3,6 +3,7 @@ from .helpers import ConfigurableClass
 from .voxels import VoxelCloud, detect_box_compartments, Box
 from sklearn.neighbors import KDTree
 from .exceptions import *
+from .reporting import report
 
 
 class Compartment:
@@ -67,7 +68,7 @@ class Morphology(ConfigurableClass):
 
     def boot(self):
         if self.has_morphology:
-            print(self.morphology_name, "has morphology")
+            report("{} has morphology".format(self.morphology_name), level=2)
             self.store_compartment_tree()
 
     def init_morphology(self, repo_data, repo_meta):
@@ -303,18 +304,20 @@ class TrueMorphology(Morphology):
         I = np.identity(3)
 
         if alpha == 0.0:
-            print(
+            report(
                 "Rotating morphology between parallel orientation vectors, {} and {}!".format(
                     v0, v
-                )
+                ),
+                level=3,
             )
             # We will not rotate the morphology, thus R = I
             R = np.identity(3)
         elif alpha == np.pi:
-            print(
+            report(
                 "Rotating morphology between antiparallel orientation vectors, {} and {}!".format(
                     v0, v
-                )
+                ),
+                level=3,
             )
             # We will rotate the morphology of 180° around a vector orthogonal to the starting vector v0 (the same would be if we take the ending vector v)
             # We set the first and second components to 1; the third one is obtained to have the scalar product with v0 equal to 0

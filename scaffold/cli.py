@@ -178,12 +178,17 @@ def start_cli():
     parser_reconfigure.set_defaults(func=cli_reconfigure)
 
     cl_args = parser.parse_args()
+
     if hasattr(cl_args, "func"):
         cl_args.func(cl_args)
     else:
         from .config import JSONConfig, _from_hdf5
         from .core import Scaffold
         from .output import MorphologyRepository, HDF5Formatter
+        from .reporting import set_verbosity
+
+        if cl_args.verbose is not None:
+            set_verbosity(cl_args.verbose)
 
         file = None
         if hasattr(cl_args, "hdf5"):  # Is an HDF5 file specified?
@@ -191,15 +196,14 @@ def start_cli():
 
         if cl_args.ctype == "json":  # Should we config from JSON?
             # Load the .json configuration
-            scaffoldConfig = JSONConfig(file=cl_args.config, verbosity=cl_args.verbose)
+            scaffoldConfig = JSONConfig(file=cl_args.config)
         elif cl_args.ctype == "hdf5":  # Should we config from hdf5?
             file = cl_args.hdf5
             if cl_args.reconfigure is not None:
                 config = JSONConfig(file=cl_args.reconfigure)
                 HDF5Formatter.reconfigure(file, config)
-            scaffoldConfig = _from_hdf5(
-                file, verbosity=cl_args.verbose
-            )  # Extract the config stored in the hdf5 file.
+            # Extract the config stored in the hdf5 file.
+            scaffoldConfig = _from_hdf5(file)
 
         # Create the scaffold instance
         scaffoldInstance = Scaffold(

@@ -2,6 +2,7 @@ from ..exceptions import *
 from ..helpers import ConfigurableClass
 import abc
 from ..exceptions import *
+from ..reporting import report, warn
 
 
 class PlacementStrategy(ConfigurableClass):
@@ -145,7 +146,7 @@ class Entities(Layered, PlacementStrategy):
         # Get the number of cells that belong in the available volume.
         n_cells_to_place = self.get_placement_count()
         if n_cells_to_place == 0:
-            self.scaffold.warn(
+            warn(
                 "Volume or density too low, no '{}' cells will be placed".format(
                     cell_type.name
                 ),

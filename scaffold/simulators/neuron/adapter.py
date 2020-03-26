@@ -5,6 +5,7 @@ from ...simulation import (
     TargetsSections,
 )
 from ...helpers import get_configurable_class
+from ...reporting import report, warn
 from ...models import ConnectivitySet
 from ...exceptions import (
     MissingMorphologyError,
@@ -269,7 +270,7 @@ class NeuronAdapter(SimulatorAdapter):
         pc = simulator.parallel
         self.pc = pc
         pc.barrier()
-        self.scaffold.report("Simulating...", 2)
+        report("Simulating...", 2)
         pc.set_maxstep(10)
         simulator.finitialize(-65.0)
         simulator.finitialize(self.initial)
@@ -278,13 +279,13 @@ class NeuronAdapter(SimulatorAdapter):
             progression += 1
             pc.psolve(progression)
             pc.barrier()
-            self.scaffold.report(
+            report(
                 "Simulated {}/{}ms".format(progression, self.duration), 3, ongoing=True
             )
             if os.path.exists("interrupt_neuron"):
-                self.scaffold.report("Iterrupt requested. Stopping simulation.", 1)
+                report("Iterrupt requested. Stopping simulation.", 1)
                 break
-        self.scaffold.report("Finished simulation.", 2)
+        report("Finished simulation.", 2)
 
     def collect_output(self):
         import h5py, time
@@ -392,7 +393,7 @@ class NeuronAdapter(SimulatorAdapter):
                 cell_data = np.column_stack((cell_data, np.zeros((len(cell_data), 4))))
             else:
                 cell_data = self.scaffold.get_cells_by_type(cell_model.name)
-            self.scaffold.report("Placing " + str(len(cell_data)) + " " + cell_model.name)
+            report("Placing " + str(len(cell_data)) + " " + cell_model.name)
             for cell in cell_data:
                 cell_id = int(cell[0])
                 if not cell_id in self.node_cells:

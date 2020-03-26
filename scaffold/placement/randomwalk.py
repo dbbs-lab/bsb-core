@@ -1,6 +1,7 @@
 from .strategy import Layered, PlacementStrategy
 import random, numpy as np
 from ..functions import get_candidate_points, add_y_axis, exclude_index
+from ..reporting import report, warn, verbosity as global_verbosity
 from scipy.spatial import distance
 from ..exceptions import *
 
@@ -51,7 +52,7 @@ class LayeredRandomWalk(Layered, PlacementStrategy):
         # Get the number of cells that belong in the available volume.
         n_cells_to_place = self.get_placement_count()
         if n_cells_to_place == 0:
-            self.scaffold.warn(
+            warn(
                 "Volume or density too low, no '{}' cells will be placed".format(
                     cell_type.name
                 ),
@@ -141,8 +142,8 @@ class LayeredRandomWalk(Layered, PlacementStrategy):
                     planar_start, cell_radius, cell_bounds, min_ϵ, max_ϵ
                 )
                 if planar_candidates.shape[0] == 0:
-                    if scaffold.configuration.verbosity > 0:
-                        self.scaffold.warn(
+                    if global_verbosity > 0:
+                        warn(
                             "Could not place a single cell in {} {} starting from the middle of the simulation volume: Maybe the volume is too low or cell radius/epsilon too big. Sublayer skipped!".format(
                                 layer.name, sublayer_id
                             ),
@@ -242,7 +243,7 @@ class LayeredRandomWalk(Layered, PlacementStrategy):
                                 ]
                             )
                         else:
-                            scaffold.report(
+                            report(
                                 "Only placed {} out of {} cells in sublayer {}".format(
                                     current_cell_count,
                                     cells_per_sublayer,
@@ -265,7 +266,7 @@ class LayeredRandomWalk(Layered, PlacementStrategy):
             layer_cell_positions = np.concatenate(
                 (layer_cell_positions, placed_positions)
             )
-            scaffold.report(
+            report(
                 "Filling {} sublayer {}/{}...".format(
                     cell_type.name, sublayer_id + 1, n_sublayers
                 ),

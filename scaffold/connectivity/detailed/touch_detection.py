@@ -5,6 +5,7 @@ from ...helpers import (
     DistributionConfiguration,
     assert_attr_in,
 )
+from ...reporting import report, warn
 from random import choice as random_element, sample as sample_elements
 
 
@@ -170,13 +171,13 @@ class TouchDetector(ConnectionStrategy, MorphologyStrategy):
                             for _ in range(len(compartment_connections))
                         ]
                     )
-        self.scaffold.report(
+        report(
             "Checked {} candidate cell pairs from {} to {}".format(
                 c_check, touch_info.from_cell_type.name, touch_info.to_cell_type.name
             ),
             level=2,
         )
-        self.scaffold.report(
+        report(
             "Touch connection results: \n* Touching pairs: {} \n* Synapses: {}".format(
                 touching_cells, len(connected_compartments)
             ),

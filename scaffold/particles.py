@@ -2,6 +2,7 @@ import numpy as np
 from sklearn.neighbors import KDTree
 from rtree import index
 from random import choice
+from .reporting import report
 
 try:
     import plotly.graph_objects as go
@@ -105,12 +106,6 @@ class ParticleSystem:
         self.track_displaced = track_displaced
         self.scaffold = scaffold
 
-    def report(self, msg, level=1, ongoing=False):
-        if self.scaffold:
-            self.scaffold.report(msg, level=level, ongoing=ongoing)
-        else:
-            print(msg, end="\n" if not ongoing else "\r")
-
     def fill(self, voxels, particles):
         # Amount of spatial dimensions, extracted from the dimensions of the first voxel
         self.dimensions = len(voxels[0][0])
@@ -189,14 +184,14 @@ class ParticleSystem:
         self.find_colliding_particles()
         self.displaced_particles = set()
         while self.colliding_count > 0:
-            self.report("Untangling {} collisions".format(self.colliding_count), level=2)
+            report("Untangling {} collisions".format(self.colliding_count), level=2)
             t = self.colliding_count
             for i, epicenter_particle in enumerate(self.colliding_particles):
                 neighbourhood = self.find_neighbourhood(epicenter_particle)
                 if self.track_displaced:
                     self.displaced_particles.update(neighbourhood.partners)
                 self.resolve_neighbourhood(neighbourhood)
-                self.report(str(i) + " / " + str(t), level=3, ongoing=True)
+                report(str(i) + " / " + str(t), level=3, ongoing=True)
             # Double check that there's no collisions left
             self.freeze()
             self.find_colliding_particles()

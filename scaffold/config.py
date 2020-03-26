@@ -30,7 +30,7 @@ from .exceptions import *
 import numpy as np
 
 
-def _from_hdf5(file, verbosity=1):
+def _from_hdf5(file):
     """
         Restore a configuration object from an HDF5 file.
 
@@ -62,7 +62,7 @@ def _from_hdf5(file, verbosity=1):
             + config_class
         )
     # Instantiate the configuration class with a configuration stream
-    return module_dict[class_name](stream=config_string, verbosity=verbosity)
+    return module_dict[class_name](stream=config_string)
 
 
 class ScaffoldConfig(object):
@@ -71,7 +71,7 @@ class ScaffoldConfig(object):
         to configurate it.
     """
 
-    def __init__(self, file=None, stream=None, verbosity=1, simulators={}):
+    def __init__(self, file=None, stream=None, simulators={}):
         """
             :param file: The path to a configuration file
             :type file: string
@@ -95,7 +95,6 @@ class ScaffoldConfig(object):
         self.after_placement_hooks = {}
         self.after_connect_hooks = {}
         self.simulations = {}
-        self.verbosity = verbosity
         self._raw = ""
         self._name = ""
         if not hasattr(self, "_extension"):

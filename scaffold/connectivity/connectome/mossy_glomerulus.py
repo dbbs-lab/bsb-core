@@ -1,5 +1,6 @@
 import numpy as np
 from ..strategy import ConnectionStrategy
+from ...reporting import report, warn
 
 
 class ConnectomeMossyGlomerulus(ConnectionStrategy):
@@ -107,7 +108,7 @@ class ConnectomeMossyGlomerulus(ConnectionStrategy):
             ] = highest_glom_MF
             # That glomerulus is deleted from the list
             Glom_xzID = np.delete(Glom_xzID, best_glom[highest_glom_MF], axis=0)
-            self.scaffold.report(
+            report(
                 "Associated "
                 + str(int(100 * (1 - np.shape(Glom_xzID)[0] / total_glom)))
                 + "% glomeruli",
