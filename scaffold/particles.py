@@ -316,7 +316,7 @@ class ParticleSystem:
             idx.insert(
                 i, (*voxel.origin, *(voxel.origin + voxel.size)),
             )
-        # Query index, filter whether the intersection returns any hits, map to id.
+        # Query index, filter whether the intersection returns any hits, map to id and cell type.
         out_of_bounds_ids = list(
             map(
                 lambda p: p.id,
@@ -326,10 +326,29 @@ class ParticleSystem:
                 ),
             )
         )
+
+        out_of_bounds_types = list(
+            map(
+                lambda p: p.type["name"],
+                filter(
+                    lambda p: not (list(idx.intersection((*p.position, *p.position)))),
+                    at_risk_particles,
+                ),
+            )
+        )
+
+        types = set(out_of_bounds_types)
+        unique_types = list(types)
+
         # Remove out of bounds particles and return number of affected particles.
         pruned = self.remove_particles(out_of_bounds_ids)
         number_pruned = len(out_of_bounds_ids)
-        return number_pruned
+        tot_number_pruned = len(out_of_bounds_ids)
+        number_pruned_per_type = {}
+        if tot_number_pruned > 0:
+            for t in unique_types:
+                number_pruned_per_type[t] = out_of_bounds_types.count(t)
+        return tot_number_pruned, number_pruned_per_type
 
 
 class LargeParticleSystem(ParticleSystem):

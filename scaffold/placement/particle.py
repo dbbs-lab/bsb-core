@@ -51,7 +51,9 @@ class ParticlePlacement(Layered, PlacementStrategy):
         if len(colliding) > 0:
             system.solve_collisions()
             if self.prune:
-                number_pruned = system.prune(at_risk_particles=system.displaced_particles)
+                number_pruned, pruned_per_type = system.prune(
+                    at_risk_particles=system.displaced_particles
+                )
                 report(
                     "{} {} ({}%) cells pruned.".format(
                         number_pruned,
