@@ -102,6 +102,11 @@ def start_cli():
         default="mouse_cerebellum.json",
     )
     parser.add_argument(
+        "-r",
+        "--report",
+        help="Path the file that the scaffold should report to, instead of printing",
+    )
+    parser.add_argument(
         "-ct",
         "--ctype",
         help="Specify the type of the configuration file.",
@@ -185,12 +190,15 @@ def start_cli():
         from .config import JSONConfig, _from_hdf5
         from .core import Scaffold
         from .output import MorphologyRepository, HDF5Formatter
-        from .reporting import set_verbosity
+        from .reporting import set_verbosity, set_report_file
 
+        scaffold_kwargs = {}
+        # Should we change the verbosity setting?
         if cl_args.verbose is not None:
             set_verbosity(cl_args.verbose)
-
-        file = None
+        # Should we report to a file?
+        if cl_args.report:
+            set_report_file(cl_args.report)
         if hasattr(cl_args, "hdf5"):  # Is an HDF5 file specified?
             cl_args.ctype = "hdf5"  # Load from the config stored in the HDF5 file.
 
@@ -204,19 +212,18 @@ def start_cli():
                 HDF5Formatter.reconfigure(file, config)
             # Extract the config stored in the hdf5 file.
             scaffoldConfig = _from_hdf5(file)
+            scaffold_kwargs["from_file"] = file
 
         # Create the scaffold instance
-        scaffoldInstance = Scaffold(
-            scaffoldConfig, from_file=file
-        )  # `from_file` notifies the scaffold instance that we might've loaded from a file.
+        scaffoldInstance = Scaffold(scaffoldConfig, **scaffold_kwargs)
 
         if hasattr(cl_args, "x") and hasattr(cl_args, "z") and (cl_args.x or cl_args.z):
-            kwargs = {}
+            resize_kwargs = {}
             if hasattr(cl_args, "x") and cl_args.x is not None:
-                kwargs["X"] = float(cl_args.x)
+                resize_kwargs["X"] = float(cl_args.x)
             if hasattr(cl_args, "z") and cl_args.z is not None:
-                kwargs["Z"] = float(cl_args.z)
-            scaffoldInstance.configuration.resize(**kwargs)
+                resize_kwargs["Z"] = float(cl_args.z)
+            scaffoldInstance.configuration.resize(**resize_kwargs)
 
         if cl_args.output:  # Is a new output file name specified?
             scaffoldInstance.output_formatter.save_file_as = cl_args.output

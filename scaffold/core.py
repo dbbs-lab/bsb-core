@@ -9,7 +9,7 @@ from .models import CellType
 from .connectivity import ConnectionStrategy
 from warnings import warn as std_warn
 from .exceptions import *
-from .reporting import report, warn, has_mpi_installed
+from .reporting import report, warn, has_mpi_installed, report_file
 
 ###############################
 ## Scaffold class
@@ -113,7 +113,7 @@ class Scaffold:
         self._initialise_simulations()
         self._initialise_hooks()
 
-    def report(self, message, level=2, ongoing=False):
+    def report(self, message, level=2, ongoing=False, token=None):
         """
             Send a message to the appropriate output channel.
 
@@ -360,6 +360,10 @@ class Scaffold:
             :type simulation_name: string
         """
         simulation, simulator = self.prepare_simulation(simulation_name)
+        # If we're reporting to a file, add a stream of progress event messages..
+        if report_file:
+            listener = ReportListener(self, report_file)
+            simulation.add_progress_listener(listener)
         simulation.simulate(simulator)
         simulation.collect_output()
         if quit and hasattr(simulator, "quit"):
@@ -955,3 +959,19 @@ class Scaffold:
             Return the total amount of cells and entities placed.
         """
         return sum(list(self.statistics.cells_placed.values()))
+
+
+class ReportListener:
+    def __init__(self, scaffold, file):
+        self.file = file
+        self.scaffold = scaffold
+
+    def __call__(self, progress):
+        self.scaffold.report(
+            str(progress.progression)
+            + "+"
+            + str(progress.duration)
+            + "+"
+            + str(progress.time),
+            token="simulation_progress",
+        )

@@ -21,3 +21,6 @@ obfuscation/scaffold
 # Ignore obfuscation files
 obfuscation/scaffold/
 obfuscation/licenses
+
+# Ignore report files
+*.io

@@ -1,8 +1,9 @@
-import warnings
+import warnings, base64
 
 warnings.filterwarnings("once", category=DeprecationWarning)
 
 verbosity = 1
+report_file = None
 
 
 def set_verbosity(v):
@@ -13,7 +14,19 @@ def set_verbosity(v):
     verbosity = v
 
 
-def report(message, level=2, ongoing=False):
+def set_report_file(v):
+    """
+        Set a file to which the scaffold package should report instead of stdout.
+    """
+    global report_file
+    report_file = v
+
+
+preamble = chr(240) + chr(80) + chr(85) + chr(248) + chr(228)
+preamble_bar = chr(191) * 3
+
+
+def report(message, level=2, ongoing=False, token=None):
     """
         Send a message to the appropriate output channel.
 
@@ -24,7 +37,16 @@ def report(message, level=2, ongoing=False):
         :param ongoing: The message is part of an ongoing progress report. This replaces the endline (`\\n`) character with a carriage return (`\\r`) character
     """
     if is_mpi_master and verbosity >= level:
-        print(message, end="\n" if not ongoing else "\r")
+        if report_file:
+            with open(report_file, "a") as f:
+                header = ""
+                if token:
+                    header += token
+                header = base64.b64encode(bytes(header, "UTF-8")).decode("UTF-8")
+                message = base64.b64encode(bytes(message, "UTF-8")).decode("UTF-8")
+                f.write(preamble + header + preamble_bar + message + preamble)
+        else:
+            print(message, end="\n" if not ongoing else "\r")
 
 
 def warn(message, category=None):

@@ -33,6 +33,7 @@ class SimulatorAdapter(ConfigurableClass):
         self.connection_models = {}
         self.devices = {}
         self.entities = {}
+        self._progress_listeners = []
 
     def get_configuration_classes(self):
         if not hasattr(self.__class__, "simulator_name"):
@@ -90,6 +91,19 @@ class SimulatorAdapter(ConfigurableClass):
             Collect the output of a simulation that completed
         """
         pass
+
+    def progress(self, progression, duration):
+        self.scaffold.report(
+            "Simulated {}/{}ms".format(progression, duration), 3, ongoing=True
+        )
+        progress = types.SimpleNamespace(
+            progression=progression, duration=duration, time=time()
+        )
+        for listener in self._progress_listeners:
+            listener(progress)
+
+    def add_progress_listener(self, listener):
+        self._progress_listeners.append(listener)
 
 
 class TargetsNeurons:
