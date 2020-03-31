@@ -248,7 +248,7 @@
     "basket_to_purkinje": {
       "class": "scaffold.connectivity.VoxelIntersection",
       "from_cell_types": [{"type": "basket_cell", "compartments": ["axon"]}],
-      "to_cell_types": [{"type": "purkinje_cell", "compartments": ["dendrites"]}]
+      "to_cell_types": [{"type": "purkinje_cell", "compartments": ["soma"]}]
     },
     "stellate_to_stellate": {
       "class": "scaffold.connectivity.ConnectomeGapJunctions",
