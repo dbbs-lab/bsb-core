@@ -286,3 +286,139 @@ dimension::
     # Flat bed:
     "volume_dimension_ratio": [20., 1., 20.]
   }
+
+====================
+Cell Type Attributes
+====================
+
+entity
+======
+
+If a cell type is marked as an entity with ``"entity": true``, it will not receive a
+position in the simulation volume, but it will still be assigned an ID during placement
+that can be used for the  connectivity step. This is for example useful for afferent
+fibers.
+
+If :guilabel:`entity` is ``true`` no :guilabel:`morphology` or :guilabel:`plotting` needs
+to be specified.
+
+relay
+=====
+
+If a cell type is a :guilabel:`relay` it immediately relays all of its inputs to its
+target cells. Also known as a parrot neuron.
+
+placement
+=========
+
+Configuration node of the placement of this cell type. See :ref:`cref_placement`.
+
+morphology
+==========
+
+Configuration node of the morphologies of this cell type. This is still an experimental
+API, expect changes. See :ref:`cref_morphology`.
+
+plotting
+========
+
+Configuration node of the plotting attributes of this cell type. See :ref:`cref_plotting`.
+
+Example
+=======
+
+.. code-block::
+
+
+
+.. _cref_placement:
+
+====================
+Placement Attributes
+====================
+
+Each configuration node needs to specify a :class:`.placement.PlacementStrategy` through
+:guilabel:`class`. Depending on the strategy another specific set of attributes is
+required. To see how to configure each :class:`.placement.PlacementStrategy` see the
+:doc:`guides/placement-strategies`.
+
+class
+=====
+
+A string containing a PlacementStrategy class name, including its module.
+
+.. code-block::
+
+  "class": "scaffold.placement.ParticlePlacement"
+
+=======================
+Connectivity Attributes
+=======================
+
+The connectivity configuration node contains some basic attributes listed below and a set
+of strategy specific attributes that you can find in
+:doc:`guides/connection-strategies`.
+
+class
+=====
+
+A string containing a ConnectivityStrategy class name, including its module.
+
+.. code-block::
+
+  "class": "scaffold.placement.VoxelIntersection"
+
+from_types/to_types
+===================
+
+A list of pre/postsynaptic selectors. Each selector is made up of a :guilabel:`type` to
+specify the cell type and a :guilabel:`compartments` list that specify the involved
+compartments for morphologically detailed connection strategies.
+
+.. deprecated:: 4.0
+
+  Each connectivity type will only be allowed to have 1 presynaptic and postsynaptic cell
+  type. :guilabel:`from/to_types` will subsequently be renamed to :guilabel:`from/to_type`
+
+.. code-block::
+
+  "from_types": [
+    {
+      "type": "example_cell",
+      "compartments": [
+        "axon"
+      ]
+    }
+  ]
+
+.. _cref_morphology:
+
+=====================
+Morphology attributes
+=====================
+
+.. _cref_plotting:
+
+===================
+Plotting attributes
+===================
+
+color
+=====
+
+The color representation for this cell type in plots. Can be any valid Plotly
+color string.
+
+.. code-block::
+
+  "color": "black"
+  "color": "#000000"
+
+label
+=====
+
+The legend label for this cell type in plots.
+
+.. code-block::
+
+  "label": "My Favourite Cells"
