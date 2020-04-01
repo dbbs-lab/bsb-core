@@ -287,11 +287,13 @@ def get_soma_trace(soma_radius, offset=[0.0, 0.0, 0.0], color="black"):
     )
 
 
-@_figure
+@_network_figure
 def plot_morphology(
     morphology,
     offset=[0.0, 0.0, 0.0],
     fig=None,
+    cubic=True,
+    swapaxes=True,
     show=True,
     legend=True,
     set_range=True,

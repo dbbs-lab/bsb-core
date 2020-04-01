@@ -309,11 +309,11 @@ class Scaffold:
                 self.output_formatter.morphology_repository
             )
 
-    def plot_network_cache(self):
+    def plot_network_cache(self, fig=None):
         """
             Plot everything currently in the network cache.
         """
-        plot_network(self, from_memory=True)
+        plot_network(self, fig=fig, from_memory=True)
 
     def reset_network_cache(self):
         """
