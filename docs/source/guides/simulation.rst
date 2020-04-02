@@ -21,11 +21,16 @@ configuration file, specifying each simulation with its name, e.g. "first_simula
   }
 
 
-****************
-NEST simulations
-****************
-NEST simulations can be configured setting the attribute ``simulator`` to ``nest``.
-The basic simulation properties can be set through the attributes:
+****
+NEST
+****
+NEST is mainly used for simulations of Spiking Neural Networks, with point neuron models.
+
+*************
+Configuration
+*************
+NEST simulations in the scaffold can be configured setting the attribute ``simulator`` to ``nest``.
+The basic NEST simulation properties can be set through the attributes:
 
 * ``default_neuron_model``: default model used for all ``cell_models``, unless differently indicated in the ``neuron_model`` attribute of a specific cell model.
 * ``default_synapse_model``: default model used for all ``connection_models`` (e.g. ``static_synapse``), unless differently indicated in the ``synapse_model`` attribute of a specific connection model.
@@ -67,20 +72,103 @@ Then, the dictionaries ``cell_models``, ``connection_models``, ``devices``, ``en
 
 
 
-Cell models
-===========
-For each cell in the ``cell_types`` dictionary, it is possible to specify:
-* ``cell_model``: NEST neuron model, if not using the ``default_neuron_model``
-* ``parameters``: neuron model parameters that are common to the NEST neuron models that could be used.
+Cells
+=====
+In the ``cell_models`` attribute, it is possible to specify simulation-specific properties for each cell type:
+
+* ``cell_model``: NEST neuron model, if not using the ``default_neuron_model``. Currently supported models are ``iaf_cond_alpha`` and ``eglif_cond_alpha_multisyn``. Other available models can be found in the `NEST documentation <https://nest-simulator.readthedocs.io/en/latest/models/neurons.html>`_
+* ``parameters``: neuron model parameters that are common to the NEST neuron models that could be used, including:
+
+  * ``t_ref``: refractory period duration [ms]
+  * ``C_m``: membrane capacitance [pF]
+  * ``V_th``: threshold potential [mV]
+  * ``V_reset``: reset potential [mV]
+  * ``E_L``: leakage potential [mV]
+
+Then, neuron model specific parameters can be indicated in the attributes corresponding to the model names:
+
+* ``iaf_cond_alpha``:
+
+  * ``I_e``: endogenous current [pA]
+  * ``tau_syn_ex``: time constant of excitatory synaptic inputs [ms]
+  * ``tau_syn_in``: time constant of inhibitory synaptic inputs [ms]
+  * ``g_L``: leaky conductance [nS]
+
+* ``eglif_cond_alpha_multisyn``:
+
+  * ``Vmin``: minimum membrane potential [mV]
+  * ``Vinit``: initial membrane potential [mV]
+  * ``lambda_0``: escape rate parameter
+  * ``tau_V``: escape rate parameter
+  * ``tau_m``: membrane time constant [ms]
+  * ``I_e``: endogenous current [pA]
+  * ``kadap``: adaptive current coupling constant
+  * ``k1``: spike-triggered current decay
+  * ``k2``: adaptive current decay
+  * ``A1``: spike-triggered current update [pA]
+  * ``A2``: adaptive current update [pA]
+  * ``tau_syn1``, ``tau_syn2``, ``tau_syn3``: time constants of synaptic inputs at the 3 receptors [ms]
+  * ``E_rev1``, ``E_rev2``, ``E_rev3``: reversal potential for the 3 synaptic receptors (usually set to 0mV for excitatory and -80mV for inhibitory synapses) [mV]
+  * ``receptors``: dictionary specifying the receptor number for each input cell to the current neuron
+
+Example
+=======
+Configuration example for a cerebellar Golgi cell. In the ``eglif_cond_alpha_multisyn`` neuron model, the 3 receptors are associated to synapses from glomeruli, Golgi cells and Granule cells, respectively.
+
+.. code-block:: json
+
+  {
+    "cell_models": {
+      "golgi_cell": {
+        "parameters": {
+          "t_ref": 2.0,
+          "C_m": 145.0,
+          "V_th": -55.0,
+          "V_reset": -75.0,
+          "E_L": -62.0
+        },
+        "iaf_cond_alpha": {
+          "I_e": 36.75,
+          "tau_syn_ex": 0.23,
+          "tau_syn_in": 10.0,
+          "g_L": 3.3
+        },
+        "eglif_cond_alpha_multisyn": {
+          "Vmin": -150.0,
+          "Vinit": -62.0,
+          "lambda_0": 1.0,
+          "tau_V":0.4,
+          "tau_m": 44.0,
+          "I_e": 16.214,
+          "kadap": 0.217,
+          "k1": 0.031,
+          "k2": 0.023,
+          "A1": 259.988,
+          "A2":178.01,
+          "tau_syn1":0.23,
+          "tau_syn2": 10.0,
+          "tau_syn3": 0.5,
+          "E_rev1": 0.0,
+          "E_rev2": -80.0,
+          "E_rev3": 0.0,
+          "receptors": {
+            "glomerulus": 1,
+            "golgi_cell": 2,
+            "granule_cell": 3
+          }
+        }
+      }
+    }
+  }
 
 
 
-Connection models
-=================
+Connections
+=========================
 
 
-Plastic connections
-===================
+Simulations with plasticity
+===========================
 The default synapse model for connection models is usually set to ``static_synapse``.
 
 For plastic synapses, it is possible to choose between:
