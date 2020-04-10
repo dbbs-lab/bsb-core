@@ -17,6 +17,7 @@ htmlcov/
 .idea/
 obfuscation/licenses
 obfuscation/scaffold
+!morphologies.hdf5
 
 # Ignore obfuscation files
 obfuscation/scaffold/
