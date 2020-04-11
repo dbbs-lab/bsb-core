@@ -11,7 +11,9 @@ def relative_to_tests_folder(path):
     return os.path.join(os.path.dirname(__file__), path)
 
 
-double_nn_config = relative_to_tests_folder("configs/test_double_neuron_network.json")
+double_nn_config = relative_to_tests_folder(
+    "configs/test_double_neuron_network_relay.json"
+)
 
 
 class TestTargetting(unittest.TestCase):

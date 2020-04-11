@@ -280,12 +280,8 @@
       "resolution": 0.1,
       "record_soma": true,
       "cell_models": {
-        "glomerulus": {
-          "relay": true
-        },
-        "mossy_fibers": {
-          "relay": true
-        },
+        "glomerulus": { },
+        "mossy_fibers": { },
         "granule_cell": {
           "model": "dbbs_models.GranuleCell",
           "record_soma": true,

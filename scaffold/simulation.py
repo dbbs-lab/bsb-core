@@ -1,6 +1,7 @@
 import abc, random
 import numpy as np
 from .helpers import ConfigurableClass, assert_attr, SortableByAfter
+from .exceptions import *
 
 
 class SimulationComponent(ConfigurableClass, SortableByAfter):
@@ -24,6 +25,26 @@ class SimulationComponent(ConfigurableClass, SortableByAfter):
 
     def has_after(self):
         return hasattr(self, "after")
+
+
+class SimulationCell(SimulationComponent):
+    def boot(self):
+        super().boot()
+        try:
+            self.cell_type = self.scaffold.get_cell_type(self.name)
+        except TypeNotFoundError:
+            raise TypeNotFoundError(
+                "Cell type '{}' not found in '{}', all cell models need to have the name of a cell type.".format(
+                    self.name, self.get_config_node()
+                )
+            )
+
+    def is_relay(self):
+        return self.cell_type.relay
+
+    @property
+    def relay(self):
+        return self.is_relay()
 
 
 class SimulatorAdapter(ConfigurableClass):
@@ -211,9 +232,9 @@ class TargetsNeurons:
 
     def _targets_representatives(self):
         target_types = [
-            self.scaffold.get_cell_type(cell_model.name)
+            cell_model.cell_type
             for cell_model in self.adapter.cell_models.values()
-            if not cell_model.relay
+            if not cell_model.cell_type.relay
         ]
         if hasattr(self, "cell_types"):
             target_types = list(filter(lambda c: c.name in self.cell_types, target_types))

@@ -87,6 +87,7 @@
       }
     },
     "glomerulus": {
+      "relay": true,
       "placement": {
         "class": "scaffold.placement.LayeredRandomWalk",
         "layer": "granular_layer",
@@ -431,13 +432,7 @@
           }
         },
         "glomerulus": {
-          "neuron_model": "parrot_neuron",
-          "parameters": {
-
-          },
-          "parrot_neuron": {
-
-          }
+          "neuron_model": "parrot_neuron"
         },
         "purkinje_cell": {
           "parameters": {

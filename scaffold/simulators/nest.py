@@ -1,4 +1,9 @@
-from ..simulation import SimulatorAdapter, SimulationComponent, TargetsNeurons
+from ..simulation import (
+    SimulatorAdapter,
+    SimulationComponent,
+    SimulationCell,
+    TargetsNeurons,
+)
 from ..models import ConnectivitySet
 from ..helpers import ListEvalConfiguration
 from ..reporting import report, warn
@@ -25,31 +30,52 @@ class MapsScaffoldIdentifiers:
         return [self.scaffold_to_nest_map[id] for id in ids]
 
 
-class NestCell(SimulationComponent, MapsScaffoldIdentifiers):
+class NestCell(SimulationCell, MapsScaffoldIdentifiers):
 
     node_name = "simulations.?.cell_models"
-    required = ["parameters"]
 
     def boot(self):
+        super().boot()
         self.receptor_specifications = {}
         self.reset()
+        if self.relay:
+            # If a cell type is marked as a relay then the cell model should be a
+            # parameterless "parrot_neuron" model if no specifics are provided.
+            #
+            # Set the default relay model to "parrot_neuron"
+            if not hasattr(self, "neuron_model"):
+                self.neuron_model = "parrot_neuron"
+            # Set the default parameter dict to empty
+            if not hasattr(self, "parameters"):
+                self.parameters = {}
+            # Set the default relay model parameter dict to empty
+            if not hasattr(self, self.neuron_model):
+                self.__dict__[self.neuron_model] = {}
+
         # The cell model contains a 'parameters' attribute and many sets of
         # neuron model specific sets of parameters. Each set of neuron model
         # specific parameters can define receptor specifications.
         # Extract those if present to the designated receptor_specifications dict.
         for neuron_model in self.__dict__:
             model_parameters = self.__dict__[neuron_model]
-            # Exclude the default parameters dict and transfer the receptor specifications
+            # Iterate over the model specific parameter dicts with receptor
+            # specifications, excluding the default parameter dict.
             if (
                 neuron_model != "parameters"
                 and isinstance(model_parameters, dict)
                 and "receptors" in model_parameters
             ):
+                # Transfer the receptor specifications
                 self.receptor_specifications[neuron_model] = model_parameters["receptors"]
                 del model_parameters["receptors"]
 
     def validate(self):
-        pass
+        if not self.relay and not hasattr(self, "parameters"):
+            raise AttributeMissingError(
+                "Required attribute 'parameters' missing from '{}'".format(
+                    self.get_config_node()
+                )
+            )
 
     def reset(self):
         self.reset_identifiers()

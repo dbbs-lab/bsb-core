@@ -17,6 +17,7 @@ class CellType(SortableByAfter):
     def __init__(self, name, placement=None):
         self.name = name
         self.placement = placement
+        self.relay = False
 
     def validate(self):
         """

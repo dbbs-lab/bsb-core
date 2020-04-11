@@ -35,7 +35,8 @@
       "plotting": {
         "display_name": "less lonely cell",
         "color": "#E62214"
-      }
+      },
+      "relay": true
     },
     "to_cell": {
       "placement": {

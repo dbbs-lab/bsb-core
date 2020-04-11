@@ -1,6 +1,7 @@
 from ...simulation import (
     SimulatorAdapter,
     SimulationComponent,
+    SimulationCell,
     TargetsNeurons,
     TargetsSections,
 )
@@ -16,13 +17,12 @@ import random, os, sys
 import numpy as np
 
 
-class NeuronCell(SimulationComponent):
+class NeuronCell(SimulationCell):
     node_name = "simulations.?.cell_models"
 
     casts = {
         "record_soma": bool,
         "record_spikes": bool,
-        "relay": bool,
         "parameters": dict,
     }
 
@@ -30,22 +30,23 @@ class NeuronCell(SimulationComponent):
         "record_soma": False,
         "record_spikes": False,
         "parameters": {},
-        "relay": False,
         "entity": False,
     }
 
-    required = [lambda c: "model" if "relay" not in c or not c["relay"] else None]
-
     def boot(self):
+        super().boot()
         self.instances = []
-        if not self.relay:
-            self.model_class = get_configurable_class(self.model)
 
     def __getitem__(self, i):
         return self.instances[i]
 
     def validate(self):
-        pass
+        if not self.relay and not hasattr(self, "model"):
+            raise ConfigurationError(
+                "Missing required attribute 'model' in " + self.get_config_node()
+            )
+        if not self.relay:
+            self.model_class = get_configurable_class(self.model)
 
     def get_parameters(self):
         # Get the default synapse parameters

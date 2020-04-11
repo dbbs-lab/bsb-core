@@ -540,7 +540,8 @@ class JSONConfig(ScaffoldConfig):
         # Get the placement configuration node
         placement = assert_attr(section, "placement", node_name)
         cell_type.placement = self.init_placement(placement, cell_type)
-        cell_type.entity = "entity" in section and section["entity"]
+        cell_type.entity = "entity" in section and bool(section["entity"])
+        cell_type.relay = "relay" in section and bool(section["relay"])
         if not cell_type.entity:
             # Get the morphology configuration node
             morphology = assert_attr(section, "morphology", node_name)
