@@ -459,7 +459,7 @@
             "k1": 0.1950,
             "k2": 0.041,
             "A1": 157.622,
-            "A2":172.622,
+            "A2": 172.622,
             "tau_syn1": 1.1,
             "tau_syn2": 2.8,
             "tau_syn3": 0.4,
@@ -876,10 +876,10 @@
             "stdp_synapse": {
               "tau_plus":30.0,
               "alpha": 0.5,
-              "lambda_0": 0.1,
-              "mu_plus": 0.0,
-              "mu_minus": 0.0,
-              "Wmax": 100.0
+              "lambda": 0.1,
+              "mu_plus": 0.001,
+              "mu_minus": 0.005,
+              "Wmax": 0.1
             }
           }
         },
@@ -958,7 +958,7 @@
         },
         "dcn_interneuron_to_io": {
           "connection": {
-            "weight":-3.0,
+            "weight":-0.001,
             "delay": 20.0
           },
           "synapse": {
@@ -1007,7 +1007,7 @@
             }
           },
           "connection_rule": {"rule": "one_to_one"},
-          "connection_parameters": {"model": "static_synapse", "weight":555.0, "delay": 1.0}
+          "connection_parameters": {"model": "static_synapse", "weight":100.0, "delay": 1.0}
         },
         "record_glomerulus_spikes": {
           "device": "spike_detector",
