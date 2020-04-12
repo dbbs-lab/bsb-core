@@ -61,54 +61,71 @@ class VoxelIntersection(ConnectionStrategy, MorphologyStrategy):
         compartments_out = []
         morphologies_out = []
         for from_cell, from_morpho in from_morphology_set:
+            # Make sure that the voxelization was successful
             self.assert_voxelization(from_morpho, from_compartments)
+            # Get the outer box of the morphology.
             from_box = from_morpho.cloud.get_voxel_box()
+            # Get a map from voxel index to compartments in that voxel.
             from_map = from_morpho.cloud.map
+            # Transform the box into a rectangle that we can query the Rtree with.
             this_box = tuple(
                 from_box + np.concatenate((from_cell.position, from_cell.position))
             )
+            # Query the Rtree for intersections of to_cell boxes with our from_cell box
             cell_intersections = list(to_cell_tree.intersection(this_box, objects=False))
+            # Loop over each intersected partner to find and select compartment intersections
             for partner in cell_intersections:
+                # Get the precise morphology of the to_cell we collided with
                 to_cell, to_morpho = to_morphology_set[partner]
+                # Get the map from voxel id to list of compartments in that voxel.
                 to_map = to_morpho.cloud.map
+                # Find which voxels inside the cell boxes actually intersect with eachother.
                 voxel_intersections = self.intersect_clouds(
                     from_morpho.cloud,
                     to_morpho.cloud,
                     from_cell.position,
                     to_cell.position,
                 )
-                # Find non-empty lists: these voxels have intersections
-                intersecting_from_voxels = np.nonzero(voxel_intersections)[0]
-                if not len(intersecting_from_voxels):
+                # Returns a list of lists: the elements in the inner lists are the indices of the
+                # voxels in the from morphology, the indices of the lists inside of the outer list
+                # are the to voxel indices.
+                #
+                # Find non-empty lists: these voxels actually have intersections
+                intersecting_to_voxels = np.nonzero(voxel_intersections)[0]
+                if not len(intersecting_to_voxels):
+                    # No intersections found? Do nothing, continue to next partner.
                     continue
-                # Data structure to contain the compartment pairs of this cell pair.
-                cell_pair_compartment_pairs = {}
-                for from_voxel_id in intersecting_from_voxels:
-                    # Get the list of voxels that the from_voxel intersects with.
-                    intersecting_voxels = voxel_intersections[from_voxel_id]
-                    to_voxel_candidates = []
-                    for to_voxel_id in intersecting_voxels:
-                        # Store all of the compartments in the to_voxel as
-                        # possible candidates for this cell pair's connection
-                        to_voxel_candidates.extend(to_map[to_voxel_id])
-                    cell_pair_compartment_pairs[from_voxel_id] = to_voxel_candidates
-                # Weigh the random sampling by the amount of compartment pairs
-                voxel_weights = list(
-                    map(
-                        lambda item: len(from_map[item[0]]) * len(item[1]),
-                        cell_pair_compartment_pairs.items(),
-                    )
-                )
+                # Dictionary that stores the target compartments for each to_voxel.
+                target_comps_per_to_voxel = {}
+                # Iterate over each to_voxel index.
+                for to_voxel_id in intersecting_to_voxels:
+                    # Get the list of voxels that the to_voxel intersects with.
+                    intersecting_voxels = voxel_intersections[to_voxel_id]
+                    target_compartments = []
+                    for from_voxel_id in intersecting_voxels:
+                        # Store all of the compartments in the from_voxel as
+                        # possible candidates for these cells' connections
+                        target_compartments.extend(from_map[from_voxel_id])
+                    target_comps_per_to_voxel[to_voxel_id] = target_compartments
+                # Weigh the random sampling by the amount of compartments so that voxels
+                # with more compartments have a higher chance of having one of their many
+                # compartments randomly picked.
+                voxel_weights = [
+                    len(to_map[to_voxel_id]) * len(from_targets)
+                    for to_voxel_id, from_targets in target_comps_per_to_voxel.items()
+                ]
                 weight_sum = sum(voxel_weights)
                 voxel_weights = [w / weight_sum for w in voxel_weights]
-                pair_items = list(cell_pair_compartment_pairs.items())
-                random_pair_id = np.random.choice(
-                    range(len(pair_items)), 1, p=voxel_weights
+                # Pick a random voxel and its targets
+                candidates = list(target_comps_per_to_voxel.items())
+                random_candidate_id = np.random.choice(
+                    range(len(candidates)), 1, p=voxel_weights
                 )[0]
-                random_voxel_id, to_compartments = pair_items[random_pair_id]
+                # Pick a to_voxel_id and its target compartments from the list of candidates
+                random_to_voxel_id, random_compartments = candidates[random_candidate_id]
                 # Pick a random from and to compartment of the chosen voxel pair
-                from_compartment = np.random.choice(from_map[random_voxel_id], 1)[0]
-                to_compartment = np.random.choice(to_compartments, 1)[0]
+                from_compartment = np.random.choice(random_compartments, 1)[0]
+                to_compartment = np.random.choice(to_map[random_to_voxel_id], 1)[0]
                 compartments_out.append([from_compartment, to_compartment])
                 morphologies_out.append(
                     [from_morpho._set_index, joined_map_offset + to_morpho._set_index]
