@@ -80,7 +80,7 @@ try:
 
         # Initialize the ParallelContext singleton to properly initialize NEURON's
         # parallel simulation capabilities.
-        _ = p.pc
+        _ = p.parallel
     except:
         pass
 

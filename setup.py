@@ -29,6 +29,7 @@ setuptools.setup(
         "scikit-learn>=0.20.3",
         "plotly>=4.1.0",
         "rtree>=0.9.3",
+        "nrn-patch>=2.0.0",
     ],
     project_urls={
         "Bug Tracker": "https://github.com/dbbs-lab/scaffold/issues/",

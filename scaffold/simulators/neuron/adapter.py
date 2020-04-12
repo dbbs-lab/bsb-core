@@ -36,6 +36,9 @@ class NeuronCell(SimulationCell):
     def boot(self):
         super().boot()
         self.instances = []
+        if not self.relay:
+            self.model_class = get_configurable_class(self.model)
+        self.cell_type = self.scaffold.get_cell_type(self.name)
 
     def __getitem__(self, i):
         return self.instances[i]
@@ -136,7 +139,7 @@ class NeuronDevice(TargetsNeurons, TargetsSections, SimulationComponent):
                 locations.append((cell, section))
         elif target in self.adapter.node_cells:
             cell = self.adapter.cells[target]
-            section = cell.sections[self.target_section(cell)]
+            section = self.target_section(cell)
             locations.append((cell, section))
         return locations
 
@@ -306,15 +309,24 @@ class NeuronAdapter(SimulatorAdapter):
                             recorder.time_recorder
                             or np.arange(0, len(y) * self.resolution, self.resolution)
                         )
-                        # print("Saving recorder ", recorder.group, recorder.tag, len(y), len(x))
+                        # Because of NEURON's strange way of measuring time differently
+                        # on each node, and just unreliably in general with respect to how
+                        # simple it should be to divide 1.0 by 0.1 into 10 pieces but
+                        # NEURON sometimes making that a funky 9 or spicy 11 pieces; we
+                        # should check and trim the data arrays to be a uniform size.
+                        if len(x) > len(y):
+                            x = x[: len(y)]
+                        if len(y) > len(x):
+                            y = y[: len(x)]
                         data = np.column_stack((x, y))
                         path = "recorders/" + recorder.group + "/" + str(recorder.tag)
                         if path in f:
                             data = np.vstack((f[path][()], data))
                             del f[path]
                         d = f.create_dataset(path, data=data)
-                        if hasattr(recorder, "label"):
-                            d.attrs["label"] = recorder.label
+                        if hasattr(recorder, "meta"):
+                            for k, v in recorder.meta.items():
+                                d.attrs[k] = v
             self.pc.barrier()
 
     def create_transmitters(self):
@@ -435,7 +447,14 @@ class NeuronAdapter(SimulatorAdapter):
 
     def create_devices(self):
         for device in self.devices.values():
-            for target in device.get_targets():
+            if self.pc_id == 0:
+                # Have root 0 prepare the possibly random targets.
+                targets = device.get_targets()
+            else:
+                targets = None
+            # Broadcast to make sure all the nodes have the same targets for each device.
+            targets = self.scaffold.MPI.COMM_WORLD.bcast(targets, root=0)
+            for target in targets:
                 for cell, section in device.get_locations(target):
                     device.implement(target, cell, section)
 
@@ -513,8 +532,13 @@ class NeuronAdapter(SimulatorAdapter):
                 self.relay_scheme[relay] = my_targets
         print("I need to receive from", len(self.relay_scheme), "relays")
 
-    def register_recorder(self, group, tag, recorder, time_recorder=None):
-        self.recorders.append(NeuronRecorder(group, tag, recorder, time_recorder))
+    def register_recorder(
+        self, group, cell, recorder, time_recorder=None, section=None, x=None, meta=None
+    ):
+        # Store the recorder so its output can be collected after the simulation.
+        self.recorders.append(
+            NeuronRecorder(group, cell, recorder, time_recorder, section, x, meta)
+        )
 
     def register_cell_recorder(self, cell, recorder):
         self.recorders.append(NeuronRecorder("soma_voltages", cell, recorder))
@@ -531,10 +555,26 @@ class NeuronAdapter(SimulatorAdapter):
 
 
 class NeuronRecorder:
-    def __init__(self, group, cell, recorder, time_recorder=None):
+    def __init__(
+        self, group, cell, recorder, time_recorder=None, section=None, x=None, meta=None
+    ):
+        if meta is None:
+            meta = {}
+        # Does this cell have plotting information?
+        if hasattr(cell.cell_model.cell_type, "plotting"):
+            # Pass it along to the recorder metadata
+            meta["color"] = cell.cell_model.cell_type.plotting.color
+            meta["display_label"] = cell.cell_model.cell_type.plotting.label
         self.group = group
-        self.tag = cell.ref_id
-        self.label = cell.cell_model.name
+        self.tag = str(cell.ref_id)
+        if section is not None:
+            self.tag += "." + section.name().split(".")[-1]
+            if x is not None:
+                self.tag += "({})".format(x)
+        if meta is None:
+            meta = {}
+        meta["label"] = cell.cell_model.name
+        self.meta = meta
         self.recorder = recorder
         self.time_recorder = time_recorder
 

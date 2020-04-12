@@ -337,10 +337,17 @@
           "synapses": ["AMPA", "NMDA"],
           "parameters": {
             "noise": true,
-            "start": 0,
+            "start": 100,
             "interval": 25,
             "number": 4
           }
+        },
+        "dendrite_recorders": {
+          "io": "output",
+          "device": "voltage_recorder",
+          "group": "dendrites",
+          "targetting": "representatives",
+          "section_type": "dendrites"
         }
       }
     }
