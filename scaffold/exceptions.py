@@ -176,6 +176,10 @@ class ScaffoldWarning(UserWarning):
     pass
 
 
+class ConfigurationWarning(ScaffoldWarning):
+    pass
+
+
 class PlacementWarning(ScaffoldWarning):
     pass
 

@@ -21,6 +21,14 @@ class Satellite(PlacementStrategy):
     def validate(self):
         self.after = assert_attr_array(self, "planet_types", self.name)
         self.planet_cell_types = [self.scaffold.get_cell_type(p) for p in self.after]
+        if self.layer is not None:
+            warn(
+                "Satellite cell '{}' specifies '{}' as its layer, but it will be ignored and the planet type's layer will be used instead.".format(
+                    self.name, self.layer
+                ),
+                ConfigurationWarning,
+            )
+            self.layer = None
 
     def get_placement_count(self):
         """
