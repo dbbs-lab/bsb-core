@@ -48,7 +48,9 @@ class ConnectomeGolgiGlomerulus(TouchingConvergenceDivergence):
             connections = np.zeros((golgis.shape[0] * n_conn_goc, 2))
             new_connection_index = 0
 
-            # for all Golgi cells: calculate which glomeruli fall into the area of GoC axon, then choose 40 of them for the connection and delete them from successive computations, since 1 glomerulus must be connected to only 1 GoC
+            # for all Golgi cells: calculate which glomeruli fall into the area of GoC
+            # axon, then choose 40 of them for the connection and delete them from
+            # successive computations, since 1 glomerulus must be connected to only 1 GoC
             for golgi_id, golgi_type, golgi_x, golgi_y, golgi_z in new_golgicells:
                 # Check geometrical constraints
                 # glomerulus falls into the x range of values?
