@@ -196,7 +196,6 @@ class QuiverTransform(FiberTransform):
     """
 
     def validate(self):
-        print("shareddddddddddddddddddddddddddd ", self.shared)
         if self.shared is True:
             raise ConfigurationError(
                 "Attribute 'shared' can't be True for {} transformation".format(self.name)
