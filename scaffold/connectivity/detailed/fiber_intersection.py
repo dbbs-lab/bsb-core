@@ -185,10 +185,6 @@ class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
 
 
 class FiberTransform(ConfigurableClass):
-    def __init__(self):
-        self.transform = None
-        self.shared = None
-
     @abc.abstractmethod
     def transform(self):
         pass
@@ -200,11 +196,11 @@ class QuiverTransform(FiberTransform):
     """
 
     def validate(self):
-        if not hasattr(self, "shared") or self.shared is None:
-            raise AttributeMissingError(
-                "Required attribute 'shared' missing from {}".format(self.name)
+        print("shareddddddddddddddddddddddddddd ", self.shared)
+        if self.shared is True:
+            raise ConfigurationError(
+                "Attribute 'shared' can't be True for {} transformation".format(self.name)
             )
-        super().validate()
 
     def transform(self, point_cloud):
         print("prova")
