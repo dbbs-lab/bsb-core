@@ -30,6 +30,7 @@ class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
         # Select all the cells from the pre- & postsynaptic type for a specific connection.
         from_type = self.from_cell_types[0]
         from_compartments = self.from_cell_compartments[0]
+        print("from compartments ", from_compartments)
         to_compartments = self.to_cell_compartments[0]
         to_type = self.to_cell_types[0]
         from_placement_set = self.scaffold.get_placement_set(from_type.name)
@@ -49,7 +50,25 @@ class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
         )
         joined_map_offset = len(from_morphology_set._morphology_map)
 
-        # For every presynaptic cell
+        # For every presynaptic cell build a list of points in it as a point collection
+        points = []
+        for i, (from_cell, from_morpho) in enumerate(from_morphology_set):
+            points.append([])
+            for c in from_morpho.compartments:
+                points[i].append(c.start)
+                points[i].append(c.end)
+
+        print(self)
+        print(self.transformation)
+        points = self.transformation.transform(points)
+
+        # # check for resolution
+        # for p in points:
+        #     # Query the Rtree for intersections of to_cell boxes with our from_cell box
+        #     cell_intersections = list(to_cell_tree.intersection(this_box, objects=False))
+        #
+        #
+
         # For every postsynaptic cell, derive the box incorporating all voxels,
         # and store that box in the tree, to later find intersections with that cell.
         for i, (to_cell, morphology) in enumerate(to_morphology_set):
@@ -76,6 +95,7 @@ class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
             )
             # Query the Rtree for intersections of to_cell boxes with our from_cell box
             cell_intersections = list(to_cell_tree.intersection(this_box, objects=False))
+
             # Loop over each intersected partner to find and select compartment intersections
             for partner in cell_intersections:
                 # Get the precise morphology of the to_cell we collided with
@@ -180,11 +200,11 @@ class QuiverTransform(FiberTransform):
     """
 
     def validate(self):
-        if not hasattr(self, "transform") or self.transform is None:
+        if not hasattr(self, "shared") or self.shared is None:
             raise AttributeMissingError(
-                "Required attribute 'transform' missing from {}".format(self.name)
+                "Required attribute 'shared' missing from {}".format(self.name)
             )
         super().validate()
 
-    def transform(self):
-        pass
+    def transform(self, point_cloud):
+        print("prova")
