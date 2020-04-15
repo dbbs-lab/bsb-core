@@ -694,9 +694,14 @@ class JSONConfig(ScaffoldConfig):
         )
 
         if hasattr(connection, "transform"):
-            transform_class = assert_attr(section["transform"], "class", "transform")
+            transform_class = assert_attr(
+                section["transform"], "class", node_name + ".transform"
+            )
             transformation = load_configurable_class(
-                name + "transform", transform_class, FiberTransform
+                name + "_transform", transform_class, FiberTransform
+            )
+            fill_configurable_class(
+                transformation, section["transform"], excluded=["class"],
             )
             print(transformation)
         self.add_connection(connection)
