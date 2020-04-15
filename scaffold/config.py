@@ -709,7 +709,6 @@ class JSONConfig(ScaffoldConfig):
             fill_configurable_class(
                 transformation, section["transform"], excluded=["class"],
             )
-            print(transformation)
             connection.transformation = transformation
         else:
             connection.transformation = None
