@@ -684,7 +684,13 @@ class JSONConfig(ScaffoldConfig):
         fill_configurable_class(
             connection,
             section,
-            excluded=["class", "from_cell_types", "to_cell_types", "simulation"],
+            excluded=[
+                "class",
+                "from_cell_types",
+                "to_cell_types",
+                "simulation",
+                "transform",
+            ],
         )
         connection.__dict__["_from_cell_types"] = assert_attr_array(
             section, "from_cell_types", node_name
@@ -693,7 +699,7 @@ class JSONConfig(ScaffoldConfig):
             section, "to_cell_types", node_name
         )
 
-        if hasattr(connection, "transform"):
+        if "transform" in section:
             transform_class = assert_attr(
                 section["transform"], "class", node_name + ".transform"
             )
@@ -704,6 +710,10 @@ class JSONConfig(ScaffoldConfig):
                 transformation, section["transform"], excluded=["class"],
             )
             print(transformation)
+            connection.transformation = transformation
+        else:
+            connection.transformation = None
+
         self.add_connection(connection)
 
     def init_placement(self, section, cell_type):
