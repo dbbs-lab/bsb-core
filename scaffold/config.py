@@ -6,8 +6,7 @@ import os, sys, site
 from inspect import isclass
 from .models import CellType, Layer
 from .morphologies import Morphology as BaseMorphology
-from .connectivity import ConnectionStrategy
-from .connectivity.detailed.fiber_intersection import FiberTransform
+from .connectivity import ConnectionStrategy, FiberTransform
 from .placement import PlacementStrategy
 from .output import OutputFormatter, HDF5Formatter
 from .simulation import SimulatorAdapter, SimulationComponent
