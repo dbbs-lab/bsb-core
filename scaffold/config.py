@@ -7,6 +7,7 @@ from inspect import isclass
 from .models import CellType, Layer
 from .morphologies import Morphology as BaseMorphology
 from .connectivity import ConnectionStrategy
+from .connectivity.detailed.fiber_intersection import FiberTransform
 from .placement import PlacementStrategy
 from .output import OutputFormatter, HDF5Formatter
 from .simulation import SimulatorAdapter, SimulationComponent
@@ -678,6 +679,7 @@ class JSONConfig(ScaffoldConfig):
             and adds it to the Geometries dictionary.
         """
         node_name = "connection_types.{}".format(name)
+        print(node_name, " section ", section)
         connection_class = assert_attr(section, "class", node_name)
         connection = load_configurable_class(name, connection_class, ConnectionStrategy)
         fill_configurable_class(
@@ -691,6 +693,13 @@ class JSONConfig(ScaffoldConfig):
         connection.__dict__["_to_cell_types"] = assert_attr_array(
             section, "to_cell_types", node_name
         )
+
+        if hasattr(connection, "transform"):
+            transform_class = assert_attr(section["transform"], "class", "transform")
+            transformation = load_configurable_class(
+                name + "transform", transform_class, FiberTransform
+            )
+            print(transformation)
         self.add_connection(connection)
 
     def init_placement(self, section, cell_type):

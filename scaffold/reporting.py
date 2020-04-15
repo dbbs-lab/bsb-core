@@ -76,11 +76,11 @@ try:
         # has already been called (which happens when you import MPI from mpi4py)
         # Therefore we must initialize NEURON first see
         # https://github.com/neuronsimulator/nrn/issues/428
-        from patch import p
+        # from patch import p
 
         # Initialize the ParallelContext singleton to properly initialize NEURON's
         # parallel simulation capabilities.
-        _ = p.parallel
+        # _ = p.parallel
     except:
         pass
 
