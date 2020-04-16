@@ -58,6 +58,9 @@ class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
                 points[i].append(c.start)
                 points[i].append(c.end)
 
+        if self.quivers is not None:
+            orientation = self.quivers
+
         points = self.transformation.transform(points, orientation)
 
         # # check for resolution
