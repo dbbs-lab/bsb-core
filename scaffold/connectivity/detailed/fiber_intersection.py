@@ -58,10 +58,11 @@ class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
                 points[i].append(c.start)
                 points[i].append(c.end)
 
+        # Only QuiverTransform has the attribute quivers
         if self.quivers is not None:
-            orientation = self.quivers
-
-        points = self.transformation.transform(points, orientation)
+            points = self.transformation.transform(points, self.quivers)
+        else:
+            points = self.transformation.transform(points)
 
         # # check for resolution
         # for p in points:
