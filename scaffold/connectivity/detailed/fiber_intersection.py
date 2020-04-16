@@ -58,9 +58,7 @@ class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
                 points[i].append(c.start)
                 points[i].append(c.end)
 
-        print(self)
-        print(self.transformation)
-        points = self.transformation.transform(points)
+        points = self.transformation.transform(points, orientation)
 
         # # check for resolution
         # for p in points:
@@ -192,7 +190,8 @@ class FiberTransform(ConfigurableClass):
 
 class QuiverTransform(FiberTransform):
     """
-        QuiverTransform applies transformation to a Morphology based on an orientation field in a voxelized volume
+        QuiverTransform applies transformation to a Morphology based on an orientation field in a voxelized volume.
+        Used for parallel fibers
     """
 
     def validate(self):
@@ -201,5 +200,56 @@ class QuiverTransform(FiberTransform):
                 "Attribute 'shared' can't be True for {} transformation".format(self.name)
             )
 
-    def transform(self, point_cloud):
-        print("prova")
+    def transform(self, point_cloud, orientation_data, volume_res):
+        trans_vector_dx = [0, 0, 1]
+        trans_vector_sx = [0, 0, -1]
+        # Loop over all cells
+        for cell in range(len(point_cloud)):
+            # First 4 elements are the first compartment points (start and end) of each initial compartment of the 2 (parallel fiber) branches
+            for comp in range(0, len(point_cloud[cell], 4)):
+                # Right branch
+                voxel_ind = point_cloud[cell][comp] / volume_res
+                voxel_ind = voxel_ind.astype(int)
+                orientation_vector = orientation_data[
+                    :, voxel_ind[0], voxel_ind[1], voxel_ind[2]
+                ]
+                point_cloud[cell][comp + 1] = point_cloud[cell][comp] + np.cross(
+                    orientation_vector, trans_vector_dx
+                )
+                # The new end is the nex start of the adjacent compartment
+                point_cloud[cell][comp + 4] = point_cloud[cell][comp + 1]
+                # Left branch
+                voxel_ind = point_cloud[cell][comp + 2] / volume_res
+                voxel_ind = voxel_ind.astype(int)
+                orientation_vector = orientation_data[
+                    :, voxel_ind[0], voxel_ind[1], voxel_ind[2]
+                ]
+                point_cloud[cell][comp + 3] = point_cloud[cell][comp + 2] + np.cross(
+                    orientation_vector, trans_vector_sx
+                )
+                # The new end is the nex start of the adjacent compartment
+                point_cloud[cell][comp + 6] = point_cloud[cell][comp + 3]
+
+        return point_cloud
+
+    # def plane_intersect(a, b):
+    #     """
+    #     a, b   4-tuples/lists
+    #            Ax + By +Cz + D = 0
+    #            A,B,C,D in order
+    #
+    #     output: 2 points on line of intersection, np.arrays, shape (3,)
+    #     """
+    #     a_vec, b_vec = np.array(a[:3]), np.array(b[:3])
+    #
+    #     aXb_vec = np.cross(a_vec, b_vec)
+    #
+    #     A = np.array([a_vec, b_vec, aXb_vec])
+    #     d = np.array([-a[3], -b[3], 0.]).reshape(3,1)
+    #
+    # # could add np.linalg.det(A) == 0 test to prevent linalg.solve throwing error
+    #
+    #     p_inter = np.linalg.solve(A, d).T
+    #
+    #     return p_inter[0], (p_inter + aXb_vec)[0]
+    #
