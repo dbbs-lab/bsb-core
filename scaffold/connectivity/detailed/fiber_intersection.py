@@ -55,14 +55,10 @@ class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
         for i, (from_cell, from_morpho) in enumerate(from_morphology_set):
             points.append([])
             for c in from_morpho.compartments:
-                points[i].append(c.start)
-                points[i].append(c.end)
+                points[i].append(from_cell.position + c.start)
+                points[i].append(from_cell.position + c.end)
 
-        # Only QuiverTransform has the attribute quivers
-        if self.quivers is not None:
-            points = self.transformation.transform(points, self.quivers)
-        else:
-            points = self.transformation.transform(points)
+        points = self.transformation.transform(points)
 
         # # check for resolution
         # for p in points:
