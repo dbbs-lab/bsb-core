@@ -195,40 +195,61 @@ class QuiverTransform(FiberTransform):
     """
 
     def validate(self):
+
         if self.shared is True:
             raise ConfigurationError(
                 "Attribute 'shared' can't be True for {} transformation".format(self.name)
             )
 
-    def transform(self, point_cloud, orientation_data, volume_res):
+    def transform(self, point_cloud):
         trans_vector_dx = [0, 0, 1]
         trans_vector_sx = [0, 0, -1]
-        # Loop over all cells
-        for cell in range(len(point_cloud)):
-            # First 4 elements are the first compartment points (start and end) of each initial compartment of the 2 (parallel fiber) branches
-            for comp in range(0, len(point_cloud[cell], 4)):
-                # Right branch
-                voxel_ind = point_cloud[cell][comp] / volume_res
-                voxel_ind = voxel_ind.astype(int)
-                orientation_vector = orientation_data[
-                    :, voxel_ind[0], voxel_ind[1], voxel_ind[2]
-                ]
-                point_cloud[cell][comp + 1] = point_cloud[cell][comp] + np.cross(
-                    orientation_vector, trans_vector_dx
-                )
-                # The new end is the nex start of the adjacent compartment
-                point_cloud[cell][comp + 4] = point_cloud[cell][comp + 1]
-                # Left branch
-                voxel_ind = point_cloud[cell][comp + 2] / volume_res
-                voxel_ind = voxel_ind.astype(int)
-                orientation_vector = orientation_data[
-                    :, voxel_ind[0], voxel_ind[1], voxel_ind[2]
-                ]
-                point_cloud[cell][comp + 3] = point_cloud[cell][comp + 2] + np.cross(
-                    orientation_vector, trans_vector_sx
-                )
-                # The new end is the nex start of the adjacent compartment
-                point_cloud[cell][comp + 6] = point_cloud[cell][comp + 3]
+        # Only QuiverTransform has the attribute quivers, giving the orientation in a discretized volume of size volume_res
+        if self.quivers is not None:
+            orientation_data = self.quivers
+        else:
+            raise AttributeError("Missing  attribute 'quivers' for {}".format(self.name))
+        if self.vol_res is not None:
+            volume_res = self.vol_res
+        else:
+            raise AttributeError("Missing  attribute 'vol_res' for {}".format(self.name))
+        # Bypass for testing
+        orientation_data = np.ones(shape=(3, 500, 500, 500))
+        volume_res = 1
+        if not self.shared:
+            # Loop over all cells
+            for cell in range(len(point_cloud)):
+                # First 4 elements are the first compartment points (start and end) of each initial compartment of the 2 (parallel fiber) branches
+                for comp in range(0, len(point_cloud[cell]), 4):
+                    # Right branch
+                    voxel_ind = point_cloud[cell][comp] / volume_res
+                    voxel_ind = voxel_ind.astype(int)
+                    print(voxel_ind)
+                    orientation_vector = orientation_data[
+                        :, voxel_ind[0], voxel_ind[1], voxel_ind[2]
+                    ]
+                    cross_prod = np.cross(orientation_vector, trans_vector_dx)
+                    cross_prod = cross_prod / np.linalg.norm(cross_prod)
+                    length_comp = np.linalg.norm(
+                        point_cloud[cell][comp + 1] - point_cloud[cell][comp]
+                    )
+                    point_cloud[cell][comp + 1] = (
+                        point_cloud[cell][comp] + cross_prod * length_comp
+                    )
+                    # The new end is the nex start of the adjacent compartment
+                    point_cloud[cell][comp + 4] = point_cloud[cell][comp + 1]
+
+                    # Left branch
+                    voxel_ind = point_cloud[cell][comp + 2] / volume_res
+                    voxel_ind = voxel_ind.astype(int)
+                    orientation_vector = orientation_data[
+                        :, voxel_ind[0], voxel_ind[1], voxel_ind[2]
+                    ]
+                    point_cloud[cell][comp + 3] = point_cloud[cell][comp + 2] + np.cross(
+                        orientation_vector, trans_vector_sx
+                    )
+                    # The new end is the nex start of the adjacent compartment
+                    point_cloud[cell][comp + 6] = point_cloud[cell][comp + 3]
 
         return point_cloud
 
