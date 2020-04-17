@@ -58,7 +58,8 @@ class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
                 points[i].append(from_cell.position + c.start)
                 points[i].append(from_cell.position + c.end)
 
-        points = self.transformation.transform(points)
+        if self.transformation is not None:
+            points = self.transformation.transform(points)
 
         # # check for resolution
         # for p in points:
