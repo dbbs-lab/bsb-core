@@ -2,6 +2,7 @@ from .helpers import ConfigurableClass
 from .reporting import report, warn
 from scipy.stats import truncnorm
 import numpy as np
+from .exceptions import *
 
 
 class PostProcessingHook(ConfigurableClass):
@@ -149,37 +150,105 @@ class DCNRotations(PostProcessingHook):
         self.scaffold.append_dset("cells/dcn_orientations", data=matrix)
 
 
-class SpoofGlomerulusGranuleDetailed(PostProcessingHook):
+class SpoofDetails(PostProcessingHook):
     """
-        Create a detailed intersection for each glomerulus to granule connection.
-        Empty section data is created for the glomerulus as it has no morphology, and a
-        random granule dendrite is selected.
+        Create fake morphological intersections between already connected non-detailed
+        connection types.
     """
 
+    casts = {"presynaptic": str, "postsynaptic": str}
+
     def after_connectivity(self):
+        # Check which connection types exist between the pre- and postsynaptic types.
         connection_results = self.scaffold.get_connection_cache_by_cell_type(
-            presynaptic="glomerulus", postsynaptic="granule_cell"
+            presynaptic=self.presynaptic, postsynaptic=self.postsynaptic
         )
-        connectivity_matrix = connection_results[0][1]
-        ctype = connection_results[0][0]
-        # Erase previous data so that .connect_cells can be used again
-        self.scaffold.cell_connections_by_tag["glomerulus_to_granule"] = np.empty((0, 2))
-        # Use a hardcoded granule morphology for both
-        morphologies = np.zeros((len(connectivity_matrix), 2))
-        morpho_map = ["GranuleCell"]
-        m = self.scaffold.morphology_repository.get_morphology("GranuleCell")
-        # Select random dendrites
-        dendrites = np.array([c.id for c in m.compartments if c.type == 3])
+        # Iterate over each involved connectivity matrix
+        for connection_result in connection_results:
+            connection_type = connection_result[0]
+            for connectivity_matrix in connection_result[1:]:
+                # Spoof details (morphology & section intersection) between the
+                # non-detailed connections in the connectivity matrix.
+                self.spoof_connections(connection_type, connectivity_matrix)
+
+    def spoof_connections(self, connection_type, connectivity_matrix):
+        from_type = connection_type.from_cell_types[0]
+        to_type = connection_type.to_cell_types[0]
+        from_relay = False
+        to_relay = False
+        # Check whether any of the types are relays or entities.
+        if from_type.relay or from_type.entity:
+            from_relay = True
+            if to_type.relay or to_type.entity:
+                raise MorphologyError(
+                    "Can't spoof detailed connections between 2 relay or entity cell types."
+                )
+        elif to_type.relay or to_type.entity:
+            to_relay = True
+        # If they're not relays or entities, load their morphologies
+        if not from_relay:
+            from_morphologies = from_type.list_all_morphologies()
+            if len(from_morphologies) == 0:
+                raise MorphologyDataError(
+                    "Can't spoof detailed connection without morphologies for '{}'".format(
+                        from_type.name
+                    )
+                )
+        if not to_relay:
+            to_morphologies = to_type.list_all_morphologies()
+            if len(to_morphologies) == 0:
+                raise MorphologyDataError(
+                    "Can't spoof detailed connection without morphologies for '{}'".format(
+                        to_type.name
+                    )
+                )
+        # If they are entities or relays, steal the first morphology of the other cell type.
+        # Under no circumstances should entities or relays be represented as actual
+        # morphologies, so this should not matter: the data just needs to be spoofed for
+        # other parts of the scaffold to function.
+        if from_relay:
+            from_morphologies = [to_morphologies[0]]
+        if to_relay:
+            to_morphologies = [from_morphologies[0]]
+
+        # Use only the first morphology for spoofing.
+        # At a later point which morphology belongs to which cell should be decided
+        # as a property of the cell and not the connection.
+        # At that point we can spoof the same morphologies to the opposing relay type.
+        #
+        # The left column will be the first from_morphology (0) and the right column
+        # will be the first to_morphology (1)
+        morphologies = np.column_stack(
+            (np.zeros((len(connectivity_matrix,))), np.ones((len(connectivity_matrix,))))
+        )
+        # Generate the map
+        morpho_map = [from_morphologies[0], to_morphologies[0]]
+        from_m = self.scaffold.morphology_repository.get_morphology(from_morphologies[0])
+        to_m = self.scaffold.morphology_repository.get_morphology(to_morphologies[0])
+        # Select random axons and dendrites to connect
+        axons = np.array(from_m.get_compartment_submask(["axon"]))
+        dendrites = np.array(from_m.get_compartment_submask(["dendrites"]))
         compartments = np.column_stack(
             (
-                np.zeros(len(connectivity_matrix)),
+                axons[np.random.randint(0, len(axons), len(connectivity_matrix))],
                 dendrites[np.random.randint(0, len(dendrites), len(connectivity_matrix))],
             )
         )
+        # Erase previous connection data so that `.connect_cells` can overwrite it.
+        self.scaffold.cell_connections_by_tag[connection_type.name] = np.empty((0, 2))
+        # Write the new spoofed connection data
         self.scaffold.connect_cells(
-            ctype,
+            connection_type,
             connectivity_matrix,
             morphologies=morphologies,
             compartments=compartments,
             morpho_map=morpho_map,
+        )
+        report(
+            "Spoofed details of {} connections between {} and {}".format(
+                len(connectivity_matrix),
+                connection_type.from_cell_types[0].name,
+                connection_type.to_cell_types[0].name,
+            ),
+            2,
         )

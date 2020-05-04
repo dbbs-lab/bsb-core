@@ -269,7 +269,9 @@
   },
   "after_connectivity": {
     "relay_spoof": {
-      "class": "scaffold.postprocessing.SpoofGlomerulusGranuleDetailed"
+      "class": "scaffold.postprocessing.SpoofDetails",
+      "presynaptic": "glomerulus",
+      "postsynaptic": "granule_cell"
     }
   },
   "simulations": {
