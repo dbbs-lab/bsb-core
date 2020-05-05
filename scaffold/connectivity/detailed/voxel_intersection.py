@@ -1,6 +1,7 @@
 import numpy as np
 from ..strategy import ConnectionStrategy
 from .shared import MorphologyStrategy
+from ...helpers import DistributionConfiguration
 from ...models import MorphologySet
 from ...exceptions import *
 
@@ -10,7 +11,13 @@ class VoxelIntersection(ConnectionStrategy, MorphologyStrategy):
         Description
     """
 
-    casts = {"convergence": int, "divergence": int}
+    casts = {
+        "convergence": int,
+        "divergence": int,
+        "contacts": DistributionConfiguration.cast,
+    }
+
+    defaults = {"contacts": DistributionConfiguration.cast(1)}
 
     def validate(self):
         pass
@@ -116,21 +123,26 @@ class VoxelIntersection(ConnectionStrategy, MorphologyStrategy):
                 ]
                 weight_sum = sum(voxel_weights)
                 voxel_weights = [w / weight_sum for w in voxel_weights]
-                # Pick a random voxel and its targets
+                contacts = self.contacts.sample()
                 candidates = list(target_comps_per_to_voxel.items())
-                random_candidate_id = np.random.choice(
-                    range(len(candidates)), 1, p=voxel_weights
-                )[0]
-                # Pick a to_voxel_id and its target compartments from the list of candidates
-                random_to_voxel_id, random_compartments = candidates[random_candidate_id]
-                # Pick a random from and to compartment of the chosen voxel pair
-                from_compartment = np.random.choice(random_compartments, 1)[0]
-                to_compartment = np.random.choice(to_map[random_to_voxel_id], 1)[0]
-                compartments_out.append([from_compartment, to_compartment])
-                morphologies_out.append(
-                    [from_morpho._set_index, joined_map_offset + to_morpho._set_index]
-                )
-                connections_out.append([from_cell.id, to_cell.id])
+                while contacts > 0:
+                    contacts -= 1
+                    # Pick a random voxel and its targets
+                    random_candidate_id = np.random.choice(
+                        range(len(candidates)), 1, p=voxel_weights
+                    )[0]
+                    # Pick a to_voxel_id and its target compartments from the list of candidates
+                    random_to_voxel_id, random_compartments = candidates[
+                        random_candidate_id
+                    ]
+                    # Pick a random from and to compartment of the chosen voxel pair
+                    from_compartment = np.random.choice(random_compartments, 1)[0]
+                    to_compartment = np.random.choice(to_map[random_to_voxel_id], 1)[0]
+                    compartments_out.append([from_compartment, to_compartment])
+                    morphologies_out.append(
+                        [from_morpho._set_index, joined_map_offset + to_morpho._set_index]
+                    )
+                    connections_out.append([from_cell.id, to_cell.id])
 
         self.scaffold.connect_cells(
             self,
