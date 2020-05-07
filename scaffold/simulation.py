@@ -1,4 +1,4 @@
-import abc, random
+import abc, random, types
 import numpy as np
 from .helpers import ConfigurableClass, assert_attr, SortableByAfter
 from .exceptions import *
