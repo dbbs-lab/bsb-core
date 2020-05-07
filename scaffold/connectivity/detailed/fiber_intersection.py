@@ -189,15 +189,49 @@ class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
             morpho_map=joined_map,
         )
 
-    def intersect_clouds(self, from_cloud, to_cloud, from_pos, to_pos):
+    def intersect_point_cloud(self, from_point_cloud, to_cloud, to_pos):
+        """
+            Similarly to `intersect_clouds` from `VoxelIntersection`, it finds intersecting voxels between a from_point set of voxels
+            and a to_cloud set of voxels
+
+            :param from_point_cloud: point (absolute coordinates) cloud associated to one presynaptic fiber
+            :type from_point_cloud: list
+            :param to_cloud: voxel cloud associated to a to_cell morphology
+            :type to_cloud: `VoxelCloud`
+            :param to_pos: 3-D position of to_cell neuron
+            :type to_pos: list
+        """
+
         voxel_intersections = []
-        translation = to_pos - from_pos
+
+        # Create a tree from the from_point_cloud:
+        p = index.Property(dimension=3)
+        from_point_cloud_tree = index.Index(properties=p)
+        for p in range(0, len(from_point_cloud), 2):
+            # We do one voxel around each compartment, defined by two adjacent points
+            from_point_cloud_tree.insert(
+                p,
+                tuple(
+                    np.concatenate(
+                        (
+                            np.amin(
+                                [from_point_cloud[p], from_point_cloud[p + 1]], axis=0
+                            ),
+                            np.amax(
+                                [from_point_cloud[p], from_point_cloud[p + 1]], axis=0
+                            ),
+                        )
+                    )
+                ),
+            )
+
+        # Find intersection of to_cloud with from_point_cloud_tree
         for v, voxel in enumerate(to_cloud.get_voxels(cache=True)):
-            relative_position = np.add(voxel, translation)
-            relative_box = np.add(relative_position, to_cloud.grid_size)
-            box = np.concatenate((relative_position, relative_box))
+            absolute_position = np.add(voxel, to_pos)
+            absolute_box = np.add(absolute_position, to_cloud.grid_size)
+            box = np.concatenate((absolute_position, absolute_box))
             voxel_intersections.append(
-                list(from_cloud.tree.intersection(tuple(box), objects=False))
+                list(from_point_cloud_tree.intersection(tuple(box), objects=False))
             )
         return voxel_intersections
 
