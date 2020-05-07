@@ -102,35 +102,41 @@ class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
         connections_out = []
         compartments_out = []
         morphologies_out = []
-        for from_cell, from_morpho in from_morphology_set:
-            # Make sure that the voxelization was successful
-            self.assert_voxelization(from_morpho, from_compartments)
-            # Get the outer box of the morphology.
-            from_box = from_morpho.cloud.get_voxel_box()
-            # Get a map from voxel index to compartments in that voxel.
-            from_map = from_morpho.cloud.map
-            # Transform the box into a rectangle that we can query the Rtree with.
-            this_box = tuple(
-                from_box + np.concatenate((from_cell.position, from_cell.position))
-            )
-            # Query the Rtree for intersections of to_cell boxes with our from_cell box
-            cell_intersections = list(to_cell_tree.intersection(this_box, objects=False))
+        for c, from_cell in enumerate(from_cells):  # maybe better enumerate
+            print("c: ", c, " from cell ", from_cell)
 
+            current_from_points_array = np.array(from_points[c])
+            # Finding bounding box for the actual fiber point cloud
+            bounding_box = tuple(
+                np.concatenate(
+                    (
+                        np.amin(current_from_points_array, axis=0),
+                        np.amax(current_from_points_array, axis=0),
+                    )
+                )
+            )
+            print(bounding_box)
+            ## TODO: Check if bounding box intersection is convenient
+
+            # Bounding box intersection to identify possible connected candidates, using the bounding box of the point cloud
+            # Query the Rtree for intersections of to_cell boxes with our from_cell box
+            cell_intersections = list(
+                to_cell_tree.intersection(bounding_box, objects=False)
+            )
+
+            # Voxel cloud intersection to identify real connected cells and their compartments
             # Loop over each intersected partner to find and select compartment intersections
             for partner in cell_intersections:
                 # Get the precise morphology of the to_cell we collided with
                 to_cell, to_morpho = to_morphology_set[partner]
                 # Get the map from voxel id to list of compartments in that voxel.
                 to_map = to_morpho.cloud.map
-                # Find which voxels inside the cell boxes actually intersect with eachother.
-                voxel_intersections = self.intersect_clouds(
-                    from_morpho.cloud,
-                    to_morpho.cloud,
-                    from_cell.position,
-                    to_cell.position,
+                # Find which voxels inside the bounding box of the fiber and the cell box actually intersect with eachother.
+                voxel_intersections = self.intersect_point_cloud(
+                    from_points[c], to_morpho.cloud, to_cell.position
                 )
                 # Returns a list of lists: the elements in the inner lists are the indices of the
-                # voxels in the from morphology, the indices of the lists inside of the outer list
+                # voxels in the from point cloud, the indices of the lists inside of the outer list
                 # are the to voxel indices.
                 #
                 # Find non-empty lists: these voxels actually have intersections
