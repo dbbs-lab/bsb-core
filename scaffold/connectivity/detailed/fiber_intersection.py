@@ -61,8 +61,10 @@ class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
                 ## TODO: add branching topology to separate e.g. left and right fibers
                 # Check for resolution and interpolate between start and end of compartments to match the resolution
                 length_comp = np.linalg.norm(c.end - c.start)
+
                 if length_comp > self.resolution:
                     ## TODO: add replication of end and start points for each new segment
+                    ## TODO: take into account possible fibers parallel to main axes leading to division by 0
                     num_to_add = math.ceil(length_comp / self.resolution)
                     x_to_add = list(np.linspace(c.start[0], c.end[0], num_to_add))
                     y_to_add = list(
