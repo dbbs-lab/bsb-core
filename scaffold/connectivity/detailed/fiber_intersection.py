@@ -252,8 +252,8 @@ class FiberTransform(ConfigurableClass):
 
 class QuiverTransform(FiberTransform):
     """
-        QuiverTransform applies transformation to a Morphology based on an orientation field in a voxelized volume.
-        Used for parallel fibers
+        QuiverTransform applies transformation to a Morphology, based on an orientation field in a voxelized volume.
+        Used for parallel fibers.
     """
 
     def validate(self):
