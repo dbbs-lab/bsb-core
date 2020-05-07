@@ -264,8 +264,27 @@ class QuiverTransform(FiberTransform):
             )
 
     def transform(self, point_cloud):
-        trans_vector_dx = [0, 0, 1]
-        trans_vector_sx = [0, 0, -1]
+        """
+            Compute bending transformation of a point cloud representing the discretization of a fiber (according to
+            original compartments and configured resolution value).
+            The transformation is a rotation of each segment/compartment (identified by a point_start and point_end) of the fiber
+            to align to the cross product between the orientation vector and the transversal direction vector:
+            new_point_start = old_point_start
+            cross_prod = orientation_vector X transversal_vector
+            new_point_end = point_start + cross_prod * length_comp
+
+            The function is used for bifurcated fibers, bending the left and right branches according to the left and right
+            transversal vectors.
+
+            :param point_cloud: a set of from_points representing segments of each fiber in the placement_set to be connected
+            :type point_cloud: 2-D list
+            :returns: a transformed point could (2-D list)
+
+        """
+        # Left and right transversal vectors
+        trans_vector_lx = [0, 0, -1]
+        trans_vector_rx = [0, 0, 1]
+
         # Only QuiverTransform has the attribute quivers, giving the orientation in a discretized volume of size volume_res
         if self.quivers is not None:
             orientation_data = self.quivers
@@ -275,22 +294,25 @@ class QuiverTransform(FiberTransform):
             volume_res = self.vol_res
         else:
             raise AttributeError("Missing  attribute 'vol_res' for {}".format(self.name))
+
         # Bypass for testing
         orientation_data = np.ones(shape=(3, 500, 500, 500))
         volume_res = 1
+
         if not self.shared:
             # Loop over all cells
             for cell in range(len(point_cloud)):
-                # First 4 elements are the first compartment points (start and end) of each initial compartment of the 2 (parallel fiber) branches
+                # First 4 elements are the first compartment from_points (start and end) of each initial compartment of the 2 (parallel fiber) branches
+                # Therefore, the loop moves in steps of 4
                 for comp in range(0, len(point_cloud[cell]), 4):
-                    # Right branch
+                    # Left branch - first 2 elements
                     voxel_ind = point_cloud[cell][comp] / volume_res
                     voxel_ind = voxel_ind.astype(int)
                     print(voxel_ind)
                     orientation_vector = orientation_data[
                         :, voxel_ind[0], voxel_ind[1], voxel_ind[2]
                     ]
-                    cross_prod = np.cross(orientation_vector, trans_vector_dx)
+                    cross_prod = np.cross(orientation_vector, trans_vector_lx)
                     cross_prod = cross_prod / np.linalg.norm(cross_prod)
                     length_comp = np.linalg.norm(
                         point_cloud[cell][comp + 1] - point_cloud[cell][comp]
@@ -301,14 +323,14 @@ class QuiverTransform(FiberTransform):
                     # The new end is the nex start of the adjacent compartment
                     point_cloud[cell][comp + 4] = point_cloud[cell][comp + 1]
 
-                    # Left branch
+                    # Right branch
                     voxel_ind = point_cloud[cell][comp + 2] / volume_res
                     voxel_ind = voxel_ind.astype(int)
                     orientation_vector = orientation_data[
                         :, voxel_ind[0], voxel_ind[1], voxel_ind[2]
                     ]
                     point_cloud[cell][comp + 3] = point_cloud[cell][comp + 2] + np.cross(
-                        orientation_vector, trans_vector_sx
+                        orientation_vector, trans_vector_rx
                     )
                     # The new end is the nex start of the adjacent compartment
                     point_cloud[cell][comp + 6] = point_cloud[cell][comp + 3]
@@ -321,7 +343,7 @@ class QuiverTransform(FiberTransform):
     #            Ax + By +Cz + D = 0
     #            A,B,C,D in order
     #
-    #     output: 2 points on line of intersection, np.arrays, shape (3,)
+    #     output: 2 from_points on line of intersection, np.arrays, shape (3,)
     #     """
     #     a_vec, b_vec = np.array(a[:3]), np.array(b[:3])
     #
