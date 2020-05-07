@@ -1,4 +1,5 @@
 import numpy as np
+import math
 from ..strategy import ConnectionStrategy
 from .shared import MorphologyStrategy
 from ...models import MorphologySet
@@ -50,23 +51,41 @@ class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
         )
         joined_map_offset = len(from_morphology_set._morphology_map)
 
-        # For every presynaptic cell build a list of points in it as a point collection
-        points = []
+        # For every presynaptic cell, build a list of from_points in it as a point collection
+        # The variable from_points will be a 2D list of num_presyn_cell x point_per
+        from_points = []
         for i, (from_cell, from_morpho) in enumerate(from_morphology_set):
-            points.append([])
+            from_points.append([])
             for c in from_morpho.compartments:
-                points[i].append(from_cell.position + c.start)
-                points[i].append(from_cell.position + c.end)
+                from_points[i].append(from_cell.position + c.start)
+                ## TODO: add branching topology to separate e.g. left and right fibers
+                # Check for resolution and interpolate between start and end of compartments to match the resolution
+                length_comp = np.linalg.norm(c.end - c.start)
+                if length_comp > self.resolution:
+                    ## TODO: add replication of end and start points for each new segment
+                    num_to_add = math.ceil(length_comp / self.resolution)
+                    x_to_add = list(np.linspace(c.start[0], c.end[0], num_to_add))
+                    y_to_add = list(
+                        c.start[1]
+                        + ((x_to_add - c.start[0]) / (c.end[0] - c.start[0]))
+                        * (c.end[1] - c.start[1])
+                    )
+                    z_to_add = list(
+                        c.start[2]
+                        + ((x_to_add - c.start[0]) / (c.end[0] - c.start[0]))
+                        * (c.end[2] - c.start[2])
+                    )
+                    from_points[i].extend(
+                        from_cell.position
+                        + list(map(list, zip(x_to_add, y_to_add, z_to_add)))
+                    )
+
+                from_points[i].append(from_cell.position + c.end)
 
         if self.transformation is not None:
-            points = self.transformation.transform(points)
+            from_points = self.transformation.transform(from_points)
 
-        # # check for resolution
-        # for p in points:
-        #     # Query the Rtree for intersections of to_cell boxes with our from_cell box
-        #     cell_intersections = list(to_cell_tree.intersection(this_box, objects=False))
-        #
-        #
+        # Re-do the interpolation, in case the transformation has changed segment lengths (add a function for it)
 
         # For every postsynaptic cell, derive the box incorporating all voxels,
         # and store that box in the tree, to later find intersections with that cell.
