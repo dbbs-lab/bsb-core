@@ -41,7 +41,12 @@ class ConnectionStrategy(ConfigurableClass, SortableByAfter):
 
             # Introduced a local variable "mixed" that can be updated considering an attribute inside connection_types in the json file
             # if it is necessary to mix the 2 labeled populations when connecting them (like microzone positive and negative)
-
+            
+            if(hasattr(self, "mixing")):
+                mixed = self.mixing
+            else:
+                mixed = False
+            
             if len(self._from_cell_types) == 0:
                 # No specific type specification? No labelling either -> do connect.
                 self._set_cells()
@@ -66,13 +71,6 @@ class ConnectionStrategy(ConfigurableClass, SortableByAfter):
                     labels_post = self.scaffold.get_labels(label_specification_post)
                 else:
                     labels_post = []
-
-                if "mixed" in self._from_cell_types[0].keys():
-                    mixed = self._from_cell_types[0][
-                        "mixed"
-                    ]  # could be True or False: default is False
-                else:
-                    mixed = False
 
                 n_pre = len(labels_pre)
                 n_post = len(labels_post)
