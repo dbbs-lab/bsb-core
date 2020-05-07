@@ -264,8 +264,27 @@ class QuiverTransform(FiberTransform):
             )
 
     def transform(self, point_cloud):
-        trans_vector_dx = [0, 0, 1]
-        trans_vector_sx = [0, 0, -1]
+        """
+            Compute bending transformation of a point cloud representing the discretization of a fiber (according to
+            original compartments and configured resolution value).
+            The transformation is a rotation of each segment/compartment (identified by a point_start and point_end) of the fiber
+            to align to the cross product between the orientation vector and the transversal direction vector:
+            new_point_start = old_point_start
+            cross_prod = orientation_vector X transversal_vector
+            new_point_end = point_start + cross_prod * length_comp
+
+            The function is used for bifurcated fibers, bending the left and right branches according to the left and right
+            transversal vectors.
+
+            :param point_cloud: a set of from_points representing segments of each fiber in the placement_set to be connected
+            :type point_cloud: 2-D list
+            :returns: a transformed point could (2-D list)
+
+        """
+        # Left and right transversal vectors
+        trans_vector_lx = [0, 0, -1]
+        trans_vector_rx = [0, 0, 1]
+
         # Only QuiverTransform has the attribute quivers, giving the orientation in a discretized volume of size volume_res
         if self.quivers is not None:
             orientation_data = self.quivers
