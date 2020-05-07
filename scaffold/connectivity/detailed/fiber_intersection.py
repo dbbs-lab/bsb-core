@@ -7,6 +7,10 @@ from ...exceptions import *
 from ...helpers import ConfigurableClass
 import abc
 
+# Import rtree & instantiate the index with its properties.
+from rtree import index
+from rtree.index import Rtree
+
 
 class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
     """
@@ -20,10 +24,6 @@ class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
 
     def connect(self):
         scaffold = self.scaffold
-
-        # Import rtree & instantiate the index with its properties.
-        from rtree import index
-        from rtree.index import Rtree
 
         p = index.Property(dimension=3)
         to_cell_tree = index.Index(properties=p)
