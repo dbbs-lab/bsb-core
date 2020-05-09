@@ -497,6 +497,9 @@ class MorphologySet:
             cell_type=cell_type
         )
 
+        if len(morphology_names) == 0:
+            raise MorphologyRepositoryError("No morphologies found for " + cell_type.name)
+
         # Select a random morphology for each cell and store its index in a list
         random_morphologies = [
             random.choice(range(len(morphology_names))) for _ in range(len(placement_set))
