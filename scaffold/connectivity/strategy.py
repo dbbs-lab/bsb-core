@@ -13,7 +13,7 @@ class ConnectionStrategy(ConfigurableClass, SortableByAfter):
         super().__init__()
         self.simulation = _SimulationPlaceholder()
         self.tags = []
-        self.label = None
+        self.labels = None
 
     @abc.abstractmethod
     def connect(self):
@@ -38,36 +38,68 @@ class ConnectionStrategy(ConfigurableClass, SortableByAfter):
             # Handle with_label specifications.
             # This is a dirty solution that only implements the wanted microzone behavior
             # See https://github.com/Helveg/cerebellum-scaffold/issues/236
+
+            # Introduced a local variable "mixed" that can be updated considering an attribute inside connection_types in the json file
+            # if it is necessary to mix the 2 labeled populations when connecting them (like microzone positive and negative)
+            if hasattr(self, "mix_labels"):
+                mixed = self.mix_labels
+            else:
+                mixed = False
+
             if len(self._from_cell_types) == 0:
                 # No specific type specification? No labelling either -> do connect.
                 self._set_cells()
                 connect()
-            elif not "with_label" in self._from_cell_types[0]:
+            elif "with_label" not in {
+                **self._from_cell_types[0],
+                **self._to_cell_types[0],
+            }:
                 # No labels specified -> select all cells and do connect.
                 self._set_cells()
                 connect()
             else:
-                # Label specified. Currently only 1 with_label is allowed for all cell types.
-                label_specification = self._from_cell_types[0]["with_label"]
-                if (
-                    len(self._to_cell_types) > 0
-                    and "with_label" in self._to_cell_types[0]
-                    and self._to_cell_types[0]["with_label"] != label_specification
-                ):
-                    raise NotImplementedError(
-                        "Only 1 label specification allowed. Only specify `with_label` on the first from_cell_type."
-                    )
-                labels = self.scaffold.get_labels(label_specification)
-                for label in labels:
-                    self.label = label
-                    self._set_cells(label)
+                # Label specified
+                if "with_label" in self._from_cell_types[0].keys():
+                    label_specification_pre = self._from_cell_types[0]["with_label"]
+                    labels_pre = self.scaffold.get_labels(label_specification_pre)
+                else:
+                    labels_pre = []
+
+                if "with_label" in self._to_cell_types[0].keys():
+                    label_specification_post = self._to_cell_types[0]["with_label"]
+                    labels_post = self.scaffold.get_labels(label_specification_post)
+                else:
+                    labels_post = []
+
+                n_pre = len(labels_pre)
+                n_post = len(labels_post)
+                label_matrix = []
+
+                if n_pre * n_post != 0:
+                    for i in range(n_pre):
+                        if mixed:
+                            for j in range(n_post):
+                                label_matrix.append([labels_pre[i], labels_post[j]])
+                        else:
+                            label_matrix.append([labels_pre[i], labels_post[i]])
+                elif n_pre > 0:
+                    for i in range(n_pre):
+                        label_matrix.append([labels_pre[i], labels_post])
+                else:
+                    for j in range(n_post):
+                        label_matrix.append([labels_pre, labels_post[j]])
+
+                for labels in label_matrix:
+                    # labels contains the 2 labels for the pre- [index 0] and post- [index 1] synaptic populations
+                    self.labels = labels
+                    self._set_cells(labels)
                     connect()
-                    self.label = None
+                    self.labels = None
 
         # Replace the connect function of this instance with a wrapped version.
         this.connect = types.MethodType(wrapped_connect, this)
 
-    def _set_cells(self, label=None):
+    def _set_cells(self, labels=[[], []]):
         self.from_cells = {}
         self.to_cells = {}
         types = ["from_cell", "to_cell"]
@@ -79,8 +111,15 @@ class ConnectionStrategy(ConfigurableClass, SortableByAfter):
                 cells = cell_type.get_cells()
                 ids = cell_type.get_ids().tolist()
                 ids.sort()
-                if label is not None:
-                    labelled = self.scaffold.get_labelled_ids(label).tolist()
+                if labels[0] and t == "from_cell":
+                    labelled = self.scaffold.get_labelled_ids(labels[0]).tolist()
+                    labelled.sort()
+                    # Compute intersect of sorted list
+                    label_slice = compute_intersection_slice(ids, labelled)
+                    # Store the labelled cells of the type.
+                    self.__dict__[t + "s"][cell_type.name] = cells[label_slice]
+                elif labels[1] and t == "to_cell":
+                    labelled = self.scaffold.get_labelled_ids(labels[1]).tolist()
                     labelled.sort()
                     # Compute intersect of sorted list
                     label_slice = compute_intersection_slice(ids, labelled)
