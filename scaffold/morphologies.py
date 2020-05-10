@@ -39,6 +39,7 @@ class Compartment:
             and accepts any keyword to overwrite or add attributes.
         """
         c = cls(template.morphology, template.to_record())
+        c.parent_compartment = template.parent_compartment
         for k, v in kwargs.items():
             c.__dict__[k] = v
         return c
@@ -110,6 +111,12 @@ class Morphology(ConfigurableClass):
             repo_record = repo_data[i, :]
             compartment = Compartment(self, repo_record)
             self.compartments.append(compartment)
+        # Fortify the id-linked compartments' bond by referencing their parent object.
+        for c in self.compartments:
+            if c.parent is not None and c.parent != -1:
+                c.parent_compartment = self.compartments[int(c.parent)]
+            else:
+                c.parent_compartment = None
         # Create a tree from the compartment object list
         self.update_compartment_tree()
         if (
