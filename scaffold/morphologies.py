@@ -7,6 +7,11 @@ from .reporting import report
 
 
 class Compartment:
+    # TODO: The init now too tightly couples every use of Compartment to how it's stored
+    # in HDF5 forcing everything to use the record array even when it isn't being loaded
+    # or saved to storage. --> Make a base Compartment class with a regular constructor
+    # and either a `from_record` class method or a derived StoredCompartment class that
+    # uses this constructor.
     def __init__(self, morphology, repo_record):
         """
             Create a compartment from repository data.
@@ -26,6 +31,28 @@ class Compartment:
         self.spherical = np.sqrt((self.start[:] - self.end[:]) ** 2) / 2
 
         self.morphology = morphology
+
+    @classmethod
+    def from_template(cls, template, **kwargs):
+        """
+            Create a compartment that copies over all information of a template compartment
+            and accepts any keyword to overwrite or add attributes.
+        """
+        c = cls(template.morphology, template.to_record())
+        c.parent_compartment = template.parent_compartment
+        for k, v in kwargs.items():
+            c.__dict__[k] = v
+        return c
+
+    def to_record(self):
+        """
+            Return an array that can be used to store this compartment in an HDF5 dataset,
+            or to construct a new Compartment.
+        """
+        record = [self.id, self.type, *self.start, *self.end, self.radius, self.parent]
+        if hasattr(self, "section_id"):
+            record.append(self.section_id)
+        return record
 
 
 class Morphology(ConfigurableClass):
@@ -84,6 +111,12 @@ class Morphology(ConfigurableClass):
             repo_record = repo_data[i, :]
             compartment = Compartment(self, repo_record)
             self.compartments.append(compartment)
+        # Fortify the id-linked compartments' bond by referencing their parent object.
+        for c in self.compartments:
+            if c.parent is not None and c.parent != -1:
+                c.parent_compartment = self.compartments[int(c.parent)]
+            else:
+                c.parent_compartment = None
         # Create a tree from the compartment object list
         self.update_compartment_tree()
         if (
