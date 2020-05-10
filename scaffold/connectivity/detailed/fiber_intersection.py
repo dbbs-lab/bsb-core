@@ -67,6 +67,10 @@ class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
             # Interpolate all branches recursively (2)
             self.interpolate_branches(fm.root_branches)
             # Transform (3)
+            if self.transformation is not None:
+                self.transformation.transform_branches(
+                    fm.root_branches, from_cell.position
+                )
 
             # Interpolate again (4)
             self.interpolate_branches(fm.root_branches)
