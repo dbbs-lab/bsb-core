@@ -62,15 +62,6 @@ def reduce_branch(branch, branch_points):
     return reduced_branch
 
 
-def split_branches(branch_list):
-    branch_points = get_branch_points(branch_list)
-    split_branches = []
-    for branch in branch_list:
-        pass
-
-    return split_branches
-
-
 class Branch:
     def __init__(self, compartments, parent=None, ordered=True):
         self.origin = compartments[0].start
