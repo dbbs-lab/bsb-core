@@ -102,8 +102,9 @@ class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
         connections_out = []
         compartments_out = []
         morphologies_out = []
-        for c, from_cell in enumerate(from_cells):  # maybe better enumerate
-            print("c: ", c, " from cell ", from_cell)
+        for c, (from_cell, from_morphology) in enumerate(
+            from_morphology_set
+        ):  # maybe better enumerate
 
             current_from_points_array = np.array(from_points[c])
             # Finding bounding box for the actual fiber point cloud
