@@ -65,3 +65,34 @@ def split_branches(branch_list):
         pass
 
     return split_branches
+
+
+class Branch:
+    def __init__(self, compartments, is_root=False):
+        self.origin = compartments[0].start
+        self._compartments = compartments
+        self._root = compartments[0]
+        # Spoof branch connectivity by assuming it is ordered as they are connected
+        # TODO: Use compartment.parent to assign _child. (Check correct conn? No -> slow)
+        for c in range(len(compartments) - 1):
+            compartments[c]._child = compartments[c + 1]
+        self.child_branches = set()
+        self.is_root = is_root
+
+    def add_branch(self, branch):
+        self.child_branches.add(branch)
+
+    def __iter__(self):
+        return iter(self.walk())
+
+    def walk(self, start=None):
+        if start is None:
+            start = self._root
+        while start._child is not None:
+            yield start
+            start = start._child
+
+
+class FiberMorphology:
+    def __init__(self, compartments):
+        self.root_branches = [Branch(compartments, is_root=True)]
