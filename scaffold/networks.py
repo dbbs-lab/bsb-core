@@ -105,6 +105,22 @@ class Branch:
     def split():
         pass
 
+    def voxelize(self, position, bounding_box, voxel_tree, map):
+        for v, comp in enumerate(self._compartments):
+            # Check if the current bounding_box needs to be extended
+            bounding_box[0] = np.minimum(bounding_box[0], comp.end + position)
+            bounding_box[1] = np.maximum(bounding_box[1], comp.end + position)
+
+            # Find the external points of the voxel surrounding the compartment
+            voxel_bottom_left = list(np.minimum(comp.start, comp.end))
+            voxel_top_right = list(np.maximum(comp.start, comp.end))
+            # Add the voxel to the tree
+            voxel_tree.insert(
+                v, tuple(concatenate(voxel_bottom_left, voxel_top_right) + position)
+            )
+            map.append(comp)
+        return bounding_box, voxel_tree, map
+
 
 class FiberMorphology:
     def __init__(self, compartments):
