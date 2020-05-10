@@ -51,6 +51,28 @@ class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
         )
         joined_map_offset = len(from_morphology_set._morphology_map)
 
+        # REWORKING: 1 single loop doing everything for that postsyn cell:
+        #    1) extracting the FiberMorpho
+        #    2) interpolate
+        #    3) transform
+        #    4) interpolate
+        #    5) voxelize
+
+        for c, (from_cell, from_morpho) in enumerate(from_morphology_set):
+            # Extract the FiberMorpho object for each branch in the morphology (1)
+            compartments = from_morpho.get_compartments()
+            fm = FiberMorphology(compartments)
+            # Interpolate all branches recursively (2)
+            self.interpolate_branches(fm.root_branches)
+            # Transform (3)
+
+            # Interpolate again (4)
+            self.interpolate_branches(fm.root_branches)
+            #
+
+            # Voxelize all branches: PointCloud with init like VoxelCloud (define the tree, map) and get_voxels
+            self.voxelize_branches(fm.root_branches)
+
         # For every presynaptic cell, build a list of from_points in it as a point collection
         # The variable from_points will be a 2D list of num_presyn_cell x point_per
         from_points = []
@@ -116,7 +138,6 @@ class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
                     )
                 )
             )
-            print(bounding_box)
             ## TODO: Check if bounding box intersection is convenient
 
             # Bounding box intersection to identify possible connected candidates, using the bounding box of the point cloud
@@ -147,48 +168,42 @@ class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
                     continue
                 # Dictionary that stores the target compartments for each to_voxel.
                 target_comps_per_to_voxel = {}
-                # Iterate over each to_voxel index.
-                for to_voxel_id in intersecting_to_voxels:
-                    # Get the list of voxels that the to_voxel intersects with.
-                    intersecting_voxels = voxel_intersections[to_voxel_id]
-                    target_compartments = []
-                    for from_voxel_id in intersecting_voxels:
-                        # Store all of the compartments in the from_voxel as
-                        # possible candidates for these cells' connections
-                        target_compartments.extend(from_map[from_voxel_id])
-                    target_comps_per_to_voxel[to_voxel_id] = target_compartments
-                # Weigh the random sampling by the amount of compartments so that voxels
-                # with more compartments have a higher chance of having one of their many
-                # compartments randomly picked.
-                voxel_weights = [
-                    len(to_map[to_voxel_id]) * len(from_targets)
-                    for to_voxel_id, from_targets in target_comps_per_to_voxel.items()
-                ]
-                weight_sum = sum(voxel_weights)
-                voxel_weights = [w / weight_sum for w in voxel_weights]
-                # Pick a random voxel and its targets
-                candidates = list(target_comps_per_to_voxel.items())
-                random_candidate_id = np.random.choice(
-                    range(len(candidates)), 1, p=voxel_weights
-                )[0]
-                # Pick a to_voxel_id and its target compartments from the list of candidates
-                random_to_voxel_id, random_compartments = candidates[random_candidate_id]
-                # Pick a random from and to compartment of the chosen voxel pair
-                from_compartment = np.random.choice(random_compartments, 1)[0]
-                to_compartment = np.random.choice(to_map[random_to_voxel_id], 1)[0]
-                compartments_out.append([from_compartment, to_compartment])
-                morphologies_out.append(
-                    [from_morpho._set_index, joined_map_offset + to_morpho._set_index]
-                )
+                # # Iterate over each to_voxel index.
+                # for to_voxel_id in intersecting_to_voxels:
+                #     # Get the list of voxels that the to_voxel intersects with.
+                #     intersecting_voxels = voxel_intersections[to_voxel_id]
+                #     target_compartments = []
+                #     for from_voxel_id in intersecting_voxels:
+                #         # Store all of the compartments in the from_voxel as
+                #         # possible candidates for these cells' connections
+                #         target_compartments.extend(from_map[from_voxel_id])
+                #     target_comps_per_to_voxel[to_voxel_id] = target_compartments
+                # # Weigh the random sampling by the amount of compartments so that voxels
+                # # with more compartments have a higher chance of having one of their many
+                # # compartments randomly picked.
+                # voxel_weights = [
+                #     len(to_map[to_voxel_id]) * len(from_targets)
+                #     for to_voxel_id, from_targets in target_comps_per_to_voxel.items()
+                # ]
+                # weight_sum = sum(voxel_weights)
+                # voxel_weights = [w / weight_sum for w in voxel_weights]
+                # # Pick a random voxel and its targets
+                # candidates = list(target_comps_per_to_voxel.items())
+                # random_candidate_id = np.random.choice(
+                #     range(len(candidates)), 1, p=voxel_weights
+                # )[0]
+                # # Pick a to_voxel_id and its target compartments from the list of candidates
+                # random_to_voxel_id, random_compartments = candidates[random_candidate_id]
+                # # Pick a random from and to compartment of the chosen voxel pair
+                # from_compartment = np.random.choice(random_compartments, 1)[0]
+                # to_compartment = np.random.choice(to_map[random_to_voxel_id], 1)[0]
+                # compartments_out.append([from_compartment, to_compartment])
+                # morphologies_out.append(
+                #     [from_morpho._set_index, joined_map_offset + to_morpho._set_index]
+                # )
                 connections_out.append([from_cell.id, to_cell.id])
 
-        self.scaffold.connect_cells(
-            self,
-            np.array(connections_out or np.empty((0, 2))),
-            morphologies=np.array(morphologies_out or np.empty((0, 2), dtype=str)),
-            compartments=np.array(compartments_out or np.empty((0, 2))),
-            morpho_map=joined_map,
-        )
+        self.scaffold.connect_cells(self, np.array(connections_out or np.empty((0, 2))))
 
     def intersect_point_cloud(self, from_point_cloud, to_cloud, to_pos):
         """
@@ -204,7 +219,7 @@ class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
         """
 
         voxel_intersections = []
-
+        # TODO:  this should go inside PointCloud object init function
         # Create a tree from the from_point_cloud:
         p = index.Property(dimension=3)
         from_point_cloud_tree = index.Index(properties=p)
@@ -244,6 +259,14 @@ class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
                 )
             )
 
+    def interpolate_branches(self, branches):
+        for branch in branches:
+            branch.interpolate(self.resolution)
+            self.interpolate_branches(branch.child_branches)
+
+    def voxelize_branches(self, branches):
+        pass
+
 
 class FiberTransform(ConfigurableClass):
     @abc.abstractmethod
@@ -265,6 +288,7 @@ class QuiverTransform(FiberTransform):
             )
 
     def transform(self, point_cloud):
+        # transform(self, fiber_morpho)interpolate
         """
             Compute bending transformation of a point cloud representing the discretization of a fiber (according to
             original compartments and configured resolution value).
@@ -338,24 +362,9 @@ class QuiverTransform(FiberTransform):
 
         return point_cloud
 
-    # def plane_intersect(a, b):
-    #     """
-    #     a, b   4-tuples/lists
-    #            Ax + By +Cz + D = 0
-    #            A,B,C,D in order
-    #
-    #     output: 2 from_points on line of intersection, np.arrays, shape (3,)
-    #     """
-    #     a_vec, b_vec = np.array(a[:3]), np.array(b[:3])
-    #
-    #     aXb_vec = np.cross(a_vec, b_vec)
-    #
-    #     A = np.array([a_vec, b_vec, aXb_vec])
-    #     d = np.array([-a[3], -b[3], 0.]).reshape(3,1)
-    #
-    # # could add np.linalg.det(A) == 0 test to prevent linalg.solve throwing error
-    #
-    #     p_inter = np.linalg.solve(A, d).T
-    #
-    #     return p_inter[0], (p_inter + aXb_vec)[0]
-    #
+    def transform_branches(self, branches, offset=None):
+        if offset is None:
+            offset = np.zeros(3)
+        for branch in branches:
+            branch_offset = offset + transform_branch(branch, offset)
+            self.transform_branches(branch.child_branches, branch_offset)
