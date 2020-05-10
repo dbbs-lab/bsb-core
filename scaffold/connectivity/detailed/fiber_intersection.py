@@ -56,7 +56,9 @@ class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
         #    2) interpolate
         #    3) transform
         #    4) interpolate
-        #    5) voxelize
+        #    5) voxelize (generates the voxel_tree associated to this morphology)
+        #    6) check intersections of presyn bounding box with all postsyn boxes
+        #    7) check intersections of each candidate postsyn with current presyn voxel_tree
 
         for c, (from_cell, from_morpho) in enumerate(from_morphology_set):
             # Extract the FiberMorpho object for each branch in the morphology (1)
