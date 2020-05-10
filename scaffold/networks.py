@@ -1,3 +1,6 @@
+import math
+
+
 def depth_first_branches(adjacency_list, node=0, return_visited=False):
     branches = []
     visited = set([])
@@ -91,6 +94,16 @@ class Branch:
         while start._child is not None:
             yield start
             start = start._child
+
+    def interpolate(self, resolution):
+        for comp in self._compartments:
+            length_comp = np.linalg.norm(comp.end - comp.start)
+            if length_comp > resolution:
+                num_to_add = math.ceil(length_comp / self.resolution)
+                added_points = self.split(comp, num_to_add)
+
+    def split():
+        pass
 
 
 class FiberMorphology:
