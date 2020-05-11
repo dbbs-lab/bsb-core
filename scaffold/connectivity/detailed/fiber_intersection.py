@@ -66,7 +66,7 @@ class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
         compartments_out = []
         morphologies_out = []
 
-        # REWORKING: 1 single loop doing everything for that postsyn cell:
+        # ALGORITHM: 1 single loop doing everything for that presyn cell:
         #    1) extracting the FiberMorpho
         #    2) interpolate
         #    3) transform
