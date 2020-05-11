@@ -301,11 +301,11 @@ class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
         self, branches, position, bounding_box=None, voxel_tree=None, map=None
     ):
         if bounding_box is None:
-            bounding = []
+            bounding_box = []
             # Initialize bottom and top extremes of bounding box to the start of the first branch compartment
             bounding_box.append(branches[0]._compartments[0].start + position)
             bounding_box.append(branches[0]._compartments[0].start + position)
-        if tree is None:
+        if voxel_tree is None:
             # Create Rtree
             from rtree import index
 
