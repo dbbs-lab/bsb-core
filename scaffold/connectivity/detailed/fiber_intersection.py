@@ -52,6 +52,20 @@ class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
         )
         joined_map_offset = len(from_morphology_set._morphology_map)
 
+        # For every postsynaptic cell, derive the box incorporating all voxels,
+        # and store that box in the tree, to later find intersections with that cell.
+        for i, (to_cell, morphology) in enumerate(to_morphology_set):
+            self.assert_voxelization(morphology, to_compartments)
+            to_offset = np.concatenate((to_cell.position, to_cell.position))
+            to_box = morphology.cloud.get_voxel_box()
+            to_cell_tree.insert(i, tuple(to_box + to_offset))
+
+        # For each presynaptic cell, find all postsynaptic cells that its outer
+        # box intersects with.
+        connections_out = []
+        compartments_out = []
+        morphologies_out = []
+
         # REWORKING: 1 single loop doing everything for that postsyn cell:
         #    1) extracting the FiberMorpho
         #    2) interpolate
