@@ -172,7 +172,7 @@ class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
                 # Pick a random from and to compartment of the chosen voxel pair
                 from_compartment = np.random.choice(random_compartments, 1)[0]
                 to_compartment = np.random.choice(to_map[random_to_voxel_id], 1)[0]
-                compartments_out.append([from_compartment, to_compartment])
+                compartments_out.append([from_compartment.id, to_compartment])
                 morphologies_out.append(
                     [from_morpho._set_index, joined_map_offset + to_morpho._set_index]
                 )
