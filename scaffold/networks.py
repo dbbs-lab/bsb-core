@@ -110,7 +110,7 @@ class Branch:
         for comp in self._compartments:
             length_comp = np.linalg.norm(comp.end - comp.start)
             if length_comp > resolution:
-                num_to_add = math.ceil(length_comp / self.resolution)
+                num_to_add = math.ceil(length_comp / resolution)
                 added_points = self.split(comp, num_to_add)
 
     def split(self, compartment, n):
