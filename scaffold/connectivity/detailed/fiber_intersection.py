@@ -423,7 +423,7 @@ class QuiverTransform(FiberTransform):
         if offset is None:
             offset = np.zeros(3)
         for branch in branches:
-            branch_offset = offset + transform_branch(branch, offset)
+            branch_offset = offset + self.transform_branch(branch, offset)
             self.transform_branches(branch.child_branches, branch_offset)
 
     def transform_branch(self, branch, offset):
