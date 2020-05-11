@@ -101,13 +101,6 @@ class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
             )
 
             # Check for intersections of the postsyn tree with the bounding box (6)
-            # For every postsynaptic cell, derive the box incorporating all voxels,
-            # and store that box in the tree, to later find intersections with that cell.
-            for i, (to_cell, morphology) in enumerate(to_morphology_set):
-                self.assert_voxelization(morphology, to_compartments)
-                to_offset = np.concatenate((to_cell.position, to_cell.position))
-                to_box = morphology.cloud.get_voxel_box()
-                to_cell_tree.insert(i, tuple(to_box + to_offset))
 
             ## TODO: Check if bounding box intersection is convenient
 
@@ -142,16 +135,19 @@ class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
                     continue
                 # Dictionary that stores the target compartments for each to_voxel.
                 target_comps_per_to_voxel = {}
+
                 # Iterate over each to_voxel index.
                 for to_voxel_id in intersecting_to_voxels:
                     # Get the list of voxels that the to_voxel intersects with.
                     intersecting_voxels = voxel_intersections[to_voxel_id]
                     target_compartments = []
+
                     for from_voxel_id in intersecting_voxels:
                         # Store all of the compartments in the from_voxel as
                         # possible candidates for these cells' connections
                         # @Robin: map should contain comp.id or comp???
-                        target_compartments.extend(from_map[from_voxel_id])
+
+                        target_compartments.extend([from_map[from_voxel_id]])
                     target_comps_per_to_voxel[to_voxel_id] = target_compartments
                 # Weigh the random sampling by the amount of compartments so that voxels
                 # with more compartments have a higher chance of having one of their many
