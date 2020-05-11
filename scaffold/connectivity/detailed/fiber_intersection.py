@@ -81,6 +81,10 @@ class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
             fm = FiberMorphology(compartments)
             # Interpolate all branches recursively (2)
             self.interpolate_branches(fm.root_branches)
+
+            # @Robin: when it makes sense to move to absolute coordinates??? We need this info for quivertransform
+            # but not all scaffolds have the transform and we need to know the absolute position in step 7) for sure
+
             # Transform (3)
             if self.transformation is not None:
                 self.transformation.transform_branches(
