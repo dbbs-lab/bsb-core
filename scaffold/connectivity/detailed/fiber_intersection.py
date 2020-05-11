@@ -5,6 +5,7 @@ from .shared import MorphologyStrategy
 from ...models import MorphologySet
 from ...exceptions import *
 from ...helpers import ConfigurableClass
+from ...networks import FiberMorphology, Branch
 import abc
 
 # Import rtree & instantiate the index with its properties.
