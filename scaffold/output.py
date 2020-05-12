@@ -340,7 +340,7 @@ class MorphologyRepository(HDF5TreeHandler):
                     idx + p - 1,
                     id,
                 ]
-                c = Compartment(None, data)
+                c = Compartment.from_record(None, data)
                 if p == 0:
                     c.parent = -1
                     orphans.append(c)
