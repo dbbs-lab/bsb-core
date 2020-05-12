@@ -65,12 +65,9 @@ def warn(message, category=None):
 # any scaffold is created.
 
 try:
-    # Try to import mpi4py but not yet its MPI submodule
-    import mpi4py
+    from mpi4py import MPI as _MPI
 
     try:
-        import neuron
-
         # If neuron is installed, the user might want to use parallel NEURON
         # simulations. NEURON is incapable of properly initializing if MPI_Init
         # has already been called (which happens when you import MPI from mpi4py)
@@ -83,9 +80,6 @@ try:
         _ = p.parallel
     except:
         pass
-
-    # Import mpi4py and its MPI submodule.
-    from mpi4py import MPI as _MPI
 
     MPI_rank = _MPI.COMM_WORLD.rank
     has_mpi_installed = True
