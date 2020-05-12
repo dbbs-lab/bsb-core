@@ -342,7 +342,7 @@ class MorphologyRepository(HDF5TreeHandler):
                 ]
                 c = Compartment.from_record(None, data)
                 if p == 0:
-                    c.parent = -1
+                    c.parent_id = -1
                     orphans.append(c)
                 compartments.append(c)
                 dataset.append(data)
@@ -392,13 +392,10 @@ class MorphologyRepository(HDF5TreeHandler):
     def save_morphology(self, name, compartments):
         ds = []
         for c in compartments:
+            d = [c.id, c.type, *c.start, *c.end, c.radius, c.parent_id]
             if hasattr(c, "section_id"):
-                ds.append(
-                    [c.id, c.type, *c.start, *c.end, c.radius, c.parent, c.section_id]
-                )
-            else:
-                ds.append([c.id, c.type, *c.start, *c.end, c.radius, c.parent])
-        # ds = list(map(list, zip(*ds)))
+                d.append(c.section_id)
+            ds.append(d)
 
         self.save_morphology_dataset(name, ds, overwrite=True)
 

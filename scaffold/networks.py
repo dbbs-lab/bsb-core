@@ -201,15 +201,15 @@ def _init_child_compartments(compartments):
         c._children = []
     # Add child nodes to their parent's children
     for node in compartments:
-        if node.parent_compartment not in compartments:
-            node.parent_compartment = None
-        if node.parent_compartment is not None:
-            node.parent_compartment._children.append(node)
+        if node.parent not in compartments:
+            node.parent = None
+        if node.parent is not None:
+            node.parent._children.append(node)
 
 
 def _get_root_compartment(compartment):
-    while compartment.parent_compartment is not None:
-        compartment = compartment.parent_compartment
+    while compartment.parent is not None:
+        compartment = compartment.parent
     return compartment
 
 
@@ -244,11 +244,11 @@ def _copy_linked_compartments(compartments):
         copy_map[new_c.id] = new_c
         new_compartments.append(new_c)
     for c in new_compartments:
-        if c.parent in copy_map:
-            c.parent_compartment = copy_map[c.parent]
+        if c.parent_id in copy_map:
+            c.parent = copy_map[c.parent_id]
         else:
-            c.parent = -1
-            c.parent_compartment = None
+            c.parent_id = -1
+            c.parent = None
     return new_compartments
 
 

@@ -19,7 +19,7 @@ class Compartment:
         radius,
         id=None,
         type=None,
-        parent=None,
+        parent_id=None,
         section_id=None,
         morphology=None,
     ):
@@ -28,7 +28,7 @@ class Compartment:
         self.end = end
         self.radius = radius
         self.type = type
-        self.parent = parent
+        self.parent_id = parent_id
         self.section_id = section_id
         self.morphology = morphology
 
@@ -44,7 +44,7 @@ class Compartment:
             start=np.array(repo_record[2:5]),
             end=np.array(repo_record[5:8]),
             radius=repo_record[8],
-            parent=repo_record[9],
+            parent_id=repo_record[9],
             morphology=morphology,
         )
         # Check if there's section id information on the record.
@@ -73,7 +73,7 @@ class Compartment:
             argument to overwrite or add attributes.
         """
         c = cls(template.morphology, template.to_record())
-        c.parent_compartment = template.parent_compartment
+        c.parent = template.parent
         for k, v in kwargs.items():
             c.__dict__[k] = v
         return c
@@ -83,7 +83,7 @@ class Compartment:
             Return an array that can be used to store this compartment in an HDF5 dataset,
             or to construct a new Compartment.
         """
-        record = [self.id, self.type, *self.start, *self.end, self.radius, self.parent]
+        record = [self.id, self.type, *self.start, *self.end, self.radius, self.parent_id]
         if hasattr(self, "section_id"):
             record.append(self.section_id)
         return record
@@ -161,10 +161,10 @@ class Morphology(ConfigurableClass):
             self.compartments.append(compartment)
         # Fortify the id-linked compartments' bond by referencing their parent object.
         for c in self.compartments:
-            if c.parent is not None and c.parent != -1:
-                c.parent_compartment = self.compartments[int(c.parent)]
+            if c.parent_id is not None and c.parent_id != -1:
+                c.parent = self.compartments[int(c.parent_id)]
             else:
-                c.parent_compartment = None
+                c.parent = None
         # Create a tree from the compartment object list
         self.update_compartment_tree()
         if (
@@ -277,9 +277,9 @@ class TrueMorphology(Morphology):
         node_list = [set([]) for c in compartments]
         # Add child nodes to their parent's adjacency set
         for node in compartments[1:]:
-            if int(node.parent) == -1:
+            if int(node.parent_id) == -1:
                 continue
-            node_list[int(node.parent)].add(int(node.id))
+            node_list[int(node.parent_id)].add(int(node.id))
         return node_list
 
     def get_compartment_positions(self, types=None):
