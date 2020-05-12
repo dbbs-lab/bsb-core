@@ -91,7 +91,8 @@ class Compartment:
 
 class Morphology(ConfigurableClass):
     """
-        A multicompartmental spatial representation of a cell based on.
+        A multicompartmental spatial representation of a cell based on connected 3D
+        compartments.
 
         :todo: Uncouple from the MorphologyRepository and merge with TrueMorphology.
     """
