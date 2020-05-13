@@ -175,6 +175,7 @@ def plot_network(
             # Load from HDF5
             network.get_cells_by_type(type.name)
         _plot_network(network, fig, swapaxes)
+    return fig
 
 
 @_network_figure
@@ -214,6 +215,7 @@ def plot_detailed_network(
     scene.xaxis.range = [-200, 200]
     scene.yaxis.range = [-200, 200]
     scene.zaxis.range = [0, 600]
+    return fig
 
 
 def get_voxel_cloud_traces(cloud, selected_voxels=None, offset=[0.0, 0.0, 0.0]):
