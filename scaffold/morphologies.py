@@ -19,6 +19,7 @@ class Compartment:
         radius,
         id=None,
         type=None,
+        parent=None,
         parent_id=None,
         section_id=None,
         morphology=None,
@@ -29,6 +30,7 @@ class Compartment:
         self.radius = radius
         self.type = type
         self.parent_id = parent_id
+        self.parent = parent
         self.section_id = section_id
         self.morphology = morphology
 
@@ -72,8 +74,17 @@ class Compartment:
             Create a compartment based on  a template compartment. Accepts any keyword
             argument to overwrite or add attributes.
         """
-        c = cls(template.morphology, template.to_record())
-        c.parent = template.parent
+        c = cls(
+            id=template.id,
+            start=template.start,
+            end=template.end,
+            radius=template.radius,
+            type=template.type,
+            parent=template.parent,
+            parent_id=template.parent_id,
+            section_id=template.section_id,
+            morphology=template.morphology,
+        )
         for k, v in kwargs.items():
             c.__dict__[k] = v
         return c
