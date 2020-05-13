@@ -2,6 +2,7 @@ from ..adapter import NeuronDevice
 from ....simulation import TargetsSections
 from ....helpers import listify_input
 from ....functions import poisson_train
+from ....reporting import report
 
 
 class SpikeGenerator(NeuronDevice):
@@ -17,7 +18,7 @@ class SpikeGenerator(NeuronDevice):
         self.synapses = listify_input(self.synapses)
 
     def create_patterns(self):
-        print("Creating spike generator patterns for '{}'".format(self.name))
+        report("Creating spike generator patterns for '{}'".format(self.name), level=3)
         patterns = {}
         for target in self.get_targets():
             frequency = 1.0 / float(self.parameters["interval"])
@@ -25,7 +26,7 @@ class SpikeGenerator(NeuronDevice):
             start = float(self.parameters["start"])
             pattern = list(poisson_train(frequency, duration, start))
             patterns[target] = pattern
-            print("Pattern", pattern, "for", target)
+            report("Pattern {} for {}.".format(pattern, target), level=4)
         return patterns
 
     def get_pattern(self, target, cell=None, section=None, synapse=None):
