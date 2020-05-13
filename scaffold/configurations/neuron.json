@@ -153,7 +153,7 @@
         "class": "scaffold.morphologies.RadialGeometry",
         "dendrite_radius": 15.0,
         "detailed_morphologies": {
-          "names": ["StellateCell"]
+          "names": ["BasketCell"]
         }
       },
       "plotting": {
@@ -343,7 +343,10 @@
         "mossy_to_glomerulus": {
           "synapse": null
         },
-        "granule_to_golgi": {
+        "ascending_axon_to_golgi": {
+          "synapse": "AMPA"
+        },
+        "parallel_fiber_to_golgi": {
           "synapse": "AMPA"
         },
         "parallel_fiber_to_purkinje": {
