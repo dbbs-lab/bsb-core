@@ -94,7 +94,7 @@ class ConnectionStrategy(ConfigurableClass, SortableByAfter):
                     self.label_pre, self.label_post = label_pre, label_post
                     self._set_cells(label_pre, label_post)
                     connect()
-                    self.labels = None
+                    self.label_pre, self.label_post = None, None
 
         # Replace the connect function of this instance with a wrapped version.
         this.connect = types.MethodType(wrapped_connect, this)
