@@ -89,17 +89,16 @@ class ConnectionStrategy(ConfigurableClass, SortableByAfter):
                     for j in range(n_post):
                         label_matrix.append([labels_pre, labels_post[j]])
 
-                for labels in label_matrix:
-                    # labels contains the 2 labels for the pre- [index 0] and post- [index 1] synaptic populations
-                    self.labels = labels
-                    self._set_cells(labels)
+                for label_pre, label_post in label_matrix:
+                    self.labels = [label_pre, label_post]
+                    self._set_cells(label_pre, label_post)
                     connect()
                     self.labels = None
 
         # Replace the connect function of this instance with a wrapped version.
         this.connect = types.MethodType(wrapped_connect, this)
 
-    def _set_cells(self, labels=[[], []]):
+    def _set_cells(self, label_pre=[], label_post=[]):
         self.from_cells = {}
         self.to_cells = {}
         types = ["from_cell", "to_cell"]
@@ -111,15 +110,15 @@ class ConnectionStrategy(ConfigurableClass, SortableByAfter):
                 cells = cell_type.get_cells()
                 ids = cell_type.get_ids().tolist()
                 ids.sort()
-                if labels[0] and t == "from_cell":
-                    labelled = self.scaffold.get_labelled_ids(labels[0]).tolist()
+                if label_pre and t == "from_cell":
+                    labelled = self.scaffold.get_labelled_ids(label_pre).tolist()
                     labelled.sort()
                     # Compute intersect of sorted list
                     label_slice = compute_intersection_slice(ids, labelled)
                     # Store the labelled cells of the type.
                     self.__dict__[t + "s"][cell_type.name] = cells[label_slice]
-                elif labels[1] and t == "to_cell":
-                    labelled = self.scaffold.get_labelled_ids(labels[1]).tolist()
+                elif label_post and t == "to_cell":
+                    labelled = self.scaffold.get_labelled_ids(label_post).tolist()
                     labelled.sort()
                     # Compute intersect of sorted list
                     label_slice = compute_intersection_slice(ids, labelled)
