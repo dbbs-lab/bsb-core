@@ -13,7 +13,8 @@ class ConnectionStrategy(ConfigurableClass, SortableByAfter):
         super().__init__()
         self.simulation = _SimulationPlaceholder()
         self.tags = []
-        self.labels = None
+        self.label_pre = None
+        self.label_post = None
 
     @abc.abstractmethod
     def connect(self):
@@ -90,7 +91,7 @@ class ConnectionStrategy(ConfigurableClass, SortableByAfter):
                         label_matrix.append([labels_pre, labels_post[j]])
 
                 for label_pre, label_post in label_matrix:
-                    self.labels = [label_pre, label_post]
+                    self.label_pre, self.label_post = label_pre, label_post
                     self._set_cells(label_pre, label_post)
                     connect()
                     self.labels = None
@@ -98,34 +99,37 @@ class ConnectionStrategy(ConfigurableClass, SortableByAfter):
         # Replace the connect function of this instance with a wrapped version.
         this.connect = types.MethodType(wrapped_connect, this)
 
-    def _set_cells(self, label_pre=[], label_post=[]):
+    def _set_cells(self, label_pre=None, label_post=None):
+        """
+            Sets the current relevant set of cells on the ConnectionStrategy object so
+            that they can be unused during the `connect` call. If any labels are given
+            then the total set of cells of the pre- and postsynaptic types are reduced to
+            only cells with that label.
+        """
         self.from_cells = {}
         self.to_cells = {}
         types = ["from_cell", "to_cell"]
-        # Do it for the from cells and to cells
+        labels = {"from_cell": label_pre, "to_cell": label_post}
+        # Repeat the same steps for the presynaptic and postsynaptic cell types.
         for t in types:
+            label = labels[t]
             # Iterate over the from or to cell types.
             for cell_type in self.__dict__[t + "_types"]:
-                # Get the cell matrix and ids for the type.
+                # Get the cell matrix for the cell type.
                 cells = cell_type.get_cells()
-                ids = cell_type.get_ids().tolist()
-                ids.sort()
-                if label_pre and t == "from_cell":
-                    labelled = self.scaffold.get_labelled_ids(label_pre).tolist()
+                if label:
+                    # Get all ids for the cell type.
+                    ids = cell_type.get_ids().tolist()
+                    ids.sort()
+                    # Get the cells with the current label
+                    labelled = self.scaffold.get_labelled_ids(label).tolist()
                     labelled.sort()
-                    # Compute intersect of sorted list
+                    # Get intersection between cells of this type and the labelled cells
                     label_slice = compute_intersection_slice(ids, labelled)
-                    # Store the labelled cells of the type.
-                    self.__dict__[t + "s"][cell_type.name] = cells[label_slice]
-                elif label_post and t == "to_cell":
-                    labelled = self.scaffold.get_labelled_ids(label_post).tolist()
-                    labelled.sort()
-                    # Compute intersect of sorted list
-                    label_slice = compute_intersection_slice(ids, labelled)
-                    # Store the labelled cells of the type.
+                    # Store the filtered cells under from_cells/to_cells
                     self.__dict__[t + "s"][cell_type.name] = cells[label_slice]
                 else:
-                    # Store all cells of the type.
+                    # Don't filter by label and store the cells under from_cells/to_cells
                     self.__dict__[t + "s"][cell_type.name] = cells
 
     @classmethod
