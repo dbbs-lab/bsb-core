@@ -1,5 +1,6 @@
-import numpy as np
+import numpy as np, random
 from ..strategy import TouchingConvergenceDivergence
+from ...exceptions import ConfigurationError, ConnectivityError
 
 
 class ConnectomeGlomerulusGranule(TouchingConvergenceDivergence):
@@ -7,8 +8,30 @@ class ConnectomeGlomerulusGranule(TouchingConvergenceDivergence):
         Legacy implementation for the connections between glomeruli and granule cells.
     """
 
+    casts = {"detailed": bool}
+    defaults = {"detailed": False}
+
     def validate(self):
-        pass
+        if self.detailed:
+            morphologies = self.to_cell_types[0].list_all_morphologies()
+            if not morphologies:
+                raise ConfigurationError(
+                    "Can't create detailed glomerulus to granule connections without any morphologies for the granule cell."
+                )
+            elif len(morphologies) > 1:
+                raise NotImplementedError(
+                    "Detailed glomerulus to granule connections can only be made for a single morphology."
+                    + " (Requires the selection of morphologies to be moved from the connection module to the placement module)"
+                )
+            mr = self.scaffold.morphology_repository
+            morphology = mr.get_morphology(morphologies[0])
+            dendritic_compartments = morphology.get_compartments(["dendrites"])
+            dendrites = {}
+            for c in dendritic_compartments:
+                # Store the last found compartment of each dendrite
+                dendrites[c.section_id] = c
+            self.dendritic_claws = [c.id for c in dendrites.values()]
+            self.morphology = morphology
 
     def connect(self):
         # Gather information for the legacy code block below.
@@ -40,9 +63,8 @@ class ConnectomeGlomerulusGranule(TouchingConvergenceDivergence):
                     + ((glom_z - gran_z) ** 2)
                     - (dend_len ** 2)
                 )
-                good_gloms = np.where((distance_vector < 0.0) == True)[
-                    0
-                ]  # indexes of glomeruli that can potentially be connected
+                # Indices of glomeruli that can potentially be connected
+                good_gloms = np.where((distance_vector < 0.0) == True)[0]
                 good_gloms_len = len(good_gloms)
                 # Do we find more than enough candidates?
                 if good_gloms_len > n_conn_glom:  # Yes: select the closest ones
@@ -64,10 +86,41 @@ class ConnectomeGlomerulusGranule(TouchingConvergenceDivergence):
                 # Move up the internal array pointer
                 next_index += connected_glom_len
             # Truncate the pre-allocated array to the internal array pointer.
-            return results[0:next_index, :]
+            return results[:next_index, :]
 
         # Execute legacy code and add the connection matrix it returns to the scaffold.
         connectome = connectome_glom_grc(
             first_glomerulus, glomeruli, granules, dend_len, n_conn_glom
         )
-        self.scaffold.connect_cells(self, connectome)
+        if self.detailed:
+            # Add morphology & compartment information
+            morpho_map = [self.morphology.morphology_name]
+            morphologies = np.zeros((len(connectome), 2))
+            granule_dendrite_occupation = {
+                g[0]: self.dendritic_claws.copy() for g in granules
+            }
+            # Shuffle the order in which the dendrites will be selected by glomeruli
+            for l in granule_dendrite_occupation.values():
+                random.shuffle(l)
+            compartments = []
+            from time import time
+
+            t = time()
+            for i in range(len(connectome)):
+                granule_id = connectome[i, 1]
+                try:
+                    unoccupied_claw = granule_dendrite_occupation[granule_id].pop()
+                except IndexError:
+                    raise ConnectivityError(
+                        "Attempt to connect a glomerulus to a fully saturated granule cell."
+                    )
+                compartments.append([0, unoccupied_claw])
+            self.scaffold.connect_cells(
+                self,
+                connectome,
+                morphologies=morphologies,
+                compartments=np.array(compartments),
+                morpho_map=morpho_map,
+            )
+        else:
+            self.scaffold.connect_cells(self, connectome)

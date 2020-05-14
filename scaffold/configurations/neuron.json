@@ -193,7 +193,8 @@
       "from_cell_types": [{"type": "glomerulus", "compartments": ["soma"]}],
       "to_cell_types": [{"type": "granule_cell", "compartments": ["dendrites"]}],
       "divergence": 50,
-      "convergence": 4
+      "convergence": 4,
+      "detailed": true
     },
     "golgi_to_glomerulus": {
       "class": "scaffold.connectivity.ConnectomeGolgiGlomerulus",
@@ -294,11 +295,7 @@
     }
   },
   "after_connectivity": {
-    "relay_spoof": {
-      "class": "scaffold.postprocessing.SpoofDetails",
-      "presynaptic": "glomerulus",
-      "postsynaptic": "granule_cell"
-    }
+
   },
   "simulations": {
     "poc": {
