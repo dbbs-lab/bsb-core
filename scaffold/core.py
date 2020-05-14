@@ -9,7 +9,7 @@ from .models import CellType
 from .connectivity import ConnectionStrategy
 from warnings import warn as std_warn
 from .exceptions import *
-from .reporting import report, warn, has_mpi_installed, report_file
+from .reporting import report, warn, has_mpi_installed, get_report_file
 
 ###############################
 ## Scaffold class
@@ -361,6 +361,7 @@ class Scaffold:
         """
         simulation, simulator = self.prepare_simulation(simulation_name)
         # If we're reporting to a file, add a stream of progress event messages..
+        report_file = get_report_file()
         if report_file:
             listener = ReportListener(self, report_file)
             simulation.add_progress_listener(listener)
@@ -967,7 +968,7 @@ class ReportListener:
         self.scaffold = scaffold
 
     def __call__(self, progress):
-        self.scaffold.report(
+        report(
             str(progress.progression)
             + "+"
             + str(progress.duration)

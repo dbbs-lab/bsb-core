@@ -1,7 +1,7 @@
 from .strategy import Layered, PlacementStrategy
 import random, numpy as np
 from ..functions import get_candidate_points, add_y_axis, exclude_index
-from ..reporting import report, warn, verbosity as global_verbosity
+from ..reporting import report, warn
 from scipy.spatial import distance
 from ..exceptions import *
 
@@ -142,13 +142,12 @@ class LayeredRandomWalk(Layered, PlacementStrategy):
                     planar_start, cell_radius, cell_bounds, min_ϵ, max_ϵ
                 )
                 if planar_candidates.shape[0] == 0:
-                    if global_verbosity > 0:
-                        warn(
-                            "Could not place a single cell in {} {} starting from the middle of the simulation volume: Maybe the volume is too low or cell radius/epsilon too big. Sublayer skipped!".format(
-                                layer.name, sublayer_id
-                            ),
-                            PlacementWarning,
-                        )
+                    warn(
+                        "Could not place a single cell in {} {} starting from the middle of the simulation volume: Maybe the volume is too low or cell radius/epsilon too big. Sublayer skipped!".format(
+                            layer.name, sublayer_id
+                        ),
+                        PlacementWarning,
+                    )
                     continue
             placed_positions = np.array([starting_position])
             planar_placed_positions = np.array([starting_position[[0, 2]]])

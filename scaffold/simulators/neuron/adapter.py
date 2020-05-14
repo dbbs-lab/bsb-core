@@ -283,9 +283,7 @@ class NeuronAdapter(SimulatorAdapter):
             progression += 1
             pc.psolve(progression)
             pc.barrier()
-            report(
-                "Simulated {}/{}ms".format(progression, self.duration), 3, ongoing=True
-            )
+            self.progress(progression, self.duration)
             if os.path.exists("interrupt_neuron"):
                 report("Iterrupt requested. Stopping simulation.", 1)
                 break
