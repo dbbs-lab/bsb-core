@@ -123,7 +123,7 @@ class VoxelIntersection(ConnectionStrategy, MorphologyStrategy):
                 ]
                 weight_sum = sum(voxel_weights)
                 voxel_weights = [w / weight_sum for w in voxel_weights]
-                contacts = self.contacts.sample()
+                contacts = round(self.contacts.sample())
                 candidates = list(target_comps_per_to_voxel.items())
                 while contacts > 0:
                     contacts -= 1
