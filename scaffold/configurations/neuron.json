@@ -215,6 +215,13 @@
         "scale": 4
       }
     },
+    "golgi_to_granule": {
+      "class": "scaffold.connectivity.ConnectomeGolgiGranule",
+      "from_cell_types": [{"type": "golgi_cell", "compartments": ["axon"]}],
+      "to_cell_types": [{"type": "granule_cell", "compartments": ["dendrites"]}],
+      "after": ["golgi_to_glomerulus", "glomerulus_to_granule"],
+      "detailed": true
+    },
     "golgi_gap_junctions": {
       "class": "scaffold.connectivity.ConnectomeGapJunctionsGolgi",
       "from_cell_types": [{"type": "golgi_cell", "compartments": ["axon"]}],
@@ -345,6 +352,9 @@
         },
         "parallel_fiber_to_golgi": {
           "synapse": "AMPA"
+        },
+        "golgi_to_granule": {
+          "synapse": "GABA"
         },
         "parallel_fiber_to_purkinje": {
           "synapse": "AMPA_PF"
