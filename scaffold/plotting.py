@@ -244,19 +244,27 @@ def get_voxel_cloud_traces(cloud, selected_voxels=None, offset=[0.0, 0.0, 0.0]):
     return traces
 
 
-@_figure
+@_network_figure
 def plot_voxel_cloud(
     cloud,
-    bounds,
     selected_voxels=None,
     fig=None,
     show=True,
     legend=True,
+    cubic=True,
+    swapaxes=True,
+    set_range=True,
     offset=[0.0, 0.0, 0.0],
 ):
     traces = get_voxel_cloud_traces(cloud, selected_voxels=selected_voxels, offset=offset)
     for trace in traces:
         fig.add_trace(trace)
+    if set_range:
+        box = cloud.get_voxel_box()
+        range = [min(box), max(box)]
+        fig.layout.scene.xaxis.range = range
+        fig.layout.scene.yaxis.range = range
+        fig.layout.scene.zaxis.range = range
     return fig
 
 
@@ -396,7 +404,6 @@ def plotly_block_faces(
         j=[3, 4, 1, 2, 5, 6, 5, 2, 0, 1, 6, 3],
         k=[0, 7, 2, 3, 6, 7, 1, 1, 5, 5, 7, 6],
         opacity=0.3,
-        showlegend=False,
         **color_args
     )
 
