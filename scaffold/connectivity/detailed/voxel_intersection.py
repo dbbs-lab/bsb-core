@@ -8,16 +8,23 @@ from ...exceptions import *
 
 class VoxelIntersection(ConnectionStrategy, MorphologyStrategy):
     """
-        Description
+        This strategy voxelizes morphologies into collections of cubes, thereby reducing
+        the spatial specificity of the provided traced morphologies by grouping multiple
+        compartments into larger cubic voxels. Intersections are found not between the
+        seperate compartments but between the voxels and random compartments of matching
+        voxels are connected to eachother. This means that the connections that are made
+        are less specific to the exact morphology and can be very useful when only 1 or a
+        few morphologies are available to represent each cell type.
     """
 
     casts = {
         "convergence": int,
         "divergence": int,
+        "affinity": float,
         "contacts": DistributionConfiguration.cast,
     }
 
-    defaults = {"contacts": DistributionConfiguration.cast(1)}
+    defaults = {"affinity": 1, "contacts": DistributionConfiguration.cast(1)}
 
     def validate(self):
         pass
@@ -82,6 +89,15 @@ class VoxelIntersection(ConnectionStrategy, MorphologyStrategy):
             cell_intersections = list(to_cell_tree.intersection(this_box, objects=False))
             # Loop over each intersected partner to find and select compartment intersections
             for partner in cell_intersections:
+                # Only select a fraction of the total possible matches, based on how much
+                # affinity there is between the cell types.
+                # Affinity 1: All cells whose voxels intersect are considered to grow
+                # towards eachother and always form a connection with other cells in their
+                # voxelspace
+                # Affinity 0: Cells completely ignore other cells in their voxelspace and
+                # don't form connections.
+                if np.random.rand() >= self.affinity:
+                    continue
                 # Get the precise morphology of the to_cell we collided with
                 to_cell, to_morpho = to_morphology_set[partner]
                 # Get the map from voxel id to list of compartments in that voxel.

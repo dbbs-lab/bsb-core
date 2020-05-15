@@ -231,6 +231,7 @@
       "class": "scaffold.connectivity.VoxelIntersection",
       "from_cell_types": [{"type": "granule_cell", "compartments": ["ascending_axon"]}],
       "to_cell_types": [{"type": "golgi_cell", "compartments": ["dendrites"]}],
+      "affinity": 0.1,
       "contacts": {
         "type": "norm",
         "loc": 5,
@@ -246,6 +247,7 @@
       "class": "scaffold.connectivity.VoxelIntersection",
       "from_cell_types": [{"type": "granule_cell", "compartments": ["ascending_axon"]}],
       "to_cell_types": [{"type": "purkinje_cell", "compartments": ["dendrites"]}],
+      "affinity": 0.16,
       "contacts": {
         "type": "norm",
         "loc": 4,
