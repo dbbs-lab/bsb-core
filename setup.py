@@ -38,6 +38,6 @@ setuptools.setup(
     },
     extras_require={
         "dev": ["sphinx", "sphinx_rtd_theme>=0.4.3", "pyarmor", "pre-commit", "black"],
-        "NEURON": ["nrn-patch>=2.0.0", "dbbs_models"],
+        "NEURON": ["dbbs_models>=0.4.1"],
     },
 )
