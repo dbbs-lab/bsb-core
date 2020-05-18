@@ -6,8 +6,8 @@
     "file": "cortex_morpho.hdf5"
   },
   "network_architecture": {
-    "simulation_volume_x": 100.0,
-    "simulation_volume_z": 100.0,
+    "simulation_volume_x": 150.0,
+    "simulation_volume_z": 150.0,
     "store_kd_trees": true,
     "store_compound_kd_tree": true,
     "store_pf_kd_trees": true
@@ -217,7 +217,7 @@
       "class": "scaffold.connectivity.FiberIntersection",
       "from_cell_types": [{"type": "granule_cell", "compartments": ["parallel_fiber"]}],
       "to_cell_types": [{"type": "purkinje_cell", "compartments": ["dendrites"]}],
-      "resolution": 25.0
+      "resolution": 5.0
     }
   },
   "simulations": {
