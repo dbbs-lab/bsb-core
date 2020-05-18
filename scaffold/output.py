@@ -329,12 +329,11 @@ class MorphologyRepository(HDF5TreeHandler):
                 data = [
                     idx + p,
                     label,
-                    # NEURON has strange [-Y, X, Z] coordinate system.
+                    section.x3d(p) - tx,
                     section.y3d(p) - ty,
-                    -(section.x3d(p) - tx),
                     section.z3d(p) - tz,
+                    section.x3d(p + 1) - tx,
                     section.y3d(p + 1) - ty,
-                    -(section.x3d(p + 1) - tx),
                     section.z3d(p + 1) - tz,
                     section.diam3d(p) / 2.0,
                     idx + p - 1,
