@@ -262,9 +262,9 @@ def plot_voxel_cloud(
     if set_range:
         box = cloud.get_voxel_box()
         range = [min(box), max(box)]
-        fig.layout.scene.xaxis.range = range
-        fig.layout.scene.yaxis.range = range
-        fig.layout.scene.zaxis.range = range
+        fig.layout.scene.xaxis.range = range + offset[0]
+        fig.layout.scene.yaxis.range = range + offset[2] if swapaxes else offset[1]
+        fig.layout.scene.zaxis.range = range + offset[1] if swapaxes else offset[2]
     return fig
 
 
