@@ -7,7 +7,7 @@ with open("README.md", "r") as fh:
 setuptools.setup(
     name="dbbs-scaffold",
     version=scaffold.__version__,
-    author="Robin De Schepper, Alice Geminiani, Alberto Antonietti, Stefano Casali, Claudia Casselato, Egidio D'Angelo",
+    author="Robin De Schepper, Alice Geminiani, Alberto Antonietti, Stefano Casali, Claudia Casellato, Egidio D'Angelo",
     author_email="robingilbert.deschepper@unipv.it",
     description="A package for modelling morphologically detailed neuronal microcircuits.",
     include_package_data=True,
@@ -38,6 +38,6 @@ setuptools.setup(
     },
     extras_require={
         "dev": ["sphinx", "sphinx_rtd_theme>=0.4.3", "pyarmor", "pre-commit", "black"],
-        "NEURON": ["dbbs_models>=0.4.1"],
+        "NEURON": ["dbbs_models>=0.4.2"],
     },
 )
