@@ -192,7 +192,8 @@ class Branch:
                 ),
             )
             map.append(comp)
-        return bounding_box, voxel_tree, map
+        print("comp num ", v)
+        return bounding_box, voxel_tree, map, v
 
 
 def _init_child_compartments(compartments):

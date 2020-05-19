@@ -96,10 +96,11 @@ class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
             #
 
             # Voxelize all branches of the current morphology (5)
-            from_bounding_box, from_voxel_tree, from_map = self.voxelize_branches(
+            from_bounding_box, from_voxel_tree, from_map, v_all = self.voxelize_branches(
                 fm.root_branches, from_cell.position
             )
 
+            print("num voxels: ", v_all)
             # Check for intersections of the postsyn tree with the bounding box (6)
 
             ## TODO: Check if bounding box intersection is convenient
@@ -238,14 +239,18 @@ class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
             # Initialize map of compartment ids to empty list
             map = []
 
+        v = 0
+
         for branch in branches:
-            bounding_box, voxel_tree, map = branch.voxelize(
+            bounding_box, voxel_tree, map, v = branch.voxelize(
                 position, bounding_box, voxel_tree, map
             )
+            print("vox branch ", v)
             self.voxelize_branches(
                 branch.child_branches, position, bounding_box, voxel_tree, map
             )
-        return bounding_box, voxel_tree, map
+            print("vox branch after child", v)
+        return bounding_box, voxel_tree, map, v
 
 
 class FiberTransform(ConfigurableClass):
