@@ -254,9 +254,13 @@ class OptionallyCastable(CastableConfigurableClass):
 
 
 class DistributionConfiguration(OptionallyCastable):
+    """
+        Cast a configuration node into a `scipy.stats` distribution.
+    """
+
     # Fall back to float casting if no dictionary is given.
     fallback = float
-    casts = {"mean": float, "sd": float, "type": str}
+    casts = {"type": str}
     required = ["type"]
 
     def validate(self):
@@ -291,6 +295,9 @@ class DistributionConfiguration(OptionallyCastable):
 
     def sample(self):
         return self.draw(1)[0]
+
+    def mean(self):
+        return self.distribution.mean()
 
 
 class EvalConfiguration(OptionallyCastable):

@@ -180,3 +180,10 @@ def poisson_train(frequency, duration, start_time=0, seed=None):
         if cur_time > end_time:
             return
         yield cur_time
+
+
+def get_distances(candidates, point):
+    """
+        Return the distances of a list of points to a common point
+    """
+    return [np.sqrt(np.sum((np.array(c) - point) ** 2)) for c in candidates]
