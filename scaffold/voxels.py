@@ -4,6 +4,7 @@ from scipy import ndimage
 from random import choice as random_element
 from time import sleep
 from sklearn.neighbors import KDTree
+from .functions import get_distances
 
 
 class VoxelCloud:
@@ -344,7 +345,3 @@ class HitDetector:
 
         # Return the tree detector function as the factory product
         return cls(tree_detector)
-
-
-def get_distances(candidates, point):
-    return [np.sqrt(np.sum((np.array(c) - point) ** 2)) for c in candidates]

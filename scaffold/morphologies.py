@@ -1,4 +1,4 @@
-import abc, numpy as np, pickle, h5py
+import abc, numpy as np, pickle, h5py, math
 from .helpers import ConfigurableClass
 from .voxels import VoxelCloud, detect_box_compartments, Box
 from sklearn.neighbors import KDTree
@@ -155,6 +155,9 @@ class Morphology(ConfigurableClass):
 
     def boot(self):
         if self.has_morphology:
+            # TODO: This is dead code, it assumed that when we load the config a single
+            # shared example morphology could be used for the cell type. This kind of
+            # coupling has to be removed.
             report("{} has morphology".format(self.morphology_name), level=2)
             self.store_compartment_tree()
 
@@ -381,64 +384,7 @@ class TrueMorphology(Morphology):
             Rotation matrix R, representing a rotation of angle alpha around vector k
 
         """
-
-        import math
-
-        # Reduce 1-size dimentions
-        v0 = v0.squeeze()
-        v = v.squeeze()
-
-        # Normalize orientation vectors
-        v0 = v0 / np.linalg.norm(v0)
-        v = v / np.linalg.norm(v0)
-
-        alpha = np.arccos(np.dot(v0, v))
-
-        I = np.identity(3)
-
-        if alpha == 0.0:
-            report(
-                "Rotating morphology between parallel orientation vectors, {} and {}!".format(
-                    v0, v
-                ),
-                level=3,
-            )
-            # We will not rotate the morphology, thus R = I
-            R = np.identity(3)
-        elif alpha == np.pi:
-            report(
-                "Rotating morphology between antiparallel orientation vectors, {} and {}!".format(
-                    v0, v
-                ),
-                level=3,
-            )
-            # We will rotate the morphology of 180° around a vector orthogonal to the starting vector v0 (the same would be if we take the ending vector v)
-            # We set the first and second components to 1; the third one is obtained to have the scalar product with v0 equal to 0
-            kx = 1
-            ky = 1
-            kz = -(v0[0] + v0[1]) / v0[2]
-            k = np.array([kx, ky, kz])
-            K = np.array([[0, -k[2], k[1]], [k[2], 0, -k[0]], [-k[1], k[0], 0]])
-
-            # Rodrigues formula
-            R = (
-                I
-                + math.sin(alpha) * K
-                + (1 - math.cos(alpha)) * np.linalg.matrix_power(K, 2)
-            )
-        else:
-
-            k = (np.cross(v0, v)) / math.sin(alpha)
-            k = k / np.linalg.norm(k)
-
-            K = np.array([[0, -k[2], k[1]], [k[2], 0, -k[0]], [-k[1], k[0], 0]])
-
-            # Rodrigues formula
-            R = (
-                I
-                + math.sin(alpha) * K
-                + (1 - math.cos(alpha)) * np.linalg.matrix_power(K, 2)
-            )
+        R = get_rotation_matrix(v0, v)
 
         for c in range(len(self.compartments)):
             self.compartments[c].start = R.dot(self.compartments[c].start)
@@ -492,3 +438,44 @@ class RadialGeometry(Morphology):
 class NoGeometry(Morphology):
     def validate(self):
         pass
+
+
+def get_rotation_matrix(v0, v):
+    I = np.identity(3)
+    # Reduce 1-size dimensions
+    v0 = np.array(v0).squeeze()
+    v = np.array(v).squeeze()
+    # Normalize orientation vectors
+    v0 = v0 / np.linalg.norm(v0)
+    v = v / np.linalg.norm(v0)
+    alpha = np.arccos(np.dot(v0, v))
+
+    if math.isclose(alpha, 0.0, rel_tol=1e-4):
+        report(
+            "Rotating morphology between parallel orientation vectors, {} and {}!".format(
+                v0, v
+            ),
+            level=3,
+        )
+        # We will not rotate the morphology, thus R = I
+        return I
+    elif math.isclose(alpha, np.pi, rel_tol=1e-4):
+        report(
+            "Rotating morphology between antiparallel orientation vectors, {} and {}!".format(
+                v0, v
+            ),
+            level=3,
+        )
+        # We will rotate the morphology of 180° around a vector orthogonal to the starting vector v0 (the same would be if we take the ending vector v)
+        # We set the first and second components to 1; the third one is obtained to have the scalar product with v0 equal to 0
+        kx = 1
+        ky = 1
+        kz = -(v0[0] + v0[1]) / v0[2]
+        k = np.array([kx, ky, kz])
+    else:
+        k = (np.cross(v0, v)) / math.sin(alpha)
+        k = k / np.linalg.norm(k)
+
+    K = np.array([[0, -k[2], k[1]], [k[2], 0, -k[0]], [-k[1], k[0], 0]])
+    # Compute and return the rotation matrix using Rodrigues' formula
+    return I + math.sin(alpha) * K + (1 - math.cos(alpha)) * np.linalg.matrix_power(K, 2)

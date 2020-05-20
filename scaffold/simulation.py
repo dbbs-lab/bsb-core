@@ -1,7 +1,9 @@
-import abc, random
+import abc, random, types
 import numpy as np
 from .helpers import ConfigurableClass, assert_attr, SortableByAfter
+from .reporting import report
 from .exceptions import *
+from time import time
 
 
 class SimulationComponent(ConfigurableClass, SortableByAfter):
@@ -114,9 +116,7 @@ class SimulatorAdapter(ConfigurableClass):
         pass
 
     def progress(self, progression, duration):
-        self.scaffold.report(
-            "Simulated {}/{}ms".format(progression, duration), 3, ongoing=True
-        )
+        report("Simulated {}/{}ms".format(progression, duration), 3, ongoing=True)
         progress = types.SimpleNamespace(
             progression=progression, duration=duration, time=time()
         )

@@ -6,6 +6,7 @@ from scaffold.core import Scaffold, from_hdf5
 from scaffold.config import JSONConfig
 from scaffold.models import MorphologySet, PlacementSet
 from scaffold.output import MorphologyRepository, MorphologyCache
+from scaffold.morphologies import TrueMorphology
 from shutil import copyfile
 
 
@@ -160,3 +161,66 @@ class TestMorhologySetsRotations(unittest.TestCase):
             != -1,
             "Wrong morphology map!",
         )
+
+
+class TestRotation(unittest.TestCase):
+    """
+        Test the validity of rotations
+    """
+
+    def test_rotate(self):
+        spoofed_data = np.array(
+            [
+                [0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, -1.0],
+                [1.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, -1.0],
+                [2.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 1.0, -1.0],
+            ]
+        )
+        spoofed_meta = {"name": "test_rotation"}
+        m = TrueMorphology.from_repo_data(spoofed_data, spoofed_meta)
+        v0 = [1.0, 0.0, 0.0]
+        v = [0.0, 1.0, 0.0]
+        # Store pre rotation checks
+        x1 = m.compartments[0].end.copy()
+        # Rotate
+        m.rotate(v0, v)
+        s = m.compartments[0].start
+        # Verify rotations
+        self.assertEqualPoints(s, [0.0, 0.0, 0.0], "Rotation moved the origin!")
+        self.assertEqualPoints(m.compartments[0].end, [0.0, 1.0, 0.0], v0=v0, v=v, x0=x1)
+
+    def assertEqualPoints(self, x, p, msg=None, v0=None, v=None, x0=None):
+        """
+            Assert that point `x` is equal to point `p`
+        """
+        # Assert that they are of the same non-zero dimensionality
+        self.assertNotEqual(len(x), 0, "Empty input point x given")
+        self.assertEqual(len(x), len(p), "Different dimensions for input points x and p")
+        # Store the variables that were passed to print below
+        args = locals()
+        # Delete some internal args that don't need to be printed
+        del args["self"]
+        del args["msg"]
+        # Parse the assert message
+        assert_msg = (
+            msg
+            if msg
+            else (
+                "Incorrect rotation"
+                + ((" of " + repr(x0)) if x0 is not None else "")
+                + " to "
+                + repr(x)
+                + ". Expected "
+                + repr(p)
+                + (
+                    (" after rotation of v0 " + repr(v0) + " to v " + repr(v))
+                    if v0 is not None
+                    else ""
+                )
+            )
+            # Append a list of the arguments that led to this assertion error
+            + "\n\n  " + "\n  ".join(str(k) + " = " + str(v) for k, v in args.items())
+        )
+        for xi, pi in zip(x, p):
+            # Assert that all points in x and p are almost equal
+            self.assertAlmostEqual(xi, pi, msg=assert_msg)

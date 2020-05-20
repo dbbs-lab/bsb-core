@@ -1,7 +1,7 @@
 import numpy as np
 from ..strategy import ConnectionStrategy
 from ...exceptions import *
-from ...reporting import warn, verbosity as global_verbosity
+from ...reporting import warn
 
 
 class ConnectomeGranuleGolgi(ConnectionStrategy):
@@ -103,11 +103,10 @@ class ConnectomeGranuleGolgi(ConnectionStrategy):
                     # Warn the user once if not enough granule cells are present to connect to the Golgi cell.
                     if not densityWarningSent:
                         densityWarningSent = True
-                        if global_verbosity > 0:
-                            warn(
-                                "The granule cell density is too low compared to the Golgi cell density to make physiological connections!",
-                                ConnectivityWarning,
-                            )
+                        warn(
+                            "The granule cell density is too low compared to the Golgi cell density to make physiological connections!",
+                            ConnectivityWarning,
+                        )
                 else:
                     connected_pf = np.random.choice(
                         good_pf, tot_conn - len(connectedAA), replace=False

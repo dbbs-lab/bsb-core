@@ -153,7 +153,7 @@
         "class": "scaffold.morphologies.RadialGeometry",
         "dendrite_radius": 15.0,
         "detailed_morphologies": {
-          "names": ["StellateCell"]
+          "names": ["BasketCell"]
         }
       },
       "plotting": {
@@ -182,6 +182,7 @@
     }
   },
   "connection_types": {
+
     "mossy_to_glomerulus": {
       "class": "scaffold.connectivity.ConnectomeMossyGlomerulus",
       "from_cell_types": [{"type": "mossy_fibers", "compartments": ["soma"]}],
@@ -192,7 +193,8 @@
       "from_cell_types": [{"type": "glomerulus", "compartments": ["soma"]}],
       "to_cell_types": [{"type": "granule_cell", "compartments": ["dendrites"]}],
       "divergence": 50,
-      "convergence": 4
+      "convergence": 4,
+      "detailed": true
     },
     "golgi_to_glomerulus": {
       "class": "scaffold.connectivity.ConnectomeGolgiGlomerulus",
@@ -206,22 +208,51 @@
       "from_cell_types": [{"type": "glomerulus", "compartments": ["soma"]}],
       "to_cell_types": [{"type": "golgi_cell", "compartments": ["dendrites"]}],
       "divergence": 2,
-      "convergence": 65
+      "convergence": 65,
+      "contacts": {
+        "type": "norm",
+        "loc": 20,
+        "scale": 4
+      }
+    },
+    "golgi_to_granule": {
+      "class": "scaffold.connectivity.ConnectomeGolgiGranule",
+      "from_cell_types": [{"type": "golgi_cell", "compartments": ["axon"]}],
+      "to_cell_types": [{"type": "granule_cell", "compartments": ["dendrites"]}],
+      "after": ["golgi_to_glomerulus", "glomerulus_to_granule"],
+      "detailed": true
     },
     "golgi_gap_junctions": {
       "class": "scaffold.connectivity.ConnectomeGapJunctionsGolgi",
       "from_cell_types": [{"type": "golgi_cell", "compartments": ["axon"]}],
       "to_cell_types": [{"type": "golgi_cell", "compartments": ["dendrites"]}]
     },
-    "granule_to_golgi": {
+    "ascending_axon_to_golgi": {
       "class": "scaffold.connectivity.VoxelIntersection",
-      "from_cell_types": [{"type": "granule_cell", "compartments": ["parallel_fiber", "ascending_axon"]}],
+      "from_cell_types": [{"type": "granule_cell", "compartments": ["ascending_axon"]}],
+      "to_cell_types": [{"type": "golgi_cell", "compartments": ["dendrites"]}],
+      "affinity": 0.1,
+      "contacts": {
+        "type": "norm",
+        "loc": 5,
+        "scale": 0.5
+      }
+    },
+    "parallel_fiber_to_golgi": {
+      "class": "scaffold.connectivity.VoxelIntersection",
+      "from_cell_types": [{"type": "granule_cell", "compartments": ["parallel_fiber"]}],
       "to_cell_types": [{"type": "golgi_cell", "compartments": ["dendrites"]}]
     },
     "ascending_axon_to_purkinje": {
-      "class": "scaffold.connectivity.ConnectomeAscAxonPurkinje",
+      "class": "scaffold.connectivity.VoxelIntersection",
       "from_cell_types": [{"type": "granule_cell", "compartments": ["ascending_axon"]}],
-      "to_cell_types": [{"type": "purkinje_cell", "compartments": ["dendrites"]}]
+      "to_cell_types": [{"type": "purkinje_cell", "compartments": ["dendrites"]}],
+      "affinity": 0.16,
+      "contacts": {
+        "type": "norm",
+        "loc": 4,
+        "scale": 0.4
+      }
     },
     "parallel_fiber_to_purkinje": {
       "class": "scaffold.connectivity.VoxelIntersection",
@@ -243,7 +274,12 @@
     "stellate_to_purkinje": {
       "class": "scaffold.connectivity.VoxelIntersection",
       "from_cell_types": [{"type": "stellate_cell", "compartments": ["axon"]}],
-      "to_cell_types": [{"type": "purkinje_cell", "compartments": ["dendrites"]}]
+      "to_cell_types": [{"type": "purkinje_cell", "compartments": ["dendrites"]}],
+      "contacts": {
+        "type": "norm",
+        "loc": 5,
+        "scale": 0.5
+      }
     },
     "basket_to_purkinje": {
       "class": "scaffold.connectivity.VoxelIntersection",
@@ -268,9 +304,7 @@
     }
   },
   "after_connectivity": {
-    "relay_spoof": {
-      "class": "scaffold.postprocessing.SpoofGlomerulusGranuleDetailed"
-    }
+
   },
   "simulations": {
     "poc": {
@@ -315,8 +349,14 @@
         "mossy_to_glomerulus": {
           "synapse": null
         },
-        "granule_to_golgi": {
+        "ascending_axon_to_golgi": {
           "synapse": "AMPA"
+        },
+        "parallel_fiber_to_golgi": {
+          "synapse": "AMPA"
+        },
+        "golgi_to_granule": {
+          "synapse": "GABA"
         },
         "parallel_fiber_to_purkinje": {
           "synapse": "AMPA_PF"
