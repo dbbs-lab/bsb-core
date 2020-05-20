@@ -359,11 +359,15 @@ class QuiverTransform(FiberTransform):
         return point_cloud
 
     def transform_branches(self, branches, offset=None):
+        # In QuiverTransform transform_branches, the offset is used to find the
+        # orientation vector associated to the voxel where the compartment to
+        # be rotated is located
         if offset is None:
             offset = np.zeros(3)
         for branch in branches:
-            branch_offset = offset + self.transform_branch(branch, offset)
-            self.transform_branches(branch.child_branches, branch_offset)
+            # @Robin: each branch has a start position in the reference frame of the morphology it belongs to or they all start at [0,0,0]?
+            self.transform_branch(branch, offset)
+            self.transform_branches(branch.child_branches, offset)
 
     def transform_branch(self, branch, offset):
         pass
