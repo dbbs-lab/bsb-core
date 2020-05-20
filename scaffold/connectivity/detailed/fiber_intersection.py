@@ -102,7 +102,7 @@ class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
                 fm.root_branches, from_cell.position
             )
 
-            print("num voxels: ", v_all)
+            # print("num voxels: ", v_all)
             # Check for intersections of the postsyn tree with the bounding box (6)
 
             ## TODO: Check if bounding box intersection is convenient
@@ -256,17 +256,28 @@ class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
             bounding_box, voxel_tree, map, v = branch.voxelize(
                 position, bounding_box, voxel_tree, map
             )
-            print("vox branch ", v)
+            # print("vox branch ", v)
             self.voxelize_branches(
                 branch.child_branches, position, bounding_box, voxel_tree, map
             )
-            print("vox branch after child", v)
+            # print("vox branch after child", v)
         return bounding_box, voxel_tree, map, v
 
 
 class FiberTransform(ConfigurableClass):
+    def transform_branches(self, branches, offset=None):
+        # In QuiverTransform transform_branches, the offset is used to find the
+        # orientation vector associated to the voxel where the compartment to
+        # be rotated is located
+        if offset is None:
+            offset = np.zeros(3)
+        for branch in branches:
+            # @Robin: each branch has a start position in the reference frame of the morphology it belongs to or they all start at [0,0,0]?
+            self.transform_branch(branch, offset)
+            self.transform_branches(branch.child_branches, offset)
+
     @abc.abstractmethod
-    def transform(self):
+    def transform_branch(self):
         pass
 
 
@@ -276,6 +287,10 @@ class QuiverTransform(FiberTransform):
         Used for parallel fibers.
     """
 
+    casts = {"vol_res": float}
+
+    defaults = {"vol_res": 1.0, "quivers": [1.0, 1.0, 1.0]}
+
     def validate(self):
 
         if self.shared is True:
@@ -283,11 +298,10 @@ class QuiverTransform(FiberTransform):
                 "Attribute 'shared' can't be True for {} transformation".format(self.name)
             )
 
-    def transform(self, fiber_morpho):
-        # transform(self, fiber_morpho)interpolate
+    def transform_branch(self, branch, offset):
+
         """
-            Compute bending transformation of a point cloud representing the discretization of a fiber (according to
-            original compartments and configured resolution value).
+            Compute bending transformation of a fiber branch (discretized according to original compartments and configured resolution value).
             The transformation is a rotation of each segment/compartment (identified by a point_start and point_end) of the fiber
             to align to the cross product between the orientation vector and the transversal direction vector:
             new_point_start = old_point_start
@@ -311,7 +325,7 @@ class QuiverTransform(FiberTransform):
             orientation_data = self.quivers
         else:
             raise AttributeError("Missing  attribute 'quivers' for {}".format(self.name))
-        if self.vol_res is not None:
+        if hasattr(self.vol_res):
             volume_res = self.vol_res
         else:
             raise AttributeError("Missing  attribute 'vol_res' for {}".format(self.name))
@@ -357,17 +371,3 @@ class QuiverTransform(FiberTransform):
                     point_cloud[cell][comp + 6] = point_cloud[cell][comp + 3]
 
         return point_cloud
-
-    def transform_branches(self, branches, offset=None):
-        # In QuiverTransform transform_branches, the offset is used to find the
-        # orientation vector associated to the voxel where the compartment to
-        # be rotated is located
-        if offset is None:
-            offset = np.zeros(3)
-        for branch in branches:
-            # @Robin: each branch has a start position in the reference frame of the morphology it belongs to or they all start at [0,0,0]?
-            self.transform_branch(branch, offset)
-            self.transform_branches(branch.child_branches, offset)
-
-    def transform_branch(self, branch, offset):
-        pass
