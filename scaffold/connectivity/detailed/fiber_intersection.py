@@ -18,7 +18,9 @@ class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
         Description
     """
 
-    casts = {"convergence": int, "divergence": int}
+    casts = {"convergence": int, "divergence": int, "affinity": float}
+
+    defaults = {"affinity": 1}
 
     def validate(self):
         pass
@@ -117,6 +119,15 @@ class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
             # Voxel cloud intersection to identify real connected cells and their compartments
             # Loop over each intersected partner to find and select compartment intersections
             for partner in cell_intersections:
+                # Same as in VoxelIntersection, only select a fraction of the total possible matches, based on how much
+                # affinity there is between the cell types.
+                # Affinity 1: All cells whose voxels intersect are considered to grow
+                # towards eachother and always form a connection with other cells in their
+                # voxelspace
+                # Affinity 0: Cells completely ignore other cells in their voxelspace and
+                # don't form connections.
+                if np.random.rand() >= self.affinity:
+                    continue
                 # Get the precise morphology of the to_cell we collided with
                 to_cell, to_morpho = to_morphology_set[partner]
                 # Get the map from voxel id to list of compartments in that voxel.
