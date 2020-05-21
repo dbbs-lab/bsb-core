@@ -2,12 +2,12 @@
   "name": "DBBS NEURON simulator configuration v3.1",
   "output": {
     "format": "scaffold.output.HDF5Formatter",
-    "morphology_repository": "morphologies.hdf5",
-    "file": "neuron.hdf5"
+    "morphology_repository": "mr_final.hdf5",
+    "file": "neuronTouch.hdf5"
   },
   "network_architecture": {
-    "simulation_volume_x": 50.0,
-    "simulation_volume_z": 50.0,
+    "simulation_volume_x": 150.0,
+    "simulation_volume_z": 150.0,
     "store_kd_trees": true,
     "store_compound_kd_tree": true,
     "store_pf_kd_trees": true
@@ -22,7 +22,7 @@
       }
     },
     "purkinje_layer": {
-      "thickness": 30.0,
+      "thickness": 15.0,
       "stack": {
         "stack_id": 0,
         "position_in_stack": 1
@@ -228,20 +228,16 @@
       "to_cell_types": [{"type": "golgi_cell", "compartments": ["dendrites"]}]
     },
     "ascending_axon_to_golgi": {
-      "class": "scaffold.connectivity.VoxelIntersection",
+      "class": "scaffold.connectivity.TouchDetector",
       "from_cell_types": [{"type": "granule_cell", "compartments": ["ascending_axon"]}],
       "to_cell_types": [{"type": "golgi_cell", "compartments": ["dendrites"]}],
-      "affinity": 0.1,
-      "contacts": {
-        "type": "norm",
-        "loc": 5,
-        "scale": 0.5
-      }
+      "compartment_intersection_radius": 0.2
     },
     "parallel_fiber_to_golgi": {
       "class": "scaffold.connectivity.VoxelIntersection",
       "from_cell_types": [{"type": "granule_cell", "compartments": ["parallel_fiber"]}],
-      "to_cell_types": [{"type": "golgi_cell", "compartments": ["dendrites"]}]
+      "to_cell_types": [{"type": "golgi_cell", "compartments": ["dendrites"]}],
+      "affinity": 0.2
     },
     "ascending_axon_to_purkinje": {
       "class": "scaffold.connectivity.VoxelIntersection",
@@ -257,24 +253,28 @@
     "parallel_fiber_to_purkinje": {
       "class": "scaffold.connectivity.VoxelIntersection",
       "from_cell_types": [{"type": "granule_cell", "compartments": ["parallel_fiber"]}],
-      "to_cell_types": [{"type": "purkinje_cell", "compartments": ["dendrites"]}]
+      "to_cell_types": [{"type": "purkinje_cell", "compartments": ["dendrites"]}],
+      "affinity": 0.2
     },
     "parallel_fiber_to_basket": {
       "class": "scaffold.connectivity.VoxelIntersection",
       "from_cell_types": [{"type": "granule_cell", "compartments": ["parallel_fiber"]}],
       "to_cell_types": [{"type": "basket_cell", "compartments": ["dendrites"]}],
-      "after": ["granule_to_golgi"]
+      "after": ["granule_to_golgi"],
+      "affinity": 0.2
     },
     "parallel_fiber_to_stellate": {
       "class": "scaffold.connectivity.VoxelIntersection",
       "from_cell_types": [{"type": "granule_cell", "compartments": ["parallel_fiber"]}],
       "to_cell_types": [{"type": "stellate_cell", "compartments": ["dendrites"]}],
-      "after": ["granule_to_golgi"]
+      "after": ["granule_to_golgi"],
+      "affinity": 0.2
     },
     "stellate_to_purkinje": {
       "class": "scaffold.connectivity.VoxelIntersection",
       "from_cell_types": [{"type": "stellate_cell", "compartments": ["axon"]}],
       "to_cell_types": [{"type": "purkinje_cell", "compartments": ["dendrites"]}],
+      "affinity": 0.2,
       "contacts": {
         "type": "norm",
         "loc": 5,
@@ -284,7 +284,8 @@
     "basket_to_purkinje": {
       "class": "scaffold.connectivity.VoxelIntersection",
       "from_cell_types": [{"type": "basket_cell", "compartments": ["axon"]}],
-      "to_cell_types": [{"type": "purkinje_cell", "compartments": ["soma"]}]
+      "to_cell_types": [{"type": "purkinje_cell", "compartments": ["soma"]}],
+      "voxels_post": 1
     },
     "stellate_to_stellate": {
       "class": "scaffold.connectivity.ConnectomeGapJunctions",
