@@ -218,22 +218,29 @@ def plot_detailed_network(
     return fig
 
 
-def get_voxel_cloud_traces(cloud, selected_voxels=None, offset=[0.0, 0.0, 0.0]):
+def get_voxel_cloud_traces(
+    cloud, selected_voxels=None, offset=[0.0, 0.0, 0.0], color=None
+):
     # Calculate the 3D voxel indices based on the voxel positions and the grid size.
     boxes = cloud.get_boxes()
     voxels = cloud.voxels.copy()
     box_positions = np.column_stack(boxes[:, voxels])
     # Calculate normalized occupancy of each voxel to determine transparency
     occupancies = cloud.get_occupancies() / 1.5
+    if color is None:
+        color = [255, 0, 0]
+    color = list(map(str, color))
 
     colors = np.empty(voxels.shape, dtype=object)
     if selected_voxels is not None:
         # Color selected voxels
         colors[voxels] = "rgba(0, 0, 0, 0.0)"
-        colors[selected_voxels] = "rgba(0, 255, 0, 1.0)"
+        colors[selected_voxels] = "rgba(" + ",".join(color) + ", 1.0)"
     else:
         # Prepare voxels with the compartment density coded into the alpha of the facecolor
-        colors[voxels] = list(map(lambda o: "rgba(255, 0, 0, {})".format(o), occupancies))
+        colors[voxels] = [
+            "rgba(" + ",".join(color) + ", {})".format(o) for o in occupancies
+        ]
     traces = []
     for box, color in zip(box_positions, colors[voxels]):
         box += offset
@@ -255,8 +262,11 @@ def plot_voxel_cloud(
     swapaxes=True,
     set_range=True,
     offset=[0.0, 0.0, 0.0],
+    color=None,
 ):
-    traces = get_voxel_cloud_traces(cloud, selected_voxels=selected_voxels, offset=offset)
+    traces = get_voxel_cloud_traces(
+        cloud, selected_voxels=selected_voxels, offset=offset, color=color
+    )
     for trace in traces:
         fig.add_trace(trace)
     if set_range:

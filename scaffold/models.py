@@ -174,7 +174,7 @@ class Resource:
         self._handler = handler
         self._path = path
 
-    def get_dataset(self, selector=()):
+    def get_dataset(self, selector=(), dtype=None):
         with self._handler.load("r") as f:
             if not self._path in f():
                 raise DatasetNotFoundError(
@@ -182,7 +182,10 @@ class Resource:
                         self._path, self._handler.file
                     )
                 )
-            return f()[self._path][selector]
+            d = f()[self._path][selector]
+            if dtype:
+                d = d.astype(dtype)
+            return d
 
     @property
     def attributes(self):
@@ -274,11 +277,11 @@ class ConnectivitySet(Resource):
 
     @property
     def from_identifiers(self):
-        return self.get_dataset()[:, 0]
+        return self.get_dataset(dtype=int)[:, 0]
 
     @property
     def to_identifiers(self):
-        return self.get_dataset()[:, 1]
+        return self.get_dataset(dtype=int)[:, 1]
 
     @property
     def intersections(self):
@@ -325,6 +328,38 @@ class ConnectivitySet(Resource):
             )
         return intersections
 
+    def get_divergence_list(self):
+        presynaptic_type = self.get_presynaptic_types()[0]
+        placement_set = self.scaffold.get_placement_set(presynaptic_type)
+        identifiers = placement_set.identifiers
+        carry = {id: 0 for id in identifiers}
+        for id in self.from_identifiers:
+            carry[id] = carry[id] + 1
+        return list(carry.values())
+
+    @property
+    def divergence(self):
+        divergence_list = self.get_divergence_list()
+        if not divergence_list:
+            return 0
+        return sum(divergence_list) / len(divergence_list)
+
+    def get_convergence_list(self):
+        postsynaptic_type = self.get_postsynaptic_types()[0]
+        placement_set = self.scaffold.get_placement_set(postsynaptic_type)
+        identifiers = placement_set.identifiers
+        carry = {id: 0 for id in identifiers}
+        for id in self.to_identifiers:
+            carry[id] = carry[id] + 1
+        return list(carry.values())
+
+    @property
+    def convergence(self):
+        convergence_list = self.get_convergence_list()
+        if not convergence_list:
+            return 0
+        return sum(convergence_list) / len(convergence_list)
+
     def __iter__(self):
         if self.compartment_set.exists():
             return self.intersections
@@ -355,6 +390,30 @@ class ConnectivitySet(Resource):
         type_list = self.attributes["connection_types"]
         # Map contributing type names to contributing types
         return list(map(lambda name: self.scaffold.get_connection_type(name), type_list))
+
+    def _get_cell_types(self, key="from"):
+        meta = self.meta
+        if key + "_cell_types" in meta:
+            cell_types = set()
+            for name in meta[key + "_cell_types"]:
+                cell_types.add(self.scaffold.get_cell_type(name))
+            return list(cell_types)
+        cell_types = set()
+        for connection_type in self.connection_types:
+            cell_types |= set(connection_type.__dict__[key + "_cell_types"])
+        return list(cell_types)
+
+    def get_presynaptic_types(self):
+        """
+            Return a list of the presynaptic cell types found in this set.
+        """
+        return self._get_cell_types(key="from")
+
+    def get_postsynaptic_types(self):
+        """
+            Return a list of the postsynaptic cell types found in this set.
+        """
+        return self._get_cell_types(key="to")
 
 
 class PlacementSet(Resource):
