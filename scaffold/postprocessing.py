@@ -135,7 +135,6 @@ class DCNRotations(PostProcessingHook):
     def after_placement(self):
         ps = self.scaffold.get_placement_set("dcn_cell")
         dend_tree_coeff = np.zeros((len(ps), 4))
-        for i in range(len(dcn_matrix)):
         positions = ps.positions
         for i in range(len(ps)):
             # Make the planar coefficients a, b and c.
