@@ -6,8 +6,8 @@
     "file": "neuron.hdf5"
   },
   "network_architecture": {
-    "simulation_volume_x": 50.0,
-    "simulation_volume_z": 50.0,
+    "simulation_volume_x": 150.0,
+    "simulation_volume_z": 150.0,
     "store_kd_trees": true,
     "store_compound_kd_tree": true,
     "store_pf_kd_trees": true
@@ -22,7 +22,7 @@
       }
     },
     "purkinje_layer": {
-      "thickness": 30.0,
+      "thickness": 15.0,
       "stack": {
         "stack_id": 0,
         "position_in_stack": 1
@@ -284,7 +284,8 @@
     "basket_to_purkinje": {
       "class": "scaffold.connectivity.VoxelIntersection",
       "from_cell_types": [{"type": "basket_cell", "compartments": ["axon"]}],
-      "to_cell_types": [{"type": "purkinje_cell", "compartments": ["soma"]}]
+      "to_cell_types": [{"type": "purkinje_cell", "compartments": ["soma"]}],
+      "voxels_post": 1
     },
     "stellate_to_stellate": {
       "class": "scaffold.connectivity.ConnectomeGapJunctions",
