@@ -15,7 +15,18 @@ from rtree.index import Rtree
 
 class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
     """
-        Description
+        FiberIntersection connection strategies voxelize a fiber and find its intersections with postsynaptic cells.
+        It's a specific case of VoxelIntersection.
+
+        For each presynaptic cell, the following steps are executed:
+            1) extracting the FiberMorphology
+            2) interpolate
+            3) transform
+            4) interpolate
+            5) voxelize (generates the voxel_tree associated to this morphology)
+            6) check intersections of presyn bounding box with all postsyn boxes
+            7) check intersections of each candidate postsyn with current presyn voxel_tree
+
     """
 
     casts = {"convergence": int, "divergence": int, "affinity": float}
@@ -66,15 +77,6 @@ class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
         connections_out = []
         compartments_out = []
         morphologies_out = []
-
-        # ALGORITHM: 1 single loop doing everything for that presyn cell:
-        #    1) extracting the FiberMorpho
-        #    2) interpolate
-        #    3) transform
-        #    4) interpolate
-        #    5) voxelize (generates the voxel_tree associated to this morphology)
-        #    6) check intersections of presyn bounding box with all postsyn boxes
-        #    7) check intersections of each candidate postsyn with current presyn voxel_tree
 
         for c, (from_cell, from_morpho) in enumerate(from_morphology_set):
             # Extract the FiberMorpho object for each branch in the morphology (1)
