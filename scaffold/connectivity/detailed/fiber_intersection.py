@@ -85,10 +85,8 @@ class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
             # Interpolate all branches recursively (2)
             self.interpolate_branches(fm.root_branches)
 
-            # @Robin: when it makes sense to move to absolute coordinates??? We need this info for quivertransform
-            # but not all scaffolds have the transform and we need to know the absolute position in step 7) for sure
-
-            # Transform (3)
+            # Transform (3). It requires the from_cell position that will be used for example in QuiverTransform to get
+            # the orientation value in the voxel where the cell is located, while still keeping the morphology in its local reference frame.
             if self.transformation is not None:
                 self.transformation.transform_branches(
                     fm.root_branches, from_cell.position
@@ -103,7 +101,6 @@ class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
                 fm.root_branches, from_cell.position
             )
 
-            # print("num voxels: ", v_all)
             # Check for intersections of the postsyn tree with the bounding box (6)
 
             ## TODO: Check if bounding box intersection is convenient
