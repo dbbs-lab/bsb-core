@@ -192,7 +192,7 @@ class Branch:
                 ),
             )
             map.append(comp)
-        print("comp num ", v)
+        # print("comp num ", v)
         return bounding_box, voxel_tree, map, v
 
 

@@ -34,7 +34,7 @@ class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
         # Select all the cells from the pre- & postsynaptic type for a specific connection.
         from_type = self.from_cell_types[0]
         from_compartments = self.from_cell_compartments[0]
-        print("from compartments ", from_compartments)
+        # print("from compartments ", from_compartments)
         to_compartments = self.to_cell_compartments[0]
         to_type = self.to_cell_types[0]
         from_placement_set = self.scaffold.get_placement_set(from_type.name)
@@ -287,6 +287,8 @@ class QuiverTransform(FiberTransform):
         Used for parallel fibers.
     """
 
+    # @Robin: how I deal with attributes should be checked
+
     casts = {"vol_res": float}
 
     defaults = {"vol_res": 1.0, "quivers": [1.0, 1.0, 1.0]}
@@ -301,9 +303,10 @@ class QuiverTransform(FiberTransform):
     def transform_branch(self, branch, offset):
 
         """
+            @Alice: to rewrite
             Compute bending transformation of a fiber branch (discretized according to original compartments and configured resolution value).
             The transformation is a rotation of each segment/compartment (identified by a point_start and point_end) of the fiber
-            to align to the cross product between the orientation vector and the transversal direction vector:
+            to align to the cross product between the orientation vector and the transversal direction vector (i.e. branch direction):
             new_point_start = old_point_start
             cross_prod = orientation_vector X transversal_vector
             new_point_end = point_start + cross_prod * length_comp
@@ -325,7 +328,7 @@ class QuiverTransform(FiberTransform):
             orientation_data = self.quivers
         else:
             raise AttributeError("Missing  attribute 'quivers' for {}".format(self.name))
-        if hasattr(self.vol_res):
+        if hasattr(self, "vol_res"):
             volume_res = self.vol_res
         else:
             raise AttributeError("Missing  attribute 'vol_res' for {}".format(self.name))
@@ -334,9 +337,19 @@ class QuiverTransform(FiberTransform):
         orientation_data = np.ones(shape=(3, 500, 500, 500))
         volume_res = 1
 
+        print("checked attributes transform")
+        print("shared ", self.shared)
+        # We really need to check if shared here? We are applying to each cell - so this should be checked before in the code
         if not self.shared:
+
+            # Compute branch direction - to check that PFs have 2 branches, left and right
+            branch_dir = branch._compartments[0].end - branch._compartments[0].start
+            # Normalize branch_dir vector
+            branch_dir = branch_dir / np.linalg.norm(branch_dir)
+            print("branch dir ", branch_dir)
             # Loop over all cells
             for cell in range(len(point_cloud)):
+
                 # First 4 elements are the first compartment from_points (start and end) of each initial compartment of the 2 (parallel fiber) branches
                 # Therefore, the loop moves in steps of 4
                 for comp in range(0, len(point_cloud[cell]), 4):
@@ -370,4 +383,4 @@ class QuiverTransform(FiberTransform):
                     # The new end is the nex start of the adjacent compartment
                     point_cloud[cell][comp + 6] = point_cloud[cell][comp + 3]
 
-        return point_cloud
+        return branch
