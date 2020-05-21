@@ -238,53 +238,38 @@ class Scaffold:
         for hook in self.configuration.after_connect_hooks.values():
             hook.after_connectivity()
 
-    def compile_network(self, tries=1, output=True):
+    def compile_network(self):
         """
             Run all steps in the scaffold sequence to obtain a full network.
-
-            :param output: Store the network after compilation.
-            :type output: boolean
         """
-        times = np.zeros(tries)
-        for i in np.arange(tries, dtype=int):
-            if i > 0:
-                self.reset_network_cache()
-            t = time.time()
-            self.place_cell_types()
-            self.run_after_placement_hooks()
-            if output:
-                self.compile_output()
-            self.connect_cell_types()
-            self.run_after_connectivity_hooks()
-            times[i] = time.time() - t
+        t = time.time()
+        self.place_cell_types()
+        self.run_after_placement_hooks()
+        self.connect_cell_types()
+        self.run_after_connectivity_hooks()
 
-            if output:
-                self.compile_output()
-
-            for type in self.configuration.cell_types.values():
-                if type.entity:
-                    count = self.entities_by_type[type.name].shape[0]
-                else:
-                    count = self.cells_by_type[type.name].shape[0]
-                placed = type.placement.get_placement_count()
-                if placed == 0 or count == 0:
-                    report("0 {} placed (0%)".format(type.name), 1)
-                    continue
-                density_msg = ""
-                percent = int((count / type.placement.get_placement_count()) * 100)
-                if type.placement.layer is not None:
-                    volume = type.placement.layer_instance.volume
-                    density_gotten = "%.4g" % (count / volume)
-                    density_wanted = "%.4g" % (
-                        type.placement.get_placement_count() / volume
-                    )
-                    density_msg = " Desired density: {}. Actual density: {}".format(
-                        density_wanted, density_gotten
-                    )
-                report(
-                    "{} {} placed ({}%).".format(count, type.name, percent,), 2,
+        for type in self.configuration.cell_types.values():
+            if type.entity:
+                count = self.entities_by_type[type.name].shape[0]
+            else:
+                count = self.cells_by_type[type.name].shape[0]
+            placed = type.placement.get_placement_count()
+            if placed == 0 or count == 0:
+                report("0 {} placed (0%)".format(type.name), 1)
+                continue
+            density_msg = ""
+            percent = int((count / type.placement.get_placement_count()) * 100)
+            if type.placement.layer is not None:
+                volume = type.placement.layer_instance.volume
+                density_gotten = "%.4g" % (count / volume)
+                density_wanted = "%.4g" % (type.placement.get_placement_count() / volume)
+                density_msg = " Desired density: {}. Actual density: {}".format(
+                    density_wanted, density_gotten
                 )
-            report("Average runtime: {}".format(np.average(times)), 2)
+            report(
+                "{} {} placed ({}%).".format(count, type.name, percent,), 2,
+            )
+        report("Runtime: {}".format(time() - t), 2)
 
     def _initialise_output_formatter(self):
         self.output_formatter = self.configuration.output_formatter
