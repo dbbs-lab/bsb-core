@@ -34,7 +34,6 @@ class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
         # Select all the cells from the pre- & postsynaptic type for a specific connection.
         from_type = self.from_cell_types[0]
         from_compartments = self.from_cell_compartments[0]
-        # print("from compartments ", from_compartments)
         to_compartments = self.to_cell_compartments[0]
         to_type = self.to_cell_types[0]
         from_placement_set = self.scaffold.get_placement_set(from_type.name)
@@ -256,11 +255,11 @@ class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
             bounding_box, voxel_tree, map, v = branch.voxelize(
                 position, bounding_box, voxel_tree, map
             )
-            # print("vox branch ", v)
+
             self.voxelize_branches(
                 branch.child_branches, position, bounding_box, voxel_tree, map
             )
-            # print("vox branch after child", v)
+
         return bounding_box, voxel_tree, map, v
 
 
@@ -308,7 +307,7 @@ class QuiverTransform(FiberTransform):
             The transformation is a rotation of each segment/compartment (identified by a point_start and point_end) of the fiber
             to align to the cross product between the orientation vector and the transversal direction vector (i.e. branch direction):
             new_point_start = old_point_start
-            cross_prod = orientation_vector X transversal_vector
+            cross_prod = orientation_vector X transversal_vector or transversal_vector X orientation_vector
             new_point_end = point_start + cross_prod * length_comp
 
             The function is used for bifurcated fibers, bending the left and right branches according to the left and right
@@ -335,52 +334,33 @@ class QuiverTransform(FiberTransform):
 
         # Bypass for testing
         orientation_data = np.ones(shape=(3, 500, 500, 500))
-        volume_res = 1
+        volume_res = 25
 
-        print("checked attributes transform")
-        print("shared ", self.shared)
         # We really need to check if shared here? We are applying to each cell - so this should be checked before in the code
         if not self.shared:
             # Compute branch direction - to check that PFs have 2 branches, left and right
             branch_dir = branch._compartments[0].end - branch._compartments[0].start
             # Normalize branch_dir vector
             branch_dir = branch_dir / np.linalg.norm(branch_dir)
+            num_comp = len(branch._compartments)
             print("branch dir ", branch_dir)
-
-            # Loop over all cells
-            for cell in range(len(point_cloud)):
-                print()
-                # First 4 elements are the first compartment from_points (start and end) of each initial compartment of the 2 (parallel fiber) branches
-                # Therefore, the loop moves in steps of 4
-                for comp in range(0, len(point_cloud[cell]), 4):
-                    # Left branch - first 2 elements
-                    voxel_ind = point_cloud[cell][comp] / volume_res
-                    voxel_ind = voxel_ind.astype(int)
-                    print(voxel_ind)
-                    orientation_vector = orientation_data[
-                        :, voxel_ind[0], voxel_ind[1], voxel_ind[2]
-                    ]
-                    cross_prod = np.cross(orientation_vector, trans_vector_lx)
-                    cross_prod = cross_prod / np.linalg.norm(cross_prod)
-                    length_comp = np.linalg.norm(
-                        point_cloud[cell][comp + 1] - point_cloud[cell][comp]
-                    )
-                    point_cloud[cell][comp + 1] = (
-                        point_cloud[cell][comp] + cross_prod * length_comp
-                    )
-                    # The new end is the nex start of the adjacent compartment
-                    point_cloud[cell][comp + 4] = point_cloud[cell][comp + 1]
-
-                    # Right branch
-                    voxel_ind = point_cloud[cell][comp + 2] / volume_res
-                    voxel_ind = voxel_ind.astype(int)
-                    orientation_vector = orientation_data[
-                        :, voxel_ind[0], voxel_ind[1], voxel_ind[2]
-                    ]
-                    point_cloud[cell][comp + 3] = point_cloud[cell][comp + 2] + np.cross(
-                        orientation_vector, trans_vector_rx
-                    )
-                    # The new end is the nex start of the adjacent compartment
-                    point_cloud[cell][comp + 6] = point_cloud[cell][comp + 3]
-
-        return branch
+            # Looping over branch compartments to transform them
+            for comp in range(len(branch._compartments)):
+                # Extracting index of voxel where the current compartment is located
+                voxel_ind = (branch._compartments[comp].start + offset) / volume_res
+                voxel_ind = voxel_ind.astype(int)
+                orientation_vector = orientation_data[
+                    :, voxel_ind[0], voxel_ind[1], voxel_ind[2]
+                ]
+                cross_prod = np.cross(branch_dir, orientation_vector)
+                cross_prod = cross_prod / np.linalg.norm(cross_prod)
+                length_comp = np.linalg.norm(
+                    branch._compartments[comp].end - branch._compartments[comp].start
+                )
+                # Transform compartment
+                branch._compartments[comp].end = (
+                    branch._compartments[comp].end + cross_prod * length_comp
+                )
+                if comp < (num_comp - 1):
+                    # The new end is the start of the adjacent compartment
+                    branch._compartments[comp + 1].start = branch._compartments[comp].end
