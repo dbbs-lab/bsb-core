@@ -341,15 +341,15 @@ class QuiverTransform(FiberTransform):
         print("shared ", self.shared)
         # We really need to check if shared here? We are applying to each cell - so this should be checked before in the code
         if not self.shared:
-
             # Compute branch direction - to check that PFs have 2 branches, left and right
             branch_dir = branch._compartments[0].end - branch._compartments[0].start
             # Normalize branch_dir vector
             branch_dir = branch_dir / np.linalg.norm(branch_dir)
             print("branch dir ", branch_dir)
+
             # Loop over all cells
             for cell in range(len(point_cloud)):
-
+                print()
                 # First 4 elements are the first compartment from_points (start and end) of each initial compartment of the 2 (parallel fiber) branches
                 # Therefore, the loop moves in steps of 4
                 for comp in range(0, len(point_cloud[cell]), 4):
