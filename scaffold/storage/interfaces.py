@@ -134,3 +134,13 @@ class Label(Interface):
     @abc.abstractmethod
     def add(self, identifiers):
         pass
+
+
+class Filter(Interface):
+    @abc.abstractmethod
+    def activate(self):
+        pass
+
+    @abc.abstractmethod
+    def deactivate(self):
+        pass
