@@ -200,7 +200,7 @@ def start_cli():
             set_report_file(cl_args.report)
         if cl_args.ctype == "json":  # Should we config from JSON?
             # Load the .json configuration
-            scaffoldConfig = JSONConfig(file=cl_args.config, verbosity=cl_args.verbose)
+            scaffoldConfig = JSONConfig(file=cl_args.config)
             scaffoldInstance = Scaffold(scaffoldConfig)
         elif cl_args.ctype == "hdf5":  # Should we config from hdf5?
             file = cl_args.hdf5
