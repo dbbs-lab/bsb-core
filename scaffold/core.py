@@ -520,16 +520,6 @@ class Scaffold:
         """
         self.appends[name] = data
 
-    def compile_output(self):
-        """
-            Task the output formatter to generate all output from the current state.
-
-            The default formatter is the HDF5Formatter; therefor calling this function
-            will generate an HDF5 file that contains all the data currently present in
-            this object.
-        """
-        self.output_formatter.create_output()
-
     def _connection_types_query(self, postsynaptic=[], presynaptic=[]):
         # This function searches through all connection types that include the given
         # pre- and/or postsynaptic cell types.
