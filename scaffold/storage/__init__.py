@@ -12,19 +12,11 @@
     end goal of this module.
 """
 
-from .. import __version__
-from ..exceptions import *
-from ..helpers import ConfigurableClass, get_qualified_class_name, suppress_stdout
-from ..models import ConnectivitySet
-from ..morphologies import Morphology, TrueMorphology, Compartment
-from ..core import Scaffold
+import os
 from abc import abstractmethod, ABC
-import h5py, os, time, pickle, numpy as np
-from numpy import string_
-from sklearn.neighbors import KDTree
-import os, sys
-from importlib import import_module
 from inspect import isclass
+from ..exceptions import *
+from ..core import Scaffold
 
 # Import the interfaces child module through a relative import as a sibling.
 interfaces = __import__("interfaces", globals=globals(), level=1)
@@ -74,7 +66,7 @@ class NotSupported:
     def __call__(self, *args, **kwargs):
         # Throw an error detailing the lack of support of our engine for our feature.
         raise NotImplementedError(
-            "The {} storage enginge does not support the {} feature".format(
+            "The {} storage engine does not support the {} feature".format(
                 self.engine.upper(), self.operation
             )
         )
@@ -116,7 +108,7 @@ class Storage:
 
     def __init__(self, engine, root):
         """
-            Create a Storage provider based on a specific `enginge` uniquely identified
+            Create a Storage provider based on a specific `engine` uniquely identified
             by the root object.
 
             :param engine: The name of the storage engine.
