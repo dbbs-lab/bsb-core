@@ -1,4 +1,5 @@
 import numpy as np
+import h5py
 
 
 class Resource:
@@ -9,6 +10,12 @@ class Resource:
     def create(self, data, *args, **kwargs):
         with self._engine.open("a") as f:
             f().create_dataset(self._path, data=data, *args, **kwargs)
+
+    def keys(self):
+        with self._engine.open("r") as f:
+            node = f()[self._path]
+            if isinstance(node, h5py.Group):
+                return list(node.keys())
 
     def remove(self):
         with self._engine.open("a") as f:
