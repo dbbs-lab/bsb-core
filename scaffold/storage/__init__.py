@@ -130,6 +130,10 @@ class Storage:
         # All engines should provide an Engine interface implementation, which we will use
         # to shim basic functionalities, and to pass on to features we produce.
         self._engine = self._Engine(root)
+        self._engine._format = engine
+        self._features = [
+            fname for fname, supported in view_support()[engine].items() if supported
+        ]
         self._root = root
         # The storage should be created at the root as soon as we initialize because
         # features might immediatly require the basic structure to be present.
@@ -172,6 +176,17 @@ class Storage:
         config = self._Configuration(self._engine).load()
         return Scaffold(config, self)
 
+    def supports(self, feature):
+        return feature in self._features
+
+    def assert_support(self, feature):
+        if not self.supports(feature):
+            raise NotImplementedError(
+                "The '{}' engine lacks support for the '{}' feature.".format(
+                    self._engine._format, feature
+                )
+            )
+
     def get_placement_set(self, type):
         """
             Return a PlacementSet for the given type.
@@ -206,22 +221,43 @@ class Storage:
         """
         return self._Label(self._engine, label)
 
+    def create_filter(self, **kwargs):
+        """
+            Create a :class:`Filter <.storage.interfaces.Filter>`. Each keyword argument
+            given to this function must match a supported filter type. The values of the
+            keyword arguments are then set as a filter of that type.
 
-def view_support():
+            Filters need to be activated in order to exert their filtering function.
+        """
+        self.assert_support("Filter")
+        return self._Filter.create(self._engine, **kwargs)
+
+    def get_filters(self, filter_type):
+        self.assert_support("Filter")
+        return self._Filter.get_filters(filter_type)
+
+
+def view_support(engine=None):
     """
         Return which storage engines support which features.
     """
-    # Because sometimes it makes me feel good to write unreadable code.
-    return dict(
-        map(
-            lambda e: (
-                e[0],
-                dict(
-                    map(
-                        lambda f: (f[0], not isinstance(f[1], NotSupported)), e[1].items()
-                    )
-                ),
-            ),
-            _engines.items(),
+    if engine is None:
+        return {
+            # Loop over all enginges
+            engine_name: {
+                # Loop over all features, check whether they're supported
+                feature_name: not isinstance(feature, NotSupported)
+                for feature_name, feature in engine.items()
+            }
+            for engine_name, engine in _engines.items()
+        }
+    elif engine not in _engines:
+        raise UnknownStorageEngineError(
+            "The storage engine '{}' was not found.".format(engine)
         )
-    )
+    else:
+        # Loop over all features for the specific engine
+        return {
+            feature_name: not isinstance(feature, NotSupported)
+            for feature_name, feature in _engines[engine].items()
+        }
