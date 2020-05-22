@@ -4,6 +4,7 @@ import h5py, os
 from .placement_set import PlacementSet
 from .configuration import Configuration
 from .label import Label
+from .filter import Filter
 
 
 class HDF5Engine(Engine):
