@@ -80,7 +80,7 @@ class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
         morphologies_out = []
 
         for c, (from_cell, from_morpho) in enumerate(from_morphology_set):
-            # Extract the FiberMorpho object for each branch in the morphology (1)
+            # Extract the FiberMorpho object for each branch in the from_compartments of the presynaptic morphology (1)
             compartments = from_morpho.get_compartments(
                 compartment_types=from_compartments
             )
@@ -346,12 +346,12 @@ class QuiverTransform(FiberTransform):
             # Normalize branch_dir vector
             branch_dir = branch_dir / np.linalg.norm(branch_dir)
             num_comp = len(branch._compartments)
-            print("branch dir ", branch_dir)
+
             # Looping over branch compartments to transform them
             for comp in range(len(branch._compartments)):
                 # Extracting index of voxel where the current compartment is located
                 voxel_ind = (branch._compartments[comp].start + offset) / volume_res
-                print("branch comp type: ", branch._compartments[comp].type)
+
                 voxel_ind = voxel_ind.astype(int)
                 orientation_vector = orientation_data[
                     :, voxel_ind[0], voxel_ind[1], voxel_ind[2]
