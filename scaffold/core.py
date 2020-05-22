@@ -196,7 +196,7 @@ class Scaffold:
             # Place cell type according to PlacementStrategy
             cell_type.placement.place()
             ps = self.get_placement_set(cell_type)
-            self.report(
+            report(
                 "Finished placing {} {} {}.".format(
                     len(ps), cell_type.name, "entities" if cell_type.entity else "cells"
                 ),
@@ -798,9 +798,9 @@ class Scaffold:
             :param ids: global identifiers of the cells that need to be labelled.
             :type ids: iterable
         """
-        self.storage.Label(label).add(ids)
+        self.storage.Label(label).label(ids)
 
-    def get_labels(self, pattern):
+    def get_labels(self, pattern=None):
         """
             Retrieve the set of labels that match a label pattern. Currently only exact
             matches or strings ending in a wildcard are supported:
@@ -818,12 +818,14 @@ class Scaffold:
             :returns: All labels matching the pattern
             :rtype: list
         """
+        if pattern is None:
+            return self.storage._Label.list()
         if pattern.endswith("*"):
             p = pattern[:-1]
             finder = lambda l: l.startswith(p)
         else:
             finder = lambda l: l == pattern
-        return list(filter(finder, self.labels.keys()))
+        return list(filter(finder, self.storage._Label.list()))
 
     def get_labelled_ids(self, label):
         """
@@ -836,6 +838,18 @@ class Scaffold:
             Return the total amount of cells and entities placed.
         """
         return sum(list(self.statistics.cells_placed.values()))
+
+    def create_filter(self, **kwargs):
+        """
+            Create a :class:`Filter <.storage.interfaces.Filter>`. Each keyword argument
+            given to this function must match a supported filter type. The values of the
+            keyword arguments are then set as a filter of that type.
+
+            Filters need to be activated in order to exert their filtering function.
+        """
+        f = self.storage.create_filter(**kwargs)
+        print("f:", f.__class__, dir(f))
+        return self.storage.create_filter(**kwargs)
 
 
 class ReportListener:
