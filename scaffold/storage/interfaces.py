@@ -1,4 +1,4 @@
-import abc
+import abc, types
 from contextlib import contextmanager
 
 
@@ -10,6 +10,12 @@ class Interface(abc.ABC):
 class Engine(Interface):
     def __init__(self, resource_identifier):
         self.resource_identifier = resource_identifier
+
+    @property
+    def format(self):
+        # This attribute is set on the engine by the storage provider and correlates to
+        # the name of the engine directory.
+        return self._format
 
     @abc.abstractmethod
     def exists(self):
@@ -128,19 +134,85 @@ class ConnectivitySet(Interface):
 
 class Label(Interface):
     @abc.abstractmethod
-    def add(self, identifiers):
+    def label(self, identifiers):
         pass
 
     @abc.abstractmethod
-    def add(self, identifiers):
+    def unlabel(self, identifiers):
+        pass
+
+    @abc.abstractmethod
+    def store(self, identifiers):
+        pass
+
+    @property
+    @abc.abstractmethod
+    def cells(self):
+        pass
+
+    @abc.abstractmethod
+    def list(self):
         pass
 
 
-class Filter(Interface):
+class _FilterMeta(abc.ABCMeta, type):
+    """
+        Metaclass for the Filter interface: Uses the abstract `get_filter_types` method to
+        set the `_filters` class attribute.
+    """
+
+    def __new__(cls, name, bases, dct):
+        new_class = super().__new__(cls, name, bases, dct)
+        # If the direct base class is the Interface class then we're creating the parent
+        # class below, and the metaclass changes should not be applied.
+        if bases[0].__name__ != "Interface":
+            new_class._filters = {ft: [] for ft in new_class.get_filter_types()}
+        return new_class
+
+
+class Filter(Interface, metaclass=_FilterMeta):
+    def __init__(self, handler, filters):
+        super().__init__(handler)
+        self.filters = filters
+
+    @classmethod
     @abc.abstractmethod
+    def get_filter_types(cls):
+        pass
+
+    @classmethod
+    def create(cls, handler, **kwargs):
+        f = cls(handler, kwargs)
+        return f
+
     def activate(self):
-        pass
+        for f in self.filters:
+            try:
+                if self not in self.__class__._filters[f]:
+                    self.__class__._filters[f].append(self)
+            except KeyError:
+                raise NotImplemented(
+                    "The '{}' engine does not support the '{}' filter.".format(
+                        self._handler._format, f
+                    )
+                )
 
-    @abc.abstractmethod
     def deactivate(self):
-        pass
+        for f in self.filters:
+            try:
+                self.__class__._filters[f].remove(self)
+            except KeyError:
+                pass
+
+    def __enter__(self):
+        self.activate()
+
+    def __exit__(self):
+        self.deactivate()
+
+    @classmethod
+    def get_filters(cls, filter_type):
+        try:
+            return [f.filters[filter_type] for f in cls._filters[filter_type]]
+        except KeyError:
+            pass
