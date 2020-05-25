@@ -35,6 +35,13 @@ def from_hdf5(file):
     from .config import _from_hdf5
 
     config = _from_hdf5(file)
+    # Overwrite the compile-time file specification as the file might have been moved or
+    # renamed.
+    config.output_formatter.file = file
+    # If a morphology_repository specification is present, remove it. Standalone
+    # morphology repositories are integrated  into the HDF5 file during compilation.
+    if hasattr(config.output_formatter, "morphology_repository"):
+        del config.output_formatter.morphology_repository
     return Scaffold(config, from_file=file)
 
 
