@@ -20,7 +20,7 @@
         "class": "scaffold.placement.ParticlePlacement",
         "layer": "granular_layer",
         "soma_radius": 2.5,
-        "density": 1.33e-5
+        "count": 20
       },
       "morphology": {
         "class": "scaffold.morphologies.GranuleCellGeometry",
@@ -43,7 +43,7 @@
         "class": "scaffold.placement.ParticlePlacement",
         "layer": "granular_layer",
         "soma_radius": 8.0,
-        "density": 6.67e-7
+        "count": 1
       },
       "morphology": {
         "class": "scaffold.morphologies.GolgiCellGeometry",

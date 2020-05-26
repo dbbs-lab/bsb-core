@@ -21,7 +21,7 @@ class TestFiberIntersection(unittest.TestCase):
     def setUpClass(self):
         super(TestFiberIntersection, self).setUpClass()
         # The scaffold has only the Granular layer (100x100x150) with 20 GrCs and 1 GoC placed, as specified in the
-        # config file, where the densities are reduced to obtain those neuron numbers
+        # config file
         config = JSONConfig(file=fiber_transform_config)
         self.scaffold = Scaffold(config)
         self.scaffold.morphology_repository = MorphologyRepository(morpho_file)
