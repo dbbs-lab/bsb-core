@@ -1,5 +1,9 @@
 # 3.2
 
+## 3.2.13
+
+* First version with a functional multicompartmental network.
+
 ## 3.2.1
 
 * PlacementSets have been introduced (#303)
