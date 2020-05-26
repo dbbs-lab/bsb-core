@@ -34,3 +34,12 @@ class TestFiberIntersection(unittest.TestCase):
         cs = self.scaffold.get_connectivity_set(conn_type)
         # Check that no more connections are formed than the number of presynaptic neurons - how could happen otherwise?
         self.assertTrue(len(cs.connections) <= len(pre_neu.identifiers))
+
+        # Check that increasing resolution in FiberIntersection do not change connection
+        # number if there are no transformations (and thus the fibers are parallel to main axes)
+        conn_type_HR = "parallel_fiber_to_golgi_HR"
+        cs_HR = self.scaffold.get_connectivity_set(conn_type_HR)
+        self.assertEqual(len(cs.connections), len(cs_HR.connections))
+
+    # def test_quiver_transform(self):
+    #     orientations = []
