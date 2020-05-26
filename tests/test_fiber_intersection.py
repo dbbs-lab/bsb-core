@@ -41,5 +41,14 @@ class TestFiberIntersection(unittest.TestCase):
         cs_HR = self.scaffold.get_connectivity_set(conn_type_HR)
         self.assertEqual(len(cs.connections), len(cs_HR.connections))
 
+        # Check that half (+- 2) connections are obtained with half the affinity
+        conn_type_affinity = "parallel_fiber_to_golgi_affinity"
+        cs_affinity = self.scaffold.get_connectivity_set(conn_type_affinity)
+        self.assertTrue(
+            (len(cs.connections) / 2 - 2)
+            <= len(cs_affinity.connections)
+            <= (len(cs.connections) / 2 + 2)
+        )
+
     # def test_quiver_transform(self):
     #     orientations = []
