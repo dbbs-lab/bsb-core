@@ -285,11 +285,11 @@ class FiberTransform(ConfigurableClass):
 
 class QuiverTransform(FiberTransform):
     """
-        QuiverTransform applies transformation to a Morphology, based on an orientation field in a voxelized volume.
+        QuiverTransform applies transformation to a FiberMorphology, based on an orientation field in a voxelized volume.
         Used for parallel fibers.
     """
 
-    # @Robin: how I deal with attributes should be checked
+    # Class attributes
 
     casts = {"vol_res": float}
 
