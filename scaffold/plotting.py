@@ -231,6 +231,10 @@ def get_voxel_cloud_traces(
         color = [255, 0, 0]
     color = list(map(str, color))
 
+    if color is None:
+        color = [0.0, 255.0, 0.0]
+    color = [str(c) for c in color]
+
     colors = np.empty(voxels.shape, dtype=object)
     if selected_voxels is not None:
         # Color selected voxels
@@ -261,8 +265,8 @@ def plot_voxel_cloud(
     cubic=True,
     swapaxes=True,
     set_range=True,
-    offset=[0.0, 0.0, 0.0],
     color=None,
+    offset=[0.0, 0.0, 0.0],
 ):
     traces = get_voxel_cloud_traces(
         cloud, selected_voxels=selected_voxels, offset=offset, color=color

@@ -18,8 +18,7 @@ Sciences at the University of Pavia.
 This software can be installed as a Python package from PyPI through pip:
 
 ```
- sudo apt-get python3-rtree
- pip install dbbs-scaffold
+pip install dbbs-scaffold
 ```
 
 **Note:** *Windows users will have to install Rtree from this website:

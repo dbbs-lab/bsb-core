@@ -6,7 +6,6 @@ The scaffold framework can be installed using Pip for Python 3
 
   .. code-block:: bash
 
-    sudo apt-get install python3-rtree
     pip3 install dbbs-scaffold
 
 You can verify that the installation works with

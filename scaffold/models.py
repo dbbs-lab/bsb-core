@@ -262,6 +262,10 @@ class Connection:
 
 
 class ConnectivitySet(Resource):
+    """
+        Connectivity sets store connections.
+    """
+
     def __init__(self, handler, tag):
         super().__init__(handler, "/cells/connections/" + tag)
         if not self.exists():
@@ -273,18 +277,32 @@ class ConnectivitySet(Resource):
 
     @property
     def connections(self):
+        """
+            Return a list of :class:`Intersections <.models.Connection>`. Connections
+            contain pre- & postsynaptic identifiers.
+        """
         return [Connection(c[0], c[1]) for c in self.get_dataset()]
 
     @property
     def from_identifiers(self):
+        """
+            Return a list with the presynaptic identifier of each connection.
+        """
         return self.get_dataset(dtype=int)[:, 0]
 
     @property
     def to_identifiers(self):
+        """
+            Return a list with the postsynaptic identifier of each connection.
+        """
         return self.get_dataset(dtype=int)[:, 1]
 
     @property
     def intersections(self):
+        """
+            Return a list of :class:`Intersections <.models.Connection>`. Intersections
+            contain pre- & postsynaptic identifiers and the intersecting compartments.
+        """
         if not self.compartment_set.exists():
             raise MissingMorphologyError(
                 "No intersection/morphology information for the '{}' connectivity set.".format(
@@ -594,7 +612,7 @@ class MorphologySet:
             self._morphology_map = morphology_names
 
         # Function to load and voxelize a morphology
-        def load_morpho(scaffold, morpho_ind, compartment_types=None, N=50):
+        def load_morpho(scaffold, morpho_ind, compartment_types=None):
             m = scaffold.morphology_repository.get_morphology(
                 self._morphology_map[morpho_ind]
             )
@@ -606,6 +624,6 @@ class MorphologySet:
 
         # Load and voxelize only the unique morphologies present in the morphology map.
         self._morphologies = [
-            load_morpho(self.scaffold, i, compartment_types, N)
+            load_morpho(self.scaffold, i, compartment_types)
             for i in range(len(self._morphology_map))
         ]
