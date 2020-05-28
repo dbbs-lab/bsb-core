@@ -10,6 +10,7 @@ from .connectivity import ConnectionStrategy
 from warnings import warn as std_warn
 from .exceptions import *
 from .reporting import report, warn, has_mpi_installed, get_report_file
+from ._config import Configuration
 
 ###############################
 ## Scaffold class
