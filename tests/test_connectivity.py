@@ -111,3 +111,9 @@ class TestConnectivity(unittest.TestCase):
                 with self.subTest(name="POST " + connection_tag):
                     for conn in range(len(post)):
                         self.assertTrue(post[conn] in to_cells)
+
+                # Call convergence and divergence code.
+                with self.subTest(name="divergence"):
+                    _ = cs.divergence
+                with self.subTest(name="convergence"):
+                    _ = cs.convergence

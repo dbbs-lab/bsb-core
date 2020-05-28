@@ -1,3 +1,6 @@
+from random import choice as random_element
+
+
 class MorphologyStrategy:
     def list_all_morphologies(self, cell_type):
         return cell_type.list_all_morphologies()

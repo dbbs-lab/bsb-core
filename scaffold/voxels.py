@@ -1,7 +1,6 @@
 from scaffold.helpers import dimensions, origin
 import numpy as np
 from scipy import ndimage
-from random import choice as random_element
 from time import sleep
 from sklearn.neighbors import KDTree
 from .functions import get_distances

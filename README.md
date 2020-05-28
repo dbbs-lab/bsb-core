@@ -18,8 +18,7 @@ Sciences at the University of Pavia.
 This software can be installed as a Python package from PyPI through pip:
 
 ```
- sudo apt-get python3-rtree
- pip install dbbs-scaffold
+pip install dbbs-scaffold
 ```
 
 **Note:** *Windows users will have to install Rtree from this website:
@@ -48,7 +47,7 @@ Run the scaffold in the command line with subcommand `compile` to compile a netw
 architecture.
 
 ```
-scaffold --config=mouse_cerebellum.json compile -x=200 -y=200 -p
+scaffold --config=mouse_cerebellum.json compile -x=200 -z=200 -p
 ```
 
 To run with different configurations, change the config argument to the relative path of a

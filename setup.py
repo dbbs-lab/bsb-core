@@ -28,7 +28,7 @@ setuptools.setup(
         "scipy>=1.3.1",
         "scikit-learn>=0.20.3",
         "plotly>=4.1.0",
-        "rtree>=0.9.3",
+        "rtree-linux==0.9.4",
         "nrn-patch>=2.0.0",
     ],
     project_urls={

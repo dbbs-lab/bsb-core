@@ -6,7 +6,7 @@ from ...helpers import (
     assert_attr_in,
 )
 from ...reporting import report, warn
-from random import choice as random_element, sample as sample_elements
+from random import sample as sample_elements
 
 
 class TouchInformation:
@@ -76,6 +76,14 @@ class TouchDetector(ConnectionStrategy, MorphologyStrategy):
                     to_cell_type,
                     to_cell_compartments,
                 )
+                touch_info.from_placement = self.scaffold.get_placement_set(
+                    from_cell_type
+                )
+                touch_info.from_positions = list(touch_info.from_placement.positions)
+                touch_info.from_identifiers = list(touch_info.from_placement.identifiers)
+                touch_info.to_placement = self.scaffold.get_placement_set(to_cell_type)
+                touch_info.to_identifiers = list(touch_info.to_placement.identifiers)
+                touch_info.to_positions = list(touch_info.to_placement.positions)
                 # Intersect cells on the widest possible search radius.
                 candidates = self.intersect_cells(touch_info)
                 # Intersect cell compartments between matched cells.
@@ -125,8 +133,6 @@ class TouchDetector(ConnectionStrategy, MorphologyStrategy):
             return matches
 
     def intersect_compartments(self, touch_info, candidate_map):
-        id_map_from = touch_info.from_cell_type.get_ids()
-        id_map_to = touch_info.to_cell_type.get_ids()
         connected_cells = []
         morphology_names = []
         connected_compartments = []
@@ -134,18 +140,18 @@ class TouchDetector(ConnectionStrategy, MorphologyStrategy):
         touching_cells = 0
         plots = 0
         for i in range(len(candidate_map)):
-            from_id = id_map_from[i]
+            from_id = touch_info.from_identifiers[i]
             touch_info.from_morphology = self.get_random_morphology(
                 touch_info.from_cell_type
             )
             for j in candidate_map[i]:
                 c_check += 1
-                to_id = id_map_to[j]
+                to_id = touch_info.to_identifiers[j]
                 touch_info.to_morphology = self.get_random_morphology(
                     touch_info.to_cell_type
                 )
                 intersections = self.get_compartment_intersections(
-                    touch_info, from_id, to_id
+                    touch_info, touch_info.from_positions[i], touch_info.to_positions[j]
                 )
                 if len(intersections) > 0:
                     touching_cells += 1
@@ -190,13 +196,9 @@ class TouchDetector(ConnectionStrategy, MorphologyStrategy):
             np.array(connected_compartments, dtype=int),
         )
 
-    def get_compartment_intersections(self, touch_info, from_cell_id, to_cell_id):
-        from_cell_type = touch_info.from_cell_type
-        to_cell_type = touch_info.to_cell_type
+    def get_compartment_intersections(self, touch_info, from_pos, to_pos):
         from_morphology = touch_info.from_morphology
         to_morphology = touch_info.to_morphology
-        from_pos = self.scaffold._get_cell_position(from_cell_id)
-        to_pos = self.scaffold._get_cell_position(to_cell_id)
         query_points = (
             to_morphology.get_compartment_positions(types=touch_info.to_cell_compartments)
             + to_pos

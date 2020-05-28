@@ -18,13 +18,18 @@ class VoxelIntersection(ConnectionStrategy, MorphologyStrategy):
     """
 
     casts = {
-        "convergence": int,
-        "divergence": int,
         "affinity": float,
         "contacts": DistributionConfiguration.cast,
+        "voxels_pre": int,
+        "voxels_post": int,
     }
 
-    defaults = {"affinity": 1, "contacts": DistributionConfiguration.cast(1)}
+    defaults = {
+        "affinity": 1,
+        "contacts": DistributionConfiguration.cast(1),
+        "voxels_pre": 50,
+        "voxels_post": 50,
+    }
 
     def validate(self):
         pass
@@ -51,10 +56,18 @@ class VoxelIntersection(ConnectionStrategy, MorphologyStrategy):
 
         # Load the morphology and voxelization data for the entrire morphology, for each cell type.
         from_morphology_set = MorphologySet(
-            scaffold, from_type, from_placement_set, compartment_types=from_compartments
+            scaffold,
+            from_type,
+            from_placement_set,
+            compartment_types=from_compartments,
+            N=self.voxels_pre,
         )
         to_morphology_set = MorphologySet(
-            scaffold, to_type, to_placement_set, compartment_types=to_compartments
+            scaffold,
+            to_type,
+            to_placement_set,
+            compartment_types=to_compartments,
+            N=self.voxels_post,
         )
         joined_map = (
             from_morphology_set._morphology_map + to_morphology_set._morphology_map
