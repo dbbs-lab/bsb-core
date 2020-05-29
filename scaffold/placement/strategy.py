@@ -3,8 +3,10 @@ from ..helpers import ConfigurableClass
 import abc
 from ..exceptions import *
 from ..reporting import report, warn
+from .. import config
 
 
+@config.dynamic
 class PlacementStrategy(ConfigurableClass):
     def __init__(self, cell_type):
         super().__init__()

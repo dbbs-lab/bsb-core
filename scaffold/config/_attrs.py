@@ -4,38 +4,46 @@
 
 from ._make import wrap_init, make_get_node_name, make_cast
 from inspect import signature
+from ..exceptions import CastError
 
 
-class CastError(Exception):
-    pass
-
-
-def root(root):
+def root(root_cls):
     """
         Decorate a class as a configuration root node.
     """
-    root.attr_name = root.node_name = r"{root}"
-    node(root, root=True)
-    return root
+    root_cls.attr_name = root_cls.node_name = r"{root}"
+    node(root_cls, root=True)
+    return root_cls
 
 
-def node(node, root=False):
+def node(node_cls, root=False, dynamic=False):
     """
         Decorate a class as a configuration node.
     """
     attrs = {
-        k: v for k, v in node.__dict__.items() if isinstance(v, ConfigurationAttribute)
+        k: v
+        for k, v in node_cls.__dict__.items()
+        if isinstance(v, ConfigurationAttribute)
     }
     # Give the attributes the name they were assigned in the class
     for name, attr in attrs.items():
         attr.attr_name = name
 
-    node._config_attrs = attrs
-    wrap_init(node, attrs)
-    make_get_node_name(node, root=root)
-    make_cast(node)
+    if hasattr(node_cls, "_config_attrs"):
+        node_cls._config_attrs.update(attrs)
+    else:
+        node_cls._config_attrs = attrs
+    wrap_init(node_cls, attrs)
+    make_get_node_name(node_cls, root=root)
+    make_cast(node_cls, dynamic=dynamic)
 
-    return node
+    return node_cls
+
+
+def dynamic(node_cls):
+    class_attr = ConfigurationAttribute(type=str, required=True)
+    setattr(node_cls, "class", class_attr)
+    return node(node_cls, dynamic=True)
 
 
 def attr(**kwargs):
@@ -75,24 +83,31 @@ class ConfigurationAttribute:
         return instance.__dict__["_" + self.attr_name]
 
     def __set__(self, instance, value):
-        try:
+        if self.type.__casting__:
             value = self.type(value)
-        except:
-            raise CastError(
-                "Couldn't cast {} from '{}' into a {}".format(
-                    self.get_node_name(instance), value, self.type.__name__
+        else:
+            try:
+                value = self.type(value)
+            except:
+                raise CastError(
+                    "Couldn't cast {} from '{}' into a {}".format(
+                        self.get_node_name(instance), value, self.type.__name__
+                    )
                 )
-            )
         instance.__dict__["_" + self.attr_name] = value
 
     def _get_type(self, type):
+        cast_name = None
+        casting = False
         # Determine type of the attribute
         if not type and self.default:
             t = _type(self.default)
         else:
             t = type or str
+        cast_name = t.__name__
         if hasattr(t, "__cast__"):
             t = t.__cast__
+            casting = True
         # Inspect the signature and wrap the typecast in a wrapper that will accept and
         # strip the missing 'key' kwarg
         try:
@@ -116,6 +131,8 @@ class ConfigurationAttribute:
                 return o2(value, *args, **kwargs)
 
             t = _t2
+        t.__name__ = cast_name
+        t.__casting__ = casting
         return t
 
     def get_node_name(self, instance):
@@ -165,9 +182,11 @@ class ConfigurationDictAttribute(ConfigurationAttribute):
             for key, value in _dict.items():
                 _dict[key] = self.child_type(value, parent=_dict, key=key)
         except:
+            if self.child_type.__casting__:
+                raise
             raise CastError(
-                "Couldn't cast {}[{}] from '{}' into a {}".format(
-                    self.get_node_name(), i, value, instance.child_type.__name__
+                "Couldn't cast {}.{} from '{}' into a {}".format(
+                    self.get_node_name(parent), key, value, self.child_type.__name__
                 )
             )
         return _dict

@@ -1,9 +1,11 @@
 from ..exceptions import *
 from ..reporting import warn
+import inspect, re
+from functools import wraps
 
 
 def wrap_init(cls, attrs):
-    f = cls.__init__
+    wrapped_init = _get_class_init_wrapper(cls)
 
     def __init__(self, parent, *args, **kwargs):
         self._config_parent = parent
@@ -13,10 +15,26 @@ def wrap_init(cls, attrs):
             else:
                 v = attr.default
             self.__dict__["_" + attr.attr_name] = v
-        f(self, *args, **kwargs)
+        wrapped_init(self, parent, *args, **kwargs)
 
     cls.__init__ = __init__
     return __init__
+
+
+def _get_class_init_wrapper(cls):
+    f = cls.__init__
+    params = inspect.signature(f).parameters
+    pattern = re.compile(r"(?<!^)(?=[A-Z])")
+    snake_case = lambda name: pattern.sub("_", name).lower()
+
+    @wraps(f)
+    def wrapper(self, parent, *args, **kwargs):
+        if "parent" in params or snake_case(parent.__class__.__name__) in params:
+            f(self, parent, *args, **kwargs)
+        else:
+            f(self, *args, **kwargs)
+
+    return wrapper
 
 
 def _get_node_name(self):
@@ -25,46 +43,101 @@ def _get_node_name(self):
 
 def make_get_node_name(node_cls, root):
     if root:
-        node_cls.get_node_name = lambda self: r"root"
+        node_cls.get_node_name = lambda self: r"{root}"
     else:
         node_cls.get_node_name = _get_node_name
 
 
-def make_cast(node_cls):
+def make_cast(node_cls, dynamic=False):
     """
         Return a function that can cast a raw configuration node as specified by the
         attribute descriptions in the node class.
     """
-    attr_names = list(node_cls._config_attrs.keys())
-
-    def __cast__(section, parent, key=None):
-        # Create an instance of the node class
-        node = node_cls(parent=parent)
-        if key:
-            node.attr_name = key
-        # Cast each of this node's attributes.
-        for attr in node_cls._config_attrs.values():
-            if attr.attr_name in section:
-                node.__dict__["_" + attr.attr_name] = attr.type(
-                    section[attr.attr_name], node, key=attr.attr_name
-                )
-            elif attr.required:
-                raise CastError(
-                    "Missing required attribute {} in {}".format(
-                        attr.attr_name, attr.get_node_name(node)
-                    )
-                )
-            if attr.key and key is not None:
-                node.__dict__["_" + attr.attr_name] = key
-        # Check for unknown keys in the configuration section
-        for key in section:
-            if key not in attr_names:
-                warn(
-                    "Unknown attribute '{}' in {}".format(key, attr.get_node_name(node)),
-                    ConfigurationWarning,
-                )
-                node.__dict__[key] = section[key]
-        return node
+    if not dynamic:
+        __cast__ = _make_cast(node_cls)
+    else:
+        __cast__ = _make_dynamic_cast(node_cls)
 
     node_cls.__cast__ = __cast__
     return __cast__
+
+
+def _cast_attributes(node, section, node_cls, key):
+    attr_names = list(node_cls._config_attrs.keys())
+    if key:
+        node.attr_name = key
+    # Cast each of this node's attributes.
+    for attr in node_cls._config_attrs.values():
+        if attr.attr_name in section:
+            node.__dict__["_" + attr.attr_name] = attr.type(
+                section[attr.attr_name], node, key=attr.attr_name
+            )
+        elif attr.required:
+            raise CastError(
+                "Missing required attribute '{}' in {}".format(
+                    attr.attr_name, node.get_node_name()
+                )
+            )
+        if attr.key and key is not None:
+            node.__dict__["_" + attr.attr_name] = key
+    # Check for unknown keys in the configuration section
+    for key in section:
+        if key not in attr_names:
+            warn(
+                "Unknown attribute '{}' in {}".format(key, node.get_node_name()),
+                ConfigurationWarning,
+            )
+            node.__dict__[key] = section[key]
+    return node
+
+
+def _make_cast(node_cls):
+    def __cast__(section, parent, key=None):
+        # Create an instance of the node class
+        node = node_cls(parent)
+        _cast_attributes(node, section, node_cls, key)
+
+    return __cast__
+
+
+def _make_dynamic_cast(node_cls):
+    def __cast__(section, parent, key=None):
+        if "class" not in section:
+            raise CastError(
+                "Dynamic node '{}' must contain a 'class' attribute.".format(
+                    parent.get_node_name() + ("." + key if key is not None else "")
+                )
+            )
+        dynamic_cls = _load_class(section["class"], interface=node_cls)
+        node = dynamic_cls(parent)
+        _cast_attributes(node, section, dynamic_cls, key)
+        return node
+
+    return __cast__
+
+
+def _load_class(configured_class_name, interface=None):
+    if inspect.isclass(configured_class_name):
+        class_ref = configured_class_name
+        class_name = configured_class_name.__name__
+    else:
+        class_parts = configured_class_name.split(".")
+        class_name = class_parts[-1]
+        module_name = ".".join(class_parts[:-1])
+        if module_name == "":
+            module_dict = globals()
+        else:
+            module_ref = __import__(module_name, globals(), locals(), [class_name], 0)
+            module_dict = module_ref.__dict__
+        if not class_name in module_dict:
+            raise DynamicClassError("Class not found: " + configured_class_name)
+        class_ref = module_dict[class_name]
+    qualname = lambda cls: cls.__module__ + "." + cls.__name__
+    full_class_name = qualname(class_ref)
+    if interface and not issubclass(class_ref, interface):
+        raise DynamicClassError(
+            "Dynamic class '{}' must derive from {}".format(
+                class_name, qualname(interface)
+            )
+        )
+    return class_ref
