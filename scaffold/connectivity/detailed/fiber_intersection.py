@@ -309,25 +309,19 @@ class QuiverTransform(FiberTransform):
     def transform_branch(self, branch, offset):
 
         """
-            @Alice: to rewrite
             Compute bending transformation of a fiber branch (discretized according to original compartments and configured resolution value).
-            The transformation is a rotation of each segment/compartment (identified by a point_start and point_end) of the fiber
-            to align to the cross product between the orientation vector and the transversal direction vector (i.e. branch direction):
-            new_point_start = old_point_start
+            The transformation is a rotation of each segment/compartment of each fiber branch to align to the cross product between
+            the orientation vector and the transversal direction vector (i.e. cross product between fiber morphology/parent branch orientation
+            and branch direction):
+            compartment[n+1].start = compartment[n].end
             cross_prod = orientation_vector X transversal_vector or transversal_vector X orientation_vector
-            new_point_end = point_start + cross_prod * length_comp
+            compartment[n+1].end = compartment[n+1].start + cross_prod * length_comp
 
-            The function is used for bifurcated fibers, bending the left and right branches according to the left and right
-            transversal vectors.
-
-            :param point_cloud: a set of from_points representing segments of each fiber in the placement_set to be connected
-            :type point_cloud: 2-D list
-            :returns: a transformed point could (2-D list)
+            :param branch: a branch of the current fiber to be transformed
+            :type branch: Branch object
+            :returns: a transformed branch
 
         """
-        # Left and right transversal vectors
-        trans_vector_lx = [0, 0, -1]
-        trans_vector_rx = [0, 0, 1]
 
         # Only QuiverTransform has the attribute quivers, giving the orientation in a discretized volume of size volume_res
         if self.quivers is not None:
