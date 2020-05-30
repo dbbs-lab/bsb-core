@@ -89,7 +89,8 @@ class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
             compartments = from_morpho.get_compartments(
                 compartment_types=from_compartments
             )
-            fm = FiberMorphology(compartments)
+            morpho_rotation = from_cell.rotation
+            fm = FiberMorphology(compartments, morpho_rotation)
 
             # Interpolate all branches recursively (2)
             self.interpolate_branches(fm.root_branches)
@@ -343,10 +344,18 @@ class QuiverTransform(FiberTransform):
             branch_dir = branch._compartments[0].end - branch._compartments[0].start
             # Normalize branch_dir vector
             branch_dir = branch_dir / np.linalg.norm(branch_dir)
+
             num_comp = len(branch._compartments)
 
             # Looping over branch compartments to transform them
             for comp in range(len(branch._compartments)):
+                # Find direction transversal to branch: cross product between
+                # the branch direction and the original morphology/parent branch
+                if branch.orientation is None:
+                    transversal_vector = np.cross([0, 1, 0], branch_dir)
+                else:
+                    transversal_vector = np.cross(branch.orientation, branch_dir)
+
                 # Extracting index of voxel where the current compartment is located
                 voxel_ind = (branch._compartments[comp].start + offset) / volume_res
 
