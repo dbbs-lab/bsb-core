@@ -67,7 +67,7 @@ def reduce_branch(branch, branch_points):
 
 
 class Branch:
-    def __init__(self, compartments, parent=None, ordered=True):
+    def __init__(self, compartments, orientation, parent=None, ordered=True):
         self.origin = compartments[0].start
         self._compartments = compartments
         self._root = _get_root_compartment(compartments[0])
@@ -75,6 +75,10 @@ class Branch:
         self.is_root = parent is None
         self._parent_branch = parent
         self.child_branches = []
+        if parent is None:
+            self.orientation = orientation
+        else:
+            self.orientation = parent.orientation
         # Are the compartments provided in the order they are connected in?
         if ordered:
             # Iterate over the compartments to set the previous/next as parent/child.
@@ -220,8 +224,8 @@ def _get_terminal_compartment(compartment):
     return compartment
 
 
-def _consume_branch(unvisited, root_compartment, parent=None):
-    branch = Branch([root_compartment], parent=parent, ordered=False)
+def _consume_branch(unvisited, root_compartment, orientation, parent=None):
+    branch = Branch([root_compartment], orientation, parent=parent, ordered=False)
     unvisited.remove(root_compartment)
     root_compartment._parent = None
     compartment = root_compartment
@@ -253,19 +257,25 @@ def _copy_linked_compartments(compartments):
     return new_compartments
 
 
-def create_root_branched_network(compartments):
+def create_root_branched_network(compartments, orientation):
     root_branches = []
     _init_child_compartments(compartments)
     unvisited = set(compartments)
     while len(unvisited) > 0:
         starting_compartment = next(iter(unvisited))
         root_compartment = _get_root_compartment(starting_compartment)
-        root_branch = _consume_branch(unvisited, root_compartment)
+        root_branch = _consume_branch(unvisited, root_compartment, orientation)
         root_branches.append(root_branch)
     return root_branches
 
 
 class FiberMorphology:
-    def __init__(self, compartments):
+    def __init__(self, compartments, rotation):
         compartments = _copy_linked_compartments(compartments)
-        self.root_branches = create_root_branched_network(compartments)
+        if rotation is None:
+            orientation = None
+        else:
+            orientation = np.array(
+                [np.cos(rotation[0]), np.sin(rotation[0]), np.sin(rotation[1])]
+            )
+        self.root_branches = create_root_branched_network(compartments, orientation)
