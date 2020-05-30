@@ -50,6 +50,10 @@ def attr(**kwargs):
     return ConfigurationAttribute(**kwargs)
 
 
+def ref(reference, **kwargs):
+    return ConfigurationReferenceAttribute(reference, **kwargs)
+
+
 _list = list
 
 
@@ -194,3 +198,9 @@ class ConfigurationDictAttribute(ConfigurationAttribute):
     def _get_type(self, type):
         self.child_type = super()._get_type(type)
         return self.__cast__
+
+
+class ConfigurationReferenceAttribute(ConfigurationAttribute):
+    def __init__(self, reference, **kwargs):
+        self.reference = reference
+        super().__init__(**kwargs)
