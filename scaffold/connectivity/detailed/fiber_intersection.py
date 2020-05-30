@@ -29,9 +29,14 @@ class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
 
     """
 
-    casts = {"convergence": int, "divergence": int, "affinity": float}
+    casts = {
+        "convergence": int,
+        "divergence": int,
+        "affinity": float,
+        "resolution": float,
+    }
 
-    defaults = {"affinity": 1}
+    defaults = {"affinity": 1.0, "resolution": 20.0}
 
     def validate(self):
         pass
@@ -160,7 +165,6 @@ class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
                         # Store all of the compartments in the from_voxel as
                         # possible candidates for these cells' connections
                         # @Robin: map should contain comp.id or comp???
-
                         target_compartments.extend([from_map[from_voxel_id]])
                     target_comps_per_to_voxel[to_voxel_id] = target_compartments
                 # Weigh the random sampling by the amount of compartments so that voxels
