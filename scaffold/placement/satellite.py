@@ -49,7 +49,7 @@ class Satellite(PlacementStrategy):
         cell_type = self.cell_type
         scaffold = self.scaffold
         config = scaffold.configuration
-        radius_satellite = cell_type.placement.radius
+        radius_satellite = cell_type.spatial.radius
         # Collect all planet cell types.
         after_cell_types = [
             self.scaffold.configuration.cell_types[type_after]
@@ -63,7 +63,7 @@ class Satellite(PlacementStrategy):
             layer = after_cell_type.placement.layer_instance
             layer_min = layer.origin
             layer_max = layer.origin + layer.dimensions
-            planet_cell_radius = after_cell_type.placement.radius
+            planet_cell_radius = after_cell_type.spatial.radius
             planet_cells = self.scaffold.get_placement_set(after_cell_type.name)
             # Exit the placement of satellites if no corresponding planet after cells were created before
             if len(planet_cells) == 0:

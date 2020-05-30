@@ -31,7 +31,7 @@ class ParticlePlacement(Layered, PlacementStrategy):
             {
                 "name": cell_type.name,
                 "voxels": [0],
-                "radius": cell_type.placement.radius,
+                "radius": cell_type.spatial.radius,
                 "count": self.get_placement_count(),
             }
         ]

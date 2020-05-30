@@ -20,7 +20,7 @@ class ConnectomeGolgiGlomerulus(TouchingConvergenceDivergence):
         GoCaxon_x = golgi_cell_type.morphology.axon_x
         GoCaxon_y = golgi_cell_type.morphology.axon_y
         GoCaxon_z = golgi_cell_type.morphology.axon_z
-        r_glom = glomerulus_cell_type.placement.radius
+        r_glom = glomerulus_cell_type.spatial.radius
         n_conn_goc = self.divergence
         layer_thickness = self.scaffold.configuration.get_layer(
             name=golgi_cell_type.placement.layer

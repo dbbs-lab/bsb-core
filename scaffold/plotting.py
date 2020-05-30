@@ -151,7 +151,7 @@ def _plot_network(network, fig, swapaxes):
                 y=pos[:, 1 if not swapaxes else 2],
                 z=pos[:, 2 if not swapaxes else 1],
                 mode="markers",
-                marker=dict(color=color, size=type.placement.radius),
+                marker=dict(color=color, size=type.spatial.radius),
                 opacity=type.plotting.opacity,
                 name=type.plotting.label,
             )
@@ -207,7 +207,7 @@ def plot_detailed_network(
                 morpho,
                 cell.position,
                 color=cell_type.plotting.color,
-                soma_radius=cell_type.placement.soma_radius,
+                soma_radius=cell_type.spatial.radius,
                 segment_radius=segment_radius,
             )
     ms.prepare_plot()

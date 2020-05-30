@@ -23,7 +23,7 @@ class ParallelArrayPlacement(Layered, PlacementStrategy):
         """
         cell_type = self.cell_type
         layer = self.layer_instance
-        radius = cell_type.placement.radius
+        radius = cell_type.spatial.radius
         # Extension of a single array in the X dimension
         extension_x = self.extension_x
         # Add a random shift to the starting points of the arrays for variation.

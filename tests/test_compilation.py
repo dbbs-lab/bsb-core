@@ -126,7 +126,7 @@ class TestPlacement(unittest.TestCase):
         density = pcCount / layer.width / layer.depth
         pc_pos = self.scaffold.cells_by_type["purkinje_cell"][:, [2, 3, 4]]
         Dist2D = dist.pdist(np.column_stack((pc_pos[:, 0], pc_pos[:, 2])), "euclidean")
-        overlapSomata = np.where(Dist2D < 80 / 100 * pc.placement.soma_radius)[0]  #
+        overlapSomata = np.where(Dist2D < 80 / 100 * pc.spatial.radius)[0]  #
         Dist1Dsqr = np.zeros((pc_pos.shape[0], pc_pos.shape[0], 2))
         Dist1Dsqr[:, :, 0] = dist.squareform(dist.pdist(pc_pos[:, [0]], "euclidean"))
         Dist1Dsqr[:, :, 1] = dist.squareform(dist.pdist(pc_pos[:, [2]], "euclidean"))

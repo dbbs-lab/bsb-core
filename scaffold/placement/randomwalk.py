@@ -42,7 +42,7 @@ class LayeredRandomWalk(Layered, PlacementStrategy):
         restricted_dimensions = np.array(
             [layer.dimensions[0], layer_thickness, layer.dimensions[2]]
         )
-        cell_radius = cell_type.placement.radius
+        cell_radius = cell_type.spatial.radius
         cell_bounds = np.column_stack(
             (
                 restricted_origin + cell_radius,
@@ -93,7 +93,7 @@ class LayeredRandomWalk(Layered, PlacementStrategy):
         other_cell_type_radii = np.array(
             list(
                 map(
-                    lambda type: scaffold.configuration.cell_types[type].placement.radius,
+                    lambda type: scaffold.configuration.cell_types[type].spatial.radius,
                     scaffold.configuration.cell_type_map,
                 )
             )
