@@ -311,19 +311,34 @@ def get_soma_trace(soma_radius, offset=[0.0, 0.0, 0.0], color="black"):
     )
 
 
-def plot_fiber_morphology(fiber, *args, **kwargs):
-    from .morphologies import TrueMorphology
+@_network_figure
+def plot_fiber_morphology(
+    fiber,
+    offset=[0.0, 0.0, 0.0],
+    fig=None,
+    cubic=True,
+    swapaxes=True,
+    show=True,
+    legend=True,
+    set_range=True,
+    color="black",
+    segment_radius=1.0,
+):
+    def get_branch_traces(branches, traces):
+        for branch in branches:
+            traces.append(
+                get_branch_trace(
+                    branch._compartments, offset, color=color, width=segment_radius
+                )
+            )
+            get_branch_traces(branch.child_branches, traces)
 
-    m = TrueMorphology()
-    m = type(
-        "mspoof", (), {"get_compartment_network": TrueMorphology.get_compartment_network}
-    )()
-    print("mspoof comp ", m.get_compartment_network)
-    print("fiber comp ", fiber.flatten())
-    m.compartments = fiber.flatten()
-    print(len(m.compartments))
-    kwargs["set_range"] = False
-    plot_morphology(m, *args, **kwargs)
+    traces = []
+    get_branch_traces(fiber.root_branches, traces)
+
+    for trace in traces:
+        fig.add_trace(trace)
+    return fig
 
 
 @_network_figure
