@@ -279,3 +279,14 @@ class FiberMorphology:
                 [np.cos(rotation[0]), np.sin(rotation[0]), np.sin(rotation[1])]
             )
         self.root_branches = create_root_branched_network(compartments, orientation)
+
+    def flatten(self, branches=None):
+        if branches is None:
+            branches = self.root_branches
+        compartments = []
+        for branch in branches:
+            compartments.extend(list(branch.walk()))
+            print("walk ", branch.walk())
+            print("comp flatten ", compartments)
+            compartments.extend(self.flatten(branch.child_branches))
+        return compartments
