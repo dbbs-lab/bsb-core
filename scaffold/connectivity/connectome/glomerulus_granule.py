@@ -42,6 +42,8 @@ class ConnectomeGlomerulusGranule(TouchingConvergenceDivergence):
         dend_len = to_cell_type.morphology.dendrite_length
         n_conn_glom = self.convergence
         first_glomerulus = int(glomeruli[0, 0])
+        mf_to_glom = self.scaffold.cell_connections_by_tag["mossy_to_glomerulus"]
+        glom_mf_map = {v: k for k, v in mf_to_glom}
 
         def connectome_glom_grc(
             first_glomerulus, glomeruli, granules, dend_len, n_conn_glom
@@ -65,6 +67,15 @@ class ConnectomeGlomerulusGranule(TouchingConvergenceDivergence):
                 )
                 # Indices of glomeruli that can potentially be connected
                 good_gloms = np.where((distance_vector < 0.0) == True)[0]
+                had_mf = set()
+                candidates = []
+                for g in good_gloms:
+                    mf = glom_mf_map[g + first_glomerulus]
+                    if mf in had_mf:
+                        continue
+                    had_mf.add(mf)
+                    candidates.append(g)
+                good_gloms = np.array(candidates)
                 good_gloms_len = len(good_gloms)
                 # Do we find more than enough candidates?
                 if good_gloms_len > n_conn_glom:  # Yes: select the closest ones

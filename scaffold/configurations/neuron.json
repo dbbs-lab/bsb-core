@@ -192,6 +192,7 @@
       "class": "scaffold.connectivity.ConnectomeGlomerulusGranule",
       "from_cell_types": [{"type": "glomerulus", "compartments": ["soma"]}],
       "to_cell_types": [{"type": "granule_cell", "compartments": ["dendrites"]}],
+      "after": ["mossy_to_glomerulus"],
       "divergence": 50,
       "convergence": 4,
       "detailed": true
