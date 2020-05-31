@@ -279,7 +279,7 @@
     "stellate_to_purkinje": {
       "class": "scaffold.connectivity.VoxelIntersection",
       "from_cell_types": [{"type": "stellate_cell", "compartments": ["axon"]}],
-      "to_cell_types": [{"type": "purkinje_cell", "comp artments": ["dendrites"]}],
+      "to_cell_types": [{"type": "purkinje_cell", "compartments": ["dendrites"]}],
       "affinity": 0.2,
       "contacts": {
         "type": "norm",

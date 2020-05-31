@@ -23,16 +23,6 @@ class TestFiberIntersection(unittest.TestCase):
         # The scaffold has only the Granular layer (100x100x150) with 20 GrCs and 1 GoC placed, as specified in the
         # config file
         config = JSONConfig(file=fiber_transform_config)
-        quivers_field = np.zeros(
-            shape=(3, 4, 4, 6)
-        )  # Each voxel in the volume has vol_res=25um
-        basic_quiver = np.array([0, 0.7, 0.7])
-        quivers_field[0, :] = basic_quiver[0]
-        quivers_field[1, :] = basic_quiver[1]
-        quivers_field[2, :] = basic_quiver[2]
-        config.connection_types[
-            "parallel_fiber_to_golgi_bended"
-        ].transformation.quivers = quivers_field
         self.scaffold = Scaffold(config)
         self.scaffold.morphology_repository = MorphologyRepository(morpho_file)
         self.scaffold.compile_network()
@@ -56,8 +46,3 @@ class TestFiberIntersection(unittest.TestCase):
         conn_type_affinity = "parallel_fiber_to_golgi_affinity"
         cs_affinity = self.scaffold.get_connectivity_set(conn_type_affinity)
         self.assertAlmostEqual(num_conn / 2, len(cs_affinity.connections), delta=5)
-
-        # Check that more connections are obtained when the PC surface is oriented according to orientation vector of 45° rotation in yz plane
-        conn_type_transform = "parallel_fiber_to_golgi_bended"
-        cs_transform = self.scaffold.get_connectivity_set(conn_type_transform)
-        self.assertTrue(len(cs_transform.connections) >= num_conn)

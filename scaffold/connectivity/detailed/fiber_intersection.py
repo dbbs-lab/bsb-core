@@ -8,7 +8,7 @@ from ...helpers import ConfigurableClass
 from ...networks import FiberMorphology, Branch
 import abc
 
-# Import rtree & instantiate the index with its properties.
+# Import rtree
 from rtree import index
 from rtree.index import Rtree
 
@@ -19,19 +19,18 @@ class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
         It's a specific case of VoxelIntersection.
 
         For each presynaptic cell, the following steps are executed:
-            1) extracting the FiberMorphology
-            2) interpolate
-            3) transform
-            4) interpolate
-            5) voxelize (generates the voxel_tree associated to this morphology)
-            6) check intersections of presyn bounding box with all postsyn boxes
-            7) check intersections of each candidate postsyn with current presyn voxel_tree
+
+        #. Extract the FiberMorphology
+        #. Interpolate points on the fiber until the spatial resolution is respected
+        #. transform
+        #. Interpolate points on the fiber until the spatial resolution is respected
+        #. Voxelize (generates the voxel_tree associated to this morphology)
+        #. Check intersections of presyn bounding box with all postsyn boxes
+        #. Check intersections of each candidate postsyn with current presyn voxel_tree
 
     """
 
     casts = {
-        "convergence": int,
-        "divergence": int,
         "affinity": float,
         "resolution": float,
     }
@@ -54,8 +53,6 @@ class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
         to_type = self.to_cell_types[0]
         from_placement_set = self.scaffold.get_placement_set(from_type.name)
         to_placement_set = self.scaffold.get_placement_set(to_type.name)
-        from_cells = self.scaffold.get_cells_by_type(from_type.name)
-        to_cells = self.scaffold.get_cells_by_type(to_type.name)
 
         # Load the morphology and voxelization data for the entrire morphology, for each cell type.
         from_morphology_set = MorphologySet(
@@ -78,75 +75,84 @@ class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
             to_box = morphology.cloud.get_voxel_box()
             to_cell_tree.insert(i, tuple(to_box + to_offset))
 
-        # For each presynaptic cell, find all postsynaptic cells that its outer
-        # box intersects with.
         connections_out = []
         compartments_out = []
         morphologies_out = []
 
         for c, (from_cell, from_morpho) in enumerate(from_morphology_set):
-            # Extract the FiberMorpho object for each branch in the from_compartments of the presynaptic morphology (1)
+            # (1) Extract the FiberMorpho object for each branch in the from_compartments
+            # of the presynaptic morphology
             compartments = from_morpho.get_compartments(
                 compartment_types=from_compartments
             )
             morpho_rotation = from_cell.rotation
             fm = FiberMorphology(compartments, morpho_rotation)
 
-            # Interpolate all branches recursively (2)
+            # (2) Interpolate all branches recursively
             self.interpolate_branches(fm.root_branches)
 
-            # Transform (3). It requires the from_cell position that will be used for example in QuiverTransform to get
-            # the orientation value in the voxel where the cell is located, while still keeping the morphology in its local reference frame.
+            # (3) Transform the fiber if present
             if self.transformation is not None:
                 self.transformation.transform_branches(
                     fm.root_branches, from_cell.position
                 )
 
-            # Interpolate again (4)
+            # (4) Interpolate again
             self.interpolate_branches(fm.root_branches)
             #
 
-            # Voxelize all branches of the current morphology (5)
+            # (5) Voxelize all branches of the transformed fiber morphology
+            p = index.Property(dimension=3)
+            # The bounding box is incrementally expanded, these initial bounds are a point
+            # at the start of the first root branch.
+            from_bounding_box = [
+                fm.root_branches[0]._compartments[0].start + from_cell.position
+            ] * 2
+            from_voxel_tree = index.Index(properties=p)
+            from_map = []
             from_bounding_box, from_voxel_tree, from_map, v_all = self.voxelize_branches(
-                fm.root_branches, from_cell.position
+                fm.root_branches,
+                from_cell.position,
+                from_bounding_box,
+                from_voxel_tree,
+                from_map,
             )
 
-            # Check for intersections of the postsyn tree with the bounding box (6)
+            # (6) Check for intersections of the postsyn tree with the bounding box
 
             ## TODO: Check if bounding box intersection is convenient
 
-            # Bounding box intersection to identify possible connected candidates, using the bounding box of the point cloud
-            # Query the Rtree for intersections of to_cell boxes with our from_cell box
+            # Bounding box intersection to identify possible connected candidates, using
+            # the bounding box of the point cloud. Query the Rtree for intersections of
+            # to_cell boxes with our from_cell box
             cell_intersections = list(
                 to_cell_tree.intersection(
                     tuple(np.concatenate(from_bounding_box)), objects=False
                 )
             )
 
-            # For candidate postsyn intersecting cells, find the intersecting from voxels/compartments (7)
-            # Voxel cloud intersection to identify real connected cells and their compartments
-            # Loop over each intersected partner to find and select compartment intersections
+            # (7) For each hit on the box intersection between pre- and postsynaptic
+            # cells, perform voxel cloud intersection to identify actually connected cell
+            # pairs and select compartments from their intersecting voxels to form
+            # connections with.
             for partner in cell_intersections:
-                # Same as in VoxelIntersection, only select a fraction of the total possible matches, based on how much
-                # affinity there is between the cell types.
-                # Affinity 1: All cells whose voxels intersect are considered to grow
-                # towards eachother and always form a connection with other cells in their
-                # voxelspace
-                # Affinity 0: Cells completely ignore other cells in their voxelspace and
-                # don't form connections.
+                # Same as in VoxelIntersection, only select a fraction of the total
+                # possible matches, based on how much affinity there is between the cell
+                # types.
                 if np.random.rand() >= self.affinity:
                     continue
                 # Get the precise morphology of the to_cell we collided with
                 to_cell, to_morpho = to_morphology_set[partner]
                 # Get the map from voxel id to list of compartments in that voxel.
                 to_map = to_morpho.cloud.map
-                # Find which voxels inside the bounding box of the fiber and the cell box actually intersect with eachother.
+                # Find which voxels inside the bounding box of the fiber and the cell box
+                # actually intersect with eachother.
                 voxel_intersections = self.intersect_voxel_tree(
                     from_voxel_tree, to_morpho.cloud, to_cell.position
                 )
-                # Returns a list of lists: the elements in the inner lists are the indices of the
-                # voxels in the from point cloud, the indices of the lists inside of the outer list
-                # are the to voxel indices.
+                # Returns a list of lists: the elements in the inner lists are the indices
+                # of the voxels in the from point cloud, the indices of the lists inside
+                # of the outer list are the to voxel indices.
                 #
                 # Find non-empty lists: these voxels actually have intersections
                 intersecting_to_voxels = np.nonzero(voxel_intersections)[0]
@@ -241,23 +247,7 @@ class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
     def voxelize_branches(
         self, branches, position, bounding_box=None, voxel_tree=None, map=None
     ):
-        if bounding_box is None:
-            bounding_box = []
-            # Initialize bottom and top extremes of bounding box to the start of the first branch compartment
-            bounding_box.append(branches[0]._compartments[0].start + position)
-            bounding_box.append(branches[0]._compartments[0].start + position)
-        if voxel_tree is None:
-            # Create Rtree
-            from rtree import index
-
-            p = index.Property(dimension=3)
-            voxel_tree = index.Index(properties=p)
-        if map is None:
-            # Initialize map of compartment ids to empty list
-            map = []
-
         v = 0
-
         for branch in branches:
             bounding_box, voxel_tree, map, v = branch.voxelize(
                 position, bounding_box, voxel_tree, map
@@ -272,13 +262,9 @@ class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
 
 class FiberTransform(ConfigurableClass):
     def transform_branches(self, branches, offset=None):
-        # In QuiverTransform transform_branches, the offset is used to find the
-        # orientation vector associated to the voxel where the compartment to
-        # be rotated is located
         if offset is None:
             offset = np.zeros(3)
         for branch in branches:
-            # @Robin: each branch has a start position in the reference frame of the morphology it belongs to or they all start at [0,0,0]?
             self.transform_branch(branch, offset)
             self.transform_branches(branch.child_branches, offset)
 
@@ -300,4 +286,7 @@ class QuiverTransform(FiberTransform):
     defaults = {"vol_res": 1.0, "quivers": [1.0, 1.0, 1.0]}
 
     def validate(self):
-        NotImplementedError("QuiverTransform not implemented")
+        raise NotImplementedError("QuiverTransform not implemented")
+
+    def transform_branch(self, branch, offset):
+        raise NotImplementedError("QuiverTransform not implemented")

@@ -678,7 +678,6 @@ class JSONConfig(ScaffoldConfig):
             and adds it to the Geometries dictionary.
         """
         node_name = "connection_types.{}".format(name)
-        print(node_name, " section ", section)
         connection_class = assert_attr(section, "class", node_name)
         connection = load_configurable_class(name, connection_class, ConnectionStrategy)
         fill_configurable_class(
