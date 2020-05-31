@@ -285,7 +285,7 @@ class FiberMorphology:
             branches = self.root_branches
         compartments = []
         for branch in branches:
-            compartments.extend(list(branch.walk()))
+            compartments.extend(list(branch._compartments))
             print("walk ", branch.walk())
             print("comp flatten ", compartments)
             compartments.extend(self.flatten(branch.child_branches))
