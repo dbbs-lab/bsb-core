@@ -91,9 +91,14 @@ class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
             )
             morpho_rotation = from_cell.rotation
             fm = FiberMorphology(compartments, morpho_rotation)
+            print("lenght comp fi ", len(compartments), len(fm.root_branches))
+            print(fm.root_branches[0]._root._child)
 
             # Interpolate all branches recursively (2)
             self.interpolate_branches(fm.root_branches)
+            from ...plotting import plot_fiber_morphology
+
+            fig = plot_fiber_morphology(fm)
 
             # Transform (3). It requires the from_cell position that will be used for example in QuiverTransform to get
             # the orientation value in the voxel where the cell is located, while still keeping the morphology in its local reference frame.
@@ -101,6 +106,8 @@ class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
                 self.transformation.transform_branches(
                     fm.root_branches, from_cell.position
                 )
+
+            plot_fiber_morphology(fm, fig=fig)
 
             # Interpolate again (4)
             self.interpolate_branches(fm.root_branches)
