@@ -7,28 +7,115 @@ from .reporting import report
 
 
 class Compartment:
-    def __init__(self, morphology, repo_record):
+    """
+        Compartments are line segments with a radius. They are the building block of
+        :class:`Morphologies <.morphologies.Morphology>`.
+    """
+
+    def __init__(
+        self,
+        start,
+        end,
+        radius,
+        id=None,
+        type=None,
+        parent=None,
+        parent_id=None,
+        section_id=None,
+        morphology=None,
+    ):
+        self.id = id
+        self.start = start
+        self.end = end
+        self.radius = radius
+        self.type = type
+        self.parent_id = parent_id
+        self.parent = parent
+        self.section_id = section_id
+        self.morphology = morphology
+
+    @classmethod
+    def from_record(cls, morphology, repo_record):
         """
             Create a compartment from repository data.
         """
-        # Transfer basic data to properties.
-        self.id = repo_record[0]
-        self.type = repo_record[1]
-        self.start = np.array(repo_record[2:5])
-        self.end = np.array(repo_record[5:8])
-        self.radius = repo_record[8]
-        self.parent = repo_record[9]
+        # Transfer the record data onto a Compartment object.
+        c = cls(
+            id=repo_record[0],
+            type=repo_record[1],
+            start=np.array(repo_record[2:5]),
+            end=np.array(repo_record[5:8]),
+            radius=repo_record[8],
+            parent_id=repo_record[9],
+            morphology=morphology,
+        )
+        # Check if there's section id information on the record.
         if len(repo_record) == 11:
-            self.section_id = int(repo_record[10])
-        # Calculate midpoint of the compartment
-        self.midpoint = (self.end - self.start) / 2 + self.start
-        # Calculate the radius of the outer sphere of this compartment
-        self.spherical = np.sqrt((self.start[:] - self.end[:]) ** 2) / 2
+            c.section_id = int(repo_record[10])
+        return c
 
-        self.morphology = morphology
+    @property
+    def midpoint(self):
+        # Calculate midpoint of the compartment
+        if not hasattr(self, "_midpoint"):
+            self._midpoint = (self.end - self.start) / 2 + self.start
+        return self._midpoint
+
+    @property
+    def spherical(self):
+        # Calculate the radius of the outer sphere of this compartment
+        if not hasattr(self, "_spherical"):
+            self._spherical = np.sqrt((c.start[:] - c.end[:]) ** 2) / 2
+        return self._spherical
+
+    @classmethod
+    def from_template(cls, template, **kwargs):
+        """
+            Create a compartment based on  a template compartment. Accepts any keyword
+            argument to overwrite or add attributes.
+        """
+        c = cls(
+            id=template.id,
+            start=template.start,
+            end=template.end,
+            radius=template.radius,
+            type=template.type,
+            parent=template.parent,
+            parent_id=template.parent_id,
+            section_id=template.section_id,
+            morphology=template.morphology,
+        )
+        for k, v in kwargs.items():
+            c.__dict__[k] = v
+        return c
+
+    def to_record(self):
+        """
+            Return an array that can be used to store this compartment in an HDF5 dataset,
+            or to construct a new Compartment.
+        """
+        record = [self.id, self.type, *self.start, *self.end, self.radius, self.parent_id]
+        if hasattr(self, "section_id"):
+            record.append(self.section_id)
+        return record
 
 
 class Morphology(ConfigurableClass):
+    """
+        A multicompartmental spatial representation of a cell based on connected 3D
+        compartments.
+
+        :todo: Uncouple from the MorphologyRepository and merge with TrueMorphology.
+    """
+
+    # The Morphology has a troubled history: it used to represent both the simple
+    # geometrical constraints used in the connectome connectivity functions and also the
+    # multicompartmental model that it represents now. This problem is painfully visible
+    # in the fact that you by default intialize a morphology with `has_morphology =
+    # False`.
+    #
+    # Work needs to be done to make sure that the Morphology is a pure object that
+    # describes the compartments of a neuron.
 
     compartment_types = {
         "soma": 1,
@@ -85,8 +172,14 @@ class Morphology(ConfigurableClass):
         # Iterate over the data to create compartment objects
         for i in range(len(repo_data)):
             repo_record = repo_data[i, :]
-            compartment = Compartment(self, repo_record)
+            compartment = Compartment.from_record(self, repo_record)
             self.compartments.append(compartment)
+        # Fortify the id-linked compartments' bond by referencing their parent object.
+        for c in self.compartments:
+            if c.parent_id is not None and c.parent_id != -1:
+                c.parent = self.compartments[int(c.parent_id)]
+            else:
+                c.parent = None
         # Create a tree from the compartment object list
         self.update_compartment_tree()
         if (
@@ -199,9 +292,9 @@ class TrueMorphology(Morphology):
         node_list = [set([]) for c in compartments]
         # Add child nodes to their parent's adjacency set
         for node in compartments[1:]:
-            if int(node.parent) == -1:
+            if int(node.parent_id) == -1:
                 continue
-            node_list[int(node.parent)].add(int(node.id))
+            node_list[int(node.parent_id)].add(int(node.id))
         return node_list
 
     def get_compartment_positions(self, types=None):

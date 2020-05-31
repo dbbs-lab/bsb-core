@@ -1,0 +1,88 @@
+{
+  "output": {
+    "format": "scaffold.output.HDF5Formatter",
+    "morphology_repository": "morphologies.hdf5",
+    "file": "fiber_intersection_scaffold.hdf5"
+  },
+  "network_architecture": {
+    "simulation_volume_x": 100.0,
+    "simulation_volume_z": 100.0
+  },
+  "layers": {
+    "granular_layer": {
+      "thickness": 150.0,
+      "origin": [0.0, 0.0, 0.0]
+    }
+  },
+  "cell_types": {
+    "granule_cell": {
+      "placement": {
+        "class": "scaffold.placement.ParticlePlacement",
+        "layer": "granular_layer",
+        "soma_radius": 2.5,
+        "count": 20
+      },
+      "morphology": {
+        "class": "scaffold.morphologies.GranuleCellGeometry",
+        "pf_height": 180,
+        "pf_height_sd": 20,
+        "pf_length": 3000,
+        "pf_radius": 0.5,
+        "dendrite_length": 40,
+        "detailed_morphologies": {
+          "names": ["GranuleCell"]
+        }
+      },
+      "plotting": {
+        "display_name": "granule cell",
+        "color": "#E62214"
+      }
+    },
+    "golgi_cell": {
+      "placement": {
+        "class": "scaffold.placement.ParticlePlacement",
+        "layer": "granular_layer",
+        "soma_radius": 8.0,
+        "count": 1
+      },
+      "morphology": {
+        "class": "scaffold.morphologies.GolgiCellGeometry",
+        "dendrite_radius": 50.0,
+        "axon_x": 150.0,
+        "axon_y": 150.0,
+        "axon_z": 30.0,
+        "detailed_morphologies": {
+          "names": ["GolgiCell"]
+        }
+      },
+      "plotting": {
+        "display_name": "golgi cell",
+        "color": "#332EBC"
+      }
+    }
+  },
+  "connection_types": {
+    "parallel_fiber_to_golgi": {
+      "class": "scaffold.connectivity.FiberIntersection",
+      "from_cell_types": [{"type": "granule_cell", "compartments": ["parallel_fiber"]}],
+      "to_cell_types": [{"type": "golgi_cell", "compartments": ["dendrites"]}],
+      "resolution": 50.0
+    },
+    "parallel_fiber_to_golgi_HR": {
+      "class": "scaffold.connectivity.FiberIntersection",
+      "from_cell_types": [{"type": "granule_cell", "compartments": ["parallel_fiber"]}],
+      "to_cell_types": [{"type": "golgi_cell", "compartments": ["dendrites"]}],
+      "resolution": 5.0
+    },
+    "parallel_fiber_to_golgi_affinity": {
+      "class": "scaffold.connectivity.FiberIntersection",
+      "from_cell_types": [{"type": "granule_cell", "compartments": ["parallel_fiber"]}],
+      "to_cell_types": [{"type": "golgi_cell", "compartments": ["dendrites"]}],
+      "resolution": 50.0,
+      "affinity": 0.5
+    }
+  },
+  "simulations": {
+
+  }
+}

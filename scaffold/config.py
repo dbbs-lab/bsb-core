@@ -6,7 +6,7 @@ import os, sys, site
 from inspect import isclass
 from .models import CellType, Layer
 from .morphologies import Morphology as BaseMorphology
-from .connectivity import ConnectionStrategy
+from .connectivity import ConnectionStrategy, FiberTransform
 from .placement import PlacementStrategy
 from .output import OutputFormatter, HDF5Formatter
 from .simulation import SimulatorAdapter, SimulationComponent
@@ -683,7 +683,13 @@ class JSONConfig(ScaffoldConfig):
         fill_configurable_class(
             connection,
             section,
-            excluded=["class", "from_cell_types", "to_cell_types", "simulation"],
+            excluded=[
+                "class",
+                "from_cell_types",
+                "to_cell_types",
+                "simulation",
+                "transform",
+            ],
         )
         connection.__dict__["_from_cell_types"] = assert_attr_array(
             section, "from_cell_types", node_name
@@ -691,6 +697,21 @@ class JSONConfig(ScaffoldConfig):
         connection.__dict__["_to_cell_types"] = assert_attr_array(
             section, "to_cell_types", node_name
         )
+
+        if "transform" in section:
+            transform_class = assert_attr(
+                section["transform"], "class", node_name + ".transform"
+            )
+            transformation = load_configurable_class(
+                name + "_transform", transform_class, FiberTransform
+            )
+            fill_configurable_class(
+                transformation, section["transform"], excluded=["class"],
+            )
+            connection.transformation = transformation
+        else:
+            connection.transformation = None
+
         self.add_connection(connection)
 
     def init_placement(self, section, cell_type):

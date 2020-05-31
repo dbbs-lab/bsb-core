@@ -3,7 +3,7 @@
   "output": {
     "format": "scaffold.output.HDF5Formatter",
     "morphology_repository": "morphologies.hdf5",
-    "file": "neuron.hdf5"
+    "file": "neuronFINAL_V2.hdf5"
   },
   "network_architecture": {
     "simulation_volume_x": 150.0,
@@ -233,7 +233,7 @@
       "class": "scaffold.connectivity.TouchDetector",
       "from_cell_types": [{"type": "granule_cell", "compartments": ["ascending_axon"]}],
       "to_cell_types": [{"type": "golgi_cell", "compartments": ["dendrites"]}],
-      "compartment_intersection_radius": 2,
+      "compartment_intersection_radius": 2.0,
       "synapses": {
         "type": "norm",
         "loc": 5,
@@ -241,10 +241,10 @@
       }
     },
     "parallel_fiber_to_golgi": {
-      "class": "scaffold.connectivity.TouchDetector",
+      "class": "scaffold.connectivity.FiberIntersection",
       "from_cell_types": [{"type": "granule_cell", "compartments": ["parallel_fiber"]}],
       "to_cell_types": [{"type": "golgi_cell", "compartments": ["dendrites"]}],
-      "compartment_intersection_radius": 2
+      "resolution": 20.0
     },
     "ascending_axon_to_purkinje": {
       "class": "scaffold.connectivity.TouchDetector",
@@ -258,24 +258,24 @@
       }
     },
     "parallel_fiber_to_purkinje": {
-      "class": "scaffold.connectivity.TouchDetector",
+      "class": "scaffold.connectivity.FiberIntersection",
       "from_cell_types": [{"type": "granule_cell", "compartments": ["parallel_fiber"]}],
       "to_cell_types": [{"type": "purkinje_cell", "compartments": ["dendrites"]}],
-      "compartment_intersection_radius": 2
+      "resolution": 20.0
     },
     "parallel_fiber_to_basket": {
-      "class": "scaffold.connectivity.TouchDetector",
+      "class": "scaffold.connectivity.FiberIntersection",
       "from_cell_types": [{"type": "granule_cell", "compartments": ["parallel_fiber"]}],
       "to_cell_types": [{"type": "basket_cell", "compartments": ["dendrites"]}],
       "after": ["granule_to_golgi"],
-      "compartment_intersection_radius": 2
+      "resolution": 20.0
     },
     "parallel_fiber_to_stellate": {
-      "class": "scaffold.connectivity.TouchDetector",
+      "class": "scaffold.connectivity.FiberIntersection",
       "from_cell_types": [{"type": "granule_cell", "compartments": ["parallel_fiber"]}],
       "to_cell_types": [{"type": "stellate_cell", "compartments": ["dendrites"]}],
       "after": ["granule_to_golgi"],
-      "compartment_intersection_radius": 2
+      "resolution": 20.0
     },
     "stellate_to_purkinje": {
       "class": "scaffold.connectivity.VoxelIntersection",

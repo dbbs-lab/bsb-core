@@ -339,9 +339,9 @@ class MorphologyRepository(HDF5TreeHandler):
                     idx + p - 1,
                     id,
                 ]
-                c = Compartment(None, data)
+                c = Compartment.from_record(None, data)
                 if p == 0:
-                    c.parent = -1
+                    c.parent_id = -1
                     orphans.append(c)
                 compartments.append(c)
                 dataset.append(data)
@@ -391,13 +391,10 @@ class MorphologyRepository(HDF5TreeHandler):
     def save_morphology(self, name, compartments):
         ds = []
         for c in compartments:
+            d = [c.id, c.type, *c.start, *c.end, c.radius, c.parent_id]
             if hasattr(c, "section_id"):
-                ds.append(
-                    [c.id, c.type, *c.start, *c.end, c.radius, c.parent, c.section_id]
-                )
-            else:
-                ds.append([c.id, c.type, *c.start, *c.end, c.radius, c.parent])
-        # ds = list(map(list, zip(*ds)))
+                d.append(c.section_id)
+            ds.append(d)
 
         self.save_morphology_dataset(name, ds, overwrite=True)
 
@@ -645,7 +642,7 @@ class MorphologyCache:
             Construct the rotated morphology according to orientation vector identified by phi_value and theta_value and save in the morphology repository
         """
         morpho = self.mr.get_morphology(morpho_name)
-        start_vector = np.array([0, 0, 1])
+        start_vector = np.array([0, 1, 0])
         end_vector = np.array([np.cos(phi_value), np.sin(phi_value), np.sin(theta_value)])
         morpho.rotate(start_vector, end_vector)
 
@@ -777,9 +774,18 @@ class HDF5Formatter(OutputFormatter, MorphologyRepository):
             )
 
     def store_cell_connections(self, cells_group):
-        connections_group = cells_group.create_group("connections")
-        compartments_group = cells_group.create_group("connection_compartments")
-        morphologies_group = cells_group.create_group("connection_morphologies")
+        if "connections" not in cells_group:
+            connections_group = cells_group.create_group("connections")
+        else:
+            connections_group = cells_group["connections"]
+        if "connection_compartments" not in cells_group:
+            compartments_group = cells_group.create_group("connection_compartments")
+        else:
+            compartments_group = cells_group["connection_compartments"]
+        if "connection_morphologies" not in cells_group:
+            morphologies_group = cells_group.create_group("connection_morphologies")
+        else:
+            morphologies_group = cells_group["connection_morphologies"]
         for tag, connectome_data in self.scaffold.cell_connections_by_tag.items():
             related_types = list(
                 filter(

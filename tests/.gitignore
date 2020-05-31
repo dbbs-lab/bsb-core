@@ -3,6 +3,5 @@
 !profiling/
 !profiling.py
 !test_*
-!.hdf5
 *.pyc
 !configs/
