@@ -165,7 +165,6 @@ class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
                     for from_voxel_id in intersecting_voxels:
                         # Store all of the compartments in the from_voxel as
                         # possible candidates for these cells' connections
-                        # @Robin: map should contain comp.id or comp???
                         target_compartments.extend([from_map[from_voxel_id]])
                     target_comps_per_to_voxel[to_voxel_id] = target_compartments
                 # Weigh the random sampling by the amount of compartments so that voxels
@@ -301,77 +300,4 @@ class QuiverTransform(FiberTransform):
     defaults = {"vol_res": 1.0, "quivers": [1.0, 1.0, 1.0]}
 
     def validate(self):
-
-        if self.shared is True:
-            raise ConfigurationError(
-                "Attribute 'shared' can't be True for {} transformation".format(self.name)
-            )
-
-    def transform_branch(self, branch, offset):
-
-        """
-            Compute bending transformation of a fiber branch (discretized according to original compartments and configured resolution value).
-            The transformation is a rotation of each segment/compartment of each fiber branch to align to the cross product between
-            the orientation vector and the transversal direction vector (i.e. cross product between fiber morphology/parent branch orientation
-            and branch direction):
-            compartment[n+1].start = compartment[n].end
-            cross_prod = orientation_vector X transversal_vector or transversal_vector X orientation_vector
-            compartment[n+1].end = compartment[n+1].start + cross_prod * length_comp
-
-            :param branch: a branch of the current fiber to be transformed
-            :type branch: Branch object
-            :returns: a transformed branch
-
-        """
-
-        # Only QuiverTransform has the attribute quivers, giving the orientation in a discretized volume of size volume_res
-        if self.quivers is not None:
-            orientation_data = self.quivers
-        else:
-            raise AttributeError("Missing  attribute 'quivers' for {}".format(self.name))
-        if hasattr(self, "vol_res"):
-            volume_res = self.vol_res
-        else:
-            raise AttributeError("Missing  attribute 'vol_res' for {}".format(self.name))
-
-        # Bypass for testing
-        orientation_data = np.ones(shape=(3, 500, 500, 500))
-        volume_res = 25
-
-        # We really need to check if shared here? We are applying to each cell - so this should be checked before in the code
-        if not self.shared:
-            # Compute branch direction - to check that PFs have 2 branches, left and right
-            branch_dir = branch._compartments[0].end - branch._compartments[0].start
-            # Normalize branch_dir vector
-            branch_dir = branch_dir / np.linalg.norm(branch_dir)
-
-            num_comp = len(branch._compartments)
-
-            # Looping over branch compartments to transform them
-            for comp in range(len(branch._compartments)):
-                # Find direction transversal to branch: cross product between
-                # the branch direction and the original morphology/parent branch
-                if branch.orientation is None:
-                    transversal_vector = np.cross([0, 1, 0], branch_dir)
-                else:
-                    transversal_vector = np.cross(branch.orientation, branch_dir)
-
-                # Extracting index of voxel where the current compartment is located
-                voxel_ind = (branch._compartments[comp].start + offset) / volume_res
-
-                voxel_ind = voxel_ind.astype(int)
-                orientation_vector = orientation_data[
-                    :, voxel_ind[0], voxel_ind[1], voxel_ind[2]
-                ]
-                cross_prod = np.cross(branch_dir, orientation_vector)
-                cross_prod = cross_prod / np.linalg.norm(cross_prod)
-                length_comp = np.linalg.norm(
-                    branch._compartments[comp].end - branch._compartments[comp].start
-                )
-                # Transform compartment
-                branch._compartments[comp].end = (
-                    branch._compartments[comp].end + cross_prod * length_comp
-                )
-                if comp < (num_comp - 1):
-                    # The new end is the start of the adjacent compartment
-                    branch._compartments[comp + 1].start = branch._compartments[comp].end
+        NotImplementedError("QuiverTransform not implemented")
