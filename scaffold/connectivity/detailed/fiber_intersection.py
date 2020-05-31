@@ -91,8 +91,6 @@ class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
             )
             morpho_rotation = from_cell.rotation
             fm = FiberMorphology(compartments, morpho_rotation)
-            print("lenght comp fi ", len(compartments), len(fm.root_branches))
-            print(fm.root_branches[0]._root._child)
 
             # Interpolate all branches recursively (2)
             self.interpolate_branches(fm.root_branches)
