@@ -311,6 +311,21 @@ def get_soma_trace(soma_radius, offset=[0.0, 0.0, 0.0], color="black"):
     )
 
 
+def plot_fiber_morphology(fiber, *args, **kwargs):
+    from .morphologies import TrueMorphology
+
+    m = TrueMorphology()
+    m = type(
+        "mspoof", (), {"get_compartment_network": TrueMorphology.get_compartment_network}
+    )()
+    print("mspoof comp ", m.get_compartment_network)
+    print("fiber comp ", fiber.flatten())
+    m.compartments = fiber.flatten()
+    print(len(m.compartments))
+    kwargs["set_range"] = False
+    plot_morphology(m, *args, **kwargs)
+
+
 @_network_figure
 def plot_morphology(
     morphology,
