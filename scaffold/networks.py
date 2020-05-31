@@ -70,8 +70,6 @@ class Branch:
     def __init__(self, compartments, orientation, parent=None, ordered=True):
         self.origin = compartments[0].start
         self._compartments = compartments
-        self._root = _get_root_compartment(compartments[0])
-        self._terminus = _get_terminal_compartment(compartments[-1])
         self.is_root = parent is None
         self._parent_branch = parent
         self.child_branches = []
@@ -87,8 +85,10 @@ class Branch:
             for c in range(1, len(compartments)):
                 compartments[c]._parent = compartments[c - 1]
         # Polish the start and end of the branch
-        compartments[0]._parent = None
-        compartments[-1]._child = None
+        self._root = _get_root_compartment(compartments[0], compartments)
+        self._terminus = _get_terminal_compartment(compartments[-1], compartments)
+        self._root._parent = None
+        self._terminus._child = None
 
     def add_branch(self, branch):
         branch._parent_branch = self
@@ -196,7 +196,6 @@ class Branch:
                 ),
             )
             map.append(comp)
-        # print("comp num ", v)
         return bounding_box, voxel_tree, map, v
 
 
@@ -212,14 +211,14 @@ def _init_child_compartments(compartments):
             node.parent._children.append(node)
 
 
-def _get_root_compartment(compartment):
-    while compartment.parent is not None:
+def _get_root_compartment(compartment, compartments):
+    while compartment.parent is not None and compartment.parent in compartments:
         compartment = compartment.parent
     return compartment
 
 
-def _get_terminal_compartment(compartment):
-    while len(compartment._children) == 1:
+def _get_terminal_compartment(compartment, compartments):
+    while len(compartment._children) == 1 and compartment._children[0] in compartments:
         compartment = compartment._children[0]
     return compartment
 
@@ -228,6 +227,8 @@ def _consume_branch(unvisited, root_compartment, orientation, parent=None):
     branch = Branch([root_compartment], orientation, parent=parent, ordered=False)
     unvisited.remove(root_compartment)
     root_compartment._parent = None
+    if len(root_compartment._children) > 0:
+        root_compartment._child = root_compartment._children[0]
     compartment = root_compartment
     while len(compartment._children) == 1:
         next_compartment = compartment._children[0]
@@ -238,6 +239,7 @@ def _consume_branch(unvisited, root_compartment, orientation, parent=None):
         for child in compartment._children:
             child_branch = _consume_branch(unvisited, child, parent=branch)
             branch.add_branch(child_branch)
+    branch._terminus._child = None
     return branch
 
 
@@ -263,7 +265,7 @@ def create_root_branched_network(compartments, orientation):
     unvisited = set(compartments)
     while len(unvisited) > 0:
         starting_compartment = next(iter(unvisited))
-        root_compartment = _get_root_compartment(starting_compartment)
+        root_compartment = _get_root_compartment(starting_compartment, compartments)
         root_branch = _consume_branch(unvisited, root_compartment, orientation)
         root_branches.append(root_branch)
     return root_branches
