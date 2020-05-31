@@ -642,7 +642,7 @@ class MorphologyCache:
             Construct the rotated morphology according to orientation vector identified by phi_value and theta_value and save in the morphology repository
         """
         morpho = self.mr.get_morphology(morpho_name)
-        start_vector = np.array([0, 0, 1])
+        start_vector = np.array([0, 1, 0])
         end_vector = np.array([np.cos(phi_value), np.sin(phi_value), np.sin(theta_value)])
         morpho.rotate(start_vector, end_vector)
 

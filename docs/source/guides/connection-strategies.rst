@@ -53,19 +53,20 @@ the minimal volume with sides parallel to the main reference frame axes, surroun
 Intersections with postsynaptic voxelized morphologies are then obtained applying the same method as
 in `VoxelIntersection`.
 
-* ``resolution``: the minimum length [um] of a fiber segment to be used in the fiber voxelization.
+* ``resolution``: the maximum length [um] of a fiber segment to be used in the fiber voxelization.
   If the resolution is lower than a compartment length, the compartment is interpolated into smaller segments,
   to achieve the desired resolution. This property impacts on voxelization of fibers not parallel to the
-  main reference frame axes.
+  main reference frame axes. Default value is 20.0 um, i.e. the length of each compartment in Granule cell Parallel fibers.
 * ``affinity``: A fraction between 1 and 0 which indicates the tendency of cells to form
   connections with other cells with whom their voxels intersect. This can be used to
-  downregulate the amount of cells that any cell connects with.
+  downregulate the amount of cells that any cell connects with. Default value is 1.
 * ``transform``: A set of attributes defining the transformation class for fibers that should be rotated
   or bended.
   Specifically, the `QuiverTransform` allows to bend fiber segments based on a vector field in a voxelized volume.
   The attributes to be set are:
   * ``quivers``: the vector field array
-  * ``vol_res``: the size [um] of voxels in the volume where the vector field is defined
+  * ``vol_res``: the size [um] of voxels in the volume where the vector field is defined. Default value is 25.0, i.e.
+  the voxel size in the Allen Brain Atlas.
   * ``shared``: if the same transformation should be applied to all fibers or not
 
 :class:`TouchingConvergenceDivergence <.connectivity.TouchingConvergenceDivergence>`

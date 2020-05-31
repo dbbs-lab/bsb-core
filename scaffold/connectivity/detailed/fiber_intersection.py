@@ -29,9 +29,14 @@ class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
 
     """
 
-    casts = {"convergence": int, "divergence": int, "affinity": float}
+    casts = {
+        "convergence": int,
+        "divergence": int,
+        "affinity": float,
+        "resolution": float,
+    }
 
-    defaults = {"affinity": 1}
+    defaults = {"affinity": 1.0, "resolution": 20.0}
 
     def validate(self):
         pass
@@ -84,7 +89,8 @@ class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
             compartments = from_morpho.get_compartments(
                 compartment_types=from_compartments
             )
-            fm = FiberMorphology(compartments)
+            morpho_rotation = from_cell.rotation
+            fm = FiberMorphology(compartments, morpho_rotation)
 
             # Interpolate all branches recursively (2)
             self.interpolate_branches(fm.root_branches)
@@ -160,7 +166,6 @@ class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
                         # Store all of the compartments in the from_voxel as
                         # possible candidates for these cells' connections
                         # @Robin: map should contain comp.id or comp???
-
                         target_compartments.extend([from_map[from_voxel_id]])
                     target_comps_per_to_voxel[to_voxel_id] = target_compartments
                 # Weigh the random sampling by the amount of compartments so that voxels
@@ -305,25 +310,19 @@ class QuiverTransform(FiberTransform):
     def transform_branch(self, branch, offset):
 
         """
-            @Alice: to rewrite
             Compute bending transformation of a fiber branch (discretized according to original compartments and configured resolution value).
-            The transformation is a rotation of each segment/compartment (identified by a point_start and point_end) of the fiber
-            to align to the cross product between the orientation vector and the transversal direction vector (i.e. branch direction):
-            new_point_start = old_point_start
+            The transformation is a rotation of each segment/compartment of each fiber branch to align to the cross product between
+            the orientation vector and the transversal direction vector (i.e. cross product between fiber morphology/parent branch orientation
+            and branch direction):
+            compartment[n+1].start = compartment[n].end
             cross_prod = orientation_vector X transversal_vector or transversal_vector X orientation_vector
-            new_point_end = point_start + cross_prod * length_comp
+            compartment[n+1].end = compartment[n+1].start + cross_prod * length_comp
 
-            The function is used for bifurcated fibers, bending the left and right branches according to the left and right
-            transversal vectors.
-
-            :param point_cloud: a set of from_points representing segments of each fiber in the placement_set to be connected
-            :type point_cloud: 2-D list
-            :returns: a transformed point could (2-D list)
+            :param branch: a branch of the current fiber to be transformed
+            :type branch: Branch object
+            :returns: a transformed branch
 
         """
-        # Left and right transversal vectors
-        trans_vector_lx = [0, 0, -1]
-        trans_vector_rx = [0, 0, 1]
 
         # Only QuiverTransform has the attribute quivers, giving the orientation in a discretized volume of size volume_res
         if self.quivers is not None:
@@ -345,10 +344,18 @@ class QuiverTransform(FiberTransform):
             branch_dir = branch._compartments[0].end - branch._compartments[0].start
             # Normalize branch_dir vector
             branch_dir = branch_dir / np.linalg.norm(branch_dir)
+
             num_comp = len(branch._compartments)
 
             # Looping over branch compartments to transform them
             for comp in range(len(branch._compartments)):
+                # Find direction transversal to branch: cross product between
+                # the branch direction and the original morphology/parent branch
+                if branch.orientation is None:
+                    transversal_vector = np.cross([0, 1, 0], branch_dir)
+                else:
+                    transversal_vector = np.cross(branch.orientation, branch_dir)
+
                 # Extracting index of voxel where the current compartment is located
                 voxel_ind = (branch._compartments[comp].start + offset) / volume_res
 
