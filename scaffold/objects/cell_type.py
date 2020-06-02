@@ -1,3 +1,7 @@
+"""
+    Module for the CellType configuration node and its dependencies.
+"""
+
 from .. import config
 from ..placement import PlacementStrategy
 
