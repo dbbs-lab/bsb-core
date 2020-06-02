@@ -3,6 +3,7 @@ from ..helpers import ConfigurableClass
 import abc
 from ..exceptions import *
 from ..reporting import report, warn
+import numpy as np
 
 
 class PlacementStrategy(ConfigurableClass):
@@ -128,6 +129,16 @@ class Layered(MightBeRelative):
             return int(available_volume * self.restriction_factor * placement.density)
         # Default: calculate N = V * C
         return int(available_volume * placement.density)
+
+
+class FixedPositions(Layered, PlacementStrategy):
+    casts = {"positions": np.array}
+
+    def place(self):
+        self.scaffold.place_cells(self.cell_type, self.layer_instance, self.positions)
+
+    def get_placement_count(self):
+        return len(self.positions)
 
 
 class Entities(Layered, PlacementStrategy):
