@@ -33,7 +33,7 @@ def node(node_cls, root=False, dynamic=False):
         node_cls._config_attrs.update(attrs)
     else:
         node_cls._config_attrs = attrs
-    wrap_init(node_cls, attrs)
+    wrap_init(node_cls)
     make_get_node_name(node_cls, root=root)
     make_cast(node_cls, dynamic=dynamic)
 

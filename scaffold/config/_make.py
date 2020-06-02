@@ -4,10 +4,13 @@ import inspect, re
 from functools import wraps
 
 
-def wrap_init(cls, attrs):
+def wrap_init(cls):
+    if hasattr(cls.__init__, "wrapped"):
+        return
     wrapped_init = _get_class_init_wrapper(cls)
 
     def __init__(self, parent, *args, **kwargs):
+        attrs = _get_class_config_attrs(self.__class__)
         self._config_parent = parent
         for attr in attrs.values():
             if attr.call_default:
@@ -17,8 +20,17 @@ def wrap_init(cls, attrs):
             self.__dict__["_" + attr.attr_name] = v
         wrapped_init(self, parent, *args, **kwargs)
 
+    __init__.wrapped = True
     cls.__init__ = __init__
     return __init__
+
+
+def _get_class_config_attrs(cls):
+    attrs = {}
+    for p_cls in reversed(cls.__mro__):
+        if hasattr(p_cls, "_config_attrs"):
+            attrs.update(cls._config_attrs)
+    return attrs
 
 
 def _get_class_init_wrapper(cls):
