@@ -159,7 +159,7 @@ class ConfigurationListAttribute(ConfigurationAttribute):
                     self.get_node_name(), i, value, self.type.__name__
                 )
             )
-        instance.__dict__["_" + self.attr_name] = value
+        _setattr(instance, self.attr_name, value)
 
 
 class cfgdict(_dict):
@@ -177,7 +177,7 @@ class ConfigurationDictAttribute(ConfigurationAttribute):
         super().__init__(*args, **kwargs)
 
     def __set__(self, instance, value):
-        instance.__dict__["_" + self.attr_name] = self.__cast__(value, parent=instance)
+        _setattr(instance, self.attr_name, self.__cast__(value, parent=instance))
 
     def __cast__(self, value, parent, key=None):
         _cfgdict = cfgdict(value or _dict())
