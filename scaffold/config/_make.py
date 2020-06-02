@@ -10,6 +10,7 @@ def wrap_init(cls):
     wrapped_init = _get_class_init_wrapper(cls)
 
     def __init__(self, parent, *args, **kwargs):
+        print("EXECUTING INIT OF", self)
         attrs = _get_class_config_attrs(self.__class__)
         self._config_parent = parent
         for attr in attrs.values():
@@ -60,17 +61,30 @@ def make_get_node_name(node_cls, root):
         node_cls.get_node_name = _get_node_name
 
 
-def make_cast(node_cls, dynamic=False):
+def make_cast(node_cls, dynamic=False, root=False):
     """
         Return a function that can cast a raw configuration node as specified by the
         attribute descriptions in the node class.
     """
-    if not dynamic:
-        __cast__ = _make_cast(node_cls)
-    else:
-        __cast__ = _make_dynamic_cast(node_cls)
+    __cast__ = _make_cast(node_cls)
+    if root:
+        __cast__ = wrap_root_cast(__cast__)
+    if dynamic:
+        make_dynamic_cast(node_cls)
 
     node_cls.__cast__ = __cast__
+    return __cast__
+
+
+def wrap_root_cast(f):
+    @wraps(f)
+    def __cast__(section, parent, key=None):
+        print("CASTING ROOT")
+        instance = f(section, parent, key)
+        print("CASTING ROOT FINISHED")
+        _resolve_references(instance)
+        print("REFERENCES RESOLVED")
+
     return __cast__
 
 
@@ -105,15 +119,20 @@ def _cast_attributes(node, section, node_cls, key):
 
 def _make_cast(node_cls):
     def __cast__(section, parent, key=None):
-        # Create an instance of the node class
-        node = node_cls(parent)
+        if hasattr(node_cls, "__dcast__"):
+            # Create an instance of the dynamically configured class.
+            node = node_cls.__dcast__(section, parent)
+        else:
+            # Create an instance of the static node class
+            node = node_cls(parent)
         _cast_attributes(node, section, node_cls, key)
+        return node
 
     return __cast__
 
 
-def _make_dynamic_cast(node_cls):
-    def __cast__(section, parent, key=None):
+def make_dynamic_cast(node_cls):
+    def __dcast__(section, parent, key=None):
         if "class" not in section:
             raise CastError(
                 "Dynamic node '{}' must contain a 'class' attribute.".format(
@@ -122,10 +141,10 @@ def _make_dynamic_cast(node_cls):
             )
         dynamic_cls = _load_class(section["class"], interface=node_cls)
         node = dynamic_cls(parent)
-        _cast_attributes(node, section, dynamic_cls, key)
         return node
 
-    return __cast__
+    node_cls.__dcast__ = __dcast__
+    return __dcast__
 
 
 def _load_class(configured_class_name, interface=None):
@@ -153,3 +172,33 @@ def _load_class(configured_class_name, interface=None):
             )
         )
     return class_ref
+
+
+def walk_nodes(node, parents=None):
+    """
+        Walk over all of the configured nodes starting from the given ``node``.
+
+        :returns: attribute, value, parents
+        :rtype: str, any, tuple
+    """
+    if not hasattr(node.__class__, "_config_attrs"):
+        print("No config attrs for", node)
+        return
+    print("Walking over", node.attr_name, "in", parents)
+    attrs = node.__class__._config_attrs
+    print("Found attrs:", attrs)
+    if parents is None:
+        parents = []
+    child_parents = parents.copy()
+    child_parents.append(node)
+    for attr in attrs.values():
+        print("Diving into", attr)
+        child = attr.__get__(node, node.__class__)
+        yield attr.attr_name, child, parents
+        for deep_attr, deep_child, deep_parents in walk_nodes(child, child_parents):
+            yield deep_attr, deep_child, deep_parents
+
+
+def _resolve_references(node):
+    for attr, value, parents in walk_nodes(node):
+        print("Walking over", attr, "'{}'".format(value), "in", parents)

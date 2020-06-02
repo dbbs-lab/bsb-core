@@ -13,6 +13,7 @@ def root(root_cls):
     """
     root_cls.attr_name = root_cls.node_name = r"{root}"
     node(root_cls, root=True)
+
     return root_cls
 
 
@@ -35,7 +36,7 @@ def node(node_cls, root=False, dynamic=False):
         node_cls._config_attrs = attrs
     wrap_init(node_cls)
     make_get_node_name(node_cls, root=root)
-    make_cast(node_cls, dynamic=dynamic)
+    make_cast(node_cls, dynamic=dynamic, root=root)
 
     return node_cls
 
@@ -71,6 +72,10 @@ def _setattr(instance, name, value):
     instance.__dict__["_" + name] = value
 
 
+def _getattr(instance, name):
+    return instance.__dict__["_" + name]
+
+
 class ConfigurationAttribute:
     def __init__(
         self, type=None, default=None, call_default=False, required=False, key=False
@@ -84,7 +89,7 @@ class ConfigurationAttribute:
     def __get__(self, instance, owner):
         if instance is None:
             return self
-        return instance.__dict__["_" + self.attr_name]
+        return _getattr(instance, self.attr_name)
 
     def __set__(self, instance, value):
         if value is None:
@@ -165,7 +170,7 @@ class ConfigurationListAttribute(ConfigurationAttribute):
 class cfgdict(_dict):
     def __getattr__(self, name):
         if name not in self:
-            raise Exception("eh")
+            raise KeyError(name)
         return self.get(name)
 
     def get_node_name(self):
@@ -177,6 +182,7 @@ class ConfigurationDictAttribute(ConfigurationAttribute):
         super().__init__(*args, **kwargs)
 
     def __set__(self, instance, value):
+        print("SETTING DICT", value)
         _setattr(instance, self.attr_name, self.__cast__(value, parent=instance))
 
     def __cast__(self, value, parent, key=None):
@@ -203,5 +209,20 @@ class ConfigurationDictAttribute(ConfigurationAttribute):
 
 class ConfigurationReferenceAttribute(ConfigurationAttribute):
     def __init__(self, reference, **kwargs):
-        self.reference = reference
+        self.ref_lambda = reference
+        # No need to cast to any types: the reference we fetch will already have been cast
+        if "type" in kwargs:
+            del kwargs["type"]
         super().__init__(**kwargs)
+
+    def __set__(self, instance, value):
+        if value is None:
+            _setattr(instance, self.attr_name, None)
+        if isinstance(value, str):
+            setattr(instance, self.attr_name + "_reference", value)
+        else:
+            _setattr(instance, self.attr_name, value)
+
+    def fetch_reference(self, instance, root):
+        reference_parent = self.ref_lambda(root, instance)
+        return reference_parent[getattr(instance, self.attr_name)]

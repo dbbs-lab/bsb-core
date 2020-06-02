@@ -2,6 +2,7 @@ import sys, types
 
 _list = list
 from ._attrs import attr, list, dict, node, root, dynamic, ref
+from ._make import walk_nodes
 
 _path = __path__
 
@@ -15,6 +16,8 @@ class ConfigurationModule(types.ModuleType):
     root = staticmethod(root)
     dynamic = staticmethod(dynamic)
     ref = staticmethod(ref)
+
+    walk_nodes = staticmethod(walk_nodes)
 
     # The __path__ attribute needs to be retained to mark this module as a package
     __path__ = _path
