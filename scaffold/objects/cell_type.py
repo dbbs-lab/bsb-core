@@ -4,7 +4,7 @@ from ..placement import PlacementStrategy
 
 @config.node
 class Representation:
-    pass
+    radius = config.attr(type=float, required=True)
 
 
 @config.node
@@ -21,5 +21,5 @@ class CellType:
     count = config.attr(type=int)
 
     placement = config.attr(type=PlacementStrategy, required=True)
-    representation = config.attr(type=Representation, required=True)
+    spatial = config.attr(type=Representation, required=True)
     plotting = config.attr(type=Plotting)

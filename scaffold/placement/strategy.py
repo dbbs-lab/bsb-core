@@ -4,10 +4,13 @@ import abc
 from ..exceptions import *
 from ..reporting import report, warn
 from .. import config
+from ..config import refs
 
 
 @config.dynamic
 class PlacementStrategy(ConfigurableClass):
+    layer = config.ref(refs.layer_ref)
+
     def __init__(self, cell_type):
         super().__init__()
         self.cell_type = cell_type
@@ -82,10 +85,13 @@ class MustBeRelative(MightBeRelative):
         super().validate()
 
 
+@config.node
 class Layered(MightBeRelative):
     """
         Class for placement strategies that depend on Layer objects.
     """
+
+    layer = config.ref(refs.layer_ref, required=True)
 
     def validate(self):
         super().validate()
