@@ -55,20 +55,20 @@ def ref(reference, **kwargs):
 
 
 _list = list
+_dict = dict
+_type = type
 
 
 def list(**kwargs):
     return ConfigurationListAttribute(**kwargs)
 
 
-_dict = dict
-
-
 def dict(**kwargs):
     return ConfigurationDictAttribute(**kwargs)
 
 
-_type = type
+def _setattr(instance, name, value):
+    instance.__dict__["_" + name] = value
 
 
 class ConfigurationAttribute:
@@ -87,18 +87,21 @@ class ConfigurationAttribute:
         return instance.__dict__["_" + self.attr_name]
 
     def __set__(self, instance, value):
+        if value is None:
+            # Don't cast None to a value of the attribute type.
+            return _setattr(instance, self.attr_name, None)
         if self.type.__casting__:
-            value = self.type(value)
+            value = self.type(value, parent=instance)
         else:
             try:
-                value = self.type(value)
+                value = self.type(value, parent=instance)
             except:
                 raise CastError(
                     "Couldn't cast {} from '{}' into a {}".format(
                         self.get_node_name(instance), value, self.type.__name__
                     )
                 )
-        instance.__dict__["_" + self.attr_name] = value
+        _setattr(instance, self.attr_name, value)
 
     def _get_type(self, type):
         cast_name = None
@@ -174,17 +177,15 @@ class ConfigurationDictAttribute(ConfigurationAttribute):
         super().__init__(*args, **kwargs)
 
     def __set__(self, instance, value):
-        instance.__dict__["_" + self.attr_name] = instance.__cast__(
-            value, parent=instance.parent
-        )
+        instance.__dict__["_" + self.attr_name] = self.__cast__(value, parent=instance)
 
     def __cast__(self, value, parent, key=None):
-        _dict = cfgdict(value)
-        _dict._config_parent = parent
-        _dict._attr_name = self.attr_name
+        _cfgdict = cfgdict(value or _dict())
+        _cfgdict._config_parent = parent
+        _cfgdict._attr_name = self.attr_name
         try:
-            for key, value in _dict.items():
-                _dict[key] = self.child_type(value, parent=_dict, key=key)
+            for key, value in _cfgdict.items():
+                _cfgdict[key] = self.child_type(value, parent=_cfgdict, key=key)
         except:
             if self.child_type.__casting__:
                 raise
@@ -193,7 +194,7 @@ class ConfigurationDictAttribute(ConfigurationAttribute):
                     self.get_node_name(parent), key, value, self.child_type.__name__
                 )
             )
-        return _dict
+        return _cfgdict
 
     def _get_type(self, type):
         self.child_type = super()._get_type(type)

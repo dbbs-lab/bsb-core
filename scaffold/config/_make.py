@@ -17,7 +17,7 @@ def wrap_init(cls):
                 v = attr.default()
             else:
                 v = attr.default
-            self.__dict__["_" + attr.attr_name] = v
+            attr.__set__(self, v)
         wrapped_init(self, parent, *args, **kwargs)
 
     __init__.wrapped = True
