@@ -173,8 +173,19 @@ class Storage:
 
             :returns: :class:`Scaffold <.core.Scaffold>`
         """
-        config = self._Configuration(self._engine).load()
+        from ..config import Configuration
+
+        config = self.load_config()
         return Scaffold(config, self)
+
+    def load_config(self):
+        """
+            Load the configuration object from the storage.
+
+            :returns: :class:`Configuration <.config.Configuration>`
+        """
+        cso = self._ConfigStore(self._engine).load()
+        return Configuration.__cast__(cso, None)
 
     def supports(self, feature):
         return feature in self._features
