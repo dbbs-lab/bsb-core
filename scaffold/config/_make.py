@@ -10,7 +10,6 @@ def wrap_init(cls):
     wrapped_init = _get_class_init_wrapper(cls)
 
     def __init__(self, parent, *args, **kwargs):
-        print("EXECUTING INIT OF", self)
         attrs = _get_class_config_attrs(self.__class__)
         self._config_parent = parent
         for attr in attrs.values():
@@ -79,11 +78,9 @@ def make_cast(node_cls, dynamic=False, root=False):
 def wrap_root_cast(f):
     @wraps(f)
     def __cast__(section, parent, key=None):
-        print("CASTING ROOT")
         instance = f(section, parent, key)
-        print("CASTING ROOT FINISHED")
         _resolve_references(instance)
-        print("REFERENCES RESOLVED")
+        return instance
 
     return __cast__
 
@@ -95,9 +92,7 @@ def _cast_attributes(node, section, node_cls, key):
     # Cast each of this node's attributes.
     for attr in node_cls._config_attrs.values():
         if attr.attr_name in section:
-            node.__dict__["_" + attr.attr_name] = attr.type(
-                section[attr.attr_name], node, key=attr.attr_name
-            )
+            attr.__set__(node, section[attr.attr_name], key=attr.attr_name)
         elif attr.required:
             raise CastError(
                 "Missing required attribute '{}' in {}".format(
@@ -105,7 +100,8 @@ def _cast_attributes(node, section, node_cls, key):
                 )
             )
         if attr.key and key is not None:
-            node.__dict__["_" + attr.attr_name] = key
+            # The attribute's value should be set to this node's key in its parent.
+            attr.__set__(node, key)
     # Check for unknown keys in the configuration section
     for key in section:
         if key not in attr_names:
@@ -113,7 +109,7 @@ def _cast_attributes(node, section, node_cls, key):
                 "Unknown attribute '{}' in {}".format(key, node.get_node_name()),
                 ConfigurationWarning,
             )
-            node.__dict__[key] = section[key]
+            setattr(node, key, section[key])
     return node
 
 
@@ -174,31 +170,52 @@ def _load_class(configured_class_name, interface=None):
     return class_ref
 
 
-def walk_nodes(node, parents=None):
+def walk_nodes(node):
     """
-        Walk over all of the configured nodes starting from the given ``node``.
+        Walk over all of the child configuration nodes and attributes of ``node``.
 
-        :returns: attribute, value, parents
-        :rtype: str, any, tuple
+        :returns: attribute, node, parents
+        :rtype: :class:`ConfigurationAttribute <.config._attrs.ConfigurationAttribute>`,
+          any, tuple
     """
     if not hasattr(node.__class__, "_config_attrs"):
-        print("No config attrs for", node)
-        return
-    print("Walking over", node.attr_name, "in", parents)
-    attrs = node.__class__._config_attrs
-    print("Found attrs:", attrs)
-    if parents is None:
-        parents = []
-    child_parents = parents.copy()
-    child_parents.append(node)
+        if hasattr(node, "_attr"):
+            attrs = _get_walkable_iterator(node)
+        else:
+            return
+    else:
+        attrs = node.__class__._config_attrs
+    nn = node.attr_name if hasattr(node, "attr_name") else node._attr.attr_name
     for attr in attrs.values():
-        print("Diving into", attr)
+        yield node, attr
         child = attr.__get__(node, node.__class__)
-        yield attr.attr_name, child, parents
-        for deep_attr, deep_child, deep_parents in walk_nodes(child, child_parents):
-            yield deep_attr, deep_child, deep_parents
+        for deep_node, deep_attr in walk_nodes(child):
+            yield deep_node, deep_attr
 
 
-def _resolve_references(node):
-    for attr, value, parents in walk_nodes(node):
-        print("Walking over", attr, "'{}'".format(value), "in", parents)
+def walk_node_values(start_node):
+    for node, attr in walk_nodes(start_node):
+        yield node, attr.attr_name, attr.__get__(node, node.__class__)
+
+
+def _resolve_references(root):
+    for node, attr in walk_nodes(root):
+        if hasattr(attr, "__ref__"):
+            ref = attr.__ref__(node, root)
+            attr.__set__(node, ref)
+
+
+def _get_walkable_iterator(node):
+    # Currently only handle dict
+    walkiter = {}
+    for name, value in node.items():
+
+        class WalkIterDescriptor:
+            def __init__(self):
+                self.attr_name = name
+
+            def __get__(attr, instance, cls):
+                return value
+
+        walkiter[name] = WalkIterDescriptor()
+    return walkiter

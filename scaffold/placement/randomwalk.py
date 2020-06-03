@@ -11,10 +11,6 @@ class LayeredRandomWalk(Layered, PlacementStrategy):
         Implementation of the placement of cells in sublayers via a self avoiding random walk.
     """
 
-    casts = {"distance_multiplier_min": float, "distance_multiplier_max": float}
-
-    defaults = {"distance_multiplier_min": 0.75, "distance_multiplier_max": 1.25}
-
     def validate(self):
         super().validate()
 

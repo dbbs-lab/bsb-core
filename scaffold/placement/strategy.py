@@ -10,11 +10,13 @@ from ..config import refs
 @config.dynamic
 class PlacementStrategy(ConfigurableClass):
     layer = config.ref(refs.layer_ref)
+    density = config.attr(type=float)
+    planar_density = config.attr(type=float)
+    count = config.attr(type=int)
 
     def __init__(self, cell_type):
         super().__init__()
         self.cell_type = cell_type
-        self.layer = None
         self.radius = None
         self.density = None
         self.planar_density = None

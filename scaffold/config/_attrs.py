@@ -91,15 +91,15 @@ class ConfigurationAttribute:
             return self
         return _getattr(instance, self.attr_name)
 
-    def __set__(self, instance, value):
+    def __set__(self, instance, value, key=None):
         if value is None:
             # Don't cast None to a value of the attribute type.
             return _setattr(instance, self.attr_name, None)
         if self.type.__casting__:
-            value = self.type(value, parent=instance)
+            value = self.type(value, parent=instance, key=key)
         else:
             try:
-                value = self.type(value, parent=instance)
+                value = self.type(value, parent=instance, key=key)
             except:
                 raise CastError(
                     "Couldn't cast {} from '{}' into a {}".format(
@@ -152,7 +152,7 @@ class ConfigurationAttribute:
 
 
 class ConfigurationListAttribute(ConfigurationAttribute):
-    def __set__(self, instance, value):
+    def __set__(self, instance, value, key=None):
         # Trigger a TypeError outside of the CastError block
         _iter = iter(value)
         try:
@@ -170,25 +170,24 @@ class ConfigurationListAttribute(ConfigurationAttribute):
 class cfgdict(_dict):
     def __getattr__(self, name):
         if name not in self:
-            raise KeyError(name)
+            raise AttributeError(name)
         return self.get(name)
 
     def get_node_name(self):
-        return self._config_parent.get_node_name() + "." + self._attr_name
+        return self._config_parent.get_node_name() + "." + self._attr.attr_name
 
 
 class ConfigurationDictAttribute(ConfigurationAttribute):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def __set__(self, instance, value):
-        print("SETTING DICT", value)
+    def __set__(self, instance, value, key=None):
         _setattr(instance, self.attr_name, self.__cast__(value, parent=instance))
 
     def __cast__(self, value, parent, key=None):
         _cfgdict = cfgdict(value or _dict())
         _cfgdict._config_parent = parent
-        _cfgdict._attr_name = self.attr_name
+        _cfgdict._attr = self
         try:
             for key, value in _cfgdict.items():
                 _cfgdict[key] = self.child_type(value, parent=_cfgdict, key=key)
@@ -215,7 +214,7 @@ class ConfigurationReferenceAttribute(ConfigurationAttribute):
             del kwargs["type"]
         super().__init__(**kwargs)
 
-    def __set__(self, instance, value):
+    def __set__(self, instance, value, key=None):
         if value is None:
             _setattr(instance, self.attr_name, None)
         if isinstance(value, str):
@@ -223,6 +222,6 @@ class ConfigurationReferenceAttribute(ConfigurationAttribute):
         else:
             _setattr(instance, self.attr_name, value)
 
-    def fetch_reference(self, instance, root):
+    def __ref__(self, instance, root):
         reference_parent = self.ref_lambda(root, instance)
-        return reference_parent[getattr(instance, self.attr_name)]
+        return reference_parent[getattr(instance, self.attr_name + "_reference")]
