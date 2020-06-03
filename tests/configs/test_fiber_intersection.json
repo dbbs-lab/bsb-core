@@ -40,10 +40,11 @@
     },
     "golgi_cell": {
       "placement": {
-        "class": "scaffold.placement.ParticlePlacement",
+        "class": "scaffold.placement.FixedPositions",
         "layer": "granular_layer",
         "soma_radius": 8.0,
-        "count": 1
+        "count": 1,
+        "positions": [[40.0,0.0,-50.0]]
       },
       "morphology": {
         "class": "scaffold.morphologies.GolgiCellGeometry",
@@ -80,6 +81,17 @@
       "to_cell_types": [{"type": "golgi_cell", "compartments": ["dendrites"]}],
       "resolution": 50.0,
       "affinity": 0.5
+    },
+    "parallel_fiber_to_golgi_bended": {
+      "class": "scaffold.connectivity.FiberIntersection",
+      "from_cell_types": [{"type": "granule_cell", "compartments": ["parallel_fiber"]}],
+      "to_cell_types": [{"type": "golgi_cell", "compartments": ["dendrites"]}],
+      "resolution": 50.0,
+      "transform": {
+        "class": "scaffold.connectivity.QuiverTransform",
+        "shared": false,
+        "vol_res": 25.0
+      }
     }
   },
   "simulations": {

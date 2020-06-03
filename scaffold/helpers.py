@@ -609,9 +609,8 @@ def load_configurable_class(name, configured_class_name, parent_class, parameter
         class_ref = get_configurable_class(configured_class_name)
         if not parent_class is None and not issubclass(class_ref, parent_class):
             raise DynamicClassError(
-                "Configurable class '{}.{}' must derive from {}.{}".format(
-                    module_name,
-                    class_name,
+                "Configurable class '{}' must derive from {}.{}".format(
+                    configured_class_name,
                     parent_class.__module__,
                     parent_class.__qualname__,
                 )

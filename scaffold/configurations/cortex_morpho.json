@@ -2,7 +2,7 @@
   "name": "DBBS NEURON simulator configuration v3.1",
   "output": {
     "format": "scaffold.output.HDF5Formatter",
-    "morphology_repository": "morpho_fix.hdf5",
+    "morphology_repository": "morphologies.hdf5",
     "file": "cortex_morpho.hdf5"
   },
   "network_architecture": {
@@ -39,7 +39,7 @@
   "cell_types": {
     "granule_cell": {
       "placement": {
-        "class": "scaffold.placement.LayeredRandomWalk",
+        "class": "scaffold.placement.ParticlePlacement",
         "layer": "granular_layer",
         "soma_radius": 2.5,
         "density": 3.9e-3,
@@ -80,7 +80,7 @@
     },
     "golgi_cell": {
       "placement": {
-        "class": "scaffold.placement.LayeredRandomWalk",
+        "class": "scaffold.placement.ParticlePlacement",
         "layer": "granular_layer",
         "soma_radius": 8.0,
         "density": 9e-6
@@ -153,7 +153,7 @@
         "class": "scaffold.morphologies.RadialGeometry",
         "dendrite_radius": 15.0,
         "detailed_morphologies": {
-          "names": ["StellateCell"]
+          "names": ["BasketCell"]
         }
       },
       "plotting": {
@@ -213,10 +213,11 @@
       "limit_xy": 150.0,
       "limit_z": 50.0
     },
-    "parallel_fiber_to_purkinje": {
+    "parallel_fiber_to_basket": {
       "class": "scaffold.connectivity.FiberIntersection",
       "from_cell_types": [{"type": "granule_cell", "compartments": ["parallel_fiber"]}],
-      "to_cell_types": [{"type": "purkinje_cell", "compartments": ["dendrites"]}],
+      "to_cell_types": [{"type": "basket_cell", "compartments": ["dendrites"]}],
+      "affinity": 1.0,
       "resolution": 5.0
     }
   },

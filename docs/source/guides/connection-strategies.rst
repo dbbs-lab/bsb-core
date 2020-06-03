@@ -63,14 +63,19 @@ voxelized morphologies are then obtained applying the same method as in
 * ``affinity``: A fraction between 1 and 0 which indicates the tendency of cells to form
   connections with other cells with whom their voxels intersect. This can be used to
   downregulate the amount of cells that any cell connects with. Default value is 1.
+* ``to_plot``: a list of cell fiber numbers (e.g. 0 for the first cell of the presynaptic type) that
+will be plotted during connection creation using `plot_fiber_morphology`.
 * ``transform``: A set of attributes defining the transformation class for fibers that
   should be rotated or bended. Specifically, the `QuiverTransform` allows to bend fiber
   segments based on a vector field in a voxelized volume. The attributes to be set are:
 
-  * ``quivers``: the vector field array
-  * ``vol_res``: the size [um] of voxels in the volume where the vector field is defined.
+  * ``quivers``: the vector field array, of shape e.g. ``(3, 500, 400, 200))`` for
+    a volume with 500, 400 and 200 voxels in x, y and z directions, respectively.
+  * ``vol_res``: the size [um] of voxels in the volume where the quiver field is defined.
     Default value is 25.0, i.e. the voxel size in the Allen Brain Atlas.
+  * ``vol_start``: the origin of the quiver field volume in the reconstructed volume reference frame.
   * ``shared``: if the same transformation should be applied to all fibers or not
+
 
 :class:`TouchingConvergenceDivergence <.connectivity.TouchingConvergenceDivergence>`
 ====================================================================================

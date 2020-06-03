@@ -5,3 +5,4 @@
 !test_*
 *.pyc
 !configs/
+!morphologies*

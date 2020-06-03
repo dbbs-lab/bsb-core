@@ -103,6 +103,10 @@ class ConnectivityError(ScaffoldError):
     pass
 
 
+class QuiverFieldError(ScaffoldError):
+    pass
+
+
 ## Morphologies
 
 
