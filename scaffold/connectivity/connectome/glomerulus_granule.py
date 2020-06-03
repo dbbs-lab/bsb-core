@@ -69,7 +69,7 @@ class ConnectomeGlomerulusGranule(TouchingConvergenceDivergence):
                 good_gloms = np.where((distance_vector < 0.0) == True)[0]
                 had_mf = set()
                 candidates = []
-                for g in good_gloms:
+                for g in np.random.permutation(good_gloms):
                     mf = glom_mf_map[g + first_glomerulus]
                     if mf in had_mf:
                         continue
