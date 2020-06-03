@@ -19,7 +19,6 @@ class Plotting:
 @config.node
 class CellType:
     name = config.attr(key=True)
-
     placement = config.attr(type=PlacementStrategy, required=True)
     spatial = config.attr(type=Representation, required=True)
     plotting = config.attr(type=Plotting)
