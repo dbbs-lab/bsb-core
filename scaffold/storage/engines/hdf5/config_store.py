@@ -1,10 +1,10 @@
-from ...interfaces import Configuration as IConfiguration
+from ...interfaces import ConfigStore as IConfigStore
 from ....helpers import get_configurable_class, get_qualified_class_name
 from .... import __version__
 import numpy as np
 
 
-class Configuration(IConfiguration):
+class ConfigStore(IConfigStore):
     def __init__(self, handler):
         self._handler = handler
 

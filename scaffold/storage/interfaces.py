@@ -38,9 +38,9 @@ class NetworkDescription(Interface):
     pass
 
 
-class Configuration(Interface):
+class ConfigStore(Interface):
     @abc.abstractmethod
-    def store(self, configuration):
+    def store(self, cso):
         pass
 
     @abc.abstractmethod
