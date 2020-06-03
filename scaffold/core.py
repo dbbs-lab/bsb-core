@@ -54,7 +54,7 @@ class Scaffold:
         simulators such as NEST or NEURON.
     """
 
-    def __init__(self, config, engine=None):
+    def __init__(self, config=None, engine=None):
         self._initialise_MPI()
         self.configuration = config
         if engine is None:
