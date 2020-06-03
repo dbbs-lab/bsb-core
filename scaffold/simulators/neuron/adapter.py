@@ -493,8 +493,15 @@ class NeuronAdapter(SimulatorAdapter):
             for intermediate, targets in intermediate_relays.items():
                 for target in targets:
                     if target in intermediate_relays:
+                        # This target of this intermediary is also an intermediary and
+                        # cannot be resolved to a terminal at this point, so we wait until
+                        # a next iteration where the intermediary target might have been
+                        # resolved.
                         continue
                     if target in terminal_relays:
+                        # The target is a terminal relay and can be removed from our
+                        # intermediary target list and its terminal targets added to our
+                        # terminal target list.
                         try:
                             arr = terminal_relays[intermediate]
                         except:
@@ -502,9 +509,13 @@ class NeuronAdapter(SimulatorAdapter):
                             terminal_relays[intermediate] = arr
                         arr.extend(terminal_relays[target])
                         targets.remove(target)
+                        # If we now have no more intermediary  targets we can be removed
+                        # from the intermediary relay list.
                         if len(targets) == 0:
                             intermediates_to_remove.append(intermediate)
                     else:
+                        # The target is not a relay at all and can be added to our
+                        # terminal target list
                         try:
                             arr = terminal_relays[intermediate]
                         except:
