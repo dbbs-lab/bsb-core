@@ -3,6 +3,7 @@ import sys, types
 _list = list
 from ._attrs import attr, list, dict, node, root, dynamic, ref
 from ._make import walk_nodes
+from .parsers import JsonParser
 
 _path = __path__
 
@@ -33,6 +34,11 @@ class ConfigurationModule(types.ModuleType):
 
             self._cfg_cls = Configuration
         return self._cfg_cls
+
+    def from_file(self, file):
+        with open(file, "r") as f:
+            tree = JsonParser(f.read()).parse()
+        return self.Configuration.__cast__(tree, None)
 
     __all__ = _list(vars().keys() - {"__qualname__", "__module__"})
 
