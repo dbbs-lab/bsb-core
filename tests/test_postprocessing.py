@@ -20,6 +20,15 @@ def relative_to_tests_folder(path):
 _config = relative_to_tests_folder("configs/test_double_neuron.json")
 
 
+def neuron_installed():
+    try:
+        import neuron
+    except:
+        return False
+    return True
+
+
+@unittest.skipIf(not neuron_installed(), "NEURON is not importable.")
 class TestPostProcessing(unittest.TestCase):
     def test_spoofing(self):
         """

@@ -24,6 +24,14 @@ heterosyn_config = relative_to_tests_folder(
 )
 
 
+def neuron_installed():
+    try:
+        import neuron
+    except:
+        return False
+    return True
+
+
 @unittest.skipIf(importlib.find_loader("nest") is None, "NEST is not importable.")
 class TestKernelManagement(unittest.TestCase):
     # TODO: Add set_threads exception tests here
@@ -118,6 +126,8 @@ class TestDoubleNeuronNetworkStatic(unittest.TestCase):
     def setUpClass(cls):
         super(TestDoubleNeuronNetworkStatic, cls).setUpClass()
         config = JSONConfig(file=double_nn_config)
+        if not neuron_installed():
+            del config.simulations["neuron"]
         cls.scaffold = Scaffold(config)
         cls.scaffold.compile_network()
         cls.nest_adapter = cls.scaffold.run_simulation(
