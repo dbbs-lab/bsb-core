@@ -177,7 +177,8 @@ class Branch:
             # branch iteration starts from the new compartment.
             self._root = new_compartments[0]
 
-    def voxelize(self, position, bounding_box, voxel_tree, map):
+    def voxelize(self, position, bounding_box, voxel_tree, map, voxel_list):
+        v_id = len(voxel_list)
         for v, comp in enumerate(self._compartments):
             # Check if the current bounding_box needs to be extended
             bounding_box[0] = np.minimum(bounding_box[0], comp.end + position)
@@ -186,17 +187,20 @@ class Branch:
             # Find the external points of the voxel surrounding the compartment in absolute coordinates
             voxel_bottom_left = np.minimum(comp.start, comp.end)
             voxel_top_right = np.maximum(comp.start, comp.end)
+
+            voxel = tuple(
+                np.concatenate((voxel_bottom_left + position, voxel_top_right + position))
+            )
+
             # Add the voxel to the tree
             voxel_tree.insert(
-                v,
-                tuple(
-                    np.concatenate(
-                        (voxel_bottom_left + position, voxel_top_right + position)
-                    )
-                ),
+                v_id, voxel,
             )
             map.append(comp)
-        return bounding_box, voxel_tree, map, v
+            voxel_list.append(voxel)
+            v_id += 1
+
+        return bounding_box, voxel_tree, map, voxel_list
 
 
 def _init_child_compartments(compartments):

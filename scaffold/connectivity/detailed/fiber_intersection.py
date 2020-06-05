@@ -124,7 +124,12 @@ class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
             ] * 2
             from_voxel_tree = index.Index(properties=p)
             from_map = []
-            from_bounding_box, from_voxel_tree, from_map, v_all = self.voxelize_branches(
+            (
+                from_bounding_box,
+                from_voxel_tree,
+                from_map,
+                voxel_list,
+            ) = self.voxelize_branches(
                 fm.root_branches,
                 from_cell.position,
                 from_bounding_box,
@@ -259,19 +264,24 @@ class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
             self.interpolate_branches(branch.child_branches)
 
     def voxelize_branches(
-        self, branches, position, bounding_box=None, voxel_tree=None, map=None
+        self,
+        branches,
+        position,
+        bounding_box=None,
+        voxel_tree=None,
+        map=None,
+        voxel_list=None,
     ):
-        v = 0
+        voxel_list = []
         for branch in branches:
-            bounding_box, voxel_tree, map, v = branch.voxelize(
-                position, bounding_box, voxel_tree, map
+            bounding_box, voxel_tree, map, voxel_list = branch.voxelize(
+                position, bounding_box, voxel_tree, map, voxel_list
             )
-
             self.voxelize_branches(
-                branch.child_branches, position, bounding_box, voxel_tree, map
+                branch.child_branches, position, bounding_box, voxel_tree, map, voxel_list
             )
 
-        return bounding_box, voxel_tree, map, v
+        return bounding_box, voxel_tree, map, voxel_list
 
 
 class FiberTransform(ConfigurableClass):
