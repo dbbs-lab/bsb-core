@@ -18,7 +18,7 @@ class NetworkNode:
 
 @node
 class LayerStack:
-    name = attr(required=True)
+    name = attr(key=True)
     origin = list(type=float, size=3, required=True)
 
 
