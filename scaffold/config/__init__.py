@@ -35,9 +35,11 @@ class ConfigurationModule(types.ModuleType):
             self._cfg_cls = Configuration
         return self._cfg_cls
 
-    def from_file(self, file):
-        with open(file, "r") as f:
-            tree = JsonParser(f.read()).parse()
+    def from_json(self, file=None, data=None):
+        if file is not None:
+            with open(file, "r") as f:
+                data = f.read()
+        tree = JsonParser(data).parse()
         return self.Configuration.__cast__(tree, None)
 
     __all__ = _list(vars().keys() - {"__qualname__", "__module__"})
