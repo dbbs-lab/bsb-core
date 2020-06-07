@@ -57,6 +57,10 @@ _list = list
 
 def list(type=str, size=None):
     def type_handler(value):
+        # Simple lists default to returning None for None, while configuration lists
+        # default to an empty list.
+        if value is None:
+            return
         v = _list(value)
         try:
             for i, e in enumerate(v):

@@ -3,12 +3,17 @@
   "storage": {
     "engine": "hdf5"
   },
-  "network_architecture": {
-    "simulation_volume_x": 400.0,
-    "simulation_volume_z": 400.0,
-    "store_kd_trees": true,
-    "store_compound_kd_tree": true,
-    "store_pf_kd_trees": true
+  "network": {
+    "x": 400.0,
+    "z": 400.0
+  },
+  "stacks": {
+    "cerebellar_cortex": {
+      "origin": [0.0, 0.0, 0.0]
+    },
+    "inferior_olive": {
+      "origin": [260.0, -400.0, 0.0]
+    }
   },
   "layers": {
     "dcn_layer": {
@@ -16,40 +21,39 @@
       "xz_scale": [0.5, 0.5],
       "xz_center": true,
       "stack": {
-        "stack_id": 0,
-        "position_in_stack": 0,
-        "position": [0.0, 0.0, 0.0]
+        "stack": "cerebellar_cortex",
+        "z_index": 0
       }
     },
     "granular_layer": {
       "thickness": 150.0,
       "stack": {
-        "stack_id": 0,
-        "position_in_stack": 1
+        "stack": "cerebellar_cortex",
+        "z_index": 1
       }
     },
     "purkinje_layer": {
       "thickness": 30.0,
       "stack": {
-        "stack_id": 0,
-        "position_in_stack": 2
+        "stack": "cerebellar_cortex",
+        "z_index": 2
       }
     },
     "molecular_layer": {
       "thickness": 150.0,
       "stack": {
-        "stack_id": 0,
-        "position_in_stack": 3
+        "stack": "cerebellar_cortex",
+        "z_index": 3
       }
     },
     "io_layer": {
       "volume_scale": 0.0147,
+      "thickness": 15,
       "scale_from_layers": ["granular_layer","purkinje_layer","molecular_layer"],
       "volume_dimension_ratio": [0.5, 1, 0.2],
       "stack": {
-        "stack_id": 1,
-        "position_in_stack": 0,
-        "position": [260.0, -400.0, 0.0]
+        "stack": "inferior_olive",
+        "z_index": 0
       }
     }
   },
@@ -58,18 +62,12 @@
       "placement": {
         "class": "scaffold.placement.LayeredRandomWalk",
         "layer": "granular_layer",
-        "soma_radius": 2.5,
         "density": 3.9e-3,
         "distance_multiplier_min": 0.5,
         "distance_multiplier_max": 0.5
       },
-      "morphology": {
-        "class": "scaffold.morphologies.GranuleCellGeometry",
-        "pf_height": 180,
-        "pf_height_sd": 20,
-        "pf_length": 3000,
-        "pf_radius": 0.5,
-        "dendrite_length": 40
+      "spatial": {
+        "radius": 2.5
       },
       "plotting": {
         "display_name": "Granule cell",
@@ -78,12 +76,15 @@
       }
     },
     "mossy_fibers": {
-      "entity": true,
       "placement": {
         "class": "scaffold.placement.Entities",
         "layer": "granular_layer",
         "placement_relative_to": "glomerulus",
         "placement_count_ratio": 0.05
+      },
+      "spatial": {
+        "radius": 0.0,
+        "entity": true
       }
     },
     "glomerulus": {
@@ -91,11 +92,10 @@
       "placement": {
         "class": "scaffold.placement.LayeredRandomWalk",
         "layer": "granular_layer",
-        "soma_radius": 1.5,
         "density": 3e-4
       },
-      "morphology": {
-        "class": "scaffold.morphologies.NoGeometry"
+      "spatial": {
+        "radius": 1.5
       },
       "plotting": {
         "display_name": "Glomerulus",
@@ -106,14 +106,13 @@
       "placement": {
         "class": "scaffold.placement.ParallelArrayPlacement",
         "layer": "purkinje_layer",
-        "soma_radius": 7.5,
         "planar_density": 0.0017,
         "extension_x": 130.0,
         "extension_z": 3.5,
         "angle": 70
       },
-      "morphology": {
-        "class": "scaffold.morphologies.PurkinjeCellGeometry"
+      "spatial": {
+        "radius": 7.5
       },
       "plotting": {
         "display_name": "Purkinje cell",
@@ -124,15 +123,10 @@
       "placement": {
         "class": "scaffold.placement.LayeredRandomWalk",
         "layer": "granular_layer",
-        "soma_radius": 8.0,
         "density": 9e-6
       },
-      "morphology": {
-        "class": "scaffold.morphologies.GolgiCellGeometry",
-        "dendrite_radius": 50.0,
-        "axon_x": 150.0,
-        "axon_y": 150.0,
-        "axon_z": 30.0
+      "spatial": {
+        "radius": 8.0
       },
       "plotting": {
         "display_name": "Golgi cell",
@@ -143,13 +137,11 @@
       "placement": {
         "class": "scaffold.placement.ParticlePlacement",
         "layer": "molecular_layer",
-        "soma_radius": 4.0,
         "density": 0.5e-4,
         "y_restriction": [0.33, 1.00]
       },
-      "morphology": {
-        "class": "scaffold.morphologies.RadialGeometry",
-        "dendrite_radius": 15.0
+      "spatial": {
+        "radius": 4.0
       },
       "plotting": {
         "display_name": "Stellate cell",
@@ -160,13 +152,11 @@
       "placement": {
         "class": "scaffold.placement.ParticlePlacement",
         "layer": "molecular_layer",
-        "soma_radius": 6.0,
         "density": 0.5e-4,
         "y_restriction": [0.00, 0.33]
       },
-      "morphology": {
-        "class": "scaffold.morphologies.RadialGeometry",
-        "dendrite_radius": 15.0
+      "spatial": {
+        "radius": 6.0
       },
       "plotting": {
         "display_name": "Basket cell",
@@ -177,12 +167,11 @@
       "placement": {
         "class": "scaffold.placement.ParticlePlacement",
         "layer": "dcn_layer",
-        "soma_radius": 10.0,
         "placement_relative_to": "purkinje_cell",
         "placement_count_ratio": 0.090909
       },
-      "morphology": {
-        "class": "scaffold.morphologies.NoGeometry"
+      "spatial": {
+        "radius": 10.0
       },
       "plotting": {
         "display_name": "DCN cell",
@@ -192,12 +181,11 @@
     "dcn_interneuron": {
       "placement": {
         "class": "scaffold.placement.Satellite",
-        "soma_radius": 6.0,
         "planet_types": ["dcn_cell"],
         "per_planet": 1.0
       },
-      "morphology": {
-        "class": "scaffold.morphologies.NoGeometry"
+      "spatial": {
+        "radius": 6.0
       },
       "plotting": {
         "display_name": "DCN interneuron",
@@ -208,13 +196,12 @@
       "placement": {
         "class": "scaffold.placement.ParticlePlacement",
         "layer": "io_layer",
-        "soma_radius": 7.5,
         "density": 1.52e-5,
         "distance_multiplier_min": 0.0,
         "distance_multiplier_max": 0.2
       },
-      "morphology": {
-        "class": "scaffold.morphologies.NoGeometry"
+      "spatial": {
+        "radius": 7.5
       },
       "plotting": {
         "display_name": "io cell",

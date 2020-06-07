@@ -4,7 +4,7 @@ import abc
 from ..exceptions import *
 from ..reporting import report, warn
 from .. import config
-from ..config import refs
+from ..config import refs, types
 
 
 @config.dynamic
@@ -94,6 +94,7 @@ class Layered(MightBeRelative):
     """
 
     layer = config.ref(refs.layer_ref, required=True)
+    y_restriction = config.attr(type=types.list(float, size=2))
 
     def validate(self):
         super().validate()

@@ -50,7 +50,7 @@ def _get_class_init_wrapper(cls):
 
 
 def _get_node_name(self):
-    name = "<missing>"
+    name = ".<missing>"
     if hasattr(self, "attr_name"):
         name = "." + self.attr_name
     if hasattr(self, "_key"):

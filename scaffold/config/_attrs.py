@@ -4,7 +4,7 @@
 
 from ._make import wrap_init, make_get_node_name, make_cast
 from inspect import signature
-from ..exceptions import CastError, ReferenceError
+from ..exceptions import *
 
 
 def root(root_cls):
@@ -173,10 +173,12 @@ class ConfigurationListAttribute(ConfigurationAttribute):
 
     def __cast__(self, value, parent, key=None):
         _cfglist = cfglist(value or _list())
-        if self.size is not None and len(_cfglist) != size:
+        if value is None:
+            return _cfglist
+        if self.size is not None and len(_cfglist) != self.size:
             raise CastError(
-                "Couldn't cast {} into a {}-element list.".format(
-                    self.get_node_name(parent), self.size
+                "Couldn't cast {} in {} into a {}-element list.".format(
+                    value, self.get_node_name(parent), self.size
                 )
             )
         try:

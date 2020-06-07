@@ -19,7 +19,7 @@ class NetworkNode:
 @node
 class LayerStack:
     name = attr(key=True)
-    origin = list(type=float, size=3, required=True)
+    origin = attr(type=types.list(float, size=3), required=True)
 
 
 @root
