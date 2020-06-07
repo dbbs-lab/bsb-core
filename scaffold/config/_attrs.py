@@ -218,14 +218,14 @@ class ConfigurationDictAttribute(ConfigurationAttribute):
         _cfgdict._config_parent = parent
         _cfgdict._attr = self
         try:
-            for key, value in _cfgdict.items():
-                _cfgdict[key] = self.child_type(value, parent=_cfgdict, key=key)
+            for ckey, value in _cfgdict.items():
+                _cfgdict[ckey] = self.child_type(value, parent=_cfgdict, key=ckey)
         except:
             if self.child_type.__casting__:
                 raise
             raise CastError(
                 "Couldn't cast {}.{} from '{}' into a {}".format(
-                    self.get_node_name(parent), key, value, self.child_type.__name__
+                    self.get_node_name(parent), ckey, value, self.child_type.__name__
                 )
             )
         return _cfgdict
