@@ -158,20 +158,42 @@ class ConfigurationAttribute:
         return instance.get_node_name() + "." + self.attr_name
 
 
+class cfglist(_list):
+    def get_node_name(self):
+        return self._config_parent.get_node_name() + "." + self._attr.attr_name
+
+
 class ConfigurationListAttribute(ConfigurationAttribute):
+    def __init__(self, *args, size=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.size = size
+
     def __set__(self, instance, value, key=None):
-        # Trigger a TypeError outside of the CastError block
-        _iter = iter(value)
+        _setattr(instance, self.attr_name, self.__cast__(value, parent=instance))
+
+    def __cast__(self, value, parent, key=None):
+        _cfglist = cfglist(value or _list())
+        if self.size is not None and len(_cfglist) != size:
+            raise CastError(
+                "Couldn't cast {} into a {}-element list.".format(
+                    self.get_node_name(parent), self.size
+                )
+            )
         try:
-            for i, elem in enumerate(_iter):
-                value[i] = self.type(elem, key=i)
+            for i, elem in enumerate(_cfglist):
+                _cfglist[i] = self.child_type(elem, parent=_cfglist, key=i)
+                _cfglist[i]._index = i
         except:
             raise CastError(
                 "Couldn't cast {}[{}] from '{}' into a {}".format(
-                    self.get_node_name(), i, value, self.type.__name__
+                    self.get_node_name(parent), i, elem, self.type.__name__
                 )
             )
-        _setattr(instance, self.attr_name, value)
+        return _cfglist
+
+    def _get_type(self, type):
+        self.child_type = super()._get_type(type)
+        return self.__cast__
 
 
 class cfgdict(_dict):
