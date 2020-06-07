@@ -197,6 +197,10 @@ def walk_nodes(node):
     nn = node.attr_name if hasattr(node, "attr_name") else node._attr.attr_name
     for attr in attrs.values():
         yield node, attr
+        # Yield but don't follow references.
+        if hasattr(attr, "__ref__"):
+            continue
+
         child = attr.__get__(node, node.__class__)
         for deep_node, deep_attr in walk_nodes(child):
             yield deep_node, deep_attr
@@ -214,17 +218,18 @@ def _resolve_references(root):
             attr.__set__(node, ref)
 
 
+class WalkIterDescriptor:
+    def __init__(self, n, v):
+        self.attr_name = n
+        self.v = v
+
+    def __get__(self, instance, cls):
+        return self.v
+
+
 def _get_walkable_iterator(node):
     # Currently only handle dict
     walkiter = {}
     for name, value in node.items():
-
-        class WalkIterDescriptor:
-            def __init__(self):
-                self.attr_name = name
-
-            def __get__(attr, instance, cls):
-                return value
-
-        walkiter[name] = WalkIterDescriptor()
+        walkiter[name] = WalkIterDescriptor(name, value)
     return walkiter
