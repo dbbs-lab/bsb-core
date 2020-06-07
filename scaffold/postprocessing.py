@@ -3,8 +3,11 @@ from .reporting import report, warn
 from scipy.stats import truncnorm
 import numpy as np
 from .exceptions import *
+from . import config
+from .config import types
 
 
+@config.dynamic
 class PostProcessingHook(ConfigurableClass):
     def validate(self):
         pass
@@ -20,7 +23,10 @@ class PostProcessingHook(ConfigurableClass):
         )
 
 
+@config.node
 class LabelMicrozones(PostProcessingHook):
+    targets = config.attr(type=types.list(), required=True)
+
     def after_placement(self):
         # Divide the volume into two sub-parts (one positive and one negative)
         for neurons_2b_labeled in self.targets:
