@@ -8,7 +8,7 @@ Welcome to DBBS Cerebellum Scaffold's documentation!
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
+   :caption: Getting Started
 
    usage/installation
    usage/getting-started
@@ -17,10 +17,11 @@ Welcome to DBBS Cerebellum Scaffold's documentation!
    placement
    connectivity
 
+.. toctree::
+   :maxdepth: 2
+   :caption: Configuration
 
-
-Indices and tables
-==================
+   config/configuration-toc
 
 .. toctree::
    :maxdepth: 2
@@ -30,9 +31,6 @@ Indices and tables
    reference
    genindex
    py-modindex
-
-Developer Guides
-================
 
 .. toctree::
   :maxdepth: 2
