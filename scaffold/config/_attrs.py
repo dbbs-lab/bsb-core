@@ -31,7 +31,13 @@ def node(node_cls, root=False, dynamic=False):
         attr.attr_name = name
 
     if hasattr(node_cls, "_config_attrs"):
-        node_cls._config_attrs.update(attrs)
+        # If _config_attrs is already present on the class it's possible that we inherited
+        # it from our parent. If so we shouldn't update the parent's dictionary but create
+        # a new one and update it with our parent's and then ours.
+        n_attrs = {}
+        n_attrs.update(node_cls._config_attrs)
+        n_attrs.update(attrs)
+        node_cls._config_attrs = n_attrs
     else:
         node_cls._config_attrs = attrs
     wrap_init(node_cls)
