@@ -2,7 +2,7 @@ from ...interfaces import Engine
 from contextlib import contextmanager
 import h5py, os
 from .placement_set import PlacementSet
-from .configuration import ConfigStore
+from .config_store import ConfigStore
 from .label import Label
 from .filter import Filter
 

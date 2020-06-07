@@ -16,7 +16,6 @@ import os
 from abc import abstractmethod, ABC
 from inspect import isclass
 from ..exceptions import *
-from ..core import Scaffold
 
 # Import the interfaces child module through a relative import as a sibling.
 interfaces = __import__("interfaces", globals=globals(), level=1)
@@ -174,6 +173,7 @@ class Storage:
             :returns: :class:`Scaffold <.core.Scaffold>`
         """
         from ..config import Configuration
+        from ..core import Scaffold
 
         config = self.load_config()
         return Scaffold(config, self)
