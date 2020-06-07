@@ -109,7 +109,7 @@ class ConfigurationAttribute:
                 value = self.type(value, parent=instance, key=key)
             except:
                 raise CastError(
-                    "Couldn't cast {} from '{}' into a {}".format(
+                    "Couldn't cast {} from '{}' into {}".format(
                         self.get_node_name(instance), value, self.type.__name__
                     )
                 )
