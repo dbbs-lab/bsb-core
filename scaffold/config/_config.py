@@ -2,6 +2,7 @@ from . import attr, list, dict, node, root
 from ..objects import CellType, Layer
 from . import validators, types
 from ..storage import get_engines
+from ..connectivity import ConnectionStrategy
 
 
 @node
@@ -30,3 +31,4 @@ class Configuration:
     stacks = dict(type=LayerStack)
     layers = dict(type=Layer, required=True)
     cell_types = dict(type=CellType, required=True)
+    connection_types = dict(type=ConnectionStrategy, required=True)

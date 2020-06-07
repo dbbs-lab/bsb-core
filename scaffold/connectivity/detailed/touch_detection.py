@@ -7,6 +7,8 @@ from ...helpers import (
 )
 from ...reporting import report, warn
 from random import sample as sample_elements
+from ... import config
+from ...config import types
 
 
 class TouchInformation:
@@ -19,31 +21,17 @@ class TouchInformation:
         self.to_cell_compartments = to_cell_compartments
 
 
+@config.node
 class TouchDetector(ConnectionStrategy, MorphologyStrategy):
     """
         Connectivity based on intersection of detailed morphologies
     """
 
-    casts = {
-        "compartment_intersection_radius": float,
-        "cell_intersection_radius": float,
-        "synapses": DistributionConfiguration.cast,
-        "allow_zero_synapses": bool,
-    }
-
-    defaults = {
-        "cell_intersection_plane": "xyz",
-        "compartment_intersection_plane": "xyz",
-        "compartment_intersection_radius": 5.0,
-        "synapses": DistributionConfiguration.cast(1),
-        "allow_zero_synapses": False,
-    }
-
-    required = [
-        "cell_intersection_plane",
-        "compartment_intersection_plane",
-        "compartment_intersection_radius",
-    ]
+    compartment_intersection_radius = config.attr(type=float, default=5.0)
+    cell_intersection_radius = config.attr(type=float)
+    cell_intersection_plane = config.attr(default="xyz")
+    synapses = config.attr(type=types.any, default=DistributionConfiguration.cast(1))
+    allow_zero_synapses = config.attr(type=bool, default=False)
 
     def validate(self):
         planes = ["xyz", "xy", "xz", "yz", "x", "y", "z"]

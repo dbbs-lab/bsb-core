@@ -198,8 +198,8 @@ class NeuronAdapter(SimulatorAdapter):
         for connection_model in self.connection_models.values():
             # Get the connectivity set associated with this connection model
             connectivity_set = ConnectivitySet(output_handler, connection_model.name)
-            from_type = connectivity_set.connection_types[0].from_cell_types[0]
-            to_type = connectivity_set.connection_types[0].to_cell_types[0]
+            from_type = connectivity_set.connection_types[0].presynaptic.type
+            to_type = connectivity_set.connection_types[0].postsynaptic.type
             from_cell_model = self.cell_models[from_type.name]
             to_cell_model = self.cell_models[to_type.name]
             if (
@@ -333,7 +333,7 @@ class NeuronAdapter(SimulatorAdapter):
             # Get the connectivity set associated with this connection model
             connectivity_set = ConnectivitySet(output_handler, connection_model.name)
             from_cell_model = self.cell_models[
-                connectivity_set.connection_types[0].from_cell_types[0].name
+                connectivity_set.connection_types[0].presynaptic.type.name
             ]
             if from_cell_model.relay:
                 print(
@@ -370,11 +370,11 @@ class NeuronAdapter(SimulatorAdapter):
         for connection_model in self.connection_models.values():
             # Get the connectivity set associated with this connection model
             connectivity_set = ConnectivitySet(output_handler, connection_model.name)
-            from_cell_type = connectivity_set.connection_types[0].from_cell_types[0]
+            from_cell_type = connectivity_set.connection_types[0].presynaptic.type
             if self.cell_models[from_cell_type.name].relay:
                 continue
             from_cell_model = self.cell_models[from_cell_type.name]
-            to_cell_type = connectivity_set.connection_types[0].to_cell_types[0]
+            to_cell_type = connectivity_set.connection_types[0].postsynaptic.type
             to_cell_model = self.cell_models[to_cell_type.name]
             if self.cell_models[to_cell_type.name].relay:
                 raise NotImplementedError("Sorry, no relays yet, only for devices")
@@ -465,9 +465,9 @@ class NeuronAdapter(SimulatorAdapter):
             name = connection_model.name
             # Get the connectivity set associated with this connection model
             connectivity_set = ConnectivitySet(output_handler, connection_model.name)
-            from_cell_type = connectivity_set.connection_types[0].from_cell_types[0]
+            from_cell_type = connectivity_set.connection_types[0].presynaptic.type
             from_cell_model = self.cell_models[from_cell_type.name]
-            to_cell_type = connectivity_set.connection_types[0].to_cell_types[0]
+            to_cell_type = connectivity_set.connection_types[0].postsynaptic.type
             to_cell_model = self.cell_models[to_cell_type.name]
             if not from_cell_model.relay:
                 continue

@@ -11,7 +11,7 @@ from ..placement import PlacementStrategy
 class Representation:
     radius = config.attr(type=float, required=True)
     entity = config.attr(type=bool, default=False)
-    geometry = config.dict(type=types.any)
+    geometry = config.dict(type=types.any())
 
 
 @config.node

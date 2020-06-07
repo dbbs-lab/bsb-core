@@ -179,7 +179,7 @@ class NestConnection(SimulationComponent):
             raise NotImplementedError(
                 "Specifying receptor types of connections consisiting of more than 1 cell type is currently undefined behaviour."
             )
-        to_cell_type = to_cell_types[0]
+        to_cell_type = postsynaptic.type
         to_cell_model = self.adapter.cell_models[to_cell_type.name]
         return to_cell_model.neuron_model in to_cell_model.receptor_specifications
 
@@ -193,8 +193,8 @@ class NestConnection(SimulationComponent):
             raise NotImplementedError(
                 "Specifying receptor types of connections consisting of more than 1 origin cell type is currently undefined behaviour."
             )
-        to_cell_type = to_cell_types[0]
-        from_cell_type = from_cell_types[0]
+        to_cell_type = postsynaptic.type
+        from_cell_type = presynaptic.type
         to_cell_model = self.adapter.cell_models[to_cell_type.name]
         if from_cell_type.name in self.adapter.cell_models.keys():
             from_cell_model = self.adapter.cell_models[from_cell_type.name]
@@ -632,7 +632,7 @@ class NestAdapter(SimulatorAdapter):
                 self.get_nest_ids(np.array(cs.to_identifiers, dtype=int))
             )
             # Accessing the postsynaptic type to be associated to the volume transmitter of the synapse
-            postsynaptic_type = cs.connection_types[0].to_cell_types[0]
+            postsynaptic_type = cs.connection_types[0].postsynaptic.type
             postsynaptic_cells = np.unique(postsynaptic_targets)
 
             # Create the synapse model in the simulator

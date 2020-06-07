@@ -1,18 +1,19 @@
 import numpy as np
 from ..strategy import ConnectionStrategy
+from ... import config
 
 
+@config.node
 class ConnectomeGolgiGranule(ConnectionStrategy):
     """
         Legacy implementation for the connections between Golgi cells and granule cells.
     """
 
-    casts = {"detailed": bool}
-    defaults = {"detailed": False}
+    detailed = config.attr(type=bool, default=False)
 
     def validate(self):
         if self.detailed:
-            morphologies = self.from_cell_types[0].list_all_morphologies()
+            morphologies = self.presynaptic.type.list_all_morphologies()
             if not morphologies:
                 raise ConfigurationError(
                     "Can't create detailed golgi to granule connections without any morphologies for the golgi cell."
@@ -32,7 +33,7 @@ class ConnectomeGolgiGranule(ConnectionStrategy):
         # Gather information for the legacy code block below.
         glom_grc = self.scaffold.cell_connections_by_tag["glomerulus_to_granule"]
         goc_glom = self.scaffold.cell_connections_by_tag["golgi_to_glomerulus"]
-        golgi_type = self.from_cell_types[0]
+        golgi_type = self.presynaptic.type
         golgis = self.scaffold.cells_by_type[golgi_type.name]
         if self.detailed:
             # Fetch the connection compartments of glomerulus to granule connections.
@@ -97,8 +98,8 @@ class ConnectomeGolgiGranule(ConnectionStrategy):
         result = connectome_goc_grc(golgis, glom_grc, goc_glom)
         if self.detailed:
             morpho_map = [
-                self.from_cell_types[0].list_all_morphologies()[0],
-                self.to_cell_types[0].list_all_morphologies()[0],
+                self.presynaptic.type.list_all_morphologies()[0],
+                self.postsynaptic.type.list_all_morphologies()[0],
             ]
             morphologies = np.zeros((len(result), 2))
             morphologies[:, 1] += 1

@@ -12,8 +12,8 @@ class ConnectomePFInterneuron(ConnectionStrategy):
 
     def connect(self):
         # Gather information for the legacy code block below.
-        granule_cell_type = self.from_cell_types[0]
-        interneuron_cell_type = self.to_cell_types[0]
+        granule_cell_type = self.presynaptic.type
+        interneuron_cell_type = self.postsynaptic.type
         granules = self.scaffold.cells_by_type[granule_cell_type.name]
         interneurons = self.scaffold.cells_by_type[interneuron_cell_type.name]
         first_granule = int(granules[0, 0])

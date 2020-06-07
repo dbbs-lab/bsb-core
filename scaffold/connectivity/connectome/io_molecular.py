@@ -14,8 +14,8 @@ class ConnectomeIOMolecular(ConnectionStrategy):
 
     def connect(self):
         # Gather connection information
-        io_cell_type = self.from_cell_types[0]
-        molecular_cell_type = self.to_cell_types[0]
+        io_cell_type = self.presynaptic.type
+        molecular_cell_type = self.postsynaptic.type
         io_cells = self.scaffold.get_cells_by_type(io_cell_type.name)
 
         # Get connection between molecular layer cells and Purkinje cells.

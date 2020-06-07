@@ -12,9 +12,9 @@ class SatelliteCommonPresynaptic(ConnectionStrategy):
 
     def connect(self):
         config = self.scaffold.configuration
-        from_type = self.from_cell_types[0]
+        from_type = self.presynaptic.type
         from_cells = self.from_cells[from_type.name][:, 0]
-        to_type = self.to_cell_types[0]
+        to_type = self.postsynaptic.type
         to_cells = self.to_cells[to_type.name][:, 0]
         # If we do not have pre or post synaptic cells we return an empty array
         if len(to_cells) == 0 or len(from_cells) == 0:

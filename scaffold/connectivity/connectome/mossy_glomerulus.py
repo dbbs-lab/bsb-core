@@ -48,8 +48,8 @@ class ConnectomeMossyGlomerulus(ConnectionStrategy):
             return probabilities
 
         # Source and target neurons are extracted
-        mossy_cell_type = self.from_cell_types[0]
-        glomerulus_cell_type = self.to_cell_types[0]
+        mossy_cell_type = self.presynaptic.type
+        glomerulus_cell_type = self.postsynaptic.type
         mossy = self.scaffold.entities_by_type[mossy_cell_type.name].astype(int)
         glomeruli = self.scaffold.cells_by_type[glomerulus_cell_type.name]
         # Number of MFs placed and ID of the first MF

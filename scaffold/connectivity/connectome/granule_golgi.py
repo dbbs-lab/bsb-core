@@ -2,26 +2,27 @@ import numpy as np
 from ..strategy import ConnectionStrategy
 from ...exceptions import *
 from ...reporting import warn
+from ... import config
 
 
+@config.node
 class ConnectomeGranuleGolgi(ConnectionStrategy):
     """
         Legacy implementation for the connections between Golgi cells and glomeruli.
     """
 
-    casts = {"aa_convergence": int, "pf_convergence": int}
-
-    required = ["aa_convergence", "pf_convergence", "tag_aa", "tag_pf"]
-
-    defaults = {"tag_aa": "ascending_axon_to_golgi", "tag_pf": "parallel_fiber_to_golgi"}
+    aa_convergence = config.attr(type=int, required=True)
+    pf_convergence = config.attr(type=int, required=True)
+    tag_aa = config.attr(default="ascending_axon_to_golgi")
+    tag_pf = config.attr(default="parallel_fiber_to_golgi")
 
     def validate(self):
         pass
 
     def connect(self):
         # Gather information for the legacy code block below.
-        granule_cell_type = self.from_cell_types[0]
-        golgi_cell_type = self.to_cell_types[0]
+        granule_cell_type = self.presynaptic.type
+        golgi_cell_type = self.postsynaptic.type
         granules = self.scaffold.cells_by_type[granule_cell_type.name]
         golgis = self.scaffold.cells_by_type[golgi_cell_type.name]
         first_granule = int(granules[0, 0])

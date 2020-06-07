@@ -1,7 +1,9 @@
 import numpy as np
 from ..strategy import ConnectionStrategy
+from ... import config
 
 
+@config.node
 class ConnectomeIOPurkinje(ConnectionStrategy):
     """
         Legacy implementation for the connection between inferior olive and Purkinje cells.
@@ -9,14 +11,14 @@ class ConnectomeIOPurkinje(ConnectionStrategy):
         is innervated by 1 IO cell
     """
 
-    required = ["divergence"]
+    divergence = config.attr(type=float, required=True)
 
     def validate(self):
         pass
 
     def connect(self):
-        from_type = self.from_cell_types[0]
-        to_type = self.to_cell_types[0]
+        from_type = self.presynaptic.type
+        to_type = self.postsynaptic.type
         io_cells = self.from_cells[from_type.name]
         if len(io_cells) == 0:
             self.scaffold.connect_cells(self, np.empty((0, 2)))
@@ -24,7 +26,6 @@ class ConnectomeIOPurkinje(ConnectionStrategy):
         purkinje_cells = self.to_cells[to_type.name]
         convergence = 1  # Purkinje cells should be always constrained to receive signal from only 1 Inferior Olive neuron
         divergence = self.divergence
-        tolerance = self.tolerance_divergence
         io_purkinje = np.empty([len(purkinje_cells), 2])
         for i, pc in enumerate(purkinje_cells):
             np.random.shuffle(io_cells)

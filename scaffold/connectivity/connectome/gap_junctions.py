@@ -1,22 +1,24 @@
 import numpy as np
 from ..strategy import ConnectionStrategy
+from ... import config
 
 
+@config.node
 class ConnectomeGapJunctions(ConnectionStrategy):
     """
         Legacy implementation for gap junctions between a cell type.
     """
 
-    casts = {"limit_xy": float, "limit_z": float, "divergence": int}
-
-    required = ["limit_xy", "limit_z", "divergence"]
+    limit_xy = config.attr(type=float, required=True)
+    limit_z = config.attr(type=float, required=True)
+    divergence = config.attr(type=int, required=True)
 
     def validate(self):
         pass
 
     def connect(self):
         # Gather information for the legacy code block below.
-        from_cell_type = self.from_cell_types[0]
+        from_cell_type = self.presynaptic.type
         from_cells = self.scaffold.cells_by_type[from_cell_type.name]
         first_cell = int(from_cells[0, 0])
         limit_xy = self.limit_xy
@@ -85,7 +87,7 @@ class ConnectomeGapJunctionsGolgi(ConnectionStrategy):
 
     def connect(self):
         # Gather information for the legacy code block below.
-        golgi_cell_type = self.from_cell_types[0]
+        golgi_cell_type = self.presynaptic.type
         golgis = self.scaffold.cells_by_type[golgi_cell_type.name]
         first_golgi = int(golgis[0, 0])
         r_goc_vol = golgi_cell_type.morphology.dendrite_radius

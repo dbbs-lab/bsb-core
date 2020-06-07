@@ -167,8 +167,8 @@ class SpoofDetails(PostProcessingHook):
                 self.spoof_connections(connection_type, connectivity_matrix)
 
     def spoof_connections(self, connection_type, connectivity_matrix):
-        from_type = connection_type.from_cell_types[0]
-        to_type = connection_type.to_cell_types[0]
+        from_type = connection_type.presynaptic.type
+        to_type = connection_type.postsynaptic.type
         from_relay = False
         to_relay = False
         # Check whether any of the types are relays or entities.
@@ -242,8 +242,8 @@ class SpoofDetails(PostProcessingHook):
         report(
             "Spoofed details of {} connections between {} and {}".format(
                 len(connectivity_matrix),
-                connection_type.from_cell_types[0].name,
-                connection_type.to_cell_types[0].name,
+                connection_type.presynaptic.type.name,
+                connection_type.postsynaptic.type.name,
             ),
             2,
         )

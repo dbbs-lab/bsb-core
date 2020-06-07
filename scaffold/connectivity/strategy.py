@@ -1,3 +1,5 @@
+from .. import config
+from ..config import refs, types
 from ..helpers import ConfigurableClass, SortableByAfter
 from ..functions import compute_intersection_slice
 from ..models import ConnectivitySet
@@ -8,7 +10,19 @@ class _SimulationPlaceholder:
     pass
 
 
+@config.node
+class HemitypeNode:
+    type = config.ref(refs.cell_type_ref, required=True)
+    compartments = config.attr(type=types.list())
+    with_label = config.attr()
+
+
+@config.dynamic
 class ConnectionStrategy(ConfigurableClass, SortableByAfter):
+    presynaptic = config.attr(type=HemitypeNode, required=True)
+    postsynaptic = config.attr(type=HemitypeNode, required=True)
+    after = config.attr(type=types.list())
+
     def __init__(self):
         super().__init__()
         self.simulation = _SimulationPlaceholder()
@@ -42,17 +56,17 @@ class ConnectionStrategy(ConfigurableClass, SortableByAfter):
                 # No specific type specification? No labelling either -> do connect.
                 self._set_cells()
                 connect()
-            elif not "with_label" in self._from_cell_types[0]:
+            elif not "with_label" in self._presynaptic.type:
                 # No labels specified -> select all cells and do connect.
                 self._set_cells()
                 connect()
             else:
                 # Label specified. Currently only 1 with_label is allowed for all cell types.
-                label_specification = self._from_cell_types[0]["with_label"]
+                label_specification = self._presynaptic.type["with_label"]
                 if (
                     len(self._to_cell_types) > 0
-                    and "with_label" in self._to_cell_types[0]
-                    and self._to_cell_types[0]["with_label"] != label_specification
+                    and "with_label" in self._postsynaptic.type
+                    and self._postsynaptic.type["with_label"] != label_specification
                 ):
                     raise NotImplementedError(
                         "Only 1 label specification allowed. Only specify `with_label` on the first from_cell_type."
@@ -108,23 +122,3 @@ class ConnectionStrategy(ConfigurableClass, SortableByAfter):
 
     def get_connectivity_sets(self):
         return [ConnectivitySet(self.scaffold.output_formatter, tag) for tag in self.tags]
-
-
-class TouchingConvergenceDivergence(ConnectionStrategy):
-    casts = {"divergence": int, "convergence": int}
-
-    required = ["divergence", "convergence"]
-
-    def validate(self):
-        pass
-
-    def connect(self):
-        pass
-
-
-class TouchConnect(ConnectionStrategy):
-    def validate(self):
-        pass
-
-    def connect(self):
-        pass

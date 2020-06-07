@@ -1,24 +1,24 @@
 import numpy as np
 from ..strategy import ConnectionStrategy
+from ... import config
 
 
+@config.node
 class ConnectomePurkinjeDCN(ConnectionStrategy):
     """
         Legacy implementation for the connection between purkinje cells and DCN cells.
         Also rotates the dendritic trees of the DCN.
     """
 
-    casts = {"divergence": int}
-
-    required = ["divergence"]
+    divergence = config.attr(type=int, required=True)
 
     def validate(self):
         pass
 
     def connect(self):
         # Gather information for the legacy code block below.
-        from_type = self.from_cell_types[0]
-        to_type = self.to_cell_types[0]
+        from_type = self.presynaptic.type
+        to_type = self.postsynaptic.type
         purkinjes = self.from_cells[from_type.name]
         dcn_cells = self.to_cells[to_type.name]
         dcn_angles = self.scaffold.appends["cells/dcn_orientations"]

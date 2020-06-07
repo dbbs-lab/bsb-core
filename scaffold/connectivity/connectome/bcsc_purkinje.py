@@ -1,26 +1,27 @@
 import numpy as np
 from ..strategy import ConnectionStrategy
+from ... import config
 
 
+@config.node
 class ConnectomeBCSCPurkinje(ConnectionStrategy):
     """
         Legacy implementation for the connections between basket cells,stellate cells and purkinje cells.
     """
 
-    casts = {"limit_x": float, "limit_z": float, "divergence": int, "convergence": int}
-
-    required = ["limit_x", "limit_z", "divergence", "convergence", "tag_bc", "tag_sc"]
-
-    defaults = {"tag_bc": "basket_to_purkinje", "tag_sc": "stellate_to_purkinje"}
+    limit_x = config.attr(type=float, required=True)
+    limit_z = config.attr(type=float, required=True)
+    divergence = config.attr(type=float, required=True)
+    convergence = config.attr(type=float, required=True)
 
     def validate(self):
         pass
 
     def connect(self):
         # Gather information for the legacy code block below.
-        basket_cell_type = self.from_cell_types[0]
+        basket_cell_type = self.presynaptic.type
         stellate_cell_type = self.from_cell_types[1]
-        purkinje_cell_type = self.to_cell_types[0]
+        purkinje_cell_type = self.postsynaptic.type
         baskets = self.scaffold.cells_by_type[basket_cell_type.name]
         stellates = self.scaffold.cells_by_type[stellate_cell_type.name]
         purkinjes = self.scaffold.cells_by_type[purkinje_cell_type.name]

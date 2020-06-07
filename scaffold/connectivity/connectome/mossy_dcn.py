@@ -1,21 +1,25 @@
 import numpy as np
-from ..strategy import TouchingConvergenceDivergence
+from ..strategy import ConnectionStrategy
 from ...reporting import report, warn
 from ...exceptions import *
+from ... import config
 
 
-class ConnectomeMossyDCN(TouchingConvergenceDivergence):
+@config.node
+class ConnectomeMossyDCN(ConnectionStrategy):
     """
         Implementation for the connection between mossy fibers and DCN cells.
     """
+
+    convergence = config.attr(type=float, required=True)
 
     def validate(self):
         pass
 
     def connect(self):
         # Source and target neurons are extracted
-        mossy_cell_type = self.from_cell_types[0]
-        dcn_cell_type = self.to_cell_types[0]
+        mossy_cell_type = self.presynaptic.type
+        dcn_cell_type = self.postsynaptic.type
         mossy = self.scaffold.entities_by_type[mossy_cell_type.name]
         dcn_cells = self.scaffold.cells_by_type[dcn_cell_type.name]
 

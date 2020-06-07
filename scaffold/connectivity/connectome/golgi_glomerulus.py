@@ -1,19 +1,23 @@
 import numpy as np
-from ..strategy import TouchingConvergenceDivergence
+from ..strategy import ConnectionStrategy
+from ... import config
 
 
-class ConnectomeGolgiGlomerulus(TouchingConvergenceDivergence):
+@config.node
+class ConnectomeGolgiGlomerulus(ConnectionStrategy):
     """
         Legacy implementation for the connections between glomeruli and Golgi cells.
     """
+
+    divergence = config.attr(type=float, required=True)
 
     def validate(self):
         pass
 
     def connect(self):
         # Gather information for the legacy code block below.
-        golgi_cell_type = self.from_cell_types[0]
-        glomerulus_cell_type = self.to_cell_types[0]
+        golgi_cell_type = self.presynaptic.type
+        glomerulus_cell_type = self.postsynaptic.type
         glomeruli = self.scaffold.cells_by_type[glomerulus_cell_type.name]
         golgis = self.scaffold.cells_by_type[golgi_cell_type.name]
         first_glomerulus = int(glomeruli[0, 0])

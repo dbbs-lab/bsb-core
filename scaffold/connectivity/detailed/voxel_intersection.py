@@ -4,8 +4,11 @@ from .shared import MorphologyStrategy
 from ...helpers import DistributionConfiguration
 from ...models import MorphologySet
 from ...exceptions import *
+from ... import config
+from ...config import types
 
 
+@config.node
 class VoxelIntersection(ConnectionStrategy, MorphologyStrategy):
     """
         This strategy voxelizes morphologies into collections of cubes, thereby reducing
@@ -17,19 +20,10 @@ class VoxelIntersection(ConnectionStrategy, MorphologyStrategy):
         few morphologies are available to represent each cell type.
     """
 
-    casts = {
-        "affinity": float,
-        "contacts": DistributionConfiguration.cast,
-        "voxels_pre": int,
-        "voxels_post": int,
-    }
-
-    defaults = {
-        "affinity": 1,
-        "contacts": DistributionConfiguration.cast(1),
-        "voxels_pre": 50,
-        "voxels_post": 50,
-    }
+    affinity = config.attr(type=types.fraction(), default=1)
+    contacts = config.attr(type=types.any(), default=DistributionConfiguration.cast(1))
+    voxels_pre = config.attr(type=int, default=50)
+    voxels_post = config.attr(type=int, default=50)
 
     def validate(self):
         pass
@@ -45,10 +39,10 @@ class VoxelIntersection(ConnectionStrategy, MorphologyStrategy):
         to_cell_tree = index.Index(properties=p)
 
         # Select all the cells from the pre- & postsynaptic type for a specific connection.
-        from_type = self.from_cell_types[0]
+        from_type = self.presynaptic.type
         from_compartments = self.from_cell_compartments[0]
         to_compartments = self.to_cell_compartments[0]
-        to_type = self.to_cell_types[0]
+        to_type = self.postsynaptic.type
         from_placement_set = self.scaffold.get_placement_set(from_type.name)
         to_placement_set = self.scaffold.get_placement_set(to_type.name)
         from_cells = self.scaffold.get_cells_by_type(from_type.name)

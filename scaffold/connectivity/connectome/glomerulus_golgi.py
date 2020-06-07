@@ -1,21 +1,24 @@
 import numpy as np
-from ..strategy import TouchingConvergenceDivergence
+from ..strategy import ConnectionStrategy
 from ...helpers import DistributionConfiguration
 from ...functions import get_distances
 from scipy.stats.distributions import truncexpon
+from ... import config
+from ...config import types
 
 
-class ConnectomeGlomerulusGolgi(TouchingConvergenceDivergence):
+@config.node
+class ConnectomeGlomerulusGolgi(ConnectionStrategy):
     """
         Legacy implementation for the connections between Golgi cells and glomeruli.
     """
 
-    defaults = {"detailed": False, "contacts": DistributionConfiguration.cast(1)}
-    casts = {"detailed": bool, "contacts": DistributionConfiguration.cast}
+    detailed = config.attr(type=bool, default=False)
+    contacts = config.attr(type=types.any(), default=DistributionConfiguration.cast(1))
 
     def validate(self):
         if self.detailed:
-            morphologies = self.to_cell_types[0].list_all_morphologies()
+            morphologies = self.postsynaptic.type.list_all_morphologies()
             if not morphologies:
                 raise ConfigurationError(
                     "Can't create detailed glomerulus to Golgi connections without any morphologies for the Golgi cell."
@@ -32,8 +35,8 @@ class ConnectomeGlomerulusGolgi(TouchingConvergenceDivergence):
 
     def connect(self):
         # Gather information for the legacy code block below.
-        glomerulus_cell_type = self.from_cell_types[0]
-        golgi_cell_type = self.to_cell_types[0]
+        glomerulus_cell_type = self.presynaptic.type
+        golgi_cell_type = self.postsynaptic.type
         glomeruli = self.scaffold.cells_by_type[glomerulus_cell_type.name]
         golgis = self.scaffold.cells_by_type[golgi_cell_type.name]
         first_glomerulus = int(glomeruli[0, 0])

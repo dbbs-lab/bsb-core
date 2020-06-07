@@ -1,19 +1,21 @@
 import numpy as np, random
-from ..strategy import TouchingConvergenceDivergence
+from ..strategy import ConnectionStrategy
 from ...exceptions import ConfigurationError, ConnectivityError
+from ... import config
 
 
-class ConnectomeGlomerulusGranule(TouchingConvergenceDivergence):
+@config.node
+class ConnectomeGlomerulusGranule(ConnectionStrategy):
     """
         Legacy implementation for the connections between glomeruli and granule cells.
     """
 
-    casts = {"detailed": bool}
-    defaults = {"detailed": False}
+    convergence = config.attr(type=float, required=True)
+    detailed = config.attr(type=bool, default=False)
 
     def validate(self):
         if self.detailed:
-            morphologies = self.to_cell_types[0].list_all_morphologies()
+            morphologies = self.postsynaptic.type.list_all_morphologies()
             if not morphologies:
                 raise ConfigurationError(
                     "Can't create detailed glomerulus to granule connections without any morphologies for the granule cell."
@@ -35,8 +37,8 @@ class ConnectomeGlomerulusGranule(TouchingConvergenceDivergence):
 
     def connect(self):
         # Gather information for the legacy code block below.
-        from_cell_type = self.from_cell_types[0]
-        to_cell_type = self.to_cell_types[0]
+        from_cell_type = self.presynaptic.type
+        to_cell_type = self.postsynaptic.type
         glomeruli = self.scaffold.cells_by_type[from_cell_type.name]
         granules = self.scaffold.cells_by_type[to_cell_type.name]
         dend_len = to_cell_type.morphology.dendrite_length
