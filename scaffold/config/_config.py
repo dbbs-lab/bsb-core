@@ -1,28 +1,31 @@
 from . import attr, list, dict, node, root
 from ..objects import CellType, Layer
+from . import validators, types
+from ..storage import get_engines
+
+
+@node
+class StorageNode:
+    engine = attr(required=True, validation=validators.in_(get_engines().keys()))
+    root = attr(type=types.any)
+
+
+@node
+class NetworkNode:
+    x = attr(type=float, required=True)
+    z = attr(type=float, required=True)
+
+
+@node
+class LayerStack:
+    name = attr(required=True)
+    origin = list(type=float, size=3, required=True)
 
 
 @root
 class Configuration:
-    cell_types = dict(type=CellType, required=True)
+    storage = attr(type=StorageNode, required=True)
+    network = attr(type=NetworkNode, required=True)
+    stacks = dict(type=LayerStack)
     layers = dict(type=Layer, required=True)
-
-
-config_tree = {
-    "layers": {"granular_layer": {"thickness": 150}},
-    "cell_types": {
-        "granule_cell": {
-            "placement": {
-                "class": "scaffold.placement.LayeredRandomWalk",
-                "layer": "granular_layer",
-            },
-            "spatial": {"radius": 3},
-        },
-    },
-}
-
-# Load:
-# 1) Ask the tree from the ConfigParser
-# 2) Cast ourselves using the tree
-# 3) Resolve reference attributes
-config = Configuration.__cast__(config_tree, None)
+    cell_types = dict(type=CellType, required=True)
