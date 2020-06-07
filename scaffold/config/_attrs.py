@@ -4,7 +4,7 @@
 
 from ._make import wrap_init, make_get_node_name, make_cast
 from inspect import signature
-from ..exceptions import CastError
+from ..exceptions import CastError, ReferenceError
 
 
 def root(root_cls):
@@ -253,4 +253,16 @@ class ConfigurationReferenceAttribute(ConfigurationAttribute):
 
     def __ref__(self, instance, root):
         reference_parent = self.ref_lambda(root, instance)
-        return reference_parent[getattr(instance, self.attr_name + "_reference")]
+        reference_attr = self.attr_name + "_reference"
+        if not hasattr(instance, reference_attr):
+            return None
+        reference_key = getattr(instance, reference_attr)
+        if reference_key not in reference_parent:
+            raise ReferenceError(
+                "Reference '{}' of {} does not exist in {}".format(
+                    reference_key,
+                    self.get_node_name(instance),
+                    reference_parent.get_node_name(),
+                )
+            )
+        return reference_parent[getattr(instance, reference_attr)]
