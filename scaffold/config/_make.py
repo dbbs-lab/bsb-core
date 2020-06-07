@@ -50,7 +50,14 @@ def _get_class_init_wrapper(cls):
 
 
 def _get_node_name(self):
-    return self._config_parent.get_node_name() + "." + self.attr_name
+    name = "<missing>"
+    if hasattr(self, "attr_name"):
+        name = "." + self.attr_name
+    if hasattr(self, "_key"):
+        name = "." + self._key
+    if hasattr(self, "_index"):
+        name = "[" + self._index + "]"
+    return self._config_parent.get_node_name() + name
 
 
 def make_get_node_name(node_cls, root):
@@ -117,10 +124,12 @@ def _make_cast(node_cls):
     def __cast__(section, parent, key=None):
         if hasattr(node_cls, "__dcast__"):
             # Create an instance of the dynamically configured class.
-            node = node_cls.__dcast__(section, parent)
+            node = node_cls.__dcast__(section, parent, key)
         else:
             # Create an instance of the static node class
             node = node_cls(parent)
+        if key is not None:
+            node._key = key
         _cast_attributes(node, section, node_cls, key)
         return node
 
