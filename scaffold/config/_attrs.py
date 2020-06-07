@@ -78,13 +78,20 @@ def _getattr(instance, name):
 
 class ConfigurationAttribute:
     def __init__(
-        self, type=None, default=None, call_default=False, required=False, key=False
+        self,
+        type=None,
+        default=None,
+        call_default=False,
+        required=False,
+        key=False,
+        validation=None,
     ):
         self.required = required
         self.key = key
         self.default = default
         self.call_default = call_default
         self.type = self._get_type(type)
+        self.early_validator = validation
 
     def __get__(self, instance, owner):
         if instance is None:
