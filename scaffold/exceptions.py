@@ -33,6 +33,10 @@ class CastConfigurationError(ConfigurationError):
     pass
 
 
+class ReferenceError(ConfigurationError):
+    pass
+
+
 class UnionCastError(CastError):
     pass
 
