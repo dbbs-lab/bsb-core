@@ -93,11 +93,12 @@ def wrap_root_cast(f):
 
 
 def _cast_attributes(node, section, node_cls, key):
-    attr_names = list(node_cls._config_attrs.keys())
+    attrs = _get_class_config_attrs(node_cls)
+    attr_names = list(attrs.keys())
     if key:
         node.attr_name = key
     # Cast each of this node's attributes.
-    for attr in node_cls._config_attrs.values():
+    for attr in attrs.values():
         if attr.attr_name in section:
             attr.__set__(node, section[attr.attr_name], key=attr.attr_name)
         elif attr.required:
@@ -130,7 +131,7 @@ def _make_cast(node_cls):
             node = node_cls(parent)
         if key is not None:
             node._key = key
-        _cast_attributes(node, section, node_cls, key)
+        _cast_attributes(node, section, node.__class__, key)
         return node
 
     return __cast__
