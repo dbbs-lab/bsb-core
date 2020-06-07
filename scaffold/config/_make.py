@@ -29,7 +29,7 @@ def _get_class_config_attrs(cls):
     attrs = {}
     for p_cls in reversed(cls.__mro__):
         if hasattr(p_cls, "_config_attrs"):
-            attrs.update(cls._config_attrs)
+            attrs.update(p_cls._config_attrs)
     return attrs
 
 
