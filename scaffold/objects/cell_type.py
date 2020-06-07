@@ -3,6 +3,7 @@
 """
 
 from .. import config
+from ..config import types
 from ..placement import PlacementStrategy
 
 
@@ -10,12 +11,14 @@ from ..placement import PlacementStrategy
 class Representation:
     radius = config.attr(type=float, required=True)
     entity = config.attr(type=bool, default=False)
+    geometry = config.dict(type=types.any)
 
 
 @config.node
 class Plotting:
-    color = config.attr()
     display_name = config.attr()
+    color = config.attr()
+    opacity = config.attr(type=types.fraction(), default=1.0)
 
 
 @config.node

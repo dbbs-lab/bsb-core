@@ -24,6 +24,7 @@ class LayerStack:
 
 @root
 class Configuration:
+    name = attr()
     storage = attr(type=StorageNode, required=True)
     network = attr(type=NetworkNode, required=True)
     stacks = dict(type=LayerStack)

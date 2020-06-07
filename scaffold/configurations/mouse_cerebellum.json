@@ -1,7 +1,7 @@
 {
   "name": "DBBS Mouse cerebellum configuration v3.1.0",
   "storage": {
-    "engine": "hdf5"
+    "engine": "hddf5"
   },
   "network": {
     "x": 400.0,
@@ -49,7 +49,7 @@
     "io_layer": {
       "volume_scale": 0.0147,
       "thickness": 15,
-      "scale_from_layers": ["granular_layer","purkinje_layer","molecular_layer"],
+      "scale_from_layers": ["granular_layer", "purkinje_layer", "molecular_layer"],
       "volume_dimension_ratio": [0.5, 1, 0.2],
       "stack": {
         "stack": "inferior_olive",
@@ -112,7 +112,10 @@
         "angle": 70
       },
       "spatial": {
-        "radius": 7.5
+        "radius": 7.5,
+        "geometry": {
+
+        }
       },
       "plotting": {
         "display_name": "Purkinje cell",
@@ -196,9 +199,7 @@
       "placement": {
         "class": "scaffold.placement.ParticlePlacement",
         "layer": "io_layer",
-        "density": 1.52e-5,
-        "distance_multiplier_min": 0.0,
-        "distance_multiplier_max": 0.2
+        "density": 1.52e-5
       },
       "spatial": {
         "radius": 7.5

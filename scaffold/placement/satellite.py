@@ -3,8 +3,11 @@ from ..helpers import assert_attr_array
 import math, numpy as np
 from ..exceptions import *
 from ..reporting import report, warn
+from .. import config
+from ..config import types
 
 
+@config.node
 class Satellite(PlacementStrategy):
     """
         Implementation of the placement of cells in layers as satellites of existing cells
@@ -13,7 +16,8 @@ class Satellite(PlacementStrategy):
         depending on the radius of both cells.
     """
 
-    defaults = {"per_planet": 1.0}
+    per_planet = config.attr(type=float, default=1.0)
+    planet_types = config.attr(type=types.list(type=str), required=True)
 
     def initialise(self, scaffold):
         super().initialise(scaffold)

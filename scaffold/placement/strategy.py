@@ -12,18 +12,14 @@ class PlacementStrategy(ConfigurableClass):
     layer = config.ref(refs.layer_ref)
     density = config.attr(type=float)
     planar_density = config.attr(type=float)
+    placement_count_ratio = config.attr(type=float)
+    density_ratio = config.attr(type=float)
+    placement_relative_to = config.ref(refs.cell_type_ref)
     count = config.attr(type=int)
 
     def __init__(self, cell_type):
         super().__init__()
         self.cell_type = cell_type
-        self.radius = None
-        self.density = None
-        self.planar_density = None
-        self.placement_count_ratio = None
-        self.density_ratio = None
-        self.placement_relative_to = None
-        self.count = None
 
     @abc.abstractmethod
     def place(self):

@@ -26,3 +26,6 @@ class Layer:
     )
     xz_center = config.attr(type=bool, default=False)
     stack = config.attr(type=StackNode)
+    volume_scale = config.attr(type=float)
+    volume_dimension_ratio = config.attr(type=types.list(type=float, size=3))
+    scale_from_layers = config.attr(type=types.list(type=str))

@@ -1,21 +1,18 @@
 from .strategy import Layered, PlacementStrategy
 import math, numpy as np
+from .. import config
+from ..config import types
 
 
+@config.node
 class ParallelArrayPlacement(Layered, PlacementStrategy):
     """
         Implementation of the placement of cells in parallel arrays.
     """
 
-    casts = {
-        "extension_x": float,
-        "extension_z": float,
-        "angle": lambda x: float(x) * 2 * math.pi / 360,
-    }
-
-    defaults = {"angle": 0.08726646259971647}  # 5 degrees
-
-    required = ["extension_x", "extension_z", "angle"]
+    extension_x = config.attr(type=float, required=True)
+    extension_z = config.attr(type=float, required=True)
+    angle = config.attr(type=types.deg_to_radian(), required=True)
 
     def place(self):
         """

@@ -4,12 +4,17 @@ from ..functions import get_candidate_points, add_y_axis, exclude_index
 from ..reporting import report, warn
 from scipy.spatial import distance
 from ..exceptions import *
+from .. import config
 
 
+@config.node
 class LayeredRandomWalk(Layered, PlacementStrategy):
     """
         Implementation of the placement of cells in sublayers via a self avoiding random walk.
     """
+
+    distance_multiplier_min = config.attr(type=float, default=0.75)
+    distance_multiplier_max = config.attr(type=float, default=1.25)
 
     def validate(self):
         super().validate()
@@ -24,7 +29,7 @@ class LayeredRandomWalk(Layered, PlacementStrategy):
         cell_type = self.cell_type
         scaffold = self.scaffold
         config = scaffold.configuration
-        layer = self.layer_instance
+        layer = self.layer
         layer_thickness = self.get_restricted_thickness()
         # Virtual layer origin point that applies the Y-Restriction used for example by basket and stellate cells.
         restricted_origin = np.array(

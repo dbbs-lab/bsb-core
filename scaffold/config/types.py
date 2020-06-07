@@ -1,4 +1,5 @@
 from ..exceptions import *
+import math
 
 
 def any():
@@ -78,4 +79,24 @@ def list(type=str, size=None):
     type_handler.__name__ = "list{} of {}".format(
         "[{}]".format(size) if size is not None else "", type.__name__
     )
+    return type_handler
+
+
+def fraction():
+    def type_handler(value):
+        v = float(value)
+        if v < 0.0 or v > 1.0:
+            raise ValueError("{} is out of the 0-1 range for a fraction.".format(value))
+        return v
+
+    type_handler.__name__ = "fraction [0.; 1.]"
+    return type_handler
+
+
+def deg_to_radian():
+    def type_handler(value):
+        v = float(value)
+        return float(v) * 2 * math.pi / 360
+
+    type_handler.__name__ = "degrees"
     return type_handler
