@@ -363,11 +363,9 @@ def plot_morphology(
         dfs_list = list(map(lambda b: reduce_branch(b, branch_points), dfs_list))
     traces = []
     for branch in dfs_list[::-1]:
-        traces.append(
-            get_branch_trace(
-                compartments[branch], offset, color=color, width=segment_radius
-            )
-        )
+        branch_comps = compartments[branch]
+        width = _get_branch_width(branch_comps, segment_radius)
+        traces.append(get_branch_trace(branch_comps, offset, color=color, width=width))
     traces.append(
         get_soma_trace(
             soma_radius if soma_radius is not None else compartments[0].radius,
@@ -404,6 +402,18 @@ def plot_intersections(
         + np.array(offset)
         + np.array(to_pos)
     )
+
+
+def _get_branch_width(branch, seg_radius):
+    width = seg_radius
+    try:
+        if isinstance(seg_radius, dict):
+            branch_type = branch[-1].type
+            bt = int(branch_type / 100) if branch_type > 100 else int(branch_type)
+            width = seg_radius[bt]
+    except KeyError:
+        raise Exception("Plotting width not specified for branches of type " + str(bt))
+    return width
 
 
 def plot_block(fig, origin, sizes, color=None, colorscale="Cividis", **kwargs):
