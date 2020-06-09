@@ -10,6 +10,14 @@ def any():
     return type_handler
 
 
+def in_(container):
+    def type_handler(value):
+        return value in container
+
+    type_handler.__name__ = "any of the following values: " + str(_list(container))
+    return type_handler
+
+
 def or_(*type_args):
     handler_name = "any of: " + ", ".join(map(lambda x: x.__name__, type_args))
 
