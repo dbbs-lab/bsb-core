@@ -96,7 +96,11 @@ class ConnectomeGlomerulusGolgi(TouchingConvergenceDivergence):
                         d = np.array(
                             get_distances(
                                 [c.start for c in comps],
-                                [glom_x[gid], glom_y[gid], glom_z[gid]],
+                                [
+                                    glom_x[gid] - golgi_x,
+                                    glom_y[gid] - golgi_y,
+                                    glom_z[gid] - golgi_z,
+                                ],
                             )
                         )
                         d_comps = np.argsort(d)
