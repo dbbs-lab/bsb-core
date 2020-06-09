@@ -2,12 +2,15 @@ from ..simulation import (
     SimulatorAdapter,
     ConnectionModel,
     CellModel,
+    DeviceModel,
     TargetsNeurons,
 )
 from ..models import ConnectivitySet
 from ..helpers import ListEvalConfiguration
 from ..reporting import report, warn
 from ..exceptions import *
+from .. import config
+from ..config import types
 import os, json, weakref, numpy as np
 from itertools import chain
 from sklearn.neighbors import KDTree
@@ -30,9 +33,14 @@ class MapsScaffoldIdentifiers:
         return [self.scaffold_to_nest_map[id] for id in ids]
 
 
+@config.node
 class NestCell(CellModel, MapsScaffoldIdentifiers):
 
     node_name = "simulations.?.cell_models"
+    iaf_cond_alpha = config.attr(type=dict)
+    eglif_cond_alpha_multisyn = config.attr(type=dict)
+    parameters = config.attr(type=dict)
+    neuron_model = config.attr()
 
     def boot(self):
         super().boot()
@@ -102,19 +110,17 @@ class NestCell(CellModel, MapsScaffoldIdentifiers):
         )
 
 
+@config.node
 class NestConnection(ConnectionModel):
     node_name = "simulations.?.connection_models"
 
-    casts = {"synapse": dict, "connection": dict}
-
-    required = ["synapse", "connection"]
-
-    defaults = {
-        "plastic": False,
-        "hetero": None,
-        "teaching": None,
-        "is_teaching": False,
-    }
+    connection = config.attr(type=dict, required=True)
+    synapse_model = config.attr()
+    synapse = config.attr(type=dict, required=True)
+    plastic = config.attr(type=bool, default=False)
+    hetero = config.attr(type=bool)
+    teaching = config.attr(type=bool)
+    is_teaching = config.attr(type=bool, default=False)
 
     def validate(self):
         if "weight" not in self.connection:
@@ -210,19 +216,20 @@ class NestConnection(ConnectionModel):
         return receptors[from_cell_model.name]
 
 
+@config.node
 class NestDevice(TargetsNeurons, DeviceModel):
     node_name = "simulations.?.devices"
 
-    casts = {
-        "radius": float,
-        "origin": [float],
-        "parameters": dict,
-        "stimulus": ListEvalConfiguration.cast,
-    }
-
-    defaults = {"connection_rule": None, "connection_parameters": None}
-
-    required = ["targetting", "device", "io", "parameters"]
+    connection_rule = config.attr()
+    connection_parameters = config.attr()
+    radius = config.attr(type=float)
+    origin = config.attr(type=types.list(type=float, size=3))
+    parameters = config.attr(type=dict, required=True)
+    targetting = config.attr(type=str, required=True)
+    cell_types = config.attr(type=types.list(type=str))
+    device = config.attr(required=True)
+    io = config.attr(type=types.in_(["input", "output"]), required=True)
+    stimulus = config.attr(type=types.any())
 
     def validate(self):
         # Fill in the _get_targets method, so that get_target functions
@@ -254,7 +261,10 @@ class NestDevice(TargetsNeurons, DeviceModel):
         return self.adapter.get_nest_ids(np.array(self._get_targets(), dtype=int))
 
 
+@config.node
 class NestEntity(NestDevice, MapsScaffoldIdentifiers):
+    parameters = config.attr(type=dict)
+
     node_name = "simulations.?.entities"
 
     def boot(self):
@@ -262,6 +272,7 @@ class NestEntity(NestDevice, MapsScaffoldIdentifiers):
         self.reset_identifiers()
 
 
+@config.node
 class NestAdapter(SimulatorAdapter):
     """
         Interface between the scaffold model and the NEST simulator.
@@ -269,31 +280,19 @@ class NestAdapter(SimulatorAdapter):
 
     simulator_name = "nest"
 
-    configuration_classes = {
-        "cell_models": NestCell,
-        "connection_models": NestConnection,
-        "devices": NestDevice,
-        "entities": NestEntity,
-    }
+    cell_models = config.dict(type=NestCell, required=True)
+    connection_models = config.dict(type=NestConnection, required=True)
+    devices = config.dict(type=NestDevice, required=True)
+    entities = config.dict(type=NestEntity)
 
-    casts = {"threads": int, "virtual_processes": int, "modules": list}
-
-    defaults = {
-        "default_synapse_model": "static_synapse",
-        "default_neuron_model": "iaf_cond_alpha",
-        "verbosity": "M_ERROR",
-        "threads": 1,
-        "resolution": 1.0,
-        "modules": [],
-    }
-
-    required = [
-        "default_neuron_model",
-        "default_synapse_model",
-        "duration",
-        "resolution",
-        "threads",
-    ]
+    threads = config.attr(type=int, default=1)
+    virtual_processes = config.attr(type=int)
+    modules = config.attr(
+        type=types.list(type=str), default=lambda: [], call_default=True
+    )
+    default_synapse_model = config.attr(default="static_synapse")
+    default_neuron_model = config.attr(default="iaf_cond_alpha")
+    resolution = config.attr(type=float, default=1.0)
 
     @property
     def nest(self):
@@ -307,7 +306,6 @@ class NestAdapter(SimulatorAdapter):
             return self._nest
 
     def __init__(self):
-        super().__init__()
         self.is_prepared = False
         self.suffix = ""
         self.multi = False
@@ -854,3 +852,6 @@ def catch_connection_error(source):
         )
 
     return handler
+
+
+__plugin__ = NestAdapter

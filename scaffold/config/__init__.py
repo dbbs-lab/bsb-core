@@ -1,22 +1,27 @@
 import sys, types
 
 _list = list
-from ._attrs import attr, list, dict, node, root, dynamic, ref
+from ._attrs import attr, list, dict, node, root, dynamic, ref, slot, pluggable
 from ._make import walk_nodes
 from .parsers import JsonParser
 
 _path = __path__
 
 
-class ConfigurationModule(types.ModuleType):
+class ConfigurationModule:
+    def __init__(self, name):
+        self.__name__ = name
 
     attr = staticmethod(attr)
     list = staticmethod(list)
     dict = staticmethod(dict)
+    ref = staticmethod(ref)
+    slot = staticmethod(slot)
+
     node = staticmethod(node)
     root = staticmethod(root)
     dynamic = staticmethod(dynamic)
-    ref = staticmethod(ref)
+    pluggable = staticmethod(pluggable)
 
     walk_nodes = staticmethod(walk_nodes)
 

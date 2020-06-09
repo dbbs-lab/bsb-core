@@ -6,6 +6,10 @@ class SpatialDimensionError(ScaffoldError):
     pass
 
 
+class PluginError(ScaffoldError):
+    pass
+
+
 ## Configuration
 
 

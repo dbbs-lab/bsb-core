@@ -1,10 +1,13 @@
 from ...simulation import (
     SimulatorAdapter,
-    SimulationComponent,
     CellModel,
+    ConnectionModel,
+    DeviceModel,
     TargetsNeurons,
     TargetsSections,
 )
+from ... import config
+from ...config import types
 from ...helpers import get_configurable_class
 from ...reporting import report, warn
 from ...models import ConnectivitySet
@@ -57,7 +60,7 @@ class NeuronCell(CellModel):
         return params
 
 
-class NeuronConnection(SimulationComponent):
+class NeuronConnection(ConnectionModel):
     node_name = "simulations.?.connection_models"
 
     required = ["synapse"]
@@ -69,7 +72,8 @@ class NeuronConnection(SimulationComponent):
         return self.synapse
 
 
-class NeuronDevice(TargetsNeurons, TargetsSections, SimulationComponent):
+@config.node
+class NeuronDevice(TargetsNeurons, TargetsSections, DeviceModel):
     node_name = "simulations.?.devices"
 
     device_types = [
@@ -79,14 +83,11 @@ class NeuronDevice(TargetsNeurons, TargetsSections, SimulationComponent):
         "voltage_recorder",
     ]
 
-    casts = {
-        "radius": float,
-        "origin": [float],
-    }
-
-    defaults = {}
-
-    required = ["targetting", "device", "io"]
+    radius = config.attr(type=float)
+    origin = config.attr(type=types.list(type=float, size=3))
+    targetting = config.attr(required=True)
+    device = config.attr(type=types.in_(device_types), required=True)
+    io = config.attr(type=types.in_(["input", "output"]), required=True)
 
     def validate(self):
         if self.device not in self.__class__.device_types:
@@ -160,32 +161,21 @@ class NeuronEntity:
         raise NotImplementedError("Entities do not have a soma to record.")
 
 
+@config.node
 class NeuronAdapter(SimulatorAdapter):
     """
         Interface between the scaffold model and the NEURON simulator.
     """
 
     simulator_name = "neuron"
-
-    configuration_classes = {
-        "cell_models": NeuronCell,
-        "connection_models": NeuronConnection,
-        "devices": NeuronDevice,
-    }
-
-    casts = {
-        "temperature": float,
-        "duration": float,
-        "resolution": float,
-        "initial": float,
-    }
-
-    defaults = {"initial": -65.0}
-
-    required = ["temperature", "duration", "resolution"]
+    cell_models = config.dict(type=NeuronCell, required=True)
+    connection_models = config.dict(type=NeuronConnection, required=True)
+    devices = config.dict(type=NeuronDevice, required=True)
+    resolution = config.attr(type=float, default=1.0)
+    initial = config.attr(type=float, default=-65.0)
+    temperature = config.attr(type=float, required=True)
 
     def __init__(self):
-        super().__init__()
         self.cells = {}
         self._next_gid = 0
         self.transmitter_map = {}

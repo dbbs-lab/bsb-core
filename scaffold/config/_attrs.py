@@ -17,7 +17,7 @@ def root(root_cls):
     return root_cls
 
 
-def node(node_cls, root=False, dynamic=False):
+def node(node_cls, root=False, dynamic=False, pluggable=False):
     """
         Decorate a class as a configuration node.
     """
@@ -42,7 +42,7 @@ def node(node_cls, root=False, dynamic=False):
         node_cls._config_attrs = attrs
     wrap_init(node_cls)
     make_get_node_name(node_cls, root=root)
-    make_cast(node_cls, dynamic=dynamic, root=root)
+    make_cast(node_cls, dynamic=dynamic, pluggable=pluggable, root=root)
 
     return node_cls
 
@@ -53,12 +53,27 @@ def dynamic(node_cls):
     return node(node_cls, dynamic=True)
 
 
+def pluggable(key, plugin_name=None):
+    def inner_decorator(node_cls):
+        node_cls._config_plugin_name = plugin_name
+        node_cls._config_plugin_key = key
+        class_attr = ConfigurationAttribute(type=str, required=True)
+        setattr(node_cls, key, class_attr)
+        return node(node_cls, pluggable=True)
+
+    return inner_decorator
+
+
 def attr(**kwargs):
     return ConfigurationAttribute(**kwargs)
 
 
 def ref(reference, **kwargs):
     return ConfigurationReferenceAttribute(reference, **kwargs)
+
+
+def slot(**kwargs):
+    return ConfigurationAttributeSlot(**kwargs)
 
 
 _list = list
@@ -278,3 +293,15 @@ class ConfigurationReferenceAttribute(ConfigurationAttribute):
                 )
             )
         return reference_parent[getattr(instance, reference_attr)]
+
+
+class ConfigurationAttributeSlot(ConfigurationAttribute):
+    def __set__(self, instance, value):
+        raise NotImplementedError(
+            "Configuration slot {} of {} is empty. The {} plugin provided by '{}' should fill it with a configuration attribute.".format(
+                self.attr_name,
+                instance.get_node_name(),
+                instance.__class__._scaffold_plugin.module_name,
+                instance.__class__._scaffold_plugin.dist,
+            )
+        )

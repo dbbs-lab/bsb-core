@@ -1,9 +1,11 @@
 import abc, random, types
 import numpy as np
 from . import config
+from .config import refs
 from .helpers import ConfigurableClass, assert_attr, SortableByAfter
 from .reporting import report
 from .exceptions import *
+from . import plugins
 from time import time
 
 
@@ -11,9 +13,10 @@ from time import time
 class SimulationComponent(SortableByAfter):
     name = config.attr(key=True)
 
-    def __init__(self, adapter):
-        super().__init__()
-        self.adapter = adapter
+    def __init__(self, parent):
+        # Get the parent of the dict  that we are defined in (cell_models,
+        # connections_models, device_models, ...). This grandparent is the adapter
+        self.adapter = parent._config_parent
         self.simulation = None
 
     @classmethod
@@ -32,6 +35,7 @@ class SimulationComponent(SortableByAfter):
 
 @config.node
 class CellModel(SimulationComponent):
+    name = config.attr(key=True)
     cell_type = config.ref(refs.cell_type_ref, key="name")
 
     def is_relay(self):
@@ -44,14 +48,26 @@ class CellModel(SimulationComponent):
 
 @config.node
 class ConnectionModel(SimulationComponent):
-    pass
+    name = config.attr(key=True)
 
 
 @config.node
+class DeviceModel(SimulationComponent):
+    name = config.attr(key=True)
+
+
+@config.pluggable(key="simulator", plugin_name="simulator adapter")
 class SimulatorAdapter(ConfigurableClass):
-    cell_models = config.dict(type=CellModel)
-    connection_models = config.dict(type=ConnectionModel)
-    devices = config.dict(type=DeviceModel)
+    duration = config.attr(type=float, required=True)
+    cell_models = config.slot(type=CellModel, required=True)
+    connection_models = config.slot(type=ConnectionModel, required=True)
+    devices = config.slot(type=DeviceModel, required=True)
+
+    @classmethod
+    def __plugins__(cls):
+        if not hasattr(cls, "_plugins"):
+            cls._plugins = plugins.discover("adapters")
+        return cls._plugins
 
     def __init__(self):
         super().__init__()

@@ -21,7 +21,14 @@ setuptools.setup(
         "Programming Language :: Python :: 3",
         "Operating System :: OS Independent",
     ],
-    entry_points={"console_scripts": ["scaffold = scaffold.cli:scaffold_cli"]},
+    entry_points={
+        "console_scripts": ["scaffold = scaffold.cli:scaffold_cli"],
+        "dbbs_scaffold.adapters": [
+            "nest = scaffold.simulators.nest",
+            "neuron = scaffold.simulators.neuron",
+        ],
+        "dbbs_scaffold.engines": ["hdf5 = scaffold.storage.engines.hdf5"],
+    },
     install_requires=[
         "h5py>=2.9.0",
         "numpy>=1.16.4",

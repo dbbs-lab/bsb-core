@@ -67,7 +67,7 @@ def make_get_node_name(node_cls, root):
         node_cls.get_node_name = _get_node_name
 
 
-def make_cast(node_cls, dynamic=False, root=False):
+def make_cast(node_cls, dynamic=False, pluggable=False, root=False):
     """
         Return a function that can cast a raw configuration node as specified by the
         attribute descriptions in the node class.
@@ -75,7 +75,9 @@ def make_cast(node_cls, dynamic=False, root=False):
     __cast__ = _make_cast(node_cls)
     if root:
         __cast__ = wrap_root_cast(__cast__)
-    if dynamic:
+    if pluggable:
+        make_pluggable_cast(node_cls)
+    elif dynamic:
         make_dynamic_cast(node_cls)
 
     node_cls.__cast__ = __cast__
@@ -147,6 +149,31 @@ def make_dynamic_cast(node_cls):
             )
         dynamic_cls = _load_class(section["class"], interface=node_cls)
         node = dynamic_cls(parent)
+        return node
+
+    node_cls.__dcast__ = __dcast__
+    return __dcast__
+
+
+def make_pluggable_cast(node_cls):
+    plugin_label = node_cls._config_plugin_name or node_cls.__name__
+
+    def __dcast__(section, parent, key=None):
+        if node_cls._config_plugin_key not in section:
+            raise CastError(
+                "Pluggable node '{}' must contain a '{}' attribute to select a {}.".format(
+                    parent.get_node_name() + ("." + key if key is not None else ""),
+                    node_cls._config_plugin_key,
+                    plugin_label,
+                )
+            )
+        plugin_name = section[node_cls._config_plugin_key]
+        plugins = node_cls.__plugins__()
+        if plugin_name not in plugins:
+            raise PluginError("Unknown {} '{}'".format(plugin_label, plugin_name))
+        plugin_cls = plugins[plugin_name]
+        # TODO: Enforce class inheritance
+        node = plugin_cls(parent)
         return node
 
     node_cls.__dcast__ = __dcast__
