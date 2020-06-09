@@ -244,24 +244,28 @@ class ConfigurationDictAttribute(ConfigurationAttribute):
 
 
 class ConfigurationReferenceAttribute(ConfigurationAttribute):
-    def __init__(self, reference, **kwargs):
+    def __init__(self, reference, key=None, **kwargs):
         self.ref_lambda = reference
+        self.ref_key = key
         # No need to cast to any types: the reference we fetch will already have been cast
         if "type" in kwargs:
             del kwargs["type"]
         super().__init__(**kwargs)
 
+    def get_ref_key(self):
+        return self.ref_key or (self.attr_name + "_reference")
+
     def __set__(self, instance, value, key=None):
         if value is None:
             _setattr(instance, self.attr_name, None)
         if isinstance(value, str):
-            setattr(instance, self.attr_name + "_reference", value)
+            setattr(instance, self.get_ref_key(), value)
         else:
             _setattr(instance, self.attr_name, value)
 
     def __ref__(self, instance, root):
         reference_parent = self.ref_lambda(root, instance)
-        reference_attr = self.attr_name + "_reference"
+        reference_attr = self.get_ref_key()
         if not hasattr(instance, reference_attr):
             return None
         reference_key = getattr(instance, reference_attr)
