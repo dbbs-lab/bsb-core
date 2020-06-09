@@ -1,19 +1,20 @@
 import abc, random, types
 import numpy as np
+from . import config
 from .helpers import ConfigurableClass, assert_attr, SortableByAfter
 from .reporting import report
 from .exceptions import *
 from time import time
 
 
-class SimulationComponent(ConfigurableClass, SortableByAfter):
+@config.node
+class SimulationComponent(SortableByAfter):
+    name = config.attr(key=True)
+
     def __init__(self, adapter):
         super().__init__()
         self.adapter = adapter
         self.simulation = None
-
-    def get_config_node(self):
-        return self.node_name + "." + self.name
 
     @classmethod
     def get_ordered(cls, objects):
@@ -29,17 +30,9 @@ class SimulationComponent(ConfigurableClass, SortableByAfter):
         return hasattr(self, "after")
 
 
-class SimulationCell(SimulationComponent):
-    def boot(self):
-        super().boot()
-        try:
-            self.cell_type = self.scaffold.get_cell_type(self.name)
-        except TypeNotFoundError:
-            raise TypeNotFoundError(
-                "Cell type '{}' not found in '{}', all cell models need to have the name of a cell type.".format(
-                    self.name, self.get_config_node()
-                )
-            )
+@config.node
+class CellModel(SimulationComponent):
+    cell_type = config.ref(refs.cell_type_ref, key="name")
 
     def is_relay(self):
         return self.cell_type.relay
@@ -49,7 +42,17 @@ class SimulationCell(SimulationComponent):
         return self.is_relay()
 
 
+@config.node
+class ConnectionModel(SimulationComponent):
+    pass
+
+
+@config.node
 class SimulatorAdapter(ConfigurableClass):
+    cell_models = config.dict(type=CellModel)
+    connection_models = config.dict(type=ConnectionModel)
+    devices = config.dict(type=DeviceModel)
+
     def __init__(self):
         super().__init__()
         self.cell_models = {}

@@ -1,7 +1,7 @@
 from ..simulation import (
     SimulatorAdapter,
-    SimulationComponent,
-    SimulationCell,
+    ConnectionModel,
+    CellModel,
     TargetsNeurons,
 )
 from ..models import ConnectivitySet
@@ -30,7 +30,7 @@ class MapsScaffoldIdentifiers:
         return [self.scaffold_to_nest_map[id] for id in ids]
 
 
-class NestCell(SimulationCell, MapsScaffoldIdentifiers):
+class NestCell(CellModel, MapsScaffoldIdentifiers):
 
     node_name = "simulations.?.cell_models"
 
@@ -102,7 +102,7 @@ class NestCell(SimulationCell, MapsScaffoldIdentifiers):
         )
 
 
-class NestConnection(SimulationComponent):
+class NestConnection(ConnectionModel):
     node_name = "simulations.?.connection_models"
 
     casts = {"synapse": dict, "connection": dict}
@@ -210,7 +210,7 @@ class NestConnection(SimulationComponent):
         return receptors[from_cell_model.name]
 
 
-class NestDevice(TargetsNeurons, SimulationComponent):
+class NestDevice(TargetsNeurons, DeviceModel):
     node_name = "simulations.?.devices"
 
     casts = {

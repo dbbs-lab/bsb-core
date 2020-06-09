@@ -1,7 +1,7 @@
 from ...simulation import (
     SimulatorAdapter,
     SimulationComponent,
-    SimulationCell,
+    CellModel,
     TargetsNeurons,
     TargetsSections,
 )
@@ -17,7 +17,7 @@ import random, os, sys
 import numpy as np
 
 
-class NeuronCell(SimulationCell):
+class NeuronCell(CellModel):
     node_name = "simulations.?.cell_models"
 
     casts = {

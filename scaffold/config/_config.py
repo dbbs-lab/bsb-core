@@ -3,6 +3,7 @@ from ..objects import CellType, Layer
 from . import validators, types
 from ..storage import get_engines
 from ..connectivity import ConnectionStrategy
+from ..simulation import SimulatorAdapter
 from ..postprocessing import PostProcessingHook
 
 
@@ -35,3 +36,4 @@ class Configuration:
     after_placement = dict(type=PostProcessingHook)
     connection_types = dict(type=ConnectionStrategy, required=True)
     after_connectivity = dict(type=PostProcessingHook)
+    simulations = dict(type=SimulatorAdapter, store_raw=True)
