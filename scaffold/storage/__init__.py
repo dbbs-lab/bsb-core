@@ -16,6 +16,7 @@ import os
 from abc import abstractmethod, ABC
 from inspect import isclass
 from ..exceptions import *
+from .. import plugins
 
 # Import the interfaces child module through a relative import as a sibling.
 interfaces = __import__("interfaces", globals=globals(), level=1)
@@ -29,22 +30,13 @@ _storage_interfaces = {
     and issubclass(interface, interfaces.Interface)
     and interface is not interfaces.Interface
 }
-# Engines directory
-engine_dir = os.path.join(os.path.dirname(__file__), "engines")
 
 
 def get_engines():
     """
         Get a dictionary of all available storage engines.
     """
-    return {
-        # Import the directory as a module and store it in the return dictionary under
-        # its directory name.
-        d: __import__("engines." + d, globals=globals(), level=1).__dict__[d]
-        # Do this For each directory in the `engine_dir` that isn't "__pycache__"
-        for d in os.listdir(engine_dir)
-        if os.path.isdir(os.path.join(engine_dir, d)) and d != "__pycache__"
-    }
+    return plugins.discover("engines")
 
 
 _available_engines = get_engines()
