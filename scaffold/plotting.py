@@ -295,19 +295,22 @@ def get_branch_trace(compartments, offset=[0.0, 0.0, 0.0], color="black", width=
     )
 
 
-def get_soma_trace(soma_radius, offset=[0.0, 0.0, 0.0], color="black"):
-    theta = np.linspace(0, 2 * np.pi, 10)
-    phi = np.linspace(0, np.pi, 10)
-    x = np.outer(np.cos(theta), np.sin(phi)) * soma_radius + offset[0]
-    y = np.outer(np.sin(theta), np.sin(phi)) * soma_radius + offset[2]
-    z = np.outer(np.ones(10), np.cos(phi)) * soma_radius + offset[1]
-    return go.Surface(
-        x=x,
-        y=y,
-        z=z,
-        surfacecolor=np.zeros(10),
-        colorscale=[[0, color], [1, color]],
-        showscale=False,
+def get_soma_trace(soma_radius, offset=[0.0, 0.0, 0.0], color="black", opacity=1):
+    phi = np.linspace(0, 2 * np.pi, num=10)
+    theta = np.linspace(-np.pi / 2, np.pi / 2, num=5)
+    phi, theta = np.meshgrid(phi, theta)
+
+    x = np.cos(theta) * np.sin(phi) * soma_radius + offset[0]
+    y = np.cos(theta) * np.cos(phi) * soma_radius + offset[2]
+    z = np.sin(theta) * soma_radius + offset[1]
+
+    return go.Mesh3d(
+        x=x.flatten(),
+        y=y.flatten(),
+        z=z.flatten(),
+        opacity=opacity,
+        color=color,
+        alphahull=0,
     )
 
 
