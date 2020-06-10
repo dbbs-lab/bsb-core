@@ -28,6 +28,7 @@ setuptools.setup(
             "neuron = scaffold.simulators.neuron",
         ],
         "dbbs_scaffold.engines": ["hdf5 = scaffold.storage.engines.hdf5"],
+        "dbbs_scaffold.config.parsers": ["json = scaffold.config.parsers.json"],
     },
     install_requires=[
         "h5py>=2.9.0",

@@ -1,9 +1,10 @@
-import sys, types
+import os, sys
 
 _list = list
 from ._attrs import attr, list, dict, node, root, dynamic, ref, slot, pluggable
 from ._make import walk_nodes
-from .parsers import JsonParser
+from .. import plugins
+
 
 _path = __path__
 
@@ -30,24 +31,36 @@ class ConfigurationModule:
 
     # Load the Configuration class on demand, not on import, to avoid circular
     # dependencies.
-    _cfg_cls = None
 
     @property
     def Configuration(self):
-        if self._cfg_cls is None:
+        if not hasattr(self, "_cfg_cls"):
             from ._config import Configuration
 
             self._cfg_cls = Configuration
         return self._cfg_cls
 
-    def from_json(self, file=None, data=None):
+    __all__ = _list(vars().keys() - {"__init__", "__qualname__", "__module__"})
+
+
+def parser_factory(parser):
+    def parser_method(self, file=None, data=None):
         if file is not None:
+            file = os.path.abspath(file)
             with open(file, "r") as f:
                 data = f.read()
-        tree = JsonParser(data).parse()
-        return self.Configuration.__cast__(tree, None)
+        tree, meta = parser().parse(data, path=file)
+        conf = self.Configuration.__cast__(tree, None)
+        conf._parser = parser._scaffold_plugin.name
+        conf._meta = meta
+        conf._file = file
+        return conf
 
-    __all__ = _list(vars().keys() - {"__qualname__", "__module__"})
+    return parser_method
 
+
+for name, parser in plugins.discover("config.parsers").items():
+    setattr(ConfigurationModule, "from_" + name, parser_factory(parser))
+    ConfigurationModule.__all__.append("from_" + name)
 
 sys.modules[__name__] = ConfigurationModule(__name__)

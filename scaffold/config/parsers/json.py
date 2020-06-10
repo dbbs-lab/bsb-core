@@ -1,13 +1,15 @@
 import json
 
 
-class parsedict(dict):
+class JsonMeta:
     pass
 
 
 class JsonParser:
-    def __init__(self, content):
-        self.content = content
+    def parse(self, content, path=None):
+        meta = JsonMeta()
+        meta.path = path
+        return json.loads(content), meta
 
-    def parse(self):
-        return json.loads(self.content)
+
+__plugin__ = JsonParser
