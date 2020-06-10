@@ -8,7 +8,7 @@ from ..config import refs, types
 
 
 @config.dynamic
-class PlacementStrategy(ConfigurableClass):
+class PlacementStrategy(abc.ABC):
     layer = config.ref(refs.layer_ref)
     density = config.attr(type=float)
     planar_density = config.attr(type=float)
@@ -18,7 +18,6 @@ class PlacementStrategy(ConfigurableClass):
     count = config.attr(type=int)
 
     def __init__(self, cell_type):
-        super().__init__()
         self.cell_type = cell_type
 
     @abc.abstractmethod

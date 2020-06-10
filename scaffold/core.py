@@ -57,6 +57,7 @@ class Scaffold:
     def __init__(self, config=None, storage=None):
         self._initialise_MPI()
         self._bootstrap(config, storage)
+        self.configuration._bootstrap(self)
 
         # # Debug statistics, unused.
         # self.statistics = Statistics(self)

@@ -220,7 +220,7 @@ def _load_class(configured_class_name, interface=None):
     return class_ref
 
 
-def walk_nodes(node):
+def walk_node_attributes(node):
     """
         Walk over all of the child configuration nodes and attributes of ``node``.
 
@@ -243,17 +243,43 @@ def walk_nodes(node):
             continue
 
         child = attr.__get__(node, node.__class__)
-        for deep_node, deep_attr in walk_nodes(child):
+        for deep_node, deep_attr in walk_node_attributes(child):
             yield deep_node, deep_attr
 
 
+def walk_nodes(node):
+    """
+        Walk over all of the child configuration nodes of ``node``.
+
+        :returns: node generator
+        :rtype: any
+    """
+    if not hasattr(node.__class__, "_config_attrs"):
+        if hasattr(node, "_attr"):
+            attrs = _get_walkable_iterator(node)
+        else:
+            return
+    else:
+        attrs = node.__class__._config_attrs
+    nn = node.attr_name if hasattr(node, "attr_name") else node._attr.attr_name
+    yield node
+    for attr in attrs.values():
+        # Yield but don't follow references.
+        if hasattr(attr, "__ref__"):
+            continue
+
+        child = attr.__get__(node, node.__class__)
+        for deep_node in walk_nodes(child):
+            yield deep_node
+
+
 def walk_node_values(start_node):
-    for node, attr in walk_nodes(start_node):
+    for node, attr in walk_node_attributes(start_node):
         yield node, attr.attr_name, attr.__get__(node, node.__class__)
 
 
 def _resolve_references(root):
-    for node, attr in walk_nodes(root):
+    for node, attr in walk_node_attributes(root):
         if hasattr(attr, "__ref__"):
             ref = attr.__ref__(node, root)
             attr.__set__(node, ref)

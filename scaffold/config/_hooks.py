@@ -1,31 +1,28 @@
-def _hook(obj, hook, callback, essential, *args, **kwargs):
-    pass
-
-
 def _dunder(*hooks):
     return "__" + "_".join(hooks) + "__"
 
 
 def run_hook(obj, hook, *args, **kwargs):
-    print("looking for", _dunder(hook), "on", obj.__class__.__name__)
     for parent in reversed(obj.__class__.__mro__):
         if hasattr(parent, _dunder(hook)):
-            print("Found it on", parent.__class__.__name__)
+            print("Found " + hook + "it on", parent.__class__.__name__)
             getattr(parent, _dunder(hook))(obj, *args, **kwargs)
     if hasattr(obj, hook):
         getattr(obj, hook)(*args, **kwargs)
 
 
-def on(hook, cls, essential=False):
+def on(hook, cls, essential=False, before=False):
     if essential:
         hook = _dunder(hook)
-    return _hook(hook, cls, essential)
+    return _hook(cls, hook, before)
 
-    _prepare_class_hook(cls, hook)
 
-    def inner_decorator(func):
-        def wrapper(*args, **kwargs):
-            r = func(*args, **kwargs)
+def after(hook, cls, essential=False):
+    return on(hook, cls, essential=essential, before=False)
+
+
+def before(hook, cls, essential=False):
+    return on(hook, cls, essential=essential, before=True)
 
 
 def _super(cls, attr):
@@ -34,25 +31,56 @@ def _super(cls, attr):
             return getattr(c, attr)
         except:
             pass
+
+
+def has_hook(instance, hook):
+    return hasattr(instance, hook) or hasattr(instance, _dunder(hook))
+
+
+def overrides(cls, hook):
+    return hasattr(cls, hook) and getattr(cls, hook) is not _super(cls, hook)
+
+
+def _hook(cls, hook, before):
+    if overrides(cls, hook):
+        return _make_wrapper(cls, hook, before)
     else:
-        raise AttributeError(
-            "Attribute {} not found in mro of {}".format(attr, cls.__name__)
-        )
+        return _make_injector(cls, hook)
 
 
-def _hook(hook, cls, essential):
-    if not hasattr(cls, hook) or getattr(cls, hook) is _super(cls, hook):
-        return _make_injector(hook, cls)
-    else:
-        return _make_wrapper(hook, cls)
-
-
-def _make_injector(hook, cls):
-    def injector(func):
+def _make_injector(cls, hook):
+    def decorator(func):
         setattr(cls, hook, func)
 
-    return injector
+    return decorator
 
 
-def _make_wrapper(hook, cls):
-    pass
+def _get_func_to_hook(cls, hook):
+    return getattr(cls, hook)
+
+
+def _set_hooked_func(cls, hook, hooked):
+    return setattr(cls, hook, hooked)
+
+
+def _make_wrapper(cls, hook, before):
+    func_to_hook = _get_func_to_hook(cls, hook)
+
+    def decorator(func):
+        if before:
+
+            def hooked(*args, **kwargs):
+                func(*args, **kwargs)
+                r = func_to_hook(*args, **kwargs)
+                return r
+
+        else:
+
+            def hooked(*args, **kwargs):
+                r = func_to_hook(*args, **kwargs)
+                func(*args, **kwargs)
+                return r
+
+        _set_hooked_func(cls, hook, hooked)
+
+    return decorator

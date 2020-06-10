@@ -43,7 +43,6 @@ class NestCell(CellModel, MapsScaffoldIdentifiers):
     neuron_model = config.attr()
 
     def boot(self):
-        super().boot()
         self.receptor_specifications = {}
         self.reset()
         if self.relay:
@@ -268,7 +267,6 @@ class NestEntity(NestDevice, MapsScaffoldIdentifiers):
     node_name = "simulations.?.entities"
 
     def boot(self):
-        super().boot()
         self.reset_identifiers()
 
 
