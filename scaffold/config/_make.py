@@ -128,6 +128,9 @@ def _cast_attributes(node, section, node_cls, key):
 
 def _make_cast(node_cls):
     def __cast__(section, parent, key=None):
+        if section.__class__ is node.__class__:
+            # The 'section' is an already cast node: trying to cast it again would error;
+            return section
         if hasattr(node_cls, "__dcast__"):
             # Create an instance of the dynamically configured class.
             node = node_cls.__dcast__(section, parent, key)
@@ -136,9 +139,6 @@ def _make_cast(node_cls):
             node = node_cls(parent=parent)
         if key is not None:
             node._key = key
-        if section.__class__ is node.__class__:
-            # The 'section' is an already cast node: trying to cast it again would error;
-            return section
         _cast_attributes(node, section, node.__class__, key)
         return node
 
