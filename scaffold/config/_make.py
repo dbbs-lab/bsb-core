@@ -9,7 +9,7 @@ def wrap_init(cls):
         return
     wrapped_init = _get_class_init_wrapper(cls)
 
-    def __init__(self, parent, *args, **kwargs):
+    def __init__(self, parent=None, **kwargs):
         attrs = _get_class_config_attrs(self.__class__)
         self._config_parent = parent
         for attr in attrs.values():
@@ -18,7 +18,7 @@ def wrap_init(cls):
             else:
                 v = attr.default
             attr.__set__(self, v)
-        wrapped_init(self, parent, *args, **kwargs)
+        wrapped_init(self, parent, **kwargs)
 
     __init__.wrapped = True
     cls.__init__ = __init__
@@ -40,11 +40,14 @@ def _get_class_init_wrapper(cls):
     snake_case = lambda name: pattern.sub("_", name).lower()
 
     @wraps(f)
-    def wrapper(self, parent, *args, **kwargs):
-        if "parent" in params or snake_case(parent.__class__.__name__) in params:
-            f(self, parent, *args, **kwargs)
+    def wrapper(self, parent, **kwargs):
+        snake_name = snake_case(parent.__class__.__name__)
+        # Node constructors can only have 1 positional argument namely the parent, if you
+        # want more complex initialization use a factory classmethod.
+        if "parent" in params or snake_name in params:
+            f(self, parent, **kwargs)
         else:
-            f(self, *args, **kwargs)
+            f(self, **kwargs)
 
     return wrapper
 
@@ -130,9 +133,12 @@ def _make_cast(node_cls):
             node = node_cls.__dcast__(section, parent, key)
         else:
             # Create an instance of the static node class
-            node = node_cls(parent)
+            node = node_cls(parent=parent)
         if key is not None:
             node._key = key
+        if section.__class__ is node.__class__:
+            # The 'section' is an already cast node: trying to cast it again would error;
+            return section
         _cast_attributes(node, section, node.__class__, key)
         return node
 
@@ -148,7 +154,7 @@ def make_dynamic_cast(node_cls):
                 )
             )
         dynamic_cls = _load_class(section["class"], interface=node_cls)
-        node = dynamic_cls(parent)
+        node = dynamic_cls(parent=parent)
         return node
 
     node_cls.__dcast__ = __dcast__
@@ -173,7 +179,7 @@ def make_pluggable_cast(node_cls):
             raise PluginError("Unknown {} '{}'".format(plugin_label, plugin_name))
         plugin_cls = plugins[plugin_name]
         # TODO: Enforce class inheritance
-        node = plugin_cls(parent)
+        node = plugin_cls(parent=parent)
         return node
 
     node_cls.__dcast__ = __dcast__
