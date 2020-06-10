@@ -11,10 +11,17 @@ def any():
 
 
 def in_(container):
-    def type_handler(value):
-        return value in container
+    error_msg = "any of the following: " + ", ".join(
+        map(lambda x: "'{}'".format(x), container)
+    )
 
-    type_handler.__name__ = "any of the following values: " + str(_list(container))
+    def type_handler(value):
+        if value in container:
+            return value
+        else:
+            raise TypeError("Couldn't cast '{}' to ".format(value) + error_msg)
+
+    type_handler.__name__ = error_msg
     return type_handler
 
 

@@ -99,8 +99,12 @@ class Scaffold:
         else:
             from scaffold.storage import Storage
 
-            config = Configuration.default()
-            storage = Storage(config.storage.engine, config.storage.root)
+            dconf = Configuration.default()
+            dng = dconf.storage.engine
+            droot = dcong.storage.root
+            if config is None:
+                config = dconf
+            storage = Storage(config.storage.engine or dng, config.storage.root or droot)
 
         self.configuration = config
         self.storage = storage

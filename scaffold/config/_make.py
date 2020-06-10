@@ -168,7 +168,7 @@ def make_pluggable_cast(node_cls):
         if node_cls._config_plugin_key not in section:
             raise CastError(
                 "Pluggable node '{}' must contain a '{}' attribute to select a {}.".format(
-                    parent.get_node_name() + ("." + key if key is not None else ""),
+                    parent.get_node_name() + "." + key,
                     node_cls._config_plugin_key,
                     plugin_label,
                 )
@@ -176,8 +176,14 @@ def make_pluggable_cast(node_cls):
         plugin_name = section[node_cls._config_plugin_key]
         plugins = node_cls.__plugins__()
         if plugin_name not in plugins:
-            raise PluginError("Unknown {} '{}'".format(plugin_label, plugin_name))
+            raise PluginError(
+                "Unknown {} '{}' in {}".format(
+                    plugin_label, plugin_name, parent.get_node_name() + "." + key
+                )
+            )
         plugin_cls = plugins[plugin_name]
+        if node_cls._config_plugin_unpack:
+            plugin_cls = node_cls._config_plugin_unpack(plugin_cls)
         # TODO: Enforce class inheritance
         node = plugin_cls(parent=parent)
         return node

@@ -53,10 +53,11 @@ def dynamic(node_cls):
     return node(node_cls, dynamic=True)
 
 
-def pluggable(key, plugin_name=None):
+def pluggable(key, plugin_name=None, unpack=None):
     def inner_decorator(node_cls):
         node_cls._config_plugin_name = plugin_name
         node_cls._config_plugin_key = key
+        node_cls._config_plugin_unpack = unpack
         class_attr = ConfigurationAttribute(type=str, required=True)
         setattr(node_cls, key, class_attr)
         return node(node_cls, pluggable=True)

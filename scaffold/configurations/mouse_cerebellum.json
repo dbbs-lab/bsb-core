@@ -1,7 +1,7 @@
 {
-  "name": "DBBS Mouse cerebellum configuration v3.1.0",
+  "name": "DBBS Mouse cerebellum configuration v4.0",
   "storage": {
-    "engine": "hddf5"
+    "engine": "hdf5"
   },
   "network": {
     "x": 400.0,

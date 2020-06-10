@@ -1,10 +1,13 @@
+from .... import config
+from ....config.nodes import StorageNode as IStorageNode
 from ...interfaces import Engine
 from contextlib import contextmanager
-import h5py, os
 from .placement_set import PlacementSet
 from .config_store import ConfigStore
 from .label import Label
 from .filter import Filter
+from time import time
+import h5py, os
 
 
 class HDF5Engine(Engine):
@@ -73,6 +76,17 @@ class HDF5Engine(Engine):
 
     def remove(self):
         os.remove(self.file)
+
+
+def _get_default_root():
+    return os.path.abspath(
+        os.path.join(".", "scaffold_network_", str(int(time())), "hdf5")
+    )
+
+
+@config.node
+class StorageNode(IStorageNode):
+    root = config.attr(type=str, default=_get_default_root, call_default=True)
 
 
 #
