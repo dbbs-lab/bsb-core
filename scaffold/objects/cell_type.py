@@ -10,7 +10,6 @@ from ..placement import PlacementStrategy
 @config.node
 class Representation:
     radius = config.attr(type=float, required=True)
-    entity = config.attr(type=bool, default=False)
     geometry = config.dict(type=types.any())
 
 
@@ -28,3 +27,4 @@ class CellType:
     spatial = config.attr(type=Representation, required=True)
     plotting = config.attr(type=Plotting)
     relay = config.attr(type=bool, default=False)
+    entity = config.attr(type=bool, default=False)

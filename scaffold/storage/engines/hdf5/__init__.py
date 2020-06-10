@@ -6,7 +6,7 @@ from .placement_set import PlacementSet
 from .config_store import ConfigStore
 from .label import Label
 from .filter import Filter
-from time import time
+from datetime import datetime
 import h5py, os
 
 
@@ -80,7 +80,10 @@ class HDF5Engine(Engine):
 
 def _get_default_root():
     return os.path.abspath(
-        os.path.join(".", "scaffold_network_", str(int(time())), "hdf5")
+        os.path.join(
+            ".",
+            "scaffold_network_" + datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + ".hdf5",
+        )
     )
 
 

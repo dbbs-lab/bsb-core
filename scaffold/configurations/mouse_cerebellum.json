@@ -76,6 +76,7 @@
       }
     },
     "mossy_fibers": {
+      "entity": true,
       "placement": {
         "class": "scaffold.placement.Entities",
         "layer": "granular_layer",
@@ -83,8 +84,7 @@
         "placement_count_ratio": 0.05
       },
       "spatial": {
-        "radius": 0.0,
-        "entity": true
+        "radius": 0.0
       }
     },
     "glomerulus": {

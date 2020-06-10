@@ -58,16 +58,16 @@ class Scaffold:
         self._initialise_MPI()
         self._bootstrap(config, storage)
 
-        # Debug statistics, unused.
-        self.statistics = Statistics(self)
-        self.trees = TreeCollectionGroup()
-        self.trees.add_collection("cells", self.storage)
-        self.trees.add_collection("morphologies", self.storage)
-        self._nextId = 0
-        # Use the configuration to initialise all components such as cells and layers
-        # to prepare for the network architecture compilation.
-        self._intialise_components()
-        self._intialise_simulators()
+        # # Debug statistics, unused.
+        # self.statistics = Statistics(self)
+        # self.trees = TreeCollectionGroup()
+        # self.trees.add_collection("cells", self.storage)
+        # self.trees.add_collection("morphologies", self.storage)
+        # self._nextId = 0
+        # # Use the configuration to initialise all components such as cells and layers
+        # # to prepare for the network architecture compilation.
+        # self._intialise_components()
+        # self._intialise_simulators()
 
     def _initialise_MPI(self):
         # Delegate initialization of MPI to the reporting module. Which is weird, bu
@@ -99,12 +99,9 @@ class Scaffold:
         else:
             from scaffold.storage import Storage
 
-            dconf = Configuration.default()
-            dng = dconf.storage.engine
-            droot = dcong.storage.root
             if config is None:
-                config = dconf
-            storage = Storage(config.storage.engine or dng, config.storage.root or droot)
+                config = Configuration.default()
+            storage = Storage(config.storage.engine, config.storage.root)
 
         self.configuration = config
         self.storage = storage

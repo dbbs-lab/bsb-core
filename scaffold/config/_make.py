@@ -128,8 +128,9 @@ def _cast_attributes(node, section, node_cls, key):
 
 def _make_cast(node_cls):
     def __cast__(section, parent, key=None):
-        if section.__class__ is node.__class__:
-            # The 'section' is an already cast node: trying to cast it again would error;
+        if hasattr(section.__class__, "_config_attrs"):
+            # Casting artifacts found on the section's class so it must have been cast
+            # before.
             return section
         if hasattr(node_cls, "__dcast__"):
             # Create an instance of the dynamically configured class.
