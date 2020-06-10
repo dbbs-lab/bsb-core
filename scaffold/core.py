@@ -54,18 +54,10 @@ class Scaffold:
         simulators such as NEST or NEURON.
     """
 
-    def __init__(self, config=None, engine=None):
+    def __init__(self, config=None, storage=None):
         self._initialise_MPI()
-        self.configuration = config
-        if engine is None:
-            from scaffold.storage import Storage
+        self._bootstrap(config, storage)
 
-            storage = self.configuration.storage
-            self.storage = Storage(storage.engine, storage.root)
-        else:
-            self.storage = engine
-        self.storage.init(self)
-        self.reset_network_cache()
         # Debug statistics, unused.
         self.statistics = Statistics(self)
         self.trees = TreeCollectionGroup()
@@ -94,6 +86,25 @@ class Scaffold:
             self.has_mpi_installed = False
             self.is_mpi_master = True
             self.is_mpi_slave = False
+
+    def _bootstrap(self, config, storage):
+        # If both config and storage are given, overwrite the config in the storage. If
+        # just the storage is given, load the config from storage. If neither is given,
+        # create a default config and create a storage from it.
+        if config is not None and storage is not None:
+            self.storage = storage
+            storage.store_config(config)
+        elif storage is not None:
+            config = storage.load_config()
+        else:
+            from scaffold.storage import Storage
+
+            config = Configuration.default()
+            storage = Storage(config.storage.engine, config.storage.root)
+
+        self.configuration = config
+        self.storage = storage
+        self.storage.init(self)
 
     def _intialise_components(self):
         """

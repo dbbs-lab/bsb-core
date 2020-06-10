@@ -208,12 +208,13 @@ class Storage:
 
             (That's it, for now ^_^)
         """
-        # Store the scaffold's configuration
-        self._Configuration(self._engine).store(scaffold.configuration)
         # Make sure that at least an empty PlacementSet exists for each cell type.
         for cell_type in scaffold.get_cell_types():
             if not self._PlacementSet.exists(self._engine, cell_type):
                 self._PlacementSet.create(self._engine, cell_type)
+
+    def store_config(self, config):
+        self._ConfigStore(self._engine).store(config)
 
     def Label(self, label):
         """
