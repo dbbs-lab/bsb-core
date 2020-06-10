@@ -3,6 +3,7 @@ import os, sys
 _list = list
 from ._attrs import attr, list, dict, node, root, dynamic, ref, slot, pluggable
 from ._make import walk_nodes
+from ._hooks import on
 from .. import plugins
 
 
@@ -25,6 +26,7 @@ class ConfigurationModule:
     pluggable = staticmethod(pluggable)
 
     walk_nodes = staticmethod(walk_nodes)
+    on = staticmethod(on)
 
     # The __path__ attribute needs to be retained to mark this module as a package
     __path__ = _path

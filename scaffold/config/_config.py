@@ -1,6 +1,8 @@
 from . import attr, list, dict, node, root, pluggable
 from ..objects import CellType, Layer
 from . import types
+from ._make import walk_nodes
+from ._hooks import run_hook
 from .nodes import LayerStack, StorageNode, NetworkNode
 from ..storage import get_engines
 from ..connectivity import ConnectionStrategy
@@ -31,3 +33,9 @@ class Configuration:
         conf._parser = "json"
         conf._file = None
         return conf
+
+    def _bootstrap(self, scaffold):
+        for node, attr in walk_nodes(self):
+            if hasattr(node, "__boot__"):
+                node.scaffold = scaffold
+                run_hook(node, "boot")

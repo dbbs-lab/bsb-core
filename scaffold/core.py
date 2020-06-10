@@ -106,6 +106,7 @@ class Scaffold:
         self.configuration = config
         self.storage = storage
         self.storage.init(self)
+        self.configuration._bootstrap(self)
 
     def _intialise_components(self):
         """
