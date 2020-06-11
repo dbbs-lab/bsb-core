@@ -11,9 +11,7 @@ def any():
 
 
 def in_(container):
-    error_msg = "any of the following: " + ", ".join(
-        map(lambda x: "'{}'".format(x), container)
-    )
+    error_msg = "a value in: " + str(container)
 
     def type_handler(value):
         if value in container:
