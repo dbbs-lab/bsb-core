@@ -18,9 +18,3 @@ class StorageNode:
 class NetworkNode:
     x = attr(type=float, required=True)
     z = attr(type=float, required=True)
-
-
-@node
-class LayerStack:
-    name = attr(key=True)
-    origin = attr(type=types.list(float, size=3), required=True)

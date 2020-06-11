@@ -4,19 +4,21 @@
 
 from .. import config
 from ..config import types
-from ..config.refs import stack_ref
+from ..config.refs import region_ref
+from ..exceptions import *
 
 
-@config.node
-class StackNode:
-    stack = config.ref(stack_ref, required=True)
-    z_index = config.attr(type=int, required=True)
+def _size_requirements(section):
+    if "thickness" not in section and "volume_scale" not in section:
+        raise RequirementError(
+            "Either a `thickness` or `volume_scale` attribute required"
+        )
 
 
 @config.node
 class Layer:
     name = config.attr(key=True)
-    thickness = config.attr(type=float, required=True)
+    thickness = config.attr(type=float, required=_size_requirements)
     xz_scale = config.attr(
         type=types.or_(
             types.list(float, size=2), types.scalar_expand(float, lambda x: [x, x],),
@@ -25,7 +27,13 @@ class Layer:
         call_default=True,
     )
     xz_center = config.attr(type=bool, default=False)
-    stack = config.attr(type=StackNode)
-    volume_scale = config.attr(type=float)
+    region = config.ref(region_ref, populate="layers", required=True)
+    z_index = config.attr(type=int, required=lambda s: "stack" in s)
+    volume_scale = config.attr(type=float, required=_size_requirements)
+    position = config.attr(type=types.list(type=float, size=3))
     volume_dimension_ratio = config.attr(type=types.list(type=float, size=3))
     scale_from_layers = config.attr(type=types.list(type=str))
+
+    # TODO: Layer stacking
+    # TODO: Layer scaling
+    # TODO: Layer centering

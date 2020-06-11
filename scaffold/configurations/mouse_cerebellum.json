@@ -7,7 +7,7 @@
     "x": 400.0,
     "z": 400.0
   },
-  "stacks": {
+  "regions": {
     "cerebellar_cortex": {
       "origin": [0.0, 0.0, 0.0]
     },
@@ -20,41 +20,31 @@
       "thickness": 600,
       "xz_scale": [0.5, 0.5],
       "xz_center": true,
-      "stack": {
-        "stack": "cerebellar_cortex",
-        "z_index": 0
-      }
+      "region": "cerebellar_cortex",
+      "z_index": 0
     },
     "granular_layer": {
       "thickness": 150.0,
-      "stack": {
-        "stack": "cerebellar_cortex",
-        "z_index": 1
-      }
+      "region": "cerebellar_cortex",
+      "z_index": 1
     },
     "purkinje_layer": {
       "thickness": 30.0,
-      "stack": {
-        "stack": "cerebellar_cortex",
-        "z_index": 2
-      }
+      "region": "cerebellar_cortex",
+      "z_index": 2
     },
     "molecular_layer": {
       "thickness": 150.0,
-      "stack": {
-        "stack": "cerebellar_cortex",
-        "z_index": 3
-      }
+      "region": "cerebellar_cortex",
+      "z_index": 3
     },
     "io_layer": {
       "volume_scale": 0.0147,
       "thickness": 15,
       "scale_from_layers": ["granular_layer", "purkinje_layer", "molecular_layer"],
       "volume_dimension_ratio": [0.5, 1, 0.2],
-      "stack": {
-        "stack": "inferior_olive",
-        "z_index": 0
-      }
+      "region": "inferior_olive",
+      "z_index": 0
     }
   },
   "cell_types": {

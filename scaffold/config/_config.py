@@ -1,9 +1,9 @@
 from . import attr, list, dict, node, root, pluggable, on, after, before
-from ..objects import CellType, Layer
+from ..objects import CellType, Layer, Region
 from . import types
 from ._make import walk_nodes
 from ._hooks import run_hook, has_hook
-from .nodes import LayerStack, StorageNode, NetworkNode
+from .nodes import StorageNode, NetworkNode
 from ..storage import get_engines
 from ..connectivity import ConnectionStrategy
 from ..simulation import SimulatorAdapter
@@ -16,7 +16,7 @@ class Configuration:
     name = attr()
     storage = attr(type=StorageNode, required=True)
     network = attr(type=NetworkNode, required=True)
-    stacks = dict(type=LayerStack)
+    regions = dict(type=Region)
     layers = dict(type=Layer, required=True)
     cell_types = dict(type=CellType, required=True)
     after_placement = dict(type=PostProcessingHook)

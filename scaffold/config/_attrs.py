@@ -316,9 +316,9 @@ class ConfigurationReferenceAttribute(ConfigurationAttribute):
         reference = reference_parent[getattr(instance, reference_attr)]
         if self.populate:
             if hasattr(reference, self.populate):
-                getattr(reference, self.populate).append(self)
+                getattr(reference, self.populate).append(instance)
             else:
-                setattr(reference, self.populate, [self])
+                setattr(reference, self.populate, [instance])
         return reference
 
 

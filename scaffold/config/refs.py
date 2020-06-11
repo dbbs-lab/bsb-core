@@ -27,12 +27,12 @@ class LayerReference(Reference):
         return root.layers
 
 
-class StackReference(Reference):
+class RegionReference(Reference):
     def __call__(self, root, here):
-        return root.stacks
+        return root.regions
 
 
-stack_ref = StackReference()
+region_ref = RegionReference()
 layer_ref = LayerReference()
 cell_type_ref = CellTypeReference()
 
