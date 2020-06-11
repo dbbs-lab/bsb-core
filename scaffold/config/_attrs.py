@@ -126,7 +126,10 @@ class ConfigurationAttribute:
         key=False,
         validation=None,
     ):
-        self.required = required
+        if not callable(required):
+            self.required = lambda s: required
+        else:
+            self.required = required
         self.key = key
         self.default = default
         self.call_default = call_default

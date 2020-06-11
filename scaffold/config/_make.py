@@ -106,12 +106,17 @@ def _cast_attributes(node, section, node_cls, key):
     for attr in attrs.values():
         if attr.attr_name in section:
             attr.__set__(node, section[attr.attr_name], key=attr.attr_name)
-        elif attr.required:
-            raise CastError(
-                "Missing required attribute '{}' in {}".format(
-                    attr.attr_name, node.get_node_name()
-                )
-            )
+        else:
+            try:
+                throw = attr.required(section)
+                msg = "Missing required attribute '{}'".format(attr.attr_name)
+            except RequirementError as e:
+                throw = True
+                msg = str(e)
+            if throw:
+                # Call the requirement function: it either returns a boolean meaning we
+                # throw the error, or it can throw a more complex RequirementError itself.
+                raise RequirementError(msg + " in {}".format(node.get_node_name()))
         if attr.key and key is not None:
             # The attribute's value should be set to this node's key in its parent.
             attr.__set__(node, key)
@@ -147,14 +152,25 @@ def _make_cast(node_cls):
 
 
 def make_dynamic_cast(node_cls):
+    attr_name = node_cls._config_dynamic_attr
+    dynamic_attr = getattr(node_cls, attr_name)
+
     def __dcast__(section, parent, key=None):
-        if "class" not in section:
-            raise CastError(
-                "Dynamic node '{}' must contain a 'class' attribute.".format(
-                    parent.get_node_name() + ("." + key if key is not None else "")
+        if dynamic_attr.required(section):
+            if attr_name not in section:
+                raise CastError(
+                    "Dynamic node '{}' must contain a '{}' attribute.".format(
+                        parent.get_node_name() + ("." + key if key is not None else ""),
+                        attr_name,
+                    )
                 )
-            )
-        dynamic_cls = _load_class(section["class"], interface=node_cls)
+            else:
+                loaded_cls_name = section[attr_name]
+        elif dynamic_attr.call_default:
+            loaded_cls_name = dynamic_attr.default()
+        else:
+            loaded_cls_name = dynamic_attr.default
+        dynamic_cls = _load_class(loaded_cls_name, interface=node_cls)
         node = dynamic_cls(parent=parent)
         return node
 

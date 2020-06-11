@@ -33,6 +33,10 @@ class CastError(ConfigurationError):
     pass
 
 
+class RequirementError(ConfigurationError):
+    pass
+
+
 class CastConfigurationError(ConfigurationError):
     pass
 
