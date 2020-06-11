@@ -281,9 +281,10 @@ class ConfigurationDictAttribute(ConfigurationAttribute):
 
 
 class ConfigurationReferenceAttribute(ConfigurationAttribute):
-    def __init__(self, reference, key=None, **kwargs):
+    def __init__(self, reference, key=None, populate=None, **kwargs):
         self.ref_lambda = reference
         self.ref_key = key
+        self.populate = populate
         # No need to cast to any types: the reference we fetch will already have been cast
         if "type" in kwargs:
             del kwargs["type"]
@@ -293,8 +294,6 @@ class ConfigurationReferenceAttribute(ConfigurationAttribute):
         return self.ref_key or (self.attr_name + "_reference")
 
     def __set__(self, instance, value, key=None):
-        if value is None:
-            _setattr(instance, self.attr_name, None)
         if isinstance(value, str):
             setattr(instance, self.get_ref_key(), value)
         else:
@@ -314,7 +313,13 @@ class ConfigurationReferenceAttribute(ConfigurationAttribute):
                     reference_parent.get_node_name(),
                 )
             )
-        return reference_parent[getattr(instance, reference_attr)]
+        reference = reference_parent[getattr(instance, reference_attr)]
+        if self.populate:
+            if hasattr(reference, self.populate):
+                getattr(reference, self.populate).append(self)
+            else:
+                setattr(reference, self.populate, [self])
+        return reference
 
 
 class ConfigurationAttributeSlot(ConfigurationAttribute):
