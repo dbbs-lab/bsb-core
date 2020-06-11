@@ -56,6 +56,9 @@ def scalar_expand(scalar_type, size=None, expand=None):
         :rtype: callable
     """
 
+    if expand is None:
+        expand = lambda x: [1.0] * x
+
     def type_handler(value):
         # No try block: let it raise the cast error.
         v = scalar_type(value)
