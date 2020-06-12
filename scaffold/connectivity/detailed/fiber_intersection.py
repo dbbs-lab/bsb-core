@@ -37,7 +37,17 @@ class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
         "to_plot": list,
     }
 
-    defaults = {"affinity": 1.0, "resolution": 20.0, "to_plot": []}
+    defaults = {
+        "affinity": 1.0,
+        "resolution": 20.0,
+        "to_plot": [],
+        "transformation": None,
+    }
+
+    def initialise(self, scaffold):
+        super().initialise(scaffold)
+        if self.transformation is not None:
+            self.transformation.initialise(self.scaffold)
 
     def validate(self):
         pass
