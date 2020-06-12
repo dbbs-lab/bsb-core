@@ -213,13 +213,13 @@ class TargetsNeurons:
         cell_types = [self.scaffold.get_cell_type(t) for t in self.cell_types]
         if len(cell_types) != 1:
             # Compile a list of the different cell type cells.
-            target_cells = np.empty((0, 1))
+            target_cells = np.array([])
             for t in cell_types:
                 if t.entity:
                     ids = self.scaffold.get_entities_by_type(t.name)
                 else:
                     ids = self.scaffold.get_cells_by_type(t.name)[:, 0]
-                target_cells = np.vstack((target_cells, ids))
+                target_cells = np.hstack((target_cells, ids))
             return target_cells
         else:
             # Retrieve a single list
