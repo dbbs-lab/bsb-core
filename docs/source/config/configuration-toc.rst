@@ -2,4 +2,4 @@
    :maxdepth: 2
    :caption: Configuration
 
-   overview
+   module/module-toc
