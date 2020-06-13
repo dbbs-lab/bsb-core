@@ -10,7 +10,7 @@ def relative_to_tests_folder(path):
     return os.path.join(os.path.dirname(__file__), path)
 
 
-_nest_available = importlib.find_loader("nest") is not None
+_nest_available = importlib.util.find_spec("nest") is not None
 
 
 @unittest.skip("Re-enabling tests gradually while advancing v4.0 rework")
