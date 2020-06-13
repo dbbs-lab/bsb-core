@@ -26,11 +26,7 @@ heterosyn_config = relative_to_tests_folder(
 
 
 def neuron_installed():
-    try:
-        import neuron
-    except:
-        return False
-    return True
+    return importlib.util.find_spec("neuron")
 
 
 @unittest.skip("Re-enabling tests gradually while advancing v4.0 rework")

@@ -1,4 +1,4 @@
-import unittest, os, sys, numpy as np, h5py
+import unittest, os, sys, numpy as np, h5py, importlib
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 # from scaffold.config import JSONConfig
@@ -16,7 +16,12 @@ double_nn_config = relative_to_tests_folder(
 )
 
 
+def neuron_installed():
+    return importlib.util.find_spec("neuron")
+
+
 @unittest.skip("Re-enabling tests gradually while advancing v4.0 rework")
+@unittest.skipIf(not neuron_installed(), "NEURON is not importable.")
 class TestTargetting(unittest.TestCase):
     def test_representatives(self):
         """
