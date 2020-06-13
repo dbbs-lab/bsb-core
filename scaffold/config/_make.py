@@ -55,11 +55,11 @@ def _get_class_init_wrapper(cls):
 def _get_node_name(self):
     name = ".<missing>"
     if hasattr(self, "attr_name"):
-        name = "." + self.attr_name
+        name = "." + str(self.attr_name)
     if hasattr(self, "_key"):
-        name = "." + self._key
+        name = "." + str(self._key)
     if hasattr(self, "_index"):
-        name = "[" + self._index + "]"
+        name = "[" + str(self._index) + "]"
     return self._config_parent.get_node_name() + name
 
 
@@ -236,6 +236,17 @@ def _load_class(configured_class_name, interface=None):
     return class_ref
 
 
+def make_dictable(node_cls):
+    def __contains__(self, attr):
+        return attr in _get_class_config_attrs(self.__class__)
+
+    def __getitem__(self, attr):
+        return getattr(self, attr)
+
+    node_cls.__contains__ = __contains__
+    node_cls.__getitem__ = __getitem__
+
+
 def walk_node_attributes(node):
     """
         Walk over all of the child configuration nodes and attributes of ``node``.
@@ -295,10 +306,12 @@ def walk_node_values(start_node):
 
 
 def _resolve_references(root):
+    from ._attrs import _setattr
+
     for node, attr in walk_node_attributes(root):
         if hasattr(attr, "__ref__"):
             ref = attr.__ref__(node, root)
-            attr.__set__(node, ref)
+            _setattr(node, attr.attr_name, ref)
 
 
 class WalkIterDescriptor:

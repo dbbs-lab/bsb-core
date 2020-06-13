@@ -79,6 +79,16 @@ class TestConfigAttrs(unittest.TestCase):
         t = Test()
         t2 = Test.__cast__({}, TestRoot())
 
+    def test_attr(self):
+        @config.node
+        class Test:
+            str = config.attr()
+
+        t = Test()
+        t2 = Test.__cast__({}, TestRoot())
+        node_name = Test.str.get_node_name(t2)
+        self.assertTrue(node_name.endswith(".str"), "str attribute misnomer")
+
     def test_inheritance(self):
         @config.node
         class Test:
@@ -107,7 +117,7 @@ class TestConfigDict(unittest.TestCase):
         )
         self.assertEqual(len(t.l), 2, "Dict length incorrect")
         self.assertEqual(t.l.e, t.l["e"], "Dict access incorrect")
-        self.assertEqual(type(t.l.e), Child, "List item class incorrect")
+        self.assertEqual(type(t.l.e), Child, "Dict child class incorrect")
         self.assertEqual(t.l.e.key, "e", "Child key key incorrectly set")
 
 
@@ -122,7 +132,33 @@ class TestConfigList(unittest.TestCase):
         class Test:
             l = config.list(type=Child, required=True)
 
-        t = Test.__cast__({"l": [{"name": "hi"}, {"name": "other"}]}, TestRoot())
+        @config.node
+        class TestSize:
+            l = config.list(type=Child, required=True, size=3)
+
+        test_conf = {"l": [{"name": "hi"}, {"name": "other"}]}
+        t = Test.__cast__(test_conf, TestRoot())
         self.assertEqual(len(t.l), 2, "List length incorrect")
         self.assertEqual(type(t.l[0]), Child, "List item class incorrect")
         self.assertEqual(t.l[1].index, 1, "Child index key incorrectly set")
+        self.assertTrue(t.l.get_node_name().endswith(".l"), "Dict node name incorrect")
+        self.assertRaises(CastError, TestSize.__cast__, test_conf, TestRoot())
+
+        test_conf2 = {"l": [{"name": "hi"}, {}, {"name": "hi"}]}
+        self.assertRaises(RequirementError, TestSize.__cast__, test_conf2, TestRoot())
+
+
+class TestConfigRef(unittest.TestCase):
+    def test_referencing(self):
+        @config.node
+        class Test:
+            name = config.attr(required=True)
+            name_ref = config.ref(lambda root, here: here, required=True, type=int)
+
+        @config.root
+        class Resolver:
+            test = config.attr(type=Test, required=True)
+
+        r = Resolver.__cast__({"test": {"name": "Johnny", "name_ref": "name"}}, None)
+        self.assertEqual(r.test.name_ref, "Johnny")
+        self.assertEqual(r.test.name_ref_reference, "name")

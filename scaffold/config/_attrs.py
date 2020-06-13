@@ -2,7 +2,7 @@
     An attrs-inspired class annotation system, but my A stands for amateuristic.
 """
 
-from ._make import wrap_init, make_get_node_name, make_cast
+from ._make import wrap_init, make_get_node_name, make_cast, make_dictable
 from inspect import signature
 from ..exceptions import *
 
@@ -43,6 +43,7 @@ def node(node_cls, root=False, dynamic=False, pluggable=False):
     wrap_init(node_cls)
     make_get_node_name(node_cls, root=root)
     make_cast(node_cls, dynamic=dynamic, pluggable=pluggable, root=root)
+    make_dictable(node_cls)
 
     return node_cls
 
@@ -117,13 +118,7 @@ def _getattr(instance, name):
 
 class ConfigurationAttribute:
     def __init__(
-        self,
-        type=None,
-        default=None,
-        call_default=False,
-        required=False,
-        key=False,
-        validation=None,
+        self, type=None, default=None, call_default=False, required=False, key=False,
     ):
         if not callable(required):
             self.required = lambda s: required
@@ -133,7 +128,6 @@ class ConfigurationAttribute:
         self.default = default
         self.call_default = call_default
         self.type = self._get_type(type)
-        self.early_validator = validation
 
     def __get__(self, instance, owner):
         if instance is None:
@@ -215,6 +209,8 @@ class ConfigurationListAttribute(ConfigurationAttribute):
 
     def __cast__(self, value, parent, key=None):
         _cfglist = cfglist(value or _list())
+        _cfglist._config_parent = parent
+        _cfglist._attr = self
         if value is None:
             return _cfglist
         if self.size is not None and len(_cfglist) != self.size:
@@ -228,6 +224,8 @@ class ConfigurationListAttribute(ConfigurationAttribute):
                 _cfglist[i] = self.child_type(elem, parent=_cfglist, key=i)
                 _cfglist[i]._index = i
         except:
+            if self.child_type.__casting__:
+                raise
             raise CastError(
                 "Couldn't cast {}[{}] from '{}' into a {}".format(
                     self.get_node_name(parent), i, elem, self.type.__name__
@@ -285,7 +283,7 @@ class ConfigurationReferenceAttribute(ConfigurationAttribute):
         self.ref_key = key
         self.populate = populate
         # No need to cast to any types: the reference we fetch will already have been cast
-        if "type" in kwargs:
+        if "type" in kwargs:  # pragma: nocover
             del kwargs["type"]
         super().__init__(**kwargs)
 
@@ -322,7 +320,7 @@ class ConfigurationReferenceAttribute(ConfigurationAttribute):
 
 
 class ConfigurationAttributeSlot(ConfigurationAttribute):
-    def __set__(self, instance, value):
+    def __set__(self, instance, value):  # pragma: nocover
         raise NotImplementedError(
             "Configuration slot {} of {} is empty. The {} plugin provided by '{}' should fill it with a configuration attribute.".format(
                 self.attr_name,
