@@ -1,11 +1,11 @@
 {
-  "output": {
-    "format": "scaffold.output.HDF5Formatter",
-    "file": "minimal.hdf5"
+  "storage": {
+    "engine": "hdf5",
+    "root": "minimal.hdf5"
   },
-  "network_architecture": {
-    "simulation_volume_x": 150.0,
-    "simulation_volume_z": 150.0
+  "network": {
+    "x": 150.0,
+    "z": 150.0
   },
   "layers": {
 

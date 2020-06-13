@@ -2,7 +2,8 @@ import unittest, os, sys, numpy as np, h5py
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from scaffold.core import Scaffold, from_hdf5
-from scaffold.config import JSONConfig
+
+# from scaffold.config import JSONConfig
 from scaffold.models import Layer, CellType
 from scaffold.placement import Satellite
 from test_setup import get_test_network
@@ -15,6 +16,7 @@ def relative_to_tests_folder(path):
 single_neuron_config = relative_to_tests_folder("configs/test_single_neuron.json")
 
 
+@unittest.skip("Re-enabling tests gradually while advancing v4.0 rework")
 class TestSingleTypeCompilation(unittest.TestCase):
     """
         Check if the scaffold can create a single cell type.
@@ -50,6 +52,7 @@ class TestSingleTypeCompilation(unittest.TestCase):
         self.assertRaises(OSError, from_hdf5, "doesntexist")
 
 
+@unittest.skip("Re-enabling tests gradually while advancing v4.0 rework")
 class TestPlacement(unittest.TestCase):
     """
         Check if the placement of all cell types is correct

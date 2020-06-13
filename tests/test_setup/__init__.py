@@ -2,7 +2,8 @@ import os, sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 from scaffold.core import Scaffold, from_hdf5
-from scaffold.config import JSONConfig
+
+# from scaffold.config import JSONConfig
 
 scaffold_lookup = {}
 

@@ -13,6 +13,7 @@ def relative_to_tests_folder(path):
 _nest_available = importlib.find_loader("nest") is not None
 
 
+@unittest.skip("Re-enabling tests gradually while advancing v4.0 rework")
 class TestConnectivity(unittest.TestCase):
     @classmethod
     def setUpClass(self):

@@ -1,7 +1,7 @@
 import unittest, os, sys, numpy as np, h5py
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from scaffold.config import JSONConfig
+# from scaffold.config import JSONConfig
 from scaffold.core import Scaffold
 import scaffold.helpers
 from scaffold.exceptions import *
@@ -16,6 +16,7 @@ double_nn_config = relative_to_tests_folder(
 )
 
 
+@unittest.skip("Re-enabling tests gradually while advancing v4.0 rework")
 class TestTargetting(unittest.TestCase):
     def test_representatives(self):
         """

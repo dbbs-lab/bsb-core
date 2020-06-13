@@ -3,8 +3,9 @@ import unittest, os, sys, numpy as np, h5py
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from scaffold.core import Scaffold, from_hdf5
-from scaffold.config import JSONConfig
-from scaffold.models import MorphologySet, PlacementSet
+
+# from scaffold.config import JSONConfig
+# from scaffold.models import MorphologySet, PlacementSet
 from scaffold.output import MorphologyRepository, MorphologyCache
 from scaffold.morphologies import TrueMorphology
 from shutil import copyfile
@@ -22,6 +23,7 @@ morpho_set_file = relative_to_tests_folder("morphologies_set_test.hdf5")
 step = [30, 60]
 
 
+@unittest.skip("Re-enabling tests gradually while advancing v4.0 rework")
 class TestMorphologyCache(unittest.TestCase):
     """
         Test the creation of a morphology cache with rotated versions of some basic morphologies
@@ -110,6 +112,7 @@ class TestMorphologyCache(unittest.TestCase):
         # Rz = []    step[0]
 
 
+@unittest.skip("Re-enabling tests gradually while advancing v4.0 rework")
 class TestMorhologySetsRotations(unittest.TestCase):
     """
         Test scaffold with cells associated to a certain rotated morphology
@@ -163,6 +166,7 @@ class TestMorhologySetsRotations(unittest.TestCase):
         )
 
 
+@unittest.skip("Re-enabling tests gradually while advancing v4.0 rework")
 class TestRotation(unittest.TestCase):
     """
         Test the validity of rotations
