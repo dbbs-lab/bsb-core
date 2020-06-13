@@ -136,6 +136,10 @@ class TestConfigList(unittest.TestCase):
         class TestSize:
             l = config.list(type=Child, required=True, size=3)
 
+        @config.node
+        class TestNormal:
+            l = config.list(type=int, size=3)
+
         test_conf = {"l": [{"name": "hi"}, {"name": "other"}]}
         t = Test.__cast__(test_conf, TestRoot())
         self.assertEqual(len(t.l), 2, "List length incorrect")
@@ -145,7 +149,10 @@ class TestConfigList(unittest.TestCase):
         self.assertRaises(CastError, TestSize.__cast__, test_conf, TestRoot())
 
         test_conf2 = {"l": [{"name": "hi"}, {}, {"name": "hi"}]}
-        self.assertRaises(RequirementError, TestSize.__cast__, test_conf2, TestRoot())
+        int_test = TestNormal.__cast__({"l": [1, 2, 3]}, TestRoot())
+        self.assertEqual(int_test.l[2], 3)
+        test_conf3 = {"l": [1, {}, 3]}
+        self.assertRaises(CastError, TestNormal.__cast__, test_conf3, TestRoot())
 
 
 class TestConfigRef(unittest.TestCase):

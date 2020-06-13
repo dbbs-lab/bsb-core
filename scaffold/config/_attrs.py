@@ -222,13 +222,16 @@ class ConfigurationListAttribute(ConfigurationAttribute):
         try:
             for i, elem in enumerate(_cfglist):
                 _cfglist[i] = self.child_type(elem, parent=_cfglist, key=i)
-                _cfglist[i]._index = i
+                try:
+                    _cfglist[i]._index = i
+                except:
+                    pass
         except:
             if self.child_type.__casting__:
                 raise
             raise CastError(
                 "Couldn't cast {}[{}] from '{}' into a {}".format(
-                    self.get_node_name(parent), i, elem, self.type.__name__
+                    self.get_node_name(parent), i, elem, self.child_type.__name__
                 )
             )
         return _cfglist
