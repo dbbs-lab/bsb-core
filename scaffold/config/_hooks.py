@@ -5,7 +5,6 @@ def _dunder(*hooks):
 def run_hook(obj, hook, *args, **kwargs):
     for parent in reversed(obj.__class__.__mro__):
         if hasattr(parent, _dunder(hook)):
-            print("Found " + hook + "it on", parent.__class__.__name__)
             getattr(parent, _dunder(hook))(obj, *args, **kwargs)
     if hasattr(obj, hook):
         getattr(obj, hook)(*args, **kwargs)

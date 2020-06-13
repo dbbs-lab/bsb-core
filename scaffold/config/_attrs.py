@@ -48,7 +48,6 @@ def node(node_cls, root=False, dynamic=False, pluggable=False):
 
 
 def dynamic(node_cls=None, **kwargs):
-    print(node_cls, kwargs)
     if node_cls is None:
         # If node_cls is None, it means that no positional argument was given, which most
         # likely means that the @dynamic(...) syntax was used instead of the @dynamic.

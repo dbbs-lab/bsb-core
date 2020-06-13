@@ -36,6 +36,5 @@ class Configuration:
 
     def _bootstrap(self, scaffold):
         for node in walk_nodes(self):
-            print("walking nodes:", node)
             node.scaffold = scaffold
             run_hook(node, "boot")
