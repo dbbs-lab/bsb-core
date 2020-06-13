@@ -1,8 +1,7 @@
 import unittest, os, sys, numpy as np, h5py
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from scaffold.core import Scaffold
-from scaffold.config import Configuration, from_json
+from scaffold.config import from_json
 from scaffold.exceptions import *
 
 
@@ -11,6 +10,7 @@ def relative_to_tests_folder(path):
 
 
 minimal_config = relative_to_tests_folder("configs/test_minimal.json")
+full_config = relative_to_tests_folder("configs/test_full_v4.json")
 
 
 def as_json(f):
@@ -23,13 +23,14 @@ def as_json(f):
 class TestConfiguration(unittest.TestCase):
     def test_minimal_json_bootstrap(self):
         config = from_json(minimal_config)
-        scaffold = Scaffold(config)
 
     def test_minimal_json_content_bootstrap(self):
         with open(minimal_config, "r") as f:
             content = f.read()
         config = from_json(data=content)
-        scaffold = Scaffold(config)
+
+    def test_full_json_bootstrap(self):
+        config = from_json(full_config)
 
     def test_missing_nodes(self):
         self.assertRaises(RequirementError, from_json, data="""{}""")

@@ -54,7 +54,7 @@ def _parser_method_docs(parser):
     class_role = ":class:`{} <{}.{}>`".format(parser.__name__, mod, parser.__name__)
     if parser.data_description:
         descr = " " + parser.data_description
-    else:
+    else:  # pragma: nocover
         descr = ""
     return (
         "Create a Configuration object from"
