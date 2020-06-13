@@ -37,7 +37,6 @@ setuptools.setup(
         "scikit-learn>=0.20.3",
         "plotly>=4.1.0",
         "rtree-linux==0.9.4",
-        "nrn-patch>=2.0.0",
     ],
     project_urls={
         "Bug Tracker": "https://github.com/dbbs-lab/scaffold/issues/",
@@ -46,6 +45,6 @@ setuptools.setup(
     },
     extras_require={
         "dev": ["sphinx", "sphinx_rtd_theme>=0.4.3", "pyarmor", "pre-commit", "black"],
-        "NEURON": ["dbbs_models>=0.4.3"],
+        "NEURON": ["nrn-patch>=2.1.0", "dbbs_models>=0.4.3"],
     },
 )
