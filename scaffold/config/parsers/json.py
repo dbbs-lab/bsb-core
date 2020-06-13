@@ -11,7 +11,9 @@ class JsonParser:
     def parse(self, content, path=None):
         meta = JsonMeta()
         meta.path = path
-        return json.loads(content), meta
+        if isinstance(content, str):
+            content = json.loads(content)
+        return content, meta
 
 
 __plugin__ = JsonParser
