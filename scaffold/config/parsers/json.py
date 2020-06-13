@@ -6,6 +6,8 @@ class JsonMeta:
 
 
 class JsonParser:
+    data_description = "JSON"
+
     def parse(self, content, path=None):
         meta = JsonMeta()
         meta.path = path

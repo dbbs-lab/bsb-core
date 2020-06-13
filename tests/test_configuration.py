@@ -16,3 +16,9 @@ class TestConfiguration(unittest.TestCase):
     def test_minimal_json_bootstrap(self):
         config = from_json(minimal_config)
         self.scaffold = Scaffold(config)
+
+    def test_minimal_json_content_bootstrap(self):
+        with open(minimal_config, "r") as f:
+            content = f.read()
+        config = from_json(data=content)
+        self.scaffold = Scaffold(config)
