@@ -1,6 +1,7 @@
 import unittest, os, sys, numpy as np, h5py
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+from scaffold import config
 from scaffold.config import from_json
 from scaffold.exceptions import *
 
@@ -11,6 +12,11 @@ def relative_to_tests_folder(path):
 
 minimal_config = relative_to_tests_folder("configs/test_minimal.json")
 full_config = relative_to_tests_folder("configs/test_full_v4.json")
+
+
+@config.root
+class TestRoot:
+    pass
 
 
 def as_json(f):
@@ -43,3 +49,80 @@ class TestConfiguration(unittest.TestCase):
 
         self.assertIn("""Unknown attribute 'shouldntexistasattr'""", str(warning.warning))
         self.assertIn("""in {root}""", str(warning.warning))
+
+
+class TestConfigAttrs(unittest.TestCase):
+    def test_components_on_module(self):
+        t = [
+            "attr",
+            "ref",
+            "dict",
+            "list",
+            "dynamic",
+            "node",
+            "root",
+            "slot",
+            "pluggable",
+        ]
+        for a in t:
+            with self.subTest(check=a):
+                self.assertTrue(
+                    hasattr(config, a), "Missing {} in config module".format(a)
+                )
+
+    def test_empty_test_node(self):
+        @config.node
+        class Test:
+            pass
+
+        self.assertTrue(hasattr(Test, "_config_attrs"))
+        t = Test()
+        t2 = Test.__cast__({}, TestRoot())
+
+    def test_inheritance(self):
+        @config.node
+        class Test:
+            name = config.attr(type=str, required=True)
+
+        class Child(Test):
+            pass
+
+        c = Child.__cast__({"name": "Hello"}, TestRoot())
+        self.assertRaises(RequirementError, Child.__cast__, {}, TestRoot())
+
+
+class TestConfigDict(unittest.TestCase):
+    def test_dict_attr(self):
+        @config.node
+        class Child:
+            key = config.attr(key=True)
+            name = config.attr(type=str, required=True)
+
+        @config.node
+        class Test:
+            l = config.dict(type=Child, required=True)
+
+        t = Test.__cast__(
+            {"l": {"e": {"name": "hi"}, "ss": {"name": "other"}}}, TestRoot()
+        )
+        self.assertEqual(len(t.l), 2, "Dict length incorrect")
+        self.assertEqual(t.l.e, t.l["e"], "Dict access incorrect")
+        self.assertEqual(type(t.l.e), Child, "List item class incorrect")
+        self.assertEqual(t.l.e.key, "e", "Child key key incorrectly set")
+
+
+class TestConfigList(unittest.TestCase):
+    def test_list_attr(self):
+        @config.node
+        class Child:
+            index = config.attr(key=True)
+            name = config.attr(type=str, required=True)
+
+        @config.node
+        class Test:
+            l = config.list(type=Child, required=True)
+
+        t = Test.__cast__({"l": [{"name": "hi"}, {"name": "other"}]}, TestRoot())
+        self.assertEqual(len(t.l), 2, "List length incorrect")
+        self.assertEqual(type(t.l[0]), Child, "List item class incorrect")
+        self.assertEqual(t.l[1].index, 1, "Child index key incorrectly set")
