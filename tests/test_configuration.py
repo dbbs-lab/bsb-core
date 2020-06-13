@@ -162,3 +162,10 @@ class TestConfigRef(unittest.TestCase):
         r = Resolver.__cast__({"test": {"name": "Johnny", "name_ref": "name"}}, None)
         self.assertEqual(r.test.name_ref, "Johnny")
         self.assertEqual(r.test.name_ref_reference, "name")
+
+        self.assertRaises(
+            ReferenceError,
+            Resolver.__cast__,
+            {"test": {"name": "Johnny", "name_ref": "nname"}},
+            None,
+        )
