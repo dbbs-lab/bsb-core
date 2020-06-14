@@ -48,24 +48,25 @@ def node(node_cls, root=False, dynamic=False, pluggable=False):
     return node_cls
 
 
-def dynamic(node_cls=None, **kwargs):
+def dynamic(node_cls=None, attr_name="class", **kwargs):
+    if "required" not in kwargs:
+        kwargs["required"] = True
+    if "type" not in kwargs:
+        kwargs["type"] = str
+    class_attr = ConfigurationAttribute(**kwargs)
     if node_cls is None:
         # If node_cls is None, it means that no positional argument was given, which most
         # likely means that the @dynamic(...) syntax was used instead of the @dynamic.
         # This means we have to return an inner decorator instead of the decorated class
-        class_attr = ConfigurationAttribute(**kwargs)
-
         def decorator(node_cls):
-            return _dynamic(node_cls, class_attr)
+            return _dynamic(node_cls, class_attr, attr_name)
 
         return decorator
     # Regular @dynamic syntax used, return decorated class
-    return _dynamic(node_cls)
+    return _dynamic(node_cls, class_attr, attr_name)
 
 
-def _dynamic(node_cls, class_attr=None, attr_name="class"):
-    if class_attr is None:
-        class_attr = ConfigurationAttribute(type=str, required=True)
+def _dynamic(node_cls, class_attr, attr_name):
     setattr(node_cls, attr_name, class_attr)
     node_cls._config_dynamic_attr = attr_name
     return node(node_cls, dynamic=True)
