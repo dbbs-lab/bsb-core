@@ -83,11 +83,13 @@ class TestConfigAttrs(unittest.TestCase):
         @config.node
         class Test:
             str = config.attr()
+            i = config.attr(type=int)
 
         t = Test()
         t2 = Test.__cast__({}, TestRoot())
         node_name = Test.str.get_node_name(t2)
         self.assertTrue(node_name.endswith(".str"), "str attribute misnomer")
+        self.assertRaises(CastError, Test.__cast__, {"i": {}}, TestRoot())
 
     def test_inheritance(self):
         @config.node
@@ -112,13 +114,21 @@ class TestConfigDict(unittest.TestCase):
         class Test:
             l = config.dict(type=Child, required=True)
 
-        t = Test.__cast__(
-            {"l": {"e": {"name": "hi"}, "ss": {"name": "other"}}}, TestRoot()
-        )
+        conf = {"l": {"e": {"name": "hi"}, "ss": {"name": "other"}}}
+        t = Test.__cast__(conf, TestRoot())
+        self.assertTrue(t.l.get_node_name().endswith(".l"), "Dict node name incorrect")
         self.assertEqual(len(t.l), 2, "Dict length incorrect")
         self.assertEqual(t.l.e, t.l["e"], "Dict access incorrect")
         self.assertEqual(type(t.l.e), Child, "Dict child class incorrect")
         self.assertEqual(t.l.e.key, "e", "Child key key incorrectly set")
+        conf2 = {"l": {"e": {}, "ss": {"name": "other"}}}
+        self.assertRaises(RequirementError, Test.__cast__, conf2, TestRoot())
+
+        @config.node
+        class TestSimple:
+            l = config.dict(type=int)
+
+        self.assertRaises(CastError, TestSimple.__cast__, conf2, TestRoot())
 
 
 class TestConfigList(unittest.TestCase):
@@ -153,6 +163,8 @@ class TestConfigList(unittest.TestCase):
         self.assertEqual(int_test.l[2], 3)
         test_conf3 = {"l": [1, {}, 3]}
         self.assertRaises(CastError, TestNormal.__cast__, test_conf3, TestRoot())
+        test_conf4 = {"l": [{"name": "hi"}, {}]}
+        self.assertRaises(RequirementError, Test.__cast__, test_conf4, TestRoot())
 
 
 class TestConfigRef(unittest.TestCase):
