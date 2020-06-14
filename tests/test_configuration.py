@@ -479,3 +479,12 @@ class TestTypes(unittest.TestCase):
         self.assertEqual(b.c, None)
         self.assertRaises(CastError, Test.__cast__, {"c": [2, "f"]}, TestRoot())
         self.assertRaises(CastError, Test.__cast__, {"d": [2, 2]}, TestRoot())
+
+    def test_fraction(self):
+        @config.node
+        class Test:
+            c = config.attr(type=types.fraction())
+
+        b = Test.__cast__({"c": 0.1}, TestRoot())
+        self.assertEqual(b.c, 0.1)
+        self.assertRaises(CastError, Test.__cast__, {"c": -0.1}, TestRoot())
