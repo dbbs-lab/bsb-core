@@ -11,6 +11,6 @@ def discover(category, *args, **kwargs):
                 advert = advert.__plugin__
             advert._scaffold_plugin = plugin
             plugins[plugin.name] = advert
-        except:
+        except:  # pragma: nocover
             raise PluginError("Could not instantiate the `{}` plugin".format(plugin.name))
     return plugins
