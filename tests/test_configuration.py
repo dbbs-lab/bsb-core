@@ -3,6 +3,7 @@ import unittest, os, sys, numpy as np, h5py
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from scaffold import config
 from scaffold.config import from_json
+from scaffold.core import Scaffold
 from scaffold.exceptions import *
 
 
@@ -29,14 +30,17 @@ def as_json(f):
 class TestConfiguration(unittest.TestCase):
     def test_minimal_json_bootstrap(self):
         config = from_json(minimal_config)
+        Scaffold(config)
 
     def test_minimal_json_content_bootstrap(self):
         with open(minimal_config, "r") as f:
             content = f.read()
         config = from_json(data=content)
+        Scaffold(config)
 
     def test_full_json_bootstrap(self):
         config = from_json(full_config)
+        Scaffold(config)
 
     def test_missing_nodes(self):
         self.assertRaises(RequirementError, from_json, data="""{}""")
@@ -188,3 +192,51 @@ class TestConfigRef(unittest.TestCase):
             {"test": {"name": "Johnny", "name_ref": "nname"}},
             None,
         )
+
+
+class TestHooks(unittest.TestCase):
+    def test_hooks(self):
+        class Exc(Exception):
+            pass
+
+        class Exc2(Exception):
+            pass
+
+        class Exc3(Exception):
+            pass
+
+        class Unhooked(Exception):
+            pass
+
+        class to_hook:
+            def basic(self):
+                raise Exc()
+
+        class inherits_before_hooks(to_hook):
+            pass
+
+        def raise_before(self):
+            raise Exc2()
+
+        def raise_essential(self):
+            raise Exc3()
+
+        config.on("basic", to_hook)(raise_before)
+        self.assertRaises(Exc, to_hook().basic)
+        config.before("basic", to_hook)(raise_before)
+        self.assertRaises(Exc2, to_hook().basic)
+
+        class inherits_after_hooks(to_hook):
+            pass
+
+        self.assertRaises(Exc2, inherits_before_hooks().basic)
+        self.assertRaises(Exc2, inherits_after_hooks().basic)
+
+        class overwrites_nonessential(to_hook):
+            def basic(self):
+                raise Unhooked()
+
+        config.before("basic", to_hook, essential=True)(raise_essential)
+        self.assertRaises(Unhooked, overwrites_nonessential().basic)
+        self.assertRaises(Exc3, config.run_hook, overwrites_nonessential(), "basic")
+        self.assertRaises(Exc3, config.run_hook, to_hook(), "basic")

@@ -8,6 +8,4 @@ class Region:
     origin = config.attr(type=types.list(type=float, size=3), required=True)
 
     def __boot__(self):
-        print(
-            "back populated {} in a few lines!".format(self.get_node_name()), self.layers
-        )
+        pass
