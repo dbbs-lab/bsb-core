@@ -166,7 +166,7 @@ def make_dynamic_cast(node_cls):
                 )
             else:
                 loaded_cls_name = section[attr_name]
-        elif dynamic_attr.call_default:
+        elif dynamic_attr.call_default:  # pragma: nocover
             loaded_cls_name = dynamic_attr.default()
         else:
             loaded_cls_name = dynamic_attr.default
@@ -337,8 +337,13 @@ class WalkIterDescriptor:
 
 
 def _get_walkable_iterator(node):
-    # Currently only handle dict
-    walkiter = {}
-    for name, value in node.items():
-        walkiter[name] = WalkIterDescriptor(name, value)
-    return walkiter
+    if isinstance(node, dict):
+        walkiter = {}
+        for name, value in node.items():
+            walkiter[name] = WalkIterDescriptor(name, value)
+        return walkiter
+    elif isinstance(node, list):
+        walkiter = {}
+        for i, value in enumerate(node):
+            walkiter[i] = WalkIterDescriptor(i, value)
+        return walkiter

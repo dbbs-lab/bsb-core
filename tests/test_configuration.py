@@ -370,3 +370,35 @@ class TestDynamic(unittest.TestCase):
             {"name": "ello", "class": "DoesntExist"},
             TestRoot(),
         )
+        self.assertEqual(
+            sys.modules["scaffold.config._make"]._load_class(
+                NotInherited, [NotInherited.__module__]
+            ),
+            NotInherited,
+        )
+        self.assertEqual(
+            sys.modules["scaffold.config._make"]._load_class(
+                NotInherited, [NotInherited.__module__]
+            ),
+            NotInherited,
+        )
+
+
+class TestWalk(unittest.TestCase):
+    def test_walk_values(self):
+        @config.node
+        class Deeper:
+            ey = config.list(type=int, required=True)
+
+        @config.node
+        class Base:
+            att = config.attr()
+            deep = config.attr(type=Deeper)
+
+        @config.root
+        class Root:
+            smth = config.attr(type=Base)
+
+        b = Root.__cast__({"smth": {"att": "hello", "deep": {"ey": [1, 2, 3]}}}, None)
+        iter_collected = [*sys.modules["scaffold.config._make"].walk_node_values(b)]
+        self.assertEqual(len(iter_collected), 7)
