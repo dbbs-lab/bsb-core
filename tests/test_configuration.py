@@ -110,6 +110,33 @@ class TestConfigAttrs(unittest.TestCase):
         c = Child.__cast__({"name": "Hello"}, TestRoot())
         self.assertRaises(RequirementError, Child.__cast__, {}, TestRoot())
 
+    def test_requirement(self):
+        @config.node
+        class Test:
+            name = config.attr(type=str, required=True)
+
+        def special(value):
+            raise RequirementError("special")
+
+        @config.node
+        class Test2:
+            name = config.attr(type=str, required=special)
+
+        @config.node
+        class Test3:
+            name = config.attr(type=str, required=lambda x: True)
+
+        self.assertRaises(RequirementError, Test.__cast__, {}, TestRoot())
+        self.assertRaisesRegex(
+            RequirementError, r"special in ", Test2.__cast__, {}, TestRoot()
+        )
+        self.assertRaises(RequirementError, Test3.__cast__, {}, TestRoot())
+
+        t = Test.__cast__({"name": "hello"}, TestRoot())
+        self.assertEqual(
+            t, Test.__cast__(t, None), "Already cast object should not be altered"
+        )
+
 
 class TestConfigDict(unittest.TestCase):
     def test_dict_attr(self):
@@ -287,3 +314,59 @@ class TestHooks(unittest.TestCase):
         self.assertTrue(config.has_hook(test(), "hook2"))
         self.assertTrue(config.has_hook(test(), "hook3"))
         self.assertFalse(config.has_hook(test(), "hook4"))
+
+
+@config.dynamic
+class DynamicBase:
+    name = config.attr(type=str, required=True)
+
+
+@config.dynamic(attr_name="test")
+class DynamicAttrBase:
+    name = config.attr(type=str, required=True)
+
+
+@config.dynamic(required=False, default="DynamicBaseDefault")
+class DynamicBaseDefault:
+    name = config.attr(type=str, required=True)
+
+
+class NotInherited:
+    pass
+
+
+class TestDynamic(unittest.TestCase):
+    def test_dynamic(self):
+        self.assertRaisesRegex(
+            CastError,
+            "must contain a 'class' attribute",
+            DynamicBase.__cast__,
+            {},
+            TestRoot(),
+        )
+        self.assertRaisesRegex(
+            CastError,
+            "must contain a 'test' attribute",
+            DynamicAttrBase.__cast__,
+            {},
+            TestRoot(),
+        )
+        self.assertTrue(
+            isinstance(
+                DynamicBaseDefault.__cast__({"name": "ello"}, TestRoot()),
+                DynamicBaseDefault,
+            ),
+            "Dynamic cast with default 'DynamicBaseDefault' should produce instance of type 'DynamicBaseDefault'",
+        )
+        self.assertRaises(
+            DynamicClassError,
+            DynamicBase.__cast__,
+            {"name": "ello", "class": "NotInherited"},
+            TestRoot(),
+        )
+        self.assertRaises(
+            DynamicClassError,
+            DynamicBase.__cast__,
+            {"name": "ello", "class": "DoesntExist"},
+            TestRoot(),
+        )
