@@ -12,7 +12,7 @@
 """
 
 
-class Reference:
+class Reference:  # pragma: nocover
     def __call__(self, root, here):
         return here
 

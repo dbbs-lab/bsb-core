@@ -402,3 +402,80 @@ class TestWalk(unittest.TestCase):
         b = Root.__cast__({"smth": {"att": "hello", "deep": {"ey": [1, 2, 3]}}}, None)
         iter_collected = [*sys.modules["scaffold.config._make"].walk_node_values(b)]
         self.assertEqual(len(iter_collected), 7)
+
+
+from scaffold.config import types
+
+
+class TestTypes(unittest.TestCase):
+    def test_in(self):
+        @config.node
+        class Test:
+            c = config.attr(type=types.in_([1, 2, 3]))
+
+        b = Test.__cast__({"c": 3}, TestRoot())
+        self.assertEqual(b.c, 3)
+        self.assertRaises(CastError, Test.__cast__, {"c": 4}, TestRoot())
+
+    def test_in_inf(self):
+        class Fib:
+            def __call__(self):
+                a, b = 0, 1
+                while True:
+                    yield a
+                    a, b = b, a + b
+
+            def __contains__(self, x):
+                m = -1
+                f = self()
+                while x > m:
+                    m = next(f)
+                    if x == m:
+                        return True
+                return False
+
+            def __str__(self):
+                return "the fibonacci series"
+
+        @config.node
+        class Test:
+            c = config.attr(type=types.in_(Fib()))
+
+        b = Test.__cast__({"c": 13}, TestRoot())
+        self.assertRaisesRegex(
+            CastError, "fibonacci", Test.__cast__, {"c": 14}, TestRoot()
+        )
+
+    def test_multiple_types(self):
+        @config.node
+        class TestS:
+            c = config.attr(type=types.or_(int, str))
+
+        @config.node
+        class TestF:
+            c = config.attr(type=types.or_(int, int))
+
+        b = TestS.__cast__({"c": "h"}, TestRoot())
+        self.assertEqual(b.c, "h")
+        self.assertRaises(CastError, TestF.__cast__, {"c": "h"}, TestRoot())
+
+    def test_scalar_expand(self):
+        @config.node
+        class Test:
+            c = config.attr(type=types.scalar_expand(int, expand=lambda s: [s, s]))
+
+        b = Test.__cast__({"c": 2}, TestRoot())
+        self.assertEqual(b.c, [2, 2])
+
+    def test_list(self):
+        @config.node
+        class Test:
+            c = config.attr(type=types.list(int))
+            d = config.attr(type=types.list(int, size=3))
+
+        b = Test.__cast__({"c": [2, 2]}, TestRoot())
+        self.assertEqual(b.c, [2, 2])
+        b = Test.__cast__({"c": None}, TestRoot())
+        self.assertEqual(b.c, None)
+        self.assertRaises(CastError, Test.__cast__, {"c": [2, "f"]}, TestRoot())
+        self.assertRaises(CastError, Test.__cast__, {"d": [2, 2]}, TestRoot())

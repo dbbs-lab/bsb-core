@@ -31,7 +31,7 @@ def or_(*type_args):
             try:
                 v = t(value)
                 break
-            except (TypeError, CastError):
+            except (TypeError, ValueError, CastError):
                 continue
         else:
             raise TypeError("Couldn't cast {} into {}".format(value, handler_name))
