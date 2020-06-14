@@ -45,6 +45,7 @@ class ConfigurationModule:
             from ._config import Configuration
 
             self._cfg_cls = Configuration
+            self._cfg_cls.__module__ = __name__
         return self._cfg_cls
 
     __all__ = _list(vars().keys() - {"__init__", "__qualname__", "__module__"})

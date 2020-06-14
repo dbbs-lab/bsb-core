@@ -13,6 +13,10 @@ import os
 
 @root
 class Configuration:
+    """
+        The main Configuration object containing the full definition of a scaffold model.
+    """
+
     name = attr()
     storage = attr(type=StorageNode, required=True)
     network = attr(type=NetworkNode, required=True)
