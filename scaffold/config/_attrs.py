@@ -302,7 +302,7 @@ class ConfigurationReferenceAttribute(ConfigurationAttribute):
         else:
             setattr(instance, self.get_ref_key(), value)
             if self.resolve_on_set:
-                if not self.root:
+                if not self.root:  # pragma: nocover
                     raise ReferenceError(
                         "Can't autoresolve references without a config root."
                     )

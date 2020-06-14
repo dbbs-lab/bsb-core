@@ -26,9 +26,16 @@ class Configuration:
 
     @classmethod
     def default(cls):
-        conf = cls()
-        storage_node = StorageNode.__cast__({"engine": "hdf5"}, conf)
-        conf.storage = storage_node
+        conf = cls.__cast__(
+            {
+                "storage": {"engine": "hdf5"},
+                "network": {"x": 200, "z": 200},
+                "cell_types": {},
+                "layers": {},
+                "connection_types": {},
+            },
+            None,
+        )
         conf._meta = None
         conf._parser = "json"
         conf._file = None

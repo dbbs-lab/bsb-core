@@ -32,6 +32,10 @@ class TestConfiguration(unittest.TestCase):
         config = from_json(minimal_config)
         Scaffold(config)
 
+    def test_default_bootstrap(self):
+        cfg = config.Configuration.default()
+        Scaffold(cfg)
+
     def test_minimal_json_content_bootstrap(self):
         with open(minimal_config, "r") as f:
             content = f.read()
@@ -177,12 +181,15 @@ class TestConfigRef(unittest.TestCase):
         class Test:
             name = config.attr(required=True)
             name_ref = config.ref(lambda root, here: here, required=True, type=int)
+            type_ref = config.ref(lambda root, here: here, ref_type=str)
 
         @config.root
         class Resolver:
             test = config.attr(type=Test, required=True)
 
-        r = Resolver.__cast__({"test": {"name": "Johnny", "name_ref": "name"}}, None)
+        r = Resolver.__cast__(
+            {"test": {"name": "Johnny", "name_ref": "name", "type_ref": "name"}}, None
+        )
         self.assertEqual(r.test.name_ref, "Johnny")
         self.assertEqual(r.test.name_ref_reference, "name")
 
