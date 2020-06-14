@@ -281,10 +281,13 @@ class ConfigurationDictAttribute(ConfigurationAttribute):
 
 
 class ConfigurationReferenceAttribute(ConfigurationAttribute):
-    def __init__(self, reference, key=None, populate=None, **kwargs):
+    def __init__(self, reference, key=None, ref_type=None, populate=None, **kwargs):
         self.ref_lambda = reference
         self.ref_key = key
+        self.ref_type = ref_type
         self.populate = populate
+        self.resolve_on_set = False
+        self.root = None
         # No need to cast to any types: the reference we fetch will already have been cast
         if "type" in kwargs:  # pragma: nocover
             del kwargs["type"]
@@ -294,12 +297,30 @@ class ConfigurationReferenceAttribute(ConfigurationAttribute):
         return self.ref_key or (self.attr_name + "_reference")
 
     def __set__(self, instance, value, key=None):
-        if isinstance(value, str):
-            setattr(instance, self.get_ref_key(), value)
-        else:
+        if self.is_reference_value(value):
             _setattr(instance, self.attr_name, value)
+        else:
+            setattr(instance, self.get_ref_key(), value)
+            if self.resolve_on_set:
+                if not self.root:
+                    raise ReferenceError(
+                        "Can't autoresolve references without a config root."
+                    )
+                _setattr(instance, self.attr_name, self.__ref__(instance, self.root))
+
+    def is_reference_value(self, value):
+        if value is None:
+            return True
+        if self.ref_type is not None:
+            return isinstance(value, self.ref_type)
+        elif hasattr(self.ref_lambda, "is_ref"):
+            return self.ref_lambda.is_ref(value)
+        else:
+            return not isinstance(value, str)
 
     def __ref__(self, instance, root):
+        self.root = root
+        self.resolve_on_set = True
         reference_parent = self.ref_lambda(root, instance)
         reference_attr = self.get_ref_key()
         if not hasattr(instance, reference_attr):
@@ -313,7 +334,7 @@ class ConfigurationReferenceAttribute(ConfigurationAttribute):
                     reference_parent.get_node_name(),
                 )
             )
-        reference = reference_parent[getattr(instance, reference_attr)]
+        reference = reference_parent[reference_key]
         if self.populate:
             if hasattr(reference, self.populate):
                 getattr(reference, self.populate).append(instance)

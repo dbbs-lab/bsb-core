@@ -21,15 +21,30 @@ class CellTypeReference(Reference):
     def __call__(self, root, here):
         return root.cell_types
 
+    def is_ref(self, value):
+        from ..objects import CellType
+
+        return isinstance(value, CellType)
+
 
 class LayerReference(Reference):
     def __call__(self, root, here):
         return root.layers
 
+    def is_ref(self, value):
+        from ..objects import Layer
+
+        return isinstance(value, Layer)
+
 
 class RegionReference(Reference):
     def __call__(self, root, here):
         return root.regions
+
+    def is_ref(self, value):
+        from ..objects import Region
+
+        return isinstance(value, Region)
 
 
 region_ref = RegionReference()
