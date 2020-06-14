@@ -27,7 +27,7 @@ Welcome to DBBS Cerebellum Scaffold's documentation!
    :maxdepth: 2
    :caption: References
 
-   configuration
+   references/configuration
    reference
    genindex
    py-modindex
