@@ -231,6 +231,25 @@ check if they contain are a reference and if so the value from elsewhere in the
 configuration is retrieved, the original string from the configuration is also stored in
 ``node.<ref>_reference`` as demonstrated in the example above.
 
+After the configuration is loaded it's possible to either give a new reference key
+(usually a string) or a new reference value. In most cases the configuration will
+automatically detect what you're passing into the reference:
+
+.. code-block::
+
+  >>> cfg = from_json("mouse_cerebellum.json")
+  >>> cfg.cell_types.granule_cell.placement.layer.name
+  'granular_layer'
+  >>> cfg.cell_types.granule_cell.placement.layer = 'molecular_layer'
+  >>> cfg.cell_types.granule_cell.placement.layer.name
+  'molecular_layer'
+  >>> cfg.cell_types.granule_cell.placement.layer = cfg.layers.purkinje_layer
+  >>> cfg.cell_types.granule_cell.placement.layer.name
+  'purkinje_layer'
+
+As you can see, by passing the reference a string the object is fetched from the reference
+location, but we can also directly pass the object the reference string would point to.
+
 Reference object
 ----------------
 
@@ -243,7 +262,8 @@ from which the reference value can be retrieved.
   def locations_reference(root, here):
     return root.locations
 
-This reference object would create the link seen in the previous example.
+This reference object would create the link seen in the first reference example. For more
+advanced uses of the reference object see :doc:`/config/module/ref`.
 
 .. _configuration-casting:
 
