@@ -3,7 +3,7 @@ import os, sys
 _list = list
 from ._attrs import attr, list, dict, node, root, dynamic, ref, slot, pluggable
 from ._make import walk_node_attributes, walk_nodes
-from ._hooks import on, before, after, run_hook
+from ._hooks import on, before, after, run_hook, has_hook
 from .. import plugins
 
 
@@ -31,6 +31,7 @@ class ConfigurationModule:
     after = staticmethod(after)
     before = staticmethod(before)
     run_hook = staticmethod(run_hook)
+    has_hook = staticmethod(has_hook)
 
     # The __path__ attribute needs to be retained to mark this module as a package
     __path__ = _path

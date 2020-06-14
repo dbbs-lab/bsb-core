@@ -264,3 +264,26 @@ class TestHooks(unittest.TestCase):
         config.after("basic", to_hook)(hook)
         to_hook().basic()
         self.assertEqual(a, 30, "If the function and both hooks fired, a should be 30.")
+
+    def test_has_hook(self):
+        class test:
+            def __hook1__(self):
+                pass
+
+            def hook1(self):
+                pass
+
+            def hook2(self):
+                pass
+
+            def __hook3__(self):
+                pass
+
+        self.assertTrue(config.has_hook(test, "hook1"))
+        self.assertTrue(config.has_hook(test, "hook2"))
+        self.assertTrue(config.has_hook(test, "hook3"))
+        self.assertFalse(config.has_hook(test, "hook4"))
+        self.assertTrue(config.has_hook(test(), "hook1"))
+        self.assertTrue(config.has_hook(test(), "hook2"))
+        self.assertTrue(config.has_hook(test(), "hook3"))
+        self.assertFalse(config.has_hook(test(), "hook4"))
