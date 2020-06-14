@@ -247,3 +247,20 @@ class TestHooks(unittest.TestCase):
         self.assertRaises(Unhooked, overwrites_nonessential().basic)
         self.assertRaises(Exc3, config.run_hook, overwrites_nonessential(), "basic")
         self.assertRaises(Exc3, config.run_hook, to_hook(), "basic")
+
+    def test_double_exec(self):
+        a = 0
+
+        class to_hook:
+            def basic(self):
+                nonlocal a
+                a += 10
+
+        def hook(self):
+            nonlocal a
+            a += 10
+
+        config.before("basic", to_hook)(hook)
+        config.after("basic", to_hook)(hook)
+        to_hook().basic()
+        self.assertEqual(a, 30, "If the function and both hooks fired, a should be 30.")
