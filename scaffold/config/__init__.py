@@ -97,4 +97,6 @@ for name, parser in plugins.discover("config.parsers").items():
     setattr(ConfigurationModule, "from_" + name, parser_factory(parser))
     ConfigurationModule.__all__.append("from_" + name)
 
+ConfigurationModule.__all__ = sorted(ConfigurationModule.__all__)
+
 sys.modules[__name__] = ConfigurationModule(__name__)

@@ -32,9 +32,9 @@ units:
 .. note::
 
   If a list or dictionary contains regular values instead of other configuration units,
-  the :class:`types.list <.config.types.list>` and :class:`types.dict
-  <.config.types.dict>` are used instead of the :class:`conf.list <.config.list>` and
-  :class:`conf.dict <.config.dict>`.
+  the :func:`types.list <.config.types.list>` and :func:`types.dict
+  <.config.types.dict>` are used instead of the :func:`conf.list <.config.list>` and
+  :func:`conf.dict <.config.dict>`.
 
 Configuration nodes
 ===================
@@ -72,7 +72,7 @@ Dynamic nodes
 An important part to the interfacing system of the scaffold builder are custom strategies.
 Any user can implement a simple functional interface such as the :class:`PlacementStrategy
 <.placement.strategy.PlacementStrategy>` to design a new way of placing cells. Placement
-configuration nodes can then use these strategies by specifying the ::guilabel:`class`
+configuration nodes can then use these strategies by specifying the :guilabel:`class`
 attribute:
 
 .. code-block:: json

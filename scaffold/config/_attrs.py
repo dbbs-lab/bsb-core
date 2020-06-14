@@ -49,6 +49,34 @@ def node(node_cls, root=False, dynamic=False, pluggable=False):
 
 
 def dynamic(node_cls=None, attr_name="class", **kwargs):
+    """
+        Decorate a class to be castable to a dynamically configurable class using
+        a class configuration attribute
+
+        Example
+        -------
+
+        Register a required string attribute 'class':
+
+        .. code-block:: python
+
+            @dynamic
+            class Example:
+                pass
+
+        Register a string attribute 'type' with a default value 'pkg.DefaultClass':
+
+        .. code-block:: python
+
+            @dynamic(attr_name='type', required=False, default='pkg.DefaultClass')
+            class Example:
+                pass
+
+        :param attr_name: Name under which to register the class attribute in the node.
+        :type attr_name: str
+        :param kwargs: All keyword arguments are passed to the constructor of the
+          :class:`attribute <config._attrs.ConfigurationAttribute>`.
+    """
     if "required" not in kwargs:
         kwargs["required"] = True
     if "type" not in kwargs:
@@ -73,6 +101,31 @@ def _dynamic(node_cls, class_attr, attr_name):
 
 
 def pluggable(key, plugin_name=None, unpack=None):
+    """
+        Create a node whose configuration is defined by a plugin.
+
+        Example
+        -------
+
+        If you want to use the :guilabel:`attr` to chose from all the installed
+        `dbbs_scaffold.my_plugin` plugins:
+
+        .. code-block:: python
+
+            @pluggable('attr', 'my_plugin')
+            class PluginNode:
+                pass
+
+        This will then read :guilabel:`attr`, load the plugin and configure the node from
+        the node class specified by the plugin.
+
+        :param plugin_name: The name of the category of the plugin endpoint
+        :type plugin_name: str
+        :param unpack: Optional callable to get the desired node out of the plugin, by
+          default the plugin should be the node class itself.
+        :type unpack: callable
+    """
+
     def inner_decorator(node_cls):
         node_cls._config_plugin_name = plugin_name
         node_cls._config_plugin_key = key
@@ -85,6 +138,26 @@ def pluggable(key, plugin_name=None, unpack=None):
 
 
 def attr(**kwargs):
+    """
+        Create a configuration attribute.
+
+        Only works when used inside of a class decorated with the :func:`node
+        <.config.node>`, :func:`dynamic <.config.dynamic>`,  :func:`root <.config.root>`
+        or  :func:`pluggable <.config.pluggable>` decorators.
+
+        :param type: Type of the attribute's value.
+        :type type: callable
+        :param required: Should an error be thrown if the attribute is not present?
+        :type required: bool
+        :param default: Default value.
+        :type default: any
+        :param call_default: Should the default value be used (False) or called (True).
+          Useful for default values that should not be shared among objects.
+        :type call_default: bool
+        :param key: If True the key under which the parent of this attribute appears in
+          its parent is stored on this attribute. Useful to store for example the name of
+          a node appearing in a dict
+    """
     return ConfigurationAttribute(**kwargs)
 
 
@@ -93,6 +166,10 @@ def ref(reference, **kwargs):
 
 
 def slot(**kwargs):
+    """
+        Create an attribute slot that is required to be overriden by child or plugin
+        classes.
+    """
     return ConfigurationAttributeSlot(**kwargs)
 
 
@@ -102,10 +179,20 @@ _type = type
 
 
 def list(**kwargs):
+    """
+        Create a configuration attribute that holds a list of configuration values.
+        Best used only for configuration nodes. Use an :func:`attr` in combination with a
+        :func:`types.list <.config.types.list>` type for simple values.
+    """
     return ConfigurationListAttribute(**kwargs)
 
 
 def dict(**kwargs):
+    """
+        Create a configuration attribute that holds a key value pairs of configuration
+        values. Best used only for configuration nodes. Use an :func:`attr` in combination
+        with a :func:`types.dict <.config.types.dict>` type for simple values.
+    """
     return ConfigurationDictAttribute(**kwargs)
 
 
