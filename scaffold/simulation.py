@@ -128,8 +128,6 @@ class SimulatorAdapter(ConfigurableClass):
 
 
 class TargetsNeurons:
-    neuron_targetting_types = ["local", "cylinder", "cell_type"]
-
     def initialise(self, scaffold):
         super().initialise(scaffold)
         # Set targetting method
@@ -244,11 +242,17 @@ class TargetsNeurons:
         ]
         return representatives
 
+    def _targets_by_id(self):
+        return self.targets
+
     def get_targets(self):
         """
             Return the targets of the device.
         """
         return self._get_targets()
+
+    # Define new targetting methods above this line or they will not be registered.
+    neuron_targetting_types = [s[9:] for s in vars().keys() if s.startswith("_targets_")]
 
 
 class TargetsSections:
