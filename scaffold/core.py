@@ -367,6 +367,7 @@ class Scaffold:
             :param simulation_name: Name of the simulation in the configuration.
             :type simulation_name: string
         """
+        t = time.time()
         simulation, simulator = self.prepare_simulation(simulation_name)
         # If we're reporting to a file, add a stream of progress event messages..
         report_file = get_report_file()
@@ -377,6 +378,8 @@ class Scaffold:
         simulation.collect_output()
         if quit and hasattr(simulator, "quit"):
             simulator.quit()
+        time_sim = time.time() - t
+        report("Simulation runtime: {}".format(time_sim), level=2)
         return simulation
 
     def get_simulation(self, simulation_name):
