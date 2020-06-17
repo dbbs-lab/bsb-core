@@ -63,8 +63,8 @@ voxelized morphologies are then obtained applying the same method as in
 * ``affinity``: A fraction between 1 and 0 which indicates the tendency of cells to form
   connections with other cells with whom their voxels intersect. This can be used to
   downregulate the amount of cells that any cell connects with. Default value is 1.
-* ``to_plot``: a list of cell fiber numbers (e.g. 0 for the first cell of the presynaptic type) that
-will be plotted during connection creation using `plot_fiber_morphology`.
+* ``to_plot``: a list of cell fiber numbers (e.g. 0 for the first cell of the presynaptic
+  type) that will be plotted during connection creation using `plot_fiber_morphology`.
 * ``transform``: A set of attributes defining the transformation class for fibers that
   should be rotated or bended. Specifically, the `QuiverTransform` allows to bend fiber
   segments based on a vector field in a voxelized volume. The attributes to be set are:
