@@ -92,7 +92,7 @@ class Satellite(PlacementStrategy):
                 "Checking overlap and bounds of satellite {} cells...".format(
                     cell_type.name,
                 ),
-                3,
+                level=3,
             )
             # To keep track of not placed particles that are not respecting the bounds or distances.
             not_placed_num = 0

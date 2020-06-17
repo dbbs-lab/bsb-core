@@ -40,7 +40,7 @@ preamble = chr(240) + chr(80) + chr(85) + chr(248) + chr(228)
 preamble_bar = chr(191) * 3
 
 
-def report(message, level=2, ongoing=False, token=None):
+def report(*message, level=2, ongoing=False, token=None, nodes=None, all_nodes=False):
     """
         Send a message to the appropriate output channel.
 
@@ -50,15 +50,15 @@ def report(message, level=2, ongoing=False, token=None):
         :type level: int
         :param ongoing: The message is part of an ongoing progress report. This replaces the endline (`\\n`) character with a carriage return (`\\r`) character
     """
-    if is_mpi_master and _verbosity >= level:
+    message = " ".join(map(str, message))
+    if (
+        (is_mpi_master and nodes is None)
+        or all_nodes
+        or (nodes is not None and MPI_rank in nodes)
+    ) and _verbosity >= level:
         if _report_file:
             with open(_report_file, "a") as f:
-                header = ""
-                if token:
-                    header += token
-                header = base64.b64encode(bytes(header, "UTF-8")).decode("UTF-8")
-                message = base64.b64encode(bytes(message, "UTF-8")).decode("UTF-8")
-                f.write(preamble + header + preamble_bar + message + preamble)
+                f.write(_encode(token or "", message))
         else:
             print(message, end="\n" if not ongoing else "\r")
 
@@ -72,7 +72,17 @@ def warn(message, category=None):
         :param category: The class of the warning.
     """
     if _verbosity > 0:
-        warnings.warn(message, category, stacklevel=2)
+        if _report_file:
+            with open(_report_file, "a") as f:
+                f.write(_encode(str(category or "warning"), message))
+        else:
+            warnings.warn(message, category, stacklevel=2)
+
+
+def _encode(header, message):
+    header = base64.b64encode(bytes(header, "UTF-8")).decode("UTF-8")
+    message = base64.b64encode(bytes(message, "UTF-8")).decode("UTF-8")
+    return preamble + header + preamble_bar + message + preamble
 
 
 # Initialize MPI when this module is loaded, so that communications work even before
@@ -80,20 +90,6 @@ def warn(message, category=None):
 
 try:
     from mpi4py import MPI as _MPI
-
-    try:
-        # If neuron is installed, the user might want to use parallel NEURON
-        # simulations. NEURON is incapable of properly initializing if MPI_Init
-        # has already been called (which happens when you import MPI from mpi4py)
-        # Therefore we must initialize NEURON first see
-        # https://github.com/neuronsimulator/nrn/issues/428
-        from patch import p
-
-        # Initialize the ParallelContext singleton to properly initialize NEURON's
-        # parallel simulation capabilities.
-        _ = p.parallel
-    except:
-        pass
 
     MPI_rank = _MPI.COMM_WORLD.rank
     has_mpi_installed = True
@@ -103,3 +99,5 @@ except ImportError:
     has_mpi_installed = False
     is_mpi_master = True
     is_mpi_slave = False
+
+report("Reporting module initialised.", level=4)

@@ -250,5 +250,5 @@ class SpoofDetails(PostProcessingHook):
                 connection_type.from_cell_types[0].name,
                 connection_type.to_cell_types[0].name,
             ),
-            2,
+            level=2,
         )

@@ -206,7 +206,7 @@ class Scaffold:
                     "Finished placing {} {} entities.".format(
                         len(entities), cell_type.name
                     ),
-                    2,
+                    level=2,
                 )
             else:
                 # Get the placed cells
@@ -214,7 +214,8 @@ class Scaffold:
                 # Construct a tree of the placed cells
                 self.trees.cells.create_tree(cell_type.name, cells)
                 report(
-                    "Finished placing {} {} cells.".format(len(cells), cell_type.name), 2
+                    "Finished placing {} {} cells.".format(len(cells), cell_type.name),
+                    level=2,
                 )
 
     def connect_cell_types(self):
@@ -235,7 +236,7 @@ class Scaffold:
                     "Finished connecting {} with {} (tag: {} - total connections: {}).".format(
                         source_name, target_name, connection_type.tags[tag], conn_num
                     ),
-                    2,
+                    level=2,
                 )
 
     def run_after_placement_hooks(self):
@@ -282,7 +283,7 @@ class Scaffold:
                     count = self.cells_by_type[type.name].shape[0]
                 placed = type.placement.get_placement_count()
                 if placed == 0 or count == 0:
-                    report("0 {} placed (0%)".format(type.name), 1)
+                    report("0 {} placed (0%)".format(type.name), level=1)
                     continue
                 density_msg = ""
                 percent = int((count / type.placement.get_placement_count()) * 100)
@@ -296,9 +297,9 @@ class Scaffold:
                         density_wanted, density_gotten
                     )
                 report(
-                    "{} {} placed ({}%).".format(count, type.name, percent,), 2,
+                    "{} {} placed ({}%).".format(count, type.name, percent,), level=2,
                 )
-            report("Average runtime: {}".format(np.average(times)), 2)
+            report("Average runtime: {}".format(np.average(times)), level=2)
 
     def _initialise_output_formatter(self):
         self.output_formatter = self.configuration.output_formatter

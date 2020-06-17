@@ -116,7 +116,7 @@ class SimulatorAdapter(ConfigurableClass):
         pass
 
     def progress(self, progression, duration):
-        report("Simulated {}/{}ms".format(progression, duration), 3, ongoing=True)
+        report("Simulated {}/{}ms".format(progression, duration), level=3, ongoing=True)
         progress = types.SimpleNamespace(
             progression=progression, duration=duration, time=time()
         )
