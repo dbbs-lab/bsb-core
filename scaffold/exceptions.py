@@ -45,10 +45,6 @@ class ReferenceError(ConfigurationError):
     pass
 
 
-class JsonReferenceError(ReferenceError):
-    pass
-
-
 class UnionCastError(CastError):
     pass
 
@@ -74,6 +70,21 @@ class LayerNotFoundError(ScaffoldError):
 
 
 class SimulationNotFoundError(ScaffoldError):
+    pass
+
+
+## Parsing
+
+
+class JsonParseError(ScaffoldError):
+    pass
+
+
+class JsonReferenceError(JsonParseError):
+    pass
+
+
+class JsonImportError(JsonParseError):
     pass
 
 

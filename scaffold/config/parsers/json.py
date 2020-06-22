@@ -15,11 +15,10 @@ class parsed_node:
     def merge(self, merge_parser, other):
         for key, value in other.items():
             if key not in self:
-                mutdict = {key: value}
-                # Use _traverse to recursively parse the merge value, the `mutdict` will
-                # be mutated and the new parsed value can be extracted.
-                merge_parser._traverse(mutdict, mutdict.items())
-                self[key] = mutdict[key]
+                self[key] = value
+        # Traverse over the newly copied parts so that references to lists and dicts
+        # are copied and the correct parent/key objects are set.
+        merge_parser._traverse(self, self.items())
 
     def __str__(self):
         return self.location()
@@ -44,15 +43,41 @@ class json_ref:
         self.node.merge(parser, target)
 
 
-class json_imp:
-    def __init__(self, node, doc, ref):
-        self.node = node
-        self.doc = doc
-        self.ref = ref
+class json_imp(json_ref):
+    def __init__(self, node, doc, ref, values):
+        super().__init__(node, doc, ref)
+        self.values = values
 
     def resolve(self, parser, target):
-        del self.node["$ref"]
-        self.node.merge(parser, target)
+        del self.node["$import"]
+        for key in self.values:
+            if key not in target:
+                raise JsonImportError(
+                    "'{}' does not exist in import node '{}'".format(key, self.ref)
+                )
+            if key in self.node:
+                raise JsonImportError(
+                    "$import cannot merge existing key '{}' in '{}', use $ref instead.".format(
+                        key, self.node.location()
+                    )
+                )
+            if isinstance(target[key], dict):
+                print("imp by merge")
+                imported = parsed_dict()
+                imported.merge(parser, target[key])
+                imported._key = key
+                imported._parent = self.node
+                self.node[key] = imported
+            elif isinstance(target[key], list):
+                print("imp list")
+                imported, iter = parser._prep_list(target[key], self.node)
+                imported._key = key
+                imported._parent = self.node
+                self.node[key] = imported
+                parser._traverse(imported, iter)
+            else:
+                print("imp by val")
+                self.node[key] = target[key]
 
 
 class JsonMeta:
@@ -80,7 +105,9 @@ class JsonParser:
 
     def _traverse(self, node, iter):
         for key, value in iter:
-            if type(value) in self.recurse_handlers:
+            if self._is_import(key):
+                self._store_import(node)
+            elif type(value) in self.recurse_handlers:
                 value, iter = self.recurse_handlers[type(value)](self, value, node)
                 value._key = key
                 value._parent = node
@@ -88,8 +115,6 @@ class JsonParser:
                 self._traverse(value, iter)
             elif self._is_reference(key):
                 self._store_reference(node, value)
-            elif self._is_import(key):
-                self._store_import(node, key, value)
 
     def _prep_dict(self, node, parent):
         return parsed_dict(node), node.items()
@@ -112,13 +137,14 @@ class JsonParser:
         self.references.append(json_ref(node, doc, ref))
 
     def _store_import(self, node):
-        ref = node["ref"]
+        imp = node["$import"]
+        ref = imp["ref"]
         doc = _get_ref_document(ref)
         ref = _get_absolute_ref(node, ref)
         if doc not in self.documents:
             self.documents[doc] = set()
         self.documents[doc].add(ref)
-        self.references.append(json_imp(node, doc, ref))
+        self.references.append(json_imp(node, doc, ref, imp["values"]))
 
     def _resolve_documents(self):
         for file, refs in self.documents.items():
@@ -162,7 +188,12 @@ class JsonParser:
             target = self.resolved_documents[ref.doc][ref.ref]
             ref.resolve(self, target)
 
-    recurse_handlers = {dict: _prep_dict, list: _prep_list}
+    recurse_handlers = {
+        dict: _prep_dict,
+        parsed_dict: _prep_dict,
+        list: _prep_list,
+        parsed_list: _prep_list,
+    }
 
 
 def _get_ref_document(ref):
