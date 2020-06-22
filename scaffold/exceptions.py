@@ -45,6 +45,10 @@ class ReferenceError(ConfigurationError):
     pass
 
 
+class JsonReferenceError(ReferenceError):
+    pass
+
+
 class UnionCastError(CastError):
     pass
 

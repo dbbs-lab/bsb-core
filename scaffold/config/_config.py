@@ -8,7 +8,7 @@ from ..storage import get_engines
 from ..connectivity import ConnectionStrategy
 from ..simulation import SimulatorAdapter
 from ..postprocessing import PostProcessingHook
-import os
+import os, builtins
 
 
 @root
@@ -18,6 +18,7 @@ class Configuration:
     """
 
     name = attr()
+    components = attr(type=builtins.dict)
     storage = attr(type=StorageNode, required=True)
     network = attr(type=NetworkNode, required=True)
     regions = dict(type=Region)
