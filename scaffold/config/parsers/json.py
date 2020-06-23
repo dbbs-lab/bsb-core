@@ -62,21 +62,18 @@ class json_imp(json_ref):
                     )
                 )
             if isinstance(target[key], dict):
-                print("imp by merge")
                 imported = parsed_dict()
                 imported.merge(parser, target[key])
                 imported._key = key
                 imported._parent = self.node
                 self.node[key] = imported
             elif isinstance(target[key], list):
-                print("imp list")
                 imported, iter = parser._prep_list(target[key], self.node)
                 imported._key = key
                 imported._parent = self.node
                 self.node[key] = imported
                 parser._traverse(imported, iter)
             else:
-                print("imp by val")
                 self.node[key] = target[key]
 
 
@@ -129,7 +126,7 @@ class JsonParser:
         return key == "$import"
 
     def _store_reference(self, node, ref):
-        doc = _get_ref_document(ref)
+        doc = _get_ref_document(ref, self.path)
         ref = _get_absolute_ref(node, ref)
         if doc not in self.documents:
             self.documents[doc] = set()
@@ -154,7 +151,14 @@ class JsonParser:
                 # We could open another JsonParser to easily recurse.
                 with open(file, "r") as f:
                     content = json.load(f)
-            self.resolved_documents[file] = self._resolve_document(content, refs)
+            try:
+                self.resolved_documents[file] = self._resolve_document(content, refs)
+            except JsonReferenceError as jre:
+                if not file:
+                    raise
+                raise JsonReferenceError(
+                    str(jre) + " in document '{}'".format(file)
+                ) from None
 
     def _resolve_document(self, content, refs):
         resolved = {}
@@ -172,7 +176,7 @@ class JsonParser:
                 n = n[part]
             except KeyError:
                 raise JsonReferenceError(
-                    "'{}' in JSON reference '{}' does not exist.".format(loc, ref)
+                    "'{}' in JSON reference '{}' does not exist".format(loc, ref)
                 ) from None
             if not isinstance(n, dict):
                 raise JsonReferenceError(
@@ -196,16 +200,23 @@ class JsonParser:
     }
 
 
-def _get_ref_document(ref):
+def _get_ref_document(ref, base=None):
     if "#" not in ref:
         return None
     doc = ref.split("#")[0]
     if not os.path.isabs(doc):
-        doc = os.path.abspath(os.path.join(self.path, doc))
+        if not base:
+            base = os.getcwd()
+        elif not os.path.isdir(base):
+            base = os.path.dirname(base)
+            if not os.path.exists(base):
+                raise IOError("Can't find reference directory '{}'".format(base))
+        doc = os.path.abspath(os.path.join(base, doc))
     return doc
 
 
 def _get_absolute_ref(node, ref):
+    ref = ref.split("#")[-1]
     if ref.startswith("/"):
         path = ref
     else:
