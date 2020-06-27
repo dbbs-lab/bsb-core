@@ -7,6 +7,7 @@ from ...exceptions import *
 from ...helpers import ConfigurableClass
 from ...networks import FiberMorphology, Branch
 from ...plotting import plot_fiber_morphology
+from ...reporting import report, warn
 import abc
 
 # Import rtree
@@ -92,6 +93,7 @@ class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
         morphologies_out = []
 
         fig = None
+        fiber_cut_num = 0
         for c, (from_cell, from_morpho) in enumerate(from_morphology_set):
             # (1) Extract the FiberMorpho object for each branch in the from_compartments
             # of the presynaptic morphology
@@ -118,6 +120,8 @@ class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
                 self.transformation.transform_branches(
                     fm.root_branches, from_cell.position
                 )
+                if self.transformation._branch_cut_num > 0:
+                    fiber_cut_num += 1
 
             if c in self.to_plot:
                 fig = plot_fiber_morphology(fm, fig=fig, offset=from_cell.position)
@@ -226,7 +230,14 @@ class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
                     [from_morpho._set_index, joined_map_offset + to_morpho._set_index]
                 )
                 connections_out.append([from_cell.id, to_cell.id])
-
+        # Throw warning on cut fibers:
+        if fiber_cut_num > 0:
+            warn(
+                "{} fibers out of {} were cut due to outside of quiver volume or external region voxels.".format(
+                    fiber_cut_num, c + 1
+                ),
+                QuiverFieldWarning,
+            )
         self.scaffold.connect_cells(
             self,
             np.array(connections_out or np.empty((0, 2))),
@@ -295,6 +306,10 @@ class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
 
 
 class FiberTransform(ConfigurableClass):
+    def __init__(self):
+        super().__init__()
+        self._branch_cut_num = 0
+
     def transform_branches(self, branches, offset=None):
         if offset is None:
             offset = np.zeros(3)
@@ -330,9 +345,13 @@ class QuiverTransform(FiberTransform):
                 "Attribute 'shared' can't be True for {} transformation".format(self.name)
             )
 
-        # Only QuiverTransform has the attribute quivers, giving the orientation in a discretized volume of size volume_res
+        # Only QuiverTransform has the attribute quivers, giving the orientation in a
+        # discretized volume of size volume_res
         if self.quivers is None:
             raise AttributeError("Missing  attribute 'quivers' for {}".format(self.name))
+
+        if type(self.quivers) is not np.ndarray:
+            self.quivers = np.array(self.quivers)
 
         if not hasattr(self, "vol_res"):
             raise AttributeError("Missing  attribute 'vol_res' for {}".format(self.name))
@@ -358,8 +377,7 @@ class QuiverTransform(FiberTransform):
             :returns: a transformed branch
 
         """
-
-        orientation_data = np.array(self.quivers)
+        orientation_data = self.quivers
         volume_res = self.vol_res
         volume_start = self.vol_start
 
@@ -395,12 +413,22 @@ class QuiverTransform(FiberTransform):
                 if (np.array(voxel_ind) < np.array([0, 0, 0])).all() or (
                     np.array(voxel_ind) > np.array(orientation_data.shape[1:])
                 ).all():
-                    raise QuiverFieldError(
-                        "The reconstructed volume is bigger than the quiver field volume. Selected voxel does not have an associated quiver"
-                    )
+                    # Update number of cut branches
+                    self._branch_cut_num += 1
+                    # Detach subsequent compartments from branch
+                    leftover_branch = branch.detach(branch._compartments[comp])
+                    break
+
                 orientation_vector = orientation_data[
                     :, voxel_ind[0], voxel_ind[1], voxel_ind[2]
                 ]
+
+                # Catch values belonging to a different area than the reconstructed one (marked by NaN)
+                if np.isnan(orientation_vector).any():
+                    self._branch_cut_num += 1
+                    # Detach subsequent compartments from branch
+                    leftover_branch = branch.detach(branch._compartments[comp])
+                    break
 
                 cross_prod = np.cross(orientation_vector, transversal_vector)
                 cross_prod = cross_prod / np.linalg.norm(cross_prod)

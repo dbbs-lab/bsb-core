@@ -466,11 +466,13 @@ def get_rotation_matrix(v0, v):
             ),
             level=3,
         )
-        # We will rotate the morphology of 180° around a vector orthogonal to the starting vector v0 (the same would be if we take the ending vector v)
-        # We set the first and second components to 1; the third one is obtained to have the scalar product with v0 equal to 0
+        # We will rotate the morphology of 180° around a vector orthogonal to
+        # the starting vector v0 (the same would be if we take the ending vector
+        # v). We set the first and third components to 1; the second one is
+        # obtained to have the scalar product with v0 equal to 0
         kx = 1
-        ky = 1
-        kz = -(v0[0] + v0[1]) / v0[2]
+        kz = 1
+        ky = -(v0[0] + v0[2]) / v0[1]
         k = np.array([kx, ky, kz])
     else:
         k = (np.cross(v0, v)) / math.sin(alpha)

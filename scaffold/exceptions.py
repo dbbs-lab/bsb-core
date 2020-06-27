@@ -103,10 +103,6 @@ class ConnectivityError(ScaffoldError):
     pass
 
 
-class QuiverFieldError(ScaffoldError):
-    pass
-
-
 ## Morphologies
 
 
@@ -189,6 +185,10 @@ class PlacementWarning(ScaffoldWarning):
 
 
 class ConnectivityWarning(ScaffoldWarning):
+    pass
+
+
+class QuiverFieldWarning(ScaffoldWarning):
     pass
 
 

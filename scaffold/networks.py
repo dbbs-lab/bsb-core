@@ -103,6 +103,7 @@ class Branch:
         while start._child is not None:
             yield start
             start = start._child
+        yield start
 
     def append(self, compartment):
         self._compartments.append(compartment)
@@ -113,7 +114,7 @@ class Branch:
     def interpolate(self, resolution):
         for comp in self._compartments:
             length_comp = np.linalg.norm(comp.end - comp.start)
-            if length_comp > resolution:
+            if length_comp > resolution + 1e-3:
                 num_to_add = math.ceil(length_comp / resolution)
                 added_points = self.split(comp, num_to_add)
 
@@ -177,6 +178,23 @@ class Branch:
             # branch iteration starts from the new compartment.
             self._root = new_compartments[0]
 
+    def detach(self, compartment):
+        if compartment is self._root or compartment._parent is None:
+            # We have been asked to detach ourselves from ourselves: that just yields our whole branch again
+            return self
+        # Detach our parent from the cutoff point.
+        compartment._parent._child = None
+        self._terminus = compartment._parent
+        # Detach ourself from our parent.
+        compartment._parent = None
+        detached_branch = Branch(
+            list(self.walk(start=compartment)), self.orientation, ordered=False
+        )
+        # Clean up all detached compartments that now belong to the detached branch
+        for detached_comp in detached_branch.walk():
+            self._compartments.remove(detached_comp)
+        return detached_branch
+
     def voxelize(self, position, bounding_box, voxel_tree, map, voxel_list):
         v_id = len(voxel_list)
         for v, comp in enumerate(self._compartments):
@@ -221,10 +239,27 @@ def _get_root_compartment(compartment, compartments):
     return compartment
 
 
+def _get_single_child(compartment, compartments):
+    # Get the child either by the _child attribute, or the only element of _children
+    child = (
+        hasattr(compartment, "_child")
+        and compartment._child
+        or hasattr(compartment, "_children")
+        and len(compartment._children) == 1
+        and compartment._children[0]
+    )
+    # If a child was found this way, check if it is in the compartments array and return
+    # it, otherwise this function returns False
+    return child and child in compartments and child
+
+
 def _get_terminal_compartment(compartment, compartments):
-    while len(compartment._children) == 1 and compartment._children[0] in compartments:
-        compartment = compartment._children[0]
-    return compartment
+    result = compartment
+    child = _get_single_child(compartment, compartments)
+    while child:
+        result = child
+        child = _get_single_child(compartment, compartments)
+    return result
 
 
 def _consume_branch(unvisited, root_compartment, orientation, parent=None):
