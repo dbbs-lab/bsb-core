@@ -49,6 +49,12 @@ class CellType(SortableByAfter):
         """
         self.placement = placement
 
+    def place(self):
+        """
+            Place this cell type.
+        """
+        self.scaffold.place_cell_type(self)
+
     @classmethod
     def get_ordered(cls, objects):
         return sorted(objects.values(), key=lambda x: x.placement.get_placement_count())

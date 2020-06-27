@@ -198,25 +198,29 @@ class Scaffold:
         """
         sorted_cell_types = CellType.resolve_order(self.configuration.cell_types)
         for cell_type in sorted_cell_types:
-            # Place cell type according to PlacementStrategy
-            cell_type.placement.place()
-            if cell_type.entity:
-                entities = self.entities_by_type[cell_type.name]
-                report(
-                    "Finished placing {} {} entities.".format(
-                        len(entities), cell_type.name
-                    ),
-                    level=2,
-                )
-            else:
-                # Get the placed cells
-                cells = self.cells_by_type[cell_type.name][:, 2:5]
-                # Construct a tree of the placed cells
-                self.trees.cells.create_tree(cell_type.name, cells)
-                report(
-                    "Finished placing {} {} cells.".format(len(cells), cell_type.name),
-                    level=2,
-                )
+            self.place_cell_type(cell_type)
+
+    def place_cell_type(self, cell_type):
+        """
+            Place a cell type.
+        """
+        # Place cell type according to PlacementStrategy
+        cell_type.placement.place()
+        if cell_type.entity:
+            entities = self.entities_by_type[cell_type.name]
+            report(
+                "Finished placing {} {} entities.".format(len(entities), cell_type.name),
+                level=2,
+            )
+        else:
+            # Get the placed cells
+            cells = self.cells_by_type[cell_type.name][:, 2:5]
+            # Construct a tree of the placed cells
+            self.trees.cells.create_tree(cell_type.name, cells)
+            report(
+                "Finished placing {} {} cells.".format(len(cells), cell_type.name),
+                level=2,
+            )
 
     def connect_cell_types(self):
         """
@@ -226,18 +230,24 @@ class Scaffold:
             self.configuration.connection_types
         )
         for connection_type in sorted_connection_types:
-            connection_type.connect()
-            # Iterates for each tag of the connection_type
-            for tag in range(len(connection_type.tags)):
-                conn_num = np.shape(connection_type.get_connection_matrices()[tag])[0]
-                source_name = connection_type.from_cell_types[0].name
-                target_name = connection_type.to_cell_types[0].name
-                report(
-                    "Finished connecting {} with {} (tag: {} - total connections: {}).".format(
-                        source_name, target_name, connection_type.tags[tag], conn_num
-                    ),
-                    level=2,
-                )
+            self.connect_type(connection_type)
+
+    def connect_type(self, connection_type):
+        """
+            Run a connection type
+        """
+        connection_type.connect()
+        # Iterates for each tag of the connection_type
+        for tag in range(len(connection_type.tags)):
+            conn_num = np.shape(connection_type.get_connection_matrices()[tag])[0]
+            source_name = connection_type.from_cell_types[0].name
+            target_name = connection_type.to_cell_types[0].name
+            report(
+                "Finished connecting {} with {} (tag: {} - total connections: {}).".format(
+                    source_name, target_name, connection_type.tags[tag], conn_num
+                ),
+                level=2,
+            )
 
     def run_after_placement_hooks(self):
         """
