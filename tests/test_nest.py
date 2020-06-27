@@ -25,20 +25,16 @@ heterosyn_config = relative_to_tests_folder(
 
 
 def neuron_installed():
-    try:
-        import neuron
-    except:
-        return False
-    return True
+    return importlib.util.find_spec("neuron")
 
 
-@unittest.skipIf(importlib.find_loader("nest") is None, "NEST is not importable.")
+@unittest.skipIf(importlib.util.find_spec("nest") is None, "NEST is not importable.")
 class TestKernelManagement(unittest.TestCase):
     # TODO: Add set_threads exception tests here
     pass
 
 
-@unittest.skipIf(importlib.find_loader("nest") is None, "NEST is not importable.")
+@unittest.skipIf(importlib.util.find_spec("nest") is None, "NEST is not importable.")
 class TestSingleNeuronTypeSetup(unittest.TestCase):
     def setUp(self):
         config = JSONConfig(file=single_neuron_config)
@@ -66,7 +62,7 @@ class TestSingleNeuronTypeSetup(unittest.TestCase):
         self.assertEqual(test_neuron_status[0]["I_e"], 0.0)
 
 
-@unittest.skipIf(importlib.find_loader("nest") is None, "NEST is not importable.")
+@unittest.skipIf(importlib.util.find_spec("nest") is None, "NEST is not importable.")
 class TestDoubleNeuronTypeSetup(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -120,7 +116,7 @@ class TestDoubleNeuronTypeSetup(unittest.TestCase):
         self.assertEqual(to_neuron_status[0]["A2"], -0.94)
 
 
-@unittest.skipIf(importlib.find_loader("nest") is None, "NEST is not importable.")
+@unittest.skipIf(importlib.util.find_spec("nest") is None, "NEST is not importable.")
 class TestDoubleNeuronNetworkStatic(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -164,7 +160,7 @@ class TestDoubleNeuronNetworkStatic(unittest.TestCase):
         )
 
 
-@unittest.skipIf(importlib.find_loader("nest") is None, "NEST is not importable.")
+@unittest.skipIf(importlib.util.find_spec("nest") is None, "NEST is not importable.")
 class TestDoubleNeuronNetworkHomosyn(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -207,7 +203,7 @@ class TestDoubleNeuronNetworkHomosyn(unittest.TestCase):
         )
 
 
-@unittest.skipIf(importlib.find_loader("nest") is None, "NEST is not importable.")
+@unittest.skipIf(importlib.util.find_spec("nest") is None, "NEST is not importable.")
 class TestDoubleNeuronNetworkHeterosyn(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -280,7 +276,7 @@ class TestDoubleNeuronNetworkHeterosyn(unittest.TestCase):
             self.scaffold = Scaffold(config)
 
 
-@unittest.skipIf(importlib.find_loader("nest") is None, "NEST is not importable.")
+@unittest.skipIf(importlib.util.find_spec("nest") is None, "NEST is not importable.")
 class TestMultiInstance(unittest.TestCase):
     @classmethod
     def setUpClass(self):

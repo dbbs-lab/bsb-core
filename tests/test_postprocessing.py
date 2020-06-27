@@ -1,4 +1,4 @@
-import unittest, os, sys, numpy as np, h5py
+import unittest, os, sys, numpy as np, h5py, importlib
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from scaffold.config import JSONConfig
@@ -21,11 +21,7 @@ _config = relative_to_tests_folder("configs/test_double_neuron.json")
 
 
 def neuron_installed():
-    try:
-        import neuron
-    except:
-        return False
-    return True
+    return importlib.util.find_spec("neuron")
 
 
 @unittest.skipIf(not neuron_installed(), "NEURON is not importable.")

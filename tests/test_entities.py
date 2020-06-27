@@ -26,7 +26,7 @@ class TestEntities(unittest.TestCase):
     def test_placement_statistics(self):
         self.assertEqual(self.scaffold.statistics.cells_placed["entity_type"], 100)
 
-    @unittest.skipIf(importlib.find_loader("nest") is None, "NEST is not importable.")
+    @unittest.skipIf(importlib.util.find_spec("nest") is None, "NEST is not importable.")
     def test_creation_in_nest(self):
 
         f = h5py.File("minimal_entities.hdf5", "r")
