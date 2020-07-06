@@ -36,11 +36,19 @@ class SpikeGenerator(NeuronDevice):
     def create_patterns(self):
         report("Creating spike generator patterns for '{}'".format(self.name), level=3)
         patterns = {}
+        if hasattr(self, "spike_times"):
+            return {target: self.spike_times for target in self.get_targets()}
+        interval = float(self.parameters["interval"])
+        number = int(self.parameters["number"])
+        start = float(self.parameters["start"])
+        noise = "noise" in self.parameters and self.parameters["noise"]
+        if not noise:
+            pattern = [start + i * interval for i in range(number)]
         for target in self.get_targets():
-            frequency = 1.0 / float(self.parameters["interval"])
-            duration = float(self.parameters["interval"]) * int(self.parameters["number"])
-            start = float(self.parameters["start"])
-            pattern = list(poisson_train(frequency, duration, start))
+            frequency = 1.0 / interval
+            duration = interval * number
+            if noise:
+                pattern = list(poisson_train(frequency, duration, start))
             patterns[target] = pattern
             report("Pattern {} for {}.".format(pattern, target), level=4)
         return patterns
