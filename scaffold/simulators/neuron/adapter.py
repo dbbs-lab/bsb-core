@@ -65,8 +65,8 @@ class NeuronConnection(SimulationComponent):
     def validate(self):
         pass
 
-    def resolve_synapse(self):
-        return self.synapse
+    def resolve_synapses(self):
+        return self.synapse if isinstance(self.synapse, list) else [self.synapse]
 
 
 class NeuronDevice(TargetsNeurons, TargetsSections, SimulationComponent):
@@ -421,7 +421,7 @@ class NeuronAdapter(SimulatorAdapter):
                 raise NotImplementedError("Sorry, no relays yet, only for devices")
                 # Fetch cell and section from `self.relay_scheme`
             else:
-                synapse_type = connection_model.resolve_synapse()
+                synapse_types = connection_model.resolve_synapses()
                 for intersection in connectivity_set.intersections:
                     if intersection.to_id in self.node_cells:
                         cell = self.cells[int(intersection.to_id)]
@@ -435,7 +435,8 @@ class NeuronAdapter(SimulatorAdapter):
                                 ]
                             )
                         ]
-                        cell.create_receiver(section, gid, synapse_type)
+                        for synapse_type in synapse_types:
+                            cell.create_receiver(section, gid, synapse_type)
 
     def create_neurons(self):
         for cell_model in self.cell_models.values():
