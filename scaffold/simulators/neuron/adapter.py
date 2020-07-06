@@ -74,7 +74,7 @@ class NeuronDevice(TargetsNeurons, TargetsSections, SimulationComponent):
 
     device_types = [
         "spike_generator",
-        "current_generator",
+        "current_clamp",
         "spike_recorder",
         "voltage_recorder",
     ]
