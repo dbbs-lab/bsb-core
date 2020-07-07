@@ -97,7 +97,7 @@
           "parameters": {
             "delay": 200,
             "duration": 100,
-            "amplitude": 0.0105
+            "amplitude": 0.021
           }
         },
         "dendrite_recorders": {
