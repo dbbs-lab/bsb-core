@@ -139,8 +139,8 @@ class NeuronDevice(TargetsNeurons, TargetsSections, SimulationComponent):
                 locations.append((cell, section))
         elif target in self.adapter.node_cells:
             cell = self.adapter.cells[target]
-            section = self.target_section(cell)
-            locations.append((cell, section))
+            sections = self.target_section(cell)
+            locations.extend((cell, section) for section in sections)
         return locations
 
 

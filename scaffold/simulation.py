@@ -257,6 +257,20 @@ class TargetsNeurons:
 
 class TargetsSections:
     def target_section(self, cell):
+        if not hasattr(self, "section_targetting"):
+            self.section_targetting = "default"
+        method_name = "_section_target_" + self.section_targetting
+        if not hasattr(self, method_name):
+            raise Exception(
+                "Unknown section targetting type '{}'".format(self.section_targetting)
+            )
+        return getattr(self, method_name)(cell)
+
+    def _section_target_default(self, cell):
+        if not hasattr(self, "section_count"):
+            self.section_count = 1
         if hasattr(self, "section_type"):
-            return random.choice(cell.__dict__[self.section_type])
-        return cell.soma[0]
+            sections = [s for s in cell.sections if self.section_type in s.labels]
+        else:
+            sections = cell.soma
+        return [random.choice(sections) for _ in range(self.section_count)]
