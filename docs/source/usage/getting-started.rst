@@ -2,6 +2,143 @@
 Getting Started
 ###############
 
+This guide aims to get your first model running with the bare minimum steps. If you'd like
+to familiarize yourself with the core concepts and get a more top level understanding
+first, check out the :doc:`top-level-guide` before you continue.
+
+There are 2 ways of building models using the Brain Scaffold Builder (BSB), the first is
+through **configuration**, the second is **scripting**. The 2 methods complement eachother
+so that you can load the general model from a configuration file and then layer on more
+complex steps under your full control in a Python script.
+
+Let's create a barebones configuration file called ``config.json``
+
+.. code-block:: json
+
+  {
+    "storage": {
+      "engine": "hdf5",
+      "root": "my_network.hdf5"
+    },
+    "network": {
+      "x": 200,
+      "z": 200
+    },
+    "regions": {
+
+    },
+    "layers": {
+
+    },
+    "cell_types": {
+
+    },
+    "connection_types": {
+
+    },
+    "simulations": {
+
+    }
+  }
+
+This configuration file declares that we'll be creating a model in an HDF5 format under
+called ``my_network.hdf5`` and that the estimated scale of the network is a square column
+of 200 by 200 micrometer.
+
+We can already use the CLI tool or a script to create an empty network from this
+configuration:
+
+.. code-block:: python
+
+  from scaffold.core import Scaffold
+  from scaffold.config import from_json
+
+  config = from_json("config.json")
+  scaffold = Scaffold(config)
+	# Compile the network, doesn't do anything without any defined types.
+	scaffold.compile_network()
+
+  # After `scaffold` has been initialized from the config your (empty) HDF5 file appears
+
+And from the CLI:
+
+.. code-block:: bash
+
+  scaffold -c=config.json compile
+
+Let's add a ``cortex`` region, with a ``base_layer`` and a ``lonely_cell`` type in it:
+
+.. code-block:: json
+
+  {
+    "storage": {
+      "engine": "hdf5",
+      "root": "my_network.hdf5"
+    },
+    "network": {
+      "x": 200,
+      "z": 200
+    },
+    "regions": {
+			"cortex": {
+				"origin": [0.0, 0.0, 0.0]
+			}
+    },
+    "layers": {
+			"base_layer": {
+	      "thickness": 600,
+	      "region": "cortex",
+	      "z_index": 0
+	    }
+    },
+    "cell_types": {
+			"lonely_cell": {
+				"placement": {
+					"class": "scaffold.placement.ParticlePlacement",
+					"layer": "base_layer",
+					"count": 10
+				},
+				"spatial": {
+					"radius": 2.5
+				}
+			},
+    },
+    "connection_types": {
+
+    },
+    "simulations": {
+
+    }
+  }
+
+Regions group layers together and most placement strategies fill a specific layer with
+cells!
+
+Cell types define how to represent cells in space (as points, morphologies, ROIs, ...) and
+how to place them inside the network. The ``placement`` node takes care of the latter by
+referring to a placement class, either one provided out of the box by the BSB or your own
+(see :doc:`/guides/placement-strategies`). These classes usually require class specific
+further configuration but we'll get started with an easy one.
+:class:`.placement.ParticlePlacement` just considers the cells as somas and bumps them
+around as repelling particles until there is no overlap.
+
+At this point we can repeat the CLI command with the plotting flag ``-p`` to look at the
+result:
+
+.. code-block:: bash
+
+	scaffold -c=config.json compile -p
+
+<EXTRA CELL TYPE + CONNECTION TYPES> 
+
+.. note::
+
+	For a more extensive introduction to the possibilities of configuring model components,
+	check out the :doc:`/config/intro`!
+
+Getting Started (Cerebellum model)
+##################################
+
 ===========
 First steps
 ===========
