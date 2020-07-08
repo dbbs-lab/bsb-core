@@ -220,7 +220,7 @@ class NestDevice(TargetsNeurons, SimulationComponent):
         "stimulus": ListEvalConfiguration.cast,
     }
 
-    defaults = {"connection_rule": None, "connection_parameters": None}
+    defaults = {"connection": {"rule": "all_to_all"}, "synapse": None}
 
     required = ["targetting", "device", "io", "parameters"]
 
@@ -735,13 +735,12 @@ class NestAdapter(SimulatorAdapter):
                 "Connecting to {} device targets.".format(len(device_targets)), level=3
             )
             # Collect the NEST Connect parameters
-            connect_params = [{"rule": "all_to_all"}, device_model.connection_parameters]
             if device_model.io == "input":
                 # Connect device to nodes
-                connect_params[0:0] = [device, device_targets]
+                connect_params = [device, device_targets]
             elif device_model.io == "output":
                 # Connect nodes to device
-                connect_params[0:0] = [device_targets, device]
+                connect_params = [device_targets, device]
             elif device_model.io == "none":
                 # Weight recorder device is not connected to any node; just linked to a connection
                 return
@@ -751,6 +750,7 @@ class NestAdapter(SimulatorAdapter):
                         device_model.io, device_model.name
                     )
                 )
+            connect_params.append(device_model.connection)
             # Send the Connect command to NEST and catch IllegalConnection errors.
             self.execute_command(
                 self.nest.Connect,
