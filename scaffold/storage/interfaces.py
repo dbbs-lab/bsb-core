@@ -47,6 +47,10 @@ class ConfigStore(Interface):
     def load(self):
         pass
 
+    @abc.abstractmethod
+    def get_parser_name(self):
+        pass
+
 
 class TreeCollectionHandler(Interface):
     """
