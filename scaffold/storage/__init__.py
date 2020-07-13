@@ -164,7 +164,6 @@ class Storage:
 
             :returns: :class:`Scaffold <.core.Scaffold>`
         """
-        from ..config import Configuration
         from ..core import Scaffold
 
         config = self.load_config()
@@ -176,8 +175,7 @@ class Storage:
 
             :returns: :class:`Configuration <.config.Configuration>`
         """
-        cso = self._ConfigStore(self._engine).load()
-        return Configuration.__cast__(cso, None)
+        return self._ConfigStore(self._engine).load()
 
     def store_config(self, config):
         """
