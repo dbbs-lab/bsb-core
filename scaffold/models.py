@@ -356,10 +356,11 @@ class ConnectivitySet(Resource):
         presynaptic_type = self.get_presynaptic_types()[0]
         placement_set = self.scaffold.get_placement_set(presynaptic_type)
         identifiers = placement_set.identifiers
-        carry = {id: 0 for id in identifiers}
-        for id in self.from_identifiers:
-            carry[id] = carry[id] + 1
-        return list(carry.values())
+        carry = {id: [] for id in identifiers}
+        for conn in self.connections:
+            if conn.to_id not in carry[conn.from_id]:
+                carry[conn.from_id].append(conn.to_id)
+        return list(len(v) for v in carry.values())
 
     @property
     def divergence(self):
@@ -372,10 +373,11 @@ class ConnectivitySet(Resource):
         postsynaptic_type = self.get_postsynaptic_types()[0]
         placement_set = self.scaffold.get_placement_set(postsynaptic_type)
         identifiers = placement_set.identifiers
-        carry = {id: 0 for id in identifiers}
-        for id in self.to_identifiers:
-            carry[id] = carry[id] + 1
-        return list(carry.values())
+        carry = {id: [] for id in identifiers}
+        for conn in self.connections:
+            if conn.from_id not in carry[conn.to_id]:
+                carry[conn.to_id].append(conn.from_id)
+        return list(len(v) for v in carry.values())
 
     @property
     def convergence(self):
