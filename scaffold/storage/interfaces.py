@@ -170,30 +170,58 @@ class _FilterMeta(abc.ABCMeta, type):
         # If the direct base class is the Interface class then we're creating the parent
         # class below, and the metaclass changes should not be applied.
         if bases[0].__name__ != "Interface":
-            new_class._filters = {ft: [] for ft in new_class.get_filter_types()}
+            new_class._filters = {}
         return new_class
 
 
 class Filter(Interface, metaclass=_FilterMeta):
+    """
+        Filters are object that store multiple key value pairs, the keys being filter types and the
+        values the filter to apply to that filter type. Filters can be activated and deactivated.
+
+        Other pieces of code can then query the Filter class
+        (``Filter.get_filters(type)``) to get all active filters of a type and use it to
+        filter their operation.
+
+        Filter objects can be used as context managers.
+    """
+
     def __init__(self, handler, filters):
         super().__init__(handler)
+        self.__class__._init_handler(handler)
         self.filters = filters
+
+    @classmethod
+    def _init_handler(cls, handler):
+        if handler not in cls._filters:
+            cls._filters[handler] = {ft: {} for ft in cls.get_filter_types()}
 
     @classmethod
     @abc.abstractmethod
     def get_filter_types(cls):
+        """
+            This method should be overridden with a class method to return all the
+            available filter types on the engine as a list of strings.
+        """
         pass
 
     @classmethod
     def create(cls, handler, **kwargs):
+        """
+            Create a multifilter object.
+        """
         f = cls(handler, kwargs)
         return f
 
     def activate(self):
+        """
+            Activate a multifilter object
+        """
+        filters = self.__class__._filters[self._handler]
         for f in self.filters:
             try:
-                if self not in self.__class__._filters[f]:
-                    self.__class__._filters[f].append(self)
+                if self not in filters[f]:
+                    filters[f].append(self)
             except KeyError:
                 raise NotImplemented(
                     "The '{}' engine does not support the '{}' filter.".format(
@@ -202,6 +230,9 @@ class Filter(Interface, metaclass=_FilterMeta):
                 )
 
     def deactivate(self):
+        """
+            Deactivate a multifilter object.
+        """
         for f in self.filters:
             try:
                 self.__class__._filters[f].remove(self)
@@ -216,7 +247,17 @@ class Filter(Interface, metaclass=_FilterMeta):
 
     @classmethod
     def get_filters(cls, filter_type):
-        try:
-            return [f.filters[filter_type] for f in cls._filters[filter_type]]
-        except KeyError:
-            pass
+        """
+            Return all active filters of the given type.
+        """
+        if filter_type not in cls._filters[self._handler]:
+            raise NotImplemented(
+                "The '{}' engine does not support the '{}' filter.".format(
+                    self._handler._format, f
+                )
+            )
+        filters = []
+        for f in cls._filters[filter_type]:
+            if filter_type in f.filters:
+                filters.append(f)
+        return filters
