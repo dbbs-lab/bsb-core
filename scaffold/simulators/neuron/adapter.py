@@ -333,8 +333,8 @@ class NeuronAdapter(SimulatorAdapter):
     def collect_output(self):
         import h5py, time
 
-        self.pc.barrier()
-        timestamp = str(time.time()).split(".")[0]
+        timestamp = str(time.time()).split(".")[0] + str(random.random()).split(".")[1]
+        timestamp = self.pc.broadcast(timestamp)
         for node in range(self.scaffold.MPI.COMM_WORLD.size):
             self.pc.barrier()
             if node == self.pc_id:

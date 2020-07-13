@@ -4,7 +4,7 @@ from .morphologies import Morphology, TrueMorphology, Compartment
 from scaffold.helpers import suppress_stdout
 from contextlib import contextmanager
 from abc import abstractmethod, ABC
-import h5py, os, time, pickle, numpy as np
+import h5py, os, time, pickle, random, numpy as np
 from numpy import string_
 from .exceptions import *
 from .models import ConnectivitySet, PlacementSet
@@ -663,7 +663,9 @@ class HDF5Formatter(OutputFormatter, MorphologyRepository):
     """
 
     defaults = {
-        "file": "scaffold_network_{}.hdf5".format(time.strftime("%Y_%m_%d-%H%M%S")),
+        "file": "scaffold_network_{}.hdf5".format(
+            time.strftime("%Y_%m_%d-%H%M%S") + str(random.random()).split(".")[1]
+        ),
         "simulator_output_path": False,
         "morphology_repository": None,
     }
