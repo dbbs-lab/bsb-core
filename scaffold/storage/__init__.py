@@ -179,6 +179,12 @@ class Storage:
         cso = self._ConfigStore(self._engine).load()
         return Configuration.__cast__(cso, None)
 
+    def store_config(self, config):
+        """
+            Store a configuration object in the storage.
+        """
+        self._ConfigStore(self._engine).store(config)
+
     def supports(self, feature):
         return feature in self._features
 
@@ -212,9 +218,6 @@ class Storage:
         for cell_type in scaffold.get_cell_types():
             if not self._PlacementSet.exists(self._engine, cell_type):
                 self._PlacementSet.create(self._engine, cell_type)
-
-    def store_config(self, config):
-        self._ConfigStore(self._engine).store(config)
 
     def Label(self, label):
         """
