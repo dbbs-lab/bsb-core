@@ -33,7 +33,10 @@ class ConfigurationModule:
     run_hook = staticmethod(run_hook)
     has_hook = staticmethod(has_hook)
 
-    # The __path__ attribute needs to be retained to mark this module as a package
+    _parser_classes = {}
+
+    # The __path__ attribute needs to be retained to mark this module as a package with
+    # submodules (config.nodes, config.refs, config.parsers.json, ...)
     __path__ = _path
 
     # Load the Configuration class on demand, not on import, to avoid circular
@@ -47,6 +50,17 @@ class ConfigurationModule:
             self._cfg_cls = Configuration
             self._cfg_cls.__module__ = __name__
         return self._cfg_cls
+
+    def get_parser(self, parser_name):
+        """
+            Create an instance of a configuration parser that can parse configuration
+            strings into configuration trees, or serialize trees into strings.
+
+            Configuration trees can be cast into Configuration objects.
+        """
+        if not parser_name in self._parser_classes:
+            raise PluginError("Configuration parser '{}' not found".format(parser_name))
+        return self._parser_classes[parser_name]()
 
     __all__ = _list(vars().keys() - {"__init__", "__qualname__", "__module__"})
 
@@ -95,6 +109,7 @@ def parser_factory(parser):
 
 
 for name, parser in plugins.discover("config.parsers").items():
+    ConfigurationModule._parser_classes[name] = parser
     setattr(ConfigurationModule, "from_" + name, parser_factory(parser))
     ConfigurationModule.__all__.append("from_" + name)
 
