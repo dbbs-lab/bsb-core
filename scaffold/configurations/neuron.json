@@ -312,7 +312,9 @@
     }
   },
   "after_connectivity": {
-
+    "golgi_axon_fix": {
+      "class": "scaffold.postprocessing.GolgiAxonFix"
+    }
   },
   "simulations": {
     "poc": {
