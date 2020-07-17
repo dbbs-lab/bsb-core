@@ -249,7 +249,7 @@ class LayeredRandomWalk(Layered, PlacementStrategy):
                                     cells_per_sublayer,
                                     sublayer_id + 1,
                                 ),
-                                3,
+                                level=3,
                             )
                             break
                 else:
@@ -270,7 +270,7 @@ class LayeredRandomWalk(Layered, PlacementStrategy):
                 "Filling {} sublayer {}/{}...".format(
                     cell_type.name, sublayer_id + 1, n_sublayers
                 ),
-                3,
+                level=3,
                 ongoing=True,
             )
 

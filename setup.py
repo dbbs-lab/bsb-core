@@ -1,12 +1,17 @@
 import setuptools, sys, os
-import scaffold
+
+with open(os.path.join(os.path.dirname(__file__), "scaffold", "__init__.py"), "r") as f:
+    for line in f:
+        if "__version__ = " in line:
+            exec(line.strip())
+            break
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
     name="dbbs-scaffold",
-    version=scaffold.__version__,
+    version=__version__,
     author="Robin De Schepper, Alice Geminiani, Alberto Antonietti, Stefano Casali, Claudia Casellato, Egidio D'Angelo",
     author_email="robingilbert.deschepper@unipv.it",
     description="A package for modelling morphologically detailed neuronal microcircuits.",
@@ -45,6 +50,6 @@ setuptools.setup(
     },
     extras_require={
         "dev": ["sphinx", "sphinx_rtd_theme>=0.4.3", "pyarmor", "pre-commit", "black"],
-        "NEURON": ["nrn-patch>=2.1.0", "dbbs_models>=0.4.3"],
+        "NEURON": ["nrn-patch>=2.1.0", "dbbs_models>=0.4.4"],
     },
 )

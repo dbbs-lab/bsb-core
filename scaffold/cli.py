@@ -198,15 +198,20 @@ def start_cli():
         # Should we report to a file?
         if cl_args.report:
             set_report_file(cl_args.report)
-        if cl_args.ctype == "json":  # Should we config from JSON?
-            # Load the .json configuration
+        if hasattr(cl_args, "hdf5"):  # Is an HDF5 file specified?
+            cl_args.ctype = "hdf5"  # Load from the config stored in the HDF5 file.
+
+        if cl_args.ctype == "json":
+            # Load scaffold from json config
             scaffoldConfig = JSONConfig(file=cl_args.config)
             scaffoldInstance = Scaffold(scaffoldConfig)
-        elif cl_args.ctype == "hdf5":  # Should we config from hdf5?
+        elif cl_args.ctype == "hdf5":
+            # Load scaffold from HDF5
             file = cl_args.hdf5
             if cl_args.reconfigure is not None:
                 config = JSONConfig(file=cl_args.reconfigure)
                 HDF5Formatter.reconfigure(file, config)
+            # Extract the config stored in the hdf5 file.
             scaffoldInstance = from_hdf5(file)
 
         if hasattr(cl_args, "x") and hasattr(cl_args, "z") and (cl_args.x or cl_args.z):

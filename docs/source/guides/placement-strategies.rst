@@ -47,3 +47,31 @@ ParallelArrayPlacement
 **********************
 
 *Class*: :class:`.placement.ParallelArrayPlacement`
+
+**************
+FixedPositions
+**************
+
+*Class*: :class:`.placement.FixedPositions`
+
+This class places the cells in fixed positions specified in the attribute ``positions``.
+
+Configuration
+=============
+
+* ``positions``: a list of 3D points where the neurons should be placed. For example:
+
+.. code-block:: json
+
+  {
+    "cell_types": {
+      "golgi_cell": {
+        "placement": {
+          "class": "scaffold.placement.FixedPositions",
+          "layer": "granular_layer",
+          "count": 1,
+          "positions": [[40.0,0.0,-50.0]]
+          }
+      },
+    }
+  }

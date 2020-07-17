@@ -21,6 +21,7 @@ To plot a network saved in a `scaffold` instance, you can use:
 You can also plot morphologies:
 
 * ``plot_morphology(m)``: Plots a :class:`Morphology <.morphologies.Morphology>`
+* ``plot_fiber_morphology(fm)``: Plots a :class:`FiberMorphology <.networks.FiberMorphology>`
 * ``plot_voxel_cloud(m.cloud)``: Plots a :class:`VoxelCloud <.voxels.VoxelCloud>`
 
 All of the above functions take a ``fig`` keyword argument of type

@@ -30,10 +30,9 @@ Developers best use pip's *editable* install. This creates a live link between t
 installed package and the local git repository:
 
 ```
- sudo apt-get install python3-rtree
  git clone git@github.com:Helveg/cerebellum-scaffold.git
  cd cerebellum-scaffold
- pip install -e .[dev] --no-use-pep517
+ pip install -e .[dev]
  pre-commit install
 ```
 

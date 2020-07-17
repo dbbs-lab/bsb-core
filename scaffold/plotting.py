@@ -295,20 +295,55 @@ def get_branch_trace(compartments, offset=[0.0, 0.0, 0.0], color="black", width=
     )
 
 
-def get_soma_trace(soma_radius, offset=[0.0, 0.0, 0.0], color="black"):
-    theta = np.linspace(0, 2 * np.pi, 10)
-    phi = np.linspace(0, np.pi, 10)
-    x = np.outer(np.cos(theta), np.sin(phi)) * soma_radius + offset[0]
-    y = np.outer(np.sin(theta), np.sin(phi)) * soma_radius + offset[2]
-    z = np.outer(np.ones(10), np.cos(phi)) * soma_radius + offset[1]
-    return go.Surface(
-        x=x,
-        y=y,
-        z=z,
-        surfacecolor=np.zeros(10),
-        colorscale=[[0, color], [1, color]],
-        showscale=False,
+def get_soma_trace(
+    soma_radius, offset=[0.0, 0.0, 0.0], color="black", opacity=1, steps=5
+):
+    phi = np.linspace(0, 2 * np.pi, num=steps * 2)
+    theta = np.linspace(-np.pi / 2, np.pi / 2, num=steps)
+    phi, theta = np.meshgrid(phi, theta)
+
+    x = np.cos(theta) * np.sin(phi) * soma_radius + offset[0]
+    y = np.cos(theta) * np.cos(phi) * soma_radius + offset[2]
+    z = np.sin(theta) * soma_radius + offset[1]
+
+    return go.Mesh3d(
+        x=x.flatten(),
+        y=y.flatten(),
+        z=z.flatten(),
+        opacity=opacity,
+        color=color,
+        alphahull=0,
     )
+
+
+@_network_figure
+def plot_fiber_morphology(
+    fiber,
+    offset=[0.0, 0.0, 0.0],
+    fig=None,
+    cubic=True,
+    swapaxes=True,
+    show=True,
+    legend=True,
+    set_range=True,
+    color="black",
+    segment_radius=1.0,
+):
+    def get_branch_traces(branches, traces):
+        for branch in branches:
+            traces.append(
+                get_branch_trace(
+                    branch._compartments, offset, color=color, width=segment_radius
+                )
+            )
+            get_branch_traces(branch.child_branches, traces)
+
+    traces = []
+    get_branch_traces(fiber.root_branches, traces)
+
+    for trace in traces:
+        fig.add_trace(trace)
+    return fig
 
 
 @_network_figure
@@ -333,11 +368,9 @@ def plot_morphology(
         dfs_list = list(map(lambda b: reduce_branch(b, branch_points), dfs_list))
     traces = []
     for branch in dfs_list[::-1]:
-        traces.append(
-            get_branch_trace(
-                compartments[branch], offset, color=color, width=segment_radius
-            )
-        )
+        branch_comps = compartments[branch]
+        width = _get_branch_width(branch_comps, segment_radius)
+        traces.append(get_branch_trace(branch_comps, offset, color=color, width=width))
     traces.append(
         get_soma_trace(
             soma_radius if soma_radius is not None else compartments[0].radius,
@@ -374,6 +407,18 @@ def plot_intersections(
         + np.array(offset)
         + np.array(to_pos)
     )
+
+
+def _get_branch_width(branch, seg_radius):
+    width = seg_radius
+    try:
+        if isinstance(seg_radius, dict):
+            branch_type = branch[-1].type
+            bt = int(branch_type / 100) if branch_type > 100 else int(branch_type)
+            width = seg_radius[bt]
+    except KeyError:
+        raise Exception("Plotting width not specified for branches of type " + str(bt))
+    return width
 
 
 def plot_block(fig, origin, sizes, color=None, colorscale="Cividis", **kwargs):
@@ -505,26 +550,94 @@ def hdf5_plot_spike_raster(spike_recorders, input_region=None):
     fig.show()
 
 
+def hdf5_gdf_plot_spike_raster(spike_recorders, input_region=None, fig=None):
+    """
+        Create a spike raster plot from an HDF5 group of spike recorders saved from NEST gdf files.
+        Each HDF5 dataset includes the spike timings of the recorded cell populations, with spike
+        times in the first row and neuron IDs in the second row.
+    """
+
+    cell_ids = [np.unique(spike_recorders[k][:, 1]) for k in spike_recorders.keys()]
+    x = {}
+    y = {}
+    colors = {}
+    ids = {}
+
+    for cell_id, dataset in spike_recorders.items():
+        data = dataset[:, 0]
+        neurons = dataset[:, 1]
+        attrs = dict(dataset.attrs)
+        label = attrs["label"]
+        colors[label] = attrs["color"]
+        if not label in x:
+            x[label] = []
+        if not label in y:
+            y[label] = []
+        if not label in colors:
+            colors[label] = attrs["color"]
+        if not label in ids:
+            ids[label] = 0
+        cell_id = ids[label]
+        ids[label] += 1
+        # Add the spike timings on the X axis.
+        x[label].extend(data)
+        # Set the cell id for the Y axis of each added spike timing.
+        y[label].extend(neurons)
+
+    subplots_fig = make_subplots(cols=1, rows=len(x), subplot_titles=list(x.keys()))
+    _min = float("inf")
+    _max = -float("inf")
+    for i, (c, t) in enumerate(x.items()):
+        _min = min(_min, np.min(np.array(t)))
+        _max = max(_max, np.max(np.array(t)))
+    subplots_fig.update_xaxes(range=[_min, _max])
+    # Overwrite the layout and grid of the single plot that is handed to us
+    # to turn it into a subplots figure.
+    fig._grid_ref = subplots_fig._grid_ref
+    fig._layout = subplots_fig._layout
+    for i, l in enumerate((x.keys())):
+        plot_spike_raster(
+            x[l],
+            y[l],
+            label=l,
+            fig=fig,
+            row=i + 1,
+            col=1,
+            show=False,
+            color=colors[l],
+            input_region=input_region,
+        )
+    fig.show()
+
+
 @_figure
 @_input_highlight
 def plot_spike_raster(
-    spike_timings, cell_ids, fig=None, show=True, legend=True, label="Cells", color=None
+    spike_timings,
+    cell_ids,
+    fig=None,
+    row=None,
+    col=None,
+    show=True,
+    legend=True,
+    label="Cells",
+    color=None,
 ):
     fig.add_trace(
         go.Scatter(
             x=spike_timings,
             y=cell_ids,
             mode="markers",
-            marker=dict(symbol="square", size=4, color=color or "black"),
+            marker=dict(symbol="square", size=2, color=color or "black"),
             name=label,
-        )
+        ),
+        row=row,
+        col=col,
     )
 
 
 def hdf5_gather_voltage_traces(handle, root, groups=None):
-    if groups is None:
-        groups = [""]
-    if len(groups) == 0:
+    if not groups:
         groups = [""]
     traces = CellTraceCollection()
     for group in groups:
@@ -570,6 +683,54 @@ def plot_traces(traces, fig=None, show=True, legend=True):
                 row=i + 1,
             )
             legend_groups.add(legends[j])
+
+
+class PsthRow(list):
+    def __init__(self, name, color):
+        self.name = name
+        self.color = color
+        self.cells = 0
+
+    def extend(self, arr):
+        super().extend(arr)
+        self.cells += 1
+
+
+@_figure
+def hdf5_plot_psth(handle, duration=3, cutoff=0, fig=None, **kwargs):
+    histo = {}
+    for g in handle.values():
+        l = g.attrs["label"]
+        if l not in histo:
+            histo[l] = PsthRow(l, g.attrs["color"])
+        adj = g[:, 0] - cutoff
+        # Overwrite number of cells if num_neurons exists
+        if "num_neurons" in g.attrs:
+            histo[l].cells = g.attrs["num_neurons"]
+        histo[l].extend(adj)
+    subplots_fig = make_subplots(
+        cols=1, rows=len(histo), subplot_titles=list(histo.keys())
+    )
+    _min = float("inf")
+    _max = -float("inf")
+    for i, (l, h) in enumerate(histo.items()):
+        if len(h):
+            _min = min(_min, np.min(h))
+            _max = max(_max, np.max(h))
+    subplots_fig.update_xaxes(range=[_min + cutoff, _max])
+    # Overwrite the layout and grid of the single plot that is handed to us
+    # to turn it into a subplots figure.
+    fig._grid_ref = subplots_fig._grid_ref
+    fig._layout = subplots_fig._layout
+    for i, (l, h) in enumerate(histo.items()):
+        counts, bins = np.histogram(h, bins=np.arange(_min + cutoff, _max, duration))
+        trace = go.Bar(
+            x=bins,
+            y=counts / h.cells * 1000 / duration,
+            name=l,
+            marker=dict(color=h.color),
+        )
+        fig.add_trace(trace, row=i + 1, col=1)
 
 
 class MorphologyScene:

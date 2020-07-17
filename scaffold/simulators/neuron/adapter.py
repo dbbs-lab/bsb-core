@@ -68,8 +68,8 @@ class NeuronConnection(ConnectionModel):
     def validate(self):
         pass
 
-    def resolve_synapse(self):
-        return self.synapse
+    def resolve_synapses(self):
+        return self.synapse if isinstance(self.synapse, list) else [self.synapse]
 
 
 @config.node
@@ -78,7 +78,7 @@ class NeuronDevice(TargetsNeurons, TargetsSections, DeviceModel):
 
     device_types = [
         "spike_generator",
-        "current_generator",
+        "current_clamp",
         "spike_recorder",
         "voltage_recorder",
     ]
@@ -140,8 +140,8 @@ class NeuronDevice(TargetsNeurons, TargetsSections, DeviceModel):
                 locations.append((cell, section))
         elif target in self.adapter.node_cells:
             cell = self.adapter.cells[target]
-            section = self.target_section(cell)
-            locations.append((cell, section))
+            sections = self.target_section(cell)
+            locations.extend((cell, section) for section in sections)
         return locations
 
 
@@ -208,6 +208,8 @@ class NeuronAdapter(SimulatorAdapter):
         from patch import p as simulator
         from time import time
 
+        report("Preparing simulation", level=3)
+
         self.validate_prepare()
         self.h = simulator
         self.recorders = []
@@ -216,37 +218,76 @@ class NeuronAdapter(SimulatorAdapter):
         simulator.celsius = self.temperature
         simulator.tstop = self.duration
 
-        t = time()
+        t = t0 = time()
         self.load_balance()
-        print(
-            "Load balancing on node", self.pc_id, "took", round(time() - t, 2), "seconds"
+        report(
+            "Load balancing on node",
+            self.pc_id,
+            "took",
+            round(time() - t, 2),
+            "seconds",
+            all_nodes=True,
         )
         t = time()
         self.create_neurons()
         t = time() - t
         simulator.parallel.barrier()
-        print("Cell creation on node", self.pc_id, "took", round(t, 2), "seconds")
+        report(
+            "Cell creation on node",
+            self.pc_id,
+            "took",
+            round(t, 2),
+            "seconds",
+            all_nodes=True,
+        )
         t = time()
         self.create_transmitters()
-        print(
+        report(
             "Transmitter creation on node",
             self.pc_id,
             "took",
             round(time() - t, 2),
             "seconds",
+            all_nodes=True,
         )
         self.index_relays()
         simulator.parallel.barrier()
         t = time()
         self.create_receivers()
         t = time() - t
-        print(
-            "Receiver creation on node", self.pc_id, "took", round(t, 2), "seconds",
+        report(
+            "Receiver creation on node",
+            self.pc_id,
+            "took",
+            round(t, 2),
+            "seconds",
+            all_nodes=True,
         )
-
         simulator.parallel.barrier()
+        t = time()
         self.prepare_devices()
+        t = time() - t
+        report(
+            "Device preparation on node",
+            self.pc_id,
+            "took",
+            round(t, 2),
+            "seconds",
+            all_nodes=True,
+        )
+        simulator.parallel.barrier()
+        t = time()
         self.create_devices()
+        t = time() - t
+        report(
+            "Device creation on node",
+            self.pc_id,
+            "took",
+            round(t, 2),
+            "seconds",
+            all_nodes=True,
+        )
+        report("Simulator preparation took", round(time() - t0, 2), "seconds")
         return simulator
 
     def load_balance(self):
@@ -264,7 +305,7 @@ class NeuronAdapter(SimulatorAdapter):
         pc = simulator.parallel
         self.pc = pc
         pc.barrier()
-        report("Simulating...", 2)
+        report("Simulating...", level=2)
         pc.set_maxstep(10)
         simulator.finitialize(-65.0)
         simulator.finitialize(self.initial)
@@ -275,15 +316,15 @@ class NeuronAdapter(SimulatorAdapter):
             pc.barrier()
             self.progress(progression, self.duration)
             if os.path.exists("interrupt_neuron"):
-                report("Iterrupt requested. Stopping simulation.", 1)
+                report("Iterrupt requested. Stopping simulation.", level=1)
                 break
-        report("Finished simulation.", 2)
+        report("Finished simulation.", level=2)
 
     def collect_output(self):
         import h5py, time
 
-        self.pc.barrier()
-        timestamp = str(time.time()).split(".")[0]
+        timestamp = str(time.time()).split(".")[0] + str(random.random()).split(".")[1]
+        timestamp = self.pc.broadcast(timestamp)
         for node in range(self.scaffold.MPI.COMM_WORLD.size):
             self.pc.barrier()
             if node == self.pc_id:
@@ -370,7 +411,7 @@ class NeuronAdapter(SimulatorAdapter):
                 raise NotImplementedError("Sorry, no relays yet, only for devices")
                 # Fetch cell and section from `self.relay_scheme`
             else:
-                synapse_type = connection_model.resolve_synapse()
+                synapse_types = connection_model.resolve_synapses()
                 for intersection in connectivity_set.intersections:
                     if intersection.to_id in self.node_cells:
                         cell = self.cells[int(intersection.to_id)]
@@ -384,7 +425,8 @@ class NeuronAdapter(SimulatorAdapter):
                                 ]
                             )
                         ]
-                        cell.create_receiver(section, gid, synapse_type)
+                        for synapse_type in synapse_types:
+                            cell.create_receiver(section, gid, synapse_type)
 
     def create_neurons(self):
         for cell_model in self.cell_models.values():
@@ -447,7 +489,7 @@ class NeuronAdapter(SimulatorAdapter):
                     device.implement(target, cell, section)
 
     def index_relays(self):
-        print("Indexing relays")
+        report("Indexing relays.")
         terminal_relays = {}
         intermediate_relays = {}
         output_handler = self.scaffold.output_formatter
@@ -462,10 +504,24 @@ class NeuronAdapter(SimulatorAdapter):
             if not from_cell_model.relay:
                 continue
             if to_cell_model.relay:
+                report(
+                    "Adding",
+                    len(connectivity_set),
+                    connection_model.name,
+                    "connections as intermediate.",
+                    level=3,
+                )
                 bin = intermediate_relays
                 connections = connectivity_set.connections
                 target = lambda c: c.to_id
             else:
+                report(
+                    "Adding",
+                    len(connectivity_set),
+                    connection_model.name,
+                    "connections as terminal.",
+                    level=3,
+                )
                 bin = terminal_relays
                 connections = connectivity_set.intersections
                 target = lambda c: (c.to_id, c.to_compartment.section_id)
@@ -478,13 +534,22 @@ class NeuronAdapter(SimulatorAdapter):
                     bin[fid] = arr
                 arr.append(target(connection))
 
+        report("Relays indexed, resolving intermediates.")
+
         while len(intermediate_relays) > 0:
             intermediates_to_remove = []
             for intermediate, targets in intermediate_relays.items():
                 for target in targets:
                     if target in intermediate_relays:
+                        # This target of this intermediary is also an intermediary and
+                        # cannot be resolved to a terminal at this point, so we wait until
+                        # a next iteration where the intermediary target might have been
+                        # resolved.
                         continue
                     if target in terminal_relays:
+                        # The target is a terminal relay and can be removed from our
+                        # intermediary target list and its terminal targets added to our
+                        # terminal target list.
                         try:
                             arr = terminal_relays[intermediate]
                         except:
@@ -492,9 +557,13 @@ class NeuronAdapter(SimulatorAdapter):
                             terminal_relays[intermediate] = arr
                         arr.extend(terminal_relays[target])
                         targets.remove(target)
+                        # If we now have no more intermediary  targets we can be removed
+                        # from the intermediary relay list.
                         if len(targets) == 0:
                             intermediates_to_remove.append(intermediate)
                     else:
+                        # The target is not a relay at all and can be added to our
+                        # terminal target list
                         try:
                             arr = terminal_relays[intermediate]
                         except:
@@ -505,12 +574,15 @@ class NeuronAdapter(SimulatorAdapter):
                         if len(targets) == 0:
                             intermediates_to_remove.append(intermediate)
             for intermediate in intermediates_to_remove:
-                print(
+                report(
                     "Intermediate resolved to",
                     len(terminal_relays[intermediate]),
                     "targets",
+                    level=4,
                 )
                 intermediate_relays.pop(intermediate, None)
+
+        report("Relays resolved.")
 
         # Filter out all relays to targets not on this node.
         self.relay_scheme = {}
@@ -518,7 +590,14 @@ class NeuronAdapter(SimulatorAdapter):
             my_targets = list(filter(lambda x: int(x[0]) in self.node_cells, targets))
             if my_targets:
                 self.relay_scheme[relay] = my_targets
-        print("I need to receive from", len(self.relay_scheme), "relays")
+        report(
+            "Node",
+            self.pc_id,
+            "needs to receive from",
+            len(self.relay_scheme),
+            "relays",
+            level=4,
+        )
 
     def register_recorder(
         self, group, cell, recorder, time_recorder=None, section=None, x=None, meta=None

@@ -219,6 +219,10 @@ class ConnectivityWarning(ScaffoldWarning):
     pass
 
 
+class QuiverFieldWarning(ScaffoldWarning):
+    pass
+
+
 class RepositoryWarning(ScaffoldWarning):
     pass
 

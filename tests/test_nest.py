@@ -127,6 +127,8 @@ class TestDoubleNeuronNetworkStatic(unittest.TestCase):
     def setUpClass(cls):
         super(TestDoubleNeuronNetworkStatic, cls).setUpClass()
         config = JSONConfig(file=double_nn_config)
+        if not neuron_installed():
+            del config.simulations["neuron"]
         cls.scaffold = Scaffold(config)
         cls.scaffold.compile_network()
         cls.nest_adapter = cls.scaffold.run_simulation(

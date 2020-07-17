@@ -219,8 +219,10 @@ class NestConnection(ConnectionModel):
 class NestDevice(TargetsNeurons, DeviceModel):
     node_name = "simulations.?.devices"
 
-    connection_rule = config.attr()
-    connection_parameters = config.attr()
+    connection = config.attr(
+        type=dict, default=lambda s: {"rule": "all_to_all"}, call_default=True
+    )
+    synapse = config.attr(type=dict)
     radius = config.attr(type=float)
     origin = config.attr(type=types.list(type=float, size=3))
     parameters = config.attr(type=dict, required=True)
@@ -297,7 +299,7 @@ class NestAdapter(SimulatorAdapter):
         try:
             return self._nest
         except AttributeError:
-            report("Importing  NEST...", 2)
+            report("Importing  NEST...", level=2)
             import nest
 
             self._nest = nest
@@ -315,22 +317,22 @@ class NestAdapter(SimulatorAdapter):
             raise AdapterError(
                 "Attempting to prepare the same adapter twice. Please use `scaffold.create_adapter` for multiple adapter instances of the same simulation."
             )
-        report("Locking NEST kernel...", 2)
+        report("Locking NEST kernel...", level=2)
         self.lock()
-        report("Installing  NEST modules...", 2)
+        report("Installing  NEST modules...", level=2)
         self.install_modules()
         if self.in_full_control():
-            report("Initializing NEST kernel...", 2)
+            report("Initializing NEST kernel...", level=2)
             self.reset_kernel()
-        report("Creating neurons...", 2)
+        report("Creating neurons...", level=2)
         self.create_neurons()
-        report("Creating entities...", 2)
+        report("Creating entities...", level=2)
         self.create_entities()
-        report("Building identifier map...", 2)
+        report("Building identifier map...", level=2)
         self._build_identifier_map()
-        report("Creating devices...", 2)
+        report("Creating devices...", level=2)
         self.create_devices()
-        report("Creating connections...", 2)
+        report("Creating connections...", level=2)
         self.connect_neurons()
         self.is_prepared = True
         return self.nest
@@ -476,9 +478,9 @@ class NestAdapter(SimulatorAdapter):
     def simulate(self, simulator):
         if not self.is_prepared:
             warn("Adapter has not been prepared", SimulationWarning)
-        report("Simulating...", 2)
+        report("Simulating...", level=2)
         simulator.Simulate(self.duration)
-        report("Simulation finished.", 2)
+        report("Simulation finished.", level=2)
         if self.has_lock:
             self.release_lock()
 
@@ -566,7 +568,9 @@ class NestAdapter(SimulatorAdapter):
             # Create the population's model
             self.create_model(cell_model)
             scaffold_identifiers = ps.identifiers
-            report("Creating {} {}...".format(len(scaffold_identifiers), nest_name), 3)
+            report(
+                "Creating {} {}...".format(len(scaffold_identifiers), nest_name), level=3
+            )
             nest_identifiers = self.nest.Create(nest_name, len(scaffold_identifiers))
             cell_model.scaffold_identifiers.extend(scaffold_identifiers)
             cell_model.nest_identifiers.extend(nest_identifiers)
@@ -578,9 +582,9 @@ class NestAdapter(SimulatorAdapter):
             nest_name = self.suffixed(name)
             count = self.scaffold.statistics.cells_placed[entity_type.name]
             # Create the cell model in the simulator
-            report("Creating " + nest_name + "...", 3)
+            report("Creating " + nest_name + "...", level=3)
             entity_nodes = list(self.nest.Create(entity_type.device, count))
-            report("Creating {} {}...".format(count, nest_name), 3)
+            report("Creating {} {}...".format(count, nest_name), level=3)
             if hasattr(entity_type, "parameters"):
                 # Execute SetStatus and catch DictError
                 self.execute_command(
@@ -637,7 +641,7 @@ class NestAdapter(SimulatorAdapter):
             connection_specifications = {"rule": "one_to_one"}
             # Get the connection parameters from the configuration
             connection_parameters = connection_model.get_connection_parameters()
-            report("Creating connections " + nest_name, 3)
+            report("Creating connections " + nest_name, level=3)
             # Create the connections in NEST
             if not (connection_model.plastic and connection_model.hetero):
                 self.execute_command(
@@ -657,7 +661,7 @@ class NestAdapter(SimulatorAdapter):
                 )
             else:
                 # Create the volume transmitter if the connection is plastic with heterosynaptic plasticity
-                report("Creating volume transmitter for " + name, 3)
+                report("Creating volume transmitter for " + name, level=3)
                 volume_transmitters = self.create_volume_transmitter(
                     connection_model, postsynaptic_cells
                 )
@@ -706,7 +710,7 @@ class NestAdapter(SimulatorAdapter):
         """
         for device_model in self.devices.values():
             device = self.nest.Create(device_model.device)
-            report("Creating device:  " + device_model.device, 3)
+            report("Creating device:  " + device_model.device, level=3)
             # Execute SetStatus and catch DictError
             self.execute_command(
                 self.nest.SetStatus,
@@ -725,15 +729,16 @@ class NestAdapter(SimulatorAdapter):
             )
             # Execute targetting mechanism to fetch target NEST ID's
             device_targets = device_model.get_targets()
-            report("Connecting to {} device targets.".format(len(device_targets)), 3)
+            report(
+                "Connecting to {} device targets.".format(len(device_targets)), level=3
+            )
             # Collect the NEST Connect parameters
-            connect_params = [{"rule": "all_to_all"}, device_model.connection_parameters]
             if device_model.io == "input":
                 # Connect device to nodes
-                connect_params[0:0] = [device, device_targets]
+                connect_params = [device, device_targets]
             elif device_model.io == "output":
                 # Connect nodes to device
-                connect_params[0:0] = [device_targets, device]
+                connect_params = [device_targets, device]
             elif device_model.io == "none":
                 # Weight recorder device is not connected to any node; just linked to a connection
                 return
@@ -743,6 +748,7 @@ class NestAdapter(SimulatorAdapter):
                         device_model.io, device_model.name
                     )
                 )
+            connect_params.append(device_model.connection)
             # Send the Connect command to NEST and catch IllegalConnection errors.
             self.execute_command(
                 self.nest.Connect,
@@ -781,7 +787,7 @@ class NestAdapter(SimulatorAdapter):
             "Copying synapse model '{}' to {}".format(
                 connection_model.synapse_model, nest_name
             ),
-            3,
+            level=3,
         )
         self.nest.CopyModel(connection_model.synapse_model, nest_name)
         # Get the synapse parameters

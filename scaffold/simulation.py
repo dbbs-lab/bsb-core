@@ -138,7 +138,7 @@ class SimulatorAdapter(ConfigurableClass):
         pass
 
     def progress(self, progression, duration):
-        report("Simulated {}/{}ms".format(progression, duration), 3, ongoing=True)
+        report("Simulated {}/{}ms".format(progression, duration), level=3, ongoing=True)
         progress = types.SimpleNamespace(
             progression=progression, duration=duration, time=time()
         )
@@ -150,8 +150,6 @@ class SimulatorAdapter(ConfigurableClass):
 
 
 class TargetsNeurons:
-    neuron_targetting_types = ["local", "cylinder", "cell_type"]
-
     def initialise(self, scaffold):
         super().initialise(scaffold)
         # Set targetting method
@@ -235,13 +233,13 @@ class TargetsNeurons:
         cell_types = [self.scaffold.get_cell_type(t) for t in self.cell_types]
         if len(cell_types) != 1:
             # Compile a list of the different cell type cells.
-            target_cells = np.empty((0, 1))
+            target_cells = np.array([])
             for t in cell_types:
                 if t.entity:
                     ids = self.scaffold.get_entities_by_type(t.name)
                 else:
                     ids = self.scaffold.get_cells_by_type(t.name)[:, 0]
-                target_cells = np.vstack((target_cells, ids))
+                target_cells = np.hstack((target_cells, ids))
             return target_cells
         else:
             # Retrieve a single list
@@ -266,15 +264,35 @@ class TargetsNeurons:
         ]
         return representatives
 
+    def _targets_by_id(self):
+        return self.targets
+
     def get_targets(self):
         """
             Return the targets of the device.
         """
         return self._get_targets()
 
+    # Define new targetting methods above this line or they will not be registered.
+    neuron_targetting_types = [s[9:] for s in vars().keys() if s.startswith("_targets_")]
+
 
 class TargetsSections:
     def target_section(self, cell):
+        if not hasattr(self, "section_targetting"):
+            self.section_targetting = "default"
+        method_name = "_section_target_" + self.section_targetting
+        if not hasattr(self, method_name):
+            raise Exception(
+                "Unknown section targetting type '{}'".format(self.section_targetting)
+            )
+        return getattr(self, method_name)(cell)
+
+    def _section_target_default(self, cell):
+        if not hasattr(self, "section_count"):
+            self.section_count = 1
         if hasattr(self, "section_type"):
-            return random.choice(cell.__dict__[self.section_type])
-        return cell.soma[0]
+            sections = [s for s in cell.sections if self.section_type in s.labels]
+        else:
+            sections = cell.soma
+        return [random.choice(sections) for _ in range(self.section_count)]

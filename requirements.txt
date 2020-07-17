@@ -9,5 +9,5 @@ plotly==4.1.0
 pre-commit
 black
 sphinx_rtd_theme==0.4.3
-nrn-patch>=2.0.0
-dbbs_models>=0.4.0
+nrn-patch>=2.1.0
+dbbs_models>=0.4.4

@@ -2,6 +2,7 @@ from .strategy import (
     PlacementStrategy,
     MightBeRelative,
     MustBeRelative,
+    FixedPositions,
     Layered,
     Entities,
 )

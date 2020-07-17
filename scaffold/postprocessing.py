@@ -251,5 +251,15 @@ class SpoofDetails(PostProcessingHook):
                 connection_type.presynaptic.type.name,
                 connection_type.postsynaptic.type.name,
             ),
-            2,
+            level=2,
         )
+
+
+class GolgiAxonFix(PostProcessingHook):
+    # Replaces the presynaptic compartment IDs of all Golgi cells with the soma compartment
+    def after_connectivity(self):
+        for n, ct in self.scaffold.configuration.connection_types.items():
+            if ct.from_cell_types[0].name == "golgi_cell":
+                for tag in ct.tags:
+                    compartment_matrix = self.scaffold.connection_compartments[tag]
+                    compartment_matrix[:, 0] = np.zeros(len(compartment_matrix))
