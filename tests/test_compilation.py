@@ -50,6 +50,10 @@ class TestSingleTypeCompilation(unittest.TestCase):
         self.assertRaises(OSError, from_hdf5, "doesntexist")
 
 
+_using_morphologies = True
+
+
+@unittest.skipIf(_using_morphologies, "Morphologies are used for the connectivity")
 class TestPlacement(unittest.TestCase):
     """
         Check if the placement of all cell types is correct

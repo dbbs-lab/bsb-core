@@ -121,7 +121,7 @@ class ScaffoldConfig(object):
         if stream is not None:
             self.read_config_stream(stream)
         else:
-            self.read_config_file(file or "mouse_cerebellum")
+            self.read_config_file(file or "mouse_cerebellum_cortex")
 
     def read_config_file(self, file):
         # Determine extension of file.
@@ -385,7 +385,7 @@ class JSONConfig(ScaffoldConfig):
         # Tells the base configuration class how to parse the configuration string
         self._load_handler = load_handler
         if file is None and stream is None:
-            file = "mouse_cerebellum"
+            file = "mouse_cerebellum_cortex"
         # Initialize base config class, handling the reading of file/stream to string
         ScaffoldConfig.__init__(self, file=file, stream=stream, **kwargs)
 

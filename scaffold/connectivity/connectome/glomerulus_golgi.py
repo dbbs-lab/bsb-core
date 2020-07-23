@@ -1,11 +1,11 @@
 import numpy as np
-from ..strategy import TouchingConvergenceDivergence
+from ..strategy import ConnectionStrategy
 from ...helpers import DistributionConfiguration
 from ...functions import get_distances
 from scipy.stats.distributions import truncexpon
 
 
-class ConnectomeGlomerulusGolgi(TouchingConvergenceDivergence):
+class ConnectomeGlomerulusGolgi(ConnectionStrategy):
     """
         Legacy implementation for the connections between Golgi cells and glomeruli.
     """

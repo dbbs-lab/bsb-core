@@ -29,7 +29,7 @@ def _create_test_network(*dimensions):
                 "..",
                 "scaffold",
                 "configurations",
-                "mouse_cerebellum.json",
+                "mouse_cerebellum_cortex_noTouch.json",
             )
         )
         config.resize(*dimensions)

@@ -1,8 +1,7 @@
 *
 !.gitignore
-!mouse_cerebellum.json
+!mouse_cerebellum_cortex.json
 !casali_2019.json
 !human_cerebellum.json
 !touch.json
-!neuron.json
-!cortex_morpho.json
+!mouse_cerebellum_cortex_noTouch.json

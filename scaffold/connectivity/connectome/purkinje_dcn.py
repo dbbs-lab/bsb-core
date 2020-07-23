@@ -21,12 +21,14 @@ class ConnectomePurkinjeDCN(ConnectionStrategy):
         to_type = self.to_cell_types[0]
         purkinjes = self.from_cells[from_type.name]
         dcn_cells = self.to_cells[to_type.name]
-        dcn_angles = self.scaffold.appends["cells/dcn_orientations"]
 
-        # Filter the DCN angles for the subset of labelled DCN cells.
-        all_dcn_ids = self.scaffold.get_cells_by_type(to_type.name)[:, 0]
-        dcn_map = [id in dcn_cells[:, 0] for id in all_dcn_ids]
-        dcn_angles = dcn_angles[dcn_map]
+        dend_tree_coeff = np.zeros((dcn_cells.shape[0], 4))
+        for i in range(len(dcn_cells)):
+            # Make the planar coefficients a, b and c.
+            dend_tree_coeff[i] = np.random.rand(4) * 2.0 - 1.0
+            # Calculate the last planar coefficient d from ax + by + cz - d = 0
+            # => d = - (ax + by + cz)
+            dend_tree_coeff[i, 3] = -np.sum(dend_tree_coeff[i, 0:2] * dcn_cells[i, 2:4])
 
         if len(dcn_cells) == 0:
             return
@@ -93,6 +95,6 @@ class ConnectomePurkinjeDCN(ConnectionStrategy):
             return pc_dcn
 
         results = connectome_pc_dcn(
-            first_dcn, purkinjes, dcn_cells, divergence, dcn_angles
+            first_dcn, purkinjes, dcn_cells, divergence, dend_tree_coeff
         )
         self.scaffold.connect_cells(self, results)

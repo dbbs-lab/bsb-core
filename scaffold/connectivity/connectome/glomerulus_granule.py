@@ -1,15 +1,16 @@
 import numpy as np, random
-from ..strategy import TouchingConvergenceDivergence
+from ..strategy import ConnectionStrategy
 from ...exceptions import ConfigurationError, ConnectivityError
 
 
-class ConnectomeGlomerulusGranule(TouchingConvergenceDivergence):
+class ConnectomeGlomerulusGranule(ConnectionStrategy):
     """
         Legacy implementation for the connections between glomeruli and granule cells.
     """
 
-    casts = {"detailed": bool}
+    casts = {"detailed": bool, "convergence": int}
     defaults = {"detailed": False}
+    required = ["convergence"]
 
     def validate(self):
         if self.detailed:
