@@ -2,6 +2,7 @@ import numpy as np
 import math
 from ..strategy import ConnectionStrategy
 from .shared import MorphologyStrategy
+from ...helpers import DistributionConfiguration
 from ...models import MorphologySet
 from ...exceptions import *
 from ...helpers import ConfigurableClass
@@ -34,12 +35,14 @@ class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
 
     casts = {
         "affinity": float,
+        "contacts": DistributionConfiguration.cast,
         "resolution": float,
         "to_plot": list,
     }
 
     defaults = {
         "affinity": 1.0,
+        "contacts": DistributionConfiguration.cast(1),
         "resolution": 20.0,
         "to_plot": [],
         "transformation": None,
@@ -215,21 +218,28 @@ class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
                 ]
                 weight_sum = sum(voxel_weights)
                 voxel_weights = [w / weight_sum for w in voxel_weights]
+                contacts = round(self.contacts.sample())
                 # Pick a random voxel and its targets
                 candidates = list(target_comps_per_to_voxel.items())
-                random_candidate_id = np.random.choice(
-                    range(len(candidates)), 1, p=voxel_weights
-                )[0]
-                # Pick a to_voxel_id and its target compartments from the list of candidates
-                random_to_voxel_id, random_compartments = candidates[random_candidate_id]
-                # Pick a random from and to compartment of the chosen voxel pair
-                from_compartment = np.random.choice(random_compartments, 1)[0]
-                to_compartment = np.random.choice(to_map[random_to_voxel_id], 1)[0]
-                compartments_out.append([from_compartment.id, to_compartment])
-                morphologies_out.append(
-                    [from_morpho._set_index, joined_map_offset + to_morpho._set_index]
-                )
-                connections_out.append([from_cell.id, to_cell.id])
+                while contacts > 0:
+                    contacts -= 1
+                    # Pick a random voxel and its targets
+                    random_candidate_id = np.random.choice(
+                        range(len(candidates)), 1, p=voxel_weights
+                    )[0]
+                    # Pick a to_voxel_id and its target compartments from the list of candidates
+                    random_to_voxel_id, random_compartments = candidates[
+                        random_candidate_id
+                    ]
+                    # Pick a random from and to compartment of the chosen voxel pair
+                    from_compartment = np.random.choice(random_compartments, 1)[0]
+                    to_compartment = np.random.choice(to_map[random_to_voxel_id], 1)[0]
+                    compartments_out.append([from_compartment.id, to_compartment])
+                    morphologies_out.append(
+                        [from_morpho._set_index, joined_map_offset + to_morpho._set_index]
+                    )
+                    connections_out.append([from_cell.id, to_cell.id])
+
         # Throw warning on cut fibers:
         if fiber_cut_num > 0:
             warn(
