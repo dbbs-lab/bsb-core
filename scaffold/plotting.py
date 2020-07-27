@@ -500,7 +500,7 @@ def set_morphology_scene_range(scene, offset_morphologies):
     set_scene_range(scene, combined_bounds)
 
 
-def hdf5_plot_spike_raster(spike_recorders, input_region=None):
+def hdf5_plot_spike_raster(spike_recorders, input_region=None, show=True):
     """
         Create a spike raster plot from an HDF5 group of spike recorders.
     """
@@ -547,10 +547,12 @@ def hdf5_plot_spike_raster(spike_recorders, input_region=None):
             color=colors[label],
             input_region=input_region,
         )
-    fig.show()
+    if show:
+        fig.show()
+    return fig
 
 
-def hdf5_gdf_plot_spike_raster(spike_recorders, input_region=None, fig=None):
+def hdf5_gdf_plot_spike_raster(spike_recorders, input_region=None, fig=None, show=True):
     """
         Create a spike raster plot from an HDF5 group of spike recorders saved from NEST gdf files.
         Each HDF5 dataset includes the spike timings of the recorded cell populations, with spike
@@ -606,8 +608,11 @@ def hdf5_gdf_plot_spike_raster(spike_recorders, input_region=None, fig=None):
             show=False,
             color=colors[l],
             input_region=input_region,
+            **kwargs
         )
-    fig.show()
+    if show:
+        fig.show()
+    return fig
 
 
 @_figure
@@ -736,6 +741,7 @@ def hdf5_plot_psth(handle, duration=3, cutoff=0, fig=None, **kwargs):
             marker=dict(color=h.color),
         )
         fig.add_trace(trace, row=i + 1, col=1)
+    return fig
 
 
 class MorphologyScene:
