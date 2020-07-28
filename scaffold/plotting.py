@@ -4,6 +4,7 @@ from .networks import all_depth_first_branches, get_branch_points, reduce_branch
 import numpy as np, math, functools
 from .morphologies import Compartment
 from contextlib import contextmanager
+import random
 
 
 class CellTrace:
@@ -690,57 +691,95 @@ def plot_traces(traces, fig=None, show=True, legend=True):
             legend_groups.add(legends[j])
 
 
-class PsthRow(list):
+class PSTH:
+    def __init__(self):
+        self.rows = []
+
+    def add_row(self, row):
+        row.index = len(self.rows)
+        self.rows.append(row)
+
+
+class PSTHStack:
     def __init__(self, name, color):
         self.name = name
-        self.color = color
+        self.color = str(color)
         self.cells = 0
+        self.list = []
 
-    def extend(self, arr):
-        super().extend(arr)
-        self.cells += 1
+    def extend(self, arr, num):
+        self.list.extend(arr)
+        self.cells += num
+
+
+class PSTHRow:
+    def __init__(self, name, color):
+        from colour import Color
+
+        self.name = name
+        color = Color(color) if color else Color(pick_for=random.random())
+        self.palette = list(color.range_to("black", 6))
+        self.stacks = {}
+        self.max = -float("inf")
+
+    def extend(self, arr, num=1, stack=None):
+        if stack not in self.stacks:
+            self.stacks[stack] = PSTHStack(
+                stack or self.name, self.palette[len(self.stacks)]
+            )
+        self.stacks[stack].extend(arr, num)
+        self.max = max(self.max, np.max(arr))
 
 
 @_figure
-def hdf5_plot_psth(handle, duration=3, cutoff=0, fig=None, **kwargs):
-    histo = {}
+def hdf5_plot_psth(handle, duration=3, cutoff=0, start=0, fig=None, **kwargs):
+    psth = PSTH()
+    row_map = {}
     for g in handle.values():
         l = g.attrs["label"]
-        if l not in histo:
-            histo[l] = PsthRow(l, g.attrs["color"])
+        if l not in row_map:
+            color = g.attrs.get("color", None)
+            row_map[l] = row = PSTHRow(l, color)
+            psth.add_row(row)
+        else:
+            row = row_map[l]
         adj = g[:, 0] - cutoff
-        # Overwrite number of cells if num_neurons exists
-        if "num_neurons" in g.attrs:
-            histo[l].cells = g.attrs["num_neurons"]
-        histo[l].extend(adj)
+        # print(adj)
+        # Read how many neurons this spikes dataset represents
+        num_neurons = g.attrs.get("num_neurons", 1)
+        stack = g.attrs.get("stack", l)
+        row.extend(adj, num=num_neurons, stack=stack)
     subplots_fig = make_subplots(
         cols=1,
-        rows=len(histo),
-        subplot_titles=list(histo.keys()),
+        rows=len(psth.rows),
+        subplot_titles=[row.name for row in psth.rows],
         x_title=kwargs.get("x_title", "Time (ms)"),
         y_title=kwargs.get("y_title", "Population firing rate (Hz)"),
     )
-    _min = float("inf")
     _max = -float("inf")
-    for i, (l, h) in enumerate(histo.items()):
-        if len(h):
-            _min = min(_min, np.min(h))
-            _max = max(_max, np.max(h))
-    subplots_fig.update_xaxes(range=[_min + cutoff, _max])
+    for i, row in enumerate(psth.rows):
+        _max = max(_max, row.max)
+    subplots_fig.update_xaxes(range=[start, _max])
     subplots_fig.update_layout(title_text=kwargs.get("title", "PSTH"))
     # Overwrite the layout and grid of the single plot that is handed to us
-    # to turn it into a subplots figure.
+    # to turn it into a subplots figure. All modifications except for adding traces
+    # should happen before this point.
     fig._grid_ref = subplots_fig._grid_ref
     fig._layout = subplots_fig._layout
-    for i, (l, h) in enumerate(histo.items()):
-        counts, bins = np.histogram(h, bins=np.arange(_min + cutoff, _max, duration))
-        trace = go.Bar(
-            x=bins,
-            y=counts / h.cells * 1000 / duration,
-            name=l,
-            marker=dict(color=h.color),
-        )
-        fig.add_trace(trace, row=i + 1, col=1)
+    for i, row in enumerate(psth.rows):
+        for name, stack in sorted(row.stacks.items(), key=lambda x: x[0]):
+            counts, bins = np.histogram(stack.list, bins=np.arange(start, _max, duration))
+            if name.startswith("##"):
+                # Lazy way to order the stacks; Stack names can start with ## and a number
+                # and it will be sorted by name, but the ## and number are not displayed.
+                name = name[4:]
+            trace = go.Bar(
+                x=bins,
+                y=counts / stack.cells * 1000 / duration,
+                name=name,
+                marker=dict(color=stack.color),
+            )
+            fig.add_trace(trace, row=i + 1, col=1)
     return fig
 
 
