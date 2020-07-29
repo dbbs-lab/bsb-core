@@ -29,6 +29,6 @@ class TestIssues(unittest.TestCase):
         """
         self.assertRaises(
             ConfigurableClassNotFoundError,
-            scaffold.helpers.get_configurable_class,
+            bsb.helpers.get_configurable_class,
             "TestClass",
         )
