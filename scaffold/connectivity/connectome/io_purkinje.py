@@ -11,8 +11,6 @@ class ConnectomeIOPurkinje(ConnectionStrategy):
         is innervated by 1 IO cell
     """
 
-    divergence = config.attr(type=float, required=True)
-
     def validate(self):
         pass
 
@@ -25,7 +23,6 @@ class ConnectomeIOPurkinje(ConnectionStrategy):
             return
         purkinje_cells = self.to_cells[to_type.name]
         convergence = 1  # Purkinje cells should be always constrained to receive signal from only 1 Inferior Olive neuron
-        divergence = self.divergence
         io_purkinje = np.empty([len(purkinje_cells), 2])
         for i, pc in enumerate(purkinje_cells):
             np.random.shuffle(io_cells)

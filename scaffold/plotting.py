@@ -709,7 +709,11 @@ def hdf5_plot_psth(handle, duration=3, cutoff=0, fig=None, **kwargs):
             histo[l].cells = g.attrs["num_neurons"]
         histo[l].extend(adj)
     subplots_fig = make_subplots(
-        cols=1, rows=len(histo), subplot_titles=list(histo.keys())
+        cols=1,
+        rows=len(histo),
+        subplot_titles=list(histo.keys()),
+        x_title=kwargs.get("x_title", "Time (ms)"),
+        y_title=kwargs.get("y_title", "Population firing rate (Hz)"),
     )
     _min = float("inf")
     _max = -float("inf")
@@ -718,6 +722,7 @@ def hdf5_plot_psth(handle, duration=3, cutoff=0, fig=None, **kwargs):
             _min = min(_min, np.min(h))
             _max = max(_max, np.max(h))
     subplots_fig.update_xaxes(range=[_min + cutoff, _max])
+    subplots_fig.update_layout(title_text=kwargs.get("title", "PSTH"))
     # Overwrite the layout and grid of the single plot that is handed to us
     # to turn it into a subplots figure.
     fig._grid_ref = subplots_fig._grid_ref

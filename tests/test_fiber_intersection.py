@@ -5,7 +5,6 @@ from scaffold.core import Scaffold
 from scaffold.config import JSONConfig
 from scaffold.models import Layer, CellType, ConnectivitySet
 from scaffold.output import MorphologyRepository
-from test_setup import get_test_network
 
 
 def relative_to_tests_folder(path):

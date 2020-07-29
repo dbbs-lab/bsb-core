@@ -46,7 +46,7 @@ Run the scaffold in the command line with subcommand `compile` to compile a netw
 architecture.
 
 ```
-scaffold --config=mouse_cerebellum.json compile -x=200 -z=200 -p
+scaffold --config=mouse_cerebellum_cortex_noTouch.json compile -x=200 -z=200 -p
 ```
 
 To run with different configurations, change the config argument to the relative path of a
@@ -64,7 +64,7 @@ configuration file.
 from scaffold import Scaffold
 from scaffold.config import JSONConfig
 
-config = new JSONConfig(file='mouse_cerebellum.json')
+config = new JSONConfig(file='mouse_cerebellum_cortex_noTouch.json')
 scaffoldInstance = new Scaffold(config)
 ```
 

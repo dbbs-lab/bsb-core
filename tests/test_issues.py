@@ -14,7 +14,7 @@ class TestIssues(unittest.TestCase):
             Assert that reconfiguring an HDF5 doesn't exist doesn't create a gimpy empty
             HDF5 file that causes a downstream error.
         """
-        config = JSONConfig(file="mouse_cerebellum")
+        config = JSONConfig(file="mouse_cerebellum_cortex")
         self.assertRaises(
             FileNotFoundError,
             HDF5Formatter.reconfigure,

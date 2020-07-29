@@ -231,7 +231,9 @@ class OptionallyCastable(CastableConfigurableClass):
     @classmethod
     def cast(cast_class, value):
         class_instance = cast_class()
-        if isinstance(value, dict):  # Configured by dictionary
+        if isinstance(value, cast_class):
+            return value
+        elif isinstance(value, dict):  # Configured by dictionary
             class_instance.type = "class"
             class_instance.fill(value, cast_class.excluded)
             class_instance.cast_config()
