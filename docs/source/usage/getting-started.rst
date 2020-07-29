@@ -81,9 +81,9 @@ The only provided configuration is the :class:`scaffold.config.JSONConfig`.
 To load a configuration file, construct a JSONConfig object providing the `file`
 keyword argument with a path to the configuration file::
 
-  from scaffold.core import Scaffold
-  from scaffold.config import JSONConfig
-  from scaffold.reporting import set_verbosity
+  from bsb.core import Scaffold
+  from bsb.config import JSONConfig
+  from bsb.reporting import set_verbosity
 
   config = JSONConfig(file="my_config.json")
   set_verbosity(3) # This way we can follow what's going on.
@@ -132,9 +132,9 @@ Full code example
 
 ::
 
-  from scaffold.core import Scaffold
-  from scaffold.config import JSONConfig
-  from scaffold.reporting import set_verbosity
+  from bsb.core import Scaffold
+  from bsb.config import JSONConfig
+  from bsb.reporting import set_verbosity
 
   config = JSONConfig(file="my_config.json")
   set_verbosity(3) # This way we can follow what's going on.
@@ -158,8 +158,8 @@ Network compilation
 network with cells placed according to the specified placement strategies and
 connected to each other according to the specified connection strategies::
 
-  from scaffold.core import Scaffold
-  from scaffold.config import JSONConfig
+  from bsb.core import Scaffold
+  from bsb.config import JSONConfig
 
   config = JSONConfig(file="my_config.json")
 

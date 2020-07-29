@@ -126,7 +126,7 @@ Layers can be retrieved from a :class:`ScaffoldConfig <.config.ScaffoldConfig>`:
 
 .. code-block:: python
 
-  from scaffold.config import JSONConfig
+  from bsb.config import JSONConfig
 
   config = JSONConfig("mouse_cerebellum")
   layer = config.get_layer(name="granular_layer")

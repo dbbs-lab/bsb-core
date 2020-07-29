@@ -67,7 +67,7 @@ Configuration
     "cell_types": {
       "golgi_cell": {
         "placement": {
-          "class": "scaffold.placement.FixedPositions",
+          "class": "bsb.placement.FixedPositions",
           "layer": "granular_layer",
           "count": 1,
           "positions": [[40.0,0.0,-50.0]]
