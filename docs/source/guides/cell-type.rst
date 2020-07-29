@@ -86,4 +86,4 @@ Example
     "simulations": {}
   }
 
-Use ``scaffold -c=my-config.json compile`` to test your configuration file.
+Use ``bsb -c=my-config.json compile`` to test your configuration file.
