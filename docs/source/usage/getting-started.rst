@@ -75,9 +75,9 @@ the scaffold with things impossible to achieve using the configuration files.
 Let's go over an example first script that creates 5 networks with different
 densities of Purkinje cells.
 
-To use the scaffold in your script you should import the :class:`scaffold.core.Scaffold`
-and construct a new instance by passing it a :class:`scaffold.config.ScaffoldConfig`.
-The only provided configuration is the :class:`scaffold.config.JSONConfig`.
+To use the scaffold in your script you should import the :class:`bsb.core.Scaffold`
+and construct a new instance by passing it a :class:`bsb.config.ScaffoldConfig`.
+The only provided configuration is the :class:`bsb.config.JSONConfig`.
 To load a configuration file, construct a JSONConfig object providing the `file`
 keyword argument with a path to the configuration file::
 
@@ -222,13 +222,13 @@ simulation::
 Using Cell Types
 ================
 
-Cell types are obtained by name using `scaffold.get_cell_type(name)`. And the
+Cell types are obtained by name using `bsb.get_cell_type(name)`. And the
 associated cells either currently in the network cache or in persistent storage
-can be fetched with `scaffold.get_cells_by_type(name)`. The columns of such
+can be fetched with `bsb.get_cells_by_type(name)`. The columns of such
 a set are the scaffold id of the cell, followed by the type id and the xyz
 position.
 
-A collection of all cell types can be retrieved with `scaffold.get_cell_types()`::
+A collection of all cell types can be retrieved with `bsb.get_cell_types()`::
 
   for cell_type in scaffold.get_cell_types():
     cells = scaffold.get_cells_by_type(cell_type.name)

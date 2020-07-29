@@ -55,8 +55,8 @@ afterwards and can be omitted.
 
 ### Python package
 
-The central object is the `scaffold.core.Scaffold` class. This object requires a
-`scaffold.config.ScaffoldConfig` instance for its construction. To emulate the CLI
+The central object is the `bsb.core.Scaffold` class. This object requires a
+`bsb.config.ScaffoldConfig` instance for its construction. To emulate the CLI
 functionality you can use the `JSONConfig` class and provide the relative path to the
 configuration file.
 
