@@ -2,7 +2,7 @@
 Connectivity module
 ===================
 
-.. automodule:: scaffold.connectivity
+.. automodule:: bsb.connectivity
   :members:
   :imported-members:
   :exclude-members: obj, import_module, glob

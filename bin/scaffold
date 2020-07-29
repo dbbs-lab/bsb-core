@@ -1,9 +1,0 @@
-#!/usr/bin/env python3
-import os, sys
-scaffold_path = os.path.abspath(os.path.dirname(__file__)[0:-3])
-print("Using test source code from", scaffold_path)
-sys.path.insert(0, scaffold_path)
-
-import scaffold
-from scaffold.cli import scaffold_cli
-scaffold_cli()

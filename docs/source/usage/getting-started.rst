@@ -11,7 +11,7 @@ architectures and run simulations.
 
 Let's try out the most basic command, using the default configuration::
 
-  scaffold -v=3 compile -x=200 -z=200
+  bsb -v=3 compile -x=200 -z=200
 
 This should produce prints and generate a timestamped HDF5 file in your current
 directory.
@@ -50,7 +50,7 @@ point for your own scaffold model::
 
 You can modify values in there and create a network from it like so::
 
-  scaffold -c=my_config compile -p
+  bsb -c=my_config compile -p
 
 Open the configuration file in your favorite editor and reduce the simulation
 volume::
@@ -75,15 +75,15 @@ the scaffold with things impossible to achieve using the configuration files.
 Let's go over an example first script that creates 5 networks with different
 densities of Purkinje cells.
 
-To use the scaffold in your script you should import the :class:`scaffold.core.Scaffold`
-and construct a new instance by passing it a :class:`scaffold.config.ScaffoldConfig`.
-The only provided configuration is the :class:`scaffold.config.JSONConfig`.
+To use the scaffold in your script you should import the :class:`bsb.core.Scaffold`
+and construct a new instance by passing it a :class:`bsb.config.ScaffoldConfig`.
+The only provided configuration is the :class:`bsb.config.JSONConfig`.
 To load a configuration file, construct a JSONConfig object providing the `file`
 keyword argument with a path to the configuration file::
 
-  from scaffold.core import Scaffold
-  from scaffold.config import JSONConfig
-  from scaffold.reporting import set_verbosity
+  from bsb.core import Scaffold
+  from bsb.config import JSONConfig
+  from bsb.reporting import set_verbosity
 
   config = JSONConfig(file="my_config.json")
   set_verbosity(3) # This way we can follow what's going on.
@@ -132,9 +132,9 @@ Full code example
 
 ::
 
-  from scaffold.core import Scaffold
-  from scaffold.config import JSONConfig
-  from scaffold.reporting import set_verbosity
+  from bsb.core import Scaffold
+  from bsb.config import JSONConfig
+  from bsb.reporting import set_verbosity
 
   config = JSONConfig(file="my_config.json")
   set_verbosity(3) # This way we can follow what's going on.
@@ -158,8 +158,8 @@ Network compilation
 network with cells placed according to the specified placement strategies and
 connected to each other according to the specified connection strategies::
 
-  from scaffold.core import Scaffold
-  from scaffold.config import JSONConfig
+  from bsb.core import Scaffold
+  from bsb.config import JSONConfig
 
   config = JSONConfig(file="my_config.json")
 
@@ -222,13 +222,13 @@ simulation::
 Using Cell Types
 ================
 
-Cell types are obtained by name using `scaffold.get_cell_type(name)`. And the
+Cell types are obtained by name using `bsb.get_cell_type(name)`. And the
 associated cells either currently in the network cache or in persistent storage
-can be fetched with `scaffold.get_cells_by_type(name)`. The columns of such
+can be fetched with `bsb.get_cells_by_type(name)`. The columns of such
 a set are the scaffold id of the cell, followed by the type id and the xyz
 position.
 
-A collection of all cell types can be retrieved with `scaffold.get_cell_types()`::
+A collection of all cell types can be retrieved with `bsb.get_cell_types()`::
 
   for cell_type in scaffold.get_cell_types():
     cells = scaffold.get_cells_by_type(cell_type.name)

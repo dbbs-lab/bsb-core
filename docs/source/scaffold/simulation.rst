@@ -2,5 +2,5 @@
 Simulation module
 =================
 
-.. automodule:: scaffold.simulation
+.. automodule:: bsb.simulation
   :members:

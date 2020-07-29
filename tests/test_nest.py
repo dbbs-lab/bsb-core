@@ -1,11 +1,11 @@
 import unittest, os, sys, numpy as np, h5py, importlib
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from scaffold.core import Scaffold
-from scaffold.config import JSONConfig
-from scaffold.simulators.nest import NestCell
-from scaffold.models import Layer, CellType
-from scaffold.exceptions import *
+from bsb.core import Scaffold
+from bsb.config import JSONConfig
+from bsb.simulators.nest import NestCell
+from bsb.models import Layer, CellType
+from bsb.exceptions import *
 
 
 def relative_to_tests_folder(path):
@@ -252,7 +252,7 @@ class TestDoubleNeuronNetworkHeterosyn(unittest.TestCase):
         )
 
     def test_teaching_connection_missing(self):
-        from scaffold.exceptions import ConfigurationError
+        from bsb.exceptions import ConfigurationError
 
         with open(heterosyn_config, "r") as f:
             stream = f.read()
@@ -263,7 +263,7 @@ class TestDoubleNeuronNetworkHeterosyn(unittest.TestCase):
             self.scaffold = Scaffold(config)
 
     def test_teaching_connection_configuration(self):
-        from scaffold.exceptions import ConfigurationError
+        from bsb.exceptions import ConfigurationError
 
         with open(heterosyn_config, "r") as f:
             stream = f.read()

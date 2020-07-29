@@ -2,5 +2,5 @@
 Plotting module
 ===============
 
-.. automodule:: scaffold.plotting
+.. automodule:: bsb.plotting
   :members:

@@ -18,7 +18,7 @@ Sciences at the University of Pavia.
 This software can be installed as a Python package from PyPI through pip:
 
 ```
-pip install dbbs-scaffold
+pip install bsb
 ```
 
 **Note:** *Windows users will have to install Rtree from this website:
@@ -55,14 +55,14 @@ afterwards and can be omitted.
 
 ### Python package
 
-The central object is the `scaffold.core.Scaffold` class. This object requires a
-`scaffold.config.ScaffoldConfig` instance for its construction. To emulate the CLI
+The central object is the `bsb.core.Scaffold` class. This object requires a
+`bsb.config.ScaffoldConfig` instance for its construction. To emulate the CLI
 functionality you can use the `JSONConfig` class and provide the relative path to the
 configuration file.
 
 ```python
-from scaffold import Scaffold
-from scaffold.config import JSONConfig
+from bsb import Scaffold
+from bsb.config import JSONConfig
 
 config = new JSONConfig(file='mouse_cerebellum_cortex_noTouch.json')
 scaffoldInstance = new Scaffold(config)

@@ -2,5 +2,5 @@
 Functions module
 ================
 
-.. automodule:: scaffold.functions
+.. automodule:: bsb.functions
   :members:
