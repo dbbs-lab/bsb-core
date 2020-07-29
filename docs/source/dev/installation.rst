@@ -4,8 +4,8 @@ Developer Installation
 
 To install::
 
-  git clone git@github.com:Helveg/cerbellum-scaffold
-  cd cerebellum-scaffold
+  git clone git@github.com:dbbs-lab/bsb
+  cd bsb
   pip install -e .[dev]
   pre-commit install
 

@@ -2,5 +2,5 @@
 Morphologies module
 ===================
 
-.. automodule:: scaffold.morphologies
+.. automodule:: bsb.morphologies
   :members:

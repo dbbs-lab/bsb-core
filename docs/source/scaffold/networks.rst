@@ -2,5 +2,5 @@
 Networks module
 ===============
 
-.. automodule:: scaffold.networks
+.. automodule:: bsb.networks
   :members:

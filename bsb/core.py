@@ -47,7 +47,7 @@ def from_hdf5(file):
 
 class Scaffold:
     """
-        This is the main object of the dbbs-scaffold package and bootstraps itself
+        This is the main object of the bsb package and bootstraps itself
         with a :doc:`configuration </configuration>`.
 
         During the compilation phase it can :doc:`place </placement>` and

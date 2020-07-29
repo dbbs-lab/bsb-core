@@ -2,5 +2,5 @@
 Trees module
 ============
 
-.. automodule:: scaffold.trees
+.. automodule:: bsb.trees
   :members:

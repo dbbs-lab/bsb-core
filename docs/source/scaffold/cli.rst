@@ -2,6 +2,6 @@
 Command line interface module
 =============================
 
-.. automodule:: scaffold.cli
+.. automodule:: bsb.cli
   :members:
   :exclude-members: StateParser

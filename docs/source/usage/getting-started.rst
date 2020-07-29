@@ -11,7 +11,7 @@ architectures and run simulations.
 
 Let's try out the most basic command, using the default configuration::
 
-  scaffold -v=3 compile -x=200 -z=200
+  bsb -v=3 compile -x=200 -z=200
 
 This should produce prints and generate a timestamped HDF5 file in your current
 directory.
@@ -50,7 +50,7 @@ point for your own scaffold model::
 
 You can modify values in there and create a network from it like so::
 
-  scaffold -c=my_config compile -p
+  bsb -c=my_config compile -p
 
 Open the configuration file in your favorite editor and reduce the simulation
 volume::
