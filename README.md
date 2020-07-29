@@ -61,8 +61,8 @@ functionality you can use the `JSONConfig` class and provide the relative path t
 configuration file.
 
 ```python
-from scaffold import Scaffold
-from scaffold.config import JSONConfig
+from bsb import Scaffold
+from bsb.config import JSONConfig
 
 config = new JSONConfig(file='mouse_cerebellum_cortex_noTouch.json')
 scaffoldInstance = new Scaffold(config)

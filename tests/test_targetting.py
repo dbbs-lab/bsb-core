@@ -1,10 +1,10 @@
 import unittest, os, sys, numpy as np, h5py, importlib
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from scaffold.config import JSONConfig
-from scaffold.core import Scaffold
+from bsb.config import JSONConfig
+from bsb.core import Scaffold
 import scaffold.helpers
-from scaffold.exceptions import *
+from bsb.exceptions import *
 
 
 def relative_to_tests_folder(path):
