@@ -728,7 +728,7 @@ class PSTHRow:
                 stack or self.name, self.palette[len(self.stacks)]
             )
         self.stacks[stack].extend(arr, num)
-        self.max = max(self.max, np.max(arr))
+        self.max = max(self.max, np.max(arr)) if len(arr) > 0 else self.max
 
 
 @_figure
