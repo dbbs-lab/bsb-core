@@ -14,10 +14,11 @@ class CellTrace:
 
 
 class CellTraces:
-    def __init__(self, id, title):
+    def __init__(self, id, title, order=None):
         self.traces = []
         self.cell_id = id
         self.title = title
+        self.order = order
 
     def add(self, meta, data):
         self.traces.append(CellTrace(meta, data))
@@ -47,7 +48,11 @@ class CellTraceCollection:
 
     def add(self, id, meta, data):
         if not id in self.cells:
-            self.cells[id] = CellTraces(id, meta["display_label"])
+            self.cells[id] = CellTraces(
+                id,
+                meta.get("display_label", "Cell " + str(id)),
+                order=meta.get("order", None),
+            )
         self.cells[id].add(meta, data)
 
     def __iter__(self):
@@ -55,6 +60,9 @@ class CellTraceCollection:
 
     def __len__(self):
         return len(self.cells)
+
+    def order(self):
+        self.cells = dict(sorted(self.cells.items(), key=lambda t: t[1].order or 0))
 
 
 def _figure(f):
@@ -663,9 +671,11 @@ def hdf5_gather_voltage_traces(handle, root, groups=None):
 @_figure
 @_input_highlight
 def plot_traces(traces, fig=None, show=True, legend=True):
+    traces.order()
     subplots_fig = make_subplots(
-        cols=1, rows=len(traces), subplot_titles=[trace.title.title() for trace in traces]
+        cols=1, rows=len(traces), subplot_titles=[trace.title for trace in traces]
     )
+    subplots_fig.update_layout(height=len(traces) * 130)
     # Overwrite the layout and grid of the single plot that is handed to us
     # to turn it into a subplots figure.
     fig._grid_ref = subplots_fig._grid_ref
@@ -689,6 +699,7 @@ def plot_traces(traces, fig=None, show=True, legend=True):
                 row=i + 1,
             )
             legend_groups.add(legends[j])
+    return fig
 
 
 class PSTH:
