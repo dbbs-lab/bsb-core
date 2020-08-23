@@ -24,7 +24,7 @@
       }
     },
     "granular_layer": {
-      "thickness": 150.0,
+      "thickness": 130.0,
       "stack": {
         "stack_id": 0,
         "position_in_stack": 1
