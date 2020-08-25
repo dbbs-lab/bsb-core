@@ -4,6 +4,8 @@ from ...simulation import (
     SimulationCell,
     TargetsNeurons,
     TargetsSections,
+    SimulationResult,
+    SimulationRecorder,
 )
 from ...helpers import get_configurable_class
 from ...reporting import report, warn
@@ -222,7 +224,7 @@ class NeuronAdapter(SimulatorAdapter):
 
         self.validate_prepare()
         self.h = simulator
-        self.recorders = []
+        self.result = SimulationResult()
 
         simulator.dt = self.resolution
         simulator.celsius = self.temperature
