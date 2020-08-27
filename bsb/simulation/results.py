@@ -1,3 +1,7 @@
+from ..reporting import warn
+import traceback
+
+
 class SimulationResult:
     def __init__(self):
         self.recorders = []
@@ -6,13 +10,24 @@ class SimulationResult:
         self.recorders.append(recorder)
 
     def create_recorder(self, path_func, data_func, meta_func=None):
-        recorder = SimulationRecorder.create(path_func, data_func, meta_func)
+        recorder = ClosureRecorder(path_func, data_func, meta_func)
         self.add(recorder)
         return recorder
 
-    def collect():
+    def collect(self):
         for recorder in self.recorders:
             yield recorder.get_path(), recorder.get_data(), recorder.get_meta()
+
+    def safe_collect(self):
+        gen = iter(self.collect())
+        while True:
+            try:
+                yield next(gen)
+            except StopIteration:
+                break
+            except Exception as e:
+                traceback.print_exc()
+                warn("Recorder errored out!")
 
 
 class SimulationRecorder:
@@ -25,11 +40,11 @@ class SimulationRecorder:
     def get_meta(self):
         return {}
 
-    @classmethod
-    def create(cls, path_func, data_func, meta_func=None):
-        instance = cls()
-        instance.get_path = path_func
-        instance.get_data = data_func
+
+class ClosureRecorder(SimulationRecorder):
+    def __init__(self, path_func, data_func, meta_func=None):
+        super().__init__()
+        self.get_path = path_func
+        self.get_data = data_func
         if meta_func:
-            instance.get_meta = meta_func
-        return instance
+            self.get_meta = meta_func
