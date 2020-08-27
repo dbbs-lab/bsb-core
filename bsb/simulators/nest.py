@@ -505,7 +505,6 @@ class NestAdapter(SimulatorAdapter):
             timestamp = (
                 str(time.time()).split(".")[0] + str(_randint())
             )
-            print("Node", rank, "is writing")
             with h5py.File("results_" + self.name + "_" + timestamp + ".hdf5", "a") as f:
                 for path, data, meta in self.result.safe_collect():
                     try:
@@ -513,10 +512,8 @@ class NestAdapter(SimulatorAdapter):
                         if path in f:
                             data = np.vstack((f[path][()], data))
                             del f[path]
-                        print("CREATING", path, len(data))
                         d = f.create_dataset(path, data=data)
                         for k, v in meta.items():
-                            print("STORING META", k, v)
                             d.attrs[k] = v
                     except Exception as e:
                         import traceback
@@ -759,6 +756,8 @@ class NestAdapter(SimulatorAdapter):
         """
             Create the configured NEST devices in the simulator
         """
+        import mpi4py
+
         for device_model in self.devices.values():
             if device_model.device == "spike_detector":
                 if "label" not in device_model.parameters:
@@ -767,7 +766,9 @@ class NestAdapter(SimulatorAdapter):
                             device_model.name
                         )
                     )
-                device_model.parameters["label"] += str(_randint())
+                device_tag = str(_randint())
+                device_tag = mpi4py.MPI.COMM_WORLD.bcast(device_tag, root=0)
+                device_model.parameters["label"] += device_tag
             device = self.nest.Create(device_model.device)
             report("Creating device:  " + device_model.device, level=3)
             # Execute SetStatus and catch DictError
@@ -943,6 +944,7 @@ class SpikeRecorder(SimulationRecorder):
         from glob import glob
 
         files = glob("*" + self.device_model.parameters["label"] + "*.gdf")
+        print("files found", len(files))
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             spikes = np.zeros((0, 2), dtype=float)
@@ -951,11 +953,10 @@ class SpikeRecorder(SimulationRecorder):
                 if len(file_spikes):
                     scaffold_ids = np.array(self.device_model.adapter.get_scaffold_ids(file_spikes[:, 0]))
                     times = file_spikes[:, 1]
-                    print(file_spikes[:, 0], scaffold_ids)
                     scaffold_spikes = np.vstack((scaffold_ids, file_spikes[:, 1])).T
                     spikes = np.vstack((spikes, scaffold_spikes))
-        for file in files:
-            os.remove(file)
+                print("removing", file)
+                os.remove(file)
         return spikes
 
     def get_meta(self):
