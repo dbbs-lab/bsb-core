@@ -692,8 +692,8 @@ class PsthRow(list):
         self.cells = 0
 
     def extend(self, arr):
-        super().extend(arr)
-        self.cells += 1
+        super().extend(arr[:, 0])
+        self.cells += np.unique(arr[:, 1])
 
 
 @_figure
@@ -703,10 +703,8 @@ def hdf5_plot_psth(handle, duration=3, cutoff=0, fig=None, **kwargs):
         l = g.attrs["label"]
         if l not in histo:
             histo[l] = PsthRow(l, g.attrs["color"])
-        adj = g[:, 0] - cutoff
-        # Overwrite number of cells if num_neurons exists
-        if "num_neurons" in g.attrs:
-            histo[l].cells = g.attrs["num_neurons"]
+        adj = g[()]
+        adj[:, 0] = adj[:, 0] - cutoff
         histo[l].extend(adj)
     subplots_fig = make_subplots(
         cols=1,
