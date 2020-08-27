@@ -481,13 +481,53 @@ class NestAdapter(SimulatorAdapter):
         if not self.is_prepared:
             warn("Adapter has not been prepared", SimulationWarning)
         report("Simulating...", level=2)
+        self.result = SimulationResult()
         simulator.Simulate(self.duration)
         report("Simulation finished.", level=2)
         if self.has_lock:
             self.release_lock()
 
     def collect_output(self):
-        pass
+        import h5py, time
+
+        try:
+            import mpi4py
+
+            rank = mpi4py.MPI.COMM_WORLD.rank
+        except Exception as e:
+            print(str(e))
+            rank = 0
+
+        if rank == 0:
+            timestamp = (
+                str(time.time()).split(".")[0] + str(random.random()).split(".")[1]
+            )
+            print("Node", rank, "is writing")
+            with h5py.File("results_" + self.name + "_" + timestamp + ".hdf5", "a") as f:
+                for path, data, meta in self.result.safe_collect():
+                    try:
+                        path = "/".join(path)
+                        if path in f:
+                            data = np.vstack((f[path][()], data))
+                            del f[path]
+                        d = f.create_dataset(path, data=data)
+                        for k, v in meta.items():
+                            d.attrs[k] = v
+                    except Exception as e:
+                        print(data)
+                        exit()
+                        if not isinstance(data, np.ndarray):
+                            warn(
+                                "Recorder {} numpy.ndarray expected, got {}".format(
+                                    path, type(data)
+                                )
+                            )
+                        else:
+                            warn(
+                                "Recorder {} processing errored out: {}".format(
+                                    path, "{} {}".format(data.dtype, data.shape)
+                                )
+                            )
 
     def validate(self):
         for cell_model in self.cell_models.values():
@@ -729,6 +769,7 @@ class NestAdapter(SimulatorAdapter):
                     }
                 },
             )
+            self.implement_recorders(device_model, device)
             # Execute targetting mechanism to fetch target NEST ID's
             device_targets = device_model.get_targets()
             report(
@@ -831,6 +872,11 @@ class NestAdapter(SimulatorAdapter):
             return str
         return str + "_" + self.suffix
 
+    def implement_recorders(self, device_model, node_id):
+        implement_name = "_impl_" + device_model
+        if implement_name in globals():
+            globals()[implement_name](self, device_model, node_id)
+
 
 def catch_dict_error(message):
     def handler(e):
@@ -858,3 +904,41 @@ def catch_connection_error(source):
         )
 
     return handler
+
+
+def _impl_spike_detector(adapter, device_model, node_id):
+    try:
+        import mpi4py
+    except:
+        return
+    if mpi4py.MPI.COMM_WORLD.rank == 0:
+        adapter.result.add(SpikeRecorder(device_model))
+
+
+class SpikeRecorder(SimulationRecorder):
+    def __init__(self, device_model):
+        self.device_model = device_model
+        if "label" not in device_model.parameters:
+            raise ConfigurationError(
+                "Required `label` missing in spike detector '{}' parameters.".format(
+                    device_model.name
+                )
+            )
+
+    def get_path(self):
+        return ("recorders", "soma_spikes", self.device_model.name)
+
+    def get_data(self):
+        print("FETCHING DATA")
+        from glob import glob
+
+        files = glob("*" + self.device_model.label + "*.gdf")
+        print("FOUND", len(files), "FILES")
+        spikes = np.vstack([np.loadtxt(file)[:, [1, 0]] for file in files])
+        print("FOUND", len(spikes), "SPIKES")
+        for file in files:
+            os.remove(file)
+        return spikes
+
+    def get_meta(self):
+        return {"name": device_model.name, "parameters": device_model.parameters}
