@@ -944,7 +944,6 @@ class SpikeRecorder(SimulationRecorder):
         from glob import glob
 
         files = glob("*" + self.device_model.parameters["label"] + "*.gdf")
-        print("files found", len(files))
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             spikes = np.zeros((0, 2), dtype=float)
@@ -955,12 +954,16 @@ class SpikeRecorder(SimulationRecorder):
                     times = file_spikes[:, 1]
                     scaffold_spikes = np.vstack((scaffold_ids, file_spikes[:, 1])).T
                     spikes = np.vstack((spikes, scaffold_spikes))
-                print("removing", file)
                 os.remove(file)
         return spikes
 
     def get_meta(self):
-        return {"name": self.device_model.name, "parameters": json.dumps(self.device_model.parameters)}
+        return {
+            "name": self.device_model.name,
+            "label": self.device_model.name,
+            "color": "black",
+            "parameters": json.dumps(self.device_model.parameters),
+        }
 
 
 def _randint():
