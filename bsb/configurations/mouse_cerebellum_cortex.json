@@ -284,51 +284,59 @@
   "simulations": {
     "poc": {
       "simulator": "neuron",
-      "duration": 500,
-      "temperature": 25,
+      "duration": 900,
+      "temperature": 32,
       "resolution": 0.1,
-      "record_soma": true,
       "cell_models": {
-        "glomerulus": { },
-        "mossy_fibers": { },
+        "glomerulus": {
+          "relay": true
+        },
+        "mossy_fibers": {
+          "relay": true
+        },
         "granule_cell": {
           "model": "dbbs_models.GranuleCell",
-          "record_soma": true,
           "record_spikes": true
         },
         "golgi_cell": {
           "model": "dbbs_models.GolgiCell",
-          "record_soma": true,
-          "record_spikes": true
+          "record_spikes": true,
+          "record_soma": true
         },
         "purkinje_cell": {
           "model": "dbbs_models.PurkinjeCell",
           "record_soma": true,
           "record_spikes": true
         },
+      	"basket_cell": {
+      	  "model": "dbbs_models.BasketCell",
+      	  "record_spikes": true,
+                "record_soma": true
+      	},
         "stellate_cell": {
           "model": "dbbs_models.StellateCell",
-          "record_soma": true,
-          "record_spikes": true
-        },
-        "basket_cell": {
-          "model": "dbbs_models.StellateCell",
-          "record_soma": true,
-          "record_spikes": true
+          "record_spikes": true,
+          "record_soma": true
         }
       },
       "connection_models": {
         "glomerulus_to_granule": {
           "synapse": "AMPA"
         },
+        "glomerulus_to_golgi": {
+          "synapse": "AMPA_MF"
+        },
         "mossy_to_glomerulus": {
           "synapse": null
         },
+        "ascending_axon_to_purkinje": {
+          "synapse": "AMPA_PF"
+        },
         "ascending_axon_to_golgi": {
-          "synapse": "AMPA"
+          "synapse": "AMPA_MF"
         },
         "parallel_fiber_to_golgi": {
-          "synapse": "AMPA"
+          "synapse": "AMPA_PF"
         },
         "golgi_to_granule": {
           "synapse": "GABA"
@@ -336,15 +344,51 @@
         "parallel_fiber_to_purkinje": {
           "synapse": "AMPA_PF"
         },
-        "parallel_fiber_to_basket": {
-          "synapse": "AMPA"
-        },
+	"parallel_fiber_to_basket": {
+	  "synapse": "AMPA"
+	},
         "parallel_fiber_to_stellate": {
           "synapse": "AMPA"
+        },
+	"basket_to_purkinje": {
+	  "synapse": "GABA"
+	},
+        "stellate_to_purkinje": {
+          "synapse": "GABA"
         }
       },
       "devices": {
-        "mossy_fiber_input": {
+        "initial": {
+          "io": "input",
+          "device": "spike_generator",
+          "targetting": "cell_type",
+          "cell_types": ["purkinje_cell", "golgi_cell", "basket_cell", "stellate_cell"],
+          "section_type": "dendrites",
+          "synapses": ["AMPA", "AMPA_PF"],
+          "parameters": {
+            "noise": true,
+            "start": 100,
+            "interval": 5,
+            "number": 20,
+            "sd": 5
+          }
+        },
+        "initial_pc": {
+          "io": "input",
+          "device": "spike_generator",
+          "targetting": "cell_type",
+          "cell_types": ["purkinje_cell"],
+          "section_type": "dendrites",
+          "synapses": ["AMPA", "AMPA_PF"],
+          "parameters": {
+            "noise": true,
+            "start": 100,
+            "interval": 5,
+            "number": 20,
+            "sd": 5
+          }
+        },
+        "background": {
           "io": "input",
           "device": "spike_generator",
           "targetting": "cell_type",
@@ -353,16 +397,62 @@
           "parameters": {
             "noise": true,
             "start": 100,
+            "interval": 250,
+            "number": 40
+          }
+        },
+        "mossy_fiber_input": {
+          "io": "input",
+          "device": "spike_generator",
+          "targetting": "by_id",
+          "targets": [229, 213, 221, 228, 230, 220, 237, 203, 204, 205, 246, 212, 245],
+          "cell_types": ["mossy_fibers"],
+          "synapses": ["AMPA", "NMDA"],
+          "parameters": {
+            "noise": false,
+            "start": 700,
             "interval": 25,
             "number": 4
+          }
+        },
+        "mossy_fiber_init": {
+          "io": "input",
+          "device": "spike_generator",
+          "targetting": "by_id",
+          "targets": [229,213, 221, 228, 197, 270, 193, 273],
+          "cell_types": ["mossy_fibers"],
+          "synapses": ["AMPA", "NMDA"],
+          "parameters": {
+            "noise": true,
+            "start": 100,
+            "interval": 50,
+            "number": 2,
+            "sd": 2
           }
         },
         "dendrite_recorders": {
           "io": "output",
           "device": "voltage_recorder",
           "group": "dendrites",
-          "targetting": "representatives",
+          "targetting": "cell_type",
+          "cell_types": ["purkinje_cell", "golgi_cell", "basket_cell", "stellate_cell"],
           "section_type": "dendrites"
+        },
+        "la_granule_recorder": {
+          "io": "output",
+          "device": "voltage_recorder",
+          "group": "granules_la",
+          "targetting": "by_id",
+          "targets": [4391,4394,4401,4403,4455,4549,4558,4595,4597,4624,4728,4749,4760,4763,4794,4820,4831,4841,4853],
+          "section_type": "soma"
+        },
+        "ha_granule_recorder": {
+          "io": "output",
+          "device": "voltage_recorder",
+          "group": "granules_ha",
+          "targetting": "by_id",
+          "targets": [14278,14628,19707,19992,20111,26940,26951,27731,28749,29050,30958,4269,4914,5229,6018,6656,9116],
+          "section_type": "soma"
         }
       }
     }
