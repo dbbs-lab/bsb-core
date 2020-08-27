@@ -11,6 +11,8 @@ from ..exceptions import *
 import os, json, weakref, numpy as np
 from itertools import chain
 from sklearn.neighbors import KDTree
+from ..simulation import SimulationRecorder, SimulationResult
+import warnings
 
 LOCK_ATTRIBUTE = "dbbs_scaffold_lock"
 
@@ -308,11 +310,13 @@ class NestAdapter(SimulatorAdapter):
 
     def __init__(self):
         super().__init__()
+        self.result = SimulationResult()
         self.is_prepared = False
         self.suffix = ""
         self.multi = False
         self.has_lock = False
         self.global_identifier_map = {}
+        self.simulation_id = _randint()
 
     def prepare(self):
         if self.is_prepared:
@@ -481,7 +485,6 @@ class NestAdapter(SimulatorAdapter):
         if not self.is_prepared:
             warn("Adapter has not been prepared", SimulationWarning)
         report("Simulating...", level=2)
-        self.result = SimulationResult()
         simulator.Simulate(self.duration)
         report("Simulation finished.", level=2)
         if self.has_lock:
@@ -500,7 +503,7 @@ class NestAdapter(SimulatorAdapter):
 
         if rank == 0:
             timestamp = (
-                str(time.time()).split(".")[0] + str(random.random()).split(".")[1]
+                str(time.time()).split(".")[0] + str(_randint())
             )
             print("Node", rank, "is writing")
             with h5py.File("results_" + self.name + "_" + timestamp + ".hdf5", "a") as f:
@@ -510,12 +513,14 @@ class NestAdapter(SimulatorAdapter):
                         if path in f:
                             data = np.vstack((f[path][()], data))
                             del f[path]
+                        print("CREATING", path, len(data))
                         d = f.create_dataset(path, data=data)
                         for k, v in meta.items():
+                            print("STORING META", k, v)
                             d.attrs[k] = v
                     except Exception as e:
-                        print(data)
-                        exit()
+                        import traceback
+                        traceback.print_exc()
                         if not isinstance(data, np.ndarray):
                             warn(
                                 "Recorder {} numpy.ndarray expected, got {}".format(
@@ -597,6 +602,10 @@ class NestAdapter(SimulatorAdapter):
 
     def get_nest_ids(self, ids):
         return [self.global_identifier_map[id] for id in ids]
+
+    def get_scaffold_ids(self, ids):
+        scaffold_map = {v: k for k, v in self.global_identifier_map.items()}
+        return [scaffold_map[id] for id in ids]
 
     def create_neurons(self):
         """
@@ -751,6 +760,14 @@ class NestAdapter(SimulatorAdapter):
             Create the configured NEST devices in the simulator
         """
         for device_model in self.devices.values():
+            if device_model.device == "spike_detector":
+                if "label" not in device_model.parameters:
+                    raise ConfigurationError(
+                        "Required `label` missing in spike detector '{}' parameters.".format(
+                            device_model.name
+                        )
+                    )
+                device_model.parameters["label"] += str(_randint())
             device = self.nest.Create(device_model.device)
             report("Creating device:  " + device_model.device, level=3)
             # Execute SetStatus and catch DictError
@@ -873,7 +890,7 @@ class NestAdapter(SimulatorAdapter):
         return str + "_" + self.suffix
 
     def implement_recorders(self, device_model, node_id):
-        implement_name = "_impl_" + device_model
+        implement_name = "_impl_" + device_model.device
         if implement_name in globals():
             globals()[implement_name](self, device_model, node_id)
 
@@ -918,27 +935,32 @@ def _impl_spike_detector(adapter, device_model, node_id):
 class SpikeRecorder(SimulationRecorder):
     def __init__(self, device_model):
         self.device_model = device_model
-        if "label" not in device_model.parameters:
-            raise ConfigurationError(
-                "Required `label` missing in spike detector '{}' parameters.".format(
-                    device_model.name
-                )
-            )
 
     def get_path(self):
         return ("recorders", "soma_spikes", self.device_model.name)
 
     def get_data(self):
-        print("FETCHING DATA")
         from glob import glob
 
-        files = glob("*" + self.device_model.label + "*.gdf")
-        print("FOUND", len(files), "FILES")
-        spikes = np.vstack([np.loadtxt(file)[:, [1, 0]] for file in files])
-        print("FOUND", len(spikes), "SPIKES")
+        files = glob("*" + self.device_model.parameters["label"] + "*.gdf")
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            spikes = np.zeros((0, 2), dtype=float)
+            for file in files:
+                file_spikes = np.loadtxt(file)
+                if len(file_spikes):
+                    scaffold_ids = np.array(self.device_model.adapter.get_scaffold_ids(file_spikes[:, 0]))
+                    times = file_spikes[:, 1]
+                    print(file_spikes[:, 0], scaffold_ids)
+                    scaffold_spikes = np.vstack((scaffold_ids, file_spikes[:, 1])).T
+                    spikes = np.vstack((spikes, scaffold_spikes))
         for file in files:
             os.remove(file)
         return spikes
 
     def get_meta(self):
-        return {"name": device_model.name, "parameters": device_model.parameters}
+        return {"name": self.device_model.name, "parameters": json.dumps(self.device_model.parameters)}
+
+
+def _randint():
+    return np.random.randint(np.iinfo(int).max)
