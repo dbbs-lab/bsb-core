@@ -1,11 +1,11 @@
 import unittest, os, sys, numpy as np, h5py, importlib
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from scaffold.core import Scaffold, from_hdf5
-from scaffold.config import JSONConfig
-from scaffold.simulators.nest import NestCell
-from scaffold.models import Layer, CellType
-from scaffold.exceptions import *
+from bsb.core import Scaffold, from_hdf5
+from bsb.config import JSONConfig
+from bsb.simulators.nest import NestCell
+from bsb.models import Layer, CellType
+from bsb.exceptions import *
 
 
 def relative_to_tests_folder(path):
