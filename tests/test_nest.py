@@ -14,6 +14,7 @@ def relative_to_tests_folder(path):
 
 minimal_config = relative_to_tests_folder("configs/test_minimal_simulation.json")
 single_neuron_config = relative_to_tests_folder("configs/test_single_neuron.json")
+recorder_config = relative_to_tests_folder("configs/test_recorders.json")
 double_neuron_config = relative_to_tests_folder("configs/test_double_neuron.json")
 double_nn_config = relative_to_tests_folder("configs/test_double_neuron_network.json")
 homosyn_config = relative_to_tests_folder(
@@ -420,3 +421,32 @@ class TestMultiInstance(unittest.TestCase):
         self.assertEqual(lock_data["suffixes"][0], "second")
         self.nest_adapter_multi_2.release_lock()
         self.nest_adapter_multi_2.reset()
+
+
+@unittest.skipIf(importlib.util.find_spec("nest") is None, "NEST is not importable.")
+class TestDeviceProtocol(unittest.TestCase):
+    @classmethod
+    def setUpClass(self):
+        super().setUpClass()
+        import nest
+
+        self.nest = nest
+        config = JSONConfig(file=recorder_config)
+        self.scaffold = Scaffold(config)
+
+    def test_interface(self):
+        import bsb.simulators.nest
+
+        adapter = self.scaffold.configuration.simulations["test_recorders"]
+        sp = bsb.simulators.nest.get_device_protocol(adapter.devices["record_spikes"])
+        gen = bsb.simulators.nest.get_device_protocol(adapter.devices["gen"])
+        self.assertEqual(bsb.simulators.nest.DeviceProtocol, gen.__class__)
+        self.assertEqual(bsb.simulators.nest.SpikeDetectorProtocol, sp.__class__)
+
+    def test_spike_recorder(self):
+        adapter = self.scaffold.configuration.simulations["test_recorders"]
+        self.assertEqual(0, adapter.result.recorders)
+        adapter.prepare()
+        self.assertEqual(1, adapter.result.recorders)
+        adapter.simulate()
+        adapter.collect_output()
