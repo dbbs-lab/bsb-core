@@ -13,6 +13,8 @@ from itertools import chain
 from sklearn.neighbors import KDTree
 from ..simulation import SimulationRecorder, SimulationResult
 import warnings
+import mpi4py
+
 
 LOCK_ATTRIBUTE = "dbbs_scaffold_lock"
 
@@ -248,6 +250,10 @@ class NestDevice(TargetsNeurons, SimulationComponent):
                 else self.stimulus.parameter_name
             )
             self.parameters[stimulus_name] = self.stimulus.eval()
+
+    def boot(self):
+        super().boot()
+        self.protocol = get_device_protocol(self.device)
 
     def get_targets(self):
         """
@@ -502,9 +508,7 @@ class NestAdapter(SimulatorAdapter):
             rank = 0
 
         if rank == 0:
-            timestamp = (
-                str(time.time()).split(".")[0] + str(_randint())
-            )
+            timestamp = str(time.time()).split(".")[0] + str(_randint())
             with h5py.File("results_" + self.name + "_" + timestamp + ".hdf5", "a") as f:
                 for path, data, meta in self.result.safe_collect():
                     try:
@@ -517,6 +521,7 @@ class NestAdapter(SimulatorAdapter):
                             d.attrs[k] = v
                     except Exception as e:
                         import traceback
+
                         traceback.print_exc()
                         if not isinstance(data, np.ndarray):
                             warn(
@@ -756,19 +761,8 @@ class NestAdapter(SimulatorAdapter):
         """
             Create the configured NEST devices in the simulator
         """
-        import mpi4py
-
         for device_model in self.devices.values():
-            if device_model.device == "spike_detector":
-                if "label" not in device_model.parameters:
-                    raise ConfigurationError(
-                        "Required `label` missing in spike detector '{}' parameters.".format(
-                            device_model.name
-                        )
-                    )
-                device_tag = str(_randint())
-                device_tag = mpi4py.MPI.COMM_WORLD.bcast(device_tag, root=0)
-                device_model.parameters["label"] += device_tag
+            device_model.protocol.before_create()
             device = self.nest.Create(device_model.device)
             report("Creating device:  " + device_model.device, level=3)
             # Execute SetStatus and catch DictError
@@ -787,7 +781,7 @@ class NestAdapter(SimulatorAdapter):
                     }
                 },
             )
-            self.implement_recorders(device_model, device)
+            device_model.protocol.after_create(device)
             # Execute targetting mechanism to fetch target NEST ID's
             device_targets = device_model.get_targets()
             report(
@@ -890,11 +884,6 @@ class NestAdapter(SimulatorAdapter):
             return str
         return str + "_" + self.suffix
 
-    def implement_recorders(self, device_model, node_id):
-        implement_name = "_impl_" + device_model.device
-        if implement_name in globals():
-            globals()[implement_name](self, device_model, node_id)
-
 
 def catch_dict_error(message):
     def handler(e):
@@ -924,15 +913,6 @@ def catch_connection_error(source):
     return handler
 
 
-def _impl_spike_detector(adapter, device_model, node_id):
-    try:
-        import mpi4py
-    except:
-        return
-    if mpi4py.MPI.COMM_WORLD.rank == 0:
-        adapter.result.add(SpikeRecorder(device_model))
-
-
 class SpikeRecorder(SimulationRecorder):
     def __init__(self, device_model):
         self.device_model = device_model
@@ -950,7 +930,9 @@ class SpikeRecorder(SimulationRecorder):
             for file in files:
                 file_spikes = np.loadtxt(file)
                 if len(file_spikes):
-                    scaffold_ids = np.array(self.device_model.adapter.get_scaffold_ids(file_spikes[:, 0]))
+                    scaffold_ids = np.array(
+                        self.device_model.adapter.get_scaffold_ids(file_spikes[:, 0])
+                    )
                     times = file_spikes[:, 1]
                     scaffold_spikes = np.vstack((scaffold_ids, file_spikes[:, 1])).T
                     spikes = np.vstack((spikes, scaffold_spikes))
@@ -968,3 +950,38 @@ class SpikeRecorder(SimulationRecorder):
 
 def _randint():
     return np.random.randint(np.iinfo(int).max)
+
+
+class DeviceProtocol:
+    def __init__(self, device):
+        self.device = device
+
+    def before_create(self):
+        pass
+
+    def after_create(self, id):
+        pass
+
+
+class SpikeDetectorProtocol(DeviceProtocol):
+    def before_create(self):
+        if "label" not in self.device.parameters:
+            raise ConfigurationError(
+                "Required `label` missing in spike detector '{}' parameters.".format(
+                    self.device.name
+                )
+            )
+        device_tag = str(_randint())
+        device_tag = mpi4py.MPI.COMM_WORLD.bcast(device_tag, root=0)
+        self.device.parameters["label"] += device_tag
+        if mpi4py.MPI.COMM_WORLD.rank == 0:
+            self.device.adapter.result.add(SpikeRecorder(self.device))
+
+
+def get_device_protocol(device):
+    if device.device in _device_protocols:
+        return _device_protocols[device.device](device)
+    return DeviceProtocol(device)
+
+
+_device_protocols = {"spike_detector": SpikeDetectorProtocol}
