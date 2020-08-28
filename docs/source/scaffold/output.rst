@@ -2,5 +2,5 @@
 Output module
 =============
 
-.. automodule:: scaffold.output
+.. automodule:: bsb.output
   :members:

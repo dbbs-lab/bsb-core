@@ -1,8 +1,8 @@
 import unittest, os, sys, numpy as np, h5py, importlib
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from scaffold.core import Scaffold
-from scaffold.models import Layer, CellType
+from bsb.core import Scaffold
+from bsb.models import Layer, CellType
 from test_setup import get_test_network
 
 
@@ -11,8 +11,10 @@ def relative_to_tests_folder(path):
 
 
 _nest_available = importlib.util.find_spec("nest") is not None
+_using_morphologies = True
 
 
+@unittest.skipIf(_using_morphologies, "Morphologies are used for the connectivity")
 class TestConnectivity(unittest.TestCase):
     @classmethod
     def setUpClass(self):

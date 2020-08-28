@@ -1,16 +1,16 @@
 import unittest, os, sys, numpy as np, h5py, importlib
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from scaffold.config import JSONConfig
-from scaffold.core import Scaffold
-from scaffold.output import HDF5Formatter
-import scaffold.helpers
-from scaffold.exceptions import (
+from bsb.config import JSONConfig
+from bsb.core import Scaffold
+from bsb.output import HDF5Formatter
+import bsb.helpers
+from bsb.exceptions import (
     MorphologyDataError,
     MorphologyError,
     MissingMorphologyError,
 )
-from scaffold.postprocessing import SpoofDetails
+from bsb.postprocessing import SpoofDetails
 
 
 def relative_to_tests_folder(path):

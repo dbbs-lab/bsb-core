@@ -2,5 +2,5 @@
 Helpers module
 ==============
 
-.. automodule:: scaffold.helpers
+.. automodule:: bsb.helpers
   :members:

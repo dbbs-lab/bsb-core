@@ -1,10 +1,10 @@
 import unittest, os, sys, numpy as np, h5py
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from scaffold.core import Scaffold, from_hdf5
-from scaffold.config import JSONConfig
-from scaffold.models import Layer, CellType
-from scaffold.placement import Satellite
+from bsb.core import Scaffold, from_hdf5
+from bsb.config import JSONConfig
+from bsb.models import Layer, CellType
+from bsb.placement import Satellite
 from test_setup import get_test_network
 
 
@@ -50,6 +50,10 @@ class TestSingleTypeCompilation(unittest.TestCase):
         self.assertRaises(OSError, from_hdf5, "doesntexist")
 
 
+_using_morphologies = True
+
+
+@unittest.skipIf(_using_morphologies, "Morphologies are used for the connectivity")
 class TestPlacement(unittest.TestCase):
     """
         Check if the placement of all cell types is correct

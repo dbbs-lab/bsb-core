@@ -317,7 +317,7 @@ class NestAdapter(SimulatorAdapter):
     def prepare(self):
         if self.is_prepared:
             raise AdapterError(
-                "Attempting to prepare the same adapter twice. Please use `scaffold.create_adapter` for multiple adapter instances of the same simulation."
+                "Attempting to prepare the same adapter twice. Please use `bsb.create_adapter` for multiple adapter instances of the same simulation."
             )
         report("Locking NEST kernel...", level=2)
         self.lock()

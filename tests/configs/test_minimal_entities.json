@@ -1,6 +1,6 @@
 {
   "output": {
-    "format": "scaffold.output.HDF5Formatter",
+    "format": "bsb.output.HDF5Formatter",
     "file": "minimal_entities.hdf5"
   },
   "network_architecture": {
@@ -17,7 +17,7 @@
     "entity_type": {
       "entity": true,
       "placement": {
-        "class": "scaffold.placement.Entities",
+        "class": "bsb.placement.Entities",
         "layer": "granular_layer",
         "count": 100
       }

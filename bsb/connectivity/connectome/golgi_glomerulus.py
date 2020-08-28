@@ -1,11 +1,14 @@
 import numpy as np
-from ..strategy import TouchingConvergenceDivergence
+from ..strategy import ConnectionStrategy
 
 
-class ConnectomeGolgiGlomerulus(TouchingConvergenceDivergence):
+class ConnectomeGolgiGlomerulus(ConnectionStrategy):
     """
         Legacy implementation for the connections between glomeruli and Golgi cells.
     """
+
+    casts = {"divergence": int}
+    required = ["divergence"]
 
     def validate(self):
         pass

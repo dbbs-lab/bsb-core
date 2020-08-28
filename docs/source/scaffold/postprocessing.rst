@@ -2,5 +2,5 @@
 Postprocessing module
 =====================
 
-.. automodule:: scaffold.postprocessing
+.. automodule:: bsb.postprocessing
   :members:

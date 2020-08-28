@@ -1,11 +1,10 @@
 import unittest, os, sys, numpy as np, h5py, importlib
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from scaffold.core import Scaffold
-from scaffold.config import JSONConfig
-from scaffold.models import Layer, CellType, ConnectivitySet
-from scaffold.output import MorphologyRepository
-from test_setup import get_test_network
+from bsb.core import Scaffold
+from bsb.config import JSONConfig
+from bsb.models import Layer, CellType, ConnectivitySet
+from bsb.output import MorphologyRepository
 
 
 def relative_to_tests_folder(path):

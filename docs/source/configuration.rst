@@ -64,7 +64,7 @@ that should be used::
 
   {
     "output": {
-      "format": "scaffold.output.HDF5Formatter"
+      "format": "bsb.output.HDF5Formatter"
     }
   }
 
@@ -349,7 +349,7 @@ A string containing a PlacementStrategy class name, including its module.
 
 .. code-block::
 
-  "class": "scaffold.placement.ParticlePlacement"
+  "class": "bsb.placement.ParticlePlacement"
 
 =======================
 Connectivity Attributes
@@ -366,7 +366,7 @@ A string containing a ConnectivityStrategy class name, including its module.
 
 .. code-block::
 
-  "class": "scaffold.placement.VoxelIntersection"
+  "class": "bsb.placement.VoxelIntersection"
 
 from_types/to_types
 ===================

@@ -1,13 +1,16 @@
 import numpy as np
-from ..strategy import TouchingConvergenceDivergence
+from ..strategy import ConnectionStrategy
 from ...reporting import report, warn
 from ...exceptions import *
 
 
-class ConnectomeMossyDCN(TouchingConvergenceDivergence):
+class ConnectomeMossyDCN(ConnectionStrategy):
     """
         Implementation for the connection between mossy fibers and DCN cells.
     """
+
+    casts = {"convergence": int}
+    required = ["convergence"]
 
     def validate(self):
         pass

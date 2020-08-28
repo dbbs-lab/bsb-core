@@ -6,7 +6,7 @@ There are 2 entry points in the command line interface:
 
 * **A command**: Can be written in a command line prompt such as the Terminal on
   Linux or CMD on Windows.
-* **The shell**: Can be opened by giving typing ``scaffold`` into a command line
+* **The shell**: Can be opened by giving typing ``bsb`` into a command line
   prompt.
 
 **************
@@ -20,7 +20,7 @@ Opening the shell
 =================
 
 Open your favorite command line prompt and if the scaffold package is succesfully
-installed the ``scaffold`` command should be available.
+installed the ``bsb`` command should be available.
 
 You can close the shell by typing ``exit``.
 
@@ -90,7 +90,7 @@ List of command line commands
 compile
 =======
 
-``scaffold [-v=1 -c=mouse_cerebellum] compile [-p -o]``
+``bsb [-v=1 -c=mouse_cerebellum] compile [-p -o]``
 
 Compiles a network architecture: Places cells in a simulated volume and connects
 them to eachother. All this information is then stored in a single HDF5 file.
@@ -103,7 +103,7 @@ them to eachother. All this information is then stored in a single HDF5 file.
 simulate
 ========
 
-``scaffold [-v=1] simulate <name> [-rc=<config>] --hdf5=<file>``
+``bsb [-v=1] simulate <name> [-rc=<config>] --hdf5=<file>``
 
 Run a simulation from a compiled network architecture.
 
@@ -117,7 +117,7 @@ Run a simulation from a compiled network architecture.
 run
 ===
 
-``scaffold [-v=1 -c=mouse_cerebellum] run <name> [-p]``
+``bsb [-v=1 -c=mouse_cerebellum] run <name> [-p]``
 
 Run a simulation creating a new network architecture.
 
@@ -128,6 +128,6 @@ Run a simulation creating a new network architecture.
 plot
 ====
 
-``scaffold plot <file>``
+``bsb plot <file>``
 
 Create a plot of the network in an HDF5 file.

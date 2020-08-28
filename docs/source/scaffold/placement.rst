@@ -2,5 +2,5 @@
 Placement module
 ================
 
-.. automodule:: scaffold.placement
+.. automodule:: bsb.placement
   :members:
