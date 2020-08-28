@@ -3,7 +3,7 @@ import unittest, os, sys, numpy as np, h5py
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from bsb.config import JSONConfig
 from bsb.output import HDF5Formatter
-import scaffold.helpers
+import bsb.helpers
 from bsb.exceptions import ConfigurableClassNotFoundError
 
 
@@ -29,6 +29,6 @@ class TestIssues(unittest.TestCase):
         """
         self.assertRaises(
             ConfigurableClassNotFoundError,
-            scaffold.helpers.get_configurable_class,
+            bsb.helpers.get_configurable_class,
             "TestClass",
         )

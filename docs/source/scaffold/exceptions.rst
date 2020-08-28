@@ -2,5 +2,5 @@
 Exceptions module
 =================
 
-.. automodule:: scaffold.exceptions
+.. automodule:: bsb.exceptions
   :members:

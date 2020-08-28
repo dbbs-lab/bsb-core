@@ -16,7 +16,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.abspath("../.."))
-import scaffold, scaffold.config
+import bsb, bsb.config
 
 
 # -- Project information -----------------------------------------------------
@@ -26,9 +26,9 @@ copyright = "2019, Brain and Behavioral Science Lab, University of Pavia"
 author = "Brain and Behavioral Science Lab, University of Pavia"
 
 # The short X.Y version
-version = ".".join(scaffold.__version__.split(".")[0:2])
+version = ".".join(bsb.__version__.split(".")[0:2])
 # The full version, including alpha/beta/rc tags
-release = scaffold.__version__
+release = bsb.__version__
 
 
 # -- General configuration ---------------------------------------------------
@@ -87,7 +87,7 @@ html_theme = "sphinx_rtd_theme"
 html_context = {
     "maintainer": "Robin De Schepper",
     "project_pretty_name": "DBBS Scaffold",
-    "projects": {"DBBS Scaffold": "https://github.com/dbbs/scaffold"},
+    "projects": {"DBBS Scaffold": "https://github.com/dbbs/bsb"},
 }
 
 # Theme options are theme-specific and customize the look and feel of a theme
@@ -153,15 +153,7 @@ latex_documents = [
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [
-    (
-        master_doc,
-        "dbbscerebellumscaffold",
-        "DBBS Cerebellum Scaffold Documentation",
-        [author],
-        1,
-    )
-]
+man_pages = [(master_doc, "bsb", "BSB Documentation", [author], 1,)]
 
 
 # -- Options for Texinfo output ----------------------------------------------

@@ -4,7 +4,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from bsb.config import JSONConfig
 from bsb.core import Scaffold
 from bsb.output import HDF5Formatter
-import scaffold.helpers
+import bsb.helpers
 from bsb.exceptions import (
     MorphologyDataError,
     MorphologyError,

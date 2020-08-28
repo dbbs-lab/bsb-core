@@ -2,5 +2,5 @@
 NEST module
 ===================
 
-.. automodule:: scaffold.simulators.nest
+.. automodule:: bsb.simulators.nest
   :members:

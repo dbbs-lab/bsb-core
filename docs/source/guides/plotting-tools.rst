@@ -3,9 +3,9 @@ Plotting Tools
 ==============
 
 The scaffold package provides tools to plot network topology (either point and detailed
-networks) and morphologies in the ``scaffold.plotting`` module.
+networks) and morphologies in the ``bsb.plotting`` module.
 
-To plot a network saved in a `scaffold` instance, you can use:
+To plot a network saved in a `bsb` instance, you can use:
 
 * ``plot_network_cache(scaffold)``: to plot the network saved in the memory cache after
   having compiled it

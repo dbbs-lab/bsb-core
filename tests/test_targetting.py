@@ -3,7 +3,7 @@ import unittest, os, sys, numpy as np, h5py, importlib
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from bsb.config import JSONConfig
 from bsb.core import Scaffold
-import scaffold.helpers
+import bsb.helpers
 from bsb.exceptions import *
 
 

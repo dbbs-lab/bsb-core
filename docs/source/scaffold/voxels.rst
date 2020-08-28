@@ -2,5 +2,5 @@
 Voxels module
 =============
 
-.. automodule:: scaffold.voxels
+.. automodule:: bsb.voxels
   :members:
