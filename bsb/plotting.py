@@ -58,10 +58,10 @@ class CellTraceCollection:
 
 def _figure(f):
     """
-        Decorator for functions that produce a Figure. Can set defaults, create and show
-        figures and disable the legend.
+    Decorator for functions that produce a Figure. Can set defaults, create and show
+    figures and disable the legend.
 
-        Adds the `show` and `legend` keyword arguments.
+    Adds the `show` and `legend` keyword arguments.
     """
 
     @functools.wraps(f)
@@ -79,10 +79,10 @@ def _figure(f):
 
 def _network_figure(f):
     """
-        Decorator for functions that produce a Figure of a network. Applies ``@_figure``
-        and can create cubic perspective and swap the Y & Z axis labels.
+    Decorator for functions that produce a Figure of a network. Applies ``@_figure``
+    and can create cubic perspective and swap the Y & Z axis labels.
 
-        Adds the `cubic` and `swapaxes` keyword arguments.
+    Adds the `cubic` and `swapaxes` keyword arguments.
     """
 
     @functools.wraps(f)
@@ -103,14 +103,14 @@ def _network_figure(f):
 
 def _input_highlight(f, required=False):
     """
-        Decorator for functions that highlight an input region on a Figure.
+    Decorator for functions that highlight an input region on a Figure.
 
-        Adds the `input_region` keyword argument. Decorated function has to have a `fig`
-        keyword argument.
+    Adds the `input_region` keyword argument. Decorated function has to have a `fig`
+    keyword argument.
 
-        :param required: If set to True, an ArgumentError is thrown if no `input_region`
-          is specified
-        :type required: bool
+    :param required: If set to True, an ArgumentError is thrown if no `input_region`
+      is specified
+    :type required: bool
     """
 
     @functools.wraps(f)
@@ -163,7 +163,7 @@ def plot_network(
     network, fig=None, cubic=True, swapaxes=True, show=True, legend=True, from_memory=True
 ):
     """
-        Plot a network, either from the current cache or the storage.
+    Plot a network, either from the current cache or the storage.
     """
     if from_memory:
         _plot_network(network, fig, swapaxes)
@@ -486,10 +486,10 @@ def set_scene_range(scene, bounds):
 
 def set_morphology_scene_range(scene, offset_morphologies):
     """
-        Set the range on a scene containing multiple morphologies.
+    Set the range on a scene containing multiple morphologies.
 
-        :param scene: A scene of the figure. If the figure itself is given, ``figure.layout.scene`` will be used.
-        :param offset_morphologies: A list of tuples where the first element is offset and the 2nd is the :class:`Morphology`
+    :param scene: A scene of the figure. If the figure itself is given, ``figure.layout.scene`` will be used.
+    :param offset_morphologies: A list of tuples where the first element is offset and the 2nd is the :class:`Morphology`
     """
     bounds = np.array(list(map(lambda m: m[1].get_plot_range(m[0]), offset_morphologies)))
     combined_bounds = np.array(
@@ -502,9 +502,8 @@ def set_morphology_scene_range(scene, offset_morphologies):
 
 def hdf5_plot_spike_raster(spike_recorders, input_region=None):
     """
-        Create a spike raster plot from an HDF5 group of spike recorders.
+    Create a spike raster plot from an HDF5 group of spike recorders.
     """
-    cell_ids = [int(k) for k in spike_recorders.keys()]
     x = {}
     y = {}
     colors = {}
@@ -521,12 +520,11 @@ def hdf5_plot_spike_raster(spike_recorders, input_region=None):
             colors[label] = attrs["color"]
         if not label in ids:
             ids[label] = 0
-        cell_id = ids[label]
         ids[label] += 1
         # Add the spike timings on the X axis.
         x[label].extend(data)
         # Set the cell id for the Y axis of each added spike timing.
-        y[label].extend(cell_id for _ in range(len(data)))
+        y[label].extend(dataset[:, 1])
     # Use the parallel arrays x & y to plot a spike raster
     fig = go.Figure(
         layout=dict(
@@ -552,9 +550,9 @@ def hdf5_plot_spike_raster(spike_recorders, input_region=None):
 
 def hdf5_gdf_plot_spike_raster(spike_recorders, input_region=None, fig=None):
     """
-        Create a spike raster plot from an HDF5 group of spike recorders saved from NEST gdf files.
-        Each HDF5 dataset includes the spike timings of the recorded cell populations, with spike
-        times in the first row and neuron IDs in the second row.
+    Create a spike raster plot from an HDF5 group of spike recorders saved from NEST gdf files.
+    Each HDF5 dataset includes the spike timings of the recorded cell populations, with spike
+    times in the first row and neuron IDs in the second row.
     """
 
     cell_ids = [np.unique(spike_recorders[k][:, 1]) for k in spike_recorders.keys()]
@@ -690,10 +688,12 @@ class PsthRow(list):
         self.name = name
         self.color = color
         self.cells = 0
+        self._included_ids = np.empty(0)
 
     def extend(self, arr):
-        super().extend(arr[:, 0])
-        self.cells += np.unique(arr[:, 1])
+        super().extend(arr[:, 1])
+        self._included_ids = np.unique(np.concatenate((self._included_ids, arr[:, 0])))
+        self.cells = len(self._included_ids)
 
 
 @_figure
@@ -703,9 +703,9 @@ def hdf5_plot_psth(handle, duration=3, cutoff=0, fig=None, **kwargs):
         l = g.attrs["label"]
         if l not in histo:
             histo[l] = PsthRow(l, g.attrs["color"])
-        adj = g[()]
-        adj[:, 0] = adj[:, 0] - cutoff
-        histo[l].extend(adj)
+        adjusted = g[()]
+        adjusted[:, 1] = adjusted[:, 1] - cutoff
+        histo[l].extend(adjusted)
     subplots_fig = make_subplots(
         cols=1,
         rows=len(histo),
