@@ -35,6 +35,7 @@ setuptools.setup(
         "plotly>=4.1.0",
         "rtree-linux==0.9.4",
         "nrn-patch>=2.1.0",
+        "colour>=0.1.5",
     ],
     project_urls={
         "Bug Tracker": "https://github.com/dbbs-lab/bsb/issues/",

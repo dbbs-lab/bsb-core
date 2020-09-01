@@ -14,7 +14,9 @@ _nest_available = importlib.util.find_spec("nest") is not None
 _using_morphologies = True
 
 
-@unittest.skipIf(_using_morphologies, "Morphologies are used for the connectivity")
+@unittest.skipIf(
+    not _using_morphologies, "Morphologies are required for the connectivity tests."
+)
 class TestConnectivity(unittest.TestCase):
     @classmethod
     def setUpClass(self):
