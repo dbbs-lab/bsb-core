@@ -1,6 +1,7 @@
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
-[![Build Status](https://travis-ci.com/Helveg/cerebellum-scaffold.svg?token=XSpW8taq6yXK53yq1am2&branch=master)](https://travis-ci.com/Helveg/cerebellum-scaffold)
-[![codecov](https://codecov.io/gh/Helveg/cerebellum-scaffold/branch/master/graph/badge.svg?token=iMOwEbV0AZ)](https://codecov.io/gh/Helveg/cerebellum-scaffold)
+[![Documentation Status](https://readthedocs.org/projects/bsb/badge/?version=latest)](https://bsb.readthedocs.io/en/latest/?badge=latest)
+[![Build Status](https://travis-ci.com/dbbs-lab/bsb.svg?branch=master)](https://travis-ci.com/dbbs-lab/bsb)
+[![codecov](https://codecov.io/gh/dbbs-lab/bsb/branch/master/graph/badge.svg)](https://codecov.io/gh/dbbs-lab/bsb)
 
 **Note:** The scaffold framework is still under heavy development. Please check the
 **_Known Issues_** section at the bottom for important issues that fell victim to our
@@ -20,9 +21,6 @@ This software can be installed as a Python package from PyPI through pip:
 ```
 pip install bsb
 ```
-
-**Note:** *Windows users will have to install Rtree from this website:
-https://www.lfd.uci.edu/~gohlke/pythonlibs/#rtree*
 
 ### Developers
 
@@ -91,4 +89,4 @@ scaffoldInstance.plot_network_cache()
 When modifying the config object through scripts and then saving it to file, you'll store
 the original configuration file text, and you won't actually serialize the modified object
 
-We will fix this by version 3.2
+We will fix this by version 4.0
