@@ -26,10 +26,8 @@ def _create_test_network(*dimensions):
             os.path.join(
                 os.path.dirname(__file__),
                 "..",
-                "..",
-                "scaffold",
-                "configurations",
-                "mouse_cerebellum_cortex_noTouch.json",
+                "configs",
+                "legacy_mouse_cerebellum.json",
             )
         )
         config.resize(*dimensions)

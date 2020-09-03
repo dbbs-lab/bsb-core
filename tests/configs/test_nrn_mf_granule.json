@@ -1,7 +1,7 @@
 {
   "name": "DBBS Mouse cerebellum configuration v4.0",
   "output": {
-    "format": "scaffold.output.HDF5Formatter",
+    "format": "bsb.output.HDF5Formatter",
     "file": "nrn_mf_grc.hdf5",
     "morphology_repository": "morphologies.hdf5"
   },
@@ -25,14 +25,14 @@
   "cell_types": {
     "granule_cell": {
       "placement": {
-        "class": "scaffold.placement.FixedPositions",
+        "class": "bsb.placement.FixedPositions",
         "layer": "test_layer",
         "soma_radius": 2.5,
         "count": 0,
         "positions": [[0.0, 0.0, 0.0]]
       },
       "morphology": {
-        "class": "scaffold.morphologies.NoGeometry"
+        "class": "bsb.morphologies.NoGeometry"
       },
       "plotting": {
         "display_name": "lonely cell",
@@ -43,7 +43,7 @@
       "relay": true,
       "entity": true,
       "placement": {
-        "class": "scaffold.placement.Entities",
+        "class": "bsb.placement.Entities",
         "layer": "test_layer",
         "placement_relative_to": "glomerulus",
         "placement_count_ratio": 1
@@ -52,14 +52,14 @@
     "glomerulus": {
       "relay": true,
       "placement": {
-        "class": "scaffold.placement.FixedPositions",
+        "class": "bsb.placement.FixedPositions",
         "layer": "test_layer",
         "soma_radius": 1.5,
         "count": 2,
         "positions": [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0]]
       },
       "morphology": {
-        "class": "scaffold.morphologies.NoGeometry"
+        "class": "bsb.morphologies.NoGeometry"
       },
       "plotting": {
         "display_name": "Glomerulus",
@@ -69,12 +69,12 @@
   },
   "connection_types": {
     "mossy_to_glomerulus": {
-      "class": "scaffold.connectivity.ConnectomeMossyGlomerulus",
+      "class": "bsb.connectivity.ConnectomeMossyGlomerulus",
       "from_cell_types": [{"type": "mossy_fibers", "compartments": ["soma"]}],
       "to_cell_types": [{"type": "glomerulus", "compartments": ["soma"]}]
     },
     "glomerulus_to_granule": {
-      "class": "scaffold.connectivity.ConnectomeGlomerulusGranule",
+      "class": "bsb.connectivity.ConnectomeGlomerulusGranule",
       "from_cell_types": [{"type": "glomerulus", "compartments": ["soma"]}],
       "to_cell_types": [{"type": "granule_cell", "compartments": ["dendrites"]}],
       "divergence": 50,
