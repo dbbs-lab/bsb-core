@@ -1,7 +1,7 @@
 {
   "name": "DBBS Mouse cerebellum configuration v4.0",
   "output": {
-    "format": "scaffold.output.HDF5Formatter",
+    "format": "bsb.output.HDF5Formatter",
     "file": "nrn_aa_pc.hdf5",
     "morphology_repository": "morphologies.hdf5"
   },
@@ -25,14 +25,14 @@
   "cell_types": {
     "granule_cell": {
       "placement": {
-        "class": "scaffold.placement.FixedPositions",
+        "class": "bsb.placement.FixedPositions",
         "layer": "test_layer",
         "soma_radius": 2.5,
         "count": 0,
         "positions": [[0.0, 0.0, 0.0]]
       },
       "morphology": {
-        "class": "scaffold.morphologies.NoGeometry"
+        "class": "bsb.morphologies.NoGeometry"
       },
       "plotting": {
         "display_name": "lonely cell",
@@ -41,14 +41,14 @@
     },
     "purkinje_cell": {
       "placement": {
-        "class": "scaffold.placement.FixedPositions",
+        "class": "bsb.placement.FixedPositions",
         "layer": "test_layer",
         "soma_radius": 2.5,
         "count": 0,
         "positions": [[0.0, 0.0, 0.0]]
       },
       "morphology": {
-        "class": "scaffold.morphologies.NoGeometry"
+        "class": "bsb.morphologies.NoGeometry"
       },
       "plotting": {
         "display_name": "lonely cell",
@@ -58,7 +58,7 @@
   },
   "connection_types": {
     "granule_to_purkinje": {
-      "class": "scaffold.connectivity.ConnectomeGlomerulusGranule",
+      "class": "bsb.connectivity.ConnectomeGlomerulusGranule",
       "from_cell_types": [{"type": "granule_cell", "compartments": ["ascending_axon"]}],
       "to_cell_types": [{"type": "purkinje_cell", "compartments": ["apical_dendrites"]}],
       "divergence": 50,
