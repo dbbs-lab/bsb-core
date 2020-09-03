@@ -1,6 +1,6 @@
 import warnings, base64, io, sys
 
-sys.stdout = io.TextIOWrapper(open(sys.stdout.fileno(), 'wb', 0), write_through=True)
+sys.stdout = io.TextIOWrapper(open(sys.stdout.fileno(), "wb", 0), write_through=True)
 
 _verbosity = 1
 _report_file = None
