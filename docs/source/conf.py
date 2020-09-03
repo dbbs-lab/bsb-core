@@ -13,9 +13,20 @@
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
 import os
-import sys
+import sys, types
 
 sys.path.insert(0, os.path.abspath("../.."))
+autodoc_mock_imports = [
+    "glia",
+    "patch",
+    "mpi4py",
+    "dbbs_models",
+    "arborize",
+    "rtree",
+    "rtree.index",
+]
+for mod in autodoc_mock_imports:
+    sys.modules[mod] = types.ModuleType(mod)
 import bsb, bsb.config
 
 
@@ -198,5 +209,3 @@ epub_exclude_files = ["search.html"]
 
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = True
-
-autodoc_mock_imports = ["glia", "patch", "mpi4py", "dbbs_models", "arborize", "rtree"]
