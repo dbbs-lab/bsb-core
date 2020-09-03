@@ -708,6 +708,9 @@ class PSTH:
         row.index = len(self.rows)
         self.rows.append(row)
 
+    def ordered_rows(self):
+        return sorted(self.rows, key=lambda t: t.order or 0)
+
 
 class PSTHStack:
     def __init__(self, name, color):
@@ -715,15 +718,16 @@ class PSTHStack:
         self.color = str(color)
         self.cells = 0
         self._included_ids = np.empty(0)
+        self.list = []
 
     def extend(self, arr):
-        super().extend(arr[:, 1])
+        self.list.extend(arr[:, 1])
         self._included_ids = np.unique(np.concatenate((self._included_ids, arr[:, 0])))
         self.cells = len(self._included_ids)
 
 
 class PSTHRow:
-    def __init__(self, name, color):
+    def __init__(self, name, color, order=0):
         from colour import Color
 
         self.name = name
@@ -731,14 +735,15 @@ class PSTHRow:
         self.palette = list(color.range_to("black", 6))
         self.stacks = {}
         self.max = -float("inf")
+        self.order = order
 
-    def extend(self, arr, num=1, stack=None):
+    def extend(self, arr, stack=None):
         if stack not in self.stacks:
             self.stacks[stack] = PSTHStack(
                 stack or self.name, self.palette[len(self.stacks)]
             )
-        self.stacks[stack].extend(arr, num)
-        self.max = max(self.max, np.max(arr)) if len(arr) > 0 else self.max
+        self.stacks[stack].extend(arr)
+        self.max = max(self.max, np.max(arr[:, 1])) if len(arr) > 0 else self.max
 
 
 @_figure
@@ -749,17 +754,18 @@ def hdf5_plot_psth(handle, duration=3, cutoff=0, start=0, fig=None, **kwargs):
         l = g.attrs.get("label", "unlabelled")
         if l not in row_map:
             color = g.attrs.get("color", None)
-            row_map[l] = row = PSTHRow(l, color)
+            order = g.attrs.get("order", 0)
+            row_map[l] = row = PSTHRow(l, color, order=order)
             psth.add_row(row)
         else:
             row = row_map[l]
         adjusted = g[()]
         adjusted[:, 1] = adjusted[:, 1] - cutoff
-        histo[l].extend(adjusted)
+        row.extend(adjusted, stack=g.attrs.get("stack", None))
     subplots_fig = make_subplots(
         cols=1,
         rows=len(psth.rows),
-        subplot_titles=[row.name for row in psth.rows],
+        subplot_titles=[row.name for row in psth.ordered_rows()],
         x_title=kwargs.get("x_title", "Time (ms)"),
         y_title=kwargs.get("y_title", "Population firing rate (Hz)"),
     )
@@ -773,17 +779,17 @@ def hdf5_plot_psth(handle, duration=3, cutoff=0, start=0, fig=None, **kwargs):
     # should happen before this point.
     fig._grid_ref = subplots_fig._grid_ref
     fig._layout = subplots_fig._layout
-    for i, row in enumerate(psth.rows):
+    for i, row in enumerate(psth.ordered_rows()):
         for name, stack in sorted(row.stacks.items(), key=lambda x: x[0]):
             counts, bins = np.histogram(stack.list, bins=np.arange(start, _max, duration))
-            if name.startswith("##"):
+            if str(name).startswith("##"):
                 # Lazy way to order the stacks; Stack names can start with ## and a number
                 # and it will be sorted by name, but the ## and number are not displayed.
                 name = name[4:]
             trace = go.Bar(
                 x=bins,
                 y=counts / stack.cells * 1000 / duration,
-                name=name,
+                name=name or row.name,
                 marker=dict(color=stack.color),
             )
             fig.add_trace(trace, row=i + 1, col=1)
