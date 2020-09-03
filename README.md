@@ -22,9 +22,6 @@ This software can be installed as a Python package from PyPI through pip:
 pip install bsb
 ```
 
-**Note:** *Windows users will have to install Rtree from this website:
-https://www.lfd.uci.edu/~gohlke/pythonlibs/#rtree*
-
 ### Developers
 
 Developers best use pip's *editable* install. This creates a live link between the
@@ -92,4 +89,4 @@ scaffoldInstance.plot_network_cache()
 When modifying the config object through scripts and then saving it to file, you'll store
 the original configuration file text, and you won't actually serialize the modified object
 
-We will fix this by version 3.2
+We will fix this by version 4.0
