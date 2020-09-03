@@ -90,3 +90,10 @@ When modifying the config object through scripts and then saving it to file, you
 the original configuration file text, and you won't actually serialize the modified object
 
 We will fix this by version 4.0
+
+## If MPI is installed but mpi4py is not undefined behavior may occur
+
+The amount of NEST virtual processes is determined by using mpi4py to get the amount of
+MPI processes. But if the package is not installed it is assumed no MPI simulations will
+be ran and the amount of virtual processes might be lower than expected when used in
+combination with OpenMP. Be sure to `pip install` using the `[MPI]` requirement tag.

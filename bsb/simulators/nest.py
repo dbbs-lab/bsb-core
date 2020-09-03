@@ -11,7 +11,13 @@ from ..exceptions import *
 import os, json, weakref, numpy as np
 from itertools import chain
 from sklearn.neighbors import KDTree
-import mpi4py.MPI
+
+try:
+    import mpi4py.MPI
+
+    _MPI_processes = mpi4py.MPI.COMM_WORLD.Get_size()
+except ImportError:
+    _MPI_processes = 1
 
 LOCK_ATTRIBUTE = "dbbs_scaffold_lock"
 
@@ -442,7 +448,7 @@ class NestAdapter(SimulatorAdapter):
 
     def reset_processes(self, threads):
         master_seed = self.get_master_seed()
-        total_num = mpi4py.MPI.COMM_WORLD.Get_size() * threads
+        total_num = _MPI_processes * threads
         # Create a range of random seeds and generators.
         random_generator_seeds = range(master_seed, master_seed + total_num)
         # Create a different range of random seeds for the kernel.
