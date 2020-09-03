@@ -1,4 +1,4 @@
-import warnings, base64
+import warnings, base64, io
 
 warnings.filterwarnings("once", category=DeprecationWarning)
 sys.stdout = io.TextIOWrapper(open(sys.stdout.fileno(), "wb", 0), write_through=True)
