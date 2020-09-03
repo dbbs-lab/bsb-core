@@ -747,7 +747,7 @@ class PSTHRow:
 
 
 @_figure
-def hdf5_plot_psth(handle, duration=3, cutoff=0, start=0, fig=None, **kwargs):
+def hdf5_plot_psth(handle, duration=3, cutoff=0, start=0, fig=None, mod=None, **kwargs):
     psth = PSTH()
     row_map = {}
     for g in handle.values():
@@ -774,6 +774,9 @@ def hdf5_plot_psth(handle, duration=3, cutoff=0, start=0, fig=None, **kwargs):
         _max = max(_max, row.max)
     subplots_fig.update_xaxes(range=[start, _max])
     subplots_fig.update_layout(title_text=kwargs.get("title", "PSTH"))
+    # Allow the original figure to be updated before messing with it.
+    if mod is not None:
+        mod(subplots_fig)
     # Overwrite the layout and grid of the single plot that is handed to us
     # to turn it into a subplots figure. All modifications except for adding traces
     # should happen before this point.
