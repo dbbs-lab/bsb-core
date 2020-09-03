@@ -257,7 +257,7 @@ class NestDevice(TargetsNeurons, SimulationComponent):
 
     def get_targets(self):
         """
-        Return the targets of the stimulation to pass into the nest.Connect call.
+            Return the targets of the stimulation to pass into the nest.Connect call.
         """
         return self.adapter.get_nest_ids(np.array(self._get_targets(), dtype=int))
 
@@ -272,7 +272,7 @@ class NestEntity(NestDevice, MapsScaffoldIdentifiers):
 
 class NestAdapter(SimulatorAdapter):
     """
-    Interface between the scaffold model and the NEST simulator.
+        Interface between the scaffold model and the NEST simulator.
     """
 
     simulator_name = "nest"
@@ -611,8 +611,8 @@ class NestAdapter(SimulatorAdapter):
 
     def create_neurons(self):
         """
-        Create a population of nodes in the NEST simulator based on the cell model
-        configurations.
+            Create a population of nodes in the NEST simulator based on the cell model
+            configurations.
         """
         for cell_model in self.cell_models.values():
             # Get the cell type's placement information
@@ -662,7 +662,7 @@ class NestAdapter(SimulatorAdapter):
 
     def connect_neurons(self):
         """
-        Connect the cells in NEST according to the connection model configurations
+            Connect the cells in NEST according to the connection model configurations
         """
         order = NestConnection.resolve_order(self.connection_models)
         for connection_model in order:
@@ -759,7 +759,7 @@ class NestAdapter(SimulatorAdapter):
 
     def create_devices(self):
         """
-        Create the configured NEST devices in the simulator
+            Create the configured NEST devices in the simulator
         """
         for device_model in self.devices.values():
             device_model.protocol.before_create()
@@ -820,7 +820,7 @@ class NestAdapter(SimulatorAdapter):
 
     def create_model(self, cell_model):
         """
-        Create a NEST cell model in the simulator based on a cell model configuration.
+            Create a NEST cell model in the simulator based on a cell model configuration.
         """
         # Use the default model unless another one is specified in the configuration.A_minus
         # Alias the nest model name under our cell model name.
@@ -833,7 +833,7 @@ class NestAdapter(SimulatorAdapter):
 
     def create_synapse_model(self, connection_model):
         """
-        Create a NEST synapse model in the simulator based on a synapse model configuration.
+            Create a NEST synapse model in the simulator based on a synapse model configuration.
         """
         nest_name = self.suffixed(connection_model.name)
         # Use the default model unless another one is specified in the configuration.
