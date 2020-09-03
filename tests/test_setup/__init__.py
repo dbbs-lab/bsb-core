@@ -27,7 +27,7 @@ def _create_test_network(*dimensions):
                 os.path.dirname(__file__),
                 "..",
                 "..",
-                "scaffold",
+                "bsb",
                 "configurations",
                 "mouse_cerebellum_cortex_noTouch.json",
             )
