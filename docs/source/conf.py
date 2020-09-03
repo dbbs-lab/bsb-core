@@ -25,8 +25,15 @@ autodoc_mock_imports = [
     "rtree",
     "rtree.index",
 ]
+
+
+class Mock(types.ModuleType):
+    def __getattr__(self, attr):
+        return None
+
+
 for mod in autodoc_mock_imports:
-    sys.modules[mod] = types.ModuleType(mod)
+    sys.modules[mod] = Mock(mod)
 import bsb, bsb.config
 
 
