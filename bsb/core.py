@@ -131,7 +131,7 @@ class Scaffold:
             :param ongoing: The message is part of an ongoing progress report. This replaces the endline (`\\n`) character with a carriage return (`\\r`) character
             :deprecated: Use :func:`.reporting.report`
         """
-        std_warn("Deprecated in favor of `bsb.reporting.report`.", DeprecationWarning)
+        std_warn("Deprecated in favor of `bsb.reporting.report`.", UserDeprecationWarning)
         report(message, level=level, ongoing=ongoing)
 
     def warn(self, message, category=None):
@@ -143,7 +143,7 @@ class Scaffold:
             :param category: The class of the warning.
             :deprecated: Use :func:`.reporting.warn`
         """
-        std_warn("Deprecated in favor of `bsb.reporting.warn`.", DeprecationWarning)
+        std_warn("Deprecated in favor of `bsb.reporting.warn`.", UserDeprecationWarning)
         warn(message, category)
 
     def _intialise_simulators(self):
