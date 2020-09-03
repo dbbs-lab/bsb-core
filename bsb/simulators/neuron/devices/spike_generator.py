@@ -1,5 +1,4 @@
 from ..adapter import NeuronDevice
-from ....simulation import TargetsSections
 from ....helpers import listify_input
 from ....functions import poisson_train
 from ....reporting import report, warn
@@ -30,7 +29,8 @@ class SpikeGenerator(NeuronDevice):
                 )
 
     def validate_specifics(self):
-        self.parameters["weight"] = 1
+        if "weight" not in self.parameters:
+            self.parameters["weight"] = 1
         self.synapses = listify_input(self.synapses)
 
     def create_patterns(self):
