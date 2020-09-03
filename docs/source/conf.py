@@ -29,7 +29,10 @@ autodoc_mock_imports = [
 
 class Mock(types.ModuleType):
     def __getattr__(self, attr):
-        return None
+        return Mock("recursive")
+
+    def __call__(self, *args, **kwargs):
+        return 1
 
 
 for mod in autodoc_mock_imports:
