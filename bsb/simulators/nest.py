@@ -11,6 +11,7 @@ from ..exceptions import *
 import os, json, weakref, numpy as np
 from itertools import chain
 from sklearn.neighbors import KDTree
+import mpi4py.MPI
 
 LOCK_ATTRIBUTE = "dbbs_scaffold_lock"
 
@@ -276,7 +277,7 @@ class NestAdapter(SimulatorAdapter):
         "entities": NestEntity,
     }
 
-    casts = {"threads": int, "virtual_processes": int, "modules": list}
+    casts = {"threads": int, "modules": list}
 
     defaults = {
         "default_synapse_model": "static_synapse",
@@ -416,7 +417,7 @@ class NestAdapter(SimulatorAdapter):
     def reset_kernel(self):
         self.nest.set_verbosity(self.verbosity)
         self.nest.ResetKernel()
-        self.set_processes(nodes=self.nodes, threads=self.threads)
+        self.reset_processes(self.threads)
         self.nest.SetKernelStatus(
             {
                 "resolution": self.resolution,
@@ -439,16 +440,13 @@ class NestAdapter(SimulatorAdapter):
         # Use a constant reproducible master seed
         return 1989
 
-    def set_processes(self, nodes=None, threads=None):
+    def reset_processes(self, threads):
         master_seed = self.get_master_seed()
-        threads = threads or 1
-        nodes = nodes or 1
-        total_num = nodes * threads
+        total_num = mpi4py.MPI.COMM_WORLD.Get_size() * threads
         # Create a range of random seeds and generators.
         random_generator_seeds = range(master_seed, master_seed + total_num)
         # Create a different range of random seeds for the kernel.
-        thread_seeds = range(master_seed + total_num, master_seed + 1 + 2 * total_num)
-
+        thread_seeds = range(master_seed + 1 + total_num, master_seed + 1 + 2 * total_num)
         success = True
         try:
             # Update the kernel with the new RNG and thread state.
