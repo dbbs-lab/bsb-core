@@ -1,6 +1,7 @@
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
-[![Build Status](https://travis-ci.com/Helveg/cerebellum-scaffold.svg?token=XSpW8taq6yXK53yq1am2&branch=master)](https://travis-ci.com/Helveg/cerebellum-scaffold)
-[![codecov](https://codecov.io/gh/Helveg/cerebellum-scaffold/branch/master/graph/badge.svg?token=iMOwEbV0AZ)](https://codecov.io/gh/Helveg/cerebellum-scaffold)
+[![Documentation Status](https://readthedocs.org/projects/bsb/badge/?version=latest)](https://bsb.readthedocs.io/en/latest/?badge=latest)
+[![Build Status](https://travis-ci.com/dbbs-lab/bsb.svg?branch=master)](https://travis-ci.com/dbbs-lab/bsb)
+[![codecov](https://codecov.io/gh/dbbs-lab/bsb/branch/master/graph/badge.svg)](https://codecov.io/gh/dbbs-lab/bsb)
 
 **Note:** The scaffold framework is still under heavy development. Please check the
 **_Known Issues_** section at the bottom for important issues that fell victim to our
