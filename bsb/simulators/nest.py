@@ -166,10 +166,8 @@ class NestConnection(SimulationComponent):
             for name in meta[key + "_cell_types"]:
                 cell_types.add(self.scaffold.get_cell_type(name))
             return list(cell_types)
-        connection_types = (
-            self.scaffold.output_formatter.get_connectivity_set_connection_types(
-                self.name
-            )
+        connection_types = self.scaffold.output_formatter.get_connectivity_set_connection_types(
+            self.name
         )
         cell_types = set()
         for connection_type in connection_types:
