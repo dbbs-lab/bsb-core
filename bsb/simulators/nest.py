@@ -289,7 +289,6 @@ class NestAdapter(SimulatorAdapter):
         "default_synapse_model": "static_synapse",
         "default_neuron_model": "iaf_cond_alpha",
         "verbosity": "M_ERROR",
-        "nodes": 1,
         "threads": 1,
         "resolution": 1.0,
         "modules": [],
