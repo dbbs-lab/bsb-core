@@ -717,13 +717,16 @@ class PSTHStack:
         self.name = name
         self.color = str(color)
         self.cells = 0
-        self._included_ids = np.empty(0)
+        self._included_ids = {0: np.empty(0)}
         self.list = []
 
-    def extend(self, arr):
+    def extend(self, arr, run=0):
         self.list.extend(arr[:, 1])
-        self._included_ids = np.unique(np.concatenate((self._included_ids, arr[:, 0])))
-        self.cells = len(self._included_ids)
+        if run not in self._included_ids:
+            self._included_ids[run] = np.empty(0)
+        # Count all of the cells across the runs, but count unique cells per run
+        self._included_ids[run] = np.unique(np.concatenate((self._included_ids[run], arr[:, 0])))
+        self.cells = sum(map(len, self._included_ids.values()))
 
 
 class PSTHRow:
@@ -737,12 +740,12 @@ class PSTHRow:
         self.max = -float("inf")
         self.order = order
 
-    def extend(self, arr, stack=None):
+    def extend(self, arr, stack=None, run=0):
         if stack not in self.stacks:
             self.stacks[stack] = PSTHStack(
                 stack or self.name, self.palette[len(self.stacks)]
             )
-        self.stacks[stack].extend(arr)
+        self.stacks[stack].extend(arr, run=run)
         self.max = max(self.max, np.max(arr[:, 1])) if len(arr) > 0 else self.max
 
 
@@ -759,9 +762,10 @@ def hdf5_plot_psth(handle, duration=3, cutoff=0, start=0, fig=None, mod=None, **
             psth.add_row(row)
         else:
             row = row_map[l]
+        run_id = g.attrs.get("run_id", 0)
         adjusted = g[()]
         adjusted[:, 1] = adjusted[:, 1] - cutoff
-        row.extend(adjusted, stack=g.attrs.get("stack", None))
+        row.extend(adjusted, stack=g.attrs.get("stack", None), run=run_id)
     subplots_fig = make_subplots(
         cols=1,
         rows=len(psth.rows),
