@@ -638,6 +638,9 @@ class NestAdapter(SimulatorAdapter):
             postsynaptic_targets = np.array(
                 self.get_nest_ids(np.array(cs.to_identifiers, dtype=int))
             )
+            if not len(presynaptic_sources) or not len(postsynaptic_targets):
+                warn("No connections for " + name)
+                continue
             # Accessing the postsynaptic type to be associated to the volume transmitter of the synapse
             postsynaptic_type = cs.connection_types[0].to_cell_types[0]
             postsynaptic_cells = np.unique(postsynaptic_targets)
