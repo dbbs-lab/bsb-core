@@ -147,6 +147,14 @@ class NeuronDevice(TargetsNeurons, TargetsSections, SimulationComponent):
         return locations
 
 
+class PatternlessDevice:
+    def create_patterns(*args, **kwargs):
+        pass
+
+    def get_pattern(*args, **kwargs):
+        pass
+
+
 class NeuronEntity:
     @classmethod
     def instantiate(cls, **kwargs):
