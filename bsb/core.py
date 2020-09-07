@@ -187,8 +187,8 @@ class Scaffold:
             sim_cell.initialise(self)
         for sim_connection in simulation.connection_models.values():
             sim_connection.initialise(self)
-        for stimulus in simulation.devices.values():
-            stimulus.initialise(self)
+        for device in simulation.devices.values():
+            device.initialise(self)
 
     def place_cell_types(self):
         """
