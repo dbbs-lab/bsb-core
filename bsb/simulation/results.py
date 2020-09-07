@@ -48,3 +48,13 @@ class ClosureRecorder(SimulationRecorder):
         self.get_data = data_func
         if meta_func:
             self.get_meta = meta_func
+
+
+class PresetPathMixin:
+    def get_path(self):
+        return self.path
+
+
+class PresetMetaMixin:
+    def get_meta(self):
+        return self.meta
