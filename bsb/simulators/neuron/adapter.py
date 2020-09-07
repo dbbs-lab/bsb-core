@@ -496,6 +496,7 @@ class NeuronAdapter(SimulatorAdapter):
             # CamelCase the snake_case to obtain the class name
             device_class = "".join(x.title() for x in device.device.split("_"))
             device.__class__ = device_module.__dict__[device_class]
+            device.initialise(device.scaffold)
             if self.pc_id == 0:
                 # Have root 0 prepare the possibly random patterns.
                 patterns = device.create_patterns()
