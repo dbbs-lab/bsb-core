@@ -142,6 +142,17 @@ class VoxelTransformError(VoxelizationError):
     pass
 
 
+## NEURON
+
+
+class NeuronError(ScaffoldError):
+    pass
+
+
+class DeviceConnectionError(NeuronError):
+    pass
+
+
 ## Resources (HDF5, ...)
 
 
