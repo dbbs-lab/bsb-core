@@ -13,6 +13,7 @@ from ...models import ConnectivitySet
 from ...exceptions import *
 import random, os, sys
 import numpy as np
+import traceback
 
 
 class NeuronCell(SimulationCell):
@@ -341,7 +342,6 @@ class NeuronAdapter(SimulatorAdapter):
         pc.barrier()
         report("Simulating...", level=2)
         pc.set_maxstep(10)
-        simulator.finitialize(-65.0)
         simulator.finitialize(self.initial)
         progression = 0
         while progression < self.duration:
@@ -370,7 +370,7 @@ class NeuronAdapter(SimulatorAdapter):
                         try:
                             path = "/".join(path)
                             if path in f:
-                                data = np.vstack((f[path][()], data))
+                                data = np.concatenate((f[path][()], data))
                                 del f[path]
                             d = f.create_dataset(path, data=data)
                             for k, v in meta.items():
@@ -387,7 +387,7 @@ class NeuronAdapter(SimulatorAdapter):
                                     "Recorder {} processing errored out: {}\n\n{}".format(
                                         path,
                                         "{} {}".format(data.dtype, data.shape),
-                                        str(e),
+                                        traceback.format_exc(),
                                     )
                                 )
             self.pc.barrier()
