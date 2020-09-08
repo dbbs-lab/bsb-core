@@ -373,8 +373,6 @@ class NeuronAdapter(SimulatorAdapter):
                             for k, v in meta.items():
                                 d.attrs[k] = v
                         except Exception as e:
-                            print(data)
-                            exit()
                             if not isinstance(data, np.ndarray):
                                 warn(
                                     "Recorder {} numpy.ndarray expected, got {}".format(
@@ -383,8 +381,10 @@ class NeuronAdapter(SimulatorAdapter):
                                 )
                             else:
                                 warn(
-                                    "Recorder {} processing errored out: {}".format(
-                                        path, "{} {}".format(data.dtype, data.shape)
+                                    "Recorder {} processing errored out: {}\n\n{}".format(
+                                        path,
+                                        "{} {}".format(data.dtype, data.shape),
+                                        str(e),
                                     )
                                 )
             self.pc.barrier()
