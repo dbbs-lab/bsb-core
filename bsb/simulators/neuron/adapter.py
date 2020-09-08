@@ -75,6 +75,7 @@ class NeuronDevice(TargetsNeurons, TargetsSections, SimulationComponent):
         "current_clamp",
         "spike_recorder",
         "voltage_recorder",
+        "synapse_recorder",
     ]
 
     casts = {
