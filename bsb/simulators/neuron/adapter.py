@@ -658,6 +658,7 @@ class LocationRecorder(SimulationRecorder):
     ):
         # Collect metadata
         meta = meta or {}
+        meta["cell_id"] = cell.ref_id
         meta["label"] = cell.cell_model.name
         if hasattr(cell.cell_model.cell_type, "plotting"):
             # Pass plotting info along
@@ -682,7 +683,6 @@ class LocationRecorder(SimulationRecorder):
 
     def get_data(self):
         if self.time_recorder:
-            print(np.hstack((np.array(self.recorder), np.array(self.time_recorder))))
             return np.hstack((np.array(self.recorder), np.array(self.time_recorder)))
         else:
             return np.array(self.recorder)
@@ -694,4 +694,4 @@ class LocationRecorder(SimulationRecorder):
 class SpikeRecorder(LocationRecorder):
     def get_data(self):
         recording = np.array(self.recorder)
-        return np.hstack((recording, np.ones(recording.shape) * self.id))
+        return np.vstack((np.ones(recording.shape) * self.id, recording))
