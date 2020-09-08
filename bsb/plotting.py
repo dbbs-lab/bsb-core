@@ -518,22 +518,29 @@ def hdf5_plot_spike_raster(spike_recorders, input_region=None, show=True):
     colors = {}
     ids = {}
     for cell_id, dataset in spike_recorders.items():
-        data = dataset[:, 0]
         attrs = dict(dataset.attrs)
-        label = attrs["label"]
+        if len(dataset.shape) == 1 or dataset.shape[1] == 1:
+            times = dataset[()]
+            set_ids = np.ones(len(times)) * int(
+                attrs.get("cell_id", attrs.get("cell", cell_id))
+            )
+        else:
+            times = dataset[:, 1]
+            set_ids = dataset[:, 0]
+        label = attrs.get("label", "unlabelled")
         if not label in x:
             x[label] = []
         if not label in y:
             y[label] = []
         if not label in colors:
-            colors[label] = attrs["color"]
+            colors[label] = attrs.get("color", "black")
         if not label in ids:
             ids[label] = 0
         ids[label] += 1
         # Add the spike timings on the X axis.
-        x[label].extend(data)
+        x[label].extend(times)
         # Set the cell id for the Y axis of each added spike timing.
-        y[label].extend(dataset[:, 1])
+        y[label].extend(set_ids)
     # Use the parallel arrays x & y to plot a spike raster
     fig = go.Figure(
         layout=dict(
@@ -725,7 +732,9 @@ class PSTHStack:
         if run not in self._included_ids:
             self._included_ids[run] = np.empty(0)
         # Count all of the cells across the runs, but count unique cells per run
-        self._included_ids[run] = np.unique(np.concatenate((self._included_ids[run], arr[:, 0])))
+        self._included_ids[run] = np.unique(
+            np.concatenate((self._included_ids[run], arr[:, 0]))
+        )
         self.cells = sum(map(len, self._included_ids.values()))
 
 
