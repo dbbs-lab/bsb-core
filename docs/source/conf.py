@@ -42,9 +42,9 @@ import bsb, bsb.config
 
 # -- Project information -----------------------------------------------------
 
-project = "DBBS Cerebellum Scaffold"
-copyright = "2019, Brain and Behavioral Science Lab, University of Pavia"
-author = "Brain and Behavioral Science Lab, University of Pavia"
+project = "DBBS Brain Scaffold Builder"
+copyright = "2019, Neurocomputational Lab, Department of Brain and Behavioral Sciences, University of Pavia"
+author = "Robin De Schepper, Neurocomputational Lab, University of Pavia"
 
 # The short X.Y version
 version = ".".join(bsb.__version__.split(".")[0:2])
@@ -107,7 +107,7 @@ html_theme = "sphinx_rtd_theme"
 
 html_context = {
     "maintainer": "Robin De Schepper",
-    "project_pretty_name": "DBBS Scaffold",
+    "project_pretty_name": "BSB",
     "projects": {"DBBS Scaffold": "https://github.com/dbbs/bsb"},
 }
 
@@ -136,7 +136,7 @@ html_static_path = []
 # -- Options for HTMLHelp output ---------------------------------------------
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = "DBBSCerebellumScaffolddoc"
+htmlhelp_basename = "BSBdoc"
 
 
 # -- Options for LaTeX output ------------------------------------------------
@@ -160,13 +160,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (
-        master_doc,
-        "DBBSCerebellumScaffold.tex",
-        "DBBS Cerebellum Scaffold Documentation",
-        "Brain and Behavioral Science Lab, University of Pavia",
-        "manual",
-    ),
+    (master_doc, "BSBdoc.tex", "BSB Documentation", "Robin De Schepper", "manual",),
 ]
 
 
@@ -185,11 +179,11 @@ man_pages = [(master_doc, "bsb", "BSB Documentation", [author], 1,)]
 texinfo_documents = [
     (
         master_doc,
-        "DBBSCerebellumScaffold",
-        "DBBS Cerebellum Scaffold Documentation",
+        "BSBdoc",
+        "BSB Documentation",
         author,
-        "DBBSCerebellumScaffold",
-        "Microcircuit builder for the cerebellum.",
+        "BSB",
+        "Microcircuit builder for scaffold models.",
         "Miscellaneous",
     ),
 ]
