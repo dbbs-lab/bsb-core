@@ -565,14 +565,12 @@ class NeuronAdapter(SimulatorAdapter):
                 bin = terminal_relays
                 connections = connectivity_set.intersections
                 target = lambda c: (c.to_id, c.to_compartment.section_id)
+            for id in self.scaffold.get_placement_set(from_cell_type.name).identifiers:
+                if id not in bin:
+                    bin[id] = []
             for connection in connections:
                 fid = connection.from_id
-                try:
-                    arr = bin[fid]
-                except:
-                    arr = []
-                    bin[fid] = arr
-                arr.append(target(connection))
+                bin[fid].append(target(connection))
 
         report("Relays indexed, resolving intermediates.")
 
