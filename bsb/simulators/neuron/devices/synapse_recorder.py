@@ -3,6 +3,7 @@ from ....simulation.results import SimulationRecorder, PresetPathMixin, PresetMe
 from ....reporting import report, warn
 from arborize import get_section_synapses
 import numpy as np
+import itertools
 
 
 class SynapseRecorder(PatternlessDevice, NeuronDevice):
@@ -44,9 +45,10 @@ class SynapseRecorder(PatternlessDevice, NeuronDevice):
 
 
 class _SynapticRecorder(PresetPathMixin, PresetMetaMixin, SimulationRecorder):
-    def __init_subclass__(cls, record=None, **kwargs):
+    def __init_subclass__(cls, record=None, slug=None, **kwargs):
         super().__init_subclass__(**kwargs)
         cls._record = record
+        cls._slug = str(slug)
 
     def __init__(self, cell, section, synapse, type):
         from patch import p
@@ -54,17 +56,26 @@ class _SynapticRecorder(PresetPathMixin, PresetMetaMixin, SimulationRecorder):
         point_process = synapse._point_process
         location = str(point_process.get_segment())
         name = str(point_process.__neuron__())
-        self.path = ("recorders", "synapses", str(cell.ref_id), location + "." + name)
+        self.path = (
+            "recorders",
+            "synapses",
+            str(cell.ref_id),
+            self._slug,
+            location + "." + name,
+        )
         self.meta = {
             "cell": cell.ref_id,
             "section": cell.sections.index(section),
             "x": point_process.get_loc(),
             "type": type,
         }
-        self.vector = self._record(synapse._point_process)
+        self.vectors = self._record(synapse._point_process)
 
     def get_data(self):
-        return np.array(self.vector)
+        signal = []
+        for v in self.vectors:
+            signal.extend(v)
+        return np.array(signal)
 
 
 def _record_i(self, point_process):
@@ -72,19 +83,24 @@ def _record_i(self, point_process):
 
     v = p.Vector()
     v.record(point_process._ref_i)
-    return v
+    return [v]
 
 
 def _record_spikes(self, point_process):
+    import patch.objects
     from patch import p
 
-    nc = p.NetCon(point_process, None)
-    return nc.record()
+    nc0 = p.NetCon(point_process, None)
+    return [
+        nc.record()
+        for nc in itertools.chain([nc0], point_process._connections.values())
+        if isinstance(nc, patch.objects.NetCon)
+    ]
 
 
-class SynapticCurrentRecorder(_SynapticRecorder, record=_record_i):
+class SynapticCurrentRecorder(_SynapticRecorder, slug="current", record=_record_i):
     pass
 
 
-class SynapticSpikesRecorder(_SynapticRecorder, record=_record_spikes):
+class SynapticSpikesRecorder(_SynapticRecorder, slug="spikes", record=_record_spikes):
     pass
