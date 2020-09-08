@@ -141,7 +141,14 @@ class NeuronDevice(TargetsNeurons, TargetsSections, SimulationComponent):
                 section = cell.sections[section_id]
                 locations.append((cell, section))
         elif target in self.adapter.node_cells:
-            cell = self.adapter.cells[target]
+            try:
+                cell = self.adapter.cells[target]
+            except KeyError:
+                raise DeviceConnectionError(
+                    "Missing cell {} on node {} while trying to implement device '{}'. This can occur if the cell was placed in the network but not represented with a model in the simulation config.".format(
+                        target, self.adapter.pc_id, self.name
+                    )
+                )
             sections = self.target_section(cell)
             locations.extend((cell, section) for section in sections)
         return locations
