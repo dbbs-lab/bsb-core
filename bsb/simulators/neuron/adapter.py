@@ -10,12 +10,7 @@ from ...simulation import (
 from ...helpers import get_configurable_class
 from ...reporting import report, warn
 from ...models import ConnectivitySet
-from ...exceptions import (
-    ScaffoldError,
-    MissingMorphologyError,
-    IntersectionDataNotFoundError,
-    ConfigurationError,
-)
+from ...exceptions import *
 import random, os, sys
 import numpy as np
 
