@@ -12,6 +12,13 @@ import os, json, weakref, numpy as np
 from itertools import chain
 from sklearn.neighbors import KDTree
 
+try:
+    import mpi4py.MPI
+
+    _MPI_processes = mpi4py.MPI.COMM_WORLD.Get_size()
+except ImportError:
+    _MPI_processes = 1
+
 LOCK_ATTRIBUTE = "dbbs_scaffold_lock"
 
 
@@ -276,7 +283,7 @@ class NestAdapter(SimulatorAdapter):
         "entities": NestEntity,
     }
 
-    casts = {"threads": int, "virtual_processes": int, "modules": list}
+    casts = {"threads": int, "modules": list}
 
     defaults = {
         "default_synapse_model": "static_synapse",
@@ -415,7 +422,7 @@ class NestAdapter(SimulatorAdapter):
     def reset_kernel(self):
         self.nest.set_verbosity(self.verbosity)
         self.nest.ResetKernel()
-        self.set_threads(self.threads)
+        self.reset_processes(self.threads)
         self.nest.SetKernelStatus(
             {
                 "resolution": self.resolution,
@@ -438,24 +445,22 @@ class NestAdapter(SimulatorAdapter):
         # Use a constant reproducible master seed
         return 1989
 
-    def set_threads(self, threads, virtual=None):
+    def reset_processes(self, threads):
         master_seed = self.get_master_seed()
-        # Update the internal reference to the amount of threads
-        if virtual is None:
-            virtual = threads
+        total_num = _MPI_processes * threads
         # Create a range of random seeds and generators.
-        random_generator_seeds = range(master_seed, master_seed + virtual)
+        random_generator_seeds = range(master_seed, master_seed + total_num)
         # Create a different range of random seeds for the kernel.
-        thread_seeds = range(master_seed + virtual + 1, master_seed + 1 + 2 * virtual)
+        thread_seeds = range(master_seed + 1 + total_num, master_seed + 1 + 2 * total_num)
         success = True
         try:
             # Update the kernel with the new RNG and thread state.
             self.nest.SetKernelStatus(
                 {
-                    "grng_seed": master_seed + virtual,
+                    "grng_seed": master_seed + total_num,
                     "rng_seeds": thread_seeds,
                     "local_num_threads": threads,
-                    "total_num_virtual_procs": virtual,
+                    "total_num_virtual_procs": total_num,
                 }
             )
         except Exception as e:
@@ -471,8 +476,8 @@ class NestAdapter(SimulatorAdapter):
             else:
                 raise
         if success:
-            self.threads = threads
-            self.virtual_processes = virtual
+            self.threads_per_node = threads
+            self.virtual_processes = total_num
             self.random_generators = [
                 np.random.RandomState(seed) for seed in random_generator_seeds
             ]
@@ -633,6 +638,9 @@ class NestAdapter(SimulatorAdapter):
             postsynaptic_targets = np.array(
                 self.get_nest_ids(np.array(cs.to_identifiers, dtype=int))
             )
+            if not len(presynaptic_sources) or not len(postsynaptic_targets):
+                warn("No connections for " + name)
+                continue
             # Accessing the postsynaptic type to be associated to the volume transmitter of the synapse
             postsynaptic_type = cs.connection_types[0].to_cell_types[0]
             postsynaptic_cells = np.unique(postsynaptic_targets)
