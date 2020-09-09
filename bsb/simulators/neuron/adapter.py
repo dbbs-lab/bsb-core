@@ -626,9 +626,8 @@ class NeuronAdapter(SimulatorAdapter):
         # Filter out all relays to targets not on this node.
         self.relay_scheme = {}
         for relay, targets in terminal_relays.items():
-            my_targets = list(filter(lambda x: int(x[0]) in self.node_cells, targets))
-            if my_targets:
-                self.relay_scheme[relay] = my_targets
+            node_targets = list(filter(lambda x: int(x[0]) in self.node_cells, targets))
+            self.relay_scheme[relay] = node_targets
         report(
             "Node",
             self.pc_id,
