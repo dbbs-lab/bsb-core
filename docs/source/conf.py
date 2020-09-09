@@ -43,8 +43,8 @@ import bsb, bsb.config
 # -- Project information -----------------------------------------------------
 
 project = "DBBS Brain Scaffold Builder"
-copyright = "2019, Neurocomputational Lab, Department of Brain and Behavioral Sciences, University of Pavia"
-author = "Robin De Schepper, Neurocomputational Lab, University of Pavia"
+copyright = "2020, Neurocomputational Lab, Department of Brain and Behavioral Sciences, University of Pavia"
+author = "Robin De Schepper et al., Neurocomputational Lab, University of Pavia"
 
 # The short X.Y version
 version = ".".join(bsb.__version__.split(".")[0:2])
