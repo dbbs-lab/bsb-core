@@ -20,6 +20,7 @@ autodoc_mock_imports = [
     "glia",
     "patch",
     "mpi4py",
+    "mpi4py.MPI",
     "dbbs_models",
     "arborize",
     "rtree",
@@ -28,6 +29,9 @@ autodoc_mock_imports = [
 
 
 class Mock(types.ModuleType):
+    def __repr__(self):
+        return "<mocked object '{}'>".format(self.__name__)
+
     def __getattr__(self, attr):
         return Mock("recursive")
 
@@ -37,6 +41,7 @@ class Mock(types.ModuleType):
 
 for mod in autodoc_mock_imports:
     sys.modules[mod] = Mock(mod)
+
 import bsb, bsb.config
 
 
