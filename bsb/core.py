@@ -41,7 +41,7 @@ def from_hdf5(file):
 
 class Scaffold:
     """
-        This is the main object of the dbbs-scaffold package and bootstraps itself
+        This is the main object of the bsb package and bootstraps itself
         with a :doc:`configuration </configuration>`.
 
         During the compilation phase it can :doc:`place </placement>` and
@@ -141,9 +141,7 @@ class Scaffold:
             :param ongoing: The message is part of an ongoing progress report. This replaces the endline (`\\n`) character with a carriage return (`\\r`) character
             :deprecated: Use :func:`.reporting.report`
         """
-        std_warn(
-            "Deprecated in favor of `scaffold.reporting.report`.", DeprecationWarning
-        )
+        std_warn("Deprecated in favor of `bsb.reporting.report`.", UserDeprecationWarning)
         report(message, level=level, ongoing=ongoing)
 
     def warn(self, message, category=None):
@@ -155,7 +153,7 @@ class Scaffold:
             :param category: The class of the warning.
             :deprecated: Use :func:`.reporting.warn`
         """
-        std_warn("Deprecated in favor of `scaffold.reporting.warn`.", DeprecationWarning)
+        std_warn("Deprecated in favor of `bsb.reporting.warn`.", UserDeprecationWarning)
         warn(message, category)
 
     def _intialise_simulators(self):
@@ -452,10 +450,10 @@ class Scaffold:
     ):
         """
             Store connections for a connection type. Will store the
-            ``connectome_data`` under ``scaffold.cell_connections_by_tag``, a
+            ``connectome_data`` under ``bsb.cell_connections_by_tag``, a
             mapped version of the morphology names under
-            ``scaffold.connection_morphologies`` and the compartments under
-            ``scaffold.connection_compartments``.
+            ``bsb.connection_morphologies`` and the compartments under
+            ``bsb.connection_compartments``.
 
             :param connection_type: The connection type. The name of the connection type will be used by default as the tag.
             :type connection_type: :class:`ConnectionStrategy`
@@ -643,7 +641,7 @@ class Scaffold:
             Get the connectivity sets from storage for connection types that include certain cell types as targets.
 
             :see: get_connection_types_by_cell_type
-            :rtype: :class:`scaffold.models.ConnectivitySet`
+            :rtype: :class:`bsb.models.ConnectivitySet`
         """
         # Find the connection types that have the specified targets
         connection_types = self.get_connection_types_by_cell_type(

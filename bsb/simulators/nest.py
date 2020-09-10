@@ -1,19 +1,23 @@
 from ..simulation import (
     SimulatorAdapter,
-    ConnectionModel,
-    CellModel,
-    DeviceModel,
+    SimulationComponent,
+    SimulationCell,
     TargetsNeurons,
 )
 from ..models import ConnectivitySet
 from ..helpers import ListEvalConfiguration
 from ..reporting import report, warn
 from ..exceptions import *
-from .. import config
-from ..config import types
 import os, json, weakref, numpy as np
 from itertools import chain
 from sklearn.neighbors import KDTree
+
+try:
+    import mpi4py.MPI
+
+    _MPI_processes = mpi4py.MPI.COMM_WORLD.Get_size()
+except ImportError:
+    _MPI_processes = 1
 
 LOCK_ATTRIBUTE = "dbbs_scaffold_lock"
 
@@ -33,16 +37,12 @@ class MapsScaffoldIdentifiers:
         return [self.scaffold_to_nest_map[id] for id in ids]
 
 
-@config.node
-class NestCell(CellModel, MapsScaffoldIdentifiers):
+class NestCell(SimulationCell, MapsScaffoldIdentifiers):
 
     node_name = "simulations.?.cell_models"
-    iaf_cond_alpha = config.attr(type=dict)
-    eglif_cond_alpha_multisyn = config.attr(type=dict)
-    parameters = config.attr(type=dict)
-    neuron_model = config.attr()
 
     def boot(self):
+        super().boot()
         self.receptor_specifications = {}
         self.reset()
         if self.relay:
@@ -109,17 +109,19 @@ class NestCell(CellModel, MapsScaffoldIdentifiers):
         )
 
 
-@config.node
-class NestConnection(ConnectionModel):
+class NestConnection(SimulationComponent):
     node_name = "simulations.?.connection_models"
 
-    connection = config.attr(type=dict, required=True)
-    synapse_model = config.attr()
-    synapse = config.attr(type=dict, required=True)
-    plastic = config.attr(type=bool, default=False)
-    hetero = config.attr(type=bool)
-    teaching = config.attr(type=bool)
-    is_teaching = config.attr(type=bool, default=False)
+    casts = {"synapse": dict, "connection": dict}
+
+    required = ["synapse", "connection"]
+
+    defaults = {
+        "plastic": False,
+        "hetero": None,
+        "teaching": None,
+        "is_teaching": False,
+    }
 
     def validate(self):
         if "weight" not in self.connection:
@@ -184,7 +186,7 @@ class NestConnection(ConnectionModel):
             raise NotImplementedError(
                 "Specifying receptor types of connections consisiting of more than 1 cell type is currently undefined behaviour."
             )
-        to_cell_type = postsynaptic.type
+        to_cell_type = to_cell_types[0]
         to_cell_model = self.adapter.cell_models[to_cell_type.name]
         return to_cell_model.neuron_model in to_cell_model.receptor_specifications
 
@@ -198,8 +200,8 @@ class NestConnection(ConnectionModel):
             raise NotImplementedError(
                 "Specifying receptor types of connections consisting of more than 1 origin cell type is currently undefined behaviour."
             )
-        to_cell_type = postsynaptic.type
-        from_cell_type = presynaptic.type
+        to_cell_type = to_cell_types[0]
+        from_cell_type = from_cell_types[0]
         to_cell_model = self.adapter.cell_models[to_cell_type.name]
         if from_cell_type.name in self.adapter.cell_models.keys():
             from_cell_model = self.adapter.cell_models[from_cell_type.name]
@@ -215,22 +217,19 @@ class NestConnection(ConnectionModel):
         return receptors[from_cell_model.name]
 
 
-@config.node
-class NestDevice(TargetsNeurons, DeviceModel):
+class NestDevice(TargetsNeurons, SimulationComponent):
     node_name = "simulations.?.devices"
 
-    connection = config.attr(
-        type=dict, default=lambda s: {"rule": "all_to_all"}, call_default=True
-    )
-    synapse = config.attr(type=dict)
-    radius = config.attr(type=float)
-    origin = config.attr(type=types.list(type=float, size=3))
-    parameters = config.attr(type=dict, required=True)
-    targetting = config.attr(type=str, required=True)
-    cell_types = config.attr(type=types.list(type=str))
-    device = config.attr(required=True)
-    io = config.attr(type=types.in_(["input", "output"]), required=True)
-    stimulus = config.attr(type=types.any())
+    casts = {
+        "radius": float,
+        "origin": [float],
+        "parameters": dict,
+        "stimulus": ListEvalConfiguration.cast,
+    }
+
+    defaults = {"connection": {"rule": "all_to_all"}, "synapse": None}
+
+    required = ["targetting", "device", "io", "parameters"]
 
     def validate(self):
         # Fill in the _get_targets method, so that get_target functions
@@ -262,17 +261,14 @@ class NestDevice(TargetsNeurons, DeviceModel):
         return self.adapter.get_nest_ids(np.array(self._get_targets(), dtype=int))
 
 
-@config.node
 class NestEntity(NestDevice, MapsScaffoldIdentifiers):
-    parameters = config.attr(type=dict)
-
     node_name = "simulations.?.entities"
 
     def boot(self):
+        super().boot()
         self.reset_identifiers()
 
 
-@config.node
 class NestAdapter(SimulatorAdapter):
     """
         Interface between the scaffold model and the NEST simulator.
@@ -280,19 +276,31 @@ class NestAdapter(SimulatorAdapter):
 
     simulator_name = "nest"
 
-    cell_models = config.dict(type=NestCell, required=True)
-    connection_models = config.dict(type=NestConnection, required=True)
-    devices = config.dict(type=NestDevice, required=True)
-    entities = config.dict(type=NestEntity)
+    configuration_classes = {
+        "cell_models": NestCell,
+        "connection_models": NestConnection,
+        "devices": NestDevice,
+        "entities": NestEntity,
+    }
 
-    threads = config.attr(type=int, default=1)
-    virtual_processes = config.attr(type=int)
-    modules = config.attr(
-        type=types.list(type=str), default=lambda: [], call_default=True
-    )
-    default_synapse_model = config.attr(default="static_synapse")
-    default_neuron_model = config.attr(default="iaf_cond_alpha")
-    resolution = config.attr(type=float, default=1.0)
+    casts = {"threads": int, "modules": list}
+
+    defaults = {
+        "default_synapse_model": "static_synapse",
+        "default_neuron_model": "iaf_cond_alpha",
+        "verbosity": "M_ERROR",
+        "threads": 1,
+        "resolution": 1.0,
+        "modules": [],
+    }
+
+    required = [
+        "default_neuron_model",
+        "default_synapse_model",
+        "duration",
+        "resolution",
+        "threads",
+    ]
 
     @property
     def nest(self):
@@ -306,6 +314,7 @@ class NestAdapter(SimulatorAdapter):
             return self._nest
 
     def __init__(self):
+        super().__init__()
         self.is_prepared = False
         self.suffix = ""
         self.multi = False
@@ -315,7 +324,7 @@ class NestAdapter(SimulatorAdapter):
     def prepare(self):
         if self.is_prepared:
             raise AdapterError(
-                "Attempting to prepare the same adapter twice. Please use `scaffold.create_adapter` for multiple adapter instances of the same simulation."
+                "Attempting to prepare the same adapter twice. Please use `bsb.create_adapter` for multiple adapter instances of the same simulation."
             )
         report("Locking NEST kernel...", level=2)
         self.lock()
@@ -413,7 +422,7 @@ class NestAdapter(SimulatorAdapter):
     def reset_kernel(self):
         self.nest.set_verbosity(self.verbosity)
         self.nest.ResetKernel()
-        self.set_threads(self.threads)
+        self.reset_processes(self.threads)
         self.nest.SetKernelStatus(
             {
                 "resolution": self.resolution,
@@ -436,24 +445,22 @@ class NestAdapter(SimulatorAdapter):
         # Use a constant reproducible master seed
         return 1989
 
-    def set_threads(self, threads, virtual=None):
+    def reset_processes(self, threads):
         master_seed = self.get_master_seed()
-        # Update the internal reference to the amount of threads
-        if virtual is None:
-            virtual = threads
+        total_num = _MPI_processes * threads
         # Create a range of random seeds and generators.
-        random_generator_seeds = range(master_seed, master_seed + virtual)
+        random_generator_seeds = range(master_seed, master_seed + total_num)
         # Create a different range of random seeds for the kernel.
-        thread_seeds = range(master_seed + virtual + 1, master_seed + 1 + 2 * virtual)
+        thread_seeds = range(master_seed + 1 + total_num, master_seed + 1 + 2 * total_num)
         success = True
         try:
             # Update the kernel with the new RNG and thread state.
             self.nest.SetKernelStatus(
                 {
-                    "grng_seed": master_seed + virtual,
+                    "grng_seed": master_seed + total_num,
                     "rng_seeds": thread_seeds,
                     "local_num_threads": threads,
-                    "total_num_virtual_procs": virtual,
+                    "total_num_virtual_procs": total_num,
                 }
             )
         except Exception as e:
@@ -469,8 +476,8 @@ class NestAdapter(SimulatorAdapter):
             else:
                 raise
         if success:
-            self.threads = threads
-            self.virtual_processes = virtual
+            self.threads_per_node = threads
+            self.virtual_processes = total_num
             self.random_generators = [
                 np.random.RandomState(seed) for seed in random_generator_seeds
             ]
@@ -631,8 +638,11 @@ class NestAdapter(SimulatorAdapter):
             postsynaptic_targets = np.array(
                 self.get_nest_ids(np.array(cs.to_identifiers, dtype=int))
             )
+            if not len(presynaptic_sources) or not len(postsynaptic_targets):
+                warn("No connections for " + name)
+                continue
             # Accessing the postsynaptic type to be associated to the volume transmitter of the synapse
-            postsynaptic_type = cs.connection_types[0].postsynaptic.type
+            postsynaptic_type = cs.connection_types[0].to_cell_types[0]
             postsynaptic_cells = np.unique(postsynaptic_targets)
 
             # Create the synapse model in the simulator
@@ -856,6 +866,3 @@ def catch_connection_error(source):
         )
 
     return handler
-
-
-__plugin__ = NestAdapter

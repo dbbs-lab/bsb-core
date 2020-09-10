@@ -353,34 +353,34 @@ class ConnectivitySet(Resource):
     def get_divergence_list(self):
         presynaptic_type = self.get_presynaptic_types()[0]
         placement_set = self.scaffold.get_placement_set(presynaptic_type)
-        identifiers = placement_set.identifiers
-        carry = {id: 0 for id in identifiers}
-        for id in self.from_identifiers:
-            carry[id] = carry[id] + 1
-        return list(carry.values())
+        unique_connections = np.unique(self.get_dataset(), axis=0)
+        _, divergence_list = np.unique(unique_connections[:, 0], return_counts=True)
+        return np.concatenate(
+            (divergence_list, np.zeros(len(placement_set) - len(divergence_list)))
+        )
 
     @property
     def divergence(self):
         divergence_list = self.get_divergence_list()
-        if not divergence_list:
+        if len(divergence_list) == 0:
             return 0
-        return sum(divergence_list) / len(divergence_list)
+        return np.mean(divergence_list)
 
     def get_convergence_list(self):
         postsynaptic_type = self.get_postsynaptic_types()[0]
         placement_set = self.scaffold.get_placement_set(postsynaptic_type)
-        identifiers = placement_set.identifiers
-        carry = {id: 0 for id in identifiers}
-        for id in self.to_identifiers:
-            carry[id] = carry[id] + 1
-        return list(carry.values())
+        unique_connections = np.unique(self.get_dataset(), axis=0)
+        _, convergence_list = np.unique(unique_connections[:, 1], return_counts=True)
+        return np.concatenate(
+            (convergence_list, np.zeros(len(placement_set) - len(convergence_list)))
+        )
 
     @property
     def convergence(self):
         convergence_list = self.get_convergence_list()
-        if not convergence_list:
+        if len(convergence_list) == 0:
             return 0
-        return sum(convergence_list) / len(convergence_list)
+        return np.mean(convergence_list)
 
     def __iter__(self):
         if self.compartment_set.exists():

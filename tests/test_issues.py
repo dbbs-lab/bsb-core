@@ -1,10 +1,9 @@
 import unittest, os, sys, numpy as np, h5py
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-# from scaffold.config import JSONConfig
-from scaffold.output import HDF5Formatter
-import scaffold.helpers
-from scaffold.exceptions import ConfigurableClassNotFoundError
+from bsb.output import HDF5Formatter
+import bsb.helpers
+from bsb.exceptions import ConfigurableClassNotFoundError
 
 
 @unittest.skip("Re-enabling tests gradually while advancing v4.0 rework")
@@ -30,6 +29,6 @@ class TestIssues(unittest.TestCase):
         """
         self.assertRaises(
             ConfigurableClassNotFoundError,
-            scaffold.helpers.get_configurable_class,
+            bsb.helpers.get_configurable_class,
             "TestClass",
         )

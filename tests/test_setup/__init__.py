@@ -1,7 +1,7 @@
 import os, sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
-from scaffold.core import Scaffold, from_hdf5
+from bsb.core import Scaffold, from_hdf5
 
 # from scaffold.config import JSONConfig
 
@@ -27,10 +27,8 @@ def _create_test_network(*dimensions):
             os.path.join(
                 os.path.dirname(__file__),
                 "..",
-                "..",
-                "scaffold",
-                "configurations",
-                "mouse_cerebellum_cortex_noTouch.json",
+                "configs",
+                "legacy_mouse_cerebellum.json",
             )
         )
         config.resize(*dimensions)

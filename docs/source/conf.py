@@ -13,22 +13,48 @@
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
 import os
-import sys
+import sys, types
 
 sys.path.insert(0, os.path.abspath("../.."))
-import scaffold, scaffold.config
+autodoc_mock_imports = [
+    "glia",
+    "patch",
+    "mpi4py",
+    "mpi4py.MPI",
+    "dbbs_models",
+    "arborize",
+    "rtree",
+    "rtree.index",
+]
+
+
+class Mock(types.ModuleType):
+    def __repr__(self):
+        return "<mocked object '{}'>".format(self.__name__)
+
+    def __getattr__(self, attr):
+        return Mock("recursive")
+
+    def __call__(self, *args, **kwargs):
+        return 1
+
+
+for mod in autodoc_mock_imports:
+    sys.modules[mod] = Mock(mod)
+
+import bsb, bsb.config
 
 
 # -- Project information -----------------------------------------------------
 
-project = "DBBS Cerebellum Scaffold"
-copyright = "2019, Brain and Behavioral Science Lab, University of Pavia"
-author = "Brain and Behavioral Science Lab, University of Pavia"
+project = "DBBS Brain Scaffold Builder"
+copyright = "2020, Neurocomputational Lab, Department of Brain and Behavioral Sciences, University of Pavia"
+author = "Robin De Schepper et al., Neurocomputational Lab, University of Pavia"
 
 # The short X.Y version
-version = ".".join(scaffold.__version__.split(".")[0:2])
+version = ".".join(bsb.__version__.split(".")[0:2])
 # The full version, including alpha/beta/rc tags
-release = scaffold.__version__
+release = bsb.__version__
 
 
 # -- General configuration ---------------------------------------------------
@@ -86,8 +112,8 @@ html_theme = "sphinx_rtd_theme"
 
 html_context = {
     "maintainer": "Robin De Schepper",
-    "project_pretty_name": "DBBS Scaffold",
-    "projects": {"DBBS Scaffold": "https://github.com/dbbs/scaffold"},
+    "project_pretty_name": "BSB",
+    "projects": {"DBBS Scaffold": "https://github.com/dbbs/bsb"},
 }
 
 # Theme options are theme-specific and customize the look and feel of a theme
@@ -115,7 +141,7 @@ html_static_path = []
 # -- Options for HTMLHelp output ---------------------------------------------
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = "DBBSCerebellumScaffolddoc"
+htmlhelp_basename = "BSBdoc"
 
 
 # -- Options for LaTeX output ------------------------------------------------
@@ -139,13 +165,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (
-        master_doc,
-        "DBBSCerebellumScaffold.tex",
-        "DBBS Cerebellum Scaffold Documentation",
-        "Brain and Behavioral Science Lab, University of Pavia",
-        "manual",
-    ),
+    (master_doc, "BSBdoc.tex", "BSB Documentation", "Robin De Schepper", "manual",),
 ]
 
 
@@ -153,15 +173,7 @@ latex_documents = [
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [
-    (
-        master_doc,
-        "dbbscerebellumscaffold",
-        "DBBS Cerebellum Scaffold Documentation",
-        [author],
-        1,
-    )
-]
+man_pages = [(master_doc, "bsb", "BSB Documentation", [author], 1,)]
 
 
 # -- Options for Texinfo output ----------------------------------------------
@@ -172,11 +184,11 @@ man_pages = [
 texinfo_documents = [
     (
         master_doc,
-        "DBBSCerebellumScaffold",
-        "DBBS Cerebellum Scaffold Documentation",
+        "BSBdoc",
+        "BSB Documentation",
         author,
-        "DBBSCerebellumScaffold",
-        "Microcircuit builder for the cerebellum.",
+        "BSB",
+        "Microcircuit builder for scaffold models.",
         "Miscellaneous",
     ),
 ]

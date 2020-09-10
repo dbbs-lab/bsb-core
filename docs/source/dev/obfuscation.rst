@@ -11,8 +11,8 @@ Distributing obfuscated releases
 ::
 
   cd obfuscation
-  pyarmor obfuscate --recursive --output scaffold ../scaffold/__init__.py
-  cp -r ../scaffold/configurations ./scaffold
+  pyarmor obfuscate --recursive --output bsb ../bsb/__init__.py
+  cp -r ../bsb/configurations ./bsb
 
 2. Generate a license with expiration date
 
@@ -24,7 +24,7 @@ Distributing obfuscated releases
 
 **Generated license path:** `obfuscation/licences/expires-in-2021/license.lic`
 
-**Original license path:** `obfuscation/scaffold/pytransform/license.lic`
+**Original license path:** `obfuscation/bsb/pytransform/license.lic`
 
 4. Adapt possibly outdated `obfuscation/setup_linux.py` and build the distribution.
 

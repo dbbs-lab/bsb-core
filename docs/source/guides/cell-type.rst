@@ -47,7 +47,7 @@ Example
   {
     "name": "My Test configuration",
     "output": {
-      "format": "scaffold.output.HDF5Formatter"
+      "format": "bsb.output.HDF5Formatter"
     },
     "network_architecture": {
       "simulation_volume_x": 400.0,
@@ -62,13 +62,13 @@ Example
     "cell_types": {
       "granule_cell": {
         "placement": {
-          "class": "scaffold.placement.ParticlePlacement",
+          "class": "bsb.placement.ParticlePlacement",
           "layer": "granular_layer",
           "soma_radius": 2.5,
           "density": 3.9e-3
         },
         "morphology": {
-          "class": "scaffold.morphologies.GranuleCellGeometry",
+          "class": "bsb.morphologies.GranuleCellGeometry",
           "pf_height": 180,
           "pf_height_sd": 20,
           "pf_length": 3000,
@@ -86,4 +86,4 @@ Example
     "simulations": {}
   }
 
-Use ``scaffold -c=my-config.json compile`` to test your configuration file.
+Use ``bsb -c=my-config.json compile`` to test your configuration file.

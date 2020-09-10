@@ -1,7 +1,7 @@
 {
   "name": "DBBS Mouse cerebellum configuration v4.0",
   "output": {
-    "format": "scaffold.output.HDF5Formatter",
+    "format": "bsb.output.HDF5Formatter",
     "file": "double_neuron_network_test_static.hdf5"
   },
   "network_architecture": {
@@ -24,13 +24,13 @@
   "cell_types": {
     "from_cell": {
       "placement": {
-        "class": "scaffold.placement.ParticlePlacement",
+        "class": "bsb.placement.ParticlePlacement",
         "layer": "test_layer",
         "soma_radius": 2.5,
         "count": 4
       },
       "morphology": {
-        "class": "scaffold.morphologies.NoGeometry"
+        "class": "bsb.morphologies.NoGeometry"
       },
       "plotting": {
         "display_name": "less lonely cell",
@@ -39,13 +39,13 @@
     },
     "to_cell": {
       "placement": {
-        "class": "scaffold.placement.ParticlePlacement",
+        "class": "bsb.placement.ParticlePlacement",
         "layer": "test_layer",
         "soma_radius": 2.5,
         "count": 4
       },
       "morphology": {
-        "class": "scaffold.morphologies.NoGeometry"
+        "class": "bsb.morphologies.NoGeometry"
       },
       "plotting": {
         "display_name": "new friendly cells",
@@ -55,7 +55,7 @@
   },
   "connection_types": {
     "from_cell_to_cell": {
-      "class": "scaffold.connectivity.Convergence",
+      "class": "bsb.connectivity.Convergence",
       "from_cell_types": [{"type": "from_cell", "compartments": ["soma"]}],
       "to_cell_types": [{"type": "to_cell", "compartments": ["soma"]}],
       "divergence": 2,

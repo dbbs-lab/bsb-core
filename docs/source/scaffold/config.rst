@@ -2,6 +2,5 @@
 Configuration module
 ====================
 
-
-.. automodule:: scaffold.config
+.. automodule:: bsb.config
   :members:

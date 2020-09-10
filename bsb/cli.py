@@ -69,8 +69,8 @@ def start_cli():
     parser = argparse.ArgumentParser()
     # Subparsers
     subparsers = parser.add_subparsers(
-        title="Scaffold tasks",
-        description="The scaffold performs multiple seperate tasks. See the list below for available tasks.",
+        title="Operations",
+        description="The BSB performs multiple seperate tasks. See the list below for available tasks.",
         dest="task",
     )
     parser_compile = subparsers.add_parser(
@@ -163,7 +163,7 @@ def start_cli():
     parser_config.add_argument(
         "output",
         action="store",
-        default="scaffold_configuration.json",
+        default="network_configuration.json",
         nargs="?",
         help="Name of the output configuration file.",
     )

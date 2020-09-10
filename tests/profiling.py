@@ -5,9 +5,8 @@ from time import sleep
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
-from scaffold import Scaffold
-
-# from scaffold.config import JSONConfig
+from bsb import Scaffold
+from bsb.config import JSONConfig
 
 config = JSONConfig("../test.json")
 instance = Scaffold(config)
