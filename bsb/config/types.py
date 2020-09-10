@@ -11,6 +11,15 @@ def any():
 
 
 def in_(container):
+    """
+        Type validator. Checks whether the given value occurs in the given container.
+        Uses the `in` operator.
+
+        :param container: List of possible values
+        :type container: container
+        :returns: Type validator function
+        :rtype: function
+    """
     error_msg = "a value in: " + str(container)
 
     def type_handler(value):
@@ -24,6 +33,15 @@ def in_(container):
 
 
 def or_(*type_args):
+    """
+        Type validator. Attempts to cast the value to any of the given types in order.
+
+        :param type_args: Another type validator
+        :type type_args: function
+        :returns: Type validator function
+        :raises: TypeError if none of the given type validators can cast the value.
+        :rtype: function
+    """
     handler_name = "any of: " + ", ".join(map(lambda x: x.__name__, type_args))
 
     def type_handler(value):
@@ -52,7 +70,7 @@ def scalar_expand(scalar_type, size=None, expand=None):
         :type size: int
         :param expand: A function that takes the scalar value as argument and returns the expanded form.
         :type expand: callable
-        :returns: Type handler function
+        :returns: Type validator function
         :rtype: callable
     """
 
@@ -73,6 +91,18 @@ _list = list
 
 
 def list(type=str, size=None):
+    """
+        Type validator for lists. Type casts each element to the given type and optionally
+        validates the length of the list.
+
+        :param type: Type validator of the elements.
+        :type type: function
+        :param size: Mandatory length of the list.
+        :type size: int
+        :returns: Type validator function
+        :rtype: function
+    """
+
     def type_handler(value):
         # Simple lists default to returning None for None, while configuration lists
         # default to an empty list.
@@ -99,6 +129,14 @@ def list(type=str, size=None):
 
 
 def fraction():
+    """
+        Type validator. Type casts the value into a rational number between 0 and 1
+        (inclusive).
+
+        :returns: Type validator function
+        :rtype: function
+    """
+
     def type_handler(value):
         v = float(value)
         if v < 0.0 or v > 1.0:
@@ -110,6 +148,13 @@ def fraction():
 
 
 def deg_to_radian():
+    """
+        Type validator. Type casts the value from degrees to radians.
+
+        :returns: Type validator function
+        :rtype: function
+    """
+
     def type_handler(value):
         v = float(value)
         return float(v) * 2 * math.pi / 360
