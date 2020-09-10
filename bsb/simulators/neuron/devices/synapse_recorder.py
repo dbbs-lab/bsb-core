@@ -31,10 +31,9 @@ class SynapseRecorder(PatternlessDevice, NeuronDevice):
         if self.record_current:
             print("Recording current...")
             recorder_classes.append(SynapticCurrentRecorder)
-        print("Synaptic section:", section, get_section_synapses(section, self.type))
-        for type, synapse in get_section_synapses(section, self.type).items():
+        for synapse in get_section_synapses(section, self.type):
             for recorder_class in recorder_classes:
-                recorder = recorder_class(cell, section, synapse, type)
+                recorder = recorder_class(cell, section, synapse)
                 print(
                     "Created recorder:",
                     recorder,
@@ -50,7 +49,7 @@ class _SynapticRecorder(PresetPathMixin, PresetMetaMixin, SimulationRecorder):
         cls._record = record
         cls._slug = str(slug)
 
-    def __init__(self, cell, section, synapse, type):
+    def __init__(self, cell, section, synapse):
         from patch import p
 
         point_process = synapse._point_process
@@ -67,7 +66,7 @@ class _SynapticRecorder(PresetPathMixin, PresetMetaMixin, SimulationRecorder):
             "cell": cell.ref_id,
             "section": cell.sections.index(section),
             "x": point_process.get_loc(),
-            "type": type,
+            "type": synapse._type,
         }
         self.vectors = self._record(synapse._point_process)
 
