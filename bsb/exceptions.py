@@ -58,6 +58,10 @@ class ConfigurationWarning(ScaffoldWarning):
     pass
 
 
+class UserUserDeprecationWarning(ScaffoldWarning):
+    pass
+
+
 class PlacementWarning(ScaffoldWarning):
     pass
 
