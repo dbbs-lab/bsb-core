@@ -15,9 +15,9 @@ from types import ModuleType
 ##
 
 
-def scaffold_cli():
+def bsb_cli():
     """
-        console_scripts entry point for the scaffold package. Will start the CLI handler or REPL handler.
+        console_scripts entry point for the bsb package. Will start the CLI handler or REPL handler.
     """
     args = sys.argv[1:]
     if len(args) == 0:  # Start the REPL?

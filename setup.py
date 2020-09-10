@@ -16,7 +16,7 @@ requires = [
     "scikit-learn>=0.20.3",
     "plotly>=4.1.0",
     "colour>=0.1.5",
-    "errr>=0.2.0",
+    "errr>=0.3.0",
 ]
 
 if not os.getenv("READTHEDOCS", False):
@@ -32,7 +32,7 @@ setuptools.setup(
     author_email="robingilbert.deschepper@unipv.it",
     description="A package for modelling morphologically detailed neuronal microcircuits.",
     include_package_data=True,
-    package_data={"bsb": ["configurations/*.json"]},
+    package_data={"bsb": []},
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/dbbs-lab/bsb",
@@ -43,18 +43,15 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     entry_points={
-        "console_scripts": ["scaffold = scaffold.cli:scaffold_cli"],
-        "dbbs_scaffold.adapters": [
-            "nest = scaffold.simulators.nest",
-            "neuron = scaffold.simulators.neuron",
-        ],
-        "dbbs_scaffold.engines": ["hdf5 = scaffold.storage.engines.hdf5"],
-        "dbbs_scaffold.config.parsers": ["json = scaffold.config.parsers.json"],
+        "console_scripts": ["bsb = bsb.cli:bsb_cli"],
+        "bsb.adapters": ["nest = bsb.simulators.nest", "neuron = bsb.simulators.neuron",],
+        "bsb.engines": ["hdf5 = bsb.storage.engines.hdf5"],
+        "bsb.config.parsers": ["json = bsb.config.parsers.json"],
     },
     install_requires=requires,
     project_urls={
         "Bug Tracker": "https://github.com/dbbs-lab/bsb/issues/",
-        "Documentation": "https://dbbs-docs.rf.gd/",
+        "Documentation": "https://bsb.readthedocs.io/",
         "Source Code": "https://github.com/dbbs-lab/bsb/",
     },
     extras_require={

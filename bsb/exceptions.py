@@ -44,6 +44,7 @@ _t(
         ),
         DataNotProvidedError=_e(),
     ),
+    PluginError=_e("plugin"),
 )
 
 
