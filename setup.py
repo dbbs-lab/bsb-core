@@ -16,6 +16,7 @@ requires = [
     "scikit-learn>=0.20.3",
     "plotly>=4.1.0",
     "colour>=0.1.5",
+    "errr>=0.2.0",
 ]
 
 if not os.getenv("READTHEDOCS", False):
