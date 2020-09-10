@@ -1,4 +1,5 @@
 import warnings, base64, io, sys
+from ._mpi import *
 
 sys.stdout = io.TextIOWrapper(open(sys.stdout.fileno(), "wb", 0), write_through=True)
 
@@ -83,21 +84,3 @@ def _encode(header, message):
     header = base64.b64encode(bytes(header, "UTF-8")).decode("UTF-8")
     message = base64.b64encode(bytes(message, "UTF-8")).decode("UTF-8")
     return preamble + header + preamble_bar + message + preamble
-
-
-# Initialize MPI when this module is loaded, so that communications work even before
-# any scaffold is created.
-
-try:
-    from mpi4py import MPI as _MPI
-
-    MPI_rank = _MPI.COMM_WORLD.rank
-    has_mpi_installed = True
-    is_mpi_master = MPI_rank == 0
-    is_mpi_slave = MPI_rank != 0
-except ImportError:
-    has_mpi_installed = False
-    is_mpi_master = True
-    is_mpi_slave = False
-
-report("Reporting module initialised.", level=4)
