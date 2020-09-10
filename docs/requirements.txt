@@ -9,3 +9,4 @@ pre-commit==1.21.0
 black==19.10b0
 sphinx_rtd_theme==0.4.3
 colour==0.1.5
+errr==0.2.0
