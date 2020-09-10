@@ -7,10 +7,10 @@
 **_Known Issues_** section at the bottom for important issues that fell victim to our
 deadlines and will be solved at a later date.
 
-# Scaffold: A scaffold model for the cerebellum
+# BSB: A scaffold modelling framework
 This package is intended to facilitate spatially, topologically and morphologically
-detailed simulations of the cerebellum developed by the Department of Brain and Behavioral
-Sciences at the University of Pavia.
+detailed simulations of brain regions developed by the Department of Brain and 
+Behavioral Sciences at the University of Pavia.
 
 ## Installation
 
@@ -28,23 +28,23 @@ Developers best use pip's *editable* install. This creates a live link between t
 installed package and the local git repository:
 
 ```
- git clone git@github.com:Helveg/cerebellum-scaffold.git
- cd cerebellum-scaffold
+ git clone git@github.com:dbbs-lab/bsb
+ cd bsb
  pip install -e .[dev]
  pre-commit install
 ```
 
 ## Usage
 
-The scaffold model can be used through the command line interface or as a python package.
+The scaffold framework can be used through the command line interface or as a python package.
 
 ### Command line interface (CLI)
 
-Run the scaffold in the command line with subcommand `compile` to compile a network
+Run the framework in the command line with subcommand `compile` to compile a network
 architecture.
 
 ```
-scaffold --config=mouse_cerebellum_cortex_noTouch.json compile -x=200 -z=200 -p
+bsb --config=mouse_cerebellum_cortex_noTouch.json compile -x=200 -z=200 -p
 ```
 
 To run with different configurations, change the config argument to the relative path of a

@@ -1,183 +1,51 @@
-class ScaffoldError(Exception):
-    pass
-
-
-class SpatialDimensionError(ScaffoldError):
-    pass
-
-
-## Configuration
-
-
-class ConfigurationError(ScaffoldError):
-    pass
-
-
-class ConfigurationFormatError(ConfigurationError):
-    pass
-
-
-class DynamicClassError(ConfigurationError):
-    pass
-
-
-class ConfigurableClassNotFoundError(DynamicClassError):
-    pass
-
-
-class CastError(ConfigurationError):
-    pass
-
-
-class CastConfigurationError(ConfigurationError):
-    pass
-
-
-class UnionCastError(CastError):
-    pass
-
-
-class ConfigurableCastError(CastError):
-    pass
-
-
-class UnknownDistributionError(ConfigurableCastError):
-    pass
-
-
-class InvalidDistributionError(ConfigurableCastError):
-    pass
-
-
-class TypeNotFoundError(ScaffoldError):
-    pass
-
-
-class LayerNotFoundError(ScaffoldError):
-    pass
-
-
-class SimulationNotFoundError(ScaffoldError):
-    pass
-
-
-## Nest
-
-
-class NestError(ScaffoldError):
-    pass
-
-
-class AdapterError(NestError):
-    pass
-
-
-class NestKernelError(AdapterError):
-    pass
-
-
-class KernelLockedError(NestKernelError):
-    pass
-
-
-class SuffixTakenError(KernelLockedError):
-    pass
-
-
-class NestModelError(NestError):
-    pass
-
-
-class NestModuleError(NestKernelError):
-    pass
-
-
-class ReceptorSpecificationError(NestError):
-    pass
-
-
-## Connectivity
-
-
-class ConnectivityError(ScaffoldError):
-    pass
-
-
-## Morphologies
-
-
-class MorphologyError(ScaffoldError):
-    pass
-
-
-class MorphologyRepositoryError(MorphologyError):
-    pass
-
-
-class MissingMorphologyError(MorphologyError):
-    pass
-
-
-class IncompleteMorphologyError(MorphologyError):
-    pass
-
-
-class MorphologyDataError(MorphologyError):
-    pass
-
-
-class CompartmentError(MorphologyError):
-    pass
-
-
-class TreeError(ScaffoldError):
-    pass
-
-
-class VoxelizationError(ScaffoldError):
-    pass
-
-
-class VoxelTransformError(VoxelizationError):
-    pass
-
-
-## NEURON
-
-
-class NeuronError(ScaffoldError):
-    pass
-
-
-class DeviceConnectionError(NeuronError):
-    pass
-
-
-## Resources (HDF5, ...)
-
-
-class ResourceError(ScaffoldError):
-    pass
-
-
-class DatasetNotFoundError(ResourceError):
-    pass
-
-
-class IntersectionDataNotFoundError(DatasetNotFoundError):
-    pass
-
-
-class DataNotFoundError(ResourceError):
-    pass
-
-
-class DataNotProvidedError(ScaffoldError):
-    pass
-
-
-class AttributeMissingError(ResourceError):
-    pass
+from errr import make_tree as _t, exception as _e
+
+_t(
+    globals(),
+    ScaffoldError=_e(
+        SpatialDimensionError=_e(),
+        ConfigurationError=_e(
+            ConfigurationFormatError=_e(),
+            DynamicClassError=_e(ConfigurableClassNotFoundError=_e(),),
+            CastError=_e(
+                UnionCastError=_e(),
+                ConfigurableCastError=_e(
+                    UnknownDistributionError=_e(), InvalidDistributionError=_e(),
+                ),
+            ),
+            CastConfigurationError=_e(),
+        ),
+        TypeNotFoundError=_e(),
+        LayerNotFoundError=_e(),
+        SimulationNotFoundError=_e(),
+        AdapterError=_e(
+            NeuronError=_e(DeviceConnectionError=_e(),),
+            NestError=_e(
+                NestKernelError=_e(NestModuleError=_e(),),
+                NestModelError=_e(),
+                KernelLockedError=_e(),
+                SuffixTakenError=_e(),
+                ReceptorSpecificationError=_e(),
+            ),
+        ),
+        ConnectivityError=_e(),
+        MorphologyError=_e(
+            MorphologyRepositoryError=_e(),
+            MissingMorphologyError=_e(),
+            IncompleteMorphologyError=_e(),
+            MorphologyDataError=_e(),
+            CompartmentError=_e(),
+        ),
+        TreeError=_e(),
+        VoxelizationError=_e(VoxelTransformError=_e(),),
+        ResourceError=_e(
+            DatasetNotFoundError=_e(IntersectionDataNotFoundError=_e(),),
+            DataNotFoundError=_e(),
+            AttributeMissingError=_e(),
+        ),
+        DataNotProvidedError=_e(),
+    ),
+)
 
 
 ## Warnings
@@ -188,6 +56,10 @@ class ScaffoldWarning(UserWarning):
 
 
 class ConfigurationWarning(ScaffoldWarning):
+    pass
+
+
+class UserUserDeprecationWarning(ScaffoldWarning):
     pass
 
 

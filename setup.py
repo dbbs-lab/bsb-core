@@ -9,6 +9,22 @@ with open(os.path.join(os.path.dirname(__file__), "bsb", "__init__.py"), "r") as
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
+requires = [
+    "h5py>=2.9.0",
+    "numpy>=1.16.4",
+    "scipy>=1.3.1",
+    "scikit-learn>=0.20.3",
+    "plotly>=4.1.0",
+    "colour>=0.1.5",
+    "errr>=0.2.0",
+]
+
+if not os.getenv("READTHEDOCS", False):
+    # Add all packages with binary dependencies that cannot be installed on RTD here.
+    requires.extend(
+        ["rtree-linux==0.9.4", "nrn-patch>=2.1.0",]
+    )
+
 setuptools.setup(
     name="bsb",
     version=__version__,
@@ -27,16 +43,7 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     entry_points={"console_scripts": ["bsb = bsb.cli:scaffold_cli"]},
-    install_requires=[
-        "h5py>=2.9.0",
-        "numpy>=1.16.4",
-        "scipy>=1.3.1",
-        "scikit-learn>=0.20.3",
-        "plotly>=4.1.0",
-        "rtree-linux==0.9.4",
-        "nrn-patch>=2.1.0",
-        "colour>=0.1.5",
-    ],
+    install_requires=requires,
     project_urls={
         "Bug Tracker": "https://github.com/dbbs-lab/bsb/issues/",
         "Documentation": "https://dbbs-docs.rf.gd/",
