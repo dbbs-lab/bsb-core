@@ -404,7 +404,7 @@ class TestWalk(unittest.TestCase):
         self.assertEqual(len(iter_collected), 7)
 
 
-from scaffold.config import types
+from bsb.config import types
 
 
 class TestTypes(unittest.TestCase):
