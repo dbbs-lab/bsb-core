@@ -81,7 +81,7 @@ def make_cast(node_cls, dynamic=False, pluggable=False, root=False):
     if pluggable:
         make_pluggable_cast(node_cls)
     elif dynamic:
-        make_dynamic_cast(node_cls)
+        make_dynamic_cast(node_cls, dynamic)
 
     node_cls.__cast__ = __cast__
     return __cast__
@@ -182,9 +182,11 @@ def _make_cast(node_cls):
     return __cast__
 
 
-def make_dynamic_cast(node_cls):
+def make_dynamic_cast(node_cls, dynamic_config):
     attr_name = node_cls._config_dynamic_attr
     dynamic_attr = getattr(node_cls, attr_name)
+    if dynamic_config.auto_classmap or dynamic_config.classmap:
+        node_cls._config_dynamic_classmap = dynamic_config.classmap or {}
 
     def __dcast__(section, parent, key=None):
         if dynamic_attr.required(section):
@@ -202,11 +204,26 @@ def make_dynamic_cast(node_cls):
         else:
             loaded_cls_name = dynamic_attr.default
         module_path = ["__main__", node_cls.__module__]
-        dynamic_cls = _load_class(loaded_cls_name, module_path, interface=node_cls)
+        if hasattr(node_cls, "_config_dynamic_classmap"):
+            classmap = node_cls._config_dynamic_classmap
+        else:
+            classmap = None
+        try:
+            dynamic_cls = _load_class(
+                loaded_cls_name, module_path, interface=node_cls, classmap=classmap
+            )
+        except DynamicClassError:
+            raise CastError(
+                "Could resolve '{}' to a class in '{}.{}'".format(
+                    loaded_cls_name, parent.get_node_name(), attr_name
+                )
+            )
         node = dynamic_cls(parent=parent)
         return node
 
     node_cls.__dcast__ = __dcast__
+    if dynamic_config.auto_classmap:
+        _wrap_isc_auto_classmap(node_cls)
     return __dcast__
 
 
@@ -241,7 +258,29 @@ def make_pluggable_cast(node_cls):
     return __dcast__
 
 
-def _load_class(cfg_classname, module_path, interface=None):
+def _wrap_isc_auto_classmap(node_cls):
+    from ._hooks import overrides
+
+    def dud(*args, **kwargs):
+        pass
+
+    if overrides(node_cls, "__init_subclass__"):
+        f = node_cls.__init_subclass__
+    else:
+        f = dud
+
+    def __init_subclass__(cls, classmap_entry=None, **kwargs):
+        super(node_cls, cls).__init_subclass__(**kwargs)
+        if classmap_entry is not None:
+            node_cls._config_dynamic_classmap[classmap_entry] = cls
+        f(**kwargs)
+
+    node_cls.__init_subclass__ = classmethod(__init_subclass__)
+
+
+def _load_class(cfg_classname, module_path, interface=None, classmap=None):
+    if classmap and cfg_classname in classmap:
+        cfg_classname = classmap[cfg_classname]
     if inspect.isclass(cfg_classname):
         class_ref = cfg_classname
         class_name = cfg_classname.__name__
