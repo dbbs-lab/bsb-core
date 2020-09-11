@@ -248,49 +248,53 @@ class ConfigurationAttribute:
                         self.get_node_name(instance), value, self.type.__name__
                     )
                 )
+        # The value was cast to its intented type and the new value can be set.
         _setattr(instance, self.attr_name, value)
 
     def _get_type(self, type):
-        cast_name = None
-        casting = False
         # Determine type of the attribute
         if not type and self.default:
             t = _type(self.default)
         else:
             t = type or str
-        cast_name = t.__name__
-        if hasattr(t, "__cast__"):
-            t = t.__cast__
-            casting = True
-        # Inspect the signature and wrap the typecast in a wrapper that will accept and
-        # strip the missing 'key' kwarg
-        try:
-            sig = signature(t)
-            params = sig.parameters
-        except:
-            params = []
-        if "key" not in params:
-            o = t
-
-            def _t(*args, **kwargs):
-                if "key" in kwargs:
-                    del kwargs["key"]
-                return o(*args, **kwargs)
-
-            t = _t
-        if "parent" not in params:
-            o2 = t
-
-            def _t2(value, parent, *args, **kwargs):
-                return o2(value, *args, **kwargs)
-
-            t = _t2
-        t.__name__ = cast_name
-        t.__casting__ = casting
-        return t
+        return _wrap_handler_pk(t)
 
     def get_node_name(self, instance):
         return instance.get_node_name() + "." + self.attr_name
+
+
+def _wrap_handler_pk(t):
+    cast_name = t.__name__
+    casting = hasattr(t, "__casting__") and t.__casting__
+    if hasattr(t, "__cast__"):
+        t = t.__cast__
+        casting = True
+    # Inspect the signature and wrap the typecast in a wrapper that will accept and
+    # strip the missing 'key' kwarg
+    try:
+        sig = signature(t)
+        params = sig.parameters
+    except:
+        params = []
+    if "key" not in params:
+        o = t
+
+        def _t(*args, **kwargs):
+            if "key" in kwargs:
+                del kwargs["key"]
+            return o(*args, **kwargs)
+
+        t = _t
+    if "parent" not in params:
+        o2 = t
+
+        def _t2(value, parent, *args, **kwargs):
+            return o2(value, *args, **kwargs)
+
+        t = _t2
+    t.__name__ = cast_name
+    t.__casting__ = casting
+    return t
 
 
 class cfglist(_list):
