@@ -3,6 +3,7 @@ import unittest, os, sys, numpy as np, h5py
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from bsb.core import Scaffold
 from bsb import config
+from bsb.exceptions import *
 from bsb.models import Layer, CellType
 
 
