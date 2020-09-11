@@ -277,3 +277,9 @@ def constant_distr():
 
     type_handler.__name__ = "constant distribution"
     return type_handler
+
+
+def distribution():
+    from .nodes import Distribution
+
+    return or_(constant_distr(), Distribution)

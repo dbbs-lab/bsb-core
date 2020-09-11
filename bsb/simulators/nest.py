@@ -104,9 +104,7 @@ class NestCell(CellModel, MapsScaffoldIdentifiers):
 @config.node
 class NestConnectionSettings:
     weight = config.attr(type=float, required=True)
-    delay = config.attr(
-        type=types.or_(types.constant_distr(), config_nodes.Distribution), required=True
-    )
+    delay = config.attr(type=types.distribution(), required=True)
 
 
 @config.node
