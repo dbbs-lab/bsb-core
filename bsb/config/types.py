@@ -261,3 +261,19 @@ def deg_to_radian():
 
     type_handler.__name__ = "degrees"
     return type_handler
+
+
+class _ConstantDistribution:
+    def __init__(self, const):
+        self.const = const
+
+    def draw(self, n):
+        return np.ones(n) * self.const
+
+
+def constant_distr():
+    def type_handler(value):
+        return _ConstantDistribution(_float(value))
+
+    type_handler.__name__ = "constant distribution"
+    return type_handler
