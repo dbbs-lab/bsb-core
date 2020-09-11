@@ -99,6 +99,7 @@ def wrap_root_cast(f):
 
 def _cast_attributes(node, section, node_cls, key):
     attrs = _get_class_config_attrs(node_cls)
+    catch_attrs = [a for a in attrs.values() if hasattr(a, "__catch__")]
     attr_names = list(attrs.keys())
     if key:
         node.attr_name = key
@@ -123,12 +124,42 @@ def _cast_attributes(node, section, node_cls, key):
     # Check for unknown keys in the configuration section
     for key in section:
         if key not in attr_names:
-            warn(
-                "Unknown attribute '{}' in {}".format(key, node.get_node_name()),
-                ConfigurationWarning,
-            )
-            setattr(node, key, section[key])
+            value = section[key]
+            try:
+                _try_catch_attrs(node, catch_attrs, key, value)
+            except UncaughtAttributeError:
+                warn(
+                    "Unknown attribute '{}' in {}".format(key, node.get_node_name()),
+                    ConfigurationWarning,
+                )
+                setattr(node, key, value)
     return node
+
+
+class UncaughtAttributeError(Exception):
+    pass
+
+
+def _try_catch_attrs(node, catchers, key, value):
+    # See if any of the attributes in the node can catch the value of an unknown key in
+    # the configuration section. If none of them catch the value, raise an
+    # `UncaughtAttributeError`
+    for attr in catchers:
+        try:
+            _try_catch(attr.__catch__, node, key, value)
+            break
+        except UncaughtAttributeError:
+            pass
+    else:
+        raise UncaughtAttributeError()
+
+
+def _try_catch(catch, node, key, value):
+    try:
+        return catch(node, key, value)
+    except:
+        raise
+        raise UncaughtAttributeError()
 
 
 def _make_cast(node_cls):

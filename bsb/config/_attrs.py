@@ -196,6 +196,14 @@ def dict(**kwargs):
     return ConfigurationDictAttribute(**kwargs)
 
 
+def catch_all(**kwargs):
+    """
+        Catches any unknown key with a value that can be cast to the given type and
+        collects them under the attribute name.
+    """
+    return ConfigurationAttributeCatcher(**kwargs)
+
+
 def _setattr(instance, name, value):
     instance.__dict__["_" + name] = value
 
@@ -441,3 +449,23 @@ class ConfigurationAttributeSlot(ConfigurationAttribute):
                 instance.__class__._scaffold_plugin.dist,
             )
         )
+
+
+def _collect_kv(n, d, k, v):
+    d[k] = v
+
+
+class ConfigurationAttributeCatcher(ConfigurationAttribute):
+    def __init__(self, *args, type=str, initial=_dict, catch=_collect_kv, **kwargs):
+        super().__init__(*args, type=type, default=initial, call_default=True, **kwargs)
+        self.caught = catch
+
+    def __set__(self, instance, value):
+        _setattr(instance, self.attr_name, value)
+
+    def __catch__(self, node, key, value):
+        # Try to cast to our type, if it fails it will be caught by whoever is asking us
+        # to catch this and know we don't catch this value.
+        value = self.type(value, parent=node, key=key)
+        # If succesfully cast, catch this value by executing our catch callback.
+        self.caught(node, _getattr(node, self.attr_name), key, value)
