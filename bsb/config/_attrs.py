@@ -434,7 +434,7 @@ class ConfigurationReferenceAttribute(ConfigurationAttribute):
 class ConfigurationAttributeSlot(ConfigurationAttribute):
     def __set__(self, instance, value):  # pragma: nocover
         raise NotImplementedError(
-            "Configuration slot {} of {} is empty. The {} plugin provided by '{}' should fill it with a configuration attribute.".format(
+            "Configuration slot '{}' of {} is empty. The {} plugin provided by '{}' should fill the slot with a configuration attribute.".format(
                 self.attr_name,
                 instance.get_node_name(),
                 instance.__class__._scaffold_plugin.module_name,
