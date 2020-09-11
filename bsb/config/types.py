@@ -299,3 +299,23 @@ def distribution():
     from .nodes import Distribution
 
     return or_(constant_distr(), Distribution)
+
+
+def evaluation():
+    """
+        Type validator. Provides a structured way to evaluate a python statement from the
+        config. The evaluation context provides ``numpy`` as ``np``.
+
+        :returns: Type validator function
+        :rtype: function
+    """
+
+    def type_handler(value):
+        cfg = dict(value)
+        statement = cfg.get("statement", "'None'")
+        locals = dict(cfg.get("variables", {}))
+        globals = {"np": np}
+        return eval(statement, globals, locals)
+
+    type_handler.__name__ = "evaluation"
+    return type_handler
