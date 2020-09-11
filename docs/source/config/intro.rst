@@ -39,6 +39,16 @@ configuration for :class:`Regions <.objects.Region>`, :class:`Layers <.objects.L
 :class:`CellTypes <.objects.CellType>` and :class:`ConnectionStrategies
 <.connectivity.ConnectionStrategy>` respectively.
 
+Network
+#######
+
+This node contains some basic properties of the network configured in this file.
+
+The :guilabel:`x` and :guilabel:`z` attributes are loose indicators of the scale of the
+simulation. You can use them to scale the volume of your layers or for other mechanisms
+that determine the region in which to place your cells. They do not restrict placement,
+things can still be placed outside the specified [0, x] and [0, z] region.
+
 Basic cell types
 ################
 
