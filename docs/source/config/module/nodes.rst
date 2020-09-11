@@ -83,20 +83,20 @@ relative class path, or a class object:
 
 .. code-block:: python
 
-   @dynamic(class_map={"short": "pkg.with.a.long.name.DynClass"})
+   @dynamic(classmap={"short": "pkg.with.a.long.name.DynClass"})
    class Example:
        pass
 
 If ``short`` is used the dynamic class will resolve to ``pkg.with.a.long.name.DynClass``.
-Automatic class maps can be generated using the ``auto_class_map`` attribute:
+Automatic class maps can be generated using the ``auto_classmap`` attribute:
 
 .. code-block:: python
 
-  @dynamic(auto_class_map=True)
+  @dynamic(auto_classmap=True)
   class Example:
     pass
 
-  class MappedChild(Example, class_map_entry="short"):
+  class MappedChild(Example, classmap_entry="short"):
     pass
 
 This will generate a mapping from ``short`` to the ``MappedChild`` class.
