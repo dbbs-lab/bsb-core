@@ -47,6 +47,7 @@ def _merge_with_parameters(node, d, k, v):
 @config.node
 class NestCell(CellModel, MapsScaffoldIdentifiers):
     neuron_model = config.attr(type=str)
+    synapse_model = config.attr(type=str)
     relay = config.attr(default=False)
     parameters = config.dict(type=types.any())
     model_parameters = config.catch_all(type=dict, catch=_merge_with_parameters)
