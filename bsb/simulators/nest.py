@@ -3,7 +3,6 @@ from ..simulation import (
     SimulationComponent,
     CellModel,
     NeuronTargetting,
-    TargetsNeurons,
 )
 from ..models import ConnectivitySet
 from ..reporting import report, warn
@@ -48,7 +47,6 @@ def _merge_with_parameters(node, d, k, v):
 @config.node
 class NestCell(CellModel, MapsScaffoldIdentifiers):
     neuron_model = config.attr(type=str)
-    synapse_model = config.attr(type=str)
     relay = config.attr(default=False)
     parameters = config.dict(type=types.any())
     model_parameters = config.catch_all(type=dict, catch=_merge_with_parameters)
@@ -56,7 +54,6 @@ class NestCell(CellModel, MapsScaffoldIdentifiers):
     def boot(self):
         self.receptor_specifications = {}
         self.neuron_model = self.neuron_model or self.adapter.default_neuron_model
-        self.synapse_model = self.synapse_model or self.adapter.default_synapse_model
         self.reset()
         if self.relay:
             self.neuron_model = "parrot_neuron"
@@ -119,10 +116,15 @@ class NestSynapseSettings:
 class NestConnection(SimulationComponent):
     connection = config.attr(type=NestConnectionSettings, required=True)
     synapse = config.attr(type=NestSynapseSettings, required=True)
+    synapse_model = config.attr(type=str)
     plastic = config.attr(default=False)
     hetero = config.attr(type=str)
     teaching = config.attr(type=str)
     is_teaching = config.attr(default=False)
+
+    def boot(self):
+        super().boot()
+        self.synapse_model = self.synapse_model or self.adapter.default_synapse_model
 
     def validate(self):
         if self.plastic:
