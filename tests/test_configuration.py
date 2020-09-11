@@ -373,13 +373,13 @@ class TestDynamic(unittest.TestCase):
             TestRoot(),
         )
         self.assertEqual(
-            sys.modules["scaffold.config._make"]._load_class(
+            sys.modules["bsb.config._make"]._load_class(
                 NotInherited, [NotInherited.__module__]
             ),
             NotInherited,
         )
         self.assertEqual(
-            sys.modules["scaffold.config._make"]._load_class(
+            sys.modules["bsb.config._make"]._load_class(
                 NotInherited, [NotInherited.__module__]
             ),
             NotInherited,
@@ -402,7 +402,7 @@ class TestWalk(unittest.TestCase):
             smth = config.attr(type=Base)
 
         b = Root.__cast__({"smth": {"att": "hello", "deep": {"ey": [1, 2, 3]}}}, None)
-        iter_collected = [*sys.modules["scaffold.config._make"].walk_node_values(b)]
+        iter_collected = [*sys.modules["bsb.config._make"].walk_node_values(b)]
         self.assertEqual(len(iter_collected), 7)
 
 
