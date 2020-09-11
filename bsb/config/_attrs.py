@@ -346,9 +346,12 @@ class ConfigurationListAttribute(ConfigurationAttribute):
 
 class cfgdict(_dict):
     def __getattr__(self, name):
-        if name not in self:
-            raise AttributeError(name)
-        return self.get(name)
+        try:
+            return self[name]
+        except KeyError:
+            raise AttributeError(
+                self.get_node_name() + " object has no attribute '{}'".format(name)
+            )
 
     def get_node_name(self):
         return self._config_parent.get_node_name() + "." + self._attr.attr_name
