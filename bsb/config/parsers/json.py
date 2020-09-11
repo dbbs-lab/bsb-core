@@ -241,7 +241,7 @@ def _prep_dict(node, parent):
 
 
 def _prep_list(node, parent):
-    return parsed_list(node), map(lambda t: (str(t[0]), t[1]), enumerate(node))
+    return parsed_list(node), enumerate(node)
 
 
 recurse_handlers = {
