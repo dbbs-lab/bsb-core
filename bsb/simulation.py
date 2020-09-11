@@ -60,7 +60,7 @@ class DeviceModel(SimulationComponent):
 
 
 @config.pluggable(key="simulator", plugin_name="simulator adapter")
-class SimulatorAdapter(ConfigurableClass):
+class SimulatorAdapter:
     duration = config.attr(type=float, required=True)
     cell_models = config.slot(type=CellModel, required=True)
     connection_models = config.slot(type=ConnectionModel, required=True)
