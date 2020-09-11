@@ -9,7 +9,7 @@ from ..helpers import ListEvalConfiguration
 from ..reporting import report, warn
 from ..exceptions import *
 from .. import config
-from ..config import types
+from ..config import types, nodes as config_nodes
 import os, json, weakref, numpy as np
 from itertools import chain
 from sklearn.neighbors import KDTree
@@ -39,38 +39,31 @@ class MapsScaffoldIdentifiers:
         return [self.scaffold_to_nest_map[id] for id in ids]
 
 
+def _merge_with_parameters(node, d, k, v):
+    params = node.parameters.copy()
+    d[k] = params.update(v)
+
+
+@config.node
 class NestCell(CellModel, MapsScaffoldIdentifiers):
+    neuron_model = config.attr(type=str)
+    relay = config.attr(default=False)
+    parameters = config.dict(type=types.any())
+    model_parameters = config.catch_all(type=dict, catch=_merge_with_parameters)
+
     def boot(self):
-        super().boot()
         self.receptor_specifications = {}
+        self.neuron_model = self.neuron_model or self.adapter.default_neuron_model
+        self.synapse_model = self.synapse_model or self.adapter.default_synapse_model
         self.reset()
         if self.relay:
-            # If a cell type is marked as a relay then the cell model should be a
-            # parameterless "parrot_neuron" model if no specifics are provided.
-            #
-            # Set the default relay model to "parrot_neuron"
-            if not hasattr(self, "neuron_model"):
-                self.neuron_model = "parrot_neuron"
-            # Set the default parameter dict to empty
-            if not hasattr(self, "parameters"):
-                self.parameters = {}
-            # Set the default relay model parameter dict to empty
-            if not hasattr(self, self.neuron_model):
-                self.__dict__[self.neuron_model] = {}
+            self.neuron_model = "parrot_neuron"
 
-        # The cell model contains a 'parameters' attribute and many sets of
-        # neuron model specific sets of parameters. Each set of neuron model
-        # specific parameters can define receptor specifications.
-        # Extract those if present to the designated receptor_specifications dict.
-        for neuron_model in self.__dict__:
-            model_parameters = self.__dict__[neuron_model]
-            # Iterate over the model specific parameter dicts with receptor
-            # specifications, excluding the default parameter dict.
-            if (
-                neuron_model != "parameters"
-                and isinstance(model_parameters, dict)
-                and "receptors" in model_parameters
-            ):
+        # Each cell model is loaded with a set of parameters for each nest model that can
+        # be used for it. We iterate over them and take out the `receptors` parameter to
+        # obtain this model's `receptor_specifications`
+        for model_name, model_parameters in self.model_parameters.items():
+            if "receptors" in model_parameters:
                 # Transfer the receptor specifications
                 self.receptor_specifications[neuron_model] = model_parameters["receptors"]
                 del model_parameters["receptors"]
@@ -108,19 +101,27 @@ class NestCell(CellModel, MapsScaffoldIdentifiers):
         )
 
 
+@config.node
+class NestConnectionSettings:
+    weight = config.attr(type=float, required=True)
+    delay = config.attr(
+        type=types.or_(types.constant_distr(), config_nodes.Distribution), required=True
+    )
+
+
+@config.node
+class NestSynapseSettings:
+    model_settings = config.catch_all(type=dict)
+
+
+@config.node
 class NestConnection(SimulationComponent):
-    node_name = "simulations.?.connection_models"
-
-    casts = {"synapse": dict, "connection": dict}
-
-    required = ["synapse", "connection"]
-
-    defaults = {
-        "plastic": False,
-        "hetero": None,
-        "teaching": None,
-        "is_teaching": False,
-    }
+    connection = config.attr(type=NestConnectionSettings, required=True)
+    synapse = config.attr(type=NestSynapseSettings, required=True)
+    plastic = config.attr(default=False)
+    hetero = config.attr(type=str)
+    teaching = config.attr(type=str)
+    is_teaching = config.attr(default=False)
 
     def validate(self):
         if "weight" not in self.connection:
