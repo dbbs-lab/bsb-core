@@ -2,6 +2,7 @@ import unittest, os, sys, numpy as np, h5py
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from bsb.core import Scaffold
+from bsb import config
 from bsb.models import Layer, CellType
 
 
@@ -69,6 +70,7 @@ class TestConfigAttrs(unittest.TestCase):
             "root",
             "slot",
             "pluggable",
+            "catch_all",
         ]
         for a in t:
             with self.subTest(check=a):

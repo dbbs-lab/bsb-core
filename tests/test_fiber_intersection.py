@@ -14,6 +14,7 @@ fiber_transform_config = relative_to_tests_folder("configs/test_fiber_intersecti
 morpho_file = relative_to_tests_folder("morphologies.hdf5")
 
 
+@unittest.skip("Re-enabling tests gradually while advancing v4.0 rework")
 class TestFiberIntersection(unittest.TestCase):
     @classmethod
     def setUpClass(self):
