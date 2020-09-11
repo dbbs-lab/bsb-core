@@ -123,24 +123,16 @@ class NestConnection(SimulationComponent):
     is_teaching = config.attr(default=False)
 
     def validate(self):
-        if "weight" not in self.connection:
-            raise ConfigurationError(
-                "Missing 'weight' in the connection parameters of "
-                + self.node_name
-                + "."
-                + self.name
-            )
         if self.plastic:
-            # Set plasticity synapse dict defaults
+            # Set plasticity synapse dict defaults for on each possible model
             synapse_defaults = {
                 "A_minus": 0.0,
                 "A_plus": 0.0,
                 "Wmin": 0.0,
                 "Wmax": 4000.0,
             }
-            for key, value in synapse_defaults.items():
-                if key not in self.synapse:
-                    self.synapse[key] = value
+            for key, model in self.synapse.model_settings.items():
+                self.synapse.model_settings[key] = synapse_defaults.update(model)
 
     def get_synapse_parameters(self, synapse_model_name):
         # Get the default synapse parameters
