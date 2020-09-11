@@ -73,10 +73,6 @@ class SimulatorAdapter:
         return cls._plugins
 
     def __init__(self):
-        super().__init__()
-        self.cell_models = {}
-        self.connection_models = {}
-        self.devices = {}
         self.entities = {}
         self._progress_listeners = []
 
