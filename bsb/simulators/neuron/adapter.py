@@ -8,14 +8,9 @@ from ...simulation import (
 )
 from ... import config
 from ...config import types
-from ...helpers import get_configurable_class
 from ...reporting import report, warn
 from ...models import ConnectivitySet
-from ...exceptions import (
-    MissingMorphologyError,
-    IntersectionDataNotFoundError,
-    ConfigurationError,
-)
+from ...exceptions import *
 import random, os, sys
 import numpy as np
 

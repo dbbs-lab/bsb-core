@@ -257,28 +257,6 @@ def load_configurable_class(name, configured_class_name, parent_class, parameter
     return instance
 
 
-def fill_configurable_class(obj, conf, excluded=[]):
-    for name, prop in conf.items():
-        if not name in excluded:
-            if isinstance(prop, dict) or isinstance(prop, list):
-                prop = prop.copy()
-            obj.__dict__[name] = prop
-
-
-def get_configurable_class(configured_class_name):
-    class_parts = configured_class_name.split(".")
-    class_name = class_parts[-1]
-    module_name = ".".join(class_parts[:-1])
-    if module_name == "":
-        module_dict = globals()
-    else:
-        module_ref = __import__(module_name, globals(), locals(), [class_name], 0)
-        module_dict = module_ref.__dict__
-    if not class_name in module_dict:
-        raise ConfigurableClassNotFoundError("Class not found: " + configured_class_name)
-    return module_dict[class_name]
-
-
 def continuity_list(iterable, step=1):
     """
         Return a compacted notation of a list of nearly continuous numbers.
