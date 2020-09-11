@@ -49,7 +49,7 @@ def node(node_cls, root=False, dynamic=False, pluggable=False):
 
 
 def dynamic(
-    node_cls=None, attr_name="class", class_map=None, auto_class_map=False, **kwargs
+    node_cls=None, attr_name="class", classmap=None, auto_classmap=False, **kwargs
 ):
     """
         Decorate a class to be castable to a dynamically configurable class using
@@ -84,22 +84,29 @@ def dynamic(
     if "type" not in kwargs:
         kwargs["type"] = str
     class_attr = ConfigurationAttribute(**kwargs)
+    dynamic_config = DynamicNodeConfiguration(classmap, auto_classmap)
     if node_cls is None:
         # If node_cls is None, it means that no positional argument was given, which most
         # likely means that the @dynamic(...) syntax was used instead of the @dynamic.
         # This means we have to return an inner decorator instead of the decorated class
         def decorator(node_cls):
-            return _dynamic(node_cls, class_attr, attr_name)
+            return _dynamic(node_cls, class_attr, attr_name, dynamic_config)
 
         return decorator
     # Regular @dynamic syntax used, return decorated class
-    return _dynamic(node_cls, class_attr, attr_name)
+    return _dynamic(node_cls, class_attr, attr_name, dynamic_config)
 
 
-def _dynamic(node_cls, class_attr, attr_name):
+class DynamicNodeConfiguration:
+    def __init__(self, classmap=None, auto_classmap=False):
+        self.classmap = classmap
+        self.auto_classmap = auto_classmap
+
+
+def _dynamic(node_cls, class_attr, attr_name, config):
     setattr(node_cls, attr_name, class_attr)
     node_cls._config_dynamic_attr = attr_name
-    return node(node_cls, dynamic=True)
+    return node(node_cls, dynamic=config)
 
 
 def pluggable(key, plugin_name=None, unpack=None):
