@@ -115,123 +115,8 @@ class SimulatorAdapter:
         self._progress_listeners.append(listener)
 
 
-class TargetsNeurons:
-    def initialise(self, scaffold):
-        super().initialise(scaffold)
-        # Set targetting method
-        get_targets_name = "_targets_" + self.targetting
-        method = (
-            getattr(self, get_targets_name) if hasattr(self, get_targets_name) else None
-        )
-        if not callable(method):
-            raise NotImplementedError(
-                "Unimplemented neuron targetting type '{}' in {}".format(
-                    self.targetting, self.node_name
-                )
-            )
-        self._get_targets = method
-
-    def _targets_local(self):
-        """
-            Target all or certain cells in a spherical location.
-        """
-        if len(self.cell_types) != 1:
-            # Compile a list of the cells and build a compound tree.
-            target_cells = np.empty((0, 5))
-            id_map = np.empty((0, 1))
-            for t in self.cell_types:
-                cells = self.scaffold.get_cells_by_type(t)
-                target_cells = np.vstack((target_cells, cells[:, 2:5]))
-                id_map = np.vstack((id_map, cells[:, 0]))
-            tree = KDTree(target_cells)
-            target_positions = target_cells
-        else:
-            # Retrieve the prebuilt tree from the SHDF file
-            tree = self.scaffold.trees.cells.get_tree(self.cell_types[0])
-            target_cells = self.scaffold.get_cells_by_type(self.cell_types[0])
-            id_map = target_cells[:, 0]
-            target_positions = target_cells[:, 2:5]
-        # Query the tree for all the targets
-        target_ids = tree.query_radius(np.array(self.origin).reshape(1, -1), self.radius)[
-            0
-        ].tolist()
-        return id_map[target_ids]
-
-    def _targets_cylinder(self):
-        """
-            Target all or certain cells within a cylinder of specified radius.
-        """
-        if len(self.cell_types) != 1:
-            # Compile a list of the cells.
-            target_cells = np.empty((0, 5))
-            id_map = np.empty((0, 1))
-            for t in self.cell_types:
-                cells = self.scaffold.get_cells_by_type(t)
-                target_cells = np.vstack((target_cells, cells[:, 2:5]))
-                id_map = np.vstack((id_map, cells[:, 0]))
-            target_positions = target_cells
-        else:
-            # Retrieve the prebuilt tree from the SHDF file
-            # tree = self.scaffold.trees.cells.get_tree(self.cell_types[0])
-            target_cells = self.scaffold.get_cells_by_type(self.cell_types[0])
-            # id_map = target_cells[:, 0]
-            target_positions = target_cells[:, 2:5]
-            # Query the tree for all the targets
-            center_scaffold = [
-                self.scaffold.configuration.X / 2,
-                self.scaffold.configuration.Z / 2,
-            ]
-
-            # Find cells falling into the cylinder volume
-            target_cells_idx = np.sum(
-                (target_positions[:, [0, 2]] - np.array(center_scaffold)) ** 2, axis=1
-            ).__lt__(self.radius ** 2)
-            cylinder_target_cells = target_cells[target_cells_idx, 0]
-            cylinder_target_cells = cylinder_target_cells.astype(int)
-            cylinder_target_cells = cylinder_target_cells.tolist()
-            # print(id_stim)
-            return cylinder_target_cells
-
-    def _targets_cell_type(self):
-        """
-            Target all cells of certain cell types
-        """
-
-    def _targets_representatives(self):
-        target_types = [
-            cell_model.cell_type
-            for cell_model in self.adapter.cell_models.values()
-            if not cell_model.cell_type.relay
-        ]
-        if hasattr(self, "cell_types"):
-            target_types = list(filter(lambda c: c.name in self.cell_types, target_types))
-        target_ids = [cell_type.get_ids() for cell_type in target_types]
-        representatives = [
-            random.choice(type_ids) for type_ids in target_ids if len(target_ids) > 0
-        ]
-        return representatives
-
-    def _targets_by_id(self):
-        return self.targets
-
-    def get_targets(self):
-        """
-            Return the targets of the device.
-        """
-        return self._get_targets()
-
-    # Define new targetting methods above this line or they will not be registered.
-    targetting_types = [s[9:] for s in vars().keys() if s.startswith("_targets_")]
-
-
-@config.dynamic(
-    attr_name="type", class_map={"cell_type": "bsb.simulation.CellTypeTargetting"}
-)  # auto_class_map=True)
+@config.dynamic(attr_name="type", auto_classmap=True)
 class NeuronTargetting:
-    type = config.attr(type=types.in_(TargetsNeurons.targetting_types), required=True)
-    cell_types = config.attr(type=types.list(type=str))
-    options = config.catch_all(type=types.any())
-
     def __init__(self, parent):
         self.device = parent
 
@@ -247,7 +132,7 @@ class NeuronTargetting:
 
 
 @config.node
-class CellTypeTargetting(NeuronTargetting):  # , class_map_entry="cell_type"):
+class CellTypeTargetting(NeuronTargetting, classmap_entry="cell_type"):
     """
         Targetting mechanism (use ``"type": "cell_type"``) to target all identifiers of
         certain cell types.
@@ -261,6 +146,100 @@ class CellTypeTargetting(NeuronTargetting):  # , class_map_entry="cell_type"):
         for set in sets:
             ids.extend(set.identifiers)
         return ids
+
+
+@config.node
+class RepresentativesTargetting(NeuronTargetting, classmap_entry="representatives"):
+    """
+        Targetting mechanism (use ``"type": "representatives"``) to target all identifiers
+        of certain cell types.
+    """
+
+    cell_types = config.attr(type=types.list(type=str))
+
+    def get_targets(self):
+        filter_types = self.cell_types or self.adapter.cell_models.keys()
+        target_ids = [
+            cell_model.cell_type.get_placement_set().identifiers
+            for cell_model in self.adapter.cell_models.values()
+            if not cell_model.cell_type.relay and cell_model.name in filter_types
+        ]
+        representatives = [
+            random.choice(type_ids) for type_ids in target_ids if len(target_ids) > 0
+        ]
+        return representatives
+
+
+@config.node
+class ByIdTargetting(NeuronTargetting, classmap_entry="by_id"):
+    """
+        Targetting mechanism (use ``"type": "by_id"``) to target all given identifiers.
+    """
+
+    targets = config.attr(type=types.list(type=int), required=True)
+
+    def get_targets(self):
+        return self.targets
+
+
+@config.node
+class CylindricalTargetting(NeuronTargetting, classmap_entry="cylinder"):
+    """
+        Targetting mechanism (use ``"type": "cylinder"``) to target all cells in a
+        horizontal cylinder (xz circle expanded along y).
+    """
+
+    cell_types = config.attr(type=types.list(type=str))
+    origin = config.attr(type=types.list(type=float, size=2))
+    radius = config.attr(type=float, required=True)
+
+    def boot(self):
+        if self.cell_types is None:
+            self.cell_types = [m.cell_type for m in self.adapter.cell_models.values()]
+        if self.origin is None:
+            network = self.scaffold.configuration.network
+            self.origin = [network.x / 2, network.z / 2]
+
+    def get_targets(self):
+        """
+            Target all or certain cells within a cylinder of specified radius.
+        """
+        sets = [self.scaffold.get_placement_set(t) for t in self.cell_types]
+        targets = []
+        for set in sets:
+            if not set.positions:
+                continue
+            distances = np.sum((set.positions[:, [0, 2]] - self.origin) ** 2)
+            targets.extend(set.identifiers[distances <= self.radius])
+        return np.array(targets)
+
+
+@config.node
+class SphericalTargetting(NeuronTargetting, classmap_entry="sphere"):
+    """
+        Targetting mechanism (use ``"type": "sphere"``) to target all cells in a sphere.
+    """
+
+    cell_types = config.attr(type=types.list(type=str))
+    origin = config.attr(type=types.list(type=float, size=3), required=True)
+    radius = config.attr(type=float, required=True)
+
+    def boot(self):
+        if self.cell_types is None:
+            self.cell_types = [m.cell_type for m in self.adapter.cell_models.values()]
+
+    def get_targets(self):
+        """
+            Target all or certain cells within a cylinder of specified radius.
+        """
+        sets = [self.scaffold.get_placement_set(t) for t in self.cell_types]
+        targets = []
+        for set in sets:
+            if not set.positions:
+                continue
+            distances = np.sum((set.positions - self.origin) ** 2)
+            targets.extend(set.identifiers[distances <= self.radius])
+        return np.array(targets)
 
 
 class TargetsSections:
