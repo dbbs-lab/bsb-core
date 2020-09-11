@@ -6,7 +6,7 @@ _t(
         SpatialDimensionError=_e(),
         ConfigurationError=_e(
             ConfigurationFormatError=_e(),
-            DynamicClassError=_e(ConfigurableClassNotFoundError=_e(),),
+            DynamicClassError=_e(ClassMapMissingError=_e(),),
             CastError=_e(
                 UnionCastError=_e(),
                 ConfigurableCastError=_e(
