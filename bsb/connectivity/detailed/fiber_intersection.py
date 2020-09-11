@@ -2,10 +2,10 @@ import numpy as np
 import math
 from ..strategy import ConnectionStrategy
 from .shared import MorphologyStrategy
-from ...helpers import DistributionConfiguration
 from ...models import MorphologySet
+from ... import config
+from ...config import types
 from ...exceptions import *
-from ...helpers import ConfigurableClass
 from ...networks import FiberMorphology, Branch
 from ...plotting import plot_fiber_morphology
 from ...reporting import report, warn
@@ -16,6 +16,23 @@ from rtree import index
 from rtree.index import Rtree
 
 
+class FiberTransform(abc.ABC):
+    def boot(self):
+        self._branch_cut_num = 0
+
+    def transform_branches(self, branches, offset=None):
+        if offset is None:
+            offset = np.zeros(3)
+        for branch in branches:
+            self.transform_branch(branch, offset)
+            self.transform_branches(branch.child_branches, offset)
+
+    @abc.abstractmethod
+    def transform_branch(self):
+        pass
+
+
+@config.node
 class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
     """
         FiberIntersection connection strategies voxelize a fiber and find its intersections with postsynaptic cells.
@@ -33,28 +50,11 @@ class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
 
     """
 
-    casts = {
-        "affinity": float,
-        "contacts": DistributionConfiguration.cast,
-        "resolution": float,
-        "to_plot": list,
-    }
-
-    defaults = {
-        "affinity": 1.0,
-        "contacts": DistributionConfiguration.cast(1),
-        "resolution": 20.0,
-        "to_plot": [],
-        "transformation": None,
-    }
-
-    def initialise(self, scaffold):
-        super().initialise(scaffold)
-        if self.transformation is not None:
-            self.transformation.initialise(self.scaffold)
-
-    def validate(self):
-        pass
+    affinity = config.attr(default=1.0)
+    contacts = config.attr(type=types.distribution(), default=1)
+    resolution = config.attr(default=20.0)
+    to_plot = config.attr(type=list)
+    transformation = config.attr(type=FiberTransform)
 
     def connect(self):
         scaffold = self.scaffold
@@ -313,24 +313,6 @@ class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
             )
 
         return bounding_box, voxel_tree, map, voxel_list
-
-
-class FiberTransform(ConfigurableClass):
-    def __init__(self):
-        super().__init__()
-        self._branch_cut_num = 0
-
-    def transform_branches(self, branches, offset=None):
-        if offset is None:
-            offset = np.zeros(3)
-
-        for branch in branches:
-            self.transform_branch(branch, offset)
-            self.transform_branches(branch.child_branches, offset)
-
-    @abc.abstractmethod
-    def transform_branch(self):
-        pass
 
 
 class QuiverTransform(FiberTransform):

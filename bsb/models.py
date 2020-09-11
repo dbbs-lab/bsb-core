@@ -1,7 +1,6 @@
 import numpy as np, random
 from .morphologies import Morphology as BaseMorphology
 from .helpers import (
-    ConfigurableClass,
     dimensions,
     origin,
     SortableByAfter,

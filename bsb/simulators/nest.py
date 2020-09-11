@@ -2,10 +2,10 @@ from ..simulation import (
     SimulatorAdapter,
     SimulationComponent,
     CellModel,
+    NeuronTargetting,
     TargetsNeurons,
 )
 from ..models import ConnectivitySet
-from ..helpers import ListEvalConfiguration
 from ..reporting import report, warn
 from ..exceptions import *
 from .. import config
@@ -105,6 +105,7 @@ class NestCell(CellModel, MapsScaffoldIdentifiers):
 
 @config.node
 class NestConnectionSettings:
+    rule = config.attr(type=str)
     weight = config.attr(type=float, required=True)
     delay = config.attr(type=types.distribution(), required=True)
 
@@ -209,19 +210,16 @@ class NestConnection(SimulationComponent):
         return receptors[from_cell_model.name]
 
 
-class NestDevice(TargetsNeurons, SimulationComponent):
-    node_name = "simulations.?.devices"
-
-    casts = {
-        "radius": float,
-        "origin": [float],
-        "parameters": dict,
-        "stimulus": ListEvalConfiguration.cast,
-    }
-
-    defaults = {"connection": {"rule": "all_to_all"}, "synapse": None}
-
-    required = ["targetting", "device", "io", "parameters"]
+@config.node
+class NestDevice:
+    name = config.attr(type=str, key=True)
+    device = config.attr(type=str, required=True)
+    parameters = config.dict(
+        type=types.or_(types.evaluation(), types.distribution(), types.any())
+    )
+    # connection = config.attr(type=NestConnectionSettings, default=dict(rule="all_to_all", weight=1, delay=0))
+    targetting = config.attr(type=NeuronTargetting)
+    io = config.attr(type=types.in_(["input", "output"]))
 
     def validate(self):
         # Fill in the _get_targets method, so that get_target functions

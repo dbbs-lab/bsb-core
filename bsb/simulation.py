@@ -1,8 +1,8 @@
-import abc, random, types
+import abc, random
 import numpy as np
 from . import config
-from .config import refs
-from .helpers import ConfigurableClass, assert_attr, SortableByAfter
+from .config import refs, types
+from .helpers import SortableByAfter
 from .reporting import report
 from .exceptions import *
 from . import plugins
@@ -38,7 +38,6 @@ class SimulationComponent(SortableByAfter):
 
 @config.node
 class CellModel(SimulationComponent):
-    name = config.attr(key=True)
     cell_type = config.ref(refs.cell_type_ref, key="name")
 
     def is_relay(self):
@@ -51,12 +50,19 @@ class CellModel(SimulationComponent):
 
 @config.node
 class ConnectionModel(SimulationComponent):
-    name = config.attr(key=True)
+    pass
 
 
 @config.node
 class DeviceModel(SimulationComponent):
-    name = config.attr(key=True)
+    pass
+
+
+class ProgressEvent:
+    def __init__(progression, duration, time):
+        self.progression = progression
+        self.duration = duration
+        self.time = time
 
 
 @config.pluggable(key="simulator", plugin_name="simulator adapter")
@@ -75,40 +81,6 @@ class SimulatorAdapter:
     def __init__(self):
         self.entities = {}
         self._progress_listeners = []
-
-    def get_configuration_classes(self):
-        if not hasattr(self.__class__, "simulator_name"):
-            raise AttributeMissingError(
-                "The SimulatorAdapter {} is missing the class attribute 'simulator_name'".format(
-                    self.__class__
-                )
-            )
-        # Check for the 'configuration_classes' class attribute
-        if not hasattr(self.__class__, "configuration_classes"):
-            raise AdapterError(
-                "The '{}' adapter class needs to set the 'configuration_classes' class attribute to a dictionary of configurable classes (str or class).".format(
-                    self.simulator_name
-                )
-            )
-        classes = self.configuration_classes
-        keys = ["cell_models", "connection_models", "devices"]
-        # Check for the presence of required classes
-        for requirement in keys:
-            if requirement not in classes:
-                raise AdapterError(
-                    "{} adapter: The 'configuration_classes' dictionary requires a class under the '{}' key.".format(
-                        self.simulator_name, requirement
-                    )
-                )
-        # Test if they are all children of the ConfigurableClass class
-        for class_key in keys:
-            if not issubclass(classes[class_key], ConfigurableClass):
-                raise AdapterError(
-                    "{} adapter: The configuration class '{}' should inherit from ConfigurableClass".format(
-                        self.simulator_name, class_key
-                    )
-                )
-        return self.configuration_classes
 
     @abc.abstractmethod
     def prepare(self, hdf5, simulation_config):
@@ -135,9 +107,7 @@ class SimulatorAdapter:
 
     def progress(self, progression, duration):
         report("Simulated {}/{}ms".format(progression, duration), level=3, ongoing=True)
-        progress = types.SimpleNamespace(
-            progression=progression, duration=duration, time=time()
-        )
+        progress = ProgressEvent(progression, duration, time())
         for listener in self._progress_listeners:
             listener(progress)
 
@@ -226,25 +196,6 @@ class TargetsNeurons:
         """
             Target all cells of certain cell types
         """
-        cell_types = [self.scaffold.get_cell_type(t) for t in self.cell_types]
-        if len(cell_types) != 1:
-            # Compile a list of the different cell type cells.
-            target_cells = np.array([])
-            for t in cell_types:
-                if t.entity:
-                    ids = self.scaffold.get_entities_by_type(t.name)
-                else:
-                    ids = self.scaffold.get_cells_by_type(t.name)[:, 0]
-                target_cells = np.hstack((target_cells, ids))
-            return target_cells
-        else:
-            # Retrieve a single list
-            t = cell_types[0]
-            if t.entity:
-                ids = self.scaffold.get_entities_by_type(t.name)
-            else:
-                ids = self.scaffold.get_cells_by_type(t.name)[:, 0]
-            return ids
 
     def _targets_representatives(self):
         target_types = [
@@ -270,7 +221,46 @@ class TargetsNeurons:
         return self._get_targets()
 
     # Define new targetting methods above this line or they will not be registered.
-    neuron_targetting_types = [s[9:] for s in vars().keys() if s.startswith("_targets_")]
+    targetting_types = [s[9:] for s in vars().keys() if s.startswith("_targets_")]
+
+
+@config.dynamic(
+    attr_name="type", class_map={"cell_type": "bsb.simulation.CellTypeTargetting"}
+)  # auto_class_map=True)
+class NeuronTargetting:
+    type = config.attr(type=types.in_(TargetsNeurons.targetting_types), required=True)
+    cell_types = config.attr(type=types.list(type=str))
+    options = config.catch_all(type=types.any())
+
+    def __init__(self, parent):
+        self.device = parent
+
+    def boot(self):
+        self.adapter = self.device.adapter if self.device is not None else None
+
+    def get_targets(self):
+        raise NotImplementedError(
+            "Targetting mechanism '{}' did not implement a `get_targets` method".format(
+                self.type
+            )
+        )
+
+
+@config.node
+class CellTypeTargetting(NeuronTargetting):  # , class_map_entry="cell_type"):
+    """
+        Targetting mechanism (use ``"type": "cell_type"``) to target all identifiers of
+        certain cell types.
+    """
+
+    cell_types = config.attr(type=types.list(type=str), required=True)
+
+    def get_targets(self):
+        sets = [self.scaffold.get_placement_set(t) for t in self.cell_types]
+        ids = []
+        for set in sets:
+            ids.extend(set.identifiers)
+        return ids
 
 
 class TargetsSections:

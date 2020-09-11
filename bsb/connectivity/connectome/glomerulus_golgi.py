@@ -1,6 +1,5 @@
 import numpy as np
 from ..strategy import ConnectionStrategy
-from ...helpers import DistributionConfiguration
 from ...functions import get_distances
 from scipy.stats.distributions import truncexpon
 from ... import config
@@ -14,7 +13,7 @@ class ConnectomeGlomerulusGolgi(ConnectionStrategy):
     """
 
     detailed = config.attr(type=bool, default=False)
-    contacts = config.attr(type=types.any(), default=DistributionConfiguration.cast(1))
+    contacts = config.attr(type=types.distribution(), default=1)
 
     def validate(self):
         if self.detailed:

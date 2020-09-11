@@ -1,4 +1,3 @@
-from .helpers import ConfigurableClass
 from .reporting import report, warn
 from scipy.stats import truncnorm
 import numpy as np
@@ -8,10 +7,7 @@ from .config import types
 
 
 @config.dynamic
-class PostProcessingHook(ConfigurableClass):
-    def validate(self):
-        pass
-
+class PostProcessingHook:
     def after_placement(self):
         raise NotImplementedError(
             "`after_placement` hook not defined on " + self.__class__.__name__

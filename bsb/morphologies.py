@@ -1,5 +1,4 @@
 import abc, numpy as np, pickle, h5py, math
-from .helpers import ConfigurableClass
 from .voxels import VoxelCloud, detect_box_compartments, Box
 from sklearn.neighbors import KDTree
 from .exceptions import *
@@ -100,7 +99,7 @@ class Compartment:
         return record
 
 
-class Morphology(ConfigurableClass):
+class Morphology:
     """
         A multicompartmental spatial representation of a cell based on connected 3D
         compartments.

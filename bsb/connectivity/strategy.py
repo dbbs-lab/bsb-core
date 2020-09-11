@@ -1,6 +1,6 @@
 from .. import config
 from ..config import refs, types
-from ..helpers import ConfigurableClass, SortableByAfter
+from ..helpers import SortableByAfter
 from ..functions import compute_intersection_slice
 from ..models import ConnectivitySet
 import abc
@@ -18,7 +18,7 @@ class HemitypeNode:
 
 
 @config.dynamic
-class ConnectionStrategy(ConfigurableClass, SortableByAfter):
+class ConnectionStrategy(SortableByAfter):
     presynaptic = config.attr(type=HemitypeNode, required=True)
     postsynaptic = config.attr(type=HemitypeNode, required=True)
     after = config.attr(type=types.list())

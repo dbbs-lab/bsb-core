@@ -1,5 +1,4 @@
 from .strategy import Layered, PlacementStrategy
-from ..helpers import assert_attr_array
 import math, numpy as np
 from ..exceptions import *
 from ..reporting import report, warn
@@ -23,7 +22,7 @@ class Satellite(PlacementStrategy):
         super().initialise(scaffold)
 
     def validate(self):
-        self.after = assert_attr_array(self, "planet_types", self.name)
+        self.after = self.planet_types
         self.planet_cell_types = [self.scaffold.get_cell_type(p) for p in self.after]
         if self.layer is not None:
             warn(

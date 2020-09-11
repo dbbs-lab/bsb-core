@@ -48,7 +48,9 @@ def node(node_cls, root=False, dynamic=False, pluggable=False):
     return node_cls
 
 
-def dynamic(node_cls=None, attr_name="class", **kwargs):
+def dynamic(
+    node_cls=None, attr_name="class", class_map=None, auto_class_map=False, **kwargs
+):
     """
         Decorate a class to be castable to a dynamically configurable class using
         a class configuration attribute

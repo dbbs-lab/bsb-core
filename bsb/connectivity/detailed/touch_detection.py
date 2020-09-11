@@ -1,10 +1,6 @@
 import numpy as np
 from ..strategy import ConnectionStrategy
 from .shared import MorphologyStrategy
-from ...helpers import (
-    DistributionConfiguration,
-    assert_attr_in,
-)
 from ...reporting import report, warn
 from random import sample as sample_elements
 from ... import config
@@ -21,6 +17,9 @@ class TouchInformation:
         self.to_cell_compartments = to_cell_compartments
 
 
+_planes = ["xyz", "xy", "xz", "yz", "x", "y", "z"]
+
+
 @config.node
 class TouchDetector(ConnectionStrategy, MorphologyStrategy):
     """
@@ -29,24 +28,10 @@ class TouchDetector(ConnectionStrategy, MorphologyStrategy):
 
     compartment_intersection_radius = config.attr(type=float, default=5.0)
     cell_intersection_radius = config.attr(type=float)
-    cell_intersection_plane = config.attr(default="xyz")
-    synapses = config.attr(type=types.any, default=DistributionConfiguration.cast(1))
-    allow_zero_synapses = config.attr(type=bool, default=False)
-
-    def validate(self):
-        planes = ["xyz", "xy", "xz", "yz", "x", "y", "z"]
-        assert_attr_in(
-            self.__dict__,
-            "cell_intersection_plane",
-            planes,
-            "connection_types.{}".format(self.name),
-        )
-        assert_attr_in(
-            self.__dict__,
-            "compartment_intersection_plane",
-            planes,
-            "connection_types.{}".format(self.name),
-        )
+    cell_intersection_plane = config.attr(type=types.in_(_planes), default="xyz")
+    compartment_intersection_plane = config.attr(type=types.in_(_planes), default="xyz")
+    contacts = config.attr(type=types.distribution(), default=1)
+    allow_zero_contacts = config.attr(type=bool, default=False)
 
     def connect(self):
         # Create a dictionary to cache loaded morphologies.

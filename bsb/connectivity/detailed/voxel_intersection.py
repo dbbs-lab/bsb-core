@@ -1,7 +1,6 @@
 import numpy as np
 from ..strategy import ConnectionStrategy
 from .shared import MorphologyStrategy
-from ...helpers import DistributionConfiguration
 from ...models import MorphologySet
 from ...exceptions import *
 from ... import config
@@ -21,7 +20,7 @@ class VoxelIntersection(ConnectionStrategy, MorphologyStrategy):
     """
 
     affinity = config.attr(type=types.fraction(), default=1)
-    contacts = config.attr(type=types.any(), default=DistributionConfiguration.cast(1))
+    contacts = config.attr(type=types.distribution(), default=1)
     voxels_pre = config.attr(type=int, default=50)
     voxels_post = config.attr(type=int, default=50)
 

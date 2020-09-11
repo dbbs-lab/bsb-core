@@ -1,5 +1,4 @@
 from ..exceptions import *
-from ..helpers import ConfigurableClass
 import abc
 from ..exceptions import *
 from ..reporting import report, warn
