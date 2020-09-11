@@ -32,15 +32,15 @@ Simulator backends
 
 If you'd like to install the scaffold builder for point neuron simulations with NEST or multicompartmental neuron simulations with NEURON use:
 
-  .. code-block:: bash
+.. code-block:: bash
 
-    pip3 install bsb[nest]
-		# or
-    pip3 install bsb[neuron]
-		# or both
-		pip3 install bsb[nest,neuron]
+  pip3 install bsb[nest]
+  # or
+  pip3 install bsb[neuron]
+  # or both
+  pip3 install bsb[nest,neuron]
 
 .. note::
 
-	This does not install the simulators, just the requirements for the scaffold builder
-	to simulate using these backends.
+	This does not install the simulators, just the Python requirements for the framework
+	to handle simulations using these backends.
