@@ -272,6 +272,15 @@ class _ConstantDistribution:
 
 
 def constant_distr():
+    """
+        Type handler that turns a float into a distribution that always returns the float.
+        This can be used in places where a distribution is expected but the user might
+        want to use a single constant value instead.
+
+        :returns: Type validator function
+        :rtype: function
+    """
+
     def type_handler(value):
         return _ConstantDistribution(_float(value))
 
@@ -280,6 +289,13 @@ def constant_distr():
 
 
 def distribution():
+    """
+        Type validator. Type casts a float to a constant distribution or a dict to a
+        :class:`Distribution <.config.nodes.Distribution>` node.
+
+        :returns: Type validator function
+        :rtype: function
+    """
     from .nodes import Distribution
 
     return or_(constant_distr(), Distribution)

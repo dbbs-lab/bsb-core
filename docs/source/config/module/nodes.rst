@@ -71,8 +71,35 @@ class to create the node.
 
 .. note::
 
-	This class needs to inherit from the node class on which the ``@dynamic`` decorator is
-	applied.
+	The child class needs to inherit from the node class on which the ``@dynamic`` decorator
+	is applied.
+
+
+Classmaps
+---------
+
+A preset map of shorter entries can be given to be mapped to an absolute or
+relative class path, or a class object:
+
+.. code-block:: python
+
+   @dynamic(class_map={"short": "pkg.with.a.long.name.DynClass"})
+   class Example:
+       pass
+
+If ``short`` is used the dynamic class will resolve to ``pkg.with.a.long.name.DynClass``.
+Automatic class maps can be generated using the ``auto_class_map`` attribute:
+
+.. code-block:: python
+
+  @dynamic(auto_class_map=True)
+  class Example:
+    pass
+
+  class MappedChild(Example, class_map_entry="short"):
+    pass
+
+This will generate a mapping from ``short`` to the ``MappedChild`` class.
 
 Root node
 =========
