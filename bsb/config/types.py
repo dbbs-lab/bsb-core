@@ -319,3 +319,27 @@ def evaluation():
 
     type_handler.__name__ = "evaluation"
     return type_handler
+
+
+def in_classmap():
+    """
+        Type validator. Checks whether the given string occurs in the class map of a
+        dynamic node.
+
+        :returns: Type validator function
+        :rtype: function
+    """
+
+    def type_handler(value, parent):
+        if not hasattr(parent.__class__, "_config_dynamic_classmap"):
+            raise ClassMapMissingError(
+                "Class map missing on '{}' in '{}'".format(
+                    parent.__class__.__name__, parent.get_node_name()
+                )
+            )
+
+        return value in parent.__class__._config_dynamic_classmap
+
+    type_handler.__name__ = "a classmap value"
+    type_handler.__casting__ = True
+    return type_handler
