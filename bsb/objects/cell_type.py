@@ -34,3 +34,6 @@ class CellType:
     plotting = config.attr(type=Plotting)
     relay = config.attr(type=bool, default=False)
     entity = config.attr(type=bool, default=False)
+
+    def get_placement_set(self):
+        return self.scaffold.get_placement_set(self.name)
