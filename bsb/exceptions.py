@@ -14,6 +14,8 @@ _t(
                 ),
             ),
             CastConfigurationError=_e(),
+            RequirementError=_e(),
+            ReferenceError=_e(),
         ),
         TypeNotFoundError=_e(),
         LayerNotFoundError=_e(),
@@ -27,7 +29,7 @@ _t(
                 ReceptorSpecificationError=_e(),
             )
         ),
-        ConnectivityError=_e(),
+        ConnectivityError=_e(FiberTransformError=_e(QuiverFieldError=_e(),),),
         MorphologyError=_e(
             MorphologyRepositoryError=_e(),
             MissingMorphologyError=_e(),
@@ -41,10 +43,16 @@ _t(
             DatasetNotFoundError=_e(IntersectionDataNotFoundError=_e(),),
             DataNotFoundError=_e(),
             AttributeMissingError=_e(),
+            UnknownStorageEngineError=_e(),
         ),
         DataNotProvidedError=_e(),
+        PluginError=_e("plugin"),
+        ParserError=_e(
+            JsonParseError=_e(JsonReferenceError=_e(), JsonImportError=_e(),),
+        ),
+        OrderError=_e(),
+        ClassError=_e(),
     ),
-    PluginError=_e("plugin"),
 )
 
 
@@ -84,15 +92,4 @@ class SimulationWarning(ScaffoldWarning):
 
 
 class KernelWarning(SimulationWarning):
-    pass
-
-
-## Misc
-
-
-class OrderError(ScaffoldError):
-    pass
-
-
-class ClassError(ScaffoldError):
     pass
