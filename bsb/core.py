@@ -98,7 +98,7 @@ class Scaffold:
         elif storage is not None:
             config = storage.load_config()
         else:
-            from scaffold.storage import Storage
+            from bsb.storage import Storage
 
             if config is None:
                 config = Configuration.default()

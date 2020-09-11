@@ -22,7 +22,7 @@ Another verification method is to import the package in a Python script:
 
 .. code-block:: python
 
-  from scaffold.core import Scaffold
+  from bsb.core import Scaffold
 
   # Create a rather empty scaffold network with the default configuration.
   scaffold = Scaffold()

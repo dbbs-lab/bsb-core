@@ -50,8 +50,8 @@ configuration:
 
 .. code-block:: python
 
-  from scaffold.core import Scaffold
-  from scaffold.config import from_json
+  from bsb.core import Scaffold
+  from bsb.config import from_json
 
   config = from_json("config.json")
   scaffold = Scaffold(config)
@@ -129,7 +129,7 @@ result:
 
 	scaffold -c=config.json compile -p
 
-<EXTRA CELL TYPE + CONNECTION TYPES> 
+<EXTRA CELL TYPE + CONNECTION TYPES>
 
 .. note::
 

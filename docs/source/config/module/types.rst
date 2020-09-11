@@ -24,8 +24,8 @@ Examples
 
 .. code-block:: python
 
-  from scaffold import config
-  from scaffold.config import types
+  from bsb import config
+  from bsb.config import types
 
   @config.node
   class TestNode
