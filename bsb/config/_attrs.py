@@ -235,8 +235,11 @@ class ConfigurationAttribute:
             # Don't cast None to a value of the attribute type.
             return _setattr(instance, self.attr_name, None)
         if self.type.__casting__:
+            # If the `__casting__` flag is set, the type casting method wants to be
+            # responsible for exception handling and we should not handle them here.
             value = self.type(value, parent=instance, key=key)
         else:
+            # The `__casting__` flag is not set so we're responsible to catch exceptions.
             try:
                 value = self.type(value, parent=instance, key=key)
             except:
