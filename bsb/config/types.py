@@ -1,5 +1,5 @@
 from ..exceptions import *
-import math
+import math, sys
 
 
 def any():
@@ -54,6 +54,74 @@ def or_(*type_args):
         else:
             raise TypeError("Couldn't cast {} into {}".format(value, handler_name))
         return v
+
+    type_handler.__name__ = handler_name
+    return type_handler
+
+
+_int = int
+
+
+def int(min=None, max=None):
+    """
+        Type validator. Attempts to cast the value to an int, optionally within some
+        bounds.
+
+        :param min: Minimum valid value
+        :type min: int
+        :param max: Maximum valid value
+        :type max: int
+        :returns: Type validator function
+        :raises: TypeError when value can't be cast.
+        :rtype: function
+    """
+    handler_name = "int"
+    if min is not None and max is not None:
+        handler_name += " between [{}, {}]".format(min, max)
+    elif min is not None:
+        handler_name += " >= {}".format(min)
+    elif max is not None:
+        handler_name += " <= {}".format(max)
+
+    def type_handler(value):
+        try:
+            return _int(value)
+        except:
+            raise TypeError("Could not cast {} to an {}.".format(value, handler_name))
+
+    type_handler.__name__ = handler_name
+    return type_handler
+
+
+_float = float
+
+
+def float(min=None, max=None):
+    """
+        Type validator. Attempts to cast the value to an float, optionally within some
+        bounds.
+
+        :param min: Minimum valid value
+        :type min: float
+        :param max: Maximum valid value
+        :type max: float
+        :returns: Type validator function
+        :raises: TypeError when value can't be cast.
+        :rtype: function
+    """
+    handler_name = "float"
+    if min is not None and max is not None:
+        handler_name += " between [{}, {}]".format(min, max)
+    elif min is not None:
+        handler_name += " >= {}".format(min)
+    elif max is not None:
+        handler_name += " <= {}".format(max)
+
+    def type_handler(value):
+        try:
+            return _int(value)
+        except:
+            raise TypeError("Could not cast {} to an {}.".format(value, handler_name))
 
     type_handler.__name__ = handler_name
     return type_handler
@@ -138,7 +206,7 @@ def fraction():
     """
 
     def type_handler(value):
-        v = float(value)
+        v = _float(value)
         if v < 0.0 or v > 1.0:
             raise ValueError("{} is out of the 0-1 range for a fraction.".format(value))
         return v
@@ -156,8 +224,8 @@ def deg_to_radian():
     """
 
     def type_handler(value):
-        v = float(value)
-        return float(v) * 2 * math.pi / 360
+        v = _float(value)
+        return _float(v) * 2 * math.pi / 360
 
     type_handler.__name__ = "degrees"
     return type_handler

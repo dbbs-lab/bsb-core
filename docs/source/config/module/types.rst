@@ -39,6 +39,8 @@ Examples
     required_string = config.attr(type=str, required=True)
     # Float
     some_number = config.attr(type=float)
+		# types.float / types.int
+    bounded_float = config.attr(type=types.float(min=0.3, max=17.9))
     # Float, int or bool (attempted to cast in that order)
     combined = config.attr(type=types.or_(float, int, bool))
     # Another node
