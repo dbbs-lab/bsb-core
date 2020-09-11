@@ -1,5 +1,5 @@
 from . import __version__
-from .helpers import ConfigurableClass, get_qualified_class_name
+from .helpers import get_qualified_class_name
 from .morphologies import Morphology, TrueMorphology, Compartment
 from bsb.helpers import suppress_stdout
 from contextlib import contextmanager
@@ -140,10 +140,9 @@ class HDF5TreeHandler(HDF5Engine, TreeHandler):
                 )
 
 
-class Storage(ConfigurableClass, TreeHandler):
+class Storage(TreeHandler):
     def __init__(self):
-        ConfigurableClass.__init__(self)
-        TreeHandler.__init__(self)
+        super().__init__()
         self.save_file_as = None
 
     @abstractmethod
