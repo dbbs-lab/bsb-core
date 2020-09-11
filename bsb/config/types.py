@@ -1,5 +1,6 @@
 from ..exceptions import *
 from ._attrs import _wrap_handler_pk
+from ._make import _load_class
 import math, sys, numpy as np
 
 _any = any
@@ -88,6 +89,29 @@ def or_(*type_args):
 
     type_handler.__name__ = handler_name
     type_handler.__casting__ = is_casting
+    return type_handler
+
+
+def class_(module_path=None):
+    """
+        Type validator. Attempts to import the value as the name of a class, relative to
+        the `module_path` entries, absolute or just returning it if it is already a class.
+
+        :param module_path: List of the modules that should be searched when doing a
+          relative import.
+        :type module_path: list of module
+        :returns: Type validator function
+        :raises: TypeError when value can't be cast.
+        :rtype: function
+    """
+
+    def type_handler(value):
+        try:
+            return _load_class(value, module_path)
+        except:
+            raise TypeError("Could not import {} as a class".format(value))
+
+    type_handler.__name__ = "class"
     return type_handler
 
 
@@ -207,7 +231,7 @@ def list(type=str, size=None):
         # Simple lists default to returning None for None, while configuration lists
         # default to an empty list.
         if value is None:
-            return
+            return None
         v = _list(value)
         try:
             for i, e in enumerate(v):
@@ -225,6 +249,36 @@ def list(type=str, size=None):
     type_handler.__name__ = "list{} of {}".format(
         "[{}]".format(size) if size is not None else "", type.__name__
     )
+    return type_handler
+
+
+_dict = dict
+
+
+def dict(type=str):
+    """
+        Type validator for dicts. Type casts each element to the given type.
+
+        :param type: Type validator of the elements.
+        :type type: function
+        :returns: Type validator function
+        :rtype: function
+    """
+
+    def type_handler(value):
+        if value is None:
+            return None
+        v = _dict(value)
+        try:
+            for k, e in v.items():
+                v[k] = type(e)
+        except:
+            raise TypeError(
+                "Couldn't cast {} of {} into {}".format(k, value, type.__name__)
+            )
+        return v
+
+    type_handler.__name__ = "dict of {}".format(type.__name__)
     return type_handler
 
 
@@ -290,7 +344,7 @@ def constant_distr():
 
 def distribution():
     """
-        Type validator. Type casts a float to a constant distribution or a dict to a
+        Type validator. Type casts a float to a constant distribution or a _dict to a
         :class:`Distribution <.config.nodes.Distribution>` node.
 
         :returns: Type validator function
@@ -311,9 +365,9 @@ def evaluation():
     """
 
     def type_handler(value):
-        cfg = dict(value)
+        cfg = _dict(value)
         statement = cfg.get("statement", "'None'")
-        locals = dict(cfg.get("variables", {}))
+        locals = _dict(cfg.get("variables", {}))
         globals = {"np": np}
         return eval(statement, globals, locals)
 
