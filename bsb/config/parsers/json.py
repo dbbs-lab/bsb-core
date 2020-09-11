@@ -22,7 +22,7 @@ class parsed_node:
         return carry
 
     def __str__(self):
-        return self.location()
+        return "<parsed config '{}'>".format(self.location())
 
 
 def _traverse_wrap(node, iter):
