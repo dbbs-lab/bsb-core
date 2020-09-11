@@ -385,6 +385,12 @@ class TestDynamic(unittest.TestCase):
             NotInherited,
         )
 
+    def test_dynamic_classmap(self):
+        raise NotImplementedError("Luie zak")
+
+    def test_dynamic_autoclassmap(self):
+        raise NotImplementedError("Luie zak")
+
 
 class TestWalk(unittest.TestCase):
     def test_walk_values(self):
@@ -490,3 +496,12 @@ class TestTypes(unittest.TestCase):
         b = Test.__cast__({"c": 0.1}, TestRoot())
         self.assertEqual(b.c, 0.1)
         self.assertRaises(CastError, Test.__cast__, {"c": -0.1}, TestRoot())
+
+    def test_constant_distribution(self):
+        raise NotImplementedError("Luie zak")
+
+    def test_distribution(self):
+        raise NotImplementedError("Luie zak")
+
+    def test_evaluation(self):
+        raise NotImplementedError("Luie zak")

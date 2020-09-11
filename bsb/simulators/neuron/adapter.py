@@ -3,8 +3,7 @@ from ...simulation import (
     CellModel,
     ConnectionModel,
     DeviceModel,
-    TargetsNeurons,
-    TargetsSections,
+    NeuronTargetting,
 )
 from ... import config
 from ...config import types
@@ -15,39 +14,21 @@ import random, os, sys
 import numpy as np
 
 
+@config.node
 class NeuronCell(CellModel):
-    node_name = "simulations.?.cell_models"
-
-    casts = {
-        "record_soma": bool,
-        "record_spikes": bool,
-        "parameters": dict,
-    }
-
-    defaults = {
-        "record_soma": False,
-        "record_spikes": False,
-        "parameters": {},
-        "entity": False,
-    }
+    model = config.attr(
+        type=types.class_(), required=lambda s: not ("relay" in s and s["relay"])
+    )
+    record_soma = config.attr(default=False)
+    record_spikes = config.attr(default=False)
+    entity = config.attr(default=False)
 
     def boot(self):
         super().boot()
         self.instances = []
-        if not self.relay:
-            self.model_class = get_configurable_class(self.model)
-        self.cell_type = self.scaffold.get_cell_type(self.name)
 
     def __getitem__(self, i):
         return self.instances[i]
-
-    def validate(self):
-        if not self.relay and not hasattr(self, "model"):
-            raise ConfigurationError(
-                "Missing required attribute 'model' in " + self.get_config_node()
-            )
-        if not self.relay:
-            self.model_class = get_configurable_class(self.model)
 
     def get_parameters(self):
         # Get the default synapse parameters
@@ -55,46 +36,25 @@ class NeuronCell(CellModel):
         return params
 
 
+_str_list = types.list(type=str)
+
+
+@config.node
 class NeuronConnection(ConnectionModel):
-    node_name = "simulations.?.connection_models"
-
-    required = ["synapse"]
-
-    def validate(self):
-        pass
+    synapse = config.attr(
+        type=types.or_(types.dict(type=_str_list), _str_list), required=True
+    )
 
     def resolve_synapses(self):
         return self.synapse if isinstance(self.synapse, list) else [self.synapse]
 
 
-@config.node
-class NeuronDevice(TargetsNeurons, TargetsSections, DeviceModel):
-    node_name = "simulations.?.devices"
-
-    device_types = [
-        "spike_generator",
-        "current_clamp",
-        "spike_recorder",
-        "voltage_recorder",
-    ]
-
+@config.dynamic(attr_name="device", type=types.in_classmap(), auto_classmap=True)
+class NeuronDevice(DeviceModel):
     radius = config.attr(type=float)
     origin = config.attr(type=types.list(type=float, size=3))
-    targetting = config.attr(required=True)
-    device = config.attr(type=types.in_(device_types), required=True)
+    targetting = config.attr(type=NeuronTargetting, required=True)
     io = config.attr(type=types.in_(["input", "output"]), required=True)
-
-    def validate(self):
-        if self.device not in self.__class__.device_types:
-            raise ConfigurationError(
-                "Unknown device '{}' for {}".format(self.device, self.get_config_node())
-            )
-        if self.targetting == "cell_type" and not hasattr(self, "cell_types"):
-            raise ConfigurationError(
-                "Device '{}' targets cells using the 'cell_type' mechanism, but does not specify the required 'cell_types' attribute.".format(
-                    self.name
-                )
-            )
 
     def create_patterns(self):
         raise NotImplementedError(
@@ -115,13 +75,6 @@ class NeuronDevice(TargetsNeurons, TargetsSections, DeviceModel):
             "The "
             + self.__class__.__name__
             + " device does not implement any `implement` function."
-        )
-
-    def validate_specifics(self):
-        raise NotImplementedError(
-            "The "
-            + self.__class__.__name__
-            + " device does not implement any `validate_specifics` function."
         )
 
     def get_locations(self, target):
