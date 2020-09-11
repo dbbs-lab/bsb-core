@@ -17,15 +17,13 @@ class TouchInformation:
         self.to_cell_compartments = to_cell_compartments
 
 
-_planes = ["xyz", "xy", "xz", "yz", "x", "y", "z"]
-
-
 @config.node
 class TouchDetector(ConnectionStrategy, MorphologyStrategy):
     """
         Connectivity based on intersection of detailed morphologies
     """
 
+    _planes = ["xyz", "xy", "xz", "yz", "x", "y", "z"]
     compartment_intersection_radius = config.attr(type=float, default=5.0)
     cell_intersection_radius = config.attr(type=float)
     cell_intersection_plane = config.attr(type=types.in_(_planes), default="xyz")
