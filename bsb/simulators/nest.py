@@ -41,7 +41,8 @@ class MapsScaffoldIdentifiers:
 
 def _merge_with_parameters(node, d, k, v):
     params = node.parameters.copy()
-    d[k] = params.update(v)
+    params.update(v)
+    d[k] = params
 
 
 @config.node
@@ -66,7 +67,7 @@ class NestCell(CellModel, MapsScaffoldIdentifiers):
         for model_name, model_parameters in self.model_parameters.items():
             if "receptors" in model_parameters:
                 # Transfer the receptor specifications
-                self.receptor_specifications[neuron_model] = model_parameters["receptors"]
+                self.receptor_specifications[model_name] = model_parameters["receptors"]
                 del model_parameters["receptors"]
 
     def validate(self):
