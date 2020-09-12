@@ -414,11 +414,14 @@ class ConfigurationDictAttribute(ConfigurationAttribute):
 
 
 class ConfigurationReferenceAttribute(ConfigurationAttribute):
-    def __init__(self, reference, key=None, ref_type=None, populate=None, **kwargs):
+    def __init__(
+        self, reference, key=None, ref_type=None, populate=None, pop_unique=True, **kwargs
+    ):
         self.ref_lambda = reference
         self.ref_key = key
         self.ref_type = ref_type
         self.populate = populate
+        self.pop_unique = pop_unique
         self.resolve_on_set = False
         self.root = None
         # No need to cast to any types: the reference we fetch will already have been cast
@@ -481,7 +484,9 @@ class ConfigurationReferenceAttribute(ConfigurationAttribute):
     def populate_reference(self, instance, reference):
         if self.populate:
             if hasattr(reference, self.populate):
-                getattr(reference, self.populate).append(instance)
+                population = getattr(reference, self.populate)
+                if not self.pop_unique or reference not in population:
+                    population.append(instance)
             else:
                 setattr(reference, self.populate, [instance])
 
