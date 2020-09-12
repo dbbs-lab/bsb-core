@@ -22,7 +22,7 @@ class Configuration:
     storage = attr(type=StorageNode, required=True)
     network = attr(type=NetworkNode, required=True)
     regions = dict(type=Region)
-    layers = dict(type=Layer, required=True)
+    partitions = dict(type=Layer, required=True)
     cell_types = dict(type=CellType, required=True)
     after_placement = dict(type=PostProcessingHook)
     connection_types = dict(type=ConnectionStrategy, required=True)

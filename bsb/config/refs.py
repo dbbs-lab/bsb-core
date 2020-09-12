@@ -27,14 +27,14 @@ class CellTypeReference(Reference):
         return isinstance(value, CellType)
 
 
-class LayerReference(Reference):
+class PartitionReference(Reference):
     def __call__(self, root, here):
-        return root.layers
+        return root.partitions
 
     def is_ref(self, value):
-        from ..objects import Layer
+        from ..objects import Partition
 
-        return isinstance(value, Layer)
+        return isinstance(value, Partition)
 
 
 class RegionReference(Reference):
@@ -47,8 +47,21 @@ class RegionReference(Reference):
         return isinstance(value, Region)
 
 
+class RegionalReference(Reference):
+    def __call__(self, root, here):
+        merged = root.regions.copy()
+        merged.update(root.partitions)
+        return merged
+
+    def is_ref(self, value):
+        from ..objects import Region, Partition
+
+        return isinstance(value, Region) or isinstance(value, Partition)
+
+
 region_ref = RegionReference()
-layer_ref = LayerReference()
+regional_ref = RegionalReference()
+layer_ref = PartitionReference()
 cell_type_ref = CellTypeReference()
 
 __all__ = [k for k in vars().keys() if k.endswith("_ref") or k.endswith("__")]

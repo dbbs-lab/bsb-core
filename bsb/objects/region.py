@@ -1,11 +1,21 @@
 from .. import config
-from ..config import types
+from ..config import types, refs
 
-# Create a dynamic class that by default dynamically casts to this class.
-@config.dynamic(required=False, default="bsb.objects.Region")
+
+@config.dynamic(required=False, default="layer_stack", auto_classmap=True)
 class Region:
     name = config.attr(key=True)
-    origin = config.attr(type=types.list(type=float, size=3), required=True)
+    origin = config.attr(
+        type=types.list(type=float, size=3),
+        default=lambda: [0.0, 0.0, 0.0],
+        call_default=True,
+    )
+    partitions = config.reflist(refs.regional_ref)
 
     def __boot__(self):
         pass
+
+
+@config.node
+class LayerStack(Region, classmap_entry="layer_stack"):
+    pass
