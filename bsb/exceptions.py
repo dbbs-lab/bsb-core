@@ -15,7 +15,7 @@ _t(
             ),
             CastConfigurationError=_e(),
             RequirementError=_e(),
-            ReferenceError=_e(),
+            ReferenceError=_e(NoReferenceAttributeSignal=_e()),
         ),
         TypeNotFoundError=_e(),
         LayerNotFoundError=_e(),
