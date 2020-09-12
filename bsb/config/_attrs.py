@@ -192,6 +192,16 @@ def ref(reference, **kwargs):
     return ConfigurationReferenceAttribute(reference, **kwargs)
 
 
+def reflist(reference, **kwargs):
+    """
+        Create a configuration reference list.
+    """
+    if "default" not in kwargs:
+        kwargs["default"] = _list
+        kwargs["call_default"] = True
+    return ConfigurationReferenceListAttribute(reference, **kwargs)
+
+
 def slot(**kwargs):
     """
         Create an attribute slot that is required to be overriden by child or plugin
@@ -482,17 +492,80 @@ class ConfigurationReferenceAttribute(ConfigurationAttribute):
                 )
             )
         value = remote[key]
-        self.populate_reference(instance, value)
+        if self.populate:
+            self.populate_reference(instance, value)
         return value
 
     def populate_reference(self, instance, reference):
-        if self.populate:
-            if hasattr(reference, self.populate):
-                population = getattr(reference, self.populate)
-                if not self.pop_unique or reference not in population:
-                    population.append(instance)
+        # Remote descriptors can ask to handle populating itself by implementing a
+        # __populate__ method. Here we check if the method exists and if so defer to it.
+        if hasattr(reference.__class__, self.populate):
+            pop_attr = getattr(reference.__class__, self.populate)
+            if hasattr(pop_attr, "__populate__"):
+                return pop_attr.__populate__(reference, instance)
+
+        if (
+            hasattr(reference, self.populate)
+            and (population := getattr(reference, self.populate)) is not None
+        ):
+            population.append(instance)
+        else:
+            setattr(reference, self.populate, [instance])
+
+
+class ConfigurationReferenceListAttribute(ConfigurationReferenceAttribute):
+    def __set__(self, instance, value, key=None):
+        try:
+            remote_keys = _list(iter(value))
+        except TypeError:
+            raise ReferenceError(
+                "Reference list '{}' of {} is not iterable.".format(
+                    value, self.get_node_name(instance)
+                )
+            )
+        # Store the referring values to the references key.
+        setattr(instance, self.get_ref_key(), remote_keys)
+        if self.resolve_on_set:
+            remote = self.ref_lambda(self.root, instance)
+            refs = self.resolve_reference_list(instance, remote, remote_keys)
+            _setattr(instance, self.attr_name, refs)
+            print("After set", instance.name, len(getattr(instance, self.attr_name)))
+
+    def get_ref_key(self):
+        return self.ref_key or (self.attr_name + "_references")
+
+    def __ref__(self, instance, root):
+        try:
+            remote, remote_keys = self._prepare_self(instance, root)
+        except NoReferenceAttributeSignal:
+            return None
+        if _hasattr(instance, self.attr_name):
+            remote_keys.extend(_getattr(instance, self.attr_name))
+            remote_keys = list(set(remote_keys))
+        return self.resolve_reference_list(instance, remote, remote_keys)
+
+    def resolve_reference_list(self, instance, remote, remote_keys):
+        refs = []
+        for remote_key in remote_keys:
+            if not self.is_reference_value(remote_key):
+                reference = self.resolve_reference(instance, remote, remote_key)
             else:
-                setattr(reference, self.populate, [instance])
+                reference = remote_key
+                # Usually resolve_reference also populates, but since we have our ref
+                # already we skip it and should call populate_reference ourselves.
+                self.populate_reference(instance, reference)
+            refs.append(reference)
+        return refs
+
+    def __populate__(self, instance, value):
+        # Append the reference to the list of reference keys. (For lists ref keys & refs
+        # are equal)
+        if hasattr(instance, self.get_ref_key()):
+            getattr(instance, self.get_ref_key()).append(value)
+        # If the attr has already been resolved, also populate it. If not the populated
+        # item will be included when the ref keys list is resolved.
+        if hasattr(instance, self.attr_name):
+            getattr(instance, self.attr_name).append(value)
 
 
 class ConfigurationAttributeSlot(ConfigurationAttribute):

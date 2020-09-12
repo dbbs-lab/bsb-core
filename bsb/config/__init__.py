@@ -1,7 +1,19 @@
 import os, sys
 
 _list = list
-from ._attrs import attr, list, dict, node, root, dynamic, ref, slot, pluggable, catch_all
+from ._attrs import (
+    attr,
+    list,
+    dict,
+    node,
+    root,
+    dynamic,
+    ref,
+    reflist,
+    slot,
+    pluggable,
+    catch_all,
+)
 from ._make import walk_node_attributes, walk_nodes
 from ._hooks import on, before, after, run_hook, has_hook
 from .. import plugins
@@ -18,13 +30,14 @@ class ConfigurationModule:
     list = staticmethod(list)
     dict = staticmethod(dict)
     ref = staticmethod(ref)
+    reflist = staticmethod(reflist)
     slot = staticmethod(slot)
+    catch_all = staticmethod(catch_all)
 
     node = staticmethod(node)
     root = staticmethod(root)
     dynamic = staticmethod(dynamic)
     pluggable = staticmethod(pluggable)
-    catch_all = staticmethod(catch_all)
 
     walk_node_attributes = staticmethod(walk_node_attributes)
     walk_nodes = staticmethod(walk_nodes)
