@@ -239,6 +239,10 @@ def _getattr(instance, name):
     return instance.__dict__["_" + name]
 
 
+def _hasattr(instance, name):
+    return "_" + name in instance.__dict__
+
+
 class ConfigurationAttribute:
     def __init__(
         self, type=None, default=None, call_default=False, required=False, key=False,
