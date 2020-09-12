@@ -171,6 +171,24 @@ def attr(**kwargs):
 
 
 def ref(reference, **kwargs):
+    """
+        Create a configuration reference.
+
+        Configuration references are attributes that transform their value into the value
+        of another node or value in the document::
+
+          {
+            "keys": {
+                "a": 3,
+                "b": 5
+            },
+            "simple_ref": "a"
+          }
+
+        With ``simple_ref = config.ref(lambda root, here: here["keys"])`` the value ``a``
+        will be looked up in the configuration object (after all values have been cast) at
+        the location specified by the callable first argument.
+    """
     return ConfigurationReferenceAttribute(reference, **kwargs)
 
 
