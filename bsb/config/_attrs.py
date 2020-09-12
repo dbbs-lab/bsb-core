@@ -452,28 +452,38 @@ class ConfigurationReferenceAttribute(ConfigurationAttribute):
             return not isinstance(value, str)
 
     def __ref__(self, instance, root):
+        try:
+            remote, remote_key = self._prepare_self(instance, root)
+        except NoReferenceAttributeSignal:
+            return None
+        return self.resolve_reference(instance, remote, remote_key)
+
+    def _prepare_self(self, instance, root):
         self.root = root
         self.resolve_on_set = True
-        reference_parent = self.ref_lambda(root, instance)
-        reference_attr = self.get_ref_key()
-        if not hasattr(instance, reference_attr):
-            return None
-        reference_key = getattr(instance, reference_attr)
-        if reference_key not in reference_parent:
+        remote = self.ref_lambda(root, instance)
+        local_attr = self.get_ref_key()
+        if not hasattr(instance, local_attr):
+            raise NoReferenceAttributeSignal()
+        return remote, getattr(instance, local_attr)
+
+    def resolve_reference(self, instance, remote, key):
+        if key not in remote:
             raise ReferenceError(
                 "Reference '{}' of {} does not exist in {}".format(
-                    reference_key,
-                    self.get_node_name(instance),
-                    reference_parent.get_node_name(),
+                    key, self.get_node_name(instance), remote.get_node_name(),
                 )
             )
-        reference = reference_parent[reference_key]
+        value = remote[key]
+        self.populate_reference(instance, value)
+        return value
+
+    def populate_reference(self, instance, reference):
         if self.populate:
             if hasattr(reference, self.populate):
                 getattr(reference, self.populate).append(instance)
             else:
                 setattr(reference, self.populate, [instance])
-        return reference
 
 
 class ConfigurationAttributeSlot(ConfigurationAttribute):
