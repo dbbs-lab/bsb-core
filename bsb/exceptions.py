@@ -6,16 +6,21 @@ _t(
         SpatialDimensionError=_e(),
         ConfigurationError=_e(
             ConfigurationFormatError=_e(),
-            DynamicClassError=_e(ClassMapMissingError=_e(),),
+            DynamicClassError=_e(
+                DynamicClassNotFoundError=_e(),
+                DynamicClassInheritanceError=_e(),
+                ClassMapMissingError=_e(),
+            ),
             CastError=_e(
-                UnionCastError=_e(),
-                ConfigurableCastError=_e(
+                DistributionCastError=_e(
                     UnknownDistributionError=_e(), InvalidDistributionError=_e(),
                 ),
+                UnresolvedClassCastError=_e(),
+                UnfitClassCastError=_e(),
             ),
             CastConfigurationError=_e(),
             RequirementError=_e(),
-            ReferenceError=_e(NoReferenceAttributeSignal=_e()),
+            ReferenceError=_e(NoReferenceAttributeSignal=_e(),),
         ),
         TypeNotFoundError=_e(),
         LayerNotFoundError=_e(),
