@@ -240,6 +240,27 @@ class TestConfigRef(unittest.TestCase):
         )
 
 
+@config.root
+class BootRoot:
+    empty_list = config.reflist(lambda r, h: h)
+    none = config.reflist(lambda r, h: h, default=None)
+
+
+def _bootstrap(cfg, scaffold):
+    for node in config.walk_nodes(cfg):
+        node.scaffold = scaffold
+        config.run_hook(node, "boot")
+    return cfg
+
+
+class TestConfigRefList(unittest.TestCase):
+    def test_reflist_defaults(self):
+        root = BootRoot.__cast__({}, None)
+        _bootstrap(root, None)
+        self.assertEqual([], root.empty_list)
+        self.assertEqual([], root.none)
+
+
 class TestHooks(unittest.TestCase):
     def test_hooks(self):
         class Exc(Exception):
