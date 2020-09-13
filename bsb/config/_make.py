@@ -191,7 +191,7 @@ def make_dynamic_cast(node_cls, dynamic_config):
     def __dcast__(section, parent, key=None):
         if dynamic_attr.required(section):
             if attr_name not in section:
-                raise CastError(
+                raise RequirementError(
                     "Dynamic node '{}' must contain a '{}' attribute.".format(
                         parent.get_node_name() + ("." + key if key is not None else ""),
                         attr_name,
@@ -212,9 +212,22 @@ def make_dynamic_cast(node_cls, dynamic_config):
             dynamic_cls = _load_class(
                 loaded_cls_name, module_path, interface=node_cls, classmap=classmap
             )
+        except DynamicClassInheritanceError:
+            mapped_class_name = ""
+            if classmap and loaded_cls_name in classmap:
+                mapped_class_name = " ({})".format(classmap[loaded_cls_name])
+            raise UnfitClassCastError(
+                "'{}'{} is not a valid class for {}.{} as it does not inherit from {}".format(
+                    loaded_cls_name,
+                    mapped_class_name,
+                    parent.get_node_name(),
+                    attr_name,
+                    node_cls.__name__,
+                )
+            )
         except DynamicClassError:
-            raise CastError(
-                "Could resolve '{}' to a class in '{}.{}'".format(
+            raise UnresolvedClassCastError(
+                "Could not resolve '{}' to a class in '{}.{}'".format(
                     loaded_cls_name, parent.get_node_name(), attr_name
                 )
             )
@@ -295,7 +308,7 @@ def _load_class(cfg_classname, module_path, interface=None, classmap=None):
     qualname = lambda cls: cls.__module__ + "." + cls.__name__
     full_class_name = qualname(class_ref)
     if interface and not issubclass(class_ref, interface):
-        raise DynamicClassError(
+        raise DynamicClassInheritanceError(
             "Dynamic class '{}' must derive from {}".format(
                 class_name, qualname(interface)
             )
@@ -308,14 +321,14 @@ def _search_module_path(class_name, module_path, cfg_classname):
         module_dict = sys.modules[module_name].__dict__
         if class_name in module_dict:
             return module_dict[class_name]
-    raise DynamicClassError("Class not found: " + cfg_classname)
+    raise DynamicClassNotFoundError("Class not found: " + cfg_classname)
 
 
 def _get_module_class(class_name, module_name, cfg_classname):
     module_ref = __import__(module_name, globals(), locals(), [class_name], 0)
     module_dict = module_ref.__dict__
     if not class_name in module_dict:
-        raise DynamicClassError("Class not found: " + cfg_classname)
+        raise DynamicClassNotFoundError("Class not found: " + cfg_classname)
     return module_dict[class_name]
 
 
