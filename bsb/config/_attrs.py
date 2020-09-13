@@ -529,7 +529,6 @@ class ConfigurationReferenceListAttribute(ConfigurationReferenceAttribute):
             remote = self.ref_lambda(self.root, instance)
             refs = self.resolve_reference_list(instance, remote, remote_keys)
             _setattr(instance, self.attr_name, refs)
-            print("After set", instance.name, len(getattr(instance, self.attr_name)))
 
     def get_ref_key(self):
         return self.ref_key or (self.attr_name + "_references")
@@ -541,7 +540,7 @@ class ConfigurationReferenceListAttribute(ConfigurationReferenceAttribute):
             return None
         if _hasattr(instance, self.attr_name):
             remote_keys.extend(_getattr(instance, self.attr_name))
-            remote_keys = list(set(remote_keys))
+            remote_keys = _list(set(remote_keys))
         return self.resolve_reference_list(instance, remote, remote_keys)
 
     def resolve_reference_list(self, instance, remote, remote_keys):
@@ -553,7 +552,8 @@ class ConfigurationReferenceListAttribute(ConfigurationReferenceAttribute):
                 reference = remote_key
                 # Usually resolve_reference also populates, but since we have our ref
                 # already we skip it and should call populate_reference ourselves.
-                self.populate_reference(instance, reference)
+                if self.populate:
+                    self.populate_reference(instance, reference)
             refs.append(reference)
         return refs
 
