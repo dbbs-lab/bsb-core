@@ -109,14 +109,14 @@ def _cast_attributes(node, section, node_cls, key):
             attr.__set__(node, section[attr.attr_name], key=attr.attr_name)
         else:
             try:
+                # Call the requirement function: it either returns a boolean meaning we
+                # throw the error, or it can throw a more complex RequirementError itself.
                 throw = attr.required(section)
                 msg = "Missing required attribute '{}'".format(attr.attr_name)
             except RequirementError as e:
                 throw = True
                 msg = str(e)
             if throw:
-                # Call the requirement function: it either returns a boolean meaning we
-                # throw the error, or it can throw a more complex RequirementError itself.
                 raise RequirementError(msg + " in {}".format(node.get_node_name()))
         if attr.key and key is not None:
             # The attribute's value should be set to this node's key in its parent.
