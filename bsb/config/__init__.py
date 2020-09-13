@@ -17,6 +17,7 @@ from ._attrs import (
 from ._make import walk_node_attributes, walk_nodes
 from ._hooks import on, before, after, run_hook, has_hook
 from .. import plugins
+from ..exceptions import *
 
 
 _path = __path__
