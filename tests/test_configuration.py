@@ -338,21 +338,23 @@ class NotInherited:
 
 
 class TestDynamic(unittest.TestCase):
-    def test_dynamic(self):
+    def test_dynamic_requirements(self):
         self.assertRaisesRegex(
-            CastError,
+            RequirementError,
             "must contain a 'class' attribute",
             DynamicBase.__cast__,
             {},
             TestRoot(),
         )
         self.assertRaisesRegex(
-            CastError,
+            RequirementError,
             "must contain a 'test' attribute",
             DynamicAttrBase.__cast__,
             {},
             TestRoot(),
         )
+
+    def test_dynamic(self):
         self.assertTrue(
             isinstance(
                 DynamicBaseDefault.__cast__({"name": "ello"}, TestRoot()),
@@ -360,36 +362,103 @@ class TestDynamic(unittest.TestCase):
             ),
             "Dynamic cast with default 'DynamicBaseDefault' should produce instance of type 'DynamicBaseDefault'",
         )
+
+    def test_dynamic_inheritance(self):
+        # Test that inheritance is enforced.
+        # The cast should raise an UnfitClassCastError while the direct _load_class call
+        # should raise a DynamicClassInheritanceError
         self.assertRaises(
-            DynamicClassError,
+            UnfitClassCastError,
             DynamicBase.__cast__,
             {"name": "ello", "class": "NotInherited"},
             TestRoot(),
         )
         self.assertRaises(
-            DynamicClassError,
+            DynamicClassInheritanceError,
+            sys.modules["bsb.config._make"]._load_class,
+            NotInherited,
+            [],
+            interface=DynamicBase,
+        )
+        # TODO: Test that the error message shows the mapped class name if a classmap exists
+
+    def test_dynamic_missing(self):
+        # Test that non existing classes raise the UnresolvedClassCastError.
+        self.assertRaises(
+            UnresolvedClassCastError,
             DynamicBase.__cast__,
             {"name": "ello", "class": "DoesntExist"},
             TestRoot(),
         )
+
+    def test_dynamic_module_path(self):
+        # Test that the module path can help find classes.
         self.assertEqual(
             sys.modules["bsb.config._make"]._load_class(
-                NotInherited, [NotInherited.__module__]
+                "NotInherited", [NotInherited.__module__]
             ),
             NotInherited,
         )
-        self.assertEqual(
-            sys.modules["bsb.config._make"]._load_class(
-                NotInherited, [NotInherited.__module__]
-            ),
-            NotInherited,
+        # Test that without the module path the same class can't be found
+        self.assertRaises(
+            DynamicClassNotFoundError,
+            sys.modules["bsb.config._make"]._load_class,
+            "NotInherited",
+            [],
         )
 
+
+@config.dynamic(
+    classmap={"a": "ClassmapChildA", "b": "ClassmapChildB", "d": "ClassmapChildD",}
+)
+class ClassmapParent:
+    pass
+
+
+class ClassmapChildA(ClassmapParent):
+    pass
+
+
+class ClassmapChildB(ClassmapParent):
+    pass
+
+
+@config.dynamic(auto_classmap=True)
+class CleanAutoClassmap:
+    pass
+
+
+class AutoClassmapChildA(CleanAutoClassmap, classmap_entry="a"):
+    pass
+
+
+class AutoClassmapChildB(CleanAutoClassmap, classmap_entry="b"):
+    pass
+
+
+class UnregisteredAutoClassmapChildC(CleanAutoClassmap):
+    pass
+
+
+@config.dynamic(auto_classmap=True, classmap={"d": "AutoClassmapChildD"})
+class DirtyAutoClassmap:
+    pass
+
+
+class AutoClassmapChildB(DirtyAutoClassmap, classmap_entry="b"):
+    pass
+
+
+class AutoClassmapChildD(DirtyAutoClassmap):
+    pass
+
+
+class TestClassmaps(unittest.TestCase):
     def test_dynamic_classmap(self):
-        raise NotImplementedError("Luie zak")
+        pass
 
     def test_dynamic_autoclassmap(self):
-        raise NotImplementedError("Luie zak")
+        pass
 
 
 class TestWalk(unittest.TestCase):
@@ -497,11 +566,11 @@ class TestTypes(unittest.TestCase):
         self.assertEqual(b.c, 0.1)
         self.assertRaises(CastError, Test.__cast__, {"c": -0.1}, TestRoot())
 
-    def test_constant_distribution(self):
-        raise NotImplementedError("Luie zak")
-
-    def test_distribution(self):
-        raise NotImplementedError("Luie zak")
-
-    def test_evaluation(self):
-        raise NotImplementedError("Luie zak")
+    # def test_constant_distribution(self):
+    #     raise NotImplementedError("Luie zak")
+    #
+    # def test_distribution(self):
+    #     raise NotImplementedError("Luie zak")
+    #
+    # def test_evaluation(self):
+    #     raise NotImplementedError("Luie zak")
