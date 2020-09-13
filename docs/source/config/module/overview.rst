@@ -201,8 +201,8 @@ list of values use the :class:`types.list <.config.types.list>` syntax instead.
 Configuration references
 ========================
 
-References refer to other locations in the configuration. In the configuration the configured string
-will be fetched from the referenced node:
+References refer to other locations in the configuration. In the configuration the
+configured string will be fetched from the referenced node:
 
 .. code-block:: json
 
@@ -225,11 +225,18 @@ and placed under ``where`` so that in the config object:
   >>> print(conf.where_reference)
   'A'
 
-They are defined inside of configuration nodes by passing a reference object to the
-``config.ref`` function. After the configuration has been cast all nodes are visited to
-check if they contain are a reference and if so the value from elsewhere in the
-configuration is retrieved, the original string from the configuration is also stored in
-``node.<ref>_reference`` as demonstrated in the example above.
+References are defined inside of configuration nodes by passing a :ref:`reference object
+<quick-reference-object>` to the ``config.ref`` function:
+
+.. code-block:: python
+  @config.node
+  class Locations:
+    locations = config.dict(type=str)
+    where = config.ref(lambda root, here: here["locations"])
+
+After the configuration has been cast all nodes are visited to check if they are a
+reference and if so the value from elsewhere in the configuration is retrieved. The
+original string from the configuration is also stored in ``node.<ref>_reference``.
 
 After the configuration is loaded it's possible to either give a new reference key
 (usually a string) or a new reference value. In most cases the configuration will
@@ -249,6 +256,34 @@ automatically detect what you're passing into the reference:
 
 As you can see, by passing the reference a string the object is fetched from the reference
 location, but we can also directly pass the object the reference string would point to.
+This behavior is controlled by the ``ref_type`` keyword argument on the ``config.ref``
+call and the ``is_ref`` method on the reference object. If neither is given it defaults to
+checking whether the value is an instance of ``str``:
+
+.. code-block:: python
+
+  @config.node
+  class CandySelect:
+    candies = config.dict(type=Candy)
+    special_candy = config.ref(lambda root, here: here.candies, ref_type=Candy)
+
+  class CandyReference(config.refs.Reference):
+    def __call__(self, root, here):
+      return here.candies
+
+    def is_ref(self, value):
+      return isinstance(value, Candy)
+
+  @config.node
+  class CandySelect:
+    candies = config.dict(type=Candy)
+    special_candy = config.ref(CandyReference())
+
+The above code will make sure that only ``Candy`` objects are seen as references and all
+other types are seen as keys that need to be looked up. It is recommended you do this even
+in trivial cases to prevent bugs.
+
+.. _quick-reference-object:
 
 Reference object
 ----------------
@@ -264,6 +299,84 @@ from which the reference value can be retrieved.
 
 This reference object would create the link seen in the first reference example. For more
 advanced uses of the reference object see :doc:`/config/module/ref`.
+
+Reference lists
+---------------
+
+Reference lists are akin to references but instead of a single key they are a list of
+reference keys:
+
+.. code-block:: json
+
+  {
+    "locations": {"A": "very close", "B": "very far"},
+    "where": ["A", "B"]
+  }
+
+Results in ``where=["very close", "very far"]``.
+
+
+Bidirectional references
+------------------------
+
+The object that a reference points to can be "notified" that it is being referenced by the
+``populate`` mechanism. This mechanism stores the referrer on the referee creating a
+bidirectional reference. If the ``populate`` argument is given to the ``config.ref`` call
+the referrer will append itself to the list on the referee under the attribute given by
+the value of the ``populate`` kwarg (or create a new list if it doesn't exist).
+
+.. code-block:: json
+
+  {
+    "containers": {
+      "A": {}
+    },
+    "elements": {
+      "a": {"container": "A"}
+    }
+  }
+
+.. code-block:: python
+  @config.node
+  class Container:
+    name = config.attr(key=True)
+    elements = config.attr(type=list, default=list, call_default=True)
+
+  @config.node
+  class Element:
+    container = config.ref(container_ref, populate="elements")
+
+This would result in ``cfg.containers.A.elements == [cfg.elements.a]``.
+
+You can overwrite the default *append or create* population behavior by creating a
+descriptor for the population attribute and define a ``__populate__`` method on it:
+
+.. code-block:: python
+
+  class PopulationAttribute:
+    # Standard property-like descriptor protocol
+    def __get__(self, instance, objtype=None):
+      if instance is None:
+        return self
+      if not hasattr(instance, "_population"):
+        instance._population = []
+      return instance._population
+
+    # Prevent population from being overwritten
+    # Merge with new values into a unique list instead
+    def __set__(self, instance, value):
+      instance._population = list(set(instance._population) + set(value))
+
+    # Example that only stores referrers if their name in the configuration is "square".
+    def __populate__(self, instance, value):
+      print("We're referenced in", value.get_node_name())
+      if value.get_node_name().endswith("square"):
+        self.__set__(instance, [value])
+      else:
+        print("We only store referrers coming from a .square configuration attribute")
+
+todo: Mention ``pop_unique``
+
 
 .. _configuration-casting:
 
