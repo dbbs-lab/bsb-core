@@ -11,8 +11,8 @@ with open("README.md", "r") as fh:
 
 requires = [
     "h5py>=2.9.0",
-    "numpy>=1.16.4",
-    "scipy>=1.3.1",
+    "numpy>=1.19.0",
+    "scipy>=1.5.2",
     "scikit-learn>=0.20.3",
     "plotly>=4.1.0",
     "colour>=0.1.5",
@@ -48,6 +48,7 @@ setuptools.setup(
         "bsb.engines": ["hdf5 = bsb.storage.engines.hdf5"],
         "bsb.config.parsers": ["json = bsb.config.parsers.json"],
     },
+    python_requires="~=3.8",
     install_requires=requires,
     project_urls={
         "Bug Tracker": "https://github.com/dbbs-lab/bsb/issues/",
