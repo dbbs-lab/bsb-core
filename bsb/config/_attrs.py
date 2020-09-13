@@ -514,6 +514,10 @@ class ConfigurationReferenceAttribute(ConfigurationAttribute):
 
 class ConfigurationReferenceListAttribute(ConfigurationReferenceAttribute):
     def __set__(self, instance, value, key=None):
+        if value is None:
+            setattr(instance, self.get_ref_key(), [])
+            _setattr(instance, self.attr_name, [])
+            return
         try:
             remote_keys = _list(iter(value))
         except TypeError:
@@ -535,7 +539,7 @@ class ConfigurationReferenceListAttribute(ConfigurationReferenceAttribute):
     def __ref__(self, instance, root):
         try:
             remote, remote_keys = self._prepare_self(instance, root)
-        except NoReferenceAttributeSignal:
+        except NoReferenceAttributeSignal:  # pragma: nocover
             return None
         if _hasattr(instance, self.attr_name):
             remote_keys.extend(_getattr(instance, self.attr_name))

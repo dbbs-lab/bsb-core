@@ -313,7 +313,15 @@ reference keys:
     "where": ["A", "B"]
   }
 
-Results in ``where=["very close", "very far"]``.
+Results in ``cfg.where == ["very close", "very far"]``. As with references you can set a
+new list and all items will either be looked up or kept as is if they're a reference value
+already.
+
+.. warning::
+
+	Appending elements to these lists currently does not convert the new value. Also note
+  that reference lists are quite indestructible; setting them to `None` just resets them
+  and the reference key list (``.<attr>_references``) to ``[]``.
 
 
 Bidirectional references
