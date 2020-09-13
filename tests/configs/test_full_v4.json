@@ -15,7 +15,7 @@
       "origin": [260.0, -400.0, 0.0]
     }
   },
-  "layers": {
+  "partitions": {
     "dcn_layer": {
       "thickness": 600,
       "xz_scale": [0.5, 0.5],
@@ -409,7 +409,7 @@
           }
         },
         "glomerulus": {
-          "neuron_model": "parrot_neuron"
+          "relay": true
         },
         "purkinje_cell": {
           "parameters": {
@@ -903,11 +903,7 @@
         "io_to_stellate": {
           "connection": {
             "weight":1.0,
-            "delay": {
-              "distribution": "truncnorm",
-              "a": 40.0,
-              "b": 70.0
-            }
+            "delay": 10.0
           },
           "synapse": {
             "static_synapse": {}
@@ -945,9 +941,11 @@
         "background_noise": {
           "device": "poisson_generator",
           "io": "input",
-          "targetting": "cylinder",
-          "radius": 150,
-          "cell_types": ["glomerulus"],
+          "targetting": {
+            "type": "cylinder",
+            "cell_types": ["glomerulus"],
+            "radius": 150
+          },
           "parameters": {
             "rate": 4.0,
             "start": 0.0,
@@ -957,9 +955,11 @@
         "tone_stim": {
           "device": "poisson_generator",
           "io": "input",
-          "targetting": "cylinder",
-          "radius": 150,
-          "cell_types": ["glomerulus"],
+          "targetting": {
+            "type": "cylinder",
+            "cell_types": ["glomerulus"],
+            "radius": 150
+          },
           "parameters": {
             "rate": 36.0,
             "start": 500.0,
@@ -969,16 +969,18 @@
         "puff_stim": {
           "device": "spike_generator",
           "io": "input",
-          "targetting": "cell_type",
-          "cell_types": ["io_cell"],
-          "parameters": {},
-          "stimulus": {
-            "parameter_name": "spike_times",
-            "statement": "list(np.round(np.linspace(start, start+duration, num_spikes)))",
-            "variables": {
-              "start": 750,
-              "duration": 10,
-              "num_spikes": 5
+          "targetting": {
+            "type": "cell_type",
+            "cell_types": ["io_cell"]
+          },
+          "parameters": {
+            "spike_times": {
+              "statement": "list(np.round(np.linspace(start, start+duration, num_spikes)))",
+              "variables": {
+                "start": 750,
+                "duration": 10,
+                "num_spikes": 5
+              }
             }
           },
           "connection_rule": {"rule": "one_to_one"},
@@ -987,8 +989,10 @@
         "record_glomerulus_spikes": {
           "device": "spike_detector",
           "io": "output",
-          "targetting": "cell_type",
-          "cell_types": ["glomerulus"],
+          "targetting": {
+            "type": "cell_type",
+            "cell_types": ["glomerulus"]
+          },
           "parameters": {
             "withgid": true,
             "withtime": true,
@@ -999,8 +1003,10 @@
         "record_dcn_spikes": {
          "device": "spike_detector",
          "io": "output",
-         "targetting": "cell_type",
-         "cell_types": ["dcn_cell"],
+         "targetting": {
+           "type": "cell_type",
+           "cell_types": ["dcn_cell"]
+         },
          "parameters": {
            "withgid": true,
            "withtime": true,
@@ -1011,8 +1017,10 @@
         "record_pc_spikes": {
          "device": "spike_detector",
          "io": "output",
-         "targetting": "cell_type",
-         "cell_types": ["purkinje_cell"],
+         "targetting": {
+           "type": "cell_type",
+           "cell_types": ["purkinje_cell"]
+         },
          "parameters": {
            "withgid": true,
            "withtime": true,
@@ -1023,8 +1031,10 @@
         "record_io_spikes": {
          "device": "spike_detector",
          "io": "output",
-         "targetting": "cell_type",
-         "cell_types": ["io_cell"],
+         "targetting": {
+           "type": "cell_type",
+           "cell_types": ["io_cell"]
+         },
          "parameters": {
            "withgid": true,
            "withtime": true,
@@ -1037,8 +1047,10 @@
         "mossy_fibers": {
           "device": "parrot_neuron",
           "io": "input",
-          "targetting": "local",
-          "cell_types": ["mossy_fibers"]
+          "targetting": {
+            "type": "local",
+            "cell_types": ["mossy_fibers"]
+          }
         }
       }
     }
