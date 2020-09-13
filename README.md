@@ -9,10 +9,12 @@ deadlines and will be solved at a later date.
 
 # BSB: A scaffold modelling framework
 This package is intended to facilitate spatially, topologically and morphologically
-detailed simulations of brain regions developed by the Department of Brain and 
+detailed simulations of brain regions developed by the Department of Brain and
 Behavioral Sciences at the University of Pavia.
 
 ## Installation
+
+The BSB requires Python 3.8+.
 
 ### pip
 
@@ -91,9 +93,9 @@ the original configuration file text, and you won't actually serialize the modif
 
 We will fix this by version 4.0
 
-## If MPI is installed but mpi4py is not undefined behavior may occur
+## If MPI is used but mpi4py is not installed undefined behavior may occur
 
-The amount of NEST virtual processes is determined by using mpi4py to get the amount of
-MPI processes. But if the package is not installed it is assumed no MPI simulations will
-be ran and the amount of virtual processes might be lower than expected when used in
+The BSB determines the amount of NEST virtual processes by using mpi4py to get the amount
+of MPI processes. But if the package is not installed it is assumed no MPI simulations
+will be ran and the amount of virtual processes might be lower than expected when used in
 combination with OpenMP. Be sure to `pip install` using the `[MPI]` requirement tag.

@@ -7,7 +7,7 @@ cache:
     - $HOME/.cache/pre-commit
 jobs:
   include:
-      python: 3.6
+      python: 3.8
       before_install:
         - export NEST_INSTALL_DIR=/home/travis/nest-$NEST_VERSION
         - wget https://neuron.yale.edu/ftp/neuron/versions/v7.7/nrn-7.7.x86_64-linux.deb

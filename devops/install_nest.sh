@@ -8,7 +8,7 @@ tar -xzf nest-simulator-$NEST_VERSION.tar.gz
 mkdir nest-simulator-$NEST_VERSION-build
 mkdir nest-install-$NEST_VERSION
 cd nest-simulator-$NEST_VERSION-build
-cmake -Dwith-python=3 -DPYTHON_EXECUTABLE=/home/travis/virtualenv/python3.6.7/bin/python3 -DPYTHON_LIBRARY=/opt/python/3.6.7/lib/libpython3.6m.so -DPYTHON_INCLUDE_DIR=/opt/python/3.6.7/include/python3.6m/ -DCMAKE_INSTALL_PREFIX:PATH=/home/travis/nest-$NEST_VERSION /home/travis/nest-simulator-$NEST_VERSION
+cmake -Dwith-python=3 -DPYTHON_EXECUTABLE=/home/travis/virtualenv/python3.8.0/bin/python3 -DPYTHON_LIBRARY=/opt/python/3.8.0/lib/libpython3.6m.so -DPYTHON_INCLUDE_DIR=/opt/python/3.6.7/include/python3.6m/ -DCMAKE_INSTALL_PREFIX:PATH=/home/travis/nest-$NEST_VERSION /home/travis/nest-simulator-$NEST_VERSION
 make
 make install
 cd $MY_BEFORE_DIR
