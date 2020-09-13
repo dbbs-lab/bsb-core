@@ -32,10 +32,9 @@ def node(node_cls, root=False, dynamic=False, pluggable=False):
 
     if hasattr(node_cls, "_config_attrs"):
         # If _config_attrs is already present on the class it's possible that we inherited
-        # it from our parent. If so we shouldn't update the parent's dictionary but create
-        # a new one and update it with our parent's and then ours.
-        n_attrs = {}
-        n_attrs.update(node_cls._config_attrs)
+        # it from our parent. If so we shouldn't update the parent's dictionary but copy
+        # it and update it with ours.
+        n_attrs = node_cls._config_attrs.copy()
         n_attrs.update(attrs)
         node_cls._config_attrs = n_attrs
     else:
