@@ -50,6 +50,16 @@ class TestConfiguration(unittest.TestCase):
     def test_missing_nodes(self):
         self.assertRaises(RequirementError, from_json, data="""{}""")
 
+    @unittest.expectedFailure
+    def test_no_unknown_attributes(self):
+        with self.assertWarns(ConfigurationWarning) as warning:
+            config = from_json(minimal_config)
+
+    @unittest.expectedFailure
+    def test_full_no_unknown_attributes(self):
+        with self.assertWarns(ConfigurationWarning) as warning:
+            config = from_json(full_config)
+
     def test_unknown_attributes(self):
         data = as_json(minimal_config)
         data["shouldntexistasattr"] = 15

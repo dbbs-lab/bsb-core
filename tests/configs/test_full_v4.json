@@ -320,8 +320,7 @@
     "io_to_purkinje": {
       "class": "bsb.connectivity.ConnectomeIOPurkinje",
       "presynaptic": {"type": "io_cell", "compartments": ["axon"], "with_label": "microzone-*"},
-      "postsynaptic": {"type": "purkinje_cell", "compartments": ["dendrites"], "with_label": "microzone-*"},
-      "divergence": 6
+      "postsynaptic": {"type": "purkinje_cell", "compartments": ["dendrites"], "with_label": "microzone-*"}
     },
     "io_to_basket": {
       "class": "bsb.connectivity.ConnectomeIOMolecular",
@@ -409,6 +408,9 @@
           }
         },
         "glomerulus": {
+          "relay": true
+        },
+        "mossy_fibers": {
           "relay": true
         },
         "purkinje_cell": {
@@ -983,8 +985,12 @@
               }
             }
           },
-          "connection_rule": {"rule": "one_to_one"},
-          "connection_parameters": {"model": "static_synapse", "weight":100.0, "delay": 1.0}
+          "connection": {
+            "rule": "one_to_one",
+            "model": "static_synapse",
+            "weight":100.0,
+            "delay": 1.0
+          }
         },
         "record_glomerulus_spikes": {
           "device": "spike_detector",
@@ -1040,16 +1046,6 @@
            "withtime": true,
            "to_file": true,
            "label": "io_spikes"
-          }
-        }
-    },
-      "entities": {
-        "mossy_fibers": {
-          "device": "parrot_neuron",
-          "io": "input",
-          "targetting": {
-            "type": "local",
-            "cell_types": ["mossy_fibers"]
           }
         }
       }

@@ -103,6 +103,7 @@ class NestCell(CellModel, MapsScaffoldIdentifiers):
 @config.node
 class NestConnectionSettings:
     rule = config.attr(type=str)
+    model = config.attr(type=str)
     weight = config.attr(type=float, required=True)
     delay = config.attr(type=types.distribution(), required=True)
 
@@ -218,7 +219,7 @@ class NestDevice(SimulationComponent):
     parameters = config.dict(
         type=types.or_(types.evaluation(), types.distribution(), types.any())
     )
-    # connection = config.attr(type=NestConnectionSettings, default=dict(rule="all_to_all", weight=1, delay=0))
+    connection = config.attr(type=NestConnectionSettings)
     targetting = config.attr(type=NeuronTargetting)
     io = config.attr(type=types.in_(["input", "output"]))
 
