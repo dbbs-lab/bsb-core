@@ -7,7 +7,7 @@
     "simulation_volume_x": 150.0,
     "simulation_volume_z": 150.0
   },
-  "layers": {
+  "partitions": {
 
   },
   "cell_types": {

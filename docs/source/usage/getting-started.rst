@@ -27,7 +27,7 @@ Let's create a barebones configuration file called ``config.json``
     "regions": {
 
     },
-    "layers": {
+    "partitions": {
 
     },
     "cell_types": {
@@ -84,7 +84,7 @@ Let's add a ``cortex`` region, with a ``base_layer`` and a ``lonely_cell`` type 
 				"origin": [0.0, 0.0, 0.0]
 			}
     },
-    "layers": {
+    "partitions": {
 			"base_layer": {
 	      "thickness": 600,
 	      "region": "cortex",

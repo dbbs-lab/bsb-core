@@ -27,7 +27,7 @@ The root node accepts the following attributes:
     "network_architecture": {
 
     },
-    "layers": {
+    "partitions": {
       "some_layer": {
 
       },
@@ -212,7 +212,7 @@ Example
 This example defines 2 layers in the same stack::
 
   {
-    "layers": {
+    "partitions": {
       "top_layer": {
       "thickness": 300,
         "stack": {

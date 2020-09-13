@@ -23,7 +23,7 @@ this:
     "regions": {
 
     },
-    "layers": {
+    "partitions": {
 
     },
     "cell_types": {

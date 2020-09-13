@@ -8,7 +8,7 @@
     "simulation_volume_x": 100.0,
     "simulation_volume_z": 100.0
   },
-  "layers": {
+  "partitions": {
     "granular_layer": {
       "thickness": 150.0,
       "origin": [0.0, 0.0, 0.0]

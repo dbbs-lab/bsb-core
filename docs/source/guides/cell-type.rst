@@ -53,7 +53,7 @@ Example
       "simulation_volume_x": 400.0,
       "simulation_volume_z": 400.0
     },
-    "layers": {
+    "partitions": {
       "granular_layer": {
         "origin": [0.0, 0.0, 0.0],
         "thickness": 150

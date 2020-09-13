@@ -36,7 +36,7 @@ class Configuration:
                 "storage": {"engine": "hdf5"},
                 "network": {"x": 200, "z": 200},
                 "cell_types": {},
-                "layers": {},
+                "partitions": {},
                 "connection_types": {},
             },
             None,
