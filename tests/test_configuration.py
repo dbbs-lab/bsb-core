@@ -433,6 +433,28 @@ class ClassmapChildB(ClassmapParent):
     pass
 
 
+class TestClassmaps(unittest.TestCase):
+    def test_dynamic_classmap(self):
+        a = ClassmapParent.__cast__({"class": "a"}, TestRoot())
+        self.assertEqual(ClassmapChildA, a.__class__, "Classmap failed")
+        b = ClassmapParent.__cast__({"class": "b"}, TestRoot())
+        self.assertEqual(ClassmapChildB, b.__class__, "Classmap failed")
+
+    def test_missing_classmap_entry(self):
+        self.assertRaises(
+            UnresolvedClassCastError, ClassmapParent.__cast__, {"class": "c"}, TestRoot()
+        )
+
+    def test_missing_classmap_class(self):
+        self.assertRaisesRegex(
+            UnresolvedClassCastError,
+            "'d' \(mapped to 'ClassmapChildD'\)",
+            ClassmapParent.__cast__,
+            {"class": "d"},
+            TestRoot(),
+        )
+
+
 @config.dynamic(auto_classmap=True)
 class CleanAutoClassmap:
     pass
@@ -455,7 +477,7 @@ class DirtyAutoClassmap:
     pass
 
 
-class AutoClassmapChildB(DirtyAutoClassmap, classmap_entry="b"):
+class AutoClassmapChildC(DirtyAutoClassmap, classmap_entry="c"):
     pass
 
 
@@ -463,12 +485,20 @@ class AutoClassmapChildD(DirtyAutoClassmap):
     pass
 
 
-class TestClassmaps(unittest.TestCase):
-    def test_dynamic_classmap(self):
-        pass
-
+class TestAutoClassmap(unittest.TestCase):
     def test_dynamic_autoclassmap(self):
-        pass
+        self.assertEqual(
+            {"a": AutoClassmapChildA, "b": AutoClassmapChildB},
+            CleanAutoClassmap._config_dynamic_classmap,
+            "Automatic classmap incorrect",
+        )
+
+    def test_combined_autoclassmap(self):
+        self.assertEqual(
+            {"c": AutoClassmapChildC, "d": "AutoClassmapChildD"},
+            DirtyAutoClassmap._config_dynamic_classmap,
+            "Automatic classmap with manual entry incorrect",
+        )
 
 
 class TestWalk(unittest.TestCase):

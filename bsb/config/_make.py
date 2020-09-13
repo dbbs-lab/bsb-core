@@ -213,24 +213,23 @@ def make_dynamic_cast(node_cls, dynamic_config):
                 loaded_cls_name, module_path, interface=node_cls, classmap=classmap
             )
         except DynamicClassInheritanceError:
-            mapped_class_name = ""
-            if classmap and loaded_cls_name in classmap:
-                mapped_class_name = " ({})".format(classmap[loaded_cls_name])
+            mapped_class_msg = _get_mapped_class_msg(loaded_cls_name, classmap)
             raise UnfitClassCastError(
                 "'{}'{} is not a valid class for {}.{} as it does not inherit from {}".format(
                     loaded_cls_name,
-                    mapped_class_name,
+                    mapped_class_msg,
                     parent.get_node_name(),
                     attr_name,
                     node_cls.__name__,
                 )
-            )
+            ) from None
         except DynamicClassError:
+            mapped_class_msg = _get_mapped_class_msg(loaded_cls_name, classmap)
             raise UnresolvedClassCastError(
-                "Could not resolve '{}' to a class in '{}.{}'".format(
-                    loaded_cls_name, parent.get_node_name(), attr_name
+                "Could not resolve '{}'{} to a class in '{}.{}'".format(
+                    loaded_cls_name, mapped_class_msg, parent.get_node_name(), attr_name
                 )
-            )
+            ) from None
         node = dynamic_cls(parent=parent)
         return node
 
@@ -238,6 +237,13 @@ def make_dynamic_cast(node_cls, dynamic_config):
     if dynamic_config.auto_classmap:
         _wrap_isc_auto_classmap(node_cls)
     return __dcast__
+
+
+def _get_mapped_class_msg(loaded_cls_name, classmap):
+    if classmap and loaded_cls_name in classmap:
+        return " (mapped to '{}')".format(classmap[loaded_cls_name])
+    else:
+        return ""
 
 
 def make_pluggable_cast(node_cls):
