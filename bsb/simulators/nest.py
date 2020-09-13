@@ -123,7 +123,6 @@ class NestConnection(SimulationComponent):
     is_teaching = config.attr(default=False)
 
     def boot(self):
-        super().boot()
         self.synapse_model = self.synapse_model or self.adapter.default_synapse_model
 
     def validate(self):
@@ -213,7 +212,7 @@ class NestConnection(SimulationComponent):
 
 
 @config.node
-class NestDevice:
+class NestDevice(SimulationComponent):
     name = config.attr(type=str, key=True)
     device = config.attr(type=str, required=True)
     parameters = config.dict(
@@ -257,7 +256,6 @@ class NestEntity(NestDevice, MapsScaffoldIdentifiers):
     node_name = "simulations.?.entities"
 
     def boot(self):
-        super().boot()
         self.reset_identifiers()
 
 
