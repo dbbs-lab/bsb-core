@@ -501,13 +501,14 @@ class ConfigurationReferenceAttribute(ConfigurationAttribute):
         if hasattr(reference.__class__, self.populate):
             pop_attr = getattr(reference.__class__, self.populate)
             if hasattr(pop_attr, "__populate__"):
-                return pop_attr.__populate__(reference, instance)
+                return pop_attr.__populate__(reference, instance, unique=self.pop_unique)
 
         if (
             hasattr(reference, self.populate)
             and (population := getattr(reference, self.populate)) is not None
         ):
-            population.append(instance)
+            if not self.pop_unique or instance not in population:
+                population.append(instance)
         else:
             setattr(reference, self.populate, [instance])
 
@@ -560,15 +561,22 @@ class ConfigurationReferenceListAttribute(ConfigurationReferenceAttribute):
             refs.append(reference)
         return refs
 
-    def __populate__(self, instance, value):
+    def __populate__(self, instance, value, unique=False):
+        should_ref = True
+        print("POPULATE ON REFLIST")
+        # If the attr has already been resolved, populate it. If not the populated
+        # item will be included later when the ref key list is resolved (because we'll add
+        # it to the ref key list below).
+        if hasattr(instance, self.attr_name):
+            population = getattr(instance, self.attr_name)
+            if not unique or instance not in population:
+                population.append(value)
+            else:
+                should_ref = False
         # Append the reference to the list of reference keys. (For lists ref keys & refs
         # are equal)
-        if hasattr(instance, self.get_ref_key()):
+        if should_ref and hasattr(instance, self.get_ref_key()):
             getattr(instance, self.get_ref_key()).append(value)
-        # If the attr has already been resolved, also populate it. If not the populated
-        # item will be included when the ref keys list is resolved.
-        if hasattr(instance, self.attr_name):
-            getattr(instance, self.attr_name).append(value)
 
 
 class ConfigurationAttributeSlot(ConfigurationAttribute):
