@@ -9,7 +9,7 @@ def discover(category, *args, **kwargs):
             advert = plugin.load()
             if hasattr(advert, "__plugin__"):
                 advert = advert.__plugin__
-            advert._scaffold_plugin = plugin
+            advert._bsb_plugin = plugin
             plugins[plugin.name] = advert
         except Exception as e:  # pragma: nocover
             errr.wrap(
