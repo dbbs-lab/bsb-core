@@ -675,12 +675,14 @@ def hdf5_gather_voltage_traces(handle, root, groups=None):
 
 @_figure
 @_input_highlight
-def plot_traces(traces, fig=None, show=True, legend=True):
+def plot_traces(traces, fig=None, show=True, legend=True, mod=None, cutoff=0):
     traces.order()
     subplots_fig = make_subplots(
         cols=1, rows=len(traces), subplot_titles=[trace.title for trace in traces]
     )
     subplots_fig.update_layout(height=len(traces) * 130)
+    if mod is not None:
+        mod(subplots_fig)
     # Overwrite the layout and grid of the single plot that is handed to us
     # to turn it into a subplots figure.
     fig._grid_ref = subplots_fig._grid_ref
@@ -690,10 +692,10 @@ def plot_traces(traces, fig=None, show=True, legend=True):
     for i, cell_traces in enumerate(traces):
         for j, trace in enumerate(cell_traces):
             showlegend = legends[j] not in legend_groups
+            trace.data = trace.data[cutoff:]
             fig.append_trace(
                 go.Scatter(
-                    x=trace.data[:, 0],
-                    y=trace.data[:, 1],
+                    y=trace.data,
                     legendgroup=legends[j],
                     name=legends[j],
                     showlegend=showlegend,
