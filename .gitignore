@@ -25,3 +25,4 @@ obfuscation/licenses
 
 # Ignore report files
 *.io
+*.vscode/
