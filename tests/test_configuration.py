@@ -286,6 +286,8 @@ class HasRefs:
     ref_cfg = config.ref(lambda r, h: r, ref_type=HasLists, populate="cfglist")
     ref = config.ref(lambda r, h: r, ref_type=HasLists, populate="list")
     ref_ref = config.ref(lambda r, h: r, ref_type=HasLists, populate="reflist")
+    ref_ref2 = config.ref(lambda r, h: r, ref_type=HasLists, populate="reflist")
+    reflist = config.reflist(lambda r, h: r, ref_type=HasLists, populate="list")
 
 
 @config.root
@@ -327,42 +329,60 @@ class TestPopulate(unittest.TestCase):
         )
 
     def test_populate_reflist_unique(self):
+        conf = {
+            "lists": {"reflist": []},
+            "referrers": {"ref_ref": "lists", "ref_ref2": "lists"},
+        }
+        pop_root = PopRoot.__cast__(conf, None)
+        _bootstrap(pop_root, None)
+        self.assertEqual(1, len(pop_root.lists.reflist))
+        self.assertEqual(pop_root.referrers, pop_root.lists.reflist[0])
+
+    @unittest.skip("See https://github.com/dbbs-lab/bsb/issues/94")
+    def test_populate_reflist_with_refkeys_unique(self):
+        # Test that unicity also takes into account existing reference keys.
         pop_root = PopRoot.__cast__(
-            {"lists": {"ref_ref": ["referrers"]}, "referrers": {"ref_ref": "lists"}}, None
+            {
+                "lists": {"reflist": ["referrers"]},
+                "referrers": {"ref_ref": "lists", "ref_ref2": "lists"},
+            },
+            None,
         )
         _bootstrap(pop_root, None)
-        self.assertEqual(
-            1,
-            len(pop_root.lists.reflist),
-            "`populate` config.reflist should have been unique",
-        )
-        self.assertEqual(
-            pop_root.referrers,
-            pop_root.lists.reflist[0],
-            "`populate` config.reflist failure",
-        )
+        self.assertEqual(1, len(pop_root.lists.reflist))
+        self.assertEqual(pop_root.referrers, pop_root.lists.reflist[0])
 
-    def test_populate_reflist_unique(self):
+    def test_populate_reflist_not_unique(self):
         HasRefs.ref_ref.pop_unique = False
         pop_root = PopRoot.__cast__(
             {
-                "lists": {"ref_ref": ["referrers", "refs2"]},
+                "lists": {"reflist": ["referrers", "refs2"]},
                 "referrers": {"ref_ref": "lists"},
                 "refs2": {"ref_ref": "lists"},
             },
             None,
         )
         _bootstrap(pop_root, None)
-        self.assertEqual(
-            2,
-            len(pop_root.lists.reflist),
-            "`populate` config.reflist should have been unique",
+        self.assertEqual(4, len(pop_root.lists.reflist))
+        self.assertEqual(pop_root.referrers, pop_root.lists.reflist[0])
+
+    def test_reflist_populate(self):
+        pop_root = PopRoot.__cast__(
+            {"lists": {}, "referrers": {"reflist": ["lists", "lists", "lists"]},}, None,
         )
-        self.assertEqual(
-            pop_root.referrers,
-            pop_root.lists.reflist[0],
-            "`populate` config.reflist failure",
+        _bootstrap(pop_root, None)
+        self.assertEqual(1, len(pop_root.lists.list), "Reflist did not populate uniquely")
+        self.assertEqual(pop_root.referrers, pop_root.lists.list[0])
+
+    @unittest.skip("See https://github.com/dbbs-lab/bsb/issues/94")
+    def test_no_unique_reflist_populate(self):
+        HasRefs.reflist.pop_unique = False
+        pop_root = PopRoot.__cast__(
+            {"lists": {}, "referrers": {"reflist": ["lists", "lists", "lists"]},}, None,
         )
+        _bootstrap(pop_root, None)
+        self.assertEqual(3, len(pop_root.lists.list))
+        self.assertEqual(pop_root.referrers, pop_root.lists.list[0])
 
 
 class TestHooks(unittest.TestCase):
