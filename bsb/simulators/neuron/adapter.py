@@ -16,6 +16,14 @@ import numpy as np
 import traceback
 
 
+try:
+    import neuron
+
+    _has_neuron = True
+except ImportError:
+    _has_neuron = False
+
+
 class NeuronCell(SimulationCell):
     node_name = "simulations.?.cell_models"
 
@@ -35,7 +43,7 @@ class NeuronCell(SimulationCell):
     def boot(self):
         super().boot()
         self.instances = []
-        if not self.relay:
+        if not self.relay and _has_neuron:
             self.model_class = get_configurable_class(self.model)
         self.cell_type = self.scaffold.get_cell_type(self.name)
 
@@ -47,7 +55,7 @@ class NeuronCell(SimulationCell):
             raise ConfigurationError(
                 "Missing required attribute 'model' in " + self.get_config_node()
             )
-        if not self.relay:
+        if not self.relay and _has_neuron:
             self.model_class = get_configurable_class(self.model)
 
     def get_parameters(self):
