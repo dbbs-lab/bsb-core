@@ -692,7 +692,6 @@ def plot_traces(traces, fig=None, show=True, legend=True, mod=None, cutoff=0):
     for i, cell_traces in enumerate(traces):
         for j, trace in enumerate(cell_traces):
             showlegend = legends[j] not in legend_groups
-            print(trace.data)
             trace.data = trace.data[cutoff:]
             fig.append_trace(
                 go.Scatter(
