@@ -148,4 +148,6 @@ class TargetsSections:
             sections = [s for s in cell.sections if self.section_type in s.labels]
         else:
             sections = cell.soma
+        if self.section_count == "all":
+            return sections
         return [random.choice(sections) for _ in range(self.section_count)]

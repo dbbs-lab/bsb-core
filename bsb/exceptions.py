@@ -19,13 +19,14 @@ _t(
         LayerNotFoundError=_e(),
         SimulationNotFoundError=_e(),
         AdapterError=_e(
+            NeuronError=_e(DeviceConnectionError=_e(),),
             NestError=_e(
                 NestKernelError=_e(NestModuleError=_e(),),
                 NestModelError=_e(),
                 KernelLockedError=_e(),
                 SuffixTakenError=_e(),
                 ReceptorSpecificationError=_e(),
-            )
+            ),
         ),
         ConnectivityError=_e(),
         MorphologyError=_e(

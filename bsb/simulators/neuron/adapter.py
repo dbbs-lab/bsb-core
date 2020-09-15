@@ -4,17 +4,16 @@ from ...simulation import (
     SimulationCell,
     TargetsNeurons,
     TargetsSections,
+    SimulationResult,
+    SimulationRecorder,
 )
 from ...helpers import get_configurable_class
 from ...reporting import report, warn
 from ...models import ConnectivitySet
-from ...exceptions import (
-    MissingMorphologyError,
-    IntersectionDataNotFoundError,
-    ConfigurationError,
-)
+from ...exceptions import *
 import random, os, sys
 import numpy as np
+import traceback
 
 
 class NeuronCell(SimulationCell):
@@ -77,6 +76,7 @@ class NeuronDevice(TargetsNeurons, TargetsSections, SimulationComponent):
         "current_clamp",
         "spike_recorder",
         "voltage_recorder",
+        "synapse_recorder",
     ]
 
     casts = {
@@ -138,10 +138,25 @@ class NeuronDevice(TargetsNeurons, TargetsSections, SimulationComponent):
                 section = cell.sections[section_id]
                 locations.append((cell, section))
         elif target in self.adapter.node_cells:
-            cell = self.adapter.cells[target]
+            try:
+                cell = self.adapter.cells[target]
+            except KeyError:
+                raise DeviceConnectionError(
+                    "Missing cell {} on node {} while trying to implement device '{}'. This can occur if the cell was placed in the network but not represented with a model in the simulation config.".format(
+                        target, self.adapter.pc_id, self.name
+                    )
+                )
             sections = self.target_section(cell)
             locations.extend((cell, section) for section in sections)
         return locations
+
+
+class PatternlessDevice:
+    def create_patterns(*args, **kwargs):
+        pass
+
+    def get_pattern(*args, **kwargs):
+        pass
 
 
 class NeuronEntity:
@@ -222,7 +237,6 @@ class NeuronAdapter(SimulatorAdapter):
 
         self.validate_prepare()
         self.h = simulator
-        self.recorders = []
 
         simulator.dt = self.resolution
         simulator.celsius = self.temperature
@@ -239,6 +253,7 @@ class NeuronAdapter(SimulatorAdapter):
             all_nodes=True,
         )
         t = time()
+        self.init_result()
         self.create_neurons()
         t = time() - t
         simulator.parallel.barrier()
@@ -300,6 +315,16 @@ class NeuronAdapter(SimulatorAdapter):
         report("Simulator preparation took", round(time() - t0, 2), "seconds")
         return simulator
 
+    def init_result(self):
+        self.result = SimulationResult()
+        if self.pc_id == 0:
+            # Record the time
+            self.result.create_recorder(
+                lambda: tuple(["time"]),
+                lambda: np.array(self.h.time),
+                lambda: {"resolution": self.resolution, "duration": self.duration},
+            )
+
     def load_balance(self):
         pc = self.h.parallel
         self.nhost = pc.nhost()
@@ -317,7 +342,6 @@ class NeuronAdapter(SimulatorAdapter):
         pc.barrier()
         report("Simulating...", level=2)
         pc.set_maxstep(10)
-        simulator.finitialize(-65.0)
         simulator.finitialize(self.initial)
         progression = 0
         while progression < self.duration:
@@ -342,30 +366,30 @@ class NeuronAdapter(SimulatorAdapter):
                 with h5py.File(
                     "results_" + self.name + "_" + timestamp + ".hdf5", "a"
                 ) as f:
-                    for recorder in self.recorders:
-                        y = list(recorder.recorder)
-                        x = list(
-                            recorder.time_recorder
-                            or np.arange(0, len(y) * self.resolution, self.resolution)
-                        )
-                        # Because of NEURON's strange way of measuring time differently
-                        # on each node, and just unreliably in general with respect to how
-                        # simple it should be to divide 1.0 by 0.1 into 10 pieces but
-                        # NEURON sometimes making that a funky 9 or spicy 11 pieces; we
-                        # should check and trim the data arrays to be a uniform size.
-                        if len(x) > len(y):
-                            x = x[: len(y)]
-                        if len(y) > len(x):
-                            y = y[: len(x)]
-                        data = np.column_stack((x, y))
-                        path = "recorders/" + recorder.group + "/" + str(recorder.tag)
-                        if path in f:
-                            data = np.vstack((f[path][()], data))
-                            del f[path]
-                        d = f.create_dataset(path, data=data)
-                        if hasattr(recorder, "meta"):
-                            for k, v in recorder.meta.items():
+                    for path, data, meta in self.result.safe_collect():
+                        try:
+                            path = "/".join(path)
+                            if path in f:
+                                data = np.concatenate((f[path][()], data))
+                                del f[path]
+                            d = f.create_dataset(path, data=data)
+                            for k, v in meta.items():
                                 d.attrs[k] = v
+                        except Exception as e:
+                            if not isinstance(data, np.ndarray):
+                                warn(
+                                    "Recorder {} numpy.ndarray expected, got {}".format(
+                                        path, type(data)
+                                    )
+                                )
+                            else:
+                                warn(
+                                    "Recorder {} processing errored out: {}\n\n{}".format(
+                                        path,
+                                        "{} {}".format(data.dtype, data.shape),
+                                        traceback.format_exc(),
+                                    )
+                                )
             self.pc.barrier()
 
     def create_transmitters(self):
@@ -420,6 +444,7 @@ class NeuronAdapter(SimulatorAdapter):
             if self.cell_models[to_cell_type.name].relay:
                 raise NotImplementedError("Sorry, no relays yet, only for devices")
                 # Fetch cell and section from `self.relay_scheme`
+                # .get_locations() should offer some insights
             else:
                 synapse_types = connection_model.resolve_synapses()
                 for intersection in connectivity_set.intersections:
@@ -436,7 +461,12 @@ class NeuronAdapter(SimulatorAdapter):
                             )
                         ]
                         for synapse_type in synapse_types:
-                            cell.create_receiver(section, gid, synapse_type)
+                            try:
+                                cell.create_receiver(section, gid, synapse_type)
+                            except Exception as e:
+                                raise ScaffoldError(
+                                    "[" + connection_model.name + "] " + str(e)
+                                ) from None
 
     def create_neurons(self):
         for cell_model in self.cell_models.values():
@@ -477,6 +507,7 @@ class NeuronAdapter(SimulatorAdapter):
             # CamelCase the snake_case to obtain the class name
             device_class = "".join(x.title() for x in device.device.split("_"))
             device.__class__ = device_module.__dict__[device_class]
+            device.initialise(device.scaffold)
             if self.pc_id == 0:
                 # Have root 0 prepare the possibly random patterns.
                 patterns = device.create_patterns()
@@ -535,14 +566,12 @@ class NeuronAdapter(SimulatorAdapter):
                 bin = terminal_relays
                 connections = connectivity_set.intersections
                 target = lambda c: (c.to_id, c.to_compartment.section_id)
+            for id in self.scaffold.get_placement_set(from_cell_type.name).identifiers:
+                if id not in bin:
+                    bin[id] = []
             for connection in connections:
                 fid = connection.from_id
-                try:
-                    arr = bin[fid]
-                except:
-                    arr = []
-                    bin[fid] = arr
-                arr.append(target(connection))
+                bin[fid].append(target(connection))
 
         report("Relays indexed, resolving intermediates.")
 
@@ -597,9 +626,8 @@ class NeuronAdapter(SimulatorAdapter):
         # Filter out all relays to targets not on this node.
         self.relay_scheme = {}
         for relay, targets in terminal_relays.items():
-            my_targets = list(filter(lambda x: int(x[0]) in self.node_cells, targets))
-            if my_targets:
-                self.relay_scheme[relay] = my_targets
+            node_targets = list(filter(lambda x: int(x[0]) in self.node_cells, targets))
+            self.relay_scheme[relay] = node_targets
         report(
             "Node",
             self.pc_id,
@@ -613,53 +641,57 @@ class NeuronAdapter(SimulatorAdapter):
         self, group, cell, recorder, time_recorder=None, section=None, x=None, meta=None
     ):
         # Store the recorder so its output can be collected after the simulation.
-        self.recorders.append(
-            NeuronRecorder(group, cell, recorder, time_recorder, section, x, meta)
+        self.result.add(
+            LocationRecorder(group, cell, recorder, time_recorder, section, x, meta)
         )
 
     def register_cell_recorder(self, cell, recorder):
-        self.recorders.append(NeuronRecorder("soma_voltages", cell, recorder))
+        self.result.add(LocationRecorder("soma_voltages", cell, recorder))
 
     def register_spike_recorder(self, cell, recorder):
-        self.recorders.append(
-            NeuronRecorder(
-                "soma_spikes",
-                cell,
-                SpikeConverter(cell, recorder),
-                time_recorder=recorder,
-            )
-        )
+        self.result.add(SpikeRecorder("soma_spikes", cell, recorder))
 
 
-class NeuronRecorder:
+class LocationRecorder(SimulationRecorder):
     def __init__(
         self, group, cell, recorder, time_recorder=None, section=None, x=None, meta=None
     ):
-        if meta is None:
-            meta = {}
-        # Does this cell have plotting information?
+        # Collect metadata
+        meta = meta or {}
+        meta["cell_id"] = cell.ref_id
+        meta["label"] = cell.cell_model.name
         if hasattr(cell.cell_model.cell_type, "plotting"):
-            # Pass it along to the recorder metadata
+            # Pass plotting info along
             meta["color"] = cell.cell_model.cell_type.plotting.color
             meta["display_label"] = cell.cell_model.cell_type.plotting.label
         self.group = group
+        self.meta = meta
+        self.recorder = recorder
+        self.time_recorder = time_recorder
+        self.section = section
+        self.x = x
+        # Compose the tag: `cell.section_name(x)`
+        self.id = cell.ref_id
         self.tag = str(cell.ref_id)
         if section is not None:
             self.tag += "." + section.name().split(".")[-1]
             if x is not None:
-                self.tag += "({})".format(x)
-        if meta is None:
-            meta = {}
-        meta["label"] = cell.cell_model.name
-        self.meta = meta
-        self.recorder = recorder
-        self.time_recorder = time_recorder
+                self.tag += "(" + str(x) + ")"
+
+    def get_path(self):
+        return ("recorders", self.group, self.tag)
+
+    def get_data(self):
+        if self.time_recorder:
+            return np.hstack((np.array(self.recorder), np.array(self.time_recorder)))
+        else:
+            return np.array(self.recorder)
+
+    def get_meta(self):
+        return self.meta
 
 
-class SpikeConverter:
-    def __init__(self, cell, recorder):
-        self.recorder = recorder
-        self.signal = cell.ref_id
-
-    def __iter__(self):
-        return iter(self.signal for i in range(len(self.recorder)))
+class SpikeRecorder(LocationRecorder):
+    def get_data(self):
+        recording = np.array(self.recorder)
+        return np.vstack((np.ones(recording.shape) * self.id, recording))

@@ -513,29 +513,34 @@ def hdf5_plot_spike_raster(spike_recorders, input_region=None, show=True):
     """
         Create a spike raster plot from an HDF5 group of spike recorders.
     """
-    cell_ids = [int(k) for k in spike_recorders.keys()]
     x = {}
     y = {}
     colors = {}
     ids = {}
     for cell_id, dataset in spike_recorders.items():
-        data = dataset[:, 0]
         attrs = dict(dataset.attrs)
-        label = attrs["label"]
+        if len(dataset.shape) == 1 or dataset.shape[1] == 1:
+            times = dataset[()]
+            set_ids = np.ones(len(times)) * int(
+                attrs.get("cell_id", attrs.get("cell", cell_id))
+            )
+        else:
+            times = dataset[:, 1]
+            set_ids = dataset[:, 0]
+        label = attrs.get("label", "unlabelled")
         if not label in x:
             x[label] = []
         if not label in y:
             y[label] = []
         if not label in colors:
-            colors[label] = attrs["color"]
+            colors[label] = attrs.get("color", "black")
         if not label in ids:
             ids[label] = 0
-        cell_id = ids[label]
         ids[label] += 1
         # Add the spike timings on the X axis.
-        x[label].extend(data)
+        x[label].extend(times)
         # Set the cell id for the Y axis of each added spike timing.
-        y[label].extend(cell_id for _ in range(len(data)))
+        y[label].extend(set_ids)
     # Use the parallel arrays x & y to plot a spike raster
     fig = go.Figure(
         layout=dict(
@@ -710,21 +715,31 @@ class PSTH:
         row.index = len(self.rows)
         self.rows.append(row)
 
+    def ordered_rows(self):
+        return sorted(self.rows, key=lambda t: t.order or 0)
+
 
 class PSTHStack:
     def __init__(self, name, color):
         self.name = name
         self.color = str(color)
         self.cells = 0
+        self._included_ids = {0: np.empty(0)}
         self.list = []
 
-    def extend(self, arr, num):
-        self.list.extend(arr)
-        self.cells += num
+    def extend(self, arr, run=0):
+        self.list.extend(arr[:, 1])
+        if run not in self._included_ids:
+            self._included_ids[run] = np.empty(0)
+        # Count all of the cells across the runs, but count unique cells per run
+        self._included_ids[run] = np.unique(
+            np.concatenate((self._included_ids[run], arr[:, 0]))
+        )
+        self.cells = sum(map(len, self._included_ids.values()))
 
 
 class PSTHRow:
-    def __init__(self, name, color):
+    def __init__(self, name, color, order=0):
         from colour import Color
 
         self.name = name
@@ -732,38 +747,38 @@ class PSTHRow:
         self.palette = list(color.range_to("black", 6))
         self.stacks = {}
         self.max = -float("inf")
+        self.order = order
 
-    def extend(self, arr, num=1, stack=None):
+    def extend(self, arr, stack=None, run=0):
         if stack not in self.stacks:
             self.stacks[stack] = PSTHStack(
                 stack or self.name, self.palette[len(self.stacks)]
             )
-        self.stacks[stack].extend(arr, num)
-        self.max = max(self.max, np.max(arr)) if len(arr) > 0 else self.max
+        self.stacks[stack].extend(arr, run=run)
+        self.max = max(self.max, np.max(arr[:, 1])) if len(arr) > 0 else self.max
 
 
 @_figure
-def hdf5_plot_psth(handle, duration=3, cutoff=0, start=0, fig=None, **kwargs):
+def hdf5_plot_psth(handle, duration=3, cutoff=0, start=0, fig=None, mod=None, **kwargs):
     psth = PSTH()
     row_map = {}
     for g in handle.values():
-        l = g.attrs["label"]
+        l = g.attrs.get("label", "unlabelled")
         if l not in row_map:
             color = g.attrs.get("color", None)
-            row_map[l] = row = PSTHRow(l, color)
+            order = g.attrs.get("order", 0)
+            row_map[l] = row = PSTHRow(l, color, order=order)
             psth.add_row(row)
         else:
             row = row_map[l]
-        adj = g[:, 0] - cutoff
-        # print(adj)
-        # Read how many neurons this spikes dataset represents
-        num_neurons = g.attrs.get("num_neurons", 1)
-        stack = g.attrs.get("stack", l)
-        row.extend(adj, num=num_neurons, stack=stack)
+        run_id = g.attrs.get("run_id", 0)
+        adjusted = g[()]
+        adjusted[:, 1] = adjusted[:, 1] - cutoff
+        row.extend(adjusted, stack=g.attrs.get("stack", None), run=run_id)
     subplots_fig = make_subplots(
         cols=1,
         rows=len(psth.rows),
-        subplot_titles=[row.name for row in psth.rows],
+        subplot_titles=[row.name for row in psth.ordered_rows()],
         x_title=kwargs.get("x_title", "Time (ms)"),
         y_title=kwargs.get("y_title", "Population firing rate (Hz)"),
     )
@@ -772,22 +787,25 @@ def hdf5_plot_psth(handle, duration=3, cutoff=0, start=0, fig=None, **kwargs):
         _max = max(_max, row.max)
     subplots_fig.update_xaxes(range=[start, _max])
     subplots_fig.update_layout(title_text=kwargs.get("title", "PSTH"))
+    # Allow the original figure to be updated before messing with it.
+    if mod is not None:
+        mod(subplots_fig)
     # Overwrite the layout and grid of the single plot that is handed to us
     # to turn it into a subplots figure. All modifications except for adding traces
     # should happen before this point.
     fig._grid_ref = subplots_fig._grid_ref
     fig._layout = subplots_fig._layout
-    for i, row in enumerate(psth.rows):
+    for i, row in enumerate(psth.ordered_rows()):
         for name, stack in sorted(row.stacks.items(), key=lambda x: x[0]):
             counts, bins = np.histogram(stack.list, bins=np.arange(start, _max, duration))
-            if name.startswith("##"):
+            if str(name).startswith("##"):
                 # Lazy way to order the stacks; Stack names can start with ## and a number
                 # and it will be sorted by name, but the ## and number are not displayed.
                 name = name[4:]
             trace = go.Bar(
                 x=bins,
                 y=counts / stack.cells * 1000 / duration,
-                name=name,
+                name=name or row.name,
                 marker=dict(color=stack.color),
             )
             fig.add_trace(trace, row=i + 1, col=1)

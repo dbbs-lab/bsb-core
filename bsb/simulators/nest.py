@@ -11,6 +11,10 @@ from ..exceptions import *
 import os, json, weakref, numpy as np
 from itertools import chain
 from sklearn.neighbors import KDTree
+from ..simulation import SimulationRecorder, SimulationResult
+import warnings
+import mpi4py
+
 
 try:
     import mpi4py.MPI
@@ -254,6 +258,10 @@ class NestDevice(TargetsNeurons, SimulationComponent):
             )
             self.parameters[stimulus_name] = self.stimulus.eval()
 
+    def boot(self):
+        super().boot()
+        self.protocol = get_device_protocol(self)
+
     def get_targets(self):
         """
             Return the targets of the stimulation to pass into the nest.Connect call.
@@ -315,11 +323,13 @@ class NestAdapter(SimulatorAdapter):
 
     def __init__(self):
         super().__init__()
+        self.result = SimulationResult()
         self.is_prepared = False
         self.suffix = ""
         self.multi = False
         self.has_lock = False
         self.global_identifier_map = {}
+        self.simulation_id = _randint()
 
     def prepare(self):
         if self.is_prepared:
@@ -492,7 +502,44 @@ class NestAdapter(SimulatorAdapter):
             self.release_lock()
 
     def collect_output(self):
-        pass
+        import h5py, time
+
+        try:
+            import mpi4py
+
+            rank = mpi4py.MPI.COMM_WORLD.rank
+        except Exception as e:
+            print(str(e))
+            rank = 0
+
+        if rank == 0:
+            timestamp = str(time.time()).split(".")[0] + str(_randint())
+            with h5py.File("results_" + self.name + "_" + timestamp + ".hdf5", "a") as f:
+                for path, data, meta in self.result.safe_collect():
+                    try:
+                        path = "/".join(path)
+                        if path in f:
+                            data = np.vstack((f[path][()], data))
+                            del f[path]
+                        d = f.create_dataset(path, data=data)
+                        for k, v in meta.items():
+                            d.attrs[k] = v
+                    except Exception as e:
+                        import traceback
+
+                        traceback.print_exc()
+                        if not isinstance(data, np.ndarray):
+                            warn(
+                                "Recorder {} numpy.ndarray expected, got {}".format(
+                                    path, type(data)
+                                )
+                            )
+                        else:
+                            warn(
+                                "Recorder {} processing errored out: {}".format(
+                                    path, "{} {}".format(data.dtype, data.shape)
+                                )
+                            )
 
     def validate(self):
         for cell_model in self.cell_models.values():
@@ -562,6 +609,10 @@ class NestAdapter(SimulatorAdapter):
 
     def get_nest_ids(self, ids):
         return [self.global_identifier_map[id] for id in ids]
+
+    def get_scaffold_ids(self, ids):
+        scaffold_map = {v: k for k, v in self.global_identifier_map.items()}
+        return [scaffold_map[id] for id in ids]
 
     def create_neurons(self):
         """
@@ -719,6 +770,7 @@ class NestAdapter(SimulatorAdapter):
             Create the configured NEST devices in the simulator
         """
         for device_model in self.devices.values():
+            device_model.protocol.before_create()
             device = self.nest.Create(device_model.device)
             report("Creating device:  " + device_model.device, level=3)
             # Execute SetStatus and catch DictError
@@ -737,6 +789,7 @@ class NestAdapter(SimulatorAdapter):
                     }
                 },
             )
+            device_model.protocol.after_create(device)
             # Execute targetting mechanism to fetch target NEST ID's
             device_targets = device_model.get_targets()
             report(
@@ -866,3 +919,77 @@ def catch_connection_error(source):
         )
 
     return handler
+
+
+class SpikeRecorder(SimulationRecorder):
+    def __init__(self, device_model):
+        self.device_model = device_model
+
+    def get_path(self):
+        return ("recorders", "soma_spikes", self.device_model.name)
+
+    def get_data(self):
+        from glob import glob
+
+        files = glob("*" + self.device_model.parameters["label"] + "*.gdf")
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            spikes = np.zeros((0, 2), dtype=float)
+            for file in files:
+                file_spikes = np.loadtxt(file)
+                if len(file_spikes):
+                    scaffold_ids = np.array(
+                        self.device_model.adapter.get_scaffold_ids(file_spikes[:, 0])
+                    )
+                    times = file_spikes[:, 1]
+                    scaffold_spikes = np.vstack((scaffold_ids, times)).T
+                    spikes = np.vstack((spikes, scaffold_spikes))
+                os.remove(file)
+        return spikes
+
+    def get_meta(self):
+        return {
+            "name": self.device_model.name,
+            "label": self.device_model.name,
+            "color": "black",
+            "parameters": json.dumps(self.device_model.parameters),
+        }
+
+
+def _randint():
+    return np.random.randint(np.iinfo(int).max)
+
+
+class DeviceProtocol:
+    def __init__(self, device):
+        self.device = device
+
+    def before_create(self):
+        pass
+
+    def after_create(self, id):
+        pass
+
+
+class SpikeDetectorProtocol(DeviceProtocol):
+    def before_create(self):
+        if "label" not in self.device.parameters:
+            raise ConfigurationError(
+                "Required `label` missing in spike detector '{}' parameters.".format(
+                    self.device.name
+                )
+            )
+        device_tag = str(_randint())
+        device_tag = mpi4py.MPI.COMM_WORLD.bcast(device_tag, root=0)
+        self.device.parameters["label"] += device_tag
+        if mpi4py.MPI.COMM_WORLD.rank == 0:
+            self.device.adapter.result.add(SpikeRecorder(self.device))
+
+
+def get_device_protocol(device):
+    if device.device in _device_protocols:
+        return _device_protocols[device.device](device)
+    return DeviceProtocol(device)
+
+
+_device_protocols = {"spike_detector": SpikeDetectorProtocol}
