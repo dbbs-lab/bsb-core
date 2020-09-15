@@ -11,8 +11,6 @@ cd nest-simulator-$NEST_VERSION-build
 cmake \
   -Dwith-python=3 \
   -DPYTHON_EXECUTABLE=/home/travis/virtualenv/python3.8.1/bin/python3 \
-  -DPYTHON_LIBRARY=/opt/python/3.8.1/lib/libpython3.8m.so \
-  -DPYTHON_INCLUDE_DIR=/opt/python/3.8.1/include/python3.8m/ \
   -DCMAKE_INSTALL_PREFIX:PATH=/home/travis/nest-$NEST_VERSION \
   /home/travis/nest-simulator-$NEST_VERSION
 make
