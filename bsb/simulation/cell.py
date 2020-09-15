@@ -1,5 +1,6 @@
 from .component import SimulationComponent
 from .. import config
+from ..config import refs
 
 
 @config.node
