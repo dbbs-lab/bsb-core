@@ -63,9 +63,17 @@ def has_population(scaffold, tag):
 
 def load_population(scaffold, tag):
     ps = scaffold.get_placement_set(tag)
-    if not ps.type.relay and tag not in scaffold._blender_cells_collection:
-        opacity = 1 if tag != "granule_cell" else 0.01
-        scaffold.create_population(tag, opacity=opacity)
+    if not ps.type.relay:
+        if tag not in scaffold._blender_cells_collection:
+            opacity = 1 if tag != "granule_cell" else 0.01
+            collection, cells = scaffold.create_population(tag, opacity=opacity)
+        else:
+            cells = ps.cells
+            collection = scaffold._blender_cells_collection[tag]
+            index = {int(k.split("#")[1].split(".")[0]): v for k, v in collection.items()}
+            for cell in cells:
+                cell.object = index[cell.id]
+        return collection, cells
 
 
 def load_populations(scaffold):
