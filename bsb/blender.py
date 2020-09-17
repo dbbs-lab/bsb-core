@@ -97,7 +97,7 @@ def create_network_cam(scaffold):
 def create_lighting(scaffold):
     if "BSB Solar" not in bpy.data.lights:
         light_data = bpy.data.lights.new(name="BSB Solar", type="SUN")
-        light_data.strength = 1.5
+        light_data.energy = 1.5
         light_object = bpy.data.objects.new(name="BSB Solar", object_data=light_data)
         scaffold._blender_scene.collection.objects.link(light_object)
         bpy.context.view_layer.objects.active = light_object
