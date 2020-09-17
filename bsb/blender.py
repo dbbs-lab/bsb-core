@@ -105,6 +105,31 @@ def create_lighting(scaffold):
         dg.update()
 
 
+def create_activity_material(scaffold, name, color, max_intensity=5.5):
+    mat = bpy.data.materials.new(name=name)
+    mat.use_nodes = True
+    mat.diffuse_color = color
+
+    nodes = mat.node_tree.nodes
+    links = mat.node_tree.links
+    nodes.remove(nodes[0])
+
+    output_node = nodes[0]
+    emit_node = nodes.new("ShaderNodeEmission")
+    object_node = nodes.new("ShaderNodeObjectInfo")
+    math_node = nodes.new("ShaderNodeMath")
+
+    emit_node.inputs["Color"].default_value = color
+    math_node.operation = "MULTIPLY"
+    math_node.inputs[1].default_value = max_intensity
+
+    links.new(object_node.outputs["Color"], math_node.inputs[0])
+    links.new(math_node.outputs[0], emit_node.inputs["Strength"])
+    links.new(emit_node.outputs["Emission"], output_node.inputs["Surface"])
+
+    return mat
+
+
 def _diffkey(coll):
     old_keys = set(coll.keys())
 
