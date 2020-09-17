@@ -44,10 +44,9 @@ def create_population(scaffold, tag, opacity=1):
     cells = placement_set.cells
     objects = []
     collection = scaffold.create_collection(name, scaffold._blender_cells_collection)
-    mat = bpy.data.materials.new(name=name)
+    mat = scaffold.create_activity_material(name, (*color, opacity))
     mesh = _create_ico_mesh(scaffold, name, radius)
     mesh.materials.append(mat)
-    mat.diffuse_color = (*color, opacity)
     total = len(cells)
     for i, cell in enumerate(cells):
         cell.object = object = bpy.data.objects.new(
