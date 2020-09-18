@@ -22,7 +22,7 @@ requires = [
 if not os.getenv("READTHEDOCS", False):
     # Add all packages with binary dependencies that cannot be installed on RTD here.
     requires.extend(
-        ["rtree-linux==0.9.4", "nrn-patch>=2.1.0",]
+        ["rtree-linux==0.9.4",]
     )
 
 setuptools.setup(
@@ -51,7 +51,7 @@ setuptools.setup(
     },
     extras_require={
         "dev": ["sphinx", "sphinx_rtd_theme>=0.4.3", "pyarmor", "pre-commit", "black"],
-        "NEURON": ["dbbs_models>=0.4.4"],
+        "NEURON": ["dbbs_models>=0.4.4", "nrn-patch>=2.1.0"],
         "MPI": ["mpi4py"],
     },
 )
