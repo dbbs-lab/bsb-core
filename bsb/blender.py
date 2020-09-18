@@ -9,6 +9,11 @@ except ImportError:
 
 
 def create_network(scaffold, scene, name):
+    """
+        Creates the root collection that will contain all the blender components of this
+        network and a child collection for the cell populations. Fills the scene with a
+        default camera and light if they are missing.
+    """
     scaffold._blender_scene = scene
     scaffold._blender_collection = coll = create_collection(None, name)
     scaffold._blender_name = coll.name
@@ -28,6 +33,9 @@ def _load_blender_network(scaffold, scene, root_collection):
 
 
 def blend(scaffold, scene, name):
+    """
+        Create or load the network from the given scene.
+    """
     if name in scene.collection.children:
         _load_blender_network(scaffold, scene, scene.collection.children[name])
     else:
@@ -35,6 +43,11 @@ def blend(scaffold, scene, name):
 
 
 def create_population(scaffold, tag, opacity=1):
+    """
+        Create a cell population where each cell is represented by a sphere in 3D space.
+        Each cell population will have a material associated with it that is capable of
+        lighting up, to have its activity animated.
+    """
     scene = scaffold._blender_scene
     placement_set = scaffold.get_placement_set(tag)
     name = placement_set.type.name
@@ -58,10 +71,17 @@ def create_population(scaffold, tag, opacity=1):
 
 
 def has_population(scaffold, tag):
+    """
+        Check whether a given population of the network already exists in the scene.
+    """
     return tag in scaffold._blender_cells_collection.children
 
 
 def load_population(scaffold, tag, opacity=1):
+    """
+        Load a cell population from the scene, if it doesn't exist it is created. Couples
+        the placement set cells to their blender objects.
+    """
     ps = scaffold.get_placement_set(tag)
     if not ps.type.relay:
         if tag not in scaffold._blender_cells_collection.children:
@@ -79,15 +99,19 @@ def load_population(scaffold, tag, opacity=1):
 
 
 def load_populations(scaffold):
+    """
+        Load all cell populations from the scene, skipping relays.
+    """
     colls, cells = {}, {}
     for tag in scaffold.configuration.cell_types:
-        if tag == "granule_cell":
-            continue
         colls[tag], cells[tag] = scaffold.load_population(tag) or (None, None)
     return colls, cells
 
 
 def create_collection(scaffold, name, parent=None):
+    """
+        Create a collection in the blender scene.
+    """
     coll_diff = _diffkey(bpy.data.collections)
     bpy.ops.collection.create(name=name)
     coll = coll_diff().pop()
@@ -119,6 +143,9 @@ def create_lighting(scaffold):
 
 
 def create_activity_material(scaffold, name, color, max_intensity=5.5, opacity=1):
+    """
+        Create a material capable of lighting up.
+    """
     mat = bpy.data.materials.new(name=name)
     mat.use_nodes = True
     mat.diffuse_color = color
