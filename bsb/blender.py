@@ -112,7 +112,7 @@ def create_lighting(scaffold):
         dg.update()
 
 
-def create_activity_material(scaffold, name, color, max_intensity=5.5):
+def create_activity_material(scaffold, name, color, max_intensity=5.5, opacity=1):
     mat = bpy.data.materials.new(name=name)
     mat.use_nodes = True
     mat.diffuse_color = color
@@ -125,14 +125,19 @@ def create_activity_material(scaffold, name, color, max_intensity=5.5):
     emit_node = nodes.new("ShaderNodeEmission")
     object_node = nodes.new("ShaderNodeObjectInfo")
     math_node = nodes.new("ShaderNodeMath")
+    mix_node = nodes.new("ShaderNodeMixShader")
+    transparency_node = nodes.new("ShaderNodeBsdfTransparent")
 
     emit_node.inputs["Color"].default_value = color
     math_node.operation = "MULTIPLY"
     math_node.inputs[1].default_value = max_intensity
+    mix_node.inputs["Fac"].default_value = opacity
 
     links.new(object_node.outputs["Color"], math_node.inputs[0])
     links.new(math_node.outputs[0], emit_node.inputs["Strength"])
-    links.new(emit_node.outputs["Emission"], output_node.inputs["Surface"])
+    links.new(transparency_node.outputs[0], mix_node.inputs[1])
+    links.new(emit_node.outputs["Emission"], mix_node.inputs[2])
+    links.new(mix_node.outputs[0], output_node.inputs["Surface"])
 
     return mat
 
