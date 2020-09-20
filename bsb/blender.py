@@ -217,3 +217,7 @@ def _report(message="", title="BSB Framework", icon="INFO"):
     bpy.context.window_manager.popup_menu(
         draw, title=f"{title} - {icon.title()}", icon=icon
     )
+
+
+def compose():
+    bpy.context.scene.render.engine = "CYCLES"
