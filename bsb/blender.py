@@ -142,13 +142,13 @@ def create_lighting(scaffold):
         dg.update()
 
 
-def create_activity_material(scaffold, name, color, max_intensity=5.5, opacity=1):
+def create_activity_material(scaffold, name, color, max_intensity=1.0, opacity=1):
     """
         Create a material capable of lighting up.
     """
     mat = bpy.data.materials.new(name=name)
     mat.use_nodes = True
-    mat.diffuse_color = color
+    mat.blend_method = "BLEND"
 
     nodes = mat.node_tree.nodes
     links = mat.node_tree.links
@@ -157,17 +157,26 @@ def create_activity_material(scaffold, name, color, max_intensity=5.5, opacity=1
     output_node = nodes[0]
     emit_node = nodes.new("ShaderNodeEmission")
     object_node = nodes.new("ShaderNodeObjectInfo")
-    math_node = nodes.new("ShaderNodeMath")
+    math_nodes = [
+        nodes.new("ShaderNodeMath"),
+        nodes.new("ShaderNodeMath"),
+        nodes.new("ShaderNodeMath"),
+    ]
     mix_node = nodes.new("ShaderNodeMixShader")
     transparency_node = nodes.new("ShaderNodeBsdfTransparent")
 
     emit_node.inputs["Color"].default_value = color
-    math_node.operation = "MULTIPLY"
-    math_node.inputs[1].default_value = max_intensity
-    mix_node.inputs["Fac"].default_value = opacity
+    emit_node.inputs["Strength"].default_value = 12
+    for m in math_nodes:
+        m.operation = "MULTIPLY"
+    math_nodes[2].inputs[1].default_value = max_intensity / 2
 
-    links.new(object_node.outputs["Color"], math_node.inputs[0])
-    links.new(math_node.outputs[0], emit_node.inputs["Strength"])
+    links.new(object_node.outputs["Color"], math_nodes[0].inputs[0])
+    links.new(object_node.outputs["Color"], math_nodes[0].inputs[1])
+    links.new(math_nodes[0].outputs[0], math_nodes[1].inputs[0])
+    links.new(math_nodes[0].outputs[0], math_nodes[1].inputs[1])
+    links.new(math_nodes[1].outputs[0], math_nodes[2].inputs[0])
+    links.new(math_nodes[2].outputs[0], mix_node.inputs[0])
     links.new(transparency_node.outputs[0], mix_node.inputs[1])
     links.new(emit_node.outputs["Emission"], mix_node.inputs[2])
     links.new(mix_node.outputs[0], output_node.inputs["Surface"])
