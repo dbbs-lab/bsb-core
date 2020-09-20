@@ -986,9 +986,9 @@ class Scaffold:
         """
             Binds all blender functions onto the scaffold object.
         """
-        from . import blender
+        from .blender import _mixin
 
-        for f_name, f in blender.__dict__.items():
+        for f_name, f in _mixin.__dict__.items():
             if callable(f) and not f_name.startswith("_"):
                 self.__dict__[f_name] = f.__get__(self)
 
