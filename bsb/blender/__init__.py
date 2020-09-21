@@ -62,11 +62,12 @@ def create_material(name, color=(0.8, 0.8, 0.8, 1.0)):
     return mat
 
 
-def create_activity_material(scaffold, name, color, max_intensity=1.0, opacity=1):
+def create_pulsar_material(name, color, max_intensity=1.0):
     """
         Create a material capable of lighting up.
     """
     mat = bpy.data.materials.new(name=name)
+    mat["pulsar"] = True
     mat.use_nodes = True
     mat.blend_method = "BLEND"
 
