@@ -3,7 +3,7 @@
     all the  public callable objects of this module are bound to the instance.
 """
 
-import bpy as _bpy
+import bpy as _bpy, numpy as _np
 from .. import blender as _main
 
 
@@ -140,6 +140,8 @@ def animate():
 
 
 def _pulsar(results, cells, **kwargs):
+    import math
+
     # Frames per second
     fps = kwargs.get("fps", 60)
     # Milliseconds per second
@@ -152,7 +154,87 @@ def _pulsar(results, cells, **kwargs):
     ab = kwargs.get("afterburn", 30)
     # Spike width: number of frames of rising/falling edge of spike animation
     sw = math.ceil(spd / 2 / mpf)
+    # Create the signal processor functions. They calculate cell intensity during anim.
+    cap, intensity = _pulsar_signal_processors(sw)
+    # Swap out the cells' materials with a pulsar material that flashes based on obj color
+    _pulsar_material_swap(cells)
+    # Set up compositor with a glare node.
+    _pulsar_glare()
+    # Retrieve cell activity from the given results
+    cell_activity = _pulsar_cell_activity(cells, results)
+    # Animate the cell keyframes
+    _pulsar_animate(cells, cell_activity, mpf, sw, ab, cap, intensity)
 
+
+animate.pulsar = _pulsar
+_crowded_pulsars = ["granule_cell", "glomerulus"]
+
+
+def _pulsar_animate(cells, cell_activity, mpf, sw, ab, cap, intensity):
+    last_frame = 0
+    for cell in cells:
+        # Hardcoded granule cell solution, fix later.
+        _min = 0.3 if cell.type.name not in _crowded_pulsars else 0.0
+        spike_frames = (cell_activity[cell.id] / mpf).astype(int)
+        # Last spike frame
+        lsf = spike_frames[-1] if len(spike_frames) > 0 else 1
+        # Create an empty intensity per frame array
+        ipf_arr = _np.zeros(lsf + 1)
+        for frame in spike_frames:
+            # Each spike overlays its intensity onto a piece of the ipf array.
+            start = max(frame - sw, 0)
+            outtake = ipf_arr[start : (frame + sw + 1)]
+            end = min(len(ipf_arr), frame + sw + 1)
+            spike_intensity = cap(end - start, offset=start - frame + sw)
+            # The composite is the maximum between the ipf array and the spike intensity.
+            ipf_arr[start:end] = _np.max((outtake, spike_intensity), axis=0)
+        # Normalize the ipf array
+        ipf_arr = ipf_arr / sw
+        # Get the 2nd differential to find where the intensity changes direction and a
+        # keyframe needs to be added to the animation of the object.
+        d2 = _np.nonzero(_np.diff(_np.diff(ipf_arr, prepend=0)))[0]
+
+        # Frame 0 init
+        cell.object.color = intensity(ipf_arr[0], _min)
+        cell.object.keyframe_insert(data_path="color", frame=0)
+
+        # Add the animation keyframes where the signal changes direction.
+        for key_point in d2:
+            cell.object.color = intensity(ipf_arr[key_point], _min)
+            cell.object.keyframe_insert(data_path="color", frame=key_point)
+        cell.object.color = _np.zeros(4)
+
+        if len(d2) > 0:
+            # Store the last animation frame for later use in the collective fade out.
+            last_frame = max(last_frame, d2[-1] + sw)
+
+    _pulsar_afterburn(cells, mpf, last_frame, ab, intensity)
+
+
+def _get_type_color(type):
+    hex_color = type.plotting.color.lstrip("#")
+    color = tuple(int(hex_color[i : i + 2], 16) / 255 for i in (0, 2, 4)) + (1.0,)
+    return color
+
+
+def _pulsar_material_swap(cells):
+    # Swaps the cell meshes' material for a pulsar one, assumes all cells of the same type
+    # share the same material.
+    reps = list(set([c for c in cells]))
+    for cell in reps:
+        type = cell.type
+        mesh = cell.object.data
+        has_no_mats = len(mesh.materials) == 0
+        has_no_pulsar = not has_no_mats and "pulsar" not in mesh.materials[0]
+        if has_no_mats or has_no_pulsar:
+            material = _main.create_pulsar_material(type.name, _get_type_color(type))
+            if has_no_mats:
+                mesh.materials.append(material)
+            elif has_no_pulsar:
+                mesh.materials[0] = material
+
+
+def _pulsar_signal_processors(sw):
     def cap(l, offset=0):
         # Create the intensity sequence to animate a single spike:
         # [0, 1, 2, ... sw ..., 2, 1, 0]
@@ -164,86 +246,57 @@ def _pulsar(results, cells, **kwargs):
         return seq
 
     def intensity(i, min=0.3):
-        return np.ones(4) * i * (1 - min) + min
+        return _np.ones(4) * i * (1 - min) + min
 
-    # Swap out the objects' default material for a pulsar material
-    # TODO: AAAAAAAAAAAAAAAAAAAAAAAAA
+    return cap, intensity
 
+
+def _pulsar_cell_activity(cells, results):
     cell_activity = {}
     for cell in cells:
         if str(cell.id) not in results:
-            cell_activity[cell.id] = np.empty(0)
+            cell_activity[cell.id] = _np.empty(0)
             continue
         cell_activity[cell.id] = activity = results[str(cell.id)][:, 1]
+    return cell_activity
 
-    last_frame = 0
+
+def _pulsar_glare():
+    _bpy.context.scene.render.use_compositing = True
+    _bpy.context.scene.use_nodes = True
+    tree = _bpy.context.scene.node_tree
+    nodes = tree.nodes
+    links = tree.links
+
+    if any(["pulsar" in n for n in nodes]):
+        # Glare node already added, don't overwrite user customization
+        return
+    else:
+        glare_node = _pulsar_glare_node(nodes)
+        layers_node = nodes["Render Layers"]
+        composite_node = nodes["Composite"]
+        # Unlink default link between render layers and composite
+        links.remove(links[0])
+        links.new(layers_node.outputs["Image"], glare_node.inputs["Image"])
+        links.new(glare_node.outputs["Image"], composite_node.inputs["Image"])
+
+
+def _pulsar_glare_node(nodes):
+    glare_node = nodes.new("CompositorNodeGlare")
+    glare_node.glare_type = "FOG_GLOW"
+    glare_node.quality = "HIGH"
+    glare_node.threshold = 0.3
+    glare_node.size = 8
+
+    return glare_node
+
+
+def _pulsar_afterburn(cells, mpf, last_frame, ab, intensity):
     for cell in cells:
-        # Hardcoded granule cell solution, fix later.
-        _min = 0.3 if cell.type.name != "granule_cell" else 0.0
-        spike_frames = (cell_activity[cell.id] / mpf).astype(int)
-        # Last spike frame
-        lsf = spike_frames[-1] if len(spike_frames) > 0 else 1
-        # Create an empty intensity per frame array
-        ipf_arr = np.zeros(lsf + 1)
-        for frame in spike_frames:
-            # Each spike overlays its intensity onto a piece of the ipf array.
-            start = max(frame - sw, 0)
-            outtake = ipf_arr[start : (frame + sw + 1)]
-            end = min(len(ipf_arr), frame + sw + 1)
-            spike_intensity = cap(sw, end - start, offset=start - frame + sw)
-            # The composite is the maximum between the ipf array and the spike intensity.
-            ipf_arr[start:end] = np.max((outtake, spike_intensity), axis=0)
-        # Normalize the ipf array
-        ipf_arr = ipf_arr / sw
-        # Get the 2nd differential to find where the intensity changes direction and a
-        # keyframe needs to be added to the animation of the object.
-        d2 = np.nonzero(np.diff(np.diff(ipf_arr, prepend=0)))[0]
-
-        # Frame 0 init
-        cell.object.color = intensity(ipf_arr[0], _min)
-        cell.object.keyframe_insert(data_path="color", frame=0)
-
-        # Add the animation keyframes where the signal changes direction.
-        for key_point in d2:
-            cell.object.color = intensity(ipf_arr[key_point], _min)
-            cell.object.keyframe_insert(data_path="color", frame=key_point)
-        cell.object.color = np.zeros(4)
-
-        if len(d2) > 0:
-            # Store the last animation frame for later use in the collective fade out.
-            last_frame = max(last_frame, d2[-1] + r)
-
-    for cell in cells:
-        _min = 0.3 if cell.type.name != "granule_cell" else 0.0
+        _min = 0.3 if cell.type.name not in _crowded_pulsars else 0.0
         cell.object.color = intensity(0, _min)
         cell.object.keyframe_insert(data_path="color", frame=last_frame)
-        cell.object.color = np.zeros(4)
+        cell.object.color = _np.zeros(4)
         cell.object.keyframe_insert(data_path="color", frame=last_frame + ab / 2 / mpf)
 
-    bpy.context.scene.frame_end = last_frame + ab / mpf
-
-
-def _get_type_color(type):
-    hex_color = type.plotting.color.lstrip("#")
-    colors = tuple(int(hex_color[i : i + 2], 16) / 255 for i in (0, 2, 4)) + (1.0,)
-    return color
-
-
-def _pulsar_material_swap(cells):
-    # Swaps the cell meshes' material for a pulsar one, assumes all cells of the same type
-    # share the same material.
-    reps = list(set([c for c in cells]))
-    for cell in reps:
-        type = cell.type
-        mesh = cell.object.data
-        has_mats = len(mesh.materials) == 0
-        has_pulsar = has_mats and "pulsar" in mesh.materials[0]
-        if has_mats or "pulsar" not in mesh.materials[0]:
-            material = _main.create_pulsar_material(type.name, _get_type_color(type))
-            if has_mats:
-                mesh.materials.append(material)
-            elif not has_pulsar:
-                mesh.materials[0] = material
-
-
-animate.pulsar = _pulsar
+    _bpy.context.scene.frame_end = last_frame + ab / mpf

@@ -39,7 +39,6 @@ def create_population(name, material, cells, parent=None, scene=None, radius=3.0
     collection = create_collection(name, parent=parent)
     mesh = _create_ico_mesh(name, radius)
     mesh.materials.append(material)
-    cells = [c for c in cells if c.position[0] < 50]
     for i, cell in enumerate(cells):
         cell.object = object = bpy.data.objects.new(
             name=f"{name} #{cell.id}", object_data=mesh
