@@ -119,8 +119,8 @@ def create_network_cam(self):
     cam_data = _bpy.data.cameras.new("Network Camera")
     cam_data.lens = 18
     cam = _bpy.data.objects.new("Network Camera", cam_data)
-    cam.location = (9.69, -10.85, 12.388)
-    cam.rotation_euler = (0.6799, 0, 0.8254)
+    cam.location = (177.2, -359.79, 147.76)
+    cam.rotation_euler = (85.1, 0.756, 3.2)
     self._blender_collection.objects.link(cam)
 
 
