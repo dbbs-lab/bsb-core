@@ -179,7 +179,7 @@ def _pulsar_animate(cells, cell_activity, mpf, sw, ab, cap, intensity):
         # Last spike frame
         lsf = spike_frames[-1] if len(spike_frames) > 0 else 1
         # Create an empty intensity per frame array
-        ipf_arr = _np.zeros(lsf + sw + 1)
+        ipf_arr = _np.zeros(lsf + 1)
         for frame in spike_frames:
             # Each spike overlays its intensity onto a piece of the ipf array.
             start = max(frame - sw, 0)
@@ -194,7 +194,7 @@ def _pulsar_animate(cells, cell_activity, mpf, sw, ab, cap, intensity):
         # keyframe needs to be added to the animation of the object.
         d2 = _np.nonzero(_np.diff(_np.diff(ipf_arr, prepend=0)))[0]
 
-        # Frame 0 init
+        # First frame
         cell.object.color = intensity(ipf_arr[0], _min)
         cell.object.keyframe_insert(data_path="color", frame=0)
 
@@ -202,7 +202,10 @@ def _pulsar_animate(cells, cell_activity, mpf, sw, ab, cap, intensity):
         for key_point in d2:
             cell.object.color = intensity(ipf_arr[key_point], _min)
             cell.object.keyframe_insert(data_path="color", frame=key_point)
-        cell.object.color = _np.zeros(4)
+
+        # Last frame
+        cell.object.color = intensity(0, _min)
+        cell.object.keyframe_insert(data_path="color", frame=lsf + sw)
 
         if len(d2) > 0:
             # Store the last animation frame for later use in the collective fade out.
