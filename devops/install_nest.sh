@@ -9,6 +9,8 @@ mkdir nest-simulator-$NEST_VERSION-build
 mkdir nest-install-$NEST_VERSION
 cd nest-simulator-$NEST_VERSION-build
 PYTHON_INCLUDE_DIR=`python3 -c "import sysconfig; print(sysconfig.get_path('include'))"`
+find . -f -name libpy*.so
+exit 1
 echo "Include dir: $PYTHON_INCLUDE_DIR"
 PYLIB_BASE=lib`basename $PYTHON_INCLUDE_DIR`
 echo "Pylib base: $PYLIB_BASE"
