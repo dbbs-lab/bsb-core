@@ -119,8 +119,8 @@ def create_network_cam(self):
     cam_data = _bpy.data.cameras.new("Network Camera")
     cam_data.lens = 18
     cam = _bpy.data.objects.new("Network Camera", cam_data)
-    cam.location = (177.2, -359.79, 147.76)
-    cam.rotation_euler = (85.1, 0.756, 3.2)
+    cam.location = (150.65, -331.79, 269.37)
+    cam.rotation_euler = (68.3, 0, 0)
     self._blender_collection.objects.link(cam)
 
 
@@ -145,7 +145,7 @@ def _pulsar(results, cells, **kwargs):
     # Frames per second
     fps = kwargs.get("fps", 60)
     # Milliseconds per second
-    mps = kwargs.get("ms_per_s", 50)
+    mps = kwargs.get("ms_per_s", 25)
     # Milliseconds per frame
     mpf = mps / fps
     # Spike duration
