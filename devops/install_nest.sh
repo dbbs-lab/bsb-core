@@ -8,11 +8,18 @@ tar -xzf nest-simulator-$NEST_VERSION.tar.gz
 mkdir nest-simulator-$NEST_VERSION-build
 mkdir nest-install-$NEST_VERSION
 cd nest-simulator-$NEST_VERSION-build
+PYTHON_INCLUDE_DIR=`python3 -c "import sysconfig; print(sysconfig.get_path('include'))"`
+PYLIB_BASE=lib`basename $PYTHON_INCLUDE_DIR`
+PYLIB_DIR=$(dirname `sed 's/include/lib/' <<< $PYTHON_INCLUDE_DIR`)
+PYTHON_LIBRARY=`find $PYLIB_DIR \( -name $PYLIB_BASE.so -o -name $PYLIB_BASE.dylib \) -print -quit`
+echo "--> Detected PYTHON_LIBRARY=$PYTHON_LIBRARY"
+echo "--> Detected PYTHON_INCLUDE_DIR=$PYTHON_INCLUDE_DIR"
+CONFIGURE_PYTHON="-DPYTHON_LIBRARY=$PYTHON_LIBRARY -DPYTHON_INCLUDE_DIR=$PYTHON_INCLUDE_DIR"
 cmake \
-  -Dwith-python=3 \
-  -DPYTHON_EXECUTABLE=/home/travis/virtualenv/python3.8.1/bin/python3 \
-  -DCMAKE_INSTALL_PREFIX:PATH=/home/travis/nest-$NEST_VERSION \
-  /home/travis/nest-simulator-$NEST_VERSION
+    -DCMAKE_INSTALL_PREFIX:PATH=/home/travis/nest-$NEST_VERSION \
+    -Dwith-mpi=ON \
+    $CONFIGURE_PYTHON \
+    ..
 make
 make install
 cd $MY_BEFORE_DIR
