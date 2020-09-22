@@ -179,7 +179,7 @@ def _pulsar_animate(cells, cell_activity, mpf, sw, ab, cap, intensity):
         # Last spike frame
         lsf = spike_frames[-1] if len(spike_frames) > 0 else 1
         # Create an empty intensity per frame array
-        ipf_arr = _np.zeros(lsf + 1)
+        ipf_arr = _np.zeros(lsf + sw + 1)
         for frame in spike_frames:
             # Each spike overlays its intensity onto a piece of the ipf array.
             start = max(frame - sw, 0)
