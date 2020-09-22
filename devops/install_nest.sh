@@ -19,7 +19,7 @@ cmake \
     -DCMAKE_INSTALL_PREFIX:PATH=/home/travis/nest-$NEST_VERSION \
     -Dwith-mpi=ON \
     $CONFIGURE_PYTHON \
-    ..
+    /home/travis/nest-simulator-$NEST_VERSION
 make
 make install
 cd $MY_BEFORE_DIR
