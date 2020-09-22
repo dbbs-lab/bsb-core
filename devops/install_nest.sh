@@ -8,6 +8,7 @@ tar -xzf nest-simulator-$NEST_VERSION.tar.gz
 mkdir nest-simulator-$NEST_VERSION-build
 mkdir nest-install-$NEST_VERSION
 cd nest-simulator-$NEST_VERSION-build
+python -m pip install cython --upgrade
 PYTHON_INCLUDE_DIR=`python3 -c "import sysconfig; print(sysconfig.get_path('include'))"`
 echo "Include dir: $PYTHON_INCLUDE_DIR"
 PYLIB_BASE=lib`basename $PYTHON_INCLUDE_DIR`
