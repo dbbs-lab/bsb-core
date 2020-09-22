@@ -188,12 +188,11 @@ def _pulsar_animate(cells, cell_activity, mpf, sw, ab, cap, intensity):
             spike_intensity = cap(end - start, offset=start - frame + sw)
             # The composite is the maximum between the ipf array and the spike intensity.
             ipf_arr[start:end] = _np.max((outtake, spike_intensity), axis=0)
-        # Normalize the ipf array
-        ipf_arr = ipf_arr / sw
         # Get the 2nd differential to find where the intensity changes direction and a
         # keyframe needs to be added to the animation of the object.
         d2 = _np.nonzero(_np.diff(_np.diff(ipf_arr, prepend=0)))[0]
-
+        # Normalize the ipf array
+        ipf_arr = ipf_arr / sw
         # First frame
         cell.object.color = intensity(ipf_arr[0], _min)
         cell.object.keyframe_insert(data_path="color", frame=0)
