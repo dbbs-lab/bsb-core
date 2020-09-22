@@ -297,8 +297,8 @@ def _pulsar_afterburn(cells, mpf, last_frame, ab, intensity):
     for cell in cells:
         _min = 0.3 if cell.type.name not in _crowded_pulsars else 0.0
         cell.object.color = intensity(0, _min)
-        cell.object.keyframe_insert(data_path="color", frame=last_frame)
-        cell.object.color = _np.zeros(4)
         cell.object.keyframe_insert(data_path="color", frame=last_frame + ab / 2 / mpf)
+        cell.object.color = _np.zeros(4)
+        cell.object.keyframe_insert(data_path="color", frame=last_frame + ab / mpf)
 
     _bpy.context.scene.frame_end = last_frame + ab / mpf
