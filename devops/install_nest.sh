@@ -9,14 +9,13 @@ mkdir nest-simulator-$NEST_VERSION-build
 mkdir nest-install-$NEST_VERSION
 cd nest-simulator-$NEST_VERSION-build
 PYTHON_INCLUDE_DIR=`python3 -c "import sysconfig; print(sysconfig.get_path('include'))"`
-find / -type f -name libpy*.so
-exit 1
 echo "Include dir: $PYTHON_INCLUDE_DIR"
 PYLIB_BASE=lib`basename $PYTHON_INCLUDE_DIR`
 echo "Pylib base: $PYLIB_BASE"
 PYLIB_DIR=$(dirname `sed 's/include/lib/' <<< $PYTHON_INCLUDE_DIR`)
 echo "Pylib dir: $PYLIB_DIR"
 PYTHON_LIBRARY=`find $PYLIB_DIR \( -name $PYLIB_BASE.so -o -name $PYLIB_BASE.dylib \) -print -quit`
+PYTHON_LIBRARY=/opt/python/3.8.1/lib/libpython3.so
 echo "--> Detected PYTHON_LIBRARY=$PYTHON_LIBRARY"
 echo "--> Detected PYTHON_INCLUDE_DIR=$PYTHON_INCLUDE_DIR"
 CONFIGURE_PYTHON="-DPYTHON_LIBRARY=$PYTHON_LIBRARY -DPYTHON_INCLUDE_DIR=$PYTHON_INCLUDE_DIR"
