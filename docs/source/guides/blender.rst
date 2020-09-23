@@ -74,3 +74,11 @@ you want or you can continue to use some of the BSB blendins:
 	cells in every run of the script it might be better to open up with a
 	``load_populations`` and call ``get_population(name)`` later when you need a specific
 	population.
+
+.. warning::
+
+	It's easy to overload Blender with cell objects. It becomes quite difficult to use
+	Blender around 20,000 cells. If you have significantly more cells be sure to save
+	unpopulated versions of your Blender files, run the blendin script, save as another
+	file, render it and make the required changes to the unpopulated version, repeating the
+	process. Optimizations are likely to be added in the future.
