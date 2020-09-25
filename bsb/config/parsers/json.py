@@ -139,6 +139,7 @@ class JsonParser:
             content = parsed_dict(json.loads(content))
         self.root = content
         self.path = path or os.getcwd()
+        self.is_doc = path and not os.path.isdir(path)
         self.meta = meta
         self.references = []
         self.documents = {}

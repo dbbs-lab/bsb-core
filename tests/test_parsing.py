@@ -44,4 +44,11 @@ class TestJsonRef(unittest.TestCase):
             tree, meta = config.get_parser("json").parse(c("intradoc_nodict_ref.json"))
 
     def test_far_references(self):
-        pass
+        tree, meta = config.get_parser("json").parse(
+            c("interdoc_refs.json"), path=p("interdoc_refs.json")
+        )
+
+    def test_double_ref(self):
+        tree, meta = config.get_parser("json").parse(
+            c("doubleref.json"), path=p("doubleref.json")
+        )
