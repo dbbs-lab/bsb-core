@@ -982,6 +982,18 @@ class Scaffold:
         """
         return sum(list(self.statistics.cells_placed.values()))
 
+    def for_blender(self):
+        """
+            Binds all blender functions onto the scaffold object.
+        """
+        from . import blender
+
+        for f_name, f in blender.__dict__.items():
+            if callable(f) and not f_name.startswith("_"):
+                self.__dict__[f_name] = f.__get__(self)
+
+        return self
+
 
 class ReportListener:
     def __init__(self, scaffold, file):
