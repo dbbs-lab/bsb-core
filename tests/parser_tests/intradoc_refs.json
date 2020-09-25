@@ -1,6 +1,12 @@
 {
   "get": {
-    "a": "secret"
+    "a": {
+      "secret": "key",
+      "nested secrets": {
+        "vim": "is hard",
+        "and": "convoluted"
+      }
+    }
   },
   "refs": {
     "whats the": {

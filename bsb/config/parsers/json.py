@@ -204,7 +204,6 @@ class JsonParser:
 
     def _resolve_document(self, content, refs):
         resolved = {}
-        print(refs)
         for ref in refs:
             resolved[ref] = self._fetch_reference(content, ref)
         return resolved
@@ -253,7 +252,7 @@ recurse_handlers = {
 
 
 def _get_ref_document(ref, base=None):
-    if "#" not in ref:
+    if "#" not in ref or ref.split("#")[0] == "":
         return None
     doc = ref.split("#")[0]
     if not os.path.isabs(doc):

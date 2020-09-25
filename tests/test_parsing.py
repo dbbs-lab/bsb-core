@@ -15,7 +15,7 @@ def c(f):
         return fh.read()
 
 
-class TestConfiguration(unittest.TestCase):
+class TestJsonBasics(unittest.TestCase):
     def test_get_parser(self):
         config.get_parser("json")
         self.assertRaises(PluginError, config.get_parser, "doesntexist")
@@ -26,10 +26,22 @@ class TestConfiguration(unittest.TestCase):
 
     def test_parse_basics(self):
         tree, meta = config.get_parser("json").parse(c("basics.json"))
-        print(dict(tree))
         self.assertEqual(3, tree["list"][2], "Incorrectly parsed basic JSON")
         self.assertEqual(
             "just like that",
             tree["nest me hard"]["oh yea"],
             "Incorrectly parsed nested JSON",
         )
+
+
+class TestJsonRef(unittest.TestCase):
+    def test_indoc_reference(self):
+        tree, meta = config.get_parser("json").parse(c("intradoc_refs.json"))
+        self.assertEqual("key", tree["refs"]["whats the"]["secret"])
+        self.assertEqual("is hard", tree["refs"]["whats the"]["nested secrets"]["vim"])
+        self.assertEqual("convoluted", tree["refs"]["whats the"]["nested secrets"]["and"])
+        with self.assertRaises(JsonReferenceError, msg="Ref not to dict"):
+            tree, meta = config.get_parser("json").parse(c("intradoc_nodict_ref.json"))
+
+    def test_far_references(self):
+        pass
