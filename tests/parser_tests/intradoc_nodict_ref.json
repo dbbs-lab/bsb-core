@@ -1,0 +1,10 @@
+{
+  "get": {
+    "a": "secret"
+  },
+  "refs": {
+    "whats the": {
+      "$ref": "#/get/a"
+    }
+  }
+}

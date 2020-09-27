@@ -32,10 +32,9 @@ def node(node_cls, root=False, dynamic=False, pluggable=False):
 
     if hasattr(node_cls, "_config_attrs"):
         # If _config_attrs is already present on the class it's possible that we inherited
-        # it from our parent. If so we shouldn't update the parent's dictionary but create
-        # a new one and update it with our parent's and then ours.
-        n_attrs = {}
-        n_attrs.update(node_cls._config_attrs)
+        # it from our parent. If so we shouldn't update the parent's dictionary but copy
+        # it and update it with ours.
+        n_attrs = node_cls._config_attrs.copy()
         n_attrs.update(attrs)
         node_cls._config_attrs = n_attrs
     else:
@@ -436,8 +435,6 @@ class ConfigurationReferenceAttribute(ConfigurationAttribute):
         self.ref_type = ref_type
         self.populate = populate
         self.pop_unique = pop_unique
-        self.resolve_on_set = False
-        self.root = None
         # No need to cast to any types: the reference we fetch will already have been cast
         if "type" in kwargs:  # pragma: nocover
             del kwargs["type"]
@@ -451,12 +448,16 @@ class ConfigurationReferenceAttribute(ConfigurationAttribute):
             _setattr(instance, self.attr_name, value)
         else:
             setattr(instance, self.get_ref_key(), value)
-            if self.resolve_on_set:
-                if not self.root:  # pragma: nocover
+            if self.should_resolve_on_set(instance):
+                if hasattr(instance, "_config_root"):  # pragma: nocover
                     raise ReferenceError(
                         "Can't autoresolve references without a config root."
                     )
-                _setattr(instance, self.attr_name, self.__ref__(instance, self.root))
+                _setattr(
+                    instance,
+                    self.attr_name,
+                    self.__ref__(instance, instance._config_root),
+                )
 
     def is_reference_value(self, value):
         if value is None:
@@ -468,6 +469,12 @@ class ConfigurationReferenceAttribute(ConfigurationAttribute):
         else:
             return not isinstance(value, str)
 
+    def should_resolve_on_set(self, instance):
+        return (
+            hasattr(instance, "_config_resolve_on_set")
+            and instance._config_resolve_on_set
+        )
+
     def __ref__(self, instance, root):
         try:
             remote, remote_key = self._prepare_self(instance, root)
@@ -476,8 +483,8 @@ class ConfigurationReferenceAttribute(ConfigurationAttribute):
         return self.resolve_reference(instance, remote, remote_key)
 
     def _prepare_self(self, instance, root):
-        self.root = root
-        self.resolve_on_set = True
+        instance._config_root = root
+        instance._config_resolve_on_set = True
         remote = self.ref_lambda(root, instance)
         local_attr = self.get_ref_key()
         if not hasattr(instance, local_attr):
@@ -502,19 +509,26 @@ class ConfigurationReferenceAttribute(ConfigurationAttribute):
         if hasattr(reference.__class__, self.populate):
             pop_attr = getattr(reference.__class__, self.populate)
             if hasattr(pop_attr, "__populate__"):
-                return pop_attr.__populate__(reference, instance)
+                return pop_attr.__populate__(
+                    reference, instance, unique_list=self.pop_unique
+                )
 
         if (
             hasattr(reference, self.populate)
             and (population := getattr(reference, self.populate)) is not None
         ):
-            population.append(instance)
+            if not self.pop_unique or instance not in population:
+                population.append(instance)
         else:
             setattr(reference, self.populate, [instance])
 
 
 class ConfigurationReferenceListAttribute(ConfigurationReferenceAttribute):
     def __set__(self, instance, value, key=None):
+        if value is None:
+            setattr(instance, self.get_ref_key(), [])
+            _setattr(instance, self.attr_name, [])
+            return
         try:
             remote_keys = _list(iter(value))
         except TypeError:
@@ -525,8 +539,8 @@ class ConfigurationReferenceListAttribute(ConfigurationReferenceAttribute):
             )
         # Store the referring values to the references key.
         setattr(instance, self.get_ref_key(), remote_keys)
-        if self.resolve_on_set:
-            remote = self.ref_lambda(self.root, instance)
+        if self.should_resolve_on_set(instance):
+            remote = self.ref_lambda(instance._config_root, instance)
             refs = self.resolve_reference_list(instance, remote, remote_keys)
             _setattr(instance, self.attr_name, refs)
 
@@ -536,7 +550,7 @@ class ConfigurationReferenceListAttribute(ConfigurationReferenceAttribute):
     def __ref__(self, instance, root):
         try:
             remote, remote_keys = self._prepare_self(instance, root)
-        except NoReferenceAttributeSignal:
+        except NoReferenceAttributeSignal:  # pragma: nocover
             return None
         if _hasattr(instance, self.attr_name):
             remote_keys.extend(_getattr(instance, self.attr_name))
@@ -557,15 +571,25 @@ class ConfigurationReferenceListAttribute(ConfigurationReferenceAttribute):
             refs.append(reference)
         return refs
 
-    def __populate__(self, instance, value):
-        # Append the reference to the list of reference keys. (For lists ref keys & refs
-        # are equal)
-        if hasattr(instance, self.get_ref_key()):
-            getattr(instance, self.get_ref_key()).append(value)
-        # If the attr has already been resolved, also populate it. If not the populated
-        # item will be included when the ref keys list is resolved.
-        if hasattr(instance, self.attr_name):
-            getattr(instance, self.attr_name).append(value)
+    def __populate__(self, instance, value, unique_list=False):
+        has_refs = hasattr(instance, self.get_ref_key())
+        has_pop = hasattr(instance, self.attr_name)
+        if has_pop:
+            population = getattr(instance, self.attr_name)
+        if has_refs:
+            references = getattr(instance, self.get_ref_key())
+        is_new = (not has_pop or value not in population) and (
+            not has_refs or value not in references
+        )
+        should_pop = has_pop and (not unique_list or is_new)
+        should_ref = should_pop or not has_pop
+        if should_pop:
+            population.append(value)
+        if should_ref:
+            if not has_refs:
+                setattr(instance, self.get_ref_key(), [value])
+            else:
+                references.append(value)
 
 
 class ConfigurationAttributeSlot(ConfigurationAttribute):
@@ -574,8 +598,8 @@ class ConfigurationAttributeSlot(ConfigurationAttribute):
             "Configuration slot '{}' of {} is empty. The {} plugin provided by '{}' should fill the slot with a configuration attribute.".format(
                 self.attr_name,
                 instance.get_node_name(),
-                instance.__class__._scaffold_plugin.module_name,
-                instance.__class__._scaffold_plugin.dist,
+                instance.__class__._bsb_plugin.module_name,
+                instance.__class__._bsb_plugin.dist,
             )
         )
 

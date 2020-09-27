@@ -139,6 +139,7 @@ class JsonParser:
             content = parsed_dict(json.loads(content))
         self.root = content
         self.path = path or os.getcwd()
+        self.is_doc = path and not os.path.isdir(path)
         self.meta = meta
         self.references = []
         self.documents = {}
@@ -204,7 +205,6 @@ class JsonParser:
 
     def _resolve_document(self, content, refs):
         resolved = {}
-        print(refs)
         for ref in refs:
             resolved[ref] = self._fetch_reference(content, ref)
         return resolved
@@ -253,7 +253,7 @@ recurse_handlers = {
 
 
 def _get_ref_document(ref, base=None):
-    if "#" not in ref:
+    if "#" not in ref or ref.split("#")[0] == "":
         return None
     doc = ref.split("#")[0]
     if not os.path.isabs(doc):

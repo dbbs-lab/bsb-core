@@ -106,19 +106,19 @@ def _parser_method_docs(parser):
 
 
 def parser_factory(parser):
-    def parser_method(self, file=None, data=None):
+    def parser_method(self, file=None, data=None, path=None):
         if file is not None:
             file = os.path.abspath(file)
             with open(file, "r") as f:
                 data = f.read()
-        tree, meta = parser().parse(data, path=file)
+        tree, meta = parser().parse(data, path=path or file)
         conf = self.Configuration.__cast__(tree, None)
-        conf._parser = parser._scaffold_plugin.name
+        conf._parser = parser._bsb_plugin.name
         conf._meta = meta
         conf._file = file
         return conf
 
-    parser_method.__name__ = "from_" + parser._scaffold_plugin.name
+    parser_method.__name__ = "from_" + parser._bsb_plugin.name
     parser_method.__doc__ = _parser_method_docs(parser)
     return parser_method
 
