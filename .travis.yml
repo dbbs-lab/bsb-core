@@ -27,6 +27,7 @@ install:
       echo "CEREBNEST cache found, skipping installation";
     fi
   - source devops/post_install_env_vars.sh
+  - python -c "import nest; nest.Install('cerebmodule')"
   - pip3 install --upgrade pip
   - pip3 install -r requirements.txt
   - pip3 install coverage
