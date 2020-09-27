@@ -229,6 +229,7 @@ References are defined inside of configuration nodes by passing a :ref:`referenc
 <quick-reference-object>` to the ``config.ref`` function:
 
 .. code-block:: python
+
   @config.node
   class Locations:
     locations = config.dict(type=str)
@@ -319,7 +320,7 @@ already.
 
 .. warning::
 
-	Appending elements to these lists currently does not convert the new value. Also note
+  Appending elements to these lists currently does not convert the new value. Also note
   that reference lists are quite indestructible; setting them to `None` just resets them
   and the reference key list (``.<attr>_references``) to ``[]``.
 
@@ -345,6 +346,7 @@ the value of the ``populate`` kwarg (or create a new list if it doesn't exist).
   }
 
 .. code-block:: python
+
   @config.node
   class Container:
     name = config.attr(key=True)

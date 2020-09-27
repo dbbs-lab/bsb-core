@@ -52,12 +52,9 @@ def dynamic(
 ):
     """
         Decorate a class to be castable to a dynamically configurable class using
-        a class configuration attribute
+        a class configuration attribute.
 
-        Example
-        -------
-
-        Register a required string attribute 'class':
+        *Example*: Register a required string attribute ``class`` (this is the default):
 
         .. code-block:: python
 
@@ -65,7 +62,8 @@ def dynamic(
             class Example:
                 pass
 
-        Register a string attribute 'type' with a default value 'pkg.DefaultClass':
+        *Example*: Register a string attribute ``type`` with a default value
+        'pkg.DefaultClass' as dynamic attribute:
 
         .. code-block:: python
 
@@ -76,7 +74,7 @@ def dynamic(
         :param attr_name: Name under which to register the class attribute in the node.
         :type attr_name: str
         :param kwargs: All keyword arguments are passed to the constructor of the
-          :class:`attribute <config._attrs.ConfigurationAttribute>`.
+          :func:`attribute <.config.attr>`.
     """
     if "required" not in kwargs:
         kwargs["required"] = True
@@ -112,10 +110,7 @@ def pluggable(key, plugin_name=None, unpack=None):
     """
         Create a node whose configuration is defined by a plugin.
 
-        Example
-        -------
-
-        If you want to use the :guilabel:`attr` to chose from all the installed
+        *Example*: If you want to use the :guilabel:`attr` to chose from all the installed
         `dbbs_scaffold.my_plugin` plugins:
 
         .. code-block:: python

@@ -39,6 +39,35 @@ configuration for :class:`Regions <.objects.Region>`, :class:`Layers <.objects.L
 :class:`CellTypes <.objects.CellType>` and :class:`ConnectionStrategies
 <.connectivity.ConnectionStrategy>` respectively.
 
+JSON Parser
+###########
+
+The BSB uses a json parser with some extras. The parser has 2 special mechanisms, JSON
+references and JSON imports. This allows parts of the configuration file to be reusable
+across documents and to compose the document from prefab blocks where only some key
+aspects are adjusted. For example, an entire simulation protocol could be imported and the
+start and stop time of a stimulus adjusted::
+
+  {
+    "simulations": {
+      "premade_sim": {
+        "$ref": "premade_simulations.json#/simulations/twin_pulse",
+        "devices": {
+          "pulse1": {
+            "start": 100,
+            "stop": 200
+          }
+        }
+      }
+    }
+  }
+
+This would import the entire JSON document under ``/simulations/twin_pulse`` from the file
+``premade_simulations.json`` and only overwrite the ``start`` and ``stop`` time of the
+``pulse1`` device.
+
+See :doc:`/config/parsers/json` to read more on the JSON parser.
+
 Network
 #######
 
