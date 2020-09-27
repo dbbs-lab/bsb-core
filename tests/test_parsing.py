@@ -40,15 +40,24 @@ class TestJsonRef(unittest.TestCase):
         self.assertEqual("key", tree["refs"]["whats the"]["secret"])
         self.assertEqual("is hard", tree["refs"]["whats the"]["nested secrets"]["vim"])
         self.assertEqual("convoluted", tree["refs"]["whats the"]["nested secrets"]["and"])
-        with self.assertRaises(JsonReferenceError, msg="Ref not to dict"):
+        with self.assertRaises(JsonReferenceError, msg="Should raise 'ref not a dict'"):
             tree, meta = config.get_parser("json").parse(c("intradoc_nodict_ref.json"))
 
     def test_far_references(self):
         tree, meta = config.get_parser("json").parse(
             c("interdoc_refs.json"), path=p("interdoc_refs.json")
         )
+        self.assertIn("was", tree["refs"]["far"])
+        self.assertEqual("in another folder", tree["refs"]["far"]["was"])
+        self.assertIn("oh yea", tree["refs"]["whats the"])
+        self.assertEqual("just like that", tree["refs"]["whats the"]["oh yea"])
 
     def test_double_ref(self):
         tree, meta = config.get_parser("json").parse(
             c("doubleref.json"), path=p("doubleref.json")
         )
+
+
+class TestJsonImport(unittest.TestCase):
+    def test_indoc_import(self):
+        pass
