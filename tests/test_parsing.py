@@ -37,9 +37,11 @@ class TestJsonBasics(unittest.TestCase):
 class TestJsonRef(unittest.TestCase):
     def test_indoc_reference(self):
         tree, meta = config.get_parser("json").parse(c("intradoc_refs.json"))
+        self.assertNotIn("$ref", tree["refs"]["whats the"], "Ref key not removed")
         self.assertEqual("key", tree["refs"]["whats the"]["secret"])
         self.assertEqual("is hard", tree["refs"]["whats the"]["nested secrets"]["vim"])
         self.assertEqual("convoluted", tree["refs"]["whats the"]["nested secrets"]["and"])
+        self.assertEqual(tree["refs"]["whats the"], tree["refs"]["omitted_doc"])
         with self.assertRaises(JsonReferenceError, msg="Should raise 'ref not a dict'"):
             tree, meta = config.get_parser("json").parse(c("intradoc_nodict_ref.json"))
 
@@ -60,4 +62,31 @@ class TestJsonRef(unittest.TestCase):
 
 class TestJsonImport(unittest.TestCase):
     def test_indoc_import(self):
-        pass
+        tree, meta = config.get_parser("json").parse(c("indoc_import.json"))
+        self.assertEqual(["with", "importable"], list(tree["imp"].keys()))
+        self.assertEqual("are", tree["imp"]["importable"]["dicts"]["that"])
+
+    def test_import_merge(self):
+        tree, meta = config.get_parser("json").parse(c("indoc_import_merge.json"))
+        self.assertEqual(2, len(tree["imp"].keys()))
+        self.assertIn("importable", tree["imp"])
+        self.assertIn("with", tree["imp"])
+        self.assertEqual(
+            ["importable", "with"],
+            list(tree["imp"].keys()),
+            "Imported keys should follow on original keys",
+        )
+        self.assertEqual(4, tree["imp"]["importable"]["dicts"]["that"])
+        self.assertEqual("eh", tree["imp"]["importable"]["dicts"]["even"]["nested"])
+
+    def test_import_overwrite(self):
+        tree, meta = config.get_parser("json").parse(c("indoc_import_overwrite.json"))
+        self.assertEqual(2, len(tree["imp"].keys()))
+        self.assertIn("importable", tree["imp"])
+        self.assertIn("with", tree["imp"])
+        self.assertEqual(
+            ["importable", "with"],
+            list(tree["imp"].keys()),
+            "Imported keys should follow on original keys",
+        )
+        self.assertEqual(10, tree["imp"]["importable"])

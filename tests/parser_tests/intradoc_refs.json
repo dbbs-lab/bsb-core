@@ -11,6 +11,9 @@
   "refs": {
     "whats the": {
       "$ref": "#/get/a"
+    },
+    "omitted_doc": {
+      "$ref": "/get/a"
     }
   }
 }
