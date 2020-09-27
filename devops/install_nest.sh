@@ -3,7 +3,7 @@ echo "Empty cache, starting NEST v$NEST_VERSION installation."
 echo ""
 export MY_BEFORE_DIR=$PWD
 cd /home/travis
-git clone --depth 1 --branch v$NEST_VERSION https://github.com/dbbs-lab/nest-simulator nest-simulator-$NEST_VERSION
+git clone --depth 1 https://github.com/dbbs-lab/nest-simulator nest-simulator-$NEST_VERSION
 mkdir nest-simulator-$NEST_VERSION-build
 mkdir nest-install-$NEST_VERSION
 cd nest-simulator-$NEST_VERSION-build
