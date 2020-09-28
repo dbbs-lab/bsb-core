@@ -63,9 +63,11 @@ class TestJsonRef(unittest.TestCase):
     def test_ref_str(self):
         parser = config.get_parser("json")
         tree, meta = parser.parse(c("doubleref.json"), path=p("doubleref.json"))
-        self.assertEqual(
-            "<json ref '/home/robin/bsb/tests/parser_tests/interdoc_refs.json#/target'>",
-            str(parser.references[0]),
+        self.assertTrue(str(parser.references[0]).startswith("<json ref '"))
+        self.assertTrue(
+            str(parser.references[0]).endswith(
+                "/bsb/tests/parser_tests/interdoc_refs.json#/target'>"
+            )
         )
 
 
