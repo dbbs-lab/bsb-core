@@ -32,6 +32,7 @@ class TestJsonBasics(unittest.TestCase):
             tree["nest me hard"]["oh yea"],
             "Incorrectly parsed nested JSON",
         )
+        self.assertEqual("<parsed config '/list'>", str(tree["list"]))
 
 
 class TestJsonRef(unittest.TestCase):
@@ -59,12 +60,33 @@ class TestJsonRef(unittest.TestCase):
             c("doubleref.json"), path=p("doubleref.json")
         )
 
+    def test_ref_str(self):
+        parser = config.get_parser("json")
+        tree, meta = parser.parse(c("doubleref.json"), path=p("doubleref.json"))
+        self.assertEqual(
+            "<json ref '/home/robin/bsb/tests/parser_tests/interdoc_refs.json#/target'>",
+            str(parser.references[0]),
+        )
+
 
 class TestJsonImport(unittest.TestCase):
     def test_indoc_import(self):
         tree, meta = config.get_parser("json").parse(c("indoc_import.json"))
         self.assertEqual(["with", "importable"], list(tree["imp"].keys()))
         self.assertEqual("are", tree["imp"]["importable"]["dicts"]["that"])
+
+    def test_indoc_import_list(self):
+        from bsb.config.parsers.json import parsed_list
+
+        tree, meta = config.get_parser("json").parse(c("indoc_import_list.json"))
+        self.assertEqual(["with", "importable"], list(tree["imp"].keys()))
+        self.assertEqual("a", tree["imp"]["with"][0])
+        self.assertEqual(parsed_list, type(tree["imp"]["with"][2]), "message")
+
+    def test_indoc_import_value(self):
+        tree, meta = config.get_parser("json").parse(c("indoc_import_other.json"))
+        self.assertEqual(["with", "importable"], list(tree["imp"].keys()))
+        self.assertEqual("a", tree["imp"]["with"])
 
     def test_import_merge(self):
         tree, meta = config.get_parser("json").parse(c("indoc_import_merge.json"))
@@ -78,9 +100,11 @@ class TestJsonImport(unittest.TestCase):
         )
         self.assertEqual(4, tree["imp"]["importable"]["dicts"]["that"])
         self.assertEqual("eh", tree["imp"]["importable"]["dicts"]["even"]["nested"])
+        self.assertEqual(["new", "list"], tree["imp"]["importable"]["dicts"]["with"])
 
     def test_import_overwrite(self):
-        tree, meta = config.get_parser("json").parse(c("indoc_import_overwrite.json"))
+        with self.assertWarns(ConfigurationWarning) as warning:
+            tree, meta = config.get_parser("json").parse(c("indoc_import_overwrite.json"))
         self.assertEqual(2, len(tree["imp"].keys()))
         self.assertIn("importable", tree["imp"])
         self.assertIn("with", tree["imp"])
@@ -90,3 +114,6 @@ class TestJsonImport(unittest.TestCase):
             "Imported keys should follow on original keys",
         )
         self.assertEqual(10, tree["imp"]["importable"])
+
+    def test_far_import(self):
+        pass

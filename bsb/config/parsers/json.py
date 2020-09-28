@@ -1,8 +1,9 @@
 import json, os
 from ...exceptions import *
+from ...reporting import warn
 
 
-def _json_iter(obj):
+def _json_iter(obj):  # pragma: nocover
     if isinstance(obj, dict):
         return obj.items()
     elif isinstance(obj, list):
@@ -112,7 +113,11 @@ class json_imp(json_ref):
                     if isinstance(self.node[key], dict):
                         imported.merge(self.node[key])
                     else:
-                        # Import overwritten by non dict value in self.node. Warn?
+                        warn(
+                            f"Importkey '{key}' of {self} is ignored because the parent already contains a key '{key}' with value '{self.node[key]}'.",
+                            ConfigurationWarning,
+                            stacklevel=3,
+                        )
                         continue
                 self.node[key] = imported
             elif isinstance(target[key], list):

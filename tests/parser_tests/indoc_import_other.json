@@ -1,14 +1,13 @@
 {
   "arr": {
-    "with": {},
+    "with": "a",
     "many": {},
     "importable": {
       "dicts": {
         "that": "are",
         "even": {
           "nested": "eh"
-        },
-        "with": ["l", "i", "s", "t", "s"]
+        }
       }
     }
   },
@@ -16,13 +15,6 @@
     "$import": {
       "ref": "#/arr",
       "values": ["with", "importable"]
-    },
-    "importable": {
-      "diff": "added",
-      "dicts": {
-        "that": 4,
-        "with": ["new", "list"]
-      }
     }
   }
 }

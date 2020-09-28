@@ -1,0 +1,20 @@
+{
+  "arr": {
+    "with": {},
+    "many": {},
+    "importable": {
+      "dicts": {
+        "that": "are",
+        "even": {
+          "nested": "eh"
+        }
+      }
+    }
+  },
+  "imp": {
+    "$import": {
+      "ref": "far/targetme.json#/arr",
+      "values": ["was", "with"]
+    }
+  }
+}
