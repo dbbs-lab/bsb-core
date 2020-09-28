@@ -64,7 +64,7 @@ def report(*message, level=2, ongoing=False, token=None, nodes=None, all_nodes=F
             print(message, end="\n" if not ongoing else "\r")
 
 
-def warn(message, category=None):
+def warn(message, category=None, stacklevel=2):
     """
         Send a warning.
 
@@ -77,7 +77,7 @@ def warn(message, category=None):
             with open(_report_file, "a") as f:
                 f.write(_encode(str(category or "warning"), message))
         else:
-            warnings.warn(message, category, stacklevel=2)
+            warnings.warn(message, category, stacklevel=stacklevel)
 
 
 def _encode(header, message):
