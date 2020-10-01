@@ -18,6 +18,7 @@ else
 fi
 source devops/post_install_env_vars.sh
 python -c "import nest; nest.Install('cerebmodule')"
+python -c "import neuron; neuron.test()"
 pip install --upgrade pip
 pip install -r requirements.txt
 pip install coverage
