@@ -17,7 +17,7 @@ else
   echo "CEREBNEST cache found, skipping installation";
 fi
 source devops/post_install_env_vars.sh
-python -c "import nest; nest.Install('cerebbmodule')"
+python -c "import nest; nest.Install('cerebmodule')"
 pip install --upgrade pip
 pip install -r requirements.txt
 pip install coverage
