@@ -1,9 +1,7 @@
 #!/usr/bin/env sh
 
 export NEST_INSTALL_DIR=/home/travis/nest-$NEST_VERSION
-wget https://neuron.yale.edu/ftp/neuron/versions/v7.7/nrn-7.7.x86_64-linux.deb
-sudo dpkg -i nrn-7.7.x86_64-linux.deb
-export PYTHONPATH=/usr/local/nrn/lib/python:$PYTHONPATH
+sudo pip install neuron
 source devops/check_nest_cache.sh
 sudo apt-get install -y
 if [ "$HAS_NEST_CACHE" = "0" ]; then
