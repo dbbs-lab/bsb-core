@@ -1,6 +1,6 @@
 from . import __version__
 from .helpers import ConfigurableClass, get_qualified_class_name
-from .morphologies import Morphology, TrueMorphology, Compartment, Branch
+from .morphologies import Morphology, Compartment, Branch
 from bsb.helpers import suppress_stdout
 from contextlib import contextmanager
 from abc import abstractmethod, ABC
@@ -556,31 +556,28 @@ class MorphologyRepository(HDF5TreeHandler):
 
 def _int_ordered_iter(group):
     order = sorted(map(int, group.keys()))
-    if np.sum(np.diff(order)) != len(order):
+    print(len(order), np.diff(order), np.sum(np.diff(order)))
+    if np.sum(np.diff(order)) != len(order) - 1:
         raise MorphologyDataError(
             f"Non sequential branch numbering found: {order}. Branch numbers need to correspond with their index."
         )
-    return (group[o] for o in order)
+    return (group[str(o)] for o in order)
 
 
 def _morphology(m_root_group):
     b_root_group = m_root_group["branches"]
     branches = [_branch(b_group) for b_group in _int_ordered_iter(b_root_group)]
     _attach_branches(branches)
-    roots = [b for b in branches if branches.parent != -1]
-
-
-import inspect
-
-_vector_labels = [p for p in inspect.signature(Branch.__init__).parameters][1:]
-print(_vector_labels)
+    roots = [b for b in branches if b._parent is None]
+    return Morphology(roots)
 
 
 def _branch(b_root_group):
-    vectors = _group_vector_iter(b_root_group, _vector_labels)
+    vectors = _group_vector_iter(b_root_group, Branch.vectors)
     branch = Branch(*vectors)
     attrs = b_root_group.attrs
     branch._data_parent = int(attrs.get("parent", -1))
+    return branch
 
 
 def _attach_branches(branches):

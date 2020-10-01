@@ -104,14 +104,28 @@ def branches_iterator(branch):
     return itertools.chain(branch, *(branches_iterator(b) for b in self._children))
 
 
+def _validate_branch_args(args):
+    vec = Branch.vectors
+    if len(args) > len(vec):
+        raise TypeError(
+            f"__init__ takes {len(vec) + 1} arguments but {len(args) + 1} given."
+        )
+    if len(args) < len(vec):
+        n = len(vec) - len(args)
+        w = "argument" if n == 1 else "arguments"
+        missing = ", ".join(map("'{}'".format, vec[-n:]))
+        raise TypeError(f"__init__ is missing {n} required {w}: {missing}.")
+
+
 class Branch:
-    def __init__(self, x, y, z, radii):
+    vectors = ["x", "y", "z", "radii"]
+
+    def __init__(self, *args):
+        _validate_branch_args(args)
         self._children = []
         self._parent = None
-        self.x = x
-        self.y = y
-        self.z = z
-        self.radii = radii
+        for v, vector in enumerate(vec):
+            self.__dict__[vector] = args[v]
 
     def attach_child(self, branch):
         self._children.append(branch)
@@ -121,18 +135,28 @@ class Branch:
         self._children.remove(branch)
         branch._parent = None
 
+    def to_compartments(self, start_id=0, last_parent=None):
+        comp_id = start_id
 
-class NewMorphology:
-    def __init__(self, roots):
-        self.roots = roots
+        def to_comp(data):
+            nonlocal comp_id, last_parent
+            comp = Compartment(comp_id, *data, parent=last_parent)
+            comp_id += 1
+            last_parent = comp
+            return comp
 
-    @property
-    def branches():
-        # Return a depth-first flattened array of all branches.
-        return [*itertools.chain(*(branches_iterator(root) for root in self.roots))]
+        compartments = [to_comp(data) for data in self.walk()]
+
+    def walk(self):
+        return zip(*(self.__dict__[v] for v in self.__class__.vectors))
 
 
-class Morphology(ConfigurableClass):
+import inspect
+
+compartment_vectors = [p for p in inspect.signature(Branch.__init__).parameters][1:]
+
+
+class Morphology:
     """
         A multicompartmental spatial representation of a cell based on connected 3D
         compartments.
@@ -178,20 +202,30 @@ class Morphology(ConfigurableClass):
         ],
     }
 
-    def __init__(self):
-        super().__init__()
-        self.compartments = None
+    def __init__(self, scaffold, roots):
+        self.scaffold = scaffold
         self.cloud = None
-        self.has_morphology = False
+        self.has_morphology = True
         self.has_voxels = False
+        self.roots = roots
+        self.compartments = self.to_compartments()
 
-    def boot(self):
-        if self.has_morphology:
-            # TODO: This is dead code, it assumed that when we load the config a single
-            # shared example morphology could be used for the cell type. This kind of
-            # coupling has to be removed.
-            report("{} has morphology".format(self.morphology_name), level=2)
-            self.store_compartment_tree()
+    @property
+    def branches(self):
+        # Return a depth-first flattened array of all branches.
+        return [*itertools.chain(*(branches_iterator(root) for root in self.roots))]
+
+    def to_compartments(self):
+        comp_counter = 0
+
+        def treat_branch(branch, last_parent=None):
+            comps = branch.to_compartments(comp_counter, last_parent)
+            comp_counter += len(comps)
+            parent_comp = comps[-1]
+            child_iters = (treat_branch(b, parent_comp) for b in self._children)
+            return itertools.chain(comps, *child_iters)
+
+        return [*itertools.chain(treat_branch(root) for root in self.roots)]
 
     def init_morphology(self, repo_data, repo_meta):
         """
@@ -237,39 +271,6 @@ class Morphology(ConfigurableClass):
         grid_size = voxel_meta["grid_size"]
         # Initialise as a true morphology
         self.cloud = VoxelCloud(bounds, voxel_data, grid_size, voxel_map)
-
-    @staticmethod
-    def from_repo_data(
-        repo_data,
-        repo_meta,
-        voxel_data=None,
-        voxel_map=None,
-        voxel_meta=None,
-        scaffold=None,
-    ):
-        # Instantiate morphology instance
-        m = TrueMorphology()
-        if scaffold is not None:
-            # Initialise configurable class
-            m.initialise(scaffold)
-        # Load the morphology data into this morphology instance
-        m.init_morphology(repo_data, repo_meta)
-        if voxel_data is not None:
-            if voxel_map is None or voxel_meta is None:
-                raise DataNotProvidedError(
-                    "If voxel_data is provided, voxel_meta and voxel_map must be provided aswell."
-                )
-            m.init_voxel_cloud(voxel_data, voxel_meta, voxel_map)
-        return m
-
-
-class TrueMorphology(Morphology):
-    """
-        Used to load morphologies that don't need to be configured/validated.
-    """
-
-    def validate(self):
-        pass
 
     def voxelize(self, N, compartments=None):
         self.cloud = VoxelCloud.create(self, N, compartments=compartments)
