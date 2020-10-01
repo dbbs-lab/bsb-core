@@ -1,6 +1,6 @@
 from . import __version__
 from .helpers import ConfigurableClass, get_qualified_class_name
-from .morphologies import Morphology, TrueMorphology, Compartment
+from .morphologies import Morphology, TrueMorphology, Compartment, Branch
 from bsb.helpers import suppress_stdout
 from contextlib import contextmanager
 from abc import abstractmethod, ABC
@@ -449,18 +449,8 @@ class MorphologyRepository(HDF5TreeHandler):
                     "Attempting to load unknown morphology '{}'".format(name)
                 )
             # Take out all the data with () index, and send along the metadata stored in the attributes
-            data = self._raw_morphology(name, handler)
-            repo_data = data[()]
-            repo_meta = dict(data.attrs)
-            voxel_kwargs = {}
-            if self.voxel_cloud_exists(name):
-                voxels = self._raw_voxel_cloud(name, handler)
-                voxel_kwargs["voxel_data"] = voxels["positions"][()]
-                voxel_kwargs["voxel_meta"] = dict(voxels.attrs)
-                voxel_kwargs["voxel_map"] = pickle.loads(voxels["map"][()])
-            return Morphology.from_repo_data(
-                repo_data, repo_meta, scaffold=scaffold, **voxel_kwargs
-            )
+            group = self._raw_morphology(name, handler)
+            return _morphology(group)
 
     def store_voxel_cloud(self, morphology, overwrite=False):
         with self.load("a") as repo:
@@ -562,6 +552,47 @@ class MorphologyRepository(HDF5TreeHandler):
             Return the morphology dataset
         """
         return handler()["morphologies/voxel_clouds/" + name]
+
+
+def _int_ordered_iter(group):
+    order = sorted(map(int, group.keys()))
+    if np.sum(np.diff(order)) != len(order):
+        raise MorphologyDataError(
+            f"Non sequential branch numbering found: {order}. Branch numbers need to correspond with their index."
+        )
+    return (group[o] for o in order)
+
+
+def _morphology(m_root_group):
+    b_root_group = m_root_group["branches"]
+    branches = [_branch(b_group) for b_group in _int_ordered_iter(b_root_group)]
+    _attach_branches(branches)
+    roots = [b for b in branches if branches.parent != -1]
+
+
+import inspect
+
+_vector_labels = [p for p in inspect.signature(Branch.__init__).parameters][1:]
+print(_vector_labels)
+
+
+def _branch(b_root_group):
+    vectors = _group_vector_iter(b_root_group, _vector_labels)
+    branch = Branch(*vectors)
+    attrs = b_root_group.attrs
+    branch._data_parent = int(attrs.get("parent", -1))
+
+
+def _attach_branches(branches):
+    for branch in branches:
+        if branch._data_parent < 0:
+            continue
+        branches[branch._data_parent].attach_child(branch)
+        del branch._data_parent
+
+
+def _group_vector_iter(group, vector_labels):
+    return (group[label][()] for label in vector_labels)
 
 
 class MorphologyCache:

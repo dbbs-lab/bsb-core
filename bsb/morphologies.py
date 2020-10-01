@@ -100,6 +100,38 @@ class Compartment:
         return record
 
 
+def branches_iterator(branch):
+    return itertools.chain(branch, *(branches_iterator(b) for b in self._children))
+
+
+class Branch:
+    def __init__(self, x, y, z, radii):
+        self._children = []
+        self._parent = None
+        self.x = x
+        self.y = y
+        self.z = z
+        self.radii = radii
+
+    def attach_child(self, branch):
+        self._children.append(branch)
+        branch._parent = self
+
+    def remove_child(self, branch):
+        self._children.remove(branch)
+        branch._parent = None
+
+
+class NewMorphology:
+    def __init__(self, roots):
+        self.roots = roots
+
+    @property
+    def branches():
+        # Return a depth-first flattened array of all branches.
+        return [*itertools.chain(*(branches_iterator(root) for root in self.roots))]
+
+
 class Morphology(ConfigurableClass):
     """
         A multicompartmental spatial representation of a cell based on connected 3D
