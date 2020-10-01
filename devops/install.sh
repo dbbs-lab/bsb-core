@@ -16,6 +16,7 @@ if [ "$HAS_CEREBNEST_CACHE" = "0" ]; then
 else
   echo "CEREBNEST cache found, skipping installation";
 fi
+source devops/post_install_env_vars.sh
 python -c "import nest; nest.Install('cerebbmodule')"
 pip install --upgrade pip
 pip install -r requirements.txt
