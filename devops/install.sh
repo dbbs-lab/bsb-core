@@ -5,7 +5,7 @@ wget https://neuron.yale.edu/ftp/neuron/versions/v7.7/nrn-7.7.x86_64-linux.deb
 sudo dpkg -i nrn-7.7.x86_64-linux.deb
 export PYTHONPATH=/usr/local/nrn/lib/python:$PYTHONPATH
 source devops/check_nest_cache.sh
-sudo apt-get install -y python3-rtree python3.8-dev build-essential cmake cython libgsl-dev libltdl-dev libncurses-dev libreadline-dev openmpi-bin libopenmpi-dev
+sudo apt-get install -y
 if [ "$HAS_NEST_CACHE" = "0" ]; then
   source devops/install_nest.sh
 else
@@ -16,9 +16,8 @@ if [ "$HAS_CEREBNEST_CACHE" = "0" ]; then
 else
   echo "CEREBNEST cache found, skipping installation";
 fi
-source devops/post_install_env_vars.sh
 python -c "import nest; nest.Install('cerebbmodule')"
-pip3 install --upgrade pip
-pip3 install -r requirements.txt
-pip3 install coverage
-pip3 install -e .
+pip install --upgrade pip
+pip install -r requirements.txt
+pip install coverage
+pip install -e .

@@ -6,8 +6,12 @@ cache:
   directories:
     - $HOME/nest-$NEST_VERSION
     - $HOME/.cache/pre-commit
-install: source devops/install.sh
+before_install:
+  - sudo apt-get update
+  - sudo apt-get -y install
+install: bash devops/install.sh || travis_terminate 1
 script:
+  - source devops/post_install_env_vars.sh
   - coverage run -m unittest discover -v -s ./tests
 after_success:
   - bash <(curl -s https://codecov.io/bash)
