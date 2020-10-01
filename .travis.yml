@@ -9,7 +9,7 @@ cache:
 before_install:
   - sudo apt-get update
   - sudo apt-get -y install python3-rtree python3.8-dev build-essential cmake cython libgsl-dev libltdl-dev libncurses-dev libreadline-dev openmpi-bin libopenmpi-dev
-install: bash devops/install.sh || travis_terminate 1
+install: bash -o errexit devops/install.sh
 script:
   - source devops/post_install_env_vars.sh
   - coverage run -m unittest discover -v -s ./tests
