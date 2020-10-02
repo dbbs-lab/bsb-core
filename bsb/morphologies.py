@@ -445,7 +445,11 @@ class Morphology:
         self.update_compartment_tree()
 
 
-class GranuleCellGeometry(Morphology):
+class Representation(ConfigurableClass):
+    pass
+
+
+class GranuleCellGeometry(Representation):
     casts = {
         "dendrite_length": float,
         "pf_height": float,
@@ -457,12 +461,12 @@ class GranuleCellGeometry(Morphology):
         pass
 
 
-class PurkinjeCellGeometry(Morphology):
+class PurkinjeCellGeometry(Representation):
     def validate(self):
         pass
 
 
-class GolgiCellGeometry(Morphology):
+class GolgiCellGeometry(Representation):
     casts = {
         "dendrite_radius": float,
         "axon_x": float,
@@ -476,7 +480,7 @@ class GolgiCellGeometry(Morphology):
         pass
 
 
-class RadialGeometry(Morphology):
+class RadialGeometry(Representation):
     casts = {
         "dendrite_radius": float,
     }
@@ -487,7 +491,7 @@ class RadialGeometry(Morphology):
         pass
 
 
-class NoGeometry(Morphology):
+class NoGeometry(Representation):
     def validate(self):
         pass
 
