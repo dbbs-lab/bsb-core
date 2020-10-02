@@ -594,7 +594,13 @@ def _morphology(scaffold, m_root_group):
 
 def _branch(b_root_group):
     vectors = _group_vector_iter(b_root_group, Branch.vectors)
-    branch = Branch(*vectors)
+    try:
+        branch = Branch(*vectors)
+    except KeyError:
+        missing = [v for v in Branch.vectors if v not in b_root_group]
+        raise MorphologyDataError(
+            f"Missing branch vectors {missing} in '{b_root_group.name}'."
+        )
     attrs = b_root_group.attrs
     branch._data_parent = int(attrs.get("parent", -1))
     return branch
