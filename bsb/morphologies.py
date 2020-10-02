@@ -100,8 +100,13 @@ class Compartment:
         return record
 
 
-def branches_iterator(branch):
-    return itertools.chain(branch, *(branches_iterator(b) for b in self._children))
+def branch_iter(branch):
+    """
+        Iterate over a branch and all of its children depth first.
+    """
+    yield branch
+    for child in branch._children:
+        yield from branch_iter(child)
 
 
 def _validate_branch_args(args):
@@ -173,7 +178,7 @@ class Morphology:
         """
             Return a depth-first flattened array of all branches.
         """
-        return [*itertools.chain(*(branches_iterator(root) for root in self.roots))]
+        return [*itertools.chain(*(branch_iter(root) for root in self.roots))]
 
     def to_compartments(self):
         """
