@@ -5,5 +5,5 @@
 !test_*
 *.pyc
 !configs/
-!morphologies*
+morphologies.hdf5
 !mr/
