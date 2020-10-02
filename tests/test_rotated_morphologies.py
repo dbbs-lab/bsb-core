@@ -6,7 +6,7 @@ from bsb.core import Scaffold, from_hdf5
 from bsb.config import JSONConfig
 from bsb.models import MorphologySet, PlacementSet
 from bsb.output import MorphologyRepository, MorphologyCache
-from bsb.morphologies import TrueMorphology
+from bsb.morphologies import Morphology
 from shutil import copyfile
 
 
@@ -163,6 +163,7 @@ class TestMorhologySetsRotations(unittest.TestCase):
         )
 
 
+@unittest.skip("See https://github.com/dbbs-lab/bsb/issues/120")
 class TestRotation(unittest.TestCase):
     """
         Test the validity of rotations
@@ -177,7 +178,7 @@ class TestRotation(unittest.TestCase):
             ]
         )
         spoofed_meta = {"name": "test_rotation"}
-        m = TrueMorphology.from_repo_data(spoofed_data, spoofed_meta)
+        m = Morphology(spoofed_data, spoofed_meta)
         v0 = [1.0, 0.0, 0.0]
         v = [0.0, 1.0, 0.0]
         # Store pre rotation checks
