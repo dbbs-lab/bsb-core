@@ -145,15 +145,37 @@ class Branch:
 
         def to_comp(data):
             nonlocal comp_id, last_parent
-            comp = Compartment(comp_id, *data, parent=last_parent)
+            comp = Compartment(*data, id=comp_id, parent=last_parent)
             comp_id += 1
             last_parent = comp
             return comp
 
-        compartments = [to_comp(data) for data in self.walk()]
+        # Walk over each pair of points as the start and end if a compartment.
+        # Start from the end of the parent branch's last compartment.
+        comps = [to_comp(data) for data in _pairwise_iter(self.walk(), last_parent)]
+        self.apply_labels(comps)
+        return comps
 
     def walk(self):
         return zip(*(self.__dict__[v] for v in self.__class__.vectors))
+
+    def apply_labels(self, comps):
+        pass
+
+
+def _pairwise_iter(walk, parent=None):
+    if parent:
+        start = parent.end
+    else:
+        try:
+            start = next(walk)
+        except StopIteration:
+            return iter(())
+    for data in walk:
+        end = data[:3]
+        radius = data[3]
+        yield start, end, radius
+        start = end
 
 
 class Morphology:
@@ -192,13 +214,17 @@ class Morphology:
         comp_counter = 0
 
         def treat_branch(branch, last_parent=None):
+            nonlocal comp_counter
             comps = branch.to_compartments(comp_counter, last_parent)
             comp_counter += len(comps)
-            parent_comp = comps[-1]
-            child_iters = (treat_branch(b, parent_comp) for b in self._children)
+            # If this branch has no compartments just pass on the compartment we were
+            # supposed to connect our first compartment to. That way this empty branch
+            # is skipped and the next compartments are still connected in the comp tree.
+            parent_comp = comps[-1] if len(comps) else last_parent
+            child_iters = (treat_branch(b, parent_comp) for b in branch._children)
             return itertools.chain(comps, *child_iters)
 
-        return [*itertools.chain(treat_branch(root) for root in self.roots)]
+        return [*itertools.chain(*(treat_branch(root) for root in self.roots))]
 
     def flatten(self, vectors=None, matrix=False):
         """
@@ -218,8 +244,8 @@ class Morphology:
             if matrix:
                 return np.empty((0, len(vectors)))
             return tuple(np.empty(0) for _ in vectors)
-        t = tuple(np.concatenate(*(getattr(b, v) for b in branches)) for v in vectors)
-        return np.hstack(t) if matrix else t
+        t = tuple(np.concatenate(tuple(getattr(b, v) for b in branches)) for v in vectors)
+        return np.column_stack(t) if matrix else t
 
     def init_morphology(self, repo_data, repo_meta):
         """
