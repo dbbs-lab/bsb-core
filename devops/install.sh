@@ -1,9 +1,8 @@
 #!/usr/bin/env sh
 
 export NEST_INSTALL_DIR=/home/travis/nest-$NEST_VERSION
-python --version
 python -m pip install --upgrade pip
-python -m pip install neuron
+python -m pip install NEURON==7.8.1.1
 source devops/check_nest_cache.sh
 sudo apt-get install -y
 if [ "$HAS_NEST_CACHE" = "0" ]; then
