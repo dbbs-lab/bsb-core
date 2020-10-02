@@ -554,10 +554,30 @@ class MorphologyRepository(HDF5TreeHandler):
         return handler()["morphologies/voxel_clouds/" + name]
 
 
+def _is_invalid_order(order):
+    # Checks sequential order starting from zero. [] is also valid.
+    #
+    # We need to prepend 0 to a 1 element diff so that 0 - 0 = len([0]) - 1 and all else
+    # is rejected. `np.diff` behaves differently if `prepend` is set or not, there is no
+    # default value that we can set that won't cause an error so we construct a dict and
+    # either add the prepend kwarg to it or not and pass the dict as **kwargs.
+    k = dict()
+    if len(order) == 1:
+        k["prepend"] = 0
+    return bool(len(order) and np.sum(np.diff(order, **k)) != len(order) - 1)
+
+
 def _int_ordered_iter(group):
+    # Sort the group keys as ascending integers, then make sure they are a part of the
+    # sequence [0, 1, 2, ..., n]
+    try:
+        neg = [*(g for g in group.keys() if int(g) < 0)]
+    except ValueError:
+        raise MorphologyDataError("Non numeric branch names are not allowed")
+    if neg:
+        raise MorphologyDataError(f"Branches with negative numbers {neg} are not allowed")
     order = sorted(map(int, group.keys()))
-    print(len(order), np.diff(order), np.sum(np.diff(order)))
-    if np.sum(np.diff(order)) != len(order) - 1:
+    if _is_invalid_order(order):
         raise MorphologyDataError(
             f"Non sequential branch numbering found: {order}. Branch numbers need to correspond with their index."
         )
