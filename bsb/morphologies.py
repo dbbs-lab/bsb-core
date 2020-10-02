@@ -129,7 +129,7 @@ class Branch:
         _validate_branch_args(args)
         self._children = []
         self._parent = None
-        for v, vector in enumerate(vec):
+        for v, vector in enumerate(self.__class__.vectors):
             self.__dict__[vector] = args[v]
 
     def attach_child(self, branch):
