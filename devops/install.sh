@@ -1,7 +1,9 @@
 #!/usr/bin/env sh
 
 export NEST_INSTALL_DIR=/home/travis/nest-$NEST_VERSION
-sudo pip install neuron
+python --version
+python -m install --upgrade pip
+python -m pip install neuron
 source devops/check_nest_cache.sh
 sudo apt-get install -y
 if [ "$HAS_NEST_CACHE" = "0" ]; then
@@ -17,7 +19,6 @@ fi
 source devops/post_install_env_vars.sh
 python -c "import nest; nest.Install('cerebmodule')"
 python -c "import neuron; neuron.test()"
-pip install --upgrade pip
-pip install -r requirements.txt
-pip install coverage
-pip install -e .
+python -m install -r requirements.txt
+python -m install coverage
+python -m install -e .
