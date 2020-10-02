@@ -224,8 +224,6 @@ class MorphologyRepository(HDF5TreeHandler):
 
     defaults = {"file": "morphology_repository.hdf5"}
 
-    protected_keys = ["voxel_clouds"]
-
     def __init__(self, file=None):
         super().__init__()
         if file is not None:
@@ -247,13 +245,12 @@ class MorphologyRepository(HDF5TreeHandler):
     def initialise_repo_structure(self, handle):
         if "morphologies" not in handle:
             handle.create_group("morphologies")
-        if "morphologies/voxel_clouds" not in handle:
-            handle.create_group("morphologies/voxel_clouds")
 
     def import_swc(self, file, name, tags=[], overwrite=False):
         """
             Import and store .swc file contents as a morphology in the repository.
         """
+        raise NotImplementedError("SWC temporarily unsupported.")
         # Read as CSV
         swc_data = np.loadtxt(file)
         # Create empty dataset
@@ -306,6 +303,7 @@ class MorphologyRepository(HDF5TreeHandler):
         self.save_morphology_dataset(name, dataset_data, overwrite=overwrite)
 
     def import_arbz(self, name, cls, overwrite=False):
+        raise NotImplementedError("arbz temporarily unsupported.")
         from neuron import h
 
         cell = cls()
@@ -388,17 +386,7 @@ class MorphologyRepository(HDF5TreeHandler):
                 print("Importing", n)
                 self.import_arbz(n, c, overwrite=True)
 
-    def save_morphology(self, name, compartments):
-        ds = []
-        for c in compartments:
-            d = [c.id, c.type, *c.start, *c.end, c.radius, c.parent_id]
-            if hasattr(c, "section_id"):
-                d.append(c.section_id)
-            ds.append(d)
-
-        self.save_morphology_dataset(name, ds, overwrite=True)
-
-    def save_morphology_dataset(self, name, data, overwrite=False):
+    def save_morphology(self, name, morphology):
         with self.load("a") as repo:
             if overwrite:  # Do we overwrite previously existing dataset with same name?
                 self.remove_morphology(
@@ -410,14 +398,7 @@ class MorphologyRepository(HDF5TreeHandler):
                         name
                     )
                 )
-            data = np.array(data)
-
-            # Create the dataset
-            dataset = repo()["morphologies"].create_dataset(name, data=data)
-            # Set attributes
-            dataset.attrs["name"] = name
-            dataset.attrs["search_radii"] = np.max(np.abs(data[:, 2:5]), axis=0)
-            dataset.attrs["type"] = "swc"
+            raise NotImplementedError("Morpho saving not supported yet.")
 
     def import_repository(self, repository, overwrite=False):
         with repository.load() as external_handle:
@@ -425,18 +406,17 @@ class MorphologyRepository(HDF5TreeHandler):
                 m_group = internal_handle()["morphologies"]
                 keys = external_handle()["morphologies"].keys()
                 for m_key in keys:
-                    if m_key not in self.protected_keys:
-                        if overwrite or m_key not in m_group:
-                            if m_key in m_group:
-                                del m_group[m_key]
-                            external_handle().copy("/morphologies/" + m_key, m_group)
-                        else:
-                            self.scaffold.warn(
-                                "Did not import '{}' because it already existed and overwrite=False".format(
-                                    m_key
-                                ),
-                                RepositoryWarning,
-                            )
+                    if overwrite or m_key not in m_group:
+                        if m_key in m_group:
+                            del m_group[m_key]
+                        external_handle().copy("/morphologies/" + m_key, m_group)
+                    else:
+                        self.scaffold.warn(
+                            "Did not import '{}' because it already existed and overwrite=False".format(
+                                m_key
+                            ),
+                            RepositoryWarning,
+                        )
 
     def get_morphology(self, name, scaffold=None):
         """
@@ -448,11 +428,11 @@ class MorphologyRepository(HDF5TreeHandler):
                 raise MorphologyRepositoryError(
                     "Attempting to load unknown morphology '{}'".format(name)
                 )
-            # Take out all the data with () index, and send along the metadata stored in the attributes
             group = self._raw_morphology(name, handler)
             return _morphology(scaffold, group)
 
     def store_voxel_cloud(self, morphology, overwrite=False):
+        raise NotImplementedError("Voxel cloud storage is not yet reimplemented")
         with self.load("a") as repo:
             if self.voxel_cloud_exists(morphology.morphology_name):
                 if not overwrite:
@@ -478,21 +458,21 @@ class MorphologyRepository(HDF5TreeHandler):
 
     def morphology_exists(self, name):
         with self.load() as repo:
-            return name in repo()["morphologies"]
+            return f"/morphologies{name}" in repo()
 
-    def voxel_cloud_exists(self, name):
+    def voxel_cloud_exists(self, morphology_name, cloud_name):
         with self.load() as repo:
-            return name in repo()["morphologies/voxel_clouds"]
+            return f"morphologies/{morphology_name}/clouds/{cloud_name}" in repo()
 
     def remove_morphology(self, name):
         with self.load("a") as repo:
             if self.morphology_exists(name):
-                del repo()["morphologies/" + name]
+                del repo()[f"morphologies/{name}"]
 
-    def remove_voxel_cloud(self, name):
+    def remove_voxel_cloud(self, morphology_name, cloud_name):
         with self.load("a") as repo:
             if self.voxel_cloud_exists(name):
-                del repo()["morphologies/voxel_clouds/" + name]
+                del repo()[f"morphologies/{morphology_name}/clouds/{cloud_name}"]
 
     def list_morphologies(
         self, include_rotations=False, only_rotations=False, cell_type=None
@@ -514,9 +494,7 @@ class MorphologyRepository(HDF5TreeHandler):
 
         with self.load("r") as repo:
             # Filter out all morphology names, ignore the `voxel_clouds` category
-            morpho_filter = filter(
-                lambda x: x != "voxel_clouds", repo()["morphologies"].keys()
-            )
+            morpho_filter = iter(repo()["/morphologies"].keys())
             if only_rotations:
                 # Exclude all non rotated names
                 morpho_filter = filter(lambda x: (x.find("__") != -1), morpho_filter)
@@ -535,23 +513,27 @@ class MorphologyRepository(HDF5TreeHandler):
 
     def list_all_voxelized(self):
         with self.load() as repo:
-            all = list(repo()["morphologies"].keys())
-            voxelized = list(
-                filter(lambda x: x in repo()["/morphologies/voxel_clouds"], all)
-            )
-            return voxelized
+            handle = repo()
+
+            def morphos():
+                yield from handle["/morphologies"].keys()
+
+            def clouds(m):
+                return handle[f"/morphologies/{m}/clouds"].keys()
+
+            return [m for m in morphos() if len(clouds(m)) > 0]
 
     def _raw_morphology(self, name, handler):
         """
-            Return the morphology dataset
+            Return the morphology data
         """
-        return handler()["morphologies/" + name]
+        return handler()[f"/morphologies/{name}"]
 
-    def _raw_voxel_cloud(self, name, handler):
+    def _raw_voxel_cloud(self, morphology_name, cloud_name, handler):
         """
-            Return the morphology dataset
+            Return the voxel cloud data
         """
-        return handler()["morphologies/voxel_clouds/" + name]
+        return handler()[f"/morphologies/{morphology_name}/clouds/{cloud_name}"]
 
 
 def _is_invalid_order(order):
