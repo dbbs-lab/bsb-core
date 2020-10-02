@@ -18,7 +18,7 @@ class Compartment:
         end,
         radius,
         id=None,
-        type=None,
+        labels=None,
         parent=None,
         parent_id=None,
         section_id=None,
@@ -28,7 +28,7 @@ class Compartment:
         self.start = start
         self.end = end
         self.radius = radius
-        self.type = type
+        self.labels = labels if labels is not None else []
         self.parent_id = parent_id
         self.parent = parent
         self.section_id = section_id
@@ -193,6 +193,7 @@ class Morphology:
         self.has_voxels = False
         self.roots = roots
         self._compartments = None
+        self.update_compartment_tree()
 
     @property
     def compartments(self):
@@ -247,50 +248,8 @@ class Morphology:
         t = tuple(np.concatenate(tuple(getattr(b, v) for b in branches)) for v in vectors)
         return np.column_stack(t) if matrix else t
 
-    def init_morphology(self, repo_data, repo_meta):
-        """
-            Initialize this Morphology with detailed morphology data from a MorphologyRepository.
-        """
-        # Initialise as a true morphology
-        self.compartments = []
-        self.morphology_name = repo_meta["name"]
-        self.has_morphology = True
-        # Iterate over the data to create compartment objects
-        for i in range(len(repo_data)):
-            repo_record = repo_data[i, :]
-            compartment = Compartment.from_record(self, repo_record)
-            self.compartments.append(compartment)
-        # Fortify the id-linked compartments' bond by referencing their parent object.
-        for c in self.compartments:
-            if c.parent_id is not None and c.parent_id != -1:
-                c.parent = self.compartments[int(c.parent_id)]
-            else:
-                c.parent = None
-        # Create a tree from the compartment object list
-        self.update_compartment_tree()
-        if (
-            hasattr(self, "scaffold") and self.scaffold
-        ):  # Is the scaffold ready at this point?
-            self.store_compartment_tree()
-
-    def store_compartment_tree(self):
-        morphology_trees = self.scaffold.trees.morphologies
-        morphology_trees.add_tree(self.morphology_name, self.compartment_tree)
-        morphology_trees.save()
-
     def update_compartment_tree(self):
-        self.compartment_tree = KDTree(
-            np.array(list(map(lambda c: c.end, self.compartments)))
-        )
-
-    def init_voxel_cloud(self, voxel_data, voxel_meta, voxel_map):
-        """
-            Initialize this Morphology with a voxel cloud from a MorphologyRepository.
-        """
-        bounds = voxel_meta["bounds"]
-        grid_size = voxel_meta["grid_size"]
-        # Initialise as a true morphology
-        self.cloud = VoxelCloud(bounds, voxel_data, grid_size, voxel_map)
+        self.compartment_tree = KDTree(np.array(self.compartments))
 
     def voxelize(self, N, compartments=None):
         self.cloud = VoxelCloud.create(self, N, compartments=compartments)
