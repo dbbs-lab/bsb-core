@@ -12,4 +12,4 @@ sphinx_rtd_theme==0.4.3
 nrn-patch==2.1.1
 dbbs_models==1.1.1
 colour==0.1.5
-errr==0.2.0
+errr==0.3.1
