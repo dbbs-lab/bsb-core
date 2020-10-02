@@ -164,14 +164,19 @@ class Morphology:
         :todo: Uncouple from the MorphologyRepository and merge with TrueMorphology.
     """
 
-    def __init__(self, scaffold, roots, preload=True):
+    def __init__(self, scaffold, roots):
         self.scaffold = scaffold
         self.cloud = None
         self.has_morphology = True
         self.has_voxels = False
         self.roots = roots
-        if preload:
-            self.compartments = self.to_compartments()
+        self._compartments = None
+
+    @property
+    def compartments(self):
+        if self._compartments is None:
+            self._compartments = self.to_compartments()
+        return self._compartments
 
     @property
     def branches(self):
