@@ -1,4 +1,5 @@
 from . import __version__
+from .reporting import warn
 from .helpers import ConfigurableClass, get_qualified_class_name
 from .morphologies import Morphology, Compartment, Branch
 from bsb.helpers import suppress_stdout
@@ -253,123 +254,62 @@ class MorphologyRepository(HDF5TreeHandler):
         raise NotImplementedError("SWC temporarily unsupported.")
         # Read as CSV
         swc_data = np.loadtxt(file)
-        # Create empty dataset
-        dataset_length = len(swc_data)
-        dataset_data = np.empty((dataset_length, 10))
-        # Map parent id's to start coordinates. Root node (id: -1) is at 0., 0., 0.
-        starts = {-1: [0.0, 0.0, 0.0]}
-        id_map = {-1: -1}
-        next_id = 1
-        # Get translation for a new space with compartment 0 as origin.
-        translation = swc_data[0, 2:5]
-        # Iterate over the compartments
-        for i in range(dataset_length):
-            # Extract compartment record
-            compartment = swc_data[i, :]
-            # Renumber the compartments to yield a continuous incrementing list of IDs
-            # (increases performance of graph theory and network related tasks)
-            compartment_old_id = compartment[0]
-            compartment_id = next_id
-            next_id += 1
-            # Keep track of a map to translate old IDs to new IDs
-            id_map[compartment_old_id] = compartment_id
-            compartment_type = compartment[1]
-            # Check if parent id is known
-            if not compartment[6] in id_map:
-                raise MorphologyDataError(
-                    "Node {} references a parent node {} that isn't known yet".format(
-                        compartment_old_id, compartment[6]
-                    )
-                )
-            # Map the old parent ID to the new parent ID
-            compartment_parent = id_map[compartment[6]]
-            # Use parent endpoint as startpoint, get endpoint and store it as a startpoint for child compartments
-            compartment_start = starts[compartment_parent]
-            # Translate each compartment to a new space with compartment 0 as origin.
-            compartment_end = compartment[2:5] - translation
-            starts[compartment_id] = compartment_end
-            # Get more compartment radius
-            compartment_radius = compartment[5]
-            # Store compartment in the repository dataset
-            dataset_data[i] = [
-                compartment_id,
-                compartment_type,
-                *compartment_start,
-                *compartment_end,
-                compartment_radius,
-                compartment_parent,
-            ]
-        # Save the dataset in the repository
-        self.save_morphology_dataset(name, dataset_data, overwrite=overwrite)
 
     def import_arbz(self, name, cls, overwrite=False):
-        raise NotImplementedError("arbz temporarily unsupported.")
-        from neuron import h
+        from patch import p
 
         cell = cls()
-        c_types = Morphology.compartment_types
-        # Initialization
-        idx = 0
-        orphans = []
-        section_to_id = dict()
-        compartments = []
-        dataset = []
-        # Translate all points so that soma[0] = 0., 0., 0.
-        tx = cell.sections[0].x3d(0)
-        ty = cell.sections[0].y3d(0)
-        tz = cell.sections[0].z3d(0)
-        # Loop over sections to extract compartments
-        for id, section in enumerate(cell.sections):
-            section_to_id[section.name()] = id
-            # Keep the highest ctype value to retain the most specific section label
-            label = np.max([c_types[l] for l in section.labels])
-            for p in range(section.n3d() - 1):
-                data = [
-                    idx + p,
-                    label,
-                    section.x3d(p) - tx,
-                    section.y3d(p) - ty,
-                    section.z3d(p) - tz,
-                    section.x3d(p + 1) - tx,
-                    section.y3d(p + 1) - ty,
-                    section.z3d(p + 1) - tz,
-                    section.diam3d(p) / 2.0,
-                    idx + p - 1,
-                    id,
-                ]
-                c = Compartment.from_record(None, data)
-                if p == 0:
-                    c.parent_id = -1
-                    orphans.append(c)
-                compartments.append(c)
-                dataset.append(data)
-            idx += p + 1
-        # Fix orphans
-        for orphan in orphans:
-            # Tricky NEURON workaround to get the parent section id.
-            section = cell.sections[orphan.section_id]
-            sec_ref = h.SectionRef(sec=section.__neuron__())
-            try:
-                with suppress_stdout():
-                    parent_section = sec_ref.parent().sec
-            except Exception as e:
-                continue
-            try:
-                parent_section_id = section_to_id[parent_section.name()]
-            except KeyError:
-                raise MorphologyDataError(
-                    "Arborize model {} connects section '{}' to '{}' which is not part of the morphology.".format(
-                        name, section.name(), parent_section.name()
-                    )
-                    + " In order to be a part of the morphology, the section needs to occur in `self.sections`"
-                )
-            # Get the id of the last compartment of the parent section.
-            last_compartment = list(
-                filter(lambda c: c.section_id == parent_section_id, compartments)
-            )[-1]
-            # Overwrite the parent id column of the orphan.
-            dataset[orphan.id][9] = last_compartment.id
-        self.save_morphology_dataset(name, dataset, overwrite=overwrite)
+        tx, ty, tz = cell.soma[0].x3d(0), cell.soma[0].y3d(0), cell.soma[0].z3d(0)
+        section_id_map = {s.name(): id for id, s in enumerate(cell.sections)}
+        unvisited = set(s.name() for s in cell.sections)
+        visited = set()
+
+        def section_iter(section, parent):
+            sref = p.SectionRef(section)
+            yield section, parent
+            for child in sref.child:
+                yield from section_iter(child, section)
+
+        def vectorize(f):
+            def sink():
+                i = 0
+                while True:
+                    try:
+                        yield f(i)
+                    except Exception:
+                        break
+                    i += 1
+
+            return np.fromiter(sink(), dtype=float)
+
+        roots = []
+        branch_map = {}
+        for section, parent in section_iter(cell.soma[0], None):
+            visited.add(section.name())
+            unvisited.remove(section.name())
+            branch = Branch(
+                vectorize(section.x3d) - tx,
+                vectorize(section.y3d) - ty,
+                vectorize(section.z3d) - tz,
+                vectorize(section.diam3d) / 2.0,
+            )
+            branch_map[section.name()] = branch
+            branch._neuron_sid = section_id_map[section.name()]
+            if parent is not None:
+                branch_map[parent.name()].attach_child(branch)
+            else:
+                roots.append(branch)
+
+        if unvisited:
+            warn(f"{len(unvisited)} sections were not visited.", MorphologyWarning)
+        strangers = set(visited) - set(s.name() for s in cell.sections)
+        if strangers:
+            warn(
+                f"{len(strangers)} section were included that are not part of the morphology sections.",
+                MorphologyWarning,
+            )
+
+        self.save_morphology(name, Morphology(None, roots), overwrite=overwrite)
 
         # Load imported morphology to test it
         morphology = self.get_morphology(name)
@@ -386,7 +326,7 @@ class MorphologyRepository(HDF5TreeHandler):
                 print("Importing", n)
                 self.import_arbz(n, c, overwrite=True)
 
-    def save_morphology(self, name, morphology):
+    def save_morphology(self, name, morphology, overwrite=False):
         with self.load("a") as repo:
             if overwrite:  # Do we overwrite previously existing dataset with same name?
                 self.remove_morphology(
@@ -398,7 +338,23 @@ class MorphologyRepository(HDF5TreeHandler):
                         name
                     )
                 )
-            raise NotImplementedError("Morpho saving not supported yet.")
+            r = repo()["/morphologies"].create_group(name)
+            b = r.create_group("branches")
+            for id, branch in enumerate(morphology.branches):
+                branch._tmp_id = id
+                if branch._parent is not None:
+                    branch._tmp_parent = branch._parent._tmp_id
+                self.save_branch(name, id, branch)
+
+    def save_branch(self, morpho_name, branch_id, branch):
+        with self.load("a") as f:
+            g = f()[f"/morphologies/{morpho_name}/branches"].create_group(str(branch_id))
+            if hasattr(branch, "_tmp_parent"):
+                g.attrs["parent"] = branch._tmp_parent
+            else:
+                g.attrs["parent"] = -1
+            for v in Branch.vectors:
+                g.create_dataset(v, data=getattr(branch, v))
 
     def import_repository(self, repository, overwrite=False):
         with repository.load() as external_handle:
@@ -458,7 +414,7 @@ class MorphologyRepository(HDF5TreeHandler):
 
     def morphology_exists(self, name):
         with self.load() as repo:
-            return f"/morphologies{name}" in repo()
+            return f"/morphologies/{name}" in repo()
 
     def voxel_cloud_exists(self, morphology_name, cloud_name):
         with self.load() as repo:
@@ -467,7 +423,7 @@ class MorphologyRepository(HDF5TreeHandler):
     def remove_morphology(self, name):
         with self.load("a") as repo:
             if self.morphology_exists(name):
-                del repo()[f"morphologies/{name}"]
+                del repo()[f"/morphologies/{name}"]
 
     def remove_voxel_cloud(self, morphology_name, cloud_name):
         with self.load("a") as repo:
@@ -571,7 +527,10 @@ def _morphology(scaffold, m_root_group):
     branches = [_branch(b_group) for b_group in _int_ordered_iter(b_root_group)]
     _attach_branches(branches)
     roots = [b for b in branches if b._parent is None]
-    return Morphology(scaffold, roots)
+    morpho = Morphology(scaffold, roots)
+    # Until after rework a morphology still needs to know its name:
+    morpho.morphology_name = m_root_group.name.split("/")[-1]
+    return morpho
 
 
 def _branch(b_root_group):
@@ -584,16 +543,16 @@ def _branch(b_root_group):
             f"Missing branch vectors {missing} in '{b_root_group.name}'."
         )
     attrs = b_root_group.attrs
-    branch._data_parent = int(attrs.get("parent", -1))
+    branch._tmp_parent = int(attrs.get("parent", -1))
     return branch
 
 
 def _attach_branches(branches):
     for branch in branches:
-        if branch._data_parent < 0:
+        if branch._tmp_parent < 0:
             continue
-        branches[branch._data_parent].attach_child(branch)
-        del branch._data_parent
+        branches[branch._tmp_parent].attach_child(branch)
+        del branch._tmp_parent
 
 
 def _group_vector_iter(group, vector_labels):
