@@ -450,7 +450,7 @@ class MorphologyRepository(HDF5TreeHandler):
                 )
             # Take out all the data with () index, and send along the metadata stored in the attributes
             group = self._raw_morphology(name, handler)
-            return _morphology(group)
+            return _morphology(scaffold, group)
 
     def store_voxel_cloud(self, morphology, overwrite=False):
         with self.load("a") as repo:
@@ -584,12 +584,12 @@ def _int_ordered_iter(group):
     return (group[str(o)] for o in order)
 
 
-def _morphology(m_root_group):
+def _morphology(scaffold, m_root_group):
     b_root_group = m_root_group["branches"]
     branches = [_branch(b_group) for b_group in _int_ordered_iter(b_root_group)]
     _attach_branches(branches)
     roots = [b for b in branches if b._parent is None]
-    return Morphology(roots)
+    return Morphology(scaffold, roots)
 
 
 def _branch(b_root_group):
