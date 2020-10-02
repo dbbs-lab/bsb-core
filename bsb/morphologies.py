@@ -1,4 +1,4 @@
-import abc, numpy as np, pickle, h5py, math
+import abc, numpy as np, pickle, h5py, math, itertools
 from .helpers import ConfigurableClass
 from .voxels import VoxelCloud, detect_box_compartments, Box
 from sklearn.neighbors import KDTree
@@ -151,11 +151,6 @@ class Branch:
         return zip(*(self.__dict__[v] for v in self.__class__.vectors))
 
 
-import inspect
-
-compartment_vectors = [p for p in inspect.signature(Branch.__init__).parameters][1:]
-
-
 class Morphology:
     """
         A multicompartmental spatial representation of a cell based on connected 3D
@@ -164,58 +159,26 @@ class Morphology:
         :todo: Uncouple from the MorphologyRepository and merge with TrueMorphology.
     """
 
-    # The Morphology has a troubled history: it used to represent both the simple
-    # geometrical constraints used in the connectome connectivity functions and also the
-    # multicompartmental model that it represents now. This problem is painfully visible
-    # in the fact that you by default intialize a morphology with `has_morphology =
-    # False`.
-    #
-    # Work needs to be done to make sure that the Morphology is a pure object that
-    # describes the compartments of a neuron.
-
-    compartment_types = {
-        "soma": 1,
-        "axon": 2,
-        "axon_hillock": 200,
-        "axon_initial_segment": 201,
-        "parallel_fiber": 202,  # parallel fibers should be differentiated by the ascending axon
-        "ascending_axon": 203,
-        "dendrites": 3,
-        "distal_dendrites": 301,
-        "proximal_dendrites": 302,
-        "apical_dendrites": 301,
-        "basal_dendrites": 302,
-    }
-
-    compartment_alias = {
-        "dendrites": [
-            "apical_dendrites",
-            "basal_dendrites",
-            "distal_dendrites",
-            "proximal_dendrites",
-        ],
-        "axon": [
-            "axon_hillock",
-            "axon_initial_segment",
-            "parallel_fiber",
-            "ascending_axon",
-        ],
-    }
-
-    def __init__(self, scaffold, roots):
+    def __init__(self, scaffold, roots, preload=True):
         self.scaffold = scaffold
         self.cloud = None
         self.has_morphology = True
         self.has_voxels = False
         self.roots = roots
-        self.compartments = self.to_compartments()
+        if preload:
+            self.compartments = self.to_compartments()
 
     @property
     def branches(self):
-        # Return a depth-first flattened array of all branches.
+        """
+            Return a depth-first flattened array of all branches.
+        """
         return [*itertools.chain(*(branches_iterator(root) for root in self.roots))]
 
     def to_compartments(self):
+        """
+            Return a flattened array of compartments
+        """
         comp_counter = 0
 
         def treat_branch(branch, last_parent=None):
@@ -226,6 +189,27 @@ class Morphology:
             return itertools.chain(comps, *child_iters)
 
         return [*itertools.chain(treat_branch(root) for root in self.roots)]
+
+    def flatten(self, vectors=None, matrix=False):
+        """
+            Return the flattened vectors of the morphology
+
+            :param vectors: List of vectors to return such as ['x', 'y', 'z'] to get the
+              positional vectors.
+            :type vectors: list of str
+            :returns: Tuple of the vectors in the given order, if `matrix` is True a
+              matrix composed of the vectors is returned instead.
+            :rtype: tuple of ndarrays (`matrix=False`) or matrix (`matrix=True`)
+        """
+        if vectors is None:
+            vectors = Branch.vectors
+        branches = self.branches
+        if not branches:
+            if matrix:
+                return np.empty((0, len(vectors)))
+            return tuple(np.empty(0) for _ in vectors)
+        t = tuple(np.concatenate(*(getattr(b, v) for b in branches)) for v in vectors)
+        return np.hstack(t) if matrix else t
 
     def init_morphology(self, repo_data, repo_meta):
         """
@@ -334,7 +318,6 @@ class Morphology:
         if types is None:
             return self.compartment_tree.get_arrays()[0]
         type_ids = TrueMorphology.get_compartment_type_ids(types)
-        # print("Comp --", len(self.compartments), len(list(map(lambda c: c.end, filter(lambda c: c.type in type_ids, self.compartments)))))
         return list(
             map(lambda c: c.end, filter(lambda c: c.type in type_ids, self.compartments))
         )
