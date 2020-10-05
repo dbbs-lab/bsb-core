@@ -8,8 +8,8 @@ from .reporting import report
 
 class Compartment:
     """
-        Compartments are line segments with a radius. They are the building block of
-        :class:`Morphologies <.morphologies.Morphology>`.
+    Compartments are line segments with a radius. They are the building block of
+    :class:`Morphologies <.morphologies.Morphology>`.
     """
 
     def __init__(
@@ -49,8 +49,8 @@ class Compartment:
     @classmethod
     def from_template(cls, template, **kwargs):
         """
-            Create a compartment based on  a template compartment. Accepts any keyword
-            argument to overwrite or add attributes.
+        Create a compartment based on  a template compartment. Accepts any keyword
+        argument to overwrite or add attributes.
         """
         c = cls(
             id=template.id,
@@ -69,7 +69,7 @@ class Compartment:
 
 def branch_iter(branch):
     """
-        Iterate over a branch and all of its children depth first.
+    Iterate over a branch and all of its children depth first.
     """
     yield branch
     for child in branch._children:
@@ -172,10 +172,10 @@ def _pairwise_iter(walk_iter, labels_iter, parent=None):
 
 class Morphology:
     """
-        A multicompartmental spatial representation of a cell based on connected 3D
-        compartments.
+    A multicompartmental spatial representation of a cell based on connected 3D
+    compartments.
 
-        :todo: Uncouple from the MorphologyRepository and merge with TrueMorphology.
+    :todo: Uncouple from the MorphologyRepository and merge with TrueMorphology.
     """
 
     def __init__(self, scaffold, roots):
@@ -196,13 +196,13 @@ class Morphology:
     @property
     def branches(self):
         """
-            Return a depth-first flattened array of all branches.
+        Return a depth-first flattened array of all branches.
         """
         return [*itertools.chain(*(branch_iter(root) for root in self.roots))]
 
     def to_compartments(self):
         """
-            Return a flattened array of compartments
+        Return a flattened array of compartments
         """
         comp_counter = 0
 
@@ -221,14 +221,14 @@ class Morphology:
 
     def flatten(self, vectors=None, matrix=False):
         """
-            Return the flattened vectors of the morphology
+        Return the flattened vectors of the morphology
 
-            :param vectors: List of vectors to return such as ['x', 'y', 'z'] to get the
-              positional vectors.
-            :type vectors: list of str
-            :returns: Tuple of the vectors in the given order, if `matrix` is True a
-              matrix composed of the vectors is returned instead.
-            :rtype: tuple of ndarrays (`matrix=False`) or matrix (`matrix=True`)
+        :param vectors: List of vectors to return such as ['x', 'y', 'z'] to get the
+          positional vectors.
+        :type vectors: list of str
+        :returns: Tuple of the vectors in the given order, if `matrix` is True a
+          matrix composed of the vectors is returned instead.
+        :rtype: tuple of ndarrays (`matrix=False`) or matrix (`matrix=True`)
         """
         if vectors is None:
             vectors = Branch.vectors
@@ -385,9 +385,9 @@ class Morphology:
     def rotate(self, v0, v):
         """
 
-            Rotate a morphology to be oriented as vector v, supposing to start from orientation v0.
-            norm(v) = norm(v0) = 1
-            Rotation matrix R, representing a rotation of angle alpha around vector k
+        Rotate a morphology to be oriented as vector v, supposing to start from orientation v0.
+        norm(v) = norm(v0) = 1
+        Rotation matrix R, representing a rotation of angle alpha around vector k
 
         """
         R = get_rotation_matrix(v0, v)

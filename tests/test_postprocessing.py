@@ -28,7 +28,7 @@ def neuron_installed():
 class TestPostProcessing(unittest.TestCase):
     def test_spoofing(self):
         """
-            Assert that fake detailed connections can be made
+        Assert that fake detailed connections can be made
         """
         config = JSONConfig(file=_config)
         scaffold = Scaffold(config)

@@ -165,7 +165,13 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, "BSBdoc.tex", "BSB Documentation", "Robin De Schepper", "manual",),
+    (
+        master_doc,
+        "BSBdoc.tex",
+        "BSB Documentation",
+        "Robin De Schepper",
+        "manual",
+    ),
 ]
 
 
@@ -173,7 +179,15 @@ latex_documents = [
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [(master_doc, "bsb", "BSB Documentation", [author], 1,)]
+man_pages = [
+    (
+        master_doc,
+        "bsb",
+        "BSB Documentation",
+        [author],
+        1,
+    )
+]
 
 
 # -- Options for Texinfo output ----------------------------------------------

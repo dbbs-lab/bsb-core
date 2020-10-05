@@ -7,7 +7,7 @@ from scipy.stats.distributions import truncexpon
 
 class ConnectomeGlomerulusGolgi(ConnectionStrategy):
     """
-        Legacy implementation for the connections between Golgi cells and glomeruli.
+    Legacy implementation for the connections between Golgi cells and glomeruli.
     """
 
     defaults = {"detailed": False, "contacts": DistributionConfiguration.cast(1)}

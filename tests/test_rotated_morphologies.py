@@ -24,7 +24,7 @@ step = [30, 60]
 
 class TestMorphologyCache(unittest.TestCase):
     """
-        Test the creation of a morphology cache with rotated versions of some basic morphologies
+    Test the creation of a morphology cache with rotated versions of some basic morphologies
 
     """
 
@@ -112,7 +112,7 @@ class TestMorphologyCache(unittest.TestCase):
 
 class TestMorhologySetsRotations(unittest.TestCase):
     """
-        Test scaffold with cells associated to a certain rotated morphology
+    Test scaffold with cells associated to a certain rotated morphology
 
     """
 
@@ -166,7 +166,7 @@ class TestMorhologySetsRotations(unittest.TestCase):
 @unittest.skip("See https://github.com/dbbs-lab/bsb/issues/120")
 class TestRotation(unittest.TestCase):
     """
-        Test the validity of rotations
+    Test the validity of rotations
     """
 
     def test_rotate(self):
@@ -192,7 +192,7 @@ class TestRotation(unittest.TestCase):
 
     def assertEqualPoints(self, x, p, msg=None, v0=None, v=None, x0=None):
         """
-            Assert that point `x` is equal to point `p`
+        Assert that point `x` is equal to point `p`
         """
         # Assert that they are of the same non-zero dimensionality
         self.assertNotEqual(len(x), 0, "Empty input point x given")

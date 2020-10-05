@@ -4,7 +4,7 @@ from ..strategy import ConnectionStrategy
 
 class ConnectomePFPurkinje(ConnectionStrategy):
     """
-        Legacy implementation for the connections between parallel fibers and purkinje cells.
+    Legacy implementation for the connections between parallel fibers and purkinje cells.
     """
 
     def validate(self):

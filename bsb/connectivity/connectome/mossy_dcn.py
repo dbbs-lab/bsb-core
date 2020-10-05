@@ -6,7 +6,7 @@ from ...exceptions import *
 
 class ConnectomeMossyDCN(ConnectionStrategy):
     """
-        Implementation for the connection between mossy fibers and DCN cells.
+    Implementation for the connection between mossy fibers and DCN cells.
     """
 
     casts = {"convergence": int}

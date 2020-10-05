@@ -4,7 +4,7 @@ import math, numpy as np
 
 class ParallelArrayPlacement(Layered, PlacementStrategy):
     """
-        Implementation of the placement of cells in parallel arrays.
+    Implementation of the placement of cells in parallel arrays.
     """
 
     casts = {
@@ -19,7 +19,7 @@ class ParallelArrayPlacement(Layered, PlacementStrategy):
 
     def place(self):
         """
-            Cell placement: Create a lattice of parallel arrays/lines in the layer's surface.
+        Cell placement: Create a lattice of parallel arrays/lines in the layer's surface.
         """
         cell_type = self.cell_type
         layer = self.layer_instance

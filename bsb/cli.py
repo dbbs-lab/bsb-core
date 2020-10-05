@@ -17,7 +17,7 @@ from types import ModuleType
 
 def scaffold_cli():
     """
-        console_scripts entry point for the scaffold package. Will start the CLI handler or REPL handler.
+    console_scripts entry point for the scaffold package. Will start the CLI handler or REPL handler.
     """
     args = sys.argv[1:]
     if len(args) == 0:  # Start the REPL?
@@ -28,8 +28,8 @@ def scaffold_cli():
 
 def check_positive_factory(name):
     """
-        Return a function to report whether a certain value is a positive integer.
-        If it isn't, raise an ArgumentTypeError.
+    Return a function to report whether a certain value is a positive integer.
+    If it isn't, raise an ArgumentTypeError.
     """
     # Define factory product function.
     def f(x):
@@ -50,7 +50,7 @@ def check_positive_factory(name):
 
 def start_repl():
     """
-        Scaffold package REPL handler. Will parse user commands.
+    Scaffold package REPL handler. Will parse user commands.
     """
     # TODO: Add a python environment with access to globals like a scaffold or morphology repository
     state = ReplState()
@@ -63,7 +63,7 @@ def start_repl():
 
 def start_cli():
     """
-        Scaffold package CLI handler
+    Scaffold package CLI handler
     """
     # Parser
     parser = argparse.ArgumentParser()
@@ -264,7 +264,7 @@ def create_config(args):
 
 class ReplState:
     """
-        Stores the REPL state and executes each step of the REPL.
+    Stores the REPL state and executes each step of the REPL.
     """
 
     def __init__(self):
@@ -280,7 +280,7 @@ class ReplState:
 
     def repl(self):
         """
-            Execute the next repl step.
+        Execute the next repl step.
         """
         # Ask for user input
         self.command = input(
@@ -318,9 +318,9 @@ class ReplState:
 
     def update_parser(self):
         """
-            Creates a new parser for the next REPL step. Tries to add
-            subparsers and arguments if the method "set_parser_``state``_state"
-            is callable.
+        Creates a new parser for the next REPL step. Tries to add
+        subparsers and arguments if the method "set_parser_``state``_state"
+        is callable.
         """
         self.parser = StateParser(add_help=False)
         self.subparsers = self.parser.add_subparsers()
@@ -334,7 +334,7 @@ class ReplState:
 
     def set_parser_base_state(self):
         """
-            Adds the initial subparsers and arguments to the REPL parser.
+        Adds the initial subparsers and arguments to the REPL parser.
         """
         parser_open = self.add_subparser(
             "open",
@@ -361,8 +361,8 @@ class ReplState:
 
     def set_parser_base_mr_state(self):
         """
-            Adds the morphology repository state subparsers and arguments to
-            the REPL parser.
+        Adds the morphology repository state subparsers and arguments to
+        the REPL parser.
         """
         mr = self.globals["mr"]
 
@@ -412,7 +412,10 @@ class ReplState:
             "model", action="store", help="Importable class of the model"
         )
         arbz_parser.add_argument(
-            "name", action="store", help="Unique name of the morphology.", nargs="?",
+            "name",
+            action="store",
+            help="Unique name of the morphology.",
+            nargs="?",
         )
         arbz_parser.set_defaults(func=lambda args: repl_import_arbz(mr, args))
 
@@ -450,7 +453,7 @@ class ReplState:
 
     def set_parser_base_hdf5_state(self):
         """
-            Adds the HDF5 state subparsers and arguments to the REPL parser.
+        Adds the HDF5 state subparsers and arguments to the REPL parser.
         """
         h = self.globals["hdf5"]
 
@@ -478,55 +481,55 @@ class ReplState:
 
     def add_parser_globals(self):
         """
-            Adds subparsers and arguments that should be there in any state.
+        Adds subparsers and arguments that should be there in any state.
         """
         exit_parser = self.add_subparser("exit")
         exit_parser.set_defaults(func=self.exit_repl)
 
     def add_subparser(self, *args, **kwargs):
         """
-            Add a top level subparser to the current REPL parser.
+        Add a top level subparser to the current REPL parser.
         """
         return self.subparsers.add_parser(*args, **kwargs)
 
     def exit_repl(self, args):
         """
-            Exit the REPL.
+        Exit the REPL.
         """
         self.exit = True
 
     def clear_prefix(self):
         """
-            Clear the REPL prefix.
+        Clear the REPL prefix.
         """
         self.prefix = None
 
     def set_next_state(self, state):
         """
-            Set the next REPL state.
+        Set the next REPL state.
 
-            :param state: The next state. For each state there should be a set_parser_``state``_state function (e.g. :func:`set_parser_base_state`).
-            :type state: string
-            :rtype: None
+        :param state: The next state. For each state there should be a set_parser_``state``_state function (e.g. :func:`set_parser_base_state`).
+        :type state: string
+        :rtype: None
         """
         self.next = state
 
     def set_reply(self, message):
         """
-            Set the REPL reply, to be printed to the user at the end of this step.
+        Set the REPL reply, to be printed to the user at the end of this step.
 
-            :param message: The reply to print.
-            :type message: string
-            :rtype: None
+        :param message: The reply to print.
+        :type message: string
+        :rtype: None
         """
         self.reply = str(message)
 
     def close_hdf5(self):
         """
-            Closes the currently open HDF5 file.
+        Closes the currently open HDF5 file.
 
-            :raises ParseError: Raised if there's no open HDF5 file.
-            :rtype: None
+        :raises ParseError: Raised if there's no open HDF5 file.
+        :rtype: None
         """
         if self.globals["hdf5"] is None:
             raise ParseError("No HDF5 file is currently opened.")
@@ -535,18 +538,18 @@ class ReplState:
 
     def destroy_globals(self):
         """
-            Always called before the REPL exits to clean up open resources.
+        Always called before the REPL exits to clean up open resources.
         """
         if "hdf5" in self.globals and not self.globals["hdf5"] is None:
             self.close_hdf5()
 
     def open_morphology_repository(self, args):
         """
-            Callback function that handles the ``open mr`` command.
+        Callback function that handles the ``open mr`` command.
 
-            :param args: Result of ArgumentParser.parse_args()
-            :type args: Namespace
-            :rtype: None
+        :param args: Result of ArgumentParser.parse_args()
+        :type args: Namespace
+        :rtype: None
         """
         from .output import MorphologyRepository
 
@@ -568,11 +571,11 @@ class ReplState:
 
     def open_hdf5(self, args):
         """
-            Callback function that handles the ``open hdf5`` command.
+        Callback function that handles the ``open hdf5`` command.
 
-            :param args: Result of ArgumentParser.parse_args()
-            :type args: Namespace
-            :rtype: None
+        :param args: Result of ArgumentParser.parse_args()
+        :type args: Namespace
+        :rtype: None
         """
         # Import the HDF5 library.
         import h5py
@@ -587,7 +590,7 @@ class ReplState:
 
 class ParseError(Exception):
     """
-        Thrown when the parsing of a command string fails.
+    Thrown when the parsing of a command string fails.
     """
 
     pass
@@ -595,21 +598,21 @@ class ParseError(Exception):
 
 class StateParser(argparse.ArgumentParser):
     """
-        Inherits from argparse.ArgumentParser and overloads the ``error``
-        method so that when an error occurs, instead of exiting and exception
-        is thrown.
+    Inherits from argparse.ArgumentParser and overloads the ``error``
+    method so that when an error occurs, instead of exiting and exception
+    is thrown.
     """
 
     def error(self, message):
         """
-            Overloads default exit behavior with throwing ParseError.
+        Overloads default exit behavior with throwing ParseError.
         """
         raise ParseError(message)
 
 
 def repl_plot_morphology(morphology_repository, args):
     """
-        Callback function that handles ``plot`` command in the *base_mr* state.
+    Callback function that handles ``plot`` command in the *base_mr* state.
     """
     m = morphology_repository.get_morphology(args.name)
     from .plotting import plot_morphology
@@ -619,7 +622,7 @@ def repl_plot_morphology(morphology_repository, args):
 
 def repl_voxelize(morphology_repository, args):
     """
-        Callback function that handles ``voxelize`` command in the *base_mr* state.
+    Callback function that handles ``voxelize`` command in the *base_mr* state.
     """
     m = morphology_repository.get_morphology(args.name)
     m.voxelize(args.voxels)
@@ -628,7 +631,7 @@ def repl_voxelize(morphology_repository, args):
 
 def repl_view_hdf5(handle, args):
     """
-        Callback function that handles ``view`` command in the *base_hdf5* state.
+    Callback function that handles ``view`` command in the *base_hdf5* state.
     """
     df = chr(172)
 

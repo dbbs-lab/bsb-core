@@ -20,7 +20,7 @@ class TargetsNeurons:
 
     def _targets_local(self):
         """
-            Target all or certain cells in a spherical location.
+        Target all or certain cells in a spherical location.
         """
         if len(self.cell_types) != 1:
             # Compile a list of the cells and build a compound tree.
@@ -46,7 +46,7 @@ class TargetsNeurons:
 
     def _targets_cylinder(self):
         """
-            Target all or certain cells within a cylinder of specified radius.
+        Target all or certain cells within a cylinder of specified radius.
         """
         if len(self.cell_types) != 1:
             # Compile a list of the cells.
@@ -81,7 +81,7 @@ class TargetsNeurons:
 
     def _targets_cell_type(self):
         """
-            Target all cells of certain cell types
+        Target all cells of certain cell types
         """
         cell_types = [self.scaffold.get_cell_type(t) for t in self.cell_types]
         if len(cell_types) != 1:
@@ -122,7 +122,7 @@ class TargetsNeurons:
 
     def get_targets(self):
         """
-            Return the targets of the device.
+        Return the targets of the device.
         """
         return self._get_targets()
 

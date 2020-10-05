@@ -10,8 +10,8 @@ from bsb.exceptions import ConfigurableClassNotFoundError
 class TestIssues(unittest.TestCase):
     def test_215(self):
         """
-            Assert that reconfiguring an HDF5 doesn't exist doesn't create a gimpy empty
-            HDF5 file that causes a downstream error.
+        Assert that reconfiguring an HDF5 doesn't exist doesn't create a gimpy empty
+        HDF5 file that causes a downstream error.
         """
         config = JSONConfig(file="mouse_cerebellum_cortex")
         self.assertRaises(
@@ -23,9 +23,9 @@ class TestIssues(unittest.TestCase):
 
     def test_235(self):
         """
-            Tests the import of configurable classes without a `.` in the name.
-            Expects a ConfigurableClassNotFoundError because the TestClass doesn't
-            exist, but it would throw another error if the issue wasn't resolved.
+        Tests the import of configurable classes without a `.` in the name.
+        Expects a ConfigurableClassNotFoundError because the TestClass doesn't
+        exist, but it would throw another error if the issue wasn't resolved.
         """
         self.assertRaises(
             ConfigurableClassNotFoundError,

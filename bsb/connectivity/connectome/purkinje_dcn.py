@@ -4,8 +4,8 @@ from ..strategy import ConnectionStrategy
 
 class ConnectomePurkinjeDCN(ConnectionStrategy):
     """
-        Legacy implementation for the connection between purkinje cells and DCN cells.
-        Also rotates the dendritic trees of the DCN.
+    Legacy implementation for the connection between purkinje cells and DCN cells.
+    Also rotates the dendritic trees of the DCN.
     """
 
     casts = {"divergence": int}

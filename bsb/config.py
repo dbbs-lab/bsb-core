@@ -32,12 +32,12 @@ import numpy as np
 
 def _from_hdf5(file):
     """
-        Restore a configuration object from an HDF5 file.
+    Restore a configuration object from an HDF5 file.
 
-        :param file: Path of the HDF5 file.
-        :param verbosity: Verbosity level of the reporting
-        :type file: string
-        :rtype: None
+    :param file: Path of the HDF5 file.
+    :param verbosity: Verbosity level of the reporting
+    :type file: string
+    :rtype: None
     """
     import h5py
 
@@ -67,20 +67,20 @@ def _from_hdf5(file):
 
 class ScaffoldConfig(object):
     """
-        Main configuration object. Is passed into the scaffold constructor
-        to configurate it.
+    Main configuration object. Is passed into the scaffold constructor
+    to configurate it.
     """
 
     def __init__(self, file=None, stream=None, simulators={}):
         """
-            :param file: The path to a configuration file
-            :type file: string
-            :param stream: A string containing configuration content you'd find in a configuration file.
-            :type stream: string
-            :param verbosity: Sets the level of detail on the console feedback that the scaffold reports. 0: Errors only. 1: 0 + warnings. 2: 1 + updates. 3: 2 + progress
-            :type verbosity: int
-            :param simulators: Additional simulators to register. A dictionary of :class:`SimulatorAdapter`s
-            :type simulators: dict
+        :param file: The path to a configuration file
+        :type file: string
+        :param stream: A string containing configuration content you'd find in a configuration file.
+        :type stream: string
+        :param verbosity: Sets the level of detail on the console feedback that the scaffold reports. 0: Errors only. 1: 0 + warnings. 2: 1 + updates. 3: 2 + progress
+        :type verbosity: int
+        :param simulators: Additional simulators to register. A dictionary of :class:`SimulatorAdapter`s
+        :type simulators: dict
         """
         # Initialise empty config object.
 
@@ -155,11 +155,11 @@ class ScaffoldConfig(object):
 
     def add_cell_type(self, cell_type):
         """
-            Adds a :class:`CellType` to the config object. Cell types are used
-            to populate cells into the layers of the simulation.
+        Adds a :class:`CellType` to the config object. Cell types are used
+        to populate cells into the layers of the simulation.
 
-            :param cell_type: CellType object to add
-            :type cell_type: :class:`CellType`
+        :param cell_type: CellType object to add
+        :type cell_type: :class:`CellType`
         """
         # Register a new cell type model.
         self.cell_types[cell_type.name] = cell_type
@@ -167,75 +167,75 @@ class ScaffoldConfig(object):
 
     def add_morphology(self, morphology):
         """
-            Adds a :class:`Morphology` to the config object. Morphologies are
-            used to determine which cells can be connected to eachother.
+        Adds a :class:`Morphology` to the config object. Morphologies are
+        used to determine which cells can be connected to eachother.
 
-            :param morphology: :class:`Morphology` object to add
-            :type morphology: Morphology
+        :param morphology: :class:`Morphology` object to add
+        :type morphology: Morphology
         """
         # Register a new Geometry.
         self.morphologies[morphology.name] = morphology
 
     def add_placement_strategy(self, placement):
         """
-            Adds a :class:`PlacementStrategy` to the config object. Placement
-            strategies are used to place cells in the simulation volume.
+        Adds a :class:`PlacementStrategy` to the config object. Placement
+        strategies are used to place cells in the simulation volume.
 
-            :param placement: :class:`PlacementStrategy` object to add
-            :type placement: :class:`PlacementStrategy`
+        :param placement: :class:`PlacementStrategy` object to add
+        :type placement: :class:`PlacementStrategy`
         """
         # Register a new Geometry.
         self.placement_strategies[placement.name] = placement
 
     def add_after_placement_hook(self, hook):
         """
-            Adds a :class:`PostProcessingHook` to the config object. After placement has
-            completed the class's ``after_placement`` function will be called.
+        Adds a :class:`PostProcessingHook` to the config object. After placement has
+        completed the class's ``after_placement`` function will be called.
 
-            :param hook: :class:`PostProcessingHook`
+        :param hook: :class:`PostProcessingHook`
         """
         # Register a new Geometry.
         self.after_placement_hooks[hook.name] = hook
 
     def add_after_connectivity_hook(self, hook):
         """
-            Adds a :class:`PostProcessingHook` to the config object. After connectivity has
-            completed the class's ``after_connectivity`` function will be called.
+        Adds a :class:`PostProcessingHook` to the config object. After connectivity has
+        completed the class's ``after_connectivity`` function will be called.
 
-            :param hook: :class:`PostProcessingHook`
+        :param hook: :class:`PostProcessingHook`
         """
         # Register a new Geometry.
         self.after_connect_hooks[hook.name] = hook
 
     def add_connection(self, connection):
         """
-            Adds a :class:`ConnectionStrategy` to the config object. ConnectionStrategies
-            are used to determine which touching cells to connect.
+        Adds a :class:`ConnectionStrategy` to the config object. ConnectionStrategies
+        are used to determine which touching cells to connect.
 
-            :param connection: ConnectionStrategy object to add
-            :type connection: ConnectionStrategy
+        :param connection: ConnectionStrategy object to add
+        :type connection: ConnectionStrategy
         """
         # Register a new ConnectionStrategy.
         self.connection_types[connection.name] = connection
 
     def add_simulation(self, simulation):
         """
-            Adds a :class:`SimulatorAdapter` to the config object. S
-            are used to determine which touching cells to connect.
+        Adds a :class:`SimulatorAdapter` to the config object. S
+        are used to determine which touching cells to connect.
 
-            :param connection: :class:`ConnectionStrategy` object to add
-            :type connection: :class:`ConnectionStrategy`
+        :param connection: :class:`ConnectionStrategy` object to add
+        :type connection: :class:`ConnectionStrategy`
         """
         # Register a new simulation
         self.simulations[simulation.name] = simulation
 
     def add_layer(self, layer):
         """
-            Adds a :class:`Layer` to the config object. layers are regions of
-            the simulation to be populated by cells.
+        Adds a :class:`Layer` to the config object. layers are regions of
+        the simulation to be populated by cells.
 
-            :param layer: :class:`Layer` object to add
-            :type layer: :class:`Layer`
+        :param layer: :class:`Layer` object to add
+        :type layer: :class:`Layer`
         """
         # Register a new layer model.
         self.layers[layer.name] = layer
@@ -243,17 +243,17 @@ class ScaffoldConfig(object):
 
     def get_layer(self, name="", id=-1):
         """
-            Finds a layer by its name or id.
+        Finds a layer by its name or id.
 
-            :param name: Name of the layer to look for.
-            :type name: string
-            :param id: Id of the layer to look for.
-            :type id: int
+        :param name: Name of the layer to look for.
+        :type name: string
+        :param id: Id of the layer to look for.
+        :type id: int
 
-            :returns: A :class:`Layer`: object.
-            :rtype: :class:`Layer`
-            :raises: **Exception:** If the name or id isn't found.
-                **ArgumentError:** If no name or id is provided.
+        :returns: A :class:`Layer`: object.
+        :rtype: :class:`Layer`
+        :raises: **Exception:** If the name or id isn't found.
+            **ArgumentError:** If no name or id is provided.
         """
         if id > -1:
             if len(self.layer_map) <= id:
@@ -271,33 +271,33 @@ class ScaffoldConfig(object):
 
     def get_layer_id(self, name):
         """
-            Get the ID of a layer.
+        Get the ID of a layer.
 
-            :param name: Name of the layer
-            :type name: string
-            :returns: The ID of the layer
-            :rtype: int
-            :raises: **ValueError** if the name is not found.
+        :param name: Name of the layer
+        :type name: string
+        :returns: The ID of the layer
+        :rtype: int
+        :raises: **ValueError** if the name is not found.
         """
         return self.layer_map.index(name)
 
     def get_layer_list(self):
         """
-            Get a list of the layers.
+        Get a list of the layers.
 
-            :returns: A list of :class:`Layer`.
-            :rtype: list
+        :returns: A list of :class:`Layer`.
+        :rtype: list
         """
         return list(self.layers.values())
 
     def get_cell_type(self, name):
         """
-            Get cell type.
+        Get cell type.
 
-            :param name: Name or id of the cell type.
-            :type name: string
-            :returns: The cell type with given identifier.
-            :rtype: :class:`CellType`
+        :param name: Name or id of the cell type.
+        :type name: string
+        :returns: The cell type with given identifier.
+        :rtype: :class:`CellType`
         """
         if isinstance(name, str):
             if name in self.cell_types:
@@ -312,17 +312,17 @@ class ScaffoldConfig(object):
 
     def resize(self, X=None, Z=None):
         """
-            Resize the configured simulation volume.
+        Resize the configured simulation volume.
 
-            .. warning::
-                Do not change the ``X`` or ``Z`` values directly as it will not
-                resize all :class:`Layer` objects and cause undefined behavior.
+        .. warning::
+            Do not change the ``X`` or ``Z`` values directly as it will not
+            resize all :class:`Layer` objects and cause undefined behavior.
 
-            :param X: The new X size.
-            :type X: float
-            :param Z: The new Z size.
-            :type Z: float
-            :rtype: None
+        :param X: The new X size.
+        :type X: float
+        :param Z: The new Z size.
+        :type Z: float
+        :rtype: None
         """
 
         scaling_x = 1.0
@@ -351,21 +351,21 @@ class ScaffoldConfig(object):
 
 class JSONConfig(ScaffoldConfig):
     """
-        Create a scaffold configuration from a JSON formatted file/string.
+    Create a scaffold configuration from a JSON formatted file/string.
     """
 
     def __init__(self, file=None, stream=None, **kwargs):
         """
-            Initialize config from .json file.
+        Initialize config from .json file.
 
-            :param file: Path of the configuration .json file.
-            :type file: string
-            :param stream: INI formatted string representing the configuration file.
-            :type file: string
-            :param verbosity: Verbosity (output level) of the scaffold.
-            :type file: int
-            :param simulators: Dictionary with extra simulators to register
-            :type simulators: {string: :class:`SimulatorAdapter`}
+        :param file: Path of the configuration .json file.
+        :type file: string
+        :param stream: INI formatted string representing the configuration file.
+        :type file: string
+        :param verbosity: Verbosity (output level) of the scaffold.
+        :type file: int
+        :param simulators: Dictionary with extra simulators to register
+        :type simulators: {string: :class:`SimulatorAdapter`}
         """
 
         def load_handler(config_string):
@@ -442,7 +442,7 @@ class JSONConfig(ScaffoldConfig):
 
     def load_general(self, config):
         """
-            Load the general segment in a JSON configuration file.
+        Load the general segment in a JSON configuration file.
         """
         if "network_architecture" not in config:
             raise ConfigurationError(
@@ -462,7 +462,7 @@ class JSONConfig(ScaffoldConfig):
 
     def load_output(self, config):
         """
-            Load the output segment in a JSON configuration file.
+        Load the output segment in a JSON configuration file.
         """
         if "output" not in config:
             raise ConfigurationError("Missing 'output' attribute in configuration.")
@@ -480,32 +480,32 @@ class JSONConfig(ScaffoldConfig):
         self, config, attr, init, final=None, single=False, node_name=None, optional=False
     ):
         """
-            Initialize and finalize a collection of children that are contained
-            within a dictionary which is in turn inside of the given `config`
-            node under the `attr` key.
+        Initialize and finalize a collection of children that are contained
+        within a dictionary which is in turn inside of the given `config`
+        node under the `attr` key.
 
-            :param config: Parent configuration section that contains the
-                dictionary of child definitions.
-            :type config: dict
-            :param attr: Key of the dictionary that contains the child
-                definitions.
-            :type attr: string
-            :param init: The initializer function that turns each child
-                definition into a semi-configured child object. Takes 2
-                arguments: name and child configuration section.
-            :type init: function
-            :param final: The finalizer function that completes configuration of
-                each child definition after they've all been initialized. Takes
-                0 (if `single`=`True`) or 2 arguments: name and child
-                configuration section.
-            :type final: function
-            :param single: Should the finalizer be called for each child or a
-                single time? This allows you more control over the finalization
-                process.
-            :type single: bool
-            :param node_name: The full location of the root node inside of the
-                configuration file. This gives more accurate exceptions.
-            :type node_name: string
+        :param config: Parent configuration section that contains the
+            dictionary of child definitions.
+        :type config: dict
+        :param attr: Key of the dictionary that contains the child
+            definitions.
+        :type attr: string
+        :param init: The initializer function that turns each child
+            definition into a semi-configured child object. Takes 2
+            arguments: name and child configuration section.
+        :type init: function
+        :param final: The finalizer function that completes configuration of
+            each child definition after they've all been initialized. Takes
+            0 (if `single`=`True`) or 2 arguments: name and child
+            configuration section.
+        :type final: function
+        :param single: Should the finalizer be called for each child or a
+            single time? This allows you more control over the finalization
+            process.
+        :type single: bool
+        :param node_name: The full location of the root node inside of the
+            configuration file. This gives more accurate exceptions.
+        :type node_name: string
 
         """
         if attr not in config:
@@ -524,13 +524,13 @@ class JSONConfig(ScaffoldConfig):
 
     def init_cell_type(self, name, section):
         """
-            Initialise a CellType from a configuration object.
+        Initialise a CellType from a configuration object.
 
-            :param section: A section of a configuration file, parsed by configparser.
-            :type section: /
+        :param section: A section of a configuration file, parsed by configparser.
+        :type section: /
 
-            :returns: A :class:`CellType` object.
-            :rtype: :class:`CellType`
+        :returns: A :class:`CellType` object.
+        :rtype: :class:`CellType`
         """
         cell_type = CellType(name)
         node_name = "cell_types.{}".format(name)
@@ -558,13 +558,13 @@ class JSONConfig(ScaffoldConfig):
 
     def init_layer(self, name, config):
         """
-            Initialise a Layer from a json object.
+        Initialise a Layer from a json object.
 
-            :param config: An object in the 'layers' array of the JSON file.
-            :type config: /
+        :param config: An object in the 'layers' array of the JSON file.
+        :type config: /
 
-            :returns: A :class:`Layer`: object.
-            :rtype: Layer
+        :returns: A :class:`Layer`: object.
+        :rtype: Layer
         """
         # Get thickness of the layer
         if "thickness" not in config and "volume_scale" not in config:
@@ -659,9 +659,9 @@ class JSONConfig(ScaffoldConfig):
 
     def init_morphology(self, section, cell_type_name):
         """
-            Initialize a Geometry-subclass from the configuration. Uses __import__
-            to fetch geometry class, then copies all keys as is from config section to instance
-            and adds it to the Geometries dictionary.
+        Initialize a Geometry-subclass from the configuration. Uses __import__
+        to fetch geometry class, then copies all keys as is from config section to instance
+        and adds it to the Geometries dictionary.
         """
         name = cell_type_name + "_morphology"
         node_name = "cell_types.{}.morphology".format(cell_type_name)
@@ -673,9 +673,9 @@ class JSONConfig(ScaffoldConfig):
 
     def init_connection(self, name, section):
         """
-            Initialize a ConnectionStrategy-subclass from the configuration. Uses __import__
-            to fetch geometry class, then copies all keys as is from config section to instance
-            and adds it to the Geometries dictionary.
+        Initialize a ConnectionStrategy-subclass from the configuration. Uses __import__
+        to fetch geometry class, then copies all keys as is from config section to instance
+        and adds it to the Geometries dictionary.
         """
         node_name = "connection_types.{}".format(name)
         connection_class = assert_attr(section, "class", node_name)
@@ -706,7 +706,9 @@ class JSONConfig(ScaffoldConfig):
                 name + "_transform", transform_class, FiberTransform
             )
             fill_configurable_class(
-                transformation, section["transform"], excluded=["class"],
+                transformation,
+                section["transform"],
+                excluded=["class"],
             )
             connection.transformation = transformation
         else:
@@ -716,9 +718,9 @@ class JSONConfig(ScaffoldConfig):
 
     def init_placement(self, section, cell_type):
         """
-            Initialize a PlacementStrategy-subclass from the configuration. Uses __import__
-            to fetch placement class, then copies all keys as is from config section to instance
-            and adds it to the PlacementStrategies dictionary.
+        Initialize a PlacementStrategy-subclass from the configuration. Uses __import__
+        to fetch placement class, then copies all keys as is from config section to instance
+        and adds it to the PlacementStrategies dictionary.
         """
         name = cell_type.name + "_placement"
         node_name = "cell_types.{}.placement".format(cell_type.name)
@@ -784,7 +786,7 @@ class JSONConfig(ScaffoldConfig):
 
     def init_after_placement_hook(self, name, section):
         """
-            Initialize an after-placement hook from the configuration.
+        Initialize an after-placement hook from the configuration.
         """
         node_name = "after_placement." + name
         hook_class = assert_attr(section, "class", node_name)
@@ -795,7 +797,7 @@ class JSONConfig(ScaffoldConfig):
 
     def init_after_connectivity_hook(self, name, section):
         """
-            Initialize an after-connectivity hook from the configuration.
+        Initialize an after-connectivity hook from the configuration.
         """
         node_name = "after_connectivity." + name
         hook_class = assert_attr(section, "class", node_name)
@@ -806,8 +808,8 @@ class JSONConfig(ScaffoldConfig):
 
     def init_simulation(self, name, section, return_obj=False):
         """
-            Initialize a simulation from a configuration node. Also initializes
-            the subcomponents: `cell_models`, `connection_models` and `devices`.
+        Initialize a simulation from a configuration node. Also initializes
+        the subcomponents: `cell_models`, `connection_models` and `devices`.
         """
         node_name = "simulations.{}".format(name)
         # Get the simulator name from the config
@@ -916,7 +918,7 @@ class JSONConfig(ScaffoldConfig):
 
     def layout_stacks(self):
         """
-            Arrange layers according to their stack specifications.
+        Arrange layers according to their stack specifications.
         """
         for stack in self._layer_stacks.values():
             if "position" not in stack:
@@ -942,7 +944,7 @@ class JSONConfig(ScaffoldConfig):
 
     def finalize_cell_type(self, cell_type_name, section):
         """
-            Finalize configuration of the cell type.
+        Finalize configuration of the cell type.
         """
         pass
 

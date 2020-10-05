@@ -4,9 +4,9 @@ from ..strategy import ConnectionStrategy
 
 class ConnectomeIOPurkinje(ConnectionStrategy):
     """
-        Legacy implementation for the connection between inferior olive and Purkinje cells.
-        Purkinje cells are clustered (number of clusters is the number of IO cells), and each clusters
-        is innervated by 1 IO cell
+    Legacy implementation for the connection between inferior olive and Purkinje cells.
+    Purkinje cells are clustered (number of clusters is the number of IO cells), and each clusters
+    is innervated by 1 IO cell
     """
 
     def validate(self):

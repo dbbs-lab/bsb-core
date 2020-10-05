@@ -21,7 +21,7 @@ class TouchInformation:
 
 class TouchDetector(ConnectionStrategy, MorphologyStrategy):
     """
-        Connectivity based on intersection of detailed morphologies
+    Connectivity based on intersection of detailed morphologies
     """
 
     casts = {

@@ -185,7 +185,7 @@ class NeuronEntity:
 
 class NeuronAdapter(SimulatorAdapter):
     """
-        Interface between the scaffold model and the NEURON simulator.
+    Interface between the scaffold model and the NEURON simulator.
     """
 
     simulator_name = "neuron"
