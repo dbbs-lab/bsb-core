@@ -92,12 +92,24 @@ def _validate_branch_args(args):
 class Branch:
     vectors = ["x", "y", "z", "radii"]
 
-    def __init__(self, *args):
+    def __init__(self, *args, labels=None):
         _validate_branch_args(args)
         self._children = []
+        self._full_labels = []
+        self._label_masks = {}
         self._parent = None
         for v, vector in enumerate(self.__class__.vectors):
             self.__dict__[vector] = args[v]
+
+    @property
+    def size(self):
+        return len(getattr(self, self.__class__.vectors[0]))
+
+    def label(self, *labels):
+        self._full_labels.extend(labels)
+
+    def label_points(self, label, mask):
+        self._label_masks[label] = np.array(mask, dtype=bool)
 
     def attach_child(self, branch):
         self._children.append(branch)
@@ -110,38 +122,51 @@ class Branch:
     def to_compartments(self, start_id=0, last_parent=None):
         comp_id = start_id
 
-        def to_comp(data):
+        def to_comp(data, labels):
             nonlocal comp_id, last_parent
-            comp = Compartment(*data, id=comp_id, parent=last_parent)
+            comp = Compartment(*data, id=comp_id, parent=last_parent, labels=labels)
             comp_id += 1
             last_parent = comp
             return comp
 
         # Walk over each pair of points as the start and end if a compartment.
         # Start from the end of the parent branch's last compartment.
-        comps = [to_comp(data) for data in _pairwise_iter(self.walk(), last_parent)]
-        self.apply_labels(comps)
+        comps = [
+            to_comp(data, labels)
+            for data, labels in _pairwise_iter(
+                self.walk(), self.label_walk(), last_parent
+            )
+        ]
         return comps
 
     def walk(self):
         return zip(*(self.__dict__[v] for v in self.__class__.vectors))
 
-    def apply_labels(self, comps):
-        pass
+    def label_walk(self):
+        labels = self._full_labels.copy()
+        n = self.size
+        shared = np.ones((n, len(labels)), dtype=bool)
+        labels.extend(self._label_masks.keys())
+        label_row = np.array(labels)
+        label_matrix = np.column_stack((shared, *self._label_masks.values()))
+        return (label_row[label_matrix[i, :]] for i in range(n))
 
 
-def _pairwise_iter(walk, parent=None):
+def _pairwise_iter(walk_iter, labels_iter, parent=None):
     if parent:
         start = parent.end
     else:
         try:
-            start = next(walk)
+            start = next(walk_iter)
+            # Throw away the first point's labels as it is not part of a compartment.
+            _ = next(labels_iter)
         except StopIteration:
             return iter(())
-    for data in walk:
+    for data in walk_iter:
         end = data[:3]
         radius = data[3]
-        yield start, end, radius
+        labels = next(labels_iter)
+        yield (start, end, radius), labels
         start = end
 
 
