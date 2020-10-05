@@ -20,7 +20,6 @@ class Compartment:
         id=None,
         labels=None,
         parent=None,
-        parent_id=None,
         section_id=None,
         morphology=None,
     ):
@@ -29,30 +28,9 @@ class Compartment:
         self.end = end
         self.radius = radius
         self.labels = labels if labels is not None else []
-        self.parent_id = parent_id
         self.parent = parent
         self.section_id = section_id
         self.morphology = morphology
-
-    @classmethod
-    def from_record(cls, morphology, repo_record):
-        """
-            Create a compartment from repository data.
-        """
-        # Transfer the record data onto a Compartment object.
-        c = cls(
-            id=repo_record[0],
-            type=repo_record[1],
-            start=np.array(repo_record[2:5]),
-            end=np.array(repo_record[5:8]),
-            radius=repo_record[8],
-            parent_id=repo_record[9],
-            morphology=morphology,
-        )
-        # Check if there's section id information on the record.
-        if len(repo_record) == 11:
-            c.section_id = int(repo_record[10])
-        return c
 
     @property
     def midpoint(self):
@@ -81,23 +59,12 @@ class Compartment:
             radius=template.radius,
             type=template.type,
             parent=template.parent,
-            parent_id=template.parent_id,
             section_id=template.section_id,
             morphology=template.morphology,
         )
         for k, v in kwargs.items():
             c.__dict__[k] = v
         return c
-
-    def to_record(self):
-        """
-            Return an array that can be used to store this compartment in an HDF5 dataset,
-            or to construct a new Compartment.
-        """
-        record = [self.id, self.type, *self.start, *self.end, self.radius, self.parent_id]
-        if hasattr(self, "section_id"):
-            record.append(self.section_id)
-        return record
 
 
 def branch_iter(branch):
@@ -249,7 +216,7 @@ class Morphology:
         return np.column_stack(t) if matrix else t
 
     def update_compartment_tree(self):
-        self.compartment_tree = KDTree(np.array(self.compartments))
+        self.compartment_tree = KDTree(np.array([c.end for c in self.compartments]))
 
     def voxelize(self, N, compartments=None):
         self.cloud = VoxelCloud.create(self, N, compartments=compartments)
@@ -304,9 +271,9 @@ class Morphology:
         node_list = [set([]) for c in compartments]
         # Add child nodes to their parent's adjacency set
         for node in compartments[1:]:
-            if int(node.parent_id) == -1:
+            if node.parent is None:
                 continue
-            node_list[int(node.parent_id)].add(int(node.id))
+            node_list[int(node.parent.id)].add(int(node.id))
         return node_list
 
     def get_compartment_positions(self, types=None):

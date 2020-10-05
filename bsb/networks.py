@@ -285,16 +285,19 @@ def _consume_branch(unvisited, root_compartment, orientation, parent=None):
 def _copy_linked_compartments(compartments):
     copy_map = {}
     new_compartments = []
+    # Create a copy of each compartment
     for c in compartments:
         new_c = Compartment.from_template(c)
         copy_map[new_c.id] = new_c
         new_compartments.append(new_c)
+    # Overwrite each parent with a reference to the copied parent, or strip it
     for c in new_compartments:
-        if c.parent_id in copy_map:
-            c.parent = copy_map[c.parent_id]
-        else:
-            c.parent_id = -1
-            c.parent = None
+        if c.parent is not None:
+            parent_id = c.parent.id
+            if parent_id in copy_map:
+                c.parent = copy_map[parent_id]
+            else:
+                c.parent = None
     return new_compartments
 
 
