@@ -38,3 +38,12 @@ def _create_test_network(*dimensions):
         # Bootstrap the scaffold and create the network.
         scaffold = Scaffold(config)
         scaffold.compile_network()
+
+
+def prep_morphologies():
+    if not os.path.exists(os.path.join(__file__, "..", "morphologies.hdf5")):
+        from bsb.output import MorphologyRepository as MR
+        import dbbs_models
+
+        mr = MR("morphologies.hdf5")
+        mr.import_arbz_module(dbbs_models)

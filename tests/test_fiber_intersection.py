@@ -5,6 +5,7 @@ from bsb.core import Scaffold
 from bsb.config import JSONConfig
 from bsb.models import Layer, CellType, ConnectivitySet
 from bsb.output import MorphologyRepository
+import test_setup
 
 
 def relative_to_tests_folder(path):
@@ -19,6 +20,8 @@ class TestFiberIntersection(unittest.TestCase):
     @classmethod
     def setUpClass(self):
         super(TestFiberIntersection, self).setUpClass()
+        # Make sure the MR exists
+        test_setup.prep_morphologies()
         # The scaffold has only the Granular layer (100x100x150) with 20 GrCs
         # and 1 GoC placed, as specified in the config file
         self.config = JSONConfig(file=fiber_transform_config)

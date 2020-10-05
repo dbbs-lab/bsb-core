@@ -241,7 +241,10 @@ class Morphology:
         return np.column_stack(t) if matrix else t
 
     def update_compartment_tree(self):
-        self.compartment_tree = KDTree(np.array([c.end for c in self.compartments]))
+        # Eh, this code will be refactored soon, if you're still seeing this in v4 open an
+        # issue.
+        if self.compartments:
+            self.compartment_tree = KDTree(np.array([c.end for c in self.compartments]))
 
     def voxelize(self, N, compartments=None):
         self.cloud = VoxelCloud.create(self, N, compartments=compartments)

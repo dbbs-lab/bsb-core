@@ -1,7 +1,7 @@
 import unittest, os, sys, numpy as np, h5py
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-import bsb.output
+import bsb.output, test_setup
 from bsb.morphologies import Branch
 from bsb.exceptions import *
 
@@ -12,6 +12,11 @@ class TestRepositories(unittest.TestCase):
 
 
 class TestMorphologies(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        test_setup.prep_morphologies()
+
     def test_int_ordered_iter(self):
         unit = bsb.output._is_invalid_order
         unit2 = bsb.output._int_ordered_iter
