@@ -256,14 +256,32 @@ class MorphologyRepository(HDF5TreeHandler):
         swc_data = np.loadtxt(file)
 
     def import_arbz(self, name, cls, overwrite=False):
+        """
+            Import an Arborize model as a morphology.
+
+            Arborize models make some assumptions about morphologies, inherited from how
+            NEURON deals with it: There is only 1 root, and the soma is at the beginning
+            of this root. This is not necesarily so for morphologies in general in the BSB
+            that can have as many roots as they want.
+        """
         from patch import p
 
         cell = cls()
+        # Offset all points to the soma point
         tx, ty, tz = cell.soma[0].x3d(0), cell.soma[0].y3d(0), cell.soma[0].z3d(0)
+        # Create a map for some important data that is only available on the Patch objects
+        # and that will be lost when we use NEURON's SectionRef to retrieve connected
+        # Sections and return new, stripped Section objects without this data present.
+        # The map uses the unique name each section has in NEURON.
         section_id_map = {s.name(): id for id, s in enumerate(cell.sections)}
+        section_labels_map = {s.name(): s.labels for id, s in enumerate(cell.sections)}
+        # Keep track of which sections we visit or still have to visit to possibly warn
+        # the user about unreachable/unconnected parts of the morphology.
         unvisited = set(s.name() for s in cell.sections)
         visited = set()
 
+        # Iterate over the sections in the order that we would iterate over branches;
+        # depth first from the root(s)
         def section_iter(section, parent):
             sref = p.SectionRef(section)
             yield section, parent
@@ -293,8 +311,9 @@ class MorphologyRepository(HDF5TreeHandler):
                 vectorize(section.z3d) - tz,
                 vectorize(section.diam3d) / 2.0,
             )
-            branch_map[section.name()] = branch
             branch._neuron_sid = section_id_map[section.name()]
+            branch.label(*section_labels_map[section.name()])
+            branch_map[section.name()] = branch
             if parent is not None:
                 branch_map[parent.name()].attach_child(branch)
             else:
@@ -349,12 +368,23 @@ class MorphologyRepository(HDF5TreeHandler):
     def save_branch(self, morpho_name, branch_id, branch):
         with self.load("a") as f:
             g = f()[f"/morphologies/{morpho_name}/branches"].create_group(str(branch_id))
+            # Save branch parent
             if hasattr(branch, "_tmp_parent"):
                 g.attrs["parent"] = branch._tmp_parent
             else:
                 g.attrs["parent"] = -1
+            # Save branch NEURON info
+            if hasattr(branch, "_neuron_sid"):
+                g.attrs["neuron_section"] = branch._neuron_sid
+            # Save vectors
             for v in Branch.vectors:
                 g.create_dataset(v, data=getattr(branch, v))
+            # Save labels (branch labels apply to all points while the labels below are
+            # vectors pertaining to single points)
+            g.attrs["branch_labels"] = branch._full_labels
+            l = g.create_group("labels")
+            for label, label_mask in branch._label_masks.items():
+                l.create_dataset(label, data=label_mask, dtype=np.bool)
 
     def import_repository(self, repository, overwrite=False):
         with repository.load() as external_handle:
@@ -544,6 +574,11 @@ def _branch(b_root_group):
         )
     attrs = b_root_group.attrs
     branch._tmp_parent = int(attrs.get("parent", -1))
+    if attrs.get("neuron_section", None) is not None:
+        branch._neuron_sid = attrs.get("neuron_section")
+    branch.label(*attrs.get("branch_labels", iter(())))
+    for label, dataset in b_root_group["labels"].items():
+        branch.label_points(label, dataset[()])
     return branch
 
 
