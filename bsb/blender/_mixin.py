@@ -9,9 +9,9 @@ from .. import blender as _main
 
 def create_network(self, scene, name):
     """
-        Creates the root collection that will contain all the blender components of this
-        network and a child collection for the cell populations. Fills the scene with a
-        default camera and light if they are missing.
+    Creates the root collection that will contain all the blender components of this
+    network and a child collection for the cell populations. Fills the scene with a
+    default camera and light if they are missing.
     """
     self._blender_scene = scene
     self._blender_collection = coll = _main.create_collection(name)
@@ -33,7 +33,7 @@ def _load_blender_network(self, scene, root_collection):
 
 def blend(self, scene, name):
     """
-        Create or load the network from the given scene.
+    Create or load the network from the given scene.
     """
     if name in scene.collection.children:
         _load_blender_network(self, scene, scene.collection.children[name])
@@ -68,8 +68,8 @@ def create_population(self, tag, material=None, color=None):
 
 def ensure_population(self, tag):
     """
-        Load a cell population onto the scene, does nothing if it already exists. Entities
-        are also ignored.
+    Load a cell population onto the scene, does nothing if it already exists. Entities
+    are also ignored.
     """
     ps = self.get_placement_set(tag)
     if not ps.type.entity and not self.has_population(tag):
@@ -78,7 +78,7 @@ def ensure_population(self, tag):
 
 def ensure_populations(self):
     """
-        Load all cell populations from the scene, skipping relays.
+    Load all cell populations from the scene, skipping relays.
     """
     for tag in self.configuration.cell_types:
         self.load_population(tag)
@@ -86,7 +86,7 @@ def ensure_populations(self):
 
 def get_population(self, tag, partial=False):
     """
-        Get a cell population from the scene or create them.
+    Get a cell population from the scene or create them.
     """
     type = self.get_cell_type(tag)
     if type.entity:
@@ -110,7 +110,7 @@ def get_populations(self, partial=False):
 
 def has_population(self, tag):
     """
-        Check whether a given population of the network already exists in the scene.
+    Check whether a given population of the network already exists in the scene.
     """
     return tag in self._blender_cells_collection.children
 

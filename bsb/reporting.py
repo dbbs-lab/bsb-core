@@ -8,7 +8,7 @@ _report_file = None
 
 def set_verbosity(v):
     """
-        Set the verbosity of the scaffold package.
+    Set the verbosity of the scaffold package.
     """
     global _verbosity
     _verbosity = v
@@ -16,14 +16,14 @@ def set_verbosity(v):
 
 def get_verbosity():
     """
-        Return the verbosity of the scaffold package.
+    Return the verbosity of the scaffold package.
     """
     return _verbosity
 
 
 def set_report_file(v):
     """
-        Set a file to which the scaffold package should report instead of stdout.
+    Set a file to which the scaffold package should report instead of stdout.
     """
     global _report_file
     _report_file = v
@@ -31,7 +31,7 @@ def set_report_file(v):
 
 def get_report_file():
     """
-        Return the report file of the scaffold package.
+    Return the report file of the scaffold package.
     """
     return _report_file
 
@@ -42,13 +42,13 @@ preamble_bar = chr(191) * 3
 
 def report(*message, level=2, ongoing=False, token=None, nodes=None, all_nodes=False):
     """
-        Send a message to the appropriate output channel.
+    Send a message to the appropriate output channel.
 
-        :param message: Text message to send.
-        :type message: string
-        :param level: Verbosity level of the message.
-        :type level: int
-        :param ongoing: The message is part of an ongoing progress report. This replaces the endline (`\\n`) character with a carriage return (`\\r`) character
+    :param message: Text message to send.
+    :type message: string
+    :param level: Verbosity level of the message.
+    :type level: int
+    :param ongoing: The message is part of an ongoing progress report. This replaces the endline (`\\n`) character with a carriage return (`\\r`) character
     """
     message = " ".join(map(str, message))
     if (
@@ -65,11 +65,11 @@ def report(*message, level=2, ongoing=False, token=None, nodes=None, all_nodes=F
 
 def warn(message, category=None):
     """
-        Send a warning.
+    Send a warning.
 
-        :param message: Warning message
-        :type message: string
-        :param category: The class of the warning.
+    :param message: Warning message
+    :type message: string
+    :param category: The class of the warning.
     """
     if _verbosity > 0:
         if _report_file:

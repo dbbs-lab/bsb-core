@@ -16,7 +16,7 @@ double_neuron_config = relative_to_tests_folder("configs/test_double_neuron.json
 
 class TestPlacementSets(unittest.TestCase):
     """
-        Check if the scaffold can create a single cell type.
+    Check if the scaffold can create a single cell type.
     """
 
     @classmethod

@@ -4,8 +4,8 @@ from .strategy import ConnectionStrategy, TouchingConvergenceDivergence
 
 class Convergence(TouchingConvergenceDivergence):
     """
-        Implementation of a general convergence connectivity between
-        two populations of cells (this does not work with entities)
+    Implementation of a general convergence connectivity between
+    two populations of cells (this does not work with entities)
     """
 
     def validate(self):
@@ -31,7 +31,7 @@ class Convergence(TouchingConvergenceDivergence):
 
 class AllToAll(ConnectionStrategy):
     """
-        All to all connectivity between two neural populations
+    All to all connectivity between two neural populations
     """
 
     def validate(self):

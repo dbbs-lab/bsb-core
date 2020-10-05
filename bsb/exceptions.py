@@ -6,11 +6,14 @@ _t(
         SpatialDimensionError=_e(),
         ConfigurationError=_e(
             ConfigurationFormatError=_e(),
-            DynamicClassError=_e(ConfigurableClassNotFoundError=_e(),),
+            DynamicClassError=_e(
+                ConfigurableClassNotFoundError=_e(),
+            ),
             CastError=_e(
                 UnionCastError=_e(),
                 ConfigurableCastError=_e(
-                    UnknownDistributionError=_e(), InvalidDistributionError=_e(),
+                    UnknownDistributionError=_e(),
+                    InvalidDistributionError=_e(),
                 ),
             ),
             CastConfigurationError=_e(),
@@ -19,9 +22,13 @@ _t(
         LayerNotFoundError=_e(),
         SimulationNotFoundError=_e(),
         AdapterError=_e(
-            NeuronError=_e(DeviceConnectionError=_e(),),
+            NeuronError=_e(
+                DeviceConnectionError=_e(),
+            ),
             NestError=_e(
-                NestKernelError=_e(NestModuleError=_e(),),
+                NestKernelError=_e(
+                    NestModuleError=_e(),
+                ),
                 NestModelError=_e(),
                 KernelLockedError=_e(),
                 SuffixTakenError=_e(),
@@ -37,9 +44,13 @@ _t(
             CompartmentError=_e(),
         ),
         TreeError=_e(),
-        VoxelizationError=_e(VoxelTransformError=_e(),),
+        VoxelizationError=_e(
+            VoxelTransformError=_e(),
+        ),
         ResourceError=_e(
-            DatasetNotFoundError=_e(IntersectionDataNotFoundError=_e(),),
+            DatasetNotFoundError=_e(
+                IntersectionDataNotFoundError=_e(),
+            ),
             DataNotFoundError=_e(),
             AttributeMissingError=_e(),
         ),

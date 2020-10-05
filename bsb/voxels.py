@@ -93,7 +93,7 @@ class VoxelCloud:
 
     def get_voxel_box(self):
         """
-            Return the box encompassing the voxels.
+        Return the box encompassing the voxels.
         """
         voxel_positions = self.get_voxels()
         min_x, min_y, min_z, max_x, max_y, max_z = (
@@ -217,9 +217,9 @@ def voxelize(N, box_data, hit_detector, max_iterations=80, precision_iterations=
 
 def detect_box_compartments(tree, box_origin, box_size):
     """
-        Given a tree of compartment locations and a box, it will return the ids of all compartments in the outer sphere of the box
+    Given a tree of compartment locations and a box, it will return the ids of all compartments in the outer sphere of the box
 
-        :param box_origin: The lowermost corner of the box.
+    :param box_origin: The lowermost corner of the box.
     """
     # Return all compartment id's that intersect with this box
     return list(
@@ -318,7 +318,7 @@ class VoxelTransformCarrier:
 
 class HitDetector:
     """
-        Wrapper class for commonly used hit detectors in the voxelization process.
+    Wrapper class for commonly used hit detectors in the voxelization process.
     """
 
     def __init__(self, detector):
@@ -330,12 +330,12 @@ class HitDetector:
     @classmethod
     def for_rtree(cls, tree):
         """
-            Factory function that creates a hit detector for the given morphology.
+        Factory function that creates a hit detector for the given morphology.
 
-            :param morphology: A morphology.
-            :type morphology: :class:`TrueMorphology`
-            :returns: A hit detector
-            :rtype: :class:`HitDetector`
+        :param morphology: A morphology.
+        :type morphology: :class:`TrueMorphology`
+        :returns: A hit detector
+        :rtype: :class:`HitDetector`
         """
         # Create the detector function
         def tree_detector(box_origin, box_size):

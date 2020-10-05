@@ -8,8 +8,8 @@ from .reporting import report
 
 class Compartment:
     """
-        Compartments are line segments with a radius. They are the building block of
-        :class:`Morphologies <.morphologies.Morphology>`.
+    Compartments are line segments with a radius. They are the building block of
+    :class:`Morphologies <.morphologies.Morphology>`.
     """
 
     def __init__(
@@ -37,7 +37,7 @@ class Compartment:
     @classmethod
     def from_record(cls, morphology, repo_record):
         """
-            Create a compartment from repository data.
+        Create a compartment from repository data.
         """
         # Transfer the record data onto a Compartment object.
         c = cls(
@@ -71,8 +71,8 @@ class Compartment:
     @classmethod
     def from_template(cls, template, **kwargs):
         """
-            Create a compartment based on  a template compartment. Accepts any keyword
-            argument to overwrite or add attributes.
+        Create a compartment based on  a template compartment. Accepts any keyword
+        argument to overwrite or add attributes.
         """
         c = cls(
             id=template.id,
@@ -91,8 +91,8 @@ class Compartment:
 
     def to_record(self):
         """
-            Return an array that can be used to store this compartment in an HDF5 dataset,
-            or to construct a new Compartment.
+        Return an array that can be used to store this compartment in an HDF5 dataset,
+        or to construct a new Compartment.
         """
         record = [self.id, self.type, *self.start, *self.end, self.radius, self.parent_id]
         if hasattr(self, "section_id"):
@@ -102,10 +102,10 @@ class Compartment:
 
 class Morphology(ConfigurableClass):
     """
-        A multicompartmental spatial representation of a cell based on connected 3D
-        compartments.
+    A multicompartmental spatial representation of a cell based on connected 3D
+    compartments.
 
-        :todo: Uncouple from the MorphologyRepository and merge with TrueMorphology.
+    :todo: Uncouple from the MorphologyRepository and merge with TrueMorphology.
     """
 
     # The Morphology has a troubled history: it used to represent both the simple
@@ -163,7 +163,7 @@ class Morphology(ConfigurableClass):
 
     def init_morphology(self, repo_data, repo_meta):
         """
-            Initialize this Morphology with detailed morphology data from a MorphologyRepository.
+        Initialize this Morphology with detailed morphology data from a MorphologyRepository.
         """
         # Initialise as a true morphology
         self.compartments = []
@@ -199,7 +199,7 @@ class Morphology(ConfigurableClass):
 
     def init_voxel_cloud(self, voxel_data, voxel_meta, voxel_map):
         """
-            Initialize this Morphology with a voxel cloud from a MorphologyRepository.
+        Initialize this Morphology with a voxel cloud from a MorphologyRepository.
         """
         bounds = voxel_meta["bounds"]
         grid_size = voxel_meta["grid_size"]
@@ -233,7 +233,7 @@ class Morphology(ConfigurableClass):
 
 class TrueMorphology(Morphology):
     """
-        Used to load morphologies that don't need to be configured/validated.
+    Used to load morphologies that don't need to be configured/validated.
     """
 
     def validate(self):
@@ -379,9 +379,9 @@ class TrueMorphology(Morphology):
     def rotate(self, v0, v):
         """
 
-            Rotate a morphology to be oriented as vector v, supposing to start from orientation v0.
-            norm(v) = norm(v0) = 1
-            Rotation matrix R, representing a rotation of angle alpha around vector k
+        Rotate a morphology to be oriented as vector v, supposing to start from orientation v0.
+        norm(v) = norm(v0) = 1
+        Rotation matrix R, representing a rotation of angle alpha around vector k
 
         """
         R = get_rotation_matrix(v0, v)

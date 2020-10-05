@@ -4,7 +4,7 @@ from ..strategy import ConnectionStrategy
 
 class ConnectomePFInterneuron(ConnectionStrategy):
     """
-        Legacy implementation for the connections between parallel fibers and a molecular layer interneuron cell_type.
+    Legacy implementation for the connections between parallel fibers and a molecular layer interneuron cell_type.
     """
 
     def validate(self):

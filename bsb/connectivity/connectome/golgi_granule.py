@@ -4,7 +4,7 @@ from ..strategy import ConnectionStrategy
 
 class ConnectomeGolgiGranule(ConnectionStrategy):
     """
-        Legacy implementation for the connections between Golgi cells and granule cells.
+    Legacy implementation for the connections between Golgi cells and granule cells.
     """
 
     casts = {"detailed": bool}

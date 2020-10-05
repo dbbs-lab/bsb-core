@@ -4,7 +4,7 @@ from ..strategy import ConnectionStrategy
 
 class ConnectomeBCSCPurkinje(ConnectionStrategy):
     """
-        Legacy implementation for the connections between basket cells,stellate cells and purkinje cells.
+    Legacy implementation for the connections between basket cells,stellate cells and purkinje cells.
     """
 
     casts = {"limit_x": float, "limit_z": float, "divergence": int, "convergence": int}

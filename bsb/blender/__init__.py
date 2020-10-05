@@ -10,7 +10,7 @@ except ImportError:
 
 def create_collection(name, parent=None):
     """
-        Create a collection in the blender scene.
+    Create a collection in the blender scene.
     """
     coll_diff = _diffkey(bpy.data.collections)
     bpy.ops.collection.create(name=name)
@@ -29,8 +29,8 @@ class BlenderPopulation:
 
 def create_population(name, material, cells, parent=None, scene=None, radius=3.0):
     """
-        Create a cell population where each cell is represented by a sphere in 3D space.
-        Each cell population will have a matte material associated with it.
+    Create a cell population where each cell is represented by a sphere in 3D space.
+    Each cell population will have a matte material associated with it.
     """
     if scene is None:
         scene = bpy.context.scene
@@ -50,8 +50,8 @@ def create_population(name, material, cells, parent=None, scene=None, radius=3.0
 
 def create_material(name, color=(0.8, 0.8, 0.8, 1.0)):
     """
-        Create a material with a certain base color. The 4th float of the color is the
-        opacity.
+    Create a material with a certain base color. The 4th float of the color is the
+    opacity.
     """
     mat = bpy.data.materials.new(name=name)
     mat.use_nodes = True
@@ -66,7 +66,7 @@ def create_material(name, color=(0.8, 0.8, 0.8, 1.0)):
 
 def create_pulsar_material(name, color, max_intensity=1.0):
     """
-        Create a material capable of lighting up.
+    Create a material capable of lighting up.
     """
     mat = bpy.data.materials.new(name=name)
     mat["pulsar"] = True
@@ -109,7 +109,7 @@ def create_pulsar_material(name, color, max_intensity=1.0):
 
 def get_population(collection, cells, partial=False):
     """
-        Load or create a collection from a certain collection. Returns the loaded objects.
+    Load or create a collection from a certain collection. Returns the loaded objects.
     """
     index = {int(c["cell_id"]): c for c in collection.objects.values()}
     if partial:
@@ -134,8 +134,8 @@ def get_population(collection, cells, partial=False):
 
 def get_populations(collections, cells, partial=False):
     """
-        Zips a list of collections and a list of cell lists and passes them to
-        `get_population`. Returns the results as a list.
+    Zips a list of collections and a list of cell lists and passes them to
+    `get_population`. Returns the results as a list.
     """
     return [get_population(c, p) for c, p in zip(collections, cells, partial=partial)]
 

@@ -4,7 +4,7 @@ from ..strategy import ConnectionStrategy
 
 class ConnectomeGolgiGlomerulus(ConnectionStrategy):
     """
-        Legacy implementation for the connections between glomeruli and Golgi cells.
+    Legacy implementation for the connections between glomeruli and Golgi cells.
     """
 
     casts = {"divergence": int}

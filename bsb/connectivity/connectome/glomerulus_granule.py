@@ -5,7 +5,7 @@ from ...exceptions import ConfigurationError, ConnectivityError
 
 class ConnectomeGlomerulusGranule(ConnectionStrategy):
     """
-        Legacy implementation for the connections between glomeruli and granule cells.
+    Legacy implementation for the connections between glomeruli and granule cells.
     """
 
     casts = {"detailed": bool, "convergence": int}
@@ -50,7 +50,7 @@ class ConnectomeGlomerulusGranule(ConnectionStrategy):
             first_glomerulus, glomeruli, granules, dend_len, n_conn_glom
         ):
             """
-                Legacy code block to connect glomeruli to granule cells
+            Legacy code block to connect glomeruli to granule cells
             """
             glom_x = glomeruli[:, 2]
             glom_y = glomeruli[:, 3]

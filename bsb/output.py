@@ -49,14 +49,14 @@ class ResourceHandler(ABC):
     @abstractmethod
     def get_handle(self, mode=None):
         """
-            Open the output resource and return a handle.
+        Open the output resource and return a handle.
         """
         pass
 
     @abstractmethod
     def release_handle(self, handle):
         """
-            Close the open output resource and release the handle.
+        Close the open output resource and release the handle.
         """
         pass
 
@@ -64,21 +64,21 @@ class ResourceHandler(ABC):
 class HDF5ResourceHandler(ResourceHandler):
     def get_handle(self, mode="r"):
         """
-            Open an HDF5 resource.
+        Open an HDF5 resource.
         """
         # Open a new handle to the resource.
         return h5py.File(self.file, mode)
 
     def release_handle(self, handle):
         """
-            Close the MorphologyRepository storage resource.
+        Close the MorphologyRepository storage resource.
         """
         return handle.close()
 
 
 class TreeHandler(ResourceHandler):
     """
-        Interface that allows a ResourceHandler to handle storage of TreeCollections.
+    Interface that allows a ResourceHandler to handle storage of TreeCollections.
     """
 
     @abstractmethod
@@ -96,7 +96,7 @@ class TreeHandler(ResourceHandler):
 
 class HDF5TreeHandler(HDF5ResourceHandler, TreeHandler):
     """
-        TreeHandler that uses HDF5 as resource storage
+    TreeHandler that uses HDF5 as resource storage
     """
 
     def store_tree_collections(self, tree_collections):
@@ -153,69 +153,69 @@ class OutputFormatter(ConfigurableClass, TreeHandler):
     @abstractmethod
     def exists(self):
         """
-            Check if the output file exists.
+        Check if the output file exists.
         """
         pass
 
     @abstractmethod
     def init_scaffold(self):
         """
-            Initialize the scaffold when it has been loaded from an output file.
+        Initialize the scaffold when it has been loaded from an output file.
         """
         pass
 
     @abstractmethod
     def get_simulator_output_path(self, simulator_name):
         """
-            Return the path where a simulator can dump preliminary output.
+        Return the path where a simulator can dump preliminary output.
         """
         pass
 
     @abstractmethod
     def has_cells_of_type(self, name):
         """
-            Check whether the position matrix for a certain cell type is present.
+        Check whether the position matrix for a certain cell type is present.
         """
         pass
 
     @abstractmethod
     def get_cells_of_type(self, name):
         """
-            Return the position matrix for a specific cell type.
+        Return the position matrix for a specific cell type.
         """
         pass
 
     @abstractmethod
     def exists(self):
         """
-            Check if the resource exists.
+        Check if the resource exists.
         """
         pass
 
     @abstractmethod
     def get_connectivity_set(self, tag):
         """
-            Return a connectivity set.
+        Return a connectivity set.
 
-            :param tag: Key of the connectivity set in the `connections` group.
-            :type tag: string
-            :return: The connectivity set.
-            :rtype: :class:`ConnectivitySet`
-            :raises: DatasetNotFoundError
+        :param tag: Key of the connectivity set in the `connections` group.
+        :type tag: string
+        :return: The connectivity set.
+        :rtype: :class:`ConnectivitySet`
+        :raises: DatasetNotFoundError
         """
         pass
 
     @abstractmethod
     def get_connectivity_set_connection_types(self, tag):
         """
-            Return the connection types that contributed to this connectivity set.
+        Return the connection types that contributed to this connectivity set.
         """
         pass
 
     @abstractmethod
     def get_connectivity_set_meta(self, tag):
         """
-            Return the meta dictionary of this connectivity set.
+        Return the meta dictionary of this connectivity set.
         """
         pass
 
@@ -234,7 +234,7 @@ class MorphologyRepository(HDF5TreeHandler):
     # Abstract function from ResourceHandler
     def get_handle(self, mode="r"):
         """
-            Open the HDF5 storage resource and initialise the MorphologyRepository structure.
+        Open the HDF5 storage resource and initialise the MorphologyRepository structure.
         """
         # Open a new handle to the HDF5 resource.
         handle = HDF5TreeHandler.get_handle(self, mode)
@@ -252,7 +252,7 @@ class MorphologyRepository(HDF5TreeHandler):
 
     def import_swc(self, file, name, tags=[], overwrite=False):
         """
-            Import and store .swc file contents as a morphology in the repository.
+        Import and store .swc file contents as a morphology in the repository.
         """
         # Read as CSV
         swc_data = np.loadtxt(file)
@@ -440,7 +440,7 @@ class MorphologyRepository(HDF5TreeHandler):
 
     def get_morphology(self, name, scaffold=None):
         """
-            Load a morphology from repository data
+        Load a morphology from repository data
         """
         with self.load() as handler:
             # Check if morphology exists
@@ -508,18 +508,18 @@ class MorphologyRepository(HDF5TreeHandler):
         self, include_rotations=False, only_rotations=False, cell_type=None
     ):
         """
-            Return a list of morphologies in a morphology repository, filtered by rotation
-            and/or cell type.
+        Return a list of morphologies in a morphology repository, filtered by rotation
+        and/or cell type.
 
-            :param include_rotations: Include each cached rotation of each morphology.
-            :type include_rotations: bool
-            :param only_rotations: Get only the rotated caches of the morphologies.
-            :type only_rotations: bool
-            :param cell_type: Specify the cell type for which you want to extract the morphologies.
-            :param cell_type: CellType
+        :param include_rotations: Include each cached rotation of each morphology.
+        :type include_rotations: bool
+        :param only_rotations: Get only the rotated caches of the morphologies.
+        :type only_rotations: bool
+        :param cell_type: Specify the cell type for which you want to extract the morphologies.
+        :param cell_type: CellType
 
-            :returns: List of morphology names
-            :rtype: list
+        :returns: List of morphology names
+        :rtype: list
         """
 
         with self.load("r") as repo:
@@ -553,22 +553,22 @@ class MorphologyRepository(HDF5TreeHandler):
 
     def _raw_morphology(self, name, handler):
         """
-            Return the morphology dataset
+        Return the morphology dataset
         """
         return handler()["morphologies/" + name]
 
     def _raw_voxel_cloud(self, name, handler):
         """
-            Return the morphology dataset
+        Return the morphology dataset
         """
         return handler()["morphologies/voxel_clouds/" + name]
 
 
 class MorphologyCache:
     """
-        Loads and caches :class:`morphologies <.models.Morphology>` so that each
-        morphology is loaded only once and its instance is shared among all cells
-        with that Morphology. Saves a lot on memory, but the Morphology should be treated as read only.
+    Loads and caches :class:`morphologies <.models.Morphology>` so that each
+    morphology is loaded only once and its instance is shared among all cells
+    with that Morphology. Saves a lot on memory, but the Morphology should be treated as read only.
     """
 
     def __init__(self, morphology_repository):
@@ -576,12 +576,12 @@ class MorphologyCache:
 
     def rotate_all_morphologies(self, phi_value, theta_value=None):
         """
-            Extracts all unrotated morphologies from a morphology_repository and creates rotated versions, at sampled orientations in the 3D space
+        Extracts all unrotated morphologies from a morphology_repository and creates rotated versions, at sampled orientations in the 3D space
 
-            :param phi_value: resolution of azimuth angle sampling, in degrees
-            :type phi_value: int
-            :param theta_value: resolution of elevation angle sampling, in degrees
-            :type phi_value: int, optional
+        :param phi_value: resolution of azimuth angle sampling, in degrees
+        :type phi_value: int
+        :param theta_value: resolution of elevation angle sampling, in degrees
+        :type phi_value: int, optional
 
         """
 
@@ -602,7 +602,7 @@ class MorphologyCache:
 
     def _discretize_orientations(self, resolution):
         """
-            Returns two arrays of azimuth and elevation angles discretized in the 3D space
+        Returns two arrays of azimuth and elevation angles discretized in the 3D space
         """
         # Computing the grid of angles to discretize the 360° orientation range
         num_step = [
@@ -620,7 +620,7 @@ class MorphologyCache:
 
     def _construct_morphology_rotations(self, morpho_name, phi, theta):
         """
-            For each non existing rotation of the considered morphology morpho_name, it executes _construct_morphology_rotation
+        For each non existing rotation of the considered morphology morpho_name, it executes _construct_morphology_rotation
         """
         # Extract a list of rotated versions of the current morphology
         morpho_rotated_all = self.mr.list_morphologies(only_rotations=True)
@@ -639,7 +639,7 @@ class MorphologyCache:
 
     def _construct_morphology_rotation(self, morpho_name, phi_value, theta_value):
         """
-            Construct the rotated morphology according to orientation vector identified by phi_value and theta_value and save in the morphology repository
+        Construct the rotated morphology according to orientation vector identified by phi_value and theta_value and save in the morphology repository
         """
         morpho = self.mr.get_morphology(morpho_name)
         start_vector = np.array([0, 1, 0])
@@ -658,8 +658,8 @@ class MorphologyCache:
 
 class HDF5Formatter(OutputFormatter, MorphologyRepository):
     """
-        Stores the output of the scaffold as a single HDF5 file. Is also a MorphologyRepository
-        and an HDF5TreeHandler.
+    Stores the output of the scaffold as a single HDF5 file. Is also a MorphologyRepository
+    and an HDF5TreeHandler.
     """
 
     defaults = {
@@ -887,8 +887,8 @@ class HDF5Formatter(OutputFormatter, MorphologyRepository):
 
     def get_connectivity_set_connection_types(self, tag):
         """
-            Return all the ConnectionStrategies that contributed to the creation of this
-            connectivity set.
+        Return all the ConnectionStrategies that contributed to the creation of this
+        connectivity set.
         """
         with self.load() as f:
             # Get list of contributing types
@@ -900,7 +900,7 @@ class HDF5Formatter(OutputFormatter, MorphologyRepository):
 
     def get_connectivity_set_meta(self, tag):
         """
-            Return the metadata associated with this connectivity set.
+        Return the metadata associated with this connectivity set.
         """
         with self.load() as f:
             return dict(f()["cells/connections/" + tag].attrs)

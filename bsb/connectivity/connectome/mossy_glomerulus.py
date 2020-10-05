@@ -5,8 +5,8 @@ from ...reporting import report, warn
 
 class ConnectomeMossyGlomerulus(ConnectionStrategy):
     """
-        Implementation for the connections between mossy fibers and glomeruli.
-        The connectivity is somatotopic and
+    Implementation for the connections between mossy fibers and glomeruli.
+    The connectivity is somatotopic and
     """
 
     def validate(self):

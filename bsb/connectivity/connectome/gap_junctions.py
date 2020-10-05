@@ -4,7 +4,7 @@ from ..strategy import ConnectionStrategy
 
 class ConnectomeGapJunctions(ConnectionStrategy):
     """
-        Legacy implementation for gap junctions between a cell type.
+    Legacy implementation for gap junctions between a cell type.
     """
 
     casts = {"limit_xy": float, "limit_z": float, "divergence": int}
@@ -77,7 +77,7 @@ class ConnectomeGapJunctions(ConnectionStrategy):
 
 class ConnectomeGapJunctionsGolgi(ConnectionStrategy):
     """
-        Legacy implementation for Golgi cell gap junctions.
+    Legacy implementation for Golgi cell gap junctions.
     """
 
     def validate(self):

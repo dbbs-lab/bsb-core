@@ -7,10 +7,10 @@ from ..reporting import report, warn
 
 class Satellite(PlacementStrategy):
     """
-        Implementation of the placement of cells in layers as satellites of existing cells
+    Implementation of the placement of cells in layers as satellites of existing cells
 
-        Places cells as a satellite cell to each associated cell at a random distance
-        depending on the radius of both cells.
+    Places cells as a satellite cell to each associated cell at a random distance
+    depending on the radius of both cells.
     """
 
     defaults = {"per_planet": 1.0}
@@ -32,7 +32,7 @@ class Satellite(PlacementStrategy):
 
     def get_placement_count(self):
         """
-            Takes the sum of the planets and multiplies it with the `per_planet` factor.
+        Takes the sum of the planets and multiplies it with the `per_planet` factor.
         """
         return (
             sum(

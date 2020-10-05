@@ -6,7 +6,7 @@ from ...reporting import warn
 
 class ConnectomeGranuleGolgi(ConnectionStrategy):
     """
-        Legacy implementation for the connections between Golgi cells and glomeruli.
+    Legacy implementation for the connections between Golgi cells and glomeruli.
     """
 
     casts = {"aa_convergence": int, "pf_convergence": int}

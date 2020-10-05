@@ -24,7 +24,7 @@ def neuron_installed():
 class TestTargetting(unittest.TestCase):
     def test_representatives(self):
         """
-            Test that 1 cell per non-relay cell model is chosen.
+        Test that 1 cell per non-relay cell model is chosen.
         """
         config = JSONConfig(double_nn_config)
         scaffold = Scaffold(config)

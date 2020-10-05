@@ -55,8 +55,8 @@ def get_branch_points(branch_list):
 
 def reduce_branch(branch, branch_points):
     """
-        Reduce a branch (list of points) to only its start and end point and the
-        intersection with a list of known branch points.
+    Reduce a branch (list of points) to only its start and end point and the
+    intersection with a list of known branch points.
     """
     reduced_branch = [branch[0]]
     for bp in branch:
@@ -120,15 +120,15 @@ class Branch:
 
     def split(self, compartment, n):
         """
-            Split the compartment in n pieces and make those a part of the branch.
+        Split the compartment in n pieces and make those a part of the branch.
 
-            This function stores a link to the original compartment in the partial
-            compartments in the attribute `_original`.
+        This function stores a link to the original compartment in the partial
+        compartments in the attribute `_original`.
 
-            :param compartment: The compartment to split.
-            :type compartment: :class:`.morphologies.Compartment`
-            :param n: The amount of pieces to split the compartment into.
-            :type n: int
+        :param compartment: The compartment to split.
+        :type compartment: :class:`.morphologies.Compartment`
+        :param n: The amount of pieces to split the compartment into.
+        :type n: int
         """
         if n < 2:
             raise ValueError("Compartments must be split in at least 2 parts.")
@@ -212,7 +212,8 @@ class Branch:
 
             # Add the voxel to the tree
             voxel_tree.insert(
-                v_id, voxel,
+                v_id,
+                voxel,
             )
             map.append(comp)
             voxel_list.append(voxel)
