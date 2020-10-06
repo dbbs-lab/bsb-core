@@ -79,6 +79,10 @@ class PlacementWarning(ScaffoldWarning):
     pass
 
 
+class MorphologyWarning(ScaffoldWarning):
+    pass
+
+
 class ConnectivityWarning(ScaffoldWarning):
     pass
 
