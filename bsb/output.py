@@ -315,7 +315,7 @@ class MorphologyRepository(HDF5TreeHandler):
                         name,
                         s_name,
                         cell=cls.__name__,
-                    )
+                    ) from None
             visited.add(s_name)
             branch = Branch(
                 vectorize(section.x3d) - tx,
