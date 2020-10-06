@@ -41,6 +41,7 @@ _t(
             MissingMorphologyError=_e(),
             IncompleteMorphologyError=_e(),
             MorphologyDataError=_e(),
+            CircularMorphologyError=_e("morphology", "component").set(list_details=True),
             CompartmentError=_e(),
         ),
         TreeError=_e(),

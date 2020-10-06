@@ -288,6 +288,8 @@ class MorphologyRepository(HDF5TreeHandler):
             for child in sref.child:
                 yield from section_iter(child, section)
 
+        # Turn any of the unsafe vector methods `x3d`, `y3d`, `z3d` or `diam3d` into
+        # actual vectors.
         def vectorize(f):
             def sink():
                 i = 0
@@ -303,17 +305,27 @@ class MorphologyRepository(HDF5TreeHandler):
         roots = []
         branch_map = {}
         for section, parent in section_iter(cell.soma[0], None):
-            visited.add(section.name())
-            unvisited.remove(section.name())
+            s_name = section.name()
+            try:
+                unvisited.remove(s_name)
+            except KeyError:
+                if s_name in visited:  # pragma: nocover
+                    raise CircularMorphologyError(
+                        "%component% of %morphology% is visited multiple times.",
+                        name,
+                        s_name,
+                        cell=cls.__name__,
+                    )
+            visited.add(s_name)
             branch = Branch(
                 vectorize(section.x3d) - tx,
                 vectorize(section.y3d) - ty,
                 vectorize(section.z3d) - tz,
                 vectorize(section.diam3d) / 2.0,
             )
-            branch._neuron_sid = section_id_map[section.name()]
-            branch.label(*section_labels_map[section.name()])
-            branch_map[section.name()] = branch
+            branch._neuron_sid = section_id_map[s_name]
+            branch.label(*section_labels_map[s_name])
+            branch_map[s_name] = branch
             if parent is not None:
                 branch_map[parent.name()].attach_child(branch)
             else:
