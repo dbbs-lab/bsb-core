@@ -197,25 +197,19 @@ class TouchDetector(ConnectionStrategy, MorphologyStrategy):
         )
 
     def get_compartment_intersections(self, touch_info, from_pos, to_pos):
-        from_morphology = touch_info.from_morphology
-        to_morphology = touch_info.to_morphology
+        from_morpho = touch_info.from_morphology
+        to_morpho = touch_info.to_morphology
         query_points = (
-            to_morphology.get_compartment_positions(types=touch_info.to_cell_compartments)
+            to_morpho.get_compartment_positions(touch_info.to_cell_compartments)
             + to_pos
             - from_pos
         )
-        from_tree = from_morphology.get_compartment_tree(
-            compartment_types=touch_info.from_cell_compartments
-        )
+        from_tree = from_morpho.get_compartment_tree(touch_info.from_cell_compartments)
         compartment_hits = from_tree.query_radius(
             query_points, self.compartment_intersection_radius
         )
-        from_map = from_morphology.get_compartment_submask(
-            compartment_types=touch_info.from_cell_compartments
-        )
-        to_map = to_morphology.get_compartment_submask(
-            compartment_types=touch_info.to_cell_compartments
-        )
+        from_map = from_morpho.get_compartment_submask(touch_info.from_cell_compartments)
+        to_map = to_morpho.get_compartment_submask(touch_info.to_cell_compartments)
         intersections = []
         for i in range(len(compartment_hits)):
             hits = compartment_hits[i]

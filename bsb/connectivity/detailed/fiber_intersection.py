@@ -100,9 +100,7 @@ class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
         for c, (from_cell, from_morpho) in enumerate(from_morphology_set):
             # (1) Extract the FiberMorpho object for each branch in the from_compartments
             # of the presynaptic morphology
-            compartments = from_morpho.get_compartments(
-                compartment_types=from_compartments
-            )
+            compartments = from_morpho.get_compartments(from_compartments)
             morpho_rotation = from_cell.rotation
             fm = FiberMorphology(compartments, morpho_rotation)
 

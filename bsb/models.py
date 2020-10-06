@@ -623,9 +623,7 @@ class MorphologySet:
                 self._morphology_map[morpho_ind]
             )
             m._set_index = morpho_ind
-            m.voxelize(
-                N, compartments=m.get_compartments(compartment_types=compartment_types)
-            )
+            m.voxelize(N, compartments=m.get_compartments(compartment_types))
             return m
 
         # Load and voxelize only the unique morphologies present in the morphology map.

@@ -57,7 +57,7 @@ class Compartment:
             start=template.start,
             end=template.end,
             radius=template.radius,
-            type=template.type,
+            labels=template.labels.copy(),
             parent=template.parent,
             section_id=template.section_id,
             morphology=template.morphology,
@@ -157,13 +157,13 @@ def _pairwise_iter(walk_iter, labels_iter, parent=None):
         start = parent.end
     else:
         try:
-            start = next(walk_iter)
+            start = np.array(next(walk_iter)[:3])
             # Throw away the first point's labels as it is not part of a compartment.
             _ = next(labels_iter)
         except StopIteration:
             return iter(())
     for data in walk_iter:
-        end = data[:3]
+        end = np.array(data[:3])
         radius = data[3]
         labels = next(labels_iter)
         yield (start, end, radius), labels
@@ -304,13 +304,10 @@ class Morphology:
             node_list[int(node.parent.id)].add(int(node.id))
         return node_list
 
-    def get_compartment_positions(self, types=None):
-        if types is None:
+    def get_compartment_positions(self, labels=None):
+        if labels is None:
             return self.compartment_tree.get_arrays()[0]
-        type_ids = TrueMorphology.get_compartment_type_ids(types)
-        return list(
-            map(lambda c: c.end, filter(lambda c: c.type in type_ids, self.compartments))
-        )
+        return [c.end for c in self.get_compartments(labels=labels)]
 
     def get_plot_range(self, offset=[0.0, 0.0, 0.0]):
         compartments = self.compartment_tree.get_arrays()[0]
@@ -323,64 +320,25 @@ class Morphology:
         )
         return list(zip(mins.tolist(), (mins + max).tolist()))
 
-    def _comp_tree_factory(self, types):
-        type_map = TrueMorphology.get_compartment_type_ids(types)
-
-        def _comp_tree_product(_):
-            return np.array(
-                list(
-                    map(
-                        lambda c: c.end,
-                        filter(lambda c: c.type in type_map, self.compartments),
-                    )
-                )
-            )
-
-        return _comp_tree_product
-
-    def get_compartment_tree(self, compartment_types=None):
-        if compartment_types is not None:
-            if len(compartment_types) == 1:
-                return self.scaffold.trees.morphologies.get_sub_tree(
-                    self.morphology_name,
-                    "+".join(compartment_types),
-                    factory=self._comp_tree_factory(compartment_types),
-                )
-            else:
-                raise NotImplementedError(
-                    "Multicompartmental touch detection not implemented yet."
-                )
+    def get_compartment_tree(self, labels=None):
+        if labels is not None:
+            return _compartment_tree(self.get_compartments(labels=labels))
         return self.compartment_tree
 
-    def get_compartment_submask(self, compartment_types):
-        i = 0
-        type_ids = TrueMorphology.get_compartment_type_ids(compartment_types)
-        mask = []
-        for comp in self.compartments:
-            if comp.type in type_ids:
-                # mask[n] = original id
-                # Where n is the index of the compartment in the filtered collection
-                mask.append(comp.id)
-        return mask
+    def get_compartment_submask(self, labels):
+        ## TODO: Remove; voxelintersection & touchdetection audit should make this code
+        ## obsolete.
+        return [c.id for c in self.get_compartments(labels)]
 
-    def get_compartments(self, compartment_types=None):
-        if compartment_types is None:
+    def get_compartments(self, labels=None):
+        if labels is None:
             return self.compartments.copy()
-        i = 0
-        try:
-            type_ids = TrueMorphology.get_compartment_type_ids(compartment_types)
-        except Exception as e:
-            raise CompartmentError("Unknown compartment types encountered")
-        return list(filter(lambda c: c.type in type_ids, self.compartments))
+        return [c for c in self.compartments if any(l in labels for l in c.labels)]
 
-    @classmethod
-    def get_compartment_type_ids(cls, types):
-        ids = []
-        for t in types:
-            ids.append(cls.compartment_types[t])
-            if t in cls.compartment_alias:
-                ids.extend(cls.get_compartment_type_ids(cls.compartment_alias[t]))
-        return ids
+    def get_branches(self, labels=None):
+        if labels is None:
+            return self.branches
+        return [b for b in self.branches if any(l in labels for l in b._full_labels)]
 
     def rotate(self, v0, v):
         """
@@ -397,6 +355,10 @@ class Morphology:
             self.compartments[c].end = R.dot(self.compartments[c].end)
 
         self.update_compartment_tree()
+
+
+def _compartment_tree(compartments):
+    return KDTree(np.array([c.end for c in compartments]))
 
 
 class Representation(ConfigurableClass):
