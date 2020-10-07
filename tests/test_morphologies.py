@@ -6,42 +6,10 @@ from bsb.morphologies import Morphology, Branch
 from bsb.exceptions import *
 
 
+@unittest.skip("Re-enabling tests gradually while advancing v4.0 rework")
 class TestRepositories(unittest.TestCase):
     def test_empty_repository(self):
         pass
-
-
-class TestMorphologies(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
-        test_setup.prep_morphologies()
-
-    def test_int_ordered_iter(self):
-        unit = bsb.output._is_invalid_order
-        unit2 = bsb.output._int_ordered_iter
-        # Check sequence
-        self.assertFalse(unit([]))
-        self.assertFalse(unit([0]))
-        self.assertFalse(unit([0, 1]))
-        self.assertFalse(unit([0, 1, 2]))
-        self.assertFalse(unit([0, 1, 2, 3]))
-        # Check start
-        self.assertTrue(unit([1]))
-        # Check gaps
-        self.assertTrue(unit([0, 2]))
-        self.assertTrue(unit([0, 1, 2, 4]))
-        # Check empty str
-        self.assertRaises(MorphologyDataError, unit2, {"": None})
-        # Check str
-        self.assertRaises(MorphologyDataError, unit2, {"a": None})
-        # Check hex
-        self.assertRaises(
-            MorphologyDataError, unit2, {**{str(i): None for i in range(10)}, "a": None}
-        )
-        # Check neg
-        self.assertRaises(MorphologyDataError, unit2, {"-1": None, "0": None})
-        self.assertRaises(MorphologyDataError, unit2, {"-1": None, "0": None, "1": None})
 
     def test_empty(self):
         with h5py.File("test.h5", "w") as f:
@@ -239,6 +207,55 @@ class TestMorphologies(unittest.TestCase):
     def test_tree_with_empty_branches(self):
         pass
 
+    def test_mr_labels(self):
+        v = len(Branch.vectors)
+        branch = Branch(*(np.ones(v) for i in range(v)))
+        branch.label_points("A", [False, True] + [False] * (v - 2))
+        branch.label("B")
+        m = Morphology([branch])
+        mr = bsb.output.MorphologyRepository("tmp.h5")
+        mr.get_handle("w")
+        mr.save_morphology("test", m)
+        m_loaded = mr.get_morphology("test")
+        branch_loaded = m_loaded.roots[0]
+        self.assertEqual(["B"], branch_loaded._full_labels)
+        self.assertEqual(
+            [["B"], ["B", "A"]] + [["B"]] * (v - 2),
+            list(map(list, branch_loaded.label_walk())),
+        )
+
+
+class TestMorphologies(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+
+    def test_int_ordered_iter(self):
+        unit = bsb.output._is_invalid_order
+        unit2 = bsb.output._int_ordered_iter
+        # Check sequence
+        self.assertFalse(unit([]))
+        self.assertFalse(unit([0]))
+        self.assertFalse(unit([0, 1]))
+        self.assertFalse(unit([0, 1, 2]))
+        self.assertFalse(unit([0, 1, 2, 3]))
+        # Check start
+        self.assertTrue(unit([1]))
+        # Check gaps
+        self.assertTrue(unit([0, 2]))
+        self.assertTrue(unit([0, 1, 2, 4]))
+        # Check empty str
+        self.assertRaises(MorphologyDataError, unit2, {"": None})
+        # Check str
+        self.assertRaises(MorphologyDataError, unit2, {"a": None})
+        # Check hex
+        self.assertRaises(
+            MorphologyDataError, unit2, {**{str(i): None for i in range(10)}, "a": None}
+        )
+        # Check neg
+        self.assertRaises(MorphologyDataError, unit2, {"-1": None, "0": None})
+        self.assertRaises(MorphologyDataError, unit2, {"-1": None, "0": None, "1": None})
+
     def test_branch_nargs(self):
         v = len(Branch.vectors)
         Branch(*(np.ones(i) for i in range(v)))
@@ -309,23 +326,6 @@ class TestMorphologyLabels(unittest.TestCase):
         self.assertEqual(["B"], branch._full_labels)
         self.assertEqual(
             [["B"], ["B", "A"]] + [["B"]] * (v - 2), list(map(list, branch.label_walk()))
-        )
-
-    def test_mr_labels(self):
-        v = len(Branch.vectors)
-        branch = Branch(*(np.ones(v) for i in range(v)))
-        branch.label_points("A", [False, True] + [False] * (v - 2))
-        branch.label("B")
-        m = Morphology([branch])
-        mr = bsb.output.MorphologyRepository("tmp.h5")
-        mr.get_handle("w")
-        mr.save_morphology("test", m)
-        m_loaded = mr.get_morphology("test")
-        branch_loaded = m_loaded.roots[0]
-        self.assertEqual(["B"], branch_loaded._full_labels)
-        self.assertEqual(
-            [["B"], ["B", "A"]] + [["B"]] * (v - 2),
-            list(map(list, branch_loaded.label_walk())),
         )
 
 
