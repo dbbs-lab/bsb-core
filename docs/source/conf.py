@@ -30,34 +30,10 @@ autodoc_mock_imports = [
     "joblib",
     "numpy",
     "sklearn",
-    # "sklearn.neighbors",
     "scipy",
-    # "scipy.spatial",
-    # "scipy.stats",
-    # "scipy.stats.distributions",
     "six",
     "plotly",
-    # "plotly.graph_objects",
-    # "plotly.graph_objs",
-    # "plotly.subplots",
 ]
-
-
-# class Mock(types.ModuleType):
-#     def __repr__(self):
-#         return "<mocked object '{}'>".format(self.__name__)
-#
-#     def __getattr__(self, attr):
-#         return Mock("recursive")
-#
-#     def __call__(self, *args, **kwargs):
-#         return 1
-#
-#
-# for mod in autodoc_mock_imports:
-#     sys.modules[mod] = Mock(mod)
-
-# import bsb, bsb.config
 
 
 # -- Project information -----------------------------------------------------
