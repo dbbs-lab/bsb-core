@@ -653,8 +653,8 @@ class MorphologyCache:
         Returns two arrays of azimuth and elevation angles discretized in the 3D space
         """
         # Computing the grid of angles to discretize the 360° orientation range
-        num_phi = (int(360) / phi_step + 1) * 1j
-        num_theta = (int(360) / theta_step + 1) * 1j
+        num_phi = (round(360 / phi_step) + 1) * 1j
+        num_theta = (round(360 / theta_step) + 1) * 1j
 
         phi, theta = np.mgrid[0.0:360:num_phi, 0.0:360:num_theta]
         # From 2D to 1D arrays
