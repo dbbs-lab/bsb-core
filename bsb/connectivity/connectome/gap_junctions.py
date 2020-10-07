@@ -6,7 +6,7 @@ from ... import config
 @config.node
 class ConnectomeGapJunctions(ConnectionStrategy):
     """
-        Legacy implementation for gap junctions between a cell type.
+    Legacy implementation for gap junctions between a cell type.
     """
 
     limit_xy = config.attr(type=float, required=True)
@@ -79,7 +79,7 @@ class ConnectomeGapJunctions(ConnectionStrategy):
 
 class ConnectomeGapJunctionsGolgi(ConnectionStrategy):
     """
-        Legacy implementation for Golgi cell gap junctions.
+    Legacy implementation for Golgi cell gap junctions.
     """
 
     def validate(self):

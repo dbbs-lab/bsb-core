@@ -6,7 +6,7 @@ from ... import config
 @config.node
 class ConnectomeIOPurkinje(ConnectionStrategy):
     """
-        Legacy implementation for the connection between inferior olive and Purkinje cells.
+    Legacy implementation for the connection between inferior olive and Purkinje cells.
     """
 
     def validate(self):

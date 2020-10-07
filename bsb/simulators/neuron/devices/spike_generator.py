@@ -1,11 +1,14 @@
 from ..adapter import NeuronDevice
-from ....simulation import TargetsSections
+from ....simulation.results import SimulationRecorder, PresetPathMixin, PresetMetaMixin
 from ....helpers import listify_input
 from ....functions import poisson_train
 from ....reporting import report, warn
+import numpy as np
 
 
 class SpikeGenerator(NeuronDevice):
+    defaults = {"record": True}
+
     def implement(self, target, cell, section):
         if not hasattr(section, "available_synapse_types"):
             raise Exception(
@@ -30,7 +33,8 @@ class SpikeGenerator(NeuronDevice):
                 )
 
     def validate_specifics(self):
-        self.parameters["weight"] = 1
+        if "weight" not in self.parameters:
+            self.parameters["weight"] = 1
         self.synapses = listify_input(self.synapses)
 
     def create_patterns(self):
@@ -50,8 +54,20 @@ class SpikeGenerator(NeuronDevice):
             if noise:
                 pattern = list(poisson_train(frequency, duration, start))
             patterns[target] = pattern
+            if self.record:
+                self.adapter.result.add(GeneratorRecorder(self, target, pattern))
             report("Pattern {} for {}.".format(pattern, target), level=4)
         return patterns
 
     def get_pattern(self, target, cell=None, section=None, synapse=None):
         return self.patterns[target]
+
+
+class GeneratorRecorder(PresetPathMixin, PresetMetaMixin, SimulationRecorder):
+    def __init__(self, device, target, pattern):
+        self.pattern = pattern
+        self.meta = {"device": device.name, "target": str(target)}
+        self.path = ("recorders", "input", device.name, str(target))
+
+    def get_data(self):
+        return np.array(self.pattern)

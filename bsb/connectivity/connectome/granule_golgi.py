@@ -8,7 +8,7 @@ from ... import config
 @config.node
 class ConnectomeGranuleGolgi(ConnectionStrategy):
     """
-        Legacy implementation for the connections between Golgi cells and glomeruli.
+    Legacy implementation for the connections between Golgi cells and glomeruli.
     """
 
     aa_convergence = config.attr(type=int, required=True)

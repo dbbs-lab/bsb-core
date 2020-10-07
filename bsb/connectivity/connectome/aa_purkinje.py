@@ -4,7 +4,7 @@ from ..strategy import ConnectionStrategy
 
 class ConnectomeAscAxonPurkinje(ConnectionStrategy):
     """
-        Legacy implementation for the connections between ascending axons and purkinje cells.
+    Legacy implementation for the connections between ascending axons and purkinje cells.
     """
 
     def validate(self):

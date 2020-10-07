@@ -15,6 +15,7 @@ Welcome to DBBS Cerebellum Scaffold's documentation!
    usage/cli
    guides
    placement
+   morphologies/intro
    connectivity
 
 .. toctree::

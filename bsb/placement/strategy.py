@@ -34,8 +34,8 @@ class PlacementStrategy(abc.ABC):
 
 class MightBeRelative:
     """
-        Validation class for PlacementStrategies that can be configured relative to other
-        cell types.
+    Validation class for PlacementStrategies that can be configured relative to other
+    cell types.
     """
 
     def validate(self):
@@ -67,8 +67,8 @@ class MightBeRelative:
 
 class MustBeRelative(MightBeRelative):
     """
-        Validation class for PlacementStrategies that must be configured relative to other
-        cell types.
+    Validation class for PlacementStrategies that must be configured relative to other
+    cell types.
     """
 
     def validate(self):
@@ -85,7 +85,7 @@ class MustBeRelative(MightBeRelative):
 @config.node
 class Layered(MightBeRelative):
     """
-        Class for placement strategies that depend on Layer objects.
+    Class for placement strategies that depend on Layer objects.
     """
 
     layer = config.ref(refs.layer_ref, required=True)
@@ -114,8 +114,8 @@ class Layered(MightBeRelative):
 
     def get_placement_count(self):
         """
-            Get the placement count proportional to the available volume in the layer
-            times the cell type density.
+        Get the placement count proportional to the available volume in the layer
+        times the cell type density.
         """
         layer = self.layer_instance
         available_volume = layer.available_volume
@@ -148,8 +148,8 @@ class FixedPositions(Layered, PlacementStrategy):
 
 class Entities(Layered, PlacementStrategy):
     """
-        Implementation of the placement of entities (e.g., mossy fibers) that do not have
-        a 3D position, but that need to be connected with other cells of the scaffold.
+    Implementation of the placement of entities (e.g., mossy fibers) that do not have
+    a 3D position, but that need to be connected with other cells of the scaffold.
     """
 
     entities = True

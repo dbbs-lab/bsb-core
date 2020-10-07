@@ -35,18 +35,18 @@ class FiberTransform(abc.ABC):
 @config.node
 class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
     """
-        FiberIntersection connection strategies voxelize a fiber and find its intersections with postsynaptic cells.
-        It's a specific case of VoxelIntersection.
+    FiberIntersection connection strategies voxelize a fiber and find its intersections with postsynaptic cells.
+    It's a specific case of VoxelIntersection.
 
-        For each presynaptic cell, the following steps are executed:
+    For each presynaptic cell, the following steps are executed:
 
-        #. Extract the FiberMorphology
-        #. Interpolate points on the fiber until the spatial resolution is respected
-        #. transform
-        #. Interpolate points on the fiber until the spatial resolution is respected
-        #. Voxelize (generates the voxel_tree associated to this morphology)
-        #. Check intersections of presyn bounding box with all postsyn boxes
-        #. Check intersections of each candidate postsyn with current presyn voxel_tree
+    #. Extract the FiberMorphology
+    #. Interpolate points on the fiber until the spatial resolution is respected
+    #. transform
+    #. Interpolate points on the fiber until the spatial resolution is respected
+    #. Voxelize (generates the voxel_tree associated to this morphology)
+    #. Check intersections of presyn bounding box with all postsyn boxes
+    #. Check intersections of each candidate postsyn with current presyn voxel_tree
 
     """
 
@@ -100,9 +100,7 @@ class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
         for c, (from_cell, from_morpho) in enumerate(from_morphology_set):
             # (1) Extract the FiberMorpho object for each branch in the from_compartments
             # of the presynaptic morphology
-            compartments = from_morpho.get_compartments(
-                compartment_types=from_compartments
-            )
+            compartments = from_morpho.get_compartments(from_compartments)
             morpho_rotation = from_cell.rotation
             fm = FiberMorphology(compartments, morpho_rotation)
 
@@ -258,15 +256,15 @@ class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
 
     def intersect_voxel_tree(self, from_voxel_tree, to_cloud, to_pos):
         """
-            Similarly to `intersect_clouds` from `VoxelIntersection`, it finds intersecting voxels between a from_voxel_tree
-            and a to_cloud set of voxels
+        Similarly to `intersect_clouds` from `VoxelIntersection`, it finds intersecting voxels between a from_voxel_tree
+        and a to_cloud set of voxels
 
-            :param from_voxel_tree: tree built from the voxelization of all branches in the fiber (in absolute coordinates)
-            :type from_point_cloud: Rtree index
-            :param to_cloud: voxel cloud associated to a to_cell morphology
-            :type to_cloud: `VoxelCloud`
-            :param to_pos: 3-D position of to_cell neuron
-            :type to_pos: list
+        :param from_voxel_tree: tree built from the voxelization of all branches in the fiber (in absolute coordinates)
+        :type from_point_cloud: Rtree index
+        :param to_cloud: voxel cloud associated to a to_cell morphology
+        :type to_cloud: `VoxelCloud`
+        :param to_pos: 3-D position of to_cell neuron
+        :type to_pos: list
         """
 
         voxel_intersections = []
@@ -317,8 +315,8 @@ class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
 
 class QuiverTransform(FiberTransform):
     """
-        QuiverTransform applies transformation to a FiberMorphology, based on an orientation field in a voxelized volume.
-        Used for parallel fibers.
+    QuiverTransform applies transformation to a FiberMorphology, based on an orientation field in a voxelized volume.
+    Used for parallel fibers.
     """
 
     # Class attributes
@@ -356,17 +354,17 @@ class QuiverTransform(FiberTransform):
     def transform_branch(self, branch, offset):
 
         """
-            Compute bending transformation of a fiber branch (discretized according to original compartments and configured resolution value).
-            The transformation is a rotation of each segment/compartment of each fiber branch to align to the cross product between
-            the orientation vector and the transversal direction vector (i.e. cross product between fiber morphology/parent branch orientation
-            and branch direction):
-            compartment[n+1].start = compartment[n].end
-            cross_prod = orientation_vector X transversal_vector or transversal_vector X orientation_vector
-            compartment[n+1].end = compartment[n+1].start + cross_prod * length_comp
+        Compute bending transformation of a fiber branch (discretized according to original compartments and configured resolution value).
+        The transformation is a rotation of each segment/compartment of each fiber branch to align to the cross product between
+        the orientation vector and the transversal direction vector (i.e. cross product between fiber morphology/parent branch orientation
+        and branch direction):
+        compartment[n+1].start = compartment[n].end
+        cross_prod = orientation_vector X transversal_vector or transversal_vector X orientation_vector
+        compartment[n+1].end = compartment[n+1].start + cross_prod * length_comp
 
-            :param branch: a branch of the current fiber to be transformed
-            :type branch: Branch object
-            :returns: a transformed branch
+        :param branch: a branch of the current fiber to be transformed
+        :type branch: Branch object
+        :returns: a transformed branch
 
         """
         orientation_data = self.quivers
@@ -375,9 +373,10 @@ class QuiverTransform(FiberTransform):
 
         if not self.shared:
             # Compute branch direction - to check that PFs have 2 branches, left and right
-            branch_dir = branch._compartments[0].end - branch._compartments[0].start
-            # Normalize branch_dir vector
-            branch_dir = branch_dir / np.linalg.norm(branch_dir)
+            branch_dir = self.get_branch_direction(branch)
+            # If the entire branch consists of compartments without direction, do nothing.
+            if branch_dir is False:
+                return
 
             num_comp = len(branch._compartments)
 
@@ -391,7 +390,6 @@ class QuiverTransform(FiberTransform):
                 # the branch direction and the original morphology/parent branch
                 if branch.orientation is None:
                     transversal_vector = np.cross(branch_dir, [0, 1, 0])
-                    # branch.orientation =
                 else:
                     transversal_vector = np.cross(branch_dir, branch.orientation)
 
@@ -436,3 +434,12 @@ class QuiverTransform(FiberTransform):
                     )
                     # The new end is the start of the adjacent compartment
                     branch._compartments[comp + 1].start = branch._compartments[comp].end
+
+    def get_branch_direction(self, branch):
+        for comp in branch._compartments:
+            branch_dir = comp.end - comp.start
+            if not np.sum(branch_dir):
+                continue
+            # Normalize branch_dir vector
+            branch_dir = branch_dir / np.linalg.norm(branch_dir)
+            return branch_dir

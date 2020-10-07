@@ -6,7 +6,7 @@ from ... import config
 @config.node
 class ConnectomeGolgiGranule(ConnectionStrategy):
     """
-        Legacy implementation for the connections between Golgi cells and granule cells.
+    Legacy implementation for the connections between Golgi cells and granule cells.
     """
 
     detailed = config.attr(type=bool, default=False)

@@ -4,9 +4,9 @@ from ..strategy import ConnectionStrategy
 
 class ConnectomeIOMolecular(ConnectionStrategy):
     """
-        Legacy implementation for the connection between inferior olive and Molecular layer interneurons.
-        As this is a spillover-mediated non-synaptic connection depending on the IO to Purkinje cells, each interneuron connected
-        to a PC which is receving input from one IO, is also receiving input from that IO
+    Legacy implementation for the connection between inferior olive and Molecular layer interneurons.
+    As this is a spillover-mediated non-synaptic connection depending on the IO to Purkinje cells, each interneuron connected
+    to a PC which is receving input from one IO, is also receiving input from that IO
     """
 
     def validate(self):
@@ -19,8 +19,10 @@ class ConnectomeIOMolecular(ConnectionStrategy):
         io_cells = self.scaffold.get_cells_by_type(io_cell_type.name)
 
         # Get connection between molecular layer cells and Purkinje cells.
-        molecular_cell_purkinje_connections = self.scaffold.get_connection_cache_by_cell_type(
-            postsynaptic="purkinje_cell", presynaptic=molecular_cell_type.name
+        molecular_cell_purkinje_connections = (
+            self.scaffold.get_connection_cache_by_cell_type(
+                postsynaptic="purkinje_cell", presynaptic=molecular_cell_type.name
+            )
         )
 
         # Extract a list of cell types objects that are sources in the MLI to PC connections.
@@ -69,7 +71,10 @@ class ConnectomeIOMolecular(ConnectionStrategy):
             target_molecular_cells = purkinje_dict[purkinje_id]
             # Make a matrix that connects this IO cell to the target molecular cells
             matrix = np.column_stack(
-                (np.repeat(io_id, len(target_molecular_cells)), target_molecular_cells,)
+                (
+                    np.repeat(io_id, len(target_molecular_cells)),
+                    target_molecular_cells,
+                )
             )
             # Add the matrix to the output dataset.
             io_molecular.extend(matrix)

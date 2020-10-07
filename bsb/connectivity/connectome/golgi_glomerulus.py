@@ -6,7 +6,7 @@ from ... import config
 @config.node
 class ConnectomeGolgiGlomerulus(ConnectionStrategy):
     """
-        Legacy implementation for the connections between glomeruli and Golgi cells.
+    Legacy implementation for the connections between glomeruli and Golgi cells.
     """
 
     divergence = config.attr(type=float, required=True)

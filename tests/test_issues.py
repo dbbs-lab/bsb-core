@@ -9,8 +9,8 @@ import bsb.helpers
 class TestIssues(unittest.TestCase):
     def test_215(self):
         """
-            Assert that reconfiguring an HDF5 doesn't exist doesn't create a gimpy empty
-            HDF5 file that causes a downstream error.
+        Assert that reconfiguring an HDF5 doesn't exist doesn't create a gimpy empty
+        HDF5 file that causes a downstream error.
         """
         config = JSONConfig(file="mouse_cerebellum_cortex")
         self.assertRaises(

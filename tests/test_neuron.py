@@ -11,6 +11,7 @@ def relative_to_tests_folder(path):
     return os.path.join(os.path.dirname(__file__), path)
 
 
+config = relative_to_tests_folder("../bsb/configurations/mouse_cerebellum_cortex.json")
 mf_grc_config = relative_to_tests_folder("configs/test_nrn_mf_granule.json")
 mf_gol_config = relative_to_tests_folder("configs/test_nrn_mf_golgi.json")
 aa_goc_config = relative_to_tests_folder("configs/test_nrn_aa_goc.json")
@@ -23,12 +24,72 @@ def neuron_installed():
     return importlib.util.find_spec("neuron")
 
 
+class MockedCell:
+    _package = None
+
+
+@unittest.skip("Our model's synapses are not multiplicative")
+class MultiplicityTest(unittest.TestCase):
+    def test_cortex_model_synapses(self):
+        cfg = JSONConfig(config)
+        _ = Scaffold(cfg)
+        for name, model in cfg.simulations["poc"].cell_models.items():
+            if model.relay:
+                continue
+            with self.subTest(model=name):
+                self._test_model(model.model_class)
+
+    def _test_model(self, model_class):
+        for name, synapse_config in model_class.synapse_types.items():
+            with self.subTest(synapse=name):
+                synapse_factory = self._get_synapse_factory(synapse_config)
+                finit = 0 if "GABA" in name else -65
+                self._test_synapse_multiplicity(name, synapse_factory, finit=finit)
+
+    def _test_synapse_multiplicity(self, name, synapse_factory, finit=-65):
+        from patch import p
+
+        section_single = p.Section()
+        section_single.record()
+        section_multi = p.Section()
+        section_multi.record()
+        synapse_single = synapse_factory(section_single)
+        synapse_multi_1 = synapse_factory(section_multi)
+        synapse_multi_2 = synapse_factory(section_multi)
+        for s in [synapse_multi_1, synapse_single, synapse_single]:
+            s.stimulate(delay=0, number=4, interval=25, weight=1)
+
+        p.finitialize(finit)
+        p.continuerun(150)
+
+        # TODO: Check here that both section's recorded voltages are almost equal
+
+    def _get_synapse_factory(self, synapse_config):
+        from arborize.synapse import Synapse
+
+        def synapse_factory(section):
+            cell = self._mock_cell()
+            synapse_point_process = synapse_config["point_process"]
+            synapse_variant = None
+            if isinstance(synapse_point_process, tuple):
+                synapse_variant = synapse_point_process[1]
+                synapse_point_process = synapse_point_process[0]
+            return Synapse(
+                cell, section, synapse_point_process, {}, variant=synapse_variant
+            )
+
+        return synapse_factory
+
+    def _mock_cell(self):
+        return MockedCell()
+
+
 # Absolute dogshit code; do not use. We just quickly needed to validaate all cerebellar
 # network components. Kept for future debugging.
 
 
 @unittest.skip("NEURON tests need to be run manually")
-class Test(unittest.TestCase):
+class NeuronTest(unittest.TestCase):
     def test_mf_granule(self):
         config = JSONConfig(mf_grc_config)
         scaffold = Scaffold(config)

@@ -16,13 +16,15 @@ requires = [
     "scikit-learn>=0.23.2",
     "plotly>=4.1.0",
     "colour>=0.1.5",
-    "errr>=0.3.0",
+    "errr>=1.0.0",
 ]
 
 if not os.getenv("READTHEDOCS", False):
     # Add all packages with binary dependencies that cannot be installed on RTD here.
     requires.extend(
-        ["rtree-linux==0.9.4", "nrn-patch>=2.1.0",]
+        [
+            "rtree-linux==0.9.4",
+        ]
     )
 
 setuptools.setup(
@@ -44,7 +46,10 @@ setuptools.setup(
     ],
     entry_points={
         "console_scripts": ["bsb = bsb.cli:bsb_cli"],
-        "bsb.adapters": ["nest = bsb.simulators.nest", "neuron = bsb.simulators.neuron",],
+        "bsb.adapters": [
+            "nest = bsb.simulators.nest",
+            "neuron = bsb.simulators.neuron",
+        ],
         "bsb.engines": ["hdf5 = bsb.storage.engines.hdf5"],
         "bsb.config.parsers": ["json = bsb.config.parsers.json"],
     },
@@ -56,8 +61,8 @@ setuptools.setup(
         "Source Code": "https://github.com/dbbs-lab/bsb/",
     },
     extras_require={
-        "dev": ["sphinx", "sphinx_rtd_theme>=0.4.3", "pre-commit", "black"],
-        "NEURON": ["dbbs_models>=0.4.4"],
+        "dev": ["sphinx", "sphinx_rtd_theme>=0.4.3", "pre-commit", "black==20.8b1"],
+        "NEURON": ["dbbs_models>=1.2.0", "nrn-patch>=2.2.0"],
         "MPI": ["mpi4py"],
     },
 )

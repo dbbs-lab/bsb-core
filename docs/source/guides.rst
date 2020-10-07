@@ -15,3 +15,4 @@ Guides
   guides/connection-strategies
   guides/placement-set
   guides/plotting-tools
+  guides/blender

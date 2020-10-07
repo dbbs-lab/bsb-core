@@ -46,10 +46,12 @@ class LabelMicrozones(PostProcessingHook):
             }
 
             self.scaffold.label_cells(
-                ids[index_pos], label="microzone-positive",
+                ids[index_pos],
+                label="microzone-positive",
             )
             self.scaffold.label_cells(
-                ids[index_neg], label="microzone-negative",
+                ids[index_neg],
+                label="microzone-negative",
             )
 
             self.label_satellites(neurons_2b_labeled, labels)
@@ -130,8 +132,8 @@ class AscendingAxonLengths(PostProcessingHook):
 
 class DCNRotations(PostProcessingHook):
     """
-        Create a matrix of planes tilted between -45° and 45°,
-        storing id and the planar coefficients a, b, c and d for each DCN cell
+    Create a matrix of planes tilted between -45° and 45°,
+    storing id and the planar coefficients a, b, c and d for each DCN cell
     """
 
     def after_placement(self):
@@ -149,8 +151,8 @@ class DCNRotations(PostProcessingHook):
 
 class SpoofDetails(PostProcessingHook):
     """
-        Create fake morphological intersections between already connected non-detailed
-        connection types.
+    Create fake morphological intersections between already connected non-detailed
+    connection types.
     """
 
     casts = {"presynaptic": str, "postsynaptic": str}
@@ -216,7 +218,22 @@ class SpoofDetails(PostProcessingHook):
         # The left column will be the first from_morphology (0) and the right column
         # will be the first to_morphology (1)
         morphologies = np.column_stack(
-            (np.zeros((len(connectivity_matrix,))), np.ones((len(connectivity_matrix,))))
+            (
+                np.zeros(
+                    (
+                        len(
+                            connectivity_matrix,
+                        )
+                    )
+                ),
+                np.ones(
+                    (
+                        len(
+                            connectivity_matrix,
+                        )
+                    )
+                ),
+            )
         )
         # Generate the map
         morpho_map = [from_morphologies[0], to_morphologies[0]]

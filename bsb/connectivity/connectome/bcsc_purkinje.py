@@ -6,7 +6,7 @@ from ... import config
 @config.node
 class ConnectomeBCSCPurkinje(ConnectionStrategy):
     """
-        Legacy implementation for the connections between basket cells,stellate cells and purkinje cells.
+    Legacy implementation for the connections between basket cells,stellate cells and purkinje cells.
     """
 
     limit_x = config.attr(type=float, required=True)

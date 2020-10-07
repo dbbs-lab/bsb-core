@@ -23,8 +23,8 @@ class NeuronTargetting:
 @config.node
 class CellTypeTargetting(NeuronTargetting, classmap_entry="cell_type"):
     """
-        Targetting mechanism (use ``"type": "cell_type"``) to target all identifiers of
-        certain cell types.
+    Targetting mechanism (use ``"type": "cell_type"``) to target all identifiers of
+    certain cell types.
     """
 
     cell_types = config.attr(type=types.list(type=str), required=True)
@@ -40,8 +40,8 @@ class CellTypeTargetting(NeuronTargetting, classmap_entry="cell_type"):
 @config.node
 class RepresentativesTargetting(NeuronTargetting, classmap_entry="representatives"):
     """
-        Targetting mechanism (use ``"type": "representatives"``) to target all identifiers
-        of certain cell types.
+    Targetting mechanism (use ``"type": "representatives"``) to target all identifiers
+    of certain cell types.
     """
 
     cell_types = config.attr(type=types.list(type=str))
@@ -62,7 +62,7 @@ class RepresentativesTargetting(NeuronTargetting, classmap_entry="representative
 @config.node
 class ByIdTargetting(NeuronTargetting, classmap_entry="by_id"):
     """
-        Targetting mechanism (use ``"type": "by_id"``) to target all given identifiers.
+    Targetting mechanism (use ``"type": "by_id"``) to target all given identifiers.
     """
 
     targets = config.attr(type=types.list(type=int), required=True)
@@ -74,8 +74,8 @@ class ByIdTargetting(NeuronTargetting, classmap_entry="by_id"):
 @config.node
 class CylindricalTargetting(NeuronTargetting, classmap_entry="cylinder"):
     """
-        Targetting mechanism (use ``"type": "cylinder"``) to target all cells in a
-        horizontal cylinder (xz circle expanded along y).
+    Targetting mechanism (use ``"type": "cylinder"``) to target all cells in a
+    horizontal cylinder (xz circle expanded along y).
     """
 
     cell_types = config.attr(type=types.list(type=str))
@@ -91,7 +91,7 @@ class CylindricalTargetting(NeuronTargetting, classmap_entry="cylinder"):
 
     def get_targets(self):
         """
-            Target all or certain cells within a cylinder of specified radius.
+        Target all or certain cells within a cylinder of specified radius.
         """
         sets = [self.scaffold.get_placement_set(t) for t in self.cell_types]
         targets = []
@@ -106,7 +106,7 @@ class CylindricalTargetting(NeuronTargetting, classmap_entry="cylinder"):
 @config.node
 class SphericalTargetting(NeuronTargetting, classmap_entry="sphere"):
     """
-        Targetting mechanism (use ``"type": "sphere"``) to target all cells in a sphere.
+    Targetting mechanism (use ``"type": "sphere"``) to target all cells in a sphere.
     """
 
     cell_types = config.attr(type=types.list(type=str))
@@ -119,7 +119,7 @@ class SphericalTargetting(NeuronTargetting, classmap_entry="sphere"):
 
     def get_targets(self):
         """
-            Target all or certain cells within a cylinder of specified radius.
+        Target all or certain cells within a cylinder of specified radius.
         """
         sets = [self.scaffold.get_placement_set(t) for t in self.cell_types]
         targets = []
@@ -149,4 +149,6 @@ class TargetsSections:
             sections = [s for s in cell.sections if self.section_type in s.labels]
         else:
             sections = cell.soma
+        if self.section_count == "all":
+            return sections
         return [random.choice(sections) for _ in range(self.section_count)]

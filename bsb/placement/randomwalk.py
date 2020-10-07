@@ -10,7 +10,7 @@ from .. import config
 @config.node
 class LayeredRandomWalk(Layered, PlacementStrategy):
     """
-        Implementation of the placement of cells in sublayers via a self avoiding random walk.
+    Implementation of the placement of cells in sublayers via a self avoiding random walk.
     """
 
     distance_multiplier_min = config.attr(type=float, default=0.75)
@@ -21,9 +21,9 @@ class LayeredRandomWalk(Layered, PlacementStrategy):
 
     def place(self):
         """
-            The LayeredRandomWalk subdivides the available volume into
-            sublayers and distributes cells into each sublayer using a
-            self-avoiding random walk.
+        The LayeredRandomWalk subdivides the available volume into
+        sublayers and distributes cells into each sublayer using a
+        self-avoiding random walk.
         """
         # Variables
         cell_type = self.cell_type

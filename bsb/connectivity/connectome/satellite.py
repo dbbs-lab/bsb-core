@@ -4,7 +4,7 @@ from ..strategy import ConnectionStrategy
 
 class SatelliteCommonPresynaptic(ConnectionStrategy):
     """
-        Connectivity for satellite neurons (homologous to center neurons)
+    Connectivity for satellite neurons (homologous to center neurons)
     """
 
     def validate(self):

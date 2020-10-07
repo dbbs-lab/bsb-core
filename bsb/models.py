@@ -13,6 +13,10 @@ from .exceptions import *
 
 
 class CellType(SortableByAfter):
+    """
+    A CellType represents a population of cells.
+    """
+
     def __init__(self, name, placement=None):
         self.name = name
         self.placement = placement
@@ -20,7 +24,7 @@ class CellType(SortableByAfter):
 
     def validate(self):
         """
-            Check whether this CellType is valid to be used in the simulation.
+        Check whether this CellType is valid to be used in the simulation.
         """
         pass
 
@@ -31,10 +35,10 @@ class CellType(SortableByAfter):
 
     def set_morphology(self, morphology):
         """
-            Set the Morphology class for this cell type.
+        Set the Morphology class for this cell type.
 
-            :param morphology: Defines the geometrical constraints for the axon and dendrites of the cell type.
-            :type morphology: Instance of a subclass of scaffold.morphologies.Morphology
+        :param morphology: Defines the geometrical constraints for the axon and dendrites of the cell type.
+        :type morphology: Instance of a subclass of scaffold.morphologies.Morphology
         """
         if not issubclass(type(morphology), BaseMorphology):
             raise ClassError(
@@ -44,13 +48,13 @@ class CellType(SortableByAfter):
 
     def set_placement(self, placement):
         """
-            Set the placement strategy for this cell type.
+        Set the placement strategy for this cell type.
         """
         self.placement = placement
 
     def place(self):
         """
-            Place this cell type.
+        Place this cell type.
         """
         self.scaffold.place_cell_type(self)
 
@@ -86,8 +90,8 @@ class CellType(SortableByAfter):
 
     def list_all_morphologies(self):
         """
-            Return a list of all the morphology identifiers that can represent
-            this cell type in the simulation volume.
+        Return a list of all the morphology identifiers that can represent
+        this cell type in the simulation volume.
         """
         if not hasattr(self, "morphology") or not hasattr(
             self.morphology, "detailed_morphologies"
@@ -105,6 +109,11 @@ class CellType(SortableByAfter):
 
 
 class Layer(dimensions, origin):
+    """
+    A Layer represents a compartment of the topology of the simulation volume that slices
+    the volume in horizontally stacked portions.
+    """
+
     def __init__(self, name, origin, dimensions, scaling=True):
         # Name of the layer
         self.name = name
@@ -132,31 +141,31 @@ class Layer(dimensions, origin):
 
     def scale_to_reference(self):
         """
-            Compute scaled layer volume
+        Compute scaled layer volume
 
-            To compute layer thickness, we scale the current layer to the combined volume
-            of the reference layers. A ratio between the dimension can be specified to
-            alter the shape of the layer. By default equal ratios are used and a cubic
-            layer is obtained (given by `dimension_ratios`).
+        To compute layer thickness, we scale the current layer to the combined volume
+        of the reference layers. A ratio between the dimension can be specified to
+        alter the shape of the layer. By default equal ratios are used and a cubic
+        layer is obtained (given by `dimension_ratios`).
 
-            The volume of the current layer (= X*Y*Z) is scaled with respect to the volume
-            of reference layers by a factor `volume_scale`, so:
+        The volume of the current layer (= X*Y*Z) is scaled with respect to the volume
+        of reference layers by a factor `volume_scale`, so:
 
-            X*Y*Z = volume_reference_layers / volume_scale                [A]
+        X*Y*Z = volume_reference_layers / volume_scale                [A]
 
-            Supposing that the current layer dimensions (X,Y,Z) are each one depending on
-            the dimension Y according to `dimension_ratios`, we obtain:
+        Supposing that the current layer dimensions (X,Y,Z) are each one depending on
+        the dimension Y according to `dimension_ratios`, we obtain:
 
-            X*Y*Z = (Y*dimension_ratios[0] * Y * (Y*dimension_ratios[2])  [B]
-            X*Y*Z = (Y^3) * prod(dimension_ratios)                        [C]
+        X*Y*Z = (Y*dimension_ratios[0] * Y * (Y*dimension_ratios[2])  [B]
+        X*Y*Z = (Y^3) * prod(dimension_ratios)                        [C]
 
-            Therefore putting together [A] and [C]:
-            (Y^3) * prod(dimension_ratios) = volume_reference_layers / volume_scale
+        Therefore putting together [A] and [C]:
+        (Y^3) * prod(dimension_ratios) = volume_reference_layers / volume_scale
 
-            from which we derive the normalized_size Y, according to the following
-            formula:
+        from which we derive the normalized_size Y, according to the following
+        formula:
 
-            Y = cubic_root((volume_reference_layers * volume_scale) / prod(dimension_ratios))
+        Y = cubic_root((volume_reference_layers * volume_scale) / prod(dimension_ratios))
         """
         volume_reference_layers = np.sum(
             list(map(lambda layer: layer.volume, self.reference_layers))
@@ -266,7 +275,7 @@ class Connection:
 
 class ConnectivitySet(Resource):
     """
-        Connectivity sets store connections.
+    Connectivity sets store connections.
     """
 
     def __init__(self, handler, tag):
@@ -281,30 +290,30 @@ class ConnectivitySet(Resource):
     @property
     def connections(self):
         """
-            Return a list of :class:`Intersections <.models.Connection>`. Connections
-            contain pre- & postsynaptic identifiers.
+        Return a list of :class:`Intersections <.models.Connection>`. Connections
+        contain pre- & postsynaptic identifiers.
         """
         return [Connection(c[0], c[1]) for c in self.get_dataset()]
 
     @property
     def from_identifiers(self):
         """
-            Return a list with the presynaptic identifier of each connection.
+        Return a list with the presynaptic identifier of each connection.
         """
         return self.get_dataset(dtype=int)[:, 0]
 
     @property
     def to_identifiers(self):
         """
-            Return a list with the postsynaptic identifier of each connection.
+        Return a list with the postsynaptic identifier of each connection.
         """
         return self.get_dataset(dtype=int)[:, 1]
 
     @property
     def intersections(self):
         """
-            Return a list of :class:`Intersections <.models.Connection>`. Intersections
-            contain pre- & postsynaptic identifiers and the intersecting compartments.
+        Return a list of :class:`Intersections <.models.Connection>`. Intersections
+        contain pre- & postsynaptic identifiers and the intersecting compartments.
         """
         if not self.compartment_set.exists():
             raise MissingMorphologyError(
@@ -393,19 +402,19 @@ class ConnectivitySet(Resource):
     @property
     def meta(self):
         """
-            Retrieve the metadata associated with this connectivity set. Returns
-            ``None`` if the connectivity set does not exist.
+        Retrieve the metadata associated with this connectivity set. Returns
+        ``None`` if the connectivity set does not exist.
 
-            :return: Metadata
-            :rtype: dict
+        :return: Metadata
+        :rtype: dict
         """
         return self.attributes
 
     @property
     def connection_types(self):
         """
-            Return all the ConnectionStrategies that contributed to the creation of this
-            connectivity set.
+        Return all the ConnectionStrategies that contributed to the creation of this
+        connectivity set.
         """
         # Get list of contributing types
         type_list = self.attributes["connection_types"]
@@ -426,13 +435,13 @@ class ConnectivitySet(Resource):
 
     def get_presynaptic_types(self):
         """
-            Return a list of the presynaptic cell types found in this set.
+        Return a list of the presynaptic cell types found in this set.
         """
         return self._get_cell_types(key="from")
 
     def get_postsynaptic_types(self):
         """
-            Return a list of the postsynaptic cell types found in this set.
+        Return a list of the postsynaptic cell types found in this set.
         """
         return self._get_cell_types(key="to")
 
@@ -476,8 +485,8 @@ class MorphologySet:
 
     def _construct_map(self, cell_type, placement_set, compartment_types=None, N=50):
         """
-            Associate to the placement_set an index map to only the morphologies
-            in the MorphologyRepository needed for that placement set
+        Associate to the placement_set an index map to only the morphologies
+        in the MorphologyRepository needed for that placement set
 
         """
         # Fetch a list of all available morphology names, whose index in the
@@ -530,9 +539,7 @@ class MorphologySet:
                 self._morphology_map[morpho_ind]
             )
             m._set_index = morpho_ind
-            m.voxelize(
-                N, compartments=m.get_compartments(compartment_types=compartment_types)
-            )
+            m.voxelize(N, compartments=m.get_compartments(compartment_types))
             return m
 
         # Load and voxelize only the unique morphologies present in the morphology map.

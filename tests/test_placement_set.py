@@ -1,4 +1,4 @@
-import unittest, os, sys, numpy as np, h5py
+import unittest, os, sys, numpy as np, h5py, test_setup
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from bsb.core import Scaffold, from_hdf5
@@ -15,12 +15,13 @@ double_neuron_config = relative_to_tests_folder("configs/test_double_neuron.json
 @unittest.skip("Re-enabling tests gradually while advancing v4.0 rework")
 class TestPlacementSets(unittest.TestCase):
     """
-        Check if the scaffold can create a single cell type.
+    Check if the scaffold can create a single cell type.
     """
 
     @classmethod
     def setUpClass(self):
         super(TestPlacementSets, self).setUpClass()
+        test_setup.prep_morphologies()
         config = JSONConfig(file=double_neuron_config)
         self.scaffold = Scaffold(config)
         self.scaffold.compile_network()

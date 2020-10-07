@@ -17,7 +17,7 @@ single_neuron_config = relative_to_tests_folder("configs/test_single_neuron.json
 @unittest.skip("Re-enabling tests gradually while advancing v4.0 rework")
 class TestSingleTypeCompilation(unittest.TestCase):
     """
-        Check if the scaffold can create a single cell type.
+    Check if the scaffold can create a single cell type.
     """
 
     @classmethod
@@ -53,7 +53,7 @@ class TestSingleTypeCompilation(unittest.TestCase):
 @unittest.skip("Re-enabling tests gradually while advancing v4.0 rework")
 class TestPlacement(unittest.TestCase):
     """
-        Check if the placement of all cell types is correct
+    Check if the placement of all cell types is correct
     """
 
     @classmethod

@@ -1,12 +1,4 @@
-h5py==2.10.0
-joblib==0.14.0
-numpy==1.19.0
-scikit-learn==0.23.2
-scipy==1.5.2
-six==1.12.0
-plotly==4.1.0
-pre-commit==1.21.0
-black==19.10b0
+sphinx==3.2.1
 sphinx_rtd_theme==0.4.3
 colour==0.1.5
-errr==0.3.0
+errr==1.0.0

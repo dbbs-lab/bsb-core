@@ -7,7 +7,7 @@ from ... import config
 @config.node
 class ConnectomeGlomerulusGranule(ConnectionStrategy):
     """
-        Legacy implementation for the connections between glomeruli and granule cells.
+    Legacy implementation for the connections between glomeruli and granule cells.
     """
 
     convergence = config.attr(type=float, required=True)
@@ -27,12 +27,8 @@ class ConnectomeGlomerulusGranule(ConnectionStrategy):
                 )
             mr = self.scaffold.morphology_repository
             morphology = mr.get_morphology(morphologies[0])
-            dendritic_compartments = morphology.get_compartments(["dendrites"])
-            dendrites = {}
-            for c in dendritic_compartments:
-                # Store the last found compartment of each dendrite
-                dendrites[c.section_id] = c
-            self.dendritic_claws = [c.id for c in dendrites.values()]
+            branches = morphology.get_branches(["dendrites"])
+            self.dendritic_claws = [branch.to_compartments()[-1] for branch in branches]
             self.morphology = morphology
 
     def connect(self):
@@ -51,7 +47,7 @@ class ConnectomeGlomerulusGranule(ConnectionStrategy):
             first_glomerulus, glomeruli, granules, dend_len, n_conn_glom
         ):
             """
-                Legacy code block to connect glomeruli to granule cells
+            Legacy code block to connect glomeruli to granule cells
             """
             glom_x = glomeruli[:, 2]
             glom_y = glomeruli[:, 3]
@@ -109,6 +105,7 @@ class ConnectomeGlomerulusGranule(ConnectionStrategy):
             # Add morphology & compartment information
             morpho_map = [self.morphology.morphology_name]
             morphologies = np.zeros((len(connectome), 2))
+            # Store a map between the granule cell ids and the available claw compartments
             granule_dendrite_occupation = {
                 g[0]: self.dendritic_claws.copy() for g in granules
             }
@@ -127,7 +124,7 @@ class ConnectomeGlomerulusGranule(ConnectionStrategy):
                     raise ConnectivityError(
                         "Attempt to connect a glomerulus to a fully saturated granule cell."
                     )
-                compartments.append([0, unoccupied_claw])
+                compartments.append([0, unoccupied_claw.id])
             self.scaffold.connect_cells(
                 self,
                 connectome,

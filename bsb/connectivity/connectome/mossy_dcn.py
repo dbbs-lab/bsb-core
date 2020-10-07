@@ -8,7 +8,7 @@ from ... import config
 @config.node
 class ConnectomeMossyDCN(ConnectionStrategy):
     """
-        Implementation for the connection between mossy fibers and DCN cells.
+    Implementation for the connection between mossy fibers and DCN cells.
     """
 
     convergence = config.attr(type=float, required=True)

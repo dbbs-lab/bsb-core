@@ -297,11 +297,11 @@ class ParticleSystem:
 
     def prune(self, at_risk_particles=None, voxels=None):
         """
-            Remove particles that have been moved outside of the bounds of the voxels.
+        Remove particles that have been moved outside of the bounds of the voxels.
 
-            :param at_risk_particles: Subset of particles that might've been moved and might need to be moved, if omitted check all particles.
-            :type at_risk_particles: :class:`numpy.ndarray`
-            :param voxels: A subset of the voxels that the particles have to be in bounds of, if omitted all voxels are used.
+        :param at_risk_particles: Subset of particles that might've been moved and might need to be moved, if omitted check all particles.
+        :type at_risk_particles: :class:`numpy.ndarray`
+        :param voxels: A subset of the voxels that the particles have to be in bounds of, if omitted all voxels are used.
         """
         # Define affected particles and voxels
         if at_risk_particles is None:
@@ -314,7 +314,8 @@ class ParticleSystem:
         # Insert voxel bounds in index.
         for i, voxel in enumerate(self.voxels):
             idx.insert(
-                i, (*voxel.origin, *(voxel.origin + voxel.size)),
+                i,
+                (*voxel.origin, *(voxel.origin + voxel.size)),
             )
         # Query index, filter whether the intersection returns any hits, map to id and cell type.
         out_of_bounds_ids = list(
@@ -422,10 +423,17 @@ def plot_detailed_system(system):
     fig.update_layout(
         scene=dict(
             xaxis=dict(
-                tick0=0, dtick=system.voxels[0].size[0],
+                tick0=0,
+                dtick=system.voxels[0].size[0],
             ),  # Use the size of the first voxel to set ticks of axes
-            yaxis=dict(tick0=650, dtick=system.voxels[0].size[1],),
-            zaxis=dict(tick0=800, dtick=system.voxels[0].size[2],),
+            yaxis=dict(
+                tick0=650,
+                dtick=system.voxels[0].size[1],
+            ),
+            zaxis=dict(
+                tick0=800,
+                dtick=system.voxels[0].size[2],
+            ),
         )
     )
     fig.show()

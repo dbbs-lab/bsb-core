@@ -5,5 +5,4 @@
 !test_*
 *.pyc
 !configs/
-!morphologies*
 !parser_tests/

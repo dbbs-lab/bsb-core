@@ -6,8 +6,8 @@ from .. import config
 @config.node
 class Convergence(ConnectionStrategy):
     """
-        Implementation of a general convergence connectivity between
-        two populations of cells (this does not work with entities)
+    Implementation of a general convergence connectivity between
+    two populations of cells (this does not work with entities)
     """
 
     convergence = config.attr(type=float, required=True)
@@ -35,7 +35,7 @@ class Convergence(ConnectionStrategy):
 
 class AllToAll(ConnectionStrategy):
     """
-        All to all connectivity between two neural populations
+    All to all connectivity between two neural populations
     """
 
     def validate(self):

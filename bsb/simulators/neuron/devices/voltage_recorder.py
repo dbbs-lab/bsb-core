@@ -16,7 +16,11 @@ class VoltageRecorder(NeuronDevice):
                 )
         elif hasattr(self, "x"):
             self.adapter.register_recorder(
-                group, cell, section.record(self.x), section=section, x=self.x,
+                group,
+                cell,
+                section.record(self.x),
+                section=section,
+                x=self.x,
             )
         else:
             self.adapter.register_recorder(group, cell, section.record(), section=section)

@@ -9,7 +9,7 @@ from ...config import types
 @config.node
 class ConnectomeGlomerulusGolgi(ConnectionStrategy):
     """
-        Legacy implementation for the connections between Golgi cells and glomeruli.
+    Legacy implementation for the connections between Golgi cells and glomeruli.
     """
 
     detailed = config.attr(type=bool, default=False)

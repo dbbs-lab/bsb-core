@@ -11,8 +11,19 @@ def relative_to_tests_folder(path):
     return os.path.join(os.path.dirname(__file__), path)
 
 
+def reset_kernel(f):
+    def reset(cls):
+        import nest
+
+        nest.ResetKernel()
+        f(cls)
+
+    return reset
+
+
 minimal_config = relative_to_tests_folder("configs/test_minimal_simulation.json")
 single_neuron_config = relative_to_tests_folder("configs/test_single_neuron.json")
+recorder_config = relative_to_tests_folder("configs/test_recorders.json")
 double_neuron_config = relative_to_tests_folder("configs/test_double_neuron.json")
 double_nn_config = relative_to_tests_folder("configs/test_double_neuron_network.json")
 homosyn_config = relative_to_tests_folder(
@@ -67,8 +78,9 @@ class TestSingleNeuronTypeSetup(unittest.TestCase):
 @unittest.skipIf(importlib.util.find_spec("nest") is None, "NEST is not importable.")
 class TestDoubleNeuronTypeSetup(unittest.TestCase):
     @classmethod
+    @reset_kernel
     def setUpClass(cls):
-        super(TestDoubleNeuronTypeSetup, cls).setUpClass()
+        super().setUpClass()
         config = JSONConfig(file=double_neuron_config)
         cls.scaffold = Scaffold(config)
         cls.scaffold.compile_network()
@@ -122,8 +134,9 @@ class TestDoubleNeuronTypeSetup(unittest.TestCase):
 @unittest.skipIf(importlib.util.find_spec("nest") is None, "NEST is not importable.")
 class TestDoubleNeuronNetworkStatic(unittest.TestCase):
     @classmethod
+    @reset_kernel
     def setUpClass(cls):
-        super(TestDoubleNeuronNetworkStatic, cls).setUpClass()
+        super().setUpClass()
         config = JSONConfig(file=double_nn_config)
         if not neuron_installed():
             del config.simulations["neuron"]
@@ -167,8 +180,9 @@ class TestDoubleNeuronNetworkStatic(unittest.TestCase):
 @unittest.skipIf(importlib.util.find_spec("nest") is None, "NEST is not importable.")
 class TestDoubleNeuronNetworkHomosyn(unittest.TestCase):
     @classmethod
+    @reset_kernel
     def setUpClass(cls):
-        super(TestDoubleNeuronNetworkHomosyn, cls).setUpClass()
+        super().setUpClass()
         config = JSONConfig(file=homosyn_config)
         cls.scaffold = Scaffold(config)
         cls.scaffold.compile_network()
@@ -211,8 +225,9 @@ class TestDoubleNeuronNetworkHomosyn(unittest.TestCase):
 @unittest.skipIf(importlib.util.find_spec("nest") is None, "NEST is not importable.")
 class TestDoubleNeuronNetworkHeterosyn(unittest.TestCase):
     @classmethod
+    @reset_kernel
     def setUpClass(cls):
-        super(TestDoubleNeuronNetworkHeterosyn, cls).setUpClass()
+        super().setUpClass()
         config = JSONConfig(file=heterosyn_config)
         cls.scaffold = Scaffold(config)
         cls.scaffold.compile_network()
@@ -426,3 +441,32 @@ class TestMultiInstance(unittest.TestCase):
         self.assertEqual(lock_data["suffixes"][0], "second")
         self.nest_adapter_multi_2.release_lock()
         self.nest_adapter_multi_2.reset()
+
+
+@unittest.skipIf(importlib.util.find_spec("nest") is None, "NEST is not importable.")
+class TestDeviceProtocol(unittest.TestCase):
+    @classmethod
+    def setUpClass(self):
+        super().setUpClass()
+        import nest
+
+        self.nest = nest
+        config = JSONConfig(file=recorder_config)
+        self.scaffold = Scaffold(config)
+
+    def test_interface(self):
+        import bsb.simulators.nest
+
+        adapter = self.scaffold.configuration.simulations["test_recorders"]
+        sp = bsb.simulators.nest.get_device_protocol(adapter.devices["record_spikes"])
+        gen = bsb.simulators.nest.get_device_protocol(adapter.devices["gen"])
+        self.assertEqual(bsb.simulators.nest.DeviceProtocol, gen.__class__)
+        self.assertEqual(bsb.simulators.nest.SpikeDetectorProtocol, sp.__class__)
+
+    def test_spike_recorder(self):
+        adapter = self.scaffold.configuration.simulations["test_recorders"]
+        self.assertEqual(0, len(adapter.result.recorders))
+        simulator = adapter.prepare()
+        self.assertEqual(1, len(adapter.result.recorders))
+        adapter.simulate(simulator)
+        adapter.collect_output()

@@ -43,8 +43,8 @@ def get_qualified_class_name(x):
 
 def listify_input(value):
     """
-        Turn any non-list values into a list containing the value. Sequences will be
-        converted to a list using `list()`, `None` will  be replaced by an empty list.
+    Turn any non-list values into a list containing the value. Sequences will be
+    converted to a list using `list()`, `None` will  be replaced by an empty list.
     """
     # Replace None by empty array
     value = value if value is not None else []
@@ -122,9 +122,9 @@ class SortableByAfter:
 
     def is_after_satisfied(self, objects):
         """
-            Determine whether the `after` specification of this cell type is met.
-            Any cell types appearing in `self.after` need to occur before this cell type,
-            so that this cell type appears "after" all these cell types.
+        Determine whether the `after` specification of this cell type is met.
+        Any cell types appearing in `self.after` need to occur before this cell type,
+        so that this cell type appears "after" all these cell types.
         """
         if not self.has_after():  # No after?
             # Condition without constraints always True.
@@ -146,10 +146,10 @@ class SortableByAfter:
 
     def satisfy_after(self, objects):
         """
-            Given an array of cell types, place this cell type after all of the
-            cell types specified in `self.after`. If cell types in `self.after`
-            are missing from the given array this cell type is placed at the end
-            of the array. Modifies the `objects` array in place.
+        Given an array of cell types, place this cell type after all of the
+        cell types specified in `self.after`. If cell types in `self.after`
+        are missing from the given array this cell type is placed at the end
+        of the array. Modifies the `objects` array in place.
         """
         before_types = self.get_after().copy()
         i = 0
@@ -168,8 +168,8 @@ class SortableByAfter:
     @classmethod
     def resolve_order(cls, objects):
         """
-            Orders a given dictionary of objects by the class's default mechanism and
-            then apply the `after` attribute for further restrictions.
+        Orders a given dictionary of objects by the class's default mechanism and
+        then apply the `after` attribute for further restrictions.
         """
         # Sort by the default approach
         sorting_objects = list(cls.get_ordered(objects))
@@ -259,18 +259,18 @@ def load_configurable_class(name, configured_class_name, parent_class, parameter
 
 def continuity_list(iterable, step=1):
     """
-        Return a compacted notation of a list of nearly continuous numbers.
+    Return a compacted notation of a list of nearly continuous numbers.
 
-        The ``iterable`` will be iterated and chains of continuous numbers will be
-        determined. Each chain will then be added to the output format as a starting
-        number and count.
+    The ``iterable`` will be iterated and chains of continuous numbers will be
+    determined. Each chain will then be added to the output format as a starting
+    number and count.
 
-        *Example:* ``[4,5,6,7,8,9,12]`` ==> ``[4,6,12,1]``
+    *Example:* ``[4,5,6,7,8,9,12]`` ==> ``[4,6,12,1]``
 
-        :param iterable: The collection of elements to be compacted.
-        :type iterable: iter
-        :param step: ``iterable[i]`` needs to be equal to ``iterable[i - 1] + step`` for
-          them to considered continuous.
+    :param iterable: The collection of elements to be compacted.
+    :type iterable: iter
+    :param step: ``iterable[i]`` needs to be equal to ``iterable[i - 1] + step`` for
+      them to considered continuous.
     """
     serial = []
     iterator = iter(iterable)
@@ -307,7 +307,7 @@ def continuity_list(iterable, step=1):
 
 def continuity_hop(iterator):
     """
-        Hop over a continuity list in steps of 2, returning the start & count pairs.
+    Hop over a continuity list in steps of 2, returning the start & count pairs.
     """
     try:
         while True:
@@ -318,8 +318,8 @@ def continuity_hop(iterator):
 
 def expand_continuity_list(iterable, step=1):
     """
-        Return the full set of items associated with the continuity list, as formatted by
-        :func:`.helpers.continuity_list`.
+    Return the full set of items associated with the continuity list, as formatted by
+    :func:`.helpers.continuity_list`.
     """
     deserialized = []
     for start, count in continuity_hop(iter(iterable)):
@@ -332,7 +332,7 @@ def expand_continuity_list(iterable, step=1):
 
 def iterate_continuity_list(iterable, step=1):
     """
-        Generate the continuity list
+    Generate the continuity list
     """
     for start, count in continuity_hop(iter(iterable)):
         end = start + count * step

@@ -12,6 +12,10 @@ from ..config import types, nodes as config_nodes
 import os, json, weakref, numpy as np
 from itertools import chain
 from sklearn.neighbors import KDTree
+from ..simulation import SimulationRecorder, SimulationResult
+import warnings
+import mpi4py
+
 
 try:
     import mpi4py.MPI
@@ -164,8 +168,10 @@ class NestConnection(SimulationComponent):
             for name in meta[key + "_cell_types"]:
                 cell_types.add(self.scaffold.get_cell_type(name))
             return list(cell_types)
-        connection_types = self.scaffold.output_formatter.get_connectivity_set_connection_types(
-            self.name
+        connection_types = (
+            self.scaffold.output_formatter.get_connectivity_set_connection_types(
+                self.name
+            )
         )
         cell_types = set()
         for connection_type in connection_types:
@@ -246,9 +252,13 @@ class NestDevice(SimulationComponent):
             )
             self.parameters[stimulus_name] = self.stimulus.eval()
 
+    def boot(self):
+        super().boot()
+        self.protocol = get_device_protocol(self)
+
     def get_targets(self):
         """
-            Return the targets of the stimulation to pass into the nest.Connect call.
+        Return the targets of the stimulation to pass into the nest.Connect call.
         """
         return self.adapter.get_nest_ids(np.array(self._get_targets(), dtype=int))
 
@@ -263,7 +273,7 @@ class NestEntity(NestDevice, MapsScaffoldIdentifiers):
 @config.node
 class NestAdapter(SimulatorAdapter):
     """
-        Interface between the scaffold model and the NEST simulator.
+    Interface between the scaffold model and the NEST simulator.
     """
 
     simulator_name = "nest"
@@ -290,11 +300,13 @@ class NestAdapter(SimulatorAdapter):
             return self._nest
 
     def __init__(self):
+        self.result = SimulationResult()
         self.is_prepared = False
         self.suffix = ""
         self.multi = False
         self.has_lock = False
         self.global_identifier_map = {}
+        self.simulation_id = _randint()
 
     def prepare(self):
         if self.is_prepared:
@@ -467,7 +479,44 @@ class NestAdapter(SimulatorAdapter):
             self.release_lock()
 
     def collect_output(self):
-        pass
+        import h5py, time
+
+        try:
+            import mpi4py
+
+            rank = mpi4py.MPI.COMM_WORLD.rank
+        except Exception as e:
+            print(str(e))
+            rank = 0
+
+        if rank == 0:
+            timestamp = str(time.time()).split(".")[0] + str(_randint())
+            with h5py.File("results_" + self.name + "_" + timestamp + ".hdf5", "a") as f:
+                for path, data, meta in self.result.safe_collect():
+                    try:
+                        path = "/".join(path)
+                        if path in f:
+                            data = np.vstack((f[path][()], data))
+                            del f[path]
+                        d = f.create_dataset(path, data=data)
+                        for k, v in meta.items():
+                            d.attrs[k] = v
+                    except Exception as e:
+                        import traceback
+
+                        traceback.print_exc()
+                        if not isinstance(data, np.ndarray):
+                            warn(
+                                "Recorder {} numpy.ndarray expected, got {}".format(
+                                    path, type(data)
+                                )
+                            )
+                        else:
+                            warn(
+                                "Recorder {} processing errored out: {}".format(
+                                    path, "{} {}".format(data.dtype, data.shape)
+                                )
+                            )
 
     def validate(self):
         for cell_model in self.cell_models.values():
@@ -522,6 +571,8 @@ class NestAdapter(SimulatorAdapter):
                         raise NestModuleError(
                             "Module {} not found".format(module)
                         ) from None
+                    else:
+                        raise
                 else:
                     raise
 
@@ -538,10 +589,14 @@ class NestAdapter(SimulatorAdapter):
     def get_nest_ids(self, ids):
         return [self.global_identifier_map[id] for id in ids]
 
+    def get_scaffold_ids(self, ids):
+        scaffold_map = {v: k for k, v in self.global_identifier_map.items()}
+        return [scaffold_map[id] for id in ids]
+
     def create_neurons(self):
         """
-            Create a population of nodes in the NEST simulator based on the cell model
-            configurations.
+        Create a population of nodes in the NEST simulator based on the cell model
+        configurations.
         """
         for cell_model in self.cell_models.values():
             # Get the cell type's placement information
@@ -591,7 +646,7 @@ class NestAdapter(SimulatorAdapter):
 
     def connect_neurons(self):
         """
-            Connect the cells in NEST according to the connection model configurations
+        Connect the cells in NEST according to the connection model configurations
         """
         order = NestConnection.resolve_order(self.connection_models)
         for connection_model in order:
@@ -691,9 +746,10 @@ class NestAdapter(SimulatorAdapter):
 
     def create_devices(self):
         """
-            Create the configured NEST devices in the simulator
+        Create the configured NEST devices in the simulator
         """
         for device_model in self.devices.values():
+            device_model.protocol.before_create()
             device = self.nest.Create(device_model.device)
             report("Creating device:  " + device_model.device, level=3)
             # Execute SetStatus and catch DictError
@@ -712,6 +768,7 @@ class NestAdapter(SimulatorAdapter):
                     }
                 },
             )
+            device_model.protocol.after_create(device)
             # Execute targetting mechanism to fetch target NEST ID's
             device_targets = device_model.get_targets()
             report(
@@ -750,7 +807,7 @@ class NestAdapter(SimulatorAdapter):
 
     def create_model(self, cell_model):
         """
-            Create a NEST cell model in the simulator based on a cell model configuration.
+        Create a NEST cell model in the simulator based on a cell model configuration.
         """
         # Use the default model unless another one is specified in the configuration.A_minus
         # Alias the nest model name under our cell model name.
@@ -763,7 +820,7 @@ class NestAdapter(SimulatorAdapter):
 
     def create_synapse_model(self, connection_model):
         """
-            Create a NEST synapse model in the simulator based on a synapse model configuration.
+        Create a NEST synapse model in the simulator based on a synapse model configuration.
         """
         nest_name = self.suffixed(connection_model.name)
         # Use the default model unless another one is specified in the configuration.
@@ -841,6 +898,80 @@ def catch_connection_error(source):
         )
 
     return handler
+
+
+class SpikeRecorder(SimulationRecorder):
+    def __init__(self, device_model):
+        self.device_model = device_model
+
+    def get_path(self):
+        return ("recorders", "soma_spikes", self.device_model.name)
+
+    def get_data(self):
+        from glob import glob
+
+        files = glob("*" + self.device_model.parameters["label"] + "*.gdf")
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            spikes = np.zeros((0, 2), dtype=float)
+            for file in files:
+                file_spikes = np.loadtxt(file)
+                if len(file_spikes):
+                    scaffold_ids = np.array(
+                        self.device_model.adapter.get_scaffold_ids(file_spikes[:, 0])
+                    )
+                    times = file_spikes[:, 1]
+                    scaffold_spikes = np.vstack((scaffold_ids, times)).T
+                    spikes = np.vstack((spikes, scaffold_spikes))
+                os.remove(file)
+        return spikes
+
+    def get_meta(self):
+        return {
+            "name": self.device_model.name,
+            "label": self.device_model.name,
+            "color": "black",
+            "parameters": json.dumps(self.device_model.parameters),
+        }
+
+
+def _randint():
+    return np.random.randint(np.iinfo(int).max)
+
+
+class DeviceProtocol:
+    def __init__(self, device):
+        self.device = device
+
+    def before_create(self):
+        pass
+
+    def after_create(self, id):
+        pass
+
+
+class SpikeDetectorProtocol(DeviceProtocol):
+    def before_create(self):
+        if "label" not in self.device.parameters:
+            raise ConfigurationError(
+                "Required `label` missing in spike detector '{}' parameters.".format(
+                    self.device.name
+                )
+            )
+        device_tag = str(_randint())
+        device_tag = mpi4py.MPI.COMM_WORLD.bcast(device_tag, root=0)
+        self.device.parameters["label"] += device_tag
+        if mpi4py.MPI.COMM_WORLD.rank == 0:
+            self.device.adapter.result.add(SpikeRecorder(self.device))
+
+
+def get_device_protocol(device):
+    if device.device in _device_protocols:
+        return _device_protocols[device.device](device)
+    return DeviceProtocol(device)
+
+
+_device_protocols = {"spike_detector": SpikeDetectorProtocol}
 
 
 # Register the NestAdapter as the entry point to this simulator plugin.

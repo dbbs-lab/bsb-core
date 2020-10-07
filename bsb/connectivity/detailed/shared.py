@@ -7,7 +7,7 @@ class MorphologyStrategy:
 
     def get_random_morphology(self, cell_type):
         """
-            Return a morphology suited to represent a cell of the given `cell_type`.
+        Return a morphology suited to represent a cell of the given `cell_type`.
         """
         available_morphologies = self.list_all_morphologies(cell_type)
         if len(available_morphologies) == 0:

@@ -13,9 +13,13 @@ minimal_config_entities = relative_to_tests_folder("configs/test_minimal_entitie
 
 
 @unittest.skip("Re-enabling tests gradually while advancing v4.0 rework")
+@unittest.skipIf(importlib.util.find_spec("nest") is None, "NEST is not importable.")
 class TestEntities(unittest.TestCase):
     @classmethod
     def setUpClass(self):
+        import nest
+
+        nest.ResetKernel()
         super(TestEntities, self).setUpClass()
         config = JSONConfig(file=minimal_config_entities)
         self.scaffold = Scaffold(config)

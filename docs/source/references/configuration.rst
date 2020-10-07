@@ -111,6 +111,7 @@ The size of the Z dimension of the simulation volume.
   }
 
 .. note::
+
   The Y can not be set directly as it is a result of stacking/placing the layers.
   It's possible to place cells outside of the simulation volume, and even to place
   layers outside of the volume, but it is not recommended behavior. The X and Z
@@ -118,8 +119,9 @@ The size of the Z dimension of the simulation volume.
   simulation, but they aren't absolute restrictions.
 
 .. warning::
-  Do not modify these values directly on the configuration object: It will not
-  rescale your layers. Use :func:`resize <.configuration.ScaffoldConfig.resize>` instead.
+
+  Do not modify these values directly on the configuration object: It will not rescale
+  your layers. Use :func:`resize <bsb.configuration.ScaffoldConfig.resize>` instead.
 
 ================
 Layer attributes

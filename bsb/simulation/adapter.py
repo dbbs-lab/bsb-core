@@ -36,23 +36,23 @@ class SimulatorAdapter:
     @abc.abstractmethod
     def prepare(self, hdf5, simulation_config):
         """
-            This method turns a stored HDF5 network architecture and returns a runnable simulator.
+        This method turns a stored HDF5 network architecture and returns a runnable simulator.
 
-            :returns: A simulator prepared to run a simulation according to the given configuration.
+        :returns: A simulator prepared to run a simulation according to the given configuration.
         """
         pass
 
     @abc.abstractmethod
     def simulate(self, simulator):
         """
-            Start a simulation given a simulator object.
+        Start a simulation given a simulator object.
         """
         pass
 
     @abc.abstractmethod
     def collect_output(self, simulator):
         """
-            Collect the output of a simulation that completed
+        Collect the output of a simulation that completed
         """
         pass
 
