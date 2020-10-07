@@ -35,6 +35,8 @@ autodoc_mock_imports = [
     "scipy.stats",
     "six",
     "plotly",
+    "plotly.graph_objects",
+    "plotly.graph_objs",
 ]
 
 
