@@ -25,6 +25,13 @@ autodoc_mock_imports = [
     "arborize",
     "rtree",
     "rtree.index",
+    "h5py",
+    "joblib",
+    "numpy",
+    "scikit-learn",
+    "scipy",
+    "six",
+    "plotly",
 ]
 
 
