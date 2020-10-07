@@ -227,6 +227,18 @@ class TestMorphologies(unittest.TestCase):
     def test_tree_empty_branches(self):
         pass
 
+    def test_chain_branches(self):
+        pass
+
+    def test_chain_with_empty_branches(self):
+        pass
+
+    def test_tree_branches(self):
+        pass
+
+    def test_tree_with_empty_branches(self):
+        pass
+
     def test_branch_nargs(self):
         v = len(Branch.vectors)
         Branch(*(np.ones(i) for i in range(v)))
