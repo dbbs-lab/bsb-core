@@ -4,7 +4,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from bsb.config import JSONConfig
 from bsb.core import Scaffold
 from bsb.output import HDF5Formatter
-import bsb.helpers
+import bsb.helpers, test_setup
 from bsb.exceptions import (
     MorphologyDataError,
     MorphologyError,
@@ -26,6 +26,11 @@ def neuron_installed():
 
 @unittest.skipIf(not neuron_installed(), "NEURON is not importable.")
 class TestPostProcessing(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        test_setup.prep_morphologies()
+
     def test_spoofing(self):
         """
         Assert that fake detailed connections can be made
