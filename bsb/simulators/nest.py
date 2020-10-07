@@ -229,31 +229,7 @@ class NestDevice(SimulationComponent):
     targetting = config.attr(type=NeuronTargetting)
     io = config.attr(type=types.in_(["input", "output"]))
 
-    def validate(self):
-        # Fill in the _get_targets method, so that get_target functions
-        # according to `targetting`.
-        if self.targetting not in self.__class__.neuron_targetting_types:
-            raise ConfigurationError(
-                "Unknown NEST targetting type '{}' in {}".format(
-                    self.targetting, self.node_name
-                )
-            )
-        if not self.io == "input" and not self.io == "output":
-            raise ConfigurationError(
-                "Attribute io needs to be either 'input' or 'output' in {}".format(
-                    self.node_name
-                )
-            )
-        if hasattr(self, "stimulus"):
-            stimulus_name = (
-                "stimulus"
-                if not hasattr(self.stimulus, "parameter_name")
-                else self.stimulus.parameter_name
-            )
-            self.parameters[stimulus_name] = self.stimulus.eval()
-
-    def boot(self):
-        super().boot()
+    def __boot__(self):
         self.protocol = get_device_protocol(self)
 
     def get_targets(self):

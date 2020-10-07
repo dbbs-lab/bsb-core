@@ -443,6 +443,7 @@ class TestMultiInstance(unittest.TestCase):
         self.nest_adapter_multi_2.reset()
 
 
+@unittest.skip("Re-enabling tests gradually while advancing v4.0 rework")
 @unittest.skipIf(importlib.util.find_spec("nest") is None, "NEST is not importable.")
 class TestDeviceProtocol(unittest.TestCase):
     @classmethod
