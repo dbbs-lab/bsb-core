@@ -391,9 +391,10 @@ class QuiverTransform(FiberTransform):
 
         if not self.shared:
             # Compute branch direction - to check that PFs have 2 branches, left and right
-            branch_dir = branch._compartments[0].end - branch._compartments[0].start
-            # Normalize branch_dir vector
-            branch_dir = branch_dir / np.linalg.norm(branch_dir)
+            branch_dir = self.get_branch_direction(branch)
+            # If the entire branch consists of compartments without direction, do nothing.
+            if branch_dir is False:
+                return
 
             num_comp = len(branch._compartments)
 
@@ -407,7 +408,6 @@ class QuiverTransform(FiberTransform):
                 # the branch direction and the original morphology/parent branch
                 if branch.orientation is None:
                     transversal_vector = np.cross(branch_dir, [0, 1, 0])
-                    # branch.orientation =
                 else:
                     transversal_vector = np.cross(branch_dir, branch.orientation)
 
@@ -452,3 +452,12 @@ class QuiverTransform(FiberTransform):
                     )
                     # The new end is the start of the adjacent compartment
                     branch._compartments[comp + 1].start = branch._compartments[comp].end
+
+    def get_branch_direction(self, branch):
+        for comp in branch._compartments:
+            branch_dir = comp.end - comp.start
+            if not np.sum(branch_dir):
+                continue
+            # Normalize branch_dir vector
+            branch_dir = branch_dir / np.linalg.norm(branch_dir)
+            return branch_dir
