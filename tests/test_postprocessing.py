@@ -4,7 +4,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from bsb.config import JSONConfig
 from bsb.core import Scaffold
 from bsb.output import HDF5Formatter
-import bsb.helpers
+import bsb.helpers, test_setup
 from bsb.exceptions import (
     MorphologyDataError,
     MorphologyError,
@@ -26,6 +26,11 @@ def neuron_installed():
 
 @unittest.skipIf(not neuron_installed(), "NEURON is not importable.")
 class TestPostProcessing(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        test_setup.prep_morphologies()
+
     def test_spoofing(self):
         """
         Assert that fake detailed connections can be made
@@ -63,16 +68,10 @@ class TestPostProcessing(unittest.TestCase):
         try:
             i = cs.intersections
             for inter in i:
-                ft = inter.from_compartment.type
-                tt = inter.to_compartment.type
-                self.assertTrue(
-                    ft == 2 or ft >= 200 and ft < 300,
-                    "From compartment type is not an axon",
-                )
-                self.assertTrue(
-                    tt == 3 or tt >= 300 and tt < 400,
-                    "To compartment type is not a dendrite",
-                )
+                fl = inter.from_compartment.labels
+                tl = inter.to_compartment.labels
+                self.assertIn("axon", fl, "From compartment type is not an axon")
+                self.assertIn("dendrites", tl, "From compartment type is not a dendrite")
             self.assertNotEqual(len(i), 0, "Empty intersection data")
             self.assertEqual(
                 len(i), original_connections, "Different amount of spoofed connections"

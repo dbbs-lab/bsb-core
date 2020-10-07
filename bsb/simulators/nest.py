@@ -596,6 +596,8 @@ class NestAdapter(SimulatorAdapter):
                         raise NestModuleError(
                             "Module {} not found".format(module)
                         ) from None
+                    else:
+                        raise
                 else:
                     raise
 

@@ -3,7 +3,7 @@
   "output": {
     "format": "bsb.output.HDF5Formatter",
     "file": "nrn_aa_pc.hdf5",
-    "morphology_repository": "morphologies.hdf5"
+    "morphology_repository": "morphologies.h5"
   },
   "network_architecture": {
     "simulation_volume_x": 150.0,

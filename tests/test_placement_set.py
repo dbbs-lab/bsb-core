@@ -1,4 +1,4 @@
-import unittest, os, sys, numpy as np, h5py
+import unittest, os, sys, numpy as np, h5py, test_setup
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from bsb.core import Scaffold, from_hdf5
@@ -22,6 +22,7 @@ class TestPlacementSets(unittest.TestCase):
     @classmethod
     def setUpClass(self):
         super(TestPlacementSets, self).setUpClass()
+        test_setup.prep_morphologies()
         config = JSONConfig(file=double_neuron_config)
         self.scaffold = Scaffold(config)
         self.scaffold.compile_network()

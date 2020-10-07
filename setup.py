@@ -16,7 +16,7 @@ requires = [
     "scikit-learn>=0.20.3",
     "plotly>=4.1.0",
     "colour>=0.1.5",
-    "errr>=0.2.0",
+    "errr>=1.0.0",
 ]
 
 if not os.getenv("READTHEDOCS", False):
@@ -53,7 +53,7 @@ setuptools.setup(
     },
     extras_require={
         "dev": ["sphinx", "sphinx_rtd_theme>=0.4.3", "pre-commit", "black==20.8b1"],
-        "NEURON": ["dbbs_models>=1.2.0", "nrn-patch>=2.1.0"],
+        "NEURON": ["dbbs_models>=1.2.0", "nrn-patch>=2.2.0"],
         "MPI": ["mpi4py"],
     },
 )

@@ -53,7 +53,7 @@ class TestSingleTypeCompilation(unittest.TestCase):
 _using_morphologies = True
 
 
-@unittest.skipIf(_using_morphologies, "Morphologies are used for the connectivity")
+@unittest.skipIf(not _using_morphologies, "Morphologies are used for the connectivity")
 class TestPlacement(unittest.TestCase):
     """
     Check if the placement of all cell types is correct

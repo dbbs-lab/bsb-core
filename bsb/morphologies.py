@@ -1,4 +1,4 @@
-import abc, numpy as np, pickle, h5py, math
+import abc, numpy as np, pickle, h5py, math, itertools
 from .helpers import ConfigurableClass
 from .voxels import VoxelCloud, detect_box_compartments, Box
 from sklearn.neighbors import KDTree
@@ -8,8 +8,10 @@ from .reporting import report
 
 class Compartment:
     """
-    Compartments are line segments with a radius. They are the building block of
-    :class:`Morphologies <.morphologies.Morphology>`.
+    Compartments are line segments with a radius. They can be constructed from the points
+    on a :class:`Branch <.morphologies.Branch>` or by concatenating the results of a
+    depth-first iteration of the branches of a :class:`Morphology
+    <.morphologies.Morphology>`.
     """
 
     def __init__(
@@ -18,9 +20,8 @@ class Compartment:
         end,
         radius,
         id=None,
-        type=None,
+        labels=None,
         parent=None,
-        parent_id=None,
         section_id=None,
         morphology=None,
     ):
@@ -28,31 +29,10 @@ class Compartment:
         self.start = start
         self.end = end
         self.radius = radius
-        self.type = type
-        self.parent_id = parent_id
+        self.labels = labels if labels is not None else []
         self.parent = parent
         self.section_id = section_id
         self.morphology = morphology
-
-    @classmethod
-    def from_record(cls, morphology, repo_record):
-        """
-        Create a compartment from repository data.
-        """
-        # Transfer the record data onto a Compartment object.
-        c = cls(
-            id=repo_record[0],
-            type=repo_record[1],
-            start=np.array(repo_record[2:5]),
-            end=np.array(repo_record[5:8]),
-            radius=repo_record[8],
-            parent_id=repo_record[9],
-            morphology=morphology,
-        )
-        # Check if there's section id information on the record.
-        if len(repo_record) == 11:
-            c.section_id = int(repo_record[10])
-        return c
 
     @property
     def midpoint(self):
@@ -65,7 +45,7 @@ class Compartment:
     def spherical(self):
         # Calculate the radius of the outer sphere of this compartment
         if not hasattr(self, "_spherical"):
-            self._spherical = np.sqrt((c.start[:] - c.end[:]) ** 2) / 2
+            self._spherical = np.sqrt(np.sum((self.start - self.end) ** 2)) / 2
         return self._spherical
 
     @classmethod
@@ -79,9 +59,8 @@ class Compartment:
             start=template.start,
             end=template.end,
             radius=template.radius,
-            type=template.type,
+            labels=template.labels.copy(),
             parent=template.parent,
-            parent_id=template.parent_id,
             section_id=template.section_id,
             morphology=template.morphology,
         )
@@ -89,18 +68,158 @@ class Compartment:
             c.__dict__[k] = v
         return c
 
-    def to_record(self):
-        """
-        Return an array that can be used to store this compartment in an HDF5 dataset,
-        or to construct a new Compartment.
-        """
-        record = [self.id, self.type, *self.start, *self.end, self.radius, self.parent_id]
-        if hasattr(self, "section_id"):
-            record.append(self.section_id)
-        return record
+
+def branch_iter(branch):
+    """
+    Iterate over a branch and all of its children depth first.
+    """
+    yield branch
+    for child in branch._children:
+        yield from branch_iter(child)
 
 
-class Morphology(ConfigurableClass):
+def _validate_branch_args(args):
+    vec = Branch.vectors
+    if len(args) > len(vec):
+        raise TypeError(
+            f"__init__ takes {len(vec) + 1} arguments but {len(args) + 1} given."
+        )
+    if len(args) < len(vec):
+        n = len(vec) - len(args)
+        w = "argument" if n == 1 else "arguments"
+        missing = ", ".join(map("'{}'".format, vec[-n:]))
+        raise TypeError(f"__init__ is missing {n} required {w}: {missing}.")
+
+
+class Branch:
+    """
+    A vector based representation of a series of point in space. Can be a root or
+    connected to a parent branch. Can be a terminal branch or have multiple children.
+    """
+
+    vectors = ["x", "y", "z", "radii"]
+
+    def __init__(self, *args, labels=None):
+        _validate_branch_args(args)
+        self._children = []
+        self._full_labels = []
+        self._label_masks = {}
+        self._parent = None
+        for v, vector in enumerate(self.__class__.vectors):
+            self.__dict__[vector] = args[v]
+
+    @property
+    def size(self):
+        """
+        Returns the amount of points on this branch
+
+        :returns: Number of points on the branch.
+        :rtype: int
+        """
+        return len(getattr(self, self.__class__.vectors[0]))
+
+    @property
+    def terminal(self):
+        """
+        Returns whether this branch is terminal or has children.
+
+        :returns: True if this branch has no children, False otherwise.
+        :rtype: bool
+        """
+        return not self._children
+
+    def label(self, *labels):
+        """
+        Add labels to every point on the branch. See :func:`label_points
+        <.morphologies.Morphology.label_points>` to label individual points.
+
+        :param labels: Label(s) for the branch.
+        :type labels: str
+        """
+        self._full_labels.extend(labels)
+
+    def label_points(self, label, mask):
+        """
+        Add labels to specific points on the branch. See :func:`label
+        <.morphologies.Morphology.label>` to label the entire branch.
+
+        :param label: Label to apply to the points.
+        :type label: str
+        :param mask: Boolean mask equal in size to the branch that determines which points get labelled.
+        :type mask: np.ndarray(dtype=bool, shape=(branch_size,))
+        """
+        self._label_masks[label] = np.array(mask, dtype=bool)
+
+    def attach_child(self, branch):
+        """
+        Attach a branch as a child to this branch.
+
+        :param branch: Child branch
+        :type branch: :class:`Branch <.morphologies.Branch>`
+        """
+        self._children.append(branch)
+        branch._parent = self
+
+    def detach_child(self, branch):
+        """
+        Remove a branch as a child from this branch.
+
+        :param branch: Child branch
+        :type branch: :class:`Branch <.morphologies.Branch>`
+        """
+        try:
+            self._children.remove(branch)
+            branch._parent = None
+        except ValueError:
+            raise ValueError("Branch could not be detached, it is not a child branch.")
+
+    def to_compartments(self, start_id=0, parent=None):
+        comp_id = start_id
+
+        def to_comp(data, labels):
+            nonlocal comp_id, parent
+            comp = Compartment(*data, id=comp_id, parent=parent, labels=labels)
+            comp_id += 1
+            parent = comp
+            return comp
+
+        # Walk over each pair of points as the start and end if a compartment.
+        # Start from the end of the parent branch's last compartment.
+        comps = [
+            to_comp(data, labels)
+            for data, labels in _pairwise_iter(self.walk(), self.label_walk())
+        ]
+        return comps
+
+    def walk(self):
+        return zip(*(self.__dict__[v] for v in self.__class__.vectors))
+
+    def label_walk(self):
+        labels = self._full_labels.copy()
+        n = self.size
+        shared = np.ones((n, len(labels)), dtype=bool)
+        labels.extend(self._label_masks.keys())
+        label_row = np.array(labels)
+        label_matrix = np.column_stack((shared, *self._label_masks.values()))
+        return (label_row[label_matrix[i, :]] for i in range(n))
+
+
+def _pairwise_iter(walk_iter, labels_iter):
+    try:
+        start = np.array(next(walk_iter)[:3])
+        # Throw away the first point's labels as there are only n - 1 compartments.
+        _ = next(labels_iter)
+    except StopIteration:
+        return iter(())
+    for data in walk_iter:
+        end = np.array(data[:3])
+        radius = data[3]
+        labels = next(labels_iter)
+        yield (start, end, radius), labels
+        start = end
+
+
+class Morphology:
     """
     A multicompartmental spatial representation of a cell based on connected 3D
     compartments.
@@ -108,136 +227,72 @@ class Morphology(ConfigurableClass):
     :todo: Uncouple from the MorphologyRepository and merge with TrueMorphology.
     """
 
-    # The Morphology has a troubled history: it used to represent both the simple
-    # geometrical constraints used in the connectome connectivity functions and also the
-    # multicompartmental model that it represents now. This problem is painfully visible
-    # in the fact that you by default intialize a morphology with `has_morphology =
-    # False`.
-    #
-    # Work needs to be done to make sure that the Morphology is a pure object that
-    # describes the compartments of a neuron.
-
-    compartment_types = {
-        "soma": 1,
-        "axon": 2,
-        "axon_hillock": 200,
-        "axon_initial_segment": 201,
-        "parallel_fiber": 202,  # parallel fibers should be differentiated by the ascending axon
-        "ascending_axon": 203,
-        "dendrites": 3,
-        "distal_dendrites": 301,
-        "proximal_dendrites": 302,
-        "apical_dendrites": 301,
-        "basal_dendrites": 302,
-    }
-
-    compartment_alias = {
-        "dendrites": [
-            "apical_dendrites",
-            "basal_dendrites",
-            "distal_dendrites",
-            "proximal_dendrites",
-        ],
-        "axon": [
-            "axon_hillock",
-            "axon_initial_segment",
-            "parallel_fiber",
-            "ascending_axon",
-        ],
-    }
-
-    def __init__(self):
-        super().__init__()
-        self.compartments = None
+    def __init__(self, roots):
         self.cloud = None
-        self.has_morphology = False
-        self.has_voxels = False
-
-    def boot(self):
-        if self.has_morphology:
-            # TODO: This is dead code, it assumed that when we load the config a single
-            # shared example morphology could be used for the cell type. This kind of
-            # coupling has to be removed.
-            report("{} has morphology".format(self.morphology_name), level=2)
-            self.store_compartment_tree()
-
-    def init_morphology(self, repo_data, repo_meta):
-        """
-        Initialize this Morphology with detailed morphology data from a MorphologyRepository.
-        """
-        # Initialise as a true morphology
-        self.compartments = []
-        self.morphology_name = repo_meta["name"]
         self.has_morphology = True
-        # Iterate over the data to create compartment objects
-        for i in range(len(repo_data)):
-            repo_record = repo_data[i, :]
-            compartment = Compartment.from_record(self, repo_record)
-            self.compartments.append(compartment)
-        # Fortify the id-linked compartments' bond by referencing their parent object.
-        for c in self.compartments:
-            if c.parent_id is not None and c.parent_id != -1:
-                c.parent = self.compartments[int(c.parent_id)]
-            else:
-                c.parent = None
-        # Create a tree from the compartment object list
+        self.has_voxels = False
+        self.roots = roots
+        self._compartments = None
         self.update_compartment_tree()
-        if (
-            hasattr(self, "scaffold") and self.scaffold
-        ):  # Is the scaffold ready at this point?
-            self.store_compartment_tree()
 
-    def store_compartment_tree(self):
-        morphology_trees = self.scaffold.trees.morphologies
-        morphology_trees.add_tree(self.morphology_name, self.compartment_tree)
-        morphology_trees.save()
+    @property
+    def compartments(self):
+        if self._compartments is None:
+            self._compartments = self.to_compartments()
+        return self._compartments
+
+    @property
+    def branches(self):
+        """
+        Return a depth-first flattened array of all branches.
+        """
+        return [*itertools.chain(*(branch_iter(root) for root in self.roots))]
+
+    def to_compartments(self):
+        """
+        Return a flattened array of compartments
+        """
+        comp_counter = 0
+
+        def treat_branch(branch, last_parent=None):
+            nonlocal comp_counter
+            comps = branch.to_compartments(comp_counter, last_parent)
+            comp_counter += len(comps)
+            # If this branch has no compartments just pass on the compartment we were
+            # supposed to connect our first compartment to. That way this empty branch
+            # is skipped and the next compartments are still connected in the comp tree.
+            parent_comp = comps[-1] if len(comps) else last_parent
+            child_iters = (treat_branch(b, parent_comp) for b in branch._children)
+            return itertools.chain(comps, *child_iters)
+
+        return [*itertools.chain(*(treat_branch(root) for root in self.roots))]
+
+    def flatten(self, vectors=None, matrix=False):
+        """
+        Return the flattened vectors of the morphology
+
+        :param vectors: List of vectors to return such as ['x', 'y', 'z'] to get the
+          positional vectors.
+        :type vectors: list of str
+        :returns: Tuple of the vectors in the given order, if `matrix` is True a
+          matrix composed of the vectors is returned instead.
+        :rtype: tuple of ndarrays (`matrix=False`) or matrix (`matrix=True`)
+        """
+        if vectors is None:
+            vectors = Branch.vectors
+        branches = self.branches
+        if not branches:
+            if matrix:
+                return np.empty((0, len(vectors)))
+            return tuple(np.empty(0) for _ in vectors)
+        t = tuple(np.concatenate(tuple(getattr(b, v) for b in branches)) for v in vectors)
+        return np.column_stack(t) if matrix else t
 
     def update_compartment_tree(self):
-        self.compartment_tree = KDTree(
-            np.array(list(map(lambda c: c.end, self.compartments)))
-        )
-
-    def init_voxel_cloud(self, voxel_data, voxel_meta, voxel_map):
-        """
-        Initialize this Morphology with a voxel cloud from a MorphologyRepository.
-        """
-        bounds = voxel_meta["bounds"]
-        grid_size = voxel_meta["grid_size"]
-        # Initialise as a true morphology
-        self.cloud = VoxelCloud(bounds, voxel_data, grid_size, voxel_map)
-
-    @staticmethod
-    def from_repo_data(
-        repo_data,
-        repo_meta,
-        voxel_data=None,
-        voxel_map=None,
-        voxel_meta=None,
-        scaffold=None,
-    ):
-        # Instantiate morphology instance
-        m = TrueMorphology()
-        if scaffold is not None:
-            # Initialise configurable class
-            m.initialise(scaffold)
-        # Load the morphology data into this morphology instance
-        m.init_morphology(repo_data, repo_meta)
-        if voxel_data is not None:
-            if voxel_map is None or voxel_meta is None:
-                raise DataNotProvidedError(
-                    "If voxel_data is provided, voxel_meta and voxel_map must be provided aswell."
-                )
-            m.init_voxel_cloud(voxel_data, voxel_meta, voxel_map)
-        return m
-
-
-class TrueMorphology(Morphology):
-    """
-    Used to load morphologies that don't need to be configured/validated.
-    """
-
-    def validate(self):
-        pass
+        # Eh, this code will be refactored soon, if you're still seeing this in v4 open an
+        # issue.
+        if self.compartments:
+            self.compartment_tree = KDTree(np.array([c.end for c in self.compartments]))
 
     def voxelize(self, N, compartments=None):
         self.cloud = VoxelCloud.create(self, N, compartments=compartments)
@@ -292,19 +347,15 @@ class TrueMorphology(Morphology):
         node_list = [set([]) for c in compartments]
         # Add child nodes to their parent's adjacency set
         for node in compartments[1:]:
-            if int(node.parent_id) == -1:
+            if node.parent is None:
                 continue
-            node_list[int(node.parent_id)].add(int(node.id))
+            node_list[int(node.parent.id)].add(int(node.id))
         return node_list
 
-    def get_compartment_positions(self, types=None):
-        if types is None:
+    def get_compartment_positions(self, labels=None):
+        if labels is None:
             return self.compartment_tree.get_arrays()[0]
-        type_ids = TrueMorphology.get_compartment_type_ids(types)
-        # print("Comp --", len(self.compartments), len(list(map(lambda c: c.end, filter(lambda c: c.type in type_ids, self.compartments)))))
-        return list(
-            map(lambda c: c.end, filter(lambda c: c.type in type_ids, self.compartments))
-        )
+        return [c.end for c in self.get_compartments(labels=labels)]
 
     def get_plot_range(self, offset=[0.0, 0.0, 0.0]):
         compartments = self.compartment_tree.get_arrays()[0]
@@ -317,64 +368,25 @@ class TrueMorphology(Morphology):
         )
         return list(zip(mins.tolist(), (mins + max).tolist()))
 
-    def _comp_tree_factory(self, types):
-        type_map = TrueMorphology.get_compartment_type_ids(types)
-
-        def _comp_tree_product(_):
-            return np.array(
-                list(
-                    map(
-                        lambda c: c.end,
-                        filter(lambda c: c.type in type_map, self.compartments),
-                    )
-                )
-            )
-
-        return _comp_tree_product
-
-    def get_compartment_tree(self, compartment_types=None):
-        if compartment_types is not None:
-            if len(compartment_types) == 1:
-                return self.scaffold.trees.morphologies.get_sub_tree(
-                    self.morphology_name,
-                    "+".join(compartment_types),
-                    factory=self._comp_tree_factory(compartment_types),
-                )
-            else:
-                raise NotImplementedError(
-                    "Multicompartmental touch detection not implemented yet."
-                )
+    def get_compartment_tree(self, labels=None):
+        if labels is not None:
+            return _compartment_tree(self.get_compartments(labels=labels))
         return self.compartment_tree
 
-    def get_compartment_submask(self, compartment_types):
-        i = 0
-        type_ids = TrueMorphology.get_compartment_type_ids(compartment_types)
-        mask = []
-        for comp in self.compartments:
-            if comp.type in type_ids:
-                # mask[n] = original id
-                # Where n is the index of the compartment in the filtered collection
-                mask.append(comp.id)
-        return mask
+    def get_compartment_submask(self, labels):
+        ## TODO: Remove; voxelintersection & touchdetection audit should make this code
+        ## obsolete.
+        return [c.id for c in self.get_compartments(labels)]
 
-    def get_compartments(self, compartment_types=None):
-        if compartment_types is None:
+    def get_compartments(self, labels=None):
+        if labels is None:
             return self.compartments.copy()
-        i = 0
-        try:
-            type_ids = TrueMorphology.get_compartment_type_ids(compartment_types)
-        except Exception as e:
-            raise CompartmentError("Unknown compartment types encountered")
-        return list(filter(lambda c: c.type in type_ids, self.compartments))
+        return [c for c in self.compartments if any(l in labels for l in c.labels)]
 
-    @classmethod
-    def get_compartment_type_ids(cls, types):
-        ids = []
-        for t in types:
-            ids.append(cls.compartment_types[t])
-            if t in cls.compartment_alias:
-                ids.extend(cls.get_compartment_type_ids(cls.compartment_alias[t]))
-        return ids
+    def get_branches(self, labels=None):
+        if labels is None:
+            return self.branches
+        return [b for b in self.branches if any(l in labels for l in b._full_labels)]
 
     def rotate(self, v0, v):
         """
@@ -393,7 +405,15 @@ class TrueMorphology(Morphology):
         self.update_compartment_tree()
 
 
-class GranuleCellGeometry(Morphology):
+def _compartment_tree(compartments):
+    return KDTree(np.array([c.end for c in compartments]))
+
+
+class Representation(ConfigurableClass):
+    pass
+
+
+class GranuleCellGeometry(Representation):
     casts = {
         "dendrite_length": float,
         "pf_height": float,
@@ -405,12 +425,12 @@ class GranuleCellGeometry(Morphology):
         pass
 
 
-class PurkinjeCellGeometry(Morphology):
+class PurkinjeCellGeometry(Representation):
     def validate(self):
         pass
 
 
-class GolgiCellGeometry(Morphology):
+class GolgiCellGeometry(Representation):
     casts = {
         "dendrite_radius": float,
         "axon_x": float,
@@ -424,7 +444,7 @@ class GolgiCellGeometry(Morphology):
         pass
 
 
-class RadialGeometry(Morphology):
+class RadialGeometry(Representation):
     casts = {
         "dendrite_radius": float,
     }
@@ -435,7 +455,7 @@ class RadialGeometry(Morphology):
         pass
 
 
-class NoGeometry(Morphology):
+class NoGeometry(Representation):
     def validate(self):
         pass
 

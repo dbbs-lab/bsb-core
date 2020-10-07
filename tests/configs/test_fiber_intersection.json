@@ -1,7 +1,7 @@
 {
   "output": {
     "format": "bsb.output.HDF5Formatter",
-    "morphology_repository": "morphologies.hdf5",
+    "morphology_repository": "morphologies.h5",
     "file": "fiber_intersection_scaffold.hdf5"
   },
   "network_architecture": {

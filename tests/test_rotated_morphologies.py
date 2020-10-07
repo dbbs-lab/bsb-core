@@ -1,13 +1,12 @@
 # Testing rotated_morphologies
-import unittest, os, sys, numpy as np, h5py
+import unittest, os, sys, numpy as np, h5py, test_setup
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from bsb.core import Scaffold, from_hdf5
 from bsb.config import JSONConfig
 from bsb.models import MorphologySet, PlacementSet
 from bsb.output import MorphologyRepository, MorphologyCache
-from bsb.morphologies import TrueMorphology
-from shutil import copyfile
+from bsb.morphologies import Morphology, Branch
 
 
 def relative_to_tests_folder(path):
@@ -17,9 +16,6 @@ def relative_to_tests_folder(path):
 config_file = relative_to_tests_folder(
     "configs/test_double_neuron_network_rotations.json"
 )
-morpho_file = relative_to_tests_folder("morphologies_test.hdf5")
-morpho_set_file = relative_to_tests_folder("morphologies_set_test.hdf5")
-step = [30, 60]
 
 
 class TestMorphologyCache(unittest.TestCase):
@@ -30,21 +26,22 @@ class TestMorphologyCache(unittest.TestCase):
 
     @classmethod
     def setUpClass(self):
-        super(TestMorphologyCache, self).setUpClass()
-        config = JSONConfig()
+        import dbbs_models
+
+        test_setup.prep_morphologies()
+        test_setup.prep_rotations()
+
+        super().setUpClass()
+        config = JSONConfig(config_file)
         self.scaffold = Scaffold(config)
-        dest = copyfile(
-            relative_to_tests_folder("morphologies_test_original.hdf5"), morpho_file
-        )
-        self.scaffold.morphology_repository = MorphologyRepository(morpho_file)
-        self.morphologies_start = self.scaffold.morphology_repository.list_morphologies()
-        self.morphology_cache = MorphologyCache(self.scaffold.morphology_repository)
-        self.morphology_cache.rotate_all_morphologies(step[0], step[1])
-        self.morphologies_rotated = self.scaffold.morphology_repository.list_morphologies(
-            include_rotations=True
-        )
+        mr = MorphologyRepository(test_setup.mr_rot_path)
+        self.scaffold.morphology_repository = mr
+        self.morphology_cache = MorphologyCache(mr)
+        self.morphologies_start = ["GranuleCell", "GolgiCell", "GolgiCell_A"]
+        self.morphologies_rotated = mr.list_morphologies(include_rotations=True)
 
     def test_morphology_repository(self):
+        step = test_setup.rotations_step
         # Check if the rotated morphologies (at some significant angles) exist in the new morphology repository
         for m in self.morphologies_start:
             self.assertTrue(
@@ -118,10 +115,15 @@ class TestMorhologySetsRotations(unittest.TestCase):
 
     @classmethod
     def setUpClass(self):
-        super(TestMorhologySetsRotations, self).setUpClass()
-        config = JSONConfig(file=config_file)
+        import dbbs_models
+
+        test_setup.prep_morphologies()
+        test_setup.prep_rotations()
+
+        super().setUpClass()
+        config = JSONConfig(config_file)
         self.scaffold = Scaffold(config)
-        self.scaffold.morphology_repository = MorphologyRepository(morpho_set_file)
+        self.scaffold.morphology_repository = MorphologyRepository(test_setup.mr_rot_path)
 
     def test_morphology_map(self):
         # Create and place a set of 10 Golgi cells and assign them to a morphology based on their rotation
@@ -169,25 +171,23 @@ class TestRotation(unittest.TestCase):
     """
 
     def test_rotate(self):
-        spoofed_data = np.array(
-            [
-                [0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, -1.0],
-                [1.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, -1.0],
-                [2.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 1.0, -1.0],
-            ]
+        root = Branch(
+            np.array([0.0, 1.0, 2.0]),
+            np.array([0.0, 0.0, 0.0]),
+            np.array([0.0, 0.0, 0.0]),
+            np.array([1.0, 1.0, 1.0]),
         )
-        spoofed_meta = {"name": "test_rotation"}
-        m = TrueMorphology.from_repo_data(spoofed_data, spoofed_meta)
+        m = Morphology([root])
         v0 = [1.0, 0.0, 0.0]
         v = [0.0, 1.0, 0.0]
         # Store pre rotation checks
-        x1 = m.compartments[0].end.copy()
+        x0 = m.compartments[0].end.copy()
         # Rotate
         m.rotate(v0, v)
         s = m.compartments[0].start
         # Verify rotations
         self.assertEqualPoints(s, [0.0, 0.0, 0.0], "Rotation moved the origin!")
-        self.assertEqualPoints(m.compartments[0].end, [0.0, 1.0, 0.0], v0=v0, v=v, x0=x1)
+        self.assertEqualPoints(m.compartments[0].end, [0.0, 1.0, 0.0], v0=v0, v=v, x0=x0)
 
     def assertEqualPoints(self, x, p, msg=None, v0=None, v=None, x0=None):
         """

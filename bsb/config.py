@@ -5,7 +5,7 @@
 import os, sys, site
 from inspect import isclass
 from .models import CellType, Layer
-from .morphologies import Morphology as BaseMorphology
+from .morphologies import Representation
 from .connectivity import ConnectionStrategy, FiberTransform
 from .placement import PlacementStrategy
 from .output import OutputFormatter, HDF5Formatter
@@ -666,7 +666,7 @@ class JSONConfig(ScaffoldConfig):
         name = cell_type_name + "_morphology"
         node_name = "cell_types.{}.morphology".format(cell_type_name)
         morphology_class = assert_attr(section, "class", node_name)
-        morphology = load_configurable_class(name, morphology_class, BaseMorphology)
+        morphology = load_configurable_class(name, morphology_class, Representation)
         fill_configurable_class(morphology, section, excluded=["class"])
         self.add_morphology(morphology)
         return morphology
