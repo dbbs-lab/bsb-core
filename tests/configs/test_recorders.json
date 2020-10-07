@@ -80,7 +80,7 @@
         "gen": {
           "device": "poisson_generator",
           "io": "input",
-          "type": "cell_type",
+          "targetting": "cell_type",
           "cell_types": ["test_cell"],
           "parameters": {
             "rate": 1.0,
@@ -91,7 +91,7 @@
         "record_spikes": {
           "device": "spike_detector",
           "io": "output",
-          "type": "cell_type",
+          "targetting": "cell_type",
           "cell_types": ["test_cell"],
           "parameters": {
             "withgid": true,
@@ -99,7 +99,7 @@
             "to_file": true,
             "label": "test_spikes"
           }
-        },
+        }
       }
     }
   }

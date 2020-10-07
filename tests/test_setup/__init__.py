@@ -5,6 +5,9 @@ from bsb.core import Scaffold, from_hdf5
 from bsb.config import JSONConfig
 
 scaffold_lookup = {}
+mr_path = os.path.join(os.path.dirname(__file__), "..", "morphologies.h5")
+mr_rot_path = os.path.join(os.path.dirname(__file__), "..", "morpho_rotated.h5")
+rotations_step = [30, 60]
 
 
 def get_test_network(x=None, z=None):
@@ -41,9 +44,23 @@ def _create_test_network(*dimensions):
 
 
 def prep_morphologies():
-    if not os.path.exists(os.path.join(__file__, "..", "morphologies.hdf5")):
+    if not os.path.exists(mr_path):
         from bsb.output import MorphologyRepository as MR
         import dbbs_models
 
-        mr = MR("morphologies.hdf5")
+        mr = MR(mr_path)
         mr.import_arbz_module(dbbs_models)
+
+
+def prep_rotations():
+    if not os.path.exists(mr_rot_path):
+        from bsb.output import MorphologyRepository, MorphologyCache
+        import dbbs_models
+
+        mr = MorphologyRepository(mr_rot_path)
+        mr.get_handle("w")
+        mr.import_arbz("GranuleCell", dbbs_models.GranuleCell)
+        mr.import_arbz("GolgiCell", dbbs_models.GolgiCell)
+        mr.import_arbz("GolgiCell_A", dbbs_models.GolgiCell)
+        mc = MorphologyCache(mr)
+        mc.rotate_all_morphologies(rotations_step[0], rotations_step[1])

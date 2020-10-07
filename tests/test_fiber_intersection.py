@@ -13,7 +13,7 @@ def relative_to_tests_folder(path):
 
 
 fiber_transform_config = relative_to_tests_folder("configs/test_fiber_intersection.json")
-morpho_file = relative_to_tests_folder("morphologies.hdf5")
+morpho_file = relative_to_tests_folder("morphologies.h5")
 
 
 class TestFiberIntersection(unittest.TestCase):

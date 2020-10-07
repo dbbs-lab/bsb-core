@@ -616,44 +616,47 @@ class MorphologyCache:
     def __init__(self, morphology_repository):
         self.mr = morphology_repository
 
-    def rotate_all_morphologies(self, phi_value, theta_value=None):
+    def rotate_all_morphologies(self, phi_step, theta_step=None):
         """
         Extracts all unrotated morphologies from a morphology_repository and creates rotated versions, at sampled orientations in the 3D space
 
-        :param phi_value: resolution of azimuth angle sampling, in degrees
-        :type phi_value: int
-        :param theta_value: resolution of elevation angle sampling, in degrees
-        :type phi_value: int, optional
+        :param phi_step: Resolution of azimuth angle sampling, in degrees
+        :type phi_step: int
+        :param theta_step: Resolution of elevation angle sampling, in degrees
+        :type phi_step: int, optional
 
         """
-
         # Checking resolution step along the two angles - equal for both if only one value is given
-        if theta_value is None:
-            resolution = [phi_value, phi_value]
+        if theta_step is None:
+            resolutions = [phi_step, phi_step]
         else:
-            resolution = [phi_value, theta_value]
-
+            resolutions = [phi_step, theta_step]
         # Compute discretized orientations based on resolution
-        phi, theta = self._discretize_orientations(resolution)
-
+        phi, theta = self._discretize_orientations(*resolutions)
         # Get all unrotated morphologies from the morphology repository
         morphologies_unrotated = self.mr.list_morphologies()
-
         for morpho in morphologies_unrotated:
             self._construct_morphology_rotations(morpho, phi, theta)
 
-    def _discretize_orientations(self, resolution):
+    def rotate_morphology(self, name, phi_step, theta_step=None):
+        # Checking resolution step along the two angles - equal for both if only one value is given
+        if theta_step is None:
+            resolutions = [phi_step, phi_step]
+        else:
+            resolutions = [phi_step, theta_step]
+        # Compute discretized orientations based on resolution
+        phi, theta = self._discretize_orientations(*resolutions)
+        self._construct_morphology_rotations(name, phi, theta)
+
+    def _discretize_orientations(self, phi_step, theta_step):
         """
         Returns two arrays of azimuth and elevation angles discretized in the 3D space
         """
         # Computing the grid of angles to discretize the 360° orientation range
-        num_step = [
-            int(360) / r for r in resolution
-        ]  # Number of steps for sampling the 3D sphere
+        num_phi = (int(360) / phi_step + 1) * 1j
+        num_theta = (int(360) / theta_step + 1) * 1j
 
-        phi, theta = np.mgrid[
-            0.0 : 360 : (num_step[0] + 1) * 1j, 0.0 : 360 : (num_step[1] + 1) * 1j
-        ]
+        phi, theta = np.mgrid[0.0:360:num_phi, 0.0:360:num_theta]
         # From 2D to 1D arrays
         phi = phi.flatten()
         theta = theta.flatten()
@@ -666,36 +669,30 @@ class MorphologyCache:
         """
         # Extract a list of rotated versions of the current morphology
         morpho_rotated_all = self.mr.list_morphologies(only_rotations=True)
-        morpho_rotated = filter(lambda x: x.find(morpho_name) != -1, morpho_rotated_all)
+        morpho_rotated = [m for m in morpho_rotated_all if m.find(morpho_name) != -1]
         # Rotating the morphology according to the discretized orientation vectors.
-        for d in range(len(phi)):
-            # For internal computation, angles are converted in radiants, while they are provided in degrees in function inputs or file names (more user-friendly)
-            phi_angle = phi[d] * np.pi / 180
-            theta_angle = theta[d] * np.pi / 180
+        for _phi, _theta in zip(map(_round, phi), map(_round, theta)):
+            print(f"Phi: {_phi} Theta: {_theta}")
             # Check if rotated morphology already exists
-            if not any(
-                "__" + str(int(phi[d])) + "_" + str(int(theta[d])) in key
-                for key in morpho_rotated
-            ):
-                self._construct_morphology_rotation(morpho_name, phi_angle, theta_angle)
+            if f"{morpho_name}__{_phi}_{_theta}" not in morpho_rotated:
+                self._construct_morphology_rotation(morpho_name, _phi, _theta)
 
-    def _construct_morphology_rotation(self, morpho_name, phi_value, theta_value):
+    def _construct_morphology_rotation(self, morpho_name, phi, theta):
         """
         Construct the rotated morphology according to orientation vector identified by phi_value and theta_value and save in the morphology repository
         """
+        # For internal computation, angles are converted in radiants, while they are provided in degrees in function inputs or file names (more user-friendly)
+        phi_rad = phi * np.pi / 180
+        theta_rad = theta * np.pi / 180
         morpho = self.mr.get_morphology(morpho_name)
         start_vector = np.array([0, 1, 0])
-        end_vector = np.array([np.cos(phi_value), np.sin(phi_value), np.sin(theta_value)])
+        end_vector = np.array([np.cos(phi_rad), np.sin(phi_rad), np.sin(theta_rad)])
         morpho.rotate(start_vector, end_vector)
 
-        self.mr.save_morphology(
-            morpho_name
-            + "__"
-            + str(int(round(phi_value * 180 / np.pi)))
-            + "_"
-            + str(int(round(theta_value * 180 / np.pi))),
-            morpho.compartments,
-        )
+        self.mr.save_morphology(f"{morpho_name}__{phi}_{theta}", morpho)
+
+
+_round = lambda x: int(round(x))
 
 
 class HDF5Formatter(OutputFormatter, MorphologyRepository):
