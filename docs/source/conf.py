@@ -33,6 +33,7 @@ autodoc_mock_imports = [
     "scipy",
     "scipy.spatial",
     "scipy.stats",
+    "scipy.stats.distributions",
     "six",
     "plotly",
     "plotly.graph_objects",
