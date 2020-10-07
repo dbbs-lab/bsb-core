@@ -1,5 +1,5 @@
 # Testing rotated_morphologies
-import unittest, os, sys, numpy as np, h5py
+import unittest, os, sys, numpy as np, h5py, test_setup
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from bsb.core import Scaffold, from_hdf5
@@ -30,13 +30,20 @@ class TestMorphologyCache(unittest.TestCase):
 
     @classmethod
     def setUpClass(self):
-        super(TestMorphologyCache, self).setUpClass()
+        import dbbs_models
+
+        test_setup.prep_morphologies()
+
+        super().setUpClass()
         config = JSONConfig()
         self.scaffold = Scaffold(config)
-        dest = copyfile(
-            relative_to_tests_folder("morphologies_test_original.hdf5"), morpho_file
-        )
-        self.scaffold.morphology_repository = MorphologyRepository(morpho_file)
+        self.scaffold.morphology_repository = mr = MorphologyRepository(morpho_file)
+        mr.get_handle("w")
+        mr.import_arbz("GranuleCell", dbbs_models.GranuleCell)
+        mr.import_arbz("GolgiCell", dbbs_models.GolgiCell)
+        mr.import_arbz("GolgiCell_A", dbbs_models.GolgiCell)
+        mr.import_arbz("GolgiCell_B", dbbs_models.GolgiCell)
+        mr.import_arbz("GolgiCell_C", dbbs_models.GolgiCell)
         self.morphologies_start = self.scaffold.morphology_repository.list_morphologies()
         self.morphology_cache = MorphologyCache(self.scaffold.morphology_repository)
         self.morphology_cache.rotate_all_morphologies(step[0], step[1])
@@ -118,10 +125,22 @@ class TestMorhologySetsRotations(unittest.TestCase):
 
     @classmethod
     def setUpClass(self):
-        super(TestMorhologySetsRotations, self).setUpClass()
-        config = JSONConfig(file=config_file)
+        import dbbs_models
+
+        test_setup.prep_morphologies()
+
+        super().setUpClass()
+        config = JSONConfig()
         self.scaffold = Scaffold(config)
-        self.scaffold.morphology_repository = MorphologyRepository(morpho_set_file)
+        self.scaffold.morphology_repository = mr = MorphologyRepository(morpho_set_file)
+        mr.get_handle("w")
+        mr.import_arbz("GranuleCell", dbbs_models.GranuleCell)
+        mr.import_arbz("GolgiCell", dbbs_models.GolgiCell)
+        mr.import_arbz("GolgiCell_A", dbbs_models.GolgiCell)
+        mr.import_arbz("GolgiCell_B", dbbs_models.GolgiCell)
+        mr.import_arbz("GolgiCell_C", dbbs_models.GolgiCell)
+        mc = MorphologyCache(self.scaffold.morphology_repository)
+        mc.rotate_all_morphologies(step[0], step[1])
 
     def test_morphology_map(self):
         # Create and place a set of 10 Golgi cells and assign them to a morphology based on their rotation

@@ -8,8 +8,10 @@ from .reporting import report
 
 class Compartment:
     """
-    Compartments are line segments with a radius. They are the building block of
-    :class:`Morphologies <.morphologies.Morphology>`.
+    Compartments are line segments with a radius. They can be constructed from the points
+    on a :class:`Branch <.morphologies.Branch>` or by concatenating the results of a
+    depth-first iteration of the branches of a :class:`Morphology
+    <.morphologies.Morphology>`.
     """
 
     def __init__(
@@ -90,6 +92,11 @@ def _validate_branch_args(args):
 
 
 class Branch:
+    """
+    A vector based representation of a series of point in space. Can be a root or
+    connected to a parent branch. Can be a terminal branch or have multiple children.
+    """
+
     vectors = ["x", "y", "z", "radii"]
 
     def __init__(self, *args, labels=None):
@@ -103,19 +110,63 @@ class Branch:
 
     @property
     def size(self):
+        """
+        Returns the amount of points on this branch
+
+        :returns: Number of points on the branch.
+        :rtype: int
+        """
         return len(getattr(self, self.__class__.vectors[0]))
 
+    @property
+    def terminal(self):
+        """
+        Returns whether this branch is terminal or has children.
+
+        :returns: True if this branch has no children, False otherwise.
+        :rtype: bool
+        """
+        return not self._children
+
     def label(self, *labels):
+        """
+        Add labels to every point on the branch. See :func:`label_points
+        <.morphologies.Morphology.label_points>` to label individual points.
+
+        :param labels: Label(s) for the branch.
+        :type labels: str
+        """
         self._full_labels.extend(labels)
 
     def label_points(self, label, mask):
+        """
+        Add labels to specific points on the branch. See :func:`label
+        <.morphologies.Morphology.label>` to label the entire branch.
+
+        :param label: Label to apply to the points.
+        :type label: str
+        :param mask: Boolean mask equal in size to the branch that determines which points get labelled.
+        :type mask: np.ndarray(dtype=bool, shape=(branch_size,))
+        """
         self._label_masks[label] = np.array(mask, dtype=bool)
 
     def attach_child(self, branch):
+        """
+        Attach a branch as a child to this branch.
+
+        :param branch: Child branch
+        :type branch: :class:`Branch <.morphologies.Branch>`
+        """
         self._children.append(branch)
         branch._parent = self
 
     def remove_child(self, branch):
+        """
+        Remove a branch as a child from this branch.
+
+        :param branch: Child branch
+        :type branch: :class:`Branch <.morphologies.Branch>`
+        """
         self._children.remove(branch)
         branch._parent = None
 
