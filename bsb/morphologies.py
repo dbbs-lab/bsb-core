@@ -1,4 +1,4 @@
-import abc, numpy as np, pickle, h5py, math
+import abc, numpy as np, pickle, h5py, math, itertools
 from .voxels import VoxelCloud, detect_box_compartments, Box
 from sklearn.neighbors import KDTree
 from .exceptions import *
