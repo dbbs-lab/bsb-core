@@ -29,6 +29,7 @@ autodoc_mock_imports = [
     "joblib",
     "numpy",
     "sklearn",
+    "sklearn.neighbors",
     "scipy",
     "six",
     "plotly",
@@ -44,9 +45,6 @@ class Mock(types.ModuleType):
 
     def __call__(self, *args, **kwargs):
         return 1
-
-    def __iter__(self):
-        yield Mock("iterated")
 
 
 for mod in autodoc_mock_imports:
