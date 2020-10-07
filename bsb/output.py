@@ -672,7 +672,6 @@ class MorphologyCache:
         morpho_rotated = [m for m in morpho_rotated_all if m.find(morpho_name) != -1]
         # Rotating the morphology according to the discretized orientation vectors.
         for _phi, _theta in zip(map(_round, phi), map(_round, theta)):
-            print(f"Phi: {_phi} Theta: {_theta}")
             # Check if rotated morphology already exists
             if f"{morpho_name}__{_phi}_{_theta}" not in morpho_rotated:
                 self._construct_morphology_rotation(morpho_name, _phi, _theta)
