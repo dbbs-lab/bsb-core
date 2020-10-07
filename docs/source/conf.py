@@ -37,6 +37,7 @@ autodoc_mock_imports = [
     "plotly",
     "plotly.graph_objects",
     "plotly.graph_objs",
+    "plotly.subplots",
 ]
 
 
