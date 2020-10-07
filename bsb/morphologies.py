@@ -170,23 +170,21 @@ class Branch:
         self._children.remove(branch)
         branch._parent = None
 
-    def to_compartments(self, start_id=0, last_parent=None):
+    def to_compartments(self, start_id=0, parent=None):
         comp_id = start_id
 
         def to_comp(data, labels):
-            nonlocal comp_id, last_parent
-            comp = Compartment(*data, id=comp_id, parent=last_parent, labels=labels)
+            nonlocal comp_id, parent
+            comp = Compartment(*data, id=comp_id, parent=parent, labels=labels)
             comp_id += 1
-            last_parent = comp
+            parent = comp
             return comp
 
         # Walk over each pair of points as the start and end if a compartment.
         # Start from the end of the parent branch's last compartment.
         comps = [
             to_comp(data, labels)
-            for data, labels in _pairwise_iter(
-                self.walk(), self.label_walk(), last_parent
-            )
+            for data, labels in _pairwise_iter(self.walk(), self.label_walk())
         ]
         return comps
 
@@ -203,16 +201,13 @@ class Branch:
         return (label_row[label_matrix[i, :]] for i in range(n))
 
 
-def _pairwise_iter(walk_iter, labels_iter, parent=None):
-    if parent:
-        start = parent.end
-    else:
-        try:
-            start = np.array(next(walk_iter)[:3])
-            # Throw away the first point's labels as it is not part of a compartment.
-            _ = next(labels_iter)
-        except StopIteration:
-            return iter(())
+def _pairwise_iter(walk_iter, labels_iter):
+    try:
+        start = np.array(next(walk_iter)[:3])
+        # Throw away the first point's labels as there are only n - 1 compartments.
+        _ = next(labels_iter)
+    except StopIteration:
+        return iter(())
     for data in walk_iter:
         end = np.array(data[:3])
         radius = data[3]
