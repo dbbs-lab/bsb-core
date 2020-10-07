@@ -6,6 +6,7 @@ from bsb.config import JSONConfig
 
 scaffold_lookup = {}
 mr_path = os.path.join(os.path.dirname(__file__), "..", "morphologies.h5")
+mr_top_path = os.path.join(os.path.dirname(__file__), "..", "..", "morphologies.h5")
 mr_rot_path = os.path.join(os.path.dirname(__file__), "..", "morpho_rotated.h5")
 rotations_step = [30, 60]
 
@@ -50,6 +51,9 @@ def prep_morphologies():
 
         mr = MR(mr_path)
         mr.import_arbz_module(dbbs_models)
+        import shutil
+
+        shutil.copyfile(mr_path, mr_top_path)
 
 
 def prep_rotations():
