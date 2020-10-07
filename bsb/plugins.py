@@ -1,16 +1,21 @@
 import pkg_resources, errr
 from .exceptions import *
+import types
 
 
 def discover(category, *args, **kwargs):
-    plugins = {}
-    for plugin in pkg_resources.iter_entry_points("bsb." + category):
+    registry = {}
+    for entry in pkg_resources.iter_entry_points("bsb." + category):
         try:
-            advert = plugin.load()
+            advert = entry.load()
             if hasattr(advert, "__plugin__"):
                 advert = advert.__plugin__
-            advert._bsb_plugin = plugin
-            plugins[plugin.name] = advert
+            # Use `types.FunctionType` over `callable` as `callable` might confuse plugin
+            # objects that have a `__call__` method with plugin factory functions.
+            if isinstance(advert, types.FunctionType):
+                advert = advert()
+            registry[name] = advert
+            _decorate_advert(advert, entry)
         except Exception as e:  # pragma: nocover
             errr.wrap(
                 PluginError,
@@ -18,4 +23,8 @@ def discover(category, *args, **kwargs):
                 plugin,
                 prepend="Could not instantiate the `%plugin.name%` plugin:\n",
             )
-    return plugins
+
+    return registry
+
+def _decorate_advert(advert, entry):
+    advert._bsb_entry_point = entry

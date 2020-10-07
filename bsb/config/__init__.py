@@ -105,7 +105,7 @@ def _parser_method_docs(parser):
     )
 
 
-def parser_factory(parser):
+def parser_factory(name, parser):
     def parser_method(self, file=None, data=None, path=None):
         if file is not None:
             file = os.path.abspath(file)
@@ -113,19 +113,19 @@ def parser_factory(parser):
                 data = f.read()
         tree, meta = parser().parse(data, path=path or file)
         conf = self.Configuration.__cast__(tree, None)
-        conf._parser = parser._bsb_plugin.name
+        conf._parser = name
         conf._meta = meta
         conf._file = file
         return conf
 
-    parser_method.__name__ = "from_" + parser._bsb_plugin.name
+    parser_method.__name__ = "from_" + name
     parser_method.__doc__ = _parser_method_docs(parser)
     return parser_method
 
 
 for name, parser in plugins.discover("config.parsers").items():
     ConfigurationModule._parser_classes[name] = parser
-    setattr(ConfigurationModule, "from_" + name, parser_factory(parser))
+    setattr(ConfigurationModule, "from_" + name, parser_factory(name, parser))
     ConfigurationModule.__all__.append("from_" + name)
 
 ConfigurationModule.__all__ = sorted(ConfigurationModule.__all__)

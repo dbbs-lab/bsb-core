@@ -593,8 +593,8 @@ class ConfigurationAttributeSlot(ConfigurationAttribute):
             "Configuration slot '{}' of {} is empty. The {} plugin provided by '{}' should fill the slot with a configuration attribute.".format(
                 self.attr_name,
                 instance.get_node_name(),
-                instance.__class__._bsb_plugin.module_name,
-                instance.__class__._bsb_plugin.dist,
+                instance.__class__._bsb_entry_point.module_name,
+                instance.__class__._bsb_entry_point.dist,
             )
         )
 

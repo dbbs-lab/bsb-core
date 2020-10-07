@@ -53,6 +53,10 @@ Examples
     list_of_numbers = config.attr(
       type=types.list(type=float, size=3)
     )
+		# A scipy.stats distribution
+		chi_distr = config.attr(type=types.distribution())
+		# A python statement evaluation
+		statement = config.attr(type=types.evaluation())
     # Create an np.ndarray with 3 elements out of a scalar
     expand = config.attr(
         type=types.scalar_expand(
