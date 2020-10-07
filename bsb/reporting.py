@@ -68,7 +68,7 @@ def warn(message, category=None):
     Send a warning.
 
     :param message: Warning message
-    :type message: string
+    :type message: str
     :param category: The class of the warning.
     """
     if _verbosity > 0:
