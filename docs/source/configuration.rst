@@ -18,8 +18,8 @@ The root node accepts the following attributes:
   files so it can be used for reference.
 * :guilabel:`output`: Configuration object for the output :class:`.output.HDF5Formatter`.
 * :guilabel:`network_architecture`: Configuration object for general simulation properties.
-* :guilabel:`layers`: A dictionary containing the :class:`bsb.models.Layer` configurations.
-* :guilabel:`cell_types`: A dictionary containing the :class:`bsb.models.CellType` configurations.
+* :guilabel:`layers`: A dictionary containing the :class:`.models.Layer` configurations.
+* :guilabel:`cell_types`: A dictionary containing the :class:`.models.CellType` configurations.
 * :guilabel:`connection_types`: A dictionary containing the :class:`.connectivity.ConnectionStrategy` configurations.
 * :guilabel:`simulations`: A dictionary containing the :class:`.simulation.SimulationAdapter` configurations.
 
