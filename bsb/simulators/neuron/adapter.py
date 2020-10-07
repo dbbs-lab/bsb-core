@@ -1,5 +1,6 @@
 from ...simulation import (
     SimulatorAdapter,
+    SimulationRecorder,
     CellModel,
     ConnectionModel,
     DeviceModel,
