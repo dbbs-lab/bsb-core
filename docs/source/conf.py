@@ -28,7 +28,7 @@ autodoc_mock_imports = [
     "h5py",
     "joblib",
     "numpy",
-    "scikit-learn",
+    "sklearn",
     "scipy",
     "six",
     "plotly",
