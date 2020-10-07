@@ -16,6 +16,7 @@ import os
 import sys, types
 
 sys.path.insert(0, os.path.abspath("../.."))
+
 autodoc_mock_imports = [
     "glia",
     "patch",
@@ -25,24 +26,14 @@ autodoc_mock_imports = [
     "arborize",
     "rtree",
     "rtree.index",
+    "h5py",
+    "joblib",
+    "numpy",
+    "sklearn",
+    "scipy",
+    "six",
+    "plotly",
 ]
-
-
-class Mock(types.ModuleType):
-    def __repr__(self):
-        return "<mocked object '{}'>".format(self.__name__)
-
-    def __getattr__(self, attr):
-        return Mock("recursive")
-
-    def __call__(self, *args, **kwargs):
-        return 1
-
-
-for mod in autodoc_mock_imports:
-    sys.modules[mod] = Mock(mod)
-
-import bsb, bsb.config
 
 
 # -- Project information -----------------------------------------------------
@@ -51,10 +42,17 @@ project = "DBBS Brain Scaffold Builder"
 copyright = "2020, Neurocomputational Lab, Department of Brain and Behavioral Sciences, University of Pavia"
 author = "Robin De Schepper et al., Neurocomputational Lab, University of Pavia"
 
+bsb_init_file = os.path.join(os.path.dirname(__file__), "..", "..", "bsb", "__init__.py")
+with open(bsb_init_file, "r") as f:
+    for line in f:
+        if "__version__ = " in line:
+            exec(line.strip())
+            break
+
 # The short X.Y version
-version = ".".join(bsb.__version__.split(".")[0:2])
+version = ".".join(__version__.split(".")[0:2])
 # The full version, including alpha/beta/rc tags
-release = bsb.__version__
+release = __version__
 
 
 # -- General configuration ---------------------------------------------------

@@ -14,6 +14,10 @@ from .exceptions import *
 
 
 class CellType(SortableByAfter):
+    """
+    A CellType represents a population of cells.
+    """
+
     def __init__(self, name, placement=None):
         self.name = name
         self.placement = placement
@@ -108,6 +112,11 @@ class CellType(SortableByAfter):
 
 
 class Layer(dimensions, origin):
+    """
+    A Layer represents a compartment of the topology of the simulation volume that slices
+    the volume in horizontally stacked portions.
+    """
+
     def __init__(self, name, origin, dimensions, scaling=True):
         # Name of the layer
         self.name = name
