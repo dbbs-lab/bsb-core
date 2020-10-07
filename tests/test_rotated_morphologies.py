@@ -177,7 +177,7 @@ class TestRotation(unittest.TestCase):
             np.array([0.0, 0.0, 0.0]),
             np.array([1.0, 1.0, 1.0]),
         )
-        m = Morphology(None, [root])
+        m = Morphology([root])
         v0 = [1.0, 0.0, 0.0]
         v = [0.0, 1.0, 0.0]
         # Store pre rotation checks

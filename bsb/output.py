@@ -340,7 +340,7 @@ class MorphologyRepository(HDF5TreeHandler):
                 MorphologyWarning,
             )
 
-        self.save_morphology(name, Morphology(None, roots), overwrite=overwrite)
+        self.save_morphology(name, Morphology(roots), overwrite=overwrite)
 
         # Load imported morphology to test it
         morphology = self.get_morphology(name)
@@ -427,7 +427,7 @@ class MorphologyRepository(HDF5TreeHandler):
                     "Attempting to load unknown morphology '{}'".format(name)
                 )
             group = self._raw_morphology(name, handler)
-            return _morphology(scaffold, group)
+            return _morphology(group)
 
     def store_voxel_cloud(self, morphology, overwrite=False):
         raise NotImplementedError("Voxel cloud storage is not yet reimplemented")
@@ -564,12 +564,12 @@ def _int_ordered_iter(group):
     return (group[str(o)] for o in order)
 
 
-def _morphology(scaffold, m_root_group):
+def _morphology(m_root_group):
     b_root_group = m_root_group["branches"]
     branches = [_branch(b_group) for b_group in _int_ordered_iter(b_root_group)]
     _attach_branches(branches)
     roots = [b for b in branches if b._parent is None]
-    morpho = Morphology(scaffold, roots)
+    morpho = Morphology(roots)
     # Until after rework a morphology still needs to know its name:
     morpho.morphology_name = m_root_group.name.split("/")[-1]
     return morpho

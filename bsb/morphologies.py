@@ -45,7 +45,7 @@ class Compartment:
     def spherical(self):
         # Calculate the radius of the outer sphere of this compartment
         if not hasattr(self, "_spherical"):
-            self._spherical = np.sqrt((c.start[:] - c.end[:]) ** 2) / 2
+            self._spherical = np.sqrt(np.sum((self.start - self.end) ** 2)) / 2
         return self._spherical
 
     @classmethod
@@ -160,15 +160,18 @@ class Branch:
         self._children.append(branch)
         branch._parent = self
 
-    def remove_child(self, branch):
+    def detach_child(self, branch):
         """
         Remove a branch as a child from this branch.
 
         :param branch: Child branch
         :type branch: :class:`Branch <.morphologies.Branch>`
         """
-        self._children.remove(branch)
-        branch._parent = None
+        try:
+            self._children.remove(branch)
+            branch._parent = None
+        except ValueError:
+            raise ValueError("Branch could not be detached, it is not a child branch.")
 
     def to_compartments(self, start_id=0, parent=None):
         comp_id = start_id
@@ -224,8 +227,7 @@ class Morphology:
     :todo: Uncouple from the MorphologyRepository and merge with TrueMorphology.
     """
 
-    def __init__(self, scaffold, roots):
-        self.scaffold = scaffold
+    def __init__(self, roots):
         self.cloud = None
         self.has_morphology = True
         self.has_voxels = False
