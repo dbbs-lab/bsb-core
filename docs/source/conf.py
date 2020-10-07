@@ -31,6 +31,7 @@ autodoc_mock_imports = [
     "sklearn",
     "sklearn.neighbors",
     "scipy",
+    "scipy.spatial",
     "six",
     "plotly",
 ]
