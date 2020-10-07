@@ -680,7 +680,9 @@ def plot_traces(traces, fig=None, show=True, legend=True, mod=None, cutoff=0):
     subplots_fig = make_subplots(
         cols=1, rows=len(traces), subplot_titles=[trace.title for trace in traces]
     )
-    subplots_fig.update_layout(height=len(traces) * 130)
+    subplots_fig.update_layout(height=max(len(traces) * 130, 300))
+
+
     if mod is not None:
         mod(subplots_fig)
     # Overwrite the layout and grid of the single plot that is handed to us
@@ -706,6 +708,7 @@ def plot_traces(traces, fig=None, show=True, legend=True, mod=None, cutoff=0):
                 row=i + 1,
             )
             legend_groups.add(legends[j])
+
     return fig
 
 
