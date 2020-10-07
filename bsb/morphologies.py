@@ -408,57 +408,6 @@ def _compartment_tree(compartments):
     return KDTree(np.array([c.end for c in compartments]))
 
 
-class Representation(ConfigurableClass):
-    pass
-
-
-class GranuleCellGeometry(Representation):
-    casts = {
-        "dendrite_length": float,
-        "pf_height": float,
-        "pf_height_sd": float,
-    }
-    required = ["dendrite_length", "pf_height", "pf_height_sd"]
-
-    def validate(self):
-        pass
-
-
-class PurkinjeCellGeometry(Representation):
-    def validate(self):
-        pass
-
-
-class GolgiCellGeometry(Representation):
-    casts = {
-        "dendrite_radius": float,
-        "axon_x": float,
-        "axon_y": float,
-        "axon_z": float,
-    }
-
-    required = ["dendrite_radius"]
-
-    def validate(self):
-        pass
-
-
-class RadialGeometry(Representation):
-    casts = {
-        "dendrite_radius": float,
-    }
-
-    required = ["dendrite_radius"]
-
-    def validate(self):
-        pass
-
-
-class NoGeometry(Representation):
-    def validate(self):
-        pass
-
-
 def get_rotation_matrix(v0, v):
     I = np.identity(3)
     # Reduce 1-size dimensions
