@@ -72,8 +72,8 @@ def make_get_node_name(node_cls, root):
 
 def make_cast(node_cls, dynamic=False, pluggable=False, root=False):
     """
-        Return a function that can cast a raw configuration node as specified by the
-        attribute descriptions in the node class.
+    Return a function that can cast a raw configuration node as specified by the
+    attribute descriptions in the node class.
     """
     __cast__ = _make_cast(node_cls)
     if root:
@@ -349,13 +349,24 @@ def make_dictable(node_cls):
     node_cls.__getitem__ = __getitem__
 
 
+def make_tree(node_cls):
+    def get_tree(instance):
+        return {
+            name: tree
+            for name, attr in instance.__class__._config_attrs.items()
+            if (tree := attr.tree(instance)) is not None
+        }
+
+    node_cls.__tree__ = get_tree
+
+
 def walk_node_attributes(node):
     """
-        Walk over all of the child configuration nodes and attributes of ``node``.
+    Walk over all of the child configuration nodes and attributes of ``node``.
 
-        :returns: attribute, node, parents
-        :rtype: :class:`ConfigurationAttribute <.config._attrs.ConfigurationAttribute>`,
-          any, tuple
+    :returns: attribute, node, parents
+    :rtype: :class:`ConfigurationAttribute <.config._attrs.ConfigurationAttribute>`,
+      any, tuple
     """
     if not hasattr(node.__class__, "_config_attrs"):
         if hasattr(node, "_attr"):
@@ -378,10 +389,10 @@ def walk_node_attributes(node):
 
 def walk_nodes(node):
     """
-        Walk over all of the child configuration nodes of ``node``.
+    Walk over all of the child configuration nodes of ``node``.
 
-        :returns: node generator
-        :rtype: any
+    :returns: node generator
+    :rtype: any
     """
     if not hasattr(node.__class__, "_config_attrs"):
         if hasattr(node, "_attr"):

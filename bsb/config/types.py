@@ -16,13 +16,13 @@ def any():
 
 def in_(container):
     """
-        Type validator. Checks whether the given value occurs in the given container.
-        Uses the `in` operator.
+    Type validator. Checks whether the given value occurs in the given container.
+    Uses the `in` operator.
 
-        :param container: List of possible values
-        :type container: container
-        :returns: Type validator function
-        :rtype: function
+    :param container: List of possible values
+    :type container: container
+    :returns: Type validator function
+    :rtype: function
     """
     error_msg = "a value in: " + str(container)
 
@@ -38,13 +38,13 @@ def in_(container):
 
 def or_(*type_args):
     """
-        Type validator. Attempts to cast the value to any of the given types in order.
+    Type validator. Attempts to cast the value to any of the given types in order.
 
-        :param type_args: Another type validator
-        :type type_args: function
-        :returns: Type validator function
-        :raises: TypeError if none of the given type validators can cast the value.
-        :rtype: function
+    :param type_args: Another type validator
+    :type type_args: function
+    :returns: Type validator function
+    :raises: TypeError if none of the given type validators can cast the value.
+    :rtype: function
     """
     handler_name = "any of: " + ", ".join(map(lambda x: x.__name__, type_args))
     # Make sure to wrap all type handlers so that they accept the parent and key args.
@@ -94,15 +94,15 @@ def or_(*type_args):
 
 def class_(module_path=None):
     """
-        Type validator. Attempts to import the value as the name of a class, relative to
-        the `module_path` entries, absolute or just returning it if it is already a class.
+    Type validator. Attempts to import the value as the name of a class, relative to
+    the `module_path` entries, absolute or just returning it if it is already a class.
 
-        :param module_path: List of the modules that should be searched when doing a
-          relative import.
-        :type module_path: list of module
-        :returns: Type validator function
-        :raises: TypeError when value can't be cast.
-        :rtype: function
+    :param module_path: List of the modules that should be searched when doing a
+      relative import.
+    :type module_path: list of module
+    :returns: Type validator function
+    :raises: TypeError when value can't be cast.
+    :rtype: function
     """
 
     def type_handler(value):
@@ -120,16 +120,16 @@ _int = int
 
 def int(min=None, max=None):
     """
-        Type validator. Attempts to cast the value to an int, optionally within some
-        bounds.
+    Type validator. Attempts to cast the value to an int, optionally within some
+    bounds.
 
-        :param min: Minimum valid value
-        :type min: int
-        :param max: Maximum valid value
-        :type max: int
-        :returns: Type validator function
-        :raises: TypeError when value can't be cast.
-        :rtype: function
+    :param min: Minimum valid value
+    :type min: int
+    :param max: Maximum valid value
+    :type max: int
+    :returns: Type validator function
+    :raises: TypeError when value can't be cast.
+    :rtype: function
     """
     handler_name = "int"
     if min is not None and max is not None:
@@ -154,16 +154,16 @@ _float = float
 
 def float(min=None, max=None):
     """
-        Type validator. Attempts to cast the value to an float, optionally within some
-        bounds.
+    Type validator. Attempts to cast the value to an float, optionally within some
+    bounds.
 
-        :param min: Minimum valid value
-        :type min: float
-        :param max: Maximum valid value
-        :type max: float
-        :returns: Type validator function
-        :raises: TypeError when value can't be cast.
-        :rtype: function
+    :param min: Minimum valid value
+    :type min: float
+    :param max: Maximum valid value
+    :type max: float
+    :returns: Type validator function
+    :raises: TypeError when value can't be cast.
+    :rtype: function
     """
     handler_name = "float"
     if min is not None and max is not None:
@@ -183,19 +183,53 @@ def float(min=None, max=None):
     return type_handler
 
 
+def number(min=None, max=None):
+    """
+    Type validator. If the given value is an int returns an int, tries to cast to float
+    otherwise
+
+    :param min: Minimum valid value
+    :type min: float
+    :param max: Maximum valid value
+    :type max: float
+    :returns: Type validator function
+    :raises: TypeError when value can't be cast.
+    :rtype: function
+    """
+    handler_name = "number"
+    if min is not None and max is not None:
+        handler_name += " between [{}, {}]".format(min, max)
+    elif min is not None:
+        handler_name += " >= {}".format(min)
+    elif max is not None:
+        handler_name += " <= {}".format(max)
+
+    def type_handler(value):
+        if isinstance(value, _int):
+            return value
+        else:
+            try:
+                return _float(value)
+            except:
+                raise TypeError("Could not cast {} to a {}.".format(value, handler_name))
+
+    type_handler.__name__ = handler_name
+    return type_handler
+
+
 def scalar_expand(scalar_type, size=None, expand=None):
     """
-        Create a method that expands a scalar into an array with a specific size or uses
-        an expansion function.
+    Create a method that expands a scalar into an array with a specific size or uses
+    an expansion function.
 
-        :param scalar_type: Type of the scalar
-        :type scalar_type: type
-        :param size: Expand the scalar to an array of a fixed size.
-        :type size: int
-        :param expand: A function that takes the scalar value as argument and returns the expanded form.
-        :type expand: callable
-        :returns: Type validator function
-        :rtype: callable
+    :param scalar_type: Type of the scalar
+    :type scalar_type: type
+    :param size: Expand the scalar to an array of a fixed size.
+    :type size: int
+    :param expand: A function that takes the scalar value as argument and returns the expanded form.
+    :type expand: callable
+    :returns: Type validator function
+    :rtype: callable
     """
 
     if expand is None:
@@ -216,15 +250,15 @@ _list = list
 
 def list(type=str, size=None):
     """
-        Type validator for lists. Type casts each element to the given type and optionally
-        validates the length of the list.
+    Type validator for lists. Type casts each element to the given type and optionally
+    validates the length of the list.
 
-        :param type: Type validator of the elements.
-        :type type: function
-        :param size: Mandatory length of the list.
-        :type size: int
-        :returns: Type validator function
-        :rtype: function
+    :param type: Type validator of the elements.
+    :type type: function
+    :param size: Mandatory length of the list.
+    :type size: int
+    :returns: Type validator function
+    :rtype: function
     """
 
     def type_handler(value):
@@ -257,12 +291,12 @@ _dict = dict
 
 def dict(type=str):
     """
-        Type validator for dicts. Type casts each element to the given type.
+    Type validator for dicts. Type casts each element to the given type.
 
-        :param type: Type validator of the elements.
-        :type type: function
-        :returns: Type validator function
-        :rtype: function
+    :param type: Type validator of the elements.
+    :type type: function
+    :returns: Type validator function
+    :rtype: function
     """
 
     def type_handler(value):
@@ -284,11 +318,11 @@ def dict(type=str):
 
 def fraction():
     """
-        Type validator. Type casts the value into a rational number between 0 and 1
-        (inclusive).
+    Type validator. Type casts the value into a rational number between 0 and 1
+    (inclusive).
 
-        :returns: Type validator function
-        :rtype: function
+    :returns: Type validator function
+    :rtype: function
     """
 
     def type_handler(value):
@@ -303,10 +337,10 @@ def fraction():
 
 def deg_to_radian():
     """
-        Type validator. Type casts the value from degrees to radians.
+    Type validator. Type casts the value from degrees to radians.
 
-        :returns: Type validator function
-        :rtype: function
+    :returns: Type validator function
+    :rtype: function
     """
 
     def type_handler(value):
@@ -324,15 +358,18 @@ class _ConstantDistribution:
     def draw(self, n):
         return np.ones(n) * self.const
 
+    def __tree__(self):
+        return self.const
+
 
 def constant_distr():
     """
-        Type handler that turns a float into a distribution that always returns the float.
-        This can be used in places where a distribution is expected but the user might
-        want to use a single constant value instead.
+    Type handler that turns a float into a distribution that always returns the float.
+    This can be used in places where a distribution is expected but the user might
+    want to use a single constant value instead.
 
-        :returns: Type validator function
-        :rtype: function
+    :returns: Type validator function
+    :rtype: function
     """
 
     def type_handler(value):
@@ -344,11 +381,11 @@ def constant_distr():
 
 def distribution():
     """
-        Type validator. Type casts a float to a constant distribution or a _dict to a
-        :class:`Distribution <.config.nodes.Distribution>` node.
+    Type validator. Type casts a float to a constant distribution or a _dict to a
+    :class:`Distribution <.config.nodes.Distribution>` node.
 
-        :returns: Type validator function
-        :rtype: function
+    :returns: Type validator function
+    :rtype: function
     """
     from .nodes import Distribution
 
@@ -357,11 +394,11 @@ def distribution():
 
 def evaluation():
     """
-        Type validator. Provides a structured way to evaluate a python statement from the
-        config. The evaluation context provides ``numpy`` as ``np``.
+    Type validator. Provides a structured way to evaluate a python statement from the
+    config. The evaluation context provides ``numpy`` as ``np``.
 
-        :returns: Type validator function
-        :rtype: function
+    :returns: Type validator function
+    :rtype: function
     """
 
     def type_handler(value):
@@ -377,11 +414,11 @@ def evaluation():
 
 def in_classmap():
     """
-        Type validator. Checks whether the given string occurs in the class map of a
-        dynamic node.
+    Type validator. Checks whether the given string occurs in the class map of a
+    dynamic node.
 
-        :returns: Type validator function
-        :rtype: function
+    :returns: Type validator function
+    :rtype: function
     """
 
     def type_handler(value, parent):

@@ -42,10 +42,13 @@ class MapsScaffoldIdentifiers:
         return [self.scaffold_to_nest_map[id] for id in ids]
 
 
-def _merge_with_parameters(node, d, k, v):
-    params = node.parameters.copy()
-    params.update(v)
-    d[k] = params
+def _merge_with_parameters(node, models, model_key, model_params):
+    # Take the default set of parameters
+    merger = node.parameters.copy()
+    # Merge the model specific parameters
+    merger.update(model_params)
+    # Place the merged dict back in the catch_all dictionary under the model key
+    models[model_key] = merger
 
 
 @config.node
@@ -223,7 +226,9 @@ class NestDevice(SimulationComponent):
     name = config.attr(type=str, key=True)
     device = config.attr(type=str, required=True)
     parameters = config.dict(
-        type=types.or_(types.evaluation(), types.distribution(), types.any())
+        type=types.or_(
+            types.evaluation(), types.number(), types.distribution(), types.any()
+        )
     )
     connection = config.attr(type=NestConnectionSettings)
     targetting = config.attr(type=NeuronTargetting)

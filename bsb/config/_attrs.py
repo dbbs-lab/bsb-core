@@ -2,14 +2,14 @@
     An attrs-inspired class annotation system, but my A stands for amateuristic.
 """
 
-from ._make import wrap_init, make_get_node_name, make_cast, make_dictable
+from ._make import wrap_init, make_get_node_name, make_cast, make_dictable, make_tree
 from inspect import signature
 from ..exceptions import *
 
 
 def root(root_cls):
     """
-        Decorate a class as a configuration root node.
+    Decorate a class as a configuration root node.
     """
     root_cls.attr_name = root_cls.node_name = r"{root}"
     node(root_cls, root=True)
@@ -19,7 +19,7 @@ def root(root_cls):
 
 def node(node_cls, root=False, dynamic=False, pluggable=False):
     """
-        Decorate a class as a configuration node.
+    Decorate a class as a configuration node.
     """
     attrs = {
         k: v
@@ -42,6 +42,7 @@ def node(node_cls, root=False, dynamic=False, pluggable=False):
     wrap_init(node_cls)
     make_get_node_name(node_cls, root=root)
     make_cast(node_cls, dynamic=dynamic, pluggable=pluggable, root=root)
+    make_tree(node_cls)
     make_dictable(node_cls)
 
     return node_cls
@@ -51,30 +52,30 @@ def dynamic(
     node_cls=None, attr_name="class", classmap=None, auto_classmap=False, **kwargs
 ):
     """
-        Decorate a class to be castable to a dynamically configurable class using
-        a class configuration attribute.
+    Decorate a class to be castable to a dynamically configurable class using
+    a class configuration attribute.
 
-        *Example*: Register a required string attribute ``class`` (this is the default):
+    *Example*: Register a required string attribute ``class`` (this is the default):
 
-        .. code-block:: python
+    .. code-block:: python
 
-            @dynamic
-            class Example:
-                pass
+        @dynamic
+        class Example:
+            pass
 
-        *Example*: Register a string attribute ``type`` with a default value
-        'pkg.DefaultClass' as dynamic attribute:
+    *Example*: Register a string attribute ``type`` with a default value
+    'pkg.DefaultClass' as dynamic attribute:
 
-        .. code-block:: python
+    .. code-block:: python
 
-            @dynamic(attr_name='type', required=False, default='pkg.DefaultClass')
-            class Example:
-                pass
+        @dynamic(attr_name='type', required=False, default='pkg.DefaultClass')
+        class Example:
+            pass
 
-        :param attr_name: Name under which to register the class attribute in the node.
-        :type attr_name: str
-        :param kwargs: All keyword arguments are passed to the constructor of the
-          :func:`attribute <.config.attr>`.
+    :param attr_name: Name under which to register the class attribute in the node.
+    :type attr_name: str
+    :param kwargs: All keyword arguments are passed to the constructor of the
+      :func:`attribute <.config.attr>`.
     """
     if "required" not in kwargs:
         kwargs["required"] = True
@@ -108,25 +109,25 @@ def _dynamic(node_cls, class_attr, attr_name, config):
 
 def pluggable(key, plugin_name=None, unpack=None):
     """
-        Create a node whose configuration is defined by a plugin.
+    Create a node whose configuration is defined by a plugin.
 
-        *Example*: If you want to use the :guilabel:`attr` to chose from all the installed
-        `dbbs_scaffold.my_plugin` plugins:
+    *Example*: If you want to use the :guilabel:`attr` to chose from all the installed
+    `dbbs_scaffold.my_plugin` plugins:
 
-        .. code-block:: python
+    .. code-block:: python
 
-            @pluggable('attr', 'my_plugin')
-            class PluginNode:
-                pass
+        @pluggable('attr', 'my_plugin')
+        class PluginNode:
+            pass
 
-        This will then read :guilabel:`attr`, load the plugin and configure the node from
-        the node class specified by the plugin.
+    This will then read :guilabel:`attr`, load the plugin and configure the node from
+    the node class specified by the plugin.
 
-        :param plugin_name: The name of the category of the plugin endpoint
-        :type plugin_name: str
-        :param unpack: Optional callable to get the desired node out of the plugin, by
-          default the plugin should be the node class itself.
-        :type unpack: callable
+    :param plugin_name: The name of the category of the plugin endpoint
+    :type plugin_name: str
+    :param unpack: Optional callable to get the desired node out of the plugin, by
+      default the plugin should be the node class itself.
+    :type unpack: callable
     """
 
     def inner_decorator(node_cls):
@@ -142,53 +143,53 @@ def pluggable(key, plugin_name=None, unpack=None):
 
 def attr(**kwargs):
     """
-        Create a configuration attribute.
+    Create a configuration attribute.
 
-        Only works when used inside of a class decorated with the :func:`node
-        <.config.node>`, :func:`dynamic <.config.dynamic>`,  :func:`root <.config.root>`
-        or  :func:`pluggable <.config.pluggable>` decorators.
+    Only works when used inside of a class decorated with the :func:`node
+    <.config.node>`, :func:`dynamic <.config.dynamic>`,  :func:`root <.config.root>`
+    or  :func:`pluggable <.config.pluggable>` decorators.
 
-        :param type: Type of the attribute's value.
-        :type type: callable
-        :param required: Should an error be thrown if the attribute is not present?
-        :type required: bool
-        :param default: Default value.
-        :type default: any
-        :param call_default: Should the default value be used (False) or called (True).
-          Useful for default values that should not be shared among objects.
-        :type call_default: bool
-        :param key: If True the key under which the parent of this attribute appears in
-          its parent is stored on this attribute. Useful to store for example the name of
-          a node appearing in a dict
+    :param type: Type of the attribute's value.
+    :type type: callable
+    :param required: Should an error be thrown if the attribute is not present?
+    :type required: bool
+    :param default: Default value.
+    :type default: any
+    :param call_default: Should the default value be used (False) or called (True).
+      Useful for default values that should not be shared among objects.
+    :type call_default: bool
+    :param key: If True the key under which the parent of this attribute appears in
+      its parent is stored on this attribute. Useful to store for example the name of
+      a node appearing in a dict
     """
     return ConfigurationAttribute(**kwargs)
 
 
 def ref(reference, **kwargs):
     """
-        Create a configuration reference.
+    Create a configuration reference.
 
-        Configuration references are attributes that transform their value into the value
-        of another node or value in the document::
+    Configuration references are attributes that transform their value into the value
+    of another node or value in the document::
 
-          {
-            "keys": {
-                "a": 3,
-                "b": 5
-            },
-            "simple_ref": "a"
-          }
+      {
+        "keys": {
+            "a": 3,
+            "b": 5
+        },
+        "simple_ref": "a"
+      }
 
-        With ``simple_ref = config.ref(lambda root, here: here["keys"])`` the value ``a``
-        will be looked up in the configuration object (after all values have been cast) at
-        the location specified by the callable first argument.
+    With ``simple_ref = config.ref(lambda root, here: here["keys"])`` the value ``a``
+    will be looked up in the configuration object (after all values have been cast) at
+    the location specified by the callable first argument.
     """
     return ConfigurationReferenceAttribute(reference, **kwargs)
 
 
 def reflist(reference, **kwargs):
     """
-        Create a configuration reference list.
+    Create a configuration reference list.
     """
     if "default" not in kwargs:
         kwargs["default"] = _list
@@ -198,8 +199,8 @@ def reflist(reference, **kwargs):
 
 def slot(**kwargs):
     """
-        Create an attribute slot that is required to be overriden by child or plugin
-        classes.
+    Create an attribute slot that is required to be overriden by child or plugin
+    classes.
     """
     return ConfigurationAttributeSlot(**kwargs)
 
@@ -211,26 +212,26 @@ _type = type
 
 def list(**kwargs):
     """
-        Create a configuration attribute that holds a list of configuration values.
-        Best used only for configuration nodes. Use an :func:`attr` in combination with a
-        :func:`types.list <.config.types.list>` type for simple values.
+    Create a configuration attribute that holds a list of configuration values.
+    Best used only for configuration nodes. Use an :func:`attr` in combination with a
+    :func:`types.list <.config.types.list>` type for simple values.
     """
     return ConfigurationListAttribute(**kwargs)
 
 
 def dict(**kwargs):
     """
-        Create a configuration attribute that holds a key value pairs of configuration
-        values. Best used only for configuration nodes. Use an :func:`attr` in combination
-        with a :func:`types.dict <.config.types.dict>` type for simple values.
+    Create a configuration attribute that holds a key value pairs of configuration
+    values. Best used only for configuration nodes. Use an :func:`attr` in combination
+    with a :func:`types.dict <.config.types.dict>` type for simple values.
     """
     return ConfigurationDictAttribute(**kwargs)
 
 
 def catch_all(**kwargs):
     """
-        Catches any unknown key with a value that can be cast to the given type and
-        collects them under the attribute name.
+    Catches any unknown key with a value that can be cast to the given type and
+    collects them under the attribute name.
     """
     return ConfigurationAttributeCatcher(**kwargs)
 
@@ -249,7 +250,12 @@ def _hasattr(instance, name):
 
 class ConfigurationAttribute:
     def __init__(
-        self, type=None, default=None, call_default=False, required=False, key=False,
+        self,
+        type=None,
+        default=None,
+        call_default=False,
+        required=False,
+        key=False,
     ):
         if not callable(required):
             self.required = lambda s: required
@@ -296,6 +302,12 @@ class ConfigurationAttribute:
 
     def get_node_name(self, instance):
         return instance.get_node_name() + "." + self.attr_name
+
+    def tree(self, instance):
+        val = _getattr(instance, self.attr_name)
+        if hasattr(val, "__tree__"):
+            val = val.__tree__()
+        return val
 
 
 def _wrap_handler_pk(t):
@@ -378,6 +390,10 @@ class ConfigurationListAttribute(ConfigurationAttribute):
         self.child_type = super()._get_type(type)
         return self.__cast__
 
+    def tree(self, instance):
+        val = _getattr(instance, self.attr_name)
+        return [e if not hasattr(e, "__tree__") else e.__tree__() for e in val]
+
 
 class cfgdict(_dict):
     def __getattr__(self, name):
@@ -419,6 +435,10 @@ class ConfigurationDictAttribute(ConfigurationAttribute):
     def _get_type(self, type):
         self.child_type = super()._get_type(type)
         return self.__cast__
+
+    def tree(self, instance):
+        val = _getattr(instance, self.attr_name).items()
+        return {k: v if not hasattr(v, "__tree__") else v.__tree__() for k, v in val}
 
 
 class ConfigurationReferenceAttribute(ConfigurationAttribute):
@@ -490,7 +510,9 @@ class ConfigurationReferenceAttribute(ConfigurationAttribute):
         if key not in remote:
             raise ReferenceError(
                 "Reference '{}' of {} does not exist in {}".format(
-                    key, self.get_node_name(instance), remote.get_node_name(),
+                    key,
+                    self.get_node_name(instance),
+                    remote.get_node_name(),
                 )
             )
         value = remote[key]
@@ -516,6 +538,12 @@ class ConfigurationReferenceAttribute(ConfigurationAttribute):
                 population.append(instance)
         else:
             setattr(reference, self.populate, [instance])
+
+    def tree(self, instance):
+        val = getattr(instance, self.get_ref_key(), None)
+        if self.is_reference_value(val) and hasattr(val, "_key"):
+            val = val._key
+        return val
 
 
 class ConfigurationReferenceListAttribute(ConfigurationReferenceAttribute):
@@ -586,6 +614,14 @@ class ConfigurationReferenceListAttribute(ConfigurationReferenceAttribute):
             else:
                 references.append(value)
 
+    def tree(self, instance):
+        val = getattr(instance, self.get_ref_key(), [])
+        val = [v._key if self._tree_should_unreference(v) else v for v in val]
+        return val
+
+    def _tree_should_unreference(self, value):
+        return self.is_reference_value(value) and hasattr(value, "_key")
+
 
 class ConfigurationAttributeSlot(ConfigurationAttribute):
     def __set__(self, instance, value):  # pragma: nocover
@@ -617,3 +653,7 @@ class ConfigurationAttributeCatcher(ConfigurationAttribute):
         value = self.type(value, parent=node, key=key)
         # If succesfully cast, catch this value by executing our catch callback.
         self.caught(node, _getattr(node, self.attr_name), key, value)
+
+    def tree(self, instance):
+        val = _getattr(instance, self.attr_name).items()
+        return {k: v if not hasattr(v, "__tree__") else v.__tree__() for k, v in val}
