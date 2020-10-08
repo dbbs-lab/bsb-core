@@ -14,17 +14,18 @@ def discover(category, *args, **kwargs):
             # objects that have a `__call__` method with plugin factory functions.
             if isinstance(advert, types.FunctionType):
                 advert = advert()
-            registry[name] = advert
+            registry[entry.name] = advert
             _decorate_advert(advert, entry)
         except Exception as e:  # pragma: nocover
             errr.wrap(
                 PluginError,
                 e,
-                plugin,
+                entry,
                 prepend="Could not instantiate the `%plugin.name%` plugin:\n",
             )
 
     return registry
+
 
 def _decorate_advert(advert, entry):
     advert._bsb_entry_point = entry
