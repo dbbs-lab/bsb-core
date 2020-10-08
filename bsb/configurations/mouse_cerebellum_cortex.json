@@ -350,10 +350,10 @@
           "synapse": "GABA"
         },
         "ascending_axon_to_purkinje": {
-          "synapse": "AMPA_PF"
+          "synapse": "AMPA"
         },
         "ascending_axon_to_golgi": {
-          "synapse": "AMPA_MF"
+          "synapse": "AMPA_AA"
         },
         "parallel_fiber_to_golgi": {
           "synapse": "AMPA_PF"
@@ -362,7 +362,7 @@
           "synapse": "GABA"
         },
         "parallel_fiber_to_purkinje": {
-          "synapse": "AMPA_PF"
+          "synapse": "AMPA"
         },
 	       "parallel_fiber_to_basket": {
 	          "synapse": "AMPA"
