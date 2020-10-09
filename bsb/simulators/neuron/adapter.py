@@ -419,8 +419,10 @@ class NeuronAdapter(SimulatorAdapter):
             transmitters = [
                 [i.from_id, i.from_compartment.section_id] for i in intersections
             ]
+            if not transmitters:
+                # Empty dataset
+                continue
             unique_transmitters = [tuple(a) for a in np.unique(transmitters, axis=0)]
-            # print("Unique transmitters:", unique_transmitters)
             transmitter_gids = list(
                 range(self._next_gid, self._next_gid + len(unique_transmitters))
             )
@@ -461,11 +463,9 @@ class NeuronAdapter(SimulatorAdapter):
                         section_id = int(intersection.to_compartment.section_id)
                         section = cell.sections[section_id]
                         gid = self.transmitter_map[
-                            tuple(
-                                [
-                                    intersection.from_id,
-                                    intersection.from_compartment.section_id,
-                                ]
+                            (
+                                intersection.from_id,
+                                intersection.from_compartment.section_id,
                             )
                         ]
                         for synapse_type in synapse_types:

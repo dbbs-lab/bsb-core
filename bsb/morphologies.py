@@ -157,6 +157,8 @@ class Branch:
         :param branch: Child branch
         :type branch: :class:`Branch <.morphologies.Branch>`
         """
+        if branch._parent is not None:
+            branch._parent.detach_child(branch)
         self._children.append(branch)
         branch._parent = self
 
@@ -178,7 +180,10 @@ class Branch:
 
         def to_comp(data, labels):
             nonlocal comp_id, parent
-            comp = Compartment(*data, id=comp_id, parent=parent, labels=labels)
+            kwargs = dict(id=comp_id, parent=parent, labels=labels)
+            if hasattr(self, "_neuron_sid"):
+                kwargs["section_id"] = self._neuron_sid
+            comp = Compartment(*data, **kwargs)
             comp_id += 1
             parent = comp
             return comp
