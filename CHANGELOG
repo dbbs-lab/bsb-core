@@ -1,3 +1,18 @@
+# 3.6
+
+## 3.6.0b1
+
+* Added GC-GC, SC-SC & BC-BC GABA connections
+
+## 3.6.0b0
+
+* Morphology rework: they are now branch centric structures of arrays.
+  * Backward compatible `compartments` system still available.
+
+# 3.5.0
+
+* Blender support
+
 # 3.3.0
 
 * FiberIntersection added.
