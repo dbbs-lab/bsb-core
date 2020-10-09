@@ -682,7 +682,6 @@ def plot_traces(traces, fig=None, show=True, legend=True, mod=None, cutoff=0):
     )
     subplots_fig.update_layout(height=max(len(traces) * 130, 300))
 
-
     if mod is not None:
         mod(subplots_fig)
     # Overwrite the layout and grid of the single plot that is handed to us
