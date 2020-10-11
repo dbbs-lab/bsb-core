@@ -14,6 +14,7 @@ from ...exceptions import *
 import random, os, sys
 import numpy as np
 import traceback
+import errr
 
 
 try:
@@ -401,8 +402,12 @@ class NeuronAdapter(SimulatorAdapter):
             self.pc.barrier()
 
     def create_transmitters(self):
-        output_handler = self.scaffold.output_formatter
         for connection_model in self.connection_models.values():
+            self.create_connection_transmitters(connection_model)
+
+    def create_connection_transmitters(self, connection_model):
+        try:
+            output_handler = self.scaffold.output_formatter
             # Get the connectivity set associated with this connection model
             connectivity_set = ConnectivitySet(output_handler, connection_model.name)
             from_cell_model = self.cell_models[
@@ -414,14 +419,14 @@ class NeuronAdapter(SimulatorAdapter):
                         connection_model.name
                     )
                 )
-                continue
+                return
             intersections = connectivity_set.intersections
             transmitters = [
                 [i.from_id, i.from_compartment.section_id] for i in intersections
             ]
             if not transmitters:
                 # Empty dataset
-                continue
+                return
             unique_transmitters = [tuple(a) for a in np.unique(transmitters, axis=0)]
             transmitter_gids = list(
                 range(self._next_gid, self._next_gid + len(unique_transmitters))
@@ -438,7 +443,13 @@ class NeuronAdapter(SimulatorAdapter):
                 cell = self.cells[cell_id]
                 cell.create_transmitter(cell.sections[int(section_id)], gid)
                 tcount += 1
-            print("Node", self.pc_id, "created", tcount, "transmitters")
+            report(
+                f"Node {self.pc_id} created {tcount} transmitters",
+                level=3,
+                all_nodes=True,
+            )
+        except Exception as e:
+            errr.wrap(TransmitterError, e, prepend=f"[{connection_model.name}] ")
 
     def create_receivers(self):
         output_handler = self.scaffold.output_formatter
