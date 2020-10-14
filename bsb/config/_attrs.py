@@ -253,7 +253,7 @@ class ConfigurationAttribute:
         self,
         type=None,
         default=None,
-        call_default=False,
+        call_default=None,
         required=False,
         key=False,
     ):
@@ -308,6 +308,10 @@ class ConfigurationAttribute:
         if hasattr(val, "__tree__"):
             val = val.__tree__()
         return val
+
+    def should_call_default(self):
+        cdf = self.call_default
+        return cdf or (cdf is None and callable(dynamic_attr.default))
 
 
 def _wrap_handler_pk(t):

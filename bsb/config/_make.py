@@ -199,7 +199,7 @@ def make_dynamic_cast(node_cls, dynamic_config):
                 )
             else:
                 loaded_cls_name = section[attr_name]
-        elif dynamic_attr.call_default:  # pragma: nocover
+        elif dynamic_attr.should_call_default():  # pragma: nocover
             loaded_cls_name = dynamic_attr.default()
         else:
             loaded_cls_name = dynamic_attr.default
