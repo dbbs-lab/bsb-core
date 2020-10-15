@@ -271,11 +271,12 @@ class SpoofDetails(PostProcessingHook):
         )
 
 
-class GolgiAxonFix(PostProcessingHook):
+class MissingAxon(PostProcessingHook):
     # Replaces the presynaptic compartment IDs of all Golgi cells with the soma compartment
     def after_connectivity(self):
         for n, ct in self.scaffold.configuration.connection_types.items():
-            if ct.from_cell_types[0].name == "golgi_cell":
-                for tag in ct.tags:
-                    compartment_matrix = self.scaffold.connection_compartments[tag]
-                    compartment_matrix[:, 0] = np.zeros(len(compartment_matrix))
+            for type in self.types:
+                if ct.from_cell_types[0].name == type:
+                    for tag in ct.tags:
+                        compartment_matrix = self.scaffold.connection_compartments[tag]
+                        compartment_matrix[:, 0] = np.zeros(len(compartment_matrix))
