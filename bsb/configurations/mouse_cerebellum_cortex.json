@@ -338,49 +338,49 @@
       },
       "connection_models": {
         "glomerulus_to_granule": {
-          "synapse": "AMPA"
+          "synapses": ["AMPA", "NDMA"]
         },
         "glomerulus_to_golgi": {
-          "synapse": "AMPA_MF"
+          "synapses": ["AMPA_MF","NDMA"]
         },
         "mossy_to_glomerulus": {
-          "synapse": null
+          "synapses": null
         },
         "golgi_to_golgi": {
-          "synapse": "GABA"
+          "synapses": ["GABA"]
         },
         "ascending_axon_to_purkinje": {
-          "synapse": "AMPA"
+          "synapses": ["AMPA"]
         },
         "ascending_axon_to_golgi": {
-          "synapse": "AMPA_AA"
+          "synapses": ["AMPA_AA","NDMA"]
         },
         "parallel_fiber_to_golgi": {
-          "synapse": "AMPA_PF"
+          "synapses": ["AMPA_PF"]
         },
         "golgi_to_granule": {
-          "synapse": "GABA"
+          "synapses": ["GABA"]
         },
         "parallel_fiber_to_purkinje": {
-          "synapse": "AMPA"
+          "synapses": ["AMPA"]
         },
 	       "parallel_fiber_to_basket": {
-	          "synapse": "AMPA"
+	        "synapses":["AMPA", "NMDA"]
 	      },
         "parallel_fiber_to_stellate": {
-          "synapse": "AMPA"
+          "synapses": ["AMPA", "NMDA"]
         },
 	       "basket_to_purkinje": {
-	          "synapse": "GABA"
+	          "synapses": ["GABA"]
 	      },
         "stellate_to_purkinje": {
-          "synapse": "GABA"
+          "synapses": ["GABA"]
         },
         "stellate_to_stellate": {
-          "synapse": "GABA"
+          "synapses": ["GABA"]
         },
         "basket_to_basket": {
-          "synapse": "GABA"
+          "synapses": ["GABA"]
         }
       },
       "devices": {
@@ -419,7 +419,7 @@
           "device": "spike_generator",
           "targetting": "cell_type",
           "cell_types": ["mossy_fibers"],
-          "synapses": ["AMPA", "NMDA"],
+          "synapses": ["AMPA", "NMDA", "AMPA_MF"],
           "parameters": {
             "noise": true,
             "start": 100,
@@ -433,7 +433,7 @@
           "targetting": "by_id",
           "targets": [229, 213, 221, 228, 230, 220, 237, 203, 204, 205, 246, 212, 245],
           "cell_types": ["mossy_fibers"],
-          "synapses": ["AMPA", "NMDA"],
+          "synapses": ["AMPA", "NMDA", "AMPA_MF"],
           "parameters": {
             "noise": false,
             "start": 700,
@@ -447,7 +447,7 @@
           "targetting": "by_id",
           "targets": [229,213, 221, 228, 197, 270, 193, 273],
           "cell_types": ["mossy_fibers"],
-          "synapses": ["AMPA", "NMDA"],
+          "synapses": ["AMPA", "NMDA", "AMPA_MF"],
           "parameters": {
             "noise": true,
             "start": 100,
