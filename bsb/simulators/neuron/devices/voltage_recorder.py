@@ -5,7 +5,9 @@ import numpy as np
 class VoltageRecorder(NeuronDevice):
     casts = {"x": float}
 
-    def implement(self, target, cell, section):
+    def implement(self, target, location):
+        cell = location.cell
+        section = location.section
         group = "voltage_recorders"
         if hasattr(self, "group"):
             group = self.group

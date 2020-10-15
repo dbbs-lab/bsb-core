@@ -67,13 +67,15 @@ class NeuronCell(SimulationCell):
 class NeuronConnection(SimulationComponent):
     node_name = "simulations.?.connection_models"
 
-    required = ["synapse"]
+    required = ["synapses"]
+
+    casts = {"synapses": list}
 
     def validate(self):
         pass
 
     def resolve_synapses(self):
-        return self.synapse if isinstance(self.synapse, list) else [self.synapse]
+        return self.synapses
 
 
 class NeuronDevice(TargetsNeurons, TargetsSections, SimulationComponent):
@@ -122,7 +124,7 @@ class NeuronDevice(TargetsNeurons, TargetsSections, SimulationComponent):
             + " device does not implement any `get_pattern` function."
         )
 
-    def implement(self, target, cell, section):
+    def implement(self, target, location):
         raise NotImplementedError(
             "The "
             + self.__class__.__name__
@@ -139,12 +141,12 @@ class NeuronDevice(TargetsNeurons, TargetsSections, SimulationComponent):
     def get_locations(self, target):
         locations = []
         if target in self.adapter.relay_scheme:
-            for cell_id, section_id in self.adapter.relay_scheme[target]:
+            for cell_id, section_id, connection in self.adapter.relay_scheme[target]:
                 if cell_id not in self.adapter.node_cells:
                     continue
                 cell = self.adapter.cells[cell_id]
                 section = cell.sections[section_id]
-                locations.append((cell, section))
+                locations.append(TargetLocation(cell, section, connection))
         elif target in self.adapter.node_cells:
             try:
                 cell = self.adapter.cells[target]
@@ -155,7 +157,7 @@ class NeuronDevice(TargetsNeurons, TargetsSections, SimulationComponent):
                     )
                 )
             sections = self.target_section(cell)
-            locations.extend((cell, section) for section in sections)
+            locations.extend(TargetLocation(cell, section) for section in sections)
         return locations
 
 
@@ -534,8 +536,8 @@ class NeuronAdapter(SimulatorAdapter):
             # Broadcast to make sure all the nodes have the same targets for each device.
             targets = self.scaffold.MPI.COMM_WORLD.bcast(targets, root=0)
             for target in targets:
-                for cell, section in device.get_locations(target):
-                    device.implement(target, cell, section)
+                for location in device.get_locations(target):
+                    device.implement(target, location)
 
     def index_relays(self):
         report("Indexing relays.")
@@ -573,7 +575,11 @@ class NeuronAdapter(SimulatorAdapter):
                 )
                 bin = terminal_relays
                 connections = connectivity_set.intersections
-                target = lambda c: (c.to_id, c.to_compartment.section_id)
+                target = lambda c: (
+                    c.to_id,
+                    c.to_compartment.section_id,
+                    connection_model,
+                )
             for id in self.scaffold.get_placement_set(from_cell_type.name).identifiers:
                 if id not in bin:
                     bin[id] = []
@@ -639,9 +645,9 @@ class NeuronAdapter(SimulatorAdapter):
         report(
             "Node",
             self.pc_id,
-            "needs to receive from",
+            "needs to relay",
             len(self.relay_scheme),
-            "relays",
+            "relays.",
             level=4,
         )
 
@@ -697,6 +703,16 @@ class LocationRecorder(SimulationRecorder):
 
     def get_meta(self):
         return self.meta
+
+
+class TargetLocation:
+    def __init__(self, cell, section, connection=None):
+        self.cell = cell
+        self.section = section
+        self.connection = connection
+
+    def get_synapses(self):
+        return self.connection and self.connection.synapses
 
 
 class SpikeRecorder(LocationRecorder):
