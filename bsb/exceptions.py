@@ -24,6 +24,7 @@ _t(
         AdapterError=_e(
             NeuronError=_e(
                 DeviceConnectionError=_e(),
+                TransmitterError=_e(),
             ),
             NestError=_e(
                 NestKernelError=_e(
