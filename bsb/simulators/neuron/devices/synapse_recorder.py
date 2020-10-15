@@ -16,7 +16,9 @@ class SynapseRecorder(PatternlessDevice, NeuronDevice):
     def boot(self):
         pass
 
-    def implement(self, target, cell, section):
+    def implement(self, target, location):
+        cell = location.cell
+        section = location.section
         print(
             "Node",
             self.adapter.pc_id,
