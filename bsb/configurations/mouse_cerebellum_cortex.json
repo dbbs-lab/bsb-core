@@ -338,10 +338,10 @@
       },
       "connection_models": {
         "glomerulus_to_granule": {
-          "synapses": ["AMPA", "NDMA"]
+          "synapses": ["AMPA", "NMDA"]
         },
         "glomerulus_to_golgi": {
-          "synapses": ["AMPA_MF","NDMA"]
+          "synapses": ["AMPA_MF","NMDA"]
         },
         "mossy_to_glomerulus": {
           "synapses": []
@@ -353,7 +353,7 @@
           "synapses": ["AMPA"]
         },
         "ascending_axon_to_golgi": {
-          "synapses": ["AMPA_AA","NDMA"]
+          "synapses": ["AMPA_AA","NMDA"]
         },
         "parallel_fiber_to_golgi": {
           "synapses": ["AMPA_PF"]
