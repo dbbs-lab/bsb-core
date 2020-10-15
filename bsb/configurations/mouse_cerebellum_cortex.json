@@ -344,7 +344,7 @@
           "synapses": ["AMPA_MF","NDMA"]
         },
         "mossy_to_glomerulus": {
-          "synapses": null
+          "synapses": []
         },
         "golgi_to_golgi": {
           "synapses": ["GABA"]
