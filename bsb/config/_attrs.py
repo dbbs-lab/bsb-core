@@ -311,7 +311,7 @@ class ConfigurationAttribute:
 
     def should_call_default(self):
         cdf = self.call_default
-        return cdf or (cdf is None and callable(dynamic_attr.default))
+        return cdf or (cdf is None and callable(self.default))
 
 
 def _wrap_handler_pk(t):
