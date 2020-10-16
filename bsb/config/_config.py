@@ -14,12 +14,12 @@ import os, builtins
 @root
 class Configuration:
     """
-        The main Configuration object containing the full definition of a scaffold model.
+    The main Configuration object containing the full definition of a scaffold model.
     """
 
     name = attr()
     components = attr(type=builtins.dict)
-    storage = attr(type=StorageNode, required=True)
+    # storage = attr(type=StorageNode, required=True)
     network = attr(type=NetworkNode, required=True)
     regions = dict(type=Region)
     partitions = dict(type=Layer, required=True)
@@ -31,15 +31,12 @@ class Configuration:
 
     @classmethod
     def default(cls):
-        conf = cls.__cast__(
-            {
-                "storage": {"engine": "hdf5"},
-                "network": {"x": 200, "z": 200},
-                "cell_types": {},
-                "partitions": {},
-                "connection_types": {},
-            },
-            None,
+        conf = cls(
+            # storage={"engine": "hdf5"},
+            network={"x": 200, "z": 200},
+            cell_types={},
+            partitions={},
+            connection_types={},
         )
         conf._meta = None
         conf._parser = "json"

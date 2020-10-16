@@ -2,7 +2,7 @@
     An attrs-inspired class annotation system, but my A stands for amateuristic.
 """
 
-from ._make import wrap_init, make_get_node_name, make_cast, make_dictable, make_tree
+from ._make import compile_init, make_get_node_name, make_cast, make_dictable, make_tree
 from inspect import signature
 from ..exceptions import *
 
@@ -39,7 +39,7 @@ def node(node_cls, root=False, dynamic=False, pluggable=False):
         node_cls._config_attrs = n_attrs
     else:
         node_cls._config_attrs = attrs
-    wrap_init(node_cls)
+    node_cls.__init__ = compile_init(node_cls, root=root)
     make_get_node_name(node_cls, root=root)
     make_cast(node_cls, dynamic=dynamic, pluggable=pluggable, root=root)
     make_tree(node_cls)
@@ -48,9 +48,7 @@ def node(node_cls, root=False, dynamic=False, pluggable=False):
     return node_cls
 
 
-def dynamic(
-    node_cls=None, attr_name="class", classmap=None, auto_classmap=False, **kwargs
-):
+def dynamic(node_cls=None, attr_name="cls", classmap=None, auto_classmap=False, **kwargs):
     """
     Decorate a class to be castable to a dynamically configurable class using
     a class configuration attribute.
@@ -275,27 +273,26 @@ class ConfigurationAttribute:
         if value is None:
             # Don't cast None to a value of the attribute type.
             return _setattr(instance, self.attr_name, None)
-        if self.type.__casting__:
-            # If the `__casting__` flag is set, the type casting method wants to be
-            # responsible for exception handling and we should not handle them here.
-            value = self.type(value, parent=instance, key=key)
-        else:
-            # The `__casting__` flag is not set so we're responsible to catch exceptions.
-            try:
-                value = self.type(value, parent=instance, key=key)
-            except:
-                raise CastError(
-                    "Couldn't cast {} from '{}' into {}".format(
-                        self.get_node_name(instance), value, self.type.__name__
-                    )
+        try:
+            value = self.type(value, _parent=instance, _key=key)
+        except CastError:
+            raise
+        except:
+            raise CastError(
+                "Couldn't cast {} from '{}' into {}".format(
+                    self.get_node_name(instance), value, self.type.__name__
                 )
+            )
         # The value was cast to its intented type and the new value can be set.
         _setattr(instance, self.attr_name, value)
 
     def _get_type(self, type):
         # Determine type of the attribute
         if not type and self.default:
-            t = _type(self.default)
+            if self.should_call_default():
+                t = _type(self.default())
+            else:
+                t = _type(self.default)
         else:
             t = type or str
         return _wrap_handler_pk(t)
@@ -315,11 +312,6 @@ class ConfigurationAttribute:
 
 
 def _wrap_handler_pk(t):
-    cast_name = t.__name__
-    casting = hasattr(t, "__casting__") and t.__casting__
-    if hasattr(t, "__cast__"):
-        t = t.__cast__
-        casting = True
     # Inspect the signature and wrap the typecast in a wrapper that will accept and
     # strip the missing 'key' kwarg
     try:
@@ -327,30 +319,28 @@ def _wrap_handler_pk(t):
         params = sig.parameters
     except:
         params = []
-    if "key" not in params:
-        o = t
 
-        def _t(*args, **kwargs):
-            if "key" in kwargs:
-                del kwargs["key"]
-            return o(*args, **kwargs)
-
-        t = _t
-    if "parent" not in params:
-        o2 = t
-
-        def _t2(value, parent, *args, **kwargs):
-            return o2(value, *args, **kwargs)
-
-        t = _t2
-    t.__name__ = cast_name
-    t.__casting__ = casting
-    return t
+    pass_key = "_key" in params
+    pass_parent = "_parent" in params
+    if pass_key and pass_parent:
+        return t
+    header = "def type_handler(value, *args, _parent=None, _key=None, **kwargs):\n"
+    keypass = ", _key=_key" if pass_key else ""
+    parentpass = ", _parent=_parent" if pass_parent else ""
+    wrap = f" return orig(value, *args{parentpass}{keypass}, **kwargs)"
+    exec(header + wrap, {"orig": t}, bait := locals())
+    type_handler = bait["type_handler"]
+    type_handler.__name__ = t.__name__
+    return type_handler
 
 
 class cfglist(_list):
     def get_node_name(self):
-        return self._config_parent.get_node_name() + "." + self._attr.attr_name
+        return self._config_parent.get_node_name() + "." + self._config_attr_name
+
+    @property
+    def _config_attr_name(self):
+        return self._config_attr.attr_name
 
 
 class ConfigurationListAttribute(ConfigurationAttribute):
@@ -359,12 +349,12 @@ class ConfigurationListAttribute(ConfigurationAttribute):
         self.size = size
 
     def __set__(self, instance, value, key=None):
-        _setattr(instance, self.attr_name, self.__cast__(value, parent=instance))
+        _setattr(instance, self.attr_name, self.__cast__(value, _parent=instance))
 
     def __cast__(self, value, parent, key=None):
         _cfglist = cfglist(value or _list())
         _cfglist._config_parent = parent
-        _cfglist._attr = self
+        _cfglist._config_attr = self
         if value is None:
             return _cfglist
         if self.size is not None and len(_cfglist) != self.size:
@@ -375,9 +365,9 @@ class ConfigurationListAttribute(ConfigurationAttribute):
             )
         try:
             for i, elem in enumerate(_cfglist):
-                _cfglist[i] = self.child_type(elem, parent=_cfglist, key=i)
+                _cfglist[i] = self.child_type(elem, _parent=_cfglist, __key=i)
                 try:
-                    _cfglist[i]._index = i
+                    _cfglist[i]._config_index = i
                 except:
                     pass
         except:
@@ -408,37 +398,41 @@ class cfgdict(_dict):
                 self.get_node_name() + " object has no attribute '{}'".format(name)
             )
 
+    @property
+    def _config_attr_name(self):
+        return self._config_attr.attr_name
+
     def get_node_name(self):
-        return self._config_parent.get_node_name() + "." + self._attr.attr_name
+        return self._config_parent.get_node_name() + "." + self._config_attr_name
 
 
 class ConfigurationDictAttribute(ConfigurationAttribute):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def __set__(self, instance, value, key=None):
-        _setattr(instance, self.attr_name, self.__cast__(value, parent=instance))
+    def __set__(self, instance, value, _key=None):
+        _setattr(instance, self.attr_name, self.fill(value, _parent=instance))
 
-    def __cast__(self, value, parent, key=None):
+    def fill(self, value, _parent, _key=None):
         _cfgdict = cfgdict(value or _dict())
-        _cfgdict._config_parent = parent
-        _cfgdict._attr = self
+        _cfgdict._config_parent = _parent
+        _cfgdict._config_attr = self
         try:
             for ckey, value in _cfgdict.items():
-                _cfgdict[ckey] = self.child_type(value, parent=_cfgdict, key=ckey)
+                _cfgdict[ckey] = self.child_type(value, _parent=_cfgdict, _key=ckey)
+        except CastError:
+            raise
         except:
-            if self.child_type.__casting__:
-                raise
             raise CastError(
                 "Couldn't cast {}.{} from '{}' into a {}".format(
-                    self.get_node_name(parent), ckey, value, self.child_type.__name__
+                    self.get_node_name(_parent), ckey, value, self.child_type.__name__
                 )
             )
         return _cfgdict
 
     def _get_type(self, type):
         self.child_type = super()._get_type(type)
-        return self.__cast__
+        return self.fill
 
     def tree(self, instance):
         val = _getattr(instance, self.attr_name).items()
@@ -545,8 +539,8 @@ class ConfigurationReferenceAttribute(ConfigurationAttribute):
 
     def tree(self, instance):
         val = getattr(instance, self.get_ref_key(), None)
-        if self.is_reference_value(val) and hasattr(val, "_key"):
-            val = val._key
+        if self.is_reference_value(val) and hasattr(val, "_config_key"):
+            val = val._config_key
         return val
 
 
@@ -620,11 +614,11 @@ class ConfigurationReferenceListAttribute(ConfigurationReferenceAttribute):
 
     def tree(self, instance):
         val = getattr(instance, self.get_ref_key(), [])
-        val = [v._key if self._tree_should_unreference(v) else v for v in val]
+        val = [v._config_key if self._tree_should_unreference(v) else v for v in val]
         return val
 
     def _tree_should_unreference(self, value):
-        return self.is_reference_value(value) and hasattr(value, "_key")
+        return self.is_reference_value(value) and hasattr(value, "_config_key")
 
 
 class ConfigurationAttributeSlot(ConfigurationAttribute):
@@ -654,7 +648,7 @@ class ConfigurationAttributeCatcher(ConfigurationAttribute):
     def __catch__(self, node, key, value):
         # Try to cast to our type, if it fails it will be caught by whoever is asking us
         # to catch this and know we don't catch this value.
-        value = self.type(value, parent=node, key=key)
+        value = self.type(value, _parent=node, _key=key)
         # If succesfully cast, catch this value by executing our catch callback.
         self.caught(node, _getattr(node, self.attr_name), key, value)
 

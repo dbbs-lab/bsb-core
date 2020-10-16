@@ -1,28 +1,117 @@
 from ..exceptions import *
+from .. import exceptions
 from ..reporting import warn
-import inspect, re, sys
+import inspect, re, sys, itertools
 from functools import wraps
+from ._hooks import overrides
 
 
-def wrap_init(cls):
-    if hasattr(cls.__init__, "wrapped"):
-        return
-    wrapped_init = _get_class_init_wrapper(cls)
+def compile_init(cls, root=False):
+    attrs = _get_class_config_attrs(cls)
+    init_globals = _get_init_globals(cls, attrs)
+    header = _compile_init_header(cls, attrs)
+    body = _compile_init_body(cls, attrs, root=root)
+    exec(header + body, init_globals, bait := locals())
+    init = _finalize_init(cls, bait["__init__"])
+    return init
 
-    def __init__(self, parent=None, **kwargs):
-        attrs = _get_class_config_attrs(self.__class__)
-        self._config_parent = parent
-        for attr in attrs.values():
-            if attr.call_default:
-                v = attr.default()
-            else:
-                v = attr.default
-            attr.__set__(self, v)
-        wrapped_init(self, parent, **kwargs)
 
-    __init__.wrapped = True
-    cls.__init__ = __init__
-    return __init__
+def _get_init_globals(cls, attrs):
+    init = cls.__init__
+    required = _make_is_requireds(attrs)
+    set_default = _make_defaults(attrs)
+    return {
+        "init": init,
+        **required,
+        **set_default,
+        **exceptions.__dict__,
+        "res_ref": _resolve_references,
+    }
+
+
+def _make_is_requireds(attrs):
+    return {f"ir{n}": _make_is_required(attr) for n, attr in enumerate(attrs.values())}
+
+
+def _make_is_required(attr):
+    def is_required(kwargs):
+        return attr.required(kwargs)
+
+    return is_required
+
+
+def _make_defaults(attrs):
+    return {f"default{n}": _make_default(attr) for n, attr in enumerate(attrs.values())}
+
+
+def _make_default(attr):
+    if attr.should_call_default():
+
+        def set_default(instance):
+            setattr(instance, attr.attr_name, attr.default())
+
+    else:
+
+        def set_default(instance):
+            setattr(instance, attr.attr_name, attr.default)
+
+    return set_default
+
+
+def _compile_init_header(cls, attrs):
+    args = ("self", "*args")
+    nones = (f"{k}=None" for k in itertools.chain(attrs, ("_parent", "_key")))
+    unknown = ("**unknown",)
+    argument_list = ", ".join(itertools.chain(args, nones, unknown))
+    kwargs_collector = ", ".join(f"'{k}': {k}" for k in attrs)
+    header = f"def __init__({argument_list}):\n"
+    header += f"    self._config_parent = _parent\n"
+    header += f"    self._config_key = _key\n"
+    header += f"    if unknown:\n"
+    header += f"        plural = 's' if len(unknown) > 1 else ''\n"
+    header += f"        raise UnknownConfigAttrError(f\"Unknown configuration attribute{{plural}} \" + ', '.join(f\"'{{a}}'\" for a in unknown), list(unknown.keys()))\n"
+    header += f"    argswap = args and isinstance(args[0], dict)\n"
+    header += f"    kwargs = args[0] if argswap else {{{kwargs_collector}}}\n"
+    header += f"    if argswap:\n"
+    for k in attrs:
+        header += f"        {k}=kwargs.get('{k}', None)\n"
+    return header
+
+
+def _compile_init_body(cls, attrs, root=False):
+    requirements = "\n".join(_make_requirement_check(n, k) for n, k in enumerate(attrs))
+    requirements += "\n" if attrs else ""
+    set_initials = "\n".join(
+        _make_initial_value(n, attr) for n, attr in enumerate(attrs.values())
+    )
+    set_initials += "\n" if attrs else ""
+    body = requirements + set_initials
+    if overrides(cls, "__init__"):
+        body += "    init(self, *args, **kwargs)"
+    if root:
+        body += "    res_ref(self)"
+    return body
+
+
+def _make_requirement_check(n, attr_name):
+    condition = f"    if {attr_name} is None and ir{n}(kwargs):\n"
+    raise_err = (
+        f"        raise RequirementError(\"Missing required attribute '{attr_name}'.\")"
+    )
+    return condition + raise_err
+
+
+def _make_initial_value(n, attr):
+    attr_name = attr.attr_name
+    setter = f"    if {attr_name} is None:\n"
+    setter += f"        default{n}(self)\n"
+    setter += f"    else:\n"
+    setter += f"        self.{attr_name} = {attr_name}"
+    return setter
+
+
+def _finalize_init(cls, init):
+    return init
 
 
 def _get_class_config_attrs(cls):
@@ -33,33 +122,14 @@ def _get_class_config_attrs(cls):
     return attrs
 
 
-def _get_class_init_wrapper(cls):
-    f = cls.__init__
-    params = inspect.signature(f).parameters
-    pattern = re.compile(r"(?<!^)(?=[A-Z])")
-    snake_case = lambda name: pattern.sub("_", name).lower()
-
-    @wraps(f)
-    def wrapper(self, parent, **kwargs):
-        snake_name = snake_case(parent.__class__.__name__)
-        # Node constructors can only have 1 positional argument namely the parent, if you
-        # want more complex initialization use a factory classmethod.
-        if "parent" in params or snake_name in params:
-            f(self, parent, **kwargs)
-        else:
-            f(self, **kwargs)
-
-    return wrapper
-
-
 def _get_node_name(self):
     name = ".<missing>"
     if hasattr(self, "attr_name"):
         name = "." + str(self.attr_name)
-    if hasattr(self, "_key"):
-        name = "." + str(self._key)
-    if hasattr(self, "_index"):
-        name = "[" + str(self._index) + "]"
+    if hasattr(self, "_config_key"):
+        name = "." + str(self._config_key)
+    if hasattr(self, "_config_index"):
+        name = "[" + str(self._config_index) + "]"
     return self._config_parent.get_node_name() + name
 
 
@@ -76,24 +146,12 @@ def make_cast(node_cls, dynamic=False, pluggable=False, root=False):
     attribute descriptions in the node class.
     """
     __cast__ = _make_cast(node_cls)
-    if root:
-        __cast__ = wrap_root_cast(__cast__)
     if pluggable:
         make_pluggable_cast(node_cls)
     elif dynamic:
         make_dynamic_cast(node_cls, dynamic)
 
     node_cls.__cast__ = __cast__
-    return __cast__
-
-
-def wrap_root_cast(f):
-    @wraps(f)
-    def __cast__(section, parent, key=None):
-        instance = f(section, parent, key)
-        _resolve_references(instance)
-        return instance
-
     return __cast__
 
 
@@ -106,7 +164,7 @@ def _cast_attributes(node, section, node_cls, key):
     # Cast each of this node's attributes.
     for attr in attrs.values():
         if attr.attr_name in section:
-            attr.__set__(node, section[attr.attr_name], key=attr.attr_name)
+            attr.__set__(node, section[attr.attr_name], _key=attr.attr_name)
         else:
             try:
                 # Call the requirement function: it either returns a boolean meaning we
@@ -163,7 +221,7 @@ def _try_catch(catch, node, key, value):
 
 
 def _make_cast(node_cls):
-    def __cast__(section, parent, key=None):
+    def __cast__(section, parent, _key=None):
         if hasattr(section.__class__, "_config_attrs"):
             # Casting artifacts found on the section's class so it must have been cast
             # before.
@@ -173,9 +231,9 @@ def _make_cast(node_cls):
             node = node_cls.__dcast__(section, parent, key)
         else:
             # Create an instance of the static node class
-            node = node_cls(parent=parent)
+            node = node_cls(_parent=parent)
         if key is not None:
-            node._key = key
+            node._config_key = key
         _cast_attributes(node, section, node.__class__, key)
         return node
 
@@ -188,7 +246,7 @@ def make_dynamic_cast(node_cls, dynamic_config):
     if dynamic_config.auto_classmap or dynamic_config.classmap:
         node_cls._config_dynamic_classmap = dynamic_config.classmap or {}
 
-    def __dcast__(section, parent, key=None):
+    def __dcast__(section, parent, _key=None):
         if dynamic_attr.required(section):
             if attr_name not in section:
                 raise RequirementError(
@@ -230,7 +288,7 @@ def make_dynamic_cast(node_cls, dynamic_config):
                     loaded_cls_name, mapped_class_msg, parent.get_node_name(), attr_name
                 )
             ) from None
-        node = dynamic_cls(parent=parent)
+        node = dynamic_cls(_parent=parent)
         return node
 
     node_cls.__dcast__ = __dcast__
@@ -249,7 +307,7 @@ def _get_mapped_class_msg(loaded_cls_name, classmap):
 def make_pluggable_cast(node_cls):
     plugin_label = node_cls._config_plugin_name or node_cls.__name__
 
-    def __dcast__(section, parent, key=None):
+    def __dcast__(section, parent, _key=None):
         if node_cls._config_plugin_key not in section:
             raise CastError(
                 "Pluggable node '{}' must contain a '{}' attribute to select a {}.".format(
@@ -270,7 +328,7 @@ def make_pluggable_cast(node_cls):
         if node_cls._config_plugin_unpack:
             plugin_cls = node_cls._config_plugin_unpack(plugin_cls)
         # TODO: Enforce class inheritance
-        node = plugin_cls(parent=parent)
+        node = plugin_cls(_parent=parent)
         return node
 
     node_cls.__dcast__ = __dcast__
@@ -368,14 +426,12 @@ def walk_node_attributes(node):
     :rtype: :class:`ConfigurationAttribute <.config._attrs.ConfigurationAttribute>`,
       any, tuple
     """
-    if not hasattr(node.__class__, "_config_attrs"):
-        if hasattr(node, "_attr"):
-            attrs = _get_walkable_iterator(node)
-        else:
-            return
-    else:
+    if hasattr(node.__class__, "_config_attrs"):
         attrs = node.__class__._config_attrs
-    nn = node.attr_name if hasattr(node, "attr_name") else node._attr.attr_name
+    elif hasattr(node, "_config_attr"):
+        attrs = _get_walkable_iterator(node)
+    else:
+        return
     for attr in attrs.values():
         yield node, attr
         # Yield but don't follow references.
@@ -394,14 +450,12 @@ def walk_nodes(node):
     :returns: node generator
     :rtype: any
     """
-    if not hasattr(node.__class__, "_config_attrs"):
-        if hasattr(node, "_attr"):
-            attrs = _get_walkable_iterator(node)
-        else:
-            return
-    else:
+    if hasattr(node.__class__, "_config_attrs"):
         attrs = node.__class__._config_attrs
-    nn = node.attr_name if hasattr(node, "attr_name") else node._attr.attr_name
+    elif hasattr(node, "_attr"):
+        attrs = _get_walkable_iterator(node)
+    else:
+        return
     yield node
     for attr in attrs.values():
         # Yield but don't follow references.

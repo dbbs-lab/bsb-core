@@ -24,6 +24,7 @@ _t(
             ReferenceError=_e(
                 NoReferenceAttributeSignal=_e(),
             ),
+            UnknownConfigAttrError=_e("attributes"),
         ),
         TypeNotFoundError=_e(),
         LayerNotFoundError=_e(),
