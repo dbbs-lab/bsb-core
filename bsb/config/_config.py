@@ -1,5 +1,5 @@
 from . import attr, list, dict, node, root, pluggable, on, after, before
-from ..objects import CellType, Layer, Region
+from ..objects import CellType, Partition, Region
 from . import types
 from ._make import walk_nodes
 from ._hooks import run_hook, has_hook
@@ -22,7 +22,7 @@ class Configuration:
     # storage = attr(type=StorageNode, required=True)
     network = attr(type=NetworkNode, required=True)
     regions = dict(type=Region)
-    partitions = dict(type=Layer, required=True)
+    partitions = dict(type=Partition, required=True)
     cell_types = dict(type=CellType, required=True)
     after_placement = dict(type=PostProcessingHook)
     connection_types = dict(type=ConnectionStrategy, required=True)
