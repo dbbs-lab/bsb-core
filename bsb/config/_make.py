@@ -33,9 +33,14 @@ def compile_new(node_cls, dynamic=False, pluggable=False):
     if not dynamic and not pluggable:
         return node_cls.__new__
 
+    if pluggable:
+        class_determinant = _get_pluggable_class
+    elif dynamic:
+        class_determinant = _get_dynamic_class
+
     def __new__(cls, *args, **kwargs):
         dyn_kwargs = args[0] if args and isinstance(args[0], dict) else kwargs
-        instance = object.__new__(_get_dynamic_class(cls, dyn_kwargs))
+        instance = object.__new__(class_determinant(cls, dyn_kwargs))
         return instance.__init__(*args, **kwargs)
 
     return __new__
@@ -175,21 +180,6 @@ def make_get_node_name(node_cls, root):
         node_cls.get_node_name = _get_node_name
 
 
-def make_cast(node_cls, dynamic=False, pluggable=False, root=False):
-    """
-    Return a function that can cast a raw configuration node as specified by the
-    attribute descriptions in the node class.
-    """
-    __cast__ = _make_cast(node_cls)
-    if pluggable:
-        make_pluggable_cast(node_cls)
-    elif dynamic:
-        make_dynamic_cast(node_cls, dynamic)
-
-    node_cls.__cast__ = __cast__
-    return __cast__
-
-
 def _cast_attributes(node, section, node_cls, key):
     attrs = _get_class_config_attrs(node_cls)
     catch_attrs = [a for a in attrs.values() if hasattr(a, "__catch__")]
@@ -321,42 +311,30 @@ def _get_dynamic_class(node_cls, kwargs):
     return dynamic_cls
 
 
+def _get_pluggable_class(node_cls, kwargs):
+    plugin_label = node_cls._config_plugin_name or node_cls.__name__
+    if node_cls._config_plugin_key not in kwargs:
+        raise CastError(
+            "Pluggable node '{}' must contain a '{}' attribute to select a {}.".format(
+                parent.get_node_name() + "." + key,
+                node_cls._config_plugin_key,
+                plugin_label,
+            )
+        )
+    plugin_name = kwargs[node_cls._config_plugin_key]
+    plugins = node_cls.__plugins__()
+    if plugin_name not in plugins:
+        raise PluginError("Unknown {} '{}'".format(plugin_label, plugin_name))
+    plugin_cls = plugins[plugin_name]
+    # TODO: Enforce class inheritance
+    return plugin_cls
+
+
 def _get_mapped_class_msg(loaded_cls_name, classmap):
     if classmap and loaded_cls_name in classmap:
         return " (mapped to '{}')".format(classmap[loaded_cls_name])
     else:
         return ""
-
-
-def make_pluggable_cast(node_cls):
-    plugin_label = node_cls._config_plugin_name or node_cls.__name__
-
-    def __dcast__(section, parent, _key=None):
-        if node_cls._config_plugin_key not in section:
-            raise CastError(
-                "Pluggable node '{}' must contain a '{}' attribute to select a {}.".format(
-                    parent.get_node_name() + "." + key,
-                    node_cls._config_plugin_key,
-                    plugin_label,
-                )
-            )
-        plugin_name = section[node_cls._config_plugin_key]
-        plugins = node_cls.__plugins__()
-        if plugin_name not in plugins:
-            raise PluginError(
-                "Unknown {} '{}' in {}".format(
-                    plugin_label, plugin_name, parent.get_node_name() + "." + key
-                )
-            )
-        plugin_cls = plugins[plugin_name]
-        if node_cls._config_plugin_unpack:
-            plugin_cls = node_cls._config_plugin_unpack(plugin_cls)
-        # TODO: Enforce class inheritance
-        node = plugin_cls(_parent=parent)
-        return node
-
-    node_cls.__dcast__ = __dcast__
-    return __dcast__
 
 
 def _load_class(cfg_classname, module_path, interface=None, classmap=None):

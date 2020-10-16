@@ -27,7 +27,7 @@ class Simulation:
     def __plugins__(cls):
         if not hasattr(cls, "_plugins"):
             cls._plugins = plugins.discover("adapters")
-        return {name: plugin.Simulation for name, plugin in cls._plugins.values()}
+        return {name: plugin.Simulation for name, plugin in cls._plugins.items()}
 
     def __init__(self):
         self.entities = {}
