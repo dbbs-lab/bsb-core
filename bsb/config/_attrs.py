@@ -40,8 +40,8 @@ def node(node_cls, root=False, dynamic=False, pluggable=False):
     else:
         node_cls._config_attrs = attrs
     node_cls.__init__ = compile_init(node_cls, root=root)
+    node_cls.__new__ = compile_new(dynamic=dynamic, pluggable=pluggable, root=root)
     make_get_node_name(node_cls, root=root)
-    make_cast(node_cls, dynamic=dynamic, pluggable=pluggable, root=root)
     make_tree(node_cls)
     make_dictable(node_cls)
 
