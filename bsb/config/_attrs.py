@@ -358,41 +358,41 @@ class ConfigurationListAttribute(ConfigurationAttribute):
         super().__init__(*args, **kwargs)
         self.size = size
 
-    def __set__(self, instance, value, key=None):
-        _setattr(instance, self.attr_name, self.__cast__(value, _parent=instance))
+    def __set__(self, instance, value, _key=None):
+        _setattr(instance, self.attr_name, self.fill(value, _parent=instance))
 
-    def __cast__(self, value, parent, key=None):
+    def fill(self, value, _parent, _key=None):
         _cfglist = cfglist(value or _list())
-        _cfglist._config_parent = parent
+        _cfglist._config_parent = _parent
         _cfglist._config_attr = self
         if value is None:
             return _cfglist
         if self.size is not None and len(_cfglist) != self.size:
             raise CastError(
                 "Couldn't cast {} in {} into a {}-element list.".format(
-                    value, self.get_node_name(parent), self.size
+                    value, self.get_node_name(_parent), self.size
                 )
             )
         try:
             for i, elem in enumerate(_cfglist):
-                _cfglist[i] = self.child_type(elem, _parent=_cfglist, __key=i)
+                _cfglist[i] = self.child_type(elem, _parent=_cfglist, _key=i)
                 try:
                     _cfglist[i]._config_index = i
                 except:
                     pass
+        except CastError:
+            raise
         except:
-            if self.child_type.__casting__:
-                raise
             raise CastError(
                 "Couldn't cast {}[{}] from '{}' into a {}".format(
-                    self.get_node_name(parent), i, elem, self.child_type.__name__
+                    self.get_node_name(_parent), i, elem, self.child_type.__name__
                 )
             )
         return _cfglist
 
     def _get_type(self, type):
         self.child_type = super()._get_type(type)
-        return self.__cast__
+        return self.fill
 
     def tree(self, instance):
         val = _getattr(instance, self.attr_name)

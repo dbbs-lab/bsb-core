@@ -97,7 +97,7 @@ class TestConfigAttrs(unittest.TestCase):
 
         self.assertTrue(hasattr(Test, "_config_attrs"))
         t = Test()
-        t2 = Test.__cast__({}, TestRoot())
+        t2 = Test({}, _parent=TestRoot())
 
     def test_attr(self):
         @config.node
@@ -106,10 +106,11 @@ class TestConfigAttrs(unittest.TestCase):
             i = config.attr(type=int)
 
         t = Test()
-        t2 = Test.__cast__({}, TestRoot())
+        t2 = Test({}, _parent=TestRoot())
         node_name = Test.str.get_node_name(t2)
         self.assertTrue(node_name.endswith(".str"), "str attribute misnomer")
-        self.assertRaises(CastError, Test.__cast__, {"i": {}}, TestRoot())
+        with self.assertRaises(CastError):
+            Test({"i": {}}, _parent=TestRoot())
 
     def test_inheritance(self):
         @config.node
@@ -119,8 +120,9 @@ class TestConfigAttrs(unittest.TestCase):
         class Child(Test):
             pass
 
-        c = Child.__cast__({"name": "Hello"}, TestRoot())
-        self.assertRaises(RequirementError, Child.__cast__, {}, TestRoot())
+        c = Child({"name": "Hello"}, _parent=TestRoot())
+        with self.assertRaises(RequirementError):
+            Child({}, _parent=TestRoot())
 
     def test_requirement(self):
         @config.node
@@ -138,16 +140,15 @@ class TestConfigAttrs(unittest.TestCase):
         class Test3:
             name = config.attr(type=str, required=lambda x: True)
 
-        self.assertRaises(RequirementError, Test.__cast__, {}, TestRoot())
-        self.assertRaisesRegex(
-            RequirementError, r"special in ", Test2.__cast__, {}, TestRoot()
-        )
-        self.assertRaises(RequirementError, Test3.__cast__, {}, TestRoot())
+        with self.assertRaises(RequirementError):
+            Test({}, _parent=TestRoot())
+        with self.assertRaisesRegex(RequirementError, r"special"):
+            Test2({}, _parent=TestRoot())
+        with self.assertRaises(RequirementError):
+            Test3({}, _parent=TestRoot())
 
-        t = Test.__cast__({"name": "hello"}, TestRoot())
-        self.assertEqual(
-            t, Test.__cast__(t, None), "Already cast object should not be altered"
-        )
+        t = Test({"name": "hello"}, _parent=TestRoot())
+        self.assertEqual(t, Test(t), "Already cast object should not be altered")
 
 
 class TestConfigDict(unittest.TestCase):
@@ -162,20 +163,22 @@ class TestConfigDict(unittest.TestCase):
             l = config.dict(type=Child, required=True)
 
         conf = {"l": {"e": {"name": "hi"}, "ss": {"name": "other"}}}
-        t = Test.__cast__(conf, TestRoot())
+        t = Test(conf, _parent=TestRoot())
         self.assertTrue(t.l.get_node_name().endswith(".l"), "Dict node name incorrect")
         self.assertEqual(len(t.l), 2, "Dict length incorrect")
         self.assertEqual(t.l.e, t.l["e"], "Dict access incorrect")
         self.assertEqual(type(t.l.e), Child, "Dict child class incorrect")
-        self.assertEqual(t.l.e.key, "e", "Child key key incorrectly set")
+        self.assertEqual(t.l.e._config_key, "e", "Child key key incorrectly set")
         conf2 = {"l": {"e": {}, "ss": {"name": "other"}}}
-        self.assertRaises(RequirementError, Test.__cast__, conf2, TestRoot())
+        with self.assertRaises(RequirementError):
+            Test(conf2, _parent=TestRoot())
 
         @config.node
         class TestSimple:
             l = config.dict(type=int)
 
-        self.assertRaises(CastError, TestSimple.__cast__, conf2, TestRoot())
+        with self.assertRaises(CastError):
+            TestSimple(conf2, _parent=TestRoot())
 
 
 class TestConfigList(unittest.TestCase):
@@ -198,20 +201,23 @@ class TestConfigList(unittest.TestCase):
             l = config.list(type=int, size=3)
 
         test_conf = {"l": [{"name": "hi"}, {"name": "other"}]}
-        t = Test.__cast__(test_conf, TestRoot())
+        t = Test(test_conf, _parent=TestRoot())
         self.assertEqual(len(t.l), 2, "List length incorrect")
         self.assertEqual(type(t.l[0]), Child, "List item class incorrect")
-        self.assertEqual(t.l[1].index, 1, "Child index key incorrectly set")
+        self.assertEqual(t.l[1]._config_index, 1, "Child index key incorrectly set")
         self.assertTrue(t.l.get_node_name().endswith(".l"), "Dict node name incorrect")
-        self.assertRaises(CastError, TestSize.__cast__, test_conf, TestRoot())
+        with self.assertRaises(CastError):
+            TestSize(test_conf, _parent=TestRoot())
 
         test_conf2 = {"l": [{"name": "hi"}, {}, {"name": "hi"}]}
-        int_test = TestNormal.__cast__({"l": [1, 2, 3]}, TestRoot())
+        int_test = TestNormal({"l": [1, 2, 3]}, _parent=TestRoot())
         self.assertEqual(int_test.l[2], 3)
         test_conf3 = {"l": [1, {}, 3]}
-        self.assertRaises(CastError, TestNormal.__cast__, test_conf3, TestRoot())
+        with self.assertRaises(CastError):
+            TestNormal(test_conf3, TestRoot())
         test_conf4 = {"l": [{"name": "hi"}, {}]}
-        self.assertRaises(RequirementError, Test.__cast__, test_conf4, TestRoot())
+        with self.assertRaises(RequirementError):
+            Test(test_conf4, TestRoot())
 
 
 class TestConfigRef(unittest.TestCase):
@@ -226,18 +232,12 @@ class TestConfigRef(unittest.TestCase):
         class Resolver:
             test = config.attr(type=Test, required=True)
 
-        r = Resolver.__cast__(
-            {"test": {"name": "Johnny", "name_ref": "name", "type_ref": "name"}}, None
-        )
+        r = Resolver({"test": {"name": "Johnny", "name_ref": "name", "type_ref": "name"}})
         self.assertEqual(r.test.name_ref, "Johnny")
         self.assertEqual(r.test.name_ref_reference, "name")
 
-        self.assertRaises(
-            ReferenceError,
-            Resolver.__cast__,
-            {"test": {"name": "Johnny", "name_ref": "nname"}},
-            None,
-        )
+        with self.assertRaises(ReferenceError):
+            Resolver({"test": {"name": "Johnny", "name_ref": "nname"}})
 
 
 @config.root
@@ -255,13 +255,13 @@ def _bootstrap(cfg, scaffold):
 
 class TestConfigRefList(unittest.TestCase):
     def test_reflist_defaults(self):
-        root = BootRoot.__cast__({}, None)
+        root = BootRoot({})
         _bootstrap(root, None)
         self.assertEqual([], root.empty_list)
         self.assertEqual([], root.none)
 
     def test_non_iterable(self):
-        root = BootRoot.__cast__({}, None)
+        root = BootRoot({})
         with self.assertRaises(ReferenceError):
             root.empty_list = 5
 
@@ -299,8 +299,8 @@ class PopRoot:
 
 class TestPopulate(unittest.TestCase):
     def test_populate(self):
-        pop_root = PopRoot.__cast__(
-            {"lists": {}, "referrers": {"ref_cfg": "lists", "ref": "lists"}}, None
+        pop_root = PopRoot(
+            {"lists": {}, "referrers": {"ref_cfg": "lists", "ref": "lists"}}
         )
         _bootstrap(pop_root, None)
         self.assertEqual(1, len(pop_root.lists.cfglist), "`populate` config.list failure")
@@ -315,9 +315,7 @@ class TestPopulate(unittest.TestCase):
         )
 
     def test_populate_reflist(self):
-        pop_root = PopRoot.__cast__(
-            {"lists": {}, "referrers": {"ref_ref": "lists"}}, None
-        )
+        pop_root = PopRoot({"lists": {}, "referrers": {"ref_ref": "lists"}})
         _bootstrap(pop_root, None)
         self.assertEqual(
             1, len(pop_root.lists.reflist), "`populate` config.reflist failure"
@@ -333,7 +331,7 @@ class TestPopulate(unittest.TestCase):
             "lists": {"reflist": []},
             "referrers": {"ref_ref": "lists", "ref_ref2": "lists"},
         }
-        pop_root = PopRoot.__cast__(conf, None)
+        pop_root = PopRoot(conf)
         _bootstrap(pop_root, None)
         self.assertEqual(1, len(pop_root.lists.reflist))
         self.assertEqual(pop_root.referrers, pop_root.lists.reflist[0])
@@ -341,12 +339,11 @@ class TestPopulate(unittest.TestCase):
     @unittest.skip("See https://github.com/dbbs-lab/bsb/issues/94")
     def test_populate_reflist_with_refkeys_unique(self):
         # Test that unicity also takes into account existing reference keys.
-        pop_root = PopRoot.__cast__(
+        pop_root = PopRoot(
             {
                 "lists": {"reflist": ["referrers"]},
                 "referrers": {"ref_ref": "lists", "ref_ref2": "lists"},
             },
-            None,
         )
         _bootstrap(pop_root, None)
         self.assertEqual(1, len(pop_root.lists.reflist))
@@ -354,21 +351,20 @@ class TestPopulate(unittest.TestCase):
 
     def test_populate_reflist_not_unique(self):
         HasRefs.ref_ref.pop_unique = False
-        pop_root = PopRoot.__cast__(
+        pop_root = PopRoot(
             {
                 "lists": {"reflist": ["referrers", "refs2"]},
                 "referrers": {"ref_ref": "lists"},
                 "refs2": {"ref_ref": "lists"},
-            },
-            None,
+            }
         )
         _bootstrap(pop_root, None)
         self.assertEqual(4, len(pop_root.lists.reflist))
         self.assertEqual(pop_root.referrers, pop_root.lists.reflist[0])
 
     def test_reflist_populate(self):
-        pop_root = PopRoot.__cast__(
-            {"lists": {}, "referrers": {"reflist": ["lists", "lists", "lists"]},}, None,
+        pop_root = PopRoot(
+            {"lists": {}, "referrers": {"reflist": ["lists", "lists", "lists"]}}
         )
         _bootstrap(pop_root, None)
         self.assertEqual(1, len(pop_root.lists.list), "Reflist did not populate uniquely")
@@ -377,8 +373,8 @@ class TestPopulate(unittest.TestCase):
     @unittest.skip("See https://github.com/dbbs-lab/bsb/issues/94")
     def test_no_unique_reflist_populate(self):
         HasRefs.reflist.pop_unique = False
-        pop_root = PopRoot.__cast__(
-            {"lists": {}, "referrers": {"reflist": ["lists", "lists", "lists"]},}, None,
+        pop_root = PopRoot(
+            {"lists": {}, "referrers": {"reflist": ["lists", "lists", "lists"]}}
         )
         _bootstrap(pop_root, None)
         self.assertEqual(3, len(pop_root.lists.list))
@@ -494,25 +490,15 @@ class NotInherited:
 
 class TestDynamic(unittest.TestCase):
     def test_dynamic_requirements(self):
-        self.assertRaisesRegex(
-            RequirementError,
-            "must contain a 'class' attribute",
-            DynamicBase.__cast__,
-            {},
-            TestRoot(),
-        )
-        self.assertRaisesRegex(
-            RequirementError,
-            "must contain a 'test' attribute",
-            DynamicAttrBase.__cast__,
-            {},
-            TestRoot(),
-        )
+        with self.assertRaisesRegex(RequirementError, "must contain a 'cls' attribute"):
+            DynamicBase({}, _parent=TestRoot())
+        with self.assertRaisesRegex(RequirementError, "must contain a 'test' attribute"):
+            DynamicAttrBase({}, _parent=TestRoot())
 
     def test_dynamic(self):
         self.assertTrue(
             isinstance(
-                DynamicBaseDefault.__cast__({"name": "ello"}, TestRoot()),
+                DynamicBaseDefault({"name": "ello"}, _parent=TestRoot()),
                 DynamicBaseDefault,
             ),
             "Dynamic cast with default 'DynamicBaseDefault' should produce instance of type 'DynamicBaseDefault'",
@@ -522,29 +508,20 @@ class TestDynamic(unittest.TestCase):
         # Test that inheritance is enforced.
         # The cast should raise an UnfitClassCastError while the direct _load_class call
         # should raise a DynamicClassInheritanceError
-        self.assertRaises(
-            UnfitClassCastError,
-            DynamicBase.__cast__,
-            {"name": "ello", "class": "NotInherited"},
-            TestRoot(),
-        )
-        self.assertRaises(
-            DynamicClassInheritanceError,
-            sys.modules["bsb.config._make"]._load_class,
-            NotInherited,
-            [],
-            interface=DynamicBase,
-        )
+        with self.assertRaises(UnfitClassCastError):
+            DynamicBase({"name": "ello", "cls": "NotInherited"}, _parent=TestRoot())
+        with self.assertRaises(DynamicClassInheritanceError):
+            sys.modules["bsb.config._make"]._load_class(
+                NotInherited,
+                [],
+                interface=DynamicBase,
+            )
         # TODO: Test that the error message shows the mapped class name if a classmap exists
 
     def test_dynamic_missing(self):
         # Test that non existing classes raise the UnresolvedClassCastError.
-        self.assertRaises(
-            UnresolvedClassCastError,
-            DynamicBase.__cast__,
-            {"name": "ello", "class": "DoesntExist"},
-            TestRoot(),
-        )
+        with self.assertRaises(UnresolvedClassCastError):
+            DynamicBase({"name": "ello", "cls": "DoesntExist"}, _parent=TestRoot())
 
     def test_dynamic_module_path(self):
         # Test that the module path can help find classes.
@@ -564,7 +541,11 @@ class TestDynamic(unittest.TestCase):
 
 
 @config.dynamic(
-    classmap={"a": "ClassmapChildA", "b": "ClassmapChildB", "d": "ClassmapChildD",}
+    classmap={
+        "a": "ClassmapChildA",
+        "b": "ClassmapChildB",
+        "d": "ClassmapChildD",
+    }
 )
 class ClassmapParent:
     pass
@@ -580,24 +561,20 @@ class ClassmapChildB(ClassmapParent):
 
 class TestClassmaps(unittest.TestCase):
     def test_dynamic_classmap(self):
-        a = ClassmapParent.__cast__({"class": "a"}, TestRoot())
+        a = ClassmapParent({"cls": "a"}, _parent=TestRoot())
         self.assertEqual(ClassmapChildA, a.__class__, "Classmap failed")
-        b = ClassmapParent.__cast__({"class": "b"}, TestRoot())
+        b = ClassmapParent({"cls": "b"}, _parent=TestRoot())
         self.assertEqual(ClassmapChildB, b.__class__, "Classmap failed")
 
     def test_missing_classmap_entry(self):
-        self.assertRaises(
-            UnresolvedClassCastError, ClassmapParent.__cast__, {"class": "c"}, TestRoot()
-        )
+        with self.assertRaises(UnresolvedClassCastError):
+            ClassmapParent({"cls": "c"}, _parent=TestRoot())
 
     def test_missing_classmap_class(self):
-        self.assertRaisesRegex(
-            UnresolvedClassCastError,
-            "'d' \(mapped to 'ClassmapChildD'\)",
-            ClassmapParent.__cast__,
-            {"class": "d"},
-            TestRoot(),
-        )
+        with self.assertRaisesRegex(
+            UnresolvedClassCastError, "'d' \(mapped to 'ClassmapChildD'\)"
+        ):
+            ClassmapParent({"cls": "d"}, _parent=TestRoot())
 
 
 @config.dynamic(auto_classmap=True)
@@ -661,7 +638,7 @@ class TestWalk(unittest.TestCase):
         class Root:
             smth = config.attr(type=Base)
 
-        b = Root.__cast__({"smth": {"att": "hello", "deep": {"ey": [1, 2, 3]}}}, None)
+        b = Root({"smth": {"att": "hello", "deep": {"ey": [1, 2, 3]}}})
         iter_collected = [*sys.modules["bsb.config._make"].walk_node_values(b)]
         self.assertEqual(len(iter_collected), 7)
 
@@ -675,9 +652,9 @@ class TestTypes(unittest.TestCase):
         class Test:
             c = config.attr(type=types.in_([1, 2, 3]))
 
-        b = Test.__cast__({"c": 3}, TestRoot())
+        b = Test({"c": 3}, _parent=TestRoot())
         self.assertEqual(b.c, 3)
-        self.assertRaises(CastError, Test.__cast__, {"c": 4}, TestRoot())
+        self.assertRaises(CastError, Test, {"c": 4}, _parent=TestRoot())
 
     def test_in_inf(self):
         class Fib:
@@ -703,9 +680,9 @@ class TestTypes(unittest.TestCase):
         class Test:
             c = config.attr(type=types.in_(Fib()))
 
-        b = Test.__cast__({"c": 13}, TestRoot())
+        b = Test({"c": 13}, _parent=TestRoot())
         self.assertRaisesRegex(
-            CastError, "fibonacci", Test.__cast__, {"c": 14}, TestRoot()
+            CastError, "fibonacci", Test, {"c": 14}, _parent=TestRoot()
         )
 
     def test_multiple_types(self):
@@ -717,16 +694,16 @@ class TestTypes(unittest.TestCase):
         class TestF:
             c = config.attr(type=types.or_(int, int))
 
-        b = TestS.__cast__({"c": "h"}, TestRoot())
+        b = TestS({"c": "h"}, _parent=TestRoot())
         self.assertEqual(b.c, "h")
-        self.assertRaises(CastError, TestF.__cast__, {"c": "h"}, TestRoot())
+        self.assertRaises(CastError, TestF, {"c": "h"}, _parent=TestRoot())
 
     def test_scalar_expand(self):
         @config.node
         class Test:
             c = config.attr(type=types.scalar_expand(int, expand=lambda s: [s, s]))
 
-        b = Test.__cast__({"c": 2}, TestRoot())
+        b = Test({"c": 2}, _parent=TestRoot())
         self.assertEqual(b.c, [2, 2])
 
     def test_list(self):
@@ -735,21 +712,21 @@ class TestTypes(unittest.TestCase):
             c = config.attr(type=types.list(int))
             d = config.attr(type=types.list(int, size=3))
 
-        b = Test.__cast__({"c": [2, 2]}, TestRoot())
+        b = Test({"c": [2, 2]}, _parent=TestRoot())
         self.assertEqual(b.c, [2, 2])
-        b = Test.__cast__({"c": None}, TestRoot())
+        b = Test({"c": None}, _parent=TestRoot())
         self.assertEqual(b.c, None)
-        self.assertRaises(CastError, Test.__cast__, {"c": [2, "f"]}, TestRoot())
-        self.assertRaises(CastError, Test.__cast__, {"d": [2, 2]}, TestRoot())
+        self.assertRaises(CastError, Test, {"c": [2, "f"]}, _parent=TestRoot())
+        self.assertRaises(CastError, Test, {"d": [2, 2]}, _parent=TestRoot())
 
     def test_fraction(self):
         @config.node
         class Test:
             c = config.attr(type=types.fraction())
 
-        b = Test.__cast__({"c": 0.1}, TestRoot())
+        b = Test({"c": 0.1}, _parent=TestRoot())
         self.assertEqual(b.c, 0.1)
-        self.assertRaises(CastError, Test.__cast__, {"c": -0.1}, TestRoot())
+        self.assertRaises(CastError, Test, {"c": -0.1}, _parent=TestRoot())
 
     # def test_constant_distribution(self):
     #     raise NotImplementedError("Luie zak")

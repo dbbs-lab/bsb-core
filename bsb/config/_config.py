@@ -19,7 +19,7 @@ class Configuration:
 
     name = attr()
     components = attr(type=builtins.dict)
-    # storage = attr(type=StorageNode, required=True)
+    storage = attr(type=StorageNode, required=True)
     network = attr(type=NetworkNode, required=True)
     regions = dict(type=Region)
     partitions = dict(type=Partition, required=True)
@@ -32,7 +32,7 @@ class Configuration:
     @classmethod
     def default(cls):
         conf = cls(
-            # storage={"engine": "hdf5"},
+            storage={"engine": "hdf5"},
             network={"x": 200, "z": 200},
             cell_types={},
             partitions={},

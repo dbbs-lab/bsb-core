@@ -38,10 +38,11 @@ def compile_new(node_cls, dynamic=False, pluggable=False):
     elif dynamic:
         class_determinant = _get_dynamic_class
 
-    def __new__(cls, *args, **kwargs):
+    def __new__(_cls, *args, **kwargs):
         dyn_kwargs = args[0] if args and isinstance(args[0], dict) else kwargs
-        instance = object.__new__(class_determinant(cls, dyn_kwargs))
-        return instance.__init__(*args, **kwargs)
+        instance = object.__new__(class_determinant(_cls, dyn_kwargs))
+        instance.__init__(*args, **kwargs)
+        return instance
 
     return __new__
 
@@ -112,9 +113,10 @@ def _compile_init_header(cls, attrs):
     header += f"        raise UnknownConfigAttrError(f\"Unknown configuration attribute{{plural}} \" + ', '.join(f\"'{{a}}'\" for a in unknown), list(unknown.keys()))\n"
     header += f"    argswap = args and isinstance(args[0], dict)\n"
     header += f"    kwargs = args[0] if argswap else {{{kwargs_collector}}}\n"
-    header += f"    if argswap:\n"
-    for k in attrs:
-        header += f"        {k}=kwargs.get('{k}', None)\n"
+    if attrs:
+        header += f"    if argswap:\n"
+        for k in attrs:
+            header += f"        {k}=kwargs.get('{k}', None)\n"
     return header
 
 
@@ -245,38 +247,13 @@ def _try_catch(catch, node, key, value):
         raise UncaughtAttributeError()
 
 
-def _make_cast(node_cls):
-    def __cast__(section, parent, _key=None):
-        if hasattr(section.__class__, "_config_attrs"):
-            # Casting artifacts found on the section's class so it must have been cast
-            # before.
-            return section
-        if hasattr(node_cls, "__dcast__"):
-            # Create an instance of the dynamically configured class.
-            node = node_cls.__dcast__(section, parent, key)
-        else:
-            # Create an instance of the static node class
-            node = node_cls(_parent=parent)
-        if key is not None:
-            node._config_key = key
-        _cast_attributes(node, section, node.__class__, key)
-        return node
-
-    return __cast__
-
-
 def _get_dynamic_class(node_cls, kwargs):
     attr_name = node_cls._config_dynamic_attr
     dynamic_attr = getattr(node_cls, attr_name)
     if attr_name in kwargs:
         loaded_cls_name = kwargs[attr_name]
     elif dynamic_attr.required(kwargs):
-        raise RequirementError(
-            "Dynamic node '{}' must contain a '{}' attribute.".format(
-                parent.get_node_name() + ("." + key if key is not None else ""),
-                attr_name,
-            )
-        )
+        raise RequirementError(f"Dynamic node must contain a '{attr_name}' attribute.")
     elif dynamic_attr.should_call_default():  # pragma: nocover
         loaded_cls_name = dynamic_attr.default()
     else:
@@ -293,19 +270,17 @@ def _get_dynamic_class(node_cls, kwargs):
     except DynamicClassInheritanceError:
         mapped_class_msg = _get_mapped_class_msg(loaded_cls_name, classmap)
         raise UnfitClassCastError(
-            "'{}'{} is not a valid class for {}.{} as it does not inherit from {}".format(
+            "'{}'{} is not a valid class as it does not inherit from {}".format(
                 loaded_cls_name,
                 mapped_class_msg,
-                parent.get_node_name(),
-                attr_name,
                 node_cls.__name__,
             )
         ) from None
     except DynamicClassError:
         mapped_class_msg = _get_mapped_class_msg(loaded_cls_name, classmap)
         raise UnresolvedClassCastError(
-            "Could not resolve '{}'{} to a class in '{}.{}'".format(
-                loaded_cls_name, mapped_class_msg, parent.get_node_name(), attr_name
+            "Could not resolve '{}'{} to a class.".format(
+                loaded_cls_name, mapped_class_msg
             )
         ) from None
     return dynamic_cls
