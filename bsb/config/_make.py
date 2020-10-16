@@ -6,12 +6,39 @@ from functools import wraps
 from ._hooks import overrides
 
 
-def compile_new(cls, dynamic=False, pluggable=False, root=False):
-    def newstub(cls, *args, **kwargs):
-        if args and isinstance(args[0], dict):
-            print("FROM DICT", args[0])
-        else:
-            print("FROM KWARGS", kwargs)
+def compile_isc(node_cls, dynamic_config):
+    if not dynamic_config or not dynamic_config.auto_classmap:
+        return node_cls.__init_subclass__
+
+    from ._hooks import overrides
+
+    def dud(*args, **kwargs):
+        pass
+
+    if overrides(node_cls, "__init_subclass__"):
+        f = node_cls.__init_subclass__
+    else:
+        f = dud
+
+    def __init_subclass__(cls, classmap_entry=None, **kwargs):
+        super(node_cls, cls).__init_subclass__(**kwargs)
+        if classmap_entry is not None:
+            node_cls._config_dynamic_classmap[classmap_entry] = cls
+        f(**kwargs)
+
+    return classmethod(__init_subclass__)
+
+
+def compile_new(node_cls, dynamic=False, pluggable=False):
+    if not dynamic and not pluggable:
+        return node_cls.__new__
+
+    def __new__(cls, *args, **kwargs):
+        dyn_kwargs = args[0] if args and isinstance(args[0], dict) else kwargs
+        instance = object.__new__(_get_dynamic_class(cls, dyn_kwargs))
+        return instance.__init__(*args, **kwargs)
+
+    return __new__
 
 
 def compile_init(cls, root=False):
@@ -248,61 +275,50 @@ def _make_cast(node_cls):
     return __cast__
 
 
-def make_dynamic_cast(node_cls, dynamic_config):
+def _get_dynamic_class(node_cls, kwargs):
     attr_name = node_cls._config_dynamic_attr
     dynamic_attr = getattr(node_cls, attr_name)
-    if dynamic_config.auto_classmap or dynamic_config.classmap:
-        node_cls._config_dynamic_classmap = dynamic_config.classmap or {}
-
-    def __dcast__(section, parent, _key=None):
-        if dynamic_attr.required(section):
-            if attr_name not in section:
-                raise RequirementError(
-                    "Dynamic node '{}' must contain a '{}' attribute.".format(
-                        parent.get_node_name() + ("." + key if key is not None else ""),
-                        attr_name,
-                    )
-                )
-            else:
-                loaded_cls_name = section[attr_name]
-        elif dynamic_attr.should_call_default():  # pragma: nocover
-            loaded_cls_name = dynamic_attr.default()
-        else:
-            loaded_cls_name = dynamic_attr.default
-        module_path = ["__main__", node_cls.__module__]
-        if hasattr(node_cls, "_config_dynamic_classmap"):
-            classmap = node_cls._config_dynamic_classmap
-        else:
-            classmap = None
-        try:
-            dynamic_cls = _load_class(
-                loaded_cls_name, module_path, interface=node_cls, classmap=classmap
+    if attr_name in kwargs:
+        loaded_cls_name = kwargs[attr_name]
+    elif dynamic_attr.required(kwargs):
+        raise RequirementError(
+            "Dynamic node '{}' must contain a '{}' attribute.".format(
+                parent.get_node_name() + ("." + key if key is not None else ""),
+                attr_name,
             )
-        except DynamicClassInheritanceError:
-            mapped_class_msg = _get_mapped_class_msg(loaded_cls_name, classmap)
-            raise UnfitClassCastError(
-                "'{}'{} is not a valid class for {}.{} as it does not inherit from {}".format(
-                    loaded_cls_name,
-                    mapped_class_msg,
-                    parent.get_node_name(),
-                    attr_name,
-                    node_cls.__name__,
-                )
-            ) from None
-        except DynamicClassError:
-            mapped_class_msg = _get_mapped_class_msg(loaded_cls_name, classmap)
-            raise UnresolvedClassCastError(
-                "Could not resolve '{}'{} to a class in '{}.{}'".format(
-                    loaded_cls_name, mapped_class_msg, parent.get_node_name(), attr_name
-                )
-            ) from None
-        node = dynamic_cls(_parent=parent)
-        return node
-
-    node_cls.__dcast__ = __dcast__
-    if dynamic_config.auto_classmap:
-        _wrap_isc_auto_classmap(node_cls)
-    return __dcast__
+        )
+    elif dynamic_attr.should_call_default():  # pragma: nocover
+        loaded_cls_name = dynamic_attr.default()
+    else:
+        loaded_cls_name = dynamic_attr.default
+    module_path = ["__main__", node_cls.__module__]
+    if hasattr(node_cls, "_config_dynamic_classmap"):
+        classmap = node_cls._config_dynamic_classmap
+    else:
+        classmap = None
+    try:
+        dynamic_cls = _load_class(
+            loaded_cls_name, module_path, interface=node_cls, classmap=classmap
+        )
+    except DynamicClassInheritanceError:
+        mapped_class_msg = _get_mapped_class_msg(loaded_cls_name, classmap)
+        raise UnfitClassCastError(
+            "'{}'{} is not a valid class for {}.{} as it does not inherit from {}".format(
+                loaded_cls_name,
+                mapped_class_msg,
+                parent.get_node_name(),
+                attr_name,
+                node_cls.__name__,
+            )
+        ) from None
+    except DynamicClassError:
+        mapped_class_msg = _get_mapped_class_msg(loaded_cls_name, classmap)
+        raise UnresolvedClassCastError(
+            "Could not resolve '{}'{} to a class in '{}.{}'".format(
+                loaded_cls_name, mapped_class_msg, parent.get_node_name(), attr_name
+            )
+        ) from None
+    return dynamic_cls
 
 
 def _get_mapped_class_msg(loaded_cls_name, classmap):
@@ -341,26 +357,6 @@ def make_pluggable_cast(node_cls):
 
     node_cls.__dcast__ = __dcast__
     return __dcast__
-
-
-def _wrap_isc_auto_classmap(node_cls):
-    from ._hooks import overrides
-
-    def dud(*args, **kwargs):
-        pass
-
-    if overrides(node_cls, "__init_subclass__"):
-        f = node_cls.__init_subclass__
-    else:
-        f = dud
-
-    def __init_subclass__(cls, classmap_entry=None, **kwargs):
-        super(node_cls, cls).__init_subclass__(**kwargs)
-        if classmap_entry is not None:
-            node_cls._config_dynamic_classmap[classmap_entry] = cls
-        f(**kwargs)
-
-    node_cls.__init_subclass__ = classmethod(__init_subclass__)
 
 
 def _load_class(cfg_classname, module_path, interface=None, classmap=None):

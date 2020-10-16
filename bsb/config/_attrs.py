@@ -2,7 +2,14 @@
     An attrs-inspired class annotation system, but my A stands for amateuristic.
 """
 
-from ._make import compile_init, make_get_node_name, make_cast, make_dictable, make_tree
+from ._make import (
+    compile_init,
+    compile_new,
+    compile_isc,
+    make_get_node_name,
+    make_dictable,
+    make_tree,
+)
 from inspect import signature
 from ..exceptions import *
 
@@ -40,7 +47,8 @@ def node(node_cls, root=False, dynamic=False, pluggable=False):
     else:
         node_cls._config_attrs = attrs
     node_cls.__init__ = compile_init(node_cls, root=root)
-    node_cls.__new__ = compile_new(dynamic=dynamic, pluggable=pluggable, root=root)
+    node_cls.__new__ = compile_new(node_cls, dynamic=dynamic, pluggable=pluggable)
+    node_cls.__init_subclass__ = compile_isc(node_cls, dynamic)
     make_get_node_name(node_cls, root=root)
     make_tree(node_cls)
     make_dictable(node_cls)
@@ -102,6 +110,8 @@ class DynamicNodeConfiguration:
 def _dynamic(node_cls, class_attr, attr_name, config):
     setattr(node_cls, attr_name, class_attr)
     node_cls._config_dynamic_attr = attr_name
+    if config.auto_classmap or config.classmap:
+        node_cls._config_dynamic_classmap = config.classmap or {}
     return node(node_cls, dynamic=config)
 
 
