@@ -6,6 +6,14 @@ from functools import wraps
 from ._hooks import overrides
 
 
+def compile_new(cls, dynamic=False, pluggable=False, root=False):
+    def newstub(cls, *args, **kwargs):
+        if args and isinstance(args[0], dict):
+            print("FROM DICT", args[0])
+        else:
+            print("FROM KWARGS", kwargs)
+
+
 def compile_init(cls, root=False):
     attrs = _get_class_config_attrs(cls)
     init_globals = _get_init_globals(cls, attrs)
@@ -401,7 +409,10 @@ def make_dictable(node_cls):
         return attr in _get_class_config_attrs(self.__class__)
 
     def __getitem__(self, attr):
-        return getattr(self, attr)
+        if attr in _get_class_config_attrs(self.__class__):
+            return getattr(self, attr)
+        else:
+            raise KeyError(attr)
 
     node_cls.__contains__ = __contains__
     node_cls.__getitem__ = __getitem__
