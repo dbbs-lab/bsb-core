@@ -324,6 +324,15 @@ class ConfigurationAttribute:
             val = val.__tree__()
         return val
 
+    def flag_dirty(self, instance):
+        instance._config_state[self.attr_name] = False
+
+    def is_dirty(self, instance):
+        return not instance._config_state.get(self.attr_name, True)
+
+    def flag_pristine(self, instance):
+        instance._config_state[self.attr_name] = True
+
     def get_default(self):
         return self.default() if self.should_call_default() else self.default
 

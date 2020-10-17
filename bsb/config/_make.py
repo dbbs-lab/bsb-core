@@ -64,6 +64,8 @@ def compile_new(node_cls, dynamic=False, pluggable=False, root=False):
 def _set_pk(obj, parent, key):
     obj._config_parent = parent
     obj._config_key = key
+    if not hasattr(obj, "_config_state"):
+        obj._config_state = {}
     for a in _get_class_config_attrs(obj.__class__).values():
         if a.key:
             a.__set__(obj, key)
@@ -106,10 +108,14 @@ def compile_init(cls, root=False):
         for attr in attrs.values():
             name = attr.attr_name
             if attr.key and attr.attr_name not in kwargs:
-                value = self._config_key
+                setattr(self, name, self._config_key)
+                attr.flag_pristine(self)
             elif (value := values[name]) is None:
-                value = attr.get_default()
-            setattr(self, name, value)
+                setattr(self, name, attr.get_default())
+                attr.flag_pristine(self)
+            else:
+                setattr(self, name, value)
+                attr.flag_dirty(self)
         # # TODO: catch attrs
         for key, value in leftovers.items():
             try:
@@ -332,7 +338,7 @@ def make_tree(node_cls):
         return {
             name: tree
             for name, attr in instance.__class__._config_attrs.items()
-            if (tree := attr.tree(instance)) is not None
+            if attr.is_dirty(instance) and (tree := attr.tree(instance)) is not None
         }
 
     node_cls.__tree__ = get_tree
