@@ -1,7 +1,7 @@
 from ..exceptions import *
 from .. import exceptions
 from ..reporting import warn
-import inspect, re, sys, itertools
+import inspect, re, sys, itertools, warnings, errr
 from functools import wraps
 from ._hooks import overrides
 
@@ -70,8 +70,6 @@ def _set_pk(obj, parent, key):
 
 
 def compile_init(cls, root=False):
-    attrs = _get_class_config_attrs(cls)
-    catch_attrs = [a for a in attrs.values() if hasattr(a, "__catch__")]
     if overrides(cls, "__init__"):
         init = cls.__init__
     else:
@@ -82,6 +80,8 @@ def compile_init(cls, root=False):
         init = dud
 
     def __init__(self, *args, _parent=None, _key=None, **kwargs):
+        attrs = _get_class_config_attrs(self.__class__)
+        catch_attrs = [a for a in attrs.values() if hasattr(a, "__catch__")]
         primer = args[0] if args else None
         if isinstance(primer, self.__class__):
             return
@@ -105,7 +105,9 @@ def compile_init(cls, root=False):
                 raise
         for attr in attrs.values():
             name = attr.attr_name
-            if (value := values[name]) is None:
+            if attr.key and attr.attr_name not in kwargs:
+                value = self._config_key
+            elif (value := values[name]) is None:
                 value = attr.get_default()
             setattr(self, name, value)
         # # TODO: catch attrs
@@ -113,14 +115,41 @@ def compile_init(cls, root=False):
             try:
                 _try_catch_attrs(self, catch_attrs, key, value)
             except UncaughtAttributeError:
-                warn(f"Unknown attribute: '{key}'", ConfigurationWarning)
+                warning = ConfigurationWarning(f"Unknown attribute: '{key}'")
+                warning.node = self
+                warn(warning, ConfigurationWarning)
                 setattr(self, key, value)
 
         init(self, *args, **leftovers)
-        if root:
-            _resolve_references(self)
 
     return __init__
+
+
+def wrap_root_init(init):
+    def __init__(self, *args, _parent=None, _key=None, **kwargs):
+        with warnings.catch_warnings(record=True) as log:
+            try:
+                init(self, *args, _parent=None, _key=None, **kwargs)
+            except (CastError, RequirementError) as e:
+                _bubble_up_exc(e)
+            _resolve_references(self)
+        _bubble_up_warnings(log)
+
+    return __init__
+
+
+def _bubble_up_exc(exc):
+    errr.wrap(type(exc), exc, append=" in " + exc.node.get_node_name())
+
+
+def _bubble_up_warnings(log):
+    for w in log:
+        m = w.message
+        if hasattr(m, "node"):
+            # Unpack the inner Warning that was passed instead of the warning msg
+            warn(str(m) + " in " + m.node.get_node_name(), type(m))
+        else:
+            warn(str(m), w)
 
 
 def _get_class_config_attrs(cls):

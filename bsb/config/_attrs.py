@@ -9,6 +9,7 @@ from ._make import (
     make_get_node_name,
     make_dictable,
     make_tree,
+    wrap_root_init,
 )
 from inspect import signature
 from ..exceptions import *
@@ -34,9 +35,6 @@ def node(node_cls, root=False, dynamic=False, pluggable=False):
         for k, v in node_cls.__dict__.items()
         if isinstance(v, ConfigurationAttribute)
     }
-    if "name" not in attrs:
-        # Add a default name key
-        attrs["name"] = attr(key=True)
     # Give the attributes the name they were assigned in the class
     for name, a in attrs.items():
         a.attr_name = name
@@ -52,6 +50,8 @@ def node(node_cls, root=False, dynamic=False, pluggable=False):
         node_cls._config_attrs = attrs
 
     node_cls.__init__ = compile_init(node_cls, root=root)
+    if root:
+        node_cls.__init__ = wrap_root_init(node_cls.__init__)
     node_cls.__new__ = compile_new(
         node_cls, dynamic=dynamic, pluggable=pluggable, root=root
     )
@@ -286,12 +286,12 @@ class ConfigurationAttribute:
             return self
         return _getattr(instance, self.attr_name)
 
-    def __set__(self, instance, value, key=None):
+    def __set__(self, instance, value):
         if value is None:
             # Don't cast None to a value of the attribute type.
             return _setattr(instance, self.attr_name, None)
         try:
-            value = self.type(value, _parent=instance, _key=key)
+            value = self.type(value, _parent=instance, _key=self.attr_name)
         except CastError:
             raise
         except:
@@ -427,11 +427,12 @@ class ConfigurationDictAttribute(ConfigurationAttribute):
         super().__init__(*args, **kwargs)
 
     def __set__(self, instance, value, _key=None):
-        _setattr(instance, self.attr_name, self.fill(value, _parent=instance))
+        _setattr(instance, self.attr_name, self.fill(value, _parent=instance, _key=_key))
 
     def fill(self, value, _parent, _key=None):
         _cfgdict = cfgdict(value or _dict())
         _cfgdict._config_parent = _parent
+        _cfgdict._config_key = _key
         _cfgdict._config_attr = self
         try:
             for ckey, value in _cfgdict.items():
