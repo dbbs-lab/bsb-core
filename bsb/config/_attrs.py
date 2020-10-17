@@ -297,7 +297,7 @@ class ConfigurationAttribute:
             if not e.node:
                 e.node, e.attr = instance, self.attr_name
             raise
-        except:
+        except Exception as e:
             raise CastError(
                 f"Couldn't cast '{value}' into {self.type.__name__}", instance, self
             )
@@ -326,6 +326,8 @@ class ConfigurationAttribute:
 
     def flag_dirty(self, instance):
         instance._config_state[self.attr_name] = False
+        if self.attr_name not in instance._config_attr_order:
+            instance._config_attr_order.append(self.attr_name)
 
     def is_dirty(self, instance):
         return not instance._config_state.get(self.attr_name, True)

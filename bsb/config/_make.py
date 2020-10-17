@@ -64,11 +64,15 @@ def compile_new(node_cls, dynamic=False, pluggable=False, root=False):
 def _set_pk(obj, parent, key):
     obj._config_parent = parent
     obj._config_key = key
+    if not hasattr(obj, "_config_attr_order"):
+        obj._config_attr_order = []
     if not hasattr(obj, "_config_state"):
         obj._config_state = {}
     for a in _get_class_config_attrs(obj.__class__).values():
         if a.key:
-            a.__set__(obj, key)
+            from ._attrs import _setattr
+
+            _setattr(obj, a.attr_name, key)
 
 
 def compile_init(cls, root=False):
@@ -90,6 +94,8 @@ def compile_init(cls, root=False):
             (primed := primer.copy()).update(kwargs)
             kwargs = primed
         attrs = _get_class_config_attrs(self.__class__)
+        keys = list(kwargs.keys())
+        self._config_attr_order = list(kwargs.keys())
         catch_attrs = [a for a in attrs.values() if hasattr(a, "__catch__")]
         leftovers = kwargs.copy()
         values = {}
@@ -335,10 +341,12 @@ def make_dictable(node_cls):
 
 def make_tree(node_cls):
     def get_tree(instance):
+        attrs = _get_class_config_attrs(instance.__class__)
         return {
             name: tree
-            for name, attr in instance.__class__._config_attrs.items()
-            if attr.is_dirty(instance) and (tree := attr.tree(instance)) is not None
+            for name in instance._config_attr_order
+            if (attr := attrs[name]).is_dirty(instance)
+            and (tree := attr.tree(instance)) is not None
         }
 
     node_cls.__tree__ = get_tree
