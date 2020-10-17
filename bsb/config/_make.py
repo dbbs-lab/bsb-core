@@ -97,7 +97,7 @@ def compile_init(cls, root=False):
             value = values[name] = leftovers.pop(name, None)
             try:
                 if value is None and attr.required(kwargs):
-                    raise RequirementError(f"Missing required attribute '{name}'.")
+                    raise RequirementError(f"Missing required attribute '{name}'")
             except RequirementError as e:
                 # Catch both our own and possible `attr.required` RequirementErrors and
                 # set the node detail before passing it on
@@ -139,7 +139,9 @@ def wrap_root_init(init):
 
 
 def _bubble_up_exc(exc):
-    errr.wrap(type(exc), exc, append=" in " + exc.node.get_node_name())
+    node = " in " + exc.node.get_node_name() if hasattr(exc, "node") and exc.node else ""
+    attr = f".{exc.attr}" if hasattr(exc, "attr") and exc.attr else ""
+    errr.wrap(type(exc), exc, append=node + attr)
 
 
 def _bubble_up_warnings(log):
@@ -147,7 +149,8 @@ def _bubble_up_warnings(log):
         m = w.message
         if hasattr(m, "node"):
             # Unpack the inner Warning that was passed instead of the warning msg
-            warn(str(m) + " in " + m.node.get_node_name(), type(m))
+            attr = f".{m.attr.attr_name}" if hasattr(m, "attr") else ""
+            warn(str(m) + " in " + m.node.get_node_name() + attr, type(m))
         else:
             warn(str(m), w)
 
@@ -210,7 +213,7 @@ def _get_dynamic_class(node_cls, kwargs):
     if attr_name in kwargs:
         loaded_cls_name = kwargs[attr_name]
     elif dynamic_attr.required(kwargs):
-        raise RequirementError(f"Dynamic node must contain a '{attr_name}' attribute.")
+        raise RequirementError(f"Dynamic node must contain a '{attr_name}' attribute")
     elif dynamic_attr.should_call_default():  # pragma: nocover
         loaded_cls_name = dynamic_attr.default()
     else:

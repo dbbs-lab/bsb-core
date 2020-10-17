@@ -12,6 +12,8 @@ _t(
                 ClassMapMissingError=_e(),
             ),
             CastError=_e(
+                "node",
+                "attr",
                 DistributionCastError=_e(
                     UnknownDistributionError=_e(),
                     InvalidDistributionError=_e(),
@@ -20,7 +22,7 @@ _t(
                 UnfitClassCastError=_e(),
             ),
             CastConfigurationError=_e(),
-            RequirementError=_e("node"),
+            RequirementError=_e("node", "attr"),
             ReferenceError=_e(
                 NoReferenceAttributeSignal=_e(),
             ),

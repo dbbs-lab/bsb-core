@@ -292,11 +292,14 @@ class ConfigurationAttribute:
             return _setattr(instance, self.attr_name, None)
         try:
             value = self.type(value, _parent=instance, _key=self.attr_name)
-        except CastError:
+            self.flag_dirty(instance)
+        except (RequirementError, CastError) as e:
+            if not e.node:
+                e.node, e.attr = instance, self.attr_name
             raise
         except:
             raise CastError(
-                "Couldn't cast '{}' into {}".format(value, self.type.__name__)
+                f"Couldn't cast '{value}' into {self.type.__name__}", instance, self
             )
         # The value was cast to its intented type and the new value can be set.
         _setattr(instance, self.attr_name, value)
@@ -386,7 +389,9 @@ class ConfigurationListAttribute(ConfigurationAttribute):
                     _cfglist[i]._config_index = i
                 except:
                     pass
-        except (RequirementError, CastError):
+        except (RequirementError, CastError) as e:
+            if not e.node:
+                e.node, e.attr = _cfglist, i
             raise
         except:
             raise CastError(
@@ -437,7 +442,9 @@ class ConfigurationDictAttribute(ConfigurationAttribute):
         try:
             for ckey, value in _cfgdict.items():
                 _cfgdict[ckey] = self.child_type(value, _parent=_cfgdict, _key=ckey)
-        except (RequirementError, CastError):
+        except (RequirementError, CastError) as e:
+            if not e.node:
+                e.node, e.attr = _cfgdict, ckey
             raise
         except:
             raise CastError(
