@@ -80,8 +80,6 @@ def compile_init(cls, root=False):
         init = dud
 
     def __init__(self, *args, _parent=None, _key=None, **kwargs):
-        attrs = _get_class_config_attrs(self.__class__)
-        catch_attrs = [a for a in attrs.values() if hasattr(a, "__catch__")]
         primer = args[0] if args else None
         if isinstance(primer, self.__class__):
             return
@@ -89,6 +87,8 @@ def compile_init(cls, root=False):
             args = args[1:]
             (primed := primer.copy()).update(kwargs)
             kwargs = primed
+        attrs = _get_class_config_attrs(self.__class__)
+        catch_attrs = [a for a in attrs.values() if hasattr(a, "__catch__")]
         leftovers = kwargs.copy()
         values = {}
         missing_requirements = {}
