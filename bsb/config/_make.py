@@ -54,7 +54,7 @@ def compile_new(node_cls, dynamic=False, pluggable=False, root=False):
             return primer
         instance = object.__new__(ncls)
         _set_pk(instance, _parent, _key)
-        if not isinstance(instance, node_cls):
+        if instance.__class__ is not node_cls:
             instance.__init__(*args, **kwargs)
         return instance
 
