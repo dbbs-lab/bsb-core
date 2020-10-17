@@ -113,7 +113,7 @@ def compile_init(cls, root=False):
             try:
                 _try_catch_attrs(self, catch_attrs, key, value)
             except UncaughtAttributeError:
-                warn(f"Unknown attribute '{key}'", ConfigurationWarning)
+                warn(f"Unknown attribute: '{key}'", ConfigurationWarning)
                 setattr(self, key, value)
 
         init(self, *args, **leftovers)
