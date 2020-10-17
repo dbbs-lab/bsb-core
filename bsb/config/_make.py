@@ -111,13 +111,10 @@ def compile_init(cls, root=False):
         # # TODO: catch attrs
         for key, value in leftovers.items():
             try:
-                _try_catch_attrs(node, catch_attrs, key, value)
+                _try_catch_attrs(self, catch_attrs, key, value)
             except UncaughtAttributeError:
-                warn(
-                    "Unknown attribute '{}' in {}".format(key, node.get_node_name()),
-                    ConfigurationWarning,
-                )
-                setattr(node, key, value)
+                warn(f"Unknown attribute '{key}'", ConfigurationWarning)
+                setattr(self, key, value)
 
         init(self, *args, **leftovers)
         if root:
