@@ -66,8 +66,9 @@ class TestConfiguration(unittest.TestCase):
         with self.assertWarns(ConfigurationWarning) as warning:
             config = from_json(data=data)
 
-        self.assertIn("""Unknown attribute 'shouldntexistasattr'""", str(warning.warning))
-        self.assertIn("""in {root}""", str(warning.warning))
+        self.assertIn(
+            """Unknown attribute: 'shouldntexistasattr'""", str(warning.warning)
+        )
 
 
 class TestConfigAttrs(unittest.TestCase):
@@ -146,7 +147,6 @@ class TestConfigAttrs(unittest.TestCase):
             Test2({}, _parent=TestRoot())
         with self.assertRaises(RequirementError):
             Test3({}, _parent=TestRoot())
-
         t = Test({"name": "hello"}, _parent=TestRoot())
         self.assertEqual(t, Test(t), "Already cast object should not be altered")
 

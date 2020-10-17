@@ -29,131 +29,101 @@ def compile_isc(node_cls, dynamic_config):
     return classmethod(__init_subclass__)
 
 
-def compile_new(node_cls, dynamic=False, pluggable=False):
-    if not dynamic and not pluggable:
-        return node_cls.__new__
+def _node_determinant(cls, kwargs):
+    return cls
 
+
+def compile_new(node_cls, dynamic=False, pluggable=False, root=False):
     if pluggable:
         class_determinant = _get_pluggable_class
     elif dynamic:
         class_determinant = _get_dynamic_class
+    else:
+        class_determinant = _node_determinant
 
-    def __new__(_cls, *args, **kwargs):
-        dyn_kwargs = args[0] if args and isinstance(args[0], dict) else kwargs
-        instance = object.__new__(class_determinant(_cls, dyn_kwargs))
-        instance.__init__(*args, **kwargs)
+    def __new__(_cls, *args, _parent=None, _key=None, **kwargs):
+        args = list(args)
+        primer = args[0] if args else None
+        if isinstance(primer, dict):
+            args = args[1:]
+            (primed := primer.copy()).update(kwargs)
+            kwargs = primed
+        ncls = class_determinant(_cls, kwargs)
+        if isinstance(primer, ncls):
+            _set_pk(primer, _parent, _key)
+            return primer
+        instance = object.__new__(ncls)
+        _set_pk(instance, _parent, _key)
+        if not isinstance(instance, node_cls):
+            instance.__init__(*args, **kwargs)
         return instance
 
     return __new__
 
 
+def _set_pk(obj, parent, key):
+    obj._config_parent = parent
+    obj._config_key = key
+    for a in _get_class_config_attrs(obj.__class__).values():
+        if a.key:
+            a.__set__(obj, key)
+
+
 def compile_init(cls, root=False):
     attrs = _get_class_config_attrs(cls)
-    init_globals = _get_init_globals(cls, attrs)
-    header = _compile_init_header(cls, attrs)
-    body = _compile_init_body(cls, attrs, root=root)
-    exec(header + body, init_globals, bait := locals())
-    init = _finalize_init(cls, bait["__init__"])
-    return init
-
-
-def _get_init_globals(cls, attrs):
-    init = cls.__init__
-    required = _make_is_requireds(attrs)
-    set_default = _make_defaults(attrs)
-    return {
-        "init": init,
-        **required,
-        **set_default,
-        **exceptions.__dict__,
-        "res_ref": _resolve_references,
-    }
-
-
-def _make_is_requireds(attrs):
-    return {f"ir{n}": _make_is_required(attr) for n, attr in enumerate(attrs.values())}
-
-
-def _make_is_required(attr):
-    def is_required(kwargs):
-        return attr.required(kwargs)
-
-    return is_required
-
-
-def _make_defaults(attrs):
-    return {f"default{n}": _make_default(attr) for n, attr in enumerate(attrs.values())}
-
-
-def _make_default(attr):
-    if attr.should_call_default():
-
-        def set_default(instance):
-            setattr(instance, attr.attr_name, attr.default())
-
+    catch_attrs = [a for a in attrs.values() if hasattr(a, "__catch__")]
+    if overrides(cls, "__init__"):
+        init = cls.__init__
     else:
 
-        def set_default(instance):
-            setattr(instance, attr.attr_name, attr.default)
+        def dud(*args, **kwargs):
+            pass
 
-    return set_default
+        init = dud
 
+    def __init__(self, *args, _parent=None, _key=None, **kwargs):
+        primer = args[0] if args else None
+        if isinstance(primer, self.__class__):
+            return
+        elif isinstance(primer, dict):
+            args = args[1:]
+            (primed := primer.copy()).update(kwargs)
+            kwargs = primed
+        leftovers = kwargs.copy()
+        values = {}
+        missing_requirements = {}
+        for attr in attrs.values():
+            name = attr.attr_name
+            value = values[name] = leftovers.pop(name, None)
+            try:
+                if value is None and attr.required(kwargs):
+                    raise RequirementError(f"Missing required attribute '{name}'.")
+            except RequirementError as e:
+                # Catch both our own and possible `attr.required` RequirementErrors and
+                # set the node detail before passing it on
+                e.node = self
+                raise
+        for attr in attrs.values():
+            name = attr.attr_name
+            if (value := values[name]) is None:
+                value = attr.get_default()
+            setattr(self, name, value)
+        # # TODO: catch attrs
+        for key, value in leftovers.items():
+            try:
+                _try_catch_attrs(node, catch_attrs, key, value)
+            except UncaughtAttributeError:
+                warn(
+                    "Unknown attribute '{}' in {}".format(key, node.get_node_name()),
+                    ConfigurationWarning,
+                )
+                setattr(node, key, value)
 
-def _compile_init_header(cls, attrs):
-    args = ("self", "*args")
-    nones = (f"{k}=None" for k in itertools.chain(attrs, ("_parent", "_key")))
-    unknown = ("**unknown",)
-    argument_list = ", ".join(itertools.chain(args, nones, unknown))
-    kwargs_collector = ", ".join(f"'{k}': {k}" for k in attrs)
-    header = f"def __init__({argument_list}):\n"
-    header += f"    self._config_parent = _parent\n"
-    header += f"    self._config_key = _key\n"
-    header += f"    if unknown:\n"
-    header += f"        plural = 's' if len(unknown) > 1 else ''\n"
-    header += f"        raise UnknownConfigAttrError(f\"Unknown configuration attribute{{plural}} \" + ', '.join(f\"'{{a}}'\" for a in unknown), list(unknown.keys()))\n"
-    header += f"    argswap = args and isinstance(args[0], dict)\n"
-    header += f"    kwargs = args[0] if argswap else {{{kwargs_collector}}}\n"
-    if attrs:
-        header += f"    if argswap:\n"
-        for k in attrs:
-            header += f"        {k}=kwargs.get('{k}', None)\n"
-    return header
+        init(self, *args, **leftovers)
+        if root:
+            _resolve_references(self)
 
-
-def _compile_init_body(cls, attrs, root=False):
-    requirements = "\n".join(_make_requirement_check(n, k) for n, k in enumerate(attrs))
-    requirements += "\n" if attrs else ""
-    set_initials = "\n".join(
-        _make_initial_value(n, attr) for n, attr in enumerate(attrs.values())
-    )
-    set_initials += "\n" if attrs else ""
-    body = requirements + set_initials
-    if overrides(cls, "__init__"):
-        body += "    init(self, *args, **kwargs)"
-    if root:
-        body += "    res_ref(self)"
-    return body
-
-
-def _make_requirement_check(n, attr_name):
-    condition = f"    if {attr_name} is None and ir{n}(kwargs):\n"
-    raise_err = (
-        f"        raise RequirementError(\"Missing required attribute '{attr_name}'.\")"
-    )
-    return condition + raise_err
-
-
-def _make_initial_value(n, attr):
-    attr_name = attr.attr_name
-    setter = f"    if {attr_name} is None:\n"
-    setter += f"        default{n}(self)\n"
-    setter += f"    else:\n"
-    setter += f"        self.{attr_name} = {attr_name}"
-    return setter
-
-
-def _finalize_init(cls, init):
-    return init
+    return __init__
 
 
 def _get_class_config_attrs(cls):
@@ -180,45 +150,6 @@ def make_get_node_name(node_cls, root):
         node_cls.get_node_name = lambda self: r"{root}"
     else:
         node_cls.get_node_name = _get_node_name
-
-
-def _cast_attributes(node, section, node_cls, key):
-    attrs = _get_class_config_attrs(node_cls)
-    catch_attrs = [a for a in attrs.values() if hasattr(a, "__catch__")]
-    attr_names = list(attrs.keys())
-    if key:
-        node.attr_name = key
-    # Cast each of this node's attributes.
-    for attr in attrs.values():
-        if attr.attr_name in section:
-            attr.__set__(node, section[attr.attr_name], _key=attr.attr_name)
-        else:
-            try:
-                # Call the requirement function: it either returns a boolean meaning we
-                # throw the error, or it can throw a more complex RequirementError itself.
-                throw = attr.required(section)
-                msg = "Missing required attribute '{}'".format(attr.attr_name)
-            except RequirementError as e:
-                throw = True
-                msg = str(e)
-            if throw:
-                raise RequirementError(msg + " in {}".format(node.get_node_name()))
-        if attr.key and key is not None:
-            # The attribute's value should be set to this node's key in its parent.
-            attr.__set__(node, key)
-    # Check for unknown keys in the configuration section
-    for key in section:
-        if key not in attr_names:
-            value = section[key]
-            try:
-                _try_catch_attrs(node, catch_attrs, key, value)
-            except UncaughtAttributeError:
-                warn(
-                    "Unknown attribute '{}' in {}".format(key, node.get_node_name()),
-                    ConfigurationWarning,
-                )
-                setattr(node, key, value)
-    return node
 
 
 class UncaughtAttributeError(Exception):

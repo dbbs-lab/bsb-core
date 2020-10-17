@@ -20,7 +20,7 @@ _t(
                 UnfitClassCastError=_e(),
             ),
             CastConfigurationError=_e(),
-            RequirementError=_e(),
+            RequirementError=_e("node"),
             ReferenceError=_e(
                 NoReferenceAttributeSignal=_e(),
             ),

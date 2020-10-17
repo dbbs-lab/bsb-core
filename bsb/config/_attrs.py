@@ -12,6 +12,7 @@ from ._make import (
 )
 from inspect import signature
 from ..exceptions import *
+import abc
 
 
 def root(root_cls):
@@ -33,9 +34,12 @@ def node(node_cls, root=False, dynamic=False, pluggable=False):
         for k, v in node_cls.__dict__.items()
         if isinstance(v, ConfigurationAttribute)
     }
+    if "name" not in attrs:
+        # Add a default name key
+        attrs["name"] = attr(key=True)
     # Give the attributes the name they were assigned in the class
-    for name, attr in attrs.items():
-        attr.attr_name = name
+    for name, a in attrs.items():
+        a.attr_name = name
 
     if hasattr(node_cls, "_config_attrs"):
         # If _config_attrs is already present on the class it's possible that we inherited
@@ -46,8 +50,11 @@ def node(node_cls, root=False, dynamic=False, pluggable=False):
         node_cls._config_attrs = n_attrs
     else:
         node_cls._config_attrs = attrs
+
     node_cls.__init__ = compile_init(node_cls, root=root)
-    node_cls.__new__ = compile_new(node_cls, dynamic=dynamic, pluggable=pluggable)
+    node_cls.__new__ = compile_new(
+        node_cls, dynamic=dynamic, pluggable=pluggable, root=root
+    )
     node_cls.__init_subclass__ = compile_isc(node_cls, dynamic)
     make_get_node_name(node_cls, root=root)
     make_tree(node_cls)
@@ -289,9 +296,7 @@ class ConfigurationAttribute:
             raise
         except:
             raise CastError(
-                "Couldn't cast {} from '{}' into {}".format(
-                    self.get_node_name(instance), value, self.type.__name__
-                )
+                "Couldn't cast '{}' into {}".format(value, self.type.__name__)
             )
         # The value was cast to its intented type and the new value can be set.
         _setattr(instance, self.attr_name, value)
@@ -315,6 +320,9 @@ class ConfigurationAttribute:
         if hasattr(val, "__tree__"):
             val = val.__tree__()
         return val
+
+    def get_default(self):
+        return self.default() if self.should_call_default() else self.default
 
     def should_call_default(self):
         cdf = self.call_default
@@ -369,9 +377,7 @@ class ConfigurationListAttribute(ConfigurationAttribute):
             return _cfglist
         if self.size is not None and len(_cfglist) != self.size:
             raise CastError(
-                "Couldn't cast {} in {} into a {}-element list.".format(
-                    value, self.get_node_name(_parent), self.size
-                )
+                "Couldn't cast {} into a {}-element list.".format(value, self.size)
             )
         try:
             for i, elem in enumerate(_cfglist):
@@ -380,12 +386,12 @@ class ConfigurationListAttribute(ConfigurationAttribute):
                     _cfglist[i]._config_index = i
                 except:
                     pass
-        except CastError:
+        except (RequirementError, CastError):
             raise
         except:
             raise CastError(
-                "Couldn't cast {}[{}] from '{}' into a {}".format(
-                    self.get_node_name(_parent), i, elem, self.child_type.__name__
+                "Couldn't cast list element {} from '{}' into a {}".format(
+                    i, elem, self.child_type.__name__
                 )
             )
         return _cfglist
@@ -430,7 +436,7 @@ class ConfigurationDictAttribute(ConfigurationAttribute):
         try:
             for ckey, value in _cfgdict.items():
                 _cfgdict[ckey] = self.child_type(value, _parent=_cfgdict, _key=ckey)
-        except CastError:
+        except (RequirementError, CastError):
             raise
         except:
             raise CastError(
