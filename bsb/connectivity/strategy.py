@@ -24,7 +24,7 @@ class ConnectionStrategy(SortableByAfter):
     after = config.attr(type=types.list())
 
     def __init__(self):
-        super().__init__()
+        super(SortableByAfter, self).__init__()
         self.simulation = _SimulationPlaceholder()
         self.tags = []
         self.label = None

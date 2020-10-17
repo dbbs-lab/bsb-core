@@ -1,5 +1,5 @@
 from ...simulation import (
-    SimulatorAdapter,
+    Simulation,
     SimulationRecorder,
     CellModel,
     ConnectionModel,
@@ -127,7 +127,7 @@ class NeuronEntity:
 
 
 @config.node
-class NeuronAdapter(SimulatorAdapter):
+class NeuronSimulation(Simulation):
     """
     Interface between the scaffold model and the NEURON simulator.
     """
@@ -590,6 +590,10 @@ class NeuronAdapter(SimulatorAdapter):
 
     def register_spike_recorder(self, cell, recorder):
         self.result.add(SpikeRecorder("soma_spikes", cell, recorder))
+
+
+class NeuronAdapter:
+    Simulation = NeuronSimulation
 
 
 class LocationRecorder(SimulationRecorder):

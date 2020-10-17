@@ -48,47 +48,30 @@ def or_(*type_args):
     """
     handler_name = "any of: " + ", ".join(map(lambda x: x.__name__, type_args))
     # Make sure to wrap all type handlers so that they accept the parent and key args.
-    type_args = [
-        _wrap_handler_pk(t) if not hasattr(t, "__casting__") else t for t in type_args
-    ]
-    is_casting = _any(t.__casting__ for t in type_args)
-    if is_casting:
+    type_args = [_wrap_handler_pk(t) for t in type_args]
 
-        def type_handler(value, parent=None, key=None):
-            type_errors = {}
-            for t in type_args:
-                try:
-                    return t(value, parent=parent, key=key)
-                except Exception as e:
-                    type_error = (
-                        str(e.__class__.__module__)
-                        + "."
-                        + str(e.__class__.__name__)
-                        + ": "
-                        + str(e)
-                    )
-                    type_errors[t.__name__] = type_error
-            type_errors = "\n".join(
-                "- Casting to '{}' raised:\n{}".format(n, e)
-                for n, e in type_errors.items()
-            )
-            raise TypeError(
-                "Couldn't cast {} into {}.\n{}".format(value, handler_name, type_errors)
-            )
-
-    else:
-
-        def type_handler(value, parent=None, key=None):
-            type_errors = {}
-            for t in type_args:
-                try:
-                    return t(value, parent=parent, key=key)
-                except (TypeError, ValueError, CastError) as e:
-                    continue
-            raise TypeError("Couldn't cast {} into {}".format(value, handler_name))
+    def type_handler(value, _parent=None, _key=None):
+        type_errors = {}
+        for t in type_args:
+            try:
+                return t(value, _parent=_parent, _key=_key)
+            except Exception as e:
+                type_error = (
+                    str(e.__class__.__module__)
+                    + "."
+                    + str(e.__class__.__name__)
+                    + ": "
+                    + str(e)
+                )
+                type_errors[t.__name__] = type_error
+        type_errors = "\n".join(
+            "- Casting to '{}' raised:\n{}".format(n, e) for n, e in type_errors.items()
+        )
+        raise TypeError(
+            "Couldn't cast {} into {}.\n{}".format(value, handler_name, type_errors)
+        )
 
     type_handler.__name__ = handler_name
-    type_handler.__casting__ = is_casting
     return type_handler
 
 
@@ -421,16 +404,13 @@ def in_classmap():
     :rtype: function
     """
 
-    def type_handler(value, parent):
-        if not hasattr(parent.__class__, "_config_dynamic_classmap"):
+    def type_handler(value, _parent, _key=None):
+        if not hasattr(_parent.__class__, "_config_dynamic_classmap"):
             raise ClassMapMissingError(
-                "Class map missing on '{}' in '{}'".format(
-                    parent.__class__.__name__, parent.get_node_name()
-                )
+                "Class map missing for '{}'".format(_parent.__class__.__name__)
             )
 
-        return value in parent.__class__._config_dynamic_classmap
+        return value in _parent.__class__._config_dynamic_classmap
 
     type_handler.__name__ = "a classmap value"
-    type_handler.__casting__ = True
     return type_handler

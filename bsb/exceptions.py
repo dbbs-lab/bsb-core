@@ -20,10 +20,11 @@ _t(
                 UnfitClassCastError=_e(),
             ),
             CastConfigurationError=_e(),
-            RequirementError=_e(),
+            RequirementError=_e("node"),
             ReferenceError=_e(
                 NoReferenceAttributeSignal=_e(),
             ),
+            UnknownConfigAttrError=_e("attributes"),
         ),
         TypeNotFoundError=_e(),
         LayerNotFoundError=_e(),

@@ -1,5 +1,5 @@
 from ..simulation import (
-    SimulatorAdapter,
+    Simulation,
     SimulationComponent,
     CellModel,
     NeuronTargetting,
@@ -252,7 +252,7 @@ class NestEntity(NestDevice, MapsScaffoldIdentifiers):
 
 
 @config.node
-class NestAdapter(SimulatorAdapter):
+class NestSimulation(Simulation):
     """
     Interface between the scaffold model and the NEST simulator.
     """
@@ -851,6 +851,10 @@ class NestAdapter(SimulatorAdapter):
         if self.suffix == "":
             return str
         return str + "_" + self.suffix
+
+
+class NestAdapter:
+    Simulation = NestSimulation
 
 
 def catch_dict_error(message):

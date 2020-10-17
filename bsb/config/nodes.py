@@ -8,14 +8,17 @@ _available_distributions = [
 ]
 
 
-@pluggable(key="engine", plugin_name="storage engine", unpack=lambda p: p.StorageNode)
+@pluggable(key="engine", plugin_name="storage engine")
 class StorageNode:
     root = slot()
 
     @classmethod
     def __plugins__(cls):
         if not hasattr(cls, "_plugins"):
-            cls._plugins = plugins.discover("engines")
+            cls._plugins = {
+                name: plugin.StorageNode
+                for name, plugin in plugins.discover("engines").items()
+            }
         return cls._plugins
 
 

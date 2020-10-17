@@ -68,10 +68,10 @@ class ConfigurationModule:
 
     def get_parser(self, parser_name):
         """
-            Create an instance of a configuration parser that can parse configuration
-            strings into configuration trees, or serialize trees into strings.
+        Create an instance of a configuration parser that can parse configuration
+        strings into configuration trees, or serialize trees into strings.
 
-            Configuration trees can be cast into Configuration objects.
+        Configuration trees can be cast into Configuration objects.
         """
         if not parser_name in self._parser_classes:
             raise PluginError("Configuration parser '{}' not found".format(parser_name))
@@ -112,7 +112,7 @@ def parser_factory(name, parser):
             with open(file, "r") as f:
                 data = f.read()
         tree, meta = parser().parse(data, path=path or file)
-        conf = self.Configuration.__cast__(tree, None)
+        conf = self.Configuration(tree)
         conf._parser = name
         conf._meta = meta
         conf._file = file
