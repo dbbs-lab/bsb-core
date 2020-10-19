@@ -196,7 +196,7 @@
       "class": "bsb.connectivity.ConnectomeGlomerulusGolgi",
       "from_cell_types": [{"type": "glomerulus", "compartments": ["soma"]}],
       "to_cell_types": [{"type": "golgi_cell", "compartments": ["basal_dendrites"]}],
-      "detailed": true,
+      "detailed": true
     },
     "golgi_to_granule": {
       "class": "bsb.connectivity.ConnectomeGolgiGranule",
