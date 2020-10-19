@@ -9,14 +9,16 @@ import numpy as np
 class SpikeGenerator(NeuronDevice):
     defaults = {"record": True}
 
-    def implement(self, target, cell, section):
+    def implement(self, target, location):
+        cell = location.cell
+        section = location.section
         if not hasattr(section, "available_synapse_types"):
             raise Exception(
                 "{} {} targetted by {} has no synapses".format(
                     cell.__class__.__name__, ",".join(section.labels), self.name
                 )
             )
-        for synapse_type in self.synapses:
+        for synapse_type in location.get_synapses() or self.synapses:
             if synapse_type in section.available_synapse_types:
                 synapse = cell.create_synapse(section, synapse_type)
                 pattern = self.get_pattern(target, cell, section, synapse_type)

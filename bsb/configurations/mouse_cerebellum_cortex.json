@@ -3,7 +3,7 @@
   "output": {
     "format": "bsb.output.HDF5Formatter",
     "morphology_repository": "morphologies.hdf5",
-    "file": "300x_200z_130GrLThick.hdf5"
+    "file": "300x_200z.hdf5"
   },
   "network_architecture": {
     "simulation_volume_x": 300.0,
@@ -196,12 +196,7 @@
       "class": "bsb.connectivity.ConnectomeGlomerulusGolgi",
       "from_cell_types": [{"type": "glomerulus", "compartments": ["soma"]}],
       "to_cell_types": [{"type": "golgi_cell", "compartments": ["basal_dendrites"]}],
-      "detailed": true,
-      "contacts": {
-        "type": "norm",
-        "loc": 20,
-        "scale": 4
-      }
+      "detailed": true
     },
     "golgi_to_granule": {
       "class": "bsb.connectivity.ConnectomeGolgiGranule",
@@ -220,7 +215,7 @@
       "class": "bsb.connectivity.TouchDetector",
       "from_cell_types": [{"type": "granule_cell", "compartments": ["ascending_axon"]}],
       "to_cell_types": [{"type": "golgi_cell", "compartments": ["basal_dendrites"]}],
-      "compartment_intersection_radius": 2.0,
+      "compartment_intersection_radius": 3.0,
       "synapses": {
         "type": "norm",
         "loc": 5,
@@ -238,7 +233,7 @@
       "class": "bsb.connectivity.TouchDetector",
       "from_cell_types": [{"type": "granule_cell", "compartments": ["ascending_axon"]}],
       "to_cell_types": [{"type": "purkinje_cell", "compartments": ["aa_targets"]}],
-      "compartment_intersection_radius": 2.0,
+      "compartment_intersection_radius": 3.0,
       "synapses": {
         "type": "norm",
         "loc": 4,
@@ -338,49 +333,49 @@
       },
       "connection_models": {
         "glomerulus_to_granule": {
-          "synapse": "AMPA"
+          "synapses": ["AMPA", "NMDA"]
         },
         "glomerulus_to_golgi": {
-          "synapse": "AMPA_MF"
+          "synapses": ["AMPA_MF","NMDA"]
         },
         "mossy_to_glomerulus": {
-          "synapse": null
+          "synapses": []
         },
         "golgi_to_golgi": {
-          "synapse": "GABA"
+          "synapses": ["GABA"]
         },
         "ascending_axon_to_purkinje": {
-          "synapse": "AMPA"
+          "synapses": ["AMPA"]
         },
         "ascending_axon_to_golgi": {
-          "synapse": "AMPA_AA"
+          "synapses": ["AMPA_AA","NMDA"]
         },
         "parallel_fiber_to_golgi": {
-          "synapse": "AMPA_PF"
+          "synapses": ["AMPA_PF"]
         },
         "golgi_to_granule": {
-          "synapse": "GABA"
+          "synapses": ["GABA"]
         },
         "parallel_fiber_to_purkinje": {
-          "synapse": "AMPA"
+          "synapses": ["AMPA"]
         },
 	       "parallel_fiber_to_basket": {
-	          "synapse": "AMPA"
+	        "synapses":["AMPA", "NMDA"]
 	      },
         "parallel_fiber_to_stellate": {
-          "synapse": "AMPA"
+          "synapses": ["AMPA", "NMDA"]
         },
 	       "basket_to_purkinje": {
-	          "synapse": "GABA"
+	          "synapses": ["GABA"]
 	      },
         "stellate_to_purkinje": {
-          "synapse": "GABA"
+          "synapses": ["GABA"]
         },
         "stellate_to_stellate": {
-          "synapse": "GABA"
+          "synapses": ["GABA"]
         },
         "basket_to_basket": {
-          "synapse": "GABA"
+          "synapses": ["GABA"]
         }
       },
       "devices": {
@@ -388,7 +383,7 @@
           "io": "input",
           "device": "spike_generator",
           "targetting": "cell_type",
-          "cell_types": ["purkinje_cell", "golgi_cell", "basket_cell", "stellate_cell"],
+          "cell_types": ["golgi_cell", "basket_cell", "stellate_cell"],
           "section_type": "dendrites",
           "synapses": ["AMPA", "AMPA_PF"],
           "parameters": {
@@ -404,8 +399,8 @@
           "device": "spike_generator",
           "targetting": "cell_type",
           "cell_types": ["purkinje_cell"],
-          "section_type": "dendrites",
-          "synapses": ["AMPA", "AMPA_PF"],
+          "section_type": "aa_targets",
+          "synapses": ["AMPA"],
           "parameters": {
             "noise": true,
             "start": 100,
@@ -419,7 +414,7 @@
           "device": "spike_generator",
           "targetting": "cell_type",
           "cell_types": ["mossy_fibers"],
-          "synapses": ["AMPA", "NMDA"],
+          "synapses": ["AMPA", "NMDA", "AMPA_MF"],
           "parameters": {
             "noise": true,
             "start": 100,
@@ -433,7 +428,7 @@
           "targetting": "by_id",
           "targets": [229, 213, 221, 228, 230, 220, 237, 203, 204, 205, 246, 212, 245],
           "cell_types": ["mossy_fibers"],
-          "synapses": ["AMPA", "NMDA"],
+          "synapses": ["AMPA", "NMDA", "AMPA_MF"],
           "parameters": {
             "noise": false,
             "start": 700,
@@ -447,7 +442,7 @@
           "targetting": "by_id",
           "targets": [229,213, 221, 228, 197, 270, 193, 273],
           "cell_types": ["mossy_fibers"],
-          "synapses": ["AMPA", "NMDA"],
+          "synapses": ["AMPA", "NMDA", "AMPA_MF"],
           "parameters": {
             "noise": true,
             "start": 100,
