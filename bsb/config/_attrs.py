@@ -673,20 +673,54 @@ def _collect_kv(n, d, k, v):
 
 
 class ConfigurationAttributeCatcher(ConfigurationAttribute):
-    def __init__(self, *args, type=str, initial=_dict, catch=_collect_kv, **kwargs):
+    def __init__(
+        self,
+        *args,
+        type=str,
+        initial=_dict,
+        catch=_collect_kv,
+        contains=None,
+        tree_cb=None,
+        **kwargs,
+    ):
         super().__init__(*args, type=type, default=initial, call_default=True, **kwargs)
-        self.caught = catch
+        self.catch_callback = catch
+        if contains is not None:
+            self.contains = contains
+        if tree_cb is not None:
+            self.tree_callback = tree_cb
 
     def __set__(self, instance, value):
         _setattr(instance, self.attr_name, value)
 
+    def get_caught(self, instance):
+        if not hasattr(instance, f"_{self.attr_name}_caught"):
+            setattr(instance, f"_{self.attr_name}_caught", {})
+        return getattr(instance, f"_{self.attr_name}_caught")
+
     def __catch__(self, node, key, value):
         # Try to cast to our type, if it fails it will be caught by whoever is asking us
         # to catch this and know we don't catch this value.
-        value = self.type(value, _parent=node, _key=key)
+        cast = self.type(value, _parent=node, _key=key)
         # If succesfully cast, catch this value by executing our catch callback.
-        self.caught(node, _getattr(node, self.attr_name), key, value)
+        self.catch_callback(node, _getattr(node, self.attr_name), key, cast)
+        self.get_caught(node)[key] = cast
 
     def tree(self, instance):
-        val = _getattr(instance, self.attr_name).items()
-        return {k: v if not hasattr(v, "__tree__") else v.__tree__() for k, v in val}
+        # The default attr catcher collects what it catches in a dict. When we want to
+        # build the config tree again these values should be placed back in their
+        # original keys. We don't want to store our caught values in the config file. To
+        # do so we use the `tree_callback` instead.
+        return None
+
+    def contains(self, instance, key):
+        return key in self.get_caught(instance)
+
+    def tree_callback(self, instance, key):
+        # When building the config tree the values that were caught can't be found in the
+        # attrs and the tree builder will check all catch-attr's `contains` methods and
+        # calls the right tree_callback to fetch the value.
+        value = _getattr(instance, self.attr_name)[key]
+        if hasattr(value, "__tree__"):
+            value = value.__tree__()
+        return value

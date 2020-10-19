@@ -215,7 +215,6 @@ def _try_catch(catch, node, key, value):
     try:
         return catch(node, key, value)
     except:
-        raise
         raise UncaughtAttributeError()
 
 
@@ -342,12 +341,23 @@ def make_dictable(node_cls):
 def make_tree(node_cls):
     def get_tree(instance):
         attrs = _get_class_config_attrs(instance.__class__)
-        return {
-            name: tree
-            for name in instance._config_attr_order
-            if (attr := attrs[name]).is_dirty(instance)
-            and (tree := attr.tree(instance)) is not None
-        }
+        catch_attrs = [a for a in attrs.values() if hasattr(a, "__catch__")]
+        tree = {}
+        for name in instance._config_attr_order:
+            if name in attrs:
+                attr = attrs[name]
+                if attr.is_dirty(instance):
+                    value = attr.tree(instance)
+            else:
+                for catcher in catch_attrs:
+                    if catcher.contains(instance, name):
+                        value = catcher.tree_callback(instance, name)
+                        break
+                else:
+                    value = getattr(instance, name, None)
+            if value is not None:
+                tree[name] = value
+        return tree
 
     node_cls.__tree__ = get_tree
 
