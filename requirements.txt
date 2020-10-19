@@ -13,3 +13,4 @@ nrn-patch==3.0.0b0
 dbbs_models==1.3.0
 colour==0.1.5
 errr==1.0.0
+NEURON==7.8.1.1
