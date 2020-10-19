@@ -6,9 +6,9 @@ from ....reporting import report, warn
 
 
 class CurrentClamp(NeuronDevice):
-    def implement(self, target, cell, section):
-        pattern = self.get_pattern(target, cell, section)
-        section.iclamp(**pattern)
+    def implement(self, target, location):
+        pattern = self.get_pattern(target, location)
+        location.section.iclamp(**pattern)
 
     def validate_specifics(self):
         pass
