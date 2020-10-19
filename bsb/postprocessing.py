@@ -220,24 +220,9 @@ class SpoofDetails(PostProcessingHook):
         #
         # The left column will be the first from_morphology (0) and the right column
         # will be the first to_morphology (1)
-        morphologies = np.column_stack(
-            (
-                np.zeros(
-                    (
-                        len(
-                            connectivity_matrix,
-                        )
-                    )
-                ),
-                np.ones(
-                    (
-                        len(
-                            connectivity_matrix,
-                        )
-                    )
-                ),
-            )
-        )
+        _from = np.zeros(len(connectivity_matrix))
+        _to = np.ones(len(connectivity_matrix))
+        morphologies = np.column_stack((_from, _to))
         # Generate the map
         morpho_map = [from_morphologies[0], to_morphologies[0]]
         from_m = self.scaffold.morphology_repository.get_morphology(from_morphologies[0])
@@ -271,11 +256,18 @@ class SpoofDetails(PostProcessingHook):
         )
 
 
-class GolgiAxonFix(PostProcessingHook):
+class MissingAxon(PostProcessingHook):
     # Replaces the presynaptic compartment IDs of all Golgi cells with the soma compartment
     def after_connectivity(self):
         for n, ct in self.scaffold.configuration.connection_types.items():
-            if ct.from_cell_types[0].name == "golgi_cell":
-                for tag in ct.tags:
-                    compartment_matrix = self.scaffold.connection_compartments[tag]
-                    compartment_matrix[:, 0] = np.zeros(len(compartment_matrix))
+            for type in self.types:
+                if ct.from_cell_types[0].name == type:
+                    for tag in ct.tags:
+                        if tag not in self.scaffold.connection_compartments:
+                            warn(
+                                f"MissingAxon hook skipped {tag}, missing detailed intersection data.",
+                                ConnectivityWarning,
+                            )
+                            continue
+                        compartment_matrix = self.scaffold.connection_compartments[tag]
+                        compartment_matrix[:, 0] = np.zeros(len(compartment_matrix))

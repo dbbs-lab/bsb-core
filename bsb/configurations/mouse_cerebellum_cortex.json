@@ -293,6 +293,12 @@
       "affinity": 0.2
     }
   },
+  "after_connectivity": {
+    "golgi_axon_fix": {
+      "class": "bsb.postprocessing.MissingAxon",
+      "types": ["golgi_cell"]
+    }
+  },
   "simulations": {
     "stim_on_MFs": {
       "simulator": "neuron",
