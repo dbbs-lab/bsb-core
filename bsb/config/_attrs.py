@@ -306,7 +306,7 @@ class ConfigurationAttribute:
 
     def _get_type(self, type):
         # Determine type of the attribute
-        if not type and self.default:
+        if not type and self.default is not None:
             if self.should_call_default():
                 t = _type(self.default())
             else:

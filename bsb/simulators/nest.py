@@ -126,7 +126,7 @@ class NestConnection(SimulationComponent):
     synapse = config.attr(type=NestSynapseSettings, required=True)
     synapse_model = config.attr(type=str)
     plastic = config.attr(default=False)
-    hetero = config.attr(type=str)
+    hetero = config.attr(default=False)
     teaching = config.attr(type=str)
     is_teaching = config.attr(default=False)
 

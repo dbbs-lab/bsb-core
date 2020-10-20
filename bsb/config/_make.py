@@ -348,6 +348,8 @@ def make_tree(node_cls):
                 attr = attrs[name]
                 if attr.is_dirty(instance):
                     value = attr.tree(instance)
+                else:
+                    value = None
             else:
                 for catcher in catch_attrs:
                     if catcher.contains(instance, name):
