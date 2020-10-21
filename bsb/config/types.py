@@ -1,7 +1,7 @@
 from ..exceptions import *
 from ._hooks import overrides
 from ._make import _load_class
-import math, sys, numpy as np, abc, functools
+import math, sys, numpy as np, abc, functools, weakref
 from inspect import signature as _inspect_signature
 
 _any = any
@@ -139,7 +139,7 @@ def or_(*type_args):
         type_errors = {}
         for t in type_args:
             try:
-                return t(value, _parent=_parent, _key=_key)
+                v = t(value, _parent=_parent, _key=_key)
             except Exception as e:
                 type_error = (
                     str(e.__class__.__module__)
@@ -149,6 +149,9 @@ def or_(*type_args):
                     + str(e)
                 )
                 type_errors[t.__name__] = type_error
+            else:
+
+                return v
         type_errors = "\n".join(
             "- Casting to '{}' raised:\n{}".format(n, e) for n, e in type_errors.items()
         )
@@ -412,6 +415,7 @@ class deg_to_radian(TypeHandler):
         v = _float(value)
         return v * 2 * math.pi / 360
 
+    @property
     def __name__(self):
         return "degrees"
 
@@ -461,7 +465,7 @@ def distribution():
     return or_(constant_distr(), Distribution)
 
 
-def evaluation():
+class evaluation(TypeHandler):
     """
     Type validator. Provides a structured way to evaluate a python statement from the
     config. The evaluation context provides ``numpy`` as ``np``.
@@ -470,15 +474,40 @@ def evaluation():
     :rtype: function
     """
 
-    def type_handler(value):
+    def __init__(self):
+        self._references = {}
+
+    def __call__(self, value):
         cfg = _dict(value)
-        statement = cfg.get("statement", "'None'")
+        statement = cfg.get("statement", "None")
         locals = _dict(cfg.get("variables", {}))
         globals = {"np": np}
-        return eval(statement, globals, locals)
+        res = eval(statement, globals, locals)
+        self._references[id(res)] = value
+        return res
 
-    type_handler.__name__ = "evaluation"
-    return type_handler
+    @property
+    def __name__(self):
+        return "evaluation"
+
+    def get_original(self, value):
+        # None is a singleton, so it's not bijective, it's also the value returned when
+        # a weak reference is removed; so it's doubly unsafe to check for references to it
+        if value is None:
+            raise NullReferenceError("Can't create bijection for NoneType value.")
+        vid = id(value)
+        # Create a set of references from our stored weak references that are still alive.
+        refs = {id(r) for ref in self._references if (r := ref()) is not None}
+        if vid not in refs:
+            raise InvalidReferenceError(f"No evaluation reference found for {vid}")
+        return self._references[vid]
+
+    def __inv__(self, value):
+        try:
+            return self.get_original(value)
+        except TypeHandlingError:
+            # Original does not exist or can't be obtained, just return the given value.
+            return value
 
 
 def in_classmap():

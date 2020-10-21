@@ -28,9 +28,11 @@ _t(
             ),
             UnknownConfigAttrError=_e("attributes"),
         ),
-        TypeNotFoundError=_e(),
-        LayerNotFoundError=_e(),
-        SimulationNotFoundError=_e(),
+        TypeHandlingError=_e(
+            NoneReferenceError=_e(),
+            InvalidReferenceError=_e("value"),
+        ),
+        NodeNotFoundError=_e("query"),
         AdapterError=_e(
             NeuronError=_e(
                 DeviceConnectionError=_e(),
