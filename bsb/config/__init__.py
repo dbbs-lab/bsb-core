@@ -24,6 +24,8 @@ _path = __path__
 
 
 class ConfigurationModule:
+    from . import types, refs, nodes
+
     def __init__(self, name):
         self.__name__ = name
 
