@@ -11,7 +11,7 @@ from ._make import (
     make_tree,
     wrap_root_init,
 )
-from inspect import signature
+from .types import TypeHandler, _wrap_reserved
 from ..exceptions import *
 import abc
 
@@ -299,7 +299,9 @@ class ConfigurationAttribute:
             raise
         except Exception as e:
             raise CastError(
-                f"Couldn't cast '{value}' into {self.type.__name__}", instance, self
+                f"Couldn't cast '{value}' into {self.type.__name__}",
+                instance,
+                self.attr_name,
             )
         # The value was cast to its intented type and the new value can be set.
         _setattr(instance, self.attr_name, value)
@@ -313,15 +315,24 @@ class ConfigurationAttribute:
                 t = _type(self.default)
         else:
             t = type or str
-        return _wrap_handler_pk(t)
+        # This call wraps the type handler so that it accepts all reserved keyword args
+        # like `_parent` and `_key`
+        t = _wrap_reserved(t)
+        return t
 
     def get_node_name(self, instance):
         return instance.get_node_name() + "." + self.attr_name
 
     def tree(self, instance):
         val = _getattr(instance, self.attr_name)
+        # Allow subnodes and other class values to convert themselves to their tree
+        # representation
         if hasattr(val, "__tree__"):
             val = val.__tree__()
+        # Check if the type handler specifies any inversion function to convert tree
+        # values back to how they were found in the document.
+        if hasattr(self.type, "__inv__"):
+            val = self.type.__inv__(val)
         return val
 
     def flag_dirty(self, instance):
@@ -341,29 +352,6 @@ class ConfigurationAttribute:
     def should_call_default(self):
         cdf = self.call_default
         return cdf or (cdf is None and callable(self.default))
-
-
-def _wrap_handler_pk(t):
-    # Inspect the signature and wrap the typecast in a wrapper that will accept and
-    # strip the missing 'key' kwarg
-    try:
-        sig = signature(t)
-        params = sig.parameters
-    except:
-        params = []
-
-    pass_key = "_key" in params
-    pass_parent = "_parent" in params
-    if pass_key and pass_parent:
-        return t
-    header = "def type_handler(value, *args, _parent=None, _key=None, **kwargs):\n"
-    keypass = ", _key=_key" if pass_key else ""
-    parentpass = ", _parent=_parent" if pass_parent else ""
-    wrap = f" return orig(value, *args{parentpass}{keypass}, **kwargs)"
-    exec(header + wrap, {"orig": t}, bait := locals())
-    type_handler = bait["type_handler"]
-    type_handler.__name__ = t.__name__
-    return type_handler
 
 
 class cfglist(_list):
@@ -443,7 +431,11 @@ class ConfigurationDictAttribute(ConfigurationAttribute):
         super().__init__(*args, **kwargs)
 
     def __set__(self, instance, value, _key=None):
-        _setattr(instance, self.attr_name, self.fill(value, _parent=instance, _key=_key))
+        _setattr(
+            instance,
+            self.attr_name,
+            self.fill(value, _parent=instance, _key=_key or self.attr_name),
+        )
 
     def fill(self, value, _parent, _key=None):
         _cfgdict = cfgdict(value or _dict())

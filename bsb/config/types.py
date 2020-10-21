@@ -1,9 +1,94 @@
 from ..exceptions import *
-from ._attrs import _wrap_handler_pk
+from ._hooks import overrides
 from ._make import _load_class
-import math, sys, numpy as np
+import math, sys, numpy as np, abc, functools
+from inspect import signature as _inspect_signature
 
 _any = any
+_reserved_keywords = ["_parent", "_key"]
+
+
+class TypeHandler(abc.ABC):
+    """
+    Base class for any type handler that cannot be described as a single function.
+
+    Declare the `__call__(self, value)` method to convert the given value to the
+    desired type, raising a `TypeError` if it failed in an expected manner.
+
+    Declare the `__name__(self)` method to return a name for the type handler to
+    display in messages to the user such as errors.
+
+    Declare the optional `__inv__` method to invert the given value back to its
+    original value, the type of the original value will usually be lost but the type
+    of the returned value can still serve as a suggestion.
+    """
+
+    @abc.abstractmethod
+    def __call__(self, value):
+        pass
+
+    @property
+    @abc.abstractmethod
+    def __name__(self):
+        return "unknown type handler"
+
+    def __inv__(self, value):
+        return value
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        call = cls.__call__
+        passes = _reserved_kw_passes(call)
+        if not all(passes.values()):
+            cls.__call__ = _wrap_reserved(call)
+
+
+def _reserved_kw_passes(f):
+    # Inspect the signature and wrap the typecast in a wrapper that will accept and
+    # strip the missing 'key' kwarg
+    try:
+        sig = _inspect_signature(f)
+        params = sig.parameters
+    except:
+        params = []
+
+    return {key: key in params for key in _reserved_keywords}
+
+
+def _wrap_reserved(t):
+    """
+    Wrap a type handler in a wrapper that accepts all reserved keyword arguments that
+    the config system will push into the type handler call, and pass only those that
+    the original type handler accepts. This way type handlers can accept any
+    combination of the reserved keyword args without raising TypeErrors when they do
+    not accept one.
+    """
+    # Type handlers never need to be wrapped. The `__init_subclass__` of the TypeHandler
+    # class handles wrapping of `__call__` implementations so that they accept and strip
+    # _parent & _key.
+    if isinstance(t, TypeHandler):
+        return t
+
+    # Check which reserved keywords the function already takes
+    passes = _reserved_kw_passes(t)
+    if all(passes.values()):
+        return t
+
+    # Create the keyword arguments of the outer function that accepts all reserved kwargs
+    reserved_keys = "".join(f", {key}=None" for key in _reserved_keywords)
+    header = f"def type_handler(value, *args{reserved_keys}, **kwargs):\n"
+    passes = "".join(f", {key}={key}" for key in _reserved_keywords if passes[key])
+    # Create the call to the inner function that is passed only the kwargs that it accepts
+    wrap = f" return orig(value, *args{passes}, **kwargs)"
+    # Compile the code block and indicate that the function was compiled here.
+    mod = compile(header + wrap, f"{__file__}/<_wrap_reserved:compile>", "exec")
+    # Execute the code block in this local scope and pick the function out of the scope
+    exec(mod, {"orig": t}, bait := locals())
+    type_handler = bait["type_handler"]
+    # Copy over the metadata of the original function
+    type_handler = functools.wraps(t)(type_handler)
+    type_handler.__name__ = t.__name__
+    return type_handler
 
 
 def any():
@@ -48,7 +133,7 @@ def or_(*type_args):
     """
     handler_name = "any of: " + ", ".join(map(lambda x: x.__name__, type_args))
     # Make sure to wrap all type handlers so that they accept the parent and key args.
-    type_args = [_wrap_handler_pk(t) for t in type_args]
+    type_args = [_wrap_reserved(t) for t in type_args]
 
     def type_handler(value, _parent=None, _key=None):
         type_errors = {}
@@ -318,20 +403,21 @@ def fraction():
     return type_handler
 
 
-def deg_to_radian():
+class deg_to_radian(TypeHandler):
     """
     Type validator. Type casts the value from degrees to radians.
-
-    :returns: Type validator function
-    :rtype: function
     """
 
-    def type_handler(value):
+    def __call__(self, value):
         v = _float(value)
-        return _float(v) * 2 * math.pi / 360
+        return v * 2 * math.pi / 360
 
-    type_handler.__name__ = "degrees"
-    return type_handler
+    def __name__(self):
+        return "degrees"
+
+    def __inv__(self, value):
+        v = _float(value)
+        return v * 360 / (2 * math.pi)
 
 
 class _ConstantDistribution:
