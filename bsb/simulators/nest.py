@@ -42,7 +42,7 @@ class MapsScaffoldIdentifiers:
         return [self.scaffold_to_nest_map[id] for id in ids]
 
 
-def _merge_with_parameters(node, models, model_key, model_params):
+def _merge_params(node, models, model_key, model_params):
     # Take the default set of parameters
     merger = node.parameters.copy()
     # Merge the model specific parameters
@@ -51,12 +51,19 @@ def _merge_with_parameters(node, models, model_key, model_params):
     models[model_key] = merger
 
 
+def _unmerge_params(node, key):
+    to_remove = set(node.parameters)
+    return {k: v for k, v in node.model_parameters[key].items() if k not in to_remove}
+
+
 @config.node
 class NestCell(CellModel, MapsScaffoldIdentifiers):
     neuron_model = config.attr(type=str)
     relay = config.attr(default=False)
     parameters = config.dict(type=types.any())
-    model_parameters = config.catch_all(type=dict, catch=_merge_with_parameters)
+    model_parameters = config.catch_all(
+        type=dict, catch=_merge_params, tree_cb=_unmerge_params
+    )
 
     def boot(self):
         self.receptor_specifications = {}
