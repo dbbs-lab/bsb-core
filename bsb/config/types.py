@@ -491,15 +491,23 @@ class evaluation(TypeHandler):
         return "evaluation"
 
     def get_original(self, value):
+        """
+        Return the original configuration node associated with the given evaluated value.
+
+        :param value: A value that was produced by this type handler.
+        :type value: any
+        :raises: NoneReferenceError when `value` is `None`, InvalidReferenceError when
+          there is no config associated to the object id of this value.
+        """
         # None is a singleton, so it's not bijective, it's also the value returned when
         # a weak reference is removed; so it's doubly unsafe to check for references to it
         if value is None:
-            raise NullReferenceError("Can't create bijection for NoneType value.")
+            raise NoneReferenceError("Can't create bijection for NoneType value.")
         vid = id(value)
         # Create a set of references from our stored weak references that are still alive.
         refs = {id(r) for ref in self._references if (r := ref()) is not None}
         if vid not in refs:
-            raise InvalidReferenceError(f"No evaluation reference found for {vid}")
+            raise InvalidReferenceError(f"No evaluation reference found for {vid}", value)
         return self._references[vid]
 
     def __inv__(self, value):
