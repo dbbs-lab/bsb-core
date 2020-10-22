@@ -215,12 +215,7 @@
       "class": "bsb.connectivity.TouchDetector",
       "from_cell_types": [{"type": "granule_cell", "compartments": ["ascending_axon"]}],
       "to_cell_types": [{"type": "golgi_cell", "compartments": ["basal_dendrites"]}],
-      "compartment_intersection_radius": 3.0,
-      "synapses": {
-        "type": "norm",
-        "loc": 5,
-        "scale": 0.5
-      }
+      "compartment_intersection_radius": 3.0
     },
     "parallel_fiber_to_golgi": {
       "class": "bsb.connectivity.FiberIntersection",
@@ -303,7 +298,7 @@
     "stim_on_MFs": {
       "simulator": "neuron",
       "resolution": 0.1,
-      "duration": 900,
+      "duration": 1200,
       "temperature": 32,
       "cell_models": {
         "glomerulus": {
@@ -329,7 +324,7 @@
       	"basket_cell": {
       	  "model": "dbbs_models.BasketCell",
       	  "record_spikes": true,
-                "record_soma": true
+          "record_soma": true
       	},
         "stellate_cell": {
           "model": "dbbs_models.StellateCell",
@@ -410,31 +405,47 @@
           "parameters": {
             "noise": true,
             "start": 100,
-            "interval": 5,
-            "number": 20,
-            "sd": 5
+            "interval": 2.5,
+            "number": 40,
+            "sd": 10
           }
         },
+        "initial_mf": {
+          "io": "input",
+          "device": "spike_generator",
+          "targetting": "by_id",
+          "targets": [229,213, 221, 228, 197, 270, 193, 273],
+          "cell_types": ["mossy_fibers"],
+          "synapses": [],
+          "parameters": {
+            "noise": true,
+            "start": 100,
+            "interval": 40,
+            "number": 2,
+            "sd": 2
+          }
+        },
+
         "background": {
           "io": "input",
           "device": "spike_generator",
           "targetting": "cell_type",
           "cell_types": ["mossy_fibers"],
-          "synapses": ["AMPA", "NMDA", "AMPA_MF"],
+          "synapses": [],
           "parameters": {
             "noise": true,
-            "start": 100,
-            "interval": 250,
-            "number": 40
+            "start": 300,
+            "interval": 1000,
+            "number": 10
           }
         },
-        "mossy_fiber_input": {
+        "mossy_fiber_input_syncImp": {
           "io": "input",
           "device": "spike_generator",
           "targetting": "by_id",
-          "targets": [229, 213, 221, 228, 230, 220, 237, 203, 204, 205, 246, 212, 245],
+          "targets": [213, 214, 222, 223, 229, 221, 206, 230, 247, 239, 231, 238, 240],
           "cell_types": ["mossy_fibers"],
-          "synapses": ["AMPA", "NMDA", "AMPA_MF"],
+          "synapses": [],
           "parameters": {
             "noise": false,
             "start": 700,
@@ -442,19 +453,18 @@
             "number": 4
           }
         },
-        "mossy_fiber_init": {
+        "mossy_fiber_input_Poiss": {
           "io": "input",
           "device": "spike_generator",
           "targetting": "by_id",
-          "targets": [229,213, 221, 228, 197, 270, 193, 273],
+          "targets": [213, 214, 222, 223],
           "cell_types": ["mossy_fibers"],
-          "synapses": ["AMPA", "NMDA", "AMPA_MF"],
+          "synapses": [],
           "parameters": {
             "noise": true,
-            "start": 100,
-            "interval": 50,
-            "number": 2,
-            "sd": 2
+            "start": 700,
+            "interval": 10,
+            "number": 10
           }
         },
         "dendrite_recorders": {
@@ -463,22 +473,15 @@
           "group": "dendrites",
           "targetting": "cell_type",
           "cell_types": ["purkinje_cell", "golgi_cell", "basket_cell", "stellate_cell"],
-          "section_type": "dendrites"
+          "section_type": "dendrites",
+          "section_count": 1
         },
-        "la_granule_recorder": {
+        "granule_recorder": {
           "io": "output",
           "device": "voltage_recorder",
           "group": "granules_la",
           "targetting": "by_id",
           "targets": [4391,4394,4401,4403,4455,4549,4558,4595,4597,4624,4728,4749,4760,4763,4794,4820,4831,4841,4853],
-          "section_type": "soma"
-        },
-        "ha_granule_recorder": {
-          "io": "output",
-          "device": "voltage_recorder",
-          "group": "granules_ha",
-          "targetting": "by_id",
-          "targets": [14278,14628,19707,19992,20111,26940,26951,27731,28749,29050,30958,4269,4914,5229,6018,6656,9116],
           "section_type": "soma"
         }
       }
