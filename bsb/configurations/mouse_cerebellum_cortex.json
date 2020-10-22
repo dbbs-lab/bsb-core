@@ -476,12 +476,20 @@
           "section_type": "dendrites",
           "section_count": 1
         },
-        "granule_recorder": {
+        "granule_recorder_syncImp": {
           "io": "output",
           "device": "voltage_recorder",
-          "group": "granules_la",
+          "group": "granules_syncImp",
           "targetting": "by_id",
-          "targets": [4391,4394,4401,4403,4455,4549,4558,4595,4597,4624,4728,4749,4760,4763,4794,4820,4831,4841,4853],
+          "targets": [3070, 31681, 3069, 9623, 3068, 11800, 3075, 15265, 3083, 16011],
+          "section_type": "soma"
+        },
+        "granule_recorder_Poiss": {
+          "io": "output",
+          "device": "voltage_recorder",
+          "group": "granules_Poiss",
+          "targetting": "by_id",
+          "targets": [3070, 31681, 3074, 9163, 3083, 11399, 3764, 15288, 5987, 17372],
           "section_type": "soma"
         }
       }
