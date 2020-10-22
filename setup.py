@@ -53,7 +53,7 @@ setuptools.setup(
     },
     extras_require={
         "dev": ["sphinx", "sphinx_rtd_theme>=0.4.3", "pre-commit", "black==20.8b1"],
-        "NEURON": ["dbbs_models>=1.3.1", "nrn-patch>=3.0.0b0"],
+        "NEURON": ["dbbs_models>=1.3.2", "nrn-patch>=3.0.0b0"],
         "MPI": ["mpi4py"],
     },
 )

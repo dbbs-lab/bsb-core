@@ -19,29 +19,14 @@ class SynapseRecorder(PatternlessDevice, NeuronDevice):
     def implement(self, target, location):
         cell = location.cell
         section = location.section
-        print(
-            "Node",
-            self.adapter.pc_id,
-            "Implementing synapse recorder",
-            cell.ref_id,
-            cell.sections.index(section),
-        )
         recorder_classes = []
         if self.record_spikes:
-            print("Recording spikes...")
             recorder_classes.append(SynapticSpikesRecorder)
         if self.record_current:
-            print("Recording current...")
             recorder_classes.append(SynapticCurrentRecorder)
         for synapse in get_section_synapses(section, self.types):
             for recorder_class in recorder_classes:
                 recorder = recorder_class(cell, section, synapse)
-                print(
-                    "Created recorder:",
-                    recorder,
-                    recorder.get_path(),
-                    recorder.get_meta(),
-                )
                 self.adapter.result.add(recorder)
 
 
