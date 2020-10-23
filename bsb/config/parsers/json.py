@@ -39,7 +39,7 @@ def _traverse_wrap(node, iter):
 class parsed_dict(dict, parsed_node):
     def merge(self, other):
         """
-            Recursively merge the values of another dictionary into us
+        Recursively merge the values of another dictionary into us
         """
         for key, value in other.items():
             if key in self and isinstance(self[key], dict) and isinstance(value, dict):
@@ -62,7 +62,7 @@ class parsed_dict(dict, parsed_node):
 
     def rev_merge(self, other):
         """
-            Recursively merge ourself onto another dictionary
+        Recursively merge ourself onto another dictionary
         """
         m = parsed_dict(other)
         _traverse_wrap(m, m.items())

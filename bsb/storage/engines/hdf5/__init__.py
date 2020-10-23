@@ -19,14 +19,14 @@ class HDF5Engine(Engine):
 
     def get_handle(self, mode="r"):
         """
-            Open an HDF5 file.
+        Open an HDF5 file.
         """
         # Open a new handle to the resource.
         return h5py.File(self.file, mode)
 
     def release_handle(self, handle):
         """
-            Close the HDF5 file.
+        Close the HDF5 file.
         """
         return handle.close()
 

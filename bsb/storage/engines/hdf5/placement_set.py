@@ -13,14 +13,14 @@ import numpy as np
 
 class PlacementSet(Resource, IPlacementSet):
     """
-        Fetches placement data from storage. You can either access the parallel-array
-        datasets ``.identifiers``, ``.positions`` and ``.rotations`` individually or
-        create a collection of :class:`Cells <.models.Cell>` that each contain their own
-        identifier, position and rotation.
+    Fetches placement data from storage. You can either access the parallel-array
+    datasets ``.identifiers``, ``.positions`` and ``.rotations`` individually or
+    create a collection of :class:`Cells <.models.Cell>` that each contain their own
+    identifier, position and rotation.
 
-        .. note::
+    .. note::
 
-            Use :func:`.core.get_placement_set` to correctly obtain a PlacementSet.
+        Use :func:`.core.get_placement_set` to correctly obtain a PlacementSet.
     """
 
     def __init__(self, engine, cell_type):
@@ -56,7 +56,7 @@ class PlacementSet(Resource, IPlacementSet):
     @property
     def identifiers(self):
         """
-            Return a list of cell identifiers.
+        Return a list of cell identifiers.
         """
         return np.array(
             expand_continuity_list(self.identifier_set.get_dataset()), dtype=int
@@ -65,7 +65,7 @@ class PlacementSet(Resource, IPlacementSet):
     @property
     def positions(self):
         """
-            Return a dataset of cell positions.
+        Return a dataset of cell positions.
         """
         try:
             return self.positions_set.get_dataset()
@@ -77,10 +77,10 @@ class PlacementSet(Resource, IPlacementSet):
     @property
     def rotations(self):
         """
-            Return a dataset of cell rotations.
+        Return a dataset of cell rotations.
 
-            :raises: DatasetNotFoundError when there is no rotation information for this
-               cell type.
+        :raises: DatasetNotFoundError when there is no rotation information for this
+           cell type.
         """
         try:
             return self.rotation_set.get_dataset()
@@ -92,8 +92,8 @@ class PlacementSet(Resource, IPlacementSet):
     @property
     def cells(self):
         """
-            Reorganize the available datasets into a collection of :class:`Cells
-            <.models.Cell>`
+        Reorganize the available datasets into a collection of :class:`Cells
+        <.models.Cell>`
         """
         return [
             Cell(id, self.type, position, rotation) for id, position, rotation in self
@@ -113,7 +113,7 @@ class PlacementSet(Resource, IPlacementSet):
 
     def _none(self):
         """
-            Generate ``len(self)`` times ``None``
+        Generate ``len(self)`` times ``None``
         """
         for i in range(len(self)):
             yield None
