@@ -110,3 +110,49 @@ Root node
 =========
 
 The root node is the Configuration object and is at the basis of the tree of nodes.
+
+Pluggable nodes
+===============
+
+A part of your configuration file might be using plugins, these plugins can behave quite
+different from eachother and forcing them all to use the same configuration might hinder
+their function or cause friction for users to configure them properly. To solve this
+parts of the configuration are *pluggable*. This means that what needs to be configured
+in the node can be determined by the plugin that you select for it. Homogeneity can be
+enforced by defining *slots*. If a slot attribute is defined inside of a then the plugin
+must provide an attribute with the same name.
+
+.. note::
+
+	Currently the provided attribute slots enforce just the presence, not any kind of
+  inheritance or deeper inspection. It's up to a plugin author to understand the purpose
+  of the slot and to comply with its intentions.
+
+Consider the following example:
+
+.. code-block:: python
+
+  import bsb.plugins, bsb.config
+
+  @bsb.config.pluggable(key="plugin", plugin_name="puppy generator")
+  class PluginNode:
+    @classmethod
+    def __plugins__(cls):
+        if not hasattr(cls, "_plugins"):
+            cls._plugins = bsb.plugins.discover("puppy_generators")
+        return cls._plugins
+
+.. code-block:: json
+
+  {
+    "plugin": "labradoodle",
+    "labrador_percentage": 110,
+    "poodle_percentage": 60
+  }
+
+The decorator argument ``key`` determines which attribute will be read to find out which
+plugin the user wants to configure. The class method ``__plugins__`` will be used to
+fetch the plugins every time a plugin is configured (usually finding these plugins isn't
+that fast so caching them is recommended). The returned plugin objects should be
+configuration node classes. These classes will then be used to further handle the given
+configuration.

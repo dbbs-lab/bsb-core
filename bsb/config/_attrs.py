@@ -122,7 +122,7 @@ def _dynamic(node_cls, class_attr, attr_name, config):
     return node(node_cls, dynamic=config)
 
 
-def pluggable(key, plugin_name=None, unpack=None):
+def pluggable(key, plugin_name=None):
     """
     Create a node whose configuration is defined by a plugin.
 
@@ -140,15 +140,11 @@ def pluggable(key, plugin_name=None, unpack=None):
 
     :param plugin_name: The name of the category of the plugin endpoint
     :type plugin_name: str
-    :param unpack: Optional callable to get the desired node out of the plugin, by
-      default the plugin should be the node class itself.
-    :type unpack: callable
     """
 
     def inner_decorator(node_cls):
         node_cls._config_plugin_name = plugin_name
         node_cls._config_plugin_key = key
-        node_cls._config_plugin_unpack = unpack
         class_attr = ConfigurationAttribute(type=str, required=True)
         setattr(node_cls, key, class_attr)
         return node(node_cls, pluggable=True)
@@ -264,6 +260,11 @@ def _hasattr(instance, name):
 
 
 class ConfigurationAttribute:
+    """
+    Base implementation of all the different configuration attributes. Call the factory
+    function :func:`.attr` instead.
+    """
+
     def __init__(
         self,
         type=None,
