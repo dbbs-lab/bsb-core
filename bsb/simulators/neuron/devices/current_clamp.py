@@ -17,4 +17,4 @@ class CurrentClamp(NeuronDevice):
         return self.parameters
 
     def get_pattern(self, target, cell=None, section=None, synapse=None):
-        return self.patterns
+        return self.get_patterns()
