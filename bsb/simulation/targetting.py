@@ -85,15 +85,15 @@ class TargetsNeurons:
         """
         cell_types = [self.scaffold.get_cell_type(t) for t in self.cell_types]
         if len(cell_types) != 1:
-            # Compile a list of the different cell type cells.
+            # Concatenate a list of the different cell type cells.
             target_cells = np.array([])
             for t in cell_types:
                 if t.entity:
                     ids = self.scaffold.get_entities_by_type(t.name)
                 else:
                     ids = self.scaffold.get_cells_by_type(t.name)[:, 0]
-                target_cells = np.hstack((target_cells, ids))
-            return target_cells
+                target_cells = np.concatenate((target_cells, ids))
+            ids = target_cells
         else:
             # Retrieve a single list
             t = cell_types[0]
@@ -101,7 +101,12 @@ class TargetsNeurons:
                 ids = self.scaffold.get_entities_by_type(t.name)
             else:
                 ids = self.scaffold.get_cells_by_type(t.name)[:, 0]
-            return ids
+        n = len(ids)
+        # Use the `cell_fraction` or `cell_count` attribute to determine what portion of
+        # the selected ids to exclude.
+        r_threshold = getattr(self, "cell_fraction", getattr(self, "cell_count", n) / n)
+        ids = ids[np.random.random_sample(n) <= r_threshold]
+        return ids
 
     def _targets_representatives(self):
         target_types = [
@@ -124,7 +129,42 @@ class TargetsNeurons:
         """
         Return the targets of the device.
         """
-        return self._get_targets()
+        if hasattr(self, "_targets"):
+            return self._targets
+        raise ParallelIntegrityError(
+            f"MPI process %rank% failed a checkpoint."
+            + " `initialise_targets` should always be called before `get_targets` on all MPI processes.",
+            self.adapter.pc_id,
+        )
+
+    def get_patterns(self):
+        """
+        Return the patterns of the device.
+        """
+        if hasattr(self, "_patterns"):
+            return self._patterns
+        raise ParallelIntegrityError(
+            f"MPI process %rank% failed a checkpoint."
+            + " `initialise_patterns` should always be called before `get_patterns` on all MPI processes.",
+            self.adapter.pc_id,
+        )
+
+    def initialise_targets(self):
+        if self.adapter.pc_id == 0:
+            targets = self._get_targets()
+        else:
+            targets = None
+        # Broadcast to make sure all the nodes have the same targets for each device.
+        self._targets = self.scaffold.MPI.COMM_WORLD.bcast(targets, root=0)
+
+    def initialise_patterns(self):
+        if self.adapter.pc_id == 0:
+            # Have root 0 prepare the possibly random patterns.
+            patterns = self.create_patterns()
+        else:
+            patterns = None
+        # Broadcast to make sure all the nodes have the same patterns for each device.
+        self._patterns = self.scaffold.MPI.COMM_WORLD.bcast(patterns, root=0)
 
     # Define new targetting methods above this line or they will not be registered.
     neuron_targetting_types = [s[9:] for s in vars().keys() if s.startswith("_targets_")]

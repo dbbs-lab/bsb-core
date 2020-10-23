@@ -35,6 +35,7 @@ _t(
                 SuffixTakenError=_e(),
                 ReceptorSpecificationError=_e(),
             ),
+            ParallelIntegrityError=_e("rank"),
         ),
         ConnectivityError=_e(),
         MorphologyError=_e(
