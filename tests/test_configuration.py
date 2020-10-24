@@ -1,9 +1,9 @@
-import unittest, os, sys, numpy as np, h5py
+import unittest, os, sys, numpy as np, h5py, json
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from bsb.core import Scaffold
 from bsb import config
-from bsb.config import from_json
+from bsb.config import from_json, Configuration
 from bsb.exceptions import *
 from bsb.models import Layer, CellType
 
@@ -774,3 +774,85 @@ class TestTypes(unittest.TestCase):
         self.assertEqual(3, _eval("5 - 2"))
         self.assertEqual(3, _eval("v - 2", v=5))
         self.assertEqual(3, _eval("np.array([v - 2])[0]", v=5))
+
+
+class TestTreeing(unittest.TestCase):
+    def surjective(self, name, cls, ref, tree):
+        # Test that the tree projects onto the ref
+        with self.subTest(name=name):
+            cfg = cls(tree)
+            new_tree = cfg.__tree__()
+            self.assertEqual(json.dumps(ref, indent=2), json.dumps(new_tree, indent=2))
+
+    def bijective(self, name, cls, tree):
+        # Test that the tree and its config projection are the same in JSON
+        with self.subTest(name=name):
+            cfg = cls(tree)
+            new_tree = cfg.__tree__()
+            self.assertEqual(json.dumps(tree, indent=2), json.dumps(new_tree, indent=2))
+
+    def test_empty(self):
+        @config.root
+        class Test:
+            pass
+
+        self.bijective("empty", Test, {})
+
+    def test_single(self):
+        @config.root
+        class Test:
+            a = config.attr()
+
+        self.bijective("single", Test, {"a": "hehe"})
+
+    def test_pristine(self):
+        @config.root
+        class Test:
+            a = config.attr(default=5)
+
+        self.bijective("pristine", Test, {})
+
+    def test_dirty(self):
+        @config.root
+        class Test:
+            a = config.attr(default=5)
+
+        cfg = Test({})
+        cfg.a = 5
+        new_tree = cfg.__tree__()
+        self.assertEqual(json.dumps({"a": 5}, indent=2), json.dumps(new_tree, indent=2))
+
+    def test_multi(self):
+        @config.root
+        class Test:
+            a = config.attr(default=5)
+            b = config.attr()
+            c = config.attr()
+
+        self.bijective("multi", Test, {"b": "3", "c": "hello"})
+
+    def test_insertion_order(self):
+        @config.root
+        class Test:
+            a = config.attr(default=5)
+            b = config.attr()
+            c = config.attr()
+
+        self.bijective("multi", Test, {"a": 3, "b": "hi", "c": "hello"})
+        self.bijective("multi", Test, {"c": "hello", "b": "hi", "a": 3})
+
+    def test_autocorrect(self):
+        @config.root
+        class Test:
+            a = config.attr(default=5)
+            b = config.attr(type=float)
+            c = config.attr()
+
+        cfg = Test({"a": "5", "b": "5.", "c": 3})
+        test_tree = cfg.__tree__()
+        ref_tree = {"a": 5, "b": 5.0, "c": "3"}
+        self.surjective("autocorrect", Test, ref_tree, test_tree)
+
+    @unittest.expectedFailure
+    def test_full(self):
+        self.bijective("full", Configuration, as_json(full_config))

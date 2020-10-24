@@ -17,7 +17,7 @@
   },
   "partitions": {
     "dcn_layer": {
-      "thickness": 600,
+      "thickness": 600.0,
       "xz_scale": [0.5, 0.5],
       "xz_center": true,
       "region": "cerebellar_cortex",
@@ -40,9 +40,9 @@
     },
     "io_layer": {
       "volume_scale": 0.0147,
-      "thickness": 15,
+      "thickness": 15.0,
       "scale_from_layers": ["granular_layer", "purkinje_layer", "molecular_layer"],
-      "volume_dimension_ratio": [0.5, 1, 0.2],
+      "volume_dimension_ratio": [0.5, 1.0, 0.2],
       "region": "inferior_olive",
       "z_index": 0
     }
@@ -99,7 +99,7 @@
         "planar_density": 0.0017,
         "extension_x": 130.0,
         "extension_z": 3.5,
-        "angle": 70
+        "angle": 70.0
       },
       "spatial": {
         "radius": 7.5,
@@ -210,7 +210,7 @@
       "cls": "bsb.connectivity.ConnectomeGlomerulusGranule",
       "presynaptic": {"type": "glomerulus", "compartments": ["soma"]},
       "postsynaptic": {"type": "granule_cell", "compartments": ["dendrites"]},
-      "convergence": 4
+      "convergence": 4.0
     },
     "glomerulus_to_golgi": {
       "cls": "bsb.connectivity.ConnectomeGlomerulusGolgi",
@@ -221,13 +221,13 @@
       "cls": "bsb.connectivity.ConnectomeGolgiGlomerulus",
       "presynaptic": {"type": "golgi_cell", "compartments": ["axon"]},
       "postsynaptic": {"type": "glomerulus", "compartments": ["soma"]},
-      "divergence": 40
+      "divergence": 40.0
     },
     "mossy_to_dcn": {
       "cls": "bsb.connectivity.ConnectomeMossyDCN",
       "presynaptic": {"type": "mossy_fibers", "compartments": ["soma"]},
       "postsynaptic": {"type": "dcn_cell", "compartments": ["dendrites"]},
-      "convergence": 50
+      "convergence": 50.0
     },
     "granule_to_golgi": {
       "cls": "bsb.connectivity.ConnectomeGranuleGolgi",
@@ -270,8 +270,8 @@
       "cls": "bsb.connectivity.ConnectomeBCSCPurkinje",
       "presynaptic": {"type": "basket_cell", "compartments": ["axon"]},
       "postsynaptic": {"type": "purkinje_cell", "compartments": ["dendrites"]},
-      "divergence": 2,
-      "convergence": 20,
+      "divergence": 2.0,
+      "convergence": 20.0,
       "limit_x": 500.0,
       "limit_z": 100.0
     },
@@ -279,8 +279,8 @@
       "cls": "bsb.connectivity.ConnectomeBCSCPurkinje",
       "presynaptic": {"type": "stellate_cell", "compartments": ["axon"]},
       "postsynaptic": {"type": "purkinje_cell", "compartments": ["dendrites"]},
-      "divergence": 2,
-      "convergence": 20,
+      "divergence": 2.0,
+      "convergence": 20.0,
       "limit_x": 500.0,
       "limit_z": 100.0
     },
@@ -367,7 +367,7 @@
       "simulator": "nest",
       "default_neuron_model": "iaf_cond_alpha",
       "default_synapse_model": "static_synapse",
-      "duration": 1000,
+      "duration": 1000.0,
       "modules": ["cerebmodule"],
       "cell_models": {
         "granule_cell": {
@@ -946,7 +946,7 @@
           "targetting": {
             "type": "cylinder",
             "cell_types": ["glomerulus"],
-            "radius": 150
+            "radius": 150.0
           },
           "parameters": {
             "rate": 4.0,
@@ -960,7 +960,7 @@
           "targetting": {
             "type": "cylinder",
             "cell_types": ["glomerulus"],
-            "radius": 150
+            "radius": 150.0
           },
           "parameters": {
             "rate": 36.0,

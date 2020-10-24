@@ -486,6 +486,7 @@ class evaluation(TypeHandler):
         globals = {"np": np}
         res = eval(statement, globals, locals)
         self._references[id(res)] = value
+        print("STORED REFERENCE", id(res))
         return res
 
     @property
@@ -506,6 +507,7 @@ class evaluation(TypeHandler):
         if value is None:
             raise NoneReferenceError("Can't create bijection for NoneType value.")
         vid = id(value)
+        print("CHECKING INV")
         # Create a set of references from our stored weak references that are still alive.
         refs = {id(r) for ref in self._references if (r := ref()) is not None}
         if vid not in refs:
@@ -513,6 +515,7 @@ class evaluation(TypeHandler):
         return self._references[vid]
 
     def __inv__(self, value):
+        print("CHECKING INV", id(value))
         try:
             return self.get_original(value)
         except TypeHandlingError:
