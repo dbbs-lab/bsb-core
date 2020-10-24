@@ -33,7 +33,13 @@ class Distribution:
     distribution = attr(type=types.in_(_available_distributions), required=True)
     parameters = catch_all(type=types.any())
 
+    def __init__(self, **kwargs):
+        self._distr = getattr(_distributions, self.distribution)(**self.parameters)
+
     def draw(self, n):
-        if not hasattr(self, "_distr"):
-            self._distr = getattr(_distributions, self.distribution)(**self.parameters)
         return self._distr.rvs(size=n)
+
+    def __getattr__(self, attr):
+        if "_distr" not in self.__dict__:
+            raise AttributeError("No underlying _distr found for distribution node.")
+        return getattr(self._distr, attr)
