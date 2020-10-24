@@ -155,7 +155,9 @@ def or_(*type_args):
         type_errors = "\n".join(
             "- Casting to '{}' raised:\n{}".format(n, e) for n, e in type_errors.items()
         )
-        raise TypeError(
+        # Use a CastError instead of a TypeError so that the message is passed along as is
+        # by upstream error handlers.
+        raise CastError(
             "Couldn't cast {} into {}.\n{}".format(value, handler_name, type_errors)
         )
 
