@@ -7,11 +7,11 @@ to familiarize yourself with the core concepts and get a more top level understa
 first, check out the :doc:`top-level-guide` before you continue.
 
 There are 2 ways of building models using the Brain Scaffold Builder (BSB), the first is
-through **configuration**, the second is **scripting**. The 2 methods complement eachother
-so that you can load the general model from a configuration file and then layer on more
-complex steps under your full control in a Python script.
+through **configuration**, the second is **scripting**. The 2 methods complement each
+other so that you can load the general model from a configuration file and then layer on
+more complex steps under your full control in a Python script.
 
-Let's create a barebones configuration file called ``config.json``
+Let's create a bare configuration file called ``config.json``
 
 .. code-block:: json
 
@@ -21,8 +21,8 @@ Let's create a barebones configuration file called ``config.json``
       "root": "my_network.hdf5"
     },
     "network": {
-      "x": 200,
-      "z": 200
+      "x": 50,
+      "z": 50
     },
     "regions": {
 
@@ -41,9 +41,9 @@ Let's create a barebones configuration file called ``config.json``
     }
   }
 
-This configuration file declares that we'll be creating a model in an HDF5 format under
-called ``my_network.hdf5`` and that the estimated scale of the network is a square column
-of 200 by 200 micrometer.
+This configuration file declares that we'll be creating a model in an HDF5 format as a
+file called ``my_network.hdf5`` and that the estimated scale of the network is a square
+column of 50 by 50 micrometer.
 
 We can already use the CLI tool or a script to create an empty network from this
 configuration:
@@ -55,12 +55,11 @@ configuration:
 
   config = from_json("config.json")
   scaffold = Scaffold(config)
-	# Compile the network, doesn't do anything without any defined types.
-	scaffold.compile_network()
+  # Compile the empty network.
+  scaffold.compile_network()
+  # Your mostly empty HDF5 file `my_network.hdf5` should appear
 
-  # After `scaffold` has been initialized from the config your (empty) HDF5 file appears
-
-And from the CLI:
+The same thing from the CLI:
 
 .. code-block:: bash
 
@@ -76,8 +75,8 @@ Let's add a ``cortex`` region, with a ``base_layer`` and a ``lonely_cell`` type 
       "root": "my_network.hdf5"
     },
     "network": {
-      "x": 200,
-      "z": 200
+      "x": 50,
+      "z": 50
     },
     "regions": {
 			"cortex": {
@@ -94,7 +93,7 @@ Let's add a ``cortex`` region, with a ``base_layer`` and a ``lonely_cell`` type 
     "cell_types": {
 			"lonely_cell": {
 				"placement": {
-					"class": "scaffold.placement.ParticlePlacement",
+					"class": "bsb.placement.ParticlePlacement",
 					"layer": "base_layer",
 					"count": 10
 				},
@@ -129,7 +128,7 @@ result:
 
 	scaffold -c=config.json compile -p
 
-<EXTRA CELL TYPE + CONNECTION TYPES>
+<CONTINUE GUIDE TO ADD EXTRA CELL TYPES + CONNECTION TYPES>
 
 .. note::
 
@@ -148,7 +147,7 @@ architectures and run simulations.
 
 Let's try out the most basic command, using the default configuration::
 
-  bsb -v=3 compile -x=200 -z=200
+  bsb -v=3 compile -x=50 -z=50
 
 This should produce prints and generate a timestamped HDF5 file in your current
 directory.
