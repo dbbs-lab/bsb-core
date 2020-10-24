@@ -728,11 +728,49 @@ class TestTypes(unittest.TestCase):
         self.assertEqual(b.c, 0.1)
         self.assertRaises(CastError, Test, {"c": -0.1}, _parent=TestRoot())
 
-    # def test_constant_distribution(self):
-    #     raise NotImplementedError("Luie zak")
-    #
-    # def test_distribution(self):
-    #     raise NotImplementedError("Luie zak")
-    #
-    # def test_evaluation(self):
-    #     raise NotImplementedError("Luie zak")
+    def test_constant_distribution(self):
+        @config.root
+        class Test:
+            c = config.attr(type=types.constant_distr())
+
+        a = Test({"c": 1})
+        self.assertTrue(np.array_equal(np.ones(5), a.c.draw(5)))
+
+    def test_distribution(self):
+        import scipy.stats.distributions
+
+        @config.root
+        class Test:
+            c = config.attr(type=types.distribution())
+
+        # Check basic function
+        a = Test({"c": {"distribution": "alpha", "a": 3, "loc": 2, "scale": 2.5}})
+        equivalent = scipy.stats.distributions.alpha(a=3, loc=2, scale=2.5)
+        self.assertEqual(type(equivalent), type(a.c._distr))
+        self.assertEqual(equivalent.pdf(5.9), a.c.pdf(5.9))
+
+        with self.assertRaises(CastError):
+            a = Test({"c": {"a": 3, "loc": 2, "scale": 2.5}})
+
+        with self.assertRaises(CastError):
+            # Check that underlying errors are also caught
+            a = Test({"c": {"distribution": "alpha"}})
+            # Should we add a test to see that the underlying message is passed?
+
+        with self.assertRaises(CastError):
+            # Check that unknown distributions throw a CastError
+            a = Test({"c": {"distribution": "alphaa"}})
+
+    def test_evaluation(self):
+        @config.root
+        class Test:
+            c = config.attr(type=types.evaluation())
+
+        def _eval(statement, **vars):
+            return Test(c={"statement": statement, "variables": vars}).c
+
+        self.assertEqual(3, _eval(3))
+        self.assertEqual(3, _eval("3"))
+        self.assertEqual(3, _eval("5 - 2"))
+        self.assertEqual(3, _eval("v - 2", v=5))
+        self.assertEqual(3, _eval("np.array([v - 2])[0]", v=5))

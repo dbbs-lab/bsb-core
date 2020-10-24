@@ -481,7 +481,7 @@ class evaluation(TypeHandler):
 
     def __call__(self, value):
         cfg = _dict(value)
-        statement = cfg.get("statement", "None")
+        statement = str(cfg.get("statement", "None"))
         locals = _dict(cfg.get("variables", {}))
         globals = {"np": np}
         res = eval(statement, globals, locals)

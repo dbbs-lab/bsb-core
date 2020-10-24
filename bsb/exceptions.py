@@ -14,10 +14,7 @@ _t(
             CastError=_e(
                 "node",
                 "attr",
-                DistributionCastError=_e(
-                    UnknownDistributionError=_e(),
-                    InvalidDistributionError=_e(),
-                ),
+                DistributionCastError=_e(),
                 UnresolvedClassCastError=_e(),
                 UnfitClassCastError=_e(),
             ),
