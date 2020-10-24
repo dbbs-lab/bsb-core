@@ -2,7 +2,8 @@
 BSB JSON parser
 ###############
 
-The BSB's JSON parser sports 2 additional features over the builtin Python JSON parser:
+The BSB's JSON parser is built on top of Python's `json
+<https://docs.python.org/3/library/json.html>`_ module  and adds 2 additional features:
 
 * JSON references
 * JSON imports
