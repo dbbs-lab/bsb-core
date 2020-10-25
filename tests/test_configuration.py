@@ -790,6 +790,7 @@ class TestTreeing(unittest.TestCase):
             cfg = cls(tree)
             new_tree = cfg.__tree__()
             self.assertEqual(json.dumps(tree, indent=2), json.dumps(new_tree, indent=2))
+            return cfg, new_tree
 
     def test_empty(self):
         @config.root
@@ -856,3 +857,12 @@ class TestTreeing(unittest.TestCase):
     @unittest.expectedFailure
     def test_full(self):
         self.bijective("full", Configuration, as_json(full_config))
+
+    def test_eval(self):
+        @config.root
+        class Test:
+            a = config.attr(type=types.evaluation())
+
+        cfg, tree = self.bijective("eval", Test, {"a": {"statement": "[1, 2, 3]"}})
+        self.assertEqual([1, 2, 3], cfg.a)
+        self.assertEqual({"statement": "[1, 2, 3]"}, tree["a"])

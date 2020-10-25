@@ -24,15 +24,15 @@ class TypeHandler(abc.ABC):
     """
 
     @abc.abstractmethod
-    def __call__(self, value):
+    def __call__(self, value):  # pragma: nocover
         pass
 
     @property
     @abc.abstractmethod
-    def __name__(self):
+    def __name__(self):  # pragma: nocover
         return "unknown type handler"
 
-    def __inv__(self, value):
+    def __inv__(self, value):  # pragma: nocover
         return value
 
     def __init_subclass__(cls, **kwargs):
@@ -418,7 +418,7 @@ class deg_to_radian(TypeHandler):
         return v * 2 * math.pi / 360
 
     @property
-    def __name__(self):
+    def __name__(self):  # pragma: nocover
         return "degrees"
 
     def __inv__(self, value):
@@ -486,7 +486,6 @@ class evaluation(TypeHandler):
         globals = {"np": np}
         res = eval(statement, globals, locals)
         self._references[id(res)] = value
-        print("STORED REFERENCE", id(res))
         return res
 
     @property
@@ -507,15 +506,12 @@ class evaluation(TypeHandler):
         if value is None:
             raise NoneReferenceError("Can't create bijection for NoneType value.")
         vid = id(value)
-        print("CHECKING INV")
         # Create a set of references from our stored weak references that are still alive.
-        refs = {id(r) for ref in self._references if (r := ref()) is not None}
-        if vid not in refs:
+        if vid not in self._references:
             raise InvalidReferenceError(f"No evaluation reference found for {vid}", value)
         return self._references[vid]
 
     def __inv__(self, value):
-        print("CHECKING INV", id(value))
         try:
             return self.get_original(value)
         except TypeHandlingError:
