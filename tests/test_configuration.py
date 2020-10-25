@@ -656,6 +656,94 @@ class TestTypes(unittest.TestCase):
         self.assertEqual(b.c, 3)
         self.assertRaises(CastError, Test, {"c": 4}, _parent=TestRoot())
 
+    def test_int(self):
+        @config.root
+        class Test:
+            a = config.attr(type=types.int())
+            b = config.attr(type=types.int(min=0))
+            c = config.attr(type=types.int(max=0))
+            d = config.attr(type=types.int(min=0, max=10))
+
+        # Test basics
+        cfg = Test({"a": 5, "b": 5, "c": -5, "d": 5})
+        self.assertEqual(5, cfg.a)
+        self.assertEqual(5, cfg.b)
+        self.assertEqual(-5, cfg.c)
+        self.assertEqual(5, cfg.d)
+        # Test edge cases
+        Test(b=0)
+        Test(c=0)
+        with self.assertRaises(CastError):
+            Test(b=-10)
+        with self.assertRaises(CastError):
+            Test(c=10)
+        with self.assertRaises(CastError):
+            Test(d=-5)
+        with self.assertRaises(CastError):
+            Test(d=15)
+        # Test rounding & conversion
+        self.assertEqual(5, Test(a=5.5).a)
+        self.assertEqual(5, Test(a=5.4).a)
+        self.assertEqual(5, Test(a=5.6).a)
+        self.assertEqual(5, Test(a=5.0).a)
+        self.assertEqual(5, Test(a="5").a)
+
+    def test_float(self):
+        @config.root
+        class Test:
+            a = config.attr(type=types.float())
+            b = config.attr(type=types.float(min=0))
+            c = config.attr(type=types.float(max=0))
+            d = config.attr(type=types.float(min=0, max=10))
+
+        # Test basics
+        cfg = Test({"a": 5.2, "b": 5.2, "c": -5.2, "d": 5.2})
+        self.assertEqual(5.2, cfg.a)
+        self.assertEqual(5.2, cfg.b)
+        self.assertEqual(-5.2, cfg.c)
+        self.assertEqual(5.2, cfg.d)
+        # Test edge cases
+        Test(b=0)
+        Test(c=0)
+        with self.assertRaises(CastError):
+            Test(b=-10)
+        with self.assertRaises(CastError):
+            Test(c=10)
+        with self.assertRaises(CastError):
+            Test(d=-5)
+        with self.assertRaises(CastError):
+            Test(d=15)
+        # Test rounding & conversion
+        self.assertEqual(5.0, Test(a=5).a)
+        self.assertEqual(5.5, Test(a=5.5).a)
+        self.assertEqual(5.0, Test(a="5").a)
+        self.assertEqual(5.0, Test(a="5.").a)
+        self.assertEqual(5.6, Test(a="5.6").a)
+        self.assertEqual(0.074, Test(a="7.4e-02").a)
+
+    def test_number(self):
+        @config.root
+        class Test:
+            a = config.attr(type=types.number())
+            b = config.attr(type=types.number(min=0))
+            c = config.attr(type=types.number(max=0))
+            d = config.attr(type=types.number(min=0, max=10))
+
+        # Test basics
+        cfg = Test({"a": 5, "b": 5.0, "c": -5.2, "d": 5.2})
+        self.assertEqual(5, cfg.a)
+        self.assertEqual(int, type(cfg.a))
+        self.assertEqual(5.0, cfg.b)
+        self.assertEqual(float, type(cfg.b))
+        with self.assertRaises(CastError):
+            Test(b=-10)
+        with self.assertRaises(CastError):
+            Test(c=10)
+        with self.assertRaises(CastError):
+            Test(d=-5)
+        with self.assertRaises(CastError):
+            Test(d=15)
+
     def test_in_inf(self):
         class Fib:
             def __call__(self):
@@ -713,11 +801,23 @@ class TestTypes(unittest.TestCase):
             d = config.attr(type=types.list(int, size=3))
 
         b = Test({"c": [2, 2]}, _parent=TestRoot())
-        self.assertEqual(b.c, [2, 2])
+        self.assertEqual([2, 2], b.c)
         b = Test({"c": None}, _parent=TestRoot())
-        self.assertEqual(b.c, None)
+        self.assertEqual(None, types.list()(None))
+        self.assertEqual(None, b.c)
         self.assertRaises(CastError, Test, {"c": [2, "f"]}, _parent=TestRoot())
         self.assertRaises(CastError, Test, {"d": [2, 2]}, _parent=TestRoot())
+
+    def test_dict(self):
+        @config.root
+        class Test:
+            c = config.attr(type=types.dict())
+            d = config.attr(type=types.dict(int))
+
+        self.assertEqual({"a": "b"}, Test({"c": {"a": "b"}}).c)
+        self.assertEqual({"a": "5"}, Test({"c": {"a": 5}}).c)
+        self.assertEqual({"a": 5}, Test({"d": {"a": 5}}).d)
+        self.assertEqual(None, types.dict()(None))
 
     def test_fraction(self):
         @config.node
@@ -774,6 +874,23 @@ class TestTypes(unittest.TestCase):
         self.assertEqual(3, _eval("5 - 2"))
         self.assertEqual(3, _eval("v - 2", v=5))
         self.assertEqual(3, _eval("np.array([v - 2])[0]", v=5))
+
+    def test_class(self):
+        @config.root
+        class Test:
+            a = config.attr(type=types.class_())
+            b = config.attr(type=types.class_(module_path=["test_configuration"]))
+
+        cfg = Test({"a": "test_configuration.MyTestClass", "b": "MyTestClass"})
+        self.assertEqual(MyTestClass, cfg.a)
+        self.assertEqual(MyTestClass, cfg.b)
+
+        with self.assertRaises(CastError):
+            cfg = Test({"a": "MyTestClass"})
+
+
+class MyTestClass:
+    pass
 
 
 class TestTreeing(unittest.TestCase):

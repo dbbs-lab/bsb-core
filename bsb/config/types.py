@@ -214,9 +214,14 @@ def int(min=None, max=None):
 
     def type_handler(value):
         try:
-            return _int(value)
+            v = _int(value)
+            if min is not None and min > v or max is not None and max < v:
+                raise Exception()
+            return v
         except:
-            raise TypeError("Could not cast {} to an {}.".format(value, handler_name))
+            raise TypeError(
+                "Could not cast {} to an {}.".format(value, handler_name)
+            ) from None
 
     type_handler.__name__ = handler_name
     return type_handler
@@ -248,7 +253,10 @@ def float(min=None, max=None):
 
     def type_handler(value):
         try:
-            return _int(value)
+            v = _float(value)
+            if min is not None and min > v or max is not None and max < v:
+                raise Exception()
+            return v
         except:
             raise TypeError("Could not cast {} to an {}.".format(value, handler_name))
 
@@ -278,13 +286,18 @@ def number(min=None, max=None):
         handler_name += " <= {}".format(max)
 
     def type_handler(value):
-        if isinstance(value, _int):
-            return value
-        else:
-            try:
-                return _float(value)
-            except:
-                raise TypeError("Could not cast {} to a {}.".format(value, handler_name))
+        try:
+            if isinstance(value, _int):
+                v = _int(value)
+                if min is not None and min > v or max is not None and max < v:
+                    raise Exception()
+            else:
+                v = _float(value)
+                if min is not None and min > v or max is not None and max < v:
+                    raise Exception()
+            return v
+        except:
+            raise TypeError("Could not cast {} to a {}.".format(value, handler_name))
 
     type_handler.__name__ = handler_name
     return type_handler
