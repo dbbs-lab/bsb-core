@@ -888,6 +888,53 @@ class TestTypes(unittest.TestCase):
         with self.assertRaises(CastError):
             cfg = Test({"a": "MyTestClass"})
 
+    @unittest.expectedFailure
+    def test_in_classmap(self):
+        @config.root
+        class Test:
+            a = config.attr(type=types.in_classmap())
+            c = config.attr(type=Classmap2Parent)
+
+        t = Test({"c": {"cls": "a"}})
+        # The `Test` class itself has no classmap so using the `in_classmap` validator is
+        # incorrect and should raise an error.
+        with self.assertRaises(ClassMapMissingError):
+            Test.a.type("a", _parent=t, _key="a")
+        # `in_classmap` is a restrictive type handler that should only allow the classmap
+        # strings to be given and not the classes themselves.
+        with self.assertRaises(CastError):
+            Test(c={"cls": Classmap2ChildA})
+        # If a string is valid it should be left untouched.
+        self.assertEqual("a", Classmap2Parent.cls.type("a", _parent=t.c, _key="cls"))
+        # If a string is invalid a cast error should be raised
+        with self.assertRaises(CastError):
+            Classmap2Parent.cls.type("aa", _parent=t.c, _key="cls")
+        # To whoever fixes the classmaps: This might start throwing an error because d
+        # is not mapped to an actual class; The type validator however shouldn't complain.
+        # It should only check whether the given value is in the classmap or not. If an
+        # error occurs outside of the type handler that's supposed to happen.
+        self.assertEqual("d", Test(c="d"))
+
+
+@config.dynamic(
+    type=types.in_classmap(),
+    classmap={
+        "a": "Classmap2ChildA",
+        "b": "Classmap2ChildB",
+        "d": "Classmap2ChildD",
+    },
+)
+class Classmap2Parent:
+    pass
+
+
+class Classmap2ChildA(Classmap2Parent):
+    pass
+
+
+class Classmap2ChildB(Classmap2Parent):
+    pass
+
 
 class MyTestClass:
     pass

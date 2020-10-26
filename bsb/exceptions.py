@@ -16,7 +16,7 @@ _t(
                 "attr",
                 DistributionCastError=_e(),
                 UnresolvedClassCastError=_e(),
-                UnfitClassCastError=_e(),
+                UnfitClassCastError=_e("node", "attr"),
             ),
             CastConfigurationError=_e(),
             RequirementError=_e("node", "attr"),
