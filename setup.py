@@ -51,8 +51,7 @@ setuptools.setup(
             "neuron = bsb.simulators.neuron",
         ],
         "bsb.commands": [
-            "compile = bsb.cli.commands._commands:compile",
-            "simulate = bsb.cli.commands._commands:simulate",
+            "base = bsb.cli.commands._commands",
         ],
         "bsb.config.parsers": ["json = bsb.config.parsers.json"],
         "bsb.engines": ["hdf5 = bsb.storage.engines.hdf5"],
@@ -65,7 +64,12 @@ setuptools.setup(
         "Source Code": "https://github.com/dbbs-lab/bsb/",
     },
     extras_require={
-        "dev": ["sphinx", "sphinx_rtd_theme>=0.4.3", "pre-commit", "black==20.8b1"],
+        "dev": [
+            "sphinx==3.2.1",
+            "sphinx_rtd_theme>=0.4.3",
+            "pre-commit",
+            "black==20.8b1",
+        ],
         "NEURON": ["dbbs_models>=1.2.0", "nrn-patch>=2.2.0"],
         "MPI": ["mpi4py"],
     },
