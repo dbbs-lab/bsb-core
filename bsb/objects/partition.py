@@ -31,7 +31,11 @@ class Layer(Partition, classmap_entry="layer"):
     thickness = config.attr(type=float, required=_size_requirements)
     xz_scale = config.attr(
         type=types.or_(
-            types.list(float, size=2), types.scalar_expand(float, lambda x: [x, x],),
+            types.list(float, size=2),
+            types.scalar_expand(
+                float,
+                lambda x: [x, x],
+            ),
         ),
         default=lambda: [1.0, 1.0],
         call_default=True,

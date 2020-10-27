@@ -54,7 +54,7 @@ class ConfigStore(Interface):
 
 class TreeCollectionHandler(Interface):
     """
-        Interface that allows a Engine to handle storage of TreeCollections.
+    Interface that allows a Engine to handle storage of TreeCollections.
     """
 
     @abc.abstractmethod
@@ -86,32 +86,32 @@ class PlacementSet(Interface):
     @abc.abstractproperty
     def identifiers(self):
         """
-            Return a list of cell identifiers.
+        Return a list of cell identifiers.
         """
         pass
 
     @abc.abstractproperty
     def positions(self):
         """
-            Return a dataset of cell positions.
+        Return a dataset of cell positions.
         """
         pass
 
     @abc.abstractproperty
     def rotations(self):
         """
-            Return a dataset of cell rotations.
+        Return a dataset of cell rotations.
 
-            :raises: DatasetNotFoundError when there is no rotation information for this
-               cell type.
+        :raises: DatasetNotFoundError when there is no rotation information for this
+           cell type.
         """
         pass
 
     @abc.abstractproperty
     def cells(self):
         """
-            Reorganize the available datasets into a collection of :class:`Cells
-            <.models.Cell>`
+        Reorganize the available datasets into a collection of :class:`Cells
+        <.models.Cell>`
         """
         pass
 
@@ -161,8 +161,8 @@ class Label(Interface):
 
 class _FilterMeta(abc.ABCMeta, type):
     """
-        Metaclass for the Filter interface: Uses the abstract `get_filter_types` method to
-        set the `_filters` class attribute.
+    Metaclass for the Filter interface: Uses the abstract `get_filter_types` method to
+    set the `_filters` class attribute.
     """
 
     def __new__(cls, name, bases, dct):
@@ -176,14 +176,14 @@ class _FilterMeta(abc.ABCMeta, type):
 
 class Filter(Interface, metaclass=_FilterMeta):
     """
-        Filters are object that store multiple key value pairs, the keys being filter types and the
-        values the filter to apply to that filter type. Filters can be activated and deactivated.
+    Filters are object that store multiple key value pairs, the keys being filter types and the
+    values the filter to apply to that filter type. Filters can be activated and deactivated.
 
-        Other pieces of code can then query the Filter class
-        (``Filter.get_filters(type)``) to get all active filters of a type and use it to
-        filter their operation.
+    Other pieces of code can then query the Filter class
+    (``Filter.get_filters(type)``) to get all active filters of a type and use it to
+    filter their operation.
 
-        Filter objects can be used as context managers.
+    Filter objects can be used as context managers.
     """
 
     def __init__(self, handler, filters):
@@ -200,22 +200,22 @@ class Filter(Interface, metaclass=_FilterMeta):
     @abc.abstractmethod
     def get_filter_types(cls):
         """
-            This method should be overridden with a class method to return all the
-            available filter types on the engine as a list of strings.
+        This method should be overridden with a class method to return all the
+        available filter types on the engine as a list of strings.
         """
         pass
 
     @classmethod
     def create(cls, handler, **kwargs):
         """
-            Create a multifilter object.
+        Create a multifilter object.
         """
         f = cls(handler, kwargs)
         return f
 
     def activate(self):
         """
-            Activate a multifilter object
+        Activate a multifilter object
         """
         filters = self.__class__._filters[self._handler]
         for f in self.filters:
@@ -231,7 +231,7 @@ class Filter(Interface, metaclass=_FilterMeta):
 
     def deactivate(self):
         """
-            Deactivate a multifilter object.
+        Deactivate a multifilter object.
         """
         for f in self.filters:
             try:
@@ -248,7 +248,7 @@ class Filter(Interface, metaclass=_FilterMeta):
     @classmethod
     def get_filters(cls, filter_type):
         """
-            Return all active filters of the given type.
+        Return all active filters of the given type.
         """
         if filter_type not in cls._filters[self._handler]:
             raise NotImplemented(

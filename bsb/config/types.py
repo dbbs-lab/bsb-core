@@ -1,9 +1,94 @@
 from ..exceptions import *
-from ._attrs import _wrap_handler_pk
+from ._hooks import overrides
 from ._make import _load_class
-import math, sys, numpy as np
+import math, sys, numpy as np, abc, functools, weakref
+from inspect import signature as _inspect_signature
 
 _any = any
+_reserved_keywords = ["_parent", "_key"]
+
+
+class TypeHandler(abc.ABC):
+    """
+    Base class for any type handler that cannot be described as a single function.
+
+    Declare the `__call__(self, value)` method to convert the given value to the
+    desired type, raising a `TypeError` if it failed in an expected manner.
+
+    Declare the `__name__(self)` method to return a name for the type handler to
+    display in messages to the user such as errors.
+
+    Declare the optional `__inv__` method to invert the given value back to its
+    original value, the type of the original value will usually be lost but the type
+    of the returned value can still serve as a suggestion.
+    """
+
+    @abc.abstractmethod
+    def __call__(self, value):  # pragma: nocover
+        pass
+
+    @property
+    @abc.abstractmethod
+    def __name__(self):  # pragma: nocover
+        return "unknown type handler"
+
+    def __inv__(self, value):  # pragma: nocover
+        return value
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        call = cls.__call__
+        passes = _reserved_kw_passes(call)
+        if not all(passes.values()):
+            cls.__call__ = _wrap_reserved(call)
+
+
+def _reserved_kw_passes(f):
+    # Inspect the signature and wrap the typecast in a wrapper that will accept and
+    # strip the missing 'key' kwarg
+    try:
+        sig = _inspect_signature(f)
+        params = sig.parameters
+    except:
+        params = []
+
+    return {key: key in params for key in _reserved_keywords}
+
+
+def _wrap_reserved(t):
+    """
+    Wrap a type handler in a wrapper that accepts all reserved keyword arguments that
+    the config system will push into the type handler call, and pass only those that
+    the original type handler accepts. This way type handlers can accept any
+    combination of the reserved keyword args without raising TypeErrors when they do
+    not accept one.
+    """
+    # Type handlers never need to be wrapped. The `__init_subclass__` of the TypeHandler
+    # class handles wrapping of `__call__` implementations so that they accept and strip
+    # _parent & _key.
+    if isinstance(t, TypeHandler):
+        return t
+
+    # Check which reserved keywords the function already takes
+    passes = _reserved_kw_passes(t)
+    if all(passes.values()):
+        return t
+
+    # Create the keyword arguments of the outer function that accepts all reserved kwargs
+    reserved_keys = "".join(f", {key}=None" for key in _reserved_keywords)
+    header = f"def type_handler(value, *args{reserved_keys}, **kwargs):\n"
+    passes = "".join(f", {key}={key}" for key in _reserved_keywords if passes[key])
+    # Create the call to the inner function that is passed only the kwargs that it accepts
+    wrap = f" return orig(value, *args{passes}, **kwargs)"
+    # Compile the code block and indicate that the function was compiled here.
+    mod = compile(header + wrap, f"{__file__}/<_wrap_reserved:compile>", "exec")
+    # Execute the code block in this local scope and pick the function out of the scope
+    exec(mod, {"orig": t}, bait := locals())
+    type_handler = bait["type_handler"]
+    # Copy over the metadata of the original function
+    type_handler = functools.wraps(t)(type_handler)
+    type_handler.__name__ = t.__name__
+    return type_handler
 
 
 def any():
@@ -48,13 +133,13 @@ def or_(*type_args):
     """
     handler_name = "any of: " + ", ".join(map(lambda x: x.__name__, type_args))
     # Make sure to wrap all type handlers so that they accept the parent and key args.
-    type_args = [_wrap_handler_pk(t) for t in type_args]
+    type_args = [_wrap_reserved(t) for t in type_args]
 
     def type_handler(value, _parent=None, _key=None):
         type_errors = {}
         for t in type_args:
             try:
-                return t(value, _parent=_parent, _key=_key)
+                v = t(value, _parent=_parent, _key=_key)
             except Exception as e:
                 type_error = (
                     str(e.__class__.__module__)
@@ -64,10 +149,15 @@ def or_(*type_args):
                     + str(e)
                 )
                 type_errors[t.__name__] = type_error
+            else:
+
+                return v
         type_errors = "\n".join(
             "- Casting to '{}' raised:\n{}".format(n, e) for n, e in type_errors.items()
         )
-        raise TypeError(
+        # Use a CastError instead of a TypeError so that the message is passed along as is
+        # by upstream error handlers.
+        raise CastError(
             "Couldn't cast {} into {}.\n{}".format(value, handler_name, type_errors)
         )
 
@@ -124,9 +214,14 @@ def int(min=None, max=None):
 
     def type_handler(value):
         try:
-            return _int(value)
+            v = _int(value)
+            if min is not None and min > v or max is not None and max < v:
+                raise Exception()
+            return v
         except:
-            raise TypeError("Could not cast {} to an {}.".format(value, handler_name))
+            raise TypeError(
+                "Could not cast {} to an {}.".format(value, handler_name)
+            ) from None
 
     type_handler.__name__ = handler_name
     return type_handler
@@ -158,7 +253,10 @@ def float(min=None, max=None):
 
     def type_handler(value):
         try:
-            return _int(value)
+            v = _float(value)
+            if min is not None and min > v or max is not None and max < v:
+                raise Exception()
+            return v
         except:
             raise TypeError("Could not cast {} to an {}.".format(value, handler_name))
 
@@ -188,13 +286,18 @@ def number(min=None, max=None):
         handler_name += " <= {}".format(max)
 
     def type_handler(value):
-        if isinstance(value, _int):
-            return value
-        else:
-            try:
-                return _float(value)
-            except:
-                raise TypeError("Could not cast {} to a {}.".format(value, handler_name))
+        try:
+            if isinstance(value, _int):
+                v = _int(value)
+                if min is not None and min > v or max is not None and max < v:
+                    raise Exception()
+            else:
+                v = _float(value)
+                if min is not None and min > v or max is not None and max < v:
+                    raise Exception()
+            return v
+        except:
+            raise TypeError("Could not cast {} to a {}.".format(value, handler_name))
 
     type_handler.__name__ = handler_name
     return type_handler
@@ -318,20 +421,22 @@ def fraction():
     return type_handler
 
 
-def deg_to_radian():
+class deg_to_radian(TypeHandler):
     """
     Type validator. Type casts the value from degrees to radians.
-
-    :returns: Type validator function
-    :rtype: function
     """
 
-    def type_handler(value):
+    def __call__(self, value):
         v = _float(value)
-        return _float(v) * 2 * math.pi / 360
+        return v * 2 * math.pi / 360
 
-    type_handler.__name__ = "degrees"
-    return type_handler
+    @property
+    def __name__(self):  # pragma: nocover
+        return "degrees"
+
+    def __inv__(self, value):
+        v = _float(value)
+        return v * 360 / (2 * math.pi)
 
 
 class _ConstantDistribution:
@@ -375,7 +480,7 @@ def distribution():
     return or_(constant_distr(), Distribution)
 
 
-def evaluation():
+class evaluation(TypeHandler):
     """
     Type validator. Provides a structured way to evaluate a python statement from the
     config. The evaluation context provides ``numpy`` as ``np``.
@@ -384,15 +489,47 @@ def evaluation():
     :rtype: function
     """
 
-    def type_handler(value):
+    def __init__(self):
+        self._references = {}
+
+    def __call__(self, value):
         cfg = _dict(value)
-        statement = cfg.get("statement", "'None'")
+        statement = str(cfg.get("statement", "None"))
         locals = _dict(cfg.get("variables", {}))
         globals = {"np": np}
-        return eval(statement, globals, locals)
+        res = eval(statement, globals, locals)
+        self._references[id(res)] = value
+        return res
 
-    type_handler.__name__ = "evaluation"
-    return type_handler
+    @property
+    def __name__(self):
+        return "evaluation"
+
+    def get_original(self, value):
+        """
+        Return the original configuration node associated with the given evaluated value.
+
+        :param value: A value that was produced by this type handler.
+        :type value: any
+        :raises: NoneReferenceError when `value` is `None`, InvalidReferenceError when
+          there is no config associated to the object id of this value.
+        """
+        # None is a singleton, so it's not bijective, it's also the value returned when
+        # a weak reference is removed; so it's doubly unsafe to check for references to it
+        if value is None:
+            raise NoneReferenceError("Can't create bijection for NoneType value.")
+        vid = id(value)
+        # Create a set of references from our stored weak references that are still alive.
+        if vid not in self._references:
+            raise InvalidReferenceError(f"No evaluation reference found for {vid}", value)
+        return self._references[vid]
+
+    def __inv__(self, value):
+        try:
+            return self.get_original(value)
+        except TypeHandlingError:
+            # Original does not exist or can't be obtained, just return the given value.
+            return value
 
 
 def in_classmap():

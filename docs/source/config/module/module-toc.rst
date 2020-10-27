@@ -9,3 +9,4 @@ Config module
    overview
    nodes
    types
+   hooks

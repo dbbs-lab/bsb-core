@@ -1,3 +1,8 @@
+"""
+JSON parsing module. Built on top of the Python ``json`` module. Adds JSON imports and
+references.
+"""
+
 import json, os
 from ...exceptions import *
 from ...reporting import warn
@@ -39,7 +44,7 @@ def _traverse_wrap(node, iter):
 class parsed_dict(dict, parsed_node):
     def merge(self, other):
         """
-            Recursively merge the values of another dictionary into us
+        Recursively merge the values of another dictionary into us
         """
         for key, value in other.items():
             if key in self and isinstance(self[key], dict) and isinstance(value, dict):
@@ -62,7 +67,7 @@ class parsed_dict(dict, parsed_node):
 
     def rev_merge(self, other):
         """
-            Recursively merge ourself onto another dictionary
+        Recursively merge ourself onto another dictionary
         """
         m = parsed_dict(other)
         _traverse_wrap(m, m.items())
@@ -135,9 +140,18 @@ class JsonMeta:
 
 
 class JsonParser:
+    """
+    Parser plugin class to parse JSON configuration files.
+    """
+
     data_description = "JSON"
 
     def parse(self, content, path=None):
+        # Parses the content. If path is set it's used as the root for the multi-document
+        # features. During parsing the references (refs & imps) are stored. After parsing
+        # the other documents are parsed by the standard json module (so no recursion yet)
+        # After loading all required documents the references are resolved and all values
+        # copied over to their final destination.
         meta = JsonMeta()
         meta.path = path
         if isinstance(content, str):
@@ -155,14 +169,22 @@ class JsonParser:
         return content, meta
 
     def _traverse(self, node, iter):
+        # Iterates over all values in `iter` and checks for import keys, recursion or refs
+        # Also wraps all nodes in their `parsed_*` counterparts.
         for key, value in iter:
             if self._is_import(key):
                 self._store_import(node)
             elif type(value) in recurse_handlers:
+                # The recurse handlers wrap the dicts and lists and return appropriate
+                # iterators for them.
                 value, iter = recurse_handlers[type(value)](value, node)
+                # Set some metadata on the wrapped recursable objects.
                 value._key = key
                 value._parent = node
+                # Overwrite the reference to the original object with a reference to the
+                # wrapped object.
                 node[key] = value
+                # Recurse a level deeper
                 self._traverse(value, iter)
             elif self._is_reference(key):
                 self._store_reference(node, value)
@@ -174,6 +196,7 @@ class JsonParser:
         return key == "$import"
 
     def _store_reference(self, node, ref):
+        # Analyzes the reference and creates a ref object from the given data
         doc = _get_ref_document(ref, self.path)
         ref = _get_absolute_ref(node, ref)
         if doc not in self.documents:
@@ -182,6 +205,7 @@ class JsonParser:
         self.references.append(json_ref(node, doc, ref))
 
     def _store_import(self, node):
+        # Analyzes the import node and creates a ref object from the given data
         imp = node["$import"]
         ref = imp["ref"]
         doc = _get_ref_document(ref)
@@ -192,6 +216,8 @@ class JsonParser:
         self.references.append(json_imp(node, doc, ref, imp["values"]))
 
     def _resolve_documents(self):
+        # Iterates over the list of stored documents parses them and fetches the content
+        # of each reference node.
         for file, refs in self.documents.items():
             if file is None:
                 content = self.root
