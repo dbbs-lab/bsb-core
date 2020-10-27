@@ -4,6 +4,9 @@ _t(
     globals(),
     ScaffoldError=_e(
         SpatialDimensionError=_e(),
+        CLIError=_e(
+            CommandError=_e(),
+        ),
         ConfigurationError=_e(
             ConfigurationFormatError=_e(),
             DynamicClassError=_e(

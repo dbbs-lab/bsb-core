@@ -45,13 +45,17 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     entry_points={
-        "console_scripts": ["bsb = bsb.cli:bsb_cli"],
+        "console_scripts": ["bsb = bsb.cli:handle_cli"],
         "bsb.adapters": [
             "nest = bsb.simulators.nest",
             "neuron = bsb.simulators.neuron",
         ],
-        "bsb.engines": ["hdf5 = bsb.storage.engines.hdf5"],
+        "bsb.commands": [
+            "compile = bsb.cli.commands._commands:compile",
+            "simulate = bsb.cli.commands._commands:simulate",
+        ],
         "bsb.config.parsers": ["json = bsb.config.parsers.json"],
+        "bsb.engines": ["hdf5 = bsb.storage.engines.hdf5"],
     },
     python_requires="~=3.8",
     install_requires=requires,
