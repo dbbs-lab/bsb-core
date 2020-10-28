@@ -1,4 +1,4 @@
-from .contexts import get_cli_context
+from .._contexts import get_cli_context
 from .commands import load_root_command
 import sys
 

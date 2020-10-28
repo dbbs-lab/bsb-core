@@ -9,3 +9,11 @@ class BsbCompile(BaseCommand, name="compile"):
 class BsbSimulate(BaseCommand, name="simulate"):
     def handler(self, namespace):
         pass
+
+
+def compile():
+    return BsbCompile
+
+
+def simulate():
+    return BsbSimulate

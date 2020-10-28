@@ -51,10 +51,12 @@ setuptools.setup(
             "neuron = bsb.simulators.neuron",
         ],
         "bsb.commands": [
-            "base = bsb.cli.commands._commands",
+            "compile = bsb.cli.commands._commands:compile",
+            "simulate = bsb.cli.commands._commands:simulate",
         ],
         "bsb.config.parsers": ["json = bsb.config.parsers.json"],
         "bsb.engines": ["hdf5 = bsb.storage.engines.hdf5"],
+        "bsb.options": ["verbosity = bsb._options:verbosity"],
     },
     python_requires="~=3.8",
     install_requires=requires,
