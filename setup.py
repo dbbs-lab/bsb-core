@@ -56,7 +56,10 @@ setuptools.setup(
         ],
         "bsb.config.parsers": ["json = bsb.config.parsers.json"],
         "bsb.engines": ["hdf5 = bsb.storage.engines.hdf5"],
-        "bsb.options": ["verbosity = bsb._options:verbosity"],
+        "bsb.options": [
+            "config = bsb._options:config",
+            "verbosity = bsb._options:verbosity",
+        ],
     },
     python_requires="~=3.8",
     install_requires=requires,

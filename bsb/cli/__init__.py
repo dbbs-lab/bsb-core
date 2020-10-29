@@ -1,5 +1,6 @@
 from .._contexts import get_cli_context
 from .commands import load_root_command
+from ..exceptions import *
 import sys
 
 
@@ -11,5 +12,9 @@ def handle_cli():
 def handle_command(command, context):
     root_command = load_root_command()
     parser = root_command.get_parser(context)
-    namespace = parser.parse_args(command)
+    try:
+        namespace = parser.parse_args(command)
+    except CommandError as e:
+        print(e)
+        exit(1)
     namespace.handler(namespace)

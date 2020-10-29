@@ -80,6 +80,9 @@ class OptionsModule(types.ModuleType):
 
         return _tag(tag) in _option_values
 
+    def load_options(self):
+        return discover("options")
+
 
 om = OptionsModule(__name__)
 excl = ["sys", "types", "OptionError", "OptionsModule", "discover", "om", "excl"]

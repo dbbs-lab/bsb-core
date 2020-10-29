@@ -64,10 +64,26 @@ class ScriptOptionDescriptor(OptionDescriptor, slug="script"):
 
 
 class BsbOption:
-    def __init_subclass__(cls, cli=(), env=(), script=(), **kwargs):
+    def __init_subclass__(
+        cls,
+        name=None,
+        cli=(),
+        env=(),
+        script=(),
+        description=None,
+        flag=False,
+        list=False,
+        inverted=False,
+        **kwargs,
+    ):
+        cls.name = name
         cls.cli = CLIOptionDescriptor(*cli)
         cls.env = EnvOptionDescriptor(*env)
         cls.script = ScriptOptionDescriptor(*script)
+        cls.description = description
+        cls.is_flag = flag
+        cls.inverted_flag = inverted
+        cls.use_extend = list
 
     def get(self):
         cls = self.__class__
@@ -81,3 +97,19 @@ class BsbOption:
 
     def get_default(self):
         return None
+
+    def get_cli_tags(self):
+        return [("--" if len(t) != 1 else "-") + t for t in self.__class__.cli.tags]
+
+    def add_to_parser(self, parser, level):
+        kwargs = {}
+        kwargs["help"] = self.description
+        kwargs["dest"] = level * "_" + self.name
+        kwargs["action"] = "store"
+        if self.is_flag:
+            kwargs["action"] += "_false" if self.inverted_flag else "_true"
+        if self.use_extend:
+            kwargs["action"] = "extend"
+            kwargs["nargs"] = "+"
+
+        parser.add_argument(*self.get_cli_tags(), **kwargs)
