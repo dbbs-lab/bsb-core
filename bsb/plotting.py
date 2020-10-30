@@ -379,12 +379,16 @@ def plot_morphology(
     for branch in dfs_list[::-1]:
         branch_comps = compartments[branch]
         width = _get_branch_width(branch_comps, segment_radius)
-        traces.append(get_branch_trace(branch_comps, offset, color=color, width=width))
+        _color = _get_branch_color(branch_comps, color)
+        traces.append(get_branch_trace(branch_comps, offset, color=_color, width=width))
+    if isinstance(color, dict) and "soma" not in color:
+        raise Exception("Please specify a color for the `soma`.")
+    soma_color = color["soma"] if isinstance(color, dict) else color
     traces.append(
         get_soma_trace(
             soma_radius if soma_radius is not None else compartments[0].radius,
             offset,
-            color,
+            soma_color,
         )
     )
     for trace in traces:
@@ -418,16 +422,26 @@ def plot_intersections(
     )
 
 
-def _get_branch_width(branch, seg_radius):
-    width = seg_radius
-    try:
-        if isinstance(seg_radius, dict):
-            branch_type = branch[-1].type
-            bt = int(branch_type / 100) if branch_type > 100 else int(branch_type)
-            width = seg_radius[bt]
-    except KeyError:
-        raise Exception("Plotting width not specified for branches of type " + str(bt))
-    return width
+def _get_branch_width(branch, radii):
+    if isinstance(radii, dict):
+        for btype in reversed(branch[-1].labels):
+            if btype in radii:
+                return radii[btype]
+        raise Exception(
+            "Plotting width not specified for branches of type " + str(branch[-1].labels)
+        )
+    return radii
+
+
+def _get_branch_color(branch, colors):
+    if isinstance(colors, dict):
+        for btype in reversed(branch[-1].labels):
+            if btype in colors:
+                return colors[btype]
+        raise Exception(
+            "Plotting color not specified for branches of type " + str(branch[-1].labels)
+        )
+    return colors
 
 
 def plot_block(fig, origin, sizes, color=None, colorscale="Cividis", **kwargs):
