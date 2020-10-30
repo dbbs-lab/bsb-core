@@ -142,7 +142,7 @@ def _input_highlight(f, required=False):
             ]
             fig.update_layout(shapes=shapes)
         elif required:
-            raise ArgumentError("Required keyword argument `input_region` omitted.")
+            raise ArgumentError("Missing required keyword argument `input_region`.")
         return r
 
     return wrapper_function
