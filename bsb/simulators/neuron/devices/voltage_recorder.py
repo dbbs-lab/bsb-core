@@ -1,8 +1,8 @@
-from ..adapter import NeuronDevice
+from ..adapter import NeuronDevice, PatternlessDevice
 import numpy as np
 
 
-class VoltageRecorder(NeuronDevice):
+class VoltageRecorder(PatternlessDevice, NeuronDevice):
     casts = {"x": float}
 
     def implement(self, target, location):
@@ -26,9 +26,3 @@ class VoltageRecorder(NeuronDevice):
             )
         else:
             self.adapter.register_recorder(group, cell, section.record(), section=section)
-
-    def create_patterns(self):
-        pass
-
-    def get_pattern(self, target, cell=None, section=None, synapse=None):
-        pass
