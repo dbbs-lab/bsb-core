@@ -321,28 +321,28 @@
       },
       "connection_models": {
         "glomerulus_to_granule": {
-          "synapse": "AMPA"
+          "synapses": ["AMPA"]
         },
         "mossy_to_glomerulus": {
-          "synapse": null
+          "synapses": []
         },
         "ascending_axon_to_golgi": {
-          "synapse": "AMPA"
+          "synapses": ["AMPA"]
         },
         "parallel_fiber_to_golgi": {
-          "synapse": "AMPA"
+          "synapses": ["AMPA"]
         },
         "golgi_to_granule": {
-          "synapse": "GABA"
+          "synapses": ["GABA"]
         },
         "parallel_fiber_to_purkinje": {
-          "synapse": "AMPA_PF"
+          "synapses": ["AMPA_PF"]
         },
         "parallel_fiber_to_basket": {
-          "synapse": "AMPA"
+          "synapses": ["AMPA"]
         },
         "parallel_fiber_to_stellate": {
-          "synapse": "AMPA"
+          "synapses": ["AMPA"]
         }
       },
       "devices": {
