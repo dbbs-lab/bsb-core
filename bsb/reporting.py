@@ -12,7 +12,7 @@ def wrap_writer(stream, writer):
 
 try:
     sys.stdout = io.TextIOWrapper(open(sys.stdout.fileno(), "wb", 0), write_through=True)
-except io.UnsupportedOperation:
+except io.UnsupportedOperation:  # pragma: nocover
     try:
         writers = ["write", "writelines"]
         for w in writers:
