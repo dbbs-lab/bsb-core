@@ -1,6 +1,28 @@
-import warnings, base64, io, sys
+import warnings, base64, io, sys, functools
 
-sys.stdout = io.TextIOWrapper(open(sys.stdout.fileno(), "wb", 0), write_through=True)
+
+def wrap_writer(stream, writer):
+    @functools.wraps(writer)
+    def wrapped(self, *args, **kwargs):
+        writer(*args, **kwargs)
+        self.flush()
+
+    return wrapped.__get__(stream)
+
+
+try:
+    sys.stdout = io.TextIOWrapper(open(sys.stdout.fileno(), "wb", 0), write_through=True)
+except io.UnsupportedOperation:
+    try:
+        writes = ["write", "writelines"]
+        for w in writes:
+            writer = getattr(sys.stdout, w)
+            wrapped = wrap_writer(sys.stdout, writer)
+            setattr(sys.stdout, w, wrapped)
+    except:
+        warnings.warn(
+            f"Unable to create unbuffered wrapper around `sys.stdout` ({sys.stdout.__class__.__name__})."
+        )
 
 _verbosity = 1
 _report_file = None
