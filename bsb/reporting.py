@@ -14,8 +14,8 @@ try:
     sys.stdout = io.TextIOWrapper(open(sys.stdout.fileno(), "wb", 0), write_through=True)
 except io.UnsupportedOperation:
     try:
-        writes = ["write", "writelines"]
-        for w in writes:
+        writers = ["write", "writelines"]
+        for w in writers:
             writer = getattr(sys.stdout, w)
             wrapped = wrap_writer(sys.stdout, writer)
             setattr(sys.stdout, w, wrapped)
