@@ -64,6 +64,11 @@ class CellTraceCollection:
     def order(self):
         self.cells = dict(sorted(self.cells.items(), key=lambda t: t[1].order or 0))
 
+    def reorder(self, order):
+        for o, key in zip(iter(order), self.cells.keys()):
+            self.cells[key].order = o
+        self.order()
+
 
 def _figure(f):
     """
@@ -684,7 +689,15 @@ def hdf5_gather_voltage_traces(handle, root, groups=None):
     traces = CellTraceCollection()
     for group in groups:
         path = root + group
-        for name, dataset in handle[path].items():
+        # If an element of `groups` point to a single set, rather than a group
+        # catch the exception and construct a single element group from the single set
+        try:
+            iter = handle[path].items()
+        except AttributeError:
+            target = handle[path]
+            iter = ((group, target),)
+            path = root
+        for name, dataset in iter:
             meta = {}
             id = int(name.split(".")[0])
             meta["id"] = id
@@ -698,7 +711,7 @@ def hdf5_gather_voltage_traces(handle, root, groups=None):
 
 @_figure
 @_input_highlight
-def plot_traces(traces, fig=None, show=True, legend=True, mod=None, cutoff=0):
+def plot_traces(traces, fig=None, show=True, legend=True, mod=None, cutoff=0, x=None):
     traces.order()
     subplots_fig = make_subplots(
         cols=1, rows=len(traces), subplot_titles=[trace.title for trace in traces]
@@ -716,10 +729,11 @@ def plot_traces(traces, fig=None, show=True, legend=True, mod=None, cutoff=0):
     for i, cell_traces in enumerate(traces):
         for j, trace in enumerate(cell_traces):
             showlegend = legends[j] not in legend_groups
-            trace.data = trace.data[cutoff:]
+            data = trace.data[cutoff:]
             fig.append_trace(
                 go.Scatter(
-                    y=trace.data,
+                    x=x,
+                    y=data,
                     legendgroup=legends[j],
                     name=legends[j],
                     showlegend=showlegend,
