@@ -374,6 +374,7 @@ def plot_morphology(
     reduce_branches=False,
     soma_radius=None,
     segment_radius=1.0,
+    use_last_soma_comp=True,
 ):
     compartments = np.array(morphology.compartments.copy())
     dfs_list = all_depth_first_branches(morphology.get_compartment_network())
@@ -389,10 +390,13 @@ def plot_morphology(
     if isinstance(color, dict) and "soma" not in color:
         raise Exception("Please specify a color for the `soma`.")
     soma_color = color["soma"] if isinstance(color, dict) else color
+    soma_comps = [c for c in compartments if "soma" in c.labels]
+    # Negative bool = -1/0 (True: -1, last soma comp, False: 0, first soma comp)
+    soma_comp = soma_comps[-use_last_soma_comp]
     traces.append(
         get_soma_trace(
-            soma_radius if soma_radius is not None else compartments[0].radius,
-            offset,
+            soma_radius if soma_radius is not None else soma_comp.radius,
+            offset + soma_comp.end,
             soma_color,
         )
     )
