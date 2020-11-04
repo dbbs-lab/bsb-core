@@ -188,6 +188,11 @@ def plot_network(
 
 
 @_network_figure
+def network_figure(fig=None, **kwargs):
+    return fig
+
+
+@_network_figure
 def plot_detailed_network(
     network, fig=None, cubic=True, swapaxes=True, show=True, legend=True, ids=None
 ):
