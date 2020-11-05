@@ -162,7 +162,12 @@
         "test_representatives": {
           "device": "spike_generator",
           "io": "input",
-          "targetting": "representatives"
+          "targetting": "representatives",
+          "parameters": {
+            "start": 0,
+            "number": 0,
+            "interval": 20
+          }
         }
       }
     }
