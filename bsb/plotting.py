@@ -302,13 +302,16 @@ def plot_voxel_cloud(
 
 
 def get_branch_trace(compartments, offset=[0.0, 0.0, 0.0], color="black", width=1.0):
-    x = [c.start[0] + offset[0] for c in compartments]
-    y = [c.start[1] + offset[1] for c in compartments]
-    z = [c.start[2] + offset[2] for c in compartments]
-    # Add branch endpoint
-    x.append(compartments[-1].end[0] + offset[0])
-    y.append(compartments[-1].end[1] + offset[1])
-    z.append(compartments[-1].end[2] + offset[2])
+    if width == 0:
+        x, y, z = [], [], []
+    else:
+        x = [c.start[0] + offset[0] for c in compartments]
+        y = [c.start[1] + offset[1] for c in compartments]
+        z = [c.start[2] + offset[2] for c in compartments]
+        # Add branch endpoint
+        x.append(compartments[-1].end[0] + offset[0])
+        y.append(compartments[-1].end[1] + offset[1])
+        z.append(compartments[-1].end[2] + offset[2])
     return go.Scatter3d(
         x=x, y=z, z=y, mode="lines", line=dict(width=width, color=color), showlegend=False
     )
