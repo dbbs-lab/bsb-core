@@ -315,7 +315,7 @@ def get_branch_trace(compartments, offset=[0.0, 0.0, 0.0], color="black", width=
 
 
 def get_soma_trace(
-    soma_radius, offset=[0.0, 0.0, 0.0], color="black", opacity=1, steps=5
+    soma_radius, offset=[0.0, 0.0, 0.0], color="black", opacity=1, steps=5, **kwargs
 ):
     phi = np.linspace(0, 2 * np.pi, num=steps * 2)
     theta = np.linspace(-np.pi / 2, np.pi / 2, num=steps)
@@ -332,6 +332,7 @@ def get_soma_trace(
         opacity=opacity,
         color=color,
         alphahull=0,
+        **kwargs,
     )
 
 
@@ -500,7 +501,7 @@ def plotly_block_faces(
         j=[3, 4, 1, 2, 5, 6, 5, 2, 0, 1, 6, 3],
         k=[0, 7, 2, 3, 6, 7, 1, 1, 5, 5, 7, 6],
         opacity=0.3,
-        **color_args
+        **color_args,
     )
 
 
@@ -650,7 +651,7 @@ def hdf5_gdf_plot_spike_raster(spike_recorders, input_region=None, fig=None, sho
             show=False,
             color=colors[l],
             input_region=input_region,
-            **kwargs
+            **kwargs,
         )
     if show:
         fig.show()
