@@ -379,6 +379,7 @@ def plot_morphology(
     color="black",
     reduce_branches=False,
     soma_radius=None,
+    soma_opacity=1.0,
     segment_radius=1.0,
     use_last_soma_comp=True,
 ):
@@ -402,8 +403,9 @@ def plot_morphology(
     traces.append(
         get_soma_trace(
             soma_radius if soma_radius is not None else soma_comp.radius,
-            offset + soma_comp.end,
+            offset + (soma_comp.end if use_last_soma_comp else soma_comp.start),
             soma_color,
+            opacity=soma_opacity,
         )
     )
     for trace in traces:
