@@ -4,7 +4,7 @@ from .networks import all_depth_first_branches, get_branch_points, reduce_branch
 import numpy as np, math, functools
 from .morphologies import Compartment
 from contextlib import contextmanager
-import random
+import random, types
 
 
 class CellTrace:
@@ -714,19 +714,22 @@ def hdf5_gather_voltage_traces(handle, root, groups=None):
 
 @_figure
 @_input_highlight
-def plot_traces(traces, fig=None, show=True, legend=True, mod=None, cutoff=0, x=None):
+def plot_traces(traces, fig=None, show=True, legend=True, cutoff=0, x=None):
     traces.order()
     subplots_fig = make_subplots(
-        cols=1, rows=len(traces), subplot_titles=[trace.title for trace in traces]
+        cols=1,
+        rows=len(traces),
+        subplot_titles=[trace.title for trace in traces],
+        x_title="Time (ms)",
+        y_title="Membrane potential (mV)",
     )
-    subplots_fig.update_layout(height=max(len(traces) * 130, 300))
-
-    if mod is not None:
-        mod(subplots_fig)
-    # Overwrite the layout and grid of the single plot that is handed to us
-    # to turn it into a subplots figure.
-    fig._grid_ref = subplots_fig._grid_ref
-    fig._layout = subplots_fig._layout
+    for k in dir(subplots_fig):
+        v = getattr(subplots_fig, k)
+        if isinstance(v, types.MethodType):
+            # Unbind subplots_fig methods and bind to fig.
+            v = v.__func__.__get__(fig)
+        fig.__dict__[k] = v
+    fig.update_layout(height=max(len(traces) * 130, 300))
     legend_groups = set()
     legends = traces.legends
     for i, cell_traces in enumerate(traces):
