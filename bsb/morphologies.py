@@ -362,17 +362,6 @@ class Morphology:
             return self.compartment_tree.get_arrays()[0]
         return [c.end for c in self.get_compartments(labels=labels)]
 
-    def get_plot_range(self, offset=[0.0, 0.0, 0.0]):
-        compartments = self.compartment_tree.get_arrays()[0]
-        n_dimensions = range(compartments.shape[1])
-        mins = np.array([np.min(compartments[:, i]) + offset[i] for i in n_dimensions])
-        max = np.max(
-            np.array(
-                [np.max(compartments[:, i]) - mins[i] + offset[i] for i in n_dimensions]
-            )
-        )
-        return list(zip(mins.tolist(), (mins + max).tolist()))
-
     def get_compartment_tree(self, labels=None):
         if labels is not None:
             return _compartment_tree(self.get_compartments(labels=labels))

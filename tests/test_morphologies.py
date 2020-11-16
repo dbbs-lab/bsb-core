@@ -353,7 +353,6 @@ class TestLegacy(unittest.TestCase):
         m.get_compartment_network()
         m.get_compartment_positions()
         m.get_compartment_positions(labels=["A"])
-        m.get_plot_range()
         m.get_compartment_tree()
         m.get_compartment_tree(labels=["B"])
         m.get_compartment_submask(["C"])
