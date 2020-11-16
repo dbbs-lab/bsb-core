@@ -145,7 +145,7 @@ def _morpho_figure(f):
             set_range=set_range,
             swapaxes=swapaxes,
             soma_radius=soma_radius,
-            **kwargs
+            **kwargs,
         )
         if set_range:
             rng = get_morphology_range(morphology, offset=offset, soma_radius=soma_radius)
