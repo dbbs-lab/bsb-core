@@ -110,6 +110,52 @@ def _network_figure(f):
     return wrapper_function
 
 
+def _morpho_figure(f):
+    """
+    Decorator for functions that produce a Figure of a morphology. Applies ``@_figure``
+    and can set the offset, range & aspectratio and can swap the Y & Z axis labels.
+
+    Adds the `offset`, `set_range` and `swapaxes` keyword arguments.
+    """
+
+    @functools.wraps(f)
+    @_figure
+    def wrapper_function(
+        morphology,
+        *args,
+        offset=None,
+        set_range=True,
+        fig=None,
+        swapaxes=True,
+        soma_radius=None,
+        **kwargs
+    ):
+        if offset is None:
+            offset = [0.0, 0.0, 0.0]
+        r = f(
+            morphology,
+            *args,
+            fig=fig,
+            offset=offset,
+            set_range=set_range,
+            swapaxes=swapaxes,
+            soma_radius=soma_radius,
+            **kwargs
+        )
+        if set_range:
+            rng = get_morphology_range(morphology, offset=offset, soma_radius=soma_radius)
+            set_scene_range(fig.layout.scene, rng)
+            set_scene_aspect(fig.layout.scene, rng)
+        if swapaxes:
+            axis_labels = dict(xaxis_title="X", yaxis_title="Z", zaxis_title="Y")
+        else:
+            axis_labels = dict(xaxis_title="X", yaxis_title="Y", zaxis_title="Z")
+        fig.update_layout(scene=axis_labels)
+        return r
+
+    return wrapper_function
+
+
 def _input_highlight(f, required=False):
     """
     Decorator for functions that highlight an input region on a Figure.
@@ -355,12 +401,11 @@ def plot_fiber_morphology(
     return fig
 
 
-@_network_figure
+@_morpho_figure
 def plot_morphology(
     morphology,
-    offset=[0.0, 0.0, 0.0],
+    offset=None,
     fig=None,
-    cubic=True,
     swapaxes=True,
     show=True,
     legend=True,
@@ -393,8 +438,6 @@ def plot_morphology(
     )
     for trace in traces:
         fig.add_trace(trace)
-    if set_range:
-        set_scene_range(fig.layout.scene, morphology.get_plot_range(offset=offset))
     return fig
 
 
@@ -507,6 +550,16 @@ def set_scene_range(scene, bounds):
     scene.zaxis.range = bounds[1]
 
 
+def set_scene_aspect(scene, bounds, mode="equal", swapaxes=True):
+    if mode == "equal":
+        ratios = np.array([d[1] - d[0] for d in bounds])
+        ratios = ratios / np.max(ratios)
+        items = zip(["x", "z", "y"] if swapaxes else ["x", "y", "z"], ratios)
+        scene.aspectratio = dict(items)
+    else:
+        scene.aspectmode = mode
+
+
 def set_morphology_scene_range(scene, offset_morphologies):
     """
     Set the range on a scene containing multiple morphologies.
@@ -514,13 +567,22 @@ def set_morphology_scene_range(scene, offset_morphologies):
     :param scene: A scene of the figure. If the figure itself is given, ``figure.layout.scene`` will be used.
     :param offset_morphologies: A list of tuples where the first element is offset and the 2nd is the :class:`Morphology`
     """
-    bounds = np.array(list(map(lambda m: m[1].get_plot_range(m[0]), offset_morphologies)))
+    bounds = np.array([get_morphology_range(m[1], m[0]) for m in offset_morphologies])
     combined_bounds = np.array(
         list(zip(np.min(bounds, axis=0)[:, 0], np.max(bounds, axis=0)[:, 1]))
     )
     span = max(map(lambda b: b[1] - b[0], combined_bounds))
     combined_bounds[:, 1] = combined_bounds[:, 0] + span
     set_scene_range(scene, combined_bounds)
+
+
+def get_morphology_range(morphology, offset=None, soma_radius=None):
+    if offset is None:
+        offset = [0.0, 0.0, 0.0]
+    r = soma_radius or 0.0
+    itr = enumerate(morphology.flatten(vectors=["x", "y", "z"]))
+    r = [[min(min(v), -r) + offset[i], max(max(v), r) + offset[i]] for i, v in itr]
+    return r
 
 
 def hdf5_plot_spike_raster(spike_recorders, input_region=None, show=True):
@@ -846,5 +908,5 @@ class MorphologyScene:
         if len(self._morphologies) == 0:
             raise MorphologyError("Cannot show empty MorphologyScene")
         for o, m, k in self._morphologies:
-            plot_morphology(m, offset=o, show=False, fig=self.fig, **k)
+            plot_morphology(m, offset=o, show=False, set_range=False, fig=self.fig, **k)
         set_morphology_scene_range(self.fig.layout.scene, self._morphologies)
