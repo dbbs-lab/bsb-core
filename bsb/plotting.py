@@ -121,7 +121,14 @@ def _morpho_figure(f):
     @functools.wraps(f)
     @_figure
     def wrapper_function(
-        morphology, *args, offset=None, set_range=True, fig=None, swapaxes=True, **kwargs
+        morphology,
+        *args,
+        offset=None,
+        set_range=True,
+        fig=None,
+        swapaxes=True,
+        soma_radius=None,
+        **kwargs
     ):
         if offset is None:
             offset = [0.0, 0.0, 0.0]
@@ -132,10 +139,11 @@ def _morpho_figure(f):
             offset=offset,
             set_range=set_range,
             swapaxes=swapaxes,
+            soma_radius=soma_radius,
             **kwargs
         )
         if set_range:
-            rng = get_morphology_range(morphology, offset=offset)
+            rng = get_morphology_range(morphology, offset=offset, soma_radius=soma_radius)
             set_scene_range(fig.layout.scene, rng)
             set_scene_aspect(fig.layout.scene, rng)
         if swapaxes:
@@ -568,11 +576,12 @@ def set_morphology_scene_range(scene, offset_morphologies):
     set_scene_range(scene, combined_bounds)
 
 
-def get_morphology_range(morphology, offset=None):
+def get_morphology_range(morphology, offset=None, soma_radius=None):
     if offset is None:
         offset = [0.0, 0.0, 0.0]
+    r = soma_radius or 0.0
     itr = enumerate(morphology.flatten(vectors=["x", "y", "z"]))
-    r = [[min(v) + offset[i], max(v) + offset[i]] for i, v in itr]
+    r = [[min(min(v), -r) + offset[i], max(max(v), r) + offset[i]] for i, v in itr]
     return r
 
 
