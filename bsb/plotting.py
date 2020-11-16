@@ -135,7 +135,7 @@ def _morpho_figure(f):
             **kwargs
         )
         if set_range:
-            rng = get_morphology_range(morphology)
+            rng = get_morphology_range(morphology, offset=offset)
             set_scene_range(fig.layout.scene, rng)
             set_scene_aspect(fig.layout.scene, rng)
         if swapaxes:
@@ -573,7 +573,6 @@ def get_morphology_range(morphology, offset=None):
         offset = [0.0, 0.0, 0.0]
     itr = enumerate(morphology.flatten(vectors=["x", "y", "z"]))
     r = [[min(v) + offset[i], max(v) + offset[i]] for i, v in itr]
-    print(r)
     return r
 
 
