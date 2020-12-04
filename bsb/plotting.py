@@ -847,7 +847,7 @@ class PSTHStack:
         self._included_ids[run] = np.unique(
             np.concatenate((self._included_ids[run], arr[:, 0]))
         )
-        self.cells = sum(map(len, self._included_ids.values()))
+        self.runs = run + 1
 
 
 class PSTHRow:
@@ -923,7 +923,8 @@ def hdf5_plot_psth(
                 raise Exception(
                     f"Couldn't link result group '{name}' to a network cell type."
                 )
-            cell_num = network.get_placed_count(current_cell_type.name)
+            cell_num_single_run = scaffold_instance.get_placed_count(current_cell[0].name)
+            cell_num = cell_num_single_run * (stack.runs)
             if str(name).startswith("##"):
                 # Lazy way to order the stacks; Stack names can start with ## and a number
                 # and it will be sorted by name, but the ## and number are not displayed.
