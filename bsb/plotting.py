@@ -923,7 +923,7 @@ def hdf5_plot_psth(
                 raise Exception(
                     f"Couldn't link result group '{name}' to a network cell type."
                 )
-            cell_num_single_run = scaffold_instance.get_placed_count(current_cell[0].name)
+            cell_num_single_run = network.get_placed_count(current_cell_type.name)
             cell_num = cell_num_single_run * (stack.runs)
             if str(name).startswith("##"):
                 # Lazy way to order the stacks; Stack names can start with ## and a number
