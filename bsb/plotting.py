@@ -605,9 +605,17 @@ def get_morphology_range(morphology, offset=None, soma_radius=None):
     return r
 
 
-def hdf5_plot_spike_raster(spike_recorders, input_region=None, show=True):
+def hdf5_plot_spike_raster(
+    spike_recorders,
+    input_region=None,
+    show=True,
+    cutoff=0,
+    sorted_labels=None,
+    sorted_ids=None,
+):
     """
     Create a spike raster plot from an HDF5 group of spike recorders.
+    sorted_labels can be specified to plot population rasters ordered from bottom to top as in the given list.
     """
     x = {}
     y = {}
@@ -616,12 +624,12 @@ def hdf5_plot_spike_raster(spike_recorders, input_region=None, show=True):
     for cell_id, dataset in spike_recorders.items():
         attrs = dict(dataset.attrs)
         if len(dataset.shape) == 1 or dataset.shape[1] == 1:
-            times = dataset[()]
+            times = dataset[()] - cutoff
             set_ids = np.ones(len(times)) * int(
                 attrs.get("cell_id", attrs.get("cell", cell_id))
             )
         else:
-            times = dataset[:, 1]
+            times = dataset[:, 1] - cutoff
             set_ids = dataset[:, 0]
         label = attrs.get("label", "unlabelled")
         if not label in x:
@@ -643,11 +651,37 @@ def hdf5_plot_spike_raster(spike_recorders, input_region=None, show=True):
             xaxis=dict(title_text="Time (ms)"), yaxis=dict(title_text="Cell (ID)")
         )
     )
-    sort_by_size = lambda d: {k: v for k, v in sorted(d.items(), key=lambda i: len(i[1]))}
+    if sorted_labels is None:
+        sort_by_size = lambda d: {
+            k: v for k, v in sorted(d.items(), key=lambda i: len(i[1]))
+        }
+        sorted_labels = sort_by_size(x).keys()
     start_id = 0
-    for label, x, y in [(label, x[label], y[label]) for label in sort_by_size(x).keys()]:
-        y = [yi + start_id for yi in y]
-        start_id += ids[label]
+
+    # return x, y
+    for label, x, y in [(label, x[label], y[label]) for label in sorted_labels]:
+
+        if sorted_labels is None:
+            y = [yi + start_id for yi in y]
+            start_id += ids[label]
+        else:
+            if len(y) > 0:
+                # # Mapping with linear function
+                # y = list(np.array(y) - np.min(y) + start_id)
+                # y = np.min(y) + np.round((len(set(y))/(np.max(y)-np.min(y)))*(np.array(y)-np.min(y)))
+
+                if sorted_ids is None or (label not in sorted_ids.keys()):
+                    # Mapping with zip
+                    a = dict(zip(list(set(y)), range(start_id, start_id + len(set(y)))))
+                else:
+                    a = dict(
+                        zip(
+                            sorted_ids[label],
+                            range(start_id, start_id + len(sorted_ids[label])),
+                        )
+                    )
+                y = [a[l] for l in y]
+                start_id += len(set(y)) + ids[label]
         plot_spike_raster(
             x,
             y,
@@ -657,6 +691,9 @@ def hdf5_plot_spike_raster(spike_recorders, input_region=None, show=True):
             color=colors[label],
             input_region=input_region,
         )
+    if len(x) > 0:
+        # Only positive time instants are plotted
+        fig.update_layout(xaxis=dict(range=[0, np.max(x)]))
     if show:
         fig.show()
     return fig
@@ -921,6 +958,7 @@ def hdf5_plot_psth(handle, duration=3, cutoff=0, start=0, fig=None, mod=None, **
                 marker=dict(color=stack.color),
             )
             fig.add_trace(trace, row=i + 1, col=1)
+            print(stack.cells, stack.color, name or row.name)
     return fig
 
 
