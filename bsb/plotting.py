@@ -133,7 +133,7 @@ def _morpho_figure(f):
         fig=None,
         swapaxes=True,
         soma_radius=None,
-        **kwargs
+        **kwargs,
     ):
         if offset is None:
             offset = [0.0, 0.0, 0.0]
@@ -872,7 +872,7 @@ class PSTHRow:
 
 @_figure
 def hdf5_plot_psth(
-    handle, scaffold_instance, duration=3, cutoff=0, start=0, fig=None, mod=None, **kwargs
+    network, handle, duration=3, cutoff=0, start=0, fig=None, mod=None, **kwargs
 ):
     psth = PSTH()
     row_map = {}
@@ -909,18 +909,21 @@ def hdf5_plot_psth(
     # should happen before this point.
     fig._grid_ref = subplots_fig._grid_ref
     fig._layout = subplots_fig._layout
-    cell_types = scaffold_instance.get_cell_types()
+    cell_types = network.get_cell_types()
     for i, row in enumerate(psth.ordered_rows()):
         for name, stack in sorted(row.stacks.items(), key=lambda x: x[0]):
             counts, bins = np.histogram(stack.list, bins=np.arange(start, _max, duration))
             # Workaround of Workarounds for merging info in scaffold and in results
-            current_cell = list(
-                filter(
-                    lambda cell_type: cell_type.plotting.color.lower() == stack.color,
-                    list(cell_types),
+            # Compares plotting colors to identify cell type ...
+            for cell_type in cell_types:
+                if cell_type.plotting.color.lower() == stack.color:
+                    current_cell_type = cell_type
+                    break
+            else:
+                raise Exception(
+                    f"Couldn't link result group '{name}' to a network cell type."
                 )
-            )
-            cell_num = scaffold_instance.get_placed_count(current_cell[0].name)
+            cell_num = network.get_placed_count(current_cell_type.name)
             if str(name).startswith("##"):
                 # Lazy way to order the stacks; Stack names can start with ## and a number
                 # and it will be sorted by name, but the ## and number are not displayed.
