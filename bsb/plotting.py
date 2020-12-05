@@ -921,7 +921,7 @@ def hdf5_plot_psth(
                     break
             else:
                 raise Exception(
-                    f"Couldn't link result group '{name}' to a network cell type."
+                    f"Couldn't link result group '{name or row.name}' to a network cell type."
                 )
             cell_num_single_run = network.get_placed_count(current_cell_type.name)
             cell_num = cell_num_single_run * (stack.runs)
