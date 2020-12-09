@@ -936,8 +936,8 @@ def hdf5_plot_psth(
                 marker=dict(color=stack.color),
             )
             fig.add_trace(trace, row=i + 1, col=1)
-            # ranges = [[0, 15], [0, 15], [0, 65], [0, 75], [0, 75], [0, 75]]            # Poiss
-            ranges = [[0, 25], [0, 25], [0, 125], [0, 130], [0, 120], [0, 120]]  # 4Sync
+            ranges = [[0, 15], [0, 15], [0, 65], [0, 75], [0, 75], [0, 75]]
+            print(i, ranges[i])
             subplots_fig.update_yaxes(range=ranges[i], row=i + 1, col=1)
 
     return fig
