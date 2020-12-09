@@ -4,7 +4,7 @@ from .networks import all_depth_first_branches, get_branch_points, reduce_branch
 import numpy as np, math, functools
 from .morphologies import Compartment
 from contextlib import contextmanager
-import random
+import random, types
 
 
 class CellTrace:
@@ -64,6 +64,11 @@ class CellTraceCollection:
     def order(self):
         self.cells = dict(sorted(self.cells.items(), key=lambda t: t[1].order or 0))
 
+    def reorder(self, order):
+        for o, key in zip(iter(order), self.cells.keys()):
+            self.cells[key].order = o
+        self.order()
+
 
 def _figure(f):
     """
@@ -100,6 +105,52 @@ def _network_figure(f):
         r = f(*args, fig=fig, cubic=cubic, swapaxes=swapaxes, **kwargs)
         if cubic:
             fig.update_layout(scene_aspectmode="cube")
+        if swapaxes:
+            axis_labels = dict(xaxis_title="X", yaxis_title="Z", zaxis_title="Y")
+        else:
+            axis_labels = dict(xaxis_title="X", yaxis_title="Y", zaxis_title="Z")
+        fig.update_layout(scene=axis_labels)
+        return r
+
+    return wrapper_function
+
+
+def _morpho_figure(f):
+    """
+    Decorator for functions that produce a Figure of a morphology. Applies ``@_figure``
+    and can set the offset, range & aspectratio and can swap the Y & Z axis labels.
+
+    Adds the `offset`, `set_range` and `swapaxes` keyword arguments.
+    """
+
+    @functools.wraps(f)
+    @_figure
+    def wrapper_function(
+        morphology,
+        *args,
+        offset=None,
+        set_range=True,
+        fig=None,
+        swapaxes=True,
+        soma_radius=None,
+        **kwargs
+    ):
+        if offset is None:
+            offset = [0.0, 0.0, 0.0]
+        r = f(
+            morphology,
+            *args,
+            fig=fig,
+            offset=offset,
+            set_range=set_range,
+            swapaxes=swapaxes,
+            soma_radius=soma_radius,
+            **kwargs,
+        )
+        if set_range:
+            rng = get_morphology_range(morphology, offset=offset, soma_radius=soma_radius)
+            set_scene_range(fig.layout.scene, rng)
+            set_scene_aspect(fig.layout.scene, rng)
         if swapaxes:
             axis_labels = dict(xaxis_title="X", yaxis_title="Z", zaxis_title="Y")
         else:
@@ -184,6 +235,11 @@ def plot_network(
             # Load from HDF5
             network.get_cells_by_type(type.name)
         _plot_network(network, fig, swapaxes)
+    return fig
+
+
+@_network_figure
+def network_figure(fig=None, **kwargs):
     return fig
 
 
@@ -292,20 +348,23 @@ def plot_voxel_cloud(
 
 
 def get_branch_trace(compartments, offset=[0.0, 0.0, 0.0], color="black", width=1.0):
-    x = [c.start[0] + offset[0] for c in compartments]
-    y = [c.start[1] + offset[1] for c in compartments]
-    z = [c.start[2] + offset[2] for c in compartments]
-    # Add branch endpoint
-    x.append(compartments[-1].end[0] + offset[0])
-    y.append(compartments[-1].end[1] + offset[1])
-    z.append(compartments[-1].end[2] + offset[2])
+    if width == 0:
+        x, y, z = [], [], []
+    else:
+        x = [c.start[0] + offset[0] for c in compartments]
+        y = [c.start[1] + offset[1] for c in compartments]
+        z = [c.start[2] + offset[2] for c in compartments]
+        # Add branch endpoint
+        x.append(compartments[-1].end[0] + offset[0])
+        y.append(compartments[-1].end[1] + offset[1])
+        z.append(compartments[-1].end[2] + offset[2])
     return go.Scatter3d(
         x=x, y=z, z=y, mode="lines", line=dict(width=width, color=color), showlegend=False
     )
 
 
 def get_soma_trace(
-    soma_radius, offset=[0.0, 0.0, 0.0], color="black", opacity=1, steps=5
+    soma_radius, offset=[0.0, 0.0, 0.0], color="black", opacity=1, steps=5, **kwargs
 ):
     phi = np.linspace(0, 2 * np.pi, num=steps * 2)
     theta = np.linspace(-np.pi / 2, np.pi / 2, num=steps)
@@ -322,6 +381,7 @@ def get_soma_trace(
         opacity=opacity,
         color=color,
         alphahull=0,
+        **kwargs,
     )
 
 
@@ -355,12 +415,11 @@ def plot_fiber_morphology(
     return fig
 
 
-@_network_figure
+@_morpho_figure
 def plot_morphology(
     morphology,
-    offset=[0.0, 0.0, 0.0],
+    offset=None,
     fig=None,
-    cubic=True,
     swapaxes=True,
     show=True,
     legend=True,
@@ -368,7 +427,9 @@ def plot_morphology(
     color="black",
     reduce_branches=False,
     soma_radius=None,
+    soma_opacity=1.0,
     segment_radius=1.0,
+    use_last_soma_comp=True,
 ):
     compartments = np.array(morphology.compartments.copy())
     dfs_list = all_depth_first_branches(morphology.get_compartment_network())
@@ -384,17 +445,19 @@ def plot_morphology(
     if isinstance(color, dict) and "soma" not in color:
         raise Exception("Please specify a color for the `soma`.")
     soma_color = color["soma"] if isinstance(color, dict) else color
+    soma_comps = [c for c in compartments if "soma" in c.labels]
+    # Negative bool = -1/0 (True: -1, last soma comp, False: 0, first soma comp)
+    soma_comp = soma_comps[-use_last_soma_comp]
     traces.append(
         get_soma_trace(
-            soma_radius if soma_radius is not None else compartments[0].radius,
-            offset,
+            soma_radius if soma_radius is not None else soma_comp.radius,
+            offset + (soma_comp.end if use_last_soma_comp else soma_comp.start),
             soma_color,
+            opacity=soma_opacity,
         )
     )
     for trace in traces:
         fig.add_trace(trace)
-    if set_range:
-        set_scene_range(fig.layout.scene, morphology.get_plot_range(offset=offset))
     return fig
 
 
@@ -486,7 +549,7 @@ def plotly_block_faces(
         j=[3, 4, 1, 2, 5, 6, 5, 2, 0, 1, 6, 3],
         k=[0, 7, 2, 3, 6, 7, 1, 1, 5, 5, 7, 6],
         opacity=0.3,
-        **color_args
+        **color_args,
     )
 
 
@@ -507,6 +570,16 @@ def set_scene_range(scene, bounds):
     scene.zaxis.range = bounds[1]
 
 
+def set_scene_aspect(scene, bounds, mode="equal", swapaxes=True):
+    if mode == "equal":
+        ratios = np.array([d[1] - d[0] for d in bounds])
+        ratios = ratios / np.max(ratios)
+        items = zip(["x", "z", "y"] if swapaxes else ["x", "y", "z"], ratios)
+        scene.aspectratio = dict(items)
+    else:
+        scene.aspectmode = mode
+
+
 def set_morphology_scene_range(scene, offset_morphologies):
     """
     Set the range on a scene containing multiple morphologies.
@@ -514,13 +587,22 @@ def set_morphology_scene_range(scene, offset_morphologies):
     :param scene: A scene of the figure. If the figure itself is given, ``figure.layout.scene`` will be used.
     :param offset_morphologies: A list of tuples where the first element is offset and the 2nd is the :class:`Morphology`
     """
-    bounds = np.array(list(map(lambda m: m[1].get_plot_range(m[0]), offset_morphologies)))
+    bounds = np.array([get_morphology_range(m[1], m[0]) for m in offset_morphologies])
     combined_bounds = np.array(
         list(zip(np.min(bounds, axis=0)[:, 0], np.max(bounds, axis=0)[:, 1]))
     )
     span = max(map(lambda b: b[1] - b[0], combined_bounds))
     combined_bounds[:, 1] = combined_bounds[:, 0] + span
     set_scene_range(scene, combined_bounds)
+
+
+def get_morphology_range(morphology, offset=None, soma_radius=None):
+    if offset is None:
+        offset = [0.0, 0.0, 0.0]
+    r = soma_radius or 0.0
+    itr = enumerate(morphology.flatten(vectors=["x", "y", "z"]))
+    r = [[min(min(v), -r) + offset[i], max(max(v), r) + offset[i]] for i, v in itr]
+    return r
 
 
 def hdf5_plot_spike_raster(spike_recorders, input_region=None, show=True):
@@ -636,7 +718,7 @@ def hdf5_gdf_plot_spike_raster(spike_recorders, input_region=None, fig=None, sho
             show=False,
             color=colors[l],
             input_region=input_region,
-            **kwargs
+            **kwargs,
         )
     if show:
         fig.show()
@@ -675,7 +757,15 @@ def hdf5_gather_voltage_traces(handle, root, groups=None):
     traces = CellTraceCollection()
     for group in groups:
         path = root + group
-        for name, dataset in handle[path].items():
+        # If an element of `groups` point to a single set, rather than a group
+        # catch the exception and construct a single element group from the single set
+        try:
+            iter = handle[path].items()
+        except AttributeError:
+            target = handle[path]
+            iter = ((group, target),)
+            path = root
+        for name, dataset in iter:
             meta = {}
             id = int(name.split(".")[0])
             meta["id"] = id
@@ -689,28 +779,32 @@ def hdf5_gather_voltage_traces(handle, root, groups=None):
 
 @_figure
 @_input_highlight
-def plot_traces(traces, fig=None, show=True, legend=True, mod=None, cutoff=0):
+def plot_traces(traces, fig=None, show=True, legend=True, cutoff=0, x=None):
     traces.order()
     subplots_fig = make_subplots(
-        cols=1, rows=len(traces), subplot_titles=[trace.title for trace in traces]
+        cols=1,
+        rows=len(traces),
+        subplot_titles=[trace.title for trace in traces],
+        x_title="Time (ms)",
+        y_title="Membrane potential (mV)",
     )
-    subplots_fig.update_layout(height=max(len(traces) * 130, 300))
-
-    if mod is not None:
-        mod(subplots_fig)
-    # Overwrite the layout and grid of the single plot that is handed to us
-    # to turn it into a subplots figure.
-    fig._grid_ref = subplots_fig._grid_ref
-    fig._layout = subplots_fig._layout
+    for k in dir(subplots_fig):
+        v = getattr(subplots_fig, k)
+        if isinstance(v, types.MethodType):
+            # Unbind subplots_fig methods and bind to fig.
+            v = v.__func__.__get__(fig)
+        fig.__dict__[k] = v
+    fig.update_layout(height=max(len(traces) * 130, 300))
     legend_groups = set()
     legends = traces.legends
     for i, cell_traces in enumerate(traces):
         for j, trace in enumerate(cell_traces):
             showlegend = legends[j] not in legend_groups
-            trace.data = trace.data[cutoff:]
-            fig.append_trace(
+            data = trace.data[cutoff:]
+            fig.add_trace(
                 go.Scatter(
-                    y=trace.data,
+                    x=x,
+                    y=data,
                     legendgroup=legends[j],
                     name=legends[j],
                     showlegend=showlegend,
@@ -846,5 +940,5 @@ class MorphologyScene:
         if len(self._morphologies) == 0:
             raise MorphologyError("Cannot show empty MorphologyScene")
         for o, m, k in self._morphologies:
-            plot_morphology(m, offset=o, show=False, fig=self.fig, **k)
+            plot_morphology(m, offset=o, show=False, set_range=False, fig=self.fig, **k)
         set_morphology_scene_range(self.fig.layout.scene, self._morphologies)
