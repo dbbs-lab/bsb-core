@@ -45,6 +45,19 @@
     }
   },
   "cell_types": {
+    "mossy_fibers": {
+      "entity": true,
+      "relay": true,
+      "placement": {
+        "class": "bsb.placement.Entities",
+        "layer": "granular_layer",
+        "placement_relative_to": "glomerulus",
+        "placement_count_ratio": 0.05
+      },
+      "plotting": {
+        "color": "black"
+      }
+    },
     "granule_cell": {
       "placement": {
         "class": "bsb.placement.LayeredRandomWalk",
@@ -172,6 +185,11 @@
     }
   },
   "connection_types": {
+    "mossy_to_glomerulus": {
+      "class": "bsb.connectivity.ConnectomeMossyGlomerulus",
+      "from_cell_types": [{"type": "mossy_fibers", "compartments": ["soma"]}],
+      "to_cell_types": [{"type": "glomerulus", "compartments": ["soma"]}]
+    },
     "glomerulus_to_granule": {
       "class": "bsb.connectivity.ConnectomeGlomerulusGranule",
       "from_cell_types": [{"type": "glomerulus", "compartments": ["soma"]}],
@@ -185,13 +203,6 @@
       "to_cell_types": [{"type": "glomerulus", "compartment": "soma"}],
       "divergence": 40,
       "convergence": 4
-    },
-    "glomerulus_to_dcn": {
-      "class": "bsb.connectivity.ConnectomeGlomDCN",
-      "from_cell_types": [{"type": "glomerulus", "compartments": ["soma"]}],
-      "to_cell_types": [{"type": "dcn_cell", "compartments": ["dendrites"]}],
-      "divergence": 147,
-      "convergence": 2
     },
     "granule_to_golgi": {
       "class": "bsb.connectivity.ConnectomeGranuleGolgi",
@@ -438,58 +449,6 @@
             "k2": 0.047,
             "A1": 13.857,
             "A2":3.477}
-        },
-        "dcn_interneuron": {
-          "parameters": {
-            "t_ref": 3.02,
-            "C_m": 55.0,
-            "V_th": -39.0,
-            "V_reset": -69.0,
-            "E_L": -40.0
-          },
-          "iaf_cond_alpha": {
-            "I_e": 55.75,
-            "tau_syn_ex": 7.1,
-            "tau_syn_in": 13.6,
-            "g_L": 1.56
-          },
-          "eglif_cond_alpha_multisyn": {
-            "Vinit": -40.0,
-            "lambda":0.9,
-            "deltaV":1.0,
-            "tau_m": 56.0,
-            "I_e": 2.384,
-            "k_adap": 0.079,
-            "k1": 0.041,
-            "k2": 0.044,
-            "A1": 176.358,
-            "A2":176.358}
-        },
-        "io_cell": {
-          "parameters": {
-            "t_ref": 3.7,
-            "C_m": 189.0,
-            "V_th": -35.0,
-            "V_reset": -45.0,
-            "E_L": -45.0
-          },
-          "iaf_cond_alpha": {
-            "I_e": 55.75,
-            "tau_syn_ex": 1.0,
-            "tau_syn_in": 60.0,
-            "g_L": 1.56
-          },
-          "eglif_cond_alpha_multisyn": {
-            "Vinit": -45.0,
-            "lambda":1.2,
-            "deltaV":0.8,
-            "tau_m": 11.0,
-            "I_e": -10.101,
-            "k_adap": 1.928,
-            "k1": 0.191,
-            "k2": 0.091,
-            "A1": 1810.923,
-            "A2":1358.197}
         }
       },
       "connection_models": {
@@ -654,85 +613,13 @@
               "Wmax": 100.0
             }
           }
-        },
-        "glomerulus_to_dcn": {
-          "plastic": false,
-          "hetero": false,
-          "teaching": "purkinje_to_dcn",
-          "connection": {
-            "weight":0.0006,
-            "delay": 4.0
-          },
-          "synapse": {
-            "static_synapse": {},
-            "stdp_synapse_cosexp": {
-              "A_minus": 0.5,
-              "A_plus": 0.05,
-              "Wmin": 0.0,
-              "Wmax": 100.0
-            }
-          }
-        },
-        "io_to_purkinje": {
-          "connection": {
-            "weight":-2.0,
-            "delay": 1.0
-          },
-          "synapse": {
-            "static_synapse": {}
-          }
-        },
-        "io_to_basket": {
-          "connection": {
-            "weight":-2.0,
-            "delay": 1.0
-          },
-          "synapse": {
-            "static_synapse": {}
-          }
-        },
-        "io_to_stellate": {
-          "connection": {
-            "weight":-2.0,
-            "delay": 1.0
-          },
-          "synapse": {
-            "static_synapse": {}
-          }
-        },
-        "io_to_dcn": {
-          "connection": {
-            "weight":-2.0,
-            "delay": 1.0
-          },
-          "synapse": {
-            "static_synapse": {}
-          }
-        },
-        "io_to_dcn_interneuron": {
-          "connection": {
-            "weight":-2.0,
-            "delay": 1.0
-          },
-          "synapse": {
-            "static_synapse": {}
-          }
-        },
-        "dcn_interneuron_to_io": {
-          "connection": {
-            "weight":-2.0,
-            "delay": 1.0
-          },
-          "synapse": {
-            "static_synapse": {}
-          }
         }
       },
       "devices": {
         "background_stimulation": {
           "device": "poisson_generator",
           "io": "input",
-          "type": "cell_type",
+          "targetting": "cell_type",
           "cell_types": ["glomerulus"],
           "parameters": {
             "rate": 1.0,
@@ -743,7 +630,7 @@
         "center_stimulation": {
           "device": "spike_generator",
           "io": "input",
-          "type": "local",
+          "targetting": "local",
           "radius": 70.0,
           "origin": [200.0, 675.0, 200.0],
           "cell_types": ["glomerulus"],
@@ -761,7 +648,7 @@
         "record_glomerulus_spikes": {
           "device": "spike_detector",
           "io": "output",
-          "type": "cell_type",
+          "targetting": "cell_type",
           "cell_types": ["glomerulus"],
           "parameters": {
             "withgid": true,
@@ -773,7 +660,7 @@
         "record_granule_spikes": {
           "device": "spike_detector",
           "io": "output",
-          "type": "cell_type",
+          "targetting": "cell_type",
           "cell_types": ["granule_cell"],
           "parameters": {
             "withgid": true,
@@ -785,7 +672,7 @@
         "record_golgi_spikes": {
           "device": "spike_detector",
           "io": "output",
-          "type": "cell_type",
+          "targetting": "cell_type",
           "cell_types": ["golgi_cell"],
           "parameters": {
             "withgid": true,
@@ -797,7 +684,7 @@
         "record_purkinje_spikes": {
           "device": "spike_detector",
           "io": "output",
-          "type": "cell_type",
+          "targetting": "cell_type",
           "cell_types": ["purkinje_cell"],
           "parameters": {
             "withgid": true,
@@ -809,7 +696,7 @@
         "record_stellate_spikes": {
           "device": "spike_detector",
           "io": "output",
-          "type": "cell_type",
+          "targetting": "cell_type",
           "cell_types": ["stellate_cell"],
           "parameters": {
             "withgid": true,
@@ -821,7 +708,7 @@
         "record_basket_spikes": {
           "device": "spike_detector",
           "io": "output",
-          "type": "cell_type",
+          "targetting": "cell_type",
           "cell_types": ["basket_cell"],
           "parameters": {
             "withgid": true,
@@ -833,7 +720,7 @@
         "record_dcn_spikes": {
           "device": "spike_detector",
           "io": "output",
-          "type": "cell_type",
+          "targetting": "cell_type",
           "cell_types": ["dcn_cell"],
           "parameters": {
             "withgid": true,
