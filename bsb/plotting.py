@@ -788,12 +788,16 @@ def plot_traces(traces, fig=None, show=True, legend=True, cutoff=0, x=None):
         x_title="Time (ms)",
         y_title="Membrane potential (mV)",
     )
+    # Save the data already in the given figure
+    _data = fig.data
     for k in dir(subplots_fig):
         v = getattr(subplots_fig, k)
         if isinstance(v, types.MethodType):
             # Unbind subplots_fig methods and bind to fig.
             v = v.__func__.__get__(fig)
         fig.__dict__[k] = v
+    # Restore the data
+    fig.data = _data
     fig.update_layout(height=max(len(traces) * 130, 300))
     legend_groups = set()
     legends = traces.legends
@@ -896,19 +900,21 @@ def hdf5_plot_psth(
         x_title=kwargs.get("x_title", "Time (ms)"),
         y_title=kwargs.get("y_title", "Population firing rate (Hz)"),
     )
+    for k in dir(subplots_fig):
+        if k == "data" or k == "_data":
+            # Don't overwrite data already on the fig
+            continue
+        v = getattr(subplots_fig, k)
+        if isinstance(v, types.MethodType):
+            # Unbind subplots_fig methods and bind to fig.
+            v = v.__func__.__get__(fig)
+        fig.__dict__[k] = v
+    # Align xaxis ranges to max of all rows
     _max = -float("inf")
     for i, row in enumerate(psth.rows):
         _max = max(_max, row.max)
-    subplots_fig.update_xaxes(range=[start, _max])
-    subplots_fig.update_layout(title_text=kwargs.get("title", "PSTH"))
-    # Allow the original figure to be updated before messing with it.
-    if mod is not None:
-        mod(subplots_fig)
-    # Overwrite the layout and grid of the single plot that is handed to us
-    # to turn it into a subplots figure. All modifications except for adding traces
-    # should happen before this point.
-    fig._grid_ref = subplots_fig._grid_ref
-    fig._layout = subplots_fig._layout
+    fig.update_xaxes(range=[start, _max])
+    fig.update_layout(title_text=kwargs.get("title", "PSTH"))
     cell_types = network.get_cell_types()
     for i, row in enumerate(psth.ordered_rows()):
         for name, stack in sorted(row.stacks.items(), key=lambda x: x[0]):
