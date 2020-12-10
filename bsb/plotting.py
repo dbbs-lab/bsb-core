@@ -839,19 +839,16 @@ class PSTHStack:
     def __init__(self, name, color):
         self.name = name
         self.color = str(color)
-        self.cells = 0
-        self._included_ids = {0: np.empty(0)}
+        self._runs = set()
         self.list = []
 
     def extend(self, arr, run=0):
         self.list.extend(arr[:, 1])
-        if run not in self._included_ids:
-            self._included_ids[run] = np.empty(0)
-        # Count all of the cells across the runs, but count unique cells per run
-        self._included_ids[run] = np.unique(
-            np.concatenate((self._included_ids[run], arr[:, 0]))
-        )
-        self.runs = run + 1
+        self._runs.add(run)
+
+    @property
+    def runs(self):
+        return len(self._runs)
 
 
 class PSTHRow:
@@ -875,9 +872,7 @@ class PSTHRow:
 
 
 @_figure
-def hdf5_plot_psth(
-    network, handle, duration=3, cutoff=0, start=0, fig=None, mod=None, **kwargs
-):
+def hdf5_plot_psth(network, handle, duration=3, cutoff=0, start=0, fig=None, **kwargs):
     psth = PSTH()
     row_map = {}
     for g in handle.values():
