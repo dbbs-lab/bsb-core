@@ -32,7 +32,6 @@ class ConnectomeGranuleGolgi(ConnectionStrategy):
         n_connAA = self.aa_convergence
         n_conn_pf = self.pf_convergence
         tot_conn = n_connAA + n_conn_pf
-        pf_heights = self.scaffold.appends["cells/ascending_axon_lengths"]
 
         def connectome_grc_goc(
             first_granule,

@@ -133,7 +133,7 @@ def _morpho_figure(f):
         fig=None,
         swapaxes=True,
         soma_radius=None,
-        **kwargs
+        **kwargs,
     ):
         if offset is None:
             offset = [0.0, 0.0, 0.0]
@@ -822,12 +822,16 @@ def plot_traces(traces, fig=None, show=True, legend=True, cutoff=0, x=None):
         x_title="Time (ms)",
         y_title="Membrane potential (mV)",
     )
+    # Save the data already in the given figure
+    _data = fig.data
     for k in dir(subplots_fig):
         v = getattr(subplots_fig, k)
         if isinstance(v, types.MethodType):
             # Unbind subplots_fig methods and bind to fig.
             v = v.__func__.__get__(fig)
         fig.__dict__[k] = v
+    # Restore the data
+    fig.data = _data
     fig.update_layout(height=max(len(traces) * 130, 300))
     legend_groups = set()
     legends = traces.legends
@@ -869,19 +873,16 @@ class PSTHStack:
     def __init__(self, name, color):
         self.name = name
         self.color = str(color)
-        self.cells = 0
-        self._included_ids = {0: np.empty(0)}
+        self._runs = set()
         self.list = []
 
     def extend(self, arr, run=0):
         self.list.extend(arr[:, 1])
-        if run not in self._included_ids:
-            self._included_ids[run] = np.empty(0)
-        # Count all of the cells across the runs, but count unique cells per run
-        self._included_ids[run] = np.unique(
-            np.concatenate((self._included_ids[run], arr[:, 0]))
-        )
-        self.cells = sum(map(len, self._included_ids.values()))
+        self._runs.add(run)
+
+    @property
+    def runs(self):
+        return len(self._runs)
 
 
 class PSTHRow:
@@ -905,7 +906,7 @@ class PSTHRow:
 
 
 @_figure
-def hdf5_plot_psth(handle, duration=3, cutoff=0, start=0, fig=None, mod=None, **kwargs):
+def hdf5_plot_psth(network, handle, duration=3, cutoff=0, start=0, fig=None, **kwargs):
     psth = PSTH()
     row_map = {}
     for g in handle.values():
@@ -928,33 +929,49 @@ def hdf5_plot_psth(handle, duration=3, cutoff=0, start=0, fig=None, mod=None, **
         x_title=kwargs.get("x_title", "Time (ms)"),
         y_title=kwargs.get("y_title", "Population firing rate (Hz)"),
     )
+    for k in dir(subplots_fig):
+        if k == "data" or k == "_data":
+            # Don't overwrite data already on the fig
+            continue
+        v = getattr(subplots_fig, k)
+        if isinstance(v, types.MethodType):
+            # Unbind subplots_fig methods and bind to fig.
+            v = v.__func__.__get__(fig)
+        fig.__dict__[k] = v
+    # Align xaxis ranges to max of all rows
     _max = -float("inf")
     for i, row in enumerate(psth.rows):
         _max = max(_max, row.max)
-    subplots_fig.update_xaxes(range=[start, _max])
-    subplots_fig.update_layout(title_text=kwargs.get("title", "PSTH"))
-    # Allow the original figure to be updated before messing with it.
-    if mod is not None:
-        mod(subplots_fig)
-    # Overwrite the layout and grid of the single plot that is handed to us
-    # to turn it into a subplots figure. All modifications except for adding traces
-    # should happen before this point.
-    fig._grid_ref = subplots_fig._grid_ref
-    fig._layout = subplots_fig._layout
+    fig.update_xaxes(range=[start, _max])
+    fig.update_layout(title_text=kwargs.get("title", "PSTH"))
+    cell_types = network.get_cell_types()
     for i, row in enumerate(psth.ordered_rows()):
         for name, stack in sorted(row.stacks.items(), key=lambda x: x[0]):
             counts, bins = np.histogram(stack.list, bins=np.arange(start, _max, duration))
+            # Workaround of Workarounds for merging info in scaffold and in results
+            # Compares plotting colors to identify cell type ...
+            for cell_type in cell_types:
+                if cell_type.plotting.color.lower() == stack.color:
+                    current_cell_type = cell_type
+                    break
+            else:
+                raise Exception(
+                    f"Couldn't link result group '{name or row.name}' to a network cell type."
+                )
+            cell_num_single_run = network.get_placed_count(current_cell_type.name)
+            cell_num = cell_num_single_run * (stack.runs)
             if str(name).startswith("##"):
                 # Lazy way to order the stacks; Stack names can start with ## and a number
                 # and it will be sorted by name, but the ## and number are not displayed.
                 name = name[4:]
             trace = go.Bar(
                 x=bins,
-                y=counts / stack.cells * 1000 / duration,
+                y=counts / cell_num * 1000 / duration,
                 name=name or row.name,
                 marker=dict(color=stack.color),
             )
             fig.add_trace(trace, row=i + 1, col=1)
+
     return fig
 
 
