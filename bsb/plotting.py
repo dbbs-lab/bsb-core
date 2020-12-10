@@ -617,8 +617,8 @@ def hdf5_plot_spike_raster(
     Create a spike raster plot from an HDF5 group of spike recorders.
     sorted_labels can be specified to plot population rasters ordered from bottom to top as in the given list.
     """
-    x = {}
-    y = {}
+    x_labelled = {}
+    y_labelled = {}
     colors = {}
     ids = {}
     for cell_id, dataset in spike_recorders.items():
@@ -632,19 +632,19 @@ def hdf5_plot_spike_raster(
             times = dataset[:, 1] - cutoff
             set_ids = dataset[:, 0]
         label = attrs.get("label", "unlabelled")
-        if not label in x:
-            x[label] = []
-        if not label in y:
-            y[label] = []
+        if not label in x_labelled:
+            x_labelled[label] = []
+        if not label in y_labelled:
+            y_labelled[label] = []
         if not label in colors:
             colors[label] = attrs.get("color", "black")
         if not label in ids:
             ids[label] = 0
         ids[label] += 1
         # Add the spike timings on the X axis.
-        x[label].extend(times)
+        x_labelled[label].extend(times)
         # Set the cell id for the Y axis of each added spike timing.
-        y[label].extend(set_ids)
+        y_labelled[label].extend(set_ids)
     # Use the parallel arrays x & y to plot a spike raster
     fig = go.Figure(
         layout=dict(
@@ -655,25 +655,22 @@ def hdf5_plot_spike_raster(
         sort_by_size = lambda d: {
             k: v for k, v in sorted(d.items(), key=lambda i: len(i[1]))
         }
-        sorted_labels = sort_by_size(x).keys()
+        sorted_labels = sort_by_size(x_labelled).keys()
     start_id = 0
 
-    # return x, y
-    for label, x, y in [(label, x[label], y[label]) for label in sorted_labels]:
-
+    for label in sorted_labels:
+        x = x_labelled[label]
+        y = y_labelled[label]
         if sorted_labels is None:
             y = [yi + start_id for yi in y]
             start_id += ids[label]
         else:
             if len(y) > 0:
-                # # Mapping with linear function
-                # y = list(np.array(y) - np.min(y) + start_id)
-                # y = np.min(y) + np.round((len(set(y))/(np.max(y)-np.min(y)))*(np.array(y)-np.min(y)))
-
                 if sorted_ids is None or (label not in sorted_ids.keys()):
-                    # Mapping with zip
+                    # Create a map between the scattered y and ordered y
                     a = dict(zip(list(set(y)), range(start_id, start_id + len(set(y)))))
                 else:
+                    # Create a map between the given sorted_labels and the ordered y
                     a = dict(
                         zip(
                             sorted_ids[label],
@@ -958,7 +955,6 @@ def hdf5_plot_psth(handle, duration=3, cutoff=0, start=0, fig=None, mod=None, **
                 marker=dict(color=stack.color),
             )
             fig.add_trace(trace, row=i + 1, col=1)
-            print(stack.cells, stack.color, name or row.name)
     return fig
 
 
