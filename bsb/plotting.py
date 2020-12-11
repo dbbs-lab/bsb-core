@@ -5,6 +5,7 @@ import numpy as np, math, functools
 from .morphologies import Compartment
 from contextlib import contextmanager
 import random, types
+from .reporting import warn
 
 
 class CellTrace:
@@ -666,9 +667,10 @@ def hdf5_plot_spike_raster(
             start_id += ids[label]
         else:
             if len(y) > 0:
+                sy = set(y)
                 if sorted_ids is None or (label not in sorted_ids.keys()):
                     # Create a map between the scattered y and ordered y
-                    a = dict(zip(list(set(y)), range(start_id, start_id + len(set(y)))))
+                    a = dict(zip(list(set(y)), range(start_id, start_id + len(sy))))
                 else:
                     # Create a map between the given sorted_labels and the ordered y
                     a = dict(
@@ -677,6 +679,11 @@ def hdf5_plot_spike_raster(
                             range(start_id, start_id + len(sorted_ids[label])),
                         )
                     )
+                    len_diff = len(sy) - len(sorted_ids)
+                    if len_diff > 0:
+                        warn(
+                            f"Sorted '{label}' array do not contain all cell ids, {len_diff} {label} omitted from raster."
+                        )
                 y = [a[l] for l in y]
                 start_id += len(set(y)) + ids[label]
         plot_spike_raster(
@@ -688,9 +695,7 @@ def hdf5_plot_spike_raster(
             color=colors[label],
             input_region=input_region,
         )
-    if len(x) > 0:
-        # Only positive time instants are plotted
-        fig.update_layout(xaxis=dict(range=[0, np.max(x)]))
+    fig.update_layout(xaxis=dict(range=[0, np.max(x, initial=0)]))
     if show:
         fig.show()
     return fig
