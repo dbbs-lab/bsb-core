@@ -637,7 +637,11 @@ def get_configurable_class(configured_class_name):
     if module_name == "":
         module_dict = globals()
     else:
+        import os, sys
+
+        sys.path.insert(0, os.getcwd())
         module_ref = __import__(module_name, globals(), locals(), [class_name], 0)
+        sys.path = sys.path[1:]
         module_dict = module_ref.__dict__
     if not class_name in module_dict:
         raise ConfigurableClassNotFoundError("Class not found: " + configured_class_name)
