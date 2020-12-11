@@ -5,6 +5,7 @@ import numpy as np, math, functools
 from .morphologies import Compartment
 from contextlib import contextmanager
 import random, types
+from .reporting import warn
 
 
 class CellTrace:
@@ -605,49 +606,86 @@ def get_morphology_range(morphology, offset=None, soma_radius=None):
     return r
 
 
-def hdf5_plot_spike_raster(spike_recorders, input_region=None, show=True):
+def hdf5_plot_spike_raster(
+    spike_recorders,
+    input_region=None,
+    show=True,
+    cutoff=0,
+    sorted_labels=None,
+    sorted_ids=None,
+):
     """
     Create a spike raster plot from an HDF5 group of spike recorders.
+    sorted_labels can be specified to plot population rasters ordered from bottom to top as in the given list.
     """
-    x = {}
-    y = {}
+    x_labelled = {}
+    y_labelled = {}
     colors = {}
     ids = {}
     for cell_id, dataset in spike_recorders.items():
         attrs = dict(dataset.attrs)
         if len(dataset.shape) == 1 or dataset.shape[1] == 1:
-            times = dataset[()]
+            times = dataset[()] - cutoff
             set_ids = np.ones(len(times)) * int(
                 attrs.get("cell_id", attrs.get("cell", cell_id))
             )
         else:
-            times = dataset[:, 1]
+            times = dataset[:, 1] - cutoff
             set_ids = dataset[:, 0]
         label = attrs.get("label", "unlabelled")
-        if not label in x:
-            x[label] = []
-        if not label in y:
-            y[label] = []
+        if not label in x_labelled:
+            x_labelled[label] = []
+        if not label in y_labelled:
+            y_labelled[label] = []
         if not label in colors:
             colors[label] = attrs.get("color", "black")
         if not label in ids:
             ids[label] = 0
         ids[label] += 1
         # Add the spike timings on the X axis.
-        x[label].extend(times)
+        x_labelled[label].extend(times)
         # Set the cell id for the Y axis of each added spike timing.
-        y[label].extend(set_ids)
+        y_labelled[label].extend(set_ids)
     # Use the parallel arrays x & y to plot a spike raster
     fig = go.Figure(
         layout=dict(
             xaxis=dict(title_text="Time (ms)"), yaxis=dict(title_text="Cell (ID)")
         )
     )
-    sort_by_size = lambda d: {k: v for k, v in sorted(d.items(), key=lambda i: len(i[1]))}
+    if sorted_labels is None:
+        sort_by_size = lambda d: {
+            k: v for k, v in sorted(d.items(), key=lambda i: len(i[1]))
+        }
+        sorted_labels = sort_by_size(x_labelled).keys()
     start_id = 0
-    for label, x, y in [(label, x[label], y[label]) for label in sort_by_size(x).keys()]:
-        y = [yi + start_id for yi in y]
-        start_id += ids[label]
+
+    for label in sorted_labels:
+        x = x_labelled[label]
+        y = y_labelled[label]
+        if sorted_labels is None:
+            y = [yi + start_id for yi in y]
+            start_id += ids[label]
+        else:
+            if len(y) > 0:
+                sy = set(y)
+                if sorted_ids is None or (label not in sorted_ids.keys()):
+                    # Create a map between the scattered y and ordered y
+                    a = dict(zip(list(set(y)), range(start_id, start_id + len(sy))))
+                else:
+                    # Create a map between the given sorted_labels and the ordered y
+                    a = dict(
+                        zip(
+                            sorted_ids[label],
+                            range(start_id, start_id + len(sorted_ids[label])),
+                        )
+                    )
+                    len_diff = len(sy) - len(sorted_ids)
+                    if len_diff > 0:
+                        warn(
+                            f"Sorted '{label}' array do not contain all cell ids, {len_diff} {label} omitted from raster."
+                        )
+                y = [a[l] for l in y]
+                start_id += len(set(y)) + ids[label]
         plot_spike_raster(
             x,
             y,
@@ -657,6 +695,7 @@ def hdf5_plot_spike_raster(spike_recorders, input_region=None, show=True):
             color=colors[label],
             input_region=input_region,
         )
+    fig.update_layout(xaxis=dict(range=[0, np.max(x, initial=0)]))
     if show:
         fig.show()
     return fig
