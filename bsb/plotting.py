@@ -200,7 +200,8 @@ def _input_highlight(f, required=False):
     return wrapper_function
 
 
-def _plot_network(network, fig, swapaxes):
+def _plot_network(network, fig, cubic, swapaxes):
+    xmin, xmax, ymin, ymax, zmin, zmax = tuple([0] * 6)
     for type in network.configuration.cell_types.values():
         if type.entity:
             continue
@@ -217,6 +218,21 @@ def _plot_network(network, fig, swapaxes):
                 name=type.plotting.label,
             )
         )
+        xmin = min(xmin, np.min(pos[:, 0], initial=0))
+        xmax = max(xmax, np.max(pos[:, 0], initial=0))
+        ymin = min(ymin, np.min(pos[:, 1], initial=0))
+        ymax = max(ymax, np.max(pos[:, 1], initial=0))
+        zmin = min(zmin, np.min(pos[:, 2], initial=0))
+        zmax = max(zmax, np.max(pos[:, 2], initial=0))
+    if cubic:
+        rng = max(xmax - xmin, ymax - ymin, zmax - zmin)
+        fig.layout.scene.xaxis.range = [xmin, xmin + rng]
+        if swapaxes:
+            fig.layout.scene.yaxis.range = [ymin, ymin + rng]
+            fig.layout.scene.zaxis.range = [zmin, zmin + rng]
+        else:
+            fig.layout.scene.yaxis.range = [ymin, ymin + rng]
+            fig.layout.scene.zaxis.range = [zmin, zmin + rng]
 
 
 @_network_figure
@@ -227,7 +243,7 @@ def plot_network(
     Plot a network, either from the current cache or the storage.
     """
     if from_memory:
-        _plot_network(network, fig, swapaxes)
+        _plot_network(network, fig, cubic, swapaxes)
     else:
         network.reset_network_cache()
         for type in network.configuration.cell_types.values():
@@ -235,7 +251,7 @@ def plot_network(
                 continue
             # Load from HDF5
             network.get_cells_by_type(type.name)
-        _plot_network(network, fig, swapaxes)
+        _plot_network(network, fig, cubic, swapaxes)
     return fig
 
 

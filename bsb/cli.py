@@ -157,7 +157,7 @@ def start_cli():
         "-t",
         "--template",
         action="store",
-        default="mouse_cerebellum_cortex_noTouch.json",
+        default="template.json",
         help="Name of the template config file.",
     )
     parser_config.add_argument(
