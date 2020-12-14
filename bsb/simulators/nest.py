@@ -816,6 +816,7 @@ class NestAdapter(SimulatorAdapter):
                     )
                 )
             connect_params.append(device_model.connection)
+            connect_params.append(device_model.synapse)
             # Send the Connect command to NEST and catch IllegalConnection errors.
             self.execute_command(
                 self.nest.Connect,

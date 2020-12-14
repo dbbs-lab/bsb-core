@@ -5,6 +5,7 @@ import numpy as np, math, functools
 from .morphologies import Compartment
 from contextlib import contextmanager
 import random, types
+from .reporting import warn
 
 
 class CellTrace:
@@ -134,7 +135,7 @@ def _morpho_figure(f):
         fig=None,
         swapaxes=True,
         soma_radius=None,
-        **kwargs
+        **kwargs,
     ):
         if offset is None:
             offset = [0.0, 0.0, 0.0]
@@ -200,7 +201,8 @@ def _input_highlight(f, required=False):
     return wrapper_function
 
 
-def _plot_network(network, fig, swapaxes):
+def _plot_network(network, fig, cubic, swapaxes):
+    xmin, xmax, ymin, ymax, zmin, zmax = tuple([0] * 6)
     for type in network.configuration.cell_types.values():
         if type.entity:
             continue
@@ -217,6 +219,21 @@ def _plot_network(network, fig, swapaxes):
                 name=type.plotting.label,
             )
         )
+        xmin = min(xmin, np.min(pos[:, 0], initial=0))
+        xmax = max(xmax, np.max(pos[:, 0], initial=0))
+        ymin = min(ymin, np.min(pos[:, 1], initial=0))
+        ymax = max(ymax, np.max(pos[:, 1], initial=0))
+        zmin = min(zmin, np.min(pos[:, 2], initial=0))
+        zmax = max(zmax, np.max(pos[:, 2], initial=0))
+    if cubic:
+        rng = max(xmax - xmin, ymax - ymin, zmax - zmin)
+        fig.layout.scene.xaxis.range = [xmin, xmin + rng]
+        if swapaxes:
+            fig.layout.scene.yaxis.range = [ymin, ymin + rng]
+            fig.layout.scene.zaxis.range = [zmin, zmin + rng]
+        else:
+            fig.layout.scene.yaxis.range = [ymin, ymin + rng]
+            fig.layout.scene.zaxis.range = [zmin, zmin + rng]
 
 
 @_network_figure
@@ -227,7 +244,7 @@ def plot_network(
     Plot a network, either from the current cache or the storage.
     """
     if from_memory:
-        _plot_network(network, fig, swapaxes)
+        _plot_network(network, fig, cubic, swapaxes)
     else:
         network.reset_network_cache()
         for type in network.configuration.cell_types.values():
@@ -235,7 +252,7 @@ def plot_network(
                 continue
             # Load from HDF5
             network.get_cells_by_type(type.name)
-        _plot_network(network, fig, swapaxes)
+        _plot_network(network, fig, cubic, swapaxes)
     return fig
 
 
@@ -606,49 +623,86 @@ def get_morphology_range(morphology, offset=None, soma_radius=None):
     return r
 
 
-def hdf5_plot_spike_raster(spike_recorders, input_region=None, show=True):
+def hdf5_plot_spike_raster(
+    spike_recorders,
+    input_region=None,
+    show=True,
+    cutoff=0,
+    sorted_labels=None,
+    sorted_ids=None,
+):
     """
     Create a spike raster plot from an HDF5 group of spike recorders.
+    sorted_labels can be specified to plot population rasters ordered from bottom to top as in the given list.
     """
-    x = {}
-    y = {}
+    x_labelled = {}
+    y_labelled = {}
     colors = {}
     ids = {}
     for cell_id, dataset in spike_recorders.items():
         attrs = dict(dataset.attrs)
         if len(dataset.shape) == 1 or dataset.shape[1] == 1:
-            times = dataset[()]
+            times = dataset[()] - cutoff
             set_ids = np.ones(len(times)) * int(
                 attrs.get("cell_id", attrs.get("cell", cell_id))
             )
         else:
-            times = dataset[:, 1]
+            times = dataset[:, 1] - cutoff
             set_ids = dataset[:, 0]
         label = attrs.get("label", "unlabelled")
-        if not label in x:
-            x[label] = []
-        if not label in y:
-            y[label] = []
+        if not label in x_labelled:
+            x_labelled[label] = []
+        if not label in y_labelled:
+            y_labelled[label] = []
         if not label in colors:
             colors[label] = attrs.get("color", "black")
         if not label in ids:
             ids[label] = 0
         ids[label] += 1
         # Add the spike timings on the X axis.
-        x[label].extend(times)
+        x_labelled[label].extend(times)
         # Set the cell id for the Y axis of each added spike timing.
-        y[label].extend(set_ids)
+        y_labelled[label].extend(set_ids)
     # Use the parallel arrays x & y to plot a spike raster
     fig = go.Figure(
         layout=dict(
             xaxis=dict(title_text="Time (ms)"), yaxis=dict(title_text="Cell (ID)")
         )
     )
-    sort_by_size = lambda d: {k: v for k, v in sorted(d.items(), key=lambda i: len(i[1]))}
+    if sorted_labels is None:
+        sort_by_size = lambda d: {
+            k: v for k, v in sorted(d.items(), key=lambda i: len(i[1]))
+        }
+        sorted_labels = sort_by_size(x_labelled).keys()
     start_id = 0
-    for label, x, y in [(label, x[label], y[label]) for label in sort_by_size(x).keys()]:
-        y = [yi + start_id for yi in y]
-        start_id += ids[label]
+
+    for label in sorted_labels:
+        x = x_labelled[label]
+        y = y_labelled[label]
+        if sorted_labels is None:
+            y = [yi + start_id for yi in y]
+            start_id += ids[label]
+        else:
+            if len(y) > 0:
+                sy = set(y)
+                if sorted_ids is None or (label not in sorted_ids.keys()):
+                    # Create a map between the scattered y and ordered y
+                    a = dict(zip(list(set(y)), range(start_id, start_id + len(sy))))
+                else:
+                    # Create a map between the given sorted_labels and the ordered y
+                    a = dict(
+                        zip(
+                            sorted_ids[label],
+                            range(start_id, start_id + len(sorted_ids[label])),
+                        )
+                    )
+                    len_diff = len(sy) - len(sorted_ids)
+                    if len_diff > 0:
+                        warn(
+                            f"Sorted '{label}' array do not contain all cell ids, {len_diff} {label} omitted from raster."
+                        )
+                y = [a[l] for l in y]
+                start_id += len(set(y)) + ids[label]
         plot_spike_raster(
             x,
             y,
@@ -658,6 +712,7 @@ def hdf5_plot_spike_raster(spike_recorders, input_region=None, show=True):
             color=colors[label],
             input_region=input_region,
         )
+    fig.update_layout(xaxis=dict(range=[0, np.max(x, initial=0)]))
     if show:
         fig.show()
     return fig
@@ -789,12 +844,16 @@ def plot_traces(traces, fig=None, show=True, legend=True, cutoff=0, x=None):
         x_title="Time (ms)",
         y_title="Membrane potential (mV)",
     )
+    # Save the data already in the given figure
+    _data = fig.data
     for k in dir(subplots_fig):
         v = getattr(subplots_fig, k)
         if isinstance(v, types.MethodType):
             # Unbind subplots_fig methods and bind to fig.
             v = v.__func__.__get__(fig)
         fig.__dict__[k] = v
+    # Restore the data
+    fig.data = _data
     fig.update_layout(height=max(len(traces) * 130, 300))
     legend_groups = set()
     legends = traces.legends
@@ -836,19 +895,16 @@ class PSTHStack:
     def __init__(self, name, color):
         self.name = name
         self.color = str(color)
-        self.cells = 0
-        self._included_ids = {0: np.empty(0)}
+        self._runs = set()
         self.list = []
 
     def extend(self, arr, run=0):
         self.list.extend(arr[:, 1])
-        if run not in self._included_ids:
-            self._included_ids[run] = np.empty(0)
-        # Count all of the cells across the runs, but count unique cells per run
-        self._included_ids[run] = np.unique(
-            np.concatenate((self._included_ids[run], arr[:, 0]))
-        )
-        self.cells = sum(map(len, self._included_ids.values()))
+        self._runs.add(run)
+
+    @property
+    def runs(self):
+        return len(self._runs)
 
 
 class PSTHRow:
@@ -872,7 +928,7 @@ class PSTHRow:
 
 
 @_figure
-def hdf5_plot_psth(handle, duration=3, cutoff=0, start=0, fig=None, mod=None, **kwargs):
+def hdf5_plot_psth(network, handle, duration=3, cutoff=0, start=0, fig=None, **kwargs):
     psth = PSTH()
     row_map = {}
     for g in handle.values():
@@ -895,33 +951,49 @@ def hdf5_plot_psth(handle, duration=3, cutoff=0, start=0, fig=None, mod=None, **
         x_title=kwargs.get("x_title", "Time (ms)"),
         y_title=kwargs.get("y_title", "Population firing rate (Hz)"),
     )
+    for k in dir(subplots_fig):
+        if k == "data" or k == "_data":
+            # Don't overwrite data already on the fig
+            continue
+        v = getattr(subplots_fig, k)
+        if isinstance(v, types.MethodType):
+            # Unbind subplots_fig methods and bind to fig.
+            v = v.__func__.__get__(fig)
+        fig.__dict__[k] = v
+    # Align xaxis ranges to max of all rows
     _max = -float("inf")
     for i, row in enumerate(psth.rows):
         _max = max(_max, row.max)
-    subplots_fig.update_xaxes(range=[start, _max])
-    subplots_fig.update_layout(title_text=kwargs.get("title", "PSTH"))
-    # Allow the original figure to be updated before messing with it.
-    if mod is not None:
-        mod(subplots_fig)
-    # Overwrite the layout and grid of the single plot that is handed to us
-    # to turn it into a subplots figure. All modifications except for adding traces
-    # should happen before this point.
-    fig._grid_ref = subplots_fig._grid_ref
-    fig._layout = subplots_fig._layout
+    fig.update_xaxes(range=[start, _max])
+    fig.update_layout(title_text=kwargs.get("title", "PSTH"))
+    cell_types = network.get_cell_types()
     for i, row in enumerate(psth.ordered_rows()):
         for name, stack in sorted(row.stacks.items(), key=lambda x: x[0]):
             counts, bins = np.histogram(stack.list, bins=np.arange(start, _max, duration))
+            # Workaround of Workarounds for merging info in scaffold and in results
+            # Compares plotting colors to identify cell type ...
+            for cell_type in cell_types:
+                if cell_type.plotting.color.lower() == stack.color:
+                    current_cell_type = cell_type
+                    break
+            else:
+                raise Exception(
+                    f"Couldn't link result group '{name or row.name}' to a network cell type."
+                )
+            cell_num_single_run = network.get_placed_count(current_cell_type.name)
+            cell_num = cell_num_single_run * (stack.runs)
             if str(name).startswith("##"):
                 # Lazy way to order the stacks; Stack names can start with ## and a number
                 # and it will be sorted by name, but the ## and number are not displayed.
                 name = name[4:]
             trace = go.Bar(
                 x=bins,
-                y=counts / stack.cells * 1000 / duration,
+                y=counts / cell_num * 1000 / duration,
                 name=name or row.name,
                 marker=dict(color=stack.color),
             )
             fig.add_trace(trace, row=i + 1, col=1)
+
     return fig
 
 
