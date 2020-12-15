@@ -6,7 +6,7 @@ decorate your classes and add class attributes using ``x =
 config.attr/dict/list/ref/reflist`` to populate your classes with powerful attributes.
 """
 
-import os, sys
+import os, sys, itertools
 
 _list = list
 from ._attrs import (
@@ -86,6 +86,17 @@ class ConfigurationModule:
         if not parser_name in self._parser_classes:
             raise PluginError("Configuration parser '{}' not found".format(parser_name))
         return self._parser_classes[parser_name]()
+
+    def get_config_path(self):
+        import os
+
+        env_paths = os.environ.get("BSB_CONFIG_PATH", None)
+        if env_paths is None:
+            env_paths = ()
+        else:
+            env_paths = env_paths.split(":")
+        plugin_paths = plugins.discover("config.templates")
+        return _list(itertools.chain((os.getcwd(),), env_paths, *plugin_paths.values()))
 
     __all__ = _list(vars().keys() - {"__init__", "__qualname__", "__module__"})
 
