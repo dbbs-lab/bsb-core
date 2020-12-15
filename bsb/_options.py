@@ -1,3 +1,8 @@
+"""
+This module registers all the options that the BSB provides out of the box. They are
+registered using plugin registration. See `setup.py` for the setuptools metadata.
+"""
+
 from .option import BsbOption
 from .reporting import report
 
@@ -9,6 +14,11 @@ class VerbosityOption(
     env=("BSB_VERBOSITY",),
     script=("verbosity",),
 ):
+    """
+    Set the verbosity of the package. Verbosity 0 is completely silent, 1 is default,
+    2 is verbose, 3 is progress and 4 is debug.
+    """
+
     def get_default(self):
         return 1
 
@@ -21,20 +31,28 @@ class VersionFlag(
     readonly=True,
     action=True,
 ):
-    def get_default(self):
-        return 1
+    """
+    Return the version of the package.
+    """
 
-    def action(self):
+    def get_default(self):
         from . import __version__
 
-        report(__version__, level=1)
+        return __version__
+
+    def action(self):
+        report(self.get_default(), level=1)
 
 
 class ConfigOption(
     BsbOption, name="config", cli=("c", "config"), env=("BSB_CONFIG_FILE",)
 ):
+    """
+    Specify the config file to use when creating new networks through the CLI.
+    """
+
     def get_default(self):
-        return 1
+        return "template.json"
 
 
 def verbosity():
