@@ -13,6 +13,9 @@ environment variables or project settings).
       def get_default(self):
           return 4
 
+  # Register the option into the `bsb.options` module
+  MyOption.register()
+
   assert bsb.options.my_setting == 4
   bsb.options.my_alias = 6
   assert bsb.options.my_setting == 6
