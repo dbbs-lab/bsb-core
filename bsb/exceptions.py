@@ -6,6 +6,7 @@ _t(
         SpatialDimensionError=_e(),
         CLIError=_e(
             CommandError=_e(),
+            ConfigTemplateNotFoundError=_e("template", "path"),
         ),
         ConfigurationError=_e(
             ConfigurationFormatError=_e(),
