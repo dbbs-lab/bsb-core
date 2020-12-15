@@ -25,7 +25,14 @@ class ProjectNewCommand(BaseCommand, name="new"):
             )
 
         # # TODO: decide on "config", "build", "publish"
-        for d in (".bsb",):
+        for d in (".bsb", name):
             (root / d).mkdir()
+
+        with open(root / name / "__init__.py", "w") as f:
+            f.write("\n")
+        with open(root / name / "placement.py", "w") as f:
+            f.write("from bsb.placement import PlacementStrategy\n")
+        with open(root / name / "connectome.py", "w") as f:
+            f.write("from bsb.connectivity import ConnectionStrategy\n")
 
         report(f"Created '{name}' project structure.")
