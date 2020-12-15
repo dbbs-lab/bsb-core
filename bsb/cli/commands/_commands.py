@@ -26,9 +26,7 @@ class Append(
     pass
 
 
-class Output(
-    BsbOption, name="output", cli=("output", "o"), env=("BSB_OUTPUT_FILE",), flag=True
-):
+class Output(BsbOption, name="output", cli=("output", "o"), env=("BSB_OUTPUT_FILE",)):
     pass
 
 
