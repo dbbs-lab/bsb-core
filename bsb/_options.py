@@ -44,23 +44,8 @@ class VersionFlag(
         report(self.get(), level=1)
 
 
-class ConfigOption(
-    BsbOption, name="config", cli=("c", "config"), env=("BSB_CONFIG_FILE",)
-):
-    """
-    Specify the config file to use when creating new networks through the CLI.
-    """
-
-    def get_default(self):
-        return "template.json"
-
-
 def verbosity():
     return VerbosityOption
-
-
-def config():
-    return ConfigOption
 
 
 def version():

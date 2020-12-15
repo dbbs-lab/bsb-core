@@ -1,5 +1,6 @@
 from . import BaseCommand
 from ...option import BsbOption
+from ...exceptions import *
 from . import _projects
 
 
@@ -59,10 +60,65 @@ class SkipAfterConnectivity(
     pass
 
 
+class ConfigOption(
+    BsbOption,
+    name="config",
+    cli=("c", "config"),
+    env=("BSB_CONFIG_FILE",),  # TODO: project=("config_file")
+):
+    """
+    Specify the config file to use when creating new networks through the CLI.
+    """
+
+    def get_default(self):
+        return "network_configuration.json"
+
+
+class MakeConfigCommand(BaseCommand, name="make-config"):
+    def handler(self, context):
+        from ...config import get_config_path
+        from shutil import copy2 as copy_file
+        import os, glob, itertools
+
+        args = context.arguments
+        template = args.template
+        path = list(
+            map(
+                os.path.abspath,
+                itertools.chain(get_config_path(), args.__dict__.get("path", ())),
+            )
+        )
+        for d in path:
+            if (files := glob.glob(os.path.join(d, template))) :
+                break
+        else:
+            raise ConfigTemplateNotFoundError(
+                "'%template%' not found in config path %path%", template, path
+            )
+        copy_file(files[0], args.output)
+
+    def get_options(self):
+        return {}
+
+    def add_parser_arguments(self, parser):
+        parser.add_argument("template", nargs="?", default="template.json")
+        parser.add_argument("output", nargs="?", default="network_configuration.json")
+        parser.add_argument(
+            "--path",
+            help="Additional paths to search for config templates",
+            action="extend",
+            nargs="+",
+        )
+
+
 class BsbCompile(BaseCommand, name="compile"):
     def handler(self, context):
-        print(context.x)
-        print(context.arguments)
+        from ...config import from_json
+        from ...core import Scaffold
+
+        cfg = from_json(context.config)
+        network = Scaffold(cfg)
+        network.compile()
 
     def get_options(self):
         return {
@@ -70,6 +126,7 @@ class BsbCompile(BaseCommand, name="compile"):
             "z": ZScale(),
             "skip": Skip(),
             "only": Only(),
+            "config": ConfigOption(),
             "no_placement": SkipPlacement(),
             "no_after_placement": SkipAfterPlacement(),
             "no_connectivity": SkipConnectivity(),
@@ -77,7 +134,7 @@ class BsbCompile(BaseCommand, name="compile"):
         }
 
     def add_parser_arguments(self, parser):
-        parser.add_argument("hello", help="positional")
+        pass
 
 
 class BsbSimulate(BaseCommand, name="simulate"):
