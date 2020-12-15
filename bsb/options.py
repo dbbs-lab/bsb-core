@@ -1,6 +1,5 @@
 """
-This module contains the classes needed to define options and also contains the global
-options.
+This module contains the global options.
 
 You can set options at the ``script`` level (which superceeds all other levels such as
 environment variables or project settings).
@@ -8,6 +7,7 @@ environment variables or project settings).
 .. code-block::
 
   import bsb.options
+  from bsb.option import BsbOption
 
   class MyOption(BsbOption, cli=("my_setting",), env=("MY_SETTING",), script=("my_setting", "my_alias")):
       def get_default(self):
