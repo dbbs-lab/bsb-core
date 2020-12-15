@@ -17,6 +17,6 @@ def handle_command(command, context):
     except CommandError as e:
         print(e)
         exit(1)
-    for action in namespace.internal_action_list:
-        action()
+    for action in namespace.internal_action_list or ():
+        action(namespace)
     namespace.handler(namespace)
