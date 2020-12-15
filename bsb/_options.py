@@ -41,7 +41,7 @@ class VersionFlag(
         return __version__
 
     def action(self):
-        report(self.get_default(), level=1)
+        report(self.get(), level=1)
 
 
 class ConfigOption(
