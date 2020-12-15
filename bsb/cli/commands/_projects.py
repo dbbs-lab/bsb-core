@@ -4,18 +4,7 @@ from ...reporting import report
 import pathlib
 
 
-class ProjectCommand(BaseCommand, name="project"):
-    def get_options(self):
-        return {}
-
-    def add_parser_arguments(self, parser):
-        pass
-
-    def handler(self, context):
-        report("-- Project info --", level=1)
-
-
-class ProjectNewCommand(BaseCommand, name="new", parent=ProjectCommand):
+class ProjectNewCommand(BaseCommand, name="new"):
     def get_options(self):
         return {}
 
