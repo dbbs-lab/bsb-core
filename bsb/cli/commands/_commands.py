@@ -1,5 +1,6 @@
 from . import BaseCommand
 from ...option import BsbOption
+from . import _projects
 
 
 class XScale(BsbOption, name="x", cli=("x",), env=("BSB_CONFIG_NETWORK_X",)):

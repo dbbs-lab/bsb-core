@@ -97,10 +97,14 @@ class BaseCommand(BsbCommand, abstract=True):
             option.add_to_parser(parser, level)
 
     def get_options(self):
-        raise NotImplementedError("Commands must implement a `get_options` method.")
+        raise NotImplementedError(
+            "BaseCommands must implement a `get_options(self)` method."
+        )
 
     def add_parser_arguments(self, parser):
-        raise NotImplementedError("Commands must implement an `add_arguments` method.")
+        raise NotImplementedError(
+            "BaseCommands must implement an `add_parser_arguments(self, parser)` method."
+        )
 
 
 class RootCommand(BaseCommand, name="bsb"):
