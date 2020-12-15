@@ -20,6 +20,12 @@ class Only(BsbOption, name="only", cli=("only",), env=("BSB_SELECTION_ONLY",), l
     pass
 
 
+class Append(
+    BsbOption, name="append", cli=("append",), env=("BSB_APPEND_MODE",), flag=True
+):
+    pass
+
+
 class SkipPlacement(
     BsbOption,
     name="skip_placement",
@@ -131,6 +137,7 @@ class BsbCompile(BaseCommand, name="compile"):
             "no_after_placement": SkipAfterPlacement(),
             "no_connectivity": SkipConnectivity(),
             "no_after_connectivity": SkipAfterConnectivity(),
+            "append": Append(),
         }
 
     def add_parser_arguments(self, parser):
