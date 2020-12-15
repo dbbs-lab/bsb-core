@@ -21,7 +21,19 @@ class Only(BsbOption, name="only", cli=("only",), env=("BSB_SELECTION_ONLY",), l
 
 
 class Append(
-    BsbOption, name="append", cli=("append",), env=("BSB_APPEND_MODE",), flag=True
+    BsbOption, name="append", cli=("append", "a"), env=("BSB_APPEND_MODE",), flag=True
+):
+    pass
+
+
+class Output(
+    BsbOption, name="output", cli=("output", "o"), env=("BSB_OUTPUT_FILE",), flag=True
+):
+    pass
+
+
+class Plot(
+    BsbOption, name="output", cli=("plot", "p"), env=("BSB_PLOT_NETWORK",), flag=True
 ):
     pass
 
@@ -138,6 +150,8 @@ class BsbCompile(BaseCommand, name="compile"):
             "no_connectivity": SkipConnectivity(),
             "no_after_connectivity": SkipAfterConnectivity(),
             "append": Append(),
+            "plot": Plot(),
+            "output": Output(),
         }
 
     def add_parser_arguments(self, parser):
