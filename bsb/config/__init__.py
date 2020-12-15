@@ -1,3 +1,11 @@
+"""
+bsb.config module
+
+Contains the dynamic attribute system; Use ``@bsb.config.root/node/dynamic/pluggable`` to
+decorate your classes and add class attributes using ``x =
+config.attr/dict/list/ref/reflist`` to populate your classes with powerful attributes.
+"""
+
 import os, sys
 
 _list = list
@@ -24,6 +32,8 @@ _path = __path__
 
 
 class ConfigurationModule:
+    from . import types, refs, nodes
+
     def __init__(self, name):
         self.__name__ = name
 
@@ -106,6 +116,8 @@ def _parser_method_docs(parser):
 
 
 def parser_factory(name, parser):
+    # This factory produces the methods for the `bsb.config.from_*` parser methods that
+    # load the content of a file-like object or a simple string as a Configuration object.
     def parser_method(self, file=None, data=None, path=None):
         if file is not None:
             file = os.path.abspath(file)
@@ -123,6 +135,7 @@ def parser_factory(name, parser):
     return parser_method
 
 
+# Load all the `config.parsers` plugins and create a `from_*` method for them.
 for name, parser in plugins.discover("config.parsers").items():
     ConfigurationModule._parser_classes[name] = parser
     setattr(ConfigurationModule, "from_" + name, parser_factory(name, parser))

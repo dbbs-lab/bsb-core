@@ -15,23 +15,24 @@ _t(
                 ClassMapMissingError=_e(),
             ),
             CastError=_e(
-                DistributionCastError=_e(
-                    UnknownDistributionError=_e(),
-                    InvalidDistributionError=_e(),
-                ),
+                "node",
+                "attr",
+                DistributionCastError=_e(),
                 UnresolvedClassCastError=_e(),
-                UnfitClassCastError=_e(),
+                UnfitClassCastError=_e("node", "attr"),
             ),
             CastConfigurationError=_e(),
-            RequirementError=_e("node"),
+            RequirementError=_e("node", "attr"),
             ReferenceError=_e(
                 NoReferenceAttributeSignal=_e(),
             ),
             UnknownConfigAttrError=_e("attributes"),
         ),
-        TypeNotFoundError=_e(),
-        LayerNotFoundError=_e(),
-        SimulationNotFoundError=_e(),
+        TypeHandlingError=_e(
+            NoneReferenceError=_e(),
+            InvalidReferenceError=_e("value"),
+        ),
+        NodeNotFoundError=_e("query"),
         AdapterError=_e(
             NeuronError=_e(
                 DeviceConnectionError=_e(),

@@ -1,9 +1,9 @@
-import unittest, os, sys, numpy as np, h5py
+import unittest, os, sys, numpy as np, h5py, json
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from bsb.core import Scaffold
 from bsb import config
-from bsb.config import from_json
+from bsb.config import from_json, Configuration
 from bsb.exceptions import *
 from bsb.models import Layer, CellType
 
@@ -656,6 +656,94 @@ class TestTypes(unittest.TestCase):
         self.assertEqual(b.c, 3)
         self.assertRaises(CastError, Test, {"c": 4}, _parent=TestRoot())
 
+    def test_int(self):
+        @config.root
+        class Test:
+            a = config.attr(type=types.int())
+            b = config.attr(type=types.int(min=0))
+            c = config.attr(type=types.int(max=0))
+            d = config.attr(type=types.int(min=0, max=10))
+
+        # Test basics
+        cfg = Test({"a": 5, "b": 5, "c": -5, "d": 5})
+        self.assertEqual(5, cfg.a)
+        self.assertEqual(5, cfg.b)
+        self.assertEqual(-5, cfg.c)
+        self.assertEqual(5, cfg.d)
+        # Test edge cases
+        Test(b=0)
+        Test(c=0)
+        with self.assertRaises(CastError):
+            Test(b=-10)
+        with self.assertRaises(CastError):
+            Test(c=10)
+        with self.assertRaises(CastError):
+            Test(d=-5)
+        with self.assertRaises(CastError):
+            Test(d=15)
+        # Test rounding & conversion
+        self.assertEqual(5, Test(a=5.5).a)
+        self.assertEqual(5, Test(a=5.4).a)
+        self.assertEqual(5, Test(a=5.6).a)
+        self.assertEqual(5, Test(a=5.0).a)
+        self.assertEqual(5, Test(a="5").a)
+
+    def test_float(self):
+        @config.root
+        class Test:
+            a = config.attr(type=types.float())
+            b = config.attr(type=types.float(min=0))
+            c = config.attr(type=types.float(max=0))
+            d = config.attr(type=types.float(min=0, max=10))
+
+        # Test basics
+        cfg = Test({"a": 5.2, "b": 5.2, "c": -5.2, "d": 5.2})
+        self.assertEqual(5.2, cfg.a)
+        self.assertEqual(5.2, cfg.b)
+        self.assertEqual(-5.2, cfg.c)
+        self.assertEqual(5.2, cfg.d)
+        # Test edge cases
+        Test(b=0)
+        Test(c=0)
+        with self.assertRaises(CastError):
+            Test(b=-10)
+        with self.assertRaises(CastError):
+            Test(c=10)
+        with self.assertRaises(CastError):
+            Test(d=-5)
+        with self.assertRaises(CastError):
+            Test(d=15)
+        # Test rounding & conversion
+        self.assertEqual(5.0, Test(a=5).a)
+        self.assertEqual(5.5, Test(a=5.5).a)
+        self.assertEqual(5.0, Test(a="5").a)
+        self.assertEqual(5.0, Test(a="5.").a)
+        self.assertEqual(5.6, Test(a="5.6").a)
+        self.assertEqual(0.074, Test(a="7.4e-02").a)
+
+    def test_number(self):
+        @config.root
+        class Test:
+            a = config.attr(type=types.number())
+            b = config.attr(type=types.number(min=0))
+            c = config.attr(type=types.number(max=0))
+            d = config.attr(type=types.number(min=0, max=10))
+
+        # Test basics
+        cfg = Test({"a": 5, "b": 5.0, "c": -5.2, "d": 5.2})
+        self.assertEqual(5, cfg.a)
+        self.assertEqual(int, type(cfg.a))
+        self.assertEqual(5.0, cfg.b)
+        self.assertEqual(float, type(cfg.b))
+        with self.assertRaises(CastError):
+            Test(b=-10)
+        with self.assertRaises(CastError):
+            Test(c=10)
+        with self.assertRaises(CastError):
+            Test(d=-5)
+        with self.assertRaises(CastError):
+            Test(d=15)
+
     def test_in_inf(self):
         class Fib:
             def __call__(self):
@@ -713,11 +801,23 @@ class TestTypes(unittest.TestCase):
             d = config.attr(type=types.list(int, size=3))
 
         b = Test({"c": [2, 2]}, _parent=TestRoot())
-        self.assertEqual(b.c, [2, 2])
+        self.assertEqual([2, 2], b.c)
         b = Test({"c": None}, _parent=TestRoot())
-        self.assertEqual(b.c, None)
+        self.assertEqual(None, types.list()(None))
+        self.assertEqual(None, b.c)
         self.assertRaises(CastError, Test, {"c": [2, "f"]}, _parent=TestRoot())
         self.assertRaises(CastError, Test, {"d": [2, 2]}, _parent=TestRoot())
+
+    def test_dict(self):
+        @config.root
+        class Test:
+            c = config.attr(type=types.dict())
+            d = config.attr(type=types.dict(int))
+
+        self.assertEqual({"a": "b"}, Test({"c": {"a": "b"}}).c)
+        self.assertEqual({"a": "5"}, Test({"c": {"a": 5}}).c)
+        self.assertEqual({"a": 5}, Test({"d": {"a": 5}}).d)
+        self.assertEqual(None, types.dict()(None))
 
     def test_fraction(self):
         @config.node
@@ -728,11 +828,205 @@ class TestTypes(unittest.TestCase):
         self.assertEqual(b.c, 0.1)
         self.assertRaises(CastError, Test, {"c": -0.1}, _parent=TestRoot())
 
-    # def test_constant_distribution(self):
-    #     raise NotImplementedError("Luie zak")
-    #
-    # def test_distribution(self):
-    #     raise NotImplementedError("Luie zak")
-    #
-    # def test_evaluation(self):
-    #     raise NotImplementedError("Luie zak")
+    def test_constant_distribution(self):
+        @config.root
+        class Test:
+            c = config.attr(type=types.constant_distr())
+
+        a = Test({"c": 1})
+        self.assertTrue(np.array_equal(np.ones(5), a.c.draw(5)))
+
+    def test_distribution(self):
+        import scipy.stats.distributions
+
+        @config.root
+        class Test:
+            c = config.attr(type=types.distribution())
+
+        # Check basic function
+        a = Test({"c": {"distribution": "alpha", "a": 3, "loc": 2, "scale": 2.5}})
+        equivalent = scipy.stats.distributions.alpha(a=3, loc=2, scale=2.5)
+        self.assertEqual(type(equivalent), type(a.c._distr))
+        self.assertEqual(equivalent.pdf(5.9), a.c.pdf(5.9))
+
+        with self.assertRaises(CastError):
+            a = Test({"c": {"a": 3, "loc": 2, "scale": 2.5}})
+
+        with self.assertRaises(CastError):
+            # Check that underlying errors are also caught
+            a = Test({"c": {"distribution": "alpha"}})
+            # Should we add a test to see that the underlying message is passed?
+
+        with self.assertRaises(CastError):
+            # Check that unknown distributions throw a CastError
+            a = Test({"c": {"distribution": "alphaa"}})
+
+    def test_evaluation(self):
+        @config.root
+        class Test:
+            c = config.attr(type=types.evaluation())
+
+        def _eval(statement, **vars):
+            return Test(c={"statement": statement, "variables": vars}).c
+
+        self.assertEqual(3, _eval(3))
+        self.assertEqual(3, _eval("3"))
+        self.assertEqual(3, _eval("5 - 2"))
+        self.assertEqual(3, _eval("v - 2", v=5))
+        self.assertEqual(3, _eval("np.array([v - 2])[0]", v=5))
+
+    def test_class(self):
+        @config.root
+        class Test:
+            a = config.attr(type=types.class_())
+            b = config.attr(type=types.class_(module_path=["test_configuration"]))
+
+        cfg = Test({"a": "test_configuration.MyTestClass", "b": "MyTestClass"})
+        self.assertEqual(MyTestClass, cfg.a)
+        self.assertEqual(MyTestClass, cfg.b)
+
+        with self.assertRaises(CastError):
+            cfg = Test({"a": "MyTestClass"})
+
+    @unittest.expectedFailure
+    def test_in_classmap(self):
+        @config.root
+        class Test:
+            a = config.attr(type=types.in_classmap())
+            c = config.attr(type=Classmap2Parent)
+
+        t = Test({"c": {"cls": "a"}})
+        # The `Test` class itself has no classmap so using the `in_classmap` validator is
+        # incorrect and should raise an error.
+        with self.assertRaises(ClassMapMissingError):
+            Test.a.type("a", _parent=t, _key="a")
+        # `in_classmap` is a restrictive type handler that should only allow the classmap
+        # strings to be given and not the classes themselves.
+        with self.assertRaises(CastError):
+            Test(c={"cls": Classmap2ChildA})
+        # If a string is valid it should be left untouched.
+        self.assertEqual("a", Classmap2Parent.cls.type("a", _parent=t.c, _key="cls"))
+        # If a string is invalid a cast error should be raised
+        with self.assertRaises(CastError):
+            Classmap2Parent.cls.type("aa", _parent=t.c, _key="cls")
+        # To whoever fixes the classmaps: This might start throwing an error because d
+        # is not mapped to an actual class; The type validator however shouldn't complain.
+        # It should only check whether the given value is in the classmap or not. If an
+        # error occurs outside of the type handler that's supposed to happen.
+        self.assertEqual("d", Test(c="d"))
+
+
+@config.dynamic(
+    type=types.in_classmap(),
+    classmap={
+        "a": "Classmap2ChildA",
+        "b": "Classmap2ChildB",
+        "d": "Classmap2ChildD",
+    },
+)
+class Classmap2Parent:
+    pass
+
+
+class Classmap2ChildA(Classmap2Parent):
+    pass
+
+
+class Classmap2ChildB(Classmap2Parent):
+    pass
+
+
+class MyTestClass:
+    pass
+
+
+class TestTreeing(unittest.TestCase):
+    def surjective(self, name, cls, ref, tree):
+        # Test that the tree projects onto the ref
+        with self.subTest(name=name):
+            cfg = cls(tree)
+            new_tree = cfg.__tree__()
+            self.assertEqual(json.dumps(ref, indent=2), json.dumps(new_tree, indent=2))
+
+    def bijective(self, name, cls, tree):
+        # Test that the tree and its config projection are the same in JSON
+        with self.subTest(name=name):
+            cfg = cls(tree)
+            new_tree = cfg.__tree__()
+            self.assertEqual(json.dumps(tree, indent=2), json.dumps(new_tree, indent=2))
+            return cfg, new_tree
+
+    def test_empty(self):
+        @config.root
+        class Test:
+            pass
+
+        self.bijective("empty", Test, {})
+
+    def test_single(self):
+        @config.root
+        class Test:
+            a = config.attr()
+
+        self.bijective("single", Test, {"a": "hehe"})
+
+    def test_pristine(self):
+        @config.root
+        class Test:
+            a = config.attr(default=5)
+
+        self.bijective("pristine", Test, {})
+
+    def test_dirty(self):
+        @config.root
+        class Test:
+            a = config.attr(default=5)
+
+        cfg = Test({})
+        cfg.a = 5
+        new_tree = cfg.__tree__()
+        self.assertEqual(json.dumps({"a": 5}, indent=2), json.dumps(new_tree, indent=2))
+
+    def test_multi(self):
+        @config.root
+        class Test:
+            a = config.attr(default=5)
+            b = config.attr()
+            c = config.attr()
+
+        self.bijective("multi", Test, {"b": "3", "c": "hello"})
+
+    def test_insertion_order(self):
+        @config.root
+        class Test:
+            a = config.attr(default=5)
+            b = config.attr()
+            c = config.attr()
+
+        self.bijective("multi", Test, {"a": 3, "b": "hi", "c": "hello"})
+        self.bijective("multi", Test, {"c": "hello", "b": "hi", "a": 3})
+
+    def test_autocorrect(self):
+        @config.root
+        class Test:
+            a = config.attr(default=5)
+            b = config.attr(type=float)
+            c = config.attr()
+
+        cfg = Test({"a": "5", "b": "5.", "c": 3})
+        test_tree = cfg.__tree__()
+        ref_tree = {"a": 5, "b": 5.0, "c": "3"}
+        self.surjective("autocorrect", Test, ref_tree, test_tree)
+
+    @unittest.expectedFailure
+    def test_full(self):
+        self.bijective("full", Configuration, as_json(full_config))
+
+    def test_eval(self):
+        @config.root
+        class Test:
+            a = config.attr(type=types.evaluation())
+
+        cfg, tree = self.bijective("eval", Test, {"a": {"statement": "[1, 2, 3]"}})
+        self.assertEqual([1, 2, 3], cfg.a)
+        self.assertEqual({"statement": "[1, 2, 3]"}, tree["a"])

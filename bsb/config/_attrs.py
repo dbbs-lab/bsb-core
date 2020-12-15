@@ -11,7 +11,7 @@ from ._make import (
     make_tree,
     wrap_root_init,
 )
-from inspect import signature
+from .types import TypeHandler, _wrap_reserved
 from ..exceptions import *
 import abc
 
@@ -122,7 +122,7 @@ def _dynamic(node_cls, class_attr, attr_name, config):
     return node(node_cls, dynamic=config)
 
 
-def pluggable(key, plugin_name=None, unpack=None):
+def pluggable(key, plugin_name=None):
     """
     Create a node whose configuration is defined by a plugin.
 
@@ -140,15 +140,11 @@ def pluggable(key, plugin_name=None, unpack=None):
 
     :param plugin_name: The name of the category of the plugin endpoint
     :type plugin_name: str
-    :param unpack: Optional callable to get the desired node out of the plugin, by
-      default the plugin should be the node class itself.
-    :type unpack: callable
     """
 
     def inner_decorator(node_cls):
         node_cls._config_plugin_name = plugin_name
         node_cls._config_plugin_key = key
-        node_cls._config_plugin_unpack = unpack
         class_attr = ConfigurationAttribute(type=str, required=True)
         setattr(node_cls, key, class_attr)
         return node(node_cls, pluggable=True)
@@ -264,6 +260,11 @@ def _hasattr(instance, name):
 
 
 class ConfigurationAttribute:
+    """
+    Base implementation of all the different configuration attributes. Call the factory
+    function :func:`.attr` instead.
+    """
+
     def __init__(
         self,
         type=None,
@@ -292,34 +293,59 @@ class ConfigurationAttribute:
             return _setattr(instance, self.attr_name, None)
         try:
             value = self.type(value, _parent=instance, _key=self.attr_name)
-        except CastError:
+            self.flag_dirty(instance)
+        except (RequirementError, CastError) as e:
+            if not e.node:
+                e.node, e.attr = instance, self.attr_name
             raise
-        except:
+        except Exception as e:
             raise CastError(
-                "Couldn't cast '{}' into {}".format(value, self.type.__name__)
+                f"Couldn't cast '{value}' into {self.type.__name__}",
+                instance,
+                self.attr_name,
             )
         # The value was cast to its intented type and the new value can be set.
         _setattr(instance, self.attr_name, value)
 
     def _get_type(self, type):
         # Determine type of the attribute
-        if not type and self.default:
+        if not type and self.default is not None:
             if self.should_call_default():
                 t = _type(self.default())
             else:
                 t = _type(self.default)
         else:
             t = type or str
-        return _wrap_handler_pk(t)
+        # This call wraps the type handler so that it accepts all reserved keyword args
+        # like `_parent` and `_key`
+        t = _wrap_reserved(t)
+        return t
 
     def get_node_name(self, instance):
         return instance.get_node_name() + "." + self.attr_name
 
     def tree(self, instance):
         val = _getattr(instance, self.attr_name)
+        # Allow subnodes and other class values to convert themselves to their tree
+        # representation
         if hasattr(val, "__tree__"):
             val = val.__tree__()
+        # Check if the type handler specifies any inversion function to convert tree
+        # values back to how they were found in the document.
+        if hasattr(self.type, "__inv__"):
+            val = self.type.__inv__(val)
         return val
+
+    def flag_dirty(self, instance):
+        instance._config_state[self.attr_name] = False
+        if self.attr_name not in instance._config_attr_order:
+            instance._config_attr_order.append(self.attr_name)
+
+    def is_dirty(self, instance):
+        return not instance._config_state.get(self.attr_name, True)
+
+    def flag_pristine(self, instance):
+        instance._config_state[self.attr_name] = True
 
     def get_default(self):
         return self.default() if self.should_call_default() else self.default
@@ -327,29 +353,6 @@ class ConfigurationAttribute:
     def should_call_default(self):
         cdf = self.call_default
         return cdf or (cdf is None and callable(self.default))
-
-
-def _wrap_handler_pk(t):
-    # Inspect the signature and wrap the typecast in a wrapper that will accept and
-    # strip the missing 'key' kwarg
-    try:
-        sig = signature(t)
-        params = sig.parameters
-    except:
-        params = []
-
-    pass_key = "_key" in params
-    pass_parent = "_parent" in params
-    if pass_key and pass_parent:
-        return t
-    header = "def type_handler(value, *args, _parent=None, _key=None, **kwargs):\n"
-    keypass = ", _key=_key" if pass_key else ""
-    parentpass = ", _parent=_parent" if pass_parent else ""
-    wrap = f" return orig(value, *args{parentpass}{keypass}, **kwargs)"
-    exec(header + wrap, {"orig": t}, bait := locals())
-    type_handler = bait["type_handler"]
-    type_handler.__name__ = t.__name__
-    return type_handler
 
 
 class cfglist(_list):
@@ -386,7 +389,9 @@ class ConfigurationListAttribute(ConfigurationAttribute):
                     _cfglist[i]._config_index = i
                 except:
                     pass
-        except (RequirementError, CastError):
+        except (RequirementError, CastError) as e:
+            if not e.node:
+                e.node, e.attr = _cfglist, i
             raise
         except:
             raise CastError(
@@ -427,7 +432,11 @@ class ConfigurationDictAttribute(ConfigurationAttribute):
         super().__init__(*args, **kwargs)
 
     def __set__(self, instance, value, _key=None):
-        _setattr(instance, self.attr_name, self.fill(value, _parent=instance, _key=_key))
+        _setattr(
+            instance,
+            self.attr_name,
+            self.fill(value, _parent=instance, _key=_key or self.attr_name),
+        )
 
     def fill(self, value, _parent, _key=None):
         _cfgdict = cfgdict(value or _dict())
@@ -437,7 +446,9 @@ class ConfigurationDictAttribute(ConfigurationAttribute):
         try:
             for ckey, value in _cfgdict.items():
                 _cfgdict[ckey] = self.child_type(value, _parent=_cfgdict, _key=ckey)
-        except (RequirementError, CastError):
+        except (RequirementError, CastError) as e:
+            if not e.node:
+                e.node, e.attr = _cfgdict, ckey
             raise
         except:
             raise CastError(
@@ -655,20 +666,54 @@ def _collect_kv(n, d, k, v):
 
 
 class ConfigurationAttributeCatcher(ConfigurationAttribute):
-    def __init__(self, *args, type=str, initial=_dict, catch=_collect_kv, **kwargs):
+    def __init__(
+        self,
+        *args,
+        type=str,
+        initial=_dict,
+        catch=_collect_kv,
+        contains=None,
+        tree_cb=None,
+        **kwargs,
+    ):
         super().__init__(*args, type=type, default=initial, call_default=True, **kwargs)
-        self.caught = catch
+        self.catch_callback = catch
+        if contains is not None:
+            self.contains = contains
+        if tree_cb is not None:
+            self.tree_callback = tree_cb
 
     def __set__(self, instance, value):
         _setattr(instance, self.attr_name, value)
 
+    def get_caught(self, instance):
+        if not hasattr(instance, f"_{self.attr_name}_caught"):
+            setattr(instance, f"_{self.attr_name}_caught", {})
+        return getattr(instance, f"_{self.attr_name}_caught")
+
     def __catch__(self, node, key, value):
         # Try to cast to our type, if it fails it will be caught by whoever is asking us
         # to catch this and know we don't catch this value.
-        value = self.type(value, _parent=node, _key=key)
+        cast = self.type(value, _parent=node, _key=key)
         # If succesfully cast, catch this value by executing our catch callback.
-        self.caught(node, _getattr(node, self.attr_name), key, value)
+        self.catch_callback(node, _getattr(node, self.attr_name), key, cast)
+        self.get_caught(node)[key] = cast
 
     def tree(self, instance):
-        val = _getattr(instance, self.attr_name).items()
-        return {k: v if not hasattr(v, "__tree__") else v.__tree__() for k, v in val}
+        # The default attr catcher collects what it catches in a dict. When we want to
+        # build the config tree again these values should be placed back in their
+        # original keys. We don't want to store our caught values in the config file. To
+        # do so we use the `tree_callback` instead.
+        return None
+
+    def contains(self, instance, key):
+        return key in self.get_caught(instance)
+
+    def tree_callback(self, instance, key):
+        # When building the config tree the values that were caught can't be found in the
+        # attrs and the tree builder will check all catch-attr's `contains` methods and
+        # calls the right tree_callback to fetch the value.
+        value = _getattr(instance, self.attr_name)[key]
+        if hasattr(value, "__tree__"):
+            value = value.__tree__()
+        return value

@@ -34,7 +34,7 @@ _storage_interfaces = {
 
 def get_engines():
     """
-        Get a dictionary of all available storage engines.
+    Get a dictionary of all available storage engines.
     """
     return plugins.discover("engines")
 
@@ -45,8 +45,8 @@ _engines = {}
 
 class NotSupported:
     """
-        Utility class that throws a ``NotSupported`` error when it is used. This is the default
-        "implementation" of every storage feature that isn't provided by an engine.
+    Utility class that throws a ``NotSupported`` error when it is used. This is the default
+    "implementation" of every storage feature that isn't provided by an engine.
     """
 
     def __init__(self, engine, operation):
@@ -93,21 +93,21 @@ for engine_name, engine_module in _available_engines.items():
 
 class Storage:
     """
-        Factory class that produces all of the features and shims the functionality of the
-        underlying engine.
+    Factory class that produces all of the features and shims the functionality of the
+    underlying engine.
     """
 
     def __init__(self, engine, root):
         """
-            Create a Storage provider based on a specific `engine` uniquely identified
-            by the root object.
+        Create a Storage provider based on a specific `engine` uniquely identified
+        by the root object.
 
-            :param engine: The name of the storage engine.
-            :type engine: str
-            :param root: An object that uniquely describes the storage, such as a filename
-              or path. The value to be provided depends on the engine. For the hdf5 engine
-              the filename has to be provided.
-             :type root: object
+        :param engine: The name of the storage engine.
+        :type engine: str
+        :param root: An object that uniquely describes the storage, such as a filename
+          or path. The value to be provided depends on the engine. For the hdf5 engine
+          the filename has to be provided.
+         :type root: object
         """
         if engine not in _available_engines:
             raise UnknownStorageEngineError(
@@ -133,36 +133,36 @@ class Storage:
 
     def exists(self):
         """
-            Check whether the storage exists at the root.
+        Check whether the storage exists at the root.
         """
         return self._engine.exists()
 
     def create(self):
         """
-            Create the minimal requirements at the root for other features to function and
-            for the existence check to pass.
+        Create the minimal requirements at the root for other features to function and
+        for the existence check to pass.
         """
         self._engine.create()
 
     def move(self, new_root):
         """
-            Move the storage to a new root.
+        Move the storage to a new root.
         """
         self._engine.move(new_root)
         self._root = new_root
 
     def remove(self):
         """
-            Remove the storage and all data contained within. This is an irreversible
-            destructive action!
+        Remove the storage and all data contained within. This is an irreversible
+        destructive action!
         """
         self._engine.remove()
 
     def load(self):
         """
-            Load a scaffold from the storage.
+        Load a scaffold from the storage.
 
-            :returns: :class:`Scaffold <.core.Scaffold>`
+        :returns: :class:`Scaffold <.core.Scaffold>`
         """
         from ..core import Scaffold
 
@@ -171,15 +171,15 @@ class Storage:
 
     def load_config(self):
         """
-            Load the configuration object from the storage.
+        Load the configuration object from the storage.
 
-            :returns: :class:`Configuration <.config.Configuration>`
+        :returns: :class:`Configuration <.config.Configuration>`
         """
         return self._ConfigStore(self._engine).load()
 
     def store_config(self, config):
         """
-            Store a configuration object in the storage.
+        Store a configuration object in the storage.
         """
         self._ConfigStore(self._engine).store(config)
 
@@ -196,21 +196,21 @@ class Storage:
 
     def get_placement_set(self, type):
         """
-            Return a PlacementSet for the given type.
+        Return a PlacementSet for the given type.
 
-            :param type: Specific cell type.
-            :type type: :class:`CellType <.models.CellType>`
-            :returns: :class:`PlacementSet <.storage.interfaces.PlacementSet>`
+        :param type: Specific cell type.
+        :type type: :class:`CellType <.models.CellType>`
+        :returns: :class:`PlacementSet <.storage.interfaces.PlacementSet>`
         """
         return self._PlacementSet(self._engine, type)
 
     def init(self, scaffold):
         """
-            Initialize the storage to be ready for use by the specified scaffold:
+        Initialize the storage to be ready for use by the specified scaffold:
 
-            * Create empty PlacementSets for each cell type if they're missing.
+        * Create empty PlacementSets for each cell type if they're missing.
 
-            (That's it, for now ^_^)
+        (That's it, for now ^_^)
         """
         # Make sure that at least an empty PlacementSet exists for each cell type.
         for cell_type in scaffold.get_cell_types():
@@ -219,20 +219,20 @@ class Storage:
 
     def Label(self, label):
         """
-            Factory method for the Label feature. The label feature can be used to tag
-            cells with labels and to retrieve or filter by sets of labelled cells.
+        Factory method for the Label feature. The label feature can be used to tag
+        cells with labels and to retrieve or filter by sets of labelled cells.
 
-            :returns: :class:`Label <.storage.interfaces.Label>`
+        :returns: :class:`Label <.storage.interfaces.Label>`
         """
         return self._Label(self._engine, label)
 
     def create_filter(self, **kwargs):
         """
-            Create a :class:`Filter <.storage.interfaces.Filter>`. Each keyword argument
-            given to this function must match a supported filter type. The values of the
-            keyword arguments are then set as a filter of that type.
+        Create a :class:`Filter <.storage.interfaces.Filter>`. Each keyword argument
+        given to this function must match a supported filter type. The values of the
+        keyword arguments are then set as a filter of that type.
 
-            Filters need to be activated in order to exert their filtering function.
+        Filters need to be activated in order to exert their filtering function.
         """
         self.assert_support("Filter")
         return self._Filter.create(self._engine, **kwargs)
@@ -244,7 +244,7 @@ class Storage:
 
 def view_support(engine=None):
     """
-        Return which storage engines support which features.
+    Return which storage engines support which features.
     """
     if engine is None:
         return {

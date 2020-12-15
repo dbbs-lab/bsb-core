@@ -54,7 +54,7 @@ def compile_new(node_cls, dynamic=False, pluggable=False, root=False):
             return primer
         instance = object.__new__(ncls)
         _set_pk(instance, _parent, _key)
-        if not isinstance(instance, node_cls):
+        if instance.__class__ is not node_cls:
             instance.__init__(*args, **kwargs)
         return instance
 
@@ -64,9 +64,15 @@ def compile_new(node_cls, dynamic=False, pluggable=False, root=False):
 def _set_pk(obj, parent, key):
     obj._config_parent = parent
     obj._config_key = key
+    if not hasattr(obj, "_config_attr_order"):
+        obj._config_attr_order = []
+    if not hasattr(obj, "_config_state"):
+        obj._config_state = {}
     for a in _get_class_config_attrs(obj.__class__).values():
         if a.key:
-            a.__set__(obj, key)
+            from ._attrs import _setattr
+
+            _setattr(obj, a.attr_name, key)
 
 
 def compile_init(cls, root=False):
@@ -80,8 +86,6 @@ def compile_init(cls, root=False):
         init = dud
 
     def __init__(self, *args, _parent=None, _key=None, **kwargs):
-        attrs = _get_class_config_attrs(self.__class__)
-        catch_attrs = [a for a in attrs.values() if hasattr(a, "__catch__")]
         primer = args[0] if args else None
         if isinstance(primer, self.__class__):
             return
@@ -89,6 +93,10 @@ def compile_init(cls, root=False):
             args = args[1:]
             (primed := primer.copy()).update(kwargs)
             kwargs = primed
+        attrs = _get_class_config_attrs(self.__class__)
+        keys = list(kwargs.keys())
+        self._config_attr_order = list(kwargs.keys())
+        catch_attrs = [a for a in attrs.values() if hasattr(a, "__catch__")]
         leftovers = kwargs.copy()
         values = {}
         missing_requirements = {}
@@ -97,7 +105,7 @@ def compile_init(cls, root=False):
             value = values[name] = leftovers.pop(name, None)
             try:
                 if value is None and attr.required(kwargs):
-                    raise RequirementError(f"Missing required attribute '{name}'.")
+                    raise RequirementError(f"Missing required attribute '{name}'")
             except RequirementError as e:
                 # Catch both our own and possible `attr.required` RequirementErrors and
                 # set the node detail before passing it on
@@ -106,10 +114,14 @@ def compile_init(cls, root=False):
         for attr in attrs.values():
             name = attr.attr_name
             if attr.key and attr.attr_name not in kwargs:
-                value = self._config_key
+                setattr(self, name, self._config_key)
+                attr.flag_pristine(self)
             elif (value := values[name]) is None:
-                value = attr.get_default()
-            setattr(self, name, value)
+                setattr(self, name, attr.get_default())
+                attr.flag_pristine(self)
+            else:
+                setattr(self, name, value)
+                attr.flag_dirty(self)
         # # TODO: catch attrs
         for key, value in leftovers.items():
             try:
@@ -139,7 +151,9 @@ def wrap_root_init(init):
 
 
 def _bubble_up_exc(exc):
-    errr.wrap(type(exc), exc, append=" in " + exc.node.get_node_name())
+    node = " in " + exc.node.get_node_name() if hasattr(exc, "node") and exc.node else ""
+    attr = f".{exc.attr}" if hasattr(exc, "attr") and exc.attr else ""
+    errr.wrap(type(exc), exc, append=node + attr)
 
 
 def _bubble_up_warnings(log):
@@ -147,7 +161,8 @@ def _bubble_up_warnings(log):
         m = w.message
         if hasattr(m, "node"):
             # Unpack the inner Warning that was passed instead of the warning msg
-            warn(str(m) + " in " + m.node.get_node_name(), type(m))
+            attr = f".{m.attr.attr_name}" if hasattr(m, "attr") else ""
+            warn(str(m) + " in " + m.node.get_node_name() + attr, type(m))
         else:
             warn(str(m), w)
 
@@ -200,7 +215,6 @@ def _try_catch(catch, node, key, value):
     try:
         return catch(node, key, value)
     except:
-        raise
         raise UncaughtAttributeError()
 
 
@@ -210,7 +224,7 @@ def _get_dynamic_class(node_cls, kwargs):
     if attr_name in kwargs:
         loaded_cls_name = kwargs[attr_name]
     elif dynamic_attr.required(kwargs):
-        raise RequirementError(f"Dynamic node must contain a '{attr_name}' attribute.")
+        raise RequirementError(f"Dynamic node must contain a '{attr_name}' attribute")
     elif dynamic_attr.should_call_default():  # pragma: nocover
         loaded_cls_name = dynamic_attr.default()
     else:
@@ -326,11 +340,26 @@ def make_dictable(node_cls):
 
 def make_tree(node_cls):
     def get_tree(instance):
-        return {
-            name: tree
-            for name, attr in instance.__class__._config_attrs.items()
-            if (tree := attr.tree(instance)) is not None
-        }
+        attrs = _get_class_config_attrs(instance.__class__)
+        catch_attrs = [a for a in attrs.values() if hasattr(a, "__catch__")]
+        tree = {}
+        for name in instance._config_attr_order:
+            if name in attrs:
+                attr = attrs[name]
+                if attr.is_dirty(instance):
+                    value = attr.tree(instance)
+                else:
+                    value = None
+            else:
+                for catcher in catch_attrs:
+                    if catcher.contains(instance, name):
+                        value = catcher.tree_callback(instance, name)
+                        break
+                else:
+                    value = getattr(instance, name, None)
+            if value is not None:
+                tree[name] = value
+        return tree
 
     node_cls.__tree__ = get_tree
 
