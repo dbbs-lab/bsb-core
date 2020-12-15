@@ -68,6 +68,14 @@ class OptionsModule(types.ModuleType):
         else:
             _options[tag] = option
 
+    def _remove_tags(self, *tags):
+        """
+        Removes tags. Testing purposes only, undefined behavior.
+        """
+        global _options, _option_values
+        for tag in tags:
+            del _options[tag]
+
     def set_module_option(self, tag, value):
         global _option_values, _options
 

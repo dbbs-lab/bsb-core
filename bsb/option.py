@@ -196,5 +196,16 @@ class BsbOption:
         """
         from . import options
 
+        o = cls()
         for tag in cls.script.tags:
-            options.register_module_option(tag, cls)
+            options.register_module_option(tag, o)
+
+    @classmethod
+    def _unregister(cls):
+        """
+        Remove this option class from the :mod:`bsb.options` module, not part of the
+        public API as removing options is undefined behavior but useful for testing.
+        """
+        from . import options
+
+        options._remove_tags(*cls.script.tags)
