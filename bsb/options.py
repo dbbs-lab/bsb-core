@@ -22,19 +22,23 @@ be read from the ``MY_SETTING`` environment variable.
 """
 
 import sys, types
-from .exceptions import OptionError as OptionError
+from .exceptions import OptionError, ReadOnlyOptionError
 from .plugins import discover
 
 _options = {}
 _option_values = {}
 
 
-def _tag(tag):
+def _get_option(tag):
     global _options
 
     if tag not in _options:
         raise OptionError(f"Unknown option '{tag}'")
-    return _options[tag].__class__.script.tags[0]
+    return _options[tag]
+
+
+def _get_tag(tag):
+    return _get_option(tag).__class__.script.tags[0]
 
 
 class OptionsModule(types.ModuleType):
@@ -62,13 +66,15 @@ class OptionsModule(types.ModuleType):
             _options[tag] = option
 
     def set_module_option(self, tag, value):
-        global _option_values
+        global _option_values, _options
 
-        _option_values[_tag(tag)] = value
+        if (option := _get_option(tag)).readonly:
+            raise ReadOnlyOptionError("'%tag%' is a read-only option.", option, tag)
+        _option_values[_get_tag(tag)] = value
 
     def get_module_option(self, tag):
         global _option_values, _options
-        tag = _tag(tag)
+        tag = _get_tag(tag)
 
         if tag in _option_values:
             return _option_values[tag]
@@ -78,7 +84,7 @@ class OptionsModule(types.ModuleType):
     def is_module_option_set(self, tag):
         global _option_values
 
-        return _tag(tag) in _option_values
+        return _get_tag(tag) in _option_values
 
     def load_options(self):
         return discover("options")

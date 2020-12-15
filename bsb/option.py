@@ -74,6 +74,7 @@ class BsbOption:
         flag=False,
         list=False,
         inverted=False,
+        readonly=False,
         action=False,
         **kwargs,
     ):
@@ -85,6 +86,7 @@ class BsbOption:
         cls.is_flag = flag
         cls.inverted_flag = inverted
         cls.use_extend = list
+        cls.readonly = readonly
         cls.use_action = action
 
     def get(self):

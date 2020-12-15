@@ -59,7 +59,9 @@ _t(
             CircularMorphologyError=_e("morphology", "component").set(list_details=True),
             CompartmentError=_e(),
         ),
-        OptionError=_e(),
+        OptionError=_e(
+            ReadOnlyOptionError=_e("option", "tag"),
+        ),
         TreeError=_e(),
         VoxelizationError=_e(
             VoxelTransformError=_e(),
