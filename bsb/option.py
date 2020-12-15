@@ -100,8 +100,9 @@ class BsbOption:
     def get_default(self):
         return None
 
-    def get_cli_tags(self):
-        return [("--" if len(t) != 1 else "-") + t for t in self.__class__.cli.tags]
+    @classmethod
+    def get_cli_tags(cls):
+        return [("--" if len(t) != 1 else "-") + t for t in cls.cli.tags]
 
     def add_to_parser(self, parser, level):
         kwargs = {}
