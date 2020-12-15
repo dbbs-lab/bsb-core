@@ -40,7 +40,7 @@ class VersionFlag(
 
         return __version__
 
-    def action(self):
+    def action(self, namespace):
         report(self.get(), level=1)
 
 
