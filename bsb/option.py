@@ -119,3 +119,10 @@ class BsbOption:
             kwargs["const"] = self.action
 
         parser.add_argument(*self.get_cli_tags(), **kwargs)
+
+    @classmethod
+    def register(cls):
+        from . import options
+
+        for tag in cls.script.tags:
+            options.register_module_option(tag, cls)
