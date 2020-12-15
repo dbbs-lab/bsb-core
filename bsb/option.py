@@ -74,6 +74,7 @@ class BsbOption:
         flag=False,
         list=False,
         inverted=False,
+        action=False,
         **kwargs,
     ):
         cls.name = name
@@ -84,6 +85,7 @@ class BsbOption:
         cls.is_flag = flag
         cls.inverted_flag = inverted
         cls.use_extend = list
+        cls.use_action = action
 
     def get(self):
         cls = self.__class__
@@ -111,5 +113,9 @@ class BsbOption:
         if self.use_extend:
             kwargs["action"] = "extend"
             kwargs["nargs"] = "+"
+        if self.use_action:
+            kwargs["dest"] = "internal_action_list"
+            kwargs["action"] = "append_const"
+            kwargs["const"] = self.action
 
         parser.add_argument(*self.get_cli_tags(), **kwargs)
