@@ -5,8 +5,10 @@ class TestCLI(unittest.TestCase):
     def test_availability(self):
         import bsb, subprocess
 
-        our_version = bytes(bsb.__version__ + "\n", encoding="utf-8")
-        cli_version = subprocess.check_output("bsb --version".split())
+        our_version = bytes(bsb.__version__, encoding="utf-8")
+        # Split on newlines to ignore any prepended spammy output in case of environment
+        # specific warnings when running BSB commands.
+        cli_version = subprocess.check_output("bsb --version".split()).split(b"\n")[-2]
         self.assertEqual(our_version, cli_version, "Could not access the BSB through CLI")
 
     def test_defaults(self):
