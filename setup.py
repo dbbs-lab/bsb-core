@@ -59,6 +59,7 @@ setuptools.setup(
         "bsb.options": [
             "config = bsb._options:config",
             "verbosity = bsb._options:verbosity",
+            "version = bsb._options:version",
         ],
     },
     python_requires="~=3.8",
