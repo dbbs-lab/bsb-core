@@ -1,7 +1,15 @@
+"""
+This module contains the classes required to construct options.
+"""
 import os
 
 
 class OptionDescriptor:
+    """
+    Base option property descriptor. Can be inherited from to create a cascading property
+    such as the default CLI, env & script descriptors.
+    """
+
     def __init_subclass__(cls, slug=None, **kwargs):
         super().__init_subclass__(**kwargs)
         cls.slug = slug
@@ -22,10 +30,18 @@ class OptionDescriptor:
 
 
 class CLIOptionDescriptor(OptionDescriptor, slug="cli"):
+    """
+    Descriptor that retrieves its value from the given CLI command arguments.
+    """
+
     pass
 
 
 class EnvOptionDescriptor(OptionDescriptor, slug="env"):
+    """
+    Descriptor that retrieves its value from the environment variables.
+    """
+
     def __get__(self, instance, owner):
         if instance is None:
             return self
@@ -39,6 +55,10 @@ class EnvOptionDescriptor(OptionDescriptor, slug="env"):
 
 
 class ScriptOptionDescriptor(OptionDescriptor, slug="script"):
+    """
+    Descriptor that retrieves and sets its value from/to the :mod:`bsb.options` module.
+    """
+
     def __get__(self, instance, owner):
         if instance is None:
             return self
@@ -64,6 +84,10 @@ class ScriptOptionDescriptor(OptionDescriptor, slug="script"):
 
 
 class BsbOption:
+    """
+    Base option class. Can be subclassed to create new options.
+    """
+
     def __init_subclass__(
         cls,
         name=None,
@@ -72,12 +96,37 @@ class BsbOption:
         script=(),
         description=None,
         flag=False,
-        list=False,
         inverted=False,
+        list=False,
         readonly=False,
         action=False,
         **kwargs,
     ):
+        """
+        Subclass hook that defines the characteristics of the subclassed option class.
+
+        :param name: Unique name for identification
+        :type name: str
+        :param cli: Positional arguments for the :class:`.CLIOptionDescriptor` constructor.
+        :type cli: iterable
+        :param cli: Positional arguments for the :class:`.CLIOptionDescriptor` constructor.
+        :type cli: iterable
+        :param env: Positional arguments for the :class:`.EnvOptionDescriptor` constructor.
+        :type env: iterable
+        :param script: Positional arguments for the :class:`.ScriptOptionDescriptor` constructor.
+        :type script: iterable
+        :param description: Description of the option's purpose for the user.
+        :type description: str
+        :param flag: Indicates that the option is a flag and should toggle on a default off boolean when given.
+        :type flag: boolean
+        :param inverted: Used only for flags. Indicates that the flag is default on and is toggled off when given.
+        :param list: Indicates that the option takes multiple values.
+        :type list: boolean
+        :param readonly: Indicates that an option can be accessed but not be altered from the ``bsb.options`` module.
+        :type readonly: boolean
+        :param action: Indicates that the option should execute its ``action`` method.
+        :type action: boolean
+        """
         cls.name = name
         cls.cli = CLIOptionDescriptor(*cli)
         cls.env = EnvOptionDescriptor(*env)
@@ -90,6 +139,11 @@ class BsbOption:
         cls.use_action = action
 
     def get(self):
+        """
+        Get the option's value. Cascades the script, cli, env & default descriptors together.
+
+        :returns: option value
+        """
         cls = self.__class__
         if cls.script.is_set(self):
             return self.script
@@ -100,13 +154,25 @@ class BsbOption:
         return self.get_default()
 
     def get_default(self):
+        """
+        Override to specify the default value of the option.
+        """
         return None
 
     @classmethod
     def get_cli_tags(cls):
+        """
+        Return the ``argparse`` positional arguments from the tags.
+
+        :returns: ``-x`` or ``--xxx`` for each CLI tag.
+        :rtype: list
+        """
         return [("--" if len(t) != 1 else "-") + t for t in cls.cli.tags]
 
     def add_to_parser(self, parser, level):
+        """
+        Register this option into an ``argparse`` parser.
+        """
         kwargs = {}
         kwargs["help"] = self.description
         kwargs["dest"] = level * "_" + self.name
@@ -125,6 +191,9 @@ class BsbOption:
 
     @classmethod
     def register(cls):
+        """
+        Register this option class into the :mod:`bsb.options` module.
+        """
         from . import options
 
         for tag in cls.script.tags:

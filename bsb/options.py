@@ -89,6 +89,8 @@ class OptionsModule(types.ModuleType):
     def load_options(self):
         return discover("options")
 
+    __mro__ = []
+
 
 om = OptionsModule(__name__)
 excl = ["sys", "types", "OptionError", "OptionsModule", "discover", "om", "excl"]
