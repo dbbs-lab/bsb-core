@@ -92,26 +92,10 @@ class ConfigOption(
 
 class MakeConfigCommand(BaseCommand, name="make-config"):
     def handler(self, context):
-        from ...config import get_config_path
-        from shutil import copy2 as copy_file
-        import os, glob, itertools
+        from ...config import copy_template
 
         args = context.arguments
-        template = args.template
-        path = list(
-            map(
-                os.path.abspath,
-                itertools.chain(get_config_path(), args.__dict__.get("path", ())),
-            )
-        )
-        for d in path:
-            if (files := glob.glob(os.path.join(d, template))) :
-                break
-        else:
-            raise ConfigTemplateNotFoundError(
-                "'%template%' not found in config path %path%", template, path
-            )
-        copy_file(files[0], args.output)
+        copy_template(args.template, args.output, path=args.path or ())
 
     def get_options(self):
         return {}
@@ -124,6 +108,7 @@ class MakeConfigCommand(BaseCommand, name="make-config"):
             help="Additional paths to search for config templates",
             action="extend",
             nargs="+",
+            default=False,
         )
 
 

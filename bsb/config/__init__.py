@@ -98,6 +98,25 @@ class ConfigurationModule:
         plugin_paths = plugins.discover("config.templates")
         return _list(itertools.chain((os.getcwd(),), env_paths, *plugin_paths.values()))
 
+    def copy_template(self, template, output="network_configuration.json", path=None):
+        from shutil import copy2 as copy_file
+        import os, glob, itertools
+
+        path = _list(
+            map(
+                os.path.abspath,
+                itertools.chain(self.get_config_path(), path or ()),
+            )
+        )
+        for d in path:
+            if (files := glob.glob(os.path.join(d, template))) :
+                break
+        else:
+            raise ConfigTemplateNotFoundError(
+                "'%template%' not found in config path %path%", template, path
+            )
+        copy_file(files[0], output)
+
     __all__ = _list(vars().keys() - {"__init__", "__qualname__", "__module__"})
 
 
