@@ -1,6 +1,7 @@
 from . import BaseCommand
 from ...option import BsbOption
 from ...reporting import report
+from ... import config
 import pathlib
 
 
@@ -9,13 +10,19 @@ class ProjectNewCommand(BaseCommand, name="new"):
         return {}
 
     def add_parser_arguments(self, parser):
-        parser.add_argument("project_name", help="Project name & root folder")
+        parser.add_argument(
+            "project_name", nargs="?", help="Project name & root folder", default=""
+        )
         parser.add_argument(
             "path", nargs="?", default=".", help="Project name & root folder"
         )
 
     def handler(self, context):
-        name = context.arguments.project_name
+        name = (
+            context.arguments.project_name
+            or input("Project name [my_model]: ")
+            or "my_model"
+        )
         root = pathlib.Path(context.arguments.path) / name
         try:
             root.mkdir(exist_ok=False)
@@ -23,6 +30,9 @@ class ProjectNewCommand(BaseCommand, name="new"):
             return report(
                 f"Could not create '{root.absolute()}', directory exists.", level=0
             )
+
+        template = input("Config template [template.json]: ") or "template.json"
+        config.copy_template(template, output=root / "network_configuration.json")
 
         # # TODO: decide on "config", "build", "publish"
         for d in (".bsb", name):
