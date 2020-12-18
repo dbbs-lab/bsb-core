@@ -34,7 +34,7 @@ setuptools.setup(
     author_email="robingilbert.deschepper@unipv.it",
     description="A package for modelling morphologically detailed neuronal microcircuits.",
     include_package_data=True,
-    package_data={"bsb": []},
+    package_data={"bsb": ["config/templates/*.json"]},
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/dbbs-lab/bsb",
@@ -45,13 +45,22 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     entry_points={
-        "console_scripts": ["bsb = bsb.cli:bsb_cli"],
+        "console_scripts": ["bsb = bsb.cli:handle_cli"],
         "bsb.adapters": [
             "nest = bsb.simulators.nest",
             "neuron = bsb.simulators.neuron",
         ],
-        "bsb.engines": ["hdf5 = bsb.storage.engines.hdf5"],
+        "bsb.commands": [
+            "compile = bsb.cli.commands._commands:compile",
+            "simulate = bsb.cli.commands._commands:simulate",
+        ],
         "bsb.config.parsers": ["json = bsb.config.parsers.json"],
+        "bsb.config.templates": ["bsb_templates = bsb.config.templates"],
+        "bsb.engines": ["hdf5 = bsb.storage.engines.hdf5"],
+        "bsb.options": [
+            "verbosity = bsb._options:verbosity",
+            "version = bsb._options:version",
+        ],
     },
     python_requires="~=3.8",
     install_requires=requires,

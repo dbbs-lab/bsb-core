@@ -21,3 +21,6 @@ python -c "import neuron; neuron.test()"
 python -m pip install -r requirements.txt
 python -m pip install coverage
 python -m pip install -e .
+echo "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE"
+bsb --version
+echo "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE"

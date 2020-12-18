@@ -4,6 +4,10 @@ _t(
     globals(),
     ScaffoldError=_e(
         SpatialDimensionError=_e(),
+        CLIError=_e(
+            CommandError=_e(),
+            ConfigTemplateNotFoundError=_e("template", "path"),
+        ),
         ConfigurationError=_e(
             ConfigurationFormatError=_e(),
             DynamicClassError=_e(
@@ -56,6 +60,9 @@ _t(
             MorphologyDataError=_e(),
             CircularMorphologyError=_e("morphology", "component").set(list_details=True),
             CompartmentError=_e(),
+        ),
+        OptionError=_e(
+            ReadOnlyOptionError=_e("option", "tag"),
         ),
         TreeError=_e(),
         VoxelizationError=_e(

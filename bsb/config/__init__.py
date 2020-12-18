@@ -6,7 +6,7 @@ decorate your classes and add class attributes using ``x =
 config.attr/dict/list/ref/reflist`` to populate your classes with powerful attributes.
 """
 
-import os, sys
+import os, sys, itertools
 
 _list = list
 from ._attrs import (
@@ -86,6 +86,36 @@ class ConfigurationModule:
         if not parser_name in self._parser_classes:
             raise PluginError("Configuration parser '{}' not found".format(parser_name))
         return self._parser_classes[parser_name]()
+
+    def get_config_path(self):
+        import os
+
+        env_paths = os.environ.get("BSB_CONFIG_PATH", None)
+        if env_paths is None:
+            env_paths = ()
+        else:
+            env_paths = env_paths.split(":")
+        plugin_paths = plugins.discover("config.templates")
+        return _list(itertools.chain((os.getcwd(),), env_paths, *plugin_paths.values()))
+
+    def copy_template(self, template, output="network_configuration.json", path=None):
+        from shutil import copy2 as copy_file
+        import os, glob, itertools
+
+        path = _list(
+            map(
+                os.path.abspath,
+                itertools.chain(self.get_config_path(), path or ()),
+            )
+        )
+        for d in path:
+            if (files := glob.glob(os.path.join(d, template))) :
+                break
+        else:
+            raise ConfigTemplateNotFoundError(
+                "'%template%' not found in config path %path%", template, path
+            )
+        copy_file(files[0], output)
 
     __all__ = _list(vars().keys() - {"__init__", "__qualname__", "__module__"})
 
