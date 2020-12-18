@@ -12,6 +12,7 @@ class CellTrace:
     def __init__(self, meta, data):
         self.meta = meta
         self.data = data
+        self.color = None
 
 
 class CellTraces:
@@ -868,7 +869,7 @@ def plot_traces(traces, fig=None, show=True, legend=True, cutoff=0, x=None):
                     name=legends[j],
                     showlegend=showlegend,
                     mode="lines",
-                    marker=dict(color=traces.colors[j]),
+                    marker=dict(color=trace.color or traces.colors[j]),
                 ),
                 col=1,
                 row=i + 1,
