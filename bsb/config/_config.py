@@ -33,7 +33,7 @@ class Configuration:
     def default(cls):
         conf = cls(
             storage={"engine": "hdf5"},
-            network={"x": 200, "z": 200},
+            network={"x": 200, "y": 200, "z": 200},
             cell_types={},
             partitions={},
             connection_types={},

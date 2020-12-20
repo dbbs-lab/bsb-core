@@ -28,6 +28,7 @@ class StorageNode:
 @node
 class NetworkNode:
     x = attr(type=float, required=True)
+    y = attr(type=float, required=True)
     z = attr(type=float, required=True)
 
 
