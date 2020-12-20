@@ -66,7 +66,7 @@ class TestJsonRef(unittest.TestCase):
         self.assertTrue(str(parser.references[0]).startswith("<json ref '"))
         self.assertTrue(
             str(parser.references[0]).endswith(
-                "/bsb/tests/parser_tests/interdoc_refs.json#/target'>"
+                "/tests/parser_tests/interdoc_refs.json#/target'>"
             )
         )
 
