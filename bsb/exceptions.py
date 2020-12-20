@@ -25,6 +25,9 @@ _t(
             ),
             UnknownConfigAttrError=_e("attributes"),
         ),
+        TopologyError=_e(
+            UnmanagedPartitionError=_e(),
+        ),
         TypeHandlingError=_e(
             NoneReferenceError=_e(),
             InvalidReferenceError=_e("value"),
