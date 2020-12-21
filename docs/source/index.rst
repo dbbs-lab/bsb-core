@@ -25,6 +25,13 @@ Welcome to DBBS Cerebellum Scaffold's documentation!
 
    config/configuration-toc
 
+
+.. toctree::
+  :maxdepth: 2
+  :caption: CLI
+
+  cli/cli-toc
+
 .. toctree::
    :maxdepth: 2
    :caption: References

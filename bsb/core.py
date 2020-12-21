@@ -270,7 +270,7 @@ class Scaffold:
         for hook in self.configuration.after_connect_hooks.values():
             hook.after_connectivity()
 
-    def compile_network(self):
+    def compile(self):
         """
         Run all steps in the scaffold sequence to obtain a full network.
         """

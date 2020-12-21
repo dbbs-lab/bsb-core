@@ -1,0 +1,50 @@
+{
+  "name": "Empty template",
+  "storage": {
+    "engine": "hdf5",
+    "root": "template.hdf5"
+  },
+  "network": {
+    "x": 400.0,
+    "z": 400.0
+  },
+  "regions": {
+    "brain_region": {}
+  },
+  "partitions": {
+    "base_layer": {
+      "type": "layer",
+      "thickness": 100,
+      "region": "brain_region"
+    }
+  },
+  "cell_types": {
+    "base_type": {
+      "placement": {
+        "cls": "bsb.placement.ParticlePlacement",
+        "layer": "base_layer",
+        "density": 3.9e-4
+      },
+      "spatial": {
+        "radius": 2.5
+      },
+      "plotting": {
+        "display_label": "Template cell",
+        "color": "#E62314",
+        "opacity": 0.5
+      }
+    }
+  },
+  "after_placement": {
+
+  },
+  "connection_types": {
+
+  },
+  "after_connectivity": {
+
+  },
+  "simulations": {
+
+  }
+}
