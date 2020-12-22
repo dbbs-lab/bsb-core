@@ -108,126 +108,24 @@ class Scaffold:
         self.storage.init(self)
         self.configuration._bootstrap(self)
 
-    def _intialise_components(self):
+    def place_cell_types(self, types=None):
         """
-        Initialise all of the components of the scaffold.
-
-        The configuration step parses the configuration string into scaffold
-        components such as layers, cell types, simulations, ... The initialisation
-        step then does the following:
-
-        * Hand each component a reference to the scaffold they're a part of.
-        * Run the component specific validation (call ``component.validate``)
-        * Boot each component. (call ``component.boot``)
+        Run placement strategies.
         """
-        # Initialise the components now that the scaffoldInstance is available
-        self._initialise_layers()
-        self._initialise_cells()
-        self._initialise_morphologies()
-        self._initialise_placement_strategies()
-        self._initialise_connection_types()
-        self._initialise_simulations()
-        self._initialise_hooks()
+        if types is None:
+            types = CellType.resolve_order(self.cell_types)
+        pool = self.create_pool(write=True)
+        for cell_type in types:
+            cell_type.placement.queue(cell_type, pool, self.network.chunk_size)
+        pool.execute()
 
-    def report(self, message, level=2, ongoing=False, token=None):
+    def place_cell_type(self, type):
         """
-        Send a message to the appropriate output channel.
-
-        :param message: Text message to send.
-        :type message: string
-        :param level: Verbosity level of the message.
-        :type level: int
-        :param ongoing: The message is part of an ongoing progress report. This replaces the endline (`\\n`) character with a carriage return (`\\r`) character
-        :deprecated: Use :func:`.reporting.report`
+        Run a single placement strategy.
         """
-        std_warn("Deprecated in favor of `bsb.reporting.report`.", UserDeprecationWarning)
-        report(message, level=level, ongoing=ongoing)
-
-    def warn(self, message, category=None):
-        """
-        Send a warning.
-
-        :param message: Warning message
-        :type message: string
-        :param category: The class of the warning.
-        :deprecated: Use :func:`.reporting.warn`
-        """
-        std_warn("Deprecated in favor of `bsb.reporting.warn`.", UserDeprecationWarning)
-        warn(message, category)
-
-    def _intialise_simulators(self):
-        self.simulators = self.configuration.simulators
-
-    def _initialise_cells(self):
-        for cell_type in self.configuration.cell_types.values():
-            cell_type.initialise(self)
-
-    def _initialise_layers(self):
-        for layer in self.configuration.layers.values():
-            layer.initialise(self)
-
-    def _initialise_placement_strategies(self):
-        for placement in self.configuration.placement_strategies.values():
-            placement.initialise(self)
-
-    def _initialise_connection_types(self):
-        for connection_type in self.configuration.connection_types.values():
-            connection_type.initialise(self)
-            # Wrap the connect function.
-            connection_type._wrap_connect()
-
-    def _initialise_morphologies(self):
-        for geometry in self.configuration.morphologies.values():
-            geometry.initialise(self)
-
-    def _initialise_hooks(self):
-        for hook in self.configuration.after_placement_hooks.values():
-            hook.initialise(self)
-        for hook in self.configuration.after_connect_hooks.values():
-            hook.initialise(self)
-
-    def _initialise_simulations(self):
-        for simulation in self.configuration.simulations.values():
-            self._initialise_simulation(simulation)
-
-    def _initialise_simulation(self, simulation):
-        simulation.initialise(self)
-        for sim_cell in simulation.cell_models.values():
-            sim_cell.initialise(self)
-        for sim_connection in simulation.connection_models.values():
-            sim_connection.initialise(self)
-        for device in simulation.devices.values():
-            device.initialise(self)
-
-    def place_cell_types(self):
-        """
-        Run the placement strategies of all cell types.
-        """
-        sorted_cell_types = CellType.resolve_order(self.configuration.cell_types)
-        for cell_type in sorted_cell_types:
-            self.place_cell_type(cell_type)
-
-    def place_cell_type(self, cell_type):
-        """
-        Place a cell type.
-        """
-        # Place cell type according to PlacementStrategy
-        cell_type.placement.place()
-        if cell_type.entity:
-            entities = self.entities_by_type[cell_type.name]
-            report(
-                "Finished placing {} {} entities.".format(len(entities), cell_type.name),
-                level=2,
-            )
-        else:
-            # Get the placed cells
-            cells = self.cells_by_type[cell_type.name][:, 2:5]
-            # Construct a tree of the placed cells
-            self.trees.cells.create_tree(cell_type.name, cells)
-            report(
-                "Finished placing {} {} cells.".format(len(cells), cell_type.name),
-                level=2,
-            )
+        if type in self.cell_types:
+            type = self.cell_types[type]
+        self.place_cell_types([type])
 
     def connect_cell_types(self):
         """
