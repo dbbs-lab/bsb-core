@@ -2,7 +2,7 @@ from . import attr, list, dict, node, root, pluggable, slot, catch_all
 from . import types
 from .. import plugins
 from ..exceptions import *
-import scipy.stats.distributions as _distributions, errr
+import scipy.stats.distributions as _distributions, errr, numpy as np
 
 _available_distributions = [
     d
@@ -30,6 +30,14 @@ class NetworkNode:
     x = attr(type=float, required=True)
     y = attr(type=float, required=True)
     z = attr(type=float, required=True)
+    chunk_size = attr(
+        type=types.or_(
+            types.list(type=float, size=3),
+            types.scalar_expand(scalar_type=float, expand=lambda s: np.ones(3) * s),
+        ),
+        default=lambda: [100.0, 100.0, 100.0],
+        call_default=True,
+    )
 
 
 @node
