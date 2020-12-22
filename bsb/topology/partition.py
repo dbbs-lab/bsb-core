@@ -29,6 +29,10 @@ class Partition:
     def layout(self, boundaries):
         return NotImplementedError("Partitions should define a `layout` method")
 
+    @property
+    def volume(self):
+        return np.product(self.boundaries.dimensions)
+
 
 @config.node
 class Layer(Partition, classmap_entry="layer"):
@@ -45,11 +49,7 @@ class Layer(Partition, classmap_entry="layer"):
         call_default=True,
     )
     xz_center = config.attr(type=bool, default=False)
-    z_index = config.attr(type=int, required=lambda s: "stack" in s)
-    volume_scale = config.attr(type=float, required=_size_requirements)
-    position = config.attr(type=types.list(type=float, size=3))
-    volume_dimension_ratio = config.attr(type=types.list(type=float, size=3))
-    scale_from_layers = config.reflist(layer_ref)
+    z_index = config.attr(type=float, default=0)
 
     def get_dependencies(self):
         """
