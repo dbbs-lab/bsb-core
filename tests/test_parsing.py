@@ -64,11 +64,9 @@ class TestJsonRef(unittest.TestCase):
         parser = config.get_parser("json")
         tree, meta = parser.parse(c("doubleref.json"), path=p("doubleref.json"))
         self.assertTrue(str(parser.references[0]).startswith("<json ref '"))
-        self.assertTrue(
-            str(parser.references[0]).endswith(
-                "/tests/parser_tests/interdoc_refs.json#/target'>"
-            )
-        )
+        # Convert windows backslashes
+        wstr = str(parser.references[0]).replace("\\", "/")
+        self.assertTrue(wstr.endswith("/tests/parser_tests/interdoc_refs.json#/target'>"))
 
 
 class TestJsonImport(unittest.TestCase):

@@ -23,7 +23,7 @@ if not os.getenv("READTHEDOCS", False):
     # Add all packages with binary dependencies that cannot be installed on RTD here.
     requires.extend(
         [
-            "rtree-linux==0.9.4",
+            "rtree-linux>=0.9.4",
         ]
     )
 
