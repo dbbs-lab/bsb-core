@@ -17,15 +17,8 @@ requires = [
     "plotly>=4.1.0",
     "colour>=0.1.5",
     "errr>=1.0.0",
+    "rtree>=0.9.6",
 ]
-
-if not os.getenv("READTHEDOCS", False):
-    # Add all packages with binary dependencies that cannot be installed on RTD here.
-    requires.extend(
-        [
-            "rtree-linux>=0.9.4",
-        ]
-    )
 
 setuptools.setup(
     name="bsb",
