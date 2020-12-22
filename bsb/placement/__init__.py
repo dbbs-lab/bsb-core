@@ -1,9 +1,6 @@
 from .strategy import (
     PlacementStrategy,
-    MightBeRelative,
-    MustBeRelative,
     FixedPositions,
-    Layered,
     Entities,
 )
 from .randomwalk import LayeredRandomWalk

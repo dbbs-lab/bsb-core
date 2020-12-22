@@ -1,4 +1,4 @@
-from .strategy import Layered, PlacementStrategy
+from .strategy import PlacementStrategy
 import random, numpy as np
 from ..functions import get_candidate_points, add_y_axis, exclude_index
 from ..reporting import report, warn
@@ -8,7 +8,7 @@ from .. import config
 
 
 @config.node
-class LayeredRandomWalk(Layered, PlacementStrategy):
+class LayeredRandomWalk(PlacementStrategy):
     """
     Implementation of the placement of cells in sublayers via a self avoiding random walk.
     """

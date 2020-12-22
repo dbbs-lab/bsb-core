@@ -1,11 +1,11 @@
-from .strategy import Layered, PlacementStrategy
+from .strategy import PlacementStrategy
 import math, numpy as np
 from .. import config
 from ..config import types
 
 
 @config.node
-class ParallelArrayPlacement(Layered, PlacementStrategy):
+class ParallelArrayPlacement(PlacementStrategy):
     """
     Implementation of the placement of cells in parallel arrays.
     """

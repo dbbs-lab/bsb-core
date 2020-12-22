@@ -1,4 +1,4 @@
-from .strategy import Layered, PlacementStrategy
+from .strategy import PlacementStrategy
 import math, numpy as np
 from ..exceptions import *
 from ..reporting import report, warn

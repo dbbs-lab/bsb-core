@@ -4,7 +4,7 @@
 
 from .. import config
 from ..config import types
-from ..config.refs import region_ref, layer_ref
+from ..config.refs import region_ref, partition_ref
 from ..exceptions import *
 
 

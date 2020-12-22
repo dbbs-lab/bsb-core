@@ -1,10 +1,10 @@
-from .strategy import Layered, PlacementStrategy
+from .strategy import PlacementStrategy
 from ..particles import ParticleSystem
 from ..exceptions import *
 from ..reporting import report, warn
 
 
-class ParticlePlacement(Layered, PlacementStrategy):
+class ParticlePlacement(PlacementStrategy):
 
     casts = {
         "prune": bool,

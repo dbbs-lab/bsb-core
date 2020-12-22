@@ -61,7 +61,7 @@ class RegionalReference(Reference):
 
 region_ref = RegionReference()
 regional_ref = RegionalReference()
-layer_ref = PartitionReference()
+partition_ref = PartitionReference()
 cell_type_ref = CellTypeReference()
 
 __all__ = [k for k in vars().keys() if k.endswith("_ref") or k.endswith("__")]

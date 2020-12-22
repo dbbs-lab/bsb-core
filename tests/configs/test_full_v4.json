@@ -40,10 +40,7 @@
       "z_index": 3
     },
     "io_layer": {
-      "volume_scale": 0.0147,
       "thickness": 15.0,
-      "scale_from_layers": ["granular_layer", "purkinje_layer", "molecular_layer"],
-      "volume_dimension_ratio": [0.5, 1.0, 0.2],
       "region": "inferior_olive",
       "z_index": 0
     }
@@ -52,7 +49,7 @@
     "granule_cell": {
       "placement": {
         "cls": "bsb.placement.LayeredRandomWalk",
-        "layer": "granular_layer",
+        "partitions": ["granular_layer"],
         "density": 3.9e-3,
         "distance_multiplier_min": 0.5,
         "distance_multiplier_max": 0.5
@@ -70,7 +67,7 @@
       "entity": true,
       "placement": {
         "cls": "bsb.placement.Entities",
-        "layer": "granular_layer",
+        "partitions": ["granular_layer"],
         "placement_relative_to": "glomerulus",
         "placement_count_ratio": 0.05
       },
@@ -82,7 +79,7 @@
       "relay": true,
       "placement": {
         "cls": "bsb.placement.LayeredRandomWalk",
-        "layer": "granular_layer",
+        "partitions": ["granular_layer"],
         "density": 3e-4
       },
       "spatial": {
@@ -96,7 +93,7 @@
     "purkinje_cell": {
       "placement": {
         "cls": "bsb.placement.ParallelArrayPlacement",
-        "layer": "purkinje_layer",
+        "partitions": ["purkinje_layer"],
         "planar_density": 0.0017,
         "extension_x": 130.0,
         "extension_z": 3.5,
@@ -116,7 +113,7 @@
     "golgi_cell": {
       "placement": {
         "cls": "bsb.placement.LayeredRandomWalk",
-        "layer": "granular_layer",
+        "partitions": ["granular_layer"],
         "density": 9e-6
       },
       "spatial": {
@@ -130,9 +127,8 @@
     "stellate_cell": {
       "placement": {
         "cls": "bsb.placement.ParticlePlacement",
-        "layer": "molecular_layer",
-        "density": 0.5e-4,
-        "y_restriction": [0.33, 1.00]
+        "partitions": ["molecular_layer"],
+        "density": 0.5e-4
       },
       "spatial": {
         "radius": 4.0
@@ -145,9 +141,8 @@
     "basket_cell": {
       "placement": {
         "cls": "bsb.placement.ParticlePlacement",
-        "layer": "molecular_layer",
-        "density": 0.5e-4,
-        "y_restriction": [0.00, 0.33]
+        "partitions": ["molecular_layer"],
+        "density": 0.5e-4
       },
       "spatial": {
         "radius": 6.0
@@ -160,7 +155,7 @@
     "dcn_cell": {
       "placement": {
         "cls": "bsb.placement.ParticlePlacement",
-        "layer": "dcn_layer",
+        "partitions": ["dcn_layer"],
         "placement_relative_to": "purkinje_cell",
         "placement_count_ratio": 0.090909
       },
@@ -189,7 +184,7 @@
     "io_cell": {
       "placement": {
         "cls": "bsb.placement.ParticlePlacement",
-        "layer": "io_layer",
+        "partitions": ["io_layer"],
         "density": 1.52e-5
       },
       "spatial": {
