@@ -4,6 +4,7 @@ Module for the Region onfiguration nodes.
 
 from .. import config
 from ..config import types, refs
+from ..exceptions import *
 
 
 @config.dynamic(required=False, default="y_stack", auto_classmap=True)
@@ -32,6 +33,10 @@ class Region:
                 p.arrange(self.boundaries)
             else:
                 p.layout(self.boundaries)
+            if not hasattr(p, "boundaries"):
+                raise MissingBoundaryError(
+                    f"{p} did not define any boundaries after layout call."
+                )
 
 
 class RegionGroup(Region, classmap_entry="group"):
@@ -42,13 +47,16 @@ class RegionGroup(Region, classmap_entry="group"):
 class YStack(Region, classmap_entry="y_stack"):
     def arrange(self, boundary):
         stack_height = 0
-        for p in self.partitions:
+        for p in sorted(self.get_dependencies(), key=lambda p: getattr(p, "z_index", 0)):
             if hasattr(p, "arrange"):
-                child_boundaries = p.arrange(boundary.copy())
+                p.arrange(boundary.copy())
             else:
-                child_boundaries = p.layout(boundary.copy())
-            child_boundaries.y += stack_height
-            stack_height += child_boundaries.height
+                p.layout(boundary.copy())
+            if not hasattr(p, "boundaries"):
+                raise MissingBoundaryError(
+                    f"{p} did not define any boundaries after layout call."
+                )
+            p.boundaries.y += stack_height
+            stack_height += p.boundaries.height
         boundary.height = stack_height
-        self.boundary = boundary
-        return boundary
+        self.boundaries = boundary

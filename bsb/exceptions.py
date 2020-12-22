@@ -31,6 +31,9 @@ _t(
         ),
         TopologyError=_e(
             UnmanagedPartitionError=_e(),
+            LayoutError=_e(
+                MissingBoundaryError=_e(),
+            ),
         ),
         TypeHandlingError=_e(
             NoneReferenceError=_e(),

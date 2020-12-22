@@ -58,7 +58,8 @@ class Layer(Partition, classmap_entry="layer"):
         return []
 
     def layout(self, boundaries):
-        return
+        self.boundaries = boundaries
+        boundaries.height = self.thickness
 
     # TODO: Layer stacking
     # TODO: Layer scaling
