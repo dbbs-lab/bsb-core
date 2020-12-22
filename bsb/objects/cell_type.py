@@ -5,6 +5,7 @@
 from .. import config
 from ..config import types
 from ..placement import PlacementStrategy
+from ..helpers import SortableByAfter
 
 
 @config.node
@@ -26,7 +27,7 @@ def _not_an_entity(section):
 
 
 @config.node
-class CellType:
+class CellType(SortableByAfter):
     name = config.attr(key=True)
     placement = config.attr(type=PlacementStrategy, required=True)
     spatial = config.attr(
@@ -38,3 +39,16 @@ class CellType:
 
     def get_placement_set(self):
         return self.scaffold.get_placement_set(self.name)
+
+    @classmethod
+    def get_ordered(cls, objects):
+        return sorted(objects.values(), key=lambda x: x.placement.get_placement_count())
+
+    def has_after(self):
+        return hasattr(self.placement, "after")
+
+    def get_after(self):
+        return None if not self.has_after() else self.placement.after
+
+    def create_after(self):
+        self.placement.after = []

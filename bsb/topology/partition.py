@@ -6,6 +6,7 @@ from .. import config
 from ..config import types
 from ..config.refs import region_ref, partition_ref
 from ..exceptions import *
+import numpy as np
 
 
 def _size_requirements(section):

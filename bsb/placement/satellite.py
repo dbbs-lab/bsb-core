@@ -3,7 +3,7 @@ import math, numpy as np
 from ..exceptions import *
 from ..reporting import report, warn
 from .. import config
-from ..config import types
+from ..config import types, refs
 
 
 @config.node
@@ -16,7 +16,7 @@ class Satellite(PlacementStrategy):
     """
 
     per_planet = config.attr(type=float, default=1.0)
-    planet_types = config.attr(type=types.list(type=str), required=True)
+    planet_types = config.reflist(refs.cell_type_ref, required=True)
 
     def initialise(self, scaffold):
         super().initialise(scaffold)
@@ -38,12 +38,7 @@ class Satellite(PlacementStrategy):
         Takes the sum of the planets and multiplies it with the `per_planet` factor.
         """
         return (
-            sum(
-                [
-                    planet.placement.get_placement_count()
-                    for planet in self.planet_cell_types
-                ]
-            )
+            sum([planet.placement.get_placement_count() for planet in self.planet_types])
             * self.per_planet
         )
 

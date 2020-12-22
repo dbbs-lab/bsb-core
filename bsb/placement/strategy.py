@@ -31,7 +31,7 @@ class PlacementStrategy(abc.ABC):
         return "entities" in self.__class__.__dict__ and self.__class__.entities
 
     def get_placement_count(self):
-        return sum(p.volume * self.density for p in self.partitions)
+        return sum(p.volume * (self.density or 0.001) for p in self.partitions)
 
 
 class FixedPositions(PlacementStrategy):
