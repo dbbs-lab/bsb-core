@@ -1,5 +1,5 @@
 """
-    Module for the Layer configuration node and its dependencies.
+    Module for the Partition configuration nodes and its dependencies.
 """
 
 from .. import config
@@ -24,6 +24,10 @@ def _size_requirements(section):
 )
 class Partition:
     name = config.attr(key=True)
+    region = config.ref(region_ref, populate="partitions", required=True)
+
+    def layout(self, boundaries):
+        return NotImplementedError("Partitions should define a `layout` method")
 
 
 @config.node
@@ -41,12 +45,20 @@ class Layer(Partition, classmap_entry="layer"):
         call_default=True,
     )
     xz_center = config.attr(type=bool, default=False)
-    region = config.ref(region_ref, populate="partitions", required=True)
     z_index = config.attr(type=int, required=lambda s: "stack" in s)
     volume_scale = config.attr(type=float, required=_size_requirements)
     position = config.attr(type=types.list(type=float, size=3))
     volume_dimension_ratio = config.attr(type=types.list(type=float, size=3))
     scale_from_layers = config.reflist(layer_ref)
+
+    def get_dependencies(self):
+        """
+        Return other partitions or regions that need to be laid out before this.
+        """
+        return []
+
+    def layout(self, boundaries):
+        return
 
     # TODO: Layer stacking
     # TODO: Layer scaling

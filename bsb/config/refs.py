@@ -32,7 +32,7 @@ class PartitionReference(Reference):
         return root.partitions
 
     def is_ref(self, value):
-        from ..objects import Partition
+        from ..topology import Partition
 
         return isinstance(value, Partition)
 
@@ -42,7 +42,7 @@ class RegionReference(Reference):
         return root.regions
 
     def is_ref(self, value):
-        from ..objects import Region
+        from ..topology import Region
 
         return isinstance(value, Region)
 
@@ -54,7 +54,7 @@ class RegionalReference(Reference):
         return merged
 
     def is_ref(self, value):
-        from ..objects import Region, Partition
+        from ..topology import Region, Partition
 
         return isinstance(value, Region) or isinstance(value, Partition)
 

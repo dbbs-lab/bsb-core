@@ -1,5 +1,5 @@
 from . import attr, list, dict, node, root, pluggable, on, after, before
-from ..objects import CellType, Partition, Region
+from ..objects import CellType
 from . import types
 from ._make import walk_nodes
 from ._hooks import run_hook, has_hook
