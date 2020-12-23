@@ -6,14 +6,8 @@ from ..helpers import SortableByAfter
 class SimulationComponent(SortableByAfter):
     name = config.attr(key=True)
 
-    def __init__(self, parent=None):
-        if parent is None:
-            self.adapter = None
-        else:
-            # Get the parent of the dict  that we are defined in (cell_models,
-            # connections_models, device_models, ...). This grandparent is the adapter
-            self.adapter = parent._config_parent
-        self.simulation = None
+    def __boot__(self):
+        self.simulation = self._config_parent._config_parent
 
     @classmethod
     def get_ordered(cls, objects):
