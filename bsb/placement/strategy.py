@@ -34,8 +34,9 @@ class PlacementStrategy(abc.ABC):
         return sum(p.volume * (self.density or 0.001) for p in self.partitions)
 
 
+@config.node
 class FixedPositions(PlacementStrategy):
-    casts = {"positions": np.array}
+    positions = config.attr(type=np.array)
 
     def place(self):
         self.scaffold.place_cells(self.cell_type, self.positions)
