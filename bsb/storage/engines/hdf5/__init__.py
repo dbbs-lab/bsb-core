@@ -7,7 +7,7 @@ from .config_store import ConfigStore
 from .label import Label
 from .filter import Filter
 from datetime import datetime
-import h5py, os
+import h5py, os, filelock
 
 
 class HDF5Engine(Engine):
@@ -15,12 +15,16 @@ class HDF5Engine(Engine):
         super().__init__(root)
         self.handle_mode = None
         self._handle = None
+        self._lock = None
         self.file = root
 
     def get_handle(self, mode="r"):
         """
         Open an HDF5 file.
         """
+        # Acquire a lock on the file.
+        self._lock = filelock.FileLock(f"{self.file}.lck")
+        self._lock.acquire()
         # Open a new handle to the resource.
         return h5py.File(self.file, mode)
 
@@ -28,7 +32,9 @@ class HDF5Engine(Engine):
         """
         Close the HDF5 file.
         """
-        return handle.close()
+        c = handle.close()
+        self._lock.release()
+        return c
 
     @contextmanager
     def open(self, mode="r"):
