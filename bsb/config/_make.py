@@ -383,10 +383,8 @@ def walk_node_attributes(node):
         # Yield but don't follow references.
         if hasattr(attr, "__ref__"):
             continue
-
         child = attr.__get__(node, node.__class__)
-        for deep_node, deep_attr in walk_node_attributes(child):
-            yield deep_node, deep_attr
+        yield from walk_node_attributes(child)
 
 
 def walk_nodes(node):
@@ -398,7 +396,7 @@ def walk_nodes(node):
     """
     if hasattr(node.__class__, "_config_attrs"):
         attrs = node.__class__._config_attrs
-    elif hasattr(node, "_attr"):
+    elif hasattr(node, "_config_attr"):
         attrs = _get_walkable_iterator(node)
     else:
         return
@@ -407,10 +405,8 @@ def walk_nodes(node):
         # Yield but don't follow references.
         if hasattr(attr, "__ref__"):
             continue
-
         child = attr.__get__(node, node.__class__)
-        for deep_node in walk_nodes(child):
-            yield deep_node
+        yield from walk_nodes(child)
 
 
 def walk_node_values(start_node):
