@@ -67,7 +67,7 @@ class NestCell(CellModel, MapsScaffoldIdentifiers):
 
     def boot(self):
         self.receptor_specifications = {}
-        self.neuron_model = self.neuron_model or self.adapter.default_neuron_model
+        self.neuron_model = self.neuron_model or self.simulation.default_neuron_model
         self.reset()
         if self.relay:
             self.neuron_model = "parrot_neuron"
@@ -138,7 +138,7 @@ class NestConnection(SimulationComponent):
     is_teaching = config.attr(default=False)
 
     def boot(self):
-        self.synapse_model = self.synapse_model or self.adapter.default_synapse_model
+        self.synapse_model = self.synapse_model or self.simulation.default_synapse_model
 
     def validate(self):
         if self.plastic:
@@ -168,7 +168,7 @@ class NestConnection(SimulationComponent):
             if "Wmin" in params:
                 params["Wmin"] = np.abs(params["Wmin"])
             params["receptor_type"] = self.get_receptor_type()
-        params["model"] = self.adapter.suffixed(self.name)
+        params["model"] = self.simulation.suffixed(self.name)
         return params
 
     def _get_cell_types(self, key="from"):
@@ -198,7 +198,7 @@ class NestConnection(SimulationComponent):
                 "Specifying receptor types of connections consisiting of more than 1 cell type is currently undefined behaviour."
             )
         to_cell_type = to_cell_types[0]
-        to_cell_model = self.adapter.cell_models[to_cell_type.name]
+        to_cell_model = self.simulation.cell_models[to_cell_type.name]
         return to_cell_model.neuron_model in to_cell_model.receptor_specifications
 
     def get_receptor_type(self):
@@ -213,11 +213,11 @@ class NestConnection(SimulationComponent):
             )
         to_cell_type = to_cell_types[0]
         from_cell_type = from_cell_types[0]
-        to_cell_model = self.adapter.cell_models[to_cell_type.name]
-        if from_cell_type.name in self.adapter.cell_models.keys():
-            from_cell_model = self.adapter.cell_models[from_cell_type.name]
+        to_cell_model = self.simulation.cell_models[to_cell_type.name]
+        if from_cell_type.name in self.simulation.cell_models.keys():
+            from_cell_model = self.simulation.cell_models[from_cell_type.name]
         else:  # For neurons receiving from entities
-            from_cell_model = self.adapter.entities[from_cell_type.name]
+            from_cell_model = self.simulation.entities[from_cell_type.name]
         receptors = to_cell_model.get_receptor_specifications()
         if from_cell_model.name not in receptors:
             raise ReceptorSpecificationError(
@@ -248,7 +248,7 @@ class NestDevice(SimulationComponent):
         """
         Return the targets of the stimulation to pass into the nest.Connect call.
         """
-        return self.adapter.get_nest_ids(np.array(self._get_targets(), dtype=int))
+        return self.simulation.get_nest_ids(np.array(self._get_targets(), dtype=int))
 
 
 class NestEntity(NestDevice, MapsScaffoldIdentifiers):
@@ -910,7 +910,7 @@ class SpikeRecorder(SimulationRecorder):
                 file_spikes = np.loadtxt(file)
                 if len(file_spikes):
                     scaffold_ids = np.array(
-                        self.device_model.adapter.get_scaffold_ids(file_spikes[:, 0])
+                        self.device_model.simulation.get_scaffold_ids(file_spikes[:, 0])
                     )
                     times = file_spikes[:, 1]
                     scaffold_spikes = np.vstack((scaffold_ids, times)).T
@@ -954,7 +954,7 @@ class SpikeDetectorProtocol(DeviceProtocol):
         device_tag = mpi4py.MPI.COMM_WORLD.bcast(device_tag, root=0)
         self.device.parameters["label"] += device_tag
         if mpi4py.MPI.COMM_WORLD.rank == 0:
-            self.device.adapter.result.add(SpikeRecorder(self.device))
+            self.device.simulation.result.add(SpikeRecorder(self.device))
 
 
 def get_device_protocol(device):
