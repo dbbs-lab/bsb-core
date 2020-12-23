@@ -77,11 +77,25 @@ class PlacementSet(Interface):
 
     @abc.abstractclassmethod
     def create(self, handler, type):
+        """
+        Override with a method to create the placement set.
+        """
         pass
 
     @abc.abstractstaticmethod
     def exists(self, handler, type):
+        """
+        Override with a method to check existence of the placement set
+        """
         pass
+
+    def require(self, handler, type):
+        """
+        Can be overridden with a method to make sure the placement set exists. The default
+        implementation uses the class's ``exists`` and ``create`` methods.
+        """
+        if not self.exists(handler, type):
+            self.create(handler, type)
 
     @abc.abstractproperty
     def identifiers(self):

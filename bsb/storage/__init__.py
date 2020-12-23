@@ -208,14 +208,12 @@ class Storage:
         """
         Initialize the storage to be ready for use by the specified scaffold:
 
-        * Create empty PlacementSets for each cell type if they're missing.
+        * Require existence of all PlacementSets.
 
         (That's it, for now ^_^)
         """
-        # Make sure that at least an empty PlacementSet exists for each cell type.
         for cell_type in scaffold.get_cell_types():
-            if not self._PlacementSet.exists(self._engine, cell_type):
-                self._PlacementSet.create(self._engine, cell_type)
+            self._PlacementSet.require(self._engine, cell_type)
 
     def Label(self, label):
         """

@@ -53,6 +53,21 @@ class PlacementSet(Resource, IPlacementSet):
         with engine.open("r") as h:
             return "/cells/placement/" + cell_type.name in h()
 
+    @classmethod
+    def require(cls, engine, cell_type):
+        root = "/cells/placement/"
+        tag = cell_type.name
+        path = root + tag
+        with engine.open("a") as h:
+            g = h().require_group(path)
+            print("Creating", tag, "/cells/placement/" + cell_type.name in h())
+            if "identifiers" not in g:
+                g.create_dataset(path + "/identifiers", (0,), dtype=int)
+            if not cell_type.entity and "positions" not in g:
+                g.create_dataset(path + "/positions", (0, 3), dtype=float)
+            g.require_group(path + "/additional")
+        return cls(engine, cell_type)
+
     @property
     def identifiers(self):
         """
