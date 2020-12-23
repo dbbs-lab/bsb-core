@@ -11,6 +11,7 @@ from warnings import warn as std_warn
 from .exceptions import *
 from .reporting import report, warn, has_mpi_installed, get_report_file
 from .config._config import Configuration
+from ._pool import create_job_pool
 
 ###############################
 ## Scaffold class
@@ -114,9 +115,9 @@ class Scaffold:
         """
         if types is None:
             types = CellType.resolve_order(self.cell_types)
-        pool = self.create_pool(write=True)
+        pool = create_job_pool(self, write=True)
         for cell_type in types:
-            cell_type.placement.queue(cell_type, pool, self.network.chunk_size)
+            cell_type.placement.queue(pool, self.network.chunk_size)
         pool.execute()
 
     def place_cell_type(self, type):

@@ -18,14 +18,9 @@ class ParticlePlacement(PlacementStrategy):
 
     def place(self):
         cell_type = self.cell_type
-        layer = self.layer_instance
-        origin = layer.origin.copy()
-        # Shift voxel origin up based on y_restriction.
-        origin[1] = layer.origin[1] + layer.thickness * self.restriction_minimum
-        # Computing voxel thickness based on y_restriction
-        volume = [layer.width, layer.thickness * self.restriction_factor, layer.depth]
-        # Create a list of voxels with the current restricted layer as only voxel.
-        voxels = [[origin, volume]]
+        layer = self.partitions[0]
+        # Create a list of voxels with the current layer as only voxel.
+        voxels = [[layer.boundaries.ldc, layer.boundaries.dimensions]]
         # Define the particles for the particle system.
         particles = [
             {

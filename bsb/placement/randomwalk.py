@@ -29,19 +29,22 @@ class LayeredRandomWalk(PlacementStrategy):
         cell_type = self.cell_type
         scaffold = self.scaffold
         config = scaffold.configuration
-        layer = self.layer
-        layer_thickness = self.get_restricted_thickness()
+        layer = self.partitions[0]
+        self.restriction_minimum = 0
+        self.restriction_maximum = 1
+        self.restriction_factor = 1
+        layer_thickness = self.get_restricted_thickness(layer)
         # Virtual layer origin point that applies the Y-Restriction used for example by basket and stellate cells.
         restricted_origin = np.array(
             [
-                layer.origin[0],
-                layer.origin[1] + layer.thickness * self.restriction_minimum,
-                layer.origin[2],
+                layer.boundaries.x,
+                layer.boundaries.y + layer.thickness * self.restriction_minimum,
+                layer.boundaries.z,
             ]
         )
         # Virtual layer dimensions that apply the Y-Restriction used for example by basket and stellate cells.
         restricted_dimensions = np.array(
-            [layer.dimensions[0], layer_thickness, layer.dimensions[2]]
+            [layer.boundaries.x, layer_thickness, layer.boundaries.z]
         )
         cell_radius = cell_type.spatial.radius
         cell_bounds = np.column_stack(
@@ -64,7 +67,7 @@ class LayeredRandomWalk(PlacementStrategy):
         else:
             # Calculate the volume available per cell
             cell_type.placement_volume = (
-                layer.available_volume * self.restriction_factor / n_cells_to_place
+                layer.volume * self.restriction_factor / n_cells_to_place
             )
             # Calculate the radius of that volume's sphere
             cell_type.placement_radius = (0.75 * cell_type.placement_volume / np.pi) ** (
@@ -77,7 +80,7 @@ class LayeredRandomWalk(PlacementStrategy):
                 np.round(layer_thickness / (1.5 * cell_type.placement_radius))
             )
         ## Sublayer partitioning
-        partitions = self.partition_layer(n_sublayers)
+        partitions = self.partition_layer(layer, n_sublayers)
         # Adjust partitions for cell radius.
         partitions = partitions + np.array([cell_radius, -cell_radius])
 
@@ -276,24 +279,20 @@ class LayeredRandomWalk(PlacementStrategy):
 
         scaffold.place_cells(cell_type, layer, layer_cell_positions)
 
-    def partition_layer(self, n_sublayers):
+    def partition_layer(self, layer, n_sublayers):
         # Allow restricted placement along the Y-axis.
         yMin = self.restriction_minimum
-        layer_thickness = self.get_restricted_thickness()
+        layer_thickness = self.get_restricted_thickness(layer)
         sublayerHeight = layer_thickness / n_sublayers
         # Divide the Y axis into equal pieces
         sublayerYs = np.linspace(sublayerHeight, layer_thickness, n_sublayers)
         # Add the bottom of the lowest layer and translate all the points by the layer's Y position, keeping the Y restriction into account
         sublayerYs = (
-            np.insert(sublayerYs, 0, 0)
-            + self.layer_instance.origin[1]
-            + yMin * self.layer_instance.thickness
+            np.insert(sublayerYs, 0, 0) + layer.boundaries.y + yMin * layer.thickness
         )
         # Create pairs of points on the Y axis corresponding to the bottom and ceiling of each sublayer partition
         sublayerPartitions = np.column_stack([sublayerYs, np.roll(sublayerYs, -1)])[:-1]
         return sublayerPartitions
 
-    def get_restricted_thickness(self):
-        return self.layer_instance.thickness * (
-            self.restriction_maximum - self.restriction_minimum
-        )
+    def get_restricted_thickness(self, layer):
+        return layer.thickness * (self.restriction_maximum - self.restriction_minimum)

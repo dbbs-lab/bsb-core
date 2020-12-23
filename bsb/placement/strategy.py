@@ -9,7 +9,7 @@ import numpy as np
 
 @config.dynamic
 class PlacementStrategy(abc.ABC):
-    partitions = config.reflist(refs.partition_ref)
+    partitions = config.reflist(refs.partition_ref, required=True)
     density = config.attr(type=float)
     planar_density = config.attr(type=float)
     placement_count_ratio = config.attr(type=float)
@@ -17,21 +17,24 @@ class PlacementStrategy(abc.ABC):
     placement_relative_to = config.ref(refs.cell_type_ref)
     count = config.attr(type=int)
 
+    def __boot__(self):
+        self.cell_type = self._config_parent
+
     @abc.abstractmethod
-    def place(self, type):
+    def place(self, chunk):
         pass
 
-    def queue(self, type, pool, chunk_size):
+    def queue(self, pool, chunk_size):
         for p in self.partitions:
             chunks = p.to_chunks(chunk_size)
             for chunk in chunks:
-                pool.add_job(self.place, type, chunk)
+                pool.queue_placement(self.cell_type, chunk)
 
     def is_entities(self):
         return "entities" in self.__class__.__dict__ and self.__class__.entities
 
     def get_placement_count(self):
-        return sum(p.volume * (self.density or 0.001) for p in self.partitions)
+        return int(sum(p.volume * (self.density or 0.000001) for p in self.partitions))
 
 
 @config.node

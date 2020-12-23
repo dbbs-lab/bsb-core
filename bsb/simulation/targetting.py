@@ -6,11 +6,9 @@ from ..exceptions import *
 
 @config.dynamic(attr_name="type", auto_classmap=True)
 class NeuronTargetting:
-    def __init__(self, parent):
-        self.device = parent
-
-    def boot(self):
-        self.adapter = self.device.adapter if self.device is not None else None
+    def __boot__(self):
+        self.device = self._config_parent
+        self.simulation = self.device.simulation if self.device is not None else None
 
     def get_targets(self):
         raise NotImplementedError(

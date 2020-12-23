@@ -34,6 +34,9 @@ class Partition:
     def volume(self):
         return np.product(self.boundaries.dimensions)
 
+    def to_chunks(*args):
+        return np.array([[0, 0, 0], [0, 0, 1], [0, 0, 2], [0, 0, 3]])
+
 
 @config.node
 class Layer(Partition, classmap_entry="layer"):

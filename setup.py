@@ -18,6 +18,7 @@ requires = [
     "colour>=0.1.5",
     "errr>=1.0.0",
     "rtree>=0.9.6",
+    "zwembad>=0.0.1a0",
     "filelock>=3.0.0",
 ]
 
