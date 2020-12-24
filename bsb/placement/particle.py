@@ -2,43 +2,45 @@ from .strategy import PlacementStrategy
 from ..particles import ParticleSystem
 from ..exceptions import *
 from ..reporting import report, warn
+from .. import config
+import itertools
 
 
+@config.node
 class ParticlePlacement(PlacementStrategy):
+    prune = config.attr(type=bool, default=True)
+    bounded = config.attr(type=bool, default=False)
 
-    casts = {
-        "prune": bool,
-        "bounded": bool,
-    }
-
-    defaults = {
-        "prune": True,
-        "bounded": False,
-    }
-
-    def place(self):
+    def place(self, chunk, chunk_size):
         cell_type = self.cell_type
-        layer = self.partitions[0]
-        # Create a list of voxels with the current layer as only voxel.
-        voxels = [[layer.boundaries.ldc, layer.boundaries.dimensions]]
+        voxels = list(
+            itertools.chain(
+                *(p.chunk_to_voxels(chunk, chunk_size) for p in self.partitions)
+            )
+        )
+        chunk_count = cell_type.placement.get_placement_count(chunk, chunk_size)
+        chunk_count = self.add_stragglers(chunk, chunk_size, chunk_count)
+
+        # import numpy as np
+        # low = np.maximum(self.partitions[0].boundaries.ldc, chunk * chunk_size)
+        # high = np.minimum(self.partitions[0].boundaries.mdc, (chunk + 1) * chunk_size)
+        # print("filling chunk", chunk, "from", low, "to", high, "with", chunk_count, "cells")
+        #
         # Define the particles for the particle system.
         particles = [
             {
                 "name": cell_type.name,
-                "voxels": [0],
+                # Place particles in all voxels
+                "voxels": list(range(len(voxels))),
                 "radius": cell_type.spatial.radius,
-                "count": self.get_placement_count(),
+                "count": int(chunk_count),
             }
         ]
         # Create and fill the particle system.
         system = ParticleSystem(track_displaced=True, scaffold=self.scaffold)
         system.fill(voxels, particles)
-        # Raise a warning if no cells could be placed in the volume
+
         if len(system.particles) == 0:
-            warn(
-                "Did not place any {} cell in the {}!".format(cell_type.name, layer.name),
-                PlacementWarning,
-            )
             return
 
         # Find the set of colliding particles
@@ -57,4 +59,4 @@ class ParticlePlacement(PlacementStrategy):
                     )
                 )
         particle_positions = system.positions
-        self.scaffold.place_cells(cell_type, layer, particle_positions)
+        self.scaffold.place_cells(cell_type, particle_positions)
