@@ -3,12 +3,10 @@ Job pooling module
 """
 
 from zwembad import Pool
+from mpi4py.MPI import COMM_WORLD
 
 
 def scheduler(job):
-    from mpi4py.MPI import COMM_WORLD
-
-    print("WORKER", COMM_WORLD.Get_rank(), "RUNNING JOB", job.f, job.args())
     return job.execute()
 
 
@@ -33,15 +31,19 @@ class Job:
 
 
 class ChunkedJob(Job):
-    def __init__(self, pool, f, chunk, *args):
+    def __init__(self, pool, f, chunk, chunk_size, *args):
         self.chunk = chunk
+        self.chunk_size = chunk_size
         super().__init__(pool, f, *args)
+
+    def params(self):
+        return self.chunk, self.chunk_size
 
 
 class PlacementJob(ChunkedJob):
-    def __init__(self, pool, type, chunk, *args):
+    def __init__(self, pool, type, chunk, chunk_size, *args):
         self.type = type.name
-        super().__init__(pool, type.placement.place.__func__, chunk, *args)
+        super().__init__(pool, type.placement.place.__func__, chunk, chunk_size, *args)
 
     def execute(self):
         scaffold = JobPool.get_owner(self.pool_id)
@@ -71,19 +73,22 @@ class JobPool:
         self._queue.append(ChunkedJob(self, f, chunk, *args))
 
     def queue_placement(self, type, chunk, *args):
+        if type.name != "dcn_cell":
+            return
         self._queue.append(PlacementJob(self, type, chunk, *args))
 
     def selfsum(self, a, b):
         return a + b
 
     def execute(self):
-        # Create the MPI job pool
-        pool = Pool()
-        print("QUEUE", self._queue)
-        # Map the jobs in the queue to the workers in the MPI pool.
-        r = pool.map(scheduler, self._queue)
-        print("POOL RESULT:", r)
-        # r = self._pool.map(scheduler, self._queue)
+        if COMM_WORLD.Get_size() == 1:
+            # Use serial map instead of an MPI pool to run the jobs
+            r = list(map(scheduler, self._queue))
+        else:
+            # Create the MPI job pool
+            pool = Pool()
+            # Run all the jobs
+            r = pool.map(scheduler, self._queue)
         # Clear the queue after all jobs have been done
         self._queue = []
         return r
