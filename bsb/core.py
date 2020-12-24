@@ -207,65 +207,6 @@ class Scaffold:
             )
         report("Runtime: {}".format(time() - t), 2)
 
-    def _initialise_output_formatter(self):
-        self.output_formatter = self.configuration.output_formatter
-        self.output_formatter.initialise(self)
-        # Alias the output formatter to some other functions it provides.
-        self.morphology_repository = self.output_formatter
-        self.tree_handler = self.output_formatter
-        # Load an actual morphology repository if it is provided
-        if (
-            not self.is_compiled()
-            and self.output_formatter.morphology_repository is not None
-        ):
-            # We are in a precompilation state and the configuration specifies us to use a morpho repo.
-            self.morphology_repository = MorphologyRepository(
-                self.output_formatter.morphology_repository
-            )
-
-    def plot_network_cache(self, fig=None):
-        """
-        Plot everything currently in the network cache.
-        """
-        plot_network(self, fig=fig, from_memory=True)
-
-    def reset_network_cache(self):
-        """
-        Clear out everything stored in the network cache.
-        """
-        # Cell positions dictionary per cell type. Columns: X, Y, Z.
-        cell_types = list(
-            filter(
-                lambda c: not hasattr(c, "entity") or not c.entity,
-                self.configuration.cell_types.values(),
-            )
-        )
-        entities = list(
-            filter(
-                lambda c: hasattr(c, "entity") and c.entity,
-                self.configuration.cell_types.values(),
-            )
-        )
-        self.cells_by_type = {c.name: np.empty((0, 5)) for c in cell_types}
-        # Entity IDs per cell type.
-        self.entities_by_type = {e.name: np.empty((0)) for e in entities}
-        # Cell positions dictionary per layer. Columns: Type, X, Y, Z.
-        self.cells_by_layer = {
-            key: np.empty((0, 5)) for key in self.configuration.layers.keys()
-        }
-        # Cells collection. Columns: Cell ID, Type, X, Y, Z.
-        self.cells = np.empty((0, 5))
-        # Cell connections per connection type. Columns: From ID, To ID.
-        self.cell_connections_by_tag = {
-            key: np.empty((0, 2)) for key in self.configuration.connection_types.keys()
-        }
-        self.connection_morphologies = {}
-        self.connection_compartments = {}
-        self.appends = {}
-        self._connectivity_set_meta = {}
-        self.labels = {}
-        self.rotations = {}
-
     def run_simulation(self, simulation_name, quit=False):
         """
         Run a simulation starting from the default single-instance adapter.
@@ -311,7 +252,7 @@ class Scaffold:
         simulator = simulation.prepare()
         return simulation, simulator
 
-    def place_cells(self, cell_type, layer, positions, rotations=None):
+    def place_cells(self, cell_type, positions, rotations=None):
         """
         Place cells inside of the scaffold
 
@@ -323,8 +264,6 @@ class Scaffold:
 
         :param cell_type: The type of the cells to place.
         :type cell_type: :class:`.models.CellType`
-        :param layer: The layer in which to place the cells.
-        :type layer: :class:`.models.Layer`
         :param positions: A collection of xyz positions to place the cells on.
         :type positions: Any `np.concatenate` type of shape (N, 3).
         """
