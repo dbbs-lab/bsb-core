@@ -30,12 +30,50 @@ class Partition:
     def layout(self, boundaries):
         return NotImplementedError("Partitions should define a `layout` method")
 
-    @property
-    def volume(self):
-        return np.product(self.boundaries.dimensions)
+    def volume(self, chunk=None, chunk_size=None):
+        if chunk is not None:
+            # Create an intersection between the partition and the chunk
+            low = np.maximum(self.boundaries.ldc, chunk * chunk_size)
+            high = np.minimum(self.boundaries.mdc, (chunk + 1) * chunk_size)
+            return np.product(high - low)
+        else:
+            return np.product(self.boundaries.dimensions)
 
-    def to_chunks(*args):
-        return np.array([[0, 0, 0], [0, 0, 1], [0, 0, 2], [0, 0, 3]])
+    def surface(self, chunk=None, chunk_size=None):
+        if chunk is not None:
+            # Gets the xz "square" from a volume
+            sq = lambda v: np.array(v)[[0, 2]]
+            ldc = sq(self.boundaries.ldc)
+            mdc = sq(self.boundaries.mdc)
+            chunk = sq(chunk)
+            chunk_size = sq(chunk_size)
+            # Create an intersection between the partition and the chunk
+            low = np.maximum(ldc, chunk * chunk_size)
+            high = np.minimum(mdc, (chunk + 1) * chunk_size)
+            return np.product(high - low)
+        else:
+            return self.boundaries.width * self.boundaries.depth
+
+    def to_chunks(self, chunk_size):
+        # Get the low and high range of the boundaries in chunk coordinates
+        low_r = np.floor(self.boundaries.ldc / chunk_size).astype(int)
+        high_r = np.ceil(self.boundaries.mdc / chunk_size).astype(int)
+        # Create a grid that includes all the chunk coordinates within those boundaries
+        coords = np.mgrid[tuple(range(low, high) for low, high in zip(low_r, high_r))]
+        # Order the coordinate grid into a list of chunk coordinates.
+        return np.column_stack(tuple(dim.ravel() for dim in coords))
+
+    def chunk_to_voxels(self, chunk, chunk_size):
+        """
+        Return an approximation of this partition intersected with a chunk as a list of
+        voxels.
+
+        Default implementation creates a parallellepepid intersection between the
+        LDC, MDC and chunk boundaries.
+        """
+        low = np.maximum(self.boundaries.ldc, chunk * chunk_size)
+        high = np.minimum(self.boundaries.mdc, (chunk + 1) * chunk_size)
+        return [[low, high - low]]
 
 
 @config.node
