@@ -69,11 +69,19 @@ class Resource:
         return self.shape[0]
 
     def append(self, new_data, dtype=float):
-        if self.exists():
-            data = self.get_dataset()
-            self.remove()
-        else:
-            shape = new_data.shape
-            shape[0] = 0
-            data = np.zeros(shape, dtype=dtype)
-        self.create(np.concatenate((data, new_data)), dtype=dtype)
+        if type(new_data) is not np.ndarray:
+            new_data = np.array(new_data)
+        with self._engine.open("a") as f:
+            try:
+                d = f()[self._path]
+            except:
+                shape = list(new_data.shape)
+                shape[0] = None
+                d = f().create_dataset(
+                    self._path, data=new_data, dtype=dtype, maxshape=tuple(shape)
+                )
+            else:
+                l = d.shape[0]
+                l += len(new_data)
+                d.resize(l, axis=0)
+                d[-len(new_data) :] = new_data

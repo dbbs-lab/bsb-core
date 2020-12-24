@@ -42,9 +42,11 @@ class PlacementSet(Resource, IPlacementSet):
         path = root + tag
         with engine.open("a") as h:
             g = h().create_group(path)
-            g.create_dataset(path + "/identifiers", (0,), dtype=int)
+            g.create_dataset(path + "/identifiers", (0,), maxshape=(None,), dtype=int)
             if not cell_type.entity:
-                g.create_dataset(path + "/positions", (0, 3), dtype=float)
+                g.create_dataset(
+                    path + "/positions", (0, 3), maxshape=(None, 3), dtype=float
+                )
             g.create_group(path + "/additional")
         return cls(engine, cell_type)
 
@@ -61,9 +63,11 @@ class PlacementSet(Resource, IPlacementSet):
         with engine.open("a") as h:
             g = h().require_group(path)
             if "identifiers" not in g:
-                g.create_dataset(path + "/identifiers", (0,), dtype=int)
+                g.create_dataset(path + "/identifiers", (0,), maxshape=(None,), dtype=int)
             if not cell_type.entity and "positions" not in g:
-                g.create_dataset(path + "/positions", (0, 3), dtype=float)
+                g.create_dataset(
+                    path + "/positions", (0, 3), maxshape=(None, 3), dtype=float
+                )
             g.require_group(path + "/additional")
         return cls(engine, cell_type)
 
