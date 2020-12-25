@@ -126,7 +126,7 @@ result:
 
 .. code-block:: bash
 
-	scaffold -c=config.json compile -p
+	scaffold compile -c=config.json -p
 
 <CONTINUE GUIDE TO ADD EXTRA CELL TYPES + CONNECTION TYPES>
 
@@ -212,27 +212,27 @@ Let's go over an example first script that creates 5 networks with different
 densities of Purkinje cells.
 
 To use the scaffold in your script you should import the :class:`bsb.core.Scaffold`
-and construct a new instance by passing it a :class:`bsb.config.ScaffoldConfig`.
-The only provided configuration is the :class:`bsb.config.JSONConfig`.
-To load a configuration file, construct a JSONConfig object providing the `file`
-keyword argument with a path to the configuration file::
+and construct a new instance by passing it a :class:`bsb.config.Configuration`.
+To load a configuration file, you can use the ``bsb.config.from_<type>`` functions,
+by default the BSB provides a :func:`~bsb.config.from_json` to load JSON files::
 
   from bsb.core import Scaffold
-  from bsb.config import JSONConfig
-  from bsb.reporting import set_verbosity
+  from bsb.config import from_json
+  from bsb import options
 
-  config = JSONConfig(file="my_config.json")
-  set_verbosity(3) # This way we can follow what's going on.
+  config = from_json("my_config.json")
+	# Ask the framework to output detailed progress
+  options.verbosity = 3
   scaffold = Scaffold(config)
 
 .. note::
-  The verbosity is 1 by default, which only displays errors. You could also add
-  a `verbosity` attribute to the root node of the `my_config.json` file to set
-  the verbosity.
+  The verbosity is 1 by default, which only displays errors.
 
 Let's find the purkinje cell configuration::
 
-  purkinje = scaffold.get_cell_type("purkinje_cell")
+  purkinje = scaffold.cell_types.purkinje_cell
+	# or
+	purkinje = scaffold.cell_types["purkinje_cell"]
 
 The next step is to adapt the Purkinje cell density each iteration. The location
 of the attributes on the Python objects mostly corresponds to their location in
@@ -246,22 +246,18 @@ the configuration file. This means that::
     ...
   }
 
-will be stored in the Python ``CellType`` object under
-``purkinje.placement.planar_density``::
+will be stored in the Python object under ``purkinje.placement.planar_density``::
 
   max_density = purkinje.placement.planar_density
   for i in range(5):
-    purkinje.placement.planar_density = i * 20 / 100 * max_density
-    scaffold.compile_network()
-
-    scaffold.plot_network_cache()
-
-    scaffold.reset_network_cache()
-
-.. warning::
-  If you don't use ``reset_network_cache()`` between ``compile_network()`` calls
-  the new cells will just be appended to the previous ones. This might lead to
-  confusing results.
+		# Point the storage to a new location
+		scaffold.storage.root = f"purkinje_density{i}.hdf5"
+		# Create a storage container for the new network on the new location
+		scaffold.storage.create()
+		# Change the density
+		purkinje.placement.planar_density = i * 20 / 100 * max_density
+		# Create the new network
+		scaffold.compile()
 
 Full code example
 -----------------
@@ -269,43 +265,43 @@ Full code example
 ::
 
   from bsb.core import Scaffold
-  from bsb.config import JSONConfig
-  from bsb.reporting import set_verbosity
+  from bsb.config import from_json
+  from bsb import options
 
-  config = JSONConfig(file="my_config.json")
-  set_verbosity(3) # This way we can follow what's going on.
+  config = from_json("my_config.json")
+	# Ask the framework to output detailed progress
+  options.verbosity = 3
   scaffold = Scaffold(config)
-
-  purkinje = scaffold.get_cell_type("purkinje_cell")
-  max_density = purkinje.placement.planar_density
-
+	purkinje = scaffold.cell_types.purkinje_cell
+	max_density = purkinje.placement.planar_density
   for i in range(5):
+	  # Point the storage to a new location
+		scaffold.storage.root = f"purkinje_density{i}.hdf5"
+		# Create a storage container for the new network on the new location
+		scaffold.storage.create()
+		# Change the density
     purkinje.placement.planar_density = i * 20 / 100 * max_density
-    scaffold.compile_network()
-
-    scaffold.plot_network_cache()
-
-    scaffold.reset_network_cache()
+		# Create the new network
+    scaffold.compile()
 
 Network compilation
 -------------------
 
-``compilation`` is the process of creating an output containing the constructed
+``compilation`` is the process of creating placement & connectivity sets for the
 network with cells placed according to the specified placement strategies and
 connected to each other according to the specified connection strategies::
 
   from bsb.core import Scaffold
-  from bsb.config import JSONConfig
+  from bsb.config import from_json
 
-  config = JSONConfig(file="my_config.json")
+  config = from_json("my_config.json")
 
-  # The configuration provided in the file can be overwritten here.
-  # For example:
-  config.cell_types["some_cell"].placement.some_parameter = 50
+  # You are free to use scripts to update or add to the configuration
+  config.cell_types.some_cell.placement.some_parameter = 50
   config.cell_types["some_cell"].plotting.color = ENV_PLOTTING_COLOR
 
   scaffold = Scaffold(config)
-  scaffold.compile_network()
+  scaffold.compile()
 
 The configuration object can be freely modified before compilation, although
 values that depend on eachother - e.g. layers in a stack - will not update each
@@ -358,15 +354,15 @@ simulation::
 Using Cell Types
 ================
 
-Cell types are obtained by name using `bsb.get_cell_type(name)`. And the
-associated cells either currently in the network cache or in persistent storage
-can be fetched with `bsb.get_cells_by_type(name)`. The columns of such
-a set are the scaffold id of the cell, followed by the type id and the xyz
-position.
+Cell types are obtained by inspecting the scaffold or configuration ``cell_types``
+dictionary. Each cell type contains a placement strategy and if that has been executed you
+can obtain the placement data using either the cell type's
+:func:`~bsb.objects.cell_type.CellType.get_placement_set` or the network's
+:func:`~bsb.core.Scaffold.get_placement_set` function.
 
-A collection of all cell types can be retrieved with `bsb.get_cell_types()`::
+A dictionary of all cell types can be found in ``scaffold.cell_types`` or
+``scaffold.configuration.cell_types``::
 
-  for cell_type in scaffold.get_cell_types():
-    cells = scaffold.get_cells_by_type(cell_type.name)
-    for cell in cells:
-      print("Cell id {} of type {} at position {}.".format(cell[0], cell[1], cell[2:5]))
+  for cell_type in scaffold.cell_types.values():
+    cells = scaffold.get_placement_set(cell_type)
+    print("There are", len(cells), cell_type.name)
