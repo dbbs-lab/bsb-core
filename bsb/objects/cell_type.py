@@ -8,11 +8,16 @@ from ..placement import PlacementStrategy
 from ..helpers import SortableByAfter
 
 
+@config.dynamic(attr_name="selector", auto_classmap=True)
+class MorphologySelector:
+    names = config.list(type=str)
+
+
 @config.node
 class Representation:
     radius = config.attr(type=float, required=True)
-    geometry = config.dict(type=types.any())
-    morphologies = config.dict(type=types.any())
+    geometrical = config.dict(type=types.any())
+    morphological = config.dict(type=MorphologySelector)
 
 
 @config.node
