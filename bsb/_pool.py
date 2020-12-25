@@ -73,8 +73,6 @@ class JobPool:
         self._queue.append(ChunkedJob(self, f, chunk, *args))
 
     def queue_placement(self, type, chunk, *args):
-        if type.name != "dcn_cell":
-            return
         self._queue.append(PlacementJob(self, type, chunk, *args))
 
     def selfsum(self, a, b):
