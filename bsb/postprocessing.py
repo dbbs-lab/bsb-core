@@ -103,15 +103,15 @@ class LabelMicrozones(PostProcessingHook):
 
 class AscendingAxonLengths(PostProcessingHook):
     def after_placement(self):
-        granule_type = self.scaffold.get_cell_type("granule_cell")
+        granule_type = self.scaffold.cell_types.granule_cell
         granules = self.scaffold.get_placement_set(granule_type.name)
-        granule_geometry = granule_type.morphology
+        granule_geometry = granule_type.spatial.geometrical
         parallel_fibers = np.zeros((len(granules)))
         pf_height = granule_geometry.pf_height
         pf_height_sd = granule_geometry.pf_height_sd
-        molecular_layer = self.scaffold.configuration.get_layer(name="molecular_layer")
-        floor_ml = molecular_layer.Y
-        roof_ml = floor_ml + molecular_layer.height  # Roof of the molecular layer
+        molecular_layer = self.scaffold.partitions.molecular_layer
+        floor_ml = molecular_layer.boundaries.y
+        roof_ml = floor_ml + molecular_layer.boundaries.height
 
         for idx, granule in enumerate(granules.cells):
             granule_y = granule.position[1]
@@ -127,7 +127,7 @@ class AscendingAxonLengths(PostProcessingHook):
             # Draw a sample for the parallel fiber height from a truncated normal distribution
             # with sd `pf_height_sd` and mean `pf_height`, truncated by the molecular layer bounds.
             parallel_fibers[idx] = truncnorm.rvs(a, b, size=1) * pf_height_sd + pf_height
-        self.scaffold.append_dset("cells/ascending_axon_lengths", data=parallel_fibers)
+        granules.create_additional("ascending_axon_lengths", data=parallel_fibers)
 
 
 class DCNRotations(PostProcessingHook):
@@ -146,7 +146,7 @@ class DCNRotations(PostProcessingHook):
             # Calculate the last planar coefficient d from ax + by + cz - d = 0
             # => d = - (ax + by + cz)
             dend_tree_coeff[i, 3] = -np.sum(dend_tree_coeff[i, 0:3] * positions[i, 0:3])
-        self.scaffold.append_dset("cells/dcn_orientations", data=dend_tree_coeff)
+        ps.create_additional("dcn_orientations", data=dend_tree_coeff)
 
 
 class SpoofDetails(PostProcessingHook):
