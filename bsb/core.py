@@ -543,6 +543,22 @@ class Scaffold:
             raise TypeNotFoundError("Unknown connection type '{}'".format(name))
         return self.configuration.connection_types[name]
 
+    def get_cell_types(self, entities=True):
+        """
+        Return a collection of all configured cell types.
+
+        :param entities: In/exclude entity types
+
+        ::
+
+          for cell_type in scaffold.get_cell_types():
+              print(cell_type.name)
+        """
+        if entities:
+            return list(self.configuration.cell_types.values())
+        else:
+            return [c for c in self.configuration.cell_types.values() if not c.entity]
+
     def get_placed_count(self, cell_type_name):
         """
         Return the amount of cell of a cell type placed in the volume.
