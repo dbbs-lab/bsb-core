@@ -116,6 +116,43 @@ class VoxelCloud:
         return box
 
 
+class dimensions:
+    def __init__(self, dimensions=None):
+        self.dimensions = np.array([0.0, 0.0, 0.0]) if dimensions is None else dimensions
+
+    @property
+    def width(self):
+        return self.dimensions[0]
+
+    @property
+    def height(self):
+        return self.dimensions[1]
+
+    @property
+    def depth(self):
+        return self.dimensions[2]
+
+    @property
+    def volume(self):
+        return np.prod(self.dimensions)
+
+
+class origin:
+    def __init__(self, origin=None):
+        self.origin = np.array([0.0, 0.0, 0.0]) if origin is None else origin
+
+    def X(self):
+        return self.origin[0]
+
+    @property
+    def Y(self):
+        return self.origin[1]
+
+    @property
+    def Z(self):
+        return self.origin[2]
+
+
 _class_dimensions = dimensions
 _class_origin = origin
 
