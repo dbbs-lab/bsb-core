@@ -145,6 +145,10 @@ class PlacementSet(Interface):
     def append_cells(self, cells):
         pass
 
+    @abc.abstractmethod
+    def create_additional(self, name, data):
+        pass
+
 
 class ConnectivitySet(Interface):
     pass

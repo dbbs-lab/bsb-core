@@ -37,6 +37,10 @@ class PlacementSet(Resource, IPlacementSet):
 
     @classmethod
     def create(cls, engine, cell_type):
+        """
+        Create the structure for this placement set in the HDF5 file. Placement sets are
+        stored under ``/cells/placement/<tag>``.
+        """
         root = "/cells/placement/"
         tag = cell_type.name
         path = root + tag
@@ -146,3 +150,10 @@ class PlacementSet(Resource, IPlacementSet):
     def append_cells(self, cells):
         for cell in cells:
             raise NotImplementedError("Sorry. Not added yet.")
+
+    def create_additional(self, name, data):
+        with self._engine.open("a") as f:
+            path = self._path + "/additional/" + name
+            maxshape = list(data.shape)
+            maxshape[0] = None
+            f().create_dataset(path, data=data, maxshape=tuple(maxshape))
