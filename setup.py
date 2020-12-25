@@ -17,7 +17,7 @@ requires = [
     "plotly>=4.1.0",
     "colour>=0.1.5",
     "errr>=1.0.0",
-    "rtree>=0.9.6",
+    "rtree>=0.9.7",
     "zwembad>=0.0.1a0",
     "filelock>=3.0.0",
 ]
