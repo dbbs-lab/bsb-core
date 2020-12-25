@@ -59,9 +59,21 @@ class RegionalReference(Reference):
         return isinstance(value, Region) or isinstance(value, Partition)
 
 
-region_ref = RegionReference()
-regional_ref = RegionalReference()
-partition_ref = PartitionReference()
+class PlacementReference(Reference):
+    def __call__(self, root, here):
+        placements = {n: t.placement for n, t in root.cell_types.items()}
+        return placements
+
+    def is_ref(self, value):
+        from ..placement import PlacementStrategy
+
+        return isinstance(value, PlacementStrategy)
+
+
 cell_type_ref = CellTypeReference()
+partition_ref = PartitionReference()
+placement_ref = PlacementReference()
+regional_ref = RegionalReference()
+region_ref = RegionReference()
 
 __all__ = [k for k in vars().keys() if k.endswith("_ref") or k.endswith("__")]
