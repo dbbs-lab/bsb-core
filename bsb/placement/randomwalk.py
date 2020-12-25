@@ -19,7 +19,7 @@ class LayeredRandomWalk(PlacementStrategy):
     def validate(self):
         super().validate()
 
-    def place(self):
+    def place(self, chunk, chunk_size):
         """
         The LayeredRandomWalk subdivides the available volume into
         sublayers and distributes cells into each sublayer using a

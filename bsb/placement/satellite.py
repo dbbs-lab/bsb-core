@@ -42,7 +42,7 @@ class Satellite(PlacementStrategy):
             * self.per_planet
         )
 
-    def place(self):
+    def place(self, chunk, chunk_size):
         # Initialize
         cell_type = self.cell_type
         scaffold = self.scaffold
