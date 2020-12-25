@@ -4,11 +4,12 @@ from ..exceptions import *
 from ..reporting import report, warn
 from .. import config
 from ..config import refs, types
+from ..helpers import SortableByAfter
 import numpy as np
 
 
 @config.dynamic
-class PlacementStrategy(abc.ABC):
+class PlacementStrategy(abc.ABC, SortableByAfter):
     """
     Quintessential interface of the placement module. Each placement strategy defines an
     approach to placing neurons into a volume.
@@ -21,6 +22,7 @@ class PlacementStrategy(abc.ABC):
     density_ratio = config.attr(type=float)
     placement_relative_to = config.ref(refs.cell_type_ref)
     count = config.attr(type=int)
+    after = config.reflist(refs.placement_ref)
 
     def __boot__(self):
         self.cell_type = self._config_parent
@@ -124,6 +126,20 @@ class PlacementStrategy(abc.ABC):
         stragglers, depending on the outcome of the 0.2 chance roll.
         """
         return np.floor(chunk_count) + (np.random.rand() <= chunk_count % 1)
+
+    @classmethod
+    def get_ordered(cls, objects):
+        return sorted(objects, key=lambda s: s.get_placement_count())
+
+    def has_after(self):
+        return hasattr(self, "after")
+
+    def get_after(self):
+        return None if not self.has_after() else self.after
+
+    def create_after(self):
+        # I think the reflist should always be there.
+        pass
 
 
 @config.node

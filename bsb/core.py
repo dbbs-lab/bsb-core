@@ -5,7 +5,7 @@ import time
 from .trees import TreeCollection
 from .output import MorphologyRepository
 from .helpers import map_ndarray, listify_input
-from .models import CellType
+from .placement import PlacementStrategy
 from .connectivity import ConnectionStrategy
 from warnings import warn as std_warn
 from .exceptions import *
@@ -109,24 +109,26 @@ class Scaffold:
         self.storage.init(self)
         self.configuration._bootstrap(self)
 
-    def place_cell_types(self, types=None):
+    def run_placement(self, strategies=None):
         """
         Run placement strategies.
         """
-        if types is None:
-            types = CellType.resolve_order(self.cell_types)
+        if strategies is None:
+            types = self.get_cell_types()
+            strategies = [c.placement for c in types]
+        strategies = PlacementStrategy.resolve_order(strategies)
         pool = create_job_pool(self, write=True)
-        for cell_type in types:
-            cell_type.placement.queue(pool, self.network.chunk_size)
+        for strategy in strategies:
+            strategy.queue(pool, self.network.chunk_size)
         pool.execute()
 
-    def place_cell_type(self, type):
+    def run_placement_strategy(self, strategy):
         """
         Run a single placement strategy.
         """
-        if type in self.cell_types:
-            type = self.cell_types[type]
-        self.place_cell_types([type])
+        if strategy in self.cell_types:
+            strategy = self.cell_types[type].placement
+        self.run_placement([strategy])
 
     def connect_cell_types(self):
         """
@@ -174,7 +176,7 @@ class Scaffold:
         Run all steps in the scaffold sequence to obtain a full network.
         """
         t = time.time()
-        self.place_cell_types()
+        self.run_placement()
         self.run_after_placement()
         # self.connect_cell_types()
         # self.run_after_connectivity_hooks()
@@ -371,16 +373,6 @@ class Scaffold:
         else:
             self.__dict__[attr][tag] = np.copy(mapped_data)
 
-    def append_dset(self, name, data):
-        """
-        Append a custom dataset to the scaffold output.
-
-        :param name: Unique identifier for the dataset.
-        :type name: string
-        :param data: The dataset
-        """
-        self.appends[name] = data
-
     def _connection_types_query(self, postsynaptic=[], presynaptic=[]):
         # This function searches through all connection types that include the given
         # pre- and/or postsynaptic cell types.
@@ -445,24 +437,6 @@ class Scaffold:
             presynaptic.extend(any)
         # Execute the query and return results.
         return self._connection_types_query(postsynaptic, presynaptic)
-
-    def get_connection_cache_by_cell_type(
-        self, any=None, postsynaptic=None, presynaptic=None
-    ):
-        """
-        Get the connections currently in the cache for connection types that include certain cell types as targets.
-
-        :see: get_connection_types_by_cell_type
-        """
-        # Find the connection types that have the specified targets
-        connection_types = self.get_connection_types_by_cell_type(
-            any, postsynaptic, presynaptic
-        )
-        # Map them to a list of tuples with the 1st element the connection type
-        # and the connection matrices appended behind it.
-        return list(
-            map(lambda x: (x, *x.get_connection_matrices()), connection_types.values())
-        )
 
     def get_connections_by_cell_type(self, any=None, postsynaptic=None, presynaptic=None):
         """
@@ -548,11 +522,8 @@ class Scaffold:
         Return a collection of all configured cell types.
 
         :param entities: In/exclude entity types
-
-        ::
-
-          for cell_type in scaffold.get_cell_types():
-              print(cell_type.name)
+        :type entities: bool
+        :returns: List of cell types
         """
         if entities:
             return list(self.configuration.cell_types.values())
