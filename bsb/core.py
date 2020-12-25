@@ -155,18 +155,18 @@ class Scaffold:
                 level=2,
             )
 
-    def run_after_placement_hooks(self):
+    def run_after_placement(self):
         """
-        Run all after placement hooks.
+        Run after placement hooks.
         """
-        for hook in self.configuration.after_placement_hooks.values():
+        for hook in self.configuration.after_placement.values():
             hook.after_placement()
 
-    def run_after_connectivity_hooks(self):
+    def run_after_connectivity(self):
         """
-        Run all after placement hooks.
+        Run after placement hooks.
         """
-        for hook in self.configuration.after_connect_hooks.values():
+        for hook in self.configuration.after_connectivity.values():
             hook.after_connectivity()
 
     def compile(self):
@@ -175,37 +175,10 @@ class Scaffold:
         """
         t = time.time()
         self.place_cell_types()
-        self.run_after_placement_hooks()
-        self.connect_cell_types()
-        self.run_after_connectivity_hooks()
-
-        for type in self.configuration.cell_types.values():
-            if type.entity:
-                count = self.entities_by_type[type.name].shape[0]
-            else:
-                count = self.cells_by_type[type.name].shape[0]
-            placed = type.placement.get_placement_count()
-            if placed == 0 or count == 0:
-                report("0 {} placed (0%)".format(type.name), 1)
-                continue
-            density_msg = ""
-            percent = int((count / type.placement.get_placement_count()) * 100)
-            if type.placement.layer is not None:
-                volume = type.placement.layer_instance.volume
-                density_gotten = "%.4g" % (count / volume)
-                density_wanted = "%.4g" % (type.placement.get_placement_count() / volume)
-                density_msg = " Desired density: {}. Actual density: {}".format(
-                    density_wanted, density_gotten
-                )
-            report(
-                "{} {} placed ({}%).".format(
-                    count,
-                    type.name,
-                    percent,
-                ),
-                2,
-            )
-        report("Runtime: {}".format(time() - t), 2)
+        self.run_after_placement()
+        # self.connect_cell_types()
+        # self.run_after_connectivity_hooks()
+        report("Runtime: {}".format(time.time() - t), 2)
 
     def run_simulation(self, simulation_name, quit=False):
         """
@@ -529,7 +502,7 @@ class Scaffold:
         :rtype: :class:`.models.PlacementSet`
         """
         if isinstance(type, str):
-            type = self.get_cell_type(type)
+            type = self.cell_types[type]
         return self.storage.get_placement_set(type)
 
     def translate_cell_ids(self, data, cell_type):
@@ -569,83 +542,6 @@ class Scaffold:
         if name not in self.configuration.connection_types:
             raise TypeNotFoundError("Unknown connection type '{}'".format(name))
         return self.configuration.connection_types[name]
-
-    def get_cell_types(self, entities=True):
-        """
-        Return a collection of all configured cell types.
-
-        ::
-
-          for cell_type in scaffold.get_cell_types():
-              print(cell_type.name)
-        """
-        if entities:
-            return self.configuration.cell_types.values()
-        else:
-            return list(filter(lambda c: not c.entity, self.get_cell_types()))
-
-    def get_entity_types(self):
-        """
-        Return a list of connection types that describe entities instead
-        of cells.
-        """
-        return list(
-            filter(
-                lambda t: hasattr(t, "entity") and t.entity is True,
-                self.configuration.connection_types.values(),
-            )
-        )
-
-    def get_cell_type(self, identifier):
-        """
-        Return the specified cell type.
-
-        :param identifier: Unique identifier of the cell type in the configuration, either its name or ID.
-        :type identifier: string (name) or int (ID)
-        :returns: The cell type
-        :rtype: :class:`.models.CellType`
-        :raise TypeNotFoundError: When the specified identifier is not known.
-        """
-        return self.configuration.get_cell_type(identifier)
-
-    def get_cell_position(self, id):
-        """
-        Return the position of the cells in the network cache.
-
-        :param id: Index of the cell in the network cache. Should coincide with the global id of the cell, but this isn't guaranteed if you modify the network cache manually.
-        :type id: int
-        :returns: Position of the cell
-        :rtype: (1, 3) shaped :class:`numpy.ndarray`
-        """
-        if not id < len(self.cells):
-            raise DataNotFoundError(
-                "Cell {} does not exist. (highest id is {})".format(
-                    id, len(self.cells) - 1
-                )
-            )
-        return self.cells[id, 2:5]
-
-    def get_cell_positions(self, selector):
-        """
-        Return the positional data of the selected cells in the network cache.
-
-        :param selector: Selects the cells from the network cache.
-        :type selector: A valid :class:`numpy.ndarray` index
-        :returns: Positions of the cells
-        :rtype: (n, 3) shaped :class:`numpy.ndarray`
-        """
-        return self.cells[selector, 2:5]
-
-    def get_cells(self, selector):
-        """
-        Return all data of the selected cells in the network cache.
-
-        :param selector: Selects the cells from the network cache.
-        :type selector: A valid :class:`numpy.ndarray` index
-        :returns: Global id, type id and Position of the cells
-        :rtype: (n, 5) shaped :class:`numpy.ndarray`
-        """
-        return self.cells[selector]
 
     def get_placed_count(self, cell_type_name):
         """
