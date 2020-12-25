@@ -84,7 +84,7 @@ class SortableByAfter:
                 # We found ourselves, from this point on nothing that appears in the after
                 # array is allowed to be encountered
                 self_met = True
-            elif self_met and type.name in after:
+            elif self_met and type in after:
                 # We have encountered ourselves, so everything we find from now on is not
                 # allowed to be in our after array, if it is, we fail the after condition.
                 return False
@@ -135,7 +135,9 @@ class SortableByAfter:
         after_specifications = [c for c in sorting_objects if c.has_after()]
         j = 0
         # Keep rearranging as long as any cell type's after condition isn't satisfied.
-        while any(not c.is_after_satisfied(sorting_objects) in after_specifications):
+        while any(
+            not c.is_after_satisfied(sorting_objects) for c in after_specifications
+        ):
             j += 1
             # Rearrange each element that is out of place.
             for after_type in after_specifications:
