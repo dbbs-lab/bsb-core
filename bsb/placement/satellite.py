@@ -1,5 +1,5 @@
 from .strategy import PlacementStrategy
-import math, numpy as np
+import math, numpy as np, itertools
 from ..exceptions import *
 from ..reporting import report, warn
 from .. import config
@@ -17,28 +17,28 @@ class Satellite(PlacementStrategy):
 
     per_planet = config.attr(type=float, default=1.0)
     planet_types = config.reflist(refs.cell_type_ref, required=True)
+    partitions = config.reflist(refs.regional_ref)
 
-    def initialise(self, scaffold):
-        super().initialise(scaffold)
+    def boot(self):
+        # Use the planet type partitions as our partitions
+        self.partitions = list(
+            itertools.chain(*(p.placement.partitions for p in self.planet_types))
+        )
 
-    def validate(self):
-        self.after = self.planet_types
-        self.planet_cell_types = [self.scaffold.get_cell_type(p) for p in self.after]
-        if self.layer is not None:
-            warn(
-                "Satellite cell '{}' specifies '{}' as its layer, but it will be ignored and the planet type's layer will be used instead.".format(
-                    self.name, self.layer
-                ),
-                ConfigurationWarning,
-            )
-            self.layer = None
+    def get_after(self):
+        return [p.placement for p in self.planet_types]
 
-    def get_placement_count(self):
+    def get_placement_count(self, chunk=None, chunk_size=None):
         """
         Takes the sum of the planets and multiplies it with the `per_planet` factor.
         """
         return (
-            sum([planet.placement.get_placement_count() for planet in self.planet_types])
+            sum(
+                [
+                    planet.placement.get_placement_count(chunk, chunk_size)
+                    for planet in self.planet_types
+                ]
+            )
             * self.per_planet
         )
 
@@ -48,21 +48,17 @@ class Satellite(PlacementStrategy):
         scaffold = self.scaffold
         config = scaffold.configuration
         radius_satellite = cell_type.spatial.radius
-        # Collect all planet cell types.
-        after_cell_types = [
-            self.scaffold.configuration.cell_types[type_after]
-            for type_after in self.after
-        ]
         all_satellites = np.empty((0))
         # Initialise empty sattelite positions array
         satellites_pos = np.empty([0, 3])
         # Assemble the parallel arrays from all the planet cell types.
-        for after_cell_type in after_cell_types:
-            layer = after_cell_type.placement.layer_instance
-            layer_min = layer.origin
-            layer_max = layer.origin + layer.dimensions
+        for after_cell_type in self.planet_types:
+            layer = after_cell_type.placement.partitions[0]
+            layer_min = layer.boundaries.ldc
+            layer_max = layer.boundaries.mdc
             planet_cell_radius = after_cell_type.spatial.radius
             planet_cells = self.scaffold.get_placement_set(after_cell_type.name)
+            planet_cells.load_chunk(chunk)
             # Exit the placement of satellites if no corresponding planet after cells were created before
             if len(planet_cells) == 0:
                 warn(
@@ -164,4 +160,4 @@ class Satellite(PlacementStrategy):
                 scaffold._planets[cell_type.name] = []
             scaffold._planets[cell_type.name].extend(planet_ids)
 
-        scaffold.place_cells(cell_type, layer, satellites_pos)
+        scaffold.place_cells(cell_type, satellites_pos)
