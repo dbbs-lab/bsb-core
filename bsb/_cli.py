@@ -190,11 +190,8 @@ def start_cli():
         from .config import JSONConfig
         from .core import Scaffold, from_hdf5
         from .output import MorphologyRepository, HDF5Formatter
-        from .reporting import set_verbosity, set_report_file
+        from .reporting import set_report_file
 
-        # Should we change the verbosity setting?
-        if cl_args.verbose is not None:
-            set_verbosity(cl_args.verbose)
         # Should we report to a file?
         if cl_args.report:
             set_report_file(cl_args.report)
