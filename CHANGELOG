@@ -1,5 +1,9 @@
 # 3.6
 
+## 3.6.2
+
+* New ionic recorder device for NEURON adapter.
+
 ## 3.6.0b1
 
 * Added GC-GC, SC-SC & BC-BC GABA connections
