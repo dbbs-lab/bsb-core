@@ -88,6 +88,7 @@ class NeuronDevice(TargetsNeurons, TargetsSections, SimulationComponent):
         "spike_recorder",
         "voltage_recorder",
         "synapse_recorder",
+        "ion_recorder",
     ]
 
     casts = {
