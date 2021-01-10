@@ -99,7 +99,7 @@ def start_cli():
         "-c",
         "--config",
         help="Specify the path of the configuration file.",
-        default="mouse_cerebellum_cortex_noTouch.json",
+        default="network_configuration.json",
     )
     parser.add_argument(
         "-r",
