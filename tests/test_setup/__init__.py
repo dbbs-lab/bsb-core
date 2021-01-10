@@ -69,3 +69,14 @@ def prep_rotations():
         mr.import_arbz("GolgiCell_A", dbbs_models.GolgiCell)
         mc = MorphologyCache(mr)
         mc.rotate_all_morphologies(rotations_step[0], rotations_step[1])
+
+
+def get_config(file):
+    return os.path.abspath(
+        os.path.join(
+            os.path.dirname(__file__),
+            "..",
+            "configs",
+            file + ".json" if not file.endswith(".json") else "",
+        )
+    )
