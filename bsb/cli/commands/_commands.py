@@ -118,7 +118,8 @@ class BsbCompile(BaseCommand, name="compile"):
         from ...core import Scaffold
 
         cfg = from_json(context.config)
-        network = Scaffold(cfg)
+        # Bootstrap the scaffold and clear the storage if not in append mode
+        network = Scaffold(cfg, clear=not context.append)
         network.compile()
 
     def get_options(self):
