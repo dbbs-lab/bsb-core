@@ -124,22 +124,21 @@ class PlacementSet(
         ]
 
     def __iter__(self):
-        id_iter = iterate_continuity_list(self._identifier_chunks.load())
-        iterators = [iter(id_iter), self._none(), self._none()]
-        if self._position_chunks.exists():
-            iterators[1] = iter(self.positions)
-        if self._rotation_chunks.exists():
-            iterators[2] = iter(self.rotations)
-        return zip(*iterators)
+        return zip(
+            iter(iterate_continuity_list(self._identifier_chunks.load(raw=True))),
+            self._none(self.load_positions()),
+            self._none(self.load_rotations()),
+        )
 
     def __len__(self):
-        return count_continuity_list(self._identifier_chunks.load())
+        return count_continuity_list(self._identifier_chunks.load(raw=True))
 
-    def _none(self):
+    def _none(self, starter):
         """
-        Generate ``len(self)`` times ``None``
+        Yield from ``starter`` then start yielding ``None``
         """
-        for i in range(len(self)):
+        yield from starter
+        while True:
             yield None
 
     def append_data(
