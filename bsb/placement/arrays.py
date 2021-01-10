@@ -10,8 +10,7 @@ class ParallelArrayPlacement(PlacementStrategy):
     Implementation of the placement of cells in parallel arrays.
     """
 
-    extension_x = config.attr(type=float, required=True)
-    extension_z = config.attr(type=float, required=True)
+    spacing_x = config.attr(type=float, required=True)
     angle = config.attr(type=types.deg_to_radian(), required=True)
 
     def place(self, chunk, chunk_size):
@@ -22,17 +21,17 @@ class ParallelArrayPlacement(PlacementStrategy):
         layer = self.layer_instance
         radius = cell_type.spatial.radius
         # Extension of a single array in the X dimension
-        extension_x = self.extension_x
+        spacing_x = self.spacing_x
         # Add a random shift to the starting points of the arrays for variation.
-        start_offset = np.random.rand() * extension_x
+        start_offset = np.random.rand() * spacing_x
         # Place purkinje cells equally spaced over the entire length of the X axis kept apart by their dendritic trees.
         # They are placed in straight lines, tilted by a certain angle by adding a shifting value.
         x_positions = (
-            np.arange(start=0.0, stop=layer.width, step=extension_x) + start_offset
+            np.arange(start=0.0, stop=layer.width, step=spacing_x) + start_offset
         )
         if (
             x_positions.shape[0] == 0
-        ):  # This only happens if the extension_x of a purkinje cell is larger than the simulation volume
+        ):  # This only happens if the spacing_x of a purkinje cell is larger than the simulation volume
             # Place a single row on a random position along the x axis
             x_positions = np.array([start_offset])
         # Amount of parallel arrays of cells
@@ -40,7 +39,7 @@ class ParallelArrayPlacement(PlacementStrategy):
         # Number of cells
         n = self.get_placement_count()
         # Add extra cells to fill the lattice error volume which will be pruned
-        n += int((n_arrays * extension_x % layer.width) / layer.width * n)
+        n += int((n_arrays * spacing_x % layer.width) / layer.width * n)
         # cells to distribute along the rows
         cells_per_row = round(n / n_arrays)
         # The rounded amount of cells that will be placed
@@ -56,11 +55,11 @@ class ParallelArrayPlacement(PlacementStrategy):
         # Center the cell soma center to the middle of the unit cell
         z_positions += radius + z_axis_distance / 2
         # The length of the X axis rounded up to a multiple of the unit cell size.
-        lattice_x = n_arrays * extension_x
+        lattice_x = n_arrays * spacing_x
         # The length of the X axis where cells can be placed in.
         bounded_x = lattice_x - radius * 2
-        # Epsilon: jitter along the z-axis
-        ϵ = self.extension_z / 2
+        # Epsilon: open space in the unit cell along the z-axis
+        ϵ = z_axis_distance - radius * 2
         # Storage array for the cells
         cells = np.empty((cells_placed, 3))
         for i in np.arange(z_positions.shape[0]):
@@ -74,13 +73,8 @@ class ParallelArrayPlacement(PlacementStrategy):
             y = layer.origin[1] + np.random.uniform(
                 radius, layer.height - radius, x.shape[0]
             )
-            # Place the cells in their z-position with slight jitter
-            z = layer.origin[2] + np.array(
-                [
-                    z_positions[i] + ϵ * (np.random.rand() - 0.5)
-                    for _ in np.arange(x.shape[0])
-                ]
-            )
+            # Place the cells in their z-position with jitter
+            z = layer.origin[2] + z_positions + ϵ * (np.random.rand(x.shape[0]) - 0.5)
             # Store this stack's cells
             cells[(i * len(x)) : ((i + 1) * len(x)), 0] = x
             cells[(i * len(x)) : ((i + 1) * len(x)), 1] = y

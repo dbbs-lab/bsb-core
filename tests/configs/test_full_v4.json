@@ -95,15 +95,11 @@
         "cls": "bsb.placement.ParallelArrayPlacement",
         "partitions": ["purkinje_layer"],
         "planar_density": 0.0017,
-        "extension_x": 130.0,
-        "extension_z": 3.5,
+        "spacing_x": 130.0,
         "angle": 70.0
       },
       "spatial": {
-        "radius": 7.5,
-        "geometry": {
-
-        }
+        "radius": 7.5
       },
       "plotting": {
         "display_name": "Purkinje cell",
