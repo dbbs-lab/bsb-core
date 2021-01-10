@@ -32,10 +32,10 @@ class NetworkNode:
     z = attr(type=float, required=True)
     chunk_size = attr(
         type=types.or_(
-            types.list(type=float, size=3),
+            np.array,
             types.scalar_expand(scalar_type=float, expand=lambda s: np.ones(3) * s),
         ),
-        default=lambda: [100.0, 100.0, 100.0],
+        default=lambda: np.array([100.0, 100.0, 100.0]),
         call_default=True,
     )
 
