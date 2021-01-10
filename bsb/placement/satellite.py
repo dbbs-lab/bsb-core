@@ -68,8 +68,8 @@ class Satellite(PlacementStrategy):
                     PlacementWarning,
                 )
                 continue
-            planet_ids = planet_cells.identifiers
-            planets_pos = planet_cells.positions
+            planet_ids = planet_cells.load_identifiers()
+            planets_pos = planet_cells.load_positions()
             planet_count = len(planets_pos)
             dist = np.empty((planet_count ** 2))
             for I in range(planet_count):
