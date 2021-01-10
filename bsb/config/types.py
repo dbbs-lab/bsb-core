@@ -85,6 +85,9 @@ def _wrap_reserved(t):
     # Execute the code block in this local scope and pick the function out of the scope
     exec(mod, {"orig": t}, bait := locals())
     type_handler = bait["type_handler"]
+    # Fix for mocked objects erorring out during documentation process.
+    # See https://github.com/dbbs-lab/bsb/runs/1677370464#step:7:50
+    t.__name__ = str(t.__name__)
     # Copy over the metadata of the original function
     type_handler = functools.wraps(t)(type_handler)
     type_handler.__name__ = t.__name__
