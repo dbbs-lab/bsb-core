@@ -14,7 +14,7 @@ class Engine(Interface):
     @property
     def format(self):
         # This attribute is set on the engine by the storage provider and correlates to
-        # the name of the engine directory.
+        # the name of the engine plugin.
         return self._format
 
     @abc.abstractmethod

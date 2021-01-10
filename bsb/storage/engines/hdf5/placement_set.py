@@ -8,10 +8,28 @@ from ....helpers import (
 )
 from .resource import Resource
 from ...interfaces import PlacementSet as IPlacementSet
+from .chunks import ChunkLoader, ChunkedProperty
 import numpy as np
 
+_id_prop = lambda l: ChunkedProperty(
+    l,
+    "identifier",
+    shape=(0,),
+    dtype=int,
+    insert=continuity_list,
+    extract=expand_continuity_list,
+)
+_pos_prop = lambda l: ChunkedProperty(l, "position", shape=(0, 3), dtype=float)
+_rot_prop = lambda l: ChunkedProperty(l, "rotation", shape=(0, 3), dtype=float)
 
-class PlacementSet(Resource, IPlacementSet):
+
+class PlacementSet(
+    Resource,
+    IPlacementSet,
+    ChunkLoader,
+    properties=(_id_prop, _pos_prop, _rot_prop),
+    collections=("additional",),
+):
     """
     Fetches placement data from storage. You can either access the parallel-array
     datasets ``.identifiers``, ``.positions`` and ``.rotations`` individually or
@@ -29,11 +47,9 @@ class PlacementSet(Resource, IPlacementSet):
         super().__init__(engine, root + tag)
         if not self.exists(engine, cell_type):
             raise DatasetNotFoundError("PlacementSet '{}' does not exist".format(tag))
+        ChunkLoader.__init__(self)
         self.type = cell_type
         self.tag = tag
-        self.identifier_set = Resource(engine, root + tag + "/identifiers")
-        self.positions_set = Resource(engine, root + tag + "/positions")
-        self.rotation_set = Resource(engine, root + tag + "/rotations")
 
     @classmethod
     def create(cls, engine, cell_type):
@@ -46,12 +62,7 @@ class PlacementSet(Resource, IPlacementSet):
         path = root + tag
         with engine.open("a") as h:
             g = h().create_group(path)
-            g.create_dataset(path + "/identifiers", (0,), maxshape=(None,), dtype=int)
-            if not cell_type.entity:
-                g.create_dataset(
-                    path + "/positions", (0, 3), maxshape=(None, 3), dtype=float
-                )
-            g.create_group(path + "/additional")
+            chunks = g.create_group("chunks")
         return cls(engine, cell_type)
 
     @staticmethod
@@ -66,53 +77,44 @@ class PlacementSet(Resource, IPlacementSet):
         path = root + tag
         with engine.open("a") as h:
             g = h().require_group(path)
-            if "identifiers" not in g:
-                g.create_dataset(path + "/identifiers", (0,), maxshape=(None,), dtype=int)
-            if not cell_type.entity and "positions" not in g:
-                g.create_dataset(
-                    path + "/positions", (0, 3), maxshape=(None, 3), dtype=float
-                )
-            g.require_group(path + "/additional")
+            chunks = g.require_group("chunks")
         return cls(engine, cell_type)
 
-    @property
-    def identifiers(self):
+    def load_identifiers(self):
         """
-        Return a list of cell identifiers.
+        Load the list of cell identifiers.
         """
-        return np.array(
-            expand_continuity_list(self.identifier_set.get_dataset()), dtype=int
-        )
+        return self._identifier_chunks.load()
 
-    @property
-    def positions(self):
+    def load_positions(self):
         """
-        Return a dataset of cell positions.
-        """
-        try:
-            return self.positions_set.get_dataset()
-        except DatasetNotFoundError:
-            raise DatasetNotFoundError(
-                "No position information for the '{}' placement set.".format(self.tag)
-            )
-
-    @property
-    def rotations(self):
-        """
-        Return a dataset of cell rotations.
+        Load the cell positions.
 
         :raises: DatasetNotFoundError when there is no rotation information for this
            cell type.
         """
         try:
-            return self.rotation_set.get_dataset()
+            return self._position_chunks.load()
+        except DatasetNotFoundError:
+            raise DatasetNotFoundError(
+                "No position information for the '{}' placement set.".format(self.tag)
+            )
+
+    def load_rotations(self):
+        """
+        Load the cell rotations.
+
+        :raises: DatasetNotFoundError when there is no rotation information for this
+           cell type.
+        """
+        try:
+            return self._rotation_chunks.load()
         except DatasetNotFoundError:
             raise DatasetNotFoundError(
                 "No rotation information for the '{}' placement set.".format(self.tag)
             )
 
-    @property
-    def cells(self):
+    def load_cells(self):
         """
         Reorganize the available datasets into a collection of :class:`Cells
         <.models.Cell>`
@@ -122,16 +124,16 @@ class PlacementSet(Resource, IPlacementSet):
         ]
 
     def __iter__(self):
-        id_iter = iterate_continuity_list(self.identifier_set.get_dataset())
+        id_iter = iterate_continuity_list(self._identifier_chunks.load())
         iterators = [iter(id_iter), self._none(), self._none()]
-        if self.positions_set.exists():
+        if self._position_chunks.exists():
             iterators[1] = iter(self.positions)
-        if self.rotation_set.exists():
+        if self._rotation_chunks.exists():
             iterators[2] = iter(self.rotations)
         return zip(*iterators)
 
     def __len__(self):
-        return count_continuity_list(self.identifier_set)
+        return count_continuity_list(self._identifier_chunks.load())
 
     def _none(self):
         """
@@ -140,18 +142,20 @@ class PlacementSet(Resource, IPlacementSet):
         for i in range(len(self)):
             yield None
 
-    def append_data(self, identifiers, positions=None, rotations=None, additional=None):
-        data = self.identifier_set.append(continuity_list(identifiers), dtype=int)
+    def append_data(
+        self, chunk, identifiers, positions=None, rotations=None, additional=None
+    ):
+        data = self._identifier_chunks.append(chunk, identifiers)
         if positions is not None:
-            data = self.positions_set.append(positions)
+            data = self._position_chunks.append(chunk, positions)
         if rotations is not None:
-            data = self.rotation_set.append(rotations)
+            data = self._rotation_chunks.append(chunk, rotations)
 
     def append_cells(self, cells):
         for cell in cells:
             raise NotImplementedError("Sorry. Not added yet.")
 
-    def create_additional(self, name, data):
+    def create_additional(self, name, chunk, data):
         with self._engine.open("a") as f:
             path = self._path + "/additional/" + name
             maxshape = list(data.shape)
