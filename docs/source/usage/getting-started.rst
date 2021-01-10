@@ -119,7 +119,7 @@ will be stored in the Python ``CellType`` object under
   confusing results.
 
 Full code example
------------------
+=================
 
 ::
 
@@ -142,8 +142,9 @@ Full code example
 
     scaffold.reset_network_cache()
 
+===================
 Network compilation
--------------------
+===================
 
 ``compilation`` is the process of creating an output containing the constructed
 network with cells placed according to the specified placement strategies and
@@ -151,13 +152,14 @@ connected to each other according to the specified connection strategies::
 
   from bsb.core import Scaffold
   from bsb.config import JSONConfig
+	import os
 
   config = JSONConfig(file="network_configuration.json")
 
   # The configuration provided in the file can be overwritten here.
   # For example:
   config.cell_types["some_cell"].placement.some_parameter = 50
-  config.cell_types["some_cell"].plotting.color = ENV_PLOTTING_COLOR
+  config.cell_types["some_cell"].plotting.color = os.getenv("ENV_PLOTTING_COLOR", "black")
 
   scaffold = Scaffold(config)
   scaffold.compile_network()
@@ -166,8 +168,9 @@ The configuration object can be freely modified before compilation, although
 values that depend on eachother - i.e. layers in a stack - will not update each
 other.
 
+==================
 Network simulation
-------------------
+==================
 
 Simulations can be executed from configuration in a managed way using::
 
@@ -194,7 +197,7 @@ simulation::
 
 After preparation the simulator is primed, but can still be modified directly
 accessing the interface of the simulator itself. For example to create 5 extra
-cells in a NEST simulation::
+cells in a NEST simulation on top of the prepared configuration one could::
 
   cells = simulator.Create("iaf_cond_alpha", 5)
   print(cells)
@@ -206,6 +209,18 @@ cells in the simulator.
 After custom interfacing with the simulator, the adapter can be used to run the
 simulation::
 
+  adapter.simulate()
+
+Full code example
+=================
+
+.. code-block:: python
+
+  adapter = scaffold.create_adapter(name)
+  adapter.devices["input_stimulation"].parameters["rate"] = 40
+  simulator = adapter.prepare()
+  cells = simulator.Create("iaf_cond_alpha", 5)
+  print(cells)
   adapter.simulate()
 
 
