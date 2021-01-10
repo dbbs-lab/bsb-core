@@ -70,13 +70,13 @@ class ChunkLoader:
         """
         Add a chunk to read data from when loading properties/collections.
         """
-        self._chunks.add(chunk)
+        self._chunks.add(tuple(chunk))
 
     def unload_chunk(self, chunk):
         """
         Remove a chunk to read data from when loading properties/collections.
         """
-        self._chunks.discard(chunk)
+        self._chunks.discard(tuple(chunk))
 
     def require_chunk(self, chunk):
         """
@@ -113,35 +113,51 @@ class ChunkedProperty:
         maxshape[0] = None
         self.maxshape = tuple(maxshape)
 
-    def load(self):
+    def load(self, raw=False):
         if not self.loader._chunks:
             chunk_group = Resource(self.loader._engine, self.loader._path + "/chunks")
             self.loader._chunks = set(
                 tuple(int(x) for x in k.split(".")) for k in chunk_group.keys()
             )
-        chunk_loader = map(self.read_chunk, self.loader._chunks)
+        reader = self._chunk_reader(raw=raw)
+        chunk_loader = map(reader, self.loader._chunks)
         # Concatenate all non-empty chunks together
         chunked_data = tuple(c for c in chunk_loader if c.size)
         if not len(chunked_data):
             return np.empty(0)
         return np.concatenate(chunked_data)
 
-    def read_chunk(self, chunk):
-        self.loader.require_chunk(chunk)
-        with self.loader._engine.open("r") as f:
-            chunk_group = f()[self.loader.get_chunk_path(chunk)]
-            if self.name not in chunk_group:
-                return np.empty(self.shape)
-            data = chunk_group[self.name][()]
-            if self.extract is not None:
-                data = self.extract(data)
+    def _chunk_reader(self, raw):
+        """
+        Create a chunk reader that either returns the raw data or extracts it.
+        """
+
+        def read_chunk(chunk):
+            self.loader.require_chunk(chunk)
+            with self.loader._engine.open("r") as f:
+                chunk_group = f()[self.loader.get_chunk_path(chunk)]
+                if self.name not in chunk_group:
+                    return np.empty(self.shape)
+                data = chunk_group[self.name][()]
+                return data
+
+        # If this property has an extractor and we're not in raw mode, wrap the above
+        # reader to extract the data
+        if self.extract is not None and not raw:
+            _f = read_chunk
+
+            def read_chunk(chunk):
+                data = self.extract(_f(chunk))
                 # Allow only `np.ndarray`. Sorry things that quack, today we're checking
                 # birth certificates. Purebred ducks only.
                 if type(data) is not np.ndarray:
                     # Just kidding, as long as you quack you're welcome, but you'll have
                     # to change your family name.
                     data = np.array(data)
-            return data
+                return data
+
+        # Return the created function
+        return read_chunk
 
     def append(self, chunk, data):
         if self.insert is not None:
