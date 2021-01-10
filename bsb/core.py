@@ -55,9 +55,26 @@ class Scaffold:
     simulators such as NEST or NEURON.
     """
 
-    def __init__(self, config=None, storage=None):
+    def __init__(self, config=None, storage=None, clear=False):
+        """
+        Bootstraps a network object.
+
+        :param config: The configuration to use for this network. If it is omitted the
+          :doc:`default configuration <config/default>` is used.
+        :type config: :class:`.config.Configuration`
+        :param storage: The storage to use to read and write data for this network. If it
+          is omitted the configuration's ``Storage`` node is used to construct one.
+        :type storage: :class:`.storage.Storage`
+        :param clear: Start with a new network, clearing any previously stored information
+        :type clear: bool
+        :returns: A network object
+        :rtype: :class:`.core.Scaffold`
+        """
         self._initialise_MPI()
         self._bootstrap(config, storage)
+
+        if clear:
+            self.clear()
 
         # # Debug statistics, unused.
         # self.statistics = Statistics(self)
@@ -182,6 +199,12 @@ class Scaffold:
         # self.run_after_connectivity_hooks()
         report("Runtime: {}".format(time.time() - t), 2)
 
+    def clear(self):
+        """
+        Clears the storage. This removes the network!
+        """
+        self.storage.renew(self)
+
     def run_simulation(self, simulation_name, quit=False):
         """
         Run a simulation starting from the default single-instance adapter.
@@ -227,7 +250,7 @@ class Scaffold:
         simulator = simulation.prepare()
         return simulation, simulator
 
-    def place_cells(self, cell_type, positions, rotations=None):
+    def place_cells(self, cell_type, positions, rotations=None, chunk=None):
         """
         Place cells inside of the scaffold
 
@@ -242,12 +265,16 @@ class Scaffold:
         :param positions: A collection of xyz positions to place the cells on.
         :type positions: Any `np.concatenate` type of shape (N, 3).
         """
+        if chunk is None:
+            chunk = np.array([0, 0, 0])
         cell_count = positions.shape[0]
         if cell_count == 0:
             return
         cell_ids = self._allocate_ids(positions.shape[0])
         print("Placing", len(cell_ids), cell_type.name)
-        self.get_placement_set(cell_type).append_data(cell_ids, positions, rotations)
+        self.get_placement_set(cell_type).append_data(
+            chunk, cell_ids, positions, rotations
+        )
 
     def _allocate_ids(self, count, _next=[0]):
         """
