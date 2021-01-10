@@ -358,7 +358,8 @@ class Scaffold:
         # Create an ID for each entity.
         entities_ids = self._allocate_ids(count)
         ps = self.get_placement_set(cell_type)
-        ps.append_data(entities_ids)
+        # Append entity data to the default chunk 000
+        ps.append_data((0, 0, 0), entities_ids)
 
     def _append_tagged(self, attr, tag, data):
         """
