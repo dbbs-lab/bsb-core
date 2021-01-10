@@ -131,7 +131,7 @@ def or_(*type_args):
     :raises: TypeError if none of the given type validators can cast the value.
     :rtype: function
     """
-    handler_name = "any of: " + ", ".join(map(lambda x: x.__name__, type_args))
+    handler_name = "any of: " + ", ".join(map(lambda x: str(x.__name__), type_args))
     # Make sure to wrap all type handlers so that they accept the parent and key args.
     type_args = [_wrap_reserved(t) for t in type_args]
 
