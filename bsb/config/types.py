@@ -85,9 +85,6 @@ def _wrap_reserved(t):
     # Execute the code block in this local scope and pick the function out of the scope
     exec(mod, {"orig": t}, bait := locals())
     type_handler = bait["type_handler"]
-    # Fix for mocked objects erorring out during documentation process.
-    # See https://github.com/dbbs-lab/bsb/runs/1677370464#step:7:50
-    t.__name__ = str(t.__name__)
     # Copy over the metadata of the original function
     type_handler = functools.wraps(t)(type_handler)
     type_handler.__name__ = t.__name__
@@ -134,7 +131,7 @@ def or_(*type_args):
     :raises: TypeError if none of the given type validators can cast the value.
     :rtype: function
     """
-    handler_name = "any of: " + ", ".join(map(lambda x: str(x.__name__), type_args))
+    handler_name = "any of: " + ", ".join(map(lambda x: x.__name__, type_args))
     # Make sure to wrap all type handlers so that they accept the parent and key args.
     type_args = [_wrap_reserved(t) for t in type_args]
 
