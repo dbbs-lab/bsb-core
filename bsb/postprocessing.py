@@ -27,8 +27,8 @@ class LabelMicrozones(PostProcessingHook):
         # Divide the volume into two sub-parts (one positive and one negative)
         for neurons_2b_labeled in self.targets:
             ps = self.scaffold.get_placement_set(neurons_2b_labeled)
-            ids = ps.identifiers
-            zeds = ps.positions[:, 2]
+            ids = ps.load_identifiers()
+            zeds = ps.load_positions()[:, 2]
             z_sep = np.median(zeds)
             index_pos = np.where(zeds >= z_sep)[0]
             index_neg = np.where(zeds < z_sep)[0]
@@ -113,7 +113,7 @@ class AscendingAxonLengths(PostProcessingHook):
         floor_ml = molecular_layer.boundaries.y
         roof_ml = floor_ml + molecular_layer.boundaries.height
 
-        for idx, granule in enumerate(granules.cells):
+        for idx, granule in enumerate(granules.load_cells()):
             granule_y = granule.position[1]
             # Determine min and max height so that the parallel fiber is inside of the molecular layer
             pf_height_min = floor_ml - granule_y
@@ -127,7 +127,7 @@ class AscendingAxonLengths(PostProcessingHook):
             # Draw a sample for the parallel fiber height from a truncated normal distribution
             # with sd `pf_height_sd` and mean `pf_height`, truncated by the molecular layer bounds.
             parallel_fibers[idx] = truncnorm.rvs(a, b, size=1) * pf_height_sd + pf_height
-        granules.create_additional("ascending_axon_lengths", data=parallel_fibers)
+        granules.create_additional(chunk, "ascending_axon_lengths", data=parallel_fibers)
 
 
 class DCNRotations(PostProcessingHook):
