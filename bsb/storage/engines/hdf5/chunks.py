@@ -35,7 +35,6 @@ class ChunkLoader:
         self._collections = []
         for prop_constr in self.__class__._properties:
             prop = prop_constr(self)
-            print("setting", f"_{prop.name}_chunks")
             self.__dict__[f"_{prop.name}_chunks"] = prop
             self._properties.append(prop)
         for col_name in self.__class__._collections:
@@ -162,7 +161,6 @@ class ChunkedProperty:
                 dset = chunk_group[self.name]
                 start_pos = dset.shape[0]
                 dset.resize(start_pos + len(data), axis=0)
-                print(dset[start_pos:].shape, len(data), type(data), data)
                 dset[start_pos:] = data
 
 
