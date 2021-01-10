@@ -124,7 +124,7 @@ class ChunkedProperty:
         # Concatenate all non-empty chunks together
         chunked_data = tuple(c for c in chunk_loader if c.size)
         if not len(chunked_data):
-            return np.empty(0)
+            return np.empty(self.shape)
         return np.concatenate(chunked_data)
 
     def _chunk_reader(self, raw):
