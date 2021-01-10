@@ -271,7 +271,6 @@ class Scaffold:
         if cell_count == 0:
             return
         cell_ids = self._allocate_ids(positions.shape[0])
-        print("Placing", len(cell_ids), cell_type.name)
         self.get_placement_set(cell_type).append_data(
             chunk, cell_ids, positions, rotations
         )
