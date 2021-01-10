@@ -1,5 +1,10 @@
 # 3.6
 
+## 3.6.3
+
+* Updated "Getting Started" guide.
+* Changed default config to `network_configuration.json`
+
 ## 3.6.2
 
 * New ionic recorder device for NEURON adapter.

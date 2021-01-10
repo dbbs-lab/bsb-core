@@ -59,9 +59,9 @@ configuration with Python scripting.
 First script
 ============
 
-Although the scaffold package features a CLI that can perform most tasks, the package's
-primary use case is to be included in scripts that can further customize
-the scaffold with things impossible to achieve using the configuration files.
+The package is a library that can be imported into Python scripts. You can load
+configurations and adapt the loaded object before constructing a network with it to
+programmatically alter the network structure.
 
 Let's go over an example first script that creates 5 networks with different
 densities of ``base_type``.
@@ -81,15 +81,15 @@ keyword argument with a path to the configuration file::
   scaffold = Scaffold(config)
 
 .. note::
-  The verbosity is 1 by default, which only displays errors. You could also add
-  a `verbosity` attribute to the root node of the `my_config.json` file to set
-  the verbosity.
+  The verbosity is 1 by default, which only displays errors. You could also add a
+  ``verbosity`` attribute to the root node of the ``network_configuration.json`` file to
+  set the verbosity.
 
 Let's find the ``base_type`` cell configuration::
 
   base_type = scaffold.get_cell_type("base_type")
 
-The next step is to adapt the Purkinje cell density each iteration. The location
+The next step is to adapt the ``base_type`` cell density each iteration. The location
 of the attributes on the Python objects mostly corresponds to their location in
 the configuration file. This means that::
 
