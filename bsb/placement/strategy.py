@@ -28,7 +28,7 @@ class PlacementStrategy(abc.ABC, SortableByAfter):
         self.cell_type = self._config_parent
 
     @abc.abstractmethod
-    def place(self, chunk):
+    def place(self, chunk, chunk_size):
         """
         Central method of each placement strategy. Given a chunk, should fill that chunk
         with cells by calling the scaffold's (available as ``self.scaffold``)
@@ -125,7 +125,7 @@ class PlacementStrategy(abc.ABC, SortableByAfter):
         This function will then return either 1 or 2 to each chunk that asks to add
         stragglers, depending on the outcome of the 0.2 chance roll.
         """
-        return np.floor(chunk_count) + (np.random.rand() <= chunk_count % 1)
+        return int(np.floor(chunk_count) + (np.random.rand() <= chunk_count % 1))
 
     @classmethod
     def get_ordered(cls, objects):
@@ -146,7 +146,7 @@ class PlacementStrategy(abc.ABC, SortableByAfter):
 class FixedPositions(PlacementStrategy):
     positions = config.attr(type=np.array)
 
-    def place(self):
+    def place(self, chunk, chunk_size):
         self.scaffold.place_cells(self.cell_type, self.positions)
 
     def get_placement_count(self):
@@ -161,7 +161,10 @@ class Entities(PlacementStrategy):
 
     entities = True
 
-    def place(self):
+    def queue(self, pool, chunk_size):
+        pool.queue_placement(self.cell_type, np.array([0, 0, 0]), chunk_size)
+
+    def place(self, chunk, chunk_size):
         # Variables
         cell_type = self.cell_type
         scaffold = self.scaffold

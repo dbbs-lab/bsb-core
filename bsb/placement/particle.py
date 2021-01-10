@@ -12,6 +12,7 @@ class ParticlePlacement(PlacementStrategy):
     bounded = config.attr(type=bool, default=False)
 
     def place(self, chunk, chunk_size):
+        return
         cell_type = self.cell_type
         voxels = list(
             itertools.chain(
