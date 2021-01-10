@@ -21,11 +21,6 @@ class ParticlePlacement(PlacementStrategy):
         chunk_count = cell_type.placement.get_placement_count(chunk, chunk_size)
         chunk_count = self.add_stragglers(chunk, chunk_size, chunk_count)
 
-        # import numpy as np
-        # low = np.maximum(self.partitions[0].boundaries.ldc, chunk * chunk_size)
-        # high = np.minimum(self.partitions[0].boundaries.mdc, (chunk + 1) * chunk_size)
-        # print("filling chunk", chunk, "from", low, "to", high, "with", chunk_count, "cells")
-        #
         # Define the particles for the particle system.
         particles = [
             {
@@ -59,4 +54,4 @@ class ParticlePlacement(PlacementStrategy):
                     )
                 )
         particle_positions = system.positions
-        self.scaffold.place_cells(cell_type, particle_positions)
+        self.scaffold.place_cells(cell_type, particle_positions, chunk=chunk)
