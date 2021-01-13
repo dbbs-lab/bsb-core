@@ -18,7 +18,6 @@ requires = [
     "colour>=0.1.5",
     "errr>=1.0.0",
     "rtree>=0.9.7",
-    "zwembad>=0.0.1a0",
     "filelock>=3.0.0",
 ]
 
@@ -67,6 +66,6 @@ setuptools.setup(
     extras_require={
         "dev": ["sphinx", "furo", "pre-commit", "black==20.8b1"],
         "NEURON": ["dbbs_models>=1.3.2", "nrn-patch>=3.0.0b0"],
-        "MPI": ["mpi4py"],
+        "MPI": ["mpi4py", "zwembad>=1.0.0"],
     },
 )

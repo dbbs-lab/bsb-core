@@ -1,5 +1,5 @@
 from ..exceptions import *
-import abc
+import abc, itertools
 from ..exceptions import *
 from ..reporting import report, warn
 from .. import config
@@ -26,6 +26,7 @@ class PlacementStrategy(abc.ABC, SortableByAfter):
 
     def __boot__(self):
         self.cell_type = self._config_parent
+        self._queued_jobs = []
 
     @abc.abstractmethod
     def place(self, chunk, chunk_size):
@@ -42,10 +43,15 @@ class PlacementStrategy(abc.ABC, SortableByAfter):
         the default implementation asks each partition to chunk itself and creates 1
         placement job per chunk.
         """
+        # Reset jobs that we own
+        self._queued_jobs = []
+        # Get the queued jobs of all the strategies we depend on.
+        deps = set(itertools.chain(*(strat._queued_jobs for strat in self.get_after())))
         for p in self.partitions:
             chunks = p.to_chunks(chunk_size)
             for chunk in chunks:
-                pool.queue_placement(self.cell_type, chunk, chunk_size)
+                job = pool.queue_placement(self.cell_type, chunk, chunk_size, deps=deps)
+                self._queued_jobs.append(job)
 
     def is_entities(self):
         return "entities" in self.__class__.__dict__ and self.__class__.entities

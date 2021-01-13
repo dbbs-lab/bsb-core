@@ -137,7 +137,16 @@ class Scaffold:
         pool = create_job_pool(self, write=True)
         for strategy in strategies:
             strategy.queue(pool, self.network.chunk_size)
-        pool.execute()
+        pool.execute(self._pool_event_loop)
+
+    def _pool_event_loop(self, pool):
+        print("ENTERED THE EVENT LOOP:", len(pool._queue))
+        print("Running jobs:", len(q for q in pool._queue if q.running()))
+        print("Done jobs:", len(q for q in pool._queue if q.done()))
+        import time
+
+        print("Sleeping 1s")
+        time.sleep(1)
 
     def run_placement_strategy(self, strategy):
         """
