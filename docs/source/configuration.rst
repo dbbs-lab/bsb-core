@@ -64,7 +64,7 @@ that should be used::
 
   {
     "output": {
-      "format": "scaffold.output.HDF5Formatter"
+      "format": "bsb.output.HDF5Formatter"
     }
   }
 
@@ -117,6 +117,7 @@ The size of the Z dimension of the simulation volume.
   }
 
 .. note::
+
   The Y can not be set directly as it is a result of stacking/placing the layers.
   It's possible to place cells outside of the simulation volume, and even to place
   layers outside of the volume, but it is not recommended behavior. The X and Z
@@ -124,8 +125,9 @@ The size of the Z dimension of the simulation volume.
   simulation, but they aren't absolute restrictions.
 
 .. warning::
-  Do not modify these values directly on the configuration object: It will not
-  rescale your layers. Use :func:`resize <.configuration.ScaffoldConfig.resize>` instead.
+
+  Do not modify these values directly on the configuration object: It will not rescale
+  your layers. Use :func:`resize <bsb.configuration.ScaffoldConfig.resize>` instead.
 
 ================
 Layer attributes
@@ -349,7 +351,7 @@ A string containing a PlacementStrategy class name, including its module.
 
 .. code-block::
 
-  "class": "scaffold.placement.ParticlePlacement"
+  "class": "bsb.placement.ParticlePlacement"
 
 =======================
 Connectivity Attributes
@@ -366,7 +368,7 @@ A string containing a ConnectivityStrategy class name, including its module.
 
 .. code-block::
 
-  "class": "scaffold.placement.VoxelIntersection"
+  "class": "bsb.placement.VoxelIntersection"
 
 from_types/to_types
 ===================

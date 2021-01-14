@@ -1,10 +1,10 @@
-import unittest, os, sys, numpy as np, h5py
+import unittest, os, sys, numpy as np, h5py, test_setup
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from scaffold.core import Scaffold, from_hdf5
-from scaffold.config import JSONConfig
-from scaffold.models import PlacementSet, Cell
-from scaffold.exceptions import DatasetNotFoundError
+from bsb.core import Scaffold, from_hdf5
+from bsb.config import JSONConfig
+from bsb.models import PlacementSet, Cell
+from bsb.exceptions import DatasetNotFoundError
 
 
 def relative_to_tests_folder(path):
@@ -16,12 +16,13 @@ double_neuron_config = relative_to_tests_folder("configs/test_double_neuron.json
 
 class TestPlacementSets(unittest.TestCase):
     """
-        Check if the scaffold can create a single cell type.
+    Check if the scaffold can create a single cell type.
     """
 
     @classmethod
     def setUpClass(self):
         super(TestPlacementSets, self).setUpClass()
+        test_setup.prep_morphologies()
         config = JSONConfig(file=double_neuron_config)
         self.scaffold = Scaffold(config)
         self.scaffold.compile_network()

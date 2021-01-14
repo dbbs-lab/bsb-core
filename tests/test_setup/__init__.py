@@ -1,10 +1,14 @@
 import os, sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
-from scaffold.core import Scaffold, from_hdf5
-from scaffold.config import JSONConfig
+from bsb.core import Scaffold, from_hdf5
+from bsb.config import JSONConfig
 
 scaffold_lookup = {}
+mr_path = os.path.join(os.path.dirname(__file__), "..", "morphologies.h5")
+mr_top_path = os.path.join(os.path.dirname(__file__), "..", "..", "morphologies.h5")
+mr_rot_path = os.path.join(os.path.dirname(__file__), "..", "morpho_rotated.h5")
+rotations_step = [30, 60]
 
 
 def get_test_network(x=None, z=None):
@@ -26,10 +30,8 @@ def _create_test_network(*dimensions):
             os.path.join(
                 os.path.dirname(__file__),
                 "..",
-                "..",
-                "scaffold",
-                "configurations",
-                "mouse_cerebellum.json",
+                "configs",
+                "legacy_mouse_cerebellum.json",
             )
         )
         config.resize(*dimensions)
@@ -40,3 +42,29 @@ def _create_test_network(*dimensions):
         # Bootstrap the scaffold and create the network.
         scaffold = Scaffold(config)
         scaffold.compile_network()
+
+
+def prep_morphologies():
+    if not os.path.exists(mr_path):
+        from bsb.output import MorphologyRepository as MR
+        import dbbs_models
+
+        mr = MR(mr_path)
+        mr.import_arbz_module(dbbs_models)
+        import shutil
+
+        shutil.copyfile(mr_path, mr_top_path)
+
+
+def prep_rotations():
+    if not os.path.exists(mr_rot_path):
+        from bsb.output import MorphologyRepository, MorphologyCache
+        import dbbs_models
+
+        mr = MorphologyRepository(mr_rot_path)
+        mr.get_handle("w")
+        mr.import_arbz("GranuleCell", dbbs_models.GranuleCell)
+        mr.import_arbz("GolgiCell", dbbs_models.GolgiCell)
+        mr.import_arbz("GolgiCell_A", dbbs_models.GolgiCell)
+        mc = MorphologyCache(mr)
+        mc.rotate_all_morphologies(rotations_step[0], rotations_step[1])

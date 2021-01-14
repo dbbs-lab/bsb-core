@@ -1,8 +1,8 @@
 import unittest, os, sys, numpy as np, h5py, importlib
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from scaffold.core import Scaffold
-from scaffold.models import Layer, CellType
+from bsb.core import Scaffold
+from bsb.models import Layer, CellType
 from test_setup import get_test_network
 
 
@@ -10,9 +10,13 @@ def relative_to_tests_folder(path):
     return os.path.join(os.path.dirname(__file__), path)
 
 
-_nest_available = importlib.find_loader("nest") is not None
+_nest_available = importlib.util.find_spec("nest") is not None
+_using_morphologies = True
 
 
+@unittest.skipIf(
+    not _using_morphologies, "Morphologies are required for the connectivity tests."
+)
 class TestConnectivity(unittest.TestCase):
     @classmethod
     def setUpClass(self):
@@ -111,3 +115,9 @@ class TestConnectivity(unittest.TestCase):
                 with self.subTest(name="POST " + connection_tag):
                     for conn in range(len(post)):
                         self.assertTrue(post[conn] in to_cells)
+
+                # Call convergence and divergence code.
+                with self.subTest(name="divergence"):
+                    _ = cs.divergence
+                with self.subTest(name="convergence"):
+                    _ = cs.convergence

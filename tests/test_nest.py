@@ -1,19 +1,30 @@
 import unittest, os, sys, numpy as np, h5py, importlib
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from scaffold.core import Scaffold
-from scaffold.config import JSONConfig
-from scaffold.simulators.nest import NestCell
-from scaffold.models import Layer, CellType
-from scaffold.exceptions import *
+from bsb.core import Scaffold
+from bsb.config import JSONConfig
+from bsb.simulators.nest import NestCell
+from bsb.models import Layer, CellType
+from bsb.exceptions import *
 
 
 def relative_to_tests_folder(path):
     return os.path.join(os.path.dirname(__file__), path)
 
 
+def reset_kernel(f):
+    def reset(cls):
+        import nest
+
+        nest.ResetKernel()
+        f(cls)
+
+    return reset
+
+
 minimal_config = relative_to_tests_folder("configs/test_minimal_simulation.json")
 single_neuron_config = relative_to_tests_folder("configs/test_single_neuron.json")
+recorder_config = relative_to_tests_folder("configs/test_recorders.json")
 double_neuron_config = relative_to_tests_folder("configs/test_double_neuron.json")
 double_nn_config = relative_to_tests_folder("configs/test_double_neuron_network.json")
 homosyn_config = relative_to_tests_folder(
@@ -24,13 +35,17 @@ heterosyn_config = relative_to_tests_folder(
 )
 
 
-@unittest.skipIf(importlib.find_loader("nest") is None, "NEST is not importable.")
+def neuron_installed():
+    return importlib.util.find_spec("neuron")
+
+
+@unittest.skipIf(importlib.util.find_spec("nest") is None, "NEST is not importable.")
 class TestKernelManagement(unittest.TestCase):
     # TODO: Add set_threads exception tests here
     pass
 
 
-@unittest.skipIf(importlib.find_loader("nest") is None, "NEST is not importable.")
+@unittest.skipIf(importlib.util.find_spec("nest") is None, "NEST is not importable.")
 class TestSingleNeuronTypeSetup(unittest.TestCase):
     def setUp(self):
         config = JSONConfig(file=single_neuron_config)
@@ -58,11 +73,12 @@ class TestSingleNeuronTypeSetup(unittest.TestCase):
         self.assertEqual(test_neuron_status[0]["I_e"], 0.0)
 
 
-@unittest.skipIf(importlib.find_loader("nest") is None, "NEST is not importable.")
+@unittest.skipIf(importlib.util.find_spec("nest") is None, "NEST is not importable.")
 class TestDoubleNeuronTypeSetup(unittest.TestCase):
     @classmethod
+    @reset_kernel
     def setUpClass(cls):
-        super(TestDoubleNeuronTypeSetup, cls).setUpClass()
+        super().setUpClass()
         config = JSONConfig(file=double_neuron_config)
         cls.scaffold = Scaffold(config)
         cls.scaffold.compile_network()
@@ -112,12 +128,15 @@ class TestDoubleNeuronTypeSetup(unittest.TestCase):
         self.assertEqual(to_neuron_status[0]["A2"], -0.94)
 
 
-@unittest.skipIf(importlib.find_loader("nest") is None, "NEST is not importable.")
+@unittest.skipIf(importlib.util.find_spec("nest") is None, "NEST is not importable.")
 class TestDoubleNeuronNetworkStatic(unittest.TestCase):
     @classmethod
+    @reset_kernel
     def setUpClass(cls):
-        super(TestDoubleNeuronNetworkStatic, cls).setUpClass()
+        super().setUpClass()
         config = JSONConfig(file=double_nn_config)
+        if not neuron_installed():
+            del config.simulations["neuron"]
         cls.scaffold = Scaffold(config)
         cls.scaffold.compile_network()
         cls.nest_adapter = cls.scaffold.run_simulation(
@@ -154,11 +173,12 @@ class TestDoubleNeuronNetworkStatic(unittest.TestCase):
         )
 
 
-@unittest.skipIf(importlib.find_loader("nest") is None, "NEST is not importable.")
+@unittest.skipIf(importlib.util.find_spec("nest") is None, "NEST is not importable.")
 class TestDoubleNeuronNetworkHomosyn(unittest.TestCase):
     @classmethod
+    @reset_kernel
     def setUpClass(cls):
-        super(TestDoubleNeuronNetworkHomosyn, cls).setUpClass()
+        super().setUpClass()
         config = JSONConfig(file=homosyn_config)
         cls.scaffold = Scaffold(config)
         cls.scaffold.compile_network()
@@ -197,11 +217,12 @@ class TestDoubleNeuronNetworkHomosyn(unittest.TestCase):
         )
 
 
-@unittest.skipIf(importlib.find_loader("nest") is None, "NEST is not importable.")
+@unittest.skipIf(importlib.util.find_spec("nest") is None, "NEST is not importable.")
 class TestDoubleNeuronNetworkHeterosyn(unittest.TestCase):
     @classmethod
+    @reset_kernel
     def setUpClass(cls):
-        super(TestDoubleNeuronNetworkHeterosyn, cls).setUpClass()
+        super().setUpClass()
         config = JSONConfig(file=heterosyn_config)
         cls.scaffold = Scaffold(config)
         cls.scaffold.compile_network()
@@ -246,7 +267,7 @@ class TestDoubleNeuronNetworkHeterosyn(unittest.TestCase):
         )
 
     def test_teaching_connection_missing(self):
-        from scaffold.exceptions import ConfigurationError
+        from bsb.exceptions import ConfigurationError
 
         with open(heterosyn_config, "r") as f:
             stream = f.read()
@@ -257,7 +278,7 @@ class TestDoubleNeuronNetworkHeterosyn(unittest.TestCase):
             self.scaffold = Scaffold(config)
 
     def test_teaching_connection_configuration(self):
-        from scaffold.exceptions import ConfigurationError
+        from bsb.exceptions import ConfigurationError
 
         with open(heterosyn_config, "r") as f:
             stream = f.read()
@@ -270,7 +291,7 @@ class TestDoubleNeuronNetworkHeterosyn(unittest.TestCase):
             self.scaffold = Scaffold(config)
 
 
-@unittest.skipIf(importlib.find_loader("nest") is None, "NEST is not importable.")
+@unittest.skipIf(importlib.util.find_spec("nest") is None, "NEST is not importable.")
 class TestMultiInstance(unittest.TestCase):
     @classmethod
     def setUpClass(self):
@@ -414,3 +435,32 @@ class TestMultiInstance(unittest.TestCase):
         self.assertEqual(lock_data["suffixes"][0], "second")
         self.nest_adapter_multi_2.release_lock()
         self.nest_adapter_multi_2.reset()
+
+
+@unittest.skipIf(importlib.util.find_spec("nest") is None, "NEST is not importable.")
+class TestDeviceProtocol(unittest.TestCase):
+    @classmethod
+    def setUpClass(self):
+        super().setUpClass()
+        import nest
+
+        self.nest = nest
+        config = JSONConfig(file=recorder_config)
+        self.scaffold = Scaffold(config)
+
+    def test_interface(self):
+        import bsb.simulators.nest
+
+        adapter = self.scaffold.configuration.simulations["test_recorders"]
+        sp = bsb.simulators.nest.get_device_protocol(adapter.devices["record_spikes"])
+        gen = bsb.simulators.nest.get_device_protocol(adapter.devices["gen"])
+        self.assertEqual(bsb.simulators.nest.DeviceProtocol, gen.__class__)
+        self.assertEqual(bsb.simulators.nest.SpikeDetectorProtocol, sp.__class__)
+
+    def test_spike_recorder(self):
+        adapter = self.scaffold.configuration.simulations["test_recorders"]
+        self.assertEqual(0, len(adapter.result.recorders))
+        simulator = adapter.prepare()
+        self.assertEqual(1, len(adapter.result.recorders))
+        adapter.simulate(simulator)
+        adapter.collect_output()

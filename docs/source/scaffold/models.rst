@@ -2,5 +2,5 @@
 Models module
 =============
 
-.. automodule:: scaffold.models
+.. automodule:: bsb.models
   :members:

@@ -1,6 +1,6 @@
 {
   "output": {
-    "format": "scaffold.output.HDF5Formatter",
+    "format": "bsb.output.HDF5Formatter",
     "file": "minimal.hdf5"
   },
   "network_architecture": {

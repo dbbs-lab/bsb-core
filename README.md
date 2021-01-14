@@ -1,15 +1,16 @@
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
-[![Build Status](https://travis-ci.com/Helveg/cerebellum-scaffold.svg?token=XSpW8taq6yXK53yq1am2&branch=master)](https://travis-ci.com/Helveg/cerebellum-scaffold)
-[![codecov](https://codecov.io/gh/Helveg/cerebellum-scaffold/branch/master/graph/badge.svg?token=iMOwEbV0AZ)](https://codecov.io/gh/Helveg/cerebellum-scaffold)
+[![Documentation Status](https://readthedocs.org/projects/bsb/badge/?version=latest)](https://bsb.readthedocs.io/en/latest/?badge=latest)
+[![Build Status](https://travis-ci.com/dbbs-lab/bsb.svg?branch=master)](https://travis-ci.com/dbbs-lab/bsb)
+[![codecov](https://codecov.io/gh/dbbs-lab/bsb/branch/master/graph/badge.svg)](https://codecov.io/gh/dbbs-lab/bsb)
 
 **Note:** The scaffold framework is still under heavy development. Please check the
 **_Known Issues_** section at the bottom for important issues that fell victim to our
 deadlines and will be solved at a later date.
 
-# Scaffold: A scaffold model for the cerebellum
+# BSB: A scaffold modelling framework
 This package is intended to facilitate spatially, topologically and morphologically
-detailed simulations of the cerebellum developed by the Department of Brain and Behavioral
-Sciences at the University of Pavia.
+detailed simulations of brain regions developed by the Department of Brain and 
+Behavioral Sciences at the University of Pavia.
 
 ## Installation
 
@@ -18,12 +19,8 @@ Sciences at the University of Pavia.
 This software can be installed as a Python package from PyPI through pip:
 
 ```
- sudo apt-get python3-rtree
- pip install dbbs-scaffold
+pip install bsb
 ```
-
-**Note:** *Windows users will have to install Rtree from this website:
-https://www.lfd.uci.edu/~gohlke/pythonlibs/#rtree*
 
 ### Developers
 
@@ -31,24 +28,23 @@ Developers best use pip's *editable* install. This creates a live link between t
 installed package and the local git repository:
 
 ```
- sudo apt-get install python3-rtree
- git clone git@github.com:Helveg/cerebellum-scaffold.git
- cd cerebellum-scaffold
- pip install -e .[dev] --no-use-pep517
+ git clone git@github.com:dbbs-lab/bsb
+ cd bsb
+ pip install -e .[dev]
  pre-commit install
 ```
 
 ## Usage
 
-The scaffold model can be used through the command line interface or as a python package.
+The scaffold framework can be used through the command line interface or as a python package.
 
 ### Command line interface (CLI)
 
-Run the scaffold in the command line with subcommand `compile` to compile a network
+Run the framework in the command line with subcommand `compile` to compile a network
 architecture.
 
 ```
-scaffold --config=mouse_cerebellum.json compile -x=200 -y=200 -p
+bsb --config=mouse_cerebellum_cortex_noTouch.json compile -x=200 -z=200 -p
 ```
 
 To run with different configurations, change the config argument to the relative path of a
@@ -57,16 +53,16 @@ afterwards and can be omitted.
 
 ### Python package
 
-The central object is the `scaffold.core.Scaffold` class. This object requires a
-`scaffold.config.ScaffoldConfig` instance for its construction. To emulate the CLI
+The central object is the `bsb.core.Scaffold` class. This object requires a
+`bsb.config.ScaffoldConfig` instance for its construction. To emulate the CLI
 functionality you can use the `JSONConfig` class and provide the relative path to the
 configuration file.
 
 ```python
-from scaffold import Scaffold
-from scaffold.config import JSONConfig
+from bsb import Scaffold
+from bsb.config import JSONConfig
 
-config = new JSONConfig(file='mouse_cerebellum.json')
+config = new JSONConfig(file='mouse_cerebellum_cortex_noTouch.json')
 scaffoldInstance = new Scaffold(config)
 ```
 
@@ -93,4 +89,11 @@ scaffoldInstance.plot_network_cache()
 When modifying the config object through scripts and then saving it to file, you'll store
 the original configuration file text, and you won't actually serialize the modified object
 
-We will fix this by version 3.2
+We will fix this by version 4.0
+
+## If MPI is installed but mpi4py is not undefined behavior may occur
+
+The amount of NEST virtual processes is determined by using mpi4py to get the amount of
+MPI processes. But if the package is not installed it is assumed no MPI simulations will
+be ran and the amount of virtual processes might be lower than expected when used in
+combination with OpenMP. Be sure to `pip install` using the `[MPI]` requirement tag.

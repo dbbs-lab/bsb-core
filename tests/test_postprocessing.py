@@ -1,16 +1,16 @@
-import unittest, os, sys, numpy as np, h5py
+import unittest, os, sys, numpy as np, h5py, importlib
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from scaffold.config import JSONConfig
-from scaffold.core import Scaffold
-from scaffold.output import HDF5Formatter
-import scaffold.helpers
-from scaffold.exceptions import (
+from bsb.config import JSONConfig
+from bsb.core import Scaffold
+from bsb.output import HDF5Formatter
+import bsb.helpers, test_setup
+from bsb.exceptions import (
     MorphologyDataError,
     MorphologyError,
     MissingMorphologyError,
 )
-from scaffold.postprocessing import SpoofDetails
+from bsb.postprocessing import SpoofDetails
 
 
 def relative_to_tests_folder(path):
@@ -20,10 +20,20 @@ def relative_to_tests_folder(path):
 _config = relative_to_tests_folder("configs/test_double_neuron.json")
 
 
+def neuron_installed():
+    return importlib.util.find_spec("neuron")
+
+
+@unittest.skipIf(not neuron_installed(), "NEURON is not importable.")
 class TestPostProcessing(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        test_setup.prep_morphologies()
+
     def test_spoofing(self):
         """
-            Assert that fake detailed connections can be made
+        Assert that fake detailed connections can be made
         """
         config = JSONConfig(file=_config)
         scaffold = Scaffold(config)
@@ -58,16 +68,10 @@ class TestPostProcessing(unittest.TestCase):
         try:
             i = cs.intersections
             for inter in i:
-                ft = inter.from_compartment.type
-                tt = inter.to_compartment.type
-                self.assertTrue(
-                    ft == 2 or ft >= 200 and ft < 300,
-                    "From compartment type is not an axon",
-                )
-                self.assertTrue(
-                    tt == 3 or tt >= 300 and tt < 400,
-                    "To compartment type is not a dendrite",
-                )
+                fl = inter.from_compartment.labels
+                tl = inter.to_compartment.labels
+                self.assertIn("axon", fl, "From compartment type is not an axon")
+                self.assertIn("dendrites", tl, "From compartment type is not a dendrite")
             self.assertNotEqual(len(i), 0, "Empty intersection data")
             self.assertEqual(
                 len(i), original_connections, "Different amount of spoofed connections"

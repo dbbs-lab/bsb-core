@@ -1,9 +1,9 @@
 import unittest, os, sys, numpy as np, h5py, importlib
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from scaffold.core import Scaffold
-from scaffold.config import JSONConfig, _from_hdf5
-from scaffold.models import Layer, CellType
+from bsb.core import Scaffold
+from bsb.config import JSONConfig, _from_hdf5
+from bsb.models import Layer, CellType
 
 
 def relative_to_tests_folder(path):
@@ -13,9 +13,13 @@ def relative_to_tests_folder(path):
 minimal_config_entities = relative_to_tests_folder("configs/test_minimal_entities.json")
 
 
+@unittest.skipIf(importlib.util.find_spec("nest") is None, "NEST is not importable.")
 class TestEntities(unittest.TestCase):
     @classmethod
     def setUpClass(self):
+        import nest
+
+        nest.ResetKernel()
         super(TestEntities, self).setUpClass()
         config = JSONConfig(file=minimal_config_entities)
         self.scaffold = Scaffold(config)
@@ -26,7 +30,7 @@ class TestEntities(unittest.TestCase):
     def test_placement_statistics(self):
         self.assertEqual(self.scaffold.statistics.cells_placed["entity_type"], 100)
 
-    @unittest.skipIf(importlib.find_loader("nest") is None, "NEST is not importable.")
+    @unittest.skipIf(importlib.util.find_spec("nest") is None, "NEST is not importable.")
     def test_creation_in_nest(self):
 
         f = h5py.File("minimal_entities.hdf5", "r")
