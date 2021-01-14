@@ -99,8 +99,8 @@ class TestMorphologies(unittest.TestCase):
             g = g.create_group("M")
             b = g.create_group("branches")
             b0 = b.create_group("0")
-            b0.create_dataset("x", data=[1])
             b0.create_group("labels")
+            b0.create_dataset("x", data=[1])
             b0.create_dataset("y", data=[1])
             b0.create_dataset("z", data=[1])
             b0.create_dataset("radii", data=[1])
@@ -113,6 +113,11 @@ class TestMorphologies(unittest.TestCase):
             t = m.flatten()
             msg = "Single empty branch morfo flatten to vector should produce vectors."
             self.assertEqual(len(Branch.vectors), len(t), msg)
+            p = m.roots[0].points
+            msg = "Single point branch.points should return (1, 4) ndarray."
+            self.assertEqual((1, len(Branch.vectors)), p.shape, msg)
+            msg = "Point data of branch.points incorrect."
+            self.assertEqual([1, 1, 1, 1], list(p[0]), msg)
             msg = "Single point branches should not produce comps"
             self.assertEqual(0, len(m.to_compartments()), msg)
 

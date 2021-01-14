@@ -109,6 +109,13 @@ class Branch:
             self.__dict__[vector] = args[v]
 
     @property
+    def points(self):
+        """
+        Return the vectors of this branch as a matrix.
+        """
+        return np.column_stack(tuple(getattr(self, v) for v in self.__class__.vectors))
+
+    @property
     def size(self):
         """
         Returns the amount of points on this branch
@@ -176,6 +183,12 @@ class Branch:
             raise ValueError("Branch could not be detached, it is not a child branch.")
 
     def to_compartments(self, start_id=0, parent=None):
+        """
+        Convert the branch to compartments.
+
+        .. deprecated:: 3.6
+            Use the vectors and points API instead (``.points``, ``.walk()``)
+        """
         comp_id = start_id
 
         def to_comp(data, labels):
