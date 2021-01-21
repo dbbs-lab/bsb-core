@@ -14,14 +14,6 @@ def relative_to_tests_folder(path):
 single_neuron_config = relative_to_tests_folder("configs/test_single_neuron.json")
 
 
-class TestParallelScheduler(unittest.TestCase):
-    pass
-
-
-class TestSerialScheduler(unittest.TestCase):
-    pass
-
-
 @unittest.skip("Re-enabling tests gradually while advancing v4.0 rework")
 class TestSingleTypeCompilation(unittest.TestCase):
     """

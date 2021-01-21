@@ -3,10 +3,17 @@ Job pooling module
 """
 
 from mpi4py.MPI import COMM_WORLD
+import time
+import concurrent.futures
 
 
-def scheduler(job):
-    return job.execute()
+def dispatcher(pool_id, job_args):
+    job_type, f, args, kwargs = job_args
+    # Get the static job execution handler from this module
+    handler = globals()[job_type].execute
+    owner = JobPool.get_owner(pool_id)
+    # Execute it.
+    handler(owner, f, args, kwargs)
 
 
 class FakeFuture:
@@ -18,27 +25,35 @@ class FakeFuture:
 
 
 class Job:
-    def __init__(self, pool, f, *args, deps=None):
+    """
+    Dispatches the execution of a function through a JobPool
+    """
+
+    def __init__(self, pool, f, args, kwargs, deps=None):
         self.pool_id = pool.id
         self.f = f
         self._args = args
+        self._kwargs = kwargs
         self._deps = set(deps or [])
+        self._completion_cbs = []
         for j in self._deps:
             j.on_completion(self._dep_completed)
         self._future = FakeFuture()
 
     def serialize(self):
-        return (self.f, *self._args)
+        name = self.__class__.__name__
+        # First arg is to find the static `execute` method so that we don't have to
+        # serialize any of the job objects themselves but can still use different handlers
+        # for different job types.
+        return (name, self.f, self._args, self._kwargs)
 
-    def args(self):
-        return self._args
-
-    def params(self):
-        return ()
-
-    def execute(self):
-        scaffold = JobPool.get_owner(self.pool_id)
-        return self.f(scaffold, *self.params(), *self.args())
+    @staticmethod
+    def execute(job_owner, f, args, kwargs):
+        """
+        Default job handler, invokes ``f`` passing it the scaffold object that owns the
+        job + the args and kwargs given at job creation.
+        """
+        return f(job_owner, *args, **kwargs)
 
     def on_completion(self, cb):
         self._completion_cbs.append(cb)
@@ -48,52 +63,56 @@ class Job:
             cb(self)
 
     def _dep_completed(self, dep):
+        # Earlier we registered this callback on the completion of our dependencies.
+        # When a dep completes we end up here and we discard it as a dependency as it has
+        # finished. When all our dependencies have been discarded we can queue ourselves.
         self._deps.discard(dep)
         if not self._deps:
-            # Trigger the enqueueing again.
             self._enqueue(self._pool)
 
     def _enqueue(self, pool):
         if not self._deps:
             # Go ahead and submit ourselves to the pool, no dependencies to wait for
-            self._future = pool.submit(scheduler, self)
+            # The dispatcher is run on the remote worker and unpacks the data required
+            # to execute the job contents.
+            self._future = pool.submit(dispatcher, self.pool_id, self.serialize())
+            # Invoke our completion callbacks when the future completes.
             self._future.add_done_callback(self._completion)
-            scaffold = JobPool.get_owner(self.pool_id)
-            finished = lambda _: scaffold.job_finished(self)
-            self._future.add_done_callback(finished)
         else:
+            # We have unfinished dependencies and should wait until we can enqueue
+            # ourselves when our dependencies haved all notified us of their completion.
             self._pool = pool
 
 
 class ChunkedJob(Job):
-    def __init__(self, pool, f, chunk, chunk_size, *args):
-        self.chunk = chunk
-        self.chunk_size = chunk_size
-        super().__init__(pool, f, *args)
-
-    def params(self):
-        return self.chunk, self.chunk_size
+    def __init__(self, pool, f, chunk, chunk_size, deps=None):
+        args = (chunk, chunk_size)
+        super().__init__(pool, f, args, {}, deps=deps)
 
 
 class PlacementJob(ChunkedJob):
-    def __init__(self, pool, type, chunk, chunk_size, deps=None, *args):
-        self.type = type.name
-        super().__init__(pool, type.placement.place.__func__, chunk, chunk_size, *args)
+    """
+    Dispatches the execution of a chunk of a placement strategy through a JobPool.
+    """
 
-    def execute(self):
-        scaffold = JobPool.get_owner(self.pool_id)
-        placement = scaffold.cell_types[self.type].placement
-        return self.f(placement, *self.params(), *self.args())
+    def __init__(self, pool, type, chunk, chunk_size, deps=None):
+        args = (type.name, chunk, chunk_size)
+        super().__init__(pool, type.placement.place.__func__, args, {}, deps=deps)
+
+    @staticmethod
+    def execute(job_owner, f, args, kwargs):
+        placement = job_owner.cell_types[args[0]].placement
+        return f(placement, *args[1:], **kwargs)
 
 
 class JobPool:
     _next_pool_id = 0
     _pool_owners = {}
 
-    def __init__(self, scaffold, write):
-        self.parallel_write = write
+    def __init__(self, scaffold, listeners=None):
         self._queue = []
         self.id = JobPool._next_pool_id
+        self._listeners = listeners or []
         JobPool._next_pool_id += 1
         JobPool._pool_owners[self.id] = scaffold
 
@@ -101,22 +120,45 @@ class JobPool:
     def get_owner(cls, id):
         return cls._pool_owners[id]
 
-    def queue(self, f, *args):
-        job = Job(self, f, *args)
+    def _put(self, job):
+        """
+        Puts a job onto our internal queue. Putting items in the queue does not mean they
+        will be executed. For this ``self.execute()`` must be called.
+        """
+        # Use an observer pattern to allow the creator of the pool to listen for job
+        # completion. This complements the event loop in parallel execution and is
+        # executed synchronously in serial execution.
+        for listener in self._listeners:
+            job.on_completion(listener)
         self._queue.append(job)
+
+    def queue(self, f, args=None, kwargs=None, deps=None):
+        job = Job(self, f, args or (), kwargs or {})
+        self._put(job)
         return job
 
-    def queue_chunk(self, f, chunk, *args):
-        job = ChunkedJob(self, f, chunk, *args)
-        self._queue.append(job)
+    def queue_chunk(self, f, chunk, chunk_size, deps=None):
+        job = ChunkedJob(self, f, chunk, chunk_size)
+        self._put(job)
         return job
 
-    def queue_placement(self, type, chunk, deps=None, *args):
-        job = PlacementJob(self, type, chunk, deps, *args)
-        self._queue.append(job)
+    def queue_placement(self, type, chunk, chunk_size, deps=None):
+        job = PlacementJob(self, type, chunk, chunk_size, deps)
+        self._put(job)
         return job
 
-    def execute(self, master_event_loop):
+    def execute(self, master_event_loop=None):
+        """
+        Execute the jobs in the queue
+
+        In serial execution this runs all of the jobs in the queue in First In First Out
+        order. In parallel execution this enqueues all jobs into the MPIPool unless they
+        have dependencies that need to complete first.
+
+        :param master_event_loop: A function that is continuously calls while waiting for
+            the jobs to finish in parallel execution
+        :type master_event_loop: function
+        """
         # This is implemented under the assumption that jobs are submitted to the pool
         # in dependency-first order; which should always be the case unless someone
         # submits jobs first and then starts adding things to the jobs' `._deps`
@@ -124,7 +166,11 @@ class JobPool:
         if COMM_WORLD.Get_size() == 1:
             # Just run each job serially
             for job in self._queue:
-                job.execute()
+                # Execute the static handler
+                job.execute(self, job.f, job._args, job._kwargs)
+                # Trigger job completion manually as there is no async future object
+                # like in parallel execution.
+                job._completion(None)
             # Clear the queue after all jobs have been done
             self._queue = []
         else:
@@ -145,9 +191,18 @@ class JobPool:
             for job in self._queue:
                 job._enqueue(pool)
 
+            q = self._queue.copy()
             # As long as any of the jobs aren't done yet we repeat the master_event_loop
-            while any(not j._future.done() for j in self._queue):
-                master_event_loop(self)
+            while (
+                open_jobs := [j._future for j in self._queue if not j._future.done()]
+            ) :
+                if master_event_loop:
+                    # If there is an event loop, run it and hand it a copy of the jobqueue
+                    master_event_loop(q)
+                else:
+                    # If there is no event loop just let the master idle until execution
+                    # has completed.
+                    concurrent.futures.wait(open_jobs)
             pool.shutdown()
 
 
