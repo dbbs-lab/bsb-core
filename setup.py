@@ -17,15 +17,8 @@ requires = [
     "plotly>=4.1.0",
     "colour>=0.1.5",
     "errr>=1.0.0",
+    "rtree>=0.9.7",
 ]
-
-if not os.getenv("READTHEDOCS", False):
-    # Add all packages with binary dependencies that cannot be installed on RTD here.
-    requires.extend(
-        [
-            "rtree-linux==0.9.4",
-        ]
-    )
 
 setuptools.setup(
     name="bsb",
@@ -52,8 +45,8 @@ setuptools.setup(
         "Source Code": "https://github.com/dbbs-lab/bsb/",
     },
     extras_require={
-        "dev": ["sphinx", "sphinx_rtd_theme>=0.4.3", "pre-commit", "black==20.8b1"],
-        "NEURON": ["dbbs_models>=1.3.2", "nrn-patch>=3.0.0b0"],
-        "MPI": ["mpi4py"],
+        "dev": ["sphinx", "furo", "pre-commit", "black==20.8b1"],
+        "neuron": ["NEURON>=7.8.1.1", "dbbs_models>=1.4.0", "nrn-patch>=3.0.0b0"],
+        "mpi": ["mpi4py"],
     },
 )

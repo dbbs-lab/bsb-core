@@ -18,26 +18,20 @@ class ConnectomePFInterneuron(ConnectionStrategy):
         interneurons = self.scaffold.cells_by_type[interneuron_cell_type.name]
         first_granule = int(granules[0, 0])
         dendrite_radius = interneuron_cell_type.morphology.dendrite_radius
-        pf_heights = (
-            self.scaffold.appends["cells/ascending_axon_lengths"][:, 1] + granules[:, 3]
-        )  # Add granule Y to height of its pf
+        # Spoof fixed pf height of 150 µm
+        pf_heights = 150 + granules[:, 3]
 
         def connectome_pf_inter(first_granule, interneurons, granules, r_sb, h_pf):
             pf_interneuron = np.zeros((0, 2))
-
-            for (
-                i
-            ) in (
-                interneurons
-            ):  # for each interneuron find all the parallel fibers that fall into the sphere with centre the cell soma and appropriate radius
+            # for each interneuron find all the parallel fibers that fall into the sphere with centre the cell soma and appropriate radius
+            for i in interneurons:
 
                 # find all cells that satisfy the condition
                 interneuron_matrix = (
                     ((granules[:, 2] - i[2]) ** 2) + ((h_pf - i[3]) ** 2) - (r_sb ** 2)
                 ).__le__(0)
-                good_pf = np.where(interneuron_matrix)[
-                    0
-                ]  # indexes of interneurons that can potentially be connected
+                # indexes of interneurons that can potentially be connected
+                good_pf = np.where(interneuron_matrix)[0]
 
                 matrix = np.zeros((len(good_pf), 2))
                 matrix[:, 1] = i[0]

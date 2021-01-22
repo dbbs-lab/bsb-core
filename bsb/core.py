@@ -838,9 +838,9 @@ class Scaffold:
               print(cell_type.name)
         """
         if entities:
-            return self.configuration.cell_types.values()
+            return list(self.configuration.cell_types.values())
         else:
-            return list(filter(lambda c: not c.entity, self.get_cell_types()))
+            return [c for c in self.get_cell_types() if not c.entity]
 
     def get_entity_types(self):
         """

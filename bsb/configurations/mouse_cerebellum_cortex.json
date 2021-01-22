@@ -162,6 +162,9 @@
         "layer": "granular_layer",
         "placement_relative_to": "glomerulus",
         "placement_count_ratio": 0.05
+      },
+      "plotting": {
+        "color": "black"
       }
     }
   },

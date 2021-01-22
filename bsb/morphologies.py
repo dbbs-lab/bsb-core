@@ -109,6 +109,13 @@ class Branch:
             self.__dict__[vector] = args[v]
 
     @property
+    def points(self):
+        """
+        Return the vectors of this branch as a matrix.
+        """
+        return np.column_stack(tuple(getattr(self, v) for v in self.__class__.vectors))
+
+    @property
     def size(self):
         """
         Returns the amount of points on this branch
@@ -176,6 +183,12 @@ class Branch:
             raise ValueError("Branch could not be detached, it is not a child branch.")
 
     def to_compartments(self, start_id=0, parent=None):
+        """
+        Convert the branch to compartments.
+
+        .. deprecated:: 3.6
+            Use the vectors and points API instead (``.points``, ``.walk()``)
+        """
         comp_id = start_id
 
         def to_comp(data, labels):
@@ -361,17 +374,6 @@ class Morphology:
         if labels is None:
             return self.compartment_tree.get_arrays()[0]
         return [c.end for c in self.get_compartments(labels=labels)]
-
-    def get_plot_range(self, offset=[0.0, 0.0, 0.0]):
-        compartments = self.compartment_tree.get_arrays()[0]
-        n_dimensions = range(compartments.shape[1])
-        mins = np.array([np.min(compartments[:, i]) + offset[i] for i in n_dimensions])
-        max = np.max(
-            np.array(
-                [np.max(compartments[:, i]) - mins[i] + offset[i] for i in n_dimensions]
-            )
-        )
-        return list(zip(mins.tolist(), (mins + max).tolist()))
 
     def get_compartment_tree(self, labels=None):
         if labels is not None:
