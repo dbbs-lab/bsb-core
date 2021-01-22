@@ -1,6 +1,6 @@
-=================
-Istallation Guide
-=================
+==================
+Installation Guide
+==================
 
 The scaffold framework can be installed using Pip for Python 3
 
