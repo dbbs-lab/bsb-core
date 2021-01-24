@@ -162,9 +162,9 @@ The tag is free to choose, the matrix should be rows of pre to post cell ID pair
 
 Connection types and labels
 ===========================
-When defining a connection type under ``connection_types`` in the configuration file, 
-it is possible to select specific subpopulations inside the class ``from_cell_types`` and/or 
-``to_cell_types``. By including the attribute ``with_label`` in the ``connection_types`` 
+When defining a connection type under ``connection_types`` in the configuration file,
+it is possible to select specific subpopulations inside the class ``from_cell_types`` and/or
+``to_cell_types``. By including the attribute ``with_label`` in the ``connection_types``
 configuration, you can define the subpopulation label:
 
 .. code-block:: json
@@ -175,12 +175,14 @@ configuration, you can define the subpopulation label:
         "class": "my_module.ConnectBetween",
         "from_cell_types": [
           {
-            "type": "cell_A","with_label": "cell_A_type_1"
+            "type": "cell_A",
+            "with_label": "cell_A_type_1"
           }
         ],
         "to_cell_types": [
           {
-            "type": "cell_B","with_label": "cell_B_type_3"
+            "type": "cell_B",
+            "with_label": "cell_B_type_3"
           }
         ]
       }
