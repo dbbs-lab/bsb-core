@@ -1,5 +1,9 @@
 # 3.6
 
+## 3.6.4
+
+* Slightly changed the `neuron` install workflow. NEURON is now pip installed
+
 ## 3.6.3
 
 * Updated "Getting Started" guide.
