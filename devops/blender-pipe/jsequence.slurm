@@ -14,4 +14,4 @@
 export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
 
 source $HOME/load_blender.sh
-srun blender-2.91.0-cacd57b67a15-linux64/blender -b $1 -E CYCLES -P render.py -- $2
+srun blender-2.91.0-cacd57b67a15-linux64/blender -b $1 -E CYCLES -P sequence.py -- $2
