@@ -814,18 +814,9 @@ class HDF5Formatter(OutputFormatter, MorphologyRepository):
             )
 
     def store_cell_connections(self, cells_group):
-        if "connections" not in cells_group:
-            connections_group = cells_group.create_group("connections")
-        else:
-            connections_group = cells_group["connections"]
-        if "connection_compartments" not in cells_group:
-            compartments_group = cells_group.create_group("connection_compartments")
-        else:
-            compartments_group = cells_group["connection_compartments"]
-        if "connection_morphologies" not in cells_group:
-            morphologies_group = cells_group.create_group("connection_morphologies")
-        else:
-            morphologies_group = cells_group["connection_morphologies"]
+        connections_group = cells_group.require_group("connections")
+        compartments_group = cells_group.require_group("connection_compartments")
+        morphologies_group = cells_group.require_group("connection_morphologies")
         for tag, connectome_data in self.scaffold.cell_connections_by_tag.items():
             related_types = list(
                 filter(
