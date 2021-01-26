@@ -15,13 +15,12 @@ if rank == 1:
     print("pathinfo:", op.parts, len(op.parts), op.parts[:-1])
     if len(op.parts) > 1:
         Path(os.path.join(*op.parts[:-1])).mkdir(parents=True, exist_ok=True)
-    op.mkdir(exist_ok=False)
 
 print(f"Starting blender {e} job")
 
 subprocess.check_call(
     [
-        "blender-2.90.0-linux64/blender",
+        "blender",
         "-b",
         f,
         "-E",
@@ -29,9 +28,9 @@ subprocess.check_call(
         "-o",
         o,
         "-s",
-        rank,
+        str(rank),
         "-j",
-        size,
+        str(size),
         "-a",
     ]
 )
