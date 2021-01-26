@@ -1,8 +1,7 @@
 #!/bin/bash -l
-#SBATCH --job-name="Render Blender"
+#SBATCH --job-name="Blender seauence"
 #SBATCH --mail-type=ALL
-#SBATCH --mail-user=robin.deschepper93@gmail.com
-#SBATCH --time=00:15:00
+#SBATCH --time=00:45:00
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-core=1
 #SBATCH --ntasks-per-node=1
@@ -13,5 +12,5 @@
 
 export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
 
-source $HOME/load_blender.sh
-srun blender-2.91.0-cacd57b67a15-linux64/blender -b $1 -E CYCLES -P sequence.py -- $2
+source load_blender.sh
+srun blender -b $1 -E CYCLES -P sequence.py -- $2
