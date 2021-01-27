@@ -45,8 +45,8 @@ class TestTopology(unittest.TestCase):
         self.assertEqual(200, b.mdc[1])
 
     def test_cubic(self):
-        c = topology.CubicBoundary([0, 0, 0], [100, 100, 100], centered=False)
-        ct = topology.CubicBoundary([0, 0, 0], [100, 100, 100], centered=True)
+        c = topology.BoxBoundary([0, 0, 0], [100, 100, 100], centered=False)
+        ct = topology.BoxBoundary([0, 0, 0], [100, 100, 100], centered=True)
         self.assertEqual([0, 0, 0], list(c.ldc))
         self.assertEqual([100, 100, 100], list(c.mdc))
         # Test centering

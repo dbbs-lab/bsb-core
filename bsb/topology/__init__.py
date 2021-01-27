@@ -104,7 +104,7 @@ class Boundary:
     del vars()["_set"]
 
 
-class CubicBoundary(Boundary):
+class BoxBoundary(Boundary):
     def __init__(self, point, dimensions, centered=False):
         point = np.array(point)
         dimensions = np.array(dimensions)
