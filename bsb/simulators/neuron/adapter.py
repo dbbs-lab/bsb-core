@@ -374,7 +374,7 @@ class NeuronAdapter(SimulatorAdapter):
         for node in range(self.scaffold.MPI.COMM_WORLD.size):
             self.pc.barrier()
             if node == self.pc_id:
-                print("Node", self.pc_id, "is writing")
+                report("Node", self.pc_id, "is writing", level=2, all_nodes=True)
                 with h5py.File(
                     "results_" + self.name + "_" + timestamp + ".hdf5", "a"
                 ) as f:
@@ -429,7 +429,6 @@ class NeuronAdapter(SimulatorAdapter):
         try:
             for (cell_id, section_id), gid in self.transmitter_map.items():
                 if cell_id in self.node_cells:
-                    print(cell_id, section_id, "linked to", gid)
                     cell = self.cells[cell_id]
                     cell.create_transmitter(cell.sections[section_id], gid)
                     tcount += 1
@@ -524,7 +523,9 @@ class NeuronAdapter(SimulatorAdapter):
                     self.register_spike_recorder(instance, spike_recorder)
                 cell_model.instances.append(instance)
                 self.cells[cell_id] = instance
-        print("Node", self.pc_id, "created", len(self.cells), "cells")
+        report(
+            f"Node {self.pc_id} created {len(self.cells)} cells", level=2, all_nodes=True
+        )
 
     def prepare_devices(self):
         device_module = __import__("devices", globals(), level=1)
