@@ -21,8 +21,10 @@ Full reference guide to the most important parts of the documentation.
   bsb/output
   bsb/placement
   bsb/plotting
+  bsb/plugins
   bsb/postprocessing
   bsb/simulation
   bsb/simulators
+  bsb/topology
   bsb/trees
   bsb/voxels

@@ -49,7 +49,7 @@ Or if you'd like to register multiple plugins in the same module you can explici
 specify different functions in the different entry points.
 
 Examples
---------
+========
 
 In Python:
 
