@@ -1,9 +1,23 @@
+"""
+Plugins module. Uses ``pkg_resources`` to detect installed plugins and loads them as
+categories.
+"""
+
+
 import pkg_resources, errr
 from .exceptions import *
 import types
 
 
 def discover(category, *args, **kwargs):
+    """
+    Discover all plugins for a given category.
+
+    :param category: Plugin category (e.g. ``adapters`` to load all ``bsb.adapters``)
+    :type category: str
+    :returns: Loaded plugins by name.
+    :rtype: dict
+    """
     registry = {}
     for entry in pkg_resources.iter_entry_points("bsb." + category):
         try:
