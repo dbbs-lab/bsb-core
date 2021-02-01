@@ -5,10 +5,13 @@ from bsb.core import Scaffold
 from bsb.config import from_json
 from bsb.exceptions import *
 from bsb.models import Layer, CellType
-from test_setup import get_config
+from test_setup import get_config, single_process_test
 
 
 class TestChunks(unittest.TestCase):
+    @single_process_test
+    # Single process; this does not test any parallel read/write validity, just the
+    # basic chunk properties
     def test_default_chunk(self):
         # Test that when we don't specify a chunk the default is to read all chunks
 
@@ -23,6 +26,9 @@ class TestChunks(unittest.TestCase):
         chunk_all = self.ps.load_identifiers()
         self.assertGreater(len(chunk_all), len(chunk0))
 
+    @single_process_test
+    # Single process; this does not test any parallel read/write validity, just the
+    # basic chunk properties. For example uses `.place` directly.
     def test_single_chunk(self):
         # Test that specifying a single chunk only reads the data from that chunk
         cfg = from_json(get_config("test_single"))
