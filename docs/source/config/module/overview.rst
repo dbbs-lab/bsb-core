@@ -14,6 +14,8 @@ This configuration tree is then passed to the Configuration class for :ref:`cast
 <configuration-casting>`. How a tree is to be cast into a Configuration object can be
 described using configuration unit syntax.
 
+.. _configuration-units:
+
 ===================
 Configuration units
 ===================
@@ -47,7 +49,7 @@ attribute, dictionary, or list:
 
 .. code-block:: python
 
-  from scaffold import config
+  from bsb import config
 
   @config.node
   class CandyNode:
@@ -72,7 +74,7 @@ Dynamic nodes
 An important part to the interfacing system of the scaffold builder are custom strategies.
 Any user can implement a simple functional interface such as the :class:`PlacementStrategy
 <.placement.strategy.PlacementStrategy>` to design a new way of placing cells. Placement
-configuration nodes can then use these strategies by specifying the :guilabel:`class`
+configuration nodes can then use these strategies by specifying the :guilabel:`cls`
 attribute:
 
 .. code-block:: json
@@ -80,13 +82,13 @@ attribute:
   {
     "my_cell_type": {
       "placement": {
-        "class": "my_package.MyStrategy"
+        "cls": "my_package.MyStrategy"
       }
     }
   }
 
 This dynamic loading is achieved by creating a node class with the ``@config.dynamic``
-decorator instead of the node decorator. This will add a configuration attribute ``class``
+decorator instead of the node decorator. This will add a configuration attribute ``cls``
 to the node class and use the value of this class to create an instance of another node
 class, provided that the latter inherits from the former, enforcing the interface.
 
@@ -105,7 +107,7 @@ An attribute can refer to a singular value of a certain type, or to another node
 
 .. code-block:: python
 
-  from scaffold import config
+  from bsb import config
 
   @config.node
   class CandyStack:
@@ -130,7 +132,7 @@ use the :class:`types.dict <.config.types.dict>` syntax instead.
 
 .. code-block:: python
 
-  from scaffold import config
+  from bsb import config
 
   @config.node
   class CandyNode:
@@ -171,7 +173,7 @@ list of values use the :class:`types.list <.config.types.list>` syntax instead.
 
 .. code-block:: python
 
-  from scaffold import config
+  from bsb import config
 
   @config.node
   class InventoryList:

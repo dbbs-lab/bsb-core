@@ -11,7 +11,7 @@ to illustrate:
 
 .. code-block:: python
 
-  from scaffold import config
+  from bsb import config
 
   @config.node
   class CellType:
