@@ -12,8 +12,38 @@ mr_rot_path = os.path.join(os.path.dirname(__file__), "..", "morpho_rotated.h5")
 rotations_step = [30, 60]
 
 _mpi_size = mpi4py.MPI.COMM_WORLD.Get_size()
-single_process_test = unittest.skipIf(_mpi_size > 1, "Single process test.")
-multi_process_test = unittest.skipIf(_mpi_size < 2, "Multi process test.")
+
+
+def single_process_test(o):
+    import inspect
+
+    if inspect.isclass(o) and issubclass(o, unittest.TestCase):
+        return unittest.skipIf(_mpi_size > 1, "Single process test.")(o)
+    elif callable(o):
+
+        def wrapper(*args, **kwargs):
+            if mpi4py.MPI.COMM_WORLD.Get_rank() == 0:
+                o(*args, **kwargs)
+            else:
+                return
+
+        return wrapper
+
+
+def multi_process_test(o):
+    import inspect
+
+    if inspect.isclass(o) and issubclass(o, unittest.TestCase):
+        return unittest.skipIf(_mpi_size < 2, "Multi process test.")(o)
+    elif callable(o):
+
+        def wrapper(*args, **kwargs):
+            if _mpi_size > 1:
+                o(*args, **kwargs)
+            else:
+                return
+
+        return wrapper
 
 
 def get_test_network(x=None, z=None):
