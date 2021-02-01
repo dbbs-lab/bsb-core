@@ -48,11 +48,9 @@
   "cell_types": {
     "granule_cell": {
       "placement": {
-        "cls": "bsb.placement.LayeredRandomWalk",
+        "cls": "bsb.placement.ParticlePlacement",
         "partitions": ["granular_layer"],
-        "density": 3.9e-3,
-        "distance_multiplier_min": 0.5,
-        "distance_multiplier_max": 0.5
+        "density": 3.9e-3
       },
       "spatial": {
         "radius": 2.5
@@ -78,7 +76,7 @@
     "glomerulus": {
       "relay": true,
       "placement": {
-        "cls": "bsb.placement.LayeredRandomWalk",
+        "cls": "bsb.placement.ParticlePlacement",
         "partitions": ["granular_layer"],
         "density": 3e-4
       },
@@ -108,7 +106,7 @@
     },
     "golgi_cell": {
       "placement": {
-        "cls": "bsb.placement.LayeredRandomWalk",
+        "cls": "bsb.placement.ParticlePlacement",
         "partitions": ["granular_layer"],
         "density": 9e-6
       },
