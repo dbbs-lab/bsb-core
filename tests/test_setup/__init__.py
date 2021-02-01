@@ -1,4 +1,4 @@
-import os, sys
+import os, sys, unittest, mpi4py
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 from bsb.core import Scaffold, from_hdf5
@@ -10,6 +10,10 @@ mr_path = os.path.join(os.path.dirname(__file__), "..", "morphologies.h5")
 mr_top_path = os.path.join(os.path.dirname(__file__), "..", "..", "morphologies.h5")
 mr_rot_path = os.path.join(os.path.dirname(__file__), "..", "morpho_rotated.h5")
 rotations_step = [30, 60]
+
+_mpi_size = mpi4py.MPI.COMM_WORLD.Get_size()
+single_process_test = unittest.skipIf(_mpi_size > 1, "Single process test.")
+multi_process_test = unittest.skipIf(_mpi_size < 2, "Multi process test.")
 
 
 def get_test_network(x=None, z=None):
