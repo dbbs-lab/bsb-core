@@ -5,7 +5,7 @@ on: [push]
 jobs:
   build:
 
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         python-version: [3.8, 3.9]
@@ -18,7 +18,8 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install MPI
       run: |
-        - sudo apt-get install openmpi-bin libopenmpi-dev
+        sudo apt-get update
+        sudo apt-get install openmpi-bin libopenmpi-dev
       shell: bash
     - name: Install dependencies
       run: |
