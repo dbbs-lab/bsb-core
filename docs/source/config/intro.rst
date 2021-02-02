@@ -34,10 +34,62 @@ this:
     }
   }
 
-The ``regions``, ``layers````cell_types`` and ``connection_types`` spaceholders would hold
-configuration for :class:`Regions <.objects.Region>`, :class:`Layers <.objects.Layer>`,
-:class:`CellTypes <.objects.CellType>` and :class:`ConnectionStrategies
+The ``regions``, ``layers``, ``cell_types`` and ``connection_types`` spaceholders would
+hold configuration for :class:`Regions <.objects.Region>`, :class:`Layers
+<.objects.Layer>`, :class:`CellTypes <.objects.CellType>` and :class:`ConnectionStrategies
 <.connectivity.ConnectionStrategy>` respectively.
+
+Basic use
+#########
+
+When you're configuring a model you'll mostly be using **configuration attributes**,
+**configuration nodes/dictionaries** and **configuration lists**. These basic concepts and
+their JSON expressions are explained in :ref:`configuration-units`.
+
+The main goal of the configuration file is to provide data to Python classes that execute
+certain tasks such as placing cells, connecting them or simulating them. In order to link
+your Python classes to the configuration file they should be **importable**. The Python
+`documentation <https://docs.python.org/3/tutorial/modules.html>`_ explains what modules
+are and are a great starting point. In short when you're working from the same directory
+any ``my_file.py`` is importable as the ``my_file`` module. Any classes inside of it can
+be referenced in a config file as ``my_file.MyClass``. Although this basic use works fine
+in 1 directory we have a :doc:`best practices guide </packaging>` on how to properly make
+your classes folder independent, discoverable on your entire machine and even how to
+distribute them as a package.
+
+Here's an example of how you could use the ``MySpecialConnection`` class in your Python
+file ``connectome.py`` as a class in the configuration. It will then be loaded and any
+extra configuration data (such as ``value1`` and ``thingy2``) is passed along to it:
+
+.. code-block:: json
+
+  {
+    "storage": {
+      "engine": "hdf5",
+      "root": "my_network.hdf5"
+    },
+    "network": {
+      "x": 200,
+      "z": 200
+    },
+    "regions": {
+
+    },
+    "partitions": {
+    },
+    "cell_types": {
+
+    },
+    "connection_types": {
+      "A_to_B": {
+        "cls": "connectome.MySpecialConnection",
+        "value1": 15,
+        "thingy2": [4, 13]
+      }
+    }
+  }
+
+For more information on creating your own configuration nodes see :doc:`module/nodes`.
 
 JSON Parser
 ###########
