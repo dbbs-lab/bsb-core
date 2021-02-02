@@ -20,7 +20,6 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install openmpi-bin libopenmpi-dev
-      shell: bash
     # - name: Install NEST
     #   run: |
     #     bash -o errexit devops/install.sh
