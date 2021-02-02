@@ -374,7 +374,7 @@ class NeuronAdapter(SimulatorAdapter):
         for node in range(self.scaffold.MPI.COMM_WORLD.size):
             self.pc.barrier()
             if node == self.pc_id:
-                print("Node", self.pc_id, "is writing")
+                report("Node", self.pc_id, "is writing", level=2, all_nodes=True)
                 with h5py.File(
                     "results_" + self.name + "_" + timestamp + ".hdf5", "a"
                 ) as f:
@@ -405,54 +405,56 @@ class NeuronAdapter(SimulatorAdapter):
             self.pc.barrier()
 
     def create_transmitters(self):
-        for connection_model in self.connection_models.values():
-            self.create_connection_transmitters(connection_model)
+        # Concatenates all the `from` locations of all intersections together and creates
+        # a network wide map of "signal origins" to NEURON parallel spike GIDs.
 
-    def create_connection_transmitters(self, connection_model):
+        # Fetch all of the connectivity sets that can be transmitters (excludes relays)
+        sets = self._collect_transmitter_sets(self.connection_models.values())
+        # Get the total size of all intersections
+        total = sum(len(s) for s in sets)
+        # Allocate an array for them
+        alloc = np.empty((total, 2), dtype=int)
+        ptr = 0
+        for connectivity_set in sets:
+            # Get the connectivity set's intersection and slice them into the array.
+            inter = connectivity_set.intersections
+            alloc[ptr : (ptr + len(inter))] = [
+                (i.from_id, i.from_compartment.section_id) for i in inter
+            ]
+            # Move up the pointer for the next slice.
+            ptr += len(inter)
+        unique_transmitters = np.unique(alloc, axis=0)
+        self.transmitter_map = dict(zip(map(tuple, unique_transmitters), range(total)))
+        tcount = 0
         try:
-            output_handler = self.scaffold.output_formatter
-            # Get the connectivity set associated with this connection model
-            connectivity_set = ConnectivitySet(output_handler, connection_model.name)
-            from_cell_model = self.cell_models[
-                connectivity_set.connection_types[0].from_cell_types[0].name
-            ]
-            if from_cell_model.relay:
-                print(
-                    "Source is a relay; Skipping connection model {} transmitters".format(
-                        connection_model.name
-                    )
-                )
-                return
-            intersections = connectivity_set.intersections
-            transmitters = [
-                [i.from_id, i.from_compartment.section_id] for i in intersections
-            ]
-            if not transmitters:
-                # Empty dataset
-                return
-            unique_transmitters = [tuple(a) for a in np.unique(transmitters, axis=0)]
-            transmitter_gids = list(
-                range(self._next_gid, self._next_gid + len(unique_transmitters))
-            )
-            self._next_gid += len(unique_transmitters)
-            partial_map = dict(zip(unique_transmitters, transmitter_gids))
-            self.transmitter_map.update(partial_map)
-
-            tcount = 0
-            for (cell_id, section_id), gid in partial_map.items():
-                cell_id = int(cell_id)
-                if not cell_id in self.node_cells:
-                    continue
-                cell = self.cells[cell_id]
-                cell.create_transmitter(cell.sections[int(section_id)], gid)
-                tcount += 1
-            report(
-                f"Node {self.pc_id} created {tcount} transmitters",
-                level=3,
-                all_nodes=True,
-            )
+            for (cell_id, section_id), gid in self.transmitter_map.items():
+                if cell_id in self.node_cells:
+                    cell = self.cells[cell_id]
+                    cell.create_transmitter(cell.sections[section_id], gid)
+                    tcount += 1
         except Exception as e:
-            errr.wrap(TransmitterError, e, prepend=f"[{connection_model.name}] ")
+            errr.wrap(TransmitterError, e, prepend=f"[{cell_id}] ")
+
+        report(
+            f"Node {self.pc_id} created {tcount} transmitters",
+            level=3,
+            all_nodes=True,
+        )
+
+    def _collect_transmitter_sets(self, models):
+        sets = self._models_to_sets(models)
+        return [s for s in sets if self._is_transmitter_set(s)]
+
+    def _models_to_sets(self, models):
+        return [self._model_to_set(model) for model in models]
+
+    def _model_to_set(self, model):
+        return ConnectivitySet(self.scaffold.output_formatter, model.name)
+
+    def _is_transmitter_set(self, set):
+        name = set.connection_types[0].from_cell_types[0].name
+        from_cell_model = self.cell_models[name]
+        return not from_cell_model.relay
 
     def create_receivers(self):
         output_handler = self.scaffold.output_formatter
@@ -521,7 +523,9 @@ class NeuronAdapter(SimulatorAdapter):
                     self.register_spike_recorder(instance, spike_recorder)
                 cell_model.instances.append(instance)
                 self.cells[cell_id] = instance
-        print("Node", self.pc_id, "created", len(self.cells), "cells")
+        report(
+            f"Node {self.pc_id} created {len(self.cells)} cells", level=2, all_nodes=True
+        )
 
     def prepare_devices(self):
         device_module = __import__("devices", globals(), level=1)

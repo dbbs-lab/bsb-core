@@ -1,5 +1,9 @@
 # 3.6
 
+## 3.6.5
+
+* Fixed a bug with the NEURON adapter transmitter map causing loss of spike transmission.
+
 ## 3.6.4
 
 * Slightly changed the `neuron` install workflow. NEURON is now pip installed
