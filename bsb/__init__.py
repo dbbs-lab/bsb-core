@@ -1,3 +1,3 @@
-__version__ = "3.6.5b1"
+__version__ = "3.6.5"
 
 from .reporting import set_verbosity, report, warn
