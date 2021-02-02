@@ -21,6 +21,14 @@ jobs:
         sudo apt-get update
         sudo apt-get install openmpi-bin libopenmpi-dev
       shell: bash
+    - name: Cache pip
+      uses: actions/cache@v2
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+          ${{ runner.os }}-
     - name: Install dependencies & self
       run: |
         python -m pip install --upgrade pip
