@@ -21,6 +21,9 @@ jobs:
         sudo apt-get update
         sudo apt-get install openmpi-bin libopenmpi-dev
       shell: bash
+    # - name: Install NEST
+    #   run: |
+    #     bash -o errexit devops/install.sh
     - name: Cache pip
       uses: actions/cache@v2
       with:
