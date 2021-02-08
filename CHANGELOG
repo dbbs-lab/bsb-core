@@ -1,5 +1,9 @@
 # 3.6
 
+## 3.6.7
+
+* Altered NMDA channels.
+
 ## 3.6.6
 
 * The return values of simulations are now the path to their result file.
