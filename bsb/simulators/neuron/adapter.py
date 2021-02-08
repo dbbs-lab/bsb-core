@@ -371,13 +371,12 @@ class NeuronAdapter(SimulatorAdapter):
 
         timestamp = str(time.time()).split(".")[0] + str(random.random()).split(".")[1]
         timestamp = self.pc.broadcast(timestamp)
+        result_path = "results_" + self.name + "_" + timestamp + ".hdf5"
         for node in range(self.scaffold.MPI.COMM_WORLD.size):
             self.pc.barrier()
             if node == self.pc_id:
                 report("Node", self.pc_id, "is writing", level=2, all_nodes=True)
-                with h5py.File(
-                    "results_" + self.name + "_" + timestamp + ".hdf5", "a"
-                ) as f:
+                with h5py.File(result_path, "a") as f:
                     for path, data, meta in self.result.safe_collect():
                         try:
                             path = "/".join(path)
@@ -403,6 +402,7 @@ class NeuronAdapter(SimulatorAdapter):
                                     )
                                 )
             self.pc.barrier()
+        return result_path
 
     def create_transmitters(self):
         # Concatenates all the `from` locations of all intersections together and creates

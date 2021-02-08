@@ -514,9 +514,10 @@ class NestAdapter(SimulatorAdapter):
             print(str(e))
             rank = 0
 
+        timestamp = str(time.time()).split(".")[0] + str(_randint())
+        result_path = "results_" + self.name + "_" + timestamp + ".hdf5"
         if rank == 0:
-            timestamp = str(time.time()).split(".")[0] + str(_randint())
-            with h5py.File("results_" + self.name + "_" + timestamp + ".hdf5", "a") as f:
+            with h5py.File(result_path, "a") as f:
                 for path, data, meta in self.result.safe_collect():
                     try:
                         path = "/".join(path)
@@ -542,6 +543,8 @@ class NestAdapter(SimulatorAdapter):
                                     path, "{} {}".format(data.dtype, data.shape)
                                 )
                             )
+        mpi4py.MPI.COMM_WORLD.bcast(result_path, root=0)
+        return result_path
 
     def validate(self):
         for cell_model in self.cell_models.values():
