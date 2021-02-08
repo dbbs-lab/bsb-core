@@ -14,6 +14,9 @@ rotations_step = [30, 60]
 _mpi_size = mpi4py.MPI.COMM_WORLD.Get_size()
 
 
+def skip_parallel(o):
+    return unittest.skipIf(_mpi_size > 1, "Skipped during parallel testing.")(o)
+
 def single_process_test(o):
     import inspect
 

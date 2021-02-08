@@ -22,14 +22,14 @@ class SchedulerBaseTest:
 
 
 @unittest.skipIf(
-    MPI.COMM_WORLD.Get_size() < 2, "Only test parallel scheduler in parallel environment"
+    MPI.COMM_WORLD.Get_size() < 2, "Skipped during serial testing."
 )
 class TestParallelScheduler(unittest.TestCase, SchedulerBaseTest):
     pass
 
 
 @unittest.skipIf(
-    MPI.COMM_WORLD.Get_size() > 1, "Only test serial scheduler in serial environment"
+    MPI.COMM_WORLD.Get_size() > 1, "Skipped during parallel testing."
 )
 class TestSerialScheduler(unittest.TestCase, SchedulerBaseTest):
     pass

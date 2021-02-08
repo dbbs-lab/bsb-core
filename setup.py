@@ -64,7 +64,7 @@ setuptools.setup(
         "Source Code": "https://github.com/dbbs-lab/bsb/",
     },
     extras_require={
-        "dev": ["sphinx", "furo", "pre-commit", "black==20.8b1"],
+        "dev": ["coverage", "sphinx", "furo", "pre-commit", "black==20.8b1"],
         "NEURON": ["dbbs_models>=1.3.2", "nrn-patch>=3.0.0b0"],
         "MPI": ["mpi4py", "zwembad>=1.0.0"],
     },
