@@ -17,7 +17,7 @@ class SchedulerBaseTest:
     def test_single_job(self):
         network = Scaffold()
         pool = JobPool(network)
-        job = pool.queue(test_dud, (5, 2))
+        job = pool.queue(test_dud, (5, 0.1))
         pool.execute()
 
 
@@ -28,16 +28,16 @@ class TestParallelScheduler(unittest.TestCase, SchedulerBaseTest):
     def test_double_pool(self):
         network = Scaffold()
         pool = JobPool(network)
-        job = pool.queue(test_dud, (5, 2))
+        job = pool.queue(test_dud, (5, 0.1))
         pool.execute()
         pool = JobPool(network)
-        job = pool.queue(test_dud, (5, 2))
+        job = pool.queue(test_dud, (5, 0.1))
         pool.execute()
 
     def test_master_loop(self):
         network = Scaffold()
         pool = JobPool(network)
-        job = pool.queue(test_dud, (5, 2))
+        job = pool.queue(test_dud, (5, 0.1))
         executed = False
         def spy_loop(p):
             nonlocal executed
@@ -51,7 +51,7 @@ class TestParallelScheduler(unittest.TestCase, SchedulerBaseTest):
     def test_fake_futures(self):
         network = Scaffold()
         pool = JobPool(network)
-        job = pool.queue(test_dud, (5, 2))
+        job = pool.queue(test_dud, (5, 0.1))
         self.assertIs(FakeFuture.done, job._future.done.__func__)
         self.assertFalse(job._future.done())
         self.assertFalse(job._future.running())
@@ -59,8 +59,8 @@ class TestParallelScheduler(unittest.TestCase, SchedulerBaseTest):
     def test_dependencies(self):
         network = Scaffold()
         pool = JobPool(network)
-        job = pool.queue(test_dud, (5, 2))
-        job2 = pool.queue(test_dud, (5, 2), deps=[job])
+        job = pool.queue(test_dud, (5, 0.1))
+        job2 = pool.queue(test_dud, (5, 0.1), deps=[job])
         result = None
         def spy_queue(jobs):
             nonlocal result
