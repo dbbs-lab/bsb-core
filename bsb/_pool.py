@@ -133,12 +133,12 @@ class JobPool:
         self._queue.append(job)
 
     def queue(self, f, args=None, kwargs=None, deps=None):
-        job = Job(self, f, args or (), kwargs or {})
+        job = Job(self, f, args or (), kwargs or {}, deps)
         self._put(job)
         return job
 
     def queue_chunk(self, f, chunk, chunk_size, deps=None):
-        job = ChunkedJob(self, f, chunk, chunk_size)
+        job = ChunkedJob(self, f, chunk, chunk_size, deps)
         self._put(job)
         return job
 
@@ -181,8 +181,8 @@ class JobPool:
 
             if pool.is_worker():
                 # The workers will return out of the pool constructor when they receive
-                # the shutdown signal from the master, they return here to prevent them
-                # from all
+                # the shutdown signal from the master, they return here skipping the
+                # master logic.
                 return
             # Tell each job in our queue that they have to put themselves in the pool
             # queue; each job will store their own future and will use the futures of
