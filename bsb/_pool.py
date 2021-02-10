@@ -206,5 +206,5 @@ class JobPool:
             pool.shutdown()
 
 
-def create_job_pool(scaffold, write=True):
-    return JobPool(scaffold, write=write)
+def create_job_pool(scaffold):
+    return JobPool(scaffold)
