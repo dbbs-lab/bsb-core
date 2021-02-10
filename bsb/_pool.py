@@ -97,7 +97,7 @@ class PlacementJob(ChunkedJob):
 
     def __init__(self, pool, type, chunk, chunk_size, deps=None):
         args = (type.name, chunk, chunk_size)
-        super().__init__(pool, type.placement.place.__func__, args, {}, deps=deps)
+        super(ChunkedJob, self).__init__(pool, type.placement.place.__func__, args, {}, deps=deps)
 
     @staticmethod
     def execute(job_owner, f, args, kwargs):
