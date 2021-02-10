@@ -1,5 +1,21 @@
 # 3.6
 
+## 3.6.7
+
+* Altered NMDA channels.
+
+## 3.6.6
+
+* The return values of simulations are now the path to their result file.
+
+## 3.6.5
+
+* Fixed a bug with the NEURON adapter transmitter map causing loss of spike transmission.
+
+## 3.6.4
+
+* Slightly changed the `neuron` install workflow. NEURON is now pip installed
+
 ## 3.6.3
 
 * Updated "Getting Started" guide.
