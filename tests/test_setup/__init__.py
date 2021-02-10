@@ -1,4 +1,4 @@
-import os, sys
+import os, sys, unittest, mpi4py
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 from bsb.core import Scaffold, from_hdf5
@@ -10,6 +10,44 @@ mr_path = os.path.join(os.path.dirname(__file__), "..", "morphologies.h5")
 mr_top_path = os.path.join(os.path.dirname(__file__), "..", "..", "morphologies.h5")
 mr_rot_path = os.path.join(os.path.dirname(__file__), "..", "morpho_rotated.h5")
 rotations_step = [30, 60]
+
+_mpi_size = mpi4py.MPI.COMM_WORLD.Get_size()
+
+
+def skip_parallel(o):
+    return unittest.skipIf(_mpi_size > 1, "Skipped during parallel testing.")(o)
+
+
+def single_process_test(o):
+    import inspect
+
+    if inspect.isclass(o) and issubclass(o, unittest.TestCase):
+        return unittest.skipIf(_mpi_size > 1, "Single process test.")(o)
+    elif callable(o):
+
+        def wrapper(*args, **kwargs):
+            if mpi4py.MPI.COMM_WORLD.Get_rank() == 0:
+                o(*args, **kwargs)
+            else:
+                return
+
+        return wrapper
+
+
+def multi_process_test(o):
+    import inspect
+
+    if inspect.isclass(o) and issubclass(o, unittest.TestCase):
+        return unittest.skipIf(_mpi_size < 2, "Multi process test.")(o)
+    elif callable(o):
+
+        def wrapper(*args, **kwargs):
+            if _mpi_size > 1:
+                o(*args, **kwargs)
+            else:
+                return
+
+        return wrapper
 
 
 def get_test_network(x=None, z=None):
@@ -69,3 +107,14 @@ def prep_rotations():
         mr.import_arbz("GolgiCell_A", dbbs_models.GolgiCell)
         mc = MorphologyCache(mr)
         mc.rotate_all_morphologies(rotations_step[0], rotations_step[1])
+
+
+def get_config(file):
+    return os.path.abspath(
+        os.path.join(
+            os.path.dirname(__file__),
+            "..",
+            "configs",
+            file + ".json" if not file.endswith(".json") else "",
+        )
+    )

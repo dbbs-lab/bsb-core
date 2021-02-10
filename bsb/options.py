@@ -100,8 +100,10 @@ class OptionsModule(types.ModuleType):
 
         return _get_tag(tag) in _option_values
 
-    def load_options(self):
-        return discover("options")
+    def get_options(self):
+        global _options
+
+        return _options.copy()
 
     __mro__ = []
 

@@ -27,8 +27,8 @@ class LabelMicrozones(PostProcessingHook):
         # Divide the volume into two sub-parts (one positive and one negative)
         for neurons_2b_labeled in self.targets:
             ps = self.scaffold.get_placement_set(neurons_2b_labeled)
-            ids = ps.identifiers
-            zeds = ps.positions[:, 2]
+            ids = ps.load_identifiers()
+            zeds = ps.load_positions()[:, 2]
             z_sep = np.median(zeds)
             index_pos = np.where(zeds >= z_sep)[0]
             index_neg = np.where(zeds < z_sep)[0]
@@ -103,17 +103,17 @@ class LabelMicrozones(PostProcessingHook):
 
 class AscendingAxonLengths(PostProcessingHook):
     def after_placement(self):
-        granule_type = self.scaffold.get_cell_type("granule_cell")
+        granule_type = self.scaffold.cell_types.granule_cell
         granules = self.scaffold.get_placement_set(granule_type.name)
-        granule_geometry = granule_type.morphology
+        granule_geometry = granule_type.spatial.geometrical
         parallel_fibers = np.zeros((len(granules)))
         pf_height = granule_geometry.pf_height
         pf_height_sd = granule_geometry.pf_height_sd
-        molecular_layer = self.scaffold.configuration.get_layer(name="molecular_layer")
-        floor_ml = molecular_layer.Y
-        roof_ml = floor_ml + molecular_layer.height  # Roof of the molecular layer
+        molecular_layer = self.scaffold.partitions.molecular_layer
+        floor_ml = molecular_layer.boundaries.y
+        roof_ml = floor_ml + molecular_layer.boundaries.height
 
-        for idx, granule in enumerate(granules.cells):
+        for idx, granule in enumerate(granules.load_cells()):
             granule_y = granule.position[1]
             # Determine min and max height so that the parallel fiber is inside of the molecular layer
             pf_height_min = floor_ml - granule_y
@@ -127,7 +127,7 @@ class AscendingAxonLengths(PostProcessingHook):
             # Draw a sample for the parallel fiber height from a truncated normal distribution
             # with sd `pf_height_sd` and mean `pf_height`, truncated by the molecular layer bounds.
             parallel_fibers[idx] = truncnorm.rvs(a, b, size=1) * pf_height_sd + pf_height
-        self.scaffold.append_dset("cells/ascending_axon_lengths", data=parallel_fibers)
+        granules.create_additional(chunk, "ascending_axon_lengths", data=parallel_fibers)
 
 
 class DCNRotations(PostProcessingHook):
@@ -146,7 +146,7 @@ class DCNRotations(PostProcessingHook):
             # Calculate the last planar coefficient d from ax + by + cz - d = 0
             # => d = - (ax + by + cz)
             dend_tree_coeff[i, 3] = -np.sum(dend_tree_coeff[i, 0:3] * positions[i, 0:3])
-        self.scaffold.append_dset("cells/dcn_orientations", data=dend_tree_coeff)
+        ps.create_additional("dcn_orientations", data=dend_tree_coeff)
 
 
 class SpoofDetails(PostProcessingHook):

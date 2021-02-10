@@ -19,6 +19,9 @@ class VerbosityOption(
     2 is verbose, 3 is progress and 4 is debug.
     """
 
+    def setter(self, value):
+        return int(value)
+
     def get_default(self):
         return 1
 

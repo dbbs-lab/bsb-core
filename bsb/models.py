@@ -1,8 +1,6 @@
 import numpy as np, random
 from .morphologies import Morphology as BaseMorphology
 from .helpers import (
-    dimensions,
-    origin,
     SortableByAfter,
     continuity_list,
     expand_continuity_list,
@@ -108,37 +106,7 @@ class CellType(SortableByAfter):
             )
 
 
-class Layer(dimensions, origin):
-    """
-    A Layer represents a compartment of the topology of the simulation volume that slices
-    the volume in horizontally stacked portions.
-    """
-
-    def __init__(self, name, origin, dimensions, scaling=True):
-        # Name of the layer
-        self.name = name
-        # The XYZ coordinates of the point at the center of the bottom plane of the layer.
-        self.origin = np.array(origin)
-        # Dimensions in the XYZ axes.
-        self.dimensions = np.array(dimensions)
-        self.volumeOccupied = 0.0
-        # Should this layer scale when the simulation volume is resized?
-        self.scaling = scaling
-
-    @property
-    def available_volume(self):
-        return self.volume - self.volumeOccupied
-
-    @property
-    def thickness(self):
-        return self.height
-
-    def allocateVolume(volume):
-        self.volumeOccupied += volume
-
-    def initialise(self, scaffoldInstance):
-        self.scaffold = scaffoldInstance
-
+class Layer:
     def scale_to_reference(self):
         """
         Compute scaled layer volume

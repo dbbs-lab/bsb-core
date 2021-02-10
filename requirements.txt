@@ -12,3 +12,4 @@ dbbs_models==1.2.0
 colour==0.1.5
 errr==1.0.0
 coverage==5.4
+zwembad==1.0.1

@@ -29,6 +29,9 @@ _t(
             ),
             UnknownConfigAttrError=_e("attributes"),
         ),
+        PlacementError=_e(
+            "cell_type", PlacementRelationError=_e("cell_type", "relation")
+        ),
         TopologyError=_e(
             UnmanagedPartitionError=_e(),
             LayoutError=_e(

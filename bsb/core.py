@@ -5,12 +5,13 @@ import time
 from .trees import TreeCollection
 from .output import MorphologyRepository
 from .helpers import map_ndarray, listify_input
-from .models import CellType
+from .placement import PlacementStrategy
 from .connectivity import ConnectionStrategy
 from warnings import warn as std_warn
 from .exceptions import *
 from .reporting import report, warn, has_mpi_installed, get_report_file
 from .config._config import Configuration
+from ._pool import create_job_pool
 
 ###############################
 ## Scaffold class
@@ -54,9 +55,26 @@ class Scaffold:
     simulators such as NEST or NEURON.
     """
 
-    def __init__(self, config=None, storage=None):
+    def __init__(self, config=None, storage=None, clear=False):
+        """
+        Bootstraps a network object.
+
+        :param config: The configuration to use for this network. If it is omitted the
+          :doc:`default configuration <config/default>` is used.
+        :type config: :class:`.config.Configuration`
+        :param storage: The storage to use to read and write data for this network. If it
+          is omitted the configuration's ``Storage`` node is used to construct one.
+        :type storage: :class:`.storage.Storage`
+        :param clear: Start with a new network, clearing any previously stored information
+        :type clear: bool
+        :returns: A network object
+        :rtype: :class:`.core.Scaffold`
+        """
         self._initialise_MPI()
         self._bootstrap(config, storage)
+
+        if clear:
+            self.clear()
 
         # # Debug statistics, unused.
         # self.statistics = Statistics(self)
@@ -108,24 +126,35 @@ class Scaffold:
         self.storage.init(self)
         self.configuration._bootstrap(self)
 
-    def place_cell_types(self, types=None):
+    def run_placement(self, strategies=None):
         """
         Run placement strategies.
         """
-        if types is None:
-            types = CellType.resolve_order(self.cell_types)
-        pool = self.create_pool(write=True)
-        for cell_type in types:
-            cell_type.placement.queue(cell_type, pool, self.network.chunk_size)
-        pool.execute()
+        if strategies is None:
+            types = self.get_cell_types()
+            strategies = [c.placement for c in types]
+        strategies = PlacementStrategy.resolve_order(strategies)
+        pool = create_job_pool(self, write=True)
+        for strategy in strategies:
+            strategy.queue(pool, self.network.chunk_size)
+        pool.execute(self._pool_event_loop)
 
-    def place_cell_type(self, type):
+    def _pool_event_loop(self, pool):
+        print("ENTERED THE EVENT LOOP:", len(pool._queue))
+        print("Running jobs:", len(q for q in pool._queue if q.running()))
+        print("Done jobs:", len(q for q in pool._queue if q.done()))
+        import time
+
+        print("Sleeping 1s")
+        time.sleep(1)
+
+    def run_placement_strategy(self, strategy):
         """
         Run a single placement strategy.
         """
-        if type in self.cell_types:
-            type = self.cell_types[type]
-        self.place_cell_types([type])
+        if strategy in self.cell_types:
+            strategy = self.cell_types[type].placement
+        self.run_placement([strategy])
 
     def connect_cell_types(self):
         """
@@ -154,18 +183,18 @@ class Scaffold:
                 level=2,
             )
 
-    def run_after_placement_hooks(self):
+    def run_after_placement(self):
         """
-        Run all after placement hooks.
+        Run after placement hooks.
         """
-        for hook in self.configuration.after_placement_hooks.values():
+        for hook in self.configuration.after_placement.values():
             hook.after_placement()
 
-    def run_after_connectivity_hooks(self):
+    def run_after_connectivity(self):
         """
-        Run all after placement hooks.
+        Run after placement hooks.
         """
-        for hook in self.configuration.after_connect_hooks.values():
+        for hook in self.configuration.after_connectivity.values():
             hook.after_connectivity()
 
     def compile(self):
@@ -173,97 +202,17 @@ class Scaffold:
         Run all steps in the scaffold sequence to obtain a full network.
         """
         t = time.time()
-        self.place_cell_types()
-        self.run_after_placement_hooks()
-        self.connect_cell_types()
-        self.run_after_connectivity_hooks()
+        self.run_placement()
+        self.run_after_placement()
+        # self.connect_cell_types()
+        # self.run_after_connectivity_hooks()
+        report("Runtime: {}".format(time.time() - t), 2)
 
-        for type in self.configuration.cell_types.values():
-            if type.entity:
-                count = self.entities_by_type[type.name].shape[0]
-            else:
-                count = self.cells_by_type[type.name].shape[0]
-            placed = type.placement.get_placement_count()
-            if placed == 0 or count == 0:
-                report("0 {} placed (0%)".format(type.name), 1)
-                continue
-            density_msg = ""
-            percent = int((count / type.placement.get_placement_count()) * 100)
-            if type.placement.layer is not None:
-                volume = type.placement.layer_instance.volume
-                density_gotten = "%.4g" % (count / volume)
-                density_wanted = "%.4g" % (type.placement.get_placement_count() / volume)
-                density_msg = " Desired density: {}. Actual density: {}".format(
-                    density_wanted, density_gotten
-                )
-            report(
-                "{} {} placed ({}%).".format(
-                    count,
-                    type.name,
-                    percent,
-                ),
-                2,
-            )
-        report("Runtime: {}".format(time() - t), 2)
-
-    def _initialise_output_formatter(self):
-        self.output_formatter = self.configuration.output_formatter
-        self.output_formatter.initialise(self)
-        # Alias the output formatter to some other functions it provides.
-        self.morphology_repository = self.output_formatter
-        self.tree_handler = self.output_formatter
-        # Load an actual morphology repository if it is provided
-        if (
-            not self.is_compiled()
-            and self.output_formatter.morphology_repository is not None
-        ):
-            # We are in a precompilation state and the configuration specifies us to use a morpho repo.
-            self.morphology_repository = MorphologyRepository(
-                self.output_formatter.morphology_repository
-            )
-
-    def plot_network_cache(self, fig=None):
+    def clear(self):
         """
-        Plot everything currently in the network cache.
+        Clears the storage. This removes the network!
         """
-        plot_network(self, fig=fig, from_memory=True)
-
-    def reset_network_cache(self):
-        """
-        Clear out everything stored in the network cache.
-        """
-        # Cell positions dictionary per cell type. Columns: X, Y, Z.
-        cell_types = list(
-            filter(
-                lambda c: not hasattr(c, "entity") or not c.entity,
-                self.configuration.cell_types.values(),
-            )
-        )
-        entities = list(
-            filter(
-                lambda c: hasattr(c, "entity") and c.entity,
-                self.configuration.cell_types.values(),
-            )
-        )
-        self.cells_by_type = {c.name: np.empty((0, 5)) for c in cell_types}
-        # Entity IDs per cell type.
-        self.entities_by_type = {e.name: np.empty((0)) for e in entities}
-        # Cell positions dictionary per layer. Columns: Type, X, Y, Z.
-        self.cells_by_layer = {
-            key: np.empty((0, 5)) for key in self.configuration.layers.keys()
-        }
-        # Cells collection. Columns: Cell ID, Type, X, Y, Z.
-        self.cells = np.empty((0, 5))
-        # Cell connections per connection type. Columns: From ID, To ID.
-        self.cell_connections_by_tag = {
-            key: np.empty((0, 2)) for key in self.configuration.connection_types.keys()
-        }
-        self.connection_morphologies = {}
-        self.connection_compartments = {}
-        self.appends = {}
-        self._connectivity_set_meta = {}
-        self.labels = {}
-        self.rotations = {}
+        self.storage.renew(self)
 
     def run_simulation(self, simulation_name, quit=False):
         """
@@ -310,7 +259,7 @@ class Scaffold:
         simulator = simulation.prepare()
         return simulation, simulator
 
-    def place_cells(self, cell_type, layer, positions, rotations=None):
+    def place_cells(self, cell_type, positions, rotations=None, chunk=None):
         """
         Place cells inside of the scaffold
 
@@ -322,22 +271,31 @@ class Scaffold:
 
         :param cell_type: The type of the cells to place.
         :type cell_type: :class:`.models.CellType`
-        :param layer: The layer in which to place the cells.
-        :type layer: :class:`.models.Layer`
         :param positions: A collection of xyz positions to place the cells on.
         :type positions: Any `np.concatenate` type of shape (N, 3).
         """
+        if chunk is None:
+            chunk = np.array([0, 0, 0])
         cell_count = positions.shape[0]
         if cell_count == 0:
             return
         cell_ids = self._allocate_ids(positions.shape[0])
-        print("Placing", len(cell_ids), cell_type.name)
-        self.get_placement_set(cell_type).append_data(cell_ids, positions, rotations)
+        self.get_placement_set(cell_type).append_data(
+            chunk, cell_ids, positions, rotations
+        )
 
-    def _allocate_ids(self, count):
-        # Allocate a set of unique cell IDs in the scaffold.
-        IDs = np.array(range(self._nextId, self._nextId + count), dtype=int)
-        self._nextId += count
+    def _allocate_ids(self, count, _next=[0]):
+        """
+        Allocate cell IDs unique in the network.
+
+        .. warning::
+
+            Currently doesn't work across MPI processes.
+        """
+        # Use the static argument trick to store a counter in _next that spans across
+        # function calls
+        IDs = np.array(range(_next[0], _next[0] + count), dtype=int)
+        _next[0] += count
         return IDs
 
     def connect_cells(
@@ -409,7 +367,8 @@ class Scaffold:
         # Create an ID for each entity.
         entities_ids = self._allocate_ids(count)
         ps = self.get_placement_set(cell_type)
-        ps.append_data(entities_ids)
+        # Append entity data to the default chunk 000
+        ps.append_data((0, 0, 0), entities_ids)
 
     def _append_tagged(self, attr, tag, data):
         """
@@ -449,16 +408,6 @@ class Scaffold:
             self.__dict__[attr][tag] = np.concatenate((cache, mapped_data))
         else:
             self.__dict__[attr][tag] = np.copy(mapped_data)
-
-    def append_dset(self, name, data):
-        """
-        Append a custom dataset to the scaffold output.
-
-        :param name: Unique identifier for the dataset.
-        :type name: string
-        :param data: The dataset
-        """
-        self.appends[name] = data
 
     def _connection_types_query(self, postsynaptic=[], presynaptic=[]):
         # This function searches through all connection types that include the given
@@ -525,24 +474,6 @@ class Scaffold:
         # Execute the query and return results.
         return self._connection_types_query(postsynaptic, presynaptic)
 
-    def get_connection_cache_by_cell_type(
-        self, any=None, postsynaptic=None, presynaptic=None
-    ):
-        """
-        Get the connections currently in the cache for connection types that include certain cell types as targets.
-
-        :see: get_connection_types_by_cell_type
-        """
-        # Find the connection types that have the specified targets
-        connection_types = self.get_connection_types_by_cell_type(
-            any, postsynaptic, presynaptic
-        )
-        # Map them to a list of tuples with the 1st element the connection type
-        # and the connection matrices appended behind it.
-        return list(
-            map(lambda x: (x, *x.get_connection_matrices()), connection_types.values())
-        )
-
     def get_connections_by_cell_type(self, any=None, postsynaptic=None, presynaptic=None):
         """
         Get the connectivity sets from storage for connection types that include certain cell types as targets.
@@ -581,7 +512,7 @@ class Scaffold:
         :rtype: :class:`.models.PlacementSet`
         """
         if isinstance(type, str):
-            type = self.get_cell_type(type)
+            type = self.cell_types[type]
         return self.storage.get_placement_set(type)
 
     def translate_cell_ids(self, data, cell_type):
@@ -626,78 +557,14 @@ class Scaffold:
         """
         Return a collection of all configured cell types.
 
-        ::
-
-          for cell_type in scaffold.get_cell_types():
-              print(cell_type.name)
+        :param entities: In/exclude entity types
+        :type entities: bool
+        :returns: List of cell types
         """
         if entities:
-            return self.configuration.cell_types.values()
+            return list(self.configuration.cell_types.values())
         else:
-            return list(filter(lambda c: not c.entity, self.get_cell_types()))
-
-    def get_entity_types(self):
-        """
-        Return a list of connection types that describe entities instead
-        of cells.
-        """
-        return list(
-            filter(
-                lambda t: hasattr(t, "entity") and t.entity is True,
-                self.configuration.connection_types.values(),
-            )
-        )
-
-    def get_cell_type(self, identifier):
-        """
-        Return the specified cell type.
-
-        :param identifier: Unique identifier of the cell type in the configuration, either its name or ID.
-        :type identifier: string (name) or int (ID)
-        :returns: The cell type
-        :rtype: :class:`.models.CellType`
-        :raise TypeNotFoundError: When the specified identifier is not known.
-        """
-        return self.configuration.get_cell_type(identifier)
-
-    def get_cell_position(self, id):
-        """
-        Return the position of the cells in the network cache.
-
-        :param id: Index of the cell in the network cache. Should coincide with the global id of the cell, but this isn't guaranteed if you modify the network cache manually.
-        :type id: int
-        :returns: Position of the cell
-        :rtype: (1, 3) shaped :class:`numpy.ndarray`
-        """
-        if not id < len(self.cells):
-            raise DataNotFoundError(
-                "Cell {} does not exist. (highest id is {})".format(
-                    id, len(self.cells) - 1
-                )
-            )
-        return self.cells[id, 2:5]
-
-    def get_cell_positions(self, selector):
-        """
-        Return the positional data of the selected cells in the network cache.
-
-        :param selector: Selects the cells from the network cache.
-        :type selector: A valid :class:`numpy.ndarray` index
-        :returns: Positions of the cells
-        :rtype: (n, 3) shaped :class:`numpy.ndarray`
-        """
-        return self.cells[selector, 2:5]
-
-    def get_cells(self, selector):
-        """
-        Return all data of the selected cells in the network cache.
-
-        :param selector: Selects the cells from the network cache.
-        :type selector: A valid :class:`numpy.ndarray` index
-        :returns: Global id, type id and Position of the cells
-        :rtype: (n, 5) shaped :class:`numpy.ndarray`
-        """
-        return self.cells[selector]
+            return [c for c in self.configuration.cell_types.values() if not c.entity]
 
     def get_placed_count(self, cell_type_name):
         """

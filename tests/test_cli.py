@@ -1,7 +1,9 @@
 import unittest
+from test_setup import skip_parallel
 
 
 class TestCLI(unittest.TestCase):
+    @skip_parallel
     def test_availability(self):
         import bsb, subprocess
 

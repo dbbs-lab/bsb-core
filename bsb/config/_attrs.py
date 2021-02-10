@@ -295,7 +295,7 @@ class ConfigurationAttribute:
             value = self.type(value, _parent=instance, _key=self.attr_name)
             self.flag_dirty(instance)
         except (RequirementError, CastError) as e:
-            if not e.node:
+            if not hasattr(e, "node") or not e.node:
                 e.node, e.attr = instance, self.attr_name
             raise
         except Exception as e:
@@ -450,11 +450,15 @@ class ConfigurationDictAttribute(ConfigurationAttribute):
             if not e.node:
                 e.node, e.attr = _cfgdict, ckey
             raise
-        except:
+        except Exception as e:
+            import traceback
+
             raise CastError(
                 "Couldn't cast {}.{} from '{}' into a {}".format(
                     self.get_node_name(_parent), ckey, value, self.child_type.__name__
                 )
+                + "\n"
+                + traceback.format_exc()
             )
         return _cfgdict
 

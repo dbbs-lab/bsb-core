@@ -215,6 +215,14 @@ class Storage:
         for cell_type in scaffold.get_cell_types():
             self._PlacementSet.require(self._engine, cell_type)
 
+    def renew(self, scaffold):
+        """
+        Remove and recreate an empty storage container for a scaffold.
+        """
+        self.remove()
+        self.create()
+        self.init(scaffold)
+
     def Label(self, label):
         """
         Factory method for the Label feature. The label feature can be used to tag

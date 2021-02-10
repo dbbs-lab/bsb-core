@@ -19,7 +19,6 @@ class CLIContext(Context):
 
 
 def get_cli_context():
-    from .options import load_options
+    from .options import get_options
 
-    options = {k: o() for k, o in load_options().items()}
-    return CLIContext(options)
+    return CLIContext(get_options())

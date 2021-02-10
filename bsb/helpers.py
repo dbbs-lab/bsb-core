@@ -19,24 +19,6 @@ def suppress_stdout():
             sys.stderr = old_stderr
 
 
-def get_config_path(file=None):
-    packaged_configs = os.path.join(os.path.dirname(__file__), "configurations")
-    global_install_configs = os.path.join(sys.prefix, "configurations")
-    user_install_configs = os.path.join(site.USER_BASE, "configurations")
-    if os.path.exists(packaged_configs):
-        configs = packaged_configs
-    elif os.path.exists(global_install_configs):
-        configs = global_install_configs
-    elif os.path.exists(user_install_configs):
-        configs = user_install_configs
-    else:
-        raise FileNotFoundError("Could not locate configuration directory.")
-    if file is not None:
-        return os.path.join(configs, file)
-    else:
-        return configs
-
-
 def get_qualified_class_name(x):
     return x.__class__.__module__ + "." + str(x.__class__.__name__)
 
@@ -59,43 +41,6 @@ def listify_input(value):
         value = list(value)
     # Return listified value
     return value
-
-
-class dimensions:
-    def __init__(self, dimensions=None):
-        self.dimensions = np.array([0.0, 0.0, 0.0]) if dimensions is None else dimensions
-
-    @property
-    def width(self):
-        return self.dimensions[0]
-
-    @property
-    def height(self):
-        return self.dimensions[1]
-
-    @property
-    def depth(self):
-        return self.dimensions[2]
-
-    @property
-    def volume(self):
-        return np.prod(self.dimensions)
-
-
-class origin:
-    def __init__(self, origin=None):
-        self.origin = np.array([0.0, 0.0, 0.0]) if origin is None else origin
-
-    def X(self):
-        return self.origin[0]
-
-    @property
-    def Y(self):
-        return self.origin[1]
-
-    @property
-    def Z(self):
-        return self.origin[2]
 
 
 class SortableByAfter:
@@ -122,47 +67,60 @@ class SortableByAfter:
 
     def is_after_satisfied(self, objects):
         """
-        Determine whether the `after` specification of this cell type is met.
-        Any cell types appearing in `self.after` need to occur before this cell type,
-        so that this cell type appears "after" all these cell types.
+        Determine whether the ``after`` specification of this object is met. Any objects
+        appearing in ``self.after`` need to occur in ``objects`` before the object.
+
+        :param objects: Proposed order for which the after condition is checked.
+        :type objects: list
         """
         if not self.has_after():  # No after?
             # Condition without constraints always True.
             return True
-        is_met = False
+        self_met = False
         after = self.get_after()
-        # Determine whether this cell type is out of order.
+        # Determine whether this object is out of order.
         for type in objects:
-            if is_met and type.name in after:
-                # After conditions not met if we have we seen ourself and
-                # find something that's supposed to be in front of us.
+            if type is self:
+                # We found ourselves, from this point on nothing that appears in the after
+                # array is allowed to be encountered
+                self_met = True
+            elif self_met and type in after:
+                # We have encountered ourselves, so everything we find from now on is not
+                # allowed to be in our after array, if it is, we fail the after condition.
                 return False
-            elif type == self:  # Is this us?
-                # From this point on, nothing that appears in the after array is allowed to be encountered
-                is_met = True
         # We didn't meet anything behind us that was supposed to be in front of us
         # => Condition met.
         return True
 
     def satisfy_after(self, objects):
         """
-        Given an array of cell types, place this cell type after all of the
-        cell types specified in `self.after`. If cell types in `self.after`
-        are missing from the given array this cell type is placed at the end
-        of the array. Modifies the `objects` array in place.
+        Given an array of objects, place this object after all of the objects specified in
+        the ``after`` condition. If objects in the after condition are missing from the
+        given array this object is placed at the end of the array. Modifies the `objects`
+        array in place.
         """
         before_types = self.get_after().copy()
         i = 0
         place_after = False
+        # Loop over the objects until we've found all our before types.
         while len(before_types) > 0 and i < len(objects):
-            if objects[i].name in before_types:
-                before_types.remove(objects[i].name)
+            if objects[i] in before_types:
+                # We encountered one of our before types and can remove it from the list
+                # of things we still need to look for
+                before_types.remove(objects[i])
+            # We increment i unless we encounter and remove ourselves
             if objects[i] == self:
+                # We are still in the loop, so there must still be things in our after
+                # condition that we are looking for; therefor we remove ourselves from
+                # the list and wait until we found all our conditions and place ourselves
+                # there
                 objects.remove(self)
                 place_after = True
             else:
                 i += 1
         if place_after:
+            # We've looped to either after our last after condition or the last element
+            # and should reinsert ourselves here.
             objects.insert(i, self)
 
     @classmethod
@@ -174,11 +132,11 @@ class SortableByAfter:
         # Sort by the default approach
         sorting_objects = list(cls.get_ordered(objects))
         # Afterwards cell types can be specified that need to be placed after other types.
-        after_specifications = list(filter(lambda c: c.has_after(), sorting_objects))
+        after_specifications = [c for c in sorting_objects if c.has_after()]
         j = 0
         # Keep rearranging as long as any cell type's after condition isn't satisfied.
         while any(
-            map(lambda c: not c.is_after_satisfied(sorting_objects), after_specifications)
+            not c.is_after_satisfied(sorting_objects) for c in after_specifications
         ):
             j += 1
             # Rearrange each element that is out of place.
@@ -188,22 +146,13 @@ class SortableByAfter:
             # If we have had to rearrange all elements more than there are elements, the
             # conditions cannot be met, and a circular dependency is at play.
             if j > len(objects):
+                circulars = ", ".join(
+                    c.name
+                    for c in after_specifications
+                    if not c.is_after_satisfied(sorting_objects)
+                )
                 raise OrderError(
-                    "Couldn't resolve order, probably a circular dependency including: {}".format(
-                        ", ".join(
-                            list(
-                                map(
-                                    lambda c: c.name,
-                                    filter(
-                                        lambda c: not c.is_after_satisfied(
-                                            sorting_objects
-                                        ),
-                                        after_specifications,
-                                    ),
-                                )
-                            )
-                        )
-                    )
+                    f"Couldn't resolve order, probably a circular dependency including: {circulars}"
                 )
         # Return the sorted array.
         return sorting_objects
@@ -237,24 +186,6 @@ def map_ndarray(data, _map=None):
 
     _mapped = n_dim_map(data)
     return _mapped, _map
-
-
-def load_configurable_class(name, configured_class_name, parent_class, parameters={}):
-    if isclass(configured_class_name):
-        instance = configured_class_name(**parameters)
-    else:
-        class_ref = get_configurable_class(configured_class_name)
-        if not parent_class is None and not issubclass(class_ref, parent_class):
-            raise DynamicClassError(
-                "Configurable class '{}' must derive from {}.{}".format(
-                    configured_class_name,
-                    parent_class.__module__,
-                    parent_class.__qualname__,
-                )
-            )
-        instance = class_ref(**parameters)
-    instance.__dict__["name"] = name
-    return instance
 
 
 def continuity_list(iterable, step=1):

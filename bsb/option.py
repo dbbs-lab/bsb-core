@@ -23,7 +23,8 @@ class OptionDescriptor:
         return getattr(instance, f"_{self.slug}_value", instance.get_default())
 
     def __set__(self, instance, value):
-        setattr(instance, f"_{self.slug}_value", value)
+        set_value = getattr(instance, "setter", lambda x: x)(value)
+        setattr(instance, f"_{self.slug}_value", set_value)
 
     def is_set(self, instance):
         return hasattr(instance, f"_{self.slug}_value")
@@ -75,7 +76,8 @@ class ScriptOptionDescriptor(OptionDescriptor, slug="script"):
             return None
         from .options import set_module_option
 
-        return set_module_option(self.tags[0], value)
+        set_value = getattr(instance, "setter", lambda x: x)(value)
+        return set_module_option(self.tags[0], set_value)
 
     def is_set(self, instance):
         from .options import is_module_option_set

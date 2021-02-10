@@ -14,7 +14,7 @@ class Engine(Interface):
     @property
     def format(self):
         # This attribute is set on the engine by the storage provider and correlates to
-        # the name of the engine directory.
+        # the name of the engine plugin.
         return self._format
 
     @abc.abstractmethod
@@ -98,21 +98,21 @@ class PlacementSet(Interface):
             self.create(handler, type)
 
     @abc.abstractproperty
-    def identifiers(self):
+    def load_identifiers(self):
         """
         Return a list of cell identifiers.
         """
         pass
 
     @abc.abstractproperty
-    def positions(self):
+    def load_positions(self):
         """
         Return a dataset of cell positions.
         """
         pass
 
     @abc.abstractproperty
-    def rotations(self):
+    def load_rotations(self):
         """
         Return a dataset of cell rotations.
 
@@ -122,7 +122,7 @@ class PlacementSet(Interface):
         pass
 
     @abc.abstractproperty
-    def cells(self):
+    def load_cells(self):
         """
         Reorganize the available datasets into a collection of :class:`Cells
         <.models.Cell>`
@@ -138,11 +138,15 @@ class PlacementSet(Interface):
         pass
 
     @abc.abstractmethod
-    def append_data(self, identifiers, positions=None, rotations=None):
+    def append_data(self, chunk, identifiers, positions=None, rotations=None):
         pass
 
     @abc.abstractmethod
-    def append_cells(self, cells):
+    def append_cells(self, chunk, cells):
+        pass
+
+    @abc.abstractmethod
+    def create_additional(self, name, chunk, data):
         pass
 
 

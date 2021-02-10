@@ -1,4 +1,3 @@
-from bsb.helpers import dimensions, origin
 import numpy as np
 from scipy import ndimage
 from time import sleep
@@ -114,6 +113,43 @@ class VoxelCloud:
         ]
         # print(min_x, min_y, min_z, max_x, max_y, max_z)
         return box
+
+
+class dimensions:
+    def __init__(self, dimensions=None):
+        self.dimensions = np.array([0.0, 0.0, 0.0]) if dimensions is None else dimensions
+
+    @property
+    def width(self):
+        return self.dimensions[0]
+
+    @property
+    def height(self):
+        return self.dimensions[1]
+
+    @property
+    def depth(self):
+        return self.dimensions[2]
+
+    @property
+    def volume(self):
+        return np.prod(self.dimensions)
+
+
+class origin:
+    def __init__(self, origin=None):
+        self.origin = np.array([0.0, 0.0, 0.0]) if origin is None else origin
+
+    def X(self):
+        return self.origin[0]
+
+    @property
+    def Y(self):
+        return self.origin[1]
+
+    @property
+    def Z(self):
+        return self.origin[2]
 
 
 _class_dimensions = dimensions
