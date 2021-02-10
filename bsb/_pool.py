@@ -120,6 +120,10 @@ class JobPool:
     def get_owner(cls, id):
         return cls._pool_owners[id]
 
+    @property
+    def owner(self):
+        return self.get_owner(self.id)
+
     def _put(self, job):
         """
         Puts a job onto our internal queue. Putting items in the queue does not mean they
@@ -167,7 +171,7 @@ class JobPool:
             # Just run each job serially
             for job in self._queue:
                 # Execute the static handler
-                job.execute(self, job.f, job._args, job._kwargs)
+                job.execute(self.owner, job.f, job._args, job._kwargs)
                 # Trigger job completion manually as there is no async future object
                 # like in parallel execution.
                 job._completion(None)
