@@ -4,7 +4,8 @@ from mpi4py import MPI
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from bsb.core import Scaffold
 from bsb.config import Configuration
-from bsb._pool import JobPool, FakeFuture
+from bsb.placement import PlacementStrategy
+from bsb._pool import JobPool, FakeFuture, create_job_pool
 from time import sleep
 
 
@@ -13,20 +14,59 @@ def test_dud(scaffold, x, y):
     return x
 
 
+def test_chunk(scaffold, chunk, chunk_size):
+    return chunk
+
+
+class PlacementDud(PlacementStrategy):
+    name = "dud"
+    def place(self, chunk, chunk_size):
+        pass
+
+
+class DudCell:
+    name = "dud"
+    placement = PlacementDud(cls="PlacementDud", partitions=[])
+
+network = Scaffold()
+network.cell_types["dud"] = dud = DudCell()
+
+
 class SchedulerBaseTest:
+    def test_create_pool(self):
+        pool = create_job_pool(network)
+    
     def test_single_job(self):
-        network = Scaffold()
         pool = JobPool(network)
         job = pool.queue(test_dud, (5, 0.1))
         pool.execute()
 
+    def test_listeners(self):
+        i = 0
+        def spy(job):
+            nonlocal i
+            i += 1
+        pool = JobPool(network, listeners=[spy])
+        job = pool.queue(test_dud, (5, 0.1))
+        pool.execute()
+        if not MPI.COMM_WORLD.Get_rank():
+            self.assertEqual(1, i, 'Listeners not executed.')
+
+    def test_placement_job(self):
+        pool = JobPool(network)
+        job = pool.queue_placement(dud, [0, 0, 0], (100, 100, 100))
+        pool.execute()
+
+    def test_chunked_job(self):
+        pool = JobPool(network)
+        job = pool.queue_chunk(test_chunk, [0, 0, 0], (100, 100, 100))
+        pool.execute()
 
 @unittest.skipIf(
     MPI.COMM_WORLD.Get_size() < 2, "Skipped during serial testing."
 )
 class TestParallelScheduler(unittest.TestCase, SchedulerBaseTest):
     def test_double_pool(self):
-        network = Scaffold()
         pool = JobPool(network)
         job = pool.queue(test_dud, (5, 0.1))
         pool.execute()
@@ -35,7 +75,6 @@ class TestParallelScheduler(unittest.TestCase, SchedulerBaseTest):
         pool.execute()
 
     def test_master_loop(self):
-        network = Scaffold()
         pool = JobPool(network)
         job = pool.queue(test_dud, (5, 0.1))
         executed = False
@@ -49,7 +88,6 @@ class TestParallelScheduler(unittest.TestCase, SchedulerBaseTest):
             self.assertTrue(executed, 'master loop skipped')
 
     def test_fake_futures(self):
-        network = Scaffold()
         pool = JobPool(network)
         job = pool.queue(test_dud, (5, 0.1))
         self.assertIs(FakeFuture.done, job._future.done.__func__)
@@ -57,7 +95,6 @@ class TestParallelScheduler(unittest.TestCase, SchedulerBaseTest):
         self.assertFalse(job._future.running())
 
     def test_dependencies(self):
-        network = Scaffold()
         pool = JobPool(network)
         job = pool.queue(test_dud, (5, 0.1))
         job2 = pool.queue(test_dud, (5, 0.1), deps=[job])
@@ -70,7 +107,6 @@ class TestParallelScheduler(unittest.TestCase, SchedulerBaseTest):
         pool.execute(master_event_loop=spy_queue)
         if not MPI.COMM_WORLD.Get_rank():
             self.assertTrue(result, 'A job with unfinished dependencies was scheduled.')
-
 
 
 @unittest.skipIf(
