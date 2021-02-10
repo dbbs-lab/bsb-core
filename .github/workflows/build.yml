@@ -20,7 +20,9 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install openmpi-bin libopenmpi-dev
-      shell: bash
+    # - name: Install NEST
+    #   run: |
+    #     bash -o errexit devops/install.sh
     - name: Cache pip
       uses: actions/cache@v2
       with:
@@ -39,5 +41,4 @@ jobs:
       run: |
         coverage run -p -m unittest discover -v -s ./tests
         mpiexec -n 4 coverage run -p -m unittest discover -v -s ./tests
-        coverage combine
         bash <(curl -s https://codecov.io/bash)
