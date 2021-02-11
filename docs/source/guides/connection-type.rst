@@ -163,3 +163,97 @@ properties of a ``PlacementSet`` are expensive IO operations, cache them:
 
 Finally you should call ``self.scaffold.connect_cells(tag, matrix)`` to connect the cells.
 The tag is free to choose, the matrix should be rows of pre to post cell ID pairs.
+
+Connection types and labels
+===========================
+When defining a connection type under ``connection_types`` in the configuration file,
+it is possible to select specific subpopulations inside the attributes ``from_cell_types`` and/or
+``to_cell_types``. By including the attribute ``with_label`` in the ``connection_types``
+configuration, you can define the subpopulation label:
+
+.. code-block:: json
+
+  {
+    "connection_types": {
+      "cell_A_to_cell_B": {
+        "class": "my_module.ConnectBetween",
+        "from_cell_types": [
+          {
+            "type": "cell_A",
+            "with_label": "cell_A_type_1"
+          }
+        ],
+        "to_cell_types": [
+          {
+            "type": "cell_B",
+            "with_label": "cell_B_type_3"
+          }
+        ]
+      }
+    }
+  }
+
+.. note::
+  The labels used in the configuration file must correspond to the labels assigned
+  during cell placement.
+
+Using more than one label
+-------------------------
+If under ``connection_types`` more than one label has been specified, it is possible to choose 
+whether the labels must be used serially or in a mixed way, by including a new attribute ``mix_labels``. 
+For instance:
+
+.. code-block:: json
+
+  {
+    "connection_types": {
+      "cell_A_to_cell_B": {
+        "class": "my_module.ConnectBetween",
+        "from_cell_types": [
+          {
+            "type": "cell_A","with_label": ["cell_A_type_2","cell_A_type_1"]
+          }
+        ],
+        "to_cell_types": [
+          {
+            "type": "cell_B","with_label": ["cell_B_type_3","cell_B_type_2"]
+          }
+        ]
+      }
+    }
+  }
+
+Using the above configuration file, the established connections are:
+
+* From ``cell_A_type_2`` to ``cell_B_type_3``
+* From ``cell_A_type_1`` to ``cell_B_type_2``
+
+Here there is another example of configuration setting:
+
+.. code-block:: json
+
+  {
+    "connection_types": {
+      "cell_A_to_cell_B": {
+        "class": "my_module.ConnectBetween",
+        "from_cell_types": [
+          {
+            "type": "cell_A","with_label": ["cell_A_type_2","cell_A_type_1"]
+          }
+        ],
+        "to_cell_types": [
+          {
+            "type": "cell_B","with_label": ["cell_B_type_3","cell_B_type_2"]
+          }
+        ],
+        "mix_labels": true,
+      }
+    }
+  }
+
+In this case, thanks to the ``mix_labels`` attribute,the established connections are:
+
+* From ``cell_A_type_2`` to ``cell_B_type_3``
+* From ``cell_A_type_2`` to ``cell_B_type_2``
+* From ``cell_A_type_1`` to ``cell_B_type_3``
+* From ``cell_A_type_1`` to ``cell_B_type_2``

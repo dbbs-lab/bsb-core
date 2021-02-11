@@ -82,3 +82,7 @@ Placing cells
 
 Call the scaffold instance's :func:`.core.Scaffold.place_cells` function to
 place cells in the simulation volume.
+
+******
+Labels
+******
