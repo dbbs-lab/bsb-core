@@ -39,7 +39,8 @@ Creating your own
 In order to create your own connection type, create an importable module (refer to the
 `Python documentation <https://docs.python.org/3/tutorial/modules.html>`_) with inside
 a class inheriting from :class:`.connectivity.ConnectionStrategy`. Let's start by
-deconstructing a full code example:
+deconstructing a full code example that connects cells that are near each other between
+a ``min`` and ``max`` distance:
 
 .. code-block:: python
 
@@ -48,23 +49,24 @@ deconstructing a full code example:
   import scipy.spatial.distance as dist
 
   class ConnectBetween(ConnectionStrategy):
-
+    # Casts given configuration values to a certain type
     casts = {
       "min": float,
       "max": float,
     }
-
+    # Default values for the configuration attributes
     defaults = {
       "min": 0.,
     }
-
+    # Configuration attributes that the user must give or an error is thrown.
     required = ["max"]
 
+    # The function to check whether the given values are all correct
     def validate(self):
       if self.max < self.min:
         raise ConfigurationError("Max distance should be larger than min distance.")
 
-
+    # The function to determine which cell pairs should be connected
     def connect(self):
       for ft in self.from_cell_types:
         ps_from = self.scaffold.get_placement_set(ft)
@@ -77,6 +79,8 @@ deconstructing a full code example:
           # More code to convert `pairs` into a Nx2 matrix of pre & post synaptic pair IDs
           # ...
           self.scaffold.connect_cells(f"{ft.name}_to_{tt.name}", pairs)
+
+An example using this strategy, assuming it is importable as the ``my_module`` module:
 
 .. code-block:: json
 
