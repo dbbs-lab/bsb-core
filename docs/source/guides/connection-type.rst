@@ -167,7 +167,7 @@ The tag is free to choose, the matrix should be rows of pre to post cell ID pair
 Connection types and labels
 ===========================
 When defining a connection type under ``connection_types`` in the configuration file,
-it is possible to select specific subpopulations inside the class ``from_cell_types`` and/or
+it is possible to select specific subpopulations inside the attributes ``from_cell_types`` and/or
 ``to_cell_types``. By including the attribute ``with_label`` in the ``connection_types``
 configuration, you can define the subpopulation label:
 
@@ -199,8 +199,8 @@ configuration, you can define the subpopulation label:
 
 Using more than one label
 -------------------------
-If under ``connection_types`` more than one label has been specified, it is possible to chose 
-if the labels must be used serially or can mixed, by including a new attribute ``mix_labels``. 
+If under ``connection_types`` more than one label has been specified, it is possible to choose 
+whether the labels must be used serially or in a mixed way, by including a new attribute ``mix_labels``. 
 For instance:
 
 .. code-block:: json
