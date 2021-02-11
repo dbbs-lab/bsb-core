@@ -190,3 +190,64 @@ configuration, you can define the subpopulation label:
 .. note::
   The labels used in the configuration file must correspond to the labels assigned
   during cell placement.
+
+Using more than one label
+-------------------------
+If under ``connection_types`` more than one label has been specified, it is possible to chose 
+if the labels must be used serially or can mixed, by including a new attribute ``mix_labels``. 
+For instance:
+
+.. code-block:: json
+
+  {
+    "connection_types": {
+      "cell_A_to_cell_B": {
+        "class": "my_module.ConnectBetween",
+        "from_cell_types": [
+          {
+            "type": "cell_A","with_label": ["cell_A_type_2","cell_A_type_1"]
+          }
+        ],
+        "to_cell_types": [
+          {
+            "type": "cell_B","with_label": ["cell_B_type_3","cell_B_type_2"]
+          }
+        ]
+      }
+    }
+  }
+
+Using the above configuration file, the established connections are:
+
+* From ``cell_A_type_2`` to ``cell_B_type_3``
+* From ``cell_A_type_1`` to ``cell_B_type_2``
+
+Here there is another example of configuration setting:
+
+.. code-block:: json
+
+  {
+    "connection_types": {
+      "cell_A_to_cell_B": {
+        "class": "my_module.ConnectBetween",
+        "from_cell_types": [
+          {
+            "type": "cell_A","with_label": ["cell_A_type_2","cell_A_type_1"]
+          }
+        ],
+        "to_cell_types": [
+          {
+            "type": "cell_B","with_label": ["cell_B_type_3","cell_B_type_2"]
+          }
+        ],
+        "mix_labels": true,
+      }
+    }
+  }
+
+In this case, thanks to the ``mix_labels`` attribute,the established connections are:
+
+* From ``cell_A_type_2`` to ``cell_B_type_3``
+* From ``cell_A_type_2`` to ``cell_B_type_2``
+* From ``cell_A_type_1`` to ``cell_B_type_3``
+* From ``cell_A_type_1`` to ``cell_B_type_2``
