@@ -60,17 +60,25 @@ class ConnectionStrategy(ConfigurableClass, SortableByAfter):
                 connect()
             else:
                 # Label specified
+                labels_pre = []
                 if "with_label" in self._from_cell_types[0].keys():
-                    label_specification_pre = self._from_cell_types[0]["with_label"]
-                    labels_pre = self.scaffold.get_labels(label_specification_pre)
-                else:
-                    labels_pre = []
+                    labels_specification_pre = self._from_cell_types[0]["with_label"]
+                    if not isinstance(labels_specification_pre, list):
+                        labels_specification_pre = [labels_specification_pre]
+                    for label_specification_pre in labels_specification_pre:
+                        labels_pre.extend(
+                            self.scaffold.get_labels(label_specification_pre)
+                        )
 
+                labels_post = []
                 if "with_label" in self._to_cell_types[0].keys():
-                    label_specification_post = self._to_cell_types[0]["with_label"]
-                    labels_post = self.scaffold.get_labels(label_specification_post)
-                else:
-                    labels_post = []
+                    labels_specification_post = self._to_cell_types[0]["with_label"]
+                    if not isinstance(labels_specification_post, list):
+                        labels_specification_post = [labels_specification_post]
+                    for label_specification_post in labels_specification_post:
+                        labels_post.extend(
+                            self.scaffold.get_labels(label_specification_post)
+                        )
 
                 n_pre = len(labels_pre)
                 n_post = len(labels_post)
