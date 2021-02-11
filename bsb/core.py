@@ -134,12 +134,12 @@ class Scaffold:
             types = self.get_cell_types()
             strategies = [c.placement for c in types]
         strategies = PlacementStrategy.resolve_order(strategies)
-        pool = create_job_pool(self, write=True)
+        pool = create_job_pool(self)
         for strategy in strategies:
             strategy.queue(pool, self.network.chunk_size)
         pool.execute(self._pool_event_loop)
 
-    def _pool_event_loop(self, pool):
+    def _pool_event_loop(self, jobs):
         print("ENTERED THE EVENT LOOP:", len(pool._queue))
         print("Running jobs:", len(q for q in pool._queue if q.running()))
         print("Done jobs:", len(q for q in pool._queue if q.done()))
@@ -187,8 +187,10 @@ class Scaffold:
         """
         Run after placement hooks.
         """
+        pool = create_job_pool(self)
         for hook in self.configuration.after_placement.values():
-            hook.after_placement()
+            pool.queue(hook.after_placement)
+        pool.execute(self._pool_event_loop)
 
     def run_after_connectivity(self):
         """
@@ -204,13 +206,13 @@ class Scaffold:
         t = time.time()
         self.run_placement()
         self.run_after_placement()
-        # self.connect_cell_types()
-        # self.run_after_connectivity_hooks()
+        # self.run_connectivity()
+        # self.run_after_connectivity()
         report("Runtime: {}".format(time.time() - t), 2)
 
     def clear(self):
         """
-        Clears the storage. This removes the network!
+        Clears the storage. This deletes the network!
         """
         self.storage.renew(self)
 

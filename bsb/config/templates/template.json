@@ -6,6 +6,7 @@
   },
   "network": {
     "x": 400.0,
+    "y": 600.0,
     "z": 400.0
   },
   "regions": {
@@ -22,7 +23,7 @@
     "base_type": {
       "placement": {
         "cls": "bsb.placement.ParticlePlacement",
-        "layer": "base_layer",
+        "partitions": ["base_layer"],
         "density": 3.9e-4
       },
       "spatial": {
