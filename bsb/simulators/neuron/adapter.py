@@ -72,6 +72,8 @@ class NeuronConnection(SimulationComponent):
 
     casts = {"synapses": list}
 
+    defaults = {"source": None}
+
     def validate(self):
         pass
 
@@ -440,6 +442,22 @@ class NeuronAdapter(SimulatorAdapter):
             level=3,
             all_nodes=True,
         )
+
+    def create_source_vars(self):
+        for connection_model in self.connection_models.values():
+            if not connection_model.source:
+                continue
+            source = connection_model.source
+            set = self._model_to_set(connection_model)
+            for inter in set.intersections:
+                cell_id = inter.from_id
+                if cell_id not in self.node_cells:
+                    continue
+                cell = self.cells[cell_id]
+                section_id = inter.from_compartment.section_id
+                section = cell.sections[section_id]
+                gid = self.transmitter_map[(cell_id, section_id)]
+                cell.create_transmitter(cell.sections[section_id], gid, source)
 
     def _collect_transmitter_sets(self, models):
         sets = self._models_to_sets(models)
