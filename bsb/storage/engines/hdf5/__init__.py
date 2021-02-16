@@ -13,55 +13,14 @@ import h5py, os, filelock
 class HDF5Engine(Engine):
     def __init__(self, root):
         super().__init__(root)
-        self.handle_mode = None
-        self._handle = None
-        self._lock = None
         self.file = root
-
-    def get_handle(self, mode="r"):
-        """
-        Open an HDF5 file.
-        """
-        # Acquire a lock on the file.
         self._lock = filelock.FileLock(f"{self.file}.lck")
-        self._lock.acquire()
-        # Open a new handle to the resource.
-        return h5py.File(self.file, mode)
 
-    def release_handle(self, handle):
-        """
-        Close the HDF5 file.
-        """
-        c = handle.close()
-        self._lock.release()
-        return c
+    def read(self):
+        pass
 
-    @contextmanager
-    def open(self, mode="r"):
-        restore_previous = False
-        if mode != self.handle_mode:
-            restore_previous = True
-            previous_mode = self.handle_mode
-            self.handle_mode = mode
-            if self._handle is not None:
-                self.release_handle(self._handle)
-            self._handle = self.get_handle(mode)
-
-        def handler():
-            return self._handle
-
-        try:
-            yield handler  # Return the handler that always produces the current handle
-        finally:
-            if restore_previous:
-                self.release_handle(self._handle)
-                self._handle = None
-                if previous_mode is not None:
-                    if previous_mode == "w":
-                        # Continue appending instead of re-overwriting previous write.
-                        previous_mode = "a"
-                    self._handle = self.get_handle(previous_mode)
-                self.handle_mode = previous_mode
+    def write(self):
+        pass
 
     def exists(self):
         return os.path.exists(self.file)

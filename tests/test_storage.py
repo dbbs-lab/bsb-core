@@ -6,6 +6,7 @@ from bsb.config import from_json
 from bsb.exceptions import *
 from bsb.storage import Storage
 from test_setup import get_config
+import mpi4py.MPI as MPI
 
 
 class _ScaffoldDummy:
@@ -23,16 +24,24 @@ class TestStorage(unittest.TestCase):
 class TestHDF5Storage(unittest.TestCase):
     def setUp(self):
         self._open_storages = []
+        MPI.COMM_WORLD.Barrier()
+        print("At Barrier A")
 
     def tearDown(self):
+        MPI.COMM_WORLD.Barrier()
+        print("At Barrier B")
         for s in self._open_storages:
             os.remove(s)
             os.remove(s + ".lck")
 
     def random_storage(self):
-        rstr = "".join(random.choices(string.ascii_uppercase + string.digits, k=15))
-        self._open_storages.append(rstr)
-        return Storage("hdf5", rstr)
+        rstr = None
+        if not MPI.COMM_WORLD.Get_rank():
+            rstr = "".join(random.choices(string.ascii_uppercase + string.digits, k=15))
+            self._open_storages.append(rstr)
+        rstr = MPI.COMM_WORLD.bcast(rstr, root=0)
+        s = Storage("hdf5", rstr)
+        return s
 
     def test_init(self):
         # Use the init function to instantiate a storage container to its initial
@@ -57,7 +66,10 @@ class TestHDF5Storage(unittest.TestCase):
         s = self.random_storage()
         s.create()
         ps = s._PlacementSet.require(s._engine, cfg.cell_types.test_cell)
-        ps.append_data(np.array([0, 0, 0]), [0])
+        if not MPI.COMM_WORLD.Get_rank():
+            ps.append_data(np.array([0, 0, 0]), [0])
+        MPI.COMM_WORLD.Barrier()
+        print("At Barrier C")
         id = ps.load_identifiers()
         self.assertEqual(
             1,
