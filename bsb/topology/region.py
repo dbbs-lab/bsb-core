@@ -1,5 +1,5 @@
 """
-Module for the Region onfiguration nodes.
+Module for the Region types.
 """
 
 from .. import config
@@ -9,6 +9,13 @@ from ..exceptions import *
 
 @config.dynamic(required=False, default="y_stack", auto_classmap=True)
 class Region:
+    """
+    Base region.
+
+    When arranging will simply call arrange/layout on its children but won't cause any
+    changes itself.
+    """
+
     name = config.attr(key=True)
     origin = config.attr(
         type=types.list(type=float, size=3),
@@ -45,6 +52,11 @@ class RegionGroup(Region, classmap_entry="group"):
 
 @config.node
 class YStack(Region, classmap_entry="y_stack"):
+    """
+    Vertical column region class. Will stack its components on top of each other based on
+    their ``z_index`` and adjust its own height accordingly.
+    """
+
     def arrange(self, boundary):
         stack_height = 0
         for p in sorted(self.get_dependencies(), key=lambda p: getattr(p, "z_index", 0)):

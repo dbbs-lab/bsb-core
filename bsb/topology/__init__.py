@@ -8,6 +8,14 @@ import numpy as np
 
 
 def create_topology(regions):
+    """
+    Create a topology from group of regions. Will check for root regions, if there's not
+    exactly 1 root region a :class:`~.topology.region.RegionGroup` will be created as new
+    root.
+
+    :param regions: Any iterable of regions.
+    :type regions: iterable
+    """
     regions = list(regions)
     if len(roots := get_root_regions(regions)) == 1:
         topology = roots[0]
@@ -18,6 +26,13 @@ def create_topology(regions):
 
 
 def get_partitions(regions):
+    """
+    Get all of the partitions belonging to the group of regions and their subregions.
+
+    :param regions: Any iterable of regions.
+    :type regions: iterable
+    """
+
     def collect_deps(region, ignore):
         # get_dependencies can be overridden, so `list` it to avoid mutation of userdata
         deps = list(region.get_dependencies())
@@ -39,6 +54,12 @@ def get_partitions(regions):
 
 
 def get_root_regions(regions):
+    """
+    Get all of the root regions, not belonging to any other region in the given group.
+
+    :param regions: Any iterable of regions.
+    :type regions: iterable
+    """
     managed = set()
 
     def collect_deps(region, ignore):
@@ -53,7 +74,7 @@ def get_root_regions(regions):
         return deps
 
     # Give `managed` as the mutable ignore arg so that it is filled with all regionals
-    # encountered as dependencies.
+    # encountered as dependencies by the `collect_deps` recursive function.
     for region in regions:
         collect_deps(region, managed)
 
@@ -61,6 +82,16 @@ def get_root_regions(regions):
 
 
 class Boundary:
+    """
+    Base boundary class describing a region between a Least Dominant Corner (ldc; lowest
+    value in each dimension) and Most Dominant Corner (mdc; highest value in each
+    dimension).
+
+    All child boundary classes must be able to describe themselves based only on these
+    2 values. For example a sphere normally described as a center and radius would take
+    the corners of the tangent parallelopiped instead.
+    """
+
     def __init__(self, ldc, mdc):
         # Least dominant corner
         self.ldc = np.array(ldc)
@@ -68,6 +99,9 @@ class Boundary:
         self.mdc = np.array(mdc)
 
     def copy(self):
+        """
+        Copy this boundary to a new instance.
+        """
         return self.__class__(self.ldc, self.mdc)
 
     @property
@@ -104,8 +138,22 @@ class Boundary:
     del vars()["_set"]
 
 
-class CubicBoundary(Boundary):
+class BoxBoundary(Boundary):
+    """
+    Boundary class describing a Box starting from or centered around a point with certain
+    dimensions.
+    """
+
     def __init__(self, point, dimensions, centered=False):
+        """
+        :param point: The LDC or center point.
+        :type point: ndarray-like
+        :param dimensions: The length of the sides of the box in each dimension.
+        :type dimensions: ndarray-like
+        :param centered: Does the ``point`` describe the LDC (False) or the center (True)
+          point?
+        :type centered: bool
+        """
         point = np.array(point)
         dimensions = np.array(dimensions)
         self.centered = centered
