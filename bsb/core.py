@@ -126,7 +126,7 @@ class Scaffold:
         self.storage.init(self)
         self.configuration._bootstrap(self)
 
-    def run_placement(self, strategies=None):
+    def run_placement(self, strategies=None, DEBUG=False):
         """
         Run placement strategies.
         """
@@ -134,16 +134,71 @@ class Scaffold:
             strategies = list(self.placement.values())
         strategies = PlacementStrategy.resolve_order(strategies)
         pool = create_job_pool(self)
-        for strategy in strategies:
-            strategy.queue(pool, self.network.chunk_size)
-        pool.execute(self._pool_event_loop)
+        if pool.is_master():
+            if strategies is None:
+                types = self.get_cell_types()
+                strategies = [c.placement for c in types]
+            strategies = PlacementStrategy.resolve_order(strategies)
+            for strategy in strategies:
+                strategy.queue(pool, self.network.chunk_size)
+            loop = self._progress_terminal_loop(pool, debug=DEBUG)
+            try:
+                pool.execute(loop)
+            except:
+                self._stop_progress_loop(loop, debug=DEBUG)
+                raise
+            finally:
+                self._stop_progress_loop(loop, debug=DEBUG)
+        else:
+            pool.execute()
 
-    def _pool_event_loop(self, jobs):
-        print("Running jobs:", sum(1 for q in jobs if q._future.running()))
-        print("Done jobs:", sum(1 for q in jobs if q._future.done()))
-        import time
+    def _progress_terminal_loop(self, pool, debug=False):
+        import curses, time
 
-        time.sleep(0.1)
+        if debug:
+
+            def loop(jobs):
+                print("Total jobs:", len(jobs))
+                print("Running jobs:", sum(1 for q in jobs if q._future.running()))
+                print("Finished:", sum(1 for q in jobs if q._future.done()))
+                time.sleep(1)
+
+            return loop
+
+        stdscr = curses.initscr()
+        curses.noecho()
+        curses.cbreak()
+        stdscr.keypad(True)
+
+        def loop(jobs):
+            total = len(jobs)
+            running = list(q for q in jobs if q._future.running())
+            done = sum(1 for q in jobs if q._future.done())
+
+            stdscr.clear()
+            stdscr.addstr(0, 0, "-- Reconstruction progress --")
+            stdscr.addstr(1, 2, f"Total jobs: {total}")
+            stdscr.addstr(2, 2, f"Remaining jobs: {total - done}")
+            stdscr.addstr(3, 2, f"Running jobs: {len(running)}")
+            stdscr.addstr(4, 2, f"Finished jobs: {done}")
+            for i, j in enumerate(running):
+                stdscr.addstr(6 + i, 2, f"* Worker {i}: {j._ct} {j._pt} {j._c}")
+
+            stdscr.refresh()
+            time.sleep(0.1)
+
+        loop._stdscr = stdscr
+        return loop
+
+    def _stop_progress_loop(self, loop, debug=False):
+        if debug:
+            return
+        import curses
+
+        curses.nocbreak()
+        loop._stdscr.keypad(False)
+        curses.echo()
+        curses.endwin()
 
     def run_placement_strategy(self, strategy):
         """
@@ -200,7 +255,7 @@ class Scaffold:
         """
         t = time.time()
         self.run_placement()
-        self.run_after_placement()
+        # self.run_after_placement()
         # self.run_connectivity()
         # self.run_after_connectivity()
         report("Runtime: {}".format(time.time() - t), 2)

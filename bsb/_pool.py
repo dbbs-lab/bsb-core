@@ -101,6 +101,8 @@ class PlacementJob(ChunkedJob):
 
     def __init__(self, pool, strategy, chunk, chunk_size, deps=None):
         args = (strategy.name, chunk, chunk_size)
+        self._pt = strategy.__class__.__name__
+        self._c = chunk
         super(ChunkedJob, self).__init__(
             pool, strategy.place.__func__, args, {}, deps=deps
         )
@@ -130,6 +132,11 @@ class JobPool:
     @property
     def owner(self):
         return self.get_owner(self.id)
+
+    def is_master(self):
+        import mpi4py.MPI
+
+        return mpi4py.MPI.COMM_WORLD.Get_rank() == 0
 
     def _put(self, job):
         """
