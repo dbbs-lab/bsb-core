@@ -271,3 +271,21 @@ class MissingAxon(PostProcessingHook):
                             continue
                         compartment_matrix = self.scaffold.connection_compartments[tag]
                         compartment_matrix[:, 0] = np.zeros(len(compartment_matrix))
+
+
+class BidirectionalContact(PostProcessingHook):
+    # Replicates all contacts (connections and compartments) to have bidirection in gaps
+    def after_connectivity(self):
+        for type in self.types:
+            self.scaffold.cell_connections_by_tag[type] = self._invert_append(
+                self.scaffold.cell_connections_by_tag[type]
+            )
+            self.scaffold.connection_compartments[type] = self._invert_append(
+                self.scaffold.connection_compartments[type]
+            )
+            self.scaffold.connection_morphologies[type] = self._invert_append(
+                self.scaffold.connection_morphologies[type]
+            )
+
+    def _invert_append(self, old):
+        return np.concatenate((old, np.stack((old[:, 1], old[:, 0]), axis=1)), axis=0)
