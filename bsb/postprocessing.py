@@ -277,33 +277,15 @@ class BidirectionalContact(PostProcessingHook):
     # Replicates all contacts (connections and compartments) to have bidirection in gaps
     def after_connectivity(self):
         for type in self.types:
-            a = np.stack(
-                (
-                    self.scaffold.cell_connections_by_tag[type][:, 1],
-                    self.scaffold.cell_connections_by_tag[type][:, 0],
-                ),
-                axis=1,
+            self.scaffold.cell_connections_by_tag[type] = self._invert_append(
+                self.scaffold.cell_connections_by_tag[type]
             )
-            self.scaffold.cell_connections_by_tag[type] = np.concatenate(
-                (self.scaffold.cell_connections_by_tag[type], a), axis=0
+            self.scaffold.connection_compartments[type] = self._invert_append(
+                self.scaffold.connection_compartments[type]
             )
-            a = np.stack(
-                (
-                    self.scaffold.connection_compartments[type][:, 1],
-                    self.scaffold.connection_compartments[type][:, 0],
-                ),
-                axis=1,
+            self.scaffold.connection_morphologies[type] = self._invert_append(
+                self.scaffold.connection_morphologies[type]
             )
-            self.scaffold.connection_compartments[type] = np.concatenate(
-                (self.scaffold.connection_compartments[type], a), axis=0
-            )
-            a = np.stack(
-                (
-                    self.scaffold.connection_morphologies[type][:, 1],
-                    self.scaffold.connection_morphologies[type][:, 0],
-                ),
-                axis=1,
-            )
-            self.scaffold.connection_morphologies[type] = np.concatenate(
-                (self.scaffold.connection_morphologies[type], a), axis=0
-            )
+
+    def _invert_append(self, old):
+        return np.concatenate((old, np.stack((old[:, 1], old[:, 0]), axis=1)), axis=0)
