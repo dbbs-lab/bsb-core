@@ -118,3 +118,7 @@ class TestParallelScheduler(unittest.TestCase, SchedulerBaseTest):
 @unittest.skipIf(MPI.COMM_WORLD.Get_size() > 1, "Skipped during parallel testing.")
 class TestSerialScheduler(unittest.TestCase, SchedulerBaseTest):
     pass
+
+
+class TestPlacementStrategies(unittest.TestCase):
+    pass
