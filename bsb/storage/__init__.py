@@ -12,11 +12,12 @@
     end goal of this module.
 """
 
-import os
+import os, functools
 from abc import abstractmethod, ABC
 from inspect import isclass
 from ..exceptions import *
 from .. import plugins
+import mpi4py.MPI as MPI
 
 # Import the interfaces child module through a relative import as a sibling.
 interfaces = __import__("interfaces", globals=globals(), level=1)
@@ -91,13 +92,25 @@ for engine_name, engine_module in _available_engines.items():
                 break
 
 
+def _on_master(f):
+    @functools.wraps(f)
+    def master_deco(self, *args, **kwargs):
+        if self.is_master():
+            r = f(self, *args, **kwargs)
+        else:
+            r = None
+        return self._comm.bcast(r, root=self._master)
+
+    return master_deco
+
+
 class Storage:
     """
     Factory class that produces all of the features and shims the functionality of the
     underlying engine.
     """
 
-    def __init__(self, engine, root):
+    def __init__(self, engine, root, comm=None, master=0):
         """
         Create a Storage provider based on a specific `engine` uniquely identified
         by the root object.
@@ -107,7 +120,10 @@ class Storage:
         :param root: An object that uniquely describes the storage, such as a filename
           or path. The value to be provided depends on the engine. For the hdf5 engine
           the filename has to be provided.
-         :type root: object
+        :type root: object
+        :param comm: MPI communicator that shares control over this Storage.
+        :type comm: mpi4py.MPI.Comm
+        :param master: Rank of the MPI process that executes single-node tasks.
         """
         if engine not in _available_engines:
             raise UnknownStorageEngineError(
@@ -126,24 +142,32 @@ class Storage:
             fname for fname, supported in view_support()[engine].items() if supported
         ]
         self._root = root
+        self._comm = comm or MPI.COMM_WORLD
+        self._master = master
         # The storage should be created at the root as soon as we initialize because
         # features might immediatly require the basic structure to be present.
         if not self.exists():
             self.create()
 
+    def is_master(self):
+        return self._comm.Get_rank() == self._master
+
+    @_on_master
     def exists(self):
         """
         Check whether the storage exists at the root.
         """
         return self._engine.exists()
 
+    @_on_master
     def create(self):
         """
         Create the minimal requirements at the root for other features to function and
         for the existence check to pass.
         """
-        self._engine.create()
+        return self._engine.create()
 
+    @_on_master
     def move(self, new_root):
         """
         Move the storage to a new root.
@@ -151,6 +175,7 @@ class Storage:
         self._engine.move(new_root)
         self._root = new_root
 
+    @_on_master
     def remove(self):
         """
         Remove the storage and all data contained within. This is an irreversible
@@ -177,6 +202,7 @@ class Storage:
         """
         return self._ConfigStore(self._engine).load()
 
+    @_on_master
     def store_config(self, config):
         """
         Store a configuration object in the storage.
@@ -204,6 +230,7 @@ class Storage:
         """
         return self._PlacementSet(self._engine, type)
 
+    @_on_master
     def init(self, scaffold):
         """
         Initialize the storage to be ready for use by the specified scaffold:
