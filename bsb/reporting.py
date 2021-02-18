@@ -111,6 +111,10 @@ def _encode(header, message):
 # any scaffold is created.
 
 try:
+    try:
+        import nest
+    except:
+        pass
     from mpi4py import MPI as _MPI
 
     MPI_rank = _MPI.COMM_WORLD.rank
