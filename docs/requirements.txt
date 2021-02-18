@@ -1,5 +1,4 @@
 sphinx==3.2.1
-furo
 colour==0.1.5
 errr==1.0.0
 rtree==0.9.7
