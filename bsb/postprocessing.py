@@ -257,12 +257,19 @@ class SpoofDetails(PostProcessingHook):
 
 
 class MissingAxon(PostProcessingHook):
+    def validate(self):
+        super().validate()
+        if not hasattr(self, "exclude"):
+            self.exclude = []
+
     # Replaces the presynaptic compartment IDs of all Golgi cells with the soma compartment
     def after_connectivity(self):
         for n, ct in self.scaffold.configuration.connection_types.items():
             for type in self.types:
                 if ct.from_cell_types[0].name == type:
                     for tag in ct.tags:
+                        if tag in self.exclude:
+                            continue
                         if tag not in self.scaffold.connection_compartments:
                             warn(
                                 f"MissingAxon hook skipped {tag}, missing detailed intersection data.",

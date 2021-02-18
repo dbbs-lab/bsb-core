@@ -1,3 +1,10 @@
+# 3.7
+
+## 3.7.0
+
+* The NEURON adapter now supports source variables.
+* Gap junctions were added to the model of the cerebellum.
+
 # 3.6
 
 ## 3.6.7
