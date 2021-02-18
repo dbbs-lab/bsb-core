@@ -1,5 +1,9 @@
 # 3.7
 
+## 3.7.1
+
+* Fixed a bug with nest and MPI. (see #230)
+
 ## 3.7.0
 
 * The NEURON adapter now supports source variables.
