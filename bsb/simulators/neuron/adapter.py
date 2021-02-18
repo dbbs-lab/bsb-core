@@ -281,6 +281,7 @@ class NeuronAdapter(SimulatorAdapter):
         )
         t = time()
         self.create_transmitters()
+        self.create_source_vars()
         report(
             "Transmitter creation on node",
             self.pc_id,
@@ -420,6 +421,8 @@ class NeuronAdapter(SimulatorAdapter):
         for connectivity_set in sets:
             # Get the connectivity set's intersection and slice them into the array.
             inter = connectivity_set.intersections
+            if not len(inter):
+                continue
             alloc[ptr : (ptr + len(inter))] = [
                 (i.from_id, i.from_compartment.section_id) for i in inter
             ]
