@@ -208,6 +208,17 @@
       "after": ["golgi_to_glomerulus", "glomerulus_to_granule"],
       "detailed": true
     },
+    "golgi_gap": {
+      "class": "bsb.connectivity.VoxelIntersection",
+      "from_cell_types": [{"type": "golgi_cell", "compartments": ["basal_dendrites"]}],
+      "to_cell_types": [{"type": "golgi_cell", "compartments": ["basal_dendrites"]}],
+      "affinity": 0.2,
+      "contacts": {
+        "type": "norm",
+        "loc": 3,
+        "scale": 1
+      }
+    },
     "golgi_to_golgi": {
       "class": "bsb.connectivity.VoxelIntersection",
       "from_cell_types": [{"type": "golgi_cell", "compartments": ["axon"]}],
@@ -294,7 +305,12 @@
   "after_connectivity": {
     "golgi_axon_fix": {
       "class": "bsb.postprocessing.MissingAxon",
-      "types": ["golgi_cell"]
+      "types": ["golgi_cell"],
+      "exclude": ["golgi_gap"]
+    },
+    "full_gap_junctions": {
+      "class": "bsb.postprocessing.BidirectionalContact",
+      "types": ["golgi_gap"]
     }
   },
   "simulations": {
@@ -347,6 +363,10 @@
         },
         "golgi_to_golgi": {
           "synapses": ["GABA"]
+        },
+        "golgi_gap": {
+          "synapses": ["gap"],
+          "source": "vgap"
         },
         "ascending_axon_to_purkinje": {
           "synapses": ["AMPA"]
