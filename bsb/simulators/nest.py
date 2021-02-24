@@ -106,11 +106,10 @@ class NestCell(SimulationCell, MapsScaffoldIdentifiers):
         return params
 
     def get_receptor_specifications(self):
-        return (
-            self.receptor_specifications[self.neuron_model]
-            if self.neuron_model in self.receptor_specifications
-            else {}
-        )
+        if self.neuron_model in self.receptor_specifications:
+            return self.receptor_specifications[self.neuron_model]
+        else:
+            return {}
 
 
 class NestConnection(SimulationComponent):
