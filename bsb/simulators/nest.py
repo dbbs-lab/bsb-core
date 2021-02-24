@@ -517,6 +517,7 @@ class NestAdapter(SimulatorAdapter):
         result_path = "results_" + self.name + "_" + timestamp + ".hdf5"
         if rank == 0:
             with h5py.File(result_path, "a") as f:
+                f.attrs["configuration_string"] = self.scaffold.configuration._raw
                 for path, data, meta in self.result.safe_collect():
                     try:
                         path = "/".join(path)

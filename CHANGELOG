@@ -1,5 +1,9 @@
 # 3.7
 
+## 3.7.4
+
+* Added raw config string to result files for reference.
+
 ## 3.7.3
 
 * Bumped minimum nrn-patch to 3.0.0b3 to fix transfer variable stalling.
