@@ -1,5 +1,9 @@
 # 3.7
 
+## 3.7.3
+
+* Bumped minimum nrn-patch to 3.0.0b3 to fix transfer variable stalling.
+
 ## 3.7.2
 
 * Advertise compatible Python versions in `setup.py`
