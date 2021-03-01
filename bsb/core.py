@@ -449,9 +449,10 @@ class Scaffold:
             (self.cells_by_type[cell_type.name], cell_data)
         )
         # Cache them per layer
-        self.cells_by_layer[layer.name] = np.concatenate(
-            (self.cells_by_layer[layer.name], cell_data)
-        )
+        if layer is not None:
+            self.cells_by_layer[layer.name] = np.concatenate(
+                (self.cells_by_layer[layer.name], cell_data)
+            )
         # Store
         self.cells = np.concatenate((self.cells, cell_data))
 
