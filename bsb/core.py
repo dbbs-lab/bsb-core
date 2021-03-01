@@ -471,6 +471,8 @@ class Scaffold:
                 (self.rotations[cell_type.name], rotations)
             )
 
+        return cell_ids
+
     def _allocate_ids(self, count):
         # Allocate a set of unique cell IDs in the scaffold.
         IDs = np.array(range(self._nextId, self._nextId + count), dtype=int)
