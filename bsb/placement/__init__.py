@@ -5,6 +5,7 @@ from .strategy import (
     FixedPositions,
     Layered,
     Entities,
+    ExternalPlacement,
 )
 from .randomwalk import LayeredRandomWalk
 from .arrays import ParallelArrayPlacement
