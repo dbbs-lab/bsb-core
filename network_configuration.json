@@ -1,0 +1,45 @@
+{
+  "name": "Empty template",
+  "network_architecture": {
+    "simulation_volume_x": 400.0,
+    "simulation_volume_z": 400.0
+  },
+  "output": {
+    "format": "bsb.output.HDF5Formatter"
+  },
+  "layers": {
+    "base_layer": {
+      "thickness": 100
+    }
+  },
+  "cell_types": {
+    "base_type": {
+      "placement": {
+        "class": "bsb.placement.ParticlePlacement",
+        "layer": "base_layer",
+        "soma_radius": 2.5,
+        "density": 3.9e-4
+      },
+      "morphology": {
+        "class": "bsb.morphologies.NoGeometry"
+      },
+      "plotting": {
+        "display_label": "Template cell",
+        "color": "#E62314",
+        "opacity": 0.5
+      }
+    }
+  },
+  "after_placement": {
+
+  },
+  "connection_types": {
+
+  },
+  "after_connectivity": {
+
+  },
+  "simulations": {
+
+  }
+}

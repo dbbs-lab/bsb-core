@@ -3,7 +3,7 @@ from ..helpers import ConfigurableClass
 import abc
 from ..exceptions import *
 from ..reporting import report, warn
-import numpy as np
+import numpy as np, os
 
 
 class PlacementStrategy(ConfigurableClass):
@@ -196,6 +196,14 @@ class ExternalPlacement(PlacementStrategy):
     def place(self):
         if self.format == "csv":
             return self._place_from_csv()
+
+    def get_placement_count(self):
+        import csv
+
+        file = self.get_external_source()
+        f = csv.reader(open(file, "r"))
+        csv_lines = sum(1 for line in f)
+        return csv_lines - 1
 
     def _place_from_csv(self):
         if not self.check_external_source():
