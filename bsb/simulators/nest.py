@@ -13,14 +13,14 @@ from itertools import chain
 from sklearn.neighbors import KDTree
 from ..simulation import SimulationRecorder, SimulationResult
 import warnings
-import mpi4py
 
 
 try:
     import mpi4py.MPI
 
     _MPI_processes = mpi4py.MPI.COMM_WORLD.Get_size()
-except ImportError:
+except ImportError as e:
+    warn(f"Could not import `mpi4py.MPI`: {e}")
     _MPI_processes = 1
 
 LOCK_ATTRIBUTE = "dbbs_scaffold_lock"
@@ -831,7 +831,7 @@ class NestAdapter(SimulatorAdapter):
                             device_model.get_config_node()
                         ),
                     }
-                }
+                },
             )
 
     def create_model(self, cell_model):
