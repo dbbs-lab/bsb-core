@@ -108,10 +108,14 @@ class TargetsNeurons:
             r_threshold = getattr(
                 self, "cell_fraction", getattr(self, "cell_count", n) / n
             )
-            ids = ids[np.random.random_sample(n) <= r_threshold]
+            if r_threshold == 1:
+                return ids
+            elif r_threshold == 0:
+                return np.empty(0)
+            else:
+                return ids[np.random.riandom_sample(n) <= r_threshold]
         else:
-            ids = []
-        return ids
+            return np.empty(0)
 
     def _targets_representatives(self):
         target_types = [
