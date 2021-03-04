@@ -14,6 +14,7 @@ from sklearn.neighbors import KDTree
 from ..simulation import SimulationRecorder, SimulationResult
 import warnings
 import mpi4py
+import time
 
 
 try:
@@ -452,9 +453,9 @@ class NestAdapter(SimulatorAdapter):
         for cell_model in self.cell_models.values():
             cell_model.reset()
 
-    def get_master_seed(self):
-        # Use a constant reproducible master seed
-        return 1989
+    def get_master_seed(self, time=int(time.time())):
+        # Use time as random seed
+        return time
 
     def reset_processes(self, threads):
         master_seed = self.get_master_seed()
