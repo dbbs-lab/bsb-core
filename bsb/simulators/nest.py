@@ -453,9 +453,9 @@ class NestAdapter(SimulatorAdapter):
         for cell_model in self.cell_models.values():
             cell_model.reset()
 
-    def get_master_seed(self, time=int(time.time())):
+    def get_master_seed(self, fixed_seed=int(time.time())):
         # Use time as random seed
-        return time
+        return fixed_seed
 
     def reset_processes(self, threads):
         master_seed = self.get_master_seed()
