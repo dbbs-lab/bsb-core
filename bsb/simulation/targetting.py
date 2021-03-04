@@ -104,8 +104,13 @@ class TargetsNeurons:
         n = len(ids)
         # Use the `cell_fraction` or `cell_count` attribute to determine what portion of
         # the selected ids to exclude.
-        r_threshold = getattr(self, "cell_fraction", getattr(self, "cell_count", n) / n)
-        ids = ids[np.random.random_sample(n) <= r_threshold]
+        if n != 0:
+            r_threshold = getattr(
+                self, "cell_fraction", getattr(self, "cell_count", n) / n
+            )
+            ids = ids[np.random.random_sample(n) <= r_threshold]
+        else:
+            ids = []
         return ids
 
     def _targets_representatives(self):
