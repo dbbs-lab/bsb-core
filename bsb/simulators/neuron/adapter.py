@@ -380,6 +380,7 @@ class NeuronAdapter(SimulatorAdapter):
             if node == self.pc_id:
                 report("Node", self.pc_id, "is writing", level=2, all_nodes=True)
                 with h5py.File(result_path, "a") as f:
+                    f.attrs["configuration_string"] = self.scaffold.configuration._raw
                     for path, data, meta in self.result.safe_collect():
                         try:
                             path = "/".join(path)

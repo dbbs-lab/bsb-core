@@ -14,6 +14,7 @@ from sklearn.neighbors import KDTree
 from ..simulation import SimulationRecorder, SimulationResult
 import warnings
 import mpi4py
+import time
 
 
 try:
@@ -106,11 +107,10 @@ class NestCell(SimulationCell, MapsScaffoldIdentifiers):
         return params
 
     def get_receptor_specifications(self):
-        return (
-            self.receptor_specifications[self.neuron_model]
-            if self.neuron_model in self.receptor_specifications
-            else {}
-        )
+        if self.neuron_model in self.receptor_specifications:
+            return self.receptor_specifications[self.neuron_model]
+        else:
+            return {}
 
 
 class NestConnection(SimulationComponent):
@@ -453,9 +453,9 @@ class NestAdapter(SimulatorAdapter):
         for cell_model in self.cell_models.values():
             cell_model.reset()
 
-    def get_master_seed(self):
-        # Use a constant reproducible master seed
-        return 1989
+    def get_master_seed(self, fixed_seed=int(time.time())):
+        # Use time as random seed
+        return fixed_seed
 
     def reset_processes(self, threads):
         master_seed = self.get_master_seed()
@@ -518,6 +518,7 @@ class NestAdapter(SimulatorAdapter):
         result_path = "results_" + self.name + "_" + timestamp + ".hdf5"
         if rank == 0:
             with h5py.File(result_path, "a") as f:
+                f.attrs["configuration_string"] = self.scaffold.configuration._raw
                 for path, data, meta in self.result.safe_collect():
                     try:
                         path = "/".join(path)

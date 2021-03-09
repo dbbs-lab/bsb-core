@@ -11,7 +11,7 @@ with open("README.md", "r") as fh:
 
 requires = [
     "h5py>=2.9.0",
-    "numpy>=1.16.4",
+    "numpy>=1.19.0",
     "scipy>=1.3.1",
     "scikit-learn>=0.20.3",
     "plotly>=4.1.0",
@@ -35,6 +35,11 @@ setuptools.setup(
     packages=setuptools.find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3 :: Only",
+        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
         "Operating System :: OS Independent",
     ],
     entry_points={"console_scripts": ["bsb = bsb.cli:scaffold_cli"]},
@@ -46,7 +51,7 @@ setuptools.setup(
     },
     extras_require={
         "dev": ["sphinx", "furo", "pre-commit", "black==20.8b1"],
-        "neuron": ["NEURON>=7.8.1.1", "dbbs_models>=1.5.0rc0", "nrn-patch>=3.0.0b0"],
+        "neuron": ["NEURON>=7.8.1.1", "dbbs_models>=1.5.0rc0", "nrn-patch>=3.0.0b3"],
         "mpi": ["mpi4py"],
     },
 )
