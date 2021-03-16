@@ -83,6 +83,10 @@ After calling `compile_network` the scaffold instance can be plotted:
 scaffoldInstance.plot_network_cache()
 ```
 
+# Contributing
+
+All contributions are very much welcome.
+Take a look at the [contribution guide](CONTRIBUTING.md)
 
 # Known issues
 
