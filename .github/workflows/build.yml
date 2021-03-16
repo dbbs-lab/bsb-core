@@ -40,5 +40,5 @@ jobs:
     - name: Run tests & coverage
       run: |
         coverage run -p -m unittest discover -v -s ./tests
-        mpiexec -n 4 coverage run -p -m unittest discover -v -s ./tests
+        mpiexec --oversubscribe -n 4 coverage run -p -m unittest discover -v -s ./tests
         bash <(curl -s https://codecov.io/bash)
