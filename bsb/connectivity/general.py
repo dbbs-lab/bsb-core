@@ -55,7 +55,7 @@ class ExternalConnections(ConnectionStrategy):
     Load the connection matrix from an external source.
     """
     required = ["source"]
-    casts = {"format": str, "warn_missing": bool, "headers": bool}
+    casts = {"format": str, "warn_missing": bool, "use_map": bool, "headers": bool}
     defaults = {
         "format": "csv",
         "headers": True,
