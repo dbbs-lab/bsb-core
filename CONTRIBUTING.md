@@ -44,7 +44,12 @@ People *love* thorough bug reports. I'm not even kidding.
 * 4 spaces for indentation rather than tabs
 * Follow [black](https://github.com/psf/black) formatting. The `dev` extras contain the
   dependencies you need so that you can use `pre-commit install` to have automatic pre-commit
-  hooks that format your code for you.
+  hooks that format your code for you:
+
+```
+  pip install bsb[dev]
+  pre-commit install
+```
 
 ## License
 By contributing, you agree that your contributions will be licensed under its GPLv3 License.
