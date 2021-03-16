@@ -49,3 +49,53 @@ class AllToAll(ConnectionStrategy):
             connections[range(i * l, (i + 1) * l), 0] = from_cell
             connections[range(i * l, (i + 1) * l), 1] = to_cell_ids
         self.scaffold.connect_cells(self, connections)
+
+class ExternalConnections(ConnectionStrategy):
+    """
+    Load the connection matrix from an external source.
+    """
+    required = ["source"]
+    casts = {"format": str, "warn_missing": bool, "headers": bool}
+    defaults = {
+        "format": "csv",
+        "headers": True,
+        "use_map": False,
+        "warn_missing": True,
+        "delimiter": ",",
+    }
+
+    has_external_source = True
+
+    def check_external_source(self):
+        return os.path.exists(self.source)
+
+    def get_external_source(self):
+        return self.source
+
+    def validate(self):
+        if self.warn_missing and not self.check_external_source():
+            src = self.get_external_source()
+            warn(f"Missing external source '{src}' for '{self.name}'")
+
+    def connect(self):
+        if self.format == "csv":
+            return self._connect_from_csv()
+
+    def _connect_from_csv(self):
+        if not self.check_external_source():
+            src = self.get_external_source()
+            raise RuntimeError(f"Missing source file '{src}' for `{self.name}`.")
+        from_type = self.from_cell_types[0]
+        to_type = self.to_cell_types[0]
+        # Read the entire csv, skipping the headers if there are any.
+        data = np.loadtxt(
+            self.get_external_source(),
+            skiprows=int(self.headers),
+            delimiter=self.delimiter,
+        )
+        if self.use_map:
+            from_gid_map = self.load_appendix(from_type.name + "_ext_map")
+            to_gid_map = self.load_appendix(to_type.name + "_ext_map")
+            data[0, :] = np.vectorize(from_gid_map.get)(data[0, :])
+            data[1, :] = np.vectorize(to_gid_map.get)(data[1, :])
+        self.scaffold.connect_cells(self, data)
