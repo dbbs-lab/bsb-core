@@ -51,7 +51,12 @@ bsb new
 ```
 
 It will ask you some information about the project, like a name and configuration template
-and set up the most suited directory structure and key files for you.
+and set up the most suited directory structure and key files for you. Afterwards, `cd`
+into your project folder:
+
+```
+cd my_model
+```
 
 ### Reconstructing a network
 
