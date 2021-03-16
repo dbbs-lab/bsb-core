@@ -9,7 +9,7 @@ deadlines and will be solved at a later date.
 
 # BSB: A scaffold modelling framework
 This package is intended to facilitate spatially, topologically and morphologically
-detailed simulations of brain regions developed by the Department of Brain and 
+detailed simulations of brain regions developed by the Department of Brain and
 Behavioral Sciences at the University of Pavia.
 
 ## Installation
@@ -81,6 +81,10 @@ After calling `compile_network` the scaffold instance can be plotted:
 scaffoldInstance.plot_network_cache()
 ```
 
+# Contributing
+
+All contributions are very much welcome.
+Take a look at the [contribution guide](CONTRIBUTING.md)
 
 # Known issues
 
