@@ -94,8 +94,8 @@ class ExternalConnections(ConnectionStrategy):
             delimiter=self.delimiter,
         )
         if self.use_map:
-            from_gid_map = self.load_appendix(from_type.name + "_ext_map")
-            to_gid_map = self.load_appendix(to_type.name + "_ext_map")
+            from_gid_map = self.scaffold.load_appendix(from_type.name + "_ext_map")
+            to_gid_map = self.scaffold.load_appendix(to_type.name + "_ext_map")
             data[0, :] = np.vectorize(from_gid_map.get)(data[0, :])
             data[1, :] = np.vectorize(to_gid_map.get)(data[1, :])
         self.scaffold.connect_cells(self, data)
