@@ -1,4 +1,4 @@
-import numpy as np
+import os, numpy as np
 from .strategy import ConnectionStrategy, TouchingConvergenceDivergence
 
 
