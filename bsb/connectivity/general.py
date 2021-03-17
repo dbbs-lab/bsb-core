@@ -1,5 +1,6 @@
 import os, numpy as np
 from .strategy import ConnectionStrategy, TouchingConvergenceDivergence
+from ..exceptions import *
 
 
 class Convergence(TouchingConvergenceDivergence):
@@ -106,7 +107,8 @@ class ExternalConnections(ConnectionStrategy):
         self.scaffold.connect_cells(self, data)
 
     def _map(self, data, map, targets):
-        _, _, mapped = np.intersect1d(data, map, return_indices=True)
+        _1, _2, mapped = np.intersect1d(data, map, return_indices=True)
+        print( "\n--- map", data, "\n--- map", map, "\n--- map", targets, _1, _2, mapped)
         if len(mapped) != len(data):
             diff = len(data) - len(mapped)
             raise IncompleteExternalMapError(f"Could not map {diff} GIDs")
