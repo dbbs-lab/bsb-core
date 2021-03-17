@@ -112,4 +112,4 @@ class ExternalConnections(ConnectionStrategy):
         if len(mapped) != len(data):
             diff = len(data) - len(mapped)
             raise IncompleteExternalMapError(f"Could not map {diff} GIDs")
-        return targets[map]
+        return targets[mapped]
