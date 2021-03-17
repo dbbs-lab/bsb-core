@@ -50,10 +50,12 @@ class AllToAll(ConnectionStrategy):
             connections[range(i * l, (i + 1) * l), 1] = to_cell_ids
         self.scaffold.connect_cells(self, connections)
 
+
 class ExternalConnections(ConnectionStrategy):
     """
     Load the connection matrix from an external source.
     """
+
     required = ["source"]
     casts = {"format": str, "warn_missing": bool, "use_map": bool, "headers": bool}
     defaults = {
