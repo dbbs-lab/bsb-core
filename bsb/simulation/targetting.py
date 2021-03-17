@@ -215,7 +215,7 @@ class TargetsSections:
         else:
             self.section_count = int(self.section_count)
         if hasattr(self, "section_types"):
-            sections = [s for s in cell.sections if self.section_type in s.labels]
+            sections = [s for s in cell.sections if self.section_types in s.labels]
         if hasattr(self, "section_type"):
             raise ConfigurationError(
                 "`section_type` is deprecated, use `section_types` instead."
