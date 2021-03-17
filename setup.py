@@ -10,7 +10,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 requires = [
-    "h5py>=2.9.0",
+    "h5py>=3.0.0",
     "numpy>=1.19.0",
     "scipy>=1.5.2",
     "scikit-learn>=0.23.2",
@@ -18,7 +18,9 @@ requires = [
     "colour>=0.1.5",
     "errr>=1.0.0",
     "rtree>=0.9.7",
-    "filelock>=3.0.0",
+    "mpi4py",
+    "zwembad>=1.2.0",
+    "mpilock>=1.0.0",
 ]
 
 setuptools.setup(
@@ -66,6 +68,5 @@ setuptools.setup(
     extras_require={
         "dev": ["coverage", "sphinx", "furo", "pre-commit", "black==20.8b1"],
         "NEURON": ["dbbs_models>=1.3.2", "nrn-patch>=3.0.0b0"],
-        "MPI": ["mpi4py", "zwembad>=1.2.0"],
     },
 )
