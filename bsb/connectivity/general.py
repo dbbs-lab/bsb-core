@@ -96,11 +96,18 @@ class ExternalConnections(ConnectionStrategy):
             delimiter=self.delimiter,
         )
         if self.use_map:
-            emap = lambda t: t.placement.name + "_ext_map"
-            froms = self.scaffold.load_appendix(emap(from_type))
-            from_map = dict(zip(froms[:, 0], froms[:, 1]))
-            tos = self.scaffold.load_appendix(emap(to_type))
-            to_map = dict(zip(tos[:, 0], tos[:, 1]))
-            data[0, :] = np.vectorize(from_map.get)(data[0, :])
-            data[1, :] = np.vectorize(to_map.get)(data[1, :])
+            emap_name = lambda t: t.placement.name + "_ext_map"
+            from_gid_map = self.scaffold.load_appendix(emap_name(from_type))
+            to_gid_map = self.scaffold.load_appendix(emap_name(to_type))
+            from_targets = self.scaffold.get_placement_set(from_type).identifiers
+            to_targets = self.scaffold.get_placement_set(to_type).identifiers
+            data[:, 0] = self._map(data[:, 0], from_gid_map, from_targets)
+            data[:, 1] = self._map(data[:, 1], to_gid_map, to_targets)
         self.scaffold.connect_cells(self, data)
+
+    def _map(self, data, map, targets):
+        _, _, mapped = np.intersect1d(data, map, return_indices=True)
+        if len(mapped) != len(data):
+            diff = len(data) - len(mapped)
+            raise IncompleteExternalMapError(f"Could not map {diff} GIDs")
+        return targets[map]
