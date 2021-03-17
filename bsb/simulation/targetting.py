@@ -184,10 +184,12 @@ class TargetsSections:
     def _section_target_default(self, cell):
         if not hasattr(self, "section_count"):
             self.section_count = "all"
-        else:
+        elif self.section_count != "all":
             self.section_count = int(self.section_count)
+        sections = cell.sections
         if hasattr(self, "section_types"):
-            sections = [s for s in cell.sections if self.section_types in s.labels]
+            ts = self.section_types
+            sections = [s for s in sections if any(t in s.labels for t in ts)]
         if hasattr(self, "section_type"):
             raise ConfigurationError(
                 "`section_type` is deprecated, use `section_types` instead."
