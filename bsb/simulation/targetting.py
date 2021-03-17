@@ -211,11 +211,15 @@ class TargetsSections:
 
     def _section_target_default(self, cell):
         if not hasattr(self, "section_count"):
-            self.section_count = 1
-        if hasattr(self, "section_type"):
-            sections = [s for s in cell.sections if self.section_type in s.labels]
+            self.section_count = "all"
         else:
-            sections = cell.soma
+            self.section_count = int(self.section_count)
+        if hasattr(self, "section_types"):
+            sections = [s for s in cell.sections if self.section_type in s.labels]
+        if hasattr(self, "section_type"):
+            raise ConfigurationError(
+                "`section_type` is deprecated, use `section_types` instead."
+            )
         if self.section_count == "all":
             return sections
         return [random.choice(sections) for _ in range(self.section_count)]
