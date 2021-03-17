@@ -25,14 +25,13 @@ class TestHDF5Storage(unittest.TestCase):
     def setUp(self):
         self._open_storages = []
         MPI.COMM_WORLD.Barrier()
-        print("At Barrier A")
+        print("At fn start Barrier")
 
     def tearDown(self):
         MPI.COMM_WORLD.Barrier()
-        print("At Barrier B")
+        print("At fn stop Barrier")
         for s in self._open_storages:
             os.remove(s)
-            os.remove(s + ".lck")
 
     def random_storage(self):
         rstr = None
@@ -66,10 +65,9 @@ class TestHDF5Storage(unittest.TestCase):
         s = self.random_storage()
         s.create()
         ps = s._PlacementSet.require(s._engine, cfg.cell_types.test_cell)
-        if not MPI.COMM_WORLD.Get_rank():
+        with ps._engine._lock.single_write() as fence:
+            fence.guard()
             ps.append_data(np.array([0, 0, 0]), [0])
-        MPI.COMM_WORLD.Barrier()
-        print("At Barrier C")
         id = ps.load_identifiers()
         self.assertEqual(
             1,

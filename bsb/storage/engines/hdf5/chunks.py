@@ -82,17 +82,18 @@ class ChunkLoader:
         """
         Create a chunk if it doesn't exist yet, or do nothing.
         """
-        with self._engine.open("a") as f:
-            path = self.get_chunk_path(chunk)
-            if path in f():
-                return
-            chunk_group = f().create_group(path)
-            for p in self._properties:
-                chunk_group.create_dataset(
-                    f"{path}/{p.name}", p.shape, maxshape=p.maxshape, dtype=p.dtype
-                )
-            for c in self._collections:
-                chunk_group.create_group(path + f"/{c.name}")
+        with self._engine._write():
+            with self._engine._handle("a") as f:
+                path = self.get_chunk_path(chunk)
+                if path in f:
+                    return
+                chunk_group = f.create_group(path)
+                for p in self._properties:
+                    chunk_group.create_dataset(
+                        f"{path}/{p.name}", p.shape, maxshape=p.maxshape, dtype=p.dtype
+                    )
+                for c in self._collections:
+                    chunk_group.create_group(path + f"/{c.name}")
 
 
 class ChunkedProperty:
@@ -134,12 +135,13 @@ class ChunkedProperty:
 
         def read_chunk(chunk):
             self.loader.require_chunk(chunk)
-            with self.loader._engine.open("r") as f:
-                chunk_group = f()[self.loader.get_chunk_path(chunk)]
-                if self.name not in chunk_group:
-                    return np.empty(self.shape)
-                data = chunk_group[self.name][()]
-                return data
+            with self.loader._engine._read():
+                with self.loader._engine._handle("r") as f:
+                    chunk_group = f[self.loader.get_chunk_path(chunk)]
+                    if self.name not in chunk_group:
+                        return np.empty(self.shape)
+                    data = chunk_group[self.name][()]
+                    return data
 
         # If this property has an extractor and we're not in raw mode, wrap the above
         # reader to extract the data
@@ -163,21 +165,22 @@ class ChunkedProperty:
         if self.insert is not None:
             data = self.insert(data)
         self.loader.require_chunk(chunk)
-        with self.loader._engine.open("a") as f:
-            chunk_group = f()[self.loader.get_chunk_path(chunk)]
-            if self.name not in chunk_group:
-                chunk_group.create_dataset(
-                    self.name,
-                    self.shape,
-                    data=data,
-                    maxshape=self.maxshape,
-                    dtype=self.dtype,
-                )
-            else:
-                dset = chunk_group[self.name]
-                start_pos = dset.shape[0]
-                dset.resize(start_pos + len(data), axis=0)
-                dset[start_pos:] = data
+        with self.loader._engine._write():
+            with self.loader._engine._handle("a") as f:
+                chunk_group = f[self.loader.get_chunk_path(chunk)]
+                if self.name not in chunk_group:
+                    chunk_group.create_dataset(
+                        self.name,
+                        self.shape,
+                        data=data,
+                        maxshape=self.maxshape,
+                        dtype=self.dtype,
+                    )
+                else:
+                    dset = chunk_group[self.name]
+                    start_pos = dset.shape[0]
+                    dset.resize(start_pos + len(data), axis=0)
+                    dset[start_pos:] = data
 
 
 class ChunkedCollection:

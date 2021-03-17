@@ -60,24 +60,27 @@ class PlacementSet(
         root = "/cells/placement/"
         tag = cell_type.name
         path = root + tag
-        with engine.open("a") as h:
-            g = h().create_group(path)
-            chunks = g.create_group("chunks")
+        with engine._write() as fence:
+            with engine._handle("a") as h:
+                g = h.create_group(path)
+                chunks = g.create_group("chunks")
         return cls(engine, cell_type)
 
     @staticmethod
     def exists(engine, cell_type):
-        with engine.open("r") as h:
-            return "/cells/placement/" + cell_type.name in h()
+        with engine._read():
+            with engine._handle("r") as h:
+                return "/cells/placement/" + cell_type.name in h
 
     @classmethod
     def require(cls, engine, cell_type):
         root = "/cells/placement/"
         tag = cell_type.name
         path = root + tag
-        with engine.open("a") as h:
-            g = h().require_group(path)
-            chunks = g.require_group("chunks")
+        with engine._write():
+            with engine._handle("a") as h:
+                g = h.require_group(path)
+                chunks = g.require_group("chunks")
         return cls(engine, cell_type)
 
     def load_identifiers(self):
@@ -155,8 +158,9 @@ class PlacementSet(
             raise NotImplementedError("Sorry. Not added yet.")
 
     def create_additional(self, name, chunk, data):
-        with self._engine.open("a") as f:
-            path = self._path + "/additional/" + name
-            maxshape = list(data.shape)
-            maxshape[0] = None
-            f().create_dataset(path, data=data, maxshape=tuple(maxshape))
+        with self._engine._write():
+            with self._engine._handle("a") as f:
+                path = self._path + "/additional/" + name
+                maxshape = list(data.shape)
+                maxshape[0] = None
+                f().create_dataset(path, data=data, maxshape=tuple(maxshape))

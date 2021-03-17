@@ -8,39 +8,48 @@ from .label import Label
 from .filter import Filter
 from datetime import datetime
 import h5py, os, filelock
+from mpilock import sync
 
 
 class HDF5Engine(Engine):
     def __init__(self, root):
         super().__init__(root)
-        self.file = root
-        self._lock = filelock.FileLock(f"{self.file}.lck")
+        self._file = root
+        self._lock = sync()
 
-    def read(self):
-        pass
+    def _read(self):
+        return self._lock.read()
 
-    def write(self):
-        pass
+    def _write(self):
+        return self._lock.write()
+
+    def _master_write(self):
+        return self._lock.single_write()
+
+    def _handle(self, mode):
+        return h5py.File(self._file, mode)
 
     def exists(self):
-        return os.path.exists(self.file)
+        return os.path.exists(self._file)
 
     def create(self):
-        with self.open("w") as handler:
-            handle = handler()
-            handle.create_group("cells")
-            handle.create_group("cells/placement")
-            handle.create_group("cells/connections")
-            handle.create_group("cells/labels")
+        with self._write():
+            with self._handle("w") as handle:
+                handle.create_group("cells")
+                handle.create_group("cells/placement")
+                handle.create_group("cells/connections")
+                handle.create_group("cells/labels")
 
     def move(self, new_root):
         from shutil import copy2
 
-        copy2(self.file, new_root)
-        self.file = new_root
+        with self._write():
+            copy2(self._file, new_root)
+        self._file = new_root
 
     def remove(self):
-        os.remove(self.file)
+        with self._write() as fence:
+            os.remove(self._file)
 
 
 def _get_default_root():
