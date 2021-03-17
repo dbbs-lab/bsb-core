@@ -749,6 +749,8 @@ class HDF5Formatter(OutputFormatter, MorphologyRepository):
             self.scaffold.labels = {
                 l: resource()["cells/labels/" + l][()] for l in resource()["cells/labels"]
             }
+            hdf5_ids = np.array(resource()["cells/positions"])[:, 0]
+            self.scaffold._nextId = int(np.max(hdf5_ids))
 
     def validate(self):
         pass

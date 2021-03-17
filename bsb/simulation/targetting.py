@@ -113,7 +113,7 @@ class TargetsNeurons:
             elif r_threshold == 0:
                 return np.empty(0)
             else:
-                return ids[np.random.riandom_sample(n) <= r_threshold]
+                return ids[np.random.random_sample(n) <= r_threshold]
         else:
             return np.empty(0)
 
