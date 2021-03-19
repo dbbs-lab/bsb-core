@@ -107,9 +107,9 @@ class ExternalConnections(ConnectionStrategy):
         self.scaffold.connect_cells(self, data)
 
     def _map(self, data, map, targets):
-        _1, _2, mapped = np.intersect1d(data, map, return_indices=True)
-        print( "\n--- data", data, "\n--- map", map, "\n--- targets", targets, "\n--- i1", _1, "\n--- i2", _2, "\n--- mapped", mapped)
-        if len(mapped) != len(data):
-            diff = len(data) - len(mapped)
-            raise IncompleteExternalMapError(f"Could not map {diff} GIDs")
-        return targets[mapped]
+        # Create a dict with pairs between the map and the target values
+        # Vectorize its dictionary lookup and perform the vector function on the data
+        try:
+            return np.vectorize(dict(zip(map, targets)).get)(data)
+        except TypeError:
+            raise SourceQualityError("Missing GIDs in external map.")
