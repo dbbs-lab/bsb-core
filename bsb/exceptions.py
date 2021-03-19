@@ -39,7 +39,9 @@ _t(
         ),
         ConnectivityError=_e(
             ExternalSourceError=_e(
+                MissingSourceError=_e(),
                 IncompleteExternalMapError=_e(),
+                SourceQualityError=_e(),
             ),
         ),
         MorphologyError=_e(

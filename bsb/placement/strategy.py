@@ -206,15 +206,15 @@ class ExternalPlacement(PlacementStrategy):
         return csv_lines - 1
 
     def _place_from_csv(self):
+        src = self.get_external_source()
         if not self.check_external_source():
-            src = self.get_external_source()
-            raise RuntimeError(f"Missing source file '{src}' for `{self.name}`.")
+            raise MissingSourceError(f"Missing source file '{src}' for `{self.name}`.")
         # If the `map_header` is given, we should store all data in that column
         # as references that the user will need later on to map their external
         # data to our generated data
         should_map = self.map_header is not None
         # Read the CSV file's first line to get the column names
-        with open(self.get_external_source(), "r") as f:
+        with open(src, "r") as f:
             headers = f.readline().split(self.delimiter)
         # Search for the x, y, z headers
         usecols = list(map(headers.index, (self.x_header, self.y_header, self.z_header)))
@@ -223,7 +223,7 @@ class ExternalPlacement(PlacementStrategy):
             usecols.append(headers.index(self.map_header))
         # Read the entire csv, skipping the headers and only the cols we need.
         data = np.loadtxt(
-            self.get_external_source(),
+            src,
             usecols=usecols,
             skiprows=1,
             delimiter=self.delimiter,
@@ -232,6 +232,10 @@ class ExternalPlacement(PlacementStrategy):
             # If a map column was appended, slice it off
             external_map = data[:, -1]
             data = data[:, :-1]
+            # Check for garbage
+            duplicates = len(external_map) - len(np.unique(external_map))
+            if duplicates:
+                raise SourceQualityError(f"{duplicates} duplicates in source '{src}'")
             # And store it as appendix dataset
             self.scaffold.append_dset(self.name + "_ext_map", external_map)
         # Store the CSV positions in the scaffold
