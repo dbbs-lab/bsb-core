@@ -353,6 +353,8 @@ class NeuronAdapter(SimulatorAdapter):
         from plotly.subplots import make_subplots
 
         pc = simulator.parallel
+        # Access the `time` singleton property to activate it.
+        self.h.time
         self.pc = pc
         pc.barrier()
         report("Simulating...", level=2)
@@ -753,4 +755,4 @@ class TargetLocation:
 class SpikeRecorder(LocationRecorder):
     def get_data(self):
         recording = np.array(self.recorder)
-        return np.vstack((np.ones(recording.shape) * self.id, recording))
+        return np.vstack((np.ones(recording.shape) * self.id, recording)).T
