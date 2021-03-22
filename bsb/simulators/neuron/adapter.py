@@ -355,6 +355,8 @@ class NeuronAdapter(SimulatorAdapter):
         from plotly.subplots import make_subplots
 
         pc = simulator.parallel
+        # Access the `time` singleton property to activate it.
+        self.h.time
         self.pc = pc
         pc.barrier()
         report("Simulating...", level=2)
