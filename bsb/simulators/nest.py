@@ -8,7 +8,7 @@ from ..models import ConnectivitySet
 from ..helpers import ListEvalConfiguration
 from ..reporting import report, warn
 from ..exceptions import *
-import os, json, weakref, numpy as np
+import time, os, json, weakref, numpy as np
 from itertools import chain
 from sklearn.neighbors import KDTree
 from ..simulation import SimulationRecorder, SimulationResult
@@ -497,13 +497,18 @@ class NestAdapter(SimulatorAdapter):
         if not self.is_prepared:
             warn("Adapter has not been prepared", SimulationWarning)
         report("Simulating...", level=2)
+        tic = time.perf_counter()
         simulator.Simulate(self.duration)
+        tic -= time.perf_counter()
         report("Simulation finished.", level=2)
+        report("Used: %i secs"%(-tic), level=2)
         if self.has_lock:
             self.release_lock()
 
     def collect_output(self):
         import h5py, time
+        report("Colleting output...", level=2)
+        tic = time.perf_counter()
 
         try:
             import mpi4py
@@ -544,6 +549,8 @@ class NestAdapter(SimulatorAdapter):
                                 )
                             )
         mpi4py.MPI.COMM_WORLD.bcast(result_path, root=0)
+        tic -= time.perf_counter()
+        report("Used: %i secs"%(-tic),2)        
         return result_path
 
     def validate(self):
@@ -945,7 +952,8 @@ class SpikeRecorder(SimulationRecorder):
             spikes = np.zeros((0, 2), dtype=float)
             for file in files:
                 file_spikes = np.loadtxt(file)
-                if len(file_spikes):
+                # if len(file_spikes):
+                if len(file_spikes.shape)>1:
                     scaffold_ids = np.array(
                         self.device_model.adapter.get_scaffold_ids(file_spikes[:, 0])
                     )
