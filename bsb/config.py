@@ -65,6 +65,11 @@ def _from_hdf5(file):
     return module_dict[class_name](stream=config_string)
 
 
+def get_result_config(file):
+    with h5py.File(file, "r") as resource:
+        return JSONConfig(stream=resource.attrs["configurationg_string"])
+
+
 class ScaffoldConfig(object):
     """
     Main configuration object. Is passed into the scaffold constructor
