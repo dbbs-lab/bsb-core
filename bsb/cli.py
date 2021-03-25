@@ -121,6 +121,9 @@ def start_cli():
         type=check_positive_factory("verbosity"),
     )
     parser.add_argument("-o", "--output", help="Specify an output file path")
+    parser.add_argument(
+        "--version", action="store_true", help="Print version information"
+    )
 
     # Compile subparser
     parser_compile.add_argument(
@@ -184,6 +187,11 @@ def start_cli():
 
     cl_args = parser.parse_args()
 
+    if hasattr(cl_args, "version"):
+        from . import __version__
+
+        print("bsb", __version__)
+        exit()
     if hasattr(cl_args, "func"):
         cl_args.func(cl_args)
     else:
