@@ -66,8 +66,20 @@ def _from_hdf5(file):
 
 
 def get_result_config(file):
+    """
+    Load the configuration that was used to create the results in `file`.
+
+    :param file: Path to result file.
+    :type file: str
+
+    :returns: `file`'s configuration object
+    :rtype: JSONConfig
+
+    """
+    import h5py
+
     with h5py.File(file, "r") as resource:
-        return JSONConfig(stream=resource.attrs["configurationg_string"])
+        return JSONConfig(stream=resource.attrs["configuration_string"])
 
 
 class ScaffoldConfig(object):
