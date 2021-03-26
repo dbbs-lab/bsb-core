@@ -43,7 +43,12 @@ class SpikeGenerator(NeuronDevice):
         report("Creating spike generator patterns for '{}'".format(self.name), level=3)
         patterns = {}
         if hasattr(self, "spike_times"):
-            return {target: self.spike_times for target in self.get_targets()}
+            targets = self.get_targets()
+            pattern = self.spike_times
+            if self.record:
+                for target in targets:
+                    self.adapter.result.add(GeneratorRecorder(self, target, pattern))
+            return {target: pattern for target in self.get_targets()}
         interval = float(self.parameters["interval"])
         number = int(self.parameters["number"])
         start = float(self.parameters["start"])
