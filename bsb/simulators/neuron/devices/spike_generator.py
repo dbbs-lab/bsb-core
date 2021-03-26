@@ -48,7 +48,7 @@ class SpikeGenerator(NeuronDevice):
             if self.record:
                 for target in targets:
                     self.adapter.result.add(GeneratorRecorder(self, target, pattern))
-            return {target: pattern for target in self.get_targets()}
+            return {target: pattern for target in targets}
         interval = float(self.parameters["interval"])
         number = int(self.parameters["number"])
         start = float(self.parameters["start"])
