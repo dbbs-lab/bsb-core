@@ -10,6 +10,7 @@ from ..reporting import report, warn
 from ..exceptions import *
 import time, os, json, weakref, numpy as np
 from itertools import chain
+from copy import deepcopy
 from sklearn.neighbors import KDTree
 from ..simulation import SimulationRecorder, SimulationResult
 import warnings
@@ -684,6 +685,7 @@ class NestAdapter(SimulatorAdapter):
         Connect the cells in NEST according to the connection model configurations
         """
         order = NestConnection.resolve_order(self.connection_models)
+
         for connection_model in order:
             name = connection_model.name
             nest_name = self.suffixed(name)
@@ -719,21 +721,42 @@ class NestAdapter(SimulatorAdapter):
             report("Creating connections " + nest_name, level=3)
             # Create the connections in NEST
             if not (connection_model.plastic and connection_model.hetero):
-                self.execute_command(
-                    self.nest.Connect,
-                    presynaptic_sources,
-                    postsynaptic_targets,
-                    connection_specifications,
-                    connection_parameters,
-                    exceptions={
-                        "IncompatibleReceptorType": {
-                            "from": None,
-                            "exception": catch_receptor_error(
-                                "Invalid receptor specifications in {}: ".format(name)
-                            ),
-                        }
-                    },
-                )
+                if isinstance(connection_parameters['receptor_type'], list):
+                    for receptor_type in connection_parameters['receptor_type']:
+                        single_connection_parameters = deepcopy(connection_parameters)
+                        single_connection_parameters['receptor_type'] = receptor_type
+                        self.execute_command(
+                            self.nest.Connect,
+                            presynaptic_sources,
+                            postsynaptic_targets,
+                            connection_specifications,
+                            single_connection_parameters,
+                            exceptions={
+                                "IncompatibleReceptorType": {
+                                    "from": None,
+                                    "exception": catch_receptor_error(
+                                        "Invalid receptor specifications in {}: ".format(name)
+                                    ),
+                                }
+                            },
+                        )
+                else:
+                    self.execute_command(
+                        self.nest.Connect,
+                        presynaptic_sources,
+                        postsynaptic_targets,
+                        connection_specifications,
+                        connection_parameters,
+                        exceptions={
+                            "IncompatibleReceptorType": {
+                                "from": None,
+                                "exception": catch_receptor_error(
+                                    "Invalid receptor specifications in {}: ".format(name)
+                                ),
+                            }
+                        },
+                    )
+
             else:
                 # Create the volume transmitter if the connection is plastic with heterosynaptic plasticity
                 report("Creating volume transmitter for " + name, level=3)
