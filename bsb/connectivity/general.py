@@ -1,7 +1,7 @@
 import os, numpy as np
 from .strategy import ConnectionStrategy, TouchingConvergenceDivergence
 from ..exceptions import *
-
+from ..reporting import report, warn
 
 class Convergence(TouchingConvergenceDivergence):
     """
