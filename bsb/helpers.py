@@ -198,19 +198,14 @@ def listify_input(value):
     Turn any non-list values into a list containing the value. Sequences will be
     converted to a list using `list()`, `None` will  be replaced by an empty list.
     """
-    # Replace None by empty array
-    value = value if value is not None else []
-    # Is `value` not a list?
-    if not isinstance(value, (collections.abc.Sequence, np.ndarray)) or isinstance(
-        value, str
-    ):
-        # Encapsulate any non-list input to a 1 element list
-        value = [value]
-    else:
-        # Turn the sequence into a Python list.
-        value = list(value)
-    # Return listified value
-    return value
+    if value is None:
+        return []
+    if isinstance(value, str):
+        return [str]
+    try:
+        return list(value)
+    except:
+        return [value]
 
 
 class CastableConfigurableClass(ConfigurableClass):
