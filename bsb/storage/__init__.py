@@ -94,12 +94,15 @@ for engine_name, engine_module in _available_engines.items():
 
 def _on_master(f):
     @functools.wraps(f)
-    def master_deco(self, *args, **kwargs):
+    def master_deco(self, *args, _bcast=True, **kwargs):
         if self.is_master():
             r = f(self, *args, **kwargs)
         else:
             r = None
-        return self._comm.bcast(r, root=self._master)
+        if _bcast:
+            return self._comm.bcast(r, root=self._master)
+        else:
+            return r
 
     return master_deco
 
@@ -167,12 +170,13 @@ class Storage:
         """
         return self._engine.create()
 
-    @_on_master
     def move(self, new_root):
         """
         Move the storage to a new root.
         """
-        self._engine.move(new_root)
+        if self.is_master():
+            self._engine.move(new_root)
+        self._comm.Barrier()
         self._root = new_root
 
     @_on_master
@@ -242,13 +246,14 @@ class Storage:
         for cell_type in scaffold.get_cell_types():
             self._PlacementSet.require(self._engine, cell_type)
 
+    @_on_master
     def renew(self, scaffold):
         """
         Remove and recreate an empty storage container for a scaffold.
         """
-        self.remove()
-        self.create()
-        self.init(scaffold)
+        self.remove(_bcast=False)
+        self.create(_bcast=False)
+        self.init(scaffold, _bcast=False)
 
     def Label(self, label):
         """
