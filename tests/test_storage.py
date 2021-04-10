@@ -102,6 +102,7 @@ class TestHDF5Storage(unittest.TestCase):
             self.assertTrue(s.exists())
             MPI.COMM_WORLD.Barrier()
             s.move(old_root)
+            MPI.COMM_WORLD.Barrier()
             self.assertTrue(os.path.exists(old_root))
             self.assertTrue(os.path.exists(s._root))
             MPI.COMM_WORLD.Barrier()
