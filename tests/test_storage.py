@@ -90,16 +90,21 @@ class TestHDF5Storage(unittest.TestCase):
         )
 
     def test_move(self):
-        s = self.random_storage()
-        old_root = s._root
-        self.assertTrue(os.path.exists(s._root))
-        s.move(self.rstr())
-        self.assertFalse(os.path.exists(old_root))
-        self.assertTrue(os.path.exists(s._root))
-        self.assertTrue(s.exists())
-        s.move(old_root)
-        self.assertTrue(os.path.exists(old_root))
-        self.assertTrue(os.path.exists(s._root))
+        try:
+            s = self.random_storage()
+            old_root = s._root
+            self.assertTrue(os.path.exists(s._root))
+            s.move(self.rstr())
+            self.assertFalse(os.path.exists(old_root))
+            self.assertTrue(os.path.exists(s._root))
+            self.assertTrue(s.exists())
+            s.move(old_root)
+            self.assertTrue(os.path.exists(old_root))
+            self.assertTrue(os.path.exists(s._root))
+        except Exception as e:
+            import traceback
+
+            traceback.print_exc()
 
     def test_remove_create(self):
         s = self.random_storage()
