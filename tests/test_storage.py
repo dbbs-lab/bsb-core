@@ -32,14 +32,15 @@ class TestHDF5Storage(unittest.TestCase):
             os.remove(s)
 
     def rstr(self):
-        return "".join(random.choices(string.ascii_uppercase + string.digits, k=15))
+        rstr = "".join(random.choices(string.ascii_uppercase + string.digits, k=15))
+        rstr = MPI.COMM_WORLD.bcast(rstr, root=0)
+        return rstr
 
     def random_storage(self):
         rstr = None
+        rstr = self.rstr()
         if not MPI.COMM_WORLD.Get_rank():
-            rstr = self.rstr()
             self._open_storages.append(rstr)
-        rstr = MPI.COMM_WORLD.bcast(rstr, root=0)
         s = Storage("hdf5", rstr)
         return s
 
@@ -66,24 +67,37 @@ class TestHDF5Storage(unittest.TestCase):
         cfg = from_json(get_config("test_single"))
         s = self.random_storage()
         s.create()
+        print("How synced are we? 1")
+        self.assertTrue(os.path.exists(s._root))
+        print("How synced are we? 2")
         ps = s._PlacementSet.require(s._engine, cfg.cell_types.test_cell)
-        with ps._engine._lock.single_write() as fence:
+        print("How synced are we? 3")
+        with ps._engine._master_write() as fence:
             fence.guard()
+            print("I'm writing data")
             ps.append_data(np.array([0, 0, 0]), [0])
+        print("How synced are we? 4")
         id = ps.load_identifiers()
+        print("How synced are we? 5")
         self.assertEqual(
             1,
             len(ps.load_identifiers()),
             "Failure to setup `storage.renew()` test due to chunk reading error.",
         )
+        MPI.COMM_WORLD.Barrier()
+        print("How synced are we? 6")
         # Spoof a scaffold here, `renew` only requires an object with a
         # `.get_cell_types()` method for its `storage.init` call.
         s.renew(_ScaffoldDummy(cfg))
+        print("How synced are we? 7")
+        ps = s._PlacementSet.require(s._engine, cfg.cell_types.test_cell)
+        print("How synced are we? 8")
         self.assertEqual(
             0,
             len(ps.load_identifiers()),
             "`storage.renew()` did not clear placement data.",
         )
+        print("How synced are we? 9")
 
     def test_move(self):
         s = self.random_storage()

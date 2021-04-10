@@ -5,11 +5,11 @@ from bsb.core import Scaffold
 from bsb.config import from_json
 from bsb.exceptions import *
 from bsb.models import Layer, CellType
-from test_setup import get_config, single_process_test
+from test_setup import get_config, skip_parallel
 
 
 class TestChunks(unittest.TestCase):
-    @single_process_test
+    @skip_parallel
     # Single process; this does not test any parallel read/write validity, just the
     # basic chunk properties
     def test_default_chunk(self):
@@ -26,7 +26,7 @@ class TestChunks(unittest.TestCase):
         chunk_all = self.ps.load_identifiers()
         self.assertGreater(len(chunk_all), len(chunk0))
 
-    @single_process_test
+    @skip_parallel
     # Single process; this does not test any parallel read/write validity, just the
     # basic chunk properties. For example uses `.place` directly.
     def test_single_chunk(self):

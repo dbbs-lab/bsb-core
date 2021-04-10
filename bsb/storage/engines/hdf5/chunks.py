@@ -115,15 +115,16 @@ class ChunkedProperty:
         self.maxshape = tuple(maxshape)
 
     def load(self, raw=False):
-        if not self.loader._chunks:
-            chunk_group = Resource(self.loader._engine, self.loader._path + "/chunks")
-            self.loader._chunks = set(
-                tuple(int(x) for x in k.split(".")) for k in chunk_group.keys()
-            )
-        reader = self._chunk_reader(raw=raw)
-        chunk_loader = map(reader, self.loader._chunks)
-        # Concatenate all non-empty chunks together
-        chunked_data = tuple(c for c in chunk_loader if c.size)
+        with self.loader._engine._read():
+            if not self.loader._chunks:
+                chunk_group = Resource(self.loader._engine, self.loader._path + "/chunks")
+                self.loader._chunks = set(
+                    tuple(int(x) for x in k.split(".")) for k in chunk_group.keys()
+                )
+            reader = self._chunk_reader(raw=raw)
+            chunk_loader = map(reader, self.loader._chunks)
+            # Concatenate all non-empty chunks together
+            chunked_data = tuple(c for c in chunk_loader if c.size)
         if not len(chunked_data):
             return np.empty(self.shape)
         return np.concatenate(chunked_data)
