@@ -41,10 +41,11 @@ class HDF5Engine(Engine):
                 handle.create_group("cells/labels")
 
     def move(self, new_root):
-        from shutil import copy2
+        from shutil import move
 
         with self._write():
-            copy2(self._file, new_root)
+            move(self._file, new_root)
+
         self._file = new_root
 
     def remove(self):

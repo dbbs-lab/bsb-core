@@ -20,7 +20,7 @@ requires = [
     "rtree>=0.9.7",
     "mpi4py",
     "zwembad>=1.2.0",
-    "mpilock>=1.0.0",
+    "mpilock>=1.1.0",
 ]
 
 setuptools.setup(

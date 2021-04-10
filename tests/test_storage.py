@@ -25,18 +25,19 @@ class TestHDF5Storage(unittest.TestCase):
     def setUp(self):
         self._open_storages = []
         MPI.COMM_WORLD.Barrier()
-        print("At fn start Barrier")
 
     def tearDown(self):
         MPI.COMM_WORLD.Barrier()
-        print("At fn stop Barrier")
         for s in self._open_storages:
             os.remove(s)
+
+    def rstr(self):
+        return "".join(random.choices(string.ascii_uppercase + string.digits, k=15))
 
     def random_storage(self):
         rstr = None
         if not MPI.COMM_WORLD.Get_rank():
-            rstr = "".join(random.choices(string.ascii_uppercase + string.digits, k=15))
+            rstr = self.rstr()
             self._open_storages.append(rstr)
         rstr = MPI.COMM_WORLD.bcast(rstr, root=0)
         s = Storage("hdf5", rstr)
@@ -48,6 +49,7 @@ class TestHDF5Storage(unittest.TestCase):
         # create or remove data by relying on `renew` or `init` in its constructor.
         cfg = from_json(get_config("test_single"))
         s = self.random_storage()
+        self.assertTrue(os.path.exists(s._root))
         s.create()
         s.init(_ScaffoldDummy(cfg))
         # Test that `init` created the placement sets for each cell type
@@ -82,3 +84,24 @@ class TestHDF5Storage(unittest.TestCase):
             len(ps.load_identifiers()),
             "`storage.renew()` did not clear placement data.",
         )
+
+    def test_move(self):
+        s = self.random_storage()
+        old_root = s._root
+        self.assertTrue(os.path.exists(s._root))
+        s.move(self.rstr())
+        self.assertFalse(os.path.exists(old_root))
+        self.assertTrue(os.path.exists(s._root))
+        self.assertTrue(s.exists())
+        s.move(old_root)
+        self.assertTrue(os.path.exists(old_root))
+        self.assertTrue(os.path.exists(s._root))
+
+    def test_remove_create(self):
+        s = self.random_storage()
+        s.remove()
+        self.assertFalse(os.path.exists(s._root))
+        self.assertFalse(s.exists())
+        s.create()
+        self.assertTrue(os.path.exists(s._root))
+        self.assertTrue(s.exists())
