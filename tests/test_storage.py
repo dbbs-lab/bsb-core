@@ -90,21 +90,21 @@ class TestHDF5Storage(unittest.TestCase):
         )
 
     def test_move(self):
-        try:
+        for i in range(100):
             s = self.random_storage()
+            MPI.COMM_WORLD.Barrier()
             old_root = s._root
             self.assertTrue(os.path.exists(s._root))
             s.move(self.rstr())
+            MPI.COMM_WORLD.Barrier()
             self.assertFalse(os.path.exists(old_root))
             self.assertTrue(os.path.exists(s._root))
             self.assertTrue(s.exists())
+            MPI.COMM_WORLD.Barrier()
             s.move(old_root)
             self.assertTrue(os.path.exists(old_root))
             self.assertTrue(os.path.exists(s._root))
-        except Exception as e:
-            import traceback
-
-            traceback.print_exc()
+            MPI.COMM_WORLD.Barrier()
 
     def test_remove_create(self):
         s = self.random_storage()
