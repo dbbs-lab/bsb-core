@@ -38,55 +38,49 @@ installed package and the local git repository:
 
 ## Usage
 
-The scaffold framework can be used through the command line interface or as a python package.
+The scaffold framework is best used in a project context. Create a working directory for
+each of your modelling projects and use the command line to configure, reconstruct or
+simulate your models.
 
-### Command line interface (CLI)
+### Creating a project
 
-Run the framework in the command line with subcommand `compile` to compile a network
-architecture.
+You can create boilerplate projects using:
 
 ```
-bsb --config=mouse_cerebellum_cortex_noTouch.json compile -x=200 -z=200 -p
+bsb new
 ```
 
-To run with different configurations, change the config argument to the relative path of a
-.json config file. The `-p` flag indicates that the compiled network should be plotted
-afterwards and can be omitted.
+It will ask you some information about the project, like a name and configuration template
+and set up the most suited directory structure and key files for you. Afterwards, `cd`
+into your project folder:
 
-### Python package
-
-The central object is the `bsb.core.Scaffold` class. This object requires a
-`bsb.config.ScaffoldConfig` instance for its construction. To emulate the CLI
-functionality you can use the `JSONConfig` class and provide the relative path to the
-configuration file.
-
-```python
-from bsb import Scaffold
-from bsb.config import JSONConfig
-
-config = new JSONConfig(file='mouse_cerebellum_cortex_noTouch.json')
-scaffoldInstance = new Scaffold(config)
+```
+cd my_model
 ```
 
-This scaffold instance can then be used to perform the subcommands available in the CLI by
-calling their corresponding functions:
+### Reconstructing a network
 
-```python
-scaffoldInstance.compile_network()
+You can use your project to create reconstructions of your model, generating cell positions
+and connections:
+
+```
+bsb compile -p
 ```
 
-#### Plotting network architecture
+This should create a network file and plot the network.
 
-After calling `compile_network` the scaffold instance can be plotted:
+### Simulating a network
 
-```python
-scaffoldInstance.plot_network_cache()
-```
+The default project currently contains no simulation config.
 
+# Contributing
+
+All contributions are very much welcome.
+Take a look at the [contribution guide](CONTRIBUTING.md)
 
 # Known issues
 
-## If MPI is used but mpi4py is not installed undefined behavior may occur
+## If MPI is used but mpi4py is not installed, undefined behavior may occur
 
 The BSB determines the amount of NEST virtual processes by using mpi4py to get the amount
 of MPI processes. But if the package is not installed it is assumed no MPI simulations

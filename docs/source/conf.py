@@ -16,6 +16,11 @@ import os
 import sys, types
 
 sys.path.insert(0, os.path.abspath("../.."))
+# Big thanks to the guys over at Arbor (https://github.com/arbor-sim)
+# for providing code for the divio theme template!
+this_path = os.path.split(os.path.abspath(__file__))[0]
+script_path = this_path + "/../ext"
+sys.path.append(script_path)
 
 autodoc_mock_imports = [
     "glia",
@@ -70,6 +75,7 @@ extensions = [
     "sphinx.ext.imgmath",
     "sphinx.ext.ifconfig",
     "sphinx.ext.viewcode",
+    "divio_docs_theme",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -105,13 +111,16 @@ pygments_style = None
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = "furo"
+html_theme = "divio_docs_theme"
 
 html_context = {
     "maintainer": "Robin De Schepper",
     "project_pretty_name": "BSB",
     "projects": {"DBBS Scaffold": "https://github.com/dbbs/bsb"},
 }
+
+html_logo = "../images/bsb.png"
+html_favicon = "../images/bsb_ico_small.ico"
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
