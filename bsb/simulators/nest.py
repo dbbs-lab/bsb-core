@@ -5,7 +5,7 @@ from ..simulation import (
     TargetsNeurons,
 )
 from ..models import ConnectivitySet
-from ..helpers import ListEvalConfiguration
+from ..helpers import ListEvalConfiguration, listify_input
 from ..reporting import report, warn
 from ..exceptions import *
 import time, os, json, weakref, numpy as np
@@ -551,7 +551,7 @@ class NestAdapter(SimulatorAdapter):
                             )
         mpi4py.MPI.COMM_WORLD.bcast(result_path, root=0)
         tic -= time.perf_counter()
-        report("Used: %i secs"%(-tic),2)        
+        report("Used: %i secs"%(-tic),2)
         return result_path
 
     def validate(self):
@@ -721,32 +721,22 @@ class NestAdapter(SimulatorAdapter):
             report("Creating connections " + nest_name, level=3)
             # Create the connections in NEST
             if not (connection_model.plastic and connection_model.hetero):
-                if isinstance(connection_parameters['receptor_type'], list):
-                    for receptor_type in connection_parameters['receptor_type']:
-                        single_connection_parameters = deepcopy(connection_parameters)
+                # Repeat connections per receptor type
+                receptor_types = listify_input(connection_parameters['receptor_type'])
+                if not len(receptor_types):
+                    # If no receptor types are specified, go over the connection loop
+                    # once, without setting any receptor type in the conn params.
+                    receptor_types.append(None)
+                for receptor_type in receptor_types:
+                    single_connection_parameters = deepcopy(connection_parameters)
+                    if receptor_type is not None:
                         single_connection_parameters['receptor_type'] = receptor_type
-                        self.execute_command(
-                            self.nest.Connect,
-                            presynaptic_sources,
-                            postsynaptic_targets,
-                            connection_specifications,
-                            single_connection_parameters,
-                            exceptions={
-                                "IncompatibleReceptorType": {
-                                    "from": None,
-                                    "exception": catch_receptor_error(
-                                        "Invalid receptor specifications in {}: ".format(name)
-                                    ),
-                                }
-                            },
-                        )
-                else:
                     self.execute_command(
                         self.nest.Connect,
                         presynaptic_sources,
                         postsynaptic_targets,
                         connection_specifications,
-                        connection_parameters,
+                        single_connection_parameters,
                         exceptions={
                             "IncompatibleReceptorType": {
                                 "from": None,
@@ -756,7 +746,6 @@ class NestAdapter(SimulatorAdapter):
                             }
                         },
                     )
-
             else:
                 # Create the volume transmitter if the connection is plastic with heterosynaptic plasticity
                 report("Creating volume transmitter for " + name, level=3)
