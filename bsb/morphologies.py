@@ -157,6 +157,16 @@ class Branch:
         """
         self._label_masks[label] = np.array(mask, dtype=bool)
 
+    @property
+    def children(self):
+        """
+        Collection of the child branches of this branch.
+
+        :returns: list of :class:`Branches <.morphologies.Branch>`
+        :rtype: list
+        """
+        return self._children.copy()
+
     def attach_child(self, branch):
         """
         Attach a branch as a child to this branch.
