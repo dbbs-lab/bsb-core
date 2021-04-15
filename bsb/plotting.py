@@ -844,7 +844,7 @@ def hdf5_gather_voltage_traces(handle, root, groups=None):
 
 @_figure
 @_input_highlight
-def plot_traces(traces, fig=None, show=True, legend=True, cutoff=0, x=None):
+def plot_traces(traces, fig=None, show=True, legend=True, cutoff=0, range=None, x=None):
     traces.order()
     subplots_fig = make_subplots(
         cols=1,
@@ -866,10 +866,17 @@ def plot_traces(traces, fig=None, show=True, legend=True, cutoff=0, x=None):
     fig.update_layout(height=max(len(traces) * 130, 300))
     legend_groups = set()
     legends = traces.legends
+    if range is not None and x is not None:
+        x = np.array(x)
+        x = x[cutoff:]
+        mask = (x >= range[0]) & (x <= range[1])
+        x = x[mask]
     for i, cell_traces in enumerate(traces):
         for j, trace in enumerate(cell_traces):
             showlegend = legends[j] not in legend_groups
             data = trace.data[cutoff:]
+            if range is not None and x is not None:
+                data = data[mask]
             fig.add_trace(
                 go.Scatter(
                     x=x,
