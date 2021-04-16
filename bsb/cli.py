@@ -187,7 +187,7 @@ def start_cli():
 
     cl_args = parser.parse_args()
 
-    if hasattr(cl_args, "version"):
+    if getattr(cl_args, "version", False):
         from . import __version__
 
         print("bsb", __version__)
