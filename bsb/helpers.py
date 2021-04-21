@@ -264,17 +264,24 @@ class DistributionConfiguration(OptionallyCastable):
         from scipy.stats import distributions
 
         if self.type == "const":
+            self.distribution = None
             return
         if self.type[-4:] == "_gen":
             raise InvalidDistributionError(
-                "Distributions can not be created through their constructors but need to use their factory methods. (Those do not end in _gen)"
+                "Distributions need to use factory methods. (Strip trailing `_gen`)"
             )
-        if self.type not in dir(distributions):
-            raise UnknownDistributionError(
-                "'{}' is not a distribution of scipy.stats".format(self.type)
-            )
-        try:
+        if self.type in dir(distributions):
             distribution_factory = distributions.__dict__[self.type]
+        else:
+            try:
+                distribution_factory = get_configurable_class(self.type)
+            except ConfigurableClassNotFoundError:
+                raise UnknownDistributionError(
+                    "'{}' is not a distribution of scipy.stats nor is it an importable class.".format(
+                        self.type
+                    )
+                ) from None
+        try:
             distribution_kwargs = self._raw_config.copy()
             del distribution_kwargs["type"]
             self.distribution = distribution_factory(**distribution_kwargs)
@@ -283,6 +290,14 @@ class DistributionConfiguration(OptionallyCastable):
                 "_parse_args()", "scipy.stats.distributions." + self.type
             )
             raise InvalidDistributionError(error_msg) from None
+        try:
+            self.distribution.cdf(0)
+            self.distribution.pdf(0)
+            self.distribution.rvs(size=1)
+        except:
+            raise InvalidDistributionError(
+                "The configured distribution does not adhere to the `scipy.stats.rv_continuous` interface (rvs, pdf, cdf & ppf are required)."
+            )
 
     def draw(self, n):
         if self.type == "const":
@@ -294,7 +309,10 @@ class DistributionConfiguration(OptionallyCastable):
         return self.draw(1)[0]
 
     def mean(self):
-        return self.distribution.mean()
+        if self.type == "const":
+            return self.value
+        else:
+            return self.distribution.mean()
 
 
 class EvalConfiguration(OptionallyCastable):
