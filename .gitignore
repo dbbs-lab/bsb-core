@@ -15,14 +15,8 @@ nrnmech.dll
 .coverage
 htmlcov/
 .idea/
-obfuscation/licenses
-obfuscation/scaffold
 !morphologies.hdf5
-
-# Ignore obfuscation files
-obfuscation/scaffold/
-obfuscation/licenses
-
 # Ignore report files
 *.io
 .vscode/
+bsb-*/

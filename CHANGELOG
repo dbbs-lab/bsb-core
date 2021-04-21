@@ -1,5 +1,14 @@
 # 3.7
 
+## 3.7.5
+
+* Cell IDs persistently increment across Python sessions.
+* Added CONTRIBUTING & CODE_OF_CONDUCT
+* NEST devices can be configured without targets, for manual targetting.
+* NEST master seed is determined by clocktime but can be fixed.
+* Added `bsb.core.Scaffold.get_connectivity_sets`
+
+
 ## 3.7.4
 
 * Added raw config string to result files for reference.

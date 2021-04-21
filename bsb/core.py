@@ -766,6 +766,17 @@ class Scaffold:
             map(lambda x: (x, *x.get_connectivity_sets()), connection_types.values())
         )
 
+    def get_connectivity_sets(self):
+        """
+        Return all connectivity sets from the output formatter.
+
+        :param tag: Unique identifier of the connectivity set in the output formatter
+        :type tag: string
+        :returns: A connectivity set
+        :rtype: :class:`.models.ConnectivitySet`
+        """
+        return self.output_formatter.get_connectivity_sets()
+
     def get_connectivity_set(self, tag):
         """
         Return a connectivity set from the output formatter.
