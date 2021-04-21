@@ -9,6 +9,12 @@ import numpy as np
 
 class SpikeGenerator(NeuronDevice):
     defaults = {"record": True}
+    casts = {
+        "radius": float,
+        "origin": [float],
+        "synapses": [str],
+    }
+    required = ["targetting", "device", "io", "synapses"]
 
     def implement(self, target, location):
         cell = location.cell
