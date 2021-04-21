@@ -453,9 +453,18 @@ class NestAdapter(SimulatorAdapter):
         for cell_model in self.cell_models.values():
             cell_model.reset()
 
-    def get_master_seed(self, fixed_seed=int(time.time())):
-        # Use time as random seed
-        return fixed_seed
+    def get_master_seed(self, fixed_seed=None):
+        if not hasattr(self, "_master_seed"):
+            if fixed_seed is None:
+                # Use time as random seed
+                if mpi4py.MPI.COMM_WORLD.rank == 0:
+                    fixed_seed = int(time.time())
+                else:
+                    fixed_seed = None
+                self._master_seed = mpi4py.MPI.COMM_WORLD.bcast(fixed_seed, root=0)
+            else:
+                self._master_seed = fixed_seed
+        return self._master_seed
 
     def reset_processes(self, threads):
         master_seed = self.get_master_seed()
