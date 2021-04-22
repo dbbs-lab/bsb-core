@@ -133,12 +133,15 @@ class DegreeAndDistanceBased(ConnectionStrategy):
         to_cells = self.to_cells[to_type.name]
         to_ids = to_cells[:, 0]
         tree = KDTree(to_cells[:, 2:5])
+        # Look up all candidate cells within the max search radius, for each cell.
         candidates, distances = tree.query_radius(
             from_cells[:, 2:5], r=self.max, return_distance=True
         )
+        # Draw n samples from the outdegree distribution.
         outdegrees = self.outdegree.draw(len(from_cells))
         n_dist_candidates = sum(map(len, candidates)) - len(candidates)
         if outdegrees < n_dist_candidates:
+            # Warn in case of funky inputs
             warn("Outdegree exceeds candidates found within search distance.", ConnectivityWarning)
         indegrees = np.zeros(len(to_cells))
         alloc = np.empty((len(from_cells) * len(to_cells), 2))
@@ -147,13 +150,21 @@ class DegreeAndDistanceBased(ConnectionStrategy):
             # Skip self
             cand = cand[1:]
             dist = dist[1:]
-            # Lookup the candidate indegrees, then look those indegrees up to
-            # find the probabilities for transitions of `indegree` to `indegree + 1`
-            ind_probs = self.survivor_table[indegrees[cand]]
+            if not len(cand):
+                continue
+            # Lookup the candidate indegrees
+            inds = indegrees[cand]
+            # Find the probabilities for transitions of `indegree` to `indegree + 1` and
+            # returns 0 for cells already at max indegree; survivors near max indegree
+            # should yield close-to-zero probabilities anyway.
+            ind_probs = np.where(inds < max_survivor, self.survivor_table, 0)
+            # Lookup the distance based probabilities
             dist_probs = self.distance.distribution.pdf(dist)
             probs = ind_probs * dist_probs
-            targets = rng.choice(cand, size=out, p=probs)
-            # Create the connections for this from_cell to target cells.
+            # Choose `outdegree` candidates based on probabilities, unless all candidates
+            # are max indegree candidates (all 0 prob), then use equal probabilities.
+            targets = rng.choice(cand, size=out, p=probs if sum(probs) else None)
+            # Fill in connectivity matrix for this from_cell to its targets.
             alloc[ptr : ptr + len(selected), 0] = from_ids[i]
             alloc[ptr : ptr + len(selected), 1] = to_ids[targets]
             ptr += len(selected)
