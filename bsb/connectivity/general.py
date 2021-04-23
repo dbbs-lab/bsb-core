@@ -167,9 +167,9 @@ class DegreeAndDistanceBased(ConnectionStrategy):
             # Update the target indegrees
             indegrees[targets] += 1
             # Fill in connectivity matrix for this from_cell to its targets.
-            alloc[ptr : ptr + len(selected), 0] = from_ids[i]
-            alloc[ptr : ptr + len(selected), 1] = to_ids[targets]
-            ptr += len(selected)
+            alloc[ptr : ptr + len(targets), 0] = from_ids[i]
+            alloc[ptr : ptr + len(targets), 1] = to_ids[targets]
+            ptr += len(targets)
         self.scaffold.connect_cells(self, alloc[:ptr])
 
 
