@@ -143,7 +143,7 @@ class DegreeAndDistanceBased(ConnectionStrategy):
         if outdegrees < n_dist_candidates:
             # Warn in case of funky inputs
             warn("Outdegree exceeds candidates found within search distance.", ConnectivityWarning)
-        indegrees = np.zeros(len(to_cells))
+        indegrees = np.zeros(len(to_cells), dtype=int)
         alloc = np.empty((len(from_cells) * len(to_cells), 2))
         ptr = 0
         for i, cand, dist, out in zip(range(len(from_cells)), candidates, distances, outdegrees):
@@ -164,6 +164,8 @@ class DegreeAndDistanceBased(ConnectionStrategy):
             # Choose `outdegree` candidates based on probabilities, unless all candidates
             # are max indegree candidates (all 0 prob), then use equal probabilities.
             targets = rng.choice(cand, size=out, p=probs if sum(probs) else None)
+            # Update the target indegrees
+            indegrees[targets] += 1
             # Fill in connectivity matrix for this from_cell to its targets.
             alloc[ptr : ptr + len(selected), 0] = from_ids[i]
             alloc[ptr : ptr + len(selected), 1] = to_ids[targets]
