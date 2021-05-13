@@ -29,9 +29,6 @@ class ConnectomeGolgiGranule(ConnectionStrategy):
             self.morphology = morphology
 
     def connect(self):
-        from time import time
-
-        t = time()
         # Gather information for the legacy code block below.
         glom_grc = self.scaffold.cell_connections_by_tag["glomerulus_to_granule"]
         glom_ids = self.scaffold.get_placement_set("glomerulus").identifiers
