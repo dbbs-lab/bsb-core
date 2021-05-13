@@ -1,6 +1,6 @@
 import numpy as np
-from scaffold.connectivity import ConnectionStrategy
-from scaffold.reporting import report, warn
+from bsb.connectivity import ConnectionStrategy
+from bsb.reporting import report, warn
 from time import time  # usalo per time sttart stop
 
 # import time    #usalo per il time.sleep
@@ -65,7 +65,30 @@ class ConnectomeMossyGlomerulus(ConnectionStrategy):
 
         # glomeruli contiene per ogni glom, l'id del glo, l'id del cell type, le coordinate x y z
         glomeruli = self.scaffold.cells_by_type[glomerulus_cell_type.name]
-        mossy = self.scaffold.cells_by_type[mossy_cell_type.name]
+
+        # I'm shamelessly aiming for the path of least resistance here and will
+        # produce a most horrible workaround to quickly converge on the code:
+        #
+        # mossy fiber positions will be sampled from a uniform distribution,
+        # and merged with the mossy fiber (entity) IDs. These will be padded
+        # together in the awful 5-column old-style placement matrices so that
+        # they can be plugged into the `mossy` variable and the rest of the code
+        # will run as before.
+
+        _type_id = mossy_cell_type.id
+        _mossy_ids = mossy_cell_type.get_placement_set().identifiers
+        _layer = mossy_cell_type.placement.layer_instance
+        _og, _dims = _layer.origin, _layer.dimensions
+        _rng = np.random.default_rng()
+        _uni_pos = []
+
+        mossy = np.column_stack(
+            (
+                _mossy_ids,
+                np.broadcast_to(_type_id, (len(_mossy_ids),)),
+                *(_rng.random(len(_mossy_ids)) * d + o for o, d in zip(_og, _dims)),
+            )
+        )
 
         first_MF = int(mossy[0, 0])
         report("id first mf:", first_MF, level=3)
