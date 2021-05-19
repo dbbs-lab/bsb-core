@@ -580,6 +580,18 @@ class NeuronAdapter(SimulatorAdapter):
         terminal_relays = {}
         intermediate_relays = {}
         output_handler = self.scaffold.output_formatter
+        type_lookup = {
+            ct.name: range(min(ids := ct.get_placement_set().identifiers), max(ids) + 1)
+            for ct in self.scaffold.get_cell_types()
+        }
+
+        def lookup(i):
+            for n, t in type_lookup.items():
+                if i in t:
+                    return n
+            else:
+                return None
+
         for connection_model in self.connection_models.values():
             name = connection_model.name
             # Get the connectivity set associated with this connection model
@@ -625,43 +637,36 @@ class NeuronAdapter(SimulatorAdapter):
 
         report("Relays indexed, resolving intermediates.")
 
+        interm_transfer = {k: [] for k in intermediate_relays.keys()}
         while len(intermediate_relays) > 0:
             intermediates_to_remove = []
             for intermediate, targets in intermediate_relays.items():
                 for target in targets:
                     if target in intermediate_relays:
-                        # This target of this intermediary is also an intermediary and
-                        # cannot be resolved to a terminal at this point, so we wait until
-                        # a next iteration where the intermediary target might have been
-                        # resolved.
+                        # This target of this intermediary is also an
+                        # intermediary and cannot be resolved to a terminal at
+                        # this point, so we wait until a next iteration where
+                        # the intermediary target might have been resolved.
                         continue
-                    if target in terminal_relays:
-                        # The target is a terminal relay and can be removed from our
-                        # intermediary target list and its terminal targets added to our
-                        # terminal target list.
-                        try:
-                            arr = terminal_relays[intermediate]
-                        except:
-                            arr = []
-                            terminal_relays[intermediate] = arr
+                    elif target in terminal_relays:
+                        # The target is a terminal relay and can be removed from
+                        # our intermediary target list and its terminal targets
+                        # added to our terminal target list.
+                        arr = interm_transfer[intermediate]
+                        assert all(
+                            isinstance(t, tuple) for t in terminal_relays[target]
+                        ), f"Terminal relay {lookup(target)} {target} contains non-terminal targets: {terminal_relays[target]}"
                         arr.extend(terminal_relays[target])
                         targets.remove(target)
-                        # If we now have no more intermediary  targets we can be removed
-                        # from the intermediary relay list.
-                        if len(targets) == 0:
-                            intermediates_to_remove.append(intermediate)
                     else:
-                        # The target is not a relay at all and can be added to our
-                        # terminal target list
-                        try:
-                            arr = terminal_relays[intermediate]
-                        except:
-                            arr = []
-                            terminal_relays[intermediate] = arr
-                        arr.append(target)
-                        targets.remove(target)
-                        if len(targets) == 0:
-                            intermediates_to_remove.append(intermediate)
+                        raise RelayError(
+                            f"Non-relay {lookup(target)} {target} found in intermediate relay map."
+                        )
+                # If we have no more intermediary targets we can be removed from
+                # the intermediary relay list and be moved to the terminals.
+                if not targets:
+                    intermediates_to_remove.append(intermediate)
+                    terminal_relays[intermediate] = interm_transfer.pop(intermediate)
             for intermediate in intermediates_to_remove:
                 report(
                     "Intermediate resolved to",
@@ -676,7 +681,10 @@ class NeuronAdapter(SimulatorAdapter):
         # Filter out all relays to targets not on this node.
         self.relay_scheme = {}
         for relay, targets in terminal_relays.items():
-            node_targets = list(filter(lambda x: int(x[0]) in self.node_cells, targets))
+            assert all(
+                isinstance(t, tuple) for t in terminal_relays[target]
+            ), f"Terminal relay {lookup(target)} {target} contains non-terminal targets: {terminal_relays[target]}"
+            node_targets = [x for x in targets if int(x[0]) in self.node_cells]
             self.relay_scheme[relay] = node_targets
         report(
             "Node",
