@@ -719,6 +719,11 @@ class NestAdapter(SimulatorAdapter):
             self.create_synapse_model(connection_model)
             # Set the specifications NEST allows like: 'rule', 'autapses', 'multapses'
             connection_specifications = {"rule": "one_to_one"}
+            if hasattr(self, "weight_recorder"):
+                wr_conf = self.weight_recorder
+                wr = nest.Create("weight_recorder")
+                nest.SetStatus(wr, wr_conf)
+                connection_specifications["weight_recorder"] = wr
             # Get the connection parameters from the configuration
             connection_parameters = connection_model.get_connection_parameters()
             report("Creating connections " + nest_name, level=3)
