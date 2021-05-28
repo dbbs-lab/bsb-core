@@ -36,6 +36,9 @@ _t(
                 SuffixTakenError=_e(),
                 ReceptorSpecificationError=_e(),
             ),
+            ArborError=_e(
+                GidLookupError=_e(),
+            ),
             ParallelIntegrityError=_e("rank"),
         ),
         ConnectivityError=_e(),

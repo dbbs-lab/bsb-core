@@ -521,6 +521,34 @@
           "section_type": "soma"
         }
       }
+    },
+    "arbor": {
+      "simulator": "arbor",
+      "cell_models": {
+        "glomerulus": {
+          "relay": true
+        },
+        "mossy_fibers": {
+          "relay": true
+        },
+        "purkinje_cell": {
+          "model": "dbbs_models.StellateCell"
+        },
+        "golgi_cell": {
+          "model": "dbbs_models.StellateCell"
+        },
+        "stellate_cell": {
+          "model": "dbbs_models.StellateCell"
+        },
+        "basket_cell": {
+          "model": "dbbs_models.StellateCell"
+        },
+        "granule_cell": {
+          "model": "dbbs_models.GranuleCell"
+        }
+      },
+      "connection_models": {},
+      "devices": {}
     }
   }
 }
