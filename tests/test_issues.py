@@ -1,6 +1,7 @@
 import unittest, os, sys, numpy as np, h5py
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
 from bsb.output import HDF5Formatter
 import bsb.helpers
 

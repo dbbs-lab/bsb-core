@@ -1,4 +1,4 @@
-import os, sys, unittest, mpi4py
+import os, sys, unittest, mpi4py, threading
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 from bsb.core import Scaffold, from_hdf5
@@ -118,3 +118,40 @@ def get_config(file):
             file + ".json" if not file.endswith(".json") else "",
         )
     )
+
+
+class TimeoutThread(threading.Thread):
+    def excepthook(self, args, /):
+        print("OLALALA IN HOOOK")
+        raise args.exc_value
+
+
+def timeout(timeout, abort=False):
+    def decorator(f):
+        def timed_f(*args, **kwargs):
+            thread = TimeoutThread(target=f, args=args, kwargs=kwargs)
+            thread.start()
+            thread.join(timeout=timeout)
+            if thread.is_alive():
+                if abort:
+                    print(
+                        TimeoutError(
+                            1,
+                            f"{f.__name__} timed out on rank {mpi4py.MPI.COMM_WORLD.Get_rank()}",
+                            args,
+                            kwargs,
+                        ),
+                        file=sys.stderr,
+                        flush=True,
+                    )
+                    mpi4py.MPI.COMM_WORLD.Abort(1)
+                raise TimeoutError(
+                    1,
+                    f"{f.__name__} timed out on rank {mpi4py.MPI.COMM_WORLD.Get_rank()}",
+                    args,
+                    kwargs,
+                )
+
+        return timed_f
+
+    return decorator

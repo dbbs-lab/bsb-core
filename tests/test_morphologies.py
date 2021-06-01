@@ -1,6 +1,7 @@
 import unittest, os, sys, numpy as np, h5py
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
 import bsb.output, test_setup
 from bsb.morphologies import Morphology, Branch
 from bsb.exceptions import *

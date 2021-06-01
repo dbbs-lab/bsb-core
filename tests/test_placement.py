@@ -2,10 +2,12 @@ import unittest, os, sys, numpy as np, h5py
 from mpi4py import MPI
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
 from bsb.core import Scaffold
 from bsb.config import Configuration
 from bsb.placement import PlacementStrategy
 from bsb._pool import JobPool, FakeFuture, create_job_pool
+from test_setup import timeout
 from time import sleep
 
 
@@ -35,14 +37,17 @@ network.cell_types["dud"] = dud = DudCell()
 
 
 class SchedulerBaseTest:
+    @timeout(3)
     def test_create_pool(self):
         pool = create_job_pool(network)
 
+    @timeout(3)
     def test_single_job(self):
         pool = JobPool(network)
         job = pool.queue(test_dud, (5, 0.1))
         pool.execute()
 
+    @timeout(3)
     def test_listeners(self):
         i = 0
 
@@ -69,6 +74,7 @@ class SchedulerBaseTest:
 
 @unittest.skipIf(MPI.COMM_WORLD.Get_size() < 2, "Skipped during serial testing.")
 class TestParallelScheduler(unittest.TestCase, SchedulerBaseTest):
+    @timeout(3)
     def test_double_pool(self):
         pool = JobPool(network)
         job = pool.queue(test_dud, (5, 0.1))
@@ -77,6 +83,7 @@ class TestParallelScheduler(unittest.TestCase, SchedulerBaseTest):
         job = pool.queue(test_dud, (5, 0.1))
         pool.execute()
 
+    @timeout(3)
     def test_master_loop(self):
         pool = JobPool(network)
         job = pool.queue(test_dud, (5, 0.1))
@@ -92,6 +99,7 @@ class TestParallelScheduler(unittest.TestCase, SchedulerBaseTest):
         else:
             self.assertTrue(executed, "master loop skipped")
 
+    @timeout(3)
     def test_fake_futures(self):
         pool = JobPool(network)
         job = pool.queue(test_dud, (5, 0.1))
@@ -99,6 +107,7 @@ class TestParallelScheduler(unittest.TestCase, SchedulerBaseTest):
         self.assertFalse(job._future.done())
         self.assertFalse(job._future.running())
 
+    @timeout(3)
     def test_dependencies(self):
         pool = JobPool(network)
         job = pool.queue(test_dud, (5, 0.1))

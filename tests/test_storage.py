@@ -1,11 +1,12 @@
 import unittest, os, sys, numpy as np, h5py, json, string, random
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
 from bsb.core import Scaffold
 from bsb.config import from_json
 from bsb.exceptions import *
 from bsb.storage import Storage
-from test_setup import get_config
+from test_setup import get_config, timeout
 import mpi4py.MPI as MPI
 
 
@@ -22,13 +23,20 @@ class TestStorage(unittest.TestCase):
 
 
 class TestHDF5Storage(unittest.TestCase):
+    _open_storages = []
+
+    @timeout(3, abort=True)
     def setUp(self):
-        self._open_storages = []
         MPI.COMM_WORLD.Barrier()
 
+    @timeout(3, abort=True)
     def tearDown(self):
         MPI.COMM_WORLD.Barrier()
-        for s in self._open_storages:
+
+    @classmethod
+    def tearDownClass(cls):
+        super().tearDownClass()
+        for s in cls._open_storages:
             os.remove(s)
 
     def rstr(self):
@@ -40,10 +48,11 @@ class TestHDF5Storage(unittest.TestCase):
         rstr = None
         rstr = self.rstr()
         if not MPI.COMM_WORLD.Get_rank():
-            self._open_storages.append(rstr)
+            self.__class__._open_storages.append(rstr)
         s = Storage("hdf5", rstr)
         return s
 
+    @timeout(3)
     def test_init(self):
         # Use the init function to instantiate a storage container to its initial
         # empty state. This test avoids the `Scaffold` object as instantiating it might
@@ -60,6 +69,7 @@ class TestHDF5Storage(unittest.TestCase):
                 # Test that the placement set is functional after init call
                 ps.append_data(np.array([0, 0, 0]), [0])
 
+    @timeout(3)
     def test_renew(self):
         # Use the renew mechanism to reinstantiate a storage container to its initial
         # empty state. This test avoids the `Scaffold` object as instantiating it might
@@ -89,24 +99,21 @@ class TestHDF5Storage(unittest.TestCase):
             "`storage.renew()` did not clear placement data.",
         )
 
+    @timeout(6)
     def test_move(self):
-        for i in range(100):
-            s = self.random_storage()
-            MPI.COMM_WORLD.Barrier()
-            old_root = s._root
-            self.assertTrue(os.path.exists(s._root))
-            s.move(self.rstr())
-            MPI.COMM_WORLD.Barrier()
-            self.assertFalse(os.path.exists(old_root))
-            self.assertTrue(os.path.exists(s._root))
-            self.assertTrue(s.exists())
-            MPI.COMM_WORLD.Barrier()
-            s.move(old_root)
-            MPI.COMM_WORLD.Barrier()
-            self.assertTrue(os.path.exists(old_root))
-            self.assertTrue(os.path.exists(s._root))
-            MPI.COMM_WORLD.Barrier()
+        s = self.random_storage()
+        old_root = s._root
+        self.assertTrue(os.path.exists(s._root))
+        s.move(self.rstr())
+        self.assertFalse(os.path.exists(old_root))
+        self.assertTrue(os.path.exists(s._root))
+        self.assertTrue(s.exists())
+        s.move(old_root)
+        self.assertTrue(os.path.exists(old_root))
+        self.assertTrue(os.path.exists(s._root))
+        MPI.COMM_WORLD.Barrier()
 
+    @timeout(3)
     def test_remove_create(self):
         s = self.random_storage()
         s.remove()
