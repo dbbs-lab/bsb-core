@@ -56,7 +56,7 @@
       }
     }
   },
-  "connection_types": {
+  "connectivity": {
     "granule_to_purkinje": {
       "class": "bsb.connectivity.ConnectomeGlomerulusGranule",
       "from_cell_types": [{"type": "granule_cell", "compartments": ["ascending_axon"]}],

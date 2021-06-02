@@ -33,7 +33,7 @@ Let's create a bare configuration file called ``config.json``
     "cell_types": {
 
     },
-    "connection_types": {
+    "connectivity": {
 
     },
     "simulations": {
@@ -102,7 +102,7 @@ Let's add a ``cortex`` region, with a ``base_layer`` and a ``lonely_cell`` type 
 				}
 			},
     },
-    "connection_types": {
+    "connectivity": {
 
     },
     "simulations": {

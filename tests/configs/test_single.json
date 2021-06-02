@@ -20,11 +20,6 @@
   },
   "cell_types": {
     "test_cell": {
-      "placement": {
-        "cls": "bsb.placement.ParticlePlacement",
-        "partitions": ["test_layer"],
-        "count": 40
-      },
       "spatial": {
         "radius": 2.5
       },
@@ -34,7 +29,15 @@
       }
     }
   },
-  "connection_types": {
+  "placement": {
+      "test_placement": {
+        "cls": "bsb.placement.ParticlePlacement",
+        "cell_types": ["test_cell"],
+        "partitions": ["test_layer"],
+        "count": 40
+      }
+  },
+  "connectivity": {
 
   },
   "simulations": {

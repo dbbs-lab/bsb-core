@@ -11,25 +11,22 @@ class ParticlePlacement(PlacementStrategy):
     prune = config.attr(type=bool, default=True)
     bounded = config.attr(type=bool, default=False)
 
-    def place(self, chunk, chunk_size):
-        cell_type = self.cell_type
+    def place(self, chunk, chunk_size, indicators):
         voxels = list(
             itertools.chain(
                 *(p.chunk_to_voxels(chunk, chunk_size) for p in self.partitions)
             )
         )
-        chunk_count = cell_type.placement.get_placement_count(chunk, chunk_size)
-        chunk_count = self.add_stragglers(chunk, chunk_size, chunk_count)
-
         # Define the particles for the particle system.
         particles = [
             {
-                "name": cell_type.name,
+                "name": name,
                 # Place particles in all voxels
                 "voxels": list(range(len(voxels))),
-                "radius": cell_type.spatial.radius,
-                "count": int(chunk_count),
+                "radius": indicator.get_radius(),
+                "count": int(indicator.guess(chunk, chunk_size)),
             }
+            for name, indicator in indicators.items()
         ]
         # Create and fill the particle system.
         system = ParticleSystem(track_displaced=True, scaffold=self.scaffold)

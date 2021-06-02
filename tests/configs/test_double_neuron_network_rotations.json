@@ -69,7 +69,7 @@
       }
     }
   },
-  "connection_types": {
+  "connectivity": {
     "golgi_cell_to_granule_cell": {
       "class": "bsb.connectivity.Convergence",
       "from_cell_types": [{"type": "golgi_cell", "compartments": ["soma"]}],

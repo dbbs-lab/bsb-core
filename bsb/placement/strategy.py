@@ -15,6 +15,7 @@ class PlacementStrategy(abc.ABC, SortableByAfter):
     approach to placing neurons into a volume.
     """
 
+    cell_types = config.reflist(refs.cell_type_ref, required=True)
     partitions = config.reflist(refs.partition_ref, required=True)
     density = config.attr(type=float)
     planar_density = config.attr(type=float)

@@ -38,7 +38,7 @@ The root node accepts the following attributes:
     "cell_types": {
 
     },
-    "connection_types": {
+    "connectivity": {
 
     },
     "simulations": {

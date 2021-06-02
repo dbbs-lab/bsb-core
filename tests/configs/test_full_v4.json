@@ -190,7 +190,7 @@
       }
     }
   },
-  "connection_types": {
+  "connectivity": {
     "mossy_to_glomerulus": {
       "cls": "bsb.connectivity.ConnectomeMossyGlomerulus",
       "presynaptic": {"type": "mossy_fibers", "compartments": ["soma"]},

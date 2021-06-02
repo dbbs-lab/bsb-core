@@ -40,7 +40,7 @@ class TestChunks(unittest.TestCase):
         ps.load_chunk((0, 0, 0))
         ids = ps.load_identifiers()
         self.assertEqual(0, len(ids), "Cell IDs found before cell placement. Cleared?")
-        p = network.cell_types.test_cell.placement
+        p = network.cell_types.placement.test_placement
         cs = network.network.chunk_size
         p.place(np.array([0, 0, 0]), cs)
         ids = ps.load_identifiers()

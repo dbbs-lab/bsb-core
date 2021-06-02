@@ -54,7 +54,7 @@
       }
     }
   },
-  "connection_types": {
+  "connectivity": {
     "connection": {
       "class": "bsb.connectivity.AllToAll",
       "from_cell_types": [{"type": "from_cell", "compartments": ["axon"]}],

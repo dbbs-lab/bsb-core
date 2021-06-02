@@ -62,7 +62,7 @@
       }
     }
   },
-  "connection_types": {
+  "connectivity": {
     "parallel_fiber_to_golgi": {
       "class": "bsb.connectivity.FiberIntersection",
       "from_cell_types": [{"type": "granule_cell", "compartments": ["parallel_fiber"]}],

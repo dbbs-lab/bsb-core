@@ -82,7 +82,7 @@ Example
         }
       }
     },
-    "connection_types": {},
+    "connectivity": {},
     "simulations": {}
   }
 

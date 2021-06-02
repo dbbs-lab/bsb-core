@@ -53,7 +53,7 @@
       }
     }
   },
-  "connection_types": {
+  "connectivity": {
     "from_cell_to_cell": {
       "class": "bsb.connectivity.Convergence",
       "from_cell_types": [{"type": "from_cell", "compartments": ["soma"]}],

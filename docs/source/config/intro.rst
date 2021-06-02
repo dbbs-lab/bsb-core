@@ -29,7 +29,7 @@ this:
     "cell_types": {
 
     },
-    "connection_types": {
+    "connectivity": {
 
     }
   }
@@ -80,7 +80,7 @@ extra configuration data (such as ``value1`` and ``thingy2``) is passed along to
     "cell_types": {
 
     },
-    "connection_types": {
+    "connectivity": {
       "A_to_B": {
         "cls": "connectome.MySpecialConnection",
         "value1": 15,
