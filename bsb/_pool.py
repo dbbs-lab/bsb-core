@@ -95,16 +95,17 @@ class PlacementJob(ChunkedJob):
     Dispatches the execution of a chunk of a placement strategy through a JobPool.
     """
 
-    def __init__(self, pool, type, chunk, chunk_size, deps=None):
-        args = (type.name, chunk, chunk_size)
+    def __init__(self, pool, strategy, chunk, chunk_size, deps=None):
+        args = (strategy.name, chunk, chunk_size)
         super(ChunkedJob, self).__init__(
-            pool, type.place.__func__, args, {}, deps=deps
+            pool, strategy.place.__func__, args, {}, deps=deps
         )
 
     @staticmethod
     def execute(job_owner, f, args, kwargs):
         placement = job_owner.placement[args[0]]
-        return f(placement, *args[1:], **kwargs)
+        indicators = placement.get_indicators()
+        return f(placement, *args[1:], indicators, **kwargs)
 
 
 class JobPool:
@@ -148,8 +149,8 @@ class JobPool:
         self._put(job)
         return job
 
-    def queue_placement(self, type, chunk, chunk_size, deps=None):
-        job = PlacementJob(self, type, chunk, chunk_size, deps)
+    def queue_placement(self, strategy, chunk, chunk_size, deps=None):
+        job = PlacementJob(self, strategy, chunk, chunk_size, deps)
         self._put(job)
         return job
 

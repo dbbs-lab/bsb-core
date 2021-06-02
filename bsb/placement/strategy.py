@@ -15,6 +15,7 @@ class PlacementStrategy(abc.ABC, SortableByAfter):
     approach to placing neurons into a volume.
     """
 
+    name = config.attr(key=True)
     cell_types = config.reflist(refs.cell_type_ref, required=True)
     partitions = config.reflist(refs.partition_ref, required=True)
     density = config.attr(type=float)
@@ -51,7 +52,7 @@ class PlacementStrategy(abc.ABC, SortableByAfter):
         for p in self.partitions:
             chunks = p.to_chunks(chunk_size)
             for chunk in chunks:
-                job = pool.queue_placement(self.cell_type, chunk, chunk_size, deps=deps)
+                job = pool.queue_placement(self, chunk, chunk_size, deps=deps)
                 self._queued_jobs.append(job)
 
     def is_entities(self):
@@ -63,7 +64,7 @@ class PlacementStrategy(abc.ABC, SortableByAfter):
         into objects that can produce guesses as to how many cells of a type should be
         placed in a volume.
         """
-        pass
+        return {}
 
     def _get_placement_count_old(self):
         if self.count is not None:
@@ -137,7 +138,7 @@ class PlacementStrategy(abc.ABC, SortableByAfter):
 
     @classmethod
     def get_ordered(cls, objects):
-        return sorted(objects, key=lambda s: s.get_placement_count())
+        return objects
 
     def has_after(self):
         return hasattr(self, "after")
@@ -170,7 +171,7 @@ class Entities(PlacementStrategy):
     entities = True
 
     def queue(self, pool, chunk_size):
-        pool.queue_placement(self.cell_type, np.array([0, 0, 0]), chunk_size)
+        pool.queue_placement(self, np.array([0, 0, 0]), chunk_size)
 
     def place(self, chunk, chunk_size):
         # Variables
