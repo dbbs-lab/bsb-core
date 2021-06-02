@@ -140,13 +140,11 @@ class Scaffold:
         pool.execute(self._pool_event_loop)
 
     def _pool_event_loop(self, jobs):
-        print("ENTERED THE EVENT LOOP:", len(pool._queue))
-        print("Running jobs:", len(q for q in pool._queue if q.running()))
-        print("Done jobs:", len(q for q in pool._queue if q.done()))
+        print("Running jobs:", sum(1 for q in jobs if q._future.running()))
+        print("Done jobs:", sum(1 for q in jobs if q._future.done()))
         import time
 
-        print("Sleeping 1s")
-        time.sleep(1)
+        time.sleep(0.1)
 
     def run_placement_strategy(self, strategy):
         """
