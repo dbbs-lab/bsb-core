@@ -1,6 +1,7 @@
 from ..exceptions import *
 from .. import config
 from ..config import refs
+import numpy as np
 
 @config.node
 class PlacementIndications:
@@ -26,32 +27,42 @@ class PlacementIndicator:
     def get_radius(self):
         r = self._ind_strat.radius or self._ind_ct.radius
         if r is None:
-            raise IndicatorError(f"No configuration indicators found for the radius of '{self._cell_type.name}'")
+            raise IndicatorError(f"No configuration indicators found for the radius of '{self._cell_type.name}' in '{self._strat.name}'")
         return r
 
-    def guess(self, chunk=None, chunk_size=None):
-        return 20
+    def indication(self, attr):
+        strat = getattr(self._ind_strat, attr)
+        ct = getattr(self._ind_ct, attr)
+        if strat is not None:
+            return strat
+        return ct
 
-    def _get_placement_count_old(self):
-        if self.count is not None:
-            return int(self._count_for_chunk(chunk, chunk_size, self.count))
-        if self.density is not None:
-            return self._density_to_count(self.density, chunk, chunk_size)
-        if self.planar_density is not None:
-            return self._pdensity_to_count(self.planar_density, chunk, chunk_size)
-        if self.placement_relative_to is not None:
-            relation = self.placement_relative_to.placement
-            if self.placement_count_ratio is not None:
-                count = relation.get_placement_count() * self.placement_count_ratio
-                count = self._count_for_chunk(chunk, chunk_size, count)
-            elif self.density_ratio:
+    def guess(self, chunk=None, chunk_size=None):
+        count = self.indication("count")
+        density = self.indication("density")
+        planar_density = self.indication("planar_density")
+        relative_to = self.indication("relative_to")
+        density_ratio = self.indication("density_ratio")
+        count_ratio = self.indication("count_ratio")
+        if count is not None:
+            estimate = self._estim_for_chunk(chunk, chunk_size, count)
+        if density is not None:
+            estimate = self._density_to_estim(density, chunk, chunk_size)
+        if planar_density is not None:
+            estimate = self._pdensity_to_estim(planar_density, chunk, chunk_size)
+        if relative_to is not None:
+            relation = relative_to.spatial
+            if count_ratio is not None:
+                estimate = PlacementIndicator(self, relation).guess() * count_ratio
+                estimate = self._estim_for_chunk(chunk, chunk_size, estim)
+            elif density_ratio is not None:
                 if relation.density is not None:
-                    count = self._density_to_count(
-                        relation.density * self.density_ratio, chunk, chunk_size
+                    estimate = self._density_to_estim(
+                        relation.density * density_ratio, chunk, chunk_size
                     )
                 elif relation.planar_density is not None:
-                    count = self._pdensity_to_count(
-                        relation.planar_density * self.density_ratio, chunk, chunk_size
+                    estimate = self._pdensity_to_estim(
+                        relation.planar_density * density_ratio, chunk, chunk_size
                     )
                 else:
                     raise PlacementRelationError(
@@ -59,45 +70,26 @@ class PlacementIndicator:
                         self.cell_type,
                         relation,
                     )
-            if chunk is not None:
-                # If we're checking the count for a specific chunk we give back a float so
-                # that placement strategies  can use the decimal value to roll to add
-                # stragglers and get better precision at high chunk counts and low
-                # densities.
-                return count
             else:
-                # If we're checking total count round the number to an int; can't place
-                # half cells.
-                return int(count)
+                raise PlacementError("Relation specified but no ratio indications provided.")
+        try:
+            # 1.2 cells == 0.8p for 1, 0.2p for 2
+            return int(np.floor(estimate) + (np.random.rand() < estimate % 1))
+        except NameError:
+            # If `estimate` is undefined after all this then there were no indicators.
+            raise IndicatorError(f"No configuration indicators found for the number of '{self._cell_type.name}' in '{self._strat.name}'")
 
-    def _density_to_count(self, density, chunk=None, size=None):
-        return sum(p.volume(chunk, size) * density for p in self.partitions)
+    def _density_to_estim(self, density, chunk=None, size=None):
+        return sum(p.volume(chunk, size) * density for p in self._strat.partitions)
 
-    def _pdensity_to_count(self, planar_density, chunk=None, size=None):
-        return sum(p.surface(chunk, size) * planar_density for p in self.partitions)
+    def _pdensity_to_estim(self, planar_density, chunk=None, size=None):
+        return sum(p.surface(chunk, size) * planar_density for p in self._strat.partitions)
 
-    def _count_for_chunk(self, chunk, chunk_size, count):
+    def _estim_for_chunk(self, chunk, chunk_size, count):
         if chunk is None:
             return count
         # When getting with absolute count for a chunk give back the count
         # proportional to the volume in this chunk vs total volume
-        chunk_volume = sum(p.volume(chunk, chunk_size) for p in self.partitions)
-        total_volume = sum(p.volume() for p in self.partitions)
+        chunk_volume = sum(p.volume(chunk, chunk_size) for p in self._strat.partitions)
+        total_volume = sum(p.volume() for p in self._strat.partitions)
         return count * chunk_volume / total_volume
-
-    def add_stragglers(self, chunk, chunk_size, chunk_count):
-        """
-        Adds extra cells when the number of cells can't be exactly divided over the number
-        of chunks. Default implementation will take the ``chunk_count`` and use the
-        decimal value as a random roll to add an extra cell.
-
-        Example
-        -------
-
-        5 chunks have to place 6 cells; so each chunk is told to place 1.2 cells so each
-        chunk will place 1 cell and have a 0.2 chance to place an extra straggler.
-
-        This function will then return either 1 or 2 to each chunk that asks to add
-        stragglers, depending on the outcome of the 0.2 chance roll.
-        """
-        return int(np.floor(chunk_count) + (np.random.rand() <= chunk_count % 1))

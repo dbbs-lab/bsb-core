@@ -78,7 +78,7 @@ class PlacementStrategy(abc.ABC, SortableByAfter):
     def create_after(self):
         # I think the reflist should always be there.
         pass
-
+        
 
 @config.node
 class FixedPositions(PlacementStrategy):
