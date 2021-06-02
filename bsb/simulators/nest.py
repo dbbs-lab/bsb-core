@@ -512,7 +512,7 @@ class NestAdapter(SimulatorAdapter):
         if self.has_lock:
             self.release_lock()
 
-    def collect_output(self):
+    def collect_output(self, simulator):
         import h5py, time
 
         try:

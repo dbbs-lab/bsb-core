@@ -387,7 +387,7 @@ class Scaffold:
             listener = ReportListener(self, report_file)
             simulation.add_progress_listener(listener)
         simulation.simulate(simulator)
-        result_path = simulation.collect_output()
+        result_path = simulation.collect_output(simulator)
         time_sim = time.time() - t
         report("Simulation runtime: {}".format(time_sim), level=2)
         if quit and hasattr(simulator, "quit"):
