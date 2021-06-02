@@ -370,7 +370,7 @@ class NeuronAdapter(SimulatorAdapter):
                 break
         report("Finished simulation.", level=2)
 
-    def collect_output(self):
+    def collect_output(self, simulator):
         import h5py, time
 
         timestamp = str(time.time()).split(".")[0] + str(random.random()).split(".")[1]
