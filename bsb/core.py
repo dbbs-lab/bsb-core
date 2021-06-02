@@ -131,8 +131,7 @@ class Scaffold:
         Run placement strategies.
         """
         if strategies is None:
-            types = self.get_cell_types()
-            strategies = [c.placement for c in types]
+            strategies = list(self.placement.values())
         strategies = PlacementStrategy.resolve_order(strategies)
         pool = create_job_pool(self)
         for strategy in strategies:
@@ -150,8 +149,6 @@ class Scaffold:
         """
         Run a single placement strategy.
         """
-        if strategy in self.cell_types:
-            strategy = self.cell_types[type].placement
         self.run_placement([strategy])
 
     def connect_cell_types(self):

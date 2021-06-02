@@ -61,8 +61,7 @@ class RegionalReference(Reference):
 
 class PlacementReference(Reference):
     def __call__(self, root, here):
-        placements = {n: t.placement for n, t in root.cell_types.items()}
-        return placements
+        return root.placement
 
     def is_ref(self, value):
         from ..placement import PlacementStrategy

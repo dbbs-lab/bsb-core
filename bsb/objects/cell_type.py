@@ -15,7 +15,8 @@ class MorphologySelector:
 
 @config.node
 class Representation:
-    radius = config.attr(type=float, required=True)
+    radius = config.attr(type=float)
+    density = config.attr(type=float)
     geometrical = config.dict(type=types.any())
     morphological = config.dict(type=MorphologySelector)
 
@@ -34,7 +35,6 @@ def _not_an_entity(section):
 @config.node
 class CellType:
     name = config.attr(key=True)
-    placement = config.attr(type=PlacementStrategy, required=True)
     spatial = config.attr(
         type=Representation, required=_not_an_entity, default={"radius": None}
     )

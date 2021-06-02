@@ -5,6 +5,7 @@ from ._make import walk_nodes
 from ._hooks import run_hook, has_hook
 from .nodes import StorageNode, NetworkNode
 from ..storage import get_engines
+from ..placement import PlacementStrategy
 from ..connectivity import ConnectionStrategy
 from ..simulation import Simulation
 from ..postprocessing import PostProcessingHook
@@ -33,8 +34,9 @@ class Configuration:
     regions = dict(type=Region)
     partitions = dict(type=Partition, required=True)
     cell_types = dict(type=CellType, required=True)
+    placement = dict(type=PlacementStrategy, required=True)
     after_placement = dict(type=PostProcessingHook)
-    connection_types = dict(type=ConnectionStrategy, required=True)
+    connectivity = dict(type=ConnectionStrategy, required=True)
     after_connectivity = dict(type=PostProcessingHook)
     simulations = dict(type=Simulation)
 

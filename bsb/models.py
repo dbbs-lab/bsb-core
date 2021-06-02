@@ -15,9 +15,8 @@ class CellType(SortableByAfter):
     A CellType represents a population of cells.
     """
 
-    def __init__(self, name, placement=None):
+    def __init__(self, name):
         self.name = name
-        self.placement = placement
         self.relay = False
 
     def validate(self):
