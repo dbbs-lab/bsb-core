@@ -56,14 +56,15 @@ class PlacementStrategy(abc.ABC, SortableByAfter):
     def is_entities(self):
         return "entities" in self.__class__.__dict__ and self.__class__.entities
 
-    def get_placement_count(self, chunk=None, chunk_size=None):
+    def get_indicators(self):
         """
-        Return the expected number of cells to be placed according to the topology and
-        configuration. Actual placed count may vary, use
-        :func:`bsb.objects.CellType.get_placed_count()` or a
-        :class:`~bsb.storage.interfaces.PlacementSet`'s ``len`` to find out how many cells
-        have actually been placed in this network.
+        Return indicators per cell type. Indicators collect all configuration information
+        into objects that can produce guesses as to how many cells of a type should be
+        placed in a volume.
         """
+        pass
+
+    def _get_placement_count_old(self):
         if self.count is not None:
             return int(self._count_for_chunk(chunk, chunk_size, self.count))
         if self.density is not None:
