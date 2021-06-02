@@ -5,6 +5,7 @@
 from .. import config
 from ..config import types
 from ..placement import PlacementStrategy
+from ..placement.indicator import PlacementIndications
 from ..helpers import SortableByAfter
 
 
@@ -14,9 +15,7 @@ class MorphologySelector:
 
 
 @config.node
-class Representation:
-    radius = config.attr(type=float)
-    density = config.attr(type=float)
+class Representation(PlacementIndications):
     geometrical = config.dict(type=types.any())
     morphological = config.dict(type=MorphologySelector)
 

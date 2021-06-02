@@ -23,6 +23,7 @@ _t(
                 UnfitClassCastError=_e("node", "attr"),
             ),
             CastConfigurationError=_e(),
+            IndicatorError=_e(),
             RequirementError=_e("node", "attr"),
             ReferenceError=_e(
                 NoReferenceAttributeSignal=_e(),

@@ -3,7 +3,7 @@ from ..particles import ParticleSystem
 from ..exceptions import *
 from ..reporting import report, warn
 from .. import config
-import itertools
+import itertools, numpy as np
 
 
 @config.node
@@ -43,12 +43,18 @@ class ParticlePlacement(PlacementStrategy):
                 number_pruned, pruned_per_type = system.prune(
                     at_risk_particles=system.displaced_particles
                 )
-                report(
-                    "{} {} ({}%) cells pruned.".format(
-                        number_pruned,
-                        cell_type.name,
-                        int((number_pruned / self.get_placement_count()) * 100),
+                for name, indicator in indicators.items():
+                    report(
+                        "{} {} ({}%) cells pruned.".format(
+                            pruned_per_type[name],
+                            name,
+                            int((pruned_per_type[name] / indicator.guess(chunk, chunk_size)) * 100),
+                        )
                     )
-                )
-        particle_positions = system.positions
-        self.scaffold.place_cells(cell_type, particle_positions, chunk=chunk)
+
+        for pt in system.particle_types:
+            cell_type = self.scaffold.cell_types[pt["name"]]
+            particle_positions = [p.position for p in system.particles if p.type is pt]
+            positions = np.empty((len(particle_positions), 3))
+            positions[:] = particle_positions
+            self.scaffold.place_cells(cell_type, positions, chunk=chunk)

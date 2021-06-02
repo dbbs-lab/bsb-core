@@ -345,7 +345,7 @@ class ParticleSystem:
         pruned = self.remove_particles(out_of_bounds_ids)
         number_pruned = len(out_of_bounds_ids)
         tot_number_pruned = len(out_of_bounds_ids)
-        number_pruned_per_type = {}
+        number_pruned_per_type = {t["name"]: 0 for t in self.particle_types}
         if tot_number_pruned > 0:
             for t in unique_types:
                 number_pruned_per_type[t] = out_of_bounds_types.count(t)
