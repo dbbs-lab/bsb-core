@@ -43,47 +43,11 @@ class CellType(SortableByAfter):
             )
         self.morphology = morphology
 
-    def set_placement(self, placement):
-        """
-        Set the placement strategy for this cell type.
-        """
-        self.placement = placement
-
     def place(self):
         """
         Place this cell type.
         """
         self.scaffold.place_cell_type(self)
-
-    @classmethod
-    def get_ordered(cls, objects):
-        return sorted(objects.values(), key=lambda x: x.placement.get_placement_count())
-
-    def has_after(self):
-        return hasattr(self.placement, "after")
-
-    def get_after(self):
-        return None if not self.has_after() else self.placement.after
-
-    def create_after(self):
-        self.placement.after = []
-
-    def get_placed_count(self):
-        return self.scaffold.statistics.cells_placed[self.name]
-
-    def get_ids(self):
-        if self.entity:
-            dataset = self.scaffold.get_entities_by_type(self.name)
-        else:
-            dataset = self.scaffold.cells_by_type[self.name][:, 0]
-        return np.array(dataset, dtype=int)
-
-    def serialize_identifiers(self):
-        raw_ids = self.get_ids()
-        return continuity_list(raw_ids)
-
-    def get_cells(self):
-        return self.scaffold.get_placement_set(self.name).cells
 
     def list_all_morphologies(self):
         """
