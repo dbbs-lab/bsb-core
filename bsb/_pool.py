@@ -7,6 +7,9 @@ import time
 import concurrent.futures
 
 
+_serial_execution = COMM_WORLD.Get_size() == 1
+
+
 def dispatcher(pool_id, job_args):
     job_type, f, args, kwargs = job_args
     # Get the static job execution handler from this module
@@ -67,7 +70,8 @@ class Job:
         # When a dep completes we end up here and we discard it as a dependency as it has
         # finished. When all our dependencies have been discarded we can queue ourselves.
         self._deps.discard(dep)
-        if not self._deps:
+        # Serial execution is based on enqueue order only, no async deps.
+        if not _serial_execution and not self._deps:
             self._enqueue(self._pool)
 
     def _enqueue(self, pool):
@@ -170,7 +174,7 @@ class JobPool:
         # in dependency-first order; which should always be the case unless someone
         # submits jobs first and then starts adding things to the jobs' `._deps`
         # attribute. Which isn't expected to work.
-        if COMM_WORLD.Get_size() == 1:
+        if _serial_execution:
             # Just run each job serially
             for job in self._queue:
                 # Execute the static handler
