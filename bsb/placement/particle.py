@@ -53,6 +53,8 @@ class ParticlePlacement(PlacementStrategy):
         for pt in system.particle_types:
             cell_type = self.scaffold.cell_types[pt["name"]]
             particle_positions = [p.position for p in system.particles if p.type is pt]
+            if len(particle_positions) == 0:
+                continue
             positions = np.empty((len(particle_positions), 3))
             positions[:] = particle_positions
             self.scaffold.place_cells(cell_type, positions, chunk=chunk)
