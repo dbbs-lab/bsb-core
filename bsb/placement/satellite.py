@@ -5,6 +5,25 @@ from ..reporting import report, warn
 from .. import config
 from ..config import types, refs
 from itertools import chain
+from .indicator import PlacementIndicator
+
+
+class SatelliteIndicator(PlacementIndicator):
+    def guess(self, chunk=None, chunk_size=None):
+        planet_types = self._strat.planet_types
+
+        def strats_of(pt):
+            return self._strat.scaffold.get_placement_of(pt)
+
+        def count_of(strat, pt):
+            return strat.get_indicators()[pt.name].guess(chunk, chunk_size)
+
+        return (
+            sum(
+                sum(count_of(strat, pt) for strat in strats_of(pt)) for pt in planet_types
+            )
+            * self._strat.per_planet
+        )
 
 
 @config.node
@@ -19,6 +38,7 @@ class Satellite(PlacementStrategy):
     per_planet = config.attr(type=float, default=1.0)
     planet_types = config.reflist(refs.cell_type_ref, required=True)
     partitions = config.reflist(refs.regional_ref)
+    indicator_class = SatelliteIndicator
 
     def boot(self):
         # Use the planet type partitions as our partitions
@@ -26,33 +46,21 @@ class Satellite(PlacementStrategy):
         self.partitions = list(chain(*(p.partitions for p in placements)))
 
     def get_after(self):
-        return [p.placement for p in self.planet_types]
+        return self.scaffold.get_placement_of(*self.planet_types)
 
-    def get_placement_count(self, chunk=None, chunk_size=None):
-        """
-        Takes the sum of the planets and multiplies it with the `per_planet` factor.
-        """
-        return (
-            sum(
-                [
-                    planet.placement.get_placement_count(chunk, chunk_size)
-                    for planet in self.planet_types
-                ]
-            )
-            * self.per_planet
-        )
+    def place(self, chunk, chunk_size, indicators):
+        for indicator in indicators.values():
+            self.place_type(chunk, chunk_size, indicator)
 
-    def place(self, chunk, chunk_size):
+    def place_type(self, chunk, chunk_size, indicator):
         return
-        # Initialize
-        cell_type = self.cell_type
+        cell_type = indicator.cell_type
         scaffold = self.scaffold
-        config = scaffold.configuration
-        radius_satellite = cell_type.spatial.radius
-        all_satellites = np.empty((0))
-        # Initialise empty sattelite positions array
-        satellites_pos = np.empty([0, 3])
+        radius_satellite = indicator.get_radius()
         # Assemble the parallel arrays from all the planet cell types.
+        for after_cell_type in self.planet_types:
+            planets_pos = after_cell_type.get_placement_set().load_positions()
+
         for after_cell_type in self.planet_types:
             layer = after_cell_type.placement.partitions[0]
             layer_min = layer.boundaries.ldc
@@ -82,7 +90,7 @@ class Satellite(PlacementStrategy):
             mean_dist_after_cells = np.mean(dist[np.nonzero(dist)])
 
             # Initialise satellite position array
-            satellites_pos = np.empty([len(planet_cells), 3])
+            self.satellites_pos = np.empty([len(planet_cells), 3])
             report(
                 "Checking overlap and bounds of satellite {} cells...".format(
                     cell_type.name,
@@ -127,8 +135,12 @@ class Satellite(PlacementStrategy):
                     distances_to_satellite = np.linalg.norm(
                         planets_pos - satellites_pos[i], axis=1
                     )
-                    overlapping = not np.all(
-                        distances_to_satellite > (planet_cell_radius + radius_satellite)
+                    overlapping = (
+                        np.any(
+                            distances_to_satellite
+                            < (planet_cell_radius + radius_satellite)
+                        )
+                        or np.any()
                     )
 
                     # Check out of bounds of layer: if any element of the satellite
