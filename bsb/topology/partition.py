@@ -35,7 +35,7 @@ class Partition:
             # Create an intersection between the partition and the chunk
             low = np.maximum(self.boundaries.ldc, chunk * chunk_size)
             high = np.minimum(self.boundaries.mdc, (chunk + 1) * chunk_size)
-            return np.product(high - low)
+            return np.product(np.maximum(high - low, 0))
         else:
             return np.product(self.boundaries.dimensions)
 
@@ -50,7 +50,7 @@ class Partition:
             # Create an intersection between the partition and the chunk
             low = np.maximum(ldc, chunk * chunk_size)
             high = np.minimum(mdc, (chunk + 1) * chunk_size)
-            return np.product(high - low)
+            return np.product(np.maximum(high - low, 0))
         else:
             return self.boundaries.width * self.boundaries.depth
 
