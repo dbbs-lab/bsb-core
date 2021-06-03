@@ -2,10 +2,6 @@ import numpy as np, random
 from .morphologies import Morphology as BaseMorphology
 from .helpers import (
     SortableByAfter,
-    continuity_list,
-    expand_continuity_list,
-    count_continuity_list,
-    iterate_continuity_list,
 )
 from .exceptions import *
 

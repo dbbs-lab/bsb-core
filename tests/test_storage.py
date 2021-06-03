@@ -82,10 +82,9 @@ class TestHDF5Storage(unittest.TestCase):
         with ps._engine._master_write() as fence:
             fence.guard()
             ps.append_data(np.array([0, 0, 0]), [0])
-        id = ps.load_identifiers()
         self.assertEqual(
             1,
-            len(ps.load_identifiers()),
+            len(ps.load_positions()),
             "Failure to setup `storage.renew()` test due to chunk reading error.",
         )
         MPI.COMM_WORLD.Barrier()
@@ -95,7 +94,7 @@ class TestHDF5Storage(unittest.TestCase):
         ps = s._PlacementSet.require(s._engine, cfg.cell_types.test_cell)
         self.assertEqual(
             0,
-            len(ps.load_identifiers()),
+            len(ps.load_positions()),
             "`storage.renew()` did not clear placement data.",
         )
 

@@ -98,13 +98,6 @@ class PlacementSet(Interface):
             self.create(handler, type)
 
     @abc.abstractproperty
-    def load_identifiers(self):
-        """
-        Return a list of cell identifiers.
-        """
-        pass
-
-    @abc.abstractproperty
     def load_positions(self):
         """
         Return a dataset of cell positions.
@@ -138,7 +131,7 @@ class PlacementSet(Interface):
         pass
 
     @abc.abstractmethod
-    def append_data(self, chunk, identifiers, positions=None, rotations=None):
+    def append_data(self, chunk, positions=None, rotations=None):
         pass
 
     @abc.abstractmethod

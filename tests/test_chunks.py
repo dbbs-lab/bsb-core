@@ -21,11 +21,11 @@ class TestChunks(unittest.TestCase):
         # (0,0,0) chunk and some data the other test is supposed to ignore in chunk 001
         self.test_single_chunk()
         # Continue using this network, checking that we pick up on the data in chunk 001
-        chunk0 = self.ps.load_identifiers()
+        chunk0 = self.ps.load_positions()
         # Unloaded the chunks loaded by the other test. The desired behavior is then to
         # read all chunks.
         self.ps.unload_chunk((0, 0, 0))
-        chunk_all = self.ps.load_identifiers()
+        chunk_all = self.ps.load_positions()
         self.assertGreater(len(chunk_all), len(chunk0))
 
     @skip_parallel
@@ -38,17 +38,17 @@ class TestChunks(unittest.TestCase):
         self.network = network = Scaffold(cfg, clear=True)
         self.ps = ps = network.get_placement_set("test_cell")
         ps.load_chunk((0, 0, 0))
-        ids = ps.load_identifiers()
-        self.assertEqual(0, len(ids), "Cell IDs found before cell placement. Cleared?")
+        pos = ps.load_positions()
+        self.assertEqual(0, len(pos), "Cell pos found before cell placement. Cleared?")
         p = network.placement.test_placement
         cs = network.network.chunk_size
         p.place(np.array([0, 0, 0]), cs, p.get_indicators())
-        ids = ps.load_identifiers()
-        self.assertGreater(len(ids), 0, "No data loaded from chunk 000 after placement")
+        pos = ps.load_positions()
+        self.assertGreater(len(pos), 0, "No data loaded from chunk 000 after placement")
         # Force the addition of garbage data in another chunk, to be ignored by this
         # PlacementSet as it is set to load data only from chunk (0,0,0)
         ps.append_data((0, 0, 1), [0])
-        ids2 = ps.load_identifiers()
+        pos2 = ps.load_positions()
         self.assertEqual(
-            list(ids), list(ids2), "PlacementSet loaded extraneous chunk data"
+            pos.tolist(), pos2.tolist(), "PlacementSet loaded extraneous chunk data"
         )

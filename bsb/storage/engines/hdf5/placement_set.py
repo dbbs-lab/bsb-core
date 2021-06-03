@@ -1,24 +1,10 @@
 from ....models import Cell
 from ....exceptions import *
-from ....helpers import (
-    continuity_list,
-    expand_continuity_list,
-    count_continuity_list,
-    iterate_continuity_list,
-)
 from .resource import Resource
 from ...interfaces import PlacementSet as IPlacementSet
 from .chunks import ChunkLoader, ChunkedProperty
 import numpy as np
 
-_id_prop = lambda l: ChunkedProperty(
-    l,
-    "identifier",
-    shape=(0,),
-    dtype=int,
-    insert=continuity_list,
-    extract=expand_continuity_list,
-)
 _pos_prop = lambda l: ChunkedProperty(l, "position", shape=(0, 3), dtype=float)
 _rot_prop = lambda l: ChunkedProperty(l, "rotation", shape=(0, 3), dtype=float)
 
@@ -27,7 +13,7 @@ class PlacementSet(
     Resource,
     IPlacementSet,
     ChunkLoader,
-    properties=(_id_prop, _pos_prop, _rot_prop),
+    properties=(_pos_prop, _rot_prop),
     collections=("additional",),
 ):
     """
@@ -83,12 +69,6 @@ class PlacementSet(
                 chunks = g.require_group("chunks")
         return cls(engine, cell_type)
 
-    def load_identifiers(self):
-        """
-        Load the list of cell identifiers.
-        """
-        return self._identifier_chunks.load()
-
     def load_positions(self):
         """
         Load the cell positions.
@@ -122,19 +102,16 @@ class PlacementSet(
         Reorganize the available datasets into a collection of :class:`Cells
         <.models.Cell>`
         """
-        return [
-            Cell(id, self.type, position, rotation) for id, position, rotation in self
-        ]
+        return [Cell(i, self.type, *data) for id, data in enumerate(self)]
 
     def __iter__(self):
         return zip(
-            iter(iterate_continuity_list(self._identifier_chunks.load(raw=True))),
             self._none(self.load_positions()),
             self._none(self.load_rotations()),
         )
 
     def __len__(self):
-        return count_continuity_list(self._identifier_chunks.load(raw=True))
+        return sum(self._identifier_chunks.load(raw=True))
 
     def _none(self, starter):
         """
@@ -144,10 +121,7 @@ class PlacementSet(
         while True:
             yield None
 
-    def append_data(
-        self, chunk, identifiers, positions=None, rotations=None, additional=None
-    ):
-        data = self._identifier_chunks.append(chunk, identifiers)
+    def append_data(self, chunk, positions=None, rotations=None, additional=None):
         if positions is not None:
             data = self._position_chunks.append(chunk, positions)
         if rotations is not None:

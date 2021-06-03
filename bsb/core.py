@@ -335,24 +335,7 @@ class Scaffold:
         cell_count = positions.shape[0]
         if cell_count == 0:
             return
-        cell_ids = self._allocate_ids(positions.shape[0])
-        self.get_placement_set(cell_type).append_data(
-            chunk, cell_ids, positions, rotations
-        )
-
-    def _allocate_ids(self, count, _next=[0]):
-        """
-        Allocate cell IDs unique in the network.
-
-        .. warning::
-
-            Currently doesn't work across MPI processes.
-        """
-        # Use the static argument trick to store a counter in _next that spans across
-        # function calls
-        IDs = np.array(range(_next[0], _next[0] + count), dtype=int)
-        _next[0] += count
-        return IDs
+        self.get_placement_set(cell_type).append_data(chunk, positions, rotations)
 
     def connect_cells(
         self,
