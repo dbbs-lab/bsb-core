@@ -102,7 +102,6 @@ class TestIndicators(unittest.TestCase):
         for x, y, z in ((-3, -3, -3), (-3, -3, -2), (-2, -3, -3), (-2, -3, -2)):
             with self.subTest(x=x, y=y, z=z):
                 guess = dud_ind.guess(np.array([x, y, z]), np.array([100, 100, 100]))
-                print(guess, bottom)
                 self.assertTrue(np.floor(bottom) <= guess <= np.ceil(bottom))
         for x, y, z in ((-3, -2, -3), (-3, -2, -2), (-2, -2, -3), (-2, -2, -2)):
             with self.subTest(x=x, y=y, z=z):

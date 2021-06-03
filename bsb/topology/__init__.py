@@ -94,9 +94,9 @@ class Boundary:
 
     def __init__(self, ldc, mdc):
         # Least dominant corner
-        self.ldc = np.array(ldc)
+        self.ldc = np.array(ldc, dtype=float)
         # Most dominant corner
-        self.mdc = np.array(mdc)
+        self.mdc = np.array(mdc, dtype=float)
 
     def copy(self):
         """
