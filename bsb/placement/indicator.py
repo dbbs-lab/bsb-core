@@ -25,6 +25,10 @@ class PlacementIndicator:
         self._strat = strat
         self._cell_type = cell_type
 
+    @property
+    def cell_type(self):
+        return self._cell_type
+
     def get_radius(self):
         r = self.indication("radius")
         if r is None:
@@ -56,18 +60,29 @@ class PlacementIndicator:
         if planar_density is not None:
             estimate = self._pdensity_to_estim(planar_density, chunk, chunk_size)
         if relative_to is not None:
-            relation = relative_to.spatial
+            relation = relative_to
             if count_ratio is not None:
-                estimate = PlacementIndicator(self, relation).guess() * count_ratio
-                estimate = self._estim_for_chunk(chunk, chunk_size, estim)
+                strats = self._strat.scaffold.get_placement_of(relation)
+                estimate = (
+                    sum(PlacementIndicator(s, relation).guess() for s in strats)
+                    * count_ratio
+                )
+                estimate = self._estim_for_chunk(chunk, chunk_size, estimate)
             elif density_ratio is not None:
-                if relation.density is not None:
+                # Create an indicator based on this strategy for the related CT.
+                # This means we'll read only the CT indications, and ignore any
+                # overrides of other strats, but one can set overrides for the
+                # related type in this strat.
+                rel_ind = PlacementIndicator(self._strat, relation)
+                rel_density = rel_ind.indication("density")
+                rel_pl_density = rel_ind.indication("planar_density")
+                if rel_density is not None:
                     estimate = self._density_to_estim(
-                        relation.density * density_ratio, chunk, chunk_size
+                        rel_density * density_ratio, chunk, chunk_size
                     )
-                elif relation.planar_density is not None:
+                elif rel_pl_density is not None:
                     estimate = self._pdensity_to_estim(
-                        relation.planar_density * density_ratio, chunk, chunk_size
+                        rel_pl_density * density_ratio, chunk, chunk_size
                     )
                 else:
                     raise PlacementRelationError(
