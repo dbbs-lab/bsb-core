@@ -120,16 +120,22 @@ def get_config(file):
     )
 
 
-class TimeoutThread(threading.Thread):
-    def excepthook(self, args, /):
-        print("OLALALA IN HOOOK")
-        raise args.exc_value
+_exc_threads = {}
+
+
+def excepthook(args, /):
+    print("OLALALA IN HOOOK", file=sys.stderr)
+    h = hash(args.thread)
+    _exc_threads[h] = args.exc_value
+
+
+threading.excepthook = excepthook
 
 
 def timeout(timeout, abort=False):
     def decorator(f):
         def timed_f(*args, **kwargs):
-            thread = TimeoutThread(target=f, args=args, kwargs=kwargs)
+            thread = threading.Thread(target=f, args=args, kwargs=kwargs)
             thread.start()
             thread.join(timeout=timeout)
             if thread.is_alive():
@@ -151,6 +157,8 @@ def timeout(timeout, abort=False):
                     args,
                     kwargs,
                 )
+            elif hash(thread) in _exc_threads:
+                raise _exc_threads[hash(thread)]
 
         return timed_f
 
