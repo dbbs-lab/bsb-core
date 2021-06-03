@@ -40,9 +40,9 @@ class TestChunks(unittest.TestCase):
         ps.load_chunk((0, 0, 0))
         ids = ps.load_identifiers()
         self.assertEqual(0, len(ids), "Cell IDs found before cell placement. Cleared?")
-        p = network.cell_types.placement.test_placement
+        p = network.placement.test_placement
         cs = network.network.chunk_size
-        p.place(np.array([0, 0, 0]), cs)
+        p.place(np.array([0, 0, 0]), cs, p.get_indicators())
         ids = ps.load_identifiers()
         self.assertGreater(len(ids), 0, "No data loaded from chunk 000 after placement")
         # Force the addition of garbage data in another chunk, to be ignored by this
