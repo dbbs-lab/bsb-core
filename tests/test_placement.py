@@ -5,6 +5,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
 from bsb.core import Scaffold
 from bsb.config import Configuration
+from bsb.objects import CellType
 from bsb.placement import PlacementStrategy
 from bsb._pool import JobPool, FakeFuture, create_job_pool
 from test_setup import timeout
@@ -23,17 +24,16 @@ def test_chunk(scaffold, chunk, chunk_size):
 class PlacementDud(PlacementStrategy):
     name = "dud"
 
-    def place(self, chunk, chunk_size):
+    def place(self, chunk, chunk_size, indicators):
         pass
 
 
-class DudCell:
-    name = "dud"
-    placement = PlacementDud(cls="PlacementDud", partitions=[])
-
-
 network = Scaffold()
-network.cell_types["dud"] = dud = DudCell()
+dud_cell = CellType(name="dud", spatial={"count": 40, "radius": 2})
+network.cell_types["dud"] = dud_cell
+dud = PlacementDud(name="dud", cls="PlacementDud", partitions=[], cell_types=[])
+network.placement["dud"] = dud
+dud._cell_types = [dud_cell]
 
 
 class SchedulerBaseTest:
