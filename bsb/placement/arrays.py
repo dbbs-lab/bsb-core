@@ -17,67 +17,68 @@ class ParallelArrayPlacement(PlacementStrategy):
         """
         Cell placement: Create a lattice of parallel arrays/lines in the layer's surface.
         """
-        cell_type = self.cell_type
-        for prt in self.partitions:
-            dims = prt.boundaries
-            radius = cell_type.spatial.radius
-            # Extension of a single array in the X dimension
-            spacing_x = self.spacing_x
-            # Add a random shift to the starting points of the arrays for variation.
-            x_shift = np.random.rand() * spacing_x
-            # Place purkinje cells equally spaced over the entire length of the X axis kept apart by their dendritic trees.
-            # They are placed in straight lines, tilted by a certain angle by adding a shifting value.
-            x_pos = np.arange(start=0.0, stop=dims.width, step=spacing_x) + x_shift
-            if x_pos.shape[0] == 0:
-                # When the spacing_x of is larger than the simulation volume,
-                # place a single row on a random position along the x axis
-                x_pos = np.array([x_shift])
-            # Amount of parallel arrays of cells
-            n_arrays = x_pos.shape[0]
-            # Number of cells
-            n = self.get_placement_count()
-            # Add extra cells to fill the lattice error volume which will be pruned
-            n += int((n_arrays * spacing_x % dims.width) / dims.width * n)
-            # cells to distribute along the rows
-            cells_per_row = round(n / n_arrays)
-            # The rounded amount of cells that will be placed
-            cells_placed = cells_per_row * n_arrays
-            # Calculate the position of the cells along the z-axis.
-            z_pos, z_axis_distance = np.linspace(
-                start=0.0,
-                stop=dims.depth - radius,
-                num=cells_per_row,
-                retstep=True,
-                endpoint=False,
-            )
-            # Center the cell soma center to the middle of the unit cell
-            z_pos += radius + z_axis_distance / 2
-            # The length of the X axis rounded up to a multiple of the unit cell size.
-            lattice_x = n_arrays * spacing_x
-            # The length of the X axis where cells can be placed in.
-            bounded_x = lattice_x - radius * 2
-            # Epsilon: open space in the unit cell along the z-axis
-            ϵ = z_axis_distance - radius * 2
-            # Storage array for the cells
-            cells = np.empty((cells_placed, 3))
-            for i in range(z_pos.shape[0]):
-                # Shift the arrays at an angle
-                angleShift = z_pos[i] * math.tan(self.angle)
-                # Apply shift and offset
-                x = x_pos + angleShift
-                # Place the cells in a bounded lattice with a little modulus magic
-                x = dims.ldc[0] + x % bounded_x + radius
-                # Place them at a uniformly random height throughout the partition.
-                y = dims.ldc[1] + np.random.uniform(
-                    radius, dims.height - radius, x.shape[0]
+        for indicator in indicators.values():
+            cell_type = indicator.cell_type
+            radius = indicator.get_radius()
+            for prt in self.partitions:
+                dims = prt.boundaries
+                # Extension of a single array in the X dimension
+                spacing_x = self.spacing_x
+                # Add a random shift to the starting points of the arrays for variation.
+                x_shift = np.random.rand() * spacing_x
+                # Place purkinje cells equally spaced over the entire length of the X axis kept apart by their dendritic trees.
+                # They are placed in straight lines, tilted by a certain angle by adding a shifting value.
+                x_pos = np.arange(start=0.0, stop=dims.width, step=spacing_x) + x_shift
+                if x_pos.shape[0] == 0:
+                    # When the spacing_x of is larger than the simulation volume,
+                    # place a single row on a random position along the x axis
+                    x_pos = np.array([x_shift])
+                # Amount of parallel arrays of cells
+                n_arrays = x_pos.shape[0]
+                # Number of cells
+                n = indicator.guess(chunk, chunk_size)
+                # Add extra cells to fill the lattice error volume which will be pruned
+                n += int((n_arrays * spacing_x % dims.width) / dims.width * n)
+                # cells to distribute along the rows
+                cells_per_row = round(n / n_arrays)
+                # The rounded amount of cells that will be placed
+                cells_placed = cells_per_row * n_arrays
+                # Calculate the position of the cells along the z-axis.
+                z_pos, z_axis_distance = np.linspace(
+                    start=0.0,
+                    stop=dims.depth - radius,
+                    num=cells_per_row,
+                    retstep=True,
+                    endpoint=False,
                 )
-                # Place the cells in their z-position with jitter
-                z = dims.ldc[2] + z_pos[i] + ϵ * (np.random.rand(x.shape[0]) - 0.5)
-                # Store this stack's cells
-                cells[(i * len(x)) : ((i + 1) * len(x)), 0] = x
-                cells[(i * len(x)) : ((i + 1) * len(x)), 1] = y
-                cells[(i * len(x)) : ((i + 1) * len(x)), 2] = z
-            # Place all the cells in 1 batch (more efficient)
-            self.scaffold.place_cells(
-                cell_type, cells[cells[:, 0] < dims.width - radius], chunk=chunk
-            )
+                # Center the cell soma center to the middle of the unit cell
+                z_pos += radius + z_axis_distance / 2
+                # The length of the X axis rounded up to a multiple of the unit cell size.
+                lattice_x = n_arrays * spacing_x
+                # The length of the X axis where cells can be placed in.
+                bounded_x = lattice_x - radius * 2
+                # Epsilon: open space in the unit cell along the z-axis
+                ϵ = z_axis_distance - radius * 2
+                # Storage array for the cells
+                cells = np.empty((cells_placed, 3))
+                for i in range(z_pos.shape[0]):
+                    # Shift the arrays at an angle
+                    angleShift = z_pos[i] * math.tan(self.angle)
+                    # Apply shift and offset
+                    x = x_pos + angleShift
+                    # Place the cells in a bounded lattice with a little modulus magic
+                    x = dims.ldc[0] + x % bounded_x + radius
+                    # Place them at a uniformly random height throughout the partition.
+                    y = dims.ldc[1] + np.random.uniform(
+                        radius, dims.height - radius, x.shape[0]
+                    )
+                    # Place the cells in their z-position with jitter
+                    z = dims.ldc[2] + z_pos[i] + ϵ * (np.random.rand(x.shape[0]) - 0.5)
+                    # Store this stack's cells
+                    cells[(i * len(x)) : ((i + 1) * len(x)), 0] = x
+                    cells[(i * len(x)) : ((i + 1) * len(x)), 1] = y
+                    cells[(i * len(x)) : ((i + 1) * len(x)), 2] = z
+                # Place all the cells in 1 batch (more efficient)
+                self.scaffold.place_cells(
+                    cell_type, cells[cells[:, 0] < dims.width - radius], chunk=chunk
+                )
