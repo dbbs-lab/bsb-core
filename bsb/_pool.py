@@ -101,7 +101,7 @@ class PlacementJob(ChunkedJob):
 
     def __init__(self, pool, strategy, chunk, chunk_size, deps=None):
         args = (strategy.name, chunk, chunk_size)
-        self._pt = strategy.__class__.__name__
+        self._pt = strategy
         self._c = chunk
         super(ChunkedJob, self).__init__(
             pool, strategy.place.__func__, args, {}, deps=deps

@@ -182,7 +182,11 @@ class Scaffold:
             stdscr.addstr(3, 2, f"Running jobs: {len(running)}")
             stdscr.addstr(4, 2, f"Finished jobs: {done}")
             for i, j in enumerate(running):
-                stdscr.addstr(6 + i, 2, f"* Worker {i}: {j._ct} {j._pt} {j._c}")
+                stdscr.addstr(
+                    6 + i,
+                    2,
+                    f"* Worker {i}: <{j._pt.__class__.__name__}>{j._pt.name} {j._c}",
+                )
 
             stdscr.refresh()
             time.sleep(0.1)
