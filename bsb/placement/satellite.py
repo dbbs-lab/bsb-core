@@ -1,9 +1,10 @@
 from .strategy import PlacementStrategy
-import math, numpy as np, itertools
+import math, numpy as np
 from ..exceptions import *
 from ..reporting import report, warn
 from .. import config
 from ..config import types, refs
+from itertools import chain
 
 
 @config.node
@@ -21,9 +22,8 @@ class Satellite(PlacementStrategy):
 
     def boot(self):
         # Use the planet type partitions as our partitions
-        self.partitions = list(
-            itertools.chain(*(p.placement.partitions for p in self.planet_types))
-        )
+        placements = self.scaffold.get_placement_of(*self.planet_types)
+        self.partitions = list(chain(*(p.partitions for p in placements)))
 
     def get_after(self):
         return [p.placement for p in self.planet_types]
