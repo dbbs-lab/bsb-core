@@ -21,7 +21,8 @@
   "cell_types": {
     "test_cell": {
       "spatial": {
-        "radius": 2.5
+        "radius": 2.5,
+        "count": 40
       },
       "plotting": {
         "display_name": "lonely cell",
@@ -32,9 +33,8 @@
   "placement": {
       "test_placement": {
         "cls": "bsb.placement.ParticlePlacement",
-        "cell_types": ["test_cell"],
         "partitions": ["test_layer"],
-        "count": 40
+        "cell_types": ["test_cell"]
       }
   },
   "connectivity": {

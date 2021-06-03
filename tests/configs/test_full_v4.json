@@ -1,7 +1,8 @@
 {
   "name": "DBBS Mouse cerebellum configuration v4.0",
   "storage": {
-    "engine": "hdf5"
+    "engine": "hdf5",
+    "root": "cerebellum.hdf5"
   },
   "network": {
     "x": 400.0,
@@ -19,8 +20,6 @@
   "partitions": {
     "dcn_layer": {
       "thickness": 600.0,
-      "xz_scale": [0.5, 0.5],
-      "xz_center": true,
       "region": "cerebellar_cortex",
       "z_index": 0
     },
@@ -34,10 +33,15 @@
       "region": "cerebellar_cortex",
       "z_index": 2
     },
-    "molecular_layer": {
-      "thickness": 150.0,
+    "b_molecular_layer": {
+      "thickness": 50.0,
       "region": "cerebellar_cortex",
       "z_index": 3
+    },
+    "t_molecular_layer": {
+      "thickness": 100.0,
+      "region": "cerebellar_cortex",
+      "z_index": 4
     },
     "io_layer": {
       "thickness": 15.0,
@@ -47,13 +51,13 @@
   },
   "cell_types": {
     "granule_cell": {
-      "placement": {
-        "cls": "bsb.placement.ParticlePlacement",
-        "partitions": ["granular_layer"],
-        "density": 3.9e-3
-      },
       "spatial": {
-        "radius": 2.5
+        "radius": 2.5,
+        "density": 3.9e-3,
+        "geometrical": {
+          "pf_height": 126,
+          "pf_height_sd": 15
+        }
       },
       "plotting": {
         "display_name": "Granule cell",
@@ -63,25 +67,16 @@
     },
     "mossy_fibers": {
       "entity": true,
-      "placement": {
-        "cls": "bsb.placement.Entities",
-        "partitions": ["granular_layer"],
-        "placement_relative_to": "glomerulus",
-        "placement_count_ratio": 0.05
-      },
       "spatial": {
-        "radius": 0.0
+        "relative_to": "glomerulus",
+        "count_ratio": 0.05
       }
     },
     "glomerulus": {
       "relay": true,
-      "placement": {
-        "cls": "bsb.placement.ParticlePlacement",
-        "partitions": ["granular_layer"],
-        "density": 3e-4
-      },
       "spatial": {
-        "radius": 1.5
+        "radius": 1.5,
+        "density": 3e-4
       },
       "plotting": {
         "display_name": "Glomerulus",
@@ -89,15 +84,9 @@
       }
     },
     "purkinje_cell": {
-      "placement": {
-        "cls": "bsb.placement.ParallelArrayPlacement",
-        "partitions": ["purkinje_layer"],
-        "planar_density": 0.0017,
-        "spacing_x": 130.0,
-        "angle": 70.0
-      },
       "spatial": {
-        "radius": 7.5
+        "radius": 7.5,
+        "planar_density": 0.0017
       },
       "plotting": {
         "display_name": "Purkinje cell",
@@ -105,13 +94,9 @@
       }
     },
     "golgi_cell": {
-      "placement": {
-        "cls": "bsb.placement.ParticlePlacement",
-        "partitions": ["granular_layer"],
-        "density": 9e-6
-      },
       "spatial": {
-        "radius": 8.0
+        "radius": 8.0,
+        "density": 9e-6
       },
       "plotting": {
         "display_name": "Golgi cell",
@@ -119,13 +104,9 @@
       }
     },
     "stellate_cell": {
-      "placement": {
-        "cls": "bsb.placement.ParticlePlacement",
-        "partitions": ["molecular_layer"],
-        "density": 0.5e-4
-      },
       "spatial": {
-        "radius": 4.0
+        "radius": 4.0,
+        "density": 0.5e-4
       },
       "plotting": {
         "display_name": "Stellate cell",
@@ -133,13 +114,9 @@
       }
     },
     "basket_cell": {
-      "placement": {
-        "cls": "bsb.placement.ParticlePlacement",
-        "partitions": ["molecular_layer"],
-        "density": 0.5e-4
-      },
       "spatial": {
-        "radius": 6.0
+        "radius": 6.0,
+        "density": 0.5e-4
       },
       "plotting": {
         "display_name": "Basket cell",
@@ -147,14 +124,10 @@
       }
     },
     "dcn_cell": {
-      "placement": {
-        "cls": "bsb.placement.ParticlePlacement",
-        "partitions": ["dcn_layer"],
-        "placement_relative_to": "purkinje_cell",
-        "placement_count_ratio": 0.090909
-      },
       "spatial": {
-        "radius": 10.0
+        "radius": 10.0,
+        "relative_to": "purkinje_cell",
+        "count_ratio": 0.090909
       },
       "plotting": {
         "display_name": "DCN cell",
@@ -162,11 +135,6 @@
       }
     },
     "dcn_interneuron": {
-      "placement": {
-        "cls": "bsb.placement.Satellite",
-        "planet_types": ["dcn_cell"],
-        "per_planet": 1.0
-      },
       "spatial": {
         "radius": 6.0
       },
@@ -176,18 +144,58 @@
       }
     },
     "io_cell": {
-      "placement": {
-        "cls": "bsb.placement.ParticlePlacement",
-        "partitions": ["io_layer"],
-        "density": 1.52e-5
-      },
       "spatial": {
-        "radius": 7.5
+        "radius": 7.5,
+        "density": 1.52e-5
       },
       "plotting": {
         "display_name": "io cell",
         "color": "#7d1bbf"
       }
+    }
+  },
+  "placement": {
+    "granular_layer_innervation": {
+      "cls": "bsb.placement.Entities",
+      "partitions": ["granular_layer"],
+      "cell_types": ["mossy_fibers"]
+    },
+    "granular_layer_placement": {
+      "cls": "bsb.placement.ParticlePlacement",
+      "partitions": ["granular_layer"],
+      "cell_types": ["granule_cell", "golgi_cell", "glomerulus"]
+    },
+    "purkinje_layer_placement": {
+      "cls": "bsb.placement.ParallelArrayPlacement",
+      "partitions": ["purkinje_layer"],
+      "cell_types": ["purkinje_cell"],
+      "spacing_x": 130.0,
+      "angle": 70.0
+    },
+    "molecular_layer_placement": {
+      "cls": "bsb.placement.ParticlePlacement",
+      "partitions": ["b_molecular_layer", "t_molecular_layer"],
+      "cell_types": ["stellate_cell", "basket_cell"],
+      "restrict": {
+        "basket_cell": ["b_molecular_layer"],
+        "stellate_cell": ["t_molecular_layer"]
+      }
+    },
+    "dcn_placement": {
+      "cls": "bsb.placement.ParticlePlacement",
+      "partitions": ["dcn_layer"],
+      "cell_types": ["dcn_cell"]
+    },
+    "dcn_satellite_placement": {
+      "cls": "bsb.placement.Satellite",
+      "cell_types": ["dcn_interneuron"],
+      "planet_types": ["dcn_cell"],
+      "per_planet": 1.0
+    },
+    "io_layer_placement": {
+      "cls": "bsb.placement.ParticlePlacement",
+      "partitions": ["io_layer"],
+      "cell_types": ["io_cell"]
     }
   },
   "connectivity": {
