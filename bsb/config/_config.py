@@ -74,7 +74,7 @@ class Configuration:
             raise UnmanagedPartitionError(f"Please make '{p}' part of a Region.")
         # Do an initial arrangement of the topology based on network boundaries
         topology.arrange(
-            Boundary([0, 0, 0], [self.network.x, self.network.y, self.network.z])
+            Boundary([0.0, 0.0, 0.0], [self.network.x, self.network.y, self.network.z])
         )
         for node in walk_nodes(self):
             node.scaffold = scaffold

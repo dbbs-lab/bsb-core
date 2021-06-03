@@ -6,6 +6,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
 from bsb.core import Scaffold
 from bsb.config import Configuration
 from bsb.objects import CellType
+from bsb.topology import Region, Partition
+from bsb.exceptions import *
 from bsb.placement import PlacementStrategy
 from bsb._pool import JobPool, FakeFuture, create_job_pool
 from test_setup import timeout
@@ -28,12 +30,91 @@ class PlacementDud(PlacementStrategy):
         pass
 
 
-network = Scaffold()
-dud_cell = CellType(name="dud", spatial={"count": 40, "radius": 2})
-network.cell_types["dud"] = dud_cell
-dud = PlacementDud(name="dud", cls="PlacementDud", partitions=[], cell_types=[])
-network.placement["dud"] = dud
-dud._cell_types = [dud_cell]
+def single_layer_placement(offset=[0.0, 0.0, 0.0]):
+    network = Scaffold()
+    network.regions["dud_region"] = reg = Region(name="dud_region", offset=offset)
+    network.partitions["dud_layer"] = part = Partition(
+        name="dud_layer", thickness=120, region="dud_region"
+    )
+    dud_cell = CellType(name="dud", spatial={"count": 40, "radius": 2})
+    network.cell_types["dud"] = dud_cell
+    dud = PlacementDud(
+        name="dud",
+        cls="PlacementDud",
+        partitions=[part],
+        cell_types=[],
+        overrides={"dud": {}},
+    )
+    network.placement["dud"] = dud
+    reg._partitions = [part]
+    dud._partitions = [part]
+    dud._cell_types = [dud_cell]
+    network.configuration._bootstrap(network)
+    return dud, network
+
+
+class TestIndicators(unittest.TestCase):
+    def test_cascade(self):
+        indicators = dud.get_indicators()
+        dud_ind = indicators["dud"]
+        self.assertEqual(2, dud_ind.indication("radius"))
+        self.assertEqual(40, dud_ind.indication("count"))
+        self.assertEqual(2, dud_ind.get_radius())
+        dud.overrides.dud.radius = 4
+        self.assertEqual(4, dud_ind.indication("radius"))
+        dud.overrides.dud.radius = None
+        dud.cell_types[0].spatial.radius = None
+        self.assertEqual(None, dud_ind.indication("radius"))
+        self.assertRaises(IndicatorError, dud_ind.get_radius)
+
+    def test_guess(self):
+        dud, network = single_layer_placement()
+        indicators = dud.get_indicators()
+        dud_ind = indicators["dud"]
+        self.assertEqual(40, dud_ind.guess())
+        dud.overrides.dud.count = 400
+        self.assertEqual(400, dud_ind.guess())
+        bottom_ratio = 1 / 1.2
+        bottom = 400 * bottom_ratio / 4
+        top_ratio = 0.2 / 1.2
+        top = 400 * top_ratio / 4
+        for x, y, z in ((0, 0, 0), (0, 0, 1), (1, 0, 0), (1, 0, 1)):
+            with self.subTest(x=x, y=y, z=z):
+                guess = dud_ind.guess(np.array([x, y, z]), np.array([100, 100, 100]))
+                self.assertTrue(np.floor(bottom) <= guess <= np.ceil(bottom))
+        for x, y, z in ((0, 1, 0), (0, 1, 1), (1, 1, 0), (1, 1, 1)):
+            with self.subTest(x=x, y=y, z=z):
+                guess = dud_ind.guess(np.array([x, y, z]), np.array([100, 100, 100]))
+                self.assertTrue(np.floor(top) <= guess <= np.ceil(top))
+        for x, y, z in ((0, -1, 0), (0, 2, 0), (2, 1, 0), (1, 1, -3)):
+            with self.subTest(x=x, y=y, z=z):
+                guess = dud_ind.guess(np.array([x, y, z]), np.array([100, 100, 100]))
+                self.assertEqual(0, guess)
+
+    def test_negative_guess(self):
+        dud, network = single_layer_placement(offset=np.array([-300.0, -300.0, -300.0]))
+        indicators = dud.get_indicators()
+        dud_ind = indicators["dud"]
+        bottom_ratio = 1 / 1.2
+        bottom = 40 * bottom_ratio / 4
+        top_ratio = 0.2 / 1.2
+        top = 40 * top_ratio / 4
+        for x, y, z in ((-3, -3, -3), (-3, -3, -2), (-2, -3, -3), (-2, -3, -2)):
+            with self.subTest(x=x, y=y, z=z):
+                guess = dud_ind.guess(np.array([x, y, z]), np.array([100, 100, 100]))
+                print(guess, bottom)
+                self.assertTrue(np.floor(bottom) <= guess <= np.ceil(bottom))
+        for x, y, z in ((-3, -2, -3), (-3, -2, -2), (-2, -2, -3), (-2, -2, -2)):
+            with self.subTest(x=x, y=y, z=z):
+                guess = dud_ind.guess(np.array([x, y, z]), np.array([100, 100, 100]))
+                self.assertTrue(np.floor(top) <= guess <= np.ceil(top))
+        for x, y, z in ((0, -1, 0), (0, 0, 0), (2, 0, 0), (1, 1, -3)):
+            with self.subTest(x=x, y=y, z=z):
+                guess = dud_ind.guess(np.array([x, y, z]), np.array([100, 100, 100]))
+                self.assertEqual(0, guess)
+
+
+dud, network = single_layer_placement()
 
 
 class SchedulerBaseTest:
