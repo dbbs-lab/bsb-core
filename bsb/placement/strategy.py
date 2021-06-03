@@ -19,7 +19,7 @@ class PlacementStrategy(abc.ABC, SortableByAfter):
     name = config.attr(key=True)
     cell_types = config.reflist(refs.cell_type_ref, required=True)
     partitions = config.reflist(refs.partition_ref, required=True)
-    overrides = config.attr(type=types.dict(type=PlacementIndications), call_default=True, default=dict)
+    overrides = config.dict(type=PlacementIndications)
     after = config.reflist(refs.placement_ref)
 
     def __boot__(self):
@@ -78,7 +78,7 @@ class PlacementStrategy(abc.ABC, SortableByAfter):
     def create_after(self):
         # I think the reflist should always be there.
         pass
-        
+
 
 @config.node
 class FixedPositions(PlacementStrategy):
