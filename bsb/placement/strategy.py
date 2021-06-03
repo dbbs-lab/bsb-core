@@ -21,6 +21,7 @@ class PlacementStrategy(abc.ABC, SortableByAfter):
     partitions = config.reflist(refs.partition_ref, required=True)
     overrides = config.dict(type=PlacementIndications)
     after = config.reflist(refs.placement_ref)
+    indicator_class = PlacementIndicator
 
     def __boot__(self):
         self.cell_type = self._config_parent
@@ -60,7 +61,9 @@ class PlacementStrategy(abc.ABC, SortableByAfter):
         into objects that can produce guesses as to how many cells of a type should be
         placed in a volume.
         """
-        return {ct.name: PlacementIndicator(self, ct) for ct in self.cell_types}
+        return {
+            ct.name: self.__class__.indicator_class(self, ct) for ct in self.cell_types
+        }
 
     @classmethod
     def get_ordered(cls, objects):
