@@ -10,6 +10,7 @@ import itertools, numpy as np
 class ParticlePlacement(PlacementStrategy):
     prune = config.attr(type=bool, default=True)
     bounded = config.attr(type=bool, default=False)
+    restrict = config.attr(type=dict)
 
     def place(self, chunk, chunk_size, indicators):
         voxels = list(
@@ -44,13 +45,10 @@ class ParticlePlacement(PlacementStrategy):
                     at_risk_particles=system.displaced_particles
                 )
                 for name, indicator in indicators.items():
-                    report(
-                        "{} {} ({}%) cells pruned.".format(
-                            pruned_per_type[name],
-                            name,
-                            int((pruned_per_type[name] / indicator.guess(chunk, chunk_size)) * 100),
-                        )
-                    )
+                    pruned = pruned_per_type[name]
+                    total = indicator.guess(chunk, chunk_size)
+                    pct = int((pruned / total) * 100)
+                    report(f"{pruned} {name} ({pct}%) cells pruned.")
 
         for pt in system.particle_types:
             cell_type = self.scaffold.cell_types[pt["name"]]
