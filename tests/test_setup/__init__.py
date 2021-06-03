@@ -124,7 +124,6 @@ _exc_threads = {}
 
 
 def excepthook(args, /):
-    print("OLALALA IN HOOOK", file=sys.stderr)
     h = hash(args.thread)
     _exc_threads[h] = args.exc_value
 
