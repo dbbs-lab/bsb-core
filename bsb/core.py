@@ -510,7 +510,7 @@ class Scaffold:
         def of(p):
             return any(ct in p.cell_types for ct in cell_types)
 
-        return list(p for p in self.configuration.placement.values() if of(p))
+        return list(p for p in self.placement.values() if of(p))
 
     def get_placement_set(self, type):
         """
