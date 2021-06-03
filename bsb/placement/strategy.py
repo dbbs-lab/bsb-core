@@ -103,21 +103,19 @@ class Entities(PlacementStrategy):
     entities = True
 
     def queue(self, pool, chunk_size):
+        # Entities ignore chunks since they don't intrinsically store any data.
         pool.queue_placement(self, np.array([0, 0, 0]), chunk_size)
 
-    def place(self, chunk, chunk_size):
-        # Variables
-        cell_type = self.cell_type
-        scaffold = self.scaffold
-
-        # Get the number of cells that belong in the available volume.
-        n_cells_to_place = self.get_placement_count()
-        if n_cells_to_place == 0:
-            warn(
-                "Volume or density too low, no '{}' cells will be placed".format(
-                    cell_type.name
-                ),
-                PlacementWarning,
-            )
-
-        scaffold.create_entities(cell_type, n_cells_to_place)
+    def place(self, chunk, chunk_size, indicators):
+        for indicator in indicators.values():
+            cell_type = indicator.cell_type
+            # Guess total number, not chunk number, as entities bypass chunking.
+            n = indicator.guess()
+            if n == 0:
+                warn(
+                    "Volume or density too low, no '{}' cells will be placed".format(
+                        cell_type.name
+                    ),
+                    PlacementWarning,
+                )
+            self.scaffold.create_entities(cell_type, n)
