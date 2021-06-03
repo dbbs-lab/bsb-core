@@ -158,7 +158,9 @@ def timeout(timeout, abort=False):
                     kwargs,
                 )
             elif hash(thread) in _exc_threads:
-                raise _exc_threads[hash(thread)]
+                e = _exc_threads[hash(thread)]
+                del _exc_threads[hash(thread)]
+                raise e
 
         return timed_f
 
