@@ -3,6 +3,7 @@ from .. import config
 from ..config import refs
 import numpy as np
 
+
 @config.node
 class PlacementIndications:
     radius = config.attr(type=float)
@@ -13,26 +14,30 @@ class PlacementIndications:
     relative_to = config.ref(refs.cell_type_ref)
     count = config.attr(type=int)
 
+
 class _Noner:
     def __getattr__(self, attr):
         return None
+
 
 class PlacementIndicator:
     def __init__(self, strat, cell_type):
         self._strat = strat
         self._cell_type = cell_type
-        self._ind_strat = strat.overrides.get(cell_type.name) or _Noner()
-        self._ind_ct = cell_type.spatial
 
     def get_radius(self):
-        r = self._ind_strat.radius or self._ind_ct.radius
+        r = self.indication("radius")
         if r is None:
-            raise IndicatorError(f"No configuration indicators found for the radius of '{self._cell_type.name}' in '{self._strat.name}'")
+            raise IndicatorError(
+                f"No configuration indicators found for the radius of '{self._cell_type.name}' in '{self._strat.name}'"
+            )
         return r
 
     def indication(self, attr):
-        strat = getattr(self._ind_strat, attr)
-        ct = getattr(self._ind_ct, attr)
+        ind_strat = self._strat.overrides.get(self._cell_type.name) or _Noner()
+        ind_ct = self._cell_type.spatial
+        strat = getattr(ind_strat, attr)
+        ct = getattr(ind_ct, attr)
         if strat is not None:
             return strat
         return ct
@@ -71,19 +76,25 @@ class PlacementIndicator:
                         relation,
                     )
             else:
-                raise PlacementError("Relation specified but no ratio indications provided.")
+                raise PlacementError(
+                    "Relation specified but no ratio indications provided."
+                )
         try:
             # 1.2 cells == 0.8p for 1, 0.2p for 2
             return int(np.floor(estimate) + (np.random.rand() < estimate % 1))
         except NameError:
             # If `estimate` is undefined after all this then there were no indicators.
-            raise IndicatorError(f"No configuration indicators found for the number of '{self._cell_type.name}' in '{self._strat.name}'")
+            raise IndicatorError(
+                f"No configuration indicators found for the number of '{self._cell_type.name}' in '{self._strat.name}'"
+            )
 
     def _density_to_estim(self, density, chunk=None, size=None):
         return sum(p.volume(chunk, size) * density for p in self._strat.partitions)
 
     def _pdensity_to_estim(self, planar_density, chunk=None, size=None):
-        return sum(p.surface(chunk, size) * planar_density for p in self._strat.partitions)
+        return sum(
+            p.surface(chunk, size) * planar_density for p in self._strat.partitions
+        )
 
     def _estim_for_chunk(self, chunk, chunk_size, count):
         if chunk is None:
