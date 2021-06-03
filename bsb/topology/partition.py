@@ -73,6 +73,9 @@ class Partition:
         """
         low = np.maximum(self.boundaries.ldc, chunk * chunk_size)
         high = np.minimum(self.boundaries.mdc, (chunk + 1) * chunk_size)
+        # Return 0 voxels when the coords are OOB for this partition
+        if np.any(low > high):
+            return []
         return [[low, high - low]]
 
 
