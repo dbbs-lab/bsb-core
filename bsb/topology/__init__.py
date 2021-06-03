@@ -108,6 +108,10 @@ class Boundary:
     def dimensions(self):
         return self.mdc - self.ldc
 
+    def offset(self, offset):
+        self.ldc += offset
+        self.mdc += offset
+
     # Make the point properties
     for _i, _name in enumerate(("x", "y", "z")):
 

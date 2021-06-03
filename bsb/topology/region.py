@@ -17,7 +17,7 @@ class Region:
     """
 
     name = config.attr(key=True)
-    origin = config.attr(
+    offset = config.attr(
         type=types.list(type=float, size=3),
         default=lambda: [0.0, 0.0, 0.0],
         call_default=True,
@@ -35,6 +35,7 @@ class Region:
 
     def arrange(self, boundaries):
         self.boundaries = boundaries
+        self.boundaries.offset(self.offset)
         for p in self.partitions:
             if hasattr(p, "arrange"):
                 p.arrange(self.boundaries)
@@ -58,6 +59,7 @@ class YStack(Region, classmap_entry="y_stack"):
     """
 
     def arrange(self, boundary):
+        boundary.offset(self.offset)
         stack_height = 0
         for p in sorted(self.get_dependencies(), key=lambda p: getattr(p, "z_index", 0)):
             if hasattr(p, "arrange"):
