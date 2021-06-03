@@ -499,6 +499,19 @@ class Scaffold:
         """
         return self.output_formatter.get_connectivity_set(tag)
 
+    def get_placement_of(self, *cell_types):
+        """
+        Find all of the placement strategies that include certain cell types.
+
+        :param cell_types: Cell types of interest.
+        :type cell_types: :class:`.objects.CellType`
+        """
+
+        def of(p):
+            return any(ct in p.cell_types for ct in cell_types)
+
+        return list(p for p in self.configuration.placement.values() if of(p))
+
     def get_placement_set(self, type):
         """
         Return a cell type's placement set from the output formatter.
