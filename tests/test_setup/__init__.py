@@ -138,24 +138,25 @@ def timeout(timeout, abort=False):
             thread.start()
             thread.join(timeout=timeout)
             if thread.is_alive():
-                if abort:
-                    print(
-                        TimeoutError(
-                            1,
-                            f"{f.__name__} timed out on rank {mpi4py.MPI.COMM_WORLD.Get_rank()}",
-                            args,
-                            kwargs,
-                        ),
-                        file=sys.stderr,
-                        flush=True,
-                    )
-                    mpi4py.MPI.COMM_WORLD.Abort(1)
-                raise TimeoutError(
+                err = TimeoutError(
                     1,
                     f"{f.__name__} timed out on rank {mpi4py.MPI.COMM_WORLD.Get_rank()}",
                     args,
                     kwargs,
                 )
+                if abort:
+                    import traceback
+
+                    errlines = traceback.format_exception(
+                        type(err), err, err.__traceback__
+                    )
+                    print(
+                        *errlines,
+                        file=sys.stderr,
+                        flush=True,
+                    )
+                    mpi4py.MPI.COMM_WORLD.Abort(1)
+                raise err
             elif hash(thread) in _exc_threads:
                 e = _exc_threads[hash(thread)]
                 del _exc_threads[hash(thread)]
