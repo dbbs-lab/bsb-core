@@ -296,3 +296,41 @@ class BidirectionalContact(PostProcessingHook):
 
     def _invert_append(self, old):
         return np.concatenate((old, np.stack((old[:, 1], old[:, 0]), axis=1)), axis=0)
+
+
+class CerebellumLabels(PostProcessingHook):
+    def after_connectivity(self):
+        self.label_central_mossy_fibers()
+        self.label_grc_active_dends()
+
+    def label_central_mossy_fibers(self):
+        x, z = self.scaffold.configuration.X, self.scaffold.configuration.Z
+        print("Detected XZ:", x, z)
+        mf = self.scaffold.get_placement_set("mossy_fibers")
+        gloms = self.scaffold.get_placement_set("glomerulus")
+        mf_glom = self.scaffold.get_connectivity_set("mossy_to_glomerulus")
+        conns = mf_glom.get_dataset()
+        positions = gloms.positions[conns[:, 1] - gloms.identifiers[0]]
+        mf_ids = mf.identifiers
+        cpos = {id: [] for id in mf_ids}
+        for mf_id, glom_pos in zip(conns[:, 0], positions):
+            cpos[mf_id].append(glom_pos)
+        centroids = np.mean([*cpos.values()], initial=np.nan, axis=0)
+        print("centroids:", centroids)
+        distances = np.linalg.norm(centroids - [x, z])
+        print("distances:", distances)
+        self.scaffold.label_cells(
+            mf_ids[distances.argsort()[:4]],
+            label="central_mossy_fibers",
+        )
+
+    def label_grc_active_dends(self):
+        network = self.scaffold
+        central_mf = network.labels["central_mossy_fibers"]
+        mf_glom = network.get_connectivity_set("mossy_to_glomerulus").get_dataset()
+        glom_grc = network.get_connectivity_set("glomerulus_to_granule").get_dataset()
+        active_glom = mf_glom[np.isin(mf_glom[:, 0], central_mf), 1]
+        active_dendrites = glom_grc[np.isin(glom_grc[:, 0], active_glom), 1]
+        grc_ids, dend_count = np.unique(active_dendrites, return_counts=True)
+        for i in range(5):
+            network.label_cells(grc_ids[dend_count == i], label=f"grc_active_dends_{i}")

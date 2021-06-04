@@ -322,6 +322,9 @@
     "mirroring_gap": {
       "class": "bsb.postprocessing.BidirectionalContact",
       "types": ["gap_goc"]
+    },
+    "activity_labels": {
+      "class": "bsb.postprocessing.CerebellumLabels"
     }
   },
   "simulations": {
@@ -459,7 +462,6 @@
             "sd": 2
           }
         },
-
         "background": {
           "io": "input",
           "device": "spike_generator",
@@ -473,70 +475,48 @@
             "number": 100
           }
         },
-        "mossy_fiber_sensoryBurst": {
+        "mossy_fiber_sensory_burst": {
           "io": "input",
           "device": "spike_generator",
-          "targetting": "by_id",
-          "targets": [],
-          "cell_types": ["mossy_fibers"],
+          "targetting": "by_label",
+          "labels": ["central_mossy_fibers"],
           "synapses": [],
           "spike_times": [1100.0, 1103.0, 1106.0, 1131.0, 1151.0]
         },
-        "mossy_fiber_input_syncImp": {
+        "mossy_fiber_input_sync_imp": {
           "io": "input",
           "device": "spike_generator",
-          "targetting": "by_id",
-          "targets": [213, 214, 222, 223],
-          "cell_types": ["mossy_fibers"],
+          "targetting": "by_label",
+          "labels": [],
           "synapses": [],
           "parameters": {
             "noise": false,
             "start": 6000,
             "interval": 10,
-            "number": 0
+            "number": 5
           }
         },
-        "mossy_fiber_input_Poiss": {
+        "mossy_fiber_input_poisson": {
           "io": "input",
           "device": "spike_generator",
-          "targetting": "by_id",
-          "targets": [213, 214, 222, 223],
-          "cell_types": ["mossy_fibers"],
+          "targetting": "by_label",
+          "labels": [],
           "synapses": [],
           "parameters": {
             "noise": true,
             "start": 6000,
             "interval": 10,
-            "number": 0
+            "number": 10
           }
-        },
-        "dendrite_recorders": {
-          "io": "output",
-          "device": "voltage_recorder",
-          "group": "dendrites",
-          "targetting": "by_id",
-          "targets": [24,27],
-	        "section_type": "dendrites",
-          "section_count": "all"
         },
         "granule_recorder": {
           "io": "output",
           "device": "voltage_recorder",
-          "group": "granules_Poiss",
-          "targetting": "by_id",
-          "targets": [3070, 31681, 3074],
+          "group": "granules_active_dends",
+          "targetting": "by_label",
+          "labels": ["grc_active_dends_*"],
+          "cell_count": 2,
           "section_type": "soma"
-        },
-      	"SynCurrent_recorder_dendrites": {
-          "io": "output",
-          "record_current": true,
-          "record_spikes": false,
-          "device": "synapse_recorder",
-          "group": "SynCurrent",
-          "targetting": "by_id",
-          "targets": [24,27],
-          "section_type": "dendrites",
-          "section_count": "all"
         }
       }
     }
