@@ -163,6 +163,12 @@ class ChunkedProperty:
         return read_chunk
 
     def append(self, chunk, data):
+        """
+        Append data to a property chunk. Will create it if it doesn't exist.
+
+        :param chunk: Chunk coordinates
+        :type chunk: (int, int, int)
+        """
         if self.insert is not None:
             data = self.insert(data)
         self.loader.require_chunk(chunk)
@@ -182,6 +188,23 @@ class ChunkedProperty:
                     start_pos = dset.shape[0]
                     dset.resize(start_pos + len(data), axis=0)
                     dset[start_pos:] = data
+
+    def clear(self, chunk):
+        self.loader.require_chunk(chunk)
+        with self.loader._engine._write():
+            with self.loader._engine._handle("a") as f:
+                chunk_group = f[self.loader.get_chunk_path(chunk)]
+                if self.name not in chunk_group:
+                    chunk_group.create_dataset(
+                        self.name,
+                        self.shape,
+                        data=np.empty(self.shape),
+                        maxshape=self.maxshape,
+                        dtype=self.dtype,
+                    )
+                else:
+                    dset = chunk_group[self.name]
+                    dset.resize(0, axis=0)
 
 
 class ChunkedCollection:
