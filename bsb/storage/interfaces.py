@@ -115,6 +115,19 @@ class PlacementSet(Interface):
         pass
 
     @abc.abstractproperty
+    def load_morphologies(self):
+        """
+        Return a :class:`~.storage.interfaces.MorphologySet` associated to the cells.
+
+        :return: Set of morphologies
+        :rtype: :class:`~.storage.interfaces.MorphologySet`
+
+        :raises: DatasetNotFoundError when there is no rotation information for this
+           cell type.
+        """
+        pass
+
+    @abc.abstractproperty
     def load_cells(self):
         """
         Reorganize the available datasets into a collection of :class:`Cells
@@ -141,6 +154,25 @@ class PlacementSet(Interface):
     @abc.abstractmethod
     def create_additional(self, name, chunk, data):
         pass
+
+    @abc.abstractmethod
+    def append_entities(self, chunk, count, additional=None):
+        pass
+
+
+class MorphologySet:
+    def __init__(self, data, map):
+        self._data = data
+        self._map = np.array(map)
+
+    def get_dataset(self):
+        return self._data
+
+    def get_map(self):
+        return self._map
+
+    def get_morphologies(self):
+        return self._map[self._data]
 
 
 class ConnectivitySet(Interface):

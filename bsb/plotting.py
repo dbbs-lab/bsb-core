@@ -2,7 +2,6 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from .networks import all_depth_first_branches, get_branch_points, reduce_branch
 import numpy as np, math, functools
-from .morphologies import Compartment
 from contextlib import contextmanager
 import random
 

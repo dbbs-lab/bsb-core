@@ -5,6 +5,7 @@ from ..reporting import report, warn
 from .. import config
 from ..config import refs, types
 from ..helpers import SortableByAfter
+from ..morphologies import MorphologyDistributor
 from .indicator import PlacementIndications, PlacementIndicator
 import numpy as np
 
@@ -21,6 +22,7 @@ class PlacementStrategy(abc.ABC, SortableByAfter):
     partitions = config.reflist(refs.partition_ref, required=True)
     overrides = config.dict(type=PlacementIndications)
     after = config.reflist(refs.placement_ref)
+    distributor = config.attr(type=MorphologyDistributor)
     indicator_class = PlacementIndicator
 
     def __boot__(self):

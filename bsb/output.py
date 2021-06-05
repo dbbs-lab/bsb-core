@@ -1,6 +1,6 @@
 from . import __version__
 from .helpers import get_qualified_class_name
-from .morphologies import Morphology, Compartment, Branch
+from .morphologies import Morphology, Branch
 from bsb.helpers import suppress_stdout
 from contextlib import contextmanager
 from abc import abstractmethod, ABC
