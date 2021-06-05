@@ -30,12 +30,7 @@ class PlacementIndicator:
         return self._cell_type
 
     def get_radius(self):
-        r = self.indication("radius")
-        if r is None:
-            raise IndicatorError(
-                f"No configuration indicators found for the radius of '{self._cell_type.name}' in '{self._strat.name}'"
-            )
-        return r
+        return self.assert_indication("radius")
 
     def indication(self, attr):
         ind_strat = self._strat.overrides.get(self._cell_type.name) or _Noner()
@@ -45,6 +40,14 @@ class PlacementIndicator:
         if strat is not None:
             return strat
         return ct
+
+    def assert_indication(self, attr):
+        ind = self.indication(attr)
+        if ind is None:
+            raise IndicatorError(
+                f"No configuration indicators found for the {attr} of '{self._cell_type.name}' in '{self._strat.name}'"
+            )
+        return ind
 
     def guess(self, chunk=None, chunk_size=None):
         count = self.indication("count")
