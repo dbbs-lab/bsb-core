@@ -18,6 +18,10 @@ try:
     _has_arbor = True
 except ImportError:
     _has_arbor = False
+    import types
+
+    arbor = types.ModuleType("arbor")
+    arbor.recipe = type("mock_recipe", (), dict())
 
 
 class ArborCell(SimulationCell):
