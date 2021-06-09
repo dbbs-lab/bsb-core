@@ -844,7 +844,9 @@ def hdf5_gather_voltage_traces(handle, root, groups=None):
 
 @_figure
 @_input_highlight
-def plot_traces(traces, fig=None, show=True, legend=True, cutoff=0, range=None, x=None):
+def plot_traces(
+    traces, fig=None, show=True, legend=True, cutoff=0, range=None, x=None, **kwargs
+):
     traces.order()
     subplots_fig = make_subplots(
         cols=1,
@@ -852,6 +854,7 @@ def plot_traces(traces, fig=None, show=True, legend=True, cutoff=0, range=None, 
         subplot_titles=[trace.title for trace in traces],
         x_title="Time (ms)",
         y_title="Membrane potential (mV)",
+        **kwargs,
     )
     # Save the data already in the given figure
     _data = fig.data
