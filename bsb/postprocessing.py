@@ -304,21 +304,22 @@ class CerebellumLabels(PostProcessingHook):
         self.label_grc_active_dends()
 
     def label_central_mossy_fibers(self):
-        x, z = self.scaffold.configuration.X, self.scaffold.configuration.Z
-        print("Detected XZ:", x, z)
+        x = self.scaffold.configuration.X / 2
+        z = self.scaffold.configuration.Z / 2
         mf = self.scaffold.get_placement_set("mossy_fibers")
         gloms = self.scaffold.get_placement_set("glomerulus")
-        mf_glom = self.scaffold.get_connectivity_set("mossy_to_glomerulus")
-        conns = mf_glom.get_dataset()
-        positions = gloms.positions[conns[:, 1] - gloms.identifiers[0]]
+        mf_glom = self.scaffold.cell_connections_by_tag["mossy_to_glomerulus"]
+        glom_ids = (mf_glom[:, 1] - int(gloms.identifiers[0])).astype(int)
+        # Need to do the indexing in 2 steps or it errors, maybe I'm just stupid
+        glom_positions = gloms.positions[glom_ids][:, [0, 2]]
         mf_ids = mf.identifiers
         cpos = {id: [] for id in mf_ids}
-        for mf_id, glom_pos in zip(conns[:, 0], positions):
+        for mf_id, glom_pos in zip(mf_glom[:, 0], glom_positions):
             cpos[mf_id].append(glom_pos)
-        centroids = np.mean([*cpos.values()], initial=np.nan, axis=0)
-        print("centroids:", centroids)
-        distances = np.linalg.norm(centroids - [x, z])
-        print("distances:", distances)
+        centroids = np.array(
+            [np.mean(cp, axis=0) if len(cp) else np.nan for cp in cpos.values()]
+        )
+        distances = np.linalg.norm(centroids - [x, z], axis=1)
         self.scaffold.label_cells(
             mf_ids[distances.argsort()[:4]],
             label="central_mossy_fibers",
