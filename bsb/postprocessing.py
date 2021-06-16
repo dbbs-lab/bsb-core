@@ -308,7 +308,7 @@ class CerebellumLabels(PostProcessingHook):
         z = self.scaffold.configuration.Z / 2
         mf = self.scaffold.get_placement_set("mossy_fibers")
         gloms = self.scaffold.get_placement_set("glomerulus")
-        mf_glom = self.scaffold.cell_connections_by_tag["mossy_to_glomerulus"]
+        mf_glom = self.scaffold.get_connectivity_set("mossy_to_glomerulus").get_dataset()
         glom_ids = (mf_glom[:, 1] - int(gloms.identifiers[0])).astype(int)
         # Need to do the indexing in 2 steps or it errors, maybe I'm just stupid
         glom_positions = gloms.positions[glom_ids][:, [0, 2]]
