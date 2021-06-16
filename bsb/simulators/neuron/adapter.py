@@ -741,6 +741,7 @@ class LocationRecorder(SimulationRecorder):
         return ("recorders", self.group, self.tag)
 
     def get_data(self):
+        print("GET_DATA LOCATION", self.recorder)
         if self.time_recorder:
             return np.hstack((np.array(self.recorder), np.array(self.time_recorder)))
         else:
@@ -762,5 +763,6 @@ class TargetLocation:
 
 class SpikeRecorder(LocationRecorder):
     def get_data(self):
+        print("GET_DATA SPIKES", self.recorder)
         recording = np.array(self.recorder)
         return np.vstack((np.ones(recording.shape) * self.id, recording)).T

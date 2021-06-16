@@ -59,6 +59,7 @@ class _SynapticRecorder(PresetPathMixin, PresetMetaMixin, SimulationRecorder):
         self.vectors = self._record(synapse._point_process)
 
     def get_data(self):
+        print("GET_DATA synaptic", self.vectors)
         signal = []
         for v in self.vectors:
             signal.extend(v)

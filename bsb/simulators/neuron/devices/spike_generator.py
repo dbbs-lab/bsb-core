@@ -83,4 +83,5 @@ class GeneratorRecorder(PresetPathMixin, PresetMetaMixin, SimulationRecorder):
         self.path = ("recorders", "input", device.name, str(target))
 
     def get_data(self):
+        print("GET_DATA gen", self.pattern)
         return np.array(self.pattern)
