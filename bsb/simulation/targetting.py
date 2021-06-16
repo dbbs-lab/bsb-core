@@ -1,5 +1,6 @@
 import random, numpy as np
 from ..exceptions import *
+from itertools import chain
 
 
 class TargetsNeurons:
@@ -133,6 +134,24 @@ class TargetsNeurons:
 
     def _targets_by_id(self):
         return self.targets
+
+    def _targets_by_label(self):
+        frac = getattr(self, "cell_fraction", None)
+        count = getattr(self, "cell_count", None)
+        all_labels = map(chain, map(self.scaffold.get_labels, self.labels))
+        targets = []
+        for label in all_labels:
+            labelled = self.scaffold.labels[label]
+            total = len(labelled)
+            if frac is not None:
+                n = np.ceil(frac * total)
+            elif count is not None:
+                n = count
+            else:
+                n = total
+            n = max(0, min(n, total))
+            targets.extend(random.sample(labelled, n))
+        return targets
 
     def get_targets(self):
         """

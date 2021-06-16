@@ -273,16 +273,15 @@ class Scaffold:
             if i > 0:
                 self.reset_network_cache()
             t = time.time()
-            self.place_cell_types()
-            self.run_after_placement_hooks()
-            if output:
-                self.compile_output()
-            self.connect_cell_types()
-            self.run_after_connectivity_hooks()
-            times[i] = time.time() - t
-
-            if output:
-                self.compile_output()
+            for step in (
+                self.place_cell_types,
+                self.run_after_placement_hooks,
+                self.connect_cell_types,
+                self.run_after_connectivity_hooks,
+            ):
+                step()
+                if output:
+                    self.compile_output()
 
             for type in self.configuration.cell_types.values():
                 if type.entity:
