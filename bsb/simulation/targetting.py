@@ -138,7 +138,7 @@ class TargetsNeurons:
     def _targets_by_label(self):
         frac = getattr(self, "cell_fraction", None)
         count = getattr(self, "cell_count", None)
-        all_labels = map(chain, map(self.scaffold.get_labels, self.labels))
+        all_labels = chain(*map(self.scaffold.get_labels, self.labels))
         targets = []
         for label in all_labels:
             labelled = self.scaffold.labels[label]
@@ -150,7 +150,7 @@ class TargetsNeurons:
             else:
                 n = total
             n = max(0, min(n, total))
-            targets.extend(random.sample(labelled, n))
+            targets.extend(random.sample(list(labelled), n))
         return targets
 
     def get_targets(self):

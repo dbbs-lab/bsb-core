@@ -1,5 +1,15 @@
 # 3.7
 
+## 3.7.7
+
+* Fixed broken on release `by_label` targetting
+* `mouse_cerebellum_cortex.json` is now scalable and ID-free.
+
+## 3.7.6
+
+* Added `by_label` targetting mechanism
+* Changed `mouse_cerebellum_cortex.json` to avoid the use of concrete IDs
+
 ## 3.7.5
 
 * Cell IDs persistently increment across Python sessions.

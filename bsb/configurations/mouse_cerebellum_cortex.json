@@ -1,9 +1,9 @@
 {
-  "name": "DBBS NEURON simulator configuration",
+  "name": "Mouse cerebellum cortex",
   "output": {
     "format": "bsb.output.HDF5Formatter",
     "morphology_repository": "morphologies.hdf5",
-    "file": "300x_200z.hdf5"
+    "file": "mouse_cerebellum_cortex.hdf5"
   },
   "network_architecture": {
     "simulation_volume_x": 300.0,
@@ -328,10 +328,10 @@
     }
   },
   "simulations": {
-    "stim_on_MFs": {
+    "sensory_burst": {
       "simulator": "neuron",
       "resolution": 0.025,
-      "duration": 10000,
+      "duration": 2000,
       "temperature": 32,
       "cell_models": {
         "glomerulus": {
@@ -426,7 +426,7 @@
           "synapses": ["AMPA", "AMPA_PF"],
           "parameters": {
             "noise": true,
-            "start": 200,
+            "start": 5000,
             "interval": 5,
             "number": 20,
             "sd": 5
@@ -441,7 +441,7 @@
           "synapses": ["AMPA"],
           "parameters": {
             "noise": true,
-            "start": 200,
+            "start": 5000,
             "interval": 2.5,
             "number": 40,
             "sd": 10
@@ -450,13 +450,13 @@
         "initial_mf": {
           "io": "input",
           "device": "spike_generator",
-          "targetting": "by_id",
-          "targets": [229,213, 221, 228, 197, 270, 193, 273],
+          "targetting": "cell_type",
           "cell_types": ["mossy_fibers"],
+          "cell_fraction": 0.5,
           "synapses": [],
           "parameters": {
             "noise": true,
-            "start": 200,
+            "start": 5000,
             "interval": 30,
             "number": 2,
             "sd": 2
@@ -481,7 +481,7 @@
           "targetting": "by_label",
           "labels": ["central_mossy_fibers"],
           "synapses": [],
-          "spike_times": [1100.0, 1103.0, 1106.0, 1131.0, 1151.0]
+          "spike_times": [6000.0, 6003.0, 6006.0, 6012.0, 6020.0]
         },
         "mossy_fiber_input_sync_imp": {
           "io": "input",
