@@ -742,9 +742,9 @@ class LocationRecorder(SimulationRecorder):
 
     def get_data(self):
         if self.time_recorder:
-            return np.hstack((np.array(self.recorder), np.array(self.time_recorder)))
+            return np.column_stack((list(self.recorder), list(self.time_recorder)))
         else:
-            return np.array(self.recorder)
+            return np.array(list(self.recorder))
 
     def get_meta(self):
         return self.meta
@@ -763,4 +763,4 @@ class TargetLocation:
 class SpikeRecorder(LocationRecorder):
     def get_data(self):
         recording = np.array(list(self.recorder))
-        return np.vstack((np.ones(recording.shape) * self.id, recording)).T
+        return np.column_stack((np.ones(recording.shape) * self.id, recording)).T

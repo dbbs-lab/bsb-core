@@ -960,8 +960,8 @@ class SpikeRecorder(SimulationRecorder):
                         self.device_model.adapter.get_scaffold_ids(file_spikes[:, 0])
                     )
                     times = file_spikes[:, 1]
-                    scaffold_spikes = np.vstack((scaffold_ids, times)).T
-                    spikes = np.vstack((spikes, scaffold_spikes))
+                    scaffold_spikes = np.column_stack((scaffold_ids, times)).T
+                    spikes = np.column_stack((spikes, scaffold_spikes))
                 os.remove(file)
         return spikes
 
