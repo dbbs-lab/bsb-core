@@ -581,9 +581,12 @@ class NeuronAdapter(SimulatorAdapter):
         terminal_relays = {}
         intermediate_relays = {}
         output_handler = self.scaffold.output_formatter
+        cell_types = self.scaffold.get_cell_types()
         type_lookup = {
-            ct.name: range(min(ids := ct.get_placement_set().identifiers), max(ids) + 1)
-            for ct in self.scaffold.get_cell_types()
+            ct.name: range(min(ids), max(ids) + 1)
+            for ct, ids in zip(
+                cell_types, (ct.get_placement_set().identifiers for ct in cell_types)
+            )
         }
 
         def lookup(i):
