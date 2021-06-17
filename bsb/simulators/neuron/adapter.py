@@ -763,6 +763,19 @@ class TargetLocation:
 
 class SpikeRecorder(LocationRecorder):
     def get_data(self):
-        print("GET_DATA SPIKES", self.recorder)
-        recording = np.array(self.recorder)
+        from mpi4py import MPI
+
+        print(
+            f"--- Spike recorder report ({MPI.COMM_WORLD.Get_rank()})",
+            "\n",
+            "GET_DATA SPIKES",
+            self.recorder,
+            type(self.recorder),
+            "\n",
+            self.__dict__,
+            len(self.recorder),
+            "--- EOF ---",
+            flush=True,
+        )
+        recording = np.array(list(self.recorder))
         return np.vstack((np.ones(recording.shape) * self.id, recording)).T
