@@ -55,7 +55,6 @@ class _IonicRecorder(PresetPathMixin, PresetMetaMixin, SimulationRecorder):
         self.vectors = self._record(ion, section(0.5))
 
     def get_data(self):
-        print("GET_DATA ION", self.vectors)
         signal = []
         for v in self.vectors:
             signal.extend(v)
