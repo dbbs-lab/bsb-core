@@ -28,12 +28,15 @@ class ArborCell(SimulationCell):
     node_name = "simulations.?.cell_models"
 
     def validate(self):
-        if not self.relay and _has_arbor:
+        if _has_arbor and not self.relay:
             self.model_class = get_configurable_class(self.model)
 
     def get_description(self):
         print("Create cable cell for", self.name)
-        return self.model_class.cable_cell()
+        if not self.relay:
+            return self.model_class.cable_cell()
+        else:
+            return arbor.spike_source_cell()
 
 
 class ArborDevice(SimulationCell):
@@ -50,8 +53,10 @@ class QuickContains:
         self._ps = ps
         self._type = ps.type
         if cell_model.relay or ps.type.entity:
+            print("Adding", cell_model.name, "spike source")
             self._kind = arbor.cell_kind.spike_source
         else:
+            print("Adding", cell_model.name, "cable")
             self._kind = arbor.cell_kind.cable
         self._ranges = [
             (start, start + count)
@@ -87,6 +92,10 @@ class ArborRecipe(arbor.recipe):
     def __init__(self, adapter):
         super().__init__()
         self._adapter = adapter
+        self._catalogue = arbor.default_catalogue()
+        self._catalogue.extend(arbor.dbbs_catalogue(), "")
+        self._global_properties = arbor.neuron_cable_properties()
+        self._global_properties.register(self._catalogue)
         self._lookup = QuickLookup(adapter)
 
     def num_cells(self):
@@ -111,6 +120,9 @@ class ArborRecipe(arbor.recipe):
         print("Looking for models")
         model = self._lookup.lookup_model(gid)
         return model.get_description()
+
+    def global_properties(self, kind):
+        return self._global_properties
 
 
 class ArborAdapter(SimulatorAdapter):
