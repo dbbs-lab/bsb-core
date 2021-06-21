@@ -947,7 +947,9 @@ class PSTHRow:
 
 
 @_figure
-def hdf5_plot_psth(network, handle, duration=3, cutoff=0, start=0, fig=None, **kwargs):
+def hdf5_plot_psth(
+    network, handle, duration=3, cutoff=0, start=0, fig=None, gaps=True, **kwargs
+):
     psth = PSTH()
     row_map = {}
     for g in handle.values():
@@ -985,6 +987,8 @@ def hdf5_plot_psth(network, handle, duration=3, cutoff=0, start=0, fig=None, **k
         _max = max(_max, row.max)
     fig.update_xaxes(range=[start, _max])
     fig.update_layout(title_text=kwargs.get("title", "PSTH"))
+    if not gaps:
+        fig.update_layout(bargap=0, bargroupgap=0)
     cell_types = network.get_cell_types()
     for i, row in enumerate(psth.ordered_rows()):
         for name, stack in sorted(row.stacks.items(), key=lambda x: x[0]):
@@ -1005,11 +1009,15 @@ def hdf5_plot_psth(network, handle, duration=3, cutoff=0, start=0, fig=None, **k
                 # Lazy way to order the stacks; Stack names can start with ## and a number
                 # and it will be sorted by name, but the ## and number are not displayed.
                 name = name[4:]
+            bar_kwargs = dict()
+            if not gaps:
+                bar_kwargs["marker_line_width"] = 0
             trace = go.Bar(
                 x=bins,
                 y=counts / cell_num * 1000 / duration,
                 name=name or row.name,
                 marker=dict(color=stack.color),
+                **bar_kwargs,
             )
             fig.add_trace(trace, row=i + 1, col=1)
 
