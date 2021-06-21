@@ -1,3 +1,16 @@
+# 3.8 - Added a bit of love for the NEURON adapter
+
+* Added a `voltage_clamp` NEURON device.
+* Fixed NEURON adapter's `index_relays` for targetless relays.
+* Added `branch.children`.
+* Added `cell_type.get_placement_set`.
+* Added `get_result_config`.
+* Added a `--version` command to the CLI.
+* The `time` recorder for NEURON simulations is fixed.
+* BREAKING: NEURON devices will by default target all sections instead of 1
+  soma section.
+* BREAKING: `section_type` changed to `section_types` list for devices.
+
 # 3.7
 
 ## 3.7.7
