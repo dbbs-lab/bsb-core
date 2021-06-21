@@ -51,7 +51,7 @@ setuptools.setup(
     },
     extras_require={
         "dev": ["sphinx", "furo", "pre-commit", "black==20.8b1"],
-        "neuron": ["NEURON>=7.8.2", "dbbs_models>=1.5.0rc0", "nrn-patch>=3.0.0b5"],
+        "neuron": ["NEURON>=7.8.2", "dbbs_models>=1.5.0rc0", "nrn-patch>=3.0.0b7"],
         "mpi": ["mpi4py"],
     },
 )

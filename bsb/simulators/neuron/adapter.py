@@ -87,6 +87,7 @@ class NeuronDevice(TargetsNeurons, TargetsSections, SimulationComponent):
     device_types = [
         "spike_generator",
         "current_clamp",
+        "voltage_clamp",
         "spike_recorder",
         "voltage_recorder",
         "synapse_recorder",
