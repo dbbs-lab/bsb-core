@@ -36,7 +36,7 @@ class ArborCell(SimulationCell):
         if not self.relay:
             return self.model_class.cable_cell()
         else:
-            return arbor.spike_source_cell()
+            return arbor.spike_source_cell(arbor.explicit_schedule([]))
 
 
 class ArborDevice(SimulationCell):
@@ -95,6 +95,15 @@ class ArborRecipe(arbor.recipe):
         self._catalogue = arbor.default_catalogue()
         self._catalogue.extend(arbor.dbbs_catalogue(), "")
         self._global_properties = arbor.neuron_cable_properties()
+        self._global_properties.set_property(Vm=-65, tempK=300, rL=35.4, cm=0.01)
+        self._global_properties.set_ion(ion="na", int_con=10, ext_con=140, rev_pot=50)
+        self._global_properties.set_ion(ion="k", int_con=54.4, ext_con=2.5, rev_pot=-77)
+        self._global_properties.set_ion(
+            ion="ca", int_con=0.0001, ext_con=2, rev_pot=132.5
+        )
+        self._global_properties.set_ion(
+            ion="h", valence=1, int_con=1.0, ext_con=1.0, rev_pot=-34
+        )
         self._global_properties.register(self._catalogue)
         self._lookup = QuickLookup(adapter)
 
@@ -138,24 +147,19 @@ class ArborAdapter(SimulatorAdapter):
         pass
 
     def prepare(self):
-        print("context")
         context = arbor.context()
-        print("recipe")
         recipe = self.get_recipe()
-        print("domains")
         domains = arbor.partition_load_balance(recipe, context)
-        print("simulate")
         return arbor.simulation(recipe, domains, context)
 
     def simulate(self, simulation):
-        print("in simulate")
         simulation.record(arbor.spike_recording.all)
-        self.sampler = simulation.sample((0, 0), arbor.regular_schedule(0.1))
+        # self.sampler = simulation.sample((0, 0), arbor.regular_schedule(0.1))
         simulation.run(tfinal=5000)
 
     def collect_output(self, simulation):
         spikes = simulation.spikes()
-        data, meta = simulation.samples(handle)[0]
+        # data, meta = simulation.samples(self.sampler)[0]
 
     def get_recipe(self):
         return ArborRecipe(self)
