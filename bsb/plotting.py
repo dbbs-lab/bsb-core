@@ -676,7 +676,7 @@ def hdf5_plot_spike_raster(
     # Use the parallel arrays x & y to plot a spike raster
     fig = go.Figure(
         layout=dict(
-            xaxis=dict(title_text="Time (ms)"), yaxis=dict(title_text="Cell (ID)")
+            xaxis=dict(title_text="Time [ms]"), yaxis=dict(title_text="Cell [ID]")
         )
     )
     if cell_type_sort is None:
@@ -852,8 +852,8 @@ def plot_traces(
         cols=1,
         rows=len(traces),
         subplot_titles=[trace.title for trace in traces],
-        x_title="Time (ms)",
-        y_title="Membrane potential (mV)",
+        x_title="Time [ms]",
+        y_title="Membrane potential [mV]",
         **kwargs,
     )
     # Save the data already in the given figure
@@ -969,8 +969,8 @@ def hdf5_plot_psth(
         cols=1,
         rows=len(psth.rows),
         subplot_titles=[row.name for row in psth.ordered_rows()],
-        x_title=kwargs.get("x_title", "Time (ms)"),
-        y_title=kwargs.get("y_title", "Population firing rate (Hz)"),
+        x_title=kwargs.get("x_title", "Time [ms]"),
+        y_title=kwargs.get("y_title", "Population firing rate [Hz]"),
     )
     for k in dir(subplots_fig):
         if k == "data" or k == "_data":
