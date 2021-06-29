@@ -954,6 +954,8 @@ def hdf5_plot_psth(
     row_map = {}
     for g in handle.values():
         l = g.attrs.get("label", "unlabelled")
+        if l in network.configuration.cell_types:
+            l = network.configuration.cell_types[l].plotting.label
         if l not in row_map:
             color = g.attrs.get("color", None)
             order = g.attrs.get("order", 0)
