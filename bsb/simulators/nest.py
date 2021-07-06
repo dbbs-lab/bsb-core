@@ -959,12 +959,14 @@ class SpikeRecorder(SimulationRecorder):
                     scaffold_ids = np.array(
                         self.device_model.adapter.get_scaffold_ids(file_spikes[:, 0])
                     )
-                    self.cell_types = set(
-                        self.device_model.adapter.scaffold.get_gid_types(scaffold_ids)
+                    self.cell_types = list(
+                        set(
+                            self.device_model.adapter.scaffold.get_gid_types(scaffold_ids)
+                        )
                     )
                     times = file_spikes[:, 1]
-                    scaffold_spikes = np.column_stack((scaffold_ids, times)).T
-                    spikes = np.column_stack((spikes, scaffold_spikes))
+                    scaffold_spikes = np.column_stack((scaffold_ids, times))
+                    spikes = np.concatenate((spikes, scaffold_spikes))
                 os.remove(file)
         return spikes
 

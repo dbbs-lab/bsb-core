@@ -15,7 +15,6 @@ class SimulationResult:
         return recorder
 
     def collect(self):
-        print("recorders check:", self.recorders)
         for recorder in self.recorders:
             yield recorder.get_path(), recorder.get_data(), recorder.get_meta()
 
