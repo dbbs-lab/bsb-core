@@ -893,6 +893,22 @@ class Scaffold:
             )
         return self.cells[id, 2:5]
 
+    def get_gid_types(self, ids):
+        """
+        Return the cell type of each gid
+        """
+        all_ps = {
+            ct: self.get_placement_set(ct).identifiers
+            for ct in self.configuration.cell_types.values()
+        }
+
+        def lookup(id):
+            for ct, ps in all_ps.items():
+                if id in ps:
+                    return ct
+
+        return np.vectorize(lookup)(ids)
+
     def get_cell_positions(self, selector):
         """
         Return the positional data of the selected cells in the network cache.
