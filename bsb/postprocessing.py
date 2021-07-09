@@ -152,6 +152,44 @@ class DCNRotations(PostProcessingHook):
         self.scaffold.append_dset("cells/dcn_orientations", data=matrix)
 
 
+class DCN_large_differentiation(PostProcessingHook):
+    """
+    Extract from the overall DCN glutamate large cells (GADnL) 2 subpopulations that
+    are involved in the construction of the NucleoCortical pathways
+    """
+
+    def after_placement(self):
+        ids = self.scaffold.get_cells_by_type("dcn_cell_glut_large")[:, 0]
+        total_NC = int((0.47 + 0.09) * len(ids))
+        NC_same_modulus = int(
+            0.09 * len(ids)
+        )  # only NC cells projecting to the cerebellar cortex of the same modulus (inverse or forward)
+
+        NC_ids = np.sort(
+            np.random.choice(ids, total_NC, replace=False)
+        )  # ALL NucleoCortical cells
+        same_mod_NC_ids = np.sort(
+            np.random.choice(NC_ids, NC_same_modulus, replace=False)
+        )
+        opposite_mod_NC_ids = [i for i in NC_ids if i not in same_mod_NC_ids]
+
+        report(
+            "{} DCN cells glutamate large divided into NC subpopulations: {} toward same module, {} interconnect modules".format(
+                len(ids), len(same_mod_NC_ids), len(opposite_mod_NC_ids)
+            ),
+            level=3,
+        )
+
+        self.scaffold.label_cells(
+            same_mod_NC_ids,
+            label="same_module",
+        )
+        self.scaffold.label_cells(
+            opposite_mod_NC_ids,
+            label="opposite_module",
+        )
+
+
 class SpoofDetails(PostProcessingHook):
     """
     Create fake morphological intersections between already connected non-detailed
