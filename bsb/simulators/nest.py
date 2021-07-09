@@ -157,7 +157,10 @@ class NestConnection(SimulationComponent):
         # Add the receptor specifications, if required.
         if self.should_specify_receptor_type():
             # If specific receptors are specified, the weight should always be positive.
-            params["weight"] = np.abs(params["weight"])
+            if not isinstance(
+                params["weight"], dict
+            ):  # To allow weight distributions in addition to single values
+                params["weight"] = np.abs(params["weight"])
             if "Wmax" in params:
                 params["Wmax"] = np.abs(params["Wmax"])
             if "Wmin" in params:
@@ -459,16 +462,28 @@ class NestAdapter(SimulatorAdapter):
                 # Use time as random seed
                 if mpi4py.MPI.COMM_WORLD.rank == 0:
                     fixed_seed = int(time.time())
+                    if hasattr(self, "mpi_processes"):
+                        n_process = self.mpi_processes
+                    else:
+                        n_process = _MPI_processes
+                    for i in range(1, n_process):
+                        mpi4py.MPI.COMM_WORLD.send(fixed_seed, dest=i)
                 else:
-                    fixed_seed = None
-                self._master_seed = mpi4py.MPI.COMM_WORLD.bcast(fixed_seed, root=0)
+                    # fixed_seed = None
+                    fixed_seed = mpi4py.MPI.COMM_WORLD.recv(source=0)
+                self._master_seed = fixed_seed
+                # self._master_seed = mpi4py.MPI.COMM_WORLD.bcast(fixed_seed, root=0)
             else:
                 self._master_seed = fixed_seed
         return self._master_seed
 
     def reset_processes(self, threads):
         master_seed = self.get_master_seed()
-        total_num = _MPI_processes * threads
+
+        if hasattr(self, "mpi_processes"):
+            total_num = self.mpi_processes * threads
+        else:
+            total_num = _MPI_processes * threads
         # Create a range of random seeds and generators.
         random_generator_seeds = range(master_seed, master_seed + total_num)
         # Create a different range of random seeds for the kernel.
@@ -553,7 +568,14 @@ class NestAdapter(SimulatorAdapter):
                                     path, "{} {}".format(data.dtype, data.shape)
                                 )
                             )
-        mpi4py.MPI.COMM_WORLD.bcast(result_path, root=0)
+                if hasattr(self, "mpi_processes"):
+                    n_process = self.mpi_processes
+                else:
+                    n_process = _MPI_processes
+                for i in range(1, n_process):
+                    mpi4py.MPI.COMM_WORLD.send(result_path, dest=i)
+        else:
+            result_path = mpi4py.MPI.COMM_WORLD.recv(source=0)
         return result_path
 
     def validate(self):
@@ -787,7 +809,10 @@ class NestAdapter(SimulatorAdapter):
         Create the configured NEST devices in the simulator
         """
         for device_model in self.devices.values():
-            device_model.protocol.before_create()
+            if hasattr(self, "mpi_processes"):
+                device_model.protocol.before_create(self.mpi_processes)
+            else:
+                device_model.protocol.before_create(_MPI_processes)
             device = self.nest.Create(device_model.device)
             report("Creating device:  " + device_model.device, level=3)
             # Execute SetStatus and catch DictError
@@ -982,7 +1007,7 @@ class DeviceProtocol:
     def __init__(self, device):
         self.device = device
 
-    def before_create(self):
+    def before_create(self, mpi_processes):
         pass
 
     def after_create(self, id):
@@ -990,7 +1015,7 @@ class DeviceProtocol:
 
 
 class SpikeDetectorProtocol(DeviceProtocol):
-    def before_create(self):
+    def before_create(self, mpi_processes):
         if "label" not in self.device.parameters:
             raise ConfigurationError(
                 "Required `label` missing in spike detector '{}' parameters.".format(
@@ -998,7 +1023,11 @@ class SpikeDetectorProtocol(DeviceProtocol):
                 )
             )
         device_tag = str(_randint())
-        device_tag = mpi4py.MPI.COMM_WORLD.bcast(device_tag, root=0)
+        if mpi4py.MPI.COMM_WORLD.rank == 0:
+            for i in range(1, mpi_processes):
+                mpi4py.MPI.COMM_WORLD.send(device_tag, dest=i)
+        else:
+            device_tag = mpi4py.MPI.COMM_WORLD.recv(source=0)
         self.device.parameters["label"] += device_tag
         if mpi4py.MPI.COMM_WORLD.rank == 0:
             self.device.adapter.result.add(SpikeRecorder(self.device))
