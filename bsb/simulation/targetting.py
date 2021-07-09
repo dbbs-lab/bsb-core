@@ -101,7 +101,7 @@ class TargetsNeurons:
             if t.entity:
                 ids = self.scaffold.get_entities_by_type(t.name)
             else:
-                ids = self.scaffold.get_cells_by_type(t.name)[:, 0]
+                ids = self.scaffold.get_placement_set(t.name).identifiers
         n = len(ids)
         # Use the `cell_fraction` or `cell_count` attribute to determine what portion of
         # the selected ids to exclude.
