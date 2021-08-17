@@ -452,6 +452,8 @@ class NestAdapter(SimulatorAdapter):
         self.global_identifier_map = {}
         for cell_model in self.cell_models.values():
             cell_model.reset()
+        if self.has_lock:
+            self.release_lock()
 
     def get_master_seed(self, fixed_seed=None):
         if not hasattr(self, "_master_seed"):
