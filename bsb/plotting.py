@@ -954,10 +954,22 @@ def hdf5_plot_psth(
     row_map = {}
     for g in handle.values():
         l = g.attrs.get("label", "unlabelled")
-        if l in network.configuration.cell_types:
-            l = network.configuration.cell_types[l].plotting.label
+        cts = g.attrs.get("cell_types", [])
+        color = None
+        if cts:
+            if len(cts) > 1:
+                warn(
+                    "Multiple cell types detected in a single dataset, can't perform proper PSTH"
+                )
+            ct = network.configuration.cell_types[cts[0]]
+            l = ct.plotting.label
+            color = ct.plotting.color
+        elif l in network.configuration.cell_types:
+            ct = network.configuration.cell_types[l]
+            l = ct.plotting.label
+            color = ct.plotting.color
         if l not in row_map:
-            color = g.attrs.get("color", None)
+            color = g.attrs.get("color", color)
             order = g.attrs.get("order", 0)
             row_map[l] = row = PSTHRow(l, color, order=order)
             psth.add_row(row)
