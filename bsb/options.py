@@ -46,12 +46,14 @@ def _get_tag(tag):
 
 class OptionsModule(types.ModuleType):
     def __getattr__(self, attr):
-        if attr in ["__path__", "__warningregistry__"]:
+        if attr in ["__path__", "__warningregistry__", "__qualname__"]:
             # __path__:
             # Python uses `hasattr(module, '__path__')` to see if a module is a package
             # so we need to raise an AttributeError to make `hasattr` return False.
             # __warningregistry__:
             # The `unittest` module checks existence.
+            # __qualname__:
+            # is inspected by sphinx.
             raise super().__getattribute__(attr)
         return self.get_module_option(attr)
 
