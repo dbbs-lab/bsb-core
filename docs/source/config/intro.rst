@@ -94,11 +94,12 @@ For more information on creating your own configuration nodes see :doc:`module/n
 JSON Parser
 ###########
 
-The BSB uses a json parser with some extras. The parser has 2 special mechanisms, JSON
-references and JSON imports. This allows parts of the configuration file to be reusable
-across documents and to compose the document from prefab blocks where only some key
-aspects are adjusted. For example, an entire simulation protocol could be imported and the
-start and stop time of a stimulus adjusted::
+The BSB uses a json parser with some extras. The parser has 2 special
+mechanisms, JSON references and JSON imports. This allows parts of the
+configuration file to be reusable across documents and to compose the document
+from prefab blocks where only some key aspects are adjusted. For example, an
+entire simulation protocol could be imported and the start and stop time of a
+stimulus adjusted::
 
   {
     "simulations": {
@@ -114,9 +115,9 @@ start and stop time of a stimulus adjusted::
     }
   }
 
-This would import the entire JSON document under ``/simulations/twin_pulse`` from the file
-``premade_simulations.json`` and only overwrite the ``start`` and ``stop`` time of the
-``pulse1`` device.
+This would import ``/simulations/twin_pulse`` from the
+``premade_simulations.json`` JSON document and overwrite the ``start`` and
+``stop`` time of the ``pulse1`` device.
 
 See :doc:`/config/parsers/json` to read more on the JSON parser.
 
