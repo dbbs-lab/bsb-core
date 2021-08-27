@@ -86,12 +86,12 @@ Let's begin by adding a ``cortex`` region, with a ``base_layer``:
 
   {
     "regions": {
-			"cortex": {
-				"origin": [0.0, 0.0, 0.0]
+      "cortex": {
+        "origin": [0.0, 0.0, 0.0]
 			}
     },
     "partitions": {
-			"base_layer": {
+      "base_layer": {
 	      "thickness": 600,
 	      "region": "cortex",
 	      "z_index": 0
