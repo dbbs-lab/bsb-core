@@ -57,14 +57,13 @@ you want or you can continue to use some of the BSB blendins:
   network = bsb.core.from_hdf5("mynetwork.hdf5")
   # Blend the network into the current scene under the name `scaffold`
   network.for_blender().blend(bpy.context.scene, "scaffold")
-  # Load all cell types
-  network.load_populations()
-  # Or, if you'd like to use the populations:
+  # Load all cell types into the blender scene
   populations = network.get_populations()
   cells = itertools.chain(*(p.cells for p in populations.values()))
   # Use the 'pulsar' animation to animate all cells with the simulation results
   with h5py.File("my_results.hdf5", "r") as f:
-    network.animate.pulsar(f, cells)
+    # Animate the simulation's spikes
+    network.animate.pulsar(f["recorders/soma_spikes"], cells)
 
 .. note::
 

@@ -15,51 +15,77 @@ To start, let's create ourselves a project directory and a template configuratio
   cd my_brain
   bsb make-config
 
-This should produce a template configuration with a single layer and cell type in it. You
-can generate a network from it using the compile command::
+See :doc:`/usage/cli` for a full list of CLI commands.
+
+The ``make-config`` command makes a template configuration file:
+
+.. code-block:: json
+
+  {
+    "name": "Empty template",
+    "network_architecture": {
+      "simulation_volume_x": 400.0,
+      "simulation_volume_z": 400.0
+    },
+    "output": {
+      "format": "bsb.output.HDF5Formatter"
+    },
+    "layers": {
+      "base_layer": {
+        "thickness": 100
+      }
+    },
+    "cell_types": {
+      "base_type": {
+        "placement": {
+          "class": "bsb.placement.ParticlePlacement",
+          "layer": "base_layer",
+          "soma_radius": 2.5,
+          "density": 3.9e-4
+        },
+        "morphology": {
+          "class": "bsb.morphologies.NoGeometry"
+        },
+        "plotting": {
+          "display_label": "Template cell",
+          "color": "#E62314",
+          "opacity": 0.5
+        }
+      }
+    },
+    "after_placement": {
+
+    },
+    "connection_types": {
+
+    },
+    "after_connectivity": {
+
+    },
+    "simulations": {
+
+    }
+  }
+
+The configuration is laid out to be as self explanatory as possible. For a full
+walkthrough of all parts see the :doc:`/configuration`.
+
+To convert the abstract description in the configuration file into a concrete
+network file with cell positions and connections run the ``compile`` command::
 
   bsb -c network_configuration.json compile -p
 
 .. note::
 
 	You can leave off the ``-c`` (or ``--config``) flag in this case as
-	``network_configuration.json`` is the default config that ``bsb compile`` will look for.
-	The ``-p`` (or ``--plot``) flag will plot your network afterwards
-
-You can explore the structure of the generated output by analysing it with the
-bsb shell or an HDF5 viewer like HDFCompass or HDFViewer. Open the bsb shell like this::
-
-  bsb
-
-You can now open and view the output HDF5 file like this::
-
-  open hdf5 <name>.hdf5
-  view
-
-.. note::
-  By default the output file will be named ``scaffold_network`` followed by
-  a timestamp.
-
-This will print out the datasets and attributes in the output file. Most notably
-this should give you access to the cell positions and connections.
-
-See :doc:`/usage/cli` for a full guide.
-
-The scaffold exposes many general circuit builder features through a JSON configuration
-interface. By adapting values in the configuration a wide range of networks can be
-obtained. Extending the template coonfiguration with new cell types can be achieved by
-adding new cell type and connection configuration objects to the configuration file.
-
-See :doc:`/configuration` for more on the configuration interface. Complex
-brain scaffolds can be constructed purely using these files, but there might be
-cases where it isn't enough, that's why it's also possible to augment the
-configuration with Python scripting.
+	``network_configuration.json`` is the default config that ``bsb compile`` will
+	look for. The ``-p`` (or ``--plot``) flag will plot your network afterwards
 
 ============
 First script
 ============
 
-The package is a library that can be imported into Python scripts. You can load
+The BSB is also a library that can be imported into Python scripts. You can load
 configurations and adapt the loaded object before constructing a network with it to
 programmatically alter the network structure.
 
