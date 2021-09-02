@@ -195,8 +195,15 @@ Defining simulations
         "default_neuron_model": "iaf_cond_alpha",
         "default_synapse_model": "static_synapse",
         "duration": 1000.0,
+        "resolution": 0.1,
         "modules": ["my_extension_module"],
         "cell_models": {
+
+        },
+        "connection_models": {
+
+        },
+        "devices": {
 
         }
       }
@@ -521,7 +528,9 @@ densities of Purkinje cells.
 To use the scaffold in your script you should import the :class:`bsb.core.Scaffold`
 and construct a new instance by passing it a :class:`bsb.config.Configuration`.
 To load a configuration file, you can use the ``bsb.config.from_<type>`` functions,
-by default the BSB provides a :func:`~bsb.config.from_json` to load JSON files::
+by default the BSB provides a :func:`~bsb.config.from_json` to load JSON files:
+
+.. code-block:: python
 
   from bsb.core import Scaffold
   from bsb.config import from_json
@@ -535,7 +544,9 @@ by default the BSB provides a :func:`~bsb.config.from_json` to load JSON files::
 .. note::
   The verbosity is 1 by default, which only displays errors.
 
-Let's find the purkinje cell configuration::
+Let's find the purkinje cell configuration:
+
+.. code-block:: python
 
   purkinje = scaffold.cell_types.purkinje_cell
 	# or
@@ -553,7 +564,9 @@ the configuration file. This means that::
     ...
   }
 
-will be stored in the Python object under ``purkinje.placement.planar_density``::
+will be stored in the Python object under ``purkinje.placement.planar_density``:
+
+.. code-block:: python
 
   max_density = purkinje.placement.planar_density
   for i in range(5):
@@ -569,7 +582,7 @@ will be stored in the Python object under ``purkinje.placement.planar_density``:
 Full code example
 -----------------
 
-::
+.. code-block:: python
 
   from bsb.core import Scaffold
   from bsb.config import from_json
