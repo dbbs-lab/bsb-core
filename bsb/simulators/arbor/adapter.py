@@ -74,7 +74,7 @@ class QuickContains:
         ]
 
     def __contains__(self, i):
-        return any(i >= start and i <= stop for start, stop in self._ranges)
+        return any(i >= start and i < stop for start, stop in self._ranges)
 
 
 class QuickLookup:
