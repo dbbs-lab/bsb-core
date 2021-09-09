@@ -9,8 +9,10 @@ from ...simulation import (
 )
 from ...reporting import report, warn
 from ...exceptions import *
-from ...helpers import continuity_list, continuity_hop, get_configurable_class
+from ...helpers import continuity_hop, get_configurable_class
 import numpy as np
+import itertools
+from mpi4py.MPI import COMM_WORLD as mpi
 
 try:
     import arbor
@@ -33,12 +35,20 @@ class ArborCell(SimulationCell):
         if _has_arbor and not self.relay:
             self.model_class = get_configurable_class(self.model)
 
-    def get_description(self):
-        print("Create cable cell for", self.name)
+    def get_description(self, gid):
         if not self.relay:
-            return self.model_class.cable_cell()
+            cell_decor = self.create_decor(gid)
+            return self.model_class.cable_cell(decor=cell_decor)
         else:
             return arbor.spike_source_cell(arbor.explicit_schedule([]))
+
+    def create_decor(self, gid):
+        decor = arbor.decor()
+        self._soma_detector(decor)
+        return decor
+
+    def _soma_detector(self, decor):
+        decor.place("(root)", arbor.spike_detector(-10))
 
 
 class ArborDevice(SimulationCell):
@@ -55,10 +65,8 @@ class QuickContains:
         self._ps = ps
         self._type = ps.type
         if cell_model.relay or ps.type.entity:
-            print("Adding", cell_model.name, "spike source")
             self._kind = arbor.cell_kind.spike_source
         else:
-            print("Adding", cell_model.name, "cable")
             self._kind = arbor.cell_kind.cable
         self._ranges = [
             (start, start + count)
@@ -124,13 +132,15 @@ class ArborRecipe(arbor.recipe):
         print("alive")
         return s
 
+    def num_sources(self, gid):
+        return 1 if self._lookup.lookup_kind(gid) == arbor.cell_kind.cable else 0
+
     def cell_kind(self, gid):
         return self._lookup.lookup_kind(gid)
 
     def cell_description(self, gid):
-        print("Looking for models")
         model = self._lookup.lookup_model(gid)
-        return model.get_description()
+        return model.get_description(gid)
 
     def global_properties(self, kind):
         return self._global_properties
