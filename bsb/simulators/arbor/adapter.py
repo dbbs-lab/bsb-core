@@ -145,6 +145,13 @@ class ArborRecipe(arbor.recipe):
     def global_properties(self, kind):
         return self._global_properties
 
+    def probes(self, gid):
+        return (
+            [arbor.cable_probe_membrane_voltage("(root)")]
+            if self._lookup.lookup_kind(gid) == arbor.cell_kind.cable
+            else []
+        )
+
 
 class ArborAdapter(SimulatorAdapter):
     simulator_name = "arbor"
