@@ -159,9 +159,19 @@ class ArborAdapter(SimulatorAdapter):
         pass
 
     def prepare(self):
-        context = arbor.context()
+        try:
+            context = arbor.context(arbor.proc_allocation(), mpi)
+        except TypeError:
+            if mpi.Get_size() > 1:
+                s = mpi.Get_size()
+                warn(
+                    f"Arbor does not seem to be built with MPI support, running duplicate simulations on {s} nodes."
+                )
+            context = arbor.context(arbor.proc_allocation())
         recipe = self.get_recipe()
         domains = arbor.partition_load_balance(recipe, context)
+        self.gids = set(itertools.chain(*(g.gids for g in domains.groups)))
+        print("prepared simulation, returning recipe")
         return arbor.simulation(recipe, domains, context)
 
     def simulate(self, simulation):
