@@ -36,7 +36,7 @@ class ArborCell(SimulationCell):
         if not self.relay:
             return self.model_class.cable_cell()
         else:
-            return arbor.spike_source_cell(arbor.explicit_schedule([]))
+            return arbor.spike_source_cell(self.name, arbor.explicit_schedule([]))
 
 
 class ArborDevice(SimulationCell):
@@ -93,7 +93,8 @@ class ArborRecipe(arbor.recipe):
         super().__init__()
         self._adapter = adapter
         self._catalogue = arbor.default_catalogue()
-        self._catalogue.extend(arbor.dbbs_catalogue(), "")
+        self._dbbs_catalogue = arbor.load_catalogue("dbbs-catalogue.so")
+        self._catalogue.extend(self._dbbs_catalogue, "")
         self._global_properties = arbor.neuron_cable_properties()
         self._global_properties.set_property(Vm=-65, tempK=300, rL=35.4, cm=0.01)
         self._global_properties.set_ion(ion="na", int_con=10, ext_con=140, rev_pot=50)
