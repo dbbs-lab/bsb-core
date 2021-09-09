@@ -117,6 +117,9 @@ class ArborRecipe(arbor.recipe):
         self._global_properties.register(self._catalogue)
         self._lookup = QuickLookup(adapter)
 
+    def global_properties(self, kind):
+        return self._global_properties
+
     def num_cells(self):
         network = self._adapter.scaffold
         print(
@@ -141,9 +144,6 @@ class ArborRecipe(arbor.recipe):
     def cell_description(self, gid):
         model = self._lookup.lookup_model(gid)
         return model.get_description(gid)
-
-    def global_properties(self, kind):
-        return self._global_properties
 
     def probes(self, gid):
         return (
