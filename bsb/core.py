@@ -893,6 +893,31 @@ class Scaffold:
             )
         return self.cells[id, 2:5]
 
+    def assert_continuity(self):
+        """
+        Assert that all PlacementSets consist of only 1 continuous stretch of IDs, and that all PlacementSets follow
+        each other without gaps, starting from zero.
+        """
+        beginnings = set()
+        ends = dict()
+        for ct in self.get_cell_types():
+            stretch = ct.get_placement_set().identifier_set.get_dataset()
+            assert len(
+                stretch
+            ), f"Discontinuities in `{ct.name}`: multiple ID stretches in a single placement set."
+            beginnings.add(stretch[0])
+            ends[ct.name] = stretch[0] + stretch[1]
+        assert 0 in beginnings, "Placement data does not start at ID 0."
+        loose_ends = []
+        for name, end in ends.items():
+            try:
+                beginnings.remove(end)
+            except KeyError:
+                loose_ends.append(name)
+        assert len(loose_ends) == 1, (
+            "Discontinuous ends detected: " + ", ".join(loose_ends) + "."
+        )
+
     def get_gid_types(self, ids):
         """
         Return the cell type of each gid
