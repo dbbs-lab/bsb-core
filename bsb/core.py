@@ -425,7 +425,7 @@ class Scaffold:
 
             # Add one granule cell at position 0, 0, 0
             cell_type = scaffold.get_cell_type("granule_cell")
-            scaffold.place_cells(cell_type, cell_type.layer_istance, [[0., 0., 0.]])
+            scaffold.place_cells(cell_type, cell_type.layer_instance, [[0., 0., 0.]])
 
         :param cell_type: The type of the cells to place.
         :type cell_type: :class:`.models.CellType`
@@ -468,6 +468,7 @@ class Scaffold:
             self.rotations[cell_type.name] = np.concatenate(
                 (self.rotations[cell_type.name], rotations)
             )
+        return cell_ids
 
     def _allocate_ids(self, count):
         # Allocate a set of unique cell IDs in the scaffold.
@@ -1013,6 +1014,19 @@ class Scaffold:
                 self.__dict__[f_name] = f.__get__(self)
 
         return self
+
+    def merge(self, other, label=None):
+        warn(
+            "The merge function currently only merges cell positions."
+            + " Only cell types that exist in the calling network will be copied."
+        )
+        for ct in self.get_cell_types():
+            if next((c for c in other.get_cell_types() if c.name == ct.name), None):
+                ps = c.get_placement_set()
+                ids = self.place_cells(ct, ct.layer_instance, ps.get_dataset())
+                if label is not None:
+                    self.label_cells(ids, label)
+        self.compile_output()
 
 
 class ReportListener:
