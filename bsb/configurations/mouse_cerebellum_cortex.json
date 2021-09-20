@@ -378,9 +378,9 @@
       	"golgi_to_golgi": {
           "synapses": ["GABA"]
         },
-	       "gap_goc": {
-	          "synapses": ["gap"],
-	           "source": "vgap"
+	      "gap_goc": {
+	        "synapses": ["gap"],
+	        "source": "vgap"
 	      },
         "ascending_axon_to_purkinje": {
           "synapses": ["AMPA"]
@@ -422,7 +422,8 @@
           "device": "spike_generator",
           "targetting": "cell_type",
           "cell_types": ["golgi_cell", "basket_cell", "stellate_cell"],
-          "section_type": "dendrites",
+          "section_types": ["dendrites"],
+          "section_count": 1,
           "synapses": ["AMPA", "AMPA_PF"],
           "parameters": {
             "noise": true,
@@ -437,7 +438,8 @@
           "device": "spike_generator",
           "targetting": "cell_type",
           "cell_types": ["purkinje_cell"],
-          "section_type": "aa_targets",
+          "section_types": ["aa_targets"],
+          "section_count": 1,
           "synapses": ["AMPA"],
           "parameters": {
             "noise": true,

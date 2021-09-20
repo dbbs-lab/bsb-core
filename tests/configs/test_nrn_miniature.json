@@ -1,0 +1,183 @@
+{
+  "name": "Test miniature NEURON network",
+  "output": {
+    "format": "bsb.output.HDF5Formatter",
+    "file": "nrn_miniature.hdf5",
+    "morphology_repository": "morphologies.h5"
+  },
+  "network_architecture": {
+    "simulation_volume_x": 150.0,
+    "simulation_volume_z": 150.0,
+    "store_kd_trees": true,
+    "store_compound_kd_tree": true,
+    "store_pf_kd_trees": true
+  },
+  "layers": {
+    "test_layer": {
+      "thickness": 600,
+      "stack": {
+        "stack_id": 0,
+        "position_in_stack": 0,
+        "position": [0.0, 0.0, 0.0]
+      }
+    }
+  },
+  "cell_types": {
+    "golgi_cell": {
+      "placement": {
+        "class": "bsb.placement.FixedPositions",
+        "layer": "test_layer",
+        "soma_radius": 2.5,
+        "count": 3,
+        "positions": [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]]
+      },
+      "morphology": {
+        "class": "bsb.morphologies.NoGeometry"
+      },
+      "plotting": {
+        "display_name": "Golgi cell",
+        "color": "#E62214"
+      }
+    },
+    "purkinje_cell": {
+      "placement": {
+        "class": "bsb.placement.FixedPositions",
+        "layer": "test_layer",
+        "soma_radius": 2.5,
+        "count": 2,
+        "positions": [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0]]
+      },
+      "morphology": {
+        "class": "bsb.morphologies.NoGeometry"
+      },
+      "plotting": {
+        "display_name": "Purkinje cell",
+        "color": "#E62214"
+      }
+    },
+    "stellate_cell": {
+      "placement": {
+        "class": "bsb.placement.FixedPositions",
+        "layer": "test_layer",
+        "soma_radius": 2.5,
+        "count": 2,
+        "positions": [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0]]
+      },
+      "morphology": {
+        "class": "bsb.morphologies.NoGeometry"
+      },
+      "plotting": {
+        "display_name": "Stellate cell",
+        "color": "#E62214"
+      }
+    }
+  },
+  "connection_types": {
+    "gap_goc": {
+      "class": "bsb.connectivity.ConnectomeGlomerulusGranule",
+      "from_cell_types": [{"type": "golgi_cell", "compartments": ["basal_dendrites"]}],
+      "to_cell_types": [{"type": "golgi_cell", "compartments": ["basal_dendrites"]}],
+      "divergence": 50,
+      "convergence": 4
+    },
+    "stellate_to_purkinje": {
+      "class": "bsb.connectivity.ConnectomeGlomerulusGranule",
+      "from_cell_types": [{"type": "stellate_cell", "compartments": ["axon"]}],
+      "to_cell_types": [{"type": "purkinje_cell", "compartments": ["soma"]}],
+      "divergence": 50,
+      "convergence": 4
+    }
+  },
+  "simulations": {
+    "test": {
+      "simulator": "neuron",
+      "duration": 500,
+      "temperature": 32,
+      "resolution": 0.025,
+      "cell_models": {
+        "golgi_cell": {
+          "model": "dbbs_models.GolgiCell",
+          "record_soma": true,
+          "record_spikes": true
+        },
+        "purkinje_cell": {
+          "model": "dbbs_models.PurkinjeCell",
+          "record_soma": true,
+          "record_spikes": true
+        },
+        "stellate_cell": {
+          "model": "dbbs_models.StellateCell",
+          "record_soma": true,
+          "record_spikes": true
+        }
+      },
+      "connection_models": {
+        "gap_goc": {
+          "synapses": ["gap"],
+          "source": "vgap"
+        },
+        "stellate_to_purkinje": {
+          "synapses": ["GABA"]
+        }
+      },
+      "devices": {
+        "periodic_spike_generator": {
+          "io": "input",
+          "device": "spike_generator",
+          "targetting": "cell_type",
+          "cell_types": ["golgi_cell"],
+          "cell_fraction": 1,
+          "section_types": ["basal_dendrites"],
+          "synapses": ["AMPA_AA", "NMDA"],
+          "section_count": 5,
+          "record": true,
+          "parameters": {
+            "noise": false,
+            "start": 100,
+            "interval": 5,
+            "number": 20,
+            "sd": 5
+          }
+        },
+        "noisy_spike_generator": {
+          "io": "input",
+          "device": "spike_generator",
+          "targetting": "cell_type",
+          "cell_types": ["golgi_cell"],
+          "cell_fraction": 1,
+          "section_types": ["basal_dendrites"],
+          "synapses": ["AMPA_AA", "NMDA"],
+          "section_count": 5,
+          "record": true,
+          "parameters": {
+            "noise": true,
+            "start": 100,
+            "interval": 5,
+            "number": 20,
+            "sd": 5
+          }
+        },
+        "fixed_spike_generator": {
+          "io": "input",
+          "device": "spike_generator",
+          "targetting": "cell_type",
+          "cell_types": ["golgi_cell"],
+          "cell_fraction": 1,
+          "section_types": ["basal_dendrites"],
+          "synapses": ["AMPA_AA", "NMDA"],
+          "section_count": 5,
+          "record": true,
+          "spike_times": [100, 102, 104, 108]
+        },
+        "dendrite_recorders": {
+          "io": "output",
+          "device": "voltage_recorder",
+          "group": "dendrites",
+          "targetting": "representatives",
+          "section_types": ["dendrites"],
+          "section_count": 5
+        }
+      }
+    }
+  }
+}

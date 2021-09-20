@@ -26,3 +26,6 @@ class VoltageRecorder(PatternlessDevice, NeuronDevice):
             )
         else:
             self.adapter.register_recorder(group, cell, section.record(), section=section)
+
+    def validate_specifics(self):
+        pass

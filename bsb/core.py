@@ -387,7 +387,7 @@ class Scaffold:
             listener = ReportListener(self, report_file)
             simulation.add_progress_listener(listener)
         simulation.simulate(simulator)
-        result_path = simulation.collect_output()
+        result_path = simulation.collect_output(simulator)
         time_sim = time.time() - t
         report("Simulation runtime: {}".format(time_sim), level=2)
         if quit and hasattr(simulator, "quit"):
@@ -893,6 +893,47 @@ class Scaffold:
                 )
             )
         return self.cells[id, 2:5]
+
+    def assert_continuity(self):
+        """
+        Assert that all PlacementSets consist of only 1 continuous stretch of IDs, and that all PlacementSets follow
+        each other without gaps, starting from zero.
+        """
+        beginnings = set()
+        ends = dict()
+        for ct in self.get_cell_types():
+            stretch = ct.get_placement_set().identifier_set.get_dataset()
+            assert len(
+                stretch
+            ), f"Discontinuities in `{ct.name}`: multiple ID stretches in a single placement set."
+            beginnings.add(stretch[0])
+            ends[ct.name] = stretch[0] + stretch[1]
+        assert 0 in beginnings, "Placement data does not start at ID 0."
+        loose_ends = []
+        for name, end in ends.items():
+            try:
+                beginnings.remove(end)
+            except KeyError:
+                loose_ends.append(name)
+        assert len(loose_ends) == 1, (
+            "Discontinuous ends detected: " + ", ".join(loose_ends) + "."
+        )
+
+    def get_gid_types(self, ids):
+        """
+        Return the cell type of each gid
+        """
+        all_ps = {
+            ct: self.get_placement_set(ct).identifiers
+            for ct in self.configuration.cell_types.values()
+        }
+
+        def lookup(id):
+            for ct, ps in all_ps.items():
+                if id in ps:
+                    return ct
+
+        return np.vectorize(lookup)(ids)
 
     def get_cell_positions(self, selector):
         """

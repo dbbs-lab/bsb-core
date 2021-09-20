@@ -1,3 +1,43 @@
+# 3.8 - Added a bit of love for the NEURON adapter
+
+* BREAKING: NEURON devices will by default target all sections instead of 1
+  soma section.
+* BREAKING: `section_type` changed to `section_types` list for devices.
+* BREAKING: All `NeuronDevice` child implementations need to override
+  `validate_specifics` where each can validate their config.
+* BREAKING: Fixed the long standing bug that spikes in NEURON where recorded
+  as (2xN) instead of (Nx2) datasets.
+* BREAKING: `adapter.collect_output` must be passed the `simulation` object.
+* Fixed a bug where `spike_devices` with fixed spike times didn't record data.
+* NEURON adapter now uses `nrn-patch` v3.0.0
+* Added a `voltage_clamp` NEURON device.
+* Added support for weight recorders in the NEST adapter (#248).
+* NEST adapter's `spike_recorder` stores all cell types that occur in a dataset,
+  is used later on to infer display information when plotting.
+* NEURON adapter's `LocationRecorder` now stores section id.
+* Network-cache phased out of targetting mechanisms.
+* Added `__main__.py` for situations where shell command is unavailable.
+* Added `network.get_gid_types` to retrieve the cell types of a vector of GIDs.
+* Added `network.assert_continuity` to check all `PlacementSet`s form a single
+  continuous chain of GIDs starting from 0.
+* Fixed a bug where relays without targets would cause errors.
+* Fixed NEURON adapter's `time` vector in result files.
+* Fixed NEURON adapter's `index_relays` for targetless relays.
+* Added stricter validation of config for the `SpikeGenerator` device.
+* [cerebellum] Optimized Golgi to granule cell connectivity algorithm.
+* [cerebellum] Optimized mossy to glomerulus connectivity algorithm.
+* Added `branch.children`.
+* Added `cell_type.get_placement_set`.
+* Added `get_result_config`.
+* Added a `--version` command to the CLI.
+* The `time` recorder for NEURON simulations is fixed.
+* `*.h5` files and the `build` directory are gitignored.
+* Added `range` kwarg to `plot_traces`.
+* `plot_traces` will pass all extra kwargs to the `make_subplots` call.
+* Added `gaps` kwarg to `hdf5_plot_psth` to control gaps in Bar graph.
+* Plot axis labels now display units in square brackets.
+* Added an example that shows how to color the branches of a morphology by type.
+
 # 3.7
 
 ## 3.7.7

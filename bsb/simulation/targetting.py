@@ -23,85 +23,51 @@ class TargetsNeurons:
         """
         Target all or certain cells in a spherical location.
         """
-        if len(self.cell_types) != 1:
-            # Compile a list of the cells and build a compound tree.
-            target_cells = np.empty((0, 5))
-            id_map = np.empty((0, 1))
-            for t in self.cell_types:
-                cells = self.scaffold.get_cells_by_type(t)
-                target_cells = np.vstack((target_cells, cells[:, 2:5]))
-                id_map = np.vstack((id_map, cells[:, 0]))
-            tree = KDTree(target_cells)
-            target_positions = target_cells
-        else:
-            # Retrieve the prebuilt tree from the SHDF file
-            tree = self.scaffold.trees.cells.get_tree(self.cell_types[0])
-            target_cells = self.scaffold.get_cells_by_type(self.cell_types[0])
-            id_map = target_cells[:, 0]
-            target_positions = target_cells[:, 2:5]
+        # Compile a list of the cells and build a compound tree.
+        target_cells = np.empty((0, 3))
+        id_map = np.empty(0)
+        for t in self.cell_types:
+            pos = self.scaffold.get_placement_set(t).positions
+            target_cells = np.vstack((target_cells, pos))
+            id_map = np.concatenate((id_map, cells[:, 0]))
+        tree = KDTree(target_cells)
         # Query the tree for all the targets
-        target_ids = tree.query_radius(np.array(self.origin).reshape(1, -1), self.radius)[
-            0
-        ].tolist()
-        return id_map[target_ids]
+        target_ids = tree.query_radius([self.origin], self.radius)[0]
+        return id_map[target_ids].astype(int).tolist()
 
     def _targets_cylinder(self):
         """
         Target all or certain cells within a cylinder of specified radius.
         """
-        if len(self.cell_types) != 1:
-            # Compile a list of the cells.
-            target_cells = np.empty((0, 5))
-            id_map = np.empty((0, 1))
-            for t in self.cell_types:
-                cells = self.scaffold.get_cells_by_type(t)
-                target_cells = np.vstack((target_cells, cells[:, 2:5]))
-                id_map = np.vstack((id_map, cells[:, 0]))
-            target_positions = target_cells
-        else:
-            # Retrieve the prebuilt tree from the SHDF file
-            # tree = self.scaffold.trees.cells.get_tree(self.cell_types[0])
-            target_cells = self.scaffold.get_cells_by_type(self.cell_types[0])
-            # id_map = target_cells[:, 0]
-            target_positions = target_cells[:, 2:5]
-            # Query the tree for all the targets
-            center_scaffold = [
-                self.scaffold.configuration.X / 2,
-                self.scaffold.configuration.Z / 2,
-            ]
+        # Compile a list of the cells.
+        target_cells = np.empty((0, 3))
+        id_map = np.empty(0)
+        for t in self.cell_types:
+            ps = self.scaffold.get_placement_set(t)
+            # TODO: Cylinders in other planes than the XZ plane
+            pos = ps.positions[:, [0, 2]]
+            target_cells = np.vstack((target_cells, pos))
+            id_map = np.concatenate((id_map, ps.identifiers))
 
-            # Find cells falling into the cylinder volume
-            target_cells_idx = np.sum(
-                (target_positions[:, [0, 2]] - np.array(center_scaffold)) ** 2, axis=1
-            ).__lt__(self.radius ** 2)
-            cylinder_target_cells = target_cells[target_cells_idx, 0]
-            cylinder_target_cells = cylinder_target_cells.astype(int)
-            cylinder_target_cells = cylinder_target_cells.tolist()
-            # print(id_stim)
-            return cylinder_target_cells
+        if not hasattr(self, "origin"):
+            x = self.scaffold.configuration.X
+            z = self.scaffold.configuration.Z
+            origin = np.array((x, z))
+        else:
+            origin = np.array(self.origin)
+        # Find cells falling into the cylinder volume
+        in_range_mask = (
+            np.sum((target_positions[:, [0, 2]] - origin) ** 2, axis=1) < self.radius ** 2
+        )
+        return id_map[in_range_mask].astype(int).tolist()
 
     def _targets_cell_type(self):
         """
         Target all cells of certain cell types
         """
-        cell_types = [self.scaffold.get_cell_type(t) for t in self.cell_types]
-        if len(cell_types) != 1:
-            # Concatenate a list of the different cell type cells.
-            target_cells = np.array([])
-            for t in cell_types:
-                if t.entity:
-                    ids = self.scaffold.get_entities_by_type(t.name)
-                else:
-                    ids = self.scaffold.get_cells_by_type(t.name)[:, 0]
-                target_cells = np.concatenate((target_cells, ids))
-            ids = target_cells
-        else:
-            # Retrieve a single list
-            t = cell_types[0]
-            if t.entity:
-                ids = self.scaffold.get_entities_by_type(t.name)
-            else:
-                ids = self.scaffold.get_cells_by_type(t.name)[:, 0]
+        ids = np.concatenate(
+            (self.scaffold.get_placement_set(t).identifiers for t in self.cell_types)
+        )
         n = len(ids)
         # Use the `cell_fraction` or `cell_count` attribute to determine what portion of
         # the selected ids to exclude.
@@ -211,11 +177,17 @@ class TargetsSections:
 
     def _section_target_default(self, cell):
         if not hasattr(self, "section_count"):
-            self.section_count = 1
+            self.section_count = "all"
+        elif self.section_count != "all":
+            self.section_count = int(self.section_count)
+        sections = cell.sections
+        if hasattr(self, "section_types"):
+            ts = self.section_types
+            sections = [s for s in sections if any(t in s.labels for t in ts)]
         if hasattr(self, "section_type"):
-            sections = [s for s in cell.sections if self.section_type in s.labels]
-        else:
-            sections = cell.soma
+            raise ConfigurationError(
+                "`section_type` is deprecated, use `section_types` instead."
+            )
         if self.section_count == "all":
             return sections
         return [random.choice(sections) for _ in range(self.section_count)]
