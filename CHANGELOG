@@ -15,6 +15,7 @@
 * NEST adapter's `spike_recorder` stores all cell types that occur in a dataset,
   is used later on to infer display information when plotting.
 * NEURON adapter's `LocationRecorder` now stores section id.
+* Network-cache phased out of targetting mechanisms.
 * Added `__main__.py` for situations where shell command is unavailable.
 * Added `network.get_gid_types` to retrieve the cell types of a vector of GIDs.
 * Added `network.assert_continuity` to check all `PlacementSet`s form a single
