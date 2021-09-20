@@ -378,9 +378,9 @@
       	"golgi_to_golgi": {
           "synapses": ["GABA"]
         },
-	       "gap_goc": {
-	          "synapses": ["gap"],
-	           "source": "vgap"
+	      "gap_goc": {
+	        "synapses": ["gap"],
+	        "source": "vgap"
 	      },
         "ascending_axon_to_purkinje": {
           "synapses": ["AMPA"]
