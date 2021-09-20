@@ -959,17 +959,25 @@ class SpikeRecorder(SimulationRecorder):
                     scaffold_ids = np.array(
                         self.device_model.adapter.get_scaffold_ids(file_spikes[:, 0])
                     )
+                    self.cell_types = list(
+                        set(
+                            self.device_model.adapter.scaffold.get_gid_types(scaffold_ids)
+                        )
+                    )
                     times = file_spikes[:, 1]
-                    scaffold_spikes = np.column_stack((scaffold_ids, times)).T
-                    spikes = np.column_stack((spikes, scaffold_spikes))
+                    scaffold_spikes = np.column_stack((scaffold_ids, times))
+                    spikes = np.concatenate((spikes, scaffold_spikes))
                 os.remove(file)
         return spikes
 
     def get_meta(self):
+        if not hasattr(self, "cell_types"):
+            self.get_data()
         return {
             "name": self.device_model.name,
-            "label": self.device_model.name,
-            "color": "black",
+            "label": self.cell_types[0].name,
+            "cell_types": [ct.name for ct in self.cell_types],
+            "color": self.cell_types[0].plotting.color,
             "parameters": json.dumps(self.device_model.parameters),
         }
 
