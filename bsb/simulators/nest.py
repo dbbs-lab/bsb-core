@@ -452,6 +452,8 @@ class NestAdapter(SimulatorAdapter):
         self.global_identifier_map = {}
         for cell_model in self.cell_models.values():
             cell_model.reset()
+        if self.has_lock:
+            self.release_lock()
 
     def get_master_seed(self, fixed_seed=None):
         if not hasattr(self, "_master_seed"):
@@ -717,6 +719,11 @@ class NestAdapter(SimulatorAdapter):
             self.create_synapse_model(connection_model)
             # Set the specifications NEST allows like: 'rule', 'autapses', 'multapses'
             connection_specifications = {"rule": "one_to_one"}
+            if hasattr(self, "weight_recorder"):
+                wr_conf = self.weight_recorder
+                wr = nest.Create("weight_recorder")
+                nest.SetStatus(wr, wr_conf)
+                connection_specifications["weight_recorder"] = wr
             # Get the connection parameters from the configuration
             connection_parameters = connection_model.get_connection_parameters()
             report("Creating connections " + nest_name, level=3)
