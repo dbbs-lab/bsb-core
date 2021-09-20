@@ -737,6 +737,7 @@ class LocationRecorder(SimulationRecorder):
         self.id = cell.ref_id
         self.tag = str(cell.ref_id)
         if section is not None:
+            meta["section"] = gc.sections.index(section)
             self.tag += "." + section.name().split(".")[-1]
             if x is not None:
                 self.tag += "(" + str(x) + ")"
