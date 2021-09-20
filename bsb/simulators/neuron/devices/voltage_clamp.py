@@ -1,10 +1,10 @@
 from ..adapter import NeuronDevice
 
 
-class CurrentClamp(NeuronDevice):
+class VoltageClamp(NeuronDevice):
     def implement(self, target, location):
         pattern = self.get_pattern(target, location)
-        location.section.iclamp(**pattern)
+        location.section.vclamp(**pattern)
 
     def validate_specifics(self):
         pass
