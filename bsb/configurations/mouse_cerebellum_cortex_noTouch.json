@@ -364,7 +364,7 @@
           "device": "voltage_recorder",
           "group": "dendrites",
           "targetting": "representatives",
-          "section_type": "dendrites"
+          "section_types": ["dendrites"]
         }
       }
     }
