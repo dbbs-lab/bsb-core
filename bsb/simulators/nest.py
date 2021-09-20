@@ -459,20 +459,21 @@ class NestAdapter(SimulatorAdapter):
     def get_master_seed(self, fixed_seed=None):
         if not hasattr(self, "_master_seed"):
             if fixed_seed is None:
-                # Use time as random seed
-                if mpi4py.MPI.COMM_WORLD.rank == 0:
-                    fixed_seed = int(time.time())
-                    if hasattr(self, "mpi_processes"):
-                        n_process = self.mpi_processes
-                    else:
-                        n_process = _MPI_processes
-                    for i in range(1, n_process):
-                        mpi4py.MPI.COMM_WORLD.send(fixed_seed, dest=i)
+                if hasattr(self, "mpi_processes"):
+                    n_process = self.mpi_processes
                 else:
-                    # fixed_seed = None
-                    fixed_seed = mpi4py.MPI.COMM_WORLD.recv(source=0)
-                self._master_seed = fixed_seed
-                # self._master_seed = mpi4py.MPI.COMM_WORLD.bcast(fixed_seed, root=0)
+                    n_process = _MPI_processes
+                # Use time as random seed
+                if n_process > 1:
+                    if mpi4py.MPI.COMM_WORLD.rank == 0:
+                        fixed_seed = int(time.time())
+                        for i in range(1, n_process):
+                            mpi4py.MPI.COMM_WORLD.send(fixed_seed, dest=i)
+                    else:
+                        fixed_seed = mpi4py.MPI.COMM_WORLD.recv(source=0)
+                    self._master_seed = fixed_seed
+                else:
+                    self._master_seed = int(time.time())
             else:
                 self._master_seed = fixed_seed
         return self._master_seed
@@ -1023,13 +1024,17 @@ class SpikeDetectorProtocol(DeviceProtocol):
                 )
             )
         device_tag = str(_randint())
-        if mpi4py.MPI.COMM_WORLD.rank == 0:
-            for i in range(1, mpi_processes):
-                mpi4py.MPI.COMM_WORLD.send(device_tag, dest=i)
+        if mpi_processes > 1:
+            if mpi4py.MPI.COMM_WORLD.rank == 0:
+                for i in range(1, mpi_processes):
+                    mpi4py.MPI.COMM_WORLD.send(device_tag, dest=i)
+            else:
+                device_tag = mpi4py.MPI.COMM_WORLD.recv(source=0)
+            self.device.parameters["label"] += device_tag
+            if mpi4py.MPI.COMM_WORLD.rank == 0:
+                self.device.adapter.result.add(SpikeRecorder(self.device))
         else:
-            device_tag = mpi4py.MPI.COMM_WORLD.recv(source=0)
-        self.device.parameters["label"] += device_tag
-        if mpi4py.MPI.COMM_WORLD.rank == 0:
+            self.device.parameters["label"] += device_tag
             self.device.adapter.result.add(SpikeRecorder(self.device))
 
 
