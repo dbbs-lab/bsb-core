@@ -1,6 +1,7 @@
 from ..adapter import NeuronDevice
 from ....simulation.results import SimulationRecorder, PresetPathMixin, PresetMetaMixin
 from ....helpers import listify_input
+from ....exceptions import *
 from ....functions import poisson_train
 from ....reporting import report, warn
 import numpy as np
@@ -35,8 +36,10 @@ class SpikeGenerator(NeuronDevice):
                 )
 
     def validate_specifics(self):
-        if "weight" not in self.parameters:
-            self.parameters["weight"] = 1
+        if not hasattr(self, "spike_times") and not hasattr(self, "parameters"):
+            raise ConfigurationError(
+                f"{self.name} is missing `spike_times` or `parameters`"
+            )
         self.synapses = listify_input(self.synapses)
 
     def create_patterns(self):
