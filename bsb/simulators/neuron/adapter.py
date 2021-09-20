@@ -559,6 +559,7 @@ class NeuronAdapter(SimulatorAdapter):
             # Re-initialise the device
             # TODO: Switch to better config in v4
             device.initialise(device.scaffold)
+            device.validate_specifics()
             device.initialise_targets()
             device.initialise_patterns()
 
