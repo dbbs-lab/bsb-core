@@ -582,9 +582,12 @@ class NeuronAdapter(SimulatorAdapter):
         terminal_relays = {}
         intermediate_relays = {}
         output_handler = self.scaffold.output_formatter
+        cell_types = self.scaffold.get_cell_types()
         type_lookup = {
-            ct.name: range(min(ids := ct.get_placement_set().identifiers), max(ids) + 1)
-            for ct in self.scaffold.get_cell_types()
+            ct.name: range(min(ids), max(ids) + 1)
+            for ct, ids in zip(
+                cell_types, (ct.get_placement_set().identifiers for ct in cell_types)
+            )
         }
 
         def lookup(i):
@@ -743,9 +746,9 @@ class LocationRecorder(SimulationRecorder):
 
     def get_data(self):
         if self.time_recorder:
-            return np.hstack((np.array(self.recorder), np.array(self.time_recorder)))
+            return np.column_stack((list(self.recorder), list(self.time_recorder)))
         else:
-            return np.array(self.recorder)
+            return np.array(list(self.recorder))
 
     def get_meta(self):
         return self.meta
@@ -763,5 +766,5 @@ class TargetLocation:
 
 class SpikeRecorder(LocationRecorder):
     def get_data(self):
-        recording = np.array(self.recorder)
+        recording = np.array(list(self.recorder))
         return np.column_stack((np.ones(recording.shape) * self.id, recording))
