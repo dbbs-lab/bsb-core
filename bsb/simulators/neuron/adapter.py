@@ -754,4 +754,4 @@ class TargetLocation:
 class SpikeRecorder(LocationRecorder):
     def get_data(self):
         recording = np.array(self.recorder)
-        return np.vstack((np.ones(recording.shape) * self.id, recording))
+        return np.column_stack((np.ones(recording.shape) * self.id, recording))
