@@ -334,6 +334,7 @@ class NeuronAdapter(SimulatorAdapter):
         self.result = SimulationResult()
         if self.pc_id == 0:
             # Record the time
+            self.h.time
             self.result.create_recorder(
                 lambda: tuple(["time"]),
                 lambda: np.array(self.h.time),
