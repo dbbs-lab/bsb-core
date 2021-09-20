@@ -44,24 +44,36 @@ class SpikeGenerator(NeuronDevice):
 
     def create_patterns(self):
         report("Creating spike generator patterns for '{}'".format(self.name), level=3)
-        patterns = {}
+        targets = self.get_targets()
         if hasattr(self, "spike_times"):
-            return {target: self.spike_times for target in self.get_targets()}
-        interval = float(self.parameters["interval"])
-        number = int(self.parameters["number"])
-        start = float(self.parameters["start"])
-        noise = "noise" in self.parameters and self.parameters["noise"]
-        if not noise:
-            pattern = [start + i * interval for i in range(number)]
-        for target in self.get_targets():
+            pattern = self.spike_times
+            if self.record:
+                for target in targets:
+                    self.adapter.result.add(GeneratorRecorder(self, target, pattern))
+            patterns = {target: pattern for target in targets}
+        else:
+            interval = float(self.parameters["interval"])
+            number = int(self.parameters["number"])
+            start = float(self.parameters["start"])
+            noise = "noise" in self.parameters and self.parameters["noise"]
             frequency = 1.0 / interval
             duration = interval * number
-            if noise:
-                pattern = list(poisson_train(frequency, duration, start))
-            patterns[target] = pattern
+            if not noise:
+                # Create only 1 copy of the pattern array, might be surprising
+                # for tinkering users, but in the framework the created patterns
+                # should be used read only in `get_pattern(target)` to pass as
+                # input to a VecStim.
+                pattern = [start + i * interval for i in range(number)]
+                patterns = {target: pattern for target in targets}
+            else:
+                patterns = {
+                    target: list(poisson_train(frequency, duration, start))
+                    for target in targets
+                }
             if self.record:
-                self.adapter.result.add(GeneratorRecorder(self, target, pattern))
-            report("Pattern {} for {}.".format(pattern, target), level=4)
+                for target, pattern in patterns.items():
+                    self.adapter.result.add(GeneratorRecorder(self, target, pattern))
+                    report("Pattern {} for {}.".format(pattern, target), level=4)
         return patterns
 
     def get_pattern(self, target, cell=None, section=None, synapse=None):
