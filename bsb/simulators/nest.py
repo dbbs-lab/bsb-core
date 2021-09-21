@@ -14,7 +14,7 @@ from copy import deepcopy
 from sklearn.neighbors import KDTree
 from ..simulation import SimulationRecorder, SimulationResult
 import warnings
-
+import h5py
 
 try:
     import mpi4py.MPI
@@ -498,19 +498,15 @@ class NestAdapter(SimulatorAdapter):
         if not self.is_prepared:
             warn("Adapter has not been prepared", SimulationWarning)
         report("Simulating...", level=2)
-        tic = time.perf_counter()
+        tick = time.time()
         simulator.Simulate(self.duration)
-        tic -= time.perf_counter()
-        report("Simulation finished.", level=2)
-        report("Used: %i secs"%(-tic), level=2)
+        report(f"Simulation done. {time.time() - tick:.2f}s elapsed.", level=2)
         if self.has_lock:
             self.release_lock()
 
-    def collect_output(self):
-        import h5py, time
-        report("Colleting output...", level=2)
-        tic = time.perf_counter()
-
+    def collect_output(self, simulator):
+        report("Collecting output...", level=2)
+        tick = time.time()
         try:
             import mpi4py
 
@@ -550,8 +546,11 @@ class NestAdapter(SimulatorAdapter):
                                 )
                             )
         mpi4py.MPI.COMM_WORLD.bcast(result_path, root=0)
-        tic -= time.perf_counter()
-        report("Used: %i secs"%(-tic),2)
+        report(
+            f"Output collected in '{result_path}'. "
+            + f"{time.time() - tick:.2f}s elapsed.",
+            level=2,
+        )
         return result_path
 
     def validate(self):
@@ -722,7 +721,7 @@ class NestAdapter(SimulatorAdapter):
             # Create the connections in NEST
             if not (connection_model.plastic and connection_model.hetero):
                 # Repeat connections per receptor type
-                receptor_types = listify_input(connection_parameters['receptor_type'])
+                receptor_types = listify_input(connection_parameters["receptor_type"])
                 if not len(receptor_types):
                     # If no receptor types are specified, go over the connection loop
                     # once, without setting any receptor type in the conn params.
@@ -730,7 +729,7 @@ class NestAdapter(SimulatorAdapter):
                 for receptor_type in receptor_types:
                     single_connection_parameters = deepcopy(connection_parameters)
                     if receptor_type is not None:
-                        single_connection_parameters['receptor_type'] = receptor_type
+                        single_connection_parameters["receptor_type"] = receptor_type
                     self.execute_command(
                         self.nest.Connect,
                         presynaptic_sources,
@@ -965,7 +964,7 @@ class SpikeRecorder(SimulationRecorder):
             for file in files:
                 file_spikes = np.loadtxt(file)
                 # if len(file_spikes):
-                if len(file_spikes.shape)>1:
+                if len(file_spikes.shape) > 1:
                     scaffold_ids = np.array(
                         self.device_model.adapter.get_scaffold_ids(file_spikes[:, 0])
                     )
