@@ -133,7 +133,7 @@ class ArborRecipe(arbor.recipe):
         self._global_properties.register(self._catalogue)
 
     def _get_catalogue(self):
-        catalogue = arbor.default_catalogue()
+        catalogue = arbor.empty_catalogue()
         models = set(
             cell.model_class
             for cell in self._adapter.cell_models.values()
