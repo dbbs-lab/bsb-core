@@ -16,6 +16,9 @@ class SynapseRecorder(PatternlessDevice, NeuronDevice):
     def boot(self):
         pass
 
+    def validate_specifics(self):
+        pass
+
     def implement(self, target, location):
         cell = location.cell
         section = location.section

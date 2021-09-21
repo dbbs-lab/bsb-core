@@ -62,8 +62,8 @@ class ConnectomeGolgiGlomerulus(ConnectionStrategy):
                 )
                 # glomerulus falls into the y range of values?
                 bool_vector = bool_vector & (
-                    ((glom_y + r_glom).__ge__(golgi_y - GoCaxon_y / 2.0))
-                    & ((glom_y - r_glom).__le__(golgi_y + GoCaxon_y / 2.0))
+                    ((glom_y + r_glom) > (golgi_y - GoCaxon_y / 2.0))
+                    & ((glom_y - r_glom) < (golgi_y + GoCaxon_y / 2.0))
                 )
                 # glomerulus falls into the z range of values?
                 bool_vector = bool_vector & (

@@ -1,9 +1,9 @@
 {
-  "name": "DBBS NEURON simulator configuration",
+  "name": "Mouse cerebellum cortex",
   "output": {
     "format": "bsb.output.HDF5Formatter",
     "morphology_repository": "morphologies.hdf5",
-    "file": "300x_200z.hdf5"
+    "file": "mouse_cerebellum_cortex.hdf5"
   },
   "network_architecture": {
     "simulation_volume_x": 300.0,
@@ -164,6 +164,7 @@
         "placement_count_ratio": 0.05
       },
       "plotting": {
+        "display_name": "mossy_fibers",
         "color": "black"
       }
     }
@@ -208,7 +209,18 @@
       "after": ["golgi_to_glomerulus", "glomerulus_to_granule"],
       "detailed": true
     },
-    "golgi_gap": {
+    "golgi_to_golgi": {
+      "class": "bsb.connectivity.VoxelIntersection",
+      "from_cell_types": [{"type": "golgi_cell", "compartments": ["axon"]}],
+      "to_cell_types": [{"type": "golgi_cell", "compartments": ["basal_dendrites"]}],
+      "affinity": 0.5,
+      "contacts": {
+        "type": "norm",
+        "loc": 160,
+        "scale": 5
+      }
+    },
+    "gap_goc": {
       "class": "bsb.connectivity.VoxelIntersection",
       "from_cell_types": [{"type": "golgi_cell", "compartments": ["basal_dendrites"]}],
       "to_cell_types": [{"type": "golgi_cell", "compartments": ["basal_dendrites"]}],
@@ -218,12 +230,6 @@
         "loc": 3,
         "scale": 1
       }
-    },
-    "golgi_to_golgi": {
-      "class": "bsb.connectivity.VoxelIntersection",
-      "from_cell_types": [{"type": "golgi_cell", "compartments": ["axon"]}],
-      "to_cell_types": [{"type": "golgi_cell", "compartments": ["basal_dendrites"]}],
-      "affinity": 0.2
     },
     "ascending_axon_to_golgi": {
       "class": "bsb.connectivity.TouchDetector",
@@ -236,7 +242,7 @@
       "from_cell_types": [{"type": "granule_cell", "compartments": ["parallel_fiber"]}],
       "to_cell_types": [{"type": "golgi_cell", "compartments": ["apical_dendrites"]}],
       "resolution": 20.0,
-      "affinity": 0.2
+      "affinity": 0.1
     },
     "ascending_axon_to_purkinje": {
       "class": "bsb.connectivity.TouchDetector",
@@ -254,7 +260,7 @@
       "from_cell_types": [{"type": "granule_cell", "compartments": ["parallel_fiber"]}],
       "to_cell_types": [{"type": "purkinje_cell", "compartments": ["pf_targets"]}],
       "resolution": 20.0,
-      "affinity": 0.2
+      "affinity": 0.1
     },
     "parallel_fiber_to_basket": {
       "class": "bsb.connectivity.FiberIntersection",
@@ -262,7 +268,7 @@
       "to_cell_types": [{"type": "basket_cell", "compartments": ["dendrites"]}],
       "after": ["granule_to_golgi"],
       "resolution": 20.0,
-      "affinity": 0.2
+      "affinity": 0.1
     },
     "parallel_fiber_to_stellate": {
       "class": "bsb.connectivity.FiberIntersection",
@@ -270,18 +276,13 @@
       "to_cell_types": [{"type": "stellate_cell", "compartments": ["dendrites"]}],
       "after": ["granule_to_golgi"],
       "resolution": 20.0,
-      "affinity": 0.2
+      "affinity": 0.1
     },
     "stellate_to_purkinje": {
       "class": "bsb.connectivity.VoxelIntersection",
       "from_cell_types": [{"type": "stellate_cell", "compartments": ["axon"]}],
       "to_cell_types": [{"type": "purkinje_cell", "compartments": ["sc_targets"]}],
-      "affinity": 0.2,
-      "contacts": {
-        "type": "norm",
-        "loc": 5,
-        "scale": 0.5
-      }
+      "affinity": 0.1
     },
     "basket_to_purkinje": {
       "class": "bsb.connectivity.VoxelIntersection",
@@ -293,31 +294,44 @@
       "class": "bsb.connectivity.VoxelIntersection",
       "from_cell_types": [{"type": "stellate_cell", "compartments": ["axon"]}],
       "to_cell_types": [{"type": "stellate_cell", "compartments": ["dendrites"]}],
-      "affinity": 0.2
+      "affinity": 0.5,
+      "contacts": {
+        "type": "norm",
+        "loc": 100,
+        "scale":4
+      }
     },
     "basket_to_basket": {
       "class": "bsb.connectivity.VoxelIntersection",
       "from_cell_types": [{"type": "basket_cell", "compartments": ["axon"]}],
       "to_cell_types": [{"type": "basket_cell", "compartments": ["dendrites"]}],
-      "affinity": 0.2
+      "affinity": 0.5,
+      "contacts": {
+        "type": "norm",
+        "loc": 100,
+        "scale":4
+      }
     }
   },
   "after_connectivity": {
     "golgi_axon_fix": {
       "class": "bsb.postprocessing.MissingAxon",
-      "types": ["golgi_cell"],
-      "exclude": ["golgi_gap"]
+      "exclude": ["gap_goc"],
+      "types": ["golgi_cell"]
     },
-    "full_gap_junctions": {
+    "mirroring_gap": {
       "class": "bsb.postprocessing.BidirectionalContact",
-      "types": ["golgi_gap"]
+      "types": ["gap_goc"]
+    },
+    "activity_labels": {
+      "class": "bsb.postprocessing.CerebellumLabels"
     }
   },
   "simulations": {
-    "stim_on_MFs": {
+    "sensory_burst": {
       "simulator": "neuron",
-      "resolution": 0.1,
-      "duration": 1800,
+      "resolution": 0.025,
+      "duration": 2000,
       "temperature": 32,
       "cell_models": {
         "glomerulus": {
@@ -361,13 +375,13 @@
         "mossy_to_glomerulus": {
           "synapses": []
         },
-        "golgi_to_golgi": {
+      	"golgi_to_golgi": {
           "synapses": ["GABA"]
         },
-        "golgi_gap": {
-          "synapses": ["gap"],
-          "source": "vgap"
-        },
+	      "gap_goc": {
+	        "synapses": ["gap"],
+	        "source": "vgap"
+	      },
         "ascending_axon_to_purkinje": {
           "synapses": ["AMPA"]
         },
@@ -408,11 +422,12 @@
           "device": "spike_generator",
           "targetting": "cell_type",
           "cell_types": ["golgi_cell", "basket_cell", "stellate_cell"],
-          "section_type": "dendrites",
+          "section_types": ["dendrites"],
+          "section_count": 1,
           "synapses": ["AMPA", "AMPA_PF"],
           "parameters": {
             "noise": true,
-            "start": 500,
+            "start": 5000,
             "interval": 5,
             "number": 20,
             "sd": 5
@@ -423,11 +438,12 @@
           "device": "spike_generator",
           "targetting": "cell_type",
           "cell_types": ["purkinje_cell"],
-          "section_type": "aa_targets",
+          "section_types": ["aa_targets"],
+          "section_count": 1,
           "synapses": ["AMPA"],
           "parameters": {
             "noise": true,
-            "start": 500,
+            "start": 5000,
             "interval": 2.5,
             "number": 40,
             "sd": 10
@@ -436,19 +452,18 @@
         "initial_mf": {
           "io": "input",
           "device": "spike_generator",
-          "targetting": "by_id",
-          "targets": [229,213, 221, 228, 197, 270, 193, 273],
+          "targetting": "cell_type",
           "cell_types": ["mossy_fibers"],
+          "cell_fraction": 0.5,
           "synapses": [],
           "parameters": {
             "noise": true,
-            "start": 500,
+            "start": 5000,
             "interval": 30,
-            "number": 3,
+            "number": 2,
             "sd": 2
           }
         },
-
         "background": {
           "io": "input",
           "device": "spike_generator",
@@ -457,79 +472,52 @@
           "synapses": [],
           "parameters": {
             "noise": true,
-            "start": 700,
+            "start": 5000,
             "interval": 250,
-            "number": 20
+            "number": 100
           }
         },
-        "mossy_fiber_sensoryBurst": {
+        "mossy_fiber_sensory_burst": {
           "io": "input",
           "device": "spike_generator",
-          "targetting": "by_id",
-          "targets": [214],
-          "cell_types": ["mossy_fibers"],
+          "targetting": "by_label",
+          "labels": ["central_mossy_fibers"],
           "synapses": [],
-          "spike_times": [1100.0, 1103.0, 1106.0, 1131.0, 1151.0]
+          "spike_times": [6000.0, 6003.0, 6006.0, 6012.0, 6020.0]
         },
-        "mossy_fiber_input_syncImp": {
+        "mossy_fiber_input_sync_imp": {
           "io": "input",
           "device": "spike_generator",
-          "targetting": "by_id",
-          "targets": [213, 214, 222, 223, 229, 221, 206, 230, 247, 239, 231, 238, 240],
-          "cell_types": ["mossy_fibers"],
+          "targetting": "by_label",
+          "labels": [],
           "synapses": [],
           "parameters": {
             "noise": false,
-            "start": 700,
-            "interval": 25,
-            "number": 0
+            "start": 6000,
+            "interval": 10,
+            "number": 5
           }
         },
-        "mossy_fiber_input_Poiss": {
+        "mossy_fiber_input_poisson": {
           "io": "input",
           "device": "spike_generator",
-          "targetting": "by_id",
-          "targets": [213, 214, 222, 223],
-          "cell_types": ["mossy_fibers"],
+          "targetting": "by_label",
+          "labels": [],
           "synapses": [],
           "parameters": {
             "noise": true,
-            "start": 700,
+            "start": 6000,
             "interval": 10,
-            "number": 0
+            "number": 10
           }
         },
-        "dendrite_recorders": {
+        "granule_recorder": {
           "io": "output",
           "device": "voltage_recorder",
-          "group": "dendrites",
-          "targetting": "cell_type",
-          "cell_types": ["purkinje_cell", "golgi_cell", "basket_cell", "stellate_cell"],
-          "section_type": "dendrites",
-          "section_count": 1
-        },
-        "granule_recorder_syncImp": {
-          "io": "output",
-          "device": "voltage_recorder",
-          "group": "granules_syncImp",
-          "targetting": "by_id",
-          "targets": [3070, 31681, 3069, 9623, 3068, 11800, 3075, 15265, 3083, 16011],
-          "section_type": "soma"
-        },
-        "granule_recorder_Poiss": {
-          "io": "output",
-          "device": "voltage_recorder",
-          "group": "granules_Poiss",
-          "targetting": "by_id",
-          "targets": [3070, 31681, 3074, 9163, 3083, 11399, 3764, 15288, 5987, 17372],
-          "section_type": "soma"
-        },
-        "granule_recorder_mf214": {
-          "io": "output",
-          "device": "voltage_recorder",
-          "group": "granules_mf214",
-          "targetting": "by_id",
-          "targets": [3175, 3185, 3192, 3393, 3426, 3430, 3455, 3462, 3463, 3465, 3500, 3506, 3555, 3625, 3652, 3676, 3679, 3694, 3714, 3721, 3724, 3753, 3764, 3809, 3831, 3880, 3940, 3968, 3971, 4031, 4081, 4090, 4107, 4120, 4122, 4130, 4152, 4170, 4174, 4257, 4324, 4333, 4345, 4379, 4418, 4452, 4461, 4503, 4535, 4546, 4583, 4672, 4676, 4719, 4742, 4763, 4778, 4791, 4813, 4859, 4883, 4888, 4896, 4978, 4992, 5001, 5007, 5015, 5018, 5028, 5061, 5103, 5137, 5145, 5186, 5226, 5246, 5250, 5268, 5270, 5287, 5292, 5314, 5324, 5403, 5432, 5439, 5446, 5471, 5501, 5552, 5559, 5565, 5618, 5628, 5641, 5649, 5687, 5706, 5769, 5945, 5946, 5953, 5982, 5987, 6001, 6002, 6073, 6101, 6106, 6109, 6141, 6152, 6162, 6166, 6176, 6186, 6198, 6232, 6288, 6298, 6304, 6313, 6319, 6326, 6335, 6340, 6378, 6405, 6416, 6422, 6445, 6456, 6482, 6649, 6704, 6751, 6753, 6760, 6794, 6828, 6923, 6936, 6968, 6990, 7024, 7041, 7063, 7094, 7097, 7114, 7115, 7145, 7149, 7162, 7194, 7214, 7235, 7248, 7271, 7291, 7297, 7303, 7345, 7419, 7420, 7429, 7463, 7507, 7534, 7561, 7571, 7592, 7724, 7731, 7741, 7760, 7799, 7849, 7877, 7882, 7906, 7908, 7926, 7935, 7984, 8021, 8034, 8036, 8063, 8149, 8150, 8153, 8160, 8176, 8233, 8273, 8287, 8312, 8357, 8359, 8375, 8410, 8437, 8468, 8502, 8518, 8552, 8554, 8566, 8574, 8602, 8642, 8678, 8681, 8711, 8752, 8768, 8778, 8781, 8783, 8790, 8799, 8801, 8822, 8826, 8839, 8848, 8885, 8886, 8895, 8950, 9003, 9020, 9071, 9080, 9185, 9236, 9243, 9246, 9247, 9272, 9285, 9287, 9296, 9297, 9337, 9372, 9413, 9414, 9419, 9447, 9456, 9492, 9549, 9551, 9552, 9662, 9669, 9679, 9725, 9790, 9798, 9821, 9827, 9850, 9860, 9861, 9877, 9895, 9912, 9918, 9929, 9942, 9955, 9988, 10003, 10018, 10026, 10077, 10090, 10149, 10197, 10206, 10308, 10319, 10367, 10370, 10405, 10476, 10495, 10565, 10595, 10620, 10629, 10643, 10694, 10738, 10750, 10757, 10765, 10847, 10855, 10858, 10897, 10914, 10960, 11015, 11053, 11054, 11078, 11141, 11288, 11417, 11460, 11464, 11505, 11517, 11539, 11556, 11570, 11575, 11579, 11591, 11595, 11644, 11703, 11770, 11776, 11788, 11808, 11815, 11818, 11839, 11848, 11865, 11883, 11925, 11960, 12069, 12105, 12139, 12160, 12168, 12171, 12176, 12230, 12245, 12259, 12271, 12297, 12306, 12308, 12347, 12405, 12424, 12439, 12440, 12451, 12519, 12542, 12559, 12618, 12636, 12658, 12660, 12690, 12693, 12746, 12751, 12753, 12765, 12801, 12808, 12856, 12857, 12858, 12890, 12892, 12893, 12909, 12923, 12928, 12936, 12959, 13020, 13037, 13061, 13069, 13081, 13095, 13099, 13113, 13162, 13178, 13187, 13225, 13260, 13274, 13292, 13394, 13403, 13406, 13430, 13432, 13463, 13580, 13593, 13636, 13645, 13730, 13761, 13773, 13850, 13852, 13853, 13904, 13917, 13958, 13999, 14029, 14046, 14092, 14155, 14176, 14197, 14227, 14230, 14235, 14268, 14269, 14365, 14403, 14439, 14475, 14509, 14636, 14668, 14714, 14727, 14736, 14740, 14756, 14779, 14788, 14837, 14846, 14848, 14892, 14898, 14945, 14950, 14958, 14976, 14979, 14986, 15006, 15014, 15077, 15117, 15139, 15168, 15201, 15216, 15236, 15237, 15251, 15265, 15269, 15274, 15288, 15294, 15301, 15302, 15304, 15345, 15357, 15360, 15369, 15396, 15417, 15421, 15427, 15436, 15463, 15494, 15495, 15507, 15515, 15563, 15589, 15601, 15642, 15649, 15652, 15658, 15675, 15680, 15694, 15702, 15737, 15762, 15774, 15810, 15821, 15829, 15841, 15854, 15886, 15897, 15948, 15950, 15983, 15984, 16041, 16073, 16078, 16080, 16121, 16150, 16245, 16256, 16289, 16292, 16305, 16338, 16392, 16468, 16485, 16487, 16509, 16572, 16595, 16642, 16659, 16672, 16680, 16684, 16699, 16716, 16732, 16741, 16752, 16753, 16783, 16794, 16815, 16852, 16857, 16873, 16915, 16948, 16994, 17007, 17020, 17046, 17065, 17081, 17109, 17171, 17173, 17185, 17187, 17220, 17224, 17240, 17260, 17285, 17306, 17321, 17326, 17328, 17329, 17334, 17342, 17357, 17372, 17378, 17395, 17409, 17451, 17457, 17492, 17493, 17511, 17526, 17592, 17619, 17627, 17632, 17633, 17657, 17671, 17733, 17782, 17823, 17838, 17948, 17957, 17971, 17985, 17998, 18006, 18018, 18038, 18110, 18113, 18142, 18144, 18151, 18156, 18209, 18215, 18227, 18256, 18284, 18368, 18431, 18460, 18485, 18515, 18535, 18555, 18573, 18579, 18608, 18624, 18651, 18664, 18685, 18686, 18730, 18732, 18740, 18756, 18794, 18841, 18873, 18900, 18904, 18926, 18969, 18996, 19058, 19076, 19105, 19146, 19204, 19251, 19252, 19261, 19266, 19284, 19293, 19355, 19430, 19566, 19588, 19600, 19672, 19676, 19712, 19722, 19728, 19779, 19787, 19921, 19952, 19982, 19992, 19995, 20042, 20047, 20124, 20125, 20195, 20196, 20214, 20237, 20265, 20269, 20270, 20357, 20364, 20373, 20456, 20472, 20527, 20552, 20562, 20602, 20606, 20607, 20615, 20635, 20685, 20695, 20698, 20724, 20748, 20757, 20760, 20792, 20820, 20823, 20832, 20919, 20924, 20930, 20999, 21024, 21026, 21032, 21049, 21078, 21115, 21130, 21133, 21149, 21176, 21184, 21216, 21222, 21252, 21265, 21274, 21351, 21384, 21401, 21407, 21452, 21493, 21554, 21603, 21630, 21687, 21704, 21748, 21789, 21816, 21821, 21867, 21888, 21901, 21966, 21983, 22010, 22018, 22054, 22071, 22119, 22131, 22132, 22143, 22161, 22319, 22355, 22383, 22392, 22395, 22451, 22481, 22482, 22513, 22539, 22561, 22569, 22588, 22672, 22681, 22705, 22718, 22764, 22802, 22947, 22990, 23006, 23031, 23033, 23054, 23073, 23075, 23090, 23135, 23139, 23147, 23152, 23259, 23267, 23318, 23323, 23333, 23348, 23369, 23391, 23407, 23455, 23458, 23474, 23486, 23505, 23508, 23554, 23556, 23573, 23591, 23609, 23658, 23679, 23695, 23707, 23711, 23733, 23760, 23761, 23778, 23792, 23843, 23895, 23903, 23905, 23968, 23995, 23998, 24029, 24030, 24044, 24048, 24093, 24104, 24184, 24185, 24201, 24227, 24269, 24289, 24294, 24320, 24352, 24387, 24407, 24453, 24496, 24530, 24623, 24674, 24677, 24698, 24761, 24765, 24767, 24768, 24789, 24828, 24835, 24836, 24856, 24861, 24871, 24897, 24902, 24908, 24920, 24938, 24941, 24970, 25030, 25032, 25045, 25076, 25094, 25115, 25141, 25184, 25213, 25220, 25276, 25416, 25421, 25436, 25442, 25479, 25484, 25498, 25541, 25555, 25556, 25561, 25584, 25636, 25643, 25646, 25663, 25670, 25676, 25711, 25785, 25787, 25792, 25796, 25808, 25819, 25842, 25860, 25864, 25889, 25890, 25896, 25941, 25984, 25999, 26010, 26028, 26051, 26069, 26105, 26107, 26172, 26180, 26182, 26224, 26248, 26257, 26287, 26321, 26336, 26340, 26360, 26371, 26403, 26430, 26474, 26533, 26538, 26552, 26572, 26617, 26627, 26631, 26637, 26667, 26722, 26749, 26774, 26779, 26852, 26856, 26863, 26887, 26921, 26934, 26955, 27022, 27029, 27030, 27040, 27089, 27104, 27200, 27205, 27225, 27233, 27283, 27320, 27329, 27380, 27399, 27404, 27419, 27461, 27555, 27572, 27581, 27589, 27595, 27608, 27625, 27629, 27706, 27712, 27726, 27732, 27772, 27798, 27801, 27817, 27840, 27869, 27907, 27922, 27927, 27962, 27987, 28051, 28083, 28103, 28118, 28122, 28125, 28126, 28222, 28238, 28240, 28277, 28308, 28319, 28331, 28334, 28417, 28419, 28449, 28474, 28476, 28490, 28515, 28521, 28522, 28527, 28568, 28599, 28611, 28650, 28653, 28670, 28714, 28776, 28777, 28789, 28798, 28839, 28857, 28865, 28869, 28876, 28905, 28911, 28928, 28959, 29054, 29070, 29093, 29094, 29111, 29164, 29166, 29226, 29236, 29260, 29302, 29305, 29311, 29367, 29384, 29430, 29443, 29464, 29475, 29478, 29552, 29624, 29625, 29655, 29656, 29674, 29676, 29696, 29741, 29750, 29761, 29766, 29769, 29817, 29829, 29832, 29833, 29921, 29986, 29988, 30049, 30062, 30080, 30148, 30157, 30158, 30167, 30174, 30181, 30190, 30221, 30230, 30236, 30283, 30298, 30300, 30305, 30349, 30372, 30382, 30394, 30453, 30539, 30544, 30569, 30575, 30582, 30633, 30697, 30705, 30728, 30734, 30749, 30773, 30870, 30899, 30900, 30935, 30939, 30950, 30970, 30976, 30984, 31001, 31025, 31051, 31108, 31236, 31284, 31315, 31330, 31351, 31354, 31390, 31431, 31459, 31466, 31469, 31511, 31532, 31591 ],
+          "group": "granules_active_dends",
+          "targetting": "by_label",
+          "labels": ["grc_active_dends_*"],
+          "cell_count": 2,
           "section_type": "soma"
         }
       }

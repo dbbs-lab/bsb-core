@@ -110,6 +110,9 @@ class CellType(SortableByAfter):
                 "Detailed morphologies can currently only be selected by name."
             )
 
+    def get_placement_set(self):
+        return self.scaffold.get_placement_set(self)
+
 
 class Layer(dimensions, origin):
     """

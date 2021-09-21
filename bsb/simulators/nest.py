@@ -452,10 +452,21 @@ class NestAdapter(SimulatorAdapter):
         self.global_identifier_map = {}
         for cell_model in self.cell_models.values():
             cell_model.reset()
+        if self.has_lock:
+            self.release_lock()
 
-    def get_master_seed(self):
-        # Use a constant reproducible master seed
-        return 1989
+    def get_master_seed(self, fixed_seed=None):
+        if not hasattr(self, "_master_seed"):
+            if fixed_seed is None:
+                # Use time as random seed
+                if mpi4py.MPI.COMM_WORLD.rank == 0:
+                    fixed_seed = int(time.time())
+                else:
+                    fixed_seed = None
+                self._master_seed = mpi4py.MPI.COMM_WORLD.bcast(fixed_seed, root=0)
+            else:
+                self._master_seed = fixed_seed
+        return self._master_seed
 
     def reset_processes(self, threads):
         master_seed = self.get_master_seed()
@@ -715,6 +726,11 @@ class NestAdapter(SimulatorAdapter):
             self.create_synapse_model(connection_model)
             # Set the specifications NEST allows like: 'rule', 'autapses', 'multapses'
             connection_specifications = {"rule": "one_to_one"}
+            if hasattr(self, "weight_recorder"):
+                wr_conf = self.weight_recorder
+                wr = nest.Create("weight_recorder")
+                nest.SetStatus(wr, wr_conf)
+                connection_specifications["weight_recorder"] = wr
             # Get the connection parameters from the configuration
             connection_parameters = connection_model.get_connection_parameters()
             report("Creating connections " + nest_name, level=3)
@@ -968,17 +984,25 @@ class SpikeRecorder(SimulationRecorder):
                     scaffold_ids = np.array(
                         self.device_model.adapter.get_scaffold_ids(file_spikes[:, 0])
                     )
+                    self.cell_types = list(
+                        set(
+                            self.device_model.adapter.scaffold.get_gid_types(scaffold_ids)
+                        )
+                    )
                     times = file_spikes[:, 1]
-                    scaffold_spikes = np.vstack((scaffold_ids, times)).T
-                    spikes = np.vstack((spikes, scaffold_spikes))
+                    scaffold_spikes = np.column_stack((scaffold_ids, times))
+                    spikes = np.concatenate((spikes, scaffold_spikes))
                 os.remove(file)
         return spikes
 
     def get_meta(self):
+        if not hasattr(self, "cell_types"):
+            self.get_data()
         return {
             "name": self.device_model.name,
-            "label": self.device_model.name,
-            "color": "black",
+            "label": self.cell_types[0].name,
+            "cell_types": [ct.name for ct in self.cell_types],
+            "color": self.cell_types[0].plotting.color,
             "parameters": json.dumps(self.device_model.parameters),
         }
 

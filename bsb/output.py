@@ -194,6 +194,16 @@ class OutputFormatter(ConfigurableClass, TreeHandler):
         pass
 
     @abstractmethod
+    def get_connectivity_sets(self):
+        """
+        Return all connectivity sets.
+
+        :return: List of connectivity sets.
+        :rtype: :class:`ConnectivitySet`
+        """
+        pass
+
+    @abstractmethod
     def get_connectivity_set(self, tag):
         """
         Return a connectivity set.
@@ -749,6 +759,8 @@ class HDF5Formatter(OutputFormatter, MorphologyRepository):
             self.scaffold.labels = {
                 l: resource()["cells/labels/" + l][()] for l in resource()["cells/labels"]
             }
+            hdf5_ids = np.array(resource()["cells/positions"])[:, 0]
+            self.scaffold._nextId = int(np.max(hdf5_ids))
 
     def validate(self):
         pass
@@ -937,6 +949,15 @@ class HDF5Formatter(OutputFormatter, MorphologyRepository):
         """
         with self.load() as f:
             return dict(f()["cells/connections/" + tag].attrs)
+
+    def get_connectivity_sets(self):
+        """
+        Return all the ConnectivitySets present in the network file.
+        """
+        with self.load() as f:
+            return list(
+                ConnectivitySet(self, tag) for tag in f()["cells/connections/"].keys()
+            )
 
     def get_connectivity_set(self, tag):
         return ConnectivitySet(self, tag)

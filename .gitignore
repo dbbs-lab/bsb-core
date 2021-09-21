@@ -2,8 +2,10 @@ __pycache__/
 *.gdf
 *.pyc
 *.hdf5
+*.h5
 build/
 dist/
+bsb-*/
 *.egg-info/
 pip-wheel-metadata/
 .python-version
@@ -15,14 +17,8 @@ nrnmech.dll
 .coverage
 htmlcov/
 .idea/
-obfuscation/licenses
-obfuscation/scaffold
 !morphologies.hdf5
-
-# Ignore obfuscation files
-obfuscation/scaffold/
-obfuscation/licenses
-
 # Ignore report files
 *.io
 .vscode/
+bsb-*/

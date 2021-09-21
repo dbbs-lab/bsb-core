@@ -1,4 +1,3 @@
-print("Hello")
-__version__ = "3.7.4"
+__version__ = "3.8.0"
 
 from .reporting import set_verbosity, report, warn

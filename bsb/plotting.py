@@ -676,7 +676,7 @@ def hdf5_plot_spike_raster(
     # Use the parallel arrays x & y to plot a spike raster
     fig = go.Figure(
         layout=dict(
-            xaxis=dict(title_text="Time (ms)"), yaxis=dict(title_text="Cell (ID)")
+            xaxis=dict(title_text="Time [ms]"), yaxis=dict(title_text="Cell [ID]")
         )
     )
     if cell_type_sort is None:
@@ -844,14 +844,17 @@ def hdf5_gather_voltage_traces(handle, root, groups=None):
 
 @_figure
 @_input_highlight
-def plot_traces(traces, fig=None, show=True, legend=True, cutoff=0, x=None):
+def plot_traces(
+    traces, fig=None, show=True, legend=True, cutoff=0, range=None, x=None, **kwargs
+):
     traces.order()
     subplots_fig = make_subplots(
         cols=1,
         rows=len(traces),
         subplot_titles=[trace.title for trace in traces],
-        x_title="Time (ms)",
-        y_title="Membrane potential (mV)",
+        x_title="Time [ms]",
+        y_title="Membrane potential [mV]",
+        **kwargs,
     )
     # Save the data already in the given figure
     _data = fig.data
@@ -866,10 +869,17 @@ def plot_traces(traces, fig=None, show=True, legend=True, cutoff=0, x=None):
     fig.update_layout(height=max(len(traces) * 130, 300))
     legend_groups = set()
     legends = traces.legends
+    if range is not None and x is not None:
+        x = np.array(x)
+        x = x[cutoff:]
+        mask = (x >= range[0]) & (x <= range[1])
+        x = x[mask]
     for i, cell_traces in enumerate(traces):
         for j, trace in enumerate(cell_traces):
             showlegend = legends[j] not in legend_groups
             data = trace.data[cutoff:]
+            if range is not None and x is not None:
+                data = data[mask]
             fig.add_trace(
                 go.Scatter(
                     x=x,
@@ -937,13 +947,29 @@ class PSTHRow:
 
 
 @_figure
-def hdf5_plot_psth(network, handle, duration=3, cutoff=0, start=0, fig=None, **kwargs):
+def hdf5_plot_psth(
+    network, handle, duration=3, cutoff=0, start=0, fig=None, gaps=True, **kwargs
+):
     psth = PSTH()
     row_map = {}
     for g in handle.values():
         l = g.attrs.get("label", "unlabelled")
+        cts = g.attrs.get("cell_types", [])
+        color = None
+        if cts:
+            if len(cts) > 1:
+                warn(
+                    "Multiple cell types detected in a single dataset, can't perform proper PSTH"
+                )
+            ct = network.configuration.cell_types[cts[0]]
+            l = ct.plotting.label
+            color = ct.plotting.color
+        elif l in network.configuration.cell_types:
+            ct = network.configuration.cell_types[l]
+            l = ct.plotting.label
+            color = ct.plotting.color
         if l not in row_map:
-            color = g.attrs.get("color", None)
+            color = g.attrs.get("color", color)
             order = g.attrs.get("order", 0)
             row_map[l] = row = PSTHRow(l, color, order=order)
             psth.add_row(row)
@@ -957,8 +983,8 @@ def hdf5_plot_psth(network, handle, duration=3, cutoff=0, start=0, fig=None, **k
         cols=1,
         rows=len(psth.rows),
         subplot_titles=[row.name for row in psth.ordered_rows()],
-        x_title=kwargs.get("x_title", "Time (ms)"),
-        y_title=kwargs.get("y_title", "Population firing rate (Hz)"),
+        x_title=kwargs.get("x_title", "Time [ms]"),
+        y_title=kwargs.get("y_title", "Population firing rate [Hz]"),
     )
     for k in dir(subplots_fig):
         if k == "data" or k == "_data":
@@ -975,6 +1001,8 @@ def hdf5_plot_psth(network, handle, duration=3, cutoff=0, start=0, fig=None, **k
         _max = max(_max, row.max)
     fig.update_xaxes(range=[start, _max])
     fig.update_layout(title_text=kwargs.get("title", "PSTH"))
+    if not gaps:
+        fig.update_layout(bargap=0, bargroupgap=0)
     cell_types = network.get_cell_types()
     for i, row in enumerate(psth.ordered_rows()):
         for name, stack in sorted(row.stacks.items(), key=lambda x: x[0]):
@@ -995,11 +1023,15 @@ def hdf5_plot_psth(network, handle, duration=3, cutoff=0, start=0, fig=None, **k
                 # Lazy way to order the stacks; Stack names can start with ## and a number
                 # and it will be sorted by name, but the ## and number are not displayed.
                 name = name[4:]
+            bar_kwargs = dict()
+            if not gaps:
+                bar_kwargs["marker_line_width"] = 0
             trace = go.Bar(
                 x=bins,
                 y=counts / cell_num * 1000 / duration,
                 name=name or row.name,
                 marker=dict(color=stack.color),
+                **bar_kwargs,
             )
             fig.add_trace(trace, row=i + 1, col=1)
 

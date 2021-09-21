@@ -152,6 +152,44 @@ class DCNRotations(PostProcessingHook):
         self.scaffold.append_dset("cells/dcn_orientations", data=matrix)
 
 
+class DCN_large_differentiation(PostProcessingHook):
+    """
+    Extract from the overall DCN glutamate large cells (GADnL) 2 subpopulations that
+    are involved in the construction of the NucleoCortical pathways
+    """
+
+    def after_placement(self):
+        ids = self.scaffold.get_cells_by_type("dcn_cell_glut_large")[:, 0]
+        total_NC = int((0.47 + 0.09) * len(ids))
+        NC_same_modulus = int(
+            0.09 * len(ids)
+        )  # only NC cells projecting to the cerebellar cortex of the same modulus (inverse or forward)
+
+        NC_ids = np.sort(
+            np.random.choice(ids, total_NC, replace=False)
+        )  # ALL NucleoCortical cells
+        same_mod_NC_ids = np.sort(
+            np.random.choice(NC_ids, NC_same_modulus, replace=False)
+        )
+        opposite_mod_NC_ids = [i for i in NC_ids if i not in same_mod_NC_ids]
+
+        report(
+            "{} DCN cells glutamate large divided into NC subpopulations: {} toward same module, {} interconnect modules".format(
+                len(ids), len(same_mod_NC_ids), len(opposite_mod_NC_ids)
+            ),
+            level=3,
+        )
+
+        self.scaffold.label_cells(
+            same_mod_NC_ids,
+            label="same_module",
+        )
+        self.scaffold.label_cells(
+            opposite_mod_NC_ids,
+            label="opposite_module",
+        )
+
+
 class SpoofDetails(PostProcessingHook):
     """
     Create fake morphological intersections between already connected non-detailed
@@ -296,3 +334,42 @@ class BidirectionalContact(PostProcessingHook):
 
     def _invert_append(self, old):
         return np.concatenate((old, np.stack((old[:, 1], old[:, 0]), axis=1)), axis=0)
+
+
+class CerebellumLabels(PostProcessingHook):
+    def after_connectivity(self):
+        self.label_central_mossy_fibers()
+        self.label_grc_active_dends()
+
+    def label_central_mossy_fibers(self):
+        x = self.scaffold.configuration.X / 2
+        z = self.scaffold.configuration.Z / 2
+        mf = self.scaffold.get_placement_set("mossy_fibers")
+        gloms = self.scaffold.get_placement_set("glomerulus")
+        mf_glom = self.scaffold.get_connectivity_set("mossy_to_glomerulus").get_dataset()
+        glom_ids = (mf_glom[:, 1] - int(gloms.identifiers[0])).astype(int)
+        # Need to do the indexing in 2 steps or it errors, maybe I'm just stupid
+        glom_positions = gloms.positions[glom_ids][:, [0, 2]]
+        mf_ids = mf.identifiers
+        cpos = {id: [] for id in mf_ids}
+        for mf_id, glom_pos in zip(mf_glom[:, 0], glom_positions):
+            cpos[mf_id].append(glom_pos)
+        centroids = np.array(
+            [np.mean(cp, axis=0) if len(cp) else np.nan for cp in cpos.values()]
+        )
+        distances = np.linalg.norm(centroids - [x, z], axis=1)
+        self.scaffold.label_cells(
+            mf_ids[distances.argsort()[:4]],
+            label="central_mossy_fibers",
+        )
+
+    def label_grc_active_dends(self):
+        network = self.scaffold
+        central_mf = network.labels["central_mossy_fibers"]
+        mf_glom = network.get_connectivity_set("mossy_to_glomerulus").get_dataset()
+        glom_grc = network.get_connectivity_set("glomerulus_to_granule").get_dataset()
+        active_glom = mf_glom[np.isin(mf_glom[:, 0], central_mf), 1]
+        active_dendrites = glom_grc[np.isin(glom_grc[:, 0], active_glom), 1]
+        grc_ids, dend_count = np.unique(active_dendrites, return_counts=True)
+        for i in range(5):
+            network.label_cells(grc_ids[dend_count == i], label=f"grc_active_dends_{i}")
