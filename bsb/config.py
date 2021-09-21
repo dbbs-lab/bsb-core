@@ -23,9 +23,10 @@ from .helpers import (
     fill_configurable_class,
     get_config_path,
 )
-from .simulators.nest import NestAdapter
 from .postprocessing import PostProcessingHook
+from .simulators.nest import NestAdapter
 from .simulators.neuron import NeuronAdapter
+from .simulators.arbor import ArborAdapter
 from .exceptions import *
 import numpy as np
 
@@ -115,9 +116,10 @@ class ScaffoldConfig(object):
         self._name = ""
         if not hasattr(self, "_extension"):
             self._extension = ""
-        self.simulators = simulators
+        self.simulators = simulators.copy()
         self.simulators["nest"] = NestAdapter
         self.simulators["neuron"] = NeuronAdapter
+        self.simulators["arbor"] = ArborAdapter
         self.output_formatter = HDF5Formatter()
 
         # Fallback simulation values
