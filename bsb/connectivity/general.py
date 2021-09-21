@@ -3,6 +3,7 @@ from .strategy import ConnectionStrategy, TouchingConvergenceDivergence
 from ..exceptions import *
 from ..reporting import report, warn
 
+
 class Convergence(TouchingConvergenceDivergence):
     """
     Implementation of a general convergence connectivity between
