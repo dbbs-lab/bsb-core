@@ -133,22 +133,18 @@ class ArborRecipe(arbor.recipe):
         self._global_properties.register(self._catalogue)
 
     def _get_catalogue(self):
-        catalogue = arbor.empty_catalogue()
-        models = set(
-            cell.model_class
-            for cell in self._adapter.cell_models.values()
-            if cell.model_class
-        )
+        catalogue = arbor.default_catalogue()
+        prefixes = set()
+        for cell in self._adapter.cell_models.values():
+            # Add the unique set of catalogues of non relay models to the recipe
+            # catalogue.
+            if (
+                cell.model_class
+                and (p := cell.model_class.get_catalogue_prefix()) not in prefixes
+            ):
+                prefixes.add(p)
+                catalogue.extend(cell.model_class.get_catalogue(), "")
 
-        def hash(cat):
-            return " ".join(sorted(cat))
-
-        catalogues = set((hash(catalogue),))
-        for model in models:
-            arbcat, prefix = model.catalogue()
-            if (cat_hash := hash(arbcat)) not in catalogues:
-                catalogues.add(cat_hash)
-                catalogue.extend(arbcat, prefix)
         return catalogue
 
     def global_properties(self, kind):
