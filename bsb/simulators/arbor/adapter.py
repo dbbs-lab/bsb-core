@@ -14,6 +14,7 @@ from mpi4py.MPI import COMM_WORLD as mpi
 import numpy as np
 import itertools
 import os
+import time
 
 try:
     import arbor
@@ -152,17 +153,9 @@ class ArborRecipe(arbor.recipe):
 
     def num_cells(self):
         network = self._adapter.scaffold
-        print(
-            "Datasets contain",
-            sum(
-                len(ps) for ps in map(network.get_placement_set, network.get_cell_types())
-            ),
-            "cells",
-        )
         s = sum(
             len(ps) for ps in map(network.get_placement_set, network.get_cell_types())
         )
-        print("alive")
         return s
 
     def num_sources(self, gid):
@@ -211,6 +204,9 @@ class ArborAdapter(SimulatorAdapter):
         "devices": ArborDevice,
     }
 
+    casts = {"duration": float}
+    required = ["duration"]
+
     def validate(self):
         pass
 
@@ -231,13 +227,13 @@ class ArborAdapter(SimulatorAdapter):
                 )
             context = arbor.context(arbor.proc_allocation())
         self._lookup = QuickLookup(self)
+        report("preparing simulation")
         recipe = self.get_recipe()
         self.domain = arbor.partition_load_balance(recipe, context)
         self.gids = set(itertools.chain(*(g.gids for g in self.domain.groups)))
         self._cache_connections()
-        print("preparing simulation")
         simulation = arbor.simulation(recipe, self.domain, context)
-        print("prepared simulation")
+        report("prepared simulation")
         return simulation
 
     def simulate(self, simulation):
@@ -248,9 +244,17 @@ class ArborAdapter(SimulatorAdapter):
             self.soma_voltages[gid] = simulation.sample(
                 (gid, 0), arbor.regular_schedule(0.1)
             )
-        print("arrived at simulation")
-        simulation.run(tfinal=self.duration)
-        print(f"finished {self.duration}ms")
+        start = time.time()
+        report("running simulation")
+        for i in itertools.chain(np.arange(1, self.duration), (self.duration,)):
+            simulation.run(i)
+            avg = (time.time() - start) / i
+            report(
+                f"Simulated {i}/{self.duration}ms (avg {avg:.2f}s/ms)",
+                level=2,
+                ongoing=i < self.duration,
+            )
+        report("completed simulation")
 
     def collect_output(self, simulation):
         # import plotly.graph_objs as go
@@ -258,7 +262,6 @@ class ArborAdapter(SimulatorAdapter):
         os.makedirs("results_arbor", exist_ok=True)
         if not mpi.Get_rank():
             spikes = simulation.spikes()
-            print("SIMULATION CREATED", len(spikes))
             spikes = np.column_stack(
                 (
                     np.fromiter((l[0][0] for l in spikes), dtype=int),
