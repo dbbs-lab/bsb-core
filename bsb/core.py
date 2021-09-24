@@ -1062,11 +1062,13 @@ class Scaffold:
             + " Only cell types that exist in the calling network will be copied."
         )
         for ct in self.get_cell_types():
-            if next((c for c in other.get_cell_types() if c.name == ct.name), None):
-                ps = c.get_placement_set()
-                ids = self.place_cells(ct, ct.layer_instance, ps.get_dataset())
-                if label is not None:
-                    self.label_cells(ids, label)
+            for c in other.get_cell_types():
+                if(c.name != 'mossy_fibers'):
+                    if(c.name == ct.name):
+                        ps = self.get_placement_set(c)
+                        ids = self.place_cells(ct, ct.placement.layer_instance, ps.positions)
+                        if label is not None:
+                            self.label_cells(ids, label)
         self.compile_output()
 
 
