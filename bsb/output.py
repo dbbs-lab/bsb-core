@@ -6,7 +6,7 @@ from bsb.helpers import suppress_stdout
 from contextlib import contextmanager
 from abc import abstractmethod, ABC
 import h5py, os, time, pickle, random, numpy as np
-from numpy import string_
+from numpy import array, string_
 from .exceptions import *
 from .models import ConnectivitySet, PlacementSet
 from sklearn.neighbors import KDTree
@@ -820,7 +820,7 @@ class HDF5Formatter(OutputFormatter, MorphologyRepository):
         for type in self.scaffold.configuration.cell_types.keys():
             type_maps_group.create_dataset(
                 type + "_map",
-                data=np.where(self.scaffold.cells[:, 1] == cell_type_names.index(type))[
+                data=np.where(self.scaffold.cells[:, 1] == np.where(cell_type_names==type))[
                     0
                 ],
             )
