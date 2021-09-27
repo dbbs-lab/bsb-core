@@ -15,6 +15,7 @@ import numpy as np
 import itertools
 import os
 import time
+import psutil
 
 try:
     import arbor
@@ -207,6 +208,8 @@ class ArborAdapter(SimulatorAdapter):
     casts = {"duration": float}
     required = ["duration"]
 
+    defaults = {"threads": psutil.cpu_count(logical=False)}
+
     def validate(self):
         pass
 
@@ -218,14 +221,14 @@ class ArborAdapter(SimulatorAdapter):
                 str(e) + " The arbor adapter requires completely continuous GIDs."
             ) from None
         try:
-            context = arbor.context(arbor.proc_allocation(), mpi)
+            context = arbor.context(arbor.proc_allocation(self.threads), mpi)
         except TypeError:
             if mpi.Get_size() > 1:
                 s = mpi.Get_size()
                 warn(
                     f"Arbor does not seem to be built with MPI support, running duplicate simulations on {s} nodes."
                 )
-            context = arbor.context(arbor.proc_allocation())
+            context = arbor.context(arbor.proc_allocation(self.threads))
         self._lookup = QuickLookup(self)
         report("preparing simulation")
         recipe = self.get_recipe()
