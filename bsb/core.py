@@ -10,6 +10,9 @@ from .connectivity import ConnectionStrategy
 from warnings import warn as std_warn
 from .exceptions import *
 from .reporting import report, warn, has_mpi_installed, get_report_file
+from .config import JSONConfig
+from bsb import output
+import json
 
 ###############################
 ## Scaffold class
@@ -561,6 +564,8 @@ class Scaffold:
             cell_type.placement.__dict__["cells_placed"] = 0
         cell_type.placement.cells_placed += count
 
+        return entities_ids
+
     def _append_tagged(self, attr, tag, data):
         """
         Appends or creates data to a tagged numpy array in a dictionary attribute of
@@ -1056,20 +1061,64 @@ class Scaffold:
 
         return self
 
-    def merge(self, other, label=None):
+    def merge(self, other, output_file, label=None):
         warn(
-            "The merge function currently only merges cell positions."
+            "The merge function copies the originally loaded configuration and"
+            + " currently only merges cell positions."
             + " Only cell types that exist in the calling network will be copied."
+            + " Use at your own risk"
         )
-        for ct in self.get_cell_types():
-            for c in other.get_cell_types():
-                if(c.name != 'mossy_fibers'):
-                    if(c.name == ct.name):
-                        ps = self.get_placement_set(c)
-                        ids = self.place_cells(ct, ct.placement.layer_instance, ps.positions)
-                        if label is not None:
-                            self.label_cells(ids, label)
-        self.compile_output()
+        cfg_json = json.loads(self.configuration._raw)
+        cfg_json["output"]["file"] = output_file
+        cfg_copy = JSONConfig(stream=json.dumps(cfg_json))
+        merged = Scaffold(cfg_copy)
+        merged.output_formatter.create_output()
+        #print(len(self.get_cell_types()))
+        #print(len(other.get_cell_types()))
+        for netx in (self, other):
+            merged._left_join(netx, label)
+            return merged
+    
+    def _left_join(self, other, label):
+        id_map = {}
+        for ct in self.get_cell_type:
+            for c in other.get_cell_types():                
+                if(c.name != ct.name):
+                    continue
+                if not ct.entity:
+                    ps = other.get_placement_set(c)
+                    old_ids = ps.identifiers
+                    ids = self.place_cells(ct, ct.placement.layer_instance, ps.positions)
+                else:
+                    old_ids = c.get_ids()
+                    ids = self.create_entities(ct, len(ids))
+                id_map[c.name] = dict(zip(old_ids, ids))
+                if label is not None:
+                    self.label_cells(ids, label)
+    
+        for cs_self in self.get_connectivity_sets():
+            #print(dir(cs_self))
+            conn_t = cs_self.connection_types[0]
+            from_type = conn_t.from_cell_types[0]
+            to_type = conn_t.to_cell_types[0]
+            # TODO: Concatenate comp and morpho datasets
+            for cs_other in other.get_connectivity_sets():
+                if(cs_self.tag != cs_other.tag):
+                    continue
+                from_ids = cs_other.from_identifiers
+                mapped_from_ids = np.vectorize(id_map[from_type.name].get)(from_ids)
+                to_ids = cs_other.to_identifiers
+                mapped_to_ids = np.vectorize(id_map[to_type.name].get)(to_ids)
+                mapped_cds = np.column_stack((mapped_from_ids, mapped_to_ids))
+                break
+            else:
+                raise RuntimeError(f"Missing '{cs_self.tag}' dataset.")
+            
+            self.connect_cells(conn_t, mapped_cds)
+
+
+        merged.compile_output()
+        
 
 
 class ReportListener:

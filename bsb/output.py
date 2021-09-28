@@ -730,8 +730,8 @@ class HDF5Formatter(OutputFormatter, MorphologyRepository):
 
         with self.load("w") as output:
             self.store_configuration()
-            self.store_cells()
             self.store_entities()
+            self.store_cells()
             self.store_tree_collections(self.scaffold.trees.__dict__.values())
             self.store_statistics()
             self.store_appendices()
@@ -901,7 +901,7 @@ class HDF5Formatter(OutputFormatter, MorphologyRepository):
     def has_cells_of_type(self, name, entity=False):
         if entity:
             with self.load() as resource:
-                return name in list(resource()["/entities"])
+                return name in resource()["/entities"]
         else:
             with self.load() as resource:
                 return name in list(resource()["/cells"].attrs["types"])
