@@ -208,7 +208,7 @@ class ArborAdapter(SimulatorAdapter):
     casts = {"duration": float}
     required = ["duration"]
 
-    defaults = {"threads": psutil.cpu_count(logical=False)}
+    defaults = {"threads": psutil.cpu_count(logical=False), "profiling": True}
 
     def validate(self):
         pass
@@ -229,14 +229,16 @@ class ArborAdapter(SimulatorAdapter):
                     f"Arbor does not seem to be built with MPI support, running duplicate simulations on {s} nodes."
                 )
             context = arbor.context(arbor.proc_allocation(self.threads))
+        if self.profiling and arbor.config()["profiling"]:
+            arbor.profiler_initialize(context)
         self._lookup = QuickLookup(self)
-        report("preparing simulation")
+        report("preparing simulation on", self.threads, "threads", level=1)
         recipe = self.get_recipe()
         self.domain = arbor.partition_load_balance(recipe, context)
         self.gids = set(itertools.chain(*(g.gids for g in self.domain.groups)))
         self._cache_connections()
         simulation = arbor.simulation(recipe, self.domain, context)
-        report("prepared simulation")
+        report("prepared simulation", level=1)
         return simulation
 
     def simulate(self, simulation):
@@ -248,7 +250,7 @@ class ArborAdapter(SimulatorAdapter):
                 (gid, 0), arbor.regular_schedule(0.1)
             )
         start = time.time()
-        report("running simulation")
+        report("running simulation", level=1)
         for i in itertools.chain(np.arange(1, self.duration), (self.duration,)):
             simulation.run(i)
             avg = (time.time() - start) / i
@@ -257,7 +259,9 @@ class ArborAdapter(SimulatorAdapter):
                 level=2,
                 ongoing=i < self.duration,
             )
-        report("completed simulation")
+        report("completed simulation", level=1)
+        if self.profiling and arbor.config()["profiling"]:
+            report(arbor.profiler_summary())
 
     def collect_output(self, simulation):
         # import plotly.graph_objs as go
