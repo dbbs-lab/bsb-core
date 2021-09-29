@@ -910,17 +910,6 @@ class Scaffold:
 
         return np.vectorize(lookup)(ids)
 
-    def get_cells(self, selector):
-        """
-        Return all data of the selected cells in the network cache.
-
-        :param selector: Selects the cells from the network cache.
-        :type selector: A valid :class:`numpy.ndarray` index
-        :returns: Global id, type id and Position of the cells
-        :rtype: (n, 5) shaped :class:`numpy.ndarray`
-        """
-        return self.cells[selector]
-
     def get_placed_count(self, cell_type_name):
         """
         Return the amount of cell of a cell type placed in the volume.
