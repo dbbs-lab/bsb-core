@@ -355,8 +355,6 @@ class Scaffold:
         self.cells_by_type = {c.name: np.empty((0, 5)) for c in cell_types}
         # Entity IDs per cell type.
         self.entities_by_type = {e.name: np.empty((0)) for e in entities}
-        # Cells collection. Columns: Cell ID, Type, X, Y, Z.
-        self.cells = np.empty((0, 5))
         # Cell connections per connection type. Columns: From ID, To ID.
         self.cell_connections_by_tag = {
             key: np.empty((0, 2)) for key in self.configuration.connection_types.keys()
@@ -443,8 +441,6 @@ class Scaffold:
         self.cells_by_type[cell_type.name] = np.concatenate(
             (self.cells_by_type[cell_type.name], cell_data)
         )
-        # Store
-        self.cells = np.concatenate((self.cells, cell_data))
 
         placement_dict = self.statistics.cells_placed
         if cell_type.name not in placement_dict:
