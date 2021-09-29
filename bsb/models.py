@@ -31,7 +31,6 @@ class CellType(SortableByAfter):
 
     def initialise(self, scaffoldInstance):
         self.scaffold = scaffoldInstance
-        self.id = scaffoldInstance.configuration.cell_type_map.index(self.name)
         self.validate()
 
     def set_morphology(self, morphology):
