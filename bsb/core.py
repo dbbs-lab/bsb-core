@@ -869,23 +869,6 @@ class Scaffold:
         """
         return self.configuration.get_cell_type(identifier)
 
-    def get_cell_position(self, id):
-        """
-        Return the position of the cells in the network cache.
-
-        :param id: Index of the cell in the network cache. Should coincide with the global id of the cell, but this isn't guaranteed if you modify the network cache manually.
-        :type id: int
-        :returns: Position of the cell
-        :rtype: (1, 3) shaped :class:`numpy.ndarray`
-        """
-        if not id < len(self.cells):
-            raise DataNotFoundError(
-                "Cell {} does not exist. (highest id is {})".format(
-                    id, len(self.cells) - 1
-                )
-            )
-        return self.cells[id, 2:5]
-
     def assert_continuity(self):
         """
         Assert that all PlacementSets consist of only 1 continuous stretch of IDs, and that all PlacementSets follow
@@ -926,17 +909,6 @@ class Scaffold:
                     return ct
 
         return np.vectorize(lookup)(ids)
-
-    def get_cell_positions(self, selector):
-        """
-        Return the positional data of the selected cells in the network cache.
-
-        :param selector: Selects the cells from the network cache.
-        :type selector: A valid :class:`numpy.ndarray` index
-        :returns: Positions of the cells
-        :rtype: (n, 3) shaped :class:`numpy.ndarray`
-        """
-        return self.cells[selector, 2:5]
 
     def get_cells(self, selector):
         """
