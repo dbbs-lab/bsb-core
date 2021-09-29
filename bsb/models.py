@@ -75,15 +75,15 @@ class CellType(SortableByAfter):
     def get_placed_count(self):
         return self.scaffold.statistics.cells_placed[self.name]
 
-    def get_ids(self):
+    def _get_cached_ids(self):
         if self.entity:
-            dataset = self.scaffold.get_entities_by_type(self.name)
+            dataset = self.scaffold.entities_by_type[self.name]
         else:
             dataset = self.scaffold.cells_by_type[self.name][:, 0]
         return np.array(dataset, dtype=int)
 
-    def serialize_identifiers(self):
-        raw_ids = self.get_ids()
+    def _ser_cached_ids(self):
+        raw_ids = self._get_cached_ids()
         return continuity_list(raw_ids)
 
     def get_cells(self):
