@@ -21,8 +21,10 @@ try:
     import mpi4py.MPI
 
     _MPI_processes = mpi4py.MPI.COMM_WORLD.Get_size()
+    _MPI_rank = mpi4py.MPI.COMM_WORLD.Get_rank()
 except ImportError:
     _MPI_processes = 1
+    _MPI_rank = 0
 
 LOCK_ATTRIBUTE = "dbbs_scaffold_lock"
 
@@ -363,6 +365,9 @@ class NestAdapter(SimulatorAdapter):
         self.connect_neurons()
         self.is_prepared = True
         return self.nest
+
+    def get_rank(self):
+        return _MPI_rank
 
     def in_full_control(self):
         if not self.has_lock or not self.read_lock():

@@ -244,6 +244,9 @@ class NeuronAdapter(SimulatorAdapter):
                     "No intersection data found for '{}'".format(connection_model.name)
                 )
 
+    def get_rank(self):
+        return self.pc_id
+
     def prepare(self):
         from patch import p as simulator
         from time import time
