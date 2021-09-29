@@ -147,6 +147,9 @@ class NestConnection(SimulationComponent):
                 if key not in self.synapse:
                     self.synapse[key] = value
 
+    def get_rank(self):
+        return mpi4py.MPI.COMM_WORLD.Get_rank()
+
     def get_synapse_parameters(self, synapse_model_name):
         # Get the default synapse parameters
         return self.synapse[synapse_model_name]

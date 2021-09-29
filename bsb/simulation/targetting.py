@@ -128,7 +128,7 @@ class TargetsNeurons:
         raise ParallelIntegrityError(
             f"MPI process %rank% failed a checkpoint."
             + " `initialise_targets` should always be called before `get_targets` on all MPI processes.",
-            self.adapter.pc_id,
+            self.adapter.get_rank(),
         )
 
     def get_patterns(self):
@@ -140,11 +140,11 @@ class TargetsNeurons:
         raise ParallelIntegrityError(
             f"MPI process %rank% failed a checkpoint."
             + " `initialise_patterns` should always be called before `get_patterns` on all MPI processes.",
-            self.adapter.pc_id,
+            self.adapter.get_rank(),
         )
 
     def initialise_targets(self):
-        if self.adapter.pc_id == 0:
+        if self.adapter.get_rank() == 0:
             targets = self._get_targets()
         else:
             targets = None
@@ -152,7 +152,7 @@ class TargetsNeurons:
         self._targets = self.scaffold.MPI.COMM_WORLD.bcast(targets, root=0)
 
     def initialise_patterns(self):
-        if self.adapter.pc_id == 0:
+        if self.adapter.get_rank() == 0:
             # Have root 0 prepare the possibly random patterns.
             patterns = self.create_patterns()
         else:
