@@ -244,7 +244,7 @@ class NestDevice(TargetsNeurons, SimulationComponent):
     required = ["targetting", "device", "io", "parameters"]
 
     def validate(self):
-        # Fill in the _get_targets method, so that get_target functions
+        # Fill in the _get_nest_targets method, so that get_target functions
         # according to `targetting`.
         if self.targetting not in self.__class__.neuron_targetting_types:
             raise ConfigurationError(
@@ -270,11 +270,11 @@ class NestDevice(TargetsNeurons, SimulationComponent):
         super().boot()
         self.protocol = get_device_protocol(self)
 
-    def get_targets(self):
+    def get_nest_targets(self):
         """
         Return the targets of the stimulation to pass into the nest.Connect call.
         """
-        return self.adapter.get_nest_ids(np.array(self._get_targets(), dtype=int))
+        return self.adapter.get_nest_ids(np.array(self._get_nest_targets(), dtype=int))
 
 
 class NestEntity(NestDevice, MapsScaffoldIdentifiers):
@@ -821,7 +821,7 @@ class NestAdapter(SimulatorAdapter):
             )
             device_model.protocol.after_create(device)
             # Execute targetting mechanism to fetch target NEST ID's
-            device_targets = device_model.get_targets()
+            device_targets = device_model.get_nest_targets()
             report(
                 "Connecting to {} device targets.".format(len(device_targets)), level=3
             )
