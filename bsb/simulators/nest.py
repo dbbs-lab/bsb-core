@@ -989,8 +989,22 @@ class SpikeRecorder(SimulationRecorder):
         return spikes
 
     def get_meta(self):
-        if not hasattr(self, "cell_types"):
-            self.get_data()
+        print("device cell types ", self.device_model.cell_types)
+        if hasattr(self.device_model, "cell_types"):
+            self.cell_types = [
+                self.device_model.adapter.scaffold.get_cell_type(n)
+                for n in self.device_model.cell_types
+            ]
+            print("It has attribute cell_types")
+        else:
+            self.cell_types = list(
+                set(
+                    self.device_model.adapter.scaffold.get_gid_types(
+                        self.device_model.get_nest_targets()
+                    )
+                )
+            )
+        print(self.cell_types)
         return {
             "name": self.device_model.name,
             "label": self.cell_types[0].name,
