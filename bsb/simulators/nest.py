@@ -270,11 +270,12 @@ class NestDevice(TargetsNeurons, SimulationComponent):
         super().boot()
         self.protocol = get_device_protocol(self)
 
-    def get_targets(self):
+    def get_nest_targets(self):
         """
         Return the targets of the stimulation to pass into the nest.Connect call.
         """
-        return self.adapter.get_nest_ids(np.array(self._get_targets(), dtype=int))
+        targets = np.array(self.get_targets(), dtype=int)
+        return self.adapter.get_nest_ids(targets)
 
 
 class NestEntity(NestDevice, MapsScaffoldIdentifiers):
