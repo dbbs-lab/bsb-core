@@ -157,7 +157,11 @@ class NestConnection(SimulationComponent):
         # Add the receptor specifications, if required.
         if self.should_specify_receptor_type():
             # If specific receptors are specified, the weight should always be positive.
-            params["weight"] = np.abs(params["weight"])
+            if type(params["weight"]) is dict:
+                if "mu" in params["weight"].keys():
+                    params["weight"]["mu"] = np.abs(params["weight"]["mu"])
+            else:
+                params["weight"] = np.abs(params["weight"])
             if "Wmax" in params:
                 params["Wmax"] = np.abs(params["Wmax"])
             if "Wmin" in params:
