@@ -147,9 +147,6 @@ class NestConnection(SimulationComponent):
                 if key not in self.synapse:
                     self.synapse[key] = value
 
-    def get_rank(self):
-        return mpi4py.MPI.COMM_WORLD.Get_rank()
-
     def get_synapse_parameters(self, synapse_model_name):
         # Get the default synapse parameters
         return self.synapse[synapse_model_name]
@@ -440,6 +437,9 @@ class NestAdapter(SimulatorAdapter):
             delattr(self.nest, LOCK_ATTRIBUTE)
         except AttributeError:
             pass
+
+    def get_rank(self):
+        return mpi4py.MPI.COMM_WORLD.Get_rank()
 
     def reset_kernel(self):
         self.nest.set_verbosity(self.verbosity)
@@ -804,6 +804,7 @@ class NestAdapter(SimulatorAdapter):
         Create the configured NEST devices in the simulator
         """
         for device_model in self.devices.values():
+            device_model.initialise_targets()
             device_model.protocol.before_create()
             device = self.nest.Create(device_model.device)
             report("Creating device:  " + device_model.device, level=3)
