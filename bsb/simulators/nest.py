@@ -246,15 +246,7 @@ class NestDevice(TargetsNeurons, SimulationComponent):
     required = ["targetting", "device", "io", "parameters"]
 
     def validate(self):
-        # Fill in the _get_nest_targets method, so that get_target functions
-        # according to `targetting`.
-        if self.targetting not in self.__class__.neuron_targetting_types:
-            raise ConfigurationError(
-                "Unknown NEST targetting type '{}' in {}".format(
-                    self.targetting, self.node_name
-                )
-            )
-        if not self.io == "input" and not self.io == "output":
+        if self.io not in ("input", "output"):
             raise ConfigurationError(
                 "Attribute io needs to be either 'input' or 'output' in {}".format(
                     self.node_name

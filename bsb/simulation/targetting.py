@@ -18,6 +18,7 @@ class TargetsNeurons:
                 )
             )
         self._get_targets = method
+        raise RuntimeError("somehow init is called on NestDevices too")
 
     def _targets_local(self):
         """
