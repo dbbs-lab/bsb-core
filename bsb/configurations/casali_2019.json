@@ -60,7 +60,7 @@
     },
     "granule_cell": {
       "placement": {
-        "class": "bsb.placement.LayeredRandomWalk",
+        "class": "bsb.placement.ParticlePlacement",
         "layer": "granular_layer",
         "soma_radius": 2.5,
         "density": 3.9e-3,
@@ -83,7 +83,7 @@
     "glomerulus": {
       "relay": true,
       "placement": {
-        "class": "bsb.placement.LayeredRandomWalk",
+        "class": "bsb.placement.ParticlePlacement",
         "layer": "granular_layer",
         "soma_radius": 1.5,
         "density": 3e-4
@@ -116,7 +116,7 @@
     },
     "golgi_cell": {
       "placement": {
-        "class": "bsb.placement.LayeredRandomWalk",
+        "class": "bsb.placement.ParticlePlacement",
         "layer": "granular_layer",
         "soma_radius": 8.0,
         "density": 9e-6
@@ -135,7 +135,7 @@
     },
     "stellate_cell": {
       "placement": {
-        "class": "bsb.placement.LayeredRandomWalk",
+        "class": "bsb.placement.ParticlePlacement",
         "layer": "molecular_layer",
         "soma_radius": 4.0,
         "density": 0.5e-4,
@@ -152,7 +152,7 @@
     },
     "basket_cell": {
       "placement": {
-        "class": "bsb.placement.LayeredRandomWalk",
+        "class": "bsb.placement.ParticlePlacement",
         "layer": "molecular_layer",
         "soma_radius": 6.0,
         "density": 0.5e-4,
@@ -169,7 +169,7 @@
     },
     "dcn_cell": {
       "placement": {
-        "class": "bsb.placement.LayeredRandomWalk",
+        "class": "bsb.placement.ParticlePlacement",
         "layer": "dcn_layer",
         "soma_radius": 10.0,
         "placement_relative_to": "purkinje_cell",
