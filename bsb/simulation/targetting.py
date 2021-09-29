@@ -66,7 +66,7 @@ class TargetsNeurons:
         Target all cells of certain cell types
         """
         ids = np.concatenate(
-            (self.scaffold.get_placement_set(t).identifiers for t in self.cell_types)
+            tuple(self.scaffold.get_placement_set(t).identifiers for t in self.cell_types)
         )
         n = len(ids)
         # Use the `cell_fraction` or `cell_count` attribute to determine what portion of
