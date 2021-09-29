@@ -157,6 +157,8 @@ class NestConnection(SimulationComponent):
         # Add the receptor specifications, if required.
         if self.should_specify_receptor_type():
             # If specific receptors are specified, the weight should always be positive.
+            # We try to sanitize user data as best we can. If the given weight is a distr
+            # (given as a dict) we try to sanitize the `mu` value, if present.
             if type(params["weight"]) is dict:
                 if "mu" in params["weight"].keys():
                     params["weight"]["mu"] = np.abs(params["weight"]["mu"])
