@@ -814,7 +814,7 @@ class Scaffold:
         if not self.is_compiled():
             return self.cells_by_type[cell_type.name][data, 0]
         else:
-            return np.array(self.output_formatter.get_type_map(cell_type))[data]
+            return self.get_placement_set(cell_type).identifiers[data]
 
     def get_connection_type(self, name):
         """
