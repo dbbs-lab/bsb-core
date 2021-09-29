@@ -1007,7 +1007,6 @@ class SpikeRecorder(SimulationRecorder):
                     )
                 )
             )
-        print(self.cell_types)
         return {
             "name": self.device_model.name,
             "label": self.cell_types[0].name,
