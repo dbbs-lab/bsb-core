@@ -888,14 +888,17 @@ class HDF5Formatter(OutputFormatter, MorphologyRepository):
             )
         with self.load() as resource:
             ps = self.scaffold.get_cell_type(name).get_placement_set()
-            spoof_matrix = np.column_stack(
-                (
-                    ps.identifiers,
-                    0,
-                    ps.positions,
+            ids = ps.identifiers
+            if entity:
+                spoof_matrix = ids
+            else:
+                spoof_matrix = np.column_stack(
+                    (
+                        ids,
+                        np.zeros(len(ids)),
+                        ps.positions,
+                    )
                 )
-            )
-            print("SPOOFED SHAPE", spoof.shape)
             return spoof_matrix
 
     def get_connectivity_set_connection_types(self, tag):

@@ -433,10 +433,8 @@ class Scaffold:
             return
         # Create an ID for each cell.
         cell_ids = self._allocate_ids(positions.shape[0])
-        # Store cells as ID, typeID, X, Y, Z
-        cell_data = np.column_stack(
-            (cell_ids, np.ones(positions.shape[0]) * cell_type.id, positions)
-        )
+        # Spoof old cache
+        cell_data = np.column_stack((cell_ids, np.zeros(positions.shape[0]), positions))
         # Cache them per type
         self.cells_by_type[cell_type.name] = np.concatenate(
             (self.cells_by_type[cell_type.name], cell_data)
@@ -447,7 +445,7 @@ class Scaffold:
             placement_dict[cell_type.name] = 0
         placement_dict[cell_type.name] += cell_count
         if not hasattr(cell_type.placement, "cells_placed"):
-            cell_type.placement.__dict__["cells_placed"] = 0
+            setattr(cell_type.placement, "cells_placed", 0)
         cell_type.placement.cells_placed += cell_count
 
         if rotations is not None:
@@ -546,7 +544,7 @@ class Scaffold:
             placement_dict[cell_type.name] = 0
         placement_dict[cell_type.name] += count
         if not hasattr(cell_type.placement, "cells_placed"):
-            cell_type.placement.__dict__["cells_placed"] = 0
+            setattr(cell_type.placement, "cells_placed", 0)
         cell_type.placement.cells_placed += count
 
     def _append_tagged(self, attr, tag, data):
