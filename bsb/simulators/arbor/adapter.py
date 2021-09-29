@@ -208,10 +208,11 @@ class ArborAdapter(SimulatorAdapter):
     casts = {"duration": float}
     required = ["duration"]
 
-    defaults = {"threads": psutil.cpu_count(logical=False), "profiling": True}
+    defaults = {"threads": 1, "profiling": True}
 
     def validate(self):
-        pass
+        if self.threads == "all":
+            self.threads = psutil.cpu_count(logical=False)
 
     def prepare(self):
         try:
