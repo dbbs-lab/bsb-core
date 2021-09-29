@@ -13,11 +13,11 @@ from itertools import chain
 from sklearn.neighbors import KDTree
 from ..simulation import SimulationRecorder, SimulationResult
 import warnings
-import mpi4py
 import time
 
 
 try:
+    import mpi4py
     import mpi4py.MPI
 
     _MPI_processes = mpi4py.MPI.COMM_WORLD.Get_size()
