@@ -274,7 +274,8 @@ class NestDevice(TargetsNeurons, SimulationComponent):
         """
         Return the targets of the stimulation to pass into the nest.Connect call.
         """
-        return self.adapter.get_nest_ids(np.array(self._get_nest_targets(), dtype=int))
+        targets = np.array(self.get_targets(), dtype=int)
+        return self.adapter.get_nest_ids(targets)
 
 
 class NestEntity(NestDevice, MapsScaffoldIdentifiers):
