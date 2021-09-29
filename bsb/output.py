@@ -898,10 +898,6 @@ class HDF5Formatter(OutputFormatter, MorphologyRepository):
             print("SPOOFED SHAPE", spoof.shape)
             return spoof_matrix
 
-    def get_type_map(self, type):
-        with self.load() as resource:
-            return resource()["/cells/type_maps/{}_map".format(type)][()]
-
     def get_connectivity_set_connection_types(self, tag):
         """
         Return all the ConnectionStrategies that contributed to the creation of this
