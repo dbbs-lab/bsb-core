@@ -7,7 +7,7 @@
 #SBATCH --ntasks-per-node=24
 #SBATCH --cpus-per-task=1
 #SBATCH --partition=normal
-#SBATCH --constraint=mc
+#SBATCH --constraint=mc&startx
 #SBATCH --hint=nomultithread
 
 export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
