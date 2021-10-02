@@ -92,7 +92,9 @@ class TargetsNeurons:
         ]
         if hasattr(self, "cell_types"):
             target_types = list(filter(lambda c: c.name in self.cell_types, target_types))
-        target_ids = [cell_type.get_ids() for cell_type in target_types]
+        target_ids = [
+            cell_type.get_placement_set().identifiers for cell_type in target_types
+        ]
         representatives = [
             random.choice(type_ids) for type_ids in target_ids if len(target_ids) > 0
         ]
