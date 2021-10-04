@@ -75,7 +75,6 @@ class ConnectomeMossyGlomerulus(ConnectionStrategy):
         # they can be plugged into the `mossy` variable and the rest of the code
         # will run as before.
 
-        _type_id = mossy_cell_type.id
         _mossy_ids = mossy_cell_type.get_placement_set().identifiers
         _layer = mossy_cell_type.placement.layer_instance
         _og, _dims = _layer.origin, _layer.dimensions
@@ -85,7 +84,7 @@ class ConnectomeMossyGlomerulus(ConnectionStrategy):
         mossy = np.column_stack(
             (
                 _mossy_ids,
-                np.broadcast_to(_type_id, (len(_mossy_ids),)),
+                np.broadcast_to(0, (len(_mossy_ids),)),
                 *(_rng.random(len(_mossy_ids)) * d + o for o, d in zip(_og, _dims)),
             )
         )
