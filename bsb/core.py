@@ -126,6 +126,24 @@ class Scaffold:
         self.storage.init(self)
         self.configuration._bootstrap(self)
 
+    def resize(self, x=None, y=None, z=None):
+        """
+        Updates the topology boundary indicators. Use before placement, updates
+        only the abstract topology tree, does not rescale, prune or otherwise
+        alter already existing placement data.
+        """
+        from .topology import Boundary
+
+        if x is not None:
+            self.network.x = x
+        if y is not None:
+            self.network.y = y
+        if z is not None:
+            z = self.network.z
+        self.topology.arrange(
+            Boundary([0.0, 0.0, 0.0], [self.network.x, self.network.y, self.network.z])
+        )
+
     def run_placement(self, strategies=None, DEBUG=False):
         """
         Run placement strategies.
