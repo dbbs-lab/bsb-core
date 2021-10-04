@@ -127,7 +127,7 @@ class AscendingAxonLengths(PostProcessingHook):
             # Draw a sample for the parallel fiber height from a truncated normal distribution
             # with sd `pf_height_sd` and mean `pf_height`, truncated by the molecular layer bounds.
             parallel_fibers[idx] = truncnorm.rvs(a, b, size=1) * pf_height_sd + pf_height
-        granules.create_additional(chunk, "ascending_axon_lengths", data=parallel_fibers)
+        granules.append_additional(chunk, "ascending_axon_lengths", data=parallel_fibers)
 
 
 class DCNRotations(PostProcessingHook):

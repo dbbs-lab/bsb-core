@@ -152,11 +152,7 @@ class PlacementSet(Interface):
         pass
 
     @abc.abstractmethod
-    def create_additional(self, name, chunk, data):
-        pass
-
-    @abc.abstractmethod
-    def append_entities(self, chunk, count, additional=None):
+    def append_additional(self, name, chunk, data):
         pass
 
 

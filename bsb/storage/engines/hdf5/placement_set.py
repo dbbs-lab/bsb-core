@@ -149,7 +149,13 @@ class PlacementSet(
             yield None
 
     def append_data(
-        self, chunk, positions=None, rotations=None, morphologies=None, additional=None
+        self,
+        chunk,
+        positions=None,
+        rotations=None,
+        morphologies=None,
+        additional=None,
+        count=None,
     ):
         """
         Append data to the PlacementSet.
@@ -162,28 +168,28 @@ class PlacementSet(
           of ints (mapped morphology names), or a MorphologySet.
         :type morphologies: ndarray or class:`~.storage.interfaces.MorphologySet`
         """
+        if count is not None:
+            if not (positions is None and rotations is None and morphologies is None):
+                raise ValueError(
+                    "The `count` keyword is reserved for creating entities,"
+                    + " without any positional, rotational or morphological data."
+                )
+            with self._engine._write():
+                self.require_chunk(chunk)
+                path = self.get_chunk_path(chunk)
+                with self._engine._handle("a") as f:
+                    prev_count = f[path].attrs.get("entity_count", 0)
+                    f[path].attrs["entity_count"] = prev_count + count
+
         if positions is not None:
             self._position_chunks.append(chunk, positions)
         if rotations is not None:
             self._rotation_chunks.append(chunk, rotations)
         if morphologies is not None:
             self._append_morphologies(chunk, morphologies)
-
-    def append_data(self, chunk, count, additional=None):
-        """
-        Append entities to the PlacementSet.
-
-        :param positions: Cell positions
-        :type positions: ndararray
-        :param rotations: Cell rotations
-        :type rotations: ndararray
-        :param morphologies: An ndarray of strings (morphology names), ndarray
-          of ints (mapped morphology names), or a MorphologySet.
-        :type morphologies: ndarray or class:`~.storage.interfaces.MorphologySet`
-        """
-        with self._engine._write():
-            with self._engine._handle("a") as f:
-                n = f()
+        if additional is not None:
+            for key, ds in additional.items():
+                self.append_additional(key, chunk, ds)
 
     def _append_morphologies(self, chunk, morphologies):
         dtype = getattr(morphologies, "dtype", None)
@@ -201,14 +207,24 @@ class PlacementSet(
         self._morphology_chunks.clear(chunk)
         self._morphology_chunks.append(chunk, morphology_set.data)
 
+    def append_entities(self, chunk, count, additional=None):
+        self.append_data(chunk, count=count, additional=additional)
+
     def append_cells(self, cells):
         for cell in cells:
             raise NotImplementedError("Sorry. Not added yet.")
 
-    def create_additional(self, name, chunk, data):
+    def append_additional(self, name, chunk, data):
         with self._engine._write():
+            self.require_chunk(chunk)
+            path = self.get_chunk_path(chunk) + "/additional/" + name
             with self._engine._handle("a") as f:
-                path = self._path + "/additional/" + name
-                maxshape = list(data.shape)
-                maxshape[0] = None
-                f().create_dataset(path, data=data, maxshape=tuple(maxshape))
+                if path not in f:
+                    maxshape = list(data.shape)
+                    maxshape[0] = None
+                    f.create_dataset(path, data=data, maxshape=tuple(maxshape))
+                else:
+                    dset = f[path]
+                    start_pos = dset.shape[0]
+                    dset.resize(start_pos + len(data), axis=0)
+                    dset[start_pos:] = data

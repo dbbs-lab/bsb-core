@@ -400,6 +400,7 @@ class Scaffold:
         :type cell_type: :class:`.models.CellType`
         :param count: Number of entities to place
         :type count: int
+        :todo: Allow `additional` data for entities
         """
         if count == 0:
             return
