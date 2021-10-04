@@ -1022,18 +1022,13 @@ class Scaffold:
                     ids = self.create_entities(ct, len(ids))
                 id_map[c.name] = dict(zip(old_ids, ids))
                 if label is not None:
-                    self.label_cells(ids, label)
+                    self.label_cells(ids, label)                 
         for cs_self in self.get_connectivity_sets():
-            print("CHECK LIST LEN")
-            print(len(cs_self.connection_types))
             conn_t = cs_self.connection_types[0]
             from_type = conn_t.from_cell_types[0]
             to_type = conn_t.to_cell_types[0]
             # TODO: Concatenate comp and morpho datasets
             for cs_other in other.get_connectivity_sets():
-                #print("ENTRO NEL QUARTO FOR")
-                #print(cs_self.tag)
-                #print(cs_other.tag)
                 if cs_self.tag != cs_other.tag:
                     continue
                 from_ids = cs_other.from_identifiers
@@ -1046,6 +1041,8 @@ class Scaffold:
                 raise RuntimeError(f"Missing '{cs_self.tag}' dataset.")
 
             self.connect_cells(conn_t, mapped_cds)
+
+        
         self.compile_output()
         return self
 
@@ -1057,24 +1054,6 @@ def merge(output_file, *others):
         + " Only cell types that exist in the calling network will be copied."
         + " Use at your own risk"
     )
-    scaffold1 = others[0]
-
-    print("LOOKING INTO SCAFFOLD1")
-
-    print("1. LOOKING IF get_cached_ids IS WORKING")
-    ct0 = scaffold1.get_cell_types()
-    print(type(ct0))
-    print(ct0[0])
-    print(ct0[0]._get_cached_ids())
-    print(ct0[0]._get_cached_ids().shape)
-
-    print("2. LOOKING IF THE connection_types LIST FROM THE ConnectivitySet has some elements")
-    cs_self0 = scaffold1.get_connectivity_sets()
-    print(type(cs_self0))
-    print(cs_self0[0])
-    print("CHECK LIST LEN")
-    print(len(cs_self0[0].connection_types))
-
 
     cfg_json = json.loads(others[0].configuration._raw)
     cfg_json["output"]["file"] = output_file
@@ -1083,25 +1062,7 @@ def merge(output_file, *others):
     merged = Scaffold(cfg_copy)
     merged.output_formatter.create_output()
 
-    print("LOOKING INTO MERGE")
-
-    print("1. LOOKING IF get_cached_ids IS WORKING")
-    ct = merged.get_cell_types()
-    print(type(ct))
-    print(ct[0])
-    print(ct[0]._get_cached_ids())
-    print(ct[0]._get_cached_ids().shape)
-
-    print("2. LOOKING IF THE connection_types LIST FROM THE ConnectivitySets has some elements")
-    cs_self = merged.get_connectivity_sets()
-    print(type(cs_self))
-    print(cs_self)
-    print("CHECK LIST LEN")
-    print(cs_self[0].connection_types)
-
-
     for other in others:
-        print("ENTRO NEL FOR DI MERGE!!!!!!!!")
         merged.left_join(other)
     return merged
 
