@@ -68,7 +68,6 @@ class Configuration:
         regions = builtins.list(self.regions.values())
         scaffold.topology = topology = create_topology(regions)
         # If there are any partitions not part of the topology, raise an error
-
         if (unmanaged := set(self.partitions.values()) - get_partitions([topology])) :
             p = "', '".join(p.name for p in unmanaged)
             raise UnmanagedPartitionError(f"Please make '{p}' part of a Region.")

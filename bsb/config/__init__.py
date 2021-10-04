@@ -66,7 +66,6 @@ class ConfigurationModule:
 
     # Load the Configuration class on demand, not on import, to avoid circular
     # dependencies.
-
     @property
     def Configuration(self):
         if not hasattr(self, "_cfg_cls"):
