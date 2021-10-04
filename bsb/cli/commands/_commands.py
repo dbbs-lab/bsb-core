@@ -128,7 +128,7 @@ class BsbCompile(BaseCommand, name="compile"):
             "z": ZScale(),
             "skip": Skip(),
             "only": Only(),
-            "config": ConfigOption(),
+            "config": ConfigOption(positional=True),
             "no_placement": SkipPlacement(),
             "no_after_placement": SkipAfterPlacement(),
             "no_connectivity": SkipConnectivity(),

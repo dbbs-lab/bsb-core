@@ -64,10 +64,10 @@ class TestOptions(unittest.TestCase):
         class t4(BsbOption, cli=("cC")):
             pass
 
-        self.assertEqual(["-a"], t1.get_cli_tags())
-        self.assertEqual(["-a", "-b"], t2.get_cli_tags())
-        self.assertEqual(["-a", "--ave"], t3.get_cli_tags())
-        self.assertEqual(["-c", "-C"], t4.get_cli_tags())
+        self.assertEqual(["-a"], t1().get_cli_tags())
+        self.assertEqual(["-a", "-b"], t2().get_cli_tags())
+        self.assertEqual(["-a", "--ave"], t3().get_cli_tags())
+        self.assertEqual(["-c", "-C"], t4().get_cli_tags())
 
     def test_plugins(self):
         # Test that the plugins are loaded and their script options work

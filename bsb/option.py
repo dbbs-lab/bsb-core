@@ -90,6 +90,9 @@ class BsbOption:
     Base option class. Can be subclassed to create new options.
     """
 
+    def __init__(self, positional=False):
+        self.positional = positional
+
     def __init_subclass__(
         cls,
         name=None,
@@ -139,6 +142,7 @@ class BsbOption:
         cls.use_extend = list
         cls.readonly = readonly
         cls.use_action = action
+        cls.positional = False
 
     def get(self):
         """
@@ -161,15 +165,21 @@ class BsbOption:
         """
         return None
 
-    @classmethod
-    def get_cli_tags(cls):
+    def get_cli_tags(self):
         """
         Return the ``argparse`` positional arguments from the tags.
 
         :returns: ``-x`` or ``--xxx`` for each CLI tag.
         :rtype: list
         """
-        return [("--" if len(t) != 1 else "-") + t for t in cls.cli.tags]
+        if self.positional:
+            longest = ""
+            for t in type(self).cli.tags:
+                if len(t) >= len(longest):
+                    longest = t
+            return [longest]
+        else:
+            return [("--" if len(t) != 1 else "-") + t for t in type(self).cli.tags]
 
     def add_to_parser(self, parser, level):
         """
@@ -179,6 +189,12 @@ class BsbOption:
         kwargs["help"] = self.description
         kwargs["dest"] = level * "_" + self.name
         kwargs["action"] = "store"
+        if self.positional:
+            kwargs["nargs"] = "?"
+            kwargs["metavar"] = self.get_cli_tags()
+            args = []
+        else:
+            args = self.get_cli_tags()
         if self.is_flag:
             kwargs["action"] += "_false" if self.inverted_flag else "_true"
         if self.use_extend:
@@ -189,7 +205,7 @@ class BsbOption:
             kwargs["action"] = "append_const"
             kwargs["const"] = self.action
 
-        parser.add_argument(*self.get_cli_tags(), **kwargs)
+        parser.add_argument(*args, **kwargs)
 
     @classmethod
     def register(cls):

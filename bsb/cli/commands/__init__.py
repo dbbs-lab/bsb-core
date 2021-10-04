@@ -21,7 +21,7 @@ class BsbCommand:
     def add_to_parser(self):
         raise NotImplementedError("Commands must implement a `add_to_parser` method.")
 
-    def handler(self):
+    def handler(self, context):
         raise NotImplementedError("Commands must implement a `handler` method.")
 
     def __init_subclass__(cls, parent=None, abstract=False, name=None, **kwargs):
@@ -108,7 +108,7 @@ class BaseCommand(BsbCommand, abstract=True):
 
 
 class RootCommand(BaseCommand, name="bsb"):
-    def handler(self, namespace):
+    def handler(self, context):
         pass
 
     def get_parser(self, context):
