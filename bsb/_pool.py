@@ -5,6 +5,7 @@ Job pooling module
 from mpi4py.MPI import COMM_WORLD
 import time
 import concurrent.futures
+import threading
 
 
 _serial_execution = COMM_WORLD.Get_size() == 1
@@ -19,12 +20,8 @@ def dispatcher(pool_id, job_args):
     handler(owner, f, args, kwargs)
 
 
-class FakeFuture:
-    def done(self):
-        return False
-
-    def running(self):
-        return False
+class FakeFuture(concurrent.futures.Future):
+    pass
 
 
 class Job:
@@ -76,6 +73,9 @@ class Job:
 
     def _enqueue(self, pool):
         if not self._deps:
+            # Notify anyone waiting on the spaceholder `FakeFuture` that we're
+            # now actually queueing ourselves
+            self._future.set_result("ENQUEUED")
             # Go ahead and submit ourselves to the pool, no dependencies to wait for
             # The dispatcher is run on the remote worker and unpacks the data required
             # to execute the job contents.
