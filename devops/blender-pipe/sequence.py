@@ -18,7 +18,7 @@ for seq in scene.sequence_editor.sequences:
     if seq["created_by_bsb"]:
         scene.sequence_editor.sequences.remove(seq)
 
-start = int(files[0].split("/")[-1].split(".")[0])
+start = int(files[0].split("/")[-1].split(".")[0].split("_")[-1])
 seq = scene.sequence_editor.sequences.new_image(
     name="FullStrip", filepath=os.path.join(path, files[0]), channel=1, frame_start=start
 )

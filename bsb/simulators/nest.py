@@ -13,16 +13,18 @@ from itertools import chain
 from sklearn.neighbors import KDTree
 from ..simulation import SimulationRecorder, SimulationResult
 import warnings
-import mpi4py
 import time
 
 
 try:
+    import mpi4py
     import mpi4py.MPI
 
     _MPI_processes = mpi4py.MPI.COMM_WORLD.Get_size()
+    _MPI_rank = mpi4py.MPI.COMM_WORLD.Get_rank()
 except ImportError:
     _MPI_processes = 1
+    _MPI_rank = 0
 
 LOCK_ATTRIBUTE = "dbbs_scaffold_lock"
 
@@ -157,7 +159,13 @@ class NestConnection(SimulationComponent):
         # Add the receptor specifications, if required.
         if self.should_specify_receptor_type():
             # If specific receptors are specified, the weight should always be positive.
-            params["weight"] = np.abs(params["weight"])
+            # We try to sanitize user data as best we can. If the given weight is a distr
+            # (given as a dict) we try to sanitize the `mu` value, if present.
+            if type(params["weight"]) is dict:
+                if "mu" in params["weight"].keys():
+                    params["weight"]["mu"] = np.abs(params["weight"]["mu"])
+            else:
+                params["weight"] = np.abs(params["weight"])
             if "Wmax" in params:
                 params["Wmax"] = np.abs(params["Wmax"])
             if "Wmin" in params:
@@ -238,15 +246,7 @@ class NestDevice(TargetsNeurons, SimulationComponent):
     required = ["targetting", "device", "io", "parameters"]
 
     def validate(self):
-        # Fill in the _get_targets method, so that get_target functions
-        # according to `targetting`.
-        if self.targetting not in self.__class__.neuron_targetting_types:
-            raise ConfigurationError(
-                "Unknown NEST targetting type '{}' in {}".format(
-                    self.targetting, self.node_name
-                )
-            )
-        if not self.io == "input" and not self.io == "output":
+        if self.io not in ("input", "output"):
             raise ConfigurationError(
                 "Attribute io needs to be either 'input' or 'output' in {}".format(
                     self.node_name
@@ -264,11 +264,12 @@ class NestDevice(TargetsNeurons, SimulationComponent):
         super().boot()
         self.protocol = get_device_protocol(self)
 
-    def get_targets(self):
+    def get_nest_targets(self):
         """
         Return the targets of the stimulation to pass into the nest.Connect call.
         """
-        return self.adapter.get_nest_ids(np.array(self._get_targets(), dtype=int))
+        targets = np.array(self.get_targets(), dtype=int)
+        return self.adapter.get_nest_ids(targets)
 
 
 class NestEntity(NestDevice, MapsScaffoldIdentifiers):
@@ -358,6 +359,9 @@ class NestAdapter(SimulatorAdapter):
         self.is_prepared = True
         return self.nest
 
+    def get_rank(self):
+        return _MPI_rank
+
     def in_full_control(self):
         if not self.has_lock or not self.read_lock():
             raise AdapterError(
@@ -430,6 +434,9 @@ class NestAdapter(SimulatorAdapter):
             delattr(self.nest, LOCK_ATTRIBUTE)
         except AttributeError:
             pass
+
+    def get_rank(self):
+        return mpi4py.MPI.COMM_WORLD.Get_rank()
 
     def reset_kernel(self):
         self.nest.set_verbosity(self.verbosity)
@@ -794,6 +801,7 @@ class NestAdapter(SimulatorAdapter):
         Create the configured NEST devices in the simulator
         """
         for device_model in self.devices.values():
+            device_model.initialise_targets()
             device_model.protocol.before_create()
             device = self.nest.Create(device_model.device)
             report("Creating device:  " + device_model.device, level=3)
@@ -815,7 +823,7 @@ class NestAdapter(SimulatorAdapter):
             )
             device_model.protocol.after_create(device)
             # Execute targetting mechanism to fetch target NEST ID's
-            device_targets = device_model.get_targets()
+            device_targets = device_model.get_nest_targets()
             report(
                 "Connecting to {} device targets.".format(len(device_targets)), level=3
             )
@@ -978,8 +986,19 @@ class SpikeRecorder(SimulationRecorder):
         return spikes
 
     def get_meta(self):
-        if not hasattr(self, "cell_types"):
-            self.get_data()
+        if hasattr(self.device_model, "cell_types"):
+            self.cell_types = [
+                self.device_model.adapter.scaffold.get_cell_type(n)
+                for n in self.device_model.cell_types
+            ]
+        else:
+            self.cell_types = list(
+                set(
+                    self.device_model.adapter.scaffold.get_gid_types(
+                        self.device_model.get_nest_targets()
+                    )
+                )
+            )
         return {
             "name": self.device_model.name,
             "label": self.cell_types[0].name,

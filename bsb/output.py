@@ -10,7 +10,7 @@ from numpy import array, string_
 from .exceptions import *
 from .models import ConnectivitySet, PlacementSet
 from sklearn.neighbors import KDTree
-import os, sys
+import os, sys, functools
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "dbbs-models"))
 
@@ -747,22 +747,18 @@ class HDF5Formatter(OutputFormatter, MorphologyRepository):
         return os.path.exists(self.file)
 
     def init_scaffold(self):
-        with self.load() as resource:
-            for cell_type_name, count in resource()[
-                "statistics/cells_placed"
-            ].attrs.items():
-                self.scaffold.statistics.cells_placed[cell_type_name] = count
-            for tag in resource()["cells/connections"]:
-                dataset = resource()["cells/connections/" + tag]
+        scf = self.scaffold
+        with self.load() as res:
+            for cell_type_name, count in res()["statistics/cells_placed"].attrs.items():
+                scf.statistics.cells_placed[cell_type_name] = count
+            for tag in res()["cells/connections"]:
+                dataset = res()["cells/connections/" + tag]
                 for contributing_type in dataset.attrs["connection_types"]:
-                    self.scaffold.configuration.connection_types[
-                        contributing_type
-                    ].tags.append(tag)
-            self.scaffold.labels = {
-                l: resource()["cells/labels/" + l][()] for l in resource()["cells/labels"]
-            }
-            hdf5_ids = np.array(resource()["cells/positions"])[:, 0]
-            self.scaffold._nextId = int(np.max(hdf5_ids))
+                    scf.configuration.connection_types[contributing_type].tags.append(tag)
+            scf.labels = {l: v[()] for l, v in res()["cells/labels"].items()}
+            sets = (v["identifiers"] for v in res()["cells/placement"].values())
+            max_ids = (id[::2] + id[1::2] if len(id) else [0] for id in sets)
+            scf._nextId = functools.reduce(max, map(np.max, max_ids), 0)
 
     def validate(self):
         pass
@@ -892,19 +888,18 @@ class HDF5Formatter(OutputFormatter, MorphologyRepository):
             )
         with self.load() as resource:
             ps = self.scaffold.get_cell_type(name).get_placement_set()
-            spoof_matrix = np.column_stack(
-                (
-                    ps.identifiers,
-                    0,
-                    ps.positions,
+            ids = ps.identifiers
+            if entity:
+                spoof_matrix = ids
+            else:
+                spoof_matrix = np.column_stack(
+                    (
+                        ids,
+                        np.zeros(len(ids)),
+                        ps.positions,
+                    )
                 )
-            )
-            print("SPOOFED SHAPE", spoof.shape)
             return spoof_matrix
-
-    def get_type_map(self, type):
-        with self.load() as resource:
-            return resource()["/cells/type_maps/{}_map".format(type)][()]
 
     def get_connectivity_set_connection_types(self, tag):
         """

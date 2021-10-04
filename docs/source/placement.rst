@@ -53,18 +53,6 @@ which need to be placed before this cell type:
     }
   }
 
-.. _cell_epsilon:
-
-Cell epsilon
-============
-The :class:`.placement.LayeredRandomWalk` calculates the total volume of the layer
-and divides that by the amount of cells to place, to yield a per cell volume
-(not taking into account sphere packing).
-The sphere of that volume is calculated and taken as the per cell radius.
-Subtracting the cell type radius yields the cell epsilon. This is the amount of
-"wiggle room" each cell has in its assigned placement volume. This epsilon is
-also used to determine how far to place cells from eachother.
-
 .. _placement_strategy:
 
 ******************
@@ -72,10 +60,8 @@ Placement Strategy
 ******************
 
 Each cell type has to specify a placement strategy that determines the algorithm
-used to place cells. The most common placement strategy in the scaffold is the
-:class:`LayeredRandomWalk <.placement.LayeredRandomWalk>`.
-The placement strategy is an interface whose ``place`` method is called when
-placement occurs.
+used to place cells. The placement strategy is an interface whose ``place``
+method is called when placement occurs.
 
 Placing cells
 =============
