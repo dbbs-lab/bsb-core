@@ -8,6 +8,10 @@ class XScale(BsbOption, name="x", cli=("x",), env=("BSB_CONFIG_NETWORK_X",)):
     pass
 
 
+class YScale(BsbOption, name="y", cli=("y",), env=("BSB_CONFIG_NETWORK_Y",)):
+    pass
+
+
 class ZScale(BsbOption, name="z", cli=("z",), env=("BSB_CONFIG_NETWORK_Z",)):
     pass
 
@@ -120,11 +124,13 @@ class BsbCompile(BaseCommand, name="compile"):
         cfg = from_json(context.config)
         # Bootstrap the scaffold and clear the storage if not in append mode
         network = Scaffold(cfg, clear=not context.append)
+        network.resize(context.x, context.y, context.z)
         network.compile()
 
     def get_options(self):
         return {
             "x": XScale(),
+            "y": YScale(),
             "z": ZScale(),
             "skip": Skip(),
             "only": Only(),
