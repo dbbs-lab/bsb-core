@@ -63,7 +63,7 @@ And in the configuration:
 .. code-block:: json
 
   {
-    "class": "bsb.placement.LayeredRandomWalk"
+    "cls": "bsb.placement.LayeredRandomWalk"
   }
 
 This would import the ``bsb.placement`` module and use its ``LayeredRandomWalk`` class to
@@ -73,6 +73,41 @@ decorate the node.
 
 	The child class must inherit from the dynamic node class.
 
+
+Configuring the dynamic attribute
+---------------------------------
+
+Additional keyword arguments can be passed to the `dynamic` decorator to specify
+the properties of the dynamic attribute. All keyword args are passed to the `attr`
+decorator to create the attribute on the class that specifies the dynamics.
+
+* ``attr_name``, ``required`` and ``default``:
+
+.. code-block:: python
+
+  @config.dynamic(attr_name="example_type", required=False, default="Example")
+  class Example:
+    pass
+
+  @config.node
+  class Explicit(Example):
+    pass
+
+``Example`` can then be defined as either:
+
+.. code-block:: json
+
+  {
+    "example_type": "Explicit"
+  }
+
+or use the default ``Example`` implicitly by omitting the dynamic attribute:
+
+.. code-block:: json
+
+  {
+
+  }
 
 Class maps
 ----------
@@ -105,6 +140,19 @@ Child classes can then register themselves in the classmap of the parent by prov
     pass
 
 This will generate a mapping from ``short`` to the ``my.module.path.MappedChild`` class.
+
+If the base class is not supposed to be abstract, it can be added to the
+classmap as well:
+
+.. code-block:: python
+
+  @dynamic(auto_classmap=True, classmap_entry="self")
+  class Example:
+    pass
+
+  class MappedChild(Example, classmap_entry="short"):
+    pass
+
 
 Root node
 =========

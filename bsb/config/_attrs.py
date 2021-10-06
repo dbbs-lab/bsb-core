@@ -63,7 +63,14 @@ def node(node_cls, root=False, dynamic=False, pluggable=False):
     return node_cls
 
 
-def dynamic(node_cls=None, attr_name="cls", classmap=None, auto_classmap=False, **kwargs):
+def dynamic(
+    node_cls=None,
+    attr_name="cls",
+    classmap=None,
+    auto_classmap=False,
+    classmap_entry=None,
+    **kwargs,
+):
     """
     Decorate a class to be castable to a dynamically configurable class using
     a class configuration attribute.
@@ -95,7 +102,7 @@ def dynamic(node_cls=None, attr_name="cls", classmap=None, auto_classmap=False, 
     if "type" not in kwargs:
         kwargs["type"] = str
     class_attr = ConfigurationAttribute(**kwargs)
-    dynamic_config = DynamicNodeConfiguration(classmap, auto_classmap)
+    dynamic_config = DynamicNodeConfiguration(classmap, auto_classmap, classmap_entry)
     if node_cls is None:
         # If node_cls is None, it means that no positional argument was given, which most
         # likely means that the @dynamic(...) syntax was used instead of the @dynamic.
@@ -109,9 +116,10 @@ def dynamic(node_cls=None, attr_name="cls", classmap=None, auto_classmap=False, 
 
 
 class DynamicNodeConfiguration:
-    def __init__(self, classmap=None, auto_classmap=False):
+    def __init__(self, classmap=None, auto_classmap=False, entry=None):
         self.classmap = classmap
         self.auto_classmap = auto_classmap
+        self.entry = entry
 
 
 def _dynamic(node_cls, class_attr, attr_name, config):
@@ -119,6 +127,13 @@ def _dynamic(node_cls, class_attr, attr_name, config):
     node_cls._config_dynamic_attr = attr_name
     if config.auto_classmap or config.classmap:
         node_cls._config_dynamic_classmap = config.classmap or {}
+    if config.entry is not None:
+        if not hasattr(node_cls, "_config_dynamic_classmap"):
+            raise ValueError(
+                f"Calling `@config.dynamic` with `entry='{config.entry}'`"
+                + f" requires `classmap` or `auto_classmap` to be set as well on '{node_cls.__name__}'."
+            )
+        node_cls._config_dynamic_classmap[config.entry] = node_cls
     return node(node_cls, dynamic=config)
 
 
