@@ -22,7 +22,7 @@ class PlacementStrategy(abc.ABC, SortableByAfter):
     partitions = config.reflist(refs.partition_ref, required=True)
     overrides = config.dict(type=PlacementIndications)
     after = config.reflist(refs.placement_ref)
-    distributor = config.attr(type=MorphologyDistributor)
+    distributor = config.attr(type=MorphologyDistributor, default=dict, call_default=True)
     indicator_class = PlacementIndicator
 
     def __boot__(self):

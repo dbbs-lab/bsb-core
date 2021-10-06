@@ -6,9 +6,11 @@ from ..reporting import report
 from .. import config
 
 
-@config.dynamic
+@config.dynamic(
+    required=False, default="random", auto_classmap=True, classmap_entry="random"
+)
 class MorphologyDistributor:
-    def distribute(self, indicator, positions):
+    def distribute(self, cell_type, indicator, positions):
         """
         Uses the morphology selection indicators to select morphology names and
         returns a MorphologySet of randomly assigned morphologies
