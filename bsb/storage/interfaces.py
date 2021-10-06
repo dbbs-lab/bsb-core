@@ -72,30 +72,30 @@ class TreeCollectionHandler(Interface):
 
 class PlacementSet(Interface):
     @abc.abstractmethod
-    def __init__(self, handler, type):
+    def __init__(self, engine, type):
         pass
 
     @abc.abstractclassmethod
-    def create(self, handler, type):
+    def create(self, engine, type):
         """
         Override with a method to create the placement set.
         """
         pass
 
     @abc.abstractstaticmethod
-    def exists(self, handler, type):
+    def exists(self, engine, type):
         """
         Override with a method to check existence of the placement set
         """
         pass
 
-    def require(self, handler, type):
+    def require(self, engine, type):
         """
         Can be overridden with a method to make sure the placement set exists. The default
         implementation uses the class's ``exists`` and ``create`` methods.
         """
-        if not self.exists(handler, type):
-            self.create(handler, type)
+        if not self.exists(engine, type):
+            self.create(engine, type)
 
     @abc.abstractproperty
     def load_positions(self):
@@ -144,7 +144,7 @@ class PlacementSet(Interface):
         pass
 
     @abc.abstractmethod
-    def append_data(self, chunk, positions=None, rotations=None):
+    def append_data(self, chunk, positions=None, morphologies=None):
         pass
 
     @abc.abstractmethod
