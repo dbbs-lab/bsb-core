@@ -709,12 +709,22 @@ class NestAdapter(SimulatorAdapter):
                 )
                 continue
             # Get the NEST identifiers for the connections made in the connectivity matrix
-            presynaptic_sources = np.array(
-                self.get_nest_ids(np.array(cs.from_identifiers, dtype=int))
-            )
-            postsynaptic_targets = np.array(
-                self.get_nest_ids(np.array(cs.to_identifiers, dtype=int))
-            )
+            try:
+                presynaptic_sources = np.array(
+                    self.get_nest_ids(np.array(cs.from_identifiers, dtype=int))
+                )
+            except KeyError as e:
+                raise UnknownGIDError(
+                    f"Unknown GID {e.args[0]} in presynaptic `{name}` data."
+                ) from None
+            try:
+                postsynaptic_targets = np.array(
+                    self.get_nest_ids(np.array(cs.to_identifiers, dtype=int))
+                )
+            except KeyError as e:
+                raise UnknownGIDError(
+                    f"Unknown GID {e.args[0]} in postsynaptic `{name}` data."
+                ) from None
             if not len(presynaptic_sources) or not len(postsynaptic_targets):
                 warn("No connections for " + name)
                 continue
@@ -856,7 +866,7 @@ class NestAdapter(SimulatorAdapter):
                             device_model.get_config_node()
                         ),
                     }
-                }
+                },
             )
 
     def create_model(self, cell_model):

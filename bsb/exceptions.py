@@ -38,7 +38,9 @@ _t(
             ),
             ParallelIntegrityError=_e("rank"),
         ),
-        ConnectivityError=_e(),
+        ConnectivityError=_e(
+            UnknownGIDError=_e(),
+        ),
         MorphologyError=_e(
             MorphologyRepositoryError=_e(),
             MissingMorphologyError=_e(),
