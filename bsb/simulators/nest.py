@@ -1033,7 +1033,7 @@ class SpikeDetectorProtocol(DeviceProtocol):
             )
         device_tag = str(_randint())
         device_tag = mpi4py.MPI.COMM_WORLD.bcast(device_tag, root=0)
-        if not hasattr(self.device._orig_label):
+        if not hasattr(self.device, "_orig_label"):
             self.device._orig_label = self.device.parameters["label"]
         self.device.parameters["label"] = self.device._orig_label + device_tag
         if mpi4py.MPI.COMM_WORLD.rank == 0:
