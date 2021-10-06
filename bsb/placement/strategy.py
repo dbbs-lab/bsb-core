@@ -30,7 +30,7 @@ class PlacementStrategy(abc.ABC, SortableByAfter):
         self._queued_jobs = []
 
     @abc.abstractmethod
-    def place(self, chunk, chunk_size):
+    def place(self, chunk, chunk_size, indicators):
         """
         Central method of each placement strategy. Given a chunk, should fill that chunk
         with cells by calling the scaffold's (available as ``self.scaffold``)
