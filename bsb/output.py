@@ -858,6 +858,10 @@ class HDF5Formatter(OutputFormatter, MorphologyRepository):
             for key, data in self.scaffold.appends.items():
                 dset = f().create_dataset(key, data=data)
 
+    def load_appendix(self, key):
+        with self.load("r") as f:
+            return f()[key][()]
+
     def store_morphology_repository(self, was_compiled=False):
         with self.load("a") as resource:
             if was_compiled:  # File already existed?

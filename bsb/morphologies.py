@@ -220,9 +220,15 @@ class Branch:
         return comps
 
     def walk(self):
+        """
+        Iterate over the points in the branch.
+        """
         return zip(*(self.__dict__[v] for v in self.__class__.vectors))
 
     def label_walk(self):
+        """
+        Iterate over the labels of each point in the branch.
+        """
         labels = self._full_labels.copy()
         n = self.size
         shared = np.ones((n, len(labels)), dtype=bool)
@@ -230,6 +236,16 @@ class Branch:
         label_row = np.array(labels)
         label_matrix = np.column_stack((shared, *self._label_masks.values()))
         return (label_row[label_matrix[i, :]] for i in range(n))
+
+    def has_label(self, label):
+        return label in self._full_labels
+
+    def has_any_label(self, labels):
+        return any(self.has_label(l) for l in labels)
+
+    def get_labelled_points(self, label):
+        point_label_iter = zip(self.walk(), self.label_walk())
+        return list(p for p, labels in point_label_iter if label in labels)
 
 
 def _pairwise_iter(walk_iter, labels_iter):
@@ -274,7 +290,24 @@ class Morphology:
         """
         Return a depth-first flattened array of all branches.
         """
-        return [*itertools.chain(*(branch_iter(root) for root in self.roots))]
+        return self.get_branches()
+
+    def get_branches(self, labels=None):
+        """
+        Return a depth-first flattened array of all or the selected branches.
+
+        :param labels: Names of the labels to select.
+        :type labels: list
+        :returns: List of all branches or all branches with any of the labels
+          when given
+        :rtype: list
+        """
+        root_iter = (branch_iter(root) for root in self.roots)
+        all_branch_iter = itertools.chain(*root_iter)
+        if labels is None:
+            return list(all_branch_iter)
+        else:
+            return [b for b in all_branch_iter if b.has_any_label(labels)]
 
     def to_compartments(self):
         """
@@ -295,7 +328,7 @@ class Morphology:
 
         return [*itertools.chain(*(treat_branch(root) for root in self.roots))]
 
-    def flatten(self, vectors=None, matrix=False):
+    def flatten(self, vectors=None, matrix=False, labels=None):
         """
         Return the flattened vectors of the morphology
 
@@ -308,7 +341,7 @@ class Morphology:
         """
         if vectors is None:
             vectors = Branch.vectors
-        branches = self.branches
+        branches = self.get_branches(labels=labels)
         if not branches:
             if matrix:
                 return np.empty((0, len(vectors)))
@@ -399,11 +432,6 @@ class Morphology:
         if labels is None:
             return self.compartments.copy()
         return [c for c in self.compartments if any(l in labels for l in c.labels)]
-
-    def get_branches(self, labels=None):
-        if labels is None:
-            return self.branches
-        return [b for b in self.branches if any(l in labels for l in b._full_labels)]
 
     def rotate(self, v0, v):
         """

@@ -456,6 +456,8 @@ class Scaffold:
             )
         return cell_ids
 
+        return cell_ids
+
     def _allocate_ids(self, count):
         # Allocate a set of unique cell IDs in the scaffold.
         IDs = np.array(range(self._nextId, self._nextId + count), dtype=int)
@@ -595,6 +597,20 @@ class Scaffold:
         :param data: The dataset
         """
         self.appends[name] = data
+
+    def load_appendix(self, name, skip_cache=False):
+        """
+        Load a custom dataset from the scaffold cache or output.
+
+        :param name: Unique identifier for the dataset.
+        :type name: string
+        :param skip_cache: Ignore any cached data and read only from the output.
+        :type skip_cache: bool
+        """
+        if not skip_cache and name in self.appends:
+            return self.appends[name]
+        else:
+            return self.output_formatter.load_appendix(name)
 
     def get_cells_by_type(self, name):
         """

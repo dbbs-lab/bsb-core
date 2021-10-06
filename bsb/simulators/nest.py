@@ -5,16 +5,17 @@ from ..simulation import (
     TargetsNeurons,
 )
 from ..models import ConnectivitySet
-from ..helpers import ListEvalConfiguration
+from ..helpers import ListEvalConfiguration, listify_input
 from ..reporting import report, warn
 from ..exceptions import *
-import os, json, weakref, numpy as np
+import time, os, json, weakref, numpy as np
 from itertools import chain
+from copy import deepcopy
 from sklearn.neighbors import KDTree
 from ..simulation import SimulationRecorder, SimulationResult
 import warnings
+import h5py
 import time
-
 
 try:
     import mpi4py
@@ -22,7 +23,8 @@ try:
 
     _MPI_processes = mpi4py.MPI.COMM_WORLD.Get_size()
     _MPI_rank = mpi4py.MPI.COMM_WORLD.Get_rank()
-except ImportError:
+except ImportError as e:
+    warn(f"Could not import `mpi4py.MPI`: {e}")
     _MPI_processes = 1
     _MPI_rank = 0
 
@@ -516,14 +518,15 @@ class NestAdapter(SimulatorAdapter):
         if not self.is_prepared:
             warn("Adapter has not been prepared", SimulationWarning)
         report("Simulating...", level=2)
+        tick = time.time()
         simulator.Simulate(self.duration)
-        report("Simulation finished.", level=2)
+        report(f"Simulation done. {time.time() - tick:.2f}s elapsed.", level=2)
         if self.has_lock:
             self.release_lock()
 
     def collect_output(self, simulator):
-        import h5py, time
-
+        report("Collecting output...", level=2)
+        tick = time.time()
         try:
             import mpi4py
 
@@ -563,6 +566,11 @@ class NestAdapter(SimulatorAdapter):
                                 )
                             )
         mpi4py.MPI.COMM_WORLD.bcast(result_path, root=0)
+        report(
+            f"Output collected in '{result_path}'. "
+            + f"{time.time() - tick:.2f}s elapsed.",
+            level=2,
+        )
         return result_path
 
     def validate(self):
@@ -696,6 +704,7 @@ class NestAdapter(SimulatorAdapter):
         Connect the cells in NEST according to the connection model configurations
         """
         order = NestConnection.resolve_order(self.connection_models)
+
         for connection_model in order:
             name = connection_model.name
             nest_name = self.suffixed(name)
@@ -746,21 +755,31 @@ class NestAdapter(SimulatorAdapter):
             report("Creating connections " + nest_name, level=3)
             # Create the connections in NEST
             if not (connection_model.plastic and connection_model.hetero):
-                self.execute_command(
-                    self.nest.Connect,
-                    presynaptic_sources,
-                    postsynaptic_targets,
-                    connection_specifications,
-                    connection_parameters,
-                    exceptions={
-                        "IncompatibleReceptorType": {
-                            "from": None,
-                            "exception": catch_receptor_error(
-                                "Invalid receptor specifications in {}: ".format(name)
-                            ),
-                        }
-                    },
-                )
+                # Repeat connections per receptor type
+                receptor_types = listify_input(connection_parameters["receptor_type"])
+                if not len(receptor_types):
+                    # If no receptor types are specified, go over the connection loop
+                    # once, without setting any receptor type in the conn params.
+                    receptor_types.append(None)
+                for receptor_type in receptor_types:
+                    single_connection_parameters = deepcopy(connection_parameters)
+                    if receptor_type is not None:
+                        single_connection_parameters["receptor_type"] = receptor_type
+                    self.execute_command(
+                        self.nest.Connect,
+                        presynaptic_sources,
+                        postsynaptic_targets,
+                        connection_specifications,
+                        single_connection_parameters,
+                        exceptions={
+                            "IncompatibleReceptorType": {
+                                "from": None,
+                                "exception": catch_receptor_error(
+                                    "Invalid receptor specifications in {}: ".format(name)
+                                ),
+                            }
+                        },
+                    )
             else:
                 # Create the volume transmitter if the connection is plastic with heterosynaptic plasticity
                 report("Creating volume transmitter for " + name, level=3)
@@ -980,7 +999,8 @@ class SpikeRecorder(SimulationRecorder):
             spikes = np.zeros((0, 2), dtype=float)
             for file in files:
                 file_spikes = np.loadtxt(file)
-                if len(file_spikes):
+                # if len(file_spikes):
+                if len(file_spikes.shape) > 1:
                     scaffold_ids = np.array(
                         self.device_model.adapter.get_scaffold_ids(file_spikes[:, 0])
                     )
