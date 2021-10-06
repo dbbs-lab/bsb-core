@@ -144,7 +144,7 @@ class Scaffold:
             Boundary([0.0, 0.0, 0.0], [self.network.x, self.network.y, self.network.z])
         )
 
-    def run_placement(self, strategies=None, DEBUG=False):
+    def run_placement(self, strategies=None, DEBUG=True):
         """
         Run placement strategies.
         """

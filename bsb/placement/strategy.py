@@ -67,8 +67,10 @@ class PlacementStrategy(abc.ABC, SortableByAfter):
         # Get the queued jobs of all the strategies we depend on.
         deps = set(itertools.chain(*(strat._queued_jobs for strat in self.get_after())))
         for p in self.partitions:
+            print("Queueing smth")
             chunks = p.to_chunks(chunk_size)
             for chunk in chunks:
+                print("Queueing chunk")
                 job = pool.queue_placement(self, chunk, chunk_size, deps=deps)
                 self._queued_jobs.append(job)
 

@@ -152,7 +152,6 @@ class PlacementSet(
         self,
         chunk,
         positions=None,
-        rotations=None,
         morphologies=None,
         additional=None,
         count=None,
@@ -164,15 +163,14 @@ class PlacementSet(
         :type positions: ndararray
         :param rotations: Cell rotations
         :type rotations: ndararray
-        :param morphologies: An ndarray of strings (morphology names), ndarray
-          of ints (mapped morphology names), or a MorphologySet.
-        :type morphologies: ndarray or class:`~.storage.interfaces.MorphologySet`
+        :param morphologies: The associated MorphologySet.
+        :type morphologies: class:`~.storage.interfaces.MorphologySet`
         """
         if count is not None:
-            if not (positions is None and rotations is None and morphologies is None):
+            if not (positions is None and morphologies is None):
                 raise ValueError(
                     "The `count` keyword is reserved for creating entities,"
-                    + " without any positional, rotational or morphological data."
+                    + " without any positional, or morphological data."
                 )
             with self._engine._write():
                 self.require_chunk(chunk)
@@ -183,29 +181,18 @@ class PlacementSet(
 
         if positions is not None:
             self._position_chunks.append(chunk, positions)
-        if rotations is not None:
-            self._rotation_chunks.append(chunk, rotations)
         if morphologies is not None:
             self._append_morphologies(chunk, morphologies)
         if additional is not None:
             for key, ds in additional.items():
                 self.append_additional(key, chunk, ds)
 
-    def _append_morphologies(self, chunk, morphologies):
-        dtype = getattr(morphologies, "dtype", None)
-        morphology_set = self.load_morphologies()
-        if "str" in dtype:
-            new_set = MorphologySet.map_data(morphologies)
-            morphology_set = morphology_set.merge(new_set)
-        elif "int" in dtype:
-            morphology_set.insert(morphologies)
-        elif isinstance(morphologies, MorphologySet):
-            morphology_set = morphology_set.merge(new_set)
-        else:
-            raise PlacementError(f"Invalid morphology data.")
+    def _append_morphologies(self, chunk, new_set):
+        morphology_set = self.load_morphologies().merge(new_set)
         self._set_morphology_map(morphology_set.map)
         self._morphology_chunks.clear(chunk)
         self._morphology_chunks.append(chunk, morphology_set.data)
+        self._rotation_chunks.append(chunk, new_set.rotations)
 
     def append_entities(self, chunk, count, additional=None):
         self.append_data(chunk, count=count, additional=additional)
