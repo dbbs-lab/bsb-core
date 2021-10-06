@@ -38,6 +38,24 @@ class PlacementStrategy(abc.ABC, SortableByAfter):
         """
         pass
 
+    def place_cells(self, cell_type, indicator, positions, chunk):
+        print("Should we place morphologies:", indicator.use_morphologies)
+        if indicator.use_morphologies():
+            self.place_morphologies(cell_type, indicator, positions, chunk)
+        else:
+            self.place_somas(cell_type, positions, chunk)
+
+    def place_morphologies(self, cell_type, indicator, positions, chunk):
+        print("Distributing morphologies")
+        morphology_set = self.distributor.distribute(cell_type, indicator, positions)
+        print("Distributed morphologies")
+        self.scaffold.place_cells(
+            cell_type, positions, morphologies=morphology_set, chunk=chunk
+        )
+
+    def place_somas(self, cell_type, positions, chunk):
+        self.scaffold.place_cells(cell_type, positions, chunk=chunk)
+
     def queue(self, pool, chunk_size):
         """
         Specifies how to queue this placement strategy into a job pool. Can be overridden,
