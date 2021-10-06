@@ -127,7 +127,7 @@ class ConnectionStrategy(ConfigurableClass, SortableByAfter):
                 cells = cell_type.get_cells()
                 if label:
                     # Get all ids for the cell type.
-                    ids = cell_type.get_ids().tolist()
+                    ids = list(cell_type.get_placement_set().identifiers)
                     ids.sort()
                     # Get the cells with the current label
                     labelled = self.scaffold.get_labelled_ids(label).tolist()

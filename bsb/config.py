@@ -103,7 +103,6 @@ class ScaffoldConfig(object):
 
         # Dictionaries and lists
         self.cell_types = {}
-        self.cell_type_map = []
         self.layers = {}
         self.layer_map = []
         self.connection_types = {}
@@ -180,7 +179,6 @@ class ScaffoldConfig(object):
         """
         # Register a new cell type model.
         self.cell_types[cell_type.name] = cell_type
-        self.cell_type_map.append(cell_type.name)
 
     def add_morphology(self, morphology):
         """
@@ -311,21 +309,17 @@ class ScaffoldConfig(object):
         """
         Get cell type.
 
-        :param name: Name or id of the cell type.
+        :param name: Name of the cell type.
         :type name: string
-        :returns: The cell type with given identifier.
+        :returns: The cell type with given name.
         :rtype: :class:`CellType`
         """
-        if isinstance(name, str):
-            if name in self.cell_types:
-                return self.cell_types[name]
-            else:
-                raise TypeNotFoundError(
-                    "Cell type with name '{}' not found.".format(name)
-                )
-        # `name` is not a string, so use it as an ID in the cell type map
-        # to obtain the actual name.
-        return self.cell_types[self.cell_type_map[name]]
+        try:
+            return self.cell_types[name]
+        except KeyError:
+            raise TypeNotFoundError(
+                "Cell type with name '{}' not found.".format(name)
+            ) from None
 
     def resize(self, X=None, Z=None):
         """

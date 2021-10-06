@@ -44,6 +44,7 @@ _t(
                 IncompleteExternalMapError=_e(),
                 SourceQualityError=_e(),
             ),
+            UnknownGIDError=_e(),
         ),
         MorphologyError=_e(
             MorphologyRepositoryError=_e(),
