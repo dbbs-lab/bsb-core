@@ -32,6 +32,9 @@ class PlacementIndicator:
     def get_radius(self):
         return self.assert_indication("radius")
 
+    def use_morphologies(self):
+        return bool(self.indication("morphological"))
+
     def indication(self, attr):
         ind_strat = self._strat.overrides.get(self._cell_type.name) or _Noner()
         ind_ct = self._cell_type.spatial
