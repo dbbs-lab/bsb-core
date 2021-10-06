@@ -203,7 +203,7 @@ class Scaffold:
                 stdscr.addstr(
                     6 + i,
                     2,
-                    f"* Worker {i}: <{j._pt.__class__.__name__}>{j._pt.name} {j._c}",
+                    f"* Worker {i}: <{j._cname}>{j._name} {j._c}",
                 )
 
             stdscr.refresh()

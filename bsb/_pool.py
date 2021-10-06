@@ -1,5 +1,38 @@
 """
-Job pooling module
+Job pooling module.
+
+Jobs derive from the base :class:`.Job` class which can be put on the queue of a
+:class:`.JobPool`. In order to submit themselves to the pool Jobs will
+:meth:`~.Job.serialize` themselves into a predefined set of variables::
+
+    job.serialize() -> (job_type, f, args, kwargs)
+
+* ``job_type`` should be a string that is a class name defined in this module.
+  (e.g. ``"PlacementJob")
+* ``f`` should be the function object that the job's ``execute`` method should
+  execute.
+* ``args`` and ``kwargs`` are the args to be passed to that ``f``.
+
+The :meth:`.Job.execute` handler can help interpret ``args`` and ``kwargs``
+before running ``f``. The execute handler has access to the scaffold on the MPI
+process so one best serializes just the name of some part of the configuration,
+rather than trying to pickle the complex objects. For example, the
+:class:`.PlacementJob` uses the first ``args`` element to store the
+:class:`~bsb.placement.PlacementStrategy` name and then retrieve it from the
+scaffold:
+
+.. code-block:: python
+
+    @staticmethod
+    def execute(job_owner, f, args, kwargs):
+        placement = job_owner.placement[args[0]]
+        indicators = placement.get_indicators()
+        return f(placement, *args[1:], indicators, **kwargs)
+
+A job has a couple of display variables that can be set: ``_cname`` for the
+class name, ``_name`` for the job name and ``_c`` for the chunk. These are used
+to display what the workers are doing during parallel execution.
+
 """
 
 from mpi4py.MPI import COMM_WORLD
@@ -32,6 +65,9 @@ class Job:
     def __init__(self, pool, f, args, kwargs, deps=None):
         self.pool_id = pool.id
         self.f = f
+        self._cname = None
+        self._name = None
+        self._c = None
         self._args = args
         self._kwargs = kwargs
         self._deps = set(deps or [])
@@ -101,11 +137,12 @@ class PlacementJob(ChunkedJob):
 
     def __init__(self, pool, strategy, chunk, chunk_size, deps=None):
         args = (strategy.name, chunk, chunk_size)
-        self._pt = strategy
-        self._c = chunk
         super(ChunkedJob, self).__init__(
             pool, strategy.place.__func__, args, {}, deps=deps
         )
+        self._cname = strategy.__class__.__name__
+        self._name = strategy.name
+        self._c = chunk
 
     @staticmethod
     def execute(job_owner, f, args, kwargs):
