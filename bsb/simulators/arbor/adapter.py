@@ -231,9 +231,12 @@ class ArborAdapter(SimulatorAdapter):
                 )
             context = arbor.context(arbor.proc_allocation(self.threads))
         if self.profiling and arbor.config()["profiling"]:
+            report("enabling profiler", level=2)
             arbor.profiler_initialize(context)
         self._lookup = QuickLookup(self)
-        report("preparing simulation on", self.threads, "threads", level=1)
+        report("preparing simulation", level=1)
+        report("MPI processes:", context.ranks, level=2)
+        report("Threads per process:", context.threads, level=2)
         recipe = self.get_recipe()
         self.domain = arbor.partition_load_balance(recipe, context)
         self.gids = set(itertools.chain(*(g.gids for g in self.domain.groups)))
@@ -262,7 +265,8 @@ class ArborAdapter(SimulatorAdapter):
             )
         report("completed simulation", level=1)
         if self.profiling and arbor.config()["profiling"]:
-            report(arbor.profiler_summary())
+            report("printing profiler summary", level=2)
+            report(arbor.profiler_summary(), level=1)
 
     def collect_output(self, simulation):
         # import plotly.graph_objs as go
