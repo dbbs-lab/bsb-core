@@ -775,8 +775,9 @@ class NestAdapter(SimulatorAdapter):
             report("Creating connections " + nest_name, level=3)
             # Create the connections in NEST
             if not (connection_model.plastic and connection_model.hetero):
+                receptor_cfg = connection_parameters.get("receptor_type", [])
                 # Repeat connections per receptor type
-                receptor_types = listify_input(connection_parameters["receptor_type"])
+                receptor_types = listify_input(receptor_cfg)
                 if not len(receptor_types):
                     # If no receptor types are specified, go over the connection loop
                     # once, without setting any receptor type in the conn params.
