@@ -18,6 +18,17 @@ import h5py
 import time
 
 try:
+    from functools import cached_property, cache
+except:
+    from functools import lru_cache
+
+    cache = lru_cache(None)
+
+    def cached_property(f):
+        return property(cache(f))
+
+
+try:
     import mpi4py
     import mpi4py.MPI
 
@@ -28,7 +39,8 @@ except ImportError as e:
     _MPI_processes = 1
     _MPI_rank = 0
 
-LOCK_ATTRIBUTE = "dbbs_scaffold_lock"
+_LOCK_ATTRIBUTE = "_dbbs_scaffold_lock"
+_HOT_MODULE_ATTRIBUTE = "_dbbs_scaffold_hot_modules"
 
 
 class MapsScaffoldIdentifiers:
@@ -315,16 +327,14 @@ class NestAdapter(SimulatorAdapter):
         "threads",
     ]
 
-    @property
+    @cached_property
     def nest(self):
-        try:
-            return self._nest
-        except AttributeError:
-            report("Importing  NEST...", level=2)
-            import nest
+        report("Importing  NEST...", level=2)
+        import nest
 
-            self._nest = nest
-            return self._nest
+        self._nest = nest
+        setattr(nest, _HOT_MODULE_ATTRIBUTE, set())
+        return self._nest
 
     def __init__(self):
         super().__init__()
@@ -379,7 +389,7 @@ class NestAdapter(SimulatorAdapter):
         self.has_lock = True
 
     def single_lock(self):
-        if hasattr(self.nest, LOCK_ATTRIBUTE):
+        if hasattr(self.nest, _LOCK_ATTRIBUTE):
             raise KernelLockedError(
                 "This adapter is not in multi-instance mode and another adapter is already managing the kernel."
             )
@@ -403,13 +413,13 @@ class NestAdapter(SimulatorAdapter):
         self.write_lock(lock_data)
 
     def read_lock(self):
-        if hasattr(self.nest, LOCK_ATTRIBUTE):
-            return getattr(self.nest, LOCK_ATTRIBUTE)
+        if hasattr(self.nest, _LOCK_ATTRIBUTE):
+            return getattr(self.nest, _LOCK_ATTRIBUTE)
         else:
             return None
 
     def write_lock(self, lock_data):
-        setattr(self.nest, LOCK_ATTRIBUTE, lock_data)
+        setattr(self.nest, _LOCK_ATTRIBUTE, lock_data)
 
     def enable_multi(self, suffix):
         self.suffix = suffix
@@ -433,7 +443,7 @@ class NestAdapter(SimulatorAdapter):
 
     def delete_lock(self):
         try:
-            delattr(self.nest, LOCK_ATTRIBUTE)
+            delattr(self.nest, _LOCK_ATTRIBUTE)
         except AttributeError:
             pass
 
@@ -443,6 +453,9 @@ class NestAdapter(SimulatorAdapter):
     def reset_kernel(self):
         self.nest.set_verbosity(self.verbosity)
         self.nest.ResetKernel()
+        # Reset which modules we should consider explicitly loaded by the user
+        # to appropriately warn them when they load them twice.
+        setattr(self.nest, _HOT_MODULE_ATTRIBUTE, set())
         self.reset_processes(self.threads)
         self.nest.SetKernelStatus(
             {
@@ -616,12 +629,19 @@ class NestAdapter(SimulatorAdapter):
 
     def install_modules(self):
         for module in self.modules:
+            hot = getattr(self.nest, _HOT_MODULE_ATTRIBUTE)
             try:
                 self.nest.Install(module)
+                hot.add(module)
             except Exception as e:
                 if e.errorname == "DynamicModuleManagementError":
                     if "loaded already" in e.message:
-                        warn("Module {} already installed".format(module), KernelWarning)
+                        # Modules stay loaded in between `ResetKernel` calls. We
+                        # assume that there's nothing to warn the user about if
+                        # the adapter installs the modules each
+                        # `reset`/`prepare` cycle.
+                        if module in hot:
+                            warn(f"Already installed '{module}'.", KernelWarning)
                     elif "file not found" in e.message:
                         raise NestModuleError(
                             "Module {} not found".format(module)
@@ -755,8 +775,9 @@ class NestAdapter(SimulatorAdapter):
             report("Creating connections " + nest_name, level=3)
             # Create the connections in NEST
             if not (connection_model.plastic and connection_model.hetero):
+                receptor_cfg = connection_parameters.get("receptor_type", [])
                 # Repeat connections per receptor type
-                receptor_types = listify_input(connection_parameters["receptor_type"])
+                receptor_types = listify_input(receptor_cfg)
                 if not len(receptor_types):
                     # If no receptor types are specified, go over the connection loop
                     # once, without setting any receptor type in the conn params.
