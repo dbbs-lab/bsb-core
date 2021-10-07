@@ -29,6 +29,7 @@ except ImportError as e:
     _MPI_rank = 0
 
 LOCK_ATTRIBUTE = "dbbs_scaffold_lock"
+_HOT_MODULE_ATTRIBUTE = "_dbbs_scaffold_hot_modules"
 
 
 class MapsScaffoldIdentifiers:
@@ -443,6 +444,9 @@ class NestAdapter(SimulatorAdapter):
     def reset_kernel(self):
         self.nest.set_verbosity(self.verbosity)
         self.nest.ResetKernel()
+        # Reset which modules we should consider explicitly loaded by the user
+        # to appropriately warn them when they load them twice.
+        setattr(self.nest, _HOT_MODULE_ATTRIBUTE, set())
         self.reset_processes(self.threads)
         self.nest.SetKernelStatus(
             {
@@ -616,12 +620,19 @@ class NestAdapter(SimulatorAdapter):
 
     def install_modules(self):
         for module in self.modules:
+            hot = getattr(self.nest, _HOT_MODULE_ATTRIBUTE)
             try:
                 self.nest.Install(module)
+                hot.add(module)
             except Exception as e:
                 if e.errorname == "DynamicModuleManagementError":
                     if "loaded already" in e.message:
-                        warn("Module {} already installed".format(module), KernelWarning)
+                        # Modules stay loaded in between `ResetKernel` calls. We
+                        # assume that there's nothing to warn the user about if
+                        # the adapter installs the modules each
+                        # `reset`/`prepare` cycle.
+                        if module in hot:
+                            warn(f"Already installed '{module}'.", KernelWarning)
                     elif "file not found" in e.message:
                         raise NestModuleError(
                             "Module {} not found".format(module)
