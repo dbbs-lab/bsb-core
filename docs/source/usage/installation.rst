@@ -61,3 +61,44 @@ as the :guilabel:`morphology_repository` of the :guilabel:`output` node in your 
         "morphology_repository": "morphologies.hdf5"
         }
     }
+
+
+
+Installing NEST
+===============
+
+The BSB currently runs a fork of NEST 2.18, to install it, follow the instructions below.
+The instructions assume you are using `pyenv <https://github.com/pyenv/pyenv-installer>`_
+for virtual environments.
+
+.. code-block:: bash
+
+  sudo apt-get update && apt-get install -y openmpi-bin libopenmpi-dev
+  git clone git@github.com:dbbs-lab/nest-simulator
+  cd nest-simulator
+  mkdir build && cd build
+  export PYTHON_CONFIGURE_OPTS="--enable-shared"
+  # Any Python 3.8+ version built with `--enable-shared` will do
+  PYVER_M=3.9
+  PYVER=$PYVER_M.0
+  VENV=nest-218
+  pyenv install $PYVER
+  pyenv virtualenv $PYVER $VENV
+  pyenv local nest-218
+  cmake .. \
+    -DCMAKE_INSTALL_PREFIX=$(pyenv root)/versions/$VENV \
+    -Dwith-mpi=ON \
+    -Dwith-python=3 \
+    -DPYTHON_LIBRARY=$(pyenv root)/versions/$PYVER/lib/libpython$PYVER_M.so \
+    -DPYTHON_INCLUDE_DIR=$(pyenv root)/versions/$PYVER/include/python$PYVER_M
+  make install -j8
+
+Confirm your installation with:
+
+.. code-block:: bash
+
+  python -c "import nest; nest.test()"
+
+.. note::
+
+	There might be a few failed tests related to ``NEST_DATA_PATH`` but this is OK.

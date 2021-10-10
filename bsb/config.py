@@ -763,13 +763,15 @@ class JSONConfig(ScaffoldConfig):
                 "density_ratio",
                 "count",
                 "per_planet",
+                "source",
             ],
             node_name,
         )
-        density_value = assert_float(
-            density_value, "{}.{}".format(node_name, density_attr)
-        )
-        placement.__dict__[density_attr] = density_value
+        if density_attr != "source":
+            density_value = assert_float(
+                density_value, "{}.{}".format(node_name, density_attr)
+            )
+            placement.__dict__[density_attr] = density_value
         # Does this density configuration rely on a relation to another cell_type?
         ratio_attrs = ["placement_count_ratio", "density_ratio"]
         if density_attr in ratio_attrs:
