@@ -1022,32 +1022,49 @@ class Scaffold:
                     ids = self.create_entities(ct, len(ids))
                 id_map[c.name] = dict(zip(old_ids, ids))
                 if label is not None:
-                    self.label_cells(ids, label)                 
-        for cs_self in self.get_connectivity_sets():
-            conn_t = cs_self.connection_types[0]
-            from_type = conn_t.from_cell_types[0]
-            to_type = conn_t.to_cell_types[0]
-            # TODO: Concatenate comp and morpho datasets
-            for cs_other in other.get_connectivity_sets():
-                if cs_self.tag != cs_other.tag:
+                    self.label_cells(ids, label)
+        for cs_self in self.configuration.connection_types.values():
+            for cs_other in other.configuration.connection_types.values():
+                from_type = cs_other.from_cell_types[0]
+                to_type = cs_other.to_cell_types[0]
+                if cs_self.name != cs_other.name:
                     continue
-                from_ids = cs_other.from_identifiers
+                conn_set = other.get_connectivity_set(cs_other.name)
+                #getting the mapped ids parameter for connect_cells()
+                from_ids = conn_set.from_identifiers
                 mapped_from_ids = np.vectorize(id_map[from_type.name].get)(from_ids)
-                to_ids = cs_other.to_identifiers
+                to_ids = conn_set.to_identifiers
                 mapped_to_ids = np.vectorize(id_map[to_type.name].get)(to_ids)
+                cds = np.column_stack((from_ids, to_ids))
                 mapped_cds = np.column_stack((mapped_from_ids, mapped_to_ids))
-                break
-            else:
-                raise RuntimeError(f"Missing '{cs_self.tag}' dataset.")
+                #getting the compartments parameter for connect_cells()
+                from_comp = []
+                to_comp = []
+                if conn_set.tag == 'mossy_to_glomerulus':
+                    continue
+                for inters in conn_set.intersections:
+                    from_comp.append(inters.from_compartment) 
+                    to_comp.append(inters.to_compartment)
+                comp_data = np.column_stack((np.array(from_comp), np.array(to_comp)))
+                #getting the morphology parameter for connect_cells()
+                from_morpho = []
+                to_morpho = []
+                for inter in conn_set.intersections:
+                    print(conn_set.tag)
+                    from_morpho.append(inter.from_morphology)
+                    to_morpho.append(inter.to_morphology)
+                morpho_data = np.column_stack((np.array(from_morpho), np.array(to_morpho)))
+                #break   
+            #else:
+                #raise RuntimeError(f"Missing '{cs_self}' dataset.")
 
-            self.connect_cells(conn_t, mapped_cds)
-
+            #self.connect_cells(cs_self, mapped_cds, morphologies=morpho_data, compartments=comp_data)
         
         self.compile_output()
         return self
 
 
-def merge(output_file, *others):
+def merge(output_file, *others, label=None):
     warn(
         "The merge function copies the originally loaded configuration and"
         + " currently only merges cell positions."
@@ -1060,10 +1077,11 @@ def merge(output_file, *others):
     cfg_json["output"]["morphology_repository"] = "morphologies.hdf5"
     cfg_copy = JSONConfig(stream=json.dumps(cfg_json))
     merged = Scaffold(cfg_copy)
-    merged.output_formatter.create_output()
+    merged.output_formatter.create_output() 
 
     for other in others:
-        merged.left_join(other)
+        print("ENTRO NEL FOR DI MERGE")
+        merged.left_join(other, label)
     return merged
 
 
