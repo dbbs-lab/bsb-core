@@ -2,7 +2,7 @@ import numpy as np
 import math
 from ..strategy import ConnectionStrategy
 from .shared import MorphologyStrategy
-from ...models import MorphologySet
+from ...morphologies import MorphologySet
 from ... import config
 from ...config import types
 from ...exceptions import *

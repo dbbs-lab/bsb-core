@@ -127,14 +127,6 @@ class PlacementSet(Interface):
         """
         pass
 
-    @abc.abstractproperty
-    def load_cells(self):
-        """
-        Reorganize the available datasets into a collection of :class:`Cells
-        <.models.Cell>`
-        """
-        pass
-
     @abc.abstractmethod
     def __iter__(self):
         pass
@@ -148,27 +140,8 @@ class PlacementSet(Interface):
         pass
 
     @abc.abstractmethod
-    def append_cells(self, chunk, cells):
-        pass
-
-    @abc.abstractmethod
     def append_additional(self, name, chunk, data):
         pass
-
-
-class MorphologySet:
-    def __init__(self, data, map):
-        self._data = data
-        self._map = np.array(map)
-
-    def get_dataset(self):
-        return self._data
-
-    def get_map(self):
-        return self._map
-
-    def get_morphologies(self):
-        return self._map[self._data]
 
 
 class ConnectivitySet(Interface):

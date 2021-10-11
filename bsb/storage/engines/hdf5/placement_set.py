@@ -1,4 +1,3 @@
-from ....models import Cell
 from ....exceptions import *
 from .resource import Resource
 from ...interfaces import PlacementSet as IPlacementSet, MorphologySet
