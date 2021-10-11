@@ -333,7 +333,7 @@ class Scaffold:
         simulator = simulation.prepare()
         return simulation, simulator
 
-    def place_cells(self, cell_type, positions, rotations=None, chunk=None):
+    def place_cells(self, cell_type, positions, morphologies=None, chunk=None):
         """
         Place cells inside of the scaffold
 
@@ -353,7 +353,7 @@ class Scaffold:
         cell_count = positions.shape[0]
         if cell_count == 0:
             return
-        self.get_placement_set(cell_type).append_data(chunk, positions, rotations)
+        self.get_placement_set(cell_type).append_data(chunk, positions, morphologies)
 
     def connect_cells(
         self,
