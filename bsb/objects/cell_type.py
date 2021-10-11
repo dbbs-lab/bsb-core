@@ -14,10 +14,22 @@ from ..helpers import SortableByAfter
     auto_classmap=True,
     required=False,
     default="by_name",
-    classmap_entry="by_name",
 )
 class MorphologySelector:
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        if cls is MorphologySelector:
+            return
+        if not hasattr(cls, "pick"):
+            raise RuntimeError("MorphologySelectors must define a `pick` method.")
+
+
+@config.node
+class NameSelector(MorphologySelector, classmap_entry="by_name"):
     names = config.list(type=str)
+
+    def pick(self, morphology):
+        return morphology.get_meta()["name"] in self.names
 
 
 @config.node
