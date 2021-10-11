@@ -29,7 +29,7 @@ class MorphologySet:
             yield from (self._loaders[idx].load() for idx in self._m_indices)
         else:
             _cached = {}
-            for idx in zip(self._m_indics, self._rotations):
+            for idx in zip(self._m_indices, self._rotations):
                 if idx not in _cached:
                     _cached[idx] = self._loaders[idx].load()
                 yield _cached[idx].copy()
