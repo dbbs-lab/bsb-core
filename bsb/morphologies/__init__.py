@@ -44,8 +44,8 @@ class MorphologyDistributor:
         Uses the morphology selection indicators to select morphologies and
         returns a MorphologySet of randomly assigned morphologies
         """
-        selector = indicator.assert_indication("morphological")
-        loaders = self.scaffold.storage.morphologies.select(selector)
+        selectors = indicator.assert_indication("morphological")
+        loaders = self.scaffold.storage.morphologies.select(*selectors)
         if not loaders:
             ids = np.zeros(len(positions))
         else:

@@ -9,13 +9,13 @@ class MorphologyRepository(Resource, IMorphologyRepository):
     def __init__(self, engine):
         super().__init__(engine, _root)
 
-    def select(self, selector):
-        all_morphos = self.keys()
-        return [
-            loader
-            for name in all_morphos
-            if selector.pick(loader := self.preload_morphology(name))
-        ]
+    def select(self, *selectors):
+        all_loaders = [self.preload_morphology(name) for name in self.keys()]
+        selected = []
+        for selector in selectors:
+            selector.validate(all_loaders)
+            selected.extend(filter(selector.pick, all_loaders))
+        return selected
 
     def preload_morphology(self, name):
         return StoredMorphology(self._make_loader(name), self.get_meta(name))

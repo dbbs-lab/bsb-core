@@ -11,8 +11,16 @@ _morpho_prop = lambda l: ChunkedProperty(l, "morphology", shape=(0, 1), dtype=in
 
 
 class _MapSelector:
-    def __init__(self, names):
+    def __init__(self, ps, names):
+        self._ps = ps
         self._names = set(names)
+
+    def validate(self, loaders):
+        missing = set(self._names) - {m.get_meta()["name"] for m in loaders}
+        if missing:
+            raise MissingMorphologyError(
+                f"Morphology repository misses the following morphologies required by {self._ps.tag}: {', '.join(missing)}"
+            )
 
     def pick(self, name):
         return name in self._names

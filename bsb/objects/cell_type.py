@@ -7,6 +7,7 @@ from ..config import types
 from ..placement import PlacementStrategy
 from ..placement.indicator import PlacementIndications
 from ..helpers import SortableByAfter
+from ..exceptions import *
 
 
 @config.dynamic(
@@ -28,6 +29,13 @@ class MorphologySelector:
 class NameSelector(MorphologySelector, classmap_entry="by_name"):
     names = config.list(type=str)
 
+    def validate(self, all_morphos):
+        missing = set(self.names) - {m.get_meta()["name"] for m in all_morphos}
+        if missing:
+            raise MissingMorphologyError(
+                f"Morphology repository misses the following morphologies required by {self._config_parent._config_parent.get_node_name()}: {', '.join(missing)}"
+            )
+
     def pick(self, morphology):
         return morphology.get_meta()["name"] in self.names
 
@@ -35,7 +43,7 @@ class NameSelector(MorphologySelector, classmap_entry="by_name"):
 @config.node
 class Representation(PlacementIndications):
     geometrical = config.dict(type=types.any())
-    morphological = config.dict(type=MorphologySelector)
+    morphological = config.list(type=MorphologySelector)
 
 
 @config.node
