@@ -9,7 +9,13 @@ from ..placement.indicator import PlacementIndications
 from ..helpers import SortableByAfter
 
 
-@config.dynamic(attr_name="selector", auto_classmap=True)
+@config.dynamic(
+    attr_name="selector",
+    auto_classmap=True,
+    required=False,
+    default="by_name",
+    classmap_entry="by_name",
+)
 class MorphologySelector:
     names = config.list(type=str)
 

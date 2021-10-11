@@ -39,7 +39,7 @@ class PlacementStrategy(abc.ABC, SortableByAfter):
         pass
 
     def place_cells(self, cell_type, indicator, positions, chunk):
-        print("Should we place morphologies:", indicator.use_morphologies)
+        print("Should we place morphologies:", indicator.use_morphologies())
         if indicator.use_morphologies():
             self.place_morphologies(cell_type, indicator, positions, chunk)
         else:
