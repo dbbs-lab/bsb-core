@@ -1,6 +1,7 @@
 from ....exceptions import *
 from .resource import Resource
-from ...interfaces import PlacementSet as IPlacementSet, MorphologySet
+from ...interfaces import PlacementSet as IPlacementSet
+from ....morphologies import MorphologySet
 from .chunks import ChunkLoader, ChunkedProperty
 import numpy as np
 
@@ -17,10 +18,7 @@ class PlacementSet(
     collections=("labels", "additional"),
 ):
     """
-    Fetches placement data from storage. You can either access the parallel-array
-    datasets ``.identifiers``, ``.positions`` and ``.rotations`` individually or
-    create a collection of :class:`Cells <.models.Cell>` that each contain their own
-    identifier, position and rotation.
+    Fetches placement data from storage.
 
     .. note::
 
@@ -101,12 +99,13 @@ class PlacementSet(
         """
         Load the cell morphologies.
 
-        :raises: DatasetNotFoundError when there is no morphology information for this
-           cell type.
+        :raises: DatasetNotFoundError when the morphology data is not found.
         """
         try:
             return MorphologySet(
-                self._morphology_chunks.load(), self._get_morphology_map()
+                self._morphology_chunks.load(),
+                self._rotation_chunks.load(),
+                self._get_morphology_map(),
             )
         except DatasetNotFoundError:
             raise DatasetNotFoundError(
@@ -123,21 +122,14 @@ class PlacementSet(
             with self._engine._handle("r") as f:
                 f().attrs["morphology_map"] = map
 
-    def load_cells(self):
-        """
-        Reorganize the available datasets into a collection of :class:`Cells
-        <.models.Cell>`
-        """
-        return [Cell(i, self.type, *data) for id, data in enumerate(self)]
-
     def __iter__(self):
         return zip(
             self._none(self.load_positions()),
-            self._none(self.load_rotations()),
+            self._none(self.load_morphologies()),
         )
 
     def __len__(self):
-        return sum(self._identifier_chunks.load(raw=True))
+        return sum(self._position_chunks.load(raw=True))
 
     def _none(self, starter):
         """

@@ -6,6 +6,21 @@ from ..reporting import report
 from .. import config
 
 
+class MorphologySet:
+    def __init__(self, data, map):
+        self._data = data
+        self._map = np.array(map)
+
+    def get_dataset(self):
+        return self._data
+
+    def get_map(self):
+        return self._map
+
+    def get_morphologies(self):
+        return self._map[self._data]
+
+
 @config.dynamic(
     required=False, default="random", auto_classmap=True, classmap_entry="random"
 )
