@@ -7,18 +7,32 @@ from .. import config
 
 
 class MorphologySet:
-    def __init__(self, data, map):
-        self._data = data
-        self._map = np.array(map)
+    """
+    Associates a set of :class:`StoredMorphologies
+    <.storage.interfaces.StoredMorphology>` to a dataset of indices and their
+    rotations.
+    """
 
-    def get_dataset(self):
-        return self._data
+    def __init__(self, loaders, m_indices, rotations):
+        self._m_indices = m_indices
+        self._loaders = loaders
+        self._rotations = rotations
 
-    def get_map(self):
-        return self._map
+    def get_indices(self):
+        return self._m_indices
 
-    def get_morphologies(self):
-        return self._map[self._data]
+    def get_rotations(self):
+        return self._rotations
+
+    def iter_morphologies(self, cache=True):
+        if not cache:
+            yield from (self._loaders[idx].load() for idx in self._m_indices)
+        else:
+            _cached = {}
+            for idx in zip(self._m_indics, self._rotations):
+                if idx not in _cached:
+                    _cached[idx] = self._loaders[idx].load()
+                yield _cached[idx].copy()
 
 
 @config.dynamic(
@@ -27,13 +41,16 @@ class MorphologySet:
 class MorphologyDistributor:
     def distribute(self, cell_type, indicator, positions):
         """
-        Uses the morphology selection indicators to select morphology names and
+        Uses the morphology selection indicators to select morphologies and
         returns a MorphologySet of randomly assigned morphologies
         """
         selector = indicator.assert_indication("morphological")
-        names = self.scaffold.storage.morphologies.select(selector)
-        ids = np.default_rng().integers(len(names), size=len(placement_set))
-        return MorphologySet(ids, names)
+        loaders = self.scaffold.storage.morphologies.select(selector)
+        if not loaders:
+            ids = np.zeros(len(positions))
+        else:
+            ids = np.random.default_rng().integers(len(loaders), size=len(positions))
+        return MorphologySet(loaders, ids, np.zeros((len(positions), 3)))
 
 
 def branch_iter(branch):

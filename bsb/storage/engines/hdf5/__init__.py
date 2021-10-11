@@ -5,7 +5,7 @@ from contextlib import contextmanager
 from .placement_set import PlacementSet
 from .config_store import ConfigStore
 from .label import Label
-from .filter import Filter
+from .morphology_repository import MorphologyRepository
 from datetime import datetime
 import h5py, os, filelock
 from mpilock import sync
@@ -16,6 +16,7 @@ class HDF5Engine(Engine):
         super().__init__(root)
         self._file = root
         self._lock = sync()
+        self.morphologies = MorphologyRepository(self)
 
     def _read(self):
         return self._lock.read()
@@ -39,6 +40,7 @@ class HDF5Engine(Engine):
                 handle.create_group("cells/placement")
                 handle.create_group("cells/connections")
                 handle.create_group("cells/labels")
+                handle.create_group("morphologies")
 
     def move(self, new_root):
         from shutil import move

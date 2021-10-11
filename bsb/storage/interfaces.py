@@ -1,4 +1,6 @@
-import abc, types
+import abc
+import types
+import functools
 from contextlib import contextmanager
 
 
@@ -144,6 +146,12 @@ class PlacementSet(Interface):
         pass
 
 
+class MorphologyRepository(Interface):
+    @abc.abstractmethod
+    def select(self, selector):
+        pass
+
+
 class ConnectivitySet(Interface):
     pass
 
@@ -169,3 +177,16 @@ class Label(Interface):
     @abc.abstractmethod
     def list(self):
         pass
+
+
+class StoredMorphology:
+    def __init__(self, loader, meta):
+        self._loader = loader
+        self._meta = meta
+
+    def load(self):
+        return self._loader()
+
+    @functools.cache
+    def cached_load(self):
+        return self.load()

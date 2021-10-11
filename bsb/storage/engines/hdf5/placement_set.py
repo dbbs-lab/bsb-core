@@ -10,6 +10,14 @@ _rot_prop = lambda l: ChunkedProperty(l, "rotation", shape=(0, 3), dtype=float)
 _morpho_prop = lambda l: ChunkedProperty(l, "morphology", shape=(0, 1), dtype=int)
 
 
+class _MapSelector:
+    def __init__(self, names):
+        self._names = set(names)
+
+    def pick(self, name):
+        return name in self._names
+
+
 class PlacementSet(
     Resource,
     IPlacementSet,
@@ -103,24 +111,25 @@ class PlacementSet(
         """
         try:
             return MorphologySet(
+                self._get_morphology_loaders(),
                 self._morphology_chunks.load(),
                 self._rotation_chunks.load(),
-                self._get_morphology_map(),
             )
         except DatasetNotFoundError:
             raise DatasetNotFoundError(
                 "No morphology information for the '{}' placement set.".format(self.tag)
             )
 
-    def _get_morphology_map(self):
+    def _get_morphology_loaders(self):
         with self._engine._read():
             with self._engine._handle("r") as f:
-                return f().attrs.get("morphology_map", [])
+                _map = f.attrs.get("morphology_map", [])
+                return self._engine.morphologies.select(_MapSelector(_map))
 
     def _set_morphology_map(self, map):
         with self._engine._read():
             with self._engine._handle("r") as f:
-                f().attrs["morphology_map"] = map
+                f.attrs["morphology_map"] = map
 
     def __iter__(self):
         return zip(

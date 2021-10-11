@@ -155,6 +155,10 @@ class Storage:
     def is_master(self):
         return self._comm.Get_rank() == self._master
 
+    @property
+    def morphologies(self):
+        return self._engine.morphologies
+
     @_on_master
     def exists(self):
         """
