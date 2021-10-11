@@ -1,7 +1,6 @@
 import numpy as np
 from ..strategy import ConnectionStrategy
 from .shared import MorphologyStrategy
-from ...morphologies import MorphologySet
 from ...exceptions import *
 from ... import config
 from ...config import types
@@ -48,14 +47,14 @@ class VoxelIntersection(ConnectionStrategy, MorphologyStrategy):
         to_cells = self.scaffold.get_cells_by_type(to_type.name)
 
         # Load the morphology and voxelization data for the entrire morphology, for each cell type.
-        from_morphology_set = MorphologySet(
+        from_morphology_set = from_placement_set.load_morphologies(
             scaffold,
             from_type,
             from_placement_set,
             compartment_types=from_compartments,
             N=self.voxels_pre,
         )
-        to_morphology_set = MorphologySet(
+        to_morphology_set = to_placement_set.load_morphologies(
             scaffold,
             to_type,
             to_placement_set,

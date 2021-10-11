@@ -2,7 +2,6 @@ import numpy as np
 import math
 from ..strategy import ConnectionStrategy
 from .shared import MorphologyStrategy
-from ...morphologies import MorphologySet
 from ... import config
 from ...config import types
 from ...exceptions import *
@@ -71,13 +70,9 @@ class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
         to_placement_set = self.scaffold.get_placement_set(to_type.name)
 
         # Load the morphology and voxelization data for the entrire morphology, for each cell type.
-        from_morphology_set = MorphologySet(
-            scaffold, from_type, from_placement_set, compartment_types=from_compartments
-        )
+        from_morphology_set = from_placement_set.load_morphologies()
 
-        to_morphology_set = MorphologySet(
-            scaffold, to_type, to_placement_set, compartment_types=to_compartments
-        )
+        to_morphology_set = to_placement_set.load_morphologies()
         joined_map = (
             from_morphology_set._morphology_map + to_morphology_set._morphology_map
         )
@@ -233,9 +228,6 @@ class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
                     from_compartment = np.random.choice(random_compartments, 1)[0]
                     to_compartment = np.random.choice(to_map[random_to_voxel_id], 1)[0]
                     compartments_out.append([from_compartment.id, to_compartment])
-                    morphologies_out.append(
-                        [from_morpho._set_index, joined_map_offset + to_morpho._set_index]
-                    )
                     connections_out.append([from_cell.id, to_cell.id])
 
         # Throw warning on cut fibers:
@@ -249,9 +241,7 @@ class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
         self.scaffold.connect_cells(
             self,
             np.array(connections_out or np.empty((0, 2))),
-            morphologies=np.array(morphologies_out or np.empty((0, 2), dtype=str)),
             compartments=np.array(compartments_out or np.empty((0, 2))),
-            morpho_map=joined_map,
         )
 
     def intersect_voxel_tree(self, from_voxel_tree, to_cloud, to_pos):
