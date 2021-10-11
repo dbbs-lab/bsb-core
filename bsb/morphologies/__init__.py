@@ -34,6 +34,19 @@ class MorphologySet:
                     _cached[idx] = self._loaders[idx].load()
                 yield _cached[idx].copy()
 
+    def _serialize_loaders(self):
+        return [loader.get_meta()["name"] for loader in self._loaders]
+
+    def merge(self, other):
+        merge_offset = len(self._loaders)
+        merged_loaders = self._loaders + other._loaders
+        print(self._m_indices, self._m_indices.shape, other._m_indices.shape)
+        merged_indices = np.concatenate(
+            (self._m_indices, other._m_indices + merge_offset)
+        )
+        merged_rotations = np.concatenate((self._rotations, other._rotations))
+        return MorphologySet(merged_loaders, merged_indices, merged_rotations)
+
 
 @config.dynamic(
     required=False, default="random", auto_classmap=True, classmap_entry="random"

@@ -184,6 +184,9 @@ class StoredMorphology:
         self._loader = loader
         self._meta = meta
 
+    def get_meta(self):
+        return self._meta.copy()
+
     def load(self):
         return self._loader()
 

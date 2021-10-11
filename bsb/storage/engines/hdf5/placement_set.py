@@ -7,7 +7,7 @@ import numpy as np
 
 _pos_prop = lambda l: ChunkedProperty(l, "position", shape=(0, 3), dtype=float)
 _rot_prop = lambda l: ChunkedProperty(l, "rotation", shape=(0, 3), dtype=float)
-_morpho_prop = lambda l: ChunkedProperty(l, "morphology", shape=(0, 1), dtype=int)
+_morpho_prop = lambda l: ChunkedProperty(l, "morphology", shape=(0,), dtype=int)
 
 
 class _MapSelector:
@@ -131,13 +131,18 @@ class PlacementSet(
     def _get_morphology_loaders(self):
         with self._engine._read():
             with self._engine._handle("r") as f:
-                _map = f.attrs.get("morphology_map", [])
-                return self._engine.morphologies.select(_MapSelector(_map))
+                for chunk in self.get_loaded_chunks():
+                    print("Loaded chunk:", chunk)
+                    path = self.get_chunk_path(chunk)
+                    _map = f[path].attrs.get("morphology_loaders", [])
+                    return self._engine.morphologies.select(_MapSelector(self, _map))
 
-    def _set_morphology_map(self, map):
-        with self._engine._read():
-            with self._engine._handle("r") as f:
-                f.attrs["morphology_map"] = map
+    def _set_morphology_loaders(self, map):
+        with self._engine._write():
+            with self._engine._handle("a") as f:
+                for chunk in self.get_loaded_chunks():
+                    path = self.get_chunk_path(chunk)
+                    f[path].attrs["morphology_loaders"] = map
 
     def __iter__(self):
         return zip(
@@ -196,18 +201,15 @@ class PlacementSet(
                 self.append_additional(key, chunk, ds)
 
     def _append_morphologies(self, chunk, new_set):
-        morphology_set = self.load_morphologies().merge(new_set)
-        self._set_morphology_map(morphology_set.map)
-        self._morphology_chunks.clear(chunk)
-        self._morphology_chunks.append(chunk, morphology_set.data)
-        self._rotation_chunks.append(chunk, new_set.rotations)
+        with self.chunk_context(chunk):
+            morphology_set = self.load_morphologies().merge(new_set)
+            self._set_morphology_loaders(morphology_set._serialize_loaders())
+            self._morphology_chunks.clear(chunk)
+            self._morphology_chunks.append(chunk, morphology_set.get_indices())
+            self._rotation_chunks.append(chunk, new_set.get_rotations())
 
     def append_entities(self, chunk, count, additional=None):
         self.append_data(chunk, count=count, additional=additional)
-
-    def append_cells(self, cells):
-        for cell in cells:
-            raise NotImplementedError("Sorry. Not added yet.")
 
     def append_additional(self, name, chunk, data):
         with self._engine._write():

@@ -11,6 +11,7 @@ objects within them.
 
 from .resource import Resource
 import numpy as np
+import contextlib
 
 
 class ChunkLoader:
@@ -41,6 +42,16 @@ class ChunkLoader:
             col = ChunkedCollection(self, col_name)
             self.__dict__[f"_{col}_chunks"] = col
             self._collections.append(col)
+
+    def get_loaded_chunks(self):
+        return self._chunks.copy()
+
+    @contextlib.contextmanager
+    def chunk_context(self, *chunks):
+        old_chunks = self._chunks
+        self._chunks = set(map(tuple, chunks))
+        yield
+        self._chunks = old_chunks
 
     def get_chunk_path(self, chunk=None):
         """
