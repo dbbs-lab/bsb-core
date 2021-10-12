@@ -14,15 +14,18 @@ from itertools import chain
 from sklearn.neighbors import KDTree
 from ..simulation import SimulationRecorder, SimulationResult
 import warnings
-import mpi4py
+import time
 
 
 try:
+    import mpi4py
     import mpi4py.MPI
 
     _MPI_processes = mpi4py.MPI.COMM_WORLD.Get_size()
+    _MPI_rank = mpi4py.MPI.COMM_WORLD.Get_rank()
 except ImportError:
     _MPI_processes = 1
+    _MPI_rank = 0
 
 LOCK_ATTRIBUTE = "dbbs_scaffold_lock"
 
@@ -107,11 +110,10 @@ class NestCell(CellModel, MapsScaffoldIdentifiers):
         return params
 
     def get_receptor_specifications(self):
-        return (
-            self.receptor_specifications[self.neuron_model]
-            if self.neuron_model in self.receptor_specifications
-            else {}
-        )
+        if self.neuron_model in self.receptor_specifications:
+            return self.receptor_specifications[self.neuron_model]
+        else:
+            return {}
 
 
 @config.node
@@ -162,7 +164,13 @@ class NestConnection(SimulationComponent):
         # Add the receptor specifications, if required.
         if self.should_specify_receptor_type():
             # If specific receptors are specified, the weight should always be positive.
-            params["weight"] = np.abs(params["weight"])
+            # We try to sanitize user data as best we can. If the given weight is a distr
+            # (given as a dict) we try to sanitize the `mu` value, if present.
+            if type(params["weight"]) is dict:
+                if "mu" in params["weight"].keys():
+                    params["weight"]["mu"] = np.abs(params["weight"]["mu"])
+            else:
+                params["weight"] = np.abs(params["weight"])
             if "Wmax" in params:
                 params["Wmax"] = np.abs(params["Wmax"])
             if "Wmin" in params:
@@ -241,14 +249,41 @@ class NestDevice(SimulationComponent):
     targetting = config.attr(type=NeuronTargetting)
     io = config.attr(type=types.in_(["input", "output"]))
 
+    casts = {
+        "radius": float,
+        "origin": [float],
+        "parameters": dict,
+        "stimulus": ListEvalConfiguration.cast,
+    }
+
+    defaults = {"connection": {"rule": "all_to_all"}, "synapse": None}
+
+    required = ["targetting", "device", "io", "parameters"]
+
+    def validate(self):
+        if self.io not in ("input", "output"):
+            raise ConfigurationError(
+                "Attribute io needs to be either 'input' or 'output' in {}".format(
+                    self.node_name
+                )
+            )
+        if hasattr(self, "stimulus"):
+            stimulus_name = (
+                "stimulus"
+                if not hasattr(self.stimulus, "parameter_name")
+                else self.stimulus.parameter_name
+            )
+            self.parameters[stimulus_name] = self.stimulus.eval()
+
     def __boot__(self):
         self.protocol = get_device_protocol(self)
 
-    def get_targets(self):
+    def get_nest_targets(self):
         """
         Return the targets of the stimulation to pass into the nest.Connect call.
         """
-        return self.simulation.get_nest_ids(np.array(self._get_targets(), dtype=int))
+        targets = np.array(self.get_targets(), dtype=int)
+        return self.adapter.get_nest_ids(targets)
 
 
 class NestEntity(NestDevice, MapsScaffoldIdentifiers):
@@ -320,6 +355,9 @@ class NestSimulation(Simulation):
         self.connect_neurons()
         self.is_prepared = True
         return self.nest
+
+    def get_rank(self):
+        return _MPI_rank
 
     def in_full_control(self):
         if not self.has_lock or not self.read_lock():
@@ -394,6 +432,9 @@ class NestSimulation(Simulation):
         except AttributeError:
             pass
 
+    def get_rank(self):
+        return mpi4py.MPI.COMM_WORLD.Get_rank()
+
     def reset_kernel(self):
         self.nest.set_verbosity(self.verbosity)
         self.nest.ResetKernel()
@@ -415,10 +456,21 @@ class NestSimulation(Simulation):
         self.global_identifier_map = {}
         for cell_model in self.cell_models.values():
             cell_model.reset()
+        if self.has_lock:
+            self.release_lock()
 
-    def get_master_seed(self):
-        # Use a constant reproducible master seed
-        return 1989
+    def get_master_seed(self, fixed_seed=None):
+        if not hasattr(self, "_master_seed"):
+            if fixed_seed is None:
+                # Use time as random seed
+                if mpi4py.MPI.COMM_WORLD.rank == 0:
+                    fixed_seed = int(time.time())
+                else:
+                    fixed_seed = None
+                self._master_seed = mpi4py.MPI.COMM_WORLD.bcast(fixed_seed, root=0)
+            else:
+                self._master_seed = fixed_seed
+        return self._master_seed
 
     def reset_processes(self, threads):
         master_seed = self.get_master_seed()
@@ -466,7 +518,7 @@ class NestSimulation(Simulation):
         if self.has_lock:
             self.release_lock()
 
-    def collect_output(self):
+    def collect_output(self, simulator):
         import h5py, time
 
         try:
@@ -477,9 +529,11 @@ class NestSimulation(Simulation):
             print(str(e))
             rank = 0
 
+        timestamp = str(time.time()).split(".")[0] + str(_randint())
+        result_path = "results_" + self.name + "_" + timestamp + ".hdf5"
         if rank == 0:
-            timestamp = str(time.time()).split(".")[0] + str(_randint())
-            with h5py.File("results_" + self.name + "_" + timestamp + ".hdf5", "a") as f:
+            with h5py.File(result_path, "a") as f:
+                f.attrs["configuration_string"] = self.scaffold.configuration._raw
                 for path, data, meta in self.result.safe_collect():
                     try:
                         path = "/".join(path)
@@ -505,6 +559,8 @@ class NestSimulation(Simulation):
                                     path, "{} {}".format(data.dtype, data.shape)
                                 )
                             )
+        mpi4py.MPI.COMM_WORLD.bcast(result_path, root=0)
+        return result_path
 
     def validate(self):
         for cell_model in self.cell_models.values():
@@ -667,6 +723,11 @@ class NestSimulation(Simulation):
             self.create_synapse_model(connection_model)
             # Set the specifications NEST allows like: 'rule', 'autapses', 'multapses'
             connection_specifications = {"rule": "one_to_one"}
+            if hasattr(self, "weight_recorder"):
+                wr_conf = self.weight_recorder
+                wr = nest.Create("weight_recorder")
+                nest.SetStatus(wr, wr_conf)
+                connection_specifications["weight_recorder"] = wr
             # Get the connection parameters from the configuration
             connection_parameters = connection_model.get_connection_parameters()
             report("Creating connections " + nest_name, level=3)
@@ -737,6 +798,7 @@ class NestSimulation(Simulation):
         Create the configured NEST devices in the simulator
         """
         for device_model in self.devices.values():
+            device_model.initialise_targets()
             device_model.protocol.before_create()
             device = self.nest.Create(device_model.device)
             report("Creating device:  " + device_model.device, level=3)
@@ -758,7 +820,7 @@ class NestSimulation(Simulation):
             )
             device_model.protocol.after_create(device)
             # Execute targetting mechanism to fetch target NEST ID's
-            device_targets = device_model.get_targets()
+            device_targets = device_model.get_nest_targets()
             report(
                 "Connecting to {} device targets.".format(len(device_targets)), level=3
             )
@@ -779,6 +841,7 @@ class NestSimulation(Simulation):
                     )
                 )
             connect_params.append(device_model.connection)
+            connect_params.append(device_model.synapse)
             # Send the Connect command to NEST and catch IllegalConnection errors.
             self.execute_command(
                 self.nest.Connect,
@@ -912,17 +975,36 @@ class SpikeRecorder(SimulationRecorder):
                     scaffold_ids = np.array(
                         self.device_model.simulation.get_scaffold_ids(file_spikes[:, 0])
                     )
+                    self.cell_types = list(
+                        set(
+                            self.device_model.adapter.scaffold.get_gid_types(scaffold_ids)
+                        )
+                    )
                     times = file_spikes[:, 1]
-                    scaffold_spikes = np.vstack((scaffold_ids, times)).T
-                    spikes = np.vstack((spikes, scaffold_spikes))
+                    scaffold_spikes = np.column_stack((scaffold_ids, times))
+                    spikes = np.concatenate((spikes, scaffold_spikes))
                 os.remove(file)
         return spikes
 
     def get_meta(self):
+        if hasattr(self.device_model, "cell_types"):
+            self.cell_types = [
+                self.device_model.adapter.scaffold.get_cell_type(n)
+                for n in self.device_model.cell_types
+            ]
+        else:
+            self.cell_types = list(
+                set(
+                    self.device_model.adapter.scaffold.get_gid_types(
+                        self.device_model.get_nest_targets()
+                    )
+                )
+            )
         return {
             "name": self.device_model.name,
-            "label": self.device_model.name,
-            "color": "black",
+            "label": self.cell_types[0].name,
+            "cell_types": [ct.name for ct in self.cell_types],
+            "color": self.cell_types[0].plotting.color,
             "parameters": json.dumps(self.device_model.parameters),
         }
 

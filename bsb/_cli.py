@@ -99,7 +99,7 @@ def start_cli():
         "-c",
         "--config",
         help="Specify the path of the configuration file.",
-        default="mouse_cerebellum_cortex_noTouch.json",
+        default="network_configuration.json",
     )
     parser.add_argument(
         "-r",
@@ -121,6 +121,9 @@ def start_cli():
         type=check_positive_factory("verbosity"),
     )
     parser.add_argument("-o", "--output", help="Specify an output file path")
+    parser.add_argument(
+        "--version", action="store_true", help="Print version information"
+    )
 
     # Compile subparser
     parser_compile.add_argument(
@@ -157,7 +160,7 @@ def start_cli():
         "-t",
         "--template",
         action="store",
-        default="mouse_cerebellum_cortex_noTouch.json",
+        default="template.json",
         help="Name of the template config file.",
     )
     parser_config.add_argument(
@@ -184,6 +187,11 @@ def start_cli():
 
     cl_args = parser.parse_args()
 
+    if getattr(cl_args, "version", False):
+        from . import __version__
+
+        print("bsb", __version__)
+        exit()
     if hasattr(cl_args, "func"):
         cl_args.func(cl_args)
     else:

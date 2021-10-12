@@ -9,7 +9,7 @@ from numpy import string_
 from .exceptions import *
 from .models import ConnectivitySet
 from sklearn.neighbors import KDTree
-import os, sys
+import os, sys, functools
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "dbbs-models"))
 
@@ -188,6 +188,16 @@ class Storage(TreeHandler):
     def exists(self):
         """
         Check if the resource exists.
+        """
+        pass
+
+    @abstractmethod
+    def get_connectivity_sets(self):
+        """
+        Return all connectivity sets.
+
+        :return: List of connectivity sets.
+        :rtype: :class:`ConnectivitySet`
         """
         pass
 
@@ -716,14 +726,17 @@ class HDF5Formatter(Storage, MorphologyRepository):
         if self.save_file_as:
             self.file = self.save_file_as
 
-        with self.open("w") as output:
-            self.store_configuration()
-            self.store_cells()
-            self.store_entities()
-            self.store_tree_collections(self.scaffold.trees.__dict__.values())
-            self.store_statistics()
-            self.store_appendices()
-            self.store_morphology_repository(was_compiled)
+        try:
+            with self.load("w") as output:
+                self.store_configuration()
+                self.store_cells()
+                self.store_tree_collections(self.scaffold.trees.__dict__.values())
+                self.store_statistics()
+                self.store_appendices()
+                self.store_morphology_repository(was_compiled)
+        except:
+            os.remove(self.file)
+            raise
 
         if was_compiled:
             os.remove("__backup__.hdf5")
@@ -732,21 +745,18 @@ class HDF5Formatter(Storage, MorphologyRepository):
         return os.path.exists(self.file)
 
     def init_scaffold(self):
-        with self.open() as resource:
-            self.scaffold.configuration.cell_type_map = resource()["cells"].attrs["types"]
-            for cell_type_name, count in resource()[
-                "statistics/cells_placed"
-            ].attrs.items():
-                self.scaffold.statistics.cells_placed[cell_type_name] = count
-            for tag in resource()["cells/connections"]:
-                dataset = resource()["cells/connections/" + tag]
+        scf = self.scaffold
+        with self.load() as res:
+            for cell_type_name, count in res()["statistics/cells_placed"].attrs.items():
+                scf.statistics.cells_placed[cell_type_name] = count
+            for tag in res()["cells/connections"]:
+                dataset = res()["cells/connections/" + tag]
                 for contributing_type in dataset.attrs["connection_types"]:
-                    self.scaffold.configuration.connection_types[
-                        contributing_type
-                    ].tags.append(tag)
-            self.scaffold.labels = {
-                l: resource()["cells/labels/" + l][()] for l in resource()["cells/labels"]
-            }
+                    scf.configuration.connection_types[contributing_type].tags.append(tag)
+            scf.labels = {l: v[()] for l, v in res()["cells/labels"].items()}
+            sets = (v["identifiers"] for v in res()["cells/placement"].values())
+            max_ids = (id[::2] + id[1::2] if len(id) else [0] for id in sets)
+            scf._nextId = functools.reduce(max, map(np.max, max_ids), 0)
 
     def validate(self):
         pass
@@ -769,23 +779,16 @@ class HDF5Formatter(Storage, MorphologyRepository):
     def store_cells(self):
         with self.open("a") as f:
             cells_group = f().create_group("cells")
-            self.store_cell_positions(cells_group)
             self.store_placement(cells_group)
             self.store_cell_connections(cells_group)
             self.store_labels(cells_group)
-
-    def store_entities(self):
-        with self.open("a") as f:
-            cells_group = f().create_group("entities")
-            for key, data in self.scaffold.entities_by_type.items():
-                cells_group.create_dataset(key, data=data)
 
     def store_placement(self, cells_group):
         placement = cells_group.create_group("placement")
         for cell_type in self.scaffold.get_cell_types():
             cell_type_group = placement.create_group(cell_type.name)
             ids = cell_type_group.create_dataset(
-                "identifiers", data=cell_type.serialize_identifiers(), dtype=np.int32
+                "identifiers", data=cell_type._ser_cached_ids(), dtype=np.int32
             )
             if not cell_type.entity:
                 cell_type_group.create_dataset(
@@ -796,34 +799,10 @@ class HDF5Formatter(Storage, MorphologyRepository):
                     "rotations", data=self.scaffold.rotations[cell_type.name]
                 )
 
-    def store_cell_positions(self, cells_group):
-        position_dataset = cells_group.create_dataset(
-            "positions", data=self.scaffold.cells
-        )
-        cell_type_names = self.scaffold.configuration.cell_type_map
-        cells_group.attrs["types"] = cell_type_names
-        type_maps_group = cells_group.create_group("type_maps")
-        for type in self.scaffold.configuration.cell_types.keys():
-            type_maps_group.create_dataset(
-                type + "_map",
-                data=np.where(self.scaffold.cells[:, 1] == cell_type_names.index(type))[
-                    0
-                ],
-            )
-
     def store_cell_connections(self, cells_group):
-        if "connections" not in cells_group:
-            connections_group = cells_group.create_group("connections")
-        else:
-            connections_group = cells_group["connections"]
-        if "connection_compartments" not in cells_group:
-            compartments_group = cells_group.create_group("connection_compartments")
-        else:
-            compartments_group = cells_group["connection_compartments"]
-        if "connection_morphologies" not in cells_group:
-            morphologies_group = cells_group.create_group("connection_morphologies")
-        else:
-            morphologies_group = cells_group["connection_morphologies"]
+        connections_group = cells_group.require_group("connections")
+        compartments_group = cells_group.require_group("connection_compartments")
+        morphologies_group = cells_group.require_group("connection_morphologies")
         for tag, connectome_data in self.scaffold.cell_connections_by_tag.items():
             related_types = list(
                 filter(
@@ -894,12 +873,8 @@ class HDF5Formatter(Storage, MorphologyRepository):
         return self.simulator_output_path or os.getcwd()
 
     def has_cells_of_type(self, name, entity=False):
-        if entity:
-            with self.open() as resource:
-                return name in list(resource()["/entities"])
-        else:
-            with self.open() as resource:
-                return name in list(resource()["/cells"].attrs["types"])
+        with self.load() as resource:
+            return name in resource()["/cells/placement"]
 
     def get_cells_of_type(self, name, entity=False):
         # Check if cell type is present
@@ -909,17 +884,20 @@ class HDF5Formatter(Storage, MorphologyRepository):
                     "cell" if not entity else "entity", name
                 )
             )
-        if entity:
-            with self.open() as resource:
-                return resource()["/entities/" + name][()]
-        # Slice out the cells of this type based on the map in the position dataset attributes.
-        with self.open() as resource:
-            type_map = self.get_type_map(name)
-            return resource()["/cells/positions"][()][type_map]
-
-    def get_type_map(self, type):
-        with self.open() as resource:
-            return resource()["/cells/type_maps/{}_map".format(type)][()]
+        with self.load() as resource:
+            ps = self.scaffold.get_cell_type(name).get_placement_set()
+            ids = ps.identifiers
+            if entity:
+                spoof_matrix = ids
+            else:
+                spoof_matrix = np.column_stack(
+                    (
+                        ids,
+                        np.zeros(len(ids)),
+                        ps.positions,
+                    )
+                )
+            return spoof_matrix
 
     def get_connectivity_set_connection_types(self, tag):
         """
@@ -940,6 +918,15 @@ class HDF5Formatter(Storage, MorphologyRepository):
         """
         with self.open() as f:
             return dict(f()["cells/connections/" + tag].attrs)
+
+    def get_connectivity_sets(self):
+        """
+        Return all the ConnectivitySets present in the network file.
+        """
+        with self.load() as f:
+            return list(
+                ConnectivitySet(self, tag) for tag in f()["cells/connections/"].keys()
+            )
 
     def get_connectivity_set(self, tag):
         return ConnectivitySet(self, tag)

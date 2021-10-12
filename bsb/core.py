@@ -285,14 +285,14 @@ class Scaffold:
             listener = ReportListener(self, report_file)
             simulation.add_progress_listener(listener)
         simulation.simulate(simulator)
-        simulation.collect_output()
+        result_path = simulation.collect_output(simulator)
         time_sim = time.time() - t
         report("Simulation runtime: {}".format(time_sim), level=2)
         if quit and hasattr(simulator, "quit"):
             simulator.quit()
         time_sim = time.time() - t
         report("Simulation runtime: {}".format(time_sim), level=2)
-        return simulation
+        return result_path
 
     def get_simulation(self, simulation_name):
         """
@@ -323,7 +323,7 @@ class Scaffold:
 
             # Add one granule cell at position 0, 0, 0
             cell_type = scaffold.get_cell_type("granule_cell")
-            scaffold.place_cells(cell_type, cell_type.layer_istance, [[0., 0., 0.]])
+            scaffold.place_cells(cell_type, cell_type.layer_instance, [[0., 0., 0.]])
 
         :param cell_type: The type of the cells to place.
         :type cell_type: :class:`.models.CellType`
@@ -547,6 +547,17 @@ class Scaffold:
             map(lambda x: (x, *x.get_connectivity_sets()), connection_types.values())
         )
 
+    def get_connectivity_sets(self):
+        """
+        Return all connectivity sets from the output formatter.
+
+        :param tag: Unique identifier of the connectivity set in the output formatter
+        :type tag: string
+        :returns: A connectivity set
+        :rtype: :class:`.models.ConnectivitySet`
+        """
+        return self.output_formatter.get_connectivity_sets()
+
     def get_connectivity_set(self, tag):
         """
         Return a connectivity set from the output formatter.
@@ -605,7 +616,7 @@ class Scaffold:
         if not self.is_compiled():
             return self.cells_by_type[cell_type.name][data, 0]
         else:
-            return np.array(self.output_formatter.get_type_map(cell_type))[data]
+            return self.get_placement_set(cell_type).identifiers[data]
 
     def get_connection_type(self, name):
         """
@@ -743,6 +754,19 @@ class Scaffold:
                 self.__dict__[f_name] = f.__get__(self)
 
         return self
+
+    def merge(self, other, label=None):
+        warn(
+            "The merge function currently only merges cell positions."
+            + " Only cell types that exist in the calling network will be copied."
+        )
+        for ct in self.get_cell_types():
+            if next((c for c in other.get_cell_types() if c.name == ct.name), None):
+                ps = c.get_placement_set()
+                ids = self.place_cells(ct, ct.layer_instance, ps.get_dataset())
+                if label is not None:
+                    self.label_cells(ids, label)
+        self.compile_output()
 
 
 class ReportListener:

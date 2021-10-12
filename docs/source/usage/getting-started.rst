@@ -459,71 +459,88 @@ First steps
 The scaffold provides a simple command line interface (CLI) to compile network
 architectures and run simulations.
 
-Let's try out the most basic command, using the default configuration::
+To start, let's create ourselves a project directory and a template configuration::
 
-  bsb -v=3 compile -x=50 -z=50
+  mkdir my_brain
+  cd my_brain
+  bsb make-config
 
-This should produce prints and generate a timestamped HDF5 file in your current
-directory.
+See :doc:`/usage/cli` for a full list of CLI commands.
 
-You can explore the structure of the generated output by analysing it with the
-scaffold shell. Open the scaffold shell like this::
+The ``make-config`` command makes a template configuration file:
 
-  scaffold
+.. code-block:: json
 
-You can now open and view the output HDF5 file like this::
+  {
+    "name": "Empty template",
+    "network_architecture": {
+      "simulation_volume_x": 400.0,
+      "simulation_volume_z": 400.0
+    },
+    "output": {
+      "format": "bsb.output.HDF5Formatter"
+    },
+    "layers": {
+      "base_layer": {
+        "thickness": 100
+      }
+    },
+    "cell_types": {
+      "base_type": {
+        "placement": {
+          "class": "bsb.placement.ParticlePlacement",
+          "layer": "base_layer",
+          "soma_radius": 2.5,
+          "density": 3.9e-4
+        },
+        "morphology": {
+          "class": "bsb.morphologies.NoGeometry"
+        },
+        "plotting": {
+          "display_label": "Template cell",
+          "color": "#E62314",
+          "opacity": 0.5
+        }
+      }
+    },
+    "after_placement": {
 
-  open hdf5 <name>.hdf5
-  view
+    },
+    "connection_types": {
+
+    },
+    "after_connectivity": {
+
+    },
+    "simulations": {
+
+    }
+  }
+
+The configuration is laid out to be as self explanatory as possible. For a full
+walkthrough of all parts see the :doc:`/configuration`.
+
+To convert the abstract description in the configuration file into a concrete
+network file with cell positions and connections run the ``compile`` command::
+
+  bsb -c network_configuration.json compile -p
 
 .. note::
-  By default the output file should be named ``scaffold_network`` followed by
-  a timestamp.
 
-This will print out the datasets and attributes in the output file. Most notably
-this should give you access to the cell positions and connections.
-
-See :doc:`/usage/cli` for a full guide.
-
-The scaffold exposes many general circuit builder features through a JSON
-configuration interface. By adapting values in the configuration a wide range
-of networks can be obtained. Extending the cerebellum model with new cell types
-can be achieved simply by adding new cell type and connection configuration
-objects to the configuration file. By building new configuration files the
-placement and connection strategies used to construct the cerebellum scaffold
-model could be leveraged to build any general brain area topology.
-
-You can use the default configuration of the mouse cerebellum as a starting
-point for your own scaffold model::
-
-  scaffold make-config my_config.json
-
-You can modify values in there and create a network from it like so::
-
-  bsb -c=my_config compile -p
-
-Open the configuration file in your favorite editor and reduce the simulation
-volume::
-
-  "network_architecture": {
-    "simulation_volume_x": 400.0, # For local single core 150 by 150 is doable.
-    "simulation_volume_z": 400.0,
-
-See :doc:`/configuration` for more on the configuration interface. Complex
-brain scaffolds can be constructed purely using these files, but there might be
-cases where it isn't enough, that's why it's also possible to augment the
-configuration with Python scripting:
+	You can leave off the ``-c`` (or ``--config``) flag in this case as
+	``network_configuration.json`` is the default config that ``bsb compile`` will
+	look for. The ``-p`` (or ``--plot``) flag will plot your network afterwards
 
 ============
 First script
 ============
 
-Although the scaffold package features a CLI that can perform most tasks, its
-primary use case is to be included in scripts that can further customize
-the scaffold with things impossible to achieve using the configuration files.
+The BSB is also a library that can be imported into Python scripts. You can load
+configurations and adapt the loaded object before constructing a network with it to
+programmatically alter the network structure.
 
 Let's go over an example first script that creates 5 networks with different
-densities of Purkinje cells.
+densities of ``base_type``.
 
 To use the scaffold in your script you should import the :class:`bsb.core.Scaffold`
 and construct a new instance by passing it a :class:`bsb.config.Configuration`.
@@ -537,50 +554,40 @@ by default the BSB provides a :func:`~bsb.config.from_json` to load JSON files:
   from bsb import options
 
   config = from_json("my_config.json")
-	# Ask the framework to output detailed progress
+  # Ask the framework to output detailed progress
   options.verbosity = 3
   scaffold = Scaffold(config)
 
 .. note::
   The verbosity is 1 by default, which only displays errors.
 
-Let's find the purkinje cell configuration:
+Let's find the ``base_type`` cell configuration::
 
-.. code-block:: python
+  base_type = scaffold.get_cell_type("base_type")
 
-  purkinje = scaffold.cell_types.purkinje_cell
-	# or
-	purkinje = scaffold.cell_types["purkinje_cell"]
-
-The next step is to adapt the Purkinje cell density each iteration. The location
+The next step is to adapt the ``base_type`` cell density each iteration. The location
 of the attributes on the Python objects mostly corresponds to their location in
 the configuration file. This means that::
 
-  "purkinje_cell": {
+  "base_type": {
     "placement": {
-      "planar_density": 0.045,
+      "density": 3.9e-4,
       ...
     },
     ...
   }
 
-will be stored in the Python object under ``purkinje.placement.planar_density``:
+will be stored in the Python ``CellType`` object under
+``base_type.placement.density``::
 
-.. code-block:: python
-
-  max_density = purkinje.placement.planar_density
+  max_density = base_type.placement.density
   for i in range(5):
-		# Point the storage to a new location
-		scaffold.storage.root = f"purkinje_density{i}.hdf5"
-		# Create a storage container for the new network on the new location
-		scaffold.storage.create()
-		# Change the density
-		purkinje.placement.planar_density = i * 20 / 100 * max_density
-		# Create the new network
-		scaffold.compile()
+    base_type.placement.density = i * 20 / 100 * max_density
+    scaffold.compile_network()
 
+    scaffold.plot_network()
 Full code example
------------------
+=================
 
 .. code-block:: python
 
@@ -589,23 +596,23 @@ Full code example
   from bsb import options
 
   config = from_json("my_config.json")
-	# Ask the framework to output detailed progress
+  # Ask the framework to output detailed progress
   options.verbosity = 3
   scaffold = Scaffold(config)
-	purkinje = scaffold.cell_types.purkinje_cell
-	max_density = purkinje.placement.planar_density
+
+  base_type = scaffold.cell_types.base_type
+  max_density = base_type.placement.density
+
   for i in range(5):
-	  # Point the storage to a new location
-		scaffold.storage.root = f"purkinje_density{i}.hdf5"
-		# Create a storage container for the new network on the new location
-		scaffold.storage.create()
-		# Change the density
-    purkinje.placement.planar_density = i * 20 / 100 * max_density
-		# Create the new network
+    # Create a new empty storage for the network
+    scaffold.storage.new(f"density{i}.hdf5")
+    # Change the density
+    base_type.spatial.planar_density = i * 20 / 100 * max_density
+    # Create the network
     scaffold.compile()
 
 Network compilation
--------------------
+===================
 
 ``compilation`` is the process of creating placement & connectivity sets for the
 network with cells placed according to the specified placement strategies and
@@ -624,11 +631,12 @@ connected to each other according to the specified connection strategies::
   scaffold.compile()
 
 The configuration object can be freely modified before compilation, although
-values that depend on eachother - e.g. layers in a stack - will not update each
+values that depend on eachother - i.e. layers in a stack - will not update each
 other.
 
+==================
 Network simulation
-------------------
+==================
 
 Simulations can be executed from configuration in a managed way using::
 
@@ -655,7 +663,7 @@ simulation::
 
 After preparation the simulator is primed, but can still be modified directly
 accessing the interface of the simulator itself. For example to create 5 extra
-cells in a NEST simulation::
+cells in a NEST simulation on top of the prepared configuration one could::
 
   cells = simulator.Create("iaf_cond_alpha", 5)
   print(cells)
@@ -667,6 +675,18 @@ cells in the simulator.
 After custom interfacing with the simulator, the adapter can be used to run the
 simulation::
 
+  adapter.simulate()
+
+Full code example
+=================
+
+.. code-block:: python
+
+  adapter = scaffold.create_adapter(name)
+  adapter.devices["input_stimulation"].parameters["rate"] = 40
+  simulator = adapter.prepare()
+  cells = simulator.Create("iaf_cond_alpha", 5)
+  print(cells)
   adapter.simulate()
 
 

@@ -108,6 +108,13 @@ class Branch:
             self.__dict__[vector] = args[v]
 
     @property
+    def points(self):
+        """
+        Return the vectors of this branch as a matrix.
+        """
+        return np.column_stack(tuple(getattr(self, v) for v in self.__class__.vectors))
+
+    @property
     def size(self):
         """
         Returns the amount of points on this branch
@@ -149,6 +156,16 @@ class Branch:
         """
         self._label_masks[label] = np.array(mask, dtype=bool)
 
+    @property
+    def children(self):
+        """
+        Collection of the child branches of this branch.
+
+        :returns: list of :class:`Branches <.morphologies.Branch>`
+        :rtype: list
+        """
+        return self._children.copy()
+
     def attach_child(self, branch):
         """
         Attach a branch as a child to this branch.
@@ -156,6 +173,8 @@ class Branch:
         :param branch: Child branch
         :type branch: :class:`Branch <.morphologies.Branch>`
         """
+        if branch._parent is not None:
+            branch._parent.detach_child(branch)
         self._children.append(branch)
         branch._parent = self
 
@@ -173,11 +192,20 @@ class Branch:
             raise ValueError("Branch could not be detached, it is not a child branch.")
 
     def to_compartments(self, start_id=0, parent=None):
+        """
+        Convert the branch to compartments.
+
+        .. deprecated:: 3.6
+            Use the vectors and points API instead (``.points``, ``.walk()``)
+        """
         comp_id = start_id
 
         def to_comp(data, labels):
             nonlocal comp_id, parent
-            comp = Compartment(*data, id=comp_id, parent=parent, labels=labels)
+            kwargs = dict(id=comp_id, parent=parent, labels=labels)
+            if hasattr(self, "_neuron_sid"):
+                kwargs["section_id"] = self._neuron_sid
+            comp = Compartment(*data, **kwargs)
             comp_id += 1
             parent = comp
             return comp
@@ -355,17 +383,6 @@ class Morphology:
         if labels is None:
             return self.compartment_tree.get_arrays()[0]
         return [c.end for c in self.get_compartments(labels=labels)]
-
-    def get_plot_range(self, offset=[0.0, 0.0, 0.0]):
-        compartments = self.compartment_tree.get_arrays()[0]
-        n_dimensions = range(compartments.shape[1])
-        mins = np.array([np.min(compartments[:, i]) + offset[i] for i in n_dimensions])
-        max = np.max(
-            np.array(
-                [np.max(compartments[:, i]) - mins[i] + offset[i] for i in n_dimensions]
-            )
-        )
-        return list(zip(mins.tolist(), (mins + max).tolist()))
 
     def get_compartment_tree(self, labels=None):
         if labels is not None:
