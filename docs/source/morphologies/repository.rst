@@ -15,4 +15,4 @@ To access a morphology you can use
 that loads the meta information, you can then use its ``load`` method to load the
 morphology if you need it.
 
-.. autoclass:: .storage.interfaces.MorphologyRepository
+.. autoclass:: bsb.storage.interfaces.MorphologyRepository

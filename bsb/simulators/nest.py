@@ -249,17 +249,6 @@ class NestDevice(SimulationComponent):
     targetting = config.attr(type=NeuronTargetting)
     io = config.attr(type=types.in_(["input", "output"]))
 
-    casts = {
-        "radius": float,
-        "origin": [float],
-        "parameters": dict,
-        "stimulus": ListEvalConfiguration.cast,
-    }
-
-    defaults = {"connection": {"rule": "all_to_all"}, "synapse": None}
-
-    required = ["targetting", "device", "io", "parameters"]
-
     def validate(self):
         if self.io not in ("input", "output"):
             raise ConfigurationError(

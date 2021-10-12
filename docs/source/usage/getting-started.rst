@@ -457,21 +457,25 @@ The framework allows you to plug in user code pretty much anywhere. Neat.
 
 Here's how you do it (theoretically):
 
-1. Identify which **interface** you need to extend. An interface is a programming concept
-  that lets you take one of the objects of the framework and define some functions on it.
-  The framework has predefined this set of functions and expects you to provide them.
-  Interfaces in the framework are always classes.
-1. Create a class that inherits from that interface and implement the required and/or
-  interesting looking functions of its public API (which will be specified).
-1. Refer to the class from the configuration by its importable module name, or use a
-  :ref:`classmap`.
+#. Identify which **interface** you need to extend. An interface is a programming concept
+   that lets you take one of the objects of the framework and define some functions on it.
+   The framework has predefined this set of functions and expects you to provide them.
+   Interfaces in the framework are always classes.
+
+#. Create a class that inherits from that interface and implement the required and/or
+   interesting looking functions of its public API (which will be specified).
+
+#. Refer to the class from the configuration by its importable module name, or use a
+   :ref:`classmap`.
 
 With a quick example, there's the ``MorphologySelector`` interface, which lets you specify
 how a subset of the available morphologies should be selected for a certain group of
 cells:
 
 1. The interface is ``bsb.morphologies.MorphologySelector`` and the docs specify it has
-  a ``validate(self, morphos)`` and ``pick(self, morpho)`` function.
+   a ``validate(self, morphos)`` and ``pick(self, morpho)`` function.
+
+2. Instant-Python |:tm:|, just add water:
 
 .. code-block:: python
 
@@ -491,8 +495,8 @@ cells:
       meta = morpho.get_meta()
       return meta["size"] > self.min_size and meta["size"] < self.max_size
 
-Assuming that that code is in a ``select.py`` file relative to the working directory you
-can now access
+3. Assuming that that code is in a ``select.py`` file relative to the working directory
+you can now access:
 
 .. code-block:: json
 
