@@ -92,7 +92,7 @@ Let's start with loading a morphology and inspecting its root
 As you can see an individual branch contains all the positional data of the individual
 points in the morphology. The morphology object itself then contains the collection of
 branches. Normally you'd use the ``.branches`` but if you want to work with the positional
-data of the whole morphology in a object you can do this by flattening the morphology:
+data of the whole morphology in an object you can do this by flattening the morphology:
 
 .. code-block:: python
 
