@@ -12,13 +12,6 @@ branch with 4 points ``p0, p1, p2, p3``::
   z = [z0, z1, z2, z3]
   r = [r0, r1, r2, r3]
 
-The points on the branch can also be described as individual ``Compartments``::
-
-  branch0 = [c0, c1, c2]
-  c0 = Comp(start=[x0, y0, z0], end=[x1, y1, z1], radius=r1)
-  c1 = Comp(start=[x1, y1, z1], end=[x2, y2, z2], radius=r2)
-  c2 = Comp(start=[x2, y2, z2], end=[x3, y3, z3], radius=r3)
-
 Branches also specify which other branches they are connected to and in this way the
 entire network of neuronal processes can be described. Those branches that do not have a
 parent branch are called ``roots``. A morphology can have as many roots as it likes;
@@ -35,14 +28,45 @@ The ``branches`` attribute is the result of a depth-first iteration of the roots
 kind of iteration over roots or branches will always follow this same depth-first order.
 
 The data of these morphologies are stored in ``MorphologyRepositories`` as groups of
-branches following the first vector-based branch description. If you want to use
-``compartments``  you'll have to call ``branch.to_compartments()`` or
-``morphology.to_compartments()``. For a root branch this will yield ``n - 1`` compartments
-formed as line segments between pairs of points on the branch. For non-root branches an
-extra compartment is prepended between the last point of the parent branch and the first
-point of the child branch. Compartments are individuals so branches are no longer used to
-describe the network of points, instead each compartment lists their own parent
-compartment.
+branches following the first vector-based branch description.
+
+=========================
+Constructing morphologies
+=========================
+
+Although morphologies are usually imported from files into storage, it can be useful to
+know how to create them for debugging, testing and validating. First create your branches,
+then attach them together and provide the roots to the Morphology constructor:
+
+.. code-block:: python
+
+  from bsb.morphologies import Branch, Morphology
+  import numpy as np
+
+  # x, y, z, radii
+  branch = Branch(
+    np.array([0, 1, 2]),
+    np.array([0, 1, 2]),
+    np.array([0, 1, 2]),
+    np.array([1, 1, 1]),
+  )
+  child_branch = Branch(
+    np.array([2, 3, 4]),
+    np.array([2, 3, 4]),
+    np.array([2, 3, 4]),
+    np.array([1, 1, 1]),
+  )
+  branch.attach_child(child_branch)
+  m = Morphology([branch])
+
+.. note::
+
+  Attaching branches is merely a graph-level connection that aids in iterating the
+  morphology, no spatial connection information is inferred between the branches.
+  Detaching and attaching it elsewhere won't result in any spatial changes, it will only
+  affect iteration order. Keep in mind that that still affects how they are stored and
+  still has drastic consequences if connections have already been made using that
+  morphology (as connections use branch indices).
 
 Using morphologies
 ------------------
@@ -106,3 +130,11 @@ data of the whole morphology in an object you can do this by flattening the morp
   print("All the points on those branches in depth first order:")
   print("- As vectors:", morfo.flatten())
   print("- As matrix:", morfo.flatten(matrix=True).shape)
+
+
+=========
+Reference
+=========
+
+.. automodule:: bsb.morphologies
+  :members:
