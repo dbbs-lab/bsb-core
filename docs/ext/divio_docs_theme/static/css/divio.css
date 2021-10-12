@@ -97,6 +97,13 @@ ul, ol, dl {
 li {
   list-style: none; }
 
+ul.simple {
+  padding-left: 24px;
+  list-style: circle; }
+
+ul.simple li {
+  list-style: circle; }
+
 dd {
   margin: 0; }
 

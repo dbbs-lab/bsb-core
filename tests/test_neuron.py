@@ -1,4 +1,4 @@
-import unittest, os, sys, numpy as np, h5py, importlib
+import os, sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
@@ -6,13 +6,16 @@ from bsb.core import Scaffold, from_hdf5
 from bsb.simulators.nest import NestCell
 from bsb.models import Layer, CellType
 from bsb.exceptions import *
+from mpi4py.MPI import COMM_WORLD as mpi
+import unittest, numpy as np, h5py, importlib, nrnsub, test_setup
 
 
 def relative_to_tests_folder(path):
-    return os.path.join(os.path.dirname(__file__), path)
+    return os.path.abspath(os.path.join(os.path.dirname(__file__), path))
 
 
 config = relative_to_tests_folder("../bsb/configurations/mouse_cerebellum_cortex.json")
+miniature_config = relative_to_tests_folder("configs/test_nrn_miniature.json")
 mf_grc_config = relative_to_tests_folder("configs/test_nrn_mf_granule.json")
 mf_gol_config = relative_to_tests_folder("configs/test_nrn_mf_golgi.json")
 aa_goc_config = relative_to_tests_folder("configs/test_nrn_aa_goc.json")
@@ -85,8 +88,76 @@ class MultiplicityTest(unittest.TestCase):
         return MockedCell()
 
 
-# Absolute dogshit code; do not use. We just quickly needed to validaate all cerebellar
-# network components. Kept for future debugging.
+class TestMiniature(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        if mpi.Get_rank():
+            mpi.Barrier()
+            network = from_hdf("nrn_miniature.hdf5")
+        else:
+            test_setup.prep_morphologies()
+            config = JSONConfig(miniature_config)
+            network = Scaffold(config)
+            network.place_cell_types()
+            network.compile_output()
+            goc = network.get_placement_set("golgi_cell").identifiers
+            sc = network.get_placement_set("stellate_cell").identifiers
+            pc = network.get_placement_set("purkinje_cell").identifiers
+            sc_pc = network.get_connection_type("stellate_to_purkinje")
+            goc_gap = network.get_connection_type("gap_goc")
+            # Connect 2 out of 3 Golgi cells with bidirect halfgap junctions
+            c = np.array([[goc[0], goc[1]], [goc[1], goc[0]]])
+            gm = network.morphology_repository.get_morphology("GolgiCell")
+            comp_id = gm.get_compartments(labels=["basal_dendrites"])[0].id
+            m = np.zeros((len(c), 2))
+            mmap = ["GolgiCell"]
+            comp = np.array([[comp_id] * 2] * 2)
+            network.connect_cells(goc_gap, c, None, m, comp, None, mmap)
+            # Connect one stellate cell to one Purkinje cell
+            c = np.array([[sc[0], pc[0]]])
+            sm = network.morphology_repository.get_morphology("StellateCell")
+            pre_comp_id = sm.get_compartments(labels=["axon"])[0].id
+            pm = network.morphology_repository.get_morphology("PurkinjeCell")
+            post_comp_id = pm.get_compartments(labels=["sc_targets"])[0].id
+            m = np.array([[1, 0]])
+            mmap = ["PurkinjeCell", "StellateCell"]
+            comp = np.array([[pre_comp_id, post_comp_id]])
+            network.connect_cells(sc_pc, c, None, m, comp, None, mmap)
+            network.compile_output()
+            mpi.Barrier()
+        network.run_simulation("test")
+        from glob import glob
+
+        cls.result_path = glob("results_test_*")[-1]
+
+    @classmethod
+    def tearDownClass(cls):
+        super().tearDownClass()
+        # os.remove("nrn_miniature.hdf5")
+
+    def test_issue_205(self):
+        with h5py.File(self.result_path, "r") as f:
+            soma_spike_recorders = f["recorders/soma_spikes"]
+            self.assertEqual(7, len(soma_spike_recorders), "Missing spike recorders")
+            for sr in soma_spike_recorders.values():
+                self.assertEqual(
+                    2, sr.shape[1], "Regression #205. Flipped spike datasets"
+                )
+
+    def test_issue_249(self):
+        with h5py.File(self.result_path, "r") as f:
+            fixed_spike_generators = f["recorders/input/fixed_spike_generator"]
+            self.assertEqual(
+                3,
+                len(fixed_spike_generators),
+                "Regression #249. Missing fixed spike generators.",
+            )
+            for sr in fixed_spike_generators.values():
+                self.assertEqual(4, len(sr), "Incorrect fixed spike data")
+
+
+# Manual tests, to be included later in v4 perhaps
 
 
 @unittest.skip("NEURON tests need to be run manually")

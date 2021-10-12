@@ -78,6 +78,11 @@ The default project currently contains no simulation config.
 All contributions are very much welcome.
 Take a look at the [contribution guide](CONTRIBUTING.md)
 
+# Contributing
+
+All contributions are very much welcome.
+Take a look at the [contribution guide](CONTRIBUTING.md)
+
 # Known issues
 
 ## If MPI is used but mpi4py is not installed, undefined behavior may occur

@@ -3,13 +3,15 @@ from plotly.subplots import make_subplots
 from .networks import all_depth_first_branches, get_branch_points, reduce_branch
 import numpy as np, math, functools
 from contextlib import contextmanager
-import random
+import random, types
+from .reporting import warn
 
 
 class CellTrace:
     def __init__(self, meta, data):
         self.meta = meta
         self.data = data
+        self.color = None
 
 
 class CellTraces:
@@ -63,6 +65,11 @@ class CellTraceCollection:
     def order(self):
         self.cells = dict(sorted(self.cells.items(), key=lambda t: t[1].order or 0))
 
+    def reorder(self, order):
+        for o, key in zip(iter(order), self.cells.keys()):
+            self.cells[key].order = o
+        self.order()
+
 
 def _figure(f):
     """
@@ -109,6 +116,52 @@ def _network_figure(f):
     return wrapper_function
 
 
+def _morpho_figure(f):
+    """
+    Decorator for functions that produce a Figure of a morphology. Applies ``@_figure``
+    and can set the offset, range & aspectratio and can swap the Y & Z axis labels.
+
+    Adds the `offset`, `set_range` and `swapaxes` keyword arguments.
+    """
+
+    @functools.wraps(f)
+    @_figure
+    def wrapper_function(
+        morphology,
+        *args,
+        offset=None,
+        set_range=True,
+        fig=None,
+        swapaxes=True,
+        soma_radius=None,
+        **kwargs,
+    ):
+        if offset is None:
+            offset = [0.0, 0.0, 0.0]
+        r = f(
+            morphology,
+            *args,
+            fig=fig,
+            offset=offset,
+            set_range=set_range,
+            swapaxes=swapaxes,
+            soma_radius=soma_radius,
+            **kwargs,
+        )
+        if set_range:
+            rng = get_morphology_range(morphology, offset=offset, soma_radius=soma_radius)
+            set_scene_range(fig.layout.scene, rng)
+            set_scene_aspect(fig.layout.scene, rng)
+        if swapaxes:
+            axis_labels = dict(xaxis_title="X", yaxis_title="Z", zaxis_title="Y")
+        else:
+            axis_labels = dict(xaxis_title="X", yaxis_title="Y", zaxis_title="Z")
+        fig.update_layout(scene=axis_labels)
+        return r
+
+    return wrapper_function
+
+
 def _input_highlight(f, required=False):
     """
     Decorator for functions that highlight an input region on a Figure.
@@ -141,13 +194,14 @@ def _input_highlight(f, required=False):
             ]
             fig.update_layout(shapes=shapes)
         elif required:
-            raise ArgumentError("Required keyword argument `input_region` omitted.")
+            raise ArgumentError("Missing required keyword argument `input_region`.")
         return r
 
     return wrapper_function
 
 
-def _plot_network(network, fig, swapaxes):
+def _plot_network(network, fig, cubic, swapaxes):
+    xmin, xmax, ymin, ymax, zmin, zmax = tuple([0] * 6)
     for type in network.configuration.cell_types.values():
         if type.entity:
             continue
@@ -164,6 +218,21 @@ def _plot_network(network, fig, swapaxes):
                 name=type.plotting.label,
             )
         )
+        xmin = min(xmin, np.min(pos[:, 0], initial=0))
+        xmax = max(xmax, np.max(pos[:, 0], initial=0))
+        ymin = min(ymin, np.min(pos[:, 1], initial=0))
+        ymax = max(ymax, np.max(pos[:, 1], initial=0))
+        zmin = min(zmin, np.min(pos[:, 2], initial=0))
+        zmax = max(zmax, np.max(pos[:, 2], initial=0))
+    if cubic:
+        rng = max(xmax - xmin, ymax - ymin, zmax - zmin)
+        fig.layout.scene.xaxis.range = [xmin, xmin + rng]
+        if swapaxes:
+            fig.layout.scene.yaxis.range = [ymin, ymin + rng]
+            fig.layout.scene.zaxis.range = [zmin, zmin + rng]
+        else:
+            fig.layout.scene.yaxis.range = [ymin, ymin + rng]
+            fig.layout.scene.zaxis.range = [zmin, zmin + rng]
 
 
 @_network_figure
@@ -174,7 +243,7 @@ def plot_network(
     Plot a network, either from the current cache or the storage.
     """
     if from_memory:
-        _plot_network(network, fig, swapaxes)
+        _plot_network(network, fig, cubic, swapaxes)
     else:
         network.reset_network_cache()
         for type in network.configuration.cell_types.values():
@@ -182,7 +251,12 @@ def plot_network(
                 continue
             # Load from HDF5
             network.get_cells_by_type(type.name)
-        _plot_network(network, fig, swapaxes)
+        _plot_network(network, fig, cubic, swapaxes)
+    return fig
+
+
+@_network_figure
+def network_figure(fig=None, **kwargs):
     return fig
 
 
@@ -291,20 +365,23 @@ def plot_voxel_cloud(
 
 
 def get_branch_trace(compartments, offset=[0.0, 0.0, 0.0], color="black", width=1.0):
-    x = [c.start[0] + offset[0] for c in compartments]
-    y = [c.start[1] + offset[1] for c in compartments]
-    z = [c.start[2] + offset[2] for c in compartments]
-    # Add branch endpoint
-    x.append(compartments[-1].end[0] + offset[0])
-    y.append(compartments[-1].end[1] + offset[1])
-    z.append(compartments[-1].end[2] + offset[2])
+    if width == 0:
+        x, y, z = [], [], []
+    else:
+        x = [c.start[0] + offset[0] for c in compartments]
+        y = [c.start[1] + offset[1] for c in compartments]
+        z = [c.start[2] + offset[2] for c in compartments]
+        # Add branch endpoint
+        x.append(compartments[-1].end[0] + offset[0])
+        y.append(compartments[-1].end[1] + offset[1])
+        z.append(compartments[-1].end[2] + offset[2])
     return go.Scatter3d(
         x=x, y=z, z=y, mode="lines", line=dict(width=width, color=color), showlegend=False
     )
 
 
 def get_soma_trace(
-    soma_radius, offset=[0.0, 0.0, 0.0], color="black", opacity=1, steps=5
+    soma_radius, offset=[0.0, 0.0, 0.0], color="black", opacity=1, steps=5, **kwargs
 ):
     phi = np.linspace(0, 2 * np.pi, num=steps * 2)
     theta = np.linspace(-np.pi / 2, np.pi / 2, num=steps)
@@ -321,6 +398,7 @@ def get_soma_trace(
         opacity=opacity,
         color=color,
         alphahull=0,
+        **kwargs,
     )
 
 
@@ -354,12 +432,11 @@ def plot_fiber_morphology(
     return fig
 
 
-@_network_figure
+@_morpho_figure
 def plot_morphology(
     morphology,
-    offset=[0.0, 0.0, 0.0],
+    offset=None,
     fig=None,
-    cubic=True,
     swapaxes=True,
     show=True,
     legend=True,
@@ -367,7 +444,9 @@ def plot_morphology(
     color="black",
     reduce_branches=False,
     soma_radius=None,
+    soma_opacity=1.0,
     segment_radius=1.0,
+    use_last_soma_comp=True,
 ):
     compartments = np.array(morphology.compartments.copy())
     dfs_list = all_depth_first_branches(morphology.get_compartment_network())
@@ -378,18 +457,24 @@ def plot_morphology(
     for branch in dfs_list[::-1]:
         branch_comps = compartments[branch]
         width = _get_branch_width(branch_comps, segment_radius)
-        traces.append(get_branch_trace(branch_comps, offset, color=color, width=width))
+        _color = _get_branch_color(branch_comps, color)
+        traces.append(get_branch_trace(branch_comps, offset, color=_color, width=width))
+    if isinstance(color, dict) and "soma" not in color:
+        raise Exception("Please specify a color for the `soma`.")
+    soma_color = color["soma"] if isinstance(color, dict) else color
+    soma_comps = [c for c in compartments if "soma" in c.labels]
+    # Negative bool = -1/0 (True: -1, last soma comp, False: 0, first soma comp)
+    soma_comp = soma_comps[-use_last_soma_comp]
     traces.append(
         get_soma_trace(
-            soma_radius if soma_radius is not None else compartments[0].radius,
-            offset,
-            color,
+            soma_radius if soma_radius is not None else soma_comp.radius,
+            offset + (soma_comp.end if use_last_soma_comp else soma_comp.start),
+            soma_color,
+            opacity=soma_opacity,
         )
     )
     for trace in traces:
         fig.add_trace(trace)
-    if set_range:
-        set_scene_range(fig.layout.scene, morphology.get_plot_range(offset=offset))
     return fig
 
 
@@ -417,16 +502,26 @@ def plot_intersections(
     )
 
 
-def _get_branch_width(branch, seg_radius):
-    width = seg_radius
-    try:
-        if isinstance(seg_radius, dict):
-            branch_type = branch[-1].type
-            bt = int(branch_type / 100) if branch_type > 100 else int(branch_type)
-            width = seg_radius[bt]
-    except KeyError:
-        raise Exception("Plotting width not specified for branches of type " + str(bt))
-    return width
+def _get_branch_width(branch, radii):
+    if isinstance(radii, dict):
+        for btype in reversed(branch[-1].labels):
+            if btype in radii:
+                return radii[btype]
+        raise Exception(
+            "Plotting width not specified for branches of type " + str(branch[-1].labels)
+        )
+    return radii
+
+
+def _get_branch_color(branch, colors):
+    if isinstance(colors, dict):
+        for btype in reversed(branch[-1].labels):
+            if btype in colors:
+                return colors[btype]
+        raise Exception(
+            "Plotting color not specified for branches of type " + str(branch[-1].labels)
+        )
+    return colors
 
 
 def plot_block(fig, origin, sizes, color=None, colorscale="Cividis", **kwargs):
@@ -471,7 +566,7 @@ def plotly_block_faces(
         j=[3, 4, 1, 2, 5, 6, 5, 2, 0, 1, 6, 3],
         k=[0, 7, 2, 3, 6, 7, 1, 1, 5, 5, 7, 6],
         opacity=0.3,
-        **color_args
+        **color_args,
     )
 
 
@@ -492,6 +587,16 @@ def set_scene_range(scene, bounds):
     scene.zaxis.range = bounds[1]
 
 
+def set_scene_aspect(scene, bounds, mode="equal", swapaxes=True):
+    if mode == "equal":
+        ratios = np.array([d[1] - d[0] for d in bounds])
+        ratios = ratios / np.max(ratios)
+        items = zip(["x", "z", "y"] if swapaxes else ["x", "y", "z"], ratios)
+        scene.aspectratio = dict(items)
+    else:
+        scene.aspectmode = mode
+
+
 def set_morphology_scene_range(scene, offset_morphologies):
     """
     Set the range on a scene containing multiple morphologies.
@@ -499,7 +604,7 @@ def set_morphology_scene_range(scene, offset_morphologies):
     :param scene: A scene of the figure. If the figure itself is given, ``figure.layout.scene`` will be used.
     :param offset_morphologies: A list of tuples where the first element is offset and the 2nd is the :class:`Morphology`
     """
-    bounds = np.array(list(map(lambda m: m[1].get_plot_range(m[0]), offset_morphologies)))
+    bounds = np.array([get_morphology_range(m[1], m[0]) for m in offset_morphologies])
     combined_bounds = np.array(
         list(zip(np.min(bounds, axis=0)[:, 0], np.max(bounds, axis=0)[:, 1]))
     )
@@ -508,49 +613,104 @@ def set_morphology_scene_range(scene, offset_morphologies):
     set_scene_range(scene, combined_bounds)
 
 
-def hdf5_plot_spike_raster(spike_recorders, input_region=None, show=True):
+def get_morphology_range(morphology, offset=None, soma_radius=None):
+    if offset is None:
+        offset = [0.0, 0.0, 0.0]
+    r = soma_radius or 0.0
+    itr = enumerate(morphology.flatten(vectors=["x", "y", "z"]))
+    r = [[min(min(v), -r) + offset[i], max(max(v), r) + offset[i]] for i, v in itr]
+    return r
+
+
+def hdf5_plot_spike_raster(
+    spike_recorders,
+    input_region=None,
+    show=True,
+    cutoff=0,
+    cell_type_sort=None,
+    cell_sort=None,
+):
     """
     Create a spike raster plot from an HDF5 group of spike recorders.
+
+    :param input_region: Specifies an interval ``[min, max]`` on the x axis to highlight
+      as active input to the simulation.
+    :type input_region: 2-element list-like
+    :param show: Immediately plot the result
+    :type show: bool
+    :param cutoff: Amount of ms initial simulation to ignore.
+    :type cutoff: float
+    :param cell_type_sort: A function to sort the cell types. Must take 2 dictionaries
+      as arguments, being the raster plot's x values per label and y values per label.
+      Must return an array labels matching those of the x and y values to order them.
+    :type cell_type_sort: function-like
+    :param cell_sort: A function that takes the cell type label and set of ids and returns
+     a map to sort them.
+    :type cell_sort: function-like
     """
-    x = {}
-    y = {}
+    x_labelled = {}
+    y_labelled = {}
     colors = {}
-    ids = {}
     for cell_id, dataset in spike_recorders.items():
         attrs = dict(dataset.attrs)
         if len(dataset.shape) == 1 or dataset.shape[1] == 1:
-            times = dataset[()]
+            times = dataset[()] - cutoff
             set_ids = np.ones(len(times)) * int(
                 attrs.get("cell_id", attrs.get("cell", cell_id))
             )
         else:
-            times = dataset[:, 1]
+            times = dataset[:, 1] - cutoff
             set_ids = dataset[:, 0]
         label = attrs.get("label", "unlabelled")
-        if not label in x:
-            x[label] = []
-        if not label in y:
-            y[label] = []
+        if not label in x_labelled:
+            x_labelled[label] = []
+        if not label in y_labelled:
+            y_labelled[label] = []
         if not label in colors:
             colors[label] = attrs.get("color", "black")
-        if not label in ids:
-            ids[label] = 0
-        ids[label] += 1
         # Add the spike timings on the X axis.
-        x[label].extend(times)
+        x_labelled[label].extend(times)
         # Set the cell id for the Y axis of each added spike timing.
-        y[label].extend(set_ids)
+        y_labelled[label].extend(set_ids)
     # Use the parallel arrays x & y to plot a spike raster
     fig = go.Figure(
         layout=dict(
-            xaxis=dict(title_text="Time (ms)"), yaxis=dict(title_text="Cell (ID)")
+            xaxis=dict(title_text="Time [ms]"), yaxis=dict(title_text="Cell [ID]")
         )
     )
-    sort_by_size = lambda d: {k: v for k, v in sorted(d.items(), key=lambda i: len(i[1]))}
+    if cell_type_sort is None:
+        # Sorts the cell type dictionary by cell type size
+        cell_type_sort = lambda x, y: [
+            k for k, v in sorted(y.items(), key=lambda kv: len(kv[1]))
+        ]
+    # This lambda maps each unique y value to a sorted index starting from 0
+    # We define this here so that it can be used as fallback mechanism later
+    _cell_sort = lambda l, sy: dict(zip(sy, np.argsort(sy)))
+    if cell_sort is None:
+        # If no cell sorter is given we use the fallback sorter as default sorter.
+        cell_sort = _cell_sort
+
+    sorted_labels = cell_type_sort(x_labelled, y_labelled)
     start_id = 0
-    for label, x, y in [(label, x[label], y[label]) for label in sort_by_size(x).keys()]:
-        y = [yi + start_id for yi in y]
-        start_id += ids[label]
+    for label in sorted_labels:
+        x = np.array(x_labelled[label])
+        y = np.array(y_labelled[label])
+        if len(y) > 0:
+            uy = np.unique(y)
+            # Ask the cell sorter to give a map for the unique y values. If it returns
+            # something Falsy (such as None) we use the default cell sorter.
+            id_map = cell_sort(label, uy) or _cell_sort(label, uy)
+            len_diff = len(uy) - len(id_map)
+            if len_diff > 0:
+                warn(
+                    f"Sorted '{label}' array do not contain all cell ids, {len_diff} {label} omitted from raster."
+                )
+                y_mask = np.isin(y, id_map.keys())
+                y = y[y_mask]
+                x = x[x_mask]
+            # Build a new numpy array using the `id_map` dictionary lookup
+            y = np.vectorize(id_map.__getitem__)(y) + start_id
+            start_id += len(uy)
         plot_spike_raster(
             x,
             y,
@@ -560,6 +720,7 @@ def hdf5_plot_spike_raster(spike_recorders, input_region=None, show=True):
             color=colors[label],
             input_region=input_region,
         )
+    fig.update_layout(xaxis=dict(range=[0, np.max(x, initial=0)]))
     if show:
         fig.show()
     return fig
@@ -621,7 +782,7 @@ def hdf5_gdf_plot_spike_raster(spike_recorders, input_region=None, fig=None, sho
             show=False,
             color=colors[l],
             input_region=input_region,
-            **kwargs
+            **kwargs,
         )
     if show:
         fig.show()
@@ -660,7 +821,15 @@ def hdf5_gather_voltage_traces(handle, root, groups=None):
     traces = CellTraceCollection()
     for group in groups:
         path = root + group
-        for name, dataset in handle[path].items():
+        # If an element of `groups` point to a single set, rather than a group
+        # catch the exception and construct a single element group from the single set
+        try:
+            iter = handle[path].items()
+        except AttributeError:
+            target = handle[path]
+            iter = ((group, target),)
+            path = root
+        for name, dataset in iter:
             meta = {}
             id = int(name.split(".")[0])
             meta["id"] = id
@@ -674,37 +843,57 @@ def hdf5_gather_voltage_traces(handle, root, groups=None):
 
 @_figure
 @_input_highlight
-def plot_traces(traces, fig=None, show=True, legend=True, mod=None, cutoff=0):
+def plot_traces(
+    traces, fig=None, show=True, legend=True, cutoff=0, range=None, x=None, **kwargs
+):
     traces.order()
     subplots_fig = make_subplots(
-        cols=1, rows=len(traces), subplot_titles=[trace.title for trace in traces]
+        cols=1,
+        rows=len(traces),
+        subplot_titles=[trace.title for trace in traces],
+        x_title="Time [ms]",
+        y_title="Membrane potential [mV]",
+        **kwargs,
     )
-    subplots_fig.update_layout(height=len(traces) * 130)
-    if mod is not None:
-        mod(subplots_fig)
-    # Overwrite the layout and grid of the single plot that is handed to us
-    # to turn it into a subplots figure.
-    fig._grid_ref = subplots_fig._grid_ref
-    fig._layout = subplots_fig._layout
+    # Save the data already in the given figure
+    _data = fig.data
+    for k in dir(subplots_fig):
+        v = getattr(subplots_fig, k)
+        if isinstance(v, types.MethodType):
+            # Unbind subplots_fig methods and bind to fig.
+            v = v.__func__.__get__(fig)
+        fig.__dict__[k] = v
+    # Restore the data
+    fig.data = _data
+    fig.update_layout(height=max(len(traces) * 130, 300))
     legend_groups = set()
     legends = traces.legends
+    if range is not None and x is not None:
+        x = np.array(x)
+        x = x[cutoff:]
+        mask = (x >= range[0]) & (x <= range[1])
+        x = x[mask]
     for i, cell_traces in enumerate(traces):
         for j, trace in enumerate(cell_traces):
             showlegend = legends[j] not in legend_groups
-            trace.data = trace.data[cutoff:]
-            fig.append_trace(
+            data = trace.data[cutoff:]
+            if range is not None and x is not None:
+                data = data[mask]
+            fig.add_trace(
                 go.Scatter(
-                    y=trace.data,
+                    x=x,
+                    y=data,
                     legendgroup=legends[j],
                     name=legends[j],
                     showlegend=showlegend,
                     mode="lines",
-                    marker=dict(color=traces.colors[j]),
+                    marker=dict(color=trace.color or traces.colors[j]),
                 ),
                 col=1,
                 row=i + 1,
             )
             legend_groups.add(legends[j])
+
     return fig
 
 
@@ -724,19 +913,16 @@ class PSTHStack:
     def __init__(self, name, color):
         self.name = name
         self.color = str(color)
-        self.cells = 0
-        self._included_ids = {0: np.empty(0)}
+        self._runs = set()
         self.list = []
 
     def extend(self, arr, run=0):
         self.list.extend(arr[:, 1])
-        if run not in self._included_ids:
-            self._included_ids[run] = np.empty(0)
-        # Count all of the cells across the runs, but count unique cells per run
-        self._included_ids[run] = np.unique(
-            np.concatenate((self._included_ids[run], arr[:, 0]))
-        )
-        self.cells = sum(map(len, self._included_ids.values()))
+        self._runs.add(run)
+
+    @property
+    def runs(self):
+        return len(self._runs)
 
 
 class PSTHRow:
@@ -760,13 +946,29 @@ class PSTHRow:
 
 
 @_figure
-def hdf5_plot_psth(handle, duration=3, cutoff=0, start=0, fig=None, mod=None, **kwargs):
+def hdf5_plot_psth(
+    network, handle, duration=3, cutoff=0, start=0, fig=None, gaps=True, **kwargs
+):
     psth = PSTH()
     row_map = {}
     for g in handle.values():
         l = g.attrs.get("label", "unlabelled")
+        cts = g.attrs.get("cell_types", [])
+        color = None
+        if cts:
+            if len(cts) > 1:
+                warn(
+                    "Multiple cell types detected in a single dataset, can't perform proper PSTH"
+                )
+            ct = network.configuration.cell_types[cts[0]]
+            l = ct.plotting.label
+            color = ct.plotting.color
+        elif l in network.configuration.cell_types:
+            ct = network.configuration.cell_types[l]
+            l = ct.plotting.label
+            color = ct.plotting.color
         if l not in row_map:
-            color = g.attrs.get("color", None)
+            color = g.attrs.get("color", color)
             order = g.attrs.get("order", 0)
             row_map[l] = row = PSTHRow(l, color, order=order)
             psth.add_row(row)
@@ -780,36 +982,58 @@ def hdf5_plot_psth(handle, duration=3, cutoff=0, start=0, fig=None, mod=None, **
         cols=1,
         rows=len(psth.rows),
         subplot_titles=[row.name for row in psth.ordered_rows()],
-        x_title=kwargs.get("x_title", "Time (ms)"),
-        y_title=kwargs.get("y_title", "Population firing rate (Hz)"),
+        x_title=kwargs.get("x_title", "Time [ms]"),
+        y_title=kwargs.get("y_title", "Population firing rate [Hz]"),
     )
+    for k in dir(subplots_fig):
+        if k == "data" or k == "_data":
+            # Don't overwrite data already on the fig
+            continue
+        v = getattr(subplots_fig, k)
+        if isinstance(v, types.MethodType):
+            # Unbind subplots_fig methods and bind to fig.
+            v = v.__func__.__get__(fig)
+        fig.__dict__[k] = v
+    # Align xaxis ranges to max of all rows
     _max = -float("inf")
     for i, row in enumerate(psth.rows):
         _max = max(_max, row.max)
-    subplots_fig.update_xaxes(range=[start, _max])
-    subplots_fig.update_layout(title_text=kwargs.get("title", "PSTH"))
-    # Allow the original figure to be updated before messing with it.
-    if mod is not None:
-        mod(subplots_fig)
-    # Overwrite the layout and grid of the single plot that is handed to us
-    # to turn it into a subplots figure. All modifications except for adding traces
-    # should happen before this point.
-    fig._grid_ref = subplots_fig._grid_ref
-    fig._layout = subplots_fig._layout
+    fig.update_xaxes(range=[start, _max])
+    fig.update_layout(title_text=kwargs.get("title", "PSTH"))
+    if not gaps:
+        fig.update_layout(bargap=0, bargroupgap=0)
+    cell_types = network.get_cell_types()
     for i, row in enumerate(psth.ordered_rows()):
         for name, stack in sorted(row.stacks.items(), key=lambda x: x[0]):
             counts, bins = np.histogram(stack.list, bins=np.arange(start, _max, duration))
+            # Workaround of Workarounds for merging info in scaffold and in results
+            # Compares plotting colors to identify cell type ...
+            for cell_type in cell_types:
+                if cell_type.plotting.color.lower() == stack.color:
+                    current_cell_type = cell_type
+                    break
+            else:
+                raise Exception(
+                    f"Couldn't link result group '{name or row.name}' to a network cell type."
+                )
+            cell_num_single_run = network.get_placed_count(current_cell_type.name)
+            cell_num = cell_num_single_run * (stack.runs)
             if str(name).startswith("##"):
                 # Lazy way to order the stacks; Stack names can start with ## and a number
                 # and it will be sorted by name, but the ## and number are not displayed.
                 name = name[4:]
+            bar_kwargs = dict()
+            if not gaps:
+                bar_kwargs["marker_line_width"] = 0
             trace = go.Bar(
                 x=bins,
-                y=counts / stack.cells * 1000 / duration,
+                y=counts / cell_num * 1000 / duration,
                 name=name or row.name,
                 marker=dict(color=stack.color),
+                **bar_kwargs,
             )
             fig.add_trace(trace, row=i + 1, col=1)
+
     return fig
 
 
@@ -829,5 +1053,5 @@ class MorphologyScene:
         if len(self._morphologies) == 0:
             raise MorphologyError("Cannot show empty MorphologyScene")
         for o, m, k in self._morphologies:
-            plot_morphology(m, offset=o, show=False, fig=self.fig, **k)
+            plot_morphology(m, offset=o, show=False, set_range=False, fig=self.fig, **k)
         set_morphology_scene_range(self.fig.layout.scene, self._morphologies)

@@ -139,8 +139,23 @@ def animate():
     pass
 
 
+def print_debug(lvl, cat, msg, i=None, total=None):
+    if cat.startswith("cell_"):
+        return
+    kwargs = {}
+    if i is not None:
+        kwargs["end"] = "\r"
+    print(f"[{cat}] {msg}", **kwargs)
+
+
+def devnull(*args, **kwargs):
+    pass
+
+
 def _pulsar(results, cells, **kwargs):
     import math
+
+    cells = list(cells)
 
     # Frames per second
     fps = kwargs.get("fps", 60)
@@ -152,6 +167,9 @@ def _pulsar(results, cells, **kwargs):
     spd = kwargs.get("spike_duration", 5)
     # Afterburner: fade out time after animation
     ab = kwargs.get("afterburn", 30)
+    # Get the listener that deals with progress reports
+    listener_name = kwargs.get("listener", "devnull")
+    listener = globals().get(listener_name, devnull)
     # Spike width: number of frames of rising/falling edge of spike animation
     sw = math.ceil(spd / 2 / mpf)
     # Create the signal processor functions. They calculate cell intensity during anim.
@@ -161,18 +179,18 @@ def _pulsar(results, cells, **kwargs):
     # Set up compositor with a glare node.
     _pulsar_glare()
     # Retrieve cell activity from the given results
-    cell_activity = _pulsar_cell_activity(cells, results)
+    cell_activity = _pulsar_cell_activity(cells, results, listener)
     # Animate the cell keyframes
-    _pulsar_animate(cells, cell_activity, mpf, sw, ab, cap, intensity)
+    _pulsar_animate(cells, cell_activity, mpf, sw, ab, cap, intensity, listener)
 
 
 animate.pulsar = _pulsar
 _crowded_pulsars = ["granule_cell", "glomerulus"]
 
 
-def _pulsar_animate(cells, cell_activity, mpf, sw, ab, cap, intensity):
+def _pulsar_animate(cells, cell_activity, mpf, sw, ab, cap, intensity, listener):
     last_frame = 0
-    for cell in cells:
+    for i, cell in enumerate(cells):
         # Hardcoded granule cell solution, fix later.
         _min = 0.3 if cell.type.name not in _crowded_pulsars else 0.0
         spike_frames = (cell_activity[cell.id] / mpf).astype(int)
@@ -253,13 +271,21 @@ def _pulsar_signal_processors(sw):
     return cap, intensity
 
 
-def _pulsar_cell_activity(cells, results):
+def _pulsar_cell_activity(cells, results, listener):
     cell_activity = {}
-    for cell in cells:
+    for i, cell in enumerate(cells):
+        listener("debug", "cell", f"id: {cell.id}", i=i, total=len(cells))
         if str(cell.id) not in results:
+            listener("warn", "cell_data_not_found", f"No data for {cell.id}")
             cell_activity[cell.id] = _np.empty(0)
             continue
-        cell_activity[cell.id] = activity = results[str(cell.id)][:, 1]
+        activity = results[str(cell.id)][()]
+        if not len(activity):
+            listener("info", "cell_silent", f"Cell {cell.id} does not fire.")
+            cell_activity[cell.id] = _np.empty(0)
+            continue
+        listener("debug", "cell_activity", f"Cell {cell.id} fires {len(activity)} times.")
+        cell_activity[cell.id] = results[str(cell.id)][:, 1]
     return cell_activity
 
 

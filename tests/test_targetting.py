@@ -27,10 +27,16 @@ class TestTargetting(unittest.TestCase):
         """
         Test that 1 cell per non-relay cell model is chosen.
         """
+        from patch import p
+
         config = JSONConfig(double_nn_config)
         scaffold = Scaffold(config)
         scaffold.compile_network()
         adapter = scaffold.create_adapter("neuron")
+        adapter.h = p
+        adapter.load_balance()
+        device = adapter.devices["test_representatives"]
+        device.initialise_targets()
         targets = adapter.devices["test_representatives"].get_targets()
         self.assertEqual(
             1,

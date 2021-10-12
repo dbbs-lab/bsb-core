@@ -47,6 +47,8 @@ _t(
         AdapterError=_e(
             NeuronError=_e(
                 DeviceConnectionError=_e(),
+                TransmitterError=_e(),
+                RelayError=_e(),
             ),
             NestError=_e(
                 NestKernelError=_e(
@@ -57,6 +59,7 @@ _t(
                 SuffixTakenError=_e(),
                 ReceptorSpecificationError=_e(),
             ),
+            ParallelIntegrityError=_e("rank"),
         ),
         ConnectivityError=_e(
             FiberTransformError=_e(

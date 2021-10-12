@@ -14,6 +14,7 @@ from ...exceptions import *
 import random, os, sys
 import numpy as np
 import traceback
+import errr
 
 
 @config.node
@@ -46,9 +47,10 @@ class NeuronConnection(ConnectionModel):
     synapse = config.attr(
         type=types.or_(types.dict(type=_str_list), _str_list), required=True
     )
+    source = config.attr(type=str, default=None)
 
     def resolve_synapses(self):
-        return self.synapse if isinstance(self.synapse, list) else [self.synapse]
+        return self.synapses
 
 
 @config.dynamic(attr_name="device", type=types.in_classmap(), auto_classmap=True)
@@ -72,7 +74,7 @@ class NeuronDevice(DeviceModel):
             + " device does not implement any `get_pattern` function."
         )
 
-    def implement(self, target, cell, section):
+    def implement(self, target, location):
         raise NotImplementedError(
             "The "
             + self.__class__.__name__
@@ -82,12 +84,12 @@ class NeuronDevice(DeviceModel):
     def get_locations(self, target):
         locations = []
         if target in self.adapter.relay_scheme:
-            for cell_id, section_id in self.adapter.relay_scheme[target]:
+            for cell_id, section_id, connection in self.adapter.relay_scheme[target]:
                 if cell_id not in self.adapter.node_cells:
                     continue
                 cell = self.adapter.cells[cell_id]
                 section = cell.sections[section_id]
-                locations.append((cell, section))
+                locations.append(TargetLocation(cell, section, connection))
         elif target in self.adapter.node_cells:
             try:
                 cell = self.adapter.cells[target]
@@ -98,7 +100,7 @@ class NeuronDevice(DeviceModel):
                     )
                 )
             sections = self.target_section(cell)
-            locations.extend((cell, section) for section in sections)
+            locations.extend(TargetLocation(cell, section) for section in sections)
         return locations
 
 
@@ -169,6 +171,9 @@ class NeuronSimulation(Simulation):
                     "No intersection data found for '{}'".format(connection_model.name)
                 )
 
+    def get_rank(self):
+        return self.pc_id
+
     def prepare(self):
         from patch import p as simulator
         from time import time
@@ -207,6 +212,7 @@ class NeuronSimulation(Simulation):
         )
         t = time()
         self.create_transmitters()
+        self.create_source_vars()
         report(
             "Transmitter creation on node",
             self.pc_id,
@@ -259,6 +265,7 @@ class NeuronSimulation(Simulation):
         self.result = SimulationResult()
         if self.pc_id == 0:
             # Record the time
+            self.h.time
             self.result.create_recorder(
                 lambda: tuple(["time"]),
                 lambda: np.array(self.h.time),
@@ -294,18 +301,18 @@ class NeuronSimulation(Simulation):
                 break
         report("Finished simulation.", level=2)
 
-    def collect_output(self):
+    def collect_output(self, simulator):
         import h5py, time
 
         timestamp = str(time.time()).split(".")[0] + str(random.random()).split(".")[1]
         timestamp = self.pc.broadcast(timestamp)
+        result_path = "results_" + self.name + "_" + timestamp + ".hdf5"
         for node in range(self.scaffold.MPI.COMM_WORLD.size):
             self.pc.barrier()
             if node == self.pc_id:
-                print("Node", self.pc_id, "is writing")
-                with h5py.File(
-                    "results_" + self.name + "_" + timestamp + ".hdf5", "a"
-                ) as f:
+                report("Node", self.pc_id, "is writing", level=2, all_nodes=True)
+                with h5py.File(result_path, "a") as f:
+                    f.attrs["configuration_string"] = self.scaffold.configuration._raw
                     for path, data, meta in self.result.safe_collect():
                         try:
                             path = "/".join(path)
@@ -331,44 +338,77 @@ class NeuronSimulation(Simulation):
                                     )
                                 )
             self.pc.barrier()
+        return result_path
 
     def create_transmitters(self):
-        output_handler = self.scaffold.output_formatter
-        for connection_model in self.connection_models.values():
-            # Get the connectivity set associated with this connection model
-            connectivity_set = ConnectivitySet(output_handler, connection_model.name)
-            from_cell_model = self.cell_models[
-                connectivity_set.connection_types[0].presynaptic.type.name
-            ]
-            if from_cell_model.relay:
-                print(
-                    "Source is a relay; Skipping connection model {} transmitters".format(
-                        connection_model.name
-                    )
-                )
-                continue
-            intersections = connectivity_set.intersections
-            transmitters = [
-                [i.from_id, i.from_compartment.section_id] for i in intersections
-            ]
-            unique_transmitters = [tuple(a) for a in np.unique(transmitters, axis=0)]
-            # print("Unique transmitters:", unique_transmitters)
-            transmitter_gids = list(
-                range(self._next_gid, self._next_gid + len(unique_transmitters))
-            )
-            self._next_gid += len(unique_transmitters)
-            partial_map = dict(zip(unique_transmitters, transmitter_gids))
-            self.transmitter_map.update(partial_map)
+        # Concatenates all the `from` locations of all intersections together and creates
+        # a network wide map of "signal origins" to NEURON parallel spike GIDs.
 
-            tcount = 0
-            for (cell_id, section_id), gid in partial_map.items():
-                cell_id = int(cell_id)
-                if not cell_id in self.node_cells:
+        # Fetch all of the connectivity sets that can be transmitters (excludes relays)
+        sets = self._collect_transmitter_sets(self.connection_models.values())
+        # Get the total size of all intersections
+        total = sum(len(s) for s in sets)
+        # Allocate an array for them
+        alloc = np.empty((total, 2), dtype=int)
+        ptr = 0
+        for connectivity_set in sets:
+            # Get the connectivity set's intersection and slice them into the array.
+            inter = connectivity_set.intersections
+            if not len(inter):
+                continue
+            alloc[ptr : (ptr + len(inter))] = [
+                (i.from_id, i.from_compartment.section_id) for i in inter
+            ]
+            # Move up the pointer for the next slice.
+            ptr += len(inter)
+        unique_transmitters = np.unique(alloc, axis=0)
+        self.transmitter_map = dict(zip(map(tuple, unique_transmitters), range(total)))
+        tcount = 0
+        try:
+            for (cell_id, section_id), gid in self.transmitter_map.items():
+                if cell_id in self.node_cells:
+                    cell = self.cells[cell_id]
+                    cell.create_transmitter(cell.sections[section_id], gid)
+                    tcount += 1
+        except Exception as e:
+            errr.wrap(TransmitterError, e, prepend=f"[{cell_id}] ")
+
+        report(
+            f"Node {self.pc_id} created {tcount} transmitters",
+            level=3,
+            all_nodes=True,
+        )
+
+    def create_source_vars(self):
+        for connection_model in self.connection_models.values():
+            if not connection_model.source:
+                continue
+            source = connection_model.source
+            set = self._model_to_set(connection_model)
+            for inter in set.intersections:
+                cell_id = inter.from_id
+                if cell_id not in self.node_cells:
                     continue
                 cell = self.cells[cell_id]
-                cell.create_transmitter(cell.sections[int(section_id)], gid)
-                tcount += 1
-            print("Node", self.pc_id, "created", tcount, "transmitters")
+                section_id = inter.from_compartment.section_id
+                section = cell.sections[section_id]
+                gid = self.transmitter_map[(cell_id, section_id)]
+                cell.create_transmitter(cell.sections[section_id], gid, source)
+
+    def _collect_transmitter_sets(self, models):
+        sets = self._models_to_sets(models)
+        return [s for s in sets if self._is_transmitter_set(s)]
+
+    def _models_to_sets(self, models):
+        return [self._model_to_set(model) for model in models]
+
+    def _model_to_set(self, model):
+        return ConnectivitySet(self.scaffold.output_formatter, model.name)
+
+    def _is_transmitter_set(self, set):
+        name = set.connection_types[0].from_cell_types[0].name
+        from_cell_model = self.cell_models[name]
+        return not from_cell_model.relay
 
     def create_receivers(self):
         output_handler = self.scaffold.output_formatter
@@ -393,11 +433,9 @@ class NeuronSimulation(Simulation):
                         section_id = int(intersection.to_compartment.section_id)
                         section = cell.sections[section_id]
                         gid = self.transmitter_map[
-                            tuple(
-                                [
-                                    intersection.from_id,
-                                    intersection.from_compartment.section_id,
-                                ]
+                            (
+                                intersection.from_id,
+                                intersection.from_compartment.section_id,
                             )
                         ]
                         for synapse_type in synapse_types:
@@ -439,7 +477,9 @@ class NeuronSimulation(Simulation):
                     self.register_spike_recorder(instance, spike_recorder)
                 cell_model.instances.append(instance)
                 self.cells[cell_id] = instance
-        print("Node", self.pc_id, "created", len(self.cells), "cells")
+        report(
+            f"Node {self.pc_id} created {len(self.cells)} cells", level=2, all_nodes=True
+        )
 
     def prepare_devices(self):
         device_module = __import__("devices", globals(), level=1)
@@ -447,14 +487,12 @@ class NeuronSimulation(Simulation):
             # CamelCase the snake_case to obtain the class name
             device_class = "".join(x.title() for x in device.device.split("_"))
             device.__class__ = device_module.__dict__[device_class]
+            # Re-initialise the device
+            # TODO: Switch to better config in v4
             device.initialise(device.scaffold)
-            if self.pc_id == 0:
-                # Have root 0 prepare the possibly random patterns.
-                patterns = device.create_patterns()
-            else:
-                patterns = None
-            # Broadcast to make sure all the nodes have the same patterns for each device.
-            device.patterns = self.scaffold.MPI.COMM_WORLD.bcast(patterns, root=0)
+            device.validate_specifics()
+            device.initialise_targets()
+            device.initialise_patterns()
 
     def create_devices(self):
         for device in self.devices.values():
@@ -466,14 +504,29 @@ class NeuronSimulation(Simulation):
             # Broadcast to make sure all the nodes have the same targets for each device.
             targets = self.scaffold.MPI.COMM_WORLD.bcast(targets, root=0)
             for target in targets:
-                for cell, section in device.get_locations(target):
-                    device.implement(target, cell, section)
+                for location in device.get_locations(target):
+                    device.implement(target, location)
 
     def index_relays(self):
         report("Indexing relays.")
         terminal_relays = {}
         intermediate_relays = {}
         output_handler = self.scaffold.output_formatter
+        cell_types = self.scaffold.get_cell_types()
+        type_lookup = {
+            ct.name: range(min(ids), max(ids) + 1)
+            for ct, ids in zip(
+                cell_types, (ct.get_placement_set().identifiers for ct in cell_types)
+            )
+        }
+
+        def lookup(i):
+            for n, t in type_lookup.items():
+                if i in t:
+                    return n
+            else:
+                return None
+
         for connection_model in self.connection_models.values():
             name = connection_model.name
             # Get the connectivity set associated with this connection model
@@ -505,7 +558,11 @@ class NeuronSimulation(Simulation):
                 )
                 bin = terminal_relays
                 connections = connectivity_set.intersections
-                target = lambda c: (c.to_id, c.to_compartment.section_id)
+                target = lambda c: (
+                    c.to_id,
+                    c.to_compartment.section_id,
+                    connection_model,
+                )
             for id in self.scaffold.get_placement_set(from_cell_type.name).identifiers:
                 if id not in bin:
                     bin[id] = []
@@ -515,43 +572,36 @@ class NeuronSimulation(Simulation):
 
         report("Relays indexed, resolving intermediates.")
 
+        interm_transfer = {k: [] for k in intermediate_relays.keys()}
         while len(intermediate_relays) > 0:
             intermediates_to_remove = []
             for intermediate, targets in intermediate_relays.items():
                 for target in targets:
                     if target in intermediate_relays:
-                        # This target of this intermediary is also an intermediary and
-                        # cannot be resolved to a terminal at this point, so we wait until
-                        # a next iteration where the intermediary target might have been
-                        # resolved.
+                        # This target of this intermediary is also an
+                        # intermediary and cannot be resolved to a terminal at
+                        # this point, so we wait until a next iteration where
+                        # the intermediary target might have been resolved.
                         continue
-                    if target in terminal_relays:
-                        # The target is a terminal relay and can be removed from our
-                        # intermediary target list and its terminal targets added to our
-                        # terminal target list.
-                        try:
-                            arr = terminal_relays[intermediate]
-                        except:
-                            arr = []
-                            terminal_relays[intermediate] = arr
+                    elif target in terminal_relays:
+                        # The target is a terminal relay and can be removed from
+                        # our intermediary target list and its terminal targets
+                        # added to our terminal target list.
+                        arr = interm_transfer[intermediate]
+                        assert all(
+                            isinstance(t, tuple) for t in terminal_relays[target]
+                        ), f"Terminal relay {lookup(target)} {target} contains non-terminal targets: {terminal_relays[target]}"
                         arr.extend(terminal_relays[target])
                         targets.remove(target)
-                        # If we now have no more intermediary  targets we can be removed
-                        # from the intermediary relay list.
-                        if len(targets) == 0:
-                            intermediates_to_remove.append(intermediate)
                     else:
-                        # The target is not a relay at all and can be added to our
-                        # terminal target list
-                        try:
-                            arr = terminal_relays[intermediate]
-                        except:
-                            arr = []
-                            terminal_relays[intermediate] = arr
-                        arr.append(target)
-                        targets.remove(target)
-                        if len(targets) == 0:
-                            intermediates_to_remove.append(intermediate)
+                        raise RelayError(
+                            f"Non-relay {lookup(target)} {target} found in intermediate relay map."
+                        )
+                # If we have no more intermediary targets we can be removed from
+                # the intermediary relay list and be moved to the terminals.
+                if not targets:
+                    intermediates_to_remove.append(intermediate)
+                    terminal_relays[intermediate] = interm_transfer.pop(intermediate)
             for intermediate in intermediates_to_remove:
                 report(
                     "Intermediate resolved to",
@@ -566,14 +616,17 @@ class NeuronSimulation(Simulation):
         # Filter out all relays to targets not on this node.
         self.relay_scheme = {}
         for relay, targets in terminal_relays.items():
-            node_targets = list(filter(lambda x: int(x[0]) in self.node_cells, targets))
+            assert all(
+                isinstance(t, tuple) for t in terminal_relays[target]
+            ), f"Terminal relay {lookup(target)} {target} contains non-terminal targets: {terminal_relays[target]}"
+            node_targets = [x for x in targets if int(x[0]) in self.node_cells]
             self.relay_scheme[relay] = node_targets
         report(
             "Node",
             self.pc_id,
-            "needs to receive from",
+            "needs to relay",
             len(self.relay_scheme),
-            "relays",
+            "relays.",
             level=4,
         )
 
@@ -618,6 +671,7 @@ class LocationRecorder(SimulationRecorder):
         self.id = cell.ref_id
         self.tag = str(cell.ref_id)
         if section is not None:
+            meta["section"] = gc.sections.index(section)
             self.tag += "." + section.name().split(".")[-1]
             if x is not None:
                 self.tag += "(" + str(x) + ")"
@@ -627,15 +681,25 @@ class LocationRecorder(SimulationRecorder):
 
     def get_data(self):
         if self.time_recorder:
-            return np.hstack((np.array(self.recorder), np.array(self.time_recorder)))
+            return np.column_stack((list(self.recorder), list(self.time_recorder)))
         else:
-            return np.array(self.recorder)
+            return np.array(list(self.recorder))
 
     def get_meta(self):
         return self.meta
 
 
+class TargetLocation:
+    def __init__(self, cell, section, connection=None):
+        self.cell = cell
+        self.section = section
+        self.connection = connection
+
+    def get_synapses(self):
+        return self.connection and self.connection.synapses
+
+
 class SpikeRecorder(LocationRecorder):
     def get_data(self):
-        recording = np.array(self.recorder)
-        return np.vstack((np.ones(recording.shape) * self.id, recording))
+        recording = np.array(list(self.recorder))
+        return np.column_stack((np.ones(recording.shape) * self.id, recording))

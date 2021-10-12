@@ -10,36 +10,26 @@ class SynapseRecorder(PatternlessDevice, NeuronDevice):
     defaults = {
         "record_spikes": True,
         "record_current": False,
-        "type": None,
+        "types": None,
     }
 
     def boot(self):
         pass
 
-    def implement(self, target, cell, section):
-        print(
-            "Node",
-            self.adapter.pc_id,
-            "Implementing synapse recorder",
-            cell.ref_id,
-            cell.sections.index(section),
-        )
+    def validate_specifics(self):
+        pass
+
+    def implement(self, target, location):
+        cell = location.cell
+        section = location.section
         recorder_classes = []
         if self.record_spikes:
-            print("Recording spikes...")
             recorder_classes.append(SynapticSpikesRecorder)
         if self.record_current:
-            print("Recording current...")
             recorder_classes.append(SynapticCurrentRecorder)
-        for synapse in get_section_synapses(section, self.type):
+        for synapse in get_section_synapses(section, self.types):
             for recorder_class in recorder_classes:
                 recorder = recorder_class(cell, section, synapse)
-                print(
-                    "Created recorder:",
-                    recorder,
-                    recorder.get_path(),
-                    recorder.get_meta(),
-                )
                 self.adapter.result.add(recorder)
 
 
@@ -65,9 +55,10 @@ class _SynapticRecorder(PresetPathMixin, PresetMetaMixin, SimulationRecorder):
         self.meta = {
             "cell": cell.ref_id,
             "section": cell.sections.index(section),
-            "x": point_process.get_loc(),
+            "x": point_process.get_segment().x,
             "type": synapse._type,
         }
+        p.pop_section()
         self.vectors = self._record(synapse._point_process)
 
     def get_data(self):

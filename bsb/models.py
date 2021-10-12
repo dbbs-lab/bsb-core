@@ -23,7 +23,6 @@ class CellType(SortableByAfter):
 
     def initialise(self, scaffoldInstance):
         self.scaffold = scaffoldInstance
-        self.id = scaffoldInstance.configuration.cell_type_map.index(self.name)
         self.validate()
 
     def set_morphology(self, morphology):
@@ -63,6 +62,9 @@ class CellType(SortableByAfter):
             raise NotImplementedError(
                 "Detailed morphologies can currently only be selected by name."
             )
+
+    def get_placement_set(self):
+        return self.scaffold.get_placement_set(self)
 
 
 class Layer:

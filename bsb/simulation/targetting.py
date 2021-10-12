@@ -2,6 +2,7 @@ import random, numpy as np
 from .. import config
 from ..config import types
 from ..exceptions import *
+from itertools import chain
 
 
 @config.dynamic(attr_name="type", auto_classmap=True)
@@ -142,11 +143,17 @@ class TargetsSections:
 
     def _section_target_default(self, cell):
         if not hasattr(self, "section_count"):
-            self.section_count = 1
+            self.section_count = "all"
+        elif self.section_count != "all":
+            self.section_count = int(self.section_count)
+        sections = cell.sections
+        if hasattr(self, "section_types"):
+            ts = self.section_types
+            sections = [s for s in sections if any(t in s.labels for t in ts)]
         if hasattr(self, "section_type"):
-            sections = [s for s in cell.sections if self.section_type in s.labels]
-        else:
-            sections = cell.soma
+            raise ConfigurationError(
+                "`section_type` is deprecated, use `section_types` instead."
+            )
         if self.section_count == "all":
             return sections
         return [random.choice(sections) for _ in range(self.section_count)]

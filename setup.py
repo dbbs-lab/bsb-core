@@ -18,9 +18,6 @@ requires = [
     "colour>=0.1.5",
     "errr>=1.0.0",
     "rtree>=0.9.7",
-    "mpi4py",
-    "zwembad>=1.2.0",
-    "mpilock>=1.1.0",
 ]
 
 setuptools.setup(
@@ -38,6 +35,11 @@ setuptools.setup(
     packages=setuptools.find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3 :: Only",
+        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
         "Operating System :: OS Independent",
     ],
     entry_points={
@@ -66,7 +68,8 @@ setuptools.setup(
         "Source Code": "https://github.com/dbbs-lab/bsb/",
     },
     extras_require={
-        "dev": ["coverage", "sphinx", "furo", "pre-commit", "black==20.8b1"],
-        "NEURON": ["dbbs_models>=1.3.2", "nrn-patch>=3.0.0b0"],
+        "dev": ["sphinx", "furo", "pre-commit", "black==20.8b1", "nrn-subprocess==1.3.4"],
+        "neuron": ["dbbs_models==1.5.0rc0", "nrn-patch==3.0.0"],
+        "mpi": ["mpi4py", "zwembad", "mpilock"],
     },
 )

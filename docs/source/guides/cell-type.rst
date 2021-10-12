@@ -25,9 +25,9 @@ Basic usage
 
 * ``class``: the importable name of the placement strategy class. 3 built-in
   implementations of the placement strategy are available:
-  :class:`ParticlePlacement <.placement.ParticlePlacement>`, :class:`LayeredRandomWalk
-  <.placement.LayeredRandomWalk>` and :class:`ParallelArrayPlacement
-  <.placement.ParallelArrayPlacement>`
+  :class:`~.placement.ParticlePlacement`,
+  :class:`~.placement.ParallelArrayPlacement` and
+  :class:`~.placement.Satellite`
 * ``layer``: The topological layer in which this cell type appears.
 * ``soma_radius``: Radius of the cell soma in µm.
 * ``density``: Cell density, see :ref:`specifying_cell_count` for more possibilities.

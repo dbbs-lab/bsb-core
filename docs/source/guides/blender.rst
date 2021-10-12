@@ -55,16 +55,15 @@ you want or you can continue to use some of the BSB blendins:
   import bpy, bsb.core, h5py, itertools
 
   network = bsb.core.from_hdf5("mynetwork.hdf5")
-  # Blend the network into the current scene
-  network.for_blender().blend("scaffold", bpy.context.scene)
-  # Load all cell types
-  network.load_populations()
-  # Or, if you'd like to use the populations:
+  # Blend the network into the current scene under the name `scaffold`
+  network.for_blender().blend(bpy.context.scene, "scaffold")
+  # Load all cell types into the blender scene
   populations = network.get_populations()
-  cells = itertools.chain(p.cells for p in populations)
+  cells = itertools.chain(*(p.cells for p in populations.values()))
   # Use the 'pulsar' animation to animate all cells with the simulation results
   with h5py.File("my_results.hdf5", "r") as f:
-    network.animate.pulsar(f, cells)
+    # Animate the simulation's spikes
+    network.animate.pulsar(f["recorders/soma_spikes"], cells)
 
 .. note::
 
@@ -82,3 +81,33 @@ you want or you can continue to use some of the BSB blendins:
 	unpopulated versions of your Blender files, run the blendin script, save as another
 	file, render it and make the required changes to the unpopulated version, repeating the
 	process. Optimizations are likely to be added in the future.
+
+Blender HPC workflow
+====================
+
+The ``devops/blender-pipe`` folder contains scripts to facilitate the rendering and
+sequencing of BSB blendfiles on HPC systems. Copy them together to a directory on the HPC
+system and make sure that the ``blender`` command opens Blender. The pipeline contains 2
+steps, ``rendering`` each frame in parallel and ``sequencing`` the rendered images into a
+video.
+
+jrender.slurm
+-------------
+
+The render jobscript uses ``render.py`` to invoke Blender. Each Blender process will be
+tasked with rendering a certain proportion of the frames. ``jrender.slurm`` takes 2
+arguments, the blendfile and the output image folder:
+
+.. code-block:: bash
+
+	sbatch jrender.slurm my_file.blend my_file_imgs
+
+jsequence.slurm
+---------------
+
+The sequencing jobscript stitches together the rendered frames into a video. This has to
+be done in serial on a single node. It takes the blendfile and image folder as arguments:
+
+.. code-block:: bash
+
+	sbatch jsequence.slurm my_file.blend my_file_imgs
