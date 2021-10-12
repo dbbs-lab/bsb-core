@@ -1073,7 +1073,7 @@ class Scaffold:
 def merge(output_file, *others, label=None):
     warn(
         "The merge function copies the originally loaded configuration and"
-        + " currently only merges cell positions."
+        + " merges cell positions and cell connections."
         + " Only cell types that exist in the calling network will be copied."
         + " Use at your own risk"
     )
