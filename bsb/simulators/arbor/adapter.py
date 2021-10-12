@@ -256,15 +256,9 @@ class ArborAdapter(SimulatorAdapter):
         start = time.time()
         report("running simulation", level=1)
         self.start_progress(self.duration)
-        for i in itertools.chain(np.arange(1, self.duration), (self.duration,)):
+        for oi, i in self.step_progress(self.duration, 1):
             simulation.run(i)
-            self.progress(1)
-            avg = (time.time() - start) / i
-            report(
-                f"Simulated {i}/{self.duration}ms (avg {avg:.2f}s/ms)",
-                level=2,
-                ongoing=i < self.duration,
-            )
+            self.progress(i)
         report("completed simulation", level=1)
         if self.profiling and arbor.config()["profiling"]:
             report("printing profiler summary", level=2)

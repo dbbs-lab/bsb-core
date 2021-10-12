@@ -80,7 +80,7 @@ class SimulatorAdapter(ConfigurableClass):
         self._progstart = self._tic = time()
         self._tics = 0
 
-    def progress(self, progression, duration):
+    def progress(self, progression):
         """
         Report simulation progress.
         """
@@ -102,6 +102,12 @@ class SimulatorAdapter(ConfigurableClass):
         )
         for listener in self._progress_listeners:
             listener(progress)
+
+    def step_progress(self, duration, step=1):
+        steps = itertools.chain(np.arange(0, duration), (duration,))
+        a, b = itertools.tee(steps)
+        next(b, None)
+        yield from zip(a, b)
 
     def add_progress_listener(self, listener):
         self._progress_listeners.append(listener)

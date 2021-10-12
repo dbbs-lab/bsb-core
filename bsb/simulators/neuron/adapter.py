@@ -366,12 +366,11 @@ class NeuronAdapter(SimulatorAdapter):
         simulator.finitialize(self.initial)
         progression = 0
         self.start_progress(self.duration)
-        while progression < self.duration:
-            progression += 1
+        for oi, i in self.step_progress(self.duration, 1):
             t = time.time()
-            pc.psolve(progression)
+            pc.psolve(i)
             pc.barrier()
-            self.progress(progression)
+            self.progress(i)
             if os.path.exists("interrupt_neuron"):
                 report("Iterrupt requested. Stopping simulation.", level=1)
                 break
