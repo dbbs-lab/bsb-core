@@ -131,6 +131,87 @@ data of the whole morphology in an object you can do this by flattening the morp
   print("- As vectors:", morfo.flatten())
   print("- As matrix:", morfo.flatten(matrix=True).shape)
 
+=====================
+Morphology preloading
+=====================
+
+Reading the morphology data from the repository takes time. Usually morphologies are
+passed around in the framework as :class:`StoredMorphologies
+<.storage.interfaces.StoredMorphology>`. These objects have a
+:meth:`.storage.interfaces.StoredMorphology.load` method to load the
+:class:`.morphologies.Morphology` object from storage and a
+:meth:`.storage.interfaces.StoredMorphology.get_meta` method to return the metadata.
+
+====================
+Morphology selectors
+====================
+
+The most common way of telling the framework which morphologies to use is through
+:class:`MorphologySelectors <.objects.cell_type.MorphologySelector>`. A selector should
+implement :meth:`~.objects.cell_type.MorphologySelector.validate` and
+:meth:`~.objects.cell_type.MorphologySelector.pick` methods.
+
+``validate`` can be used to assert that all the required morphologies are present, while
+``pick`` needs to return ``True``/``False`` to include a morphology or not. Both methods
+are handed :class:`.storage.interfaces.StoredMorphology` objects, only ``load``
+morphologies if it is impossible to determine the outcome from the metadata.
+
+.. code-block:: python
+
+  from bsb.objects.cell_type import MorphologySelector
+  from bsb import config
+
+  @config.node
+  class MySizeSelector(MorphologySelector, classmap_entry="by_size"):
+    min_size = config.attr(type=float, default=20)
+    max_size = config.attr(type=float, default=50)
+
+    def validate(self, morphos):
+      if not all("size" in m.get_meta() for m in morphos):
+        raise Exception("Missing size metadata for the size selector")
+
+    def pick(self, morpho):
+      meta = morpho.get_meta()
+      return meta["size"] > self.min_size and meta["size"] < self.max_size
+
+===================
+Morphology metadata
+===================
+
+Currently unspecified, up to the Storage and MorphologyRepository support to return a
+dictionary of available metadata from
+:meth:`.storage.interfaces.MorphologyRepository.get_meta`.
+
+
+=======================
+Morphology distributors
+=======================
+
+
+
+==============
+MorphologySets
+==============
+
+:class:`MorphologySets <.morphologies.MorphologySet>` are the result of
+:class:`.morphologies.MorphologyDistributor` assigning morphologies to placed cells. They
+consist of a list of :class:`StoredMorphologies <.storage.interfaces.StoredMorphology>`, a
+vector of indices referring to these stored morphologies and a vector of rotations. You
+can use :meth:`~.morphologies.MorphologySet.iter_morphologies` to iterate over each
+morphology. Each iteration creates its own :class:`~.morphologies.Morphology` object and
+rotates it. With the ``cache`` kwarg you can keep a template per morphology to rapidly
+copy, skipping the storage read operation (at the cost of keeping these templates in
+memory).
+
+.. code-block:: python
+
+  ps = network.get_placement_set("my_detailed_neurons")
+  positions = ps.load_positions()
+  morphology_set = ps.load_morphologies()
+  cache = morphology_set.iter_morphologies(cache=True)
+  for pos, morphology in zip(positions, cache):
+    pass
+  del cache
 
 =========
 Reference

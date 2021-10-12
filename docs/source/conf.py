@@ -36,7 +36,7 @@ autodoc_mock_imports = [
     "six",
     "plotly",
     "mpilock",
-    "zwembad"
+    "zwembad",
 ]
 
 
@@ -76,6 +76,7 @@ extensions = [
     "sphinx.ext.ifconfig",
     "sphinx.ext.viewcode",
     "divio_docs_theme",
+    "sphinxemoji.sphinxemoji",
 ]
 
 # Add any paths that contain templates here, relative to this directory.

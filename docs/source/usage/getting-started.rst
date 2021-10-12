@@ -449,260 +449,65 @@ this is what a parameter sweep would look like:
 	For a more extensive introduction to the possibilities of configuring model
 	components, check out the :doc:`/config/intro`!
 
-Getting Started (Cerebellum model)
-##################################
+=======================
+Extending the framework
+=======================
 
-===========
-First steps
-===========
+The framework allows you to plug in user code pretty much anywhere. Neat.
 
-The scaffold provides a simple command line interface (CLI) to compile network
-architectures and run simulations.
+Here's how you do it (theoretically):
 
-To start, let's create ourselves a project directory and a template configuration::
+1. Identify which **interface** you need to extend. An interface is a programming concept
+  that lets you take one of the objects of the framework and define some functions on it.
+  The framework has predefined this set of functions and expects you to provide them.
+  Interfaces in the framework are always classes.
+1. Create a class that inherits from that interface and implement the required and/or
+  interesting looking functions of its public API (which will be specified).
+1. Refer to the class from the configuration by its importable module name, or use a
+  :ref:`classmap`.
 
-  mkdir my_brain
-  cd my_brain
-  bsb make-config
+With a quick example, there's the ``MorphologySelector`` interface, which lets you specify
+how a subset of the available morphologies should be selected for a certain group of
+cells:
 
-See :doc:`/usage/cli` for a full list of CLI commands.
+1. The interface is ``bsb.morphologies.MorphologySelector`` and the docs specify it has
+  a ``validate(self, morphos)`` and ``pick(self, morpho)`` function.
 
-The ``make-config`` command makes a template configuration file:
+.. code-block:: python
+
+  from bsb.objects.cell_type import MorphologySelector
+  from bsb import config
+
+  @config.node
+  class MySizeSelector(MorphologySelector):
+    min_size = config.attr(type=float, default=20)
+    max_size = config.attr(type=float, default=50)
+
+    def validate(self, morphos):
+      if not all("size" in m.get_meta() for m in morphos):
+        raise Exception("Missing size metadata for the size selector")
+
+    def pick(self, morpho):
+      meta = morpho.get_meta()
+      return meta["size"] > self.min_size and meta["size"] < self.max_size
+
+Assuming that that code is in a ``select.py`` file relative to the working directory you
+can now access
 
 .. code-block:: json
 
   {
-    "name": "Empty template",
-    "network_architecture": {
-      "simulation_volume_x": 400.0,
-      "simulation_volume_z": 400.0
-    },
-    "output": {
-      "format": "bsb.output.HDF5Formatter"
-    },
-    "layers": {
-      "base_layer": {
-        "thickness": 100
-      }
-    },
-    "cell_types": {
-      "base_type": {
-        "placement": {
-          "class": "bsb.placement.ParticlePlacement",
-          "layer": "base_layer",
-          "soma_radius": 2.5,
-          "density": 3.9e-4
-        },
-        "morphology": {
-          "class": "bsb.morphologies.NoGeometry"
-        },
-        "plotting": {
-          "display_label": "Template cell",
-          "color": "#E62314",
-          "opacity": 0.5
-        }
-      }
-    },
-    "after_placement": {
-
-    },
-    "connection_types": {
-
-    },
-    "after_connectivity": {
-
-    },
-    "simulations": {
-
-    }
+    "selector": "select.MySizeSelector",
+    "min_size": 30,
+    "max_size": 50
   }
 
-The configuration is laid out to be as self explanatory as possible. For a full
-walkthrough of all parts see the :doc:`/configuration`.
+For the model to work after you've extended the framework you have to include the Python
+code, or even better, become an author of a plugin! |:heart_eyes:|
 
-To convert the abstract description in the configuration file into a concrete
-network file with cell positions and connections run the ``compile`` command::
-
-  bsb -c network_configuration.json compile -p
-
-.. note::
-
-	You can leave off the ``-c`` (or ``--config``) flag in this case as
-	``network_configuration.json`` is the default config that ``bsb compile`` will
-	look for. The ``-p`` (or ``--plot``) flag will plot your network afterwards
-
-============
-First script
-============
-
-The BSB is also a library that can be imported into Python scripts. You can load
-configurations and adapt the loaded object before constructing a network with it to
-programmatically alter the network structure.
-
-Let's go over an example first script that creates 5 networks with different
-densities of ``base_type``.
-
-To use the scaffold in your script you should import the :class:`bsb.core.Scaffold`
-and construct a new instance by passing it a :class:`bsb.config.Configuration`.
-To load a configuration file, you can use the ``bsb.config.from_<type>`` functions,
-by default the BSB provides a :func:`~bsb.config.from_json` to load JSON files:
-
-.. code-block:: python
-
-  from bsb.core import Scaffold
-  from bsb.config import from_json
-  from bsb import options
-
-  config = from_json("my_config.json")
-  # Ask the framework to output detailed progress
-  options.verbosity = 3
-  scaffold = Scaffold(config)
-
-.. note::
-  The verbosity is 1 by default, which only displays errors.
-
-Let's find the ``base_type`` cell configuration::
-
-  base_type = scaffold.get_cell_type("base_type")
-
-The next step is to adapt the ``base_type`` cell density each iteration. The location
-of the attributes on the Python objects mostly corresponds to their location in
-the configuration file. This means that::
-
-  "base_type": {
-    "placement": {
-      "density": 3.9e-4,
-      ...
-    },
-    ...
-  }
-
-will be stored in the Python ``CellType`` object under
-``base_type.placement.density``::
-
-  max_density = base_type.placement.density
-  for i in range(5):
-    base_type.placement.density = i * 20 / 100 * max_density
-    scaffold.compile_network()
-
-    scaffold.plot_network()
-Full code example
-=================
-
-.. code-block:: python
-
-  from bsb.core import Scaffold
-  from bsb.config import from_json
-  from bsb import options
-
-  config = from_json("my_config.json")
-  # Ask the framework to output detailed progress
-  options.verbosity = 3
-  scaffold = Scaffold(config)
-
-  base_type = scaffold.cell_types.base_type
-  max_density = base_type.placement.density
-
-  for i in range(5):
-    # Create a new empty storage for the network
-    scaffold.storage.new(f"density{i}.hdf5")
-    # Change the density
-    base_type.spatial.planar_density = i * 20 / 100 * max_density
-    # Create the network
-    scaffold.compile()
-
-Network compilation
-===================
-
-``compilation`` is the process of creating placement & connectivity sets for the
-network with cells placed according to the specified placement strategies and
-connected to each other according to the specified connection strategies::
-
-  from bsb.core import Scaffold
-  from bsb.config import from_json
-
-  config = from_json("my_config.json")
-
-  # You are free to use scripts to update or add to the configuration
-  config.cell_types.some_cell.placement.some_parameter = 50
-  config.cell_types["some_cell"].plotting.color = ENV_PLOTTING_COLOR
-
-  scaffold = Scaffold(config)
-  scaffold.compile()
-
-The configuration object can be freely modified before compilation, although
-values that depend on eachother - i.e. layers in a stack - will not update each
-other.
-
-==================
-Network simulation
+Installing plugins
 ==================
 
-Simulations can be executed from configuration in a managed way using::
-
-  scaffold.run_simulation(name)
-
-This will load the simulation configuration associated with ``name`` and create
-an adapter for the simulator. An adapter translates the scaffold configuration
-into commands for the simulator. In this way scaffold adapters are able to
-prepare simulations in external simulators such as NEST or NEURON for you. After
-the simulator is prepared the simulation is ran.
-
-For more control over the interface with the simulator, or finer control of
-the configuration, the process can be split into parts. The adapter to the
-interface of the simulator can be ejected and its configuration can be
-modified::
-
-  adapter = scaffold.create_adapter(name)
-  adapter.devices["input_stimulation"].parameters["rate"] = 40
-
-You can then use this adapter to prepare the simulator for the configured
-simulation::
-
-  simulator = adapter.prepare()
-
-After preparation the simulator is primed, but can still be modified directly
-accessing the interface of the simulator itself. For example to create 5 extra
-cells in a NEST simulation on top of the prepared configuration one could::
-
-  cells = simulator.Create("iaf_cond_alpha", 5)
-  print(cells)
-
-You'll notice that the IDs of those cells won't start at 1 as would be the case
-for an empty simulation, because the ``prepare`` statement has already created
-cells in the simulator.
-
-After custom interfacing with the simulator, the adapter can be used to run the
-simulation::
-
-  adapter.simulate()
-
-Full code example
-=================
-
-.. code-block:: python
-
-  adapter = scaffold.create_adapter(name)
-  adapter.devices["input_stimulation"].parameters["rate"] = 40
-  simulator = adapter.prepare()
-  cells = simulator.Create("iaf_cond_alpha", 5)
-  print(cells)
-  adapter.simulate()
-
-
-================
-Using Cell Types
-================
-
-Cell types are obtained by inspecting the scaffold or configuration ``cell_types``
-dictionary. Each cell type contains a placement strategy and if that has been executed you
-can obtain the placement data using either the cell type's
-:func:`~bsb.objects.cell_type.CellType.get_placement_set` or the network's
-:func:`~bsb.core.Scaffold.get_placement_set` function.
-
-A dictionary of all cell types can be found in ``scaffold.cell_types`` or
-``scaffold.configuration.cell_types``::
-
-  for cell_type in scaffold.cell_types.values():
-    cells = scaffold.get_placement_set(cell_type)
-    print("There are", len(cells), cell_type.name)
+The fanciness doesn't end there, you can also (hopefully, somewhere in the future) install
+community plugins, and they will provide extensions through Python's packaging system,
+readily importable as for example ``their_plugin.selectors.TheirSizeSelector``.
