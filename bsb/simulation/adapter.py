@@ -4,6 +4,7 @@ from ..helpers import ConfigurableClass
 from ..reporting import report
 from ..exceptions import *
 from time import time
+import itertools
 
 
 class SimulatorAdapter(ConfigurableClass):
