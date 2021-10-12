@@ -72,8 +72,31 @@ class SimulatorAdapter(ConfigurableClass):
         """
         pass
 
+    def start_progress(self, duration):
+        """
+        Start a progress meter.
+        """
+        self._progdur = duration
+        self._progstart = self._tic = time()
+        self._tics = 0
+
     def progress(self, progression, duration):
-        report("Simulated {}/{}ms".format(progression, duration), level=3, ongoing=True)
+        """
+        Report simulation progress.
+        """
+        _tic = self._tic
+        self._tic = time()
+        _tic = self._tic - _tic
+        self._tics += 1
+        _el = _tic - self._progstart
+        report(
+            f"Simulated {progression}/{self._progdur}ms.",
+            f"{_el:.2f}s elapsed.",
+            f"Simulated tick in {_tic:.2f}.",
+            f"Avg tick {_el / self._tics:.4f}s",
+            level=3,
+            ongoing=True,
+        )
         progress = types.SimpleNamespace(
             progression=progression, duration=duration, time=time()
         )

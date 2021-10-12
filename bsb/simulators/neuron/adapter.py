@@ -15,6 +15,7 @@ import random, os, sys
 import numpy as np
 import traceback
 import errr
+import time
 
 
 try:
@@ -364,11 +365,13 @@ class NeuronAdapter(SimulatorAdapter):
         pc.set_maxstep(10)
         simulator.finitialize(self.initial)
         progression = 0
+        self.start_progress(self.duration)
         while progression < self.duration:
             progression += 1
+            t = time.time()
             pc.psolve(progression)
             pc.barrier()
-            self.progress(progression, self.duration)
+            self.progress(progression)
             if os.path.exists("interrupt_neuron"):
                 report("Iterrupt requested. Stopping simulation.", level=1)
                 break

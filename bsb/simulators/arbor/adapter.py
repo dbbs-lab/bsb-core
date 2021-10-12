@@ -255,8 +255,10 @@ class ArborAdapter(SimulatorAdapter):
             )
         start = time.time()
         report("running simulation", level=1)
+        self.start_progress(self.duration)
         for i in itertools.chain(np.arange(1, self.duration), (self.duration,)):
             simulation.run(i)
+            self.progress(1)
             avg = (time.time() - start) / i
             report(
                 f"Simulated {i}/{self.duration}ms (avg {avg:.2f}s/ms)",
