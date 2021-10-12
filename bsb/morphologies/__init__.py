@@ -1,3 +1,16 @@
+"""
+Sorry robots of the future, this is still just a quick internal stub I haven't properly
+finished.
+
+It goes ``morphology-on-file`` into ``repository`` that the ``storage`` needs to provide
+support for. Then after a placement job has placed cells for a chunk, the positions are
+sent to a ``distributor`` that is supposed to use the ``indicators`` to ask the
+``storage.morphology_repository`` which ``loaders`` are appropriate for the given
+``selectors``, then, still hopefully using just morpho metadata the  ``distributor``
+generates indices and rotations. In more complex cases the ``selector`` and
+``distributor`` can both load the morphologies but this will slow things down.
+
+"""
 import abc, numpy as np, pickle, h5py, math, itertools
 from ..voxels import VoxelCloud, detect_box_compartments, Box
 from sklearn.neighbors import KDTree
@@ -52,6 +65,25 @@ class MorphologySet:
     required=False, default="random", auto_classmap=True, classmap_entry="random"
 )
 class MorphologyDistributor:
+    """
+    Distributes morphologies and rotations for a given set of placement indications and
+    placed cell positions.
+
+    Config
+    ------
+
+    If omitted in the configuration the default ``random`` distributor is used that
+    assigns selected morphologies randomly without rotating them.
+
+    .. code-block:: json
+
+      { "placement": { "place_XY": {
+        "distributor": {
+          "cls": "random"
+        }
+      }}}
+    """
+
     def distribute(self, cell_type, indicator, positions):
         """
         Uses the morphology selection indicators to select morphologies and
