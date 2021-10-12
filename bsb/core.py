@@ -1039,43 +1039,33 @@ class Scaffold:
                 id_map[c.name] = dict(zip(old_ids, ids))
                 if label is not None:
                     self.label_cells(ids, label)
-        for cs_self in self.configuration.connection_types.values():
-            for cs_other in other.configuration.connection_types.values():
-                from_type = cs_other.from_cell_types[0]
-                to_type = cs_other.to_cell_types[0]
-                if cs_self.name != cs_other.name:
+        for ct_self in self.configuration.connection_types.values():
+            missing = True
+            for ct_other in other.configuration.connection_types.values():
+                from_type = ct_other.from_cell_types[0]
+                to_type = ct_other.to_cell_types[0]
+                if ct_self.name != ct_other.name:
                     continue
-                conn_set = other.get_connectivity_set(cs_other.name)
-                #getting the mapped ids parameter for connect_cells()
+                missing = False
+                conn_set = other.get_connectivity_set(ct_other.name)
+                if not len(conn_set):
+                    break
                 from_ids = conn_set.from_identifiers
                 mapped_from_ids = np.vectorize(id_map[from_type.name].get)(from_ids)
                 to_ids = conn_set.to_identifiers
                 mapped_to_ids = np.vectorize(id_map[to_type.name].get)(to_ids)
                 cds = np.column_stack((from_ids, to_ids))
                 mapped_cds = np.column_stack((mapped_from_ids, mapped_to_ids))
-                #getting the compartments parameter for connect_cells()
-                from_comp = []
-                to_comp = []
-                if conn_set.tag == 'mossy_to_glomerulus':
-                    continue
-                for inters in conn_set.intersections:
-                    from_comp.append(inters.from_compartment) 
-                    to_comp.append(inters.to_compartment)
-                comp_data = np.column_stack((np.array(from_comp), np.array(to_comp)))
-                #getting the morphology parameter for connect_cells()
-                from_morpho = []
-                to_morpho = []
-                for inter in conn_set.intersections:
-                    print(conn_set.tag)
-                    from_morpho.append(inter.from_morphology)
-                    to_morpho.append(inter.to_morphology)
-                morpho_data = np.column_stack((np.array(from_morpho), np.array(to_morpho)))
-                #break   
-            #else:
-                #raise RuntimeError(f"Missing '{cs_self}' dataset.")
-
-            #self.connect_cells(cs_self, mapped_cds, morphologies=morpho_data, compartments=comp_data)
-        
+                try:
+                    comp_data = conn_set.compartment_set.get_dataset()
+                    morpho_data = conn_set.morphology_set.get_dataset()
+                except DatasetNotFoundError:
+                    comp_data = None
+                    morpho_data = None
+                self.connect_cells(ct_self, mapped_cds, morphologies=morpho_data, compartments=comp_data)
+            if missing:
+                raise RuntimeError(f"Missing '{ct_self}' dataset.")
+ 
         self.compile_output()
         return self
 
@@ -1096,7 +1086,6 @@ def merge(output_file, *others, label=None):
     merged.output_formatter.create_output() 
 
     for other in others:
-        print("ENTRO NEL FOR DI MERGE")
         merged.left_join(other, label)
     return merged
 
