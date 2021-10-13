@@ -99,7 +99,7 @@ class SimulatorAdapter(ConfigurableClass):
             ongoing=True,
         )
         progress = types.SimpleNamespace(
-            progression=progression, duration=duration, time=time()
+            progression=progression, duration=self._progdur, time=time()
         )
         for listener in self._progress_listeners:
             listener(progress)
