@@ -1090,9 +1090,9 @@ def merge(output_file, *others):
     Merges several scaffolds into one joining them one at time.
 
     :param output_file: name under which the merged scaffold will be saved
-    :type output_file: string that terminates with .hdf5 extension
+    :type output_file: string 
     :param others: scaffolds that have to be merged together
-    :type others: list of scaffold objects
+    :type others: list
     """
 
     cfg_json = json.loads(others[0].configuration._raw)
@@ -1101,10 +1101,10 @@ def merge(output_file, *others):
     merged = Scaffold(cfg_copy)
     merged.output_formatter.create_output() 
     counter=0
+    label_prefix = "merged_"
 
-    for other in others:
-        counter = counter+1
-        merged.left_join(other, label= str(counter))
+    for counter, other in enumerate(others):
+        merged.left_join(other, label= f"{label_prefix}{counter}")
     return merged
 
 
