@@ -10,6 +10,8 @@ from .connectivity import ConnectionStrategy
 from warnings import warn as std_warn
 from .exceptions import *
 from .reporting import report, warn, has_mpi_installed, get_report_file
+from .config import JSONConfig
+import json
 
 ###############################
 ## Scaffold class
@@ -237,6 +239,7 @@ class Scaffold:
         connection_type.connect()
         # Iterates for each tag of the connection_type
         for tag in range(len(connection_type.tags)):
+
             conn_num = np.shape(connection_type.get_connection_matrices()[tag])[0]
             source_name = connection_type.from_cell_types[0].name
             target_name = connection_type.to_cell_types[0].name
@@ -548,6 +551,8 @@ class Scaffold:
         if not hasattr(cell_type.placement, "cells_placed"):
             setattr(cell_type.placement, "cells_placed", 0)
         cell_type.placement.cells_placed += count
+
+        return entities_ids
 
     def _append_tagged(self, attr, tag, data):
         """
@@ -1019,18 +1024,80 @@ class Scaffold:
 
         return self
 
-    def merge(self, other, label=None):
-        warn(
-            "The merge function currently only merges cell positions."
-            + " Only cell types that exist in the calling network will be copied."
-        )
+    def left_join(self, other, label=None):
+        """
+        Joins cell placement and cell connectivity of a new scaffold object 
+        into self scaffold object.
+
+        If label is not None the cells of coming from the original
+        and the new scaffold will be labelled differently in the merged scaffold.
+        
+        """
+
+        id_map = {}
         for ct in self.get_cell_types():
-            if next((c for c in other.get_cell_types() if c.name == ct.name), None):
-                ps = c.get_placement_set()
-                ids = self.place_cells(ct, ct.layer_instance, ps.get_dataset())
+            for c in other.get_cell_types():
+                if c.name != ct.name:
+                    continue
+                ps = other.get_placement_set(c)
+                old_ids = ps.identifiers
+                if not ct.entity:
+                    ids = self.place_cells(ct, ct.placement.layer_instance, ps.positions)
+                else:
+                    ids = self.create_entities(ct, len(ids))
+                id_map[c.name] = dict(zip(old_ids, ids))
                 if label is not None:
                     self.label_cells(ids, label)
+        for ct_self in self.configuration.connection_types.values():
+            missing = True
+            for ct_other in other.configuration.connection_types.values():
+                from_type = ct_other.from_cell_types[0]
+                to_type = ct_other.to_cell_types[0]
+                if ct_self.name != ct_other.name:
+                    continue
+                missing = False
+                conn_set = other.get_connectivity_set(ct_other.name)
+                if not len(conn_set):
+                    break
+                from_ids = conn_set.from_identifiers
+                mapped_from_ids = np.vectorize(id_map[from_type.name].get)(from_ids)
+                to_ids = conn_set.to_identifiers
+                mapped_to_ids = np.vectorize(id_map[to_type.name].get)(to_ids)
+                cds = np.column_stack((from_ids, to_ids))
+                mapped_cds = np.column_stack((mapped_from_ids, mapped_to_ids))
+                try:
+                    comp_data = conn_set.compartment_set.get_dataset()
+                    morpho_data = conn_set.morphology_set.get_dataset()
+                except DatasetNotFoundError:
+                    comp_data = None
+                    morpho_data = None
+                self.connect_cells(ct_self, mapped_cds, morphologies=morpho_data, compartments=comp_data)
+            if missing:
+                raise RuntimeError(f"Missing '{ct_self}' dataset.")
+ 
         self.compile_output()
+        return self
+
+
+def merge(output_file, *others, label_prefix = "merged_"):
+    """
+    Merges several scaffolds into one joining them one at time.
+
+    :param output_file: name under which the merged scaffold will be saved
+    :type output_file: string 
+    :param others: scaffolds that have to be merged together
+    :type others: list
+    """
+
+    cfg_json = json.loads(others[0].configuration._raw)
+    cfg_json["output"]["file"] = output_file
+    cfg_copy = JSONConfig(stream=json.dumps(cfg_json))
+    merged = Scaffold(cfg_copy)
+    merged.output_formatter.create_output() 
+
+    for counter, other in enumerate(others):
+        merged.left_join(other, label= f"{label_prefix}{counter}")
+    return merged
 
 
 class ReportListener:
