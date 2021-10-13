@@ -11,7 +11,6 @@ from warnings import warn as std_warn
 from .exceptions import *
 from .reporting import report, warn, has_mpi_installed, get_report_file
 from .config import JSONConfig
-from bsb import output
 import json
 
 ###############################
@@ -240,7 +239,14 @@ class Scaffold:
         connection_type.connect()
         # Iterates for each tag of the connection_type
         for tag in range(len(connection_type.tags)):
+
             conn_num = np.shape(connection_type.get_connection_matrices()[tag])[0]
+            report(
+                "Started connecting {} with {} (tag: {} - total connections: {}).".format(
+                    source_name, target_name, connection_type.tags[tag], conn_num
+                ),
+                level=2,
+            )
             source_name = connection_type.from_cell_types[0].name
             target_name = connection_type.to_cell_types[0].name
             report(
@@ -1025,6 +1031,15 @@ class Scaffold:
         return self
 
     def left_join(self, other, label=None):
+        """
+        Joins cell placement and cell connectivity of a new scaffold object 
+        into self scaffold object.
+
+        If label is not None the cells of coming from the original
+        and the new scaffold will be labelled differently in the merged scaffold.
+        
+        """
+
         id_map = {}
         for ct in self.get_cell_types():
             for c in other.get_cell_types():
@@ -1070,23 +1085,26 @@ class Scaffold:
         return self
 
 
-def merge(output_file, *others, label=None):
-    warn(
-        "The merge function copies the originally loaded configuration and"
-        + " merges cell positions and cell connections."
-        + " Only cell types that exist in the calling network will be copied."
-        + " Use at your own risk"
-    )
+def merge(output_file, *others):
+    """
+    Merges several scaffolds into one joining them one at time.
+
+    :param output_file: name under which the merged scaffold will be saved
+    :type output_file: string that terminates with .hdf5 extension
+    :param others: scaffolds that have to be merged together
+    :type others: list of scaffold objects
+    """
 
     cfg_json = json.loads(others[0].configuration._raw)
     cfg_json["output"]["file"] = output_file
-    cfg_json["output"]["morphology_repository"] = "morphologies.hdf5"
     cfg_copy = JSONConfig(stream=json.dumps(cfg_json))
     merged = Scaffold(cfg_copy)
     merged.output_formatter.create_output() 
+    counter=0
 
     for other in others:
-        merged.left_join(other, label)
+        counter = counter+1
+        merged.left_join(other, label= str(counter))
     return merged
 
 
