@@ -1085,7 +1085,7 @@ class Scaffold:
         return self
 
 
-def merge(output_file, *others):
+def merge(output_file, *others, label_prefix = "merged_"):
     """
     Merges several scaffolds into one joining them one at time.
 
@@ -1100,8 +1100,6 @@ def merge(output_file, *others):
     cfg_copy = JSONConfig(stream=json.dumps(cfg_json))
     merged = Scaffold(cfg_copy)
     merged.output_formatter.create_output() 
-    counter=0
-    label_prefix = "merged_"
 
     for counter, other in enumerate(others):
         merged.left_join(other, label= f"{label_prefix}{counter}")
