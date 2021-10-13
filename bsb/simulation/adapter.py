@@ -78,31 +78,31 @@ class SimulatorAdapter(ConfigurableClass):
         Start a progress meter.
         """
         self._progdur = duration
-        self._progstart = self._tic = time()
-        self._tics = 0
+        self._progstart = self._last_progtic = time()
+        self._progtics = 0
 
-    def progress(self, progression):
+    def progress(self, step):
         """
         Report simulation progress.
         """
-        _tic = self._tic
-        self._tic = time()
-        _tic = self._tic - _tic
-        self._tics += 1
-        _el = _tic - self._progstart
+        now = time()
+        tic = now - self._last_progtic
+        self._progtics += 1
+        el = now - self._progstart
         report(
-            f"Simulated {progression}/{self._progdur}ms.",
-            f"{_el:.2f}s elapsed.",
-            f"Simulated tick in {_tic:.2f}.",
-            f"Avg tick {_el / self._tics:.4f}s",
+            f"Simulated {step}/{self._progdur}ms.",
+            f"{el:.2f}s elapsed.",
+            f"Simulated tick in {tic:.2f}.",
+            f"Avg tick {el / self._progtics:.4f}s",
             level=3,
-            ongoing=True,
+            ongoing=False,
         )
         progress = types.SimpleNamespace(
-            progression=progression, duration=self._progdur, time=time()
+            progression=step, duration=self._progdur, time=time()
         )
         for listener in self._progress_listeners:
             listener(progress)
+        self._last_progtic = now
 
     def step_progress(self, duration, step=1):
         steps = itertools.chain(np.arange(0, duration), (duration,))
