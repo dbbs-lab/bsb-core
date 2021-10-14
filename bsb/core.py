@@ -884,30 +884,46 @@ class Scaffold:
         """
         return self.configuration.get_cell_type(identifier)
 
-    def assert_continuity(self):
+    def assert_continuity(self, gaps_ok=False):
         """
         Assert that all PlacementSets consist of only 1 continuous stretch of IDs, and that all PlacementSets follow
         each other without gaps, starting from zero.
+
+        :param gaps_ok: Check that just the cell types are continuous, but allow gaps between them.
+        :type gaps_ok: bool
         """
         beginnings = set()
         ends = dict()
         for ct in self.get_cell_types():
             stretch = ct.get_placement_set().identifier_set.get_dataset()
-            assert len(
-                stretch
-            ), f"Discontinuities in `{ct.name}`: multiple ID stretches in a single placement set."
+            if len(stretch) != 2:
+                raise ContinuityError(
+                    f"Discontinuities in `{ct.name}`:"
+                    + " multiple ID stretches in a single placement set."
+                )
             beginnings.add(stretch[0])
+            # Adding the count to the beginning gives the ID with which another
+            # set should begin.
             ends[ct.name] = stretch[0] + stretch[1]
-        assert 0 in beginnings, "Placement data does not start at ID 0."
+        if gaps_ok:
+            return True
+        if 0 not in beginnings:
+            raise ContinuityError("Placement data does not start at ID 0.")
         loose_ends = []
+        # Since the ends should be the beginning of exactly 1 other set we remove each end
+        # from the beginnings list. If this happens twice we get a KeyError, or if the
+        # beginning never existed. Mark those as a loose end, if there is not exactly 1
+        # loose end, there is some branching, gaps or overlap.
         for name, end in ends.items():
             try:
                 beginnings.remove(end)
             except KeyError:
                 loose_ends.append(name)
-        assert len(loose_ends) == 1, (
-            "Discontinuous ends detected: " + ", ".join(loose_ends) + "."
-        )
+        if len(loose_ends) != 1:
+            raise ContinuityError(
+                "Discontinuous ends detected: " + ", ".join(loose_ends) + "."
+            )
+        return True
 
     def get_gid_types(self, ids):
         """
@@ -1026,12 +1042,12 @@ class Scaffold:
 
     def left_join(self, other, label=None):
         """
-        Joins cell placement and cell connectivity of a new scaffold object 
+        Joins cell placement and cell connectivity of a new scaffold object
         into self scaffold object.
 
         If label is not None the cells of coming from the original
         and the new scaffold will be labelled differently in the merged scaffold.
-        
+
         """
 
         id_map = {}
@@ -1071,20 +1087,22 @@ class Scaffold:
                 except DatasetNotFoundError:
                     comp_data = None
                     morpho_data = None
-                self.connect_cells(ct_self, mapped_cds, morphologies=morpho_data, compartments=comp_data)
+                self.connect_cells(
+                    ct_self, mapped_cds, morphologies=morpho_data, compartments=comp_data
+                )
             if missing:
                 raise RuntimeError(f"Missing '{ct_self}' dataset.")
- 
+
         self.compile_output()
         return self
 
 
-def merge(output_file, *others, label_prefix = "merged_"):
+def merge(output_file, *others, label_prefix="merged_"):
     """
     Merges several scaffolds into one joining them one at time.
 
     :param output_file: name under which the merged scaffold will be saved
-    :type output_file: string 
+    :type output_file: string
     :param others: scaffolds that have to be merged together
     :type others: list
     """
@@ -1093,10 +1111,10 @@ def merge(output_file, *others, label_prefix = "merged_"):
     cfg_json["output"]["file"] = output_file
     cfg_copy = JSONConfig(stream=json.dumps(cfg_json))
     merged = Scaffold(cfg_copy)
-    merged.output_formatter.create_output() 
+    merged.output_formatter.create_output()
 
     for counter, other in enumerate(others):
-        merged.left_join(other, label= f"{label_prefix}{counter}")
+        merged.left_join(other, label=f"{label_prefix}{counter}")
     return merged
 
 
