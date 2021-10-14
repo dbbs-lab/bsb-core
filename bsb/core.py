@@ -905,10 +905,10 @@ class Scaffold:
             # Adding the count to the beginning gives the ID with which another
             # set should begin.
             ends[ct.name] = stretch[0] + stretch[1]
-        if 0 not in beginnings:
-            raise ContinuityError("Placement data does not start at ID 0.")
         if gaps_ok:
             return True
+        if 0 not in beginnings:
+            raise ContinuityError("Placement data does not start at ID 0.")
         loose_ends = []
         # Since the ends should be the beginning of exactly 1 other set we remove each end
         # from the beginnings list. If this happens twice we get a KeyError, or if the
