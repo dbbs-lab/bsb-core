@@ -2,7 +2,7 @@ from . import __version__
 from .reporting import warn
 from .helpers import ConfigurableClass, get_qualified_class_name
 from .morphologies import Morphology, Compartment, Branch
-from bsb.helpers import suppress_stdout
+from .helpers import suppress_stdout
 from contextlib import contextmanager
 from abc import abstractmethod, ABC
 import h5py, os, time, pickle, random, numpy as np
