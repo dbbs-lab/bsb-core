@@ -1,4 +1,4 @@
-from bsb.helpers import dimensions, origin
+from .helpers import dimensions, origin
 import numpy as np
 from scipy import ndimage
 from time import sleep
