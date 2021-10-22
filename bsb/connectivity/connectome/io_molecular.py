@@ -13,71 +13,20 @@ class ConnectomeIOMolecular(ConnectionStrategy):
         pass
 
     def connect(self):
-        # Gather connection information
-        io_cell_type = self.from_cell_types[0]
-        molecular_cell_type = self.to_cell_types[0]
-        io_cells = self.scaffold.get_cells_by_type(io_cell_type.name)
-
-        # Get connection between molecular layer cells and Purkinje cells.
-        molecular_cell_purkinje_connections = (
-            self.scaffold.get_connection_cache_by_cell_type(
-                postsynaptic="purkinje_cell", presynaptic=molecular_cell_type.name
-            )
-        )
-
-        # Extract a list of cell types objects that are sources in the MLI to PC connections.
-        # molecular_cell_purkinje_connections has the connection object from which we need to extract info as the first element
-        sources_mli_types = molecular_cell_purkinje_connections[0][0].from_cell_types
-        # Associate an index to each MLI type which is connected to Purkinje cells
-        index_mli_type = next(
-            (
-                index
-                for (index, d) in enumerate(sources_mli_types)
-                if d.name == molecular_cell_type.name
-            ),
-            None,
-        )
-        # second, third etc element in molecular_cell_purkinje_connections are the connection matrix for each element in from_cell_types
-        molecular_cell_purkinje_matrix = molecular_cell_purkinje_connections[0][
-            index_mli_type + 1
-        ]
-
-        io_cell_purkinje_connections = self.scaffold.get_connection_cache_by_cell_type(
-            postsynaptic="purkinje_cell", presynaptic=io_cell_type.name
-        )
-        if len(io_cell_purkinje_connections[0]) < 2:
-            # No IO to purkinje connections found. Do nothing.
-            return
-        io_cell_purkinje_matrix = io_cell_purkinje_connections[0][1]
-
-        # Make a dictionary of which Purkinje cell is contacted by which molecular cells.
-        purkinje_dict = {}
-        for conn in range(len(molecular_cell_purkinje_matrix)):
-            purkinje_id = molecular_cell_purkinje_matrix[conn][1]
-            if not purkinje_id in purkinje_dict:
-                purkinje_dict[purkinje_id] = []
-            purkinje_dict[purkinje_id].append(molecular_cell_purkinje_matrix[conn][0])
-
-        # Use the above dictionary to connect each IO cell to the molecular cells that
-        # contact the Purkinje cells this IO cell contacts.
-        io_molecular = []
-        # Loop over all IO-Purkinje connections
-        for io_conn in range(len(io_cell_purkinje_matrix)):
-            io_id = io_cell_purkinje_matrix[io_conn][0]
-            purkinje_id = io_cell_purkinje_matrix[io_conn][1]
-            # No molecular cells contact this Purkinje cell
-            if not purkinje_id in purkinje_dict:
-                continue
-            target_molecular_cells = purkinje_dict[purkinje_id]
-            # Make a matrix that connects this IO cell to the target molecular cells
-            matrix = np.column_stack(
-                (
-                    np.repeat(io_id, len(target_molecular_cells)),
-                    target_molecular_cells,
-                )
-            )
-            # Add the matrix to the output dataset.
-            io_molecular.extend(matrix)
-        # Store the connections.
-        results = np.array(io_molecular or np.empty((0, 2)))
-        self.scaffold.connect_cells(self, results)
+        io_type = self.from_cell_types[0]
+        print(io_type.name)
+        mli_type = self.to_cell_types[0]
+        print(mli_type.name)
+        io_cells = self.scaffold.get_placement_set(io_type)
+        print(len(io_cells))
+        io_to_pc = self.scaffold.get_connectivity_set("io_to_purkinje")
+        print(len(io_to_pc))
+        mli_to_pc_name = mli_type.name.split("_")[0] + "_to_purkinje"
+        mli_to_pc = self.scaffold.get_connectivity_set(mli_to_pc_name)
+        print(len(mli_to_pc))
+        # Create a lookup dict to get the IO id connected to a PC id
+        pc_io = dict(zip(io_to_pc.to_identifiers, io_to_pc.from_identifiers))
+        # Find the IO id for each MLI-PC connection
+        io_ids = np.vectorize(pc_io.get)(mli_to_pc.to_identifiers)
+        io_to_mli = np.column_stack((io_ids, mli_to_pc.from_identifiers))
+        self.scaffold.connect_cells(self, io_to_mli)
