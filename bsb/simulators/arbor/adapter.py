@@ -205,10 +205,14 @@ class ArborAdapter(SimulatorAdapter):
         "devices": ArborDevice,
     }
 
-    casts = {"duration": float}
+    casts = {
+        "duration": float,
+        "resolution": float,
+    }
+
     required = ["duration"]
 
-    defaults = {"threads": 1, "profiling": True}
+    defaults = {"threads": 1, "profiling": True, "resolution": 0.025}
 
     def validate(self):
         if self.threads == "all":
@@ -257,7 +261,7 @@ class ArborAdapter(SimulatorAdapter):
         report("running simulation", level=1)
         self.start_progress(self.duration)
         for oi, i in self.step_progress(self.duration, 1):
-            simulation.run(i)
+            simulation.run(i, dt=self.resolution)
             self.progress(i)
         report("completed simulation", level=1)
         if self.profiling and arbor.config()["profiling"]:
