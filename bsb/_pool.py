@@ -31,7 +31,8 @@ scaffold:
 
 A job has a couple of display variables that can be set: ``_cname`` for the
 class name, ``_name`` for the job name and ``_c`` for the chunk. These are used
-to display what the workers are doing during parallel execution.
+to display what the workers are doing during parallel execution. This is an experimental
+API and subject to sudden change in the future.
 
 """
 
