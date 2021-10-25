@@ -12,6 +12,7 @@ from .exceptions import *
 from .reporting import report, warn, has_mpi_installed, get_report_file
 from .config import JSONConfig
 import json
+import contextlib
 
 ###############################
 ## Scaffold class
