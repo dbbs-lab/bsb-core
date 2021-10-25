@@ -673,6 +673,48 @@ class Scaffold:
         """
         self.output_formatter.create_output()
 
+    def partial_placement(self, place_types, append=False):
+        if append:
+            raise NotImplementedError(
+                "Coming in v4. Open an issue on GitHub if you require partial (re)placement with append before v4"
+            )
+        raise NotImplementedError(
+            "Coming in v4. Open an issue on GitHub if you require partial (re)placement before v4"
+        )
+
+    @contextlib.contextmanager
+    def partial_connect(self, conn_tags, append=False):
+        if append:
+            raise NotImplementedError(
+                "Coming in v4. Open an issue on GitHub if you require partial (re)connects with append before v4."
+            )
+        oc = self.cell_connections_by_tag
+        self.cell_connections_by_tag = {
+            cnt: np.zeros((0, 2), dtype=float)
+            for cnt, data in oc.items()
+            if cnt in conn_tags
+        }
+        warn(
+            "Temporary workaround (fix in v4) for partial connect of:",
+            ", ".join(self.cell_connections_by_tag.keys()),
+        )
+        warn(
+            "Read data with `PlacementSet` and `ConnectivitySet`, do not use `cells_by_type` or `cell_connections_by_tag`!"
+        )
+        warn("Write data with `connect_cells`.")
+        yield
+        with self.output_formatter.load("a") as f:
+            f = f()
+            for tag in self.cell_connections_by_tag.keys():
+                for delgroup in (
+                    f"/cells/connections/{tag}",
+                    f"/cells/connection_compartments/{tag}",
+                    f"/cells/connection_morphologies/{tag}",
+                ):
+                    with contextlib.suppress(KeyError):
+                        del f[delgroup]
+            self.output_formatter.store_cell_connections(f["/cells/connections"])
+
     def _connection_types_query(self, postsynaptic=[], presynaptic=[]):
         # This function searches through all connection types that include the given
         # pre- and/or postsynaptic cell types.
