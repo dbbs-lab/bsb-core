@@ -94,7 +94,7 @@ class Layer(Partition, classmap_entry="layer"):
         call_default=True,
     )
     xz_center = config.attr(type=bool, default=False)
-    z_index = config.attr(type=float, default=0)
+    stack_index = config.attr(type=float, default=0)
 
     def get_dependencies(self):
         """

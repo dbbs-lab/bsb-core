@@ -3,8 +3,8 @@ import unittest, numpy as np
 
 
 def single_layer():
-    r = topology.Region(cls="y_stack", partitions=[])
-    c = topology.Partition(type="layer", thickness=150, z_index=0, region=r)
+    r = topology.Region(cls="stack", partitions=[])
+    c = topology.Partition(type="layer", thickness=150, stack_index=0, region=r)
     r._partitions = [c]
     r.arrange(topology.Boundary([0, 0, 0], [100, 100, 100]))
     return r, c
@@ -62,9 +62,9 @@ class TestTopology(unittest.TestCase):
         self.assertEqual([50, 50, 50], list(ct.mdc))
 
     def test_ystack(self):
-        r = topology.Region(cls="y_stack", partitions=[])
-        c = topology.Partition(type="layer", thickness=150, z_index=0, region=r)
-        c2 = topology.Partition(type="layer", thickness=150, z_index=1, region=r)
+        r = topology.Region(cls="stack", partitions=[])
+        c = topology.Partition(type="layer", thickness=150, stack_index=0, region=r)
+        c2 = topology.Partition(type="layer", thickness=150, stack_index=1, region=r)
         r._partitions = [c2, c]
         r.arrange(topology.Boundary([0, 0, 0], [100, 100, 100]))
         self.assertEqual(0, c.boundaries.y)

@@ -94,7 +94,7 @@ Let's begin by adding a ``cortex`` region, with a ``base_layer``:
       "base_layer": {
         "thickness": 600,
         "region": "cortex",
-        "z_index": 0
+        "stack_index": 0
       }
     }
   }

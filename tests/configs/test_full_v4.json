@@ -21,32 +21,32 @@
     "dcn_layer": {
       "thickness": 600.0,
       "region": "cerebellar_cortex",
-      "z_index": 0
+      "stack_index": 0
     },
     "granular_layer": {
       "thickness": 150.0,
       "region": "cerebellar_cortex",
-      "z_index": 1
+      "stack_index": 1
     },
     "purkinje_layer": {
       "thickness": 30.0,
       "region": "cerebellar_cortex",
-      "z_index": 2
+      "stack_index": 2
     },
     "b_molecular_layer": {
       "thickness": 50.0,
       "region": "cerebellar_cortex",
-      "z_index": 3
+      "stack_index": 3
     },
     "t_molecular_layer": {
       "thickness": 100.0,
       "region": "cerebellar_cortex",
-      "z_index": 4
+      "stack_index": 4
     },
     "io_layer": {
       "thickness": 15.0,
       "region": "inferior_olive",
-      "z_index": 0
+      "stack_index": 0
     }
   },
   "cell_types": {

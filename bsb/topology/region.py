@@ -7,7 +7,7 @@ from ..config import types, refs
 from ..exceptions import *
 
 
-@config.dynamic(required=False, default="y_stack", auto_classmap=True)
+@config.dynamic(required=False, default="stack", auto_classmap=True)
 class Region:
     """
     Base region.
@@ -52,16 +52,20 @@ class RegionGroup(Region, classmap_entry="group"):
 
 
 @config.node
-class YStack(Region, classmap_entry="y_stack"):
+class Stack(Region, classmap_entry="stack"):
     """
-    Vertical column region class. Will stack its components on top of each other based on
-    their ``z_index`` and adjust its own height accordingly.
+    Stack components on top of each other based on their ``stack_index`` and adjust its
+    own height accordingly.
     """
+
+    axis = config.attr(default="y")
 
     def arrange(self, boundary):
         boundary.offset(self.offset)
         stack_height = 0
-        for p in sorted(self.get_dependencies(), key=lambda p: getattr(p, "z_index", 0)):
+        for p in sorted(
+            self.get_dependencies(), key=lambda p: getattr(p, "stack_index", 0)
+        ):
             if hasattr(p, "arrange"):
                 p.arrange(boundary.copy())
             else:
