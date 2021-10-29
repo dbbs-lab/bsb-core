@@ -13,11 +13,6 @@ The Brain Scaffold Builder
    usage/installation
    usage/getting-started
    usage/cli
-   guides
-   placement
-   morphologies/intro
-   plugins
-   connectivity
 
 .. toctree::
    :maxdepth: 2

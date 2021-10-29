@@ -5,12 +5,15 @@ Installation Guide
 Preamble
 ========
 
-Your mileage with the framework will vary based on your adherence to Python's best
-practices. Some big fat warnings:
 
-.. error::
 
-	DO NOT USE YOUR SYSTEM PYTHON ON LINUX.
+.. warning::
+
+	Your mileage with the framework will vary based on your adherence to Python best
+	practices.
+
+Which Python to use?
+--------------------
 
 Linux distributions come bundled with Python installations and many parts of the
 distro depend on these installations, making them hard to update and installing
@@ -23,9 +26,8 @@ a newer binary from the Python website. You're also most likely to make a big
 bloated mess out of these environments and will run into myriads of strange
 environment errors.
 
-.. error::
-
-	SET UP A VIRTUAL ENVIRONMENT.
+Why is everyone telling me to use a virtual env?
+------------------------------------------------
 
 Python's package system is flawed, it can only install packages in a "global"
 fashion. You can't install multiple versions of the same package for different

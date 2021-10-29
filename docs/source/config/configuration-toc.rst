@@ -5,3 +5,4 @@
    intro
    module/module-toc
    parsers/json
+   reference

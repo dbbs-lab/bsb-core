@@ -9,38 +9,14 @@ what to stimulate and record in simulations.
 The default configuration format is JSON and a standard configuration file might look like
 this:
 
-.. code-block:: json
+.. include:: _empty_root_nodes.rst
 
-  {
-    "storage": {
-      "engine": "hdf5",
-      "root": "my_network.hdf5"
-    },
-    "network": {
-      "x": 200,
-      "z": 200
-    },
-    "regions": {
-
-    },
-    "partitions": {
-
-    },
-    "cell_types": {
-
-    },
-    "connectivity": {
-
-    }
-  }
-
-The ``regions``, ``layers``, ``cell_types`` and ``connection_types`` spaceholders would
-hold configuration for :class:`Regions <.objects.Region>`, :class:`Layers
-<.objects.Layer>`, :class:`CellTypes <.objects.CellType>` and :class:`ConnectionStrategies
+The :guilabel:`regions`, :guilabel:`partitions`, :guilabel:`cell_types`,
+:guilabel:`placement` and :guilabel:`connection_types` spaceholders hold the configuration
+for :class:`Regions <.topology.Region>`, :class:`Partitions <.topology.Partition>`,
+:class:`CellTypes <.objects.CellType>`, :class:`PlacementStrategies
+<.placement.PlacementStrategy>` and :class:`ConnectionStrategies
 <.connectivity.ConnectionStrategy>` respectively.
-
-Basic use
-#########
 
 When you're configuring a model you'll mostly be using **configuration attributes**,
 **configuration nodes/dictionaries** and **configuration lists**. These basic concepts and
@@ -50,16 +26,16 @@ The main goal of the configuration file is to provide data to Python classes tha
 certain tasks such as placing cells, connecting them or simulating them. In order to link
 your Python classes to the configuration file they should be **importable**. The Python
 `documentation <https://docs.python.org/3/tutorial/modules.html>`_ explains what modules
-are and are a great starting point. In short when you're working from the same directory
-any ``my_file.py`` is importable as the ``my_file`` module. Any classes inside of it can
-be referenced in a config file as ``my_file.MyClass``. Although this basic use works fine
-in 1 directory we have a :doc:`best practices guide </packaging>` on how to properly make
-your classes folder independent, discoverable on your entire machine and even how to
-distribute them as a package.
+are and are a great starting point.
+
+In short,  ``my_file.py`` is importable as ``my_file`` when it is in the working
+directory. Any classes inside of it can be referenced in a config file as
+``my_file.MyClass``. Although this basic use works fine in 1 directory we have a
+:doc:`best practices guide </packaging>` on how to properly make your classes discoverable
+on your entire machine. You can even distribute them as a package to other people.
 
 Here's an example of how you could use the ``MySpecialConnection`` class in your Python
-file ``connectome.py`` as a class in the configuration. It will then be loaded and any
-extra configuration data (such as ``value1`` and ``thingy2``) is passed along to it:
+file ``connectome.py`` as a class in the configuration:
 
 .. code-block:: json
 
@@ -88,6 +64,9 @@ extra configuration data (such as ``value1`` and ``thingy2``) is passed along to
       }
     }
   }
+
+Any extra configuration data (such as ``value1`` and ``thingy2``) is automatically passed
+to it!
 
 For more information on creating your own configuration nodes see :doc:`module/nodes`.
 
@@ -120,54 +99,3 @@ This would import ``/simulations/twin_pulse`` from the
 ``stop`` time of the ``pulse1`` device.
 
 See :doc:`/config/parsers/json` to read more on the JSON parser.
-
-Network
-#######
-
-This node contains some basic properties of the network configured in this file.
-
-The :guilabel:`x` and :guilabel:`z` attributes are loose indicators of the scale of the
-simulation. You can use them to scale the volume of your layers or for other mechanisms
-that determine the region in which to place your cells. They do not restrict placement,
-things can still be placed outside the specified [0, x] and [0, z] region.
-
-Basic cell types
-################
-
-For a more complete guide see :doc:`/config/cell-types`
-
-Spatial
--------
-
-For a more complete guide see :doc:`/config/spatial`
-
-Placement
----------
-
-For a more complete guide see :doc:`/config/placement-strategies`
-
-Basic layers
-############
-
-For a more complete guide see :doc:`/config/layers`
-
-Basic regions
-#############
-
-For a more complete guide see :doc:`/config/regions`
-
-Basic connection strategies
-###########################
-
-For a more complete guide see :doc:`/config/connection-strategies`
-
-Postprocessing hooks
-####################
-
-For a more complete guide see :doc:`/config/postprocessing`
-
-After placement
----------------
-
-After connectivity
-------------------
