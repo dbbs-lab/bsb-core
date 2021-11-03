@@ -673,45 +673,56 @@ class Scaffold:
         """
         self.output_formatter.create_output()
 
-    def _connection_types_query(self, postsynaptic=[], presynaptic=[]):
-        # This function searches through all connection types that include the given
-        # pre- and/or postsynaptic cell types.
+    def _connection_types_query(self, pre_query=[], post_query=[]):
+        # Filter network connection types for any type that satisfies both
+        # the presynaptic and postsynaptic query. Empty queries satisfy all
+        # types. The presynaptic query is satisfied if the conn type contains
+        # any of the queried cell types presynaptically, and same for post.
 
-        # Make sure the inputs are lists.
-        postsynaptic = listify_input(postsynaptic)
-        presynaptic = listify_input(presynaptic)
+        # print("Looking for pre:", [p.name for p in pre_query])
+        # print("Looking for post:", [p.name for p in post_query])
 
-        # Local function that checks for any intersection between 2 lists based on a given f.
-        def any_intersect(l1, l2, f=lambda x: x):
-            if not l2:  # Return True if there's no pre/post targets specified
-                return True
-            for e1 in l1:
-                if f(e1) in l2:
-                    return True
-            return False
-
-        # Extract the connection types as tuples so that they can be turned back into a
-        # dictionary after filtering
-        connection_items = self.configuration.connection_types.items()
-        # Lambda that includes any connection type with at least one of the specified
-        # presynaptic and one of the specified postsynaptic connections.
-        # If the post- or presynaptic constraints are empty all connection types pass for
-        # that constraint.
-        intersect = lambda c: any_intersect(
-            c[1].to_cell_types, postsynaptic, lambda x: x.name
-        ) and any_intersect(c[1].from_cell_types, presynaptic, lambda x: x.name)
-        # Filter all connection types based on the lambda function.
-        filtered_connection_items = list(
-            filter(
-                intersect,
-                connection_items,
+        def partial_query(types, query):
+            # print("Types:", [type.name for type in types])
+            # print("Query:", [q.name for q in query])
+            # if not query:
+            #     print("Result HAS to be True based on query.")
+            # else:
+            #     print("Any of `types` in `query`?", types, query, any(
+            #         cell_type in query
+            #         for cell_type in types
+            #     ))
+            res = (
+                # If the query is empty, we don't need to filter.
+                not query
+                # Otherwise, look for the connection types that contain any
+                # of the cell types we are looking for.
+                or any(
+                    cell_type in query
+                    for cell_type in types
+                )
             )
-        )
-        # Turn the filtered result into a dictionary.
-        return dict(filtered_connection_items)
+            # print("Result:", res)
+            return res
 
-    def get_connection_types_by_cell_type(
-        self, any=None, postsynaptic=None, presynaptic=None
+        def query(conn_type):
+            # print("Checking", conn_type.name)
+            # print([t.name for t in conn_type.from_cell_types])
+            # print([t.name for t in conn_type.to_cell_types])
+            # print("- Pre query")
+            pre_res = partial_query(conn_type.from_cell_types, pre_query)
+            # print("- Post query")
+            post_res = partial_query(conn_type.to_cell_types, post_query)
+            return pre_res and post_res
+
+        return [
+            conn_type
+            for conn_type in self.configuration.connection_types.values()
+            if query(conn_type)
+        ]
+
+    def query_connection_types(
+        self, any=None, pre=None, post=None
     ):
         """
         Search for connection types that include specific cell types as pre- or postsynaptic targets.
@@ -719,59 +730,77 @@ class Scaffold:
         :param any: Cell type names that will include connection types that have the given cell types as either pre- or postsynaptic targets.
         :type any: string or sequence of strings.
         :param postsynaptic: Cell type names that will include connection types that have the given cell types as postsynaptic targets.
-        :type postsynaptic: string or sequence of strings.
+        :type postsynaptic: Union[CellType, List[CellType]].
         :param presynaptic: Cell type names that will include connection types that have the given cell types as presynaptic targets.
-        :type presynaptic: string or sequence of strings.
+        :type presynaptic: Union[CellType, List[CellType]].
         :returns: The connection types that meet the specified criteria.
         :rtype: dict
         """
-        if any is None and postsynaptic is None and presynaptic is None:
-            raise ArgumentError("No cell types specified")
+        if any is None and pre is None and post is None:
+            raise ArgumentError("No query specified")
         # Make a list out of the input elements
-        postsynaptic = listify_input(postsynaptic)
-        presynaptic = listify_input(presynaptic)
+        pre = listify_input(pre)
+        post = listify_input(post)
         # Initialize empty omitted lists
         if any is not None:  # Add any cell types as both post and presynaptic targets
             any = listify_input(any)
-            postsynaptic.extend(any)
-            presynaptic.extend(any)
-        # Execute the query and return results.
-        return self._connection_types_query(postsynaptic, presynaptic)
+            pre.extend(any)
+            post.extend(any)
 
-    def get_connection_cache_by_cell_type(
-        self, any=None, postsynaptic=None, presynaptic=None
+        # Execute the query and return results.
+        return self._connection_types_query(pre, post)
+
+    def query_connection_cache(
+        self, any=None, pre=None, post=None
     ):
         """
         Get the connections currently in the cache for connection types that include certain cell types as targets.
 
-        :see: get_connection_types_by_cell_type
-        """
-        # Find the connection types that have the specified targets
-        connection_types = self.get_connection_types_by_cell_type(
-            any, postsynaptic, presynaptic
-        )
-        # Map them to a list of tuples with the 1st element the connection type
-        # and the connection matrices appended behind it.
-        return list(
-            map(lambda x: (x, *x.get_connection_matrices()), connection_types.values())
-        )
+        :param any: Cell type names that will include connection types that have the given cell types as either pre- or postsynaptic targets.
+        :type any: string or sequence of strings.
+        :param postsynaptic: Cell type names that will include connection types that have the given cell types as postsynaptic targets.
+        :type postsynaptic: Union[CellType, List[CellType]].
+        :param presynaptic: Cell type names that will include connection types that have the given cell types as presynaptic targets.
+        :type presynaptic: Union[CellType, List[CellType]].
 
-    def get_connections_by_cell_type(self, any=None, postsynaptic=None, presynaptic=None):
+        :see: query_connection_types
+        """
+        queried = self.query_connection_types(any, pre, post)
+        try:
+            print("QUERY", pre.name, post.name)
+        except:
+            pass
+        try:
+            print("QUERY", [p.name for p in pre], [p.name for p in post])
+        except:
+            pass
+        print("RESULT", [q.name for q in queried])
+        return {
+            type: type.get_connection_matrices()
+            for type in queried
+        }
+
+    def query_connection_sets(self, any=None, pre=None, post=None):
         """
         Get the connectivity sets from storage for connection types that include certain cell types as targets.
 
-        :see: get_connection_types_by_cell_type
+        :param any: Cell type names that will include connection types that have the given cell types as either pre- or postsynaptic targets.
+        :type any: string or sequence of strings.
+        :param postsynaptic: Cell type names that will include connection types that have the given cell types as postsynaptic targets.
+        :type postsynaptic: Union[CellType, List[CellType]].
+        :param presynaptic: Cell type names that will include connection types that have the given cell types as presynaptic targets.
+        :type presynaptic: Union[CellType, List[CellType]].
+
+        :see: query_connection_types
         :rtype: :class:`bsb.models.ConnectivitySet`
         """
-        # Find the connection types that have the specified targets
-        connection_types = self.get_connection_types_by_cell_type(
-            any, postsynaptic, presynaptic
-        )
+        queried = self.query_connection_types(any, pre, post)
         # Map them to a list of tuples with the 1st element the connection type
         # and the connection matrices appended behind it.
-        return list(
-            map(lambda x: (x, *x.get_connectivity_sets()), connection_types.values())
-        )
+        return {
+            type: type.get_connection_sets()
+            for type in queried
+        }
 
     def get_connectivity_sets(self):
         """
