@@ -679,51 +679,18 @@ class Scaffold:
         # types. The presynaptic query is satisfied if the conn type contains
         # any of the queried cell types presynaptically, and same for post.
 
-        # print("Looking for pre:", [p.name for p in pre_query])
-        # print("Looking for post:", [p.name for p in post_query])
-
         def partial_query(types, query):
-            # print("Types:", [type.name for type in types])
-            # print("Query:", [q.name for q in query])
-            # if not query:
-            #     print("Result HAS to be True based on query.")
-            # else:
-            #     print("Any of `types` in `query`?", types, query, any(
-            #         cell_type in query
-            #         for cell_type in types
-            #     ))
-            res = (
-                # If the query is empty, we don't need to filter.
-                not query
-                # Otherwise, look for the connection types that contain any
-                # of the cell types we are looking for.
-                or any(
-                    cell_type in query
-                    for cell_type in types
-                )
-            )
-            # print("Result:", res)
-            return res
+            return not query or any(cell_type in query for cell_type in types)
 
         def query(conn_type):
-            # print("Checking", conn_type.name)
-            # print([t.name for t in conn_type.from_cell_types])
-            # print([t.name for t in conn_type.to_cell_types])
-            # print("- Pre query")
-            pre_res = partial_query(conn_type.from_cell_types, pre_query)
-            # print("- Post query")
-            post_res = partial_query(conn_type.to_cell_types, post_query)
-            return pre_res and post_res
+            pre_match = partial_query(conn_type.from_cell_types, pre_query)
+            post_match = partial_query(conn_type.to_cell_types, post_query)
+            return pre_match and post_match
 
-        return [
-            conn_type
-            for conn_type in self.configuration.connection_types.values()
-            if query(conn_type)
-        ]
+        types = self.configuration.connection_types.values()
+        return [*filter(query, types)]
 
-    def query_connection_types(
-        self, any=None, pre=None, post=None
-    ):
+    def query_connection_types(self, any=None, pre=None, post=None):
         """
         Search for connection types that include specific cell types as pre- or postsynaptic targets.
 
@@ -738,21 +705,16 @@ class Scaffold:
         """
         if any is None and pre is None and post is None:
             raise ArgumentError("No query specified")
-        # Make a list out of the input elements
         pre = listify_input(pre)
         post = listify_input(post)
-        # Initialize empty omitted lists
-        if any is not None:  # Add any cell types as both post and presynaptic targets
+        if any is not None:
             any = listify_input(any)
             pre.extend(any)
             post.extend(any)
 
-        # Execute the query and return results.
         return self._connection_types_query(pre, post)
 
-    def query_connection_cache(
-        self, any=None, pre=None, post=None
-    ):
+    def query_connection_cache(self, any=None, pre=None, post=None):
         """
         Get the connections currently in the cache for connection types that include certain cell types as targets.
 
@@ -766,19 +728,7 @@ class Scaffold:
         :see: query_connection_types
         """
         queried = self.query_connection_types(any, pre, post)
-        try:
-            print("QUERY", pre.name, post.name)
-        except:
-            pass
-        try:
-            print("QUERY", [p.name for p in pre], [p.name for p in post])
-        except:
-            pass
-        print("RESULT", [q.name for q in queried])
-        return {
-            type: type.get_connection_matrices()
-            for type in queried
-        }
+        return {type: type.get_connection_matrices() for type in queried}
 
     def query_connection_sets(self, any=None, pre=None, post=None):
         """
@@ -795,12 +745,7 @@ class Scaffold:
         :rtype: :class:`bsb.models.ConnectivitySet`
         """
         queried = self.query_connection_types(any, pre, post)
-        # Map them to a list of tuples with the 1st element the connection type
-        # and the connection matrices appended behind it.
-        return {
-            type: type.get_connection_sets()
-            for type in queried
-        }
+        return {type: type.get_connection_sets() for type in queried}
 
     def get_connectivity_sets(self):
         """
