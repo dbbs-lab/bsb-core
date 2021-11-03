@@ -24,11 +24,6 @@ class ConnectomeIOMolecular(ConnectionStrategy):
                 postsynaptic="purkinje_cell", presynaptic=molecular_cell_type.name
             )
         )
-        print("LET'S LOOK INTO IO_MOLECULAR")
-        print(molecular_cell_purkinje_connections)
-        print(type(molecular_cell_purkinje_connections))
-        print(molecular_cell_purkinje_connections[0][0])
-
         # Extract a list of cell types objects that are sources in the MLI to PC connections.
         # molecular_cell_purkinje_connections has the connection object from which we need to extract info as the first element
         sources_mli_types = molecular_cell_purkinje_connections[0][0].from_cell_types
