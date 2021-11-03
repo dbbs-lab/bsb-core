@@ -67,15 +67,11 @@ class TouchDetector(ConnectionStrategy, MorphologyStrategy):
             level=2,
         )
         self.morphology_cache = {}
-        print(len(self.from_cell_types))
-        print(len(self.to_cell_types))
 
         for from_cell_type_index in range(len(self.from_cell_types)):
-            print("entering the first for")
             from_cell_type = self.from_cell_types[from_cell_type_index]
             from_cell_compartments = self.from_cell_compartments[from_cell_type_index]
             for to_cell_type_index in range(len(self.to_cell_types)):
-                print("entering the second for")
                 to_cell_type = self.to_cell_types[to_cell_type_index]
                 to_cell_compartments = self.to_cell_compartments[to_cell_type_index]
                 touch_info = TouchInformation(
@@ -87,21 +83,17 @@ class TouchDetector(ConnectionStrategy, MorphologyStrategy):
                 touch_info.from_placement = self.scaffold.get_placement_set(
                     from_cell_type
                 )
-                print(len(touch_info.from_placement))
                 touch_info.from_positions = list(touch_info.from_placement.positions)
                 touch_info.from_identifiers = list(touch_info.from_placement.identifiers)
                 touch_info.to_placement = self.scaffold.get_placement_set(to_cell_type)
                 touch_info.to_identifiers = list(touch_info.to_placement.identifiers)
                 touch_info.to_positions = list(touch_info.to_placement.positions)
-                print("now I will start intersecting cells")
                 # Intersect cells on the widest possible search radius.
                 candidates = self.intersect_cells(touch_info)
-                print("now I will start intersecting compartments")
                 # Intersect cell compartments between matched cells.
                 connections, morphology_names, compartments = self.intersect_compartments(
                     touch_info, candidates
                 )
-                print("Now I will start connecting the cells")
                 # Connect the cells and store the morphologies and selected compartments that connect them.
                 self.scaffold.connect_cells(
                     self,
