@@ -236,13 +236,17 @@ class Scaffold:
         """
         Run a connection type
         """
+        source_name = connection_type.from_cell_types[0].name
+        target_name = connection_type.to_cell_types[0].name
+        report(
+            "Started connecting {} with {} .".format(source_name, target_name),
+            level=2,
+        )
         connection_type.connect()
         # Iterates for each tag of the connection_type
         for tag in range(len(connection_type.tags)):
 
             conn_num = np.shape(connection_type.get_connection_matrices()[tag])[0]
-            source_name = connection_type.from_cell_types[0].name
-            target_name = connection_type.to_cell_types[0].name
             report(
                 "Finished connecting {} with {} (tag: {} - total connections: {}).".format(
                     source_name, target_name, connection_type.tags[tag], conn_num

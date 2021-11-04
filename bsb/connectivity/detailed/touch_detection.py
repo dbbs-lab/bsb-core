@@ -63,7 +63,6 @@ class TouchDetector(ConnectionStrategy, MorphologyStrategy):
     def connect(self):
         # Create a dictionary to cache loaded morphologies.
         self.morphology_cache = {}
-
         for from_cell_type_index in range(len(self.from_cell_types)):
             from_cell_type = self.from_cell_types[from_cell_type_index]
             from_cell_compartments = self.from_cell_compartments[from_cell_type_index]
@@ -138,8 +137,14 @@ class TouchDetector(ConnectionStrategy, MorphologyStrategy):
         connected_compartments = []
         c_check = 0
         touching_cells = 0
-        plots = 0
         for i in range(len(candidate_map)):
+            if i % 100 == 0:
+                percentage = 100*float(i)/float(len(candidate_map))            
+                report(
+                f"Connection progress: {percentage:.2f}%...",
+                level=2,
+                )
+                counter = 0            
             from_id = touch_info.from_identifiers[i]
             touch_info.from_morphology = self.get_random_morphology(
                 touch_info.from_cell_type
