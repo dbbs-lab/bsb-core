@@ -24,8 +24,7 @@ class ConnectomeIOMolecular(ConnectionStrategy):
 
         # Get connection between molecular layer cells and Purkinje cells.
         mli_common_query = self.scaffold.query_connection_cache(
-            pre=molecular_type,
-            post=common_type
+            pre=molecular_type, post=common_type
         )
         if len(mli_common_query) != 1:
             raise NotImplementedError(

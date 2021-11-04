@@ -40,7 +40,7 @@ class SatelliteCommonPresynaptic(ConnectionStrategy):
         )  # These are the connections from the "from_cells" to the "planet" cells
         print("query", to_planet_connections)
         if len(to_planet_connections) != 1:
-            matches = ', '.join(f"'{t.name}'" for t in to_planet_connections)
+            matches = ", ".join(f"'{t.name}'" for t in to_planet_connections)
             raise NotImplementedError(
                 f"The {type(self).__name__} used in `{self.name}` requires"
                 + f" exactly one"
@@ -50,7 +50,7 @@ class SatelliteCommonPresynaptic(ConnectionStrategy):
         else:
             conn_type, cache = next(iter(to_planet_connections.items()))
         if len(cache) != 1:
-            tags = ', '.join(f"'{t}'" for t in conn_type.tags)
+            tags = ", ".join(f"'{t}'" for t in conn_type.tags)
             raise NotImplementedError(
                 f"The {type(self).__name__} used in `{self.name}` handles only"
                 + f" single tags but {tags} found."
