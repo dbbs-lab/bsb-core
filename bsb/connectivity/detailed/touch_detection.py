@@ -137,13 +137,10 @@ class TouchDetector(ConnectionStrategy, MorphologyStrategy):
         connected_compartments = []
         c_check = 0
         touching_cells = 0
-        counter = 0
         for i in range(len(candidate_map)):
-            counter = counter+1
-            percentage = 100 * float(i)/float(len(candidate_map))
-            if counter == 100:            
+            if i % 100 == 0:            
                 report(
-                "Connection progress: {}%...".format(round(percentage)),
+                f"Connection progress: {(100*float(i)/float(len(candidate_map))):.2f}%...",
                 level=2,
                 )
                 counter = 0            
