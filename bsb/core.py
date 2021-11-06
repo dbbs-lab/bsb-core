@@ -12,6 +12,7 @@ from .exceptions import *
 from .reporting import report, warn, has_mpi_installed, get_report_file
 from .config import JSONConfig
 import json
+import contextlib
 
 ###############################
 ## Scaffold class
@@ -677,11 +678,84 @@ class Scaffold:
         """
         self.output_formatter.create_output()
 
-    def _connection_types_query(self, pre_query=[], post_query=[]):
-        # Filter network connection types for any type that satisfies both
-        # the presynaptic and postsynaptic query. Empty queries satisfy all
-        # types. The presynaptic query is satisfied if the conn type contains
-        # any of the queried cell types presynaptically, and same for post.
+    def partial_placement(self, place_types, append=False):
+        if append:
+            raise NotImplementedError(
+                "Coming in v4. Open an issue on GitHub if you require partial (re)placement with append before v4"
+            )
+        raise NotImplementedError(
+            "Coming in v4. Open an issue on GitHub if you require partial (re)placement before v4"
+        )
+
+    @contextlib.contextmanager
+    def partial_connect(self, conn_tags, append=False):
+        if append:
+            raise NotImplementedError(
+                "Coming in v4. Open an issue on GitHub if you require partial (re)connects with append before v4."
+            )
+        oc = self.cell_connections_by_tag
+        self.cell_connections_by_tag = {
+            cnt: np.zeros((0, 2), dtype=float)
+            for cnt, data in oc.items()
+            if cnt in conn_tags
+        }
+        warn(
+            "Temporary workaround (fix in v4) for partial connect of:",
+            ", ".join(self.cell_connections_by_tag.keys()),
+        )
+        warn(
+            "Read data with `PlacementSet` and `ConnectivitySet`, do not use `cells_by_type` or `cell_connections_by_tag`!"
+        )
+        warn("Write data with `connect_cells`.")
+        yield
+        with self.output_formatter.load("a") as f:
+            f = f()
+            for tag in self.cell_connections_by_tag.keys():
+                for delgroup in (
+                    f"/cells/connections/{tag}",
+                    f"/cells/connection_compartments/{tag}",
+                    f"/cells/connection_morphologies/{tag}",
+                ):
+                    with contextlib.suppress(KeyError):
+                        del f[delgroup]
+            self.output_formatter.store_cell_connections(f["/cells/connections"])
+
+    def _connection_types_query(self, postsynaptic=[], presynaptic=[]):
+        # This function searches through all connection types that include the given
+        # pre- and/or postsynaptic cell types.
+
+        # Make sure the inputs are lists.
+        postsynaptic = listify_input(postsynaptic)
+        presynaptic = listify_input(presynaptic)
+
+        # Local function that checks for any intersection between 2 lists based on a given f.
+        def any_intersect(l1, l2, f=lambda x: x):
+            if not l2:  # Return True if there's no pre/post targets specified
+                return True
+            for e1 in l1:
+                if f(e1) in l2:
+                    return True
+            return False
+
+        # Extract the connection types as tuples so that they can be turned back into a
+        # dictionary after filtering
+        connection_items = self.configuration.connection_types.items()
+        # Lambda that includes any connection type with at least one of the specified
+        # presynaptic and one of the specified postsynaptic connections.
+        # If the post- or presynaptic constraints are empty all connection types pass for
+        # that constraint.
+        intersect = lambda c: any_intersect(
+            c[1].to_cell_types, postsynaptic, lambda x: x.name
+        ) and any_intersect(c[1].from_cell_types, presynaptic, lambda x: x.name)
+        # Filter all connection types based on the lambda function.
+        filtered_connection_items = list(
+            filter(
+                intersect,
+                connection_items,
+            )
+        )
+        # Turn the filtered result into a dictionary.
+        return dict(filtered_connection_items)
 
         def partial_query(types, query):
             return not query or any(cell_type in query for cell_type in types)
