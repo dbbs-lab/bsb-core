@@ -685,6 +685,23 @@ class Scaffold:
 
     @contextlib.contextmanager
     def partial_connect(self, conn_tags, append=False):
+        """
+        Creates a context in which you can execute connection strategies and will 
+        partially compile only the given ``conn_tags`` afterwards.
+        
+        Example
+        -------
+        
+        .. code-block:: python
+        
+          with network.partial_connect(["a_to_b", "b_to_c"]):
+            network.connection_types["a_to_b"].connect()
+            network.connection_types["b_to_c"].connect()
+        
+        :param conn_tags: The connection **tags** to write to output. Each
+          connection type that you execute may produce 0, 1 or more tags.
+        :type conn_tags: List[str]
+        """
         if append:
             raise NotImplementedError(
                 "Coming in v4. Open an issue on GitHub if you require partial (re)connects with append before v4."
