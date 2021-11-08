@@ -700,7 +700,7 @@ class Scaffold:
             if cnt in conn_tags
         }
         warn(
-            "Temporary workaround (fix in v4) for partial connect of:",
+            "Temporary workaround (fix in v4) for partial connect of:" +
             ", ".join(self.cell_connections_by_tag.keys()),
         )
         warn(
