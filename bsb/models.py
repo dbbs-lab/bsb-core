@@ -471,9 +471,12 @@ class PlacementSet(Resource):
             raise DatasetNotFoundError("PlacementSet '{}' does not exist".format(tag))
         self.type = cell_type
         self.tag = tag
-        self.identifier_set = Resource(handler, root + tag + "/identifiers")
-        self.positions_set = Resource(handler, root + tag + "/positions")
-        self.rotation_set = Resource(handler, root + tag + "/rotations")
+        identifier_resource = Resource(handler, root + tag + "/identifiers")
+        self._filter = f = _Filter()
+        self._filter.filter_by = identifier_resource
+        self.identifier_set = _FilteredResource(handler, root + tag + "/identifiers", f)
+        self.positions_set = _FilteredResource(handler, root + tag + "/positions", f)
+        self.rotation_set = _FilteredResource(handler, root + tag + "/rotations", f)
 
     @property
     def identifiers(self):
@@ -539,6 +542,28 @@ class PlacementSet(Resource):
         """
         for i in range(len(self)):
             yield None
+
+    def set_id_filter(cell_ids):
+        self._filter.active_filter = cell_ids
+
+
+class _Filter:
+    active_filter = None
+    filter_by = None
+
+    def filter(self, data):
+        if self.active_filter is None:
+            return data
+        return data[np.isin(self.filter_by.get_dataset(), self.active_filter)]
+
+
+class _FilteredResource(Resource):
+    def __init__(self, handler, path, filter):
+        super().__init__(handler, path)
+        self._filter = filter
+
+    def get_dataset(self, *args, **kwargs):
+        return self._filter.filter(super().get_dataset(*args, **kwargs))
 
 
 class Cell:
