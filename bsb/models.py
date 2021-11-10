@@ -292,6 +292,12 @@ class ConnectivitySet(Resource):
         self.compartment_set = Resource(handler, "/cells/connection_compartments/" + tag)
         self.morphology_set = Resource(handler, "/cells/connection_morphologies/" + tag)
 
+    def has_compartment_data(self):
+        """
+        Check if compartment data exists for this connectivity set.
+        """
+        return self.compartment_set.exists()
+
     @property
     def connections(self):
         """
