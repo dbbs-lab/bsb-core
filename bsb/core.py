@@ -689,6 +689,23 @@ class Scaffold:
 
     @contextlib.contextmanager
     def partial_connect(self, conn_tags, append=False):
+        """
+        Creates a context in which you can execute connection strategies and will
+        partially compile only the given ``conn_tags`` afterwards.
+
+        Example
+        -------
+
+        .. code-block:: python
+
+          with network.partial_connect(["a_to_b", "b_to_c"]):
+            network.connection_types["a_to_b"].connect()
+            network.connection_types["b_to_c"].connect()
+
+        :param conn_tags: The connection **tags** to write to output. Each
+          connection type that you execute may produce 0, 1 or more tags.
+        :type conn_tags: List[str]
+        """
         if append:
             raise NotImplementedError(
                 "Coming in v4. Open an issue on GitHub if you require partial (re)connects with append before v4."
@@ -700,8 +717,8 @@ class Scaffold:
             if cnt in conn_tags
         }
         warn(
-            "Temporary workaround (fix in v4) for partial connect of:" +
-            ", ".join(self.cell_connections_by_tag.keys()),
+            "Temporary workaround (fix in v4) for partial connect of:"
+            + ", ".join(self.cell_connections_by_tag.keys()),
         )
         warn(
             "Read data with `PlacementSet` and `ConnectivitySet`, do not use `cells_by_type` or `cell_connections_by_tag`!"
@@ -718,7 +735,7 @@ class Scaffold:
                 ):
                     with contextlib.suppress(KeyError):
                         del f[delgroup]
-            self.output_formatter.store_cell_connections(f["/cells/connections"])
+            self.output_formatter.store_cell_connections(f["/cells"])
 
     def _connection_types_query(self, postsynaptic=[], presynaptic=[]):
         # This function searches through all connection types that include the given
