@@ -9,10 +9,10 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - name: Set up Python 3.7
+    - name: Set up Python 3.9
       uses: actions/setup-python@v1
       with:
-        python-version: 3.7
+        python-version: 3.9
     - name: Install MPI
       run: |
         sudo apt-get update
@@ -21,7 +21,7 @@ jobs:
       run: |
         python -m pip install pip
         pip install -r docs/requirements.txt
-        pip install sphinx
+        pip install sphinx==4.3.0
     - name: Build documentations
       run: cd docs && sphinx-build -n -b html source build/html
     - name: Fail documentations on warnings
