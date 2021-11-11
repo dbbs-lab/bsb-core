@@ -12,10 +12,11 @@ from ...exceptions import *
 from ...helpers import continuity_hop, get_configurable_class
 from mpi4py.MPI import COMM_WORLD as mpi
 import numpy as np
-import itertools
+import itertools as it
 import os
 import time
 import psutil
+import collections
 
 try:
     import arbor
@@ -36,6 +37,20 @@ except ImportError:
     arbor.__getattr__ = get
 
 
+def _consume(iterator, n=None):
+    "Advance the iterator n-steps ahead. If n is None, consume entirely."
+    # Use functions that consume iterators at C speed.
+    if n is None:
+        # feed the entire iterator into a zero-length deque
+        collections.deque(iterator, maxlen=0)
+    else:
+        # advance to the empty slice starting at position n
+        next(islice(iterator, n, n), None)
+
+
+it.consume = _consume
+
+
 class ArborCell(SimulationCell):
     node_name = "simulations.?.cell_models"
 
@@ -46,8 +61,10 @@ class ArborCell(SimulationCell):
 
     def get_description(self, gid):
         if not self.relay:
+            cell_labels = self.create_labels(gid)
             cell_decor = self.create_decor(gid)
-            return self.model_class.cable_cell(decor=cell_decor)
+            cc = self.model_class.cable_cell(decor=cell_decor, labels=cell_labels)
+            return cc
         else:
             return arbor.spike_source_cell(
                 "soma_spike_detector", arbor.explicit_schedule([10, 15, 20, 25])
@@ -57,14 +74,37 @@ class ArborCell(SimulationCell):
         decor = arbor.decor()
         self._soma_detector(decor)
         self._soma_synapse(decor)
+        self._create_transmitters(gid, decor)
+        self._create_receivers(gid, decor)
         return decor
+
+    def create_labels(self, gid):
+        labels = arbor.label_dict()
+
+        def comp_label(comp_id):
+            labels[f"comp_{comp_id}"] = "(location 0 0)"
+
+        comps_from = self.adapter._connections_from[gid]
+        comps_on = (rcv.comp_on for rcv in self.adapter._connections_on[gid])
+        it.consume(comp_label(i) for i in it.chain(comps_from, comps_on))
+        return labels
 
     def _soma_detector(self, decor):
         decor.place("(root)", arbor.spike_detector(-10), "soma_spike_detector")
 
     def _soma_synapse(self, decor):
-        mech = arbor.mechanism("expsyn")
+        mech = arbor.synapse("expsyn")
         decor.place("(root)", mech, "soma_synapse")
+
+    def _create_transmitters(self, gid, decor):
+        for comp_id in set(self.adapter._connections_from[gid]):
+            decor.place("(location 0 0)", arbor.spike_detector(-10), f"comp_{comp_id}")
+
+    def _create_receivers(self, gid, decor):
+        for rcv in self.adapter._connections_on[gid]:
+            decor.place(
+                f'"comp_{rcv.comp_on}"', rcv.synapse, f"comp_{rcv.comp_on}_{rcv.index}"
+            )
 
 
 class ArborDevice(SimulationCell):
@@ -72,10 +112,50 @@ class ArborDevice(SimulationCell):
 
 
 class ArborConnection(SimulationComponent):
-    defaults = {"gap": False}
+    defaults = {"gap": False, "delay": 0.025}
+    casts = {"delay": float, "gap": bool}
 
     def validate(self):
         pass
+
+    def make_receiver(*args):
+        return Receiver(*args)
+
+
+class ReceiverCollection(list):
+    def __init__(self):
+        super().__init__()
+        self._endpoint_counters = {}
+
+    def append(self, rcv):
+        endpoint = rcv.comp_on
+        id = self._endpoint_counters.get(endpoint, 0)
+        self._endpoint_counters[endpoint] = id + 1
+        rcv.index = id
+        super().append(rcv)
+
+
+class Receiver:
+    def __init__(self, conn_model, from_gid, comp_from, comp_on):
+        self.conn_model = conn_model
+        self.from_gid = from_gid
+        self.comp_from = comp_from
+        self.comp_on = comp_on
+        self.synapse = arbor.synapse("expsyn")
+
+    @property
+    def weight(self):
+        return self.conn_model.weight
+
+    @property
+    def delay(self):
+        return self.conn_model.delay
+
+    def from_(self):
+        return arbor.cell_global_label(self.from_gid, f"comp_{self.comp_from}")
+
+    def on(self):
+        return arbor.cell_local_label(f"comp_{self.comp_on}_{self.index}")
 
 
 class QuickContains:
@@ -163,7 +243,6 @@ class ArborRecipe(arbor.recipe):
         return 1 if self._is_relay(gid) else 0
 
     def cell_kind(self, gid):
-        # return arbor.cell_kind.cable
         return self._adapter._lookup.lookup_kind(gid)
 
     def cell_description(self, gid):
@@ -174,8 +253,8 @@ class ArborRecipe(arbor.recipe):
         if self._is_relay(gid):
             return []
         return [
-            arbor.connection(self._from_soma(source[0]), self._to_soma(), source[1], 0.1)
-            for source in self._adapter._connections_on[gid]
+            arbor.connection(rcv.from_(), rcv.on(), rcv.weight, rcv.delay)
+            for rcv in self._adapter._connections_on[gid]
         ]
 
     def _is_relay(self, gid):
@@ -188,12 +267,14 @@ class ArborRecipe(arbor.recipe):
         return arbor.cell_local_label("soma_synapse")
 
     def probes(self, gid):
-        # return [arbor.cable_probe_membrane_voltage("(root)")]
         return (
             [arbor.cable_probe_membrane_voltage("(root)")]
             if self._adapter._lookup.lookup_kind(gid) == arbor.cell_kind.cable
             else []
         )
+
+    def _name_of(self, gid):
+        return self._adapter._lookup._lookup(gid)._type.name
 
 
 class ArborAdapter(SimulatorAdapter):
@@ -243,7 +324,7 @@ class ArborAdapter(SimulatorAdapter):
         report("Threads per process:", context.threads, level=2)
         recipe = self.get_recipe()
         self.domain = arbor.partition_load_balance(recipe, context)
-        self.gids = set(itertools.chain(*(g.gids for g in self.domain.groups)))
+        self.gids = set(it.chain.from_iterable(g.gids for g in self.domain.groups))
         self._cache_connections()
         simulation = arbor.simulation(recipe, self.domain, context)
         report("prepared simulation", level=1)
@@ -263,7 +344,7 @@ class ArborAdapter(SimulatorAdapter):
         for oi, i in self.step_progress(self.duration, 1):
             simulation.run(i, dt=self.resolution)
             self.progress(i)
-        report("completed simulation", level=1)
+        report(f"completed simulation. {time.time() - start:.2f}s", level=1)
         if self.profiling and arbor.config()["profiling"]:
             report("printing profiler summary", level=2)
             report(arbor.profiler_summary(), level=1)
@@ -305,8 +386,12 @@ class ArborAdapter(SimulatorAdapter):
         return ArborRecipe(self)
 
     def _cache_connections(self):
-        self._connections_on = {gid: [] for gid in self.gids}
+        self._connections_on = {gid: ReceiverCollection() for gid in self.gids}
+        self._connections_from = {gid: [] for gid in self.gids}
         for conn_set in self.scaffold.get_connectivity_sets():
+            if conn_set.is_orphan() or not len(conn_set):
+                continue
+            ct = conn_set.connection_types[0]
             try:
                 conn_model = self.connection_models[conn_set.tag]
             except KeyError:
@@ -314,8 +399,18 @@ class ArborAdapter(SimulatorAdapter):
             if conn_model.gap:
                 continue
             w = conn_model.weight
-            for from_gid, to_gid in conn_set.get_dataset():
+            conn_data = conn_set.get_dataset().astype(int)
+            if conn_set.has_compartment_data():
+                comp_data = conn_set.compartment_set.get_dataset()
+            else:
+                comp_data = np.ones(conn_data.shape) * -1
+            for (from_gid, to_gid), (comp_from, comp_on) in zip(conn_data, comp_data):
                 from_gid = int(from_gid)
+                if from_gid in self._connections_from:
+                    self._connections_from[from_gid].append(comp_from)
                 to_gid = int(to_gid)
                 if to_gid in self._connections_on:
-                    self._connections_on[to_gid].append((from_gid, w))
+                    self._connections_on[to_gid].append(
+                        conn_model.make_receiver(from_gid, comp_from, comp_on)
+                    )
+            break
