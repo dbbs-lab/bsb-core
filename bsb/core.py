@@ -773,7 +773,7 @@ class Scaffold:
         """
         return self.output_formatter.get_connectivity_set(tag)
 
-    def get_placement_set(self, type):
+    def get_placement_set(self, type, labels=None):
         """
         Return a cell type's placement set from the output formatter.
 
@@ -784,7 +784,14 @@ class Scaffold:
         """
         if isinstance(type, str):
             type = self.get_cell_type(type)
-        return self.output_formatter.get_placement_set(type)
+        ps = self.output_formatter.get_placement_set(type)
+        if labels is not None:
+
+            def label_filter():
+                return np.concatenate(tuple(self.get_labelled_ids(l) for l in labels))
+
+            ps.set_filter(label_filter)
+        return ps
 
     def translate_cell_ids(self, data, cell_type):
         """
@@ -998,7 +1005,11 @@ class Scaffold:
         """
         Get all the global identifiers of cells labelled with the specific label.
         """
-        return np.array(self.labels[label], dtype=int)
+        try:
+            data = self.labels[label]
+        except KeyError:
+            data = []
+        return np.array(data, dtype=int)
 
     def get_cell_total(self):
         """

@@ -473,8 +473,14 @@ class PlacementSet(Resource):
         self.tag = tag
         identifier_resource = Resource(handler, root + tag + "/identifiers")
         self._filter = f = _Filter()
-        self._filter.filter_by = identifier_resource
-        self.identifier_set = _FilteredResource(handler, root + tag + "/identifiers", f)
+
+        def filter_by_ids():
+            return np.array(
+                expand_continuity_list(identifier_resource.get_dataset()), dtype=int
+            )
+
+        self._filter.filter_by = filter_by_ids
+        self.identifier_set = _FilteredIds(handler, root + tag + "/identifiers", f)
         self.positions_set = _FilteredResource(handler, root + tag + "/positions", f)
         self.rotation_set = _FilteredResource(handler, root + tag + "/rotations", f)
 
@@ -483,9 +489,7 @@ class PlacementSet(Resource):
         """
         Return a list of cell identifiers.
         """
-        return np.array(
-            expand_continuity_list(self.identifier_set.get_dataset()), dtype=int
-        )
+        return self.identifier_set.get_dataset()
 
     @property
     def positions(self):
@@ -543,8 +547,8 @@ class PlacementSet(Resource):
         for i in range(len(self)):
             yield None
 
-    def set_id_filter(cell_ids):
-        self._filter.active_filter = cell_ids
+    def set_filter(self, filter):
+        self._filter.active_filter = filter
 
 
 class _Filter:
@@ -554,7 +558,7 @@ class _Filter:
     def filter(self, data):
         if self.active_filter is None:
             return data
-        return data[np.isin(self.filter_by.get_dataset(), self.active_filter)]
+        return data[np.isin(self.filter_by(), self.active_filter())]
 
 
 class _FilteredResource(Resource):
@@ -564,6 +568,14 @@ class _FilteredResource(Resource):
 
     def get_dataset(self, *args, **kwargs):
         return self._filter.filter(super().get_dataset(*args, **kwargs))
+
+
+class _FilteredIds(_FilteredResource):
+    def get_dataset(self, *args, **kwargs):
+        data = np.array(
+            expand_continuity_list(Resource.get_dataset(self, *args, **kwargs)), dtype=int
+        )
+        return self._filter.filter(data)
 
 
 class Cell:
