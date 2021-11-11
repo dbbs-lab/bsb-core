@@ -229,6 +229,11 @@ class NeuronAdapter(SimulatorAdapter):
         for connection_model in self.connection_models.values():
             # Get the connectivity set associated with this connection model
             connectivity_set = ConnectivitySet(output_handler, connection_model.name)
+            if connectivity_set.is_orphan():
+                warn(
+                    f"No connection types contributed any `{connection_model.name}` connections."
+                )
+                continue
             from_type = connectivity_set.connection_types[0].from_cell_types[0]
             to_type = connectivity_set.connection_types[0].to_cell_types[0]
             from_cell_model = self.cell_models[from_type.name]
@@ -481,6 +486,8 @@ class NeuronAdapter(SimulatorAdapter):
         return ConnectivitySet(self.scaffold.output_formatter, model.name)
 
     def _is_transmitter_set(self, set):
+        if set.is_orphan():
+            return False
         name = set.connection_types[0].from_cell_types[0].name
         from_cell_model = self.cell_models[name]
         return not from_cell_model.relay
@@ -490,6 +497,8 @@ class NeuronAdapter(SimulatorAdapter):
         for connection_model in self.connection_models.values():
             # Get the connectivity set associated with this connection model
             connectivity_set = ConnectivitySet(output_handler, connection_model.name)
+            if connectivity_set.is_orphan():
+                continue
             from_cell_type = connectivity_set.connection_types[0].from_cell_types[0]
             if self.cell_models[from_cell_type.name].relay:
                 continue
@@ -606,6 +615,8 @@ class NeuronAdapter(SimulatorAdapter):
             name = connection_model.name
             # Get the connectivity set associated with this connection model
             connectivity_set = ConnectivitySet(output_handler, connection_model.name)
+            if connectivity_set.is_orphan():
+                continue
             from_cell_type = connectivity_set.connection_types[0].from_cell_types[0]
             from_cell_model = self.cell_models[from_cell_type.name]
             to_cell_type = connectivity_set.connection_types[0].to_cell_types[0]

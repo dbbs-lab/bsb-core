@@ -298,6 +298,9 @@ class ConnectivitySet(Resource):
         """
         return self.compartment_set.exists()
 
+    def is_orphan(self):
+        return not bool(self.attributes["connection_types"])
+
     @property
     def connections(self):
         """
