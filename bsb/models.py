@@ -474,12 +474,12 @@ class PlacementSet(Resource):
         identifier_resource = Resource(handler, root + tag + "/identifiers")
         self._filter = f = _Filter()
 
-        def filter_by_ids():
+        def id_source():
             return np.array(
                 expand_continuity_list(identifier_resource.get_dataset()), dtype=int
             )
 
-        self._filter.filter_by = filter_by_ids
+        self._filter.filter_source = id_source
         self.identifier_set = _FilteredIds(handler, root + tag + "/identifiers", f)
         self.positions_set = _FilteredResource(handler, root + tag + "/positions", f)
         self.rotation_set = _FilteredResource(handler, root + tag + "/rotations", f)
@@ -552,13 +552,22 @@ class PlacementSet(Resource):
 
 
 class _Filter:
+    """
+    To use, set an `active_filter` and `filter_source` function that return numpy arrays.
+
+    `filter_source` should return a dataset of the same shape as the `data` being filtered.
+    `active_filter` will then be called to create a boolean mask from `filter_source`,
+    applied as a filter on the data being filtered. (This means that `filter_source` and
+    `data` should be parallel arrays)
+    """
+
     active_filter = None
-    filter_by = None
+    filter_source = None
 
     def filter(self, data):
         if self.active_filter is None:
             return data
-        return data[np.isin(self.filter_by(), self.active_filter())]
+        return data[np.isin(self.filter_source(), self.active_filter())]
 
 
 class _FilteredResource(Resource):
