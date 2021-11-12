@@ -2,6 +2,7 @@ from ...simulation import (
     SimulatorAdapter,
     SimulationComponent,
     SimulationCell,
+    SimulationDevice,
     TargetsNeurons,
     TargetsSections,
     SimulationResult,
@@ -13,6 +14,7 @@ from ...helpers import continuity_hop, get_configurable_class
 from mpi4py.MPI import COMM_WORLD as mpi
 import numpy as np
 import itertools as it
+import functools
 import os
 import time
 import psutil
@@ -53,6 +55,7 @@ it.consume = _consume
 
 class ArborCell(SimulationCell):
     node_name = "simulations.?.cell_models"
+    default_endpoint = "comp_-1"
 
     def validate(self):
         self.model_class = None
@@ -66,14 +69,20 @@ class ArborCell(SimulationCell):
             cc = self.model_class.cable_cell(decor=cell_decor, labels=cell_labels)
             return cc
         else:
-            return arbor.spike_source_cell(
-                "soma_spike_detector", arbor.explicit_schedule([10, 15, 20, 25])
-            )
+            schedule = self.get_schedule(gid)
+            return arbor.spike_source_cell(self.default_endpoint, schedule)
+
+    def get_schedule(self, gid):
+        schedule = arbor.explicit_schedule([])
+        for device in self.adapter._devices_on[gid]:
+            pattern = device.get_pattern(gid)
+            merged = pattern + schedule.events(0, float("inf"))
+            schedule = arbor.explicit_schedule(merged)
+        return schedule
 
     def create_decor(self, gid):
         decor = arbor.decor()
         self._soma_detector(decor)
-        self._soma_synapse(decor)
         self._create_transmitters(gid, decor)
         self._create_receivers(gid, decor)
         return decor
@@ -90,11 +99,7 @@ class ArborCell(SimulationCell):
         return labels
 
     def _soma_detector(self, decor):
-        decor.place("(root)", arbor.spike_detector(-10), "soma_spike_detector")
-
-    def _soma_synapse(self, decor):
-        mech = arbor.synapse("expsyn")
-        decor.place("(root)", mech, "soma_synapse")
+        decor.place("(root)", arbor.spike_detector(-10), self.default_endpoint)
 
     def _create_transmitters(self, gid, decor):
         for comp_id in set(self.adapter._connections_from[gid]):
@@ -107,8 +112,11 @@ class ArborCell(SimulationCell):
             )
 
 
-class ArborDevice(SimulationCell):
-    pass
+class ArborDevice(TargetsNeurons, SimulationDevice):
+    node_name = "simulations.?.devices"
+
+    def validate(self):
+        pass
 
 
 class ArborConnection(SimulationComponent):
@@ -299,6 +307,15 @@ class ArborAdapter(SimulatorAdapter):
         if self.threads == "all":
             self.threads = psutil.cpu_count(logical=False)
 
+    def get_rank(self):
+        return mpi.Get_rank()
+
+    def broadcast(self, data, root=0):
+        return mpi.bcast(data, root)
+
+    def init_result(self):
+        self.result = SimulationResult()
+
     def prepare(self):
         try:
             self.scaffold.assert_continuity()
@@ -318,6 +335,7 @@ class ArborAdapter(SimulatorAdapter):
         if self.profiling and arbor.config()["profiling"]:
             report("enabling profiler", level=2)
             arbor.profiler_initialize(context)
+        self.init_result()
         self._lookup = QuickLookup(self)
         report("preparing simulation", level=1)
         report("MPI processes:", context.ranks, level=2)
@@ -325,7 +343,12 @@ class ArborAdapter(SimulatorAdapter):
         recipe = self.get_recipe()
         self.domain = arbor.partition_load_balance(recipe, context)
         self.gids = set(it.chain.from_iterable(g.gids for g in self.domain.groups))
+        # Cache uses the domain decomposition to cache info per gid on this node. The
+        # recipe functions use the cache, but luckily aren't called until
+        # `arbor.simulation` and `simulation.run`.
         self._cache_connections()
+        self.prepare_devices()
+        self._cache_devices()
         simulation = arbor.simulation(recipe, self.domain, context)
         report("prepared simulation", level=1)
         return simulation
@@ -413,4 +436,18 @@ class ArborAdapter(SimulatorAdapter):
                     self._connections_on[to_gid].append(
                         conn_model.make_receiver(from_gid, comp_from, comp_on)
                     )
-            break
+
+    def prepare_devices(self):
+        device_module = __import__("devices", globals(), level=1).__dict__
+        for device in self.devices.values():
+            device_class = "".join(x.title() for x in device.device.split("_"))
+            device._bootstrap(device_module[device_class])
+            device.initialise_targets()
+
+    def _cache_devices(self):
+        self._devices_on = {gid: [] for gid in self.gids}
+        for device in self.devices.values():
+            targets = device.get_targets()
+            print("Caching", device.name, device)
+            for target in targets:
+                self._devices_on[target].append(device)

@@ -29,6 +29,7 @@ from .simulators.neuron import NeuronAdapter
 from .simulators.arbor import ArborAdapter
 from .exceptions import *
 import numpy as np
+import errr
 
 
 def _from_hdf5(file):
@@ -1004,9 +1005,19 @@ class JSONConfig(ScaffoldConfig):
         connection.__dict__["to_cell_compartments"] = to_cell_compartments
 
     def init_simulation_component(self, name, section, component_class, adapter):
-        component = load_configurable_class(
-            name, component_class, SimulationComponent, parameters={"adapter": adapter}
-        )
+        try:
+            component = load_configurable_class(
+                name,
+                component_class,
+                SimulationComponent,
+                parameters={"adapter": adapter},
+            )
+        except Exception as e:
+            errr.wrap(
+                type(e),
+                e,
+                prepend=f"Couldn't load class `{component_class}` for `{name}`: ",
+            )
         fill_configurable_class(component, section)
         return component
 

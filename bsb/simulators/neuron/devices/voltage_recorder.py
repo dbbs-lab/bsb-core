@@ -1,4 +1,5 @@
-from ..adapter import NeuronDevice, PatternlessDevice
+from ..adapter import NeuronDevice
+from ....simulation.device import PatternlessDevice
 import numpy as np
 
 

@@ -6,6 +6,7 @@ from ...simulation import (
     TargetsSections,
     SimulationResult,
     SimulationRecorder,
+    SimulationDevice,
 )
 from ...helpers import get_configurable_class
 from ...reporting import report, warn
@@ -82,7 +83,7 @@ class NeuronConnection(SimulationComponent):
         return self.synapses
 
 
-class NeuronDevice(TargetsNeurons, TargetsSections, SimulationComponent):
+class NeuronDevice(TargetsNeurons, TargetsSections, SimulationDevice):
     node_name = "simulations.?.devices"
 
     device_types = [
@@ -116,34 +117,6 @@ class NeuronDevice(TargetsNeurons, TargetsSections, SimulationComponent):
                 )
             )
 
-    def create_patterns(self):
-        raise NotImplementedError(
-            "The "
-            + self.__class__.__name__
-            + " device does not implement any `create_patterns` function."
-        )
-
-    def get_pattern(self, target, cell=None, section=None, synapse=None):
-        raise NotImplementedError(
-            "The "
-            + self.__class__.__name__
-            + " device does not implement any `get_pattern` function."
-        )
-
-    def implement(self, target, location):
-        raise NotImplementedError(
-            "The "
-            + self.__class__.__name__
-            + " device does not implement any `implement` function."
-        )
-
-    def validate_specifics(self):
-        raise NotImplementedError(
-            "The "
-            + self.__class__.__name__
-            + " device does not implement any `validate_specifics` function."
-        )
-
     def get_locations(self, target):
         locations = []
         if target in self.adapter.relay_scheme:
@@ -165,14 +138,6 @@ class NeuronDevice(TargetsNeurons, TargetsSections, SimulationComponent):
             sections = self.target_section(cell)
             locations.extend(TargetLocation(cell, section) for section in sections)
         return locations
-
-
-class PatternlessDevice:
-    def create_patterns(*args, **kwargs):
-        pass
-
-    def get_pattern(*args, **kwargs):
-        pass
 
 
 class NeuronEntity:
@@ -252,6 +217,11 @@ class NeuronAdapter(SimulatorAdapter):
 
     def get_rank(self):
         return self.pc_id
+
+    def broadcast(self, data, root=0):
+        from patch import p
+
+        return p.parallel.broadcast(data, root=root)
 
     def prepare(self):
         from patch import p as simulator
@@ -387,7 +357,7 @@ class NeuronAdapter(SimulatorAdapter):
         timestamp = str(time.time()).split(".")[0] + str(random.random()).split(".")[1]
         timestamp = self.pc.broadcast(timestamp)
         result_path = "results_" + self.name + "_" + timestamp + ".hdf5"
-        for node in range(self.scaffold.MPI.COMM_WORLD.size):
+        for node in range(self.pc.nhost()):
             self.pc.barrier()
             if node == self.pc_id:
                 report("Node", self.pc_id, "is writing", level=2, all_nodes=True)
@@ -570,13 +540,7 @@ class NeuronAdapter(SimulatorAdapter):
         for device in self.devices.values():
             # CamelCase the snake_case to obtain the class name
             device_class = "".join(x.title() for x in device.device.split("_"))
-            device.__class__ = device_module.__dict__[device_class]
-            # Re-initialise the device
-            # TODO: Switch to better config in v4
-            device.initialise(device.scaffold)
-            device.validate_specifics()
-            device.initialise_targets()
-            device.initialise_patterns()
+            device._bootstrap(device_module.__dict__[device_class])
 
     def create_devices(self):
         for device in self.devices.values():
@@ -586,7 +550,7 @@ class NeuronAdapter(SimulatorAdapter):
             else:
                 targets = None
             # Broadcast to make sure all the nodes have the same targets for each device.
-            targets = self.scaffold.MPI.COMM_WORLD.bcast(targets, root=0)
+            targets = self.broadcast(targets, root=0)
             for target in targets:
                 for location in device.get_locations(target):
                     device.implement(target, location)

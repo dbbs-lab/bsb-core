@@ -73,6 +73,20 @@ class SimulatorAdapter(ConfigurableClass):
         """
         pass
 
+    @abc.abstractmethod
+    def get_rank(self):
+        """
+        Return the rank of the current node.
+        """
+        pass
+
+    @abc.abstractmethod
+    def broadcast(self, data, root=0):
+        """
+        Broadcast data over MPI
+        """
+        pass
+
     def start_progress(self, duration):
         """
         Start a progress meter.
