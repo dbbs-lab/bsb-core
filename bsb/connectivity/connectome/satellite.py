@@ -22,40 +22,44 @@ class SatelliteCommonPresynaptic(ConnectionStrategy):
             return
 
         # We have to find the cell_type of the planets
-        planet_types = to_type.placement.planet_types
+        planet_types = [config.cell_types[p] for p in to_type.placement.planet_types]
         if planet_types == []:  # If the satellite does not have a planet
             self.scaffold.connect_cells(self, np.empty((0, 2)))
             return
         if len(planet_types) > 1:
             raise NotImplementedError(
-                "The SatelliteCommonPresynaptic strategy for {} does not handle multiple planet types".format(
-                    self.name
-                )
+                f"The {type(self).__name__} used in `{self.name}`"
+                + f" does not handle multiple planet types."
             )
 
         satellites = self.scaffold.get_cells_by_type(to_type.name)[:, 0]
         satellite_map = self.scaffold._planets[to_type.name].copy()
         # Get the connections already made between the "from" cells and the planet cells
-        to_planet_connections = self.scaffold.get_connection_cache_by_cell_type(
-            presynaptic=from_type.name, postsynaptic=planet_types
+        to_planet_connections = self.scaffold.query_connection_cache(
+            pre=from_type, post=planet_types
         )  # These are the connections from the "from_cells" to the "planet" cells
+        print("query", to_planet_connections)
         if len(to_planet_connections) != 1:
+            matches = ", ".join(f"'{t.name}'" for t in to_planet_connections)
             raise NotImplementedError(
-                "The SatelliteCommonPresynaptic strategy for {} handles only single connection types".format(
-                    self.name
-                )
+                f"The {type(self).__name__} used in `{self.name}` requires"
+                + f" exactly one"
+                + f" common connection between '{from_type.name}' and "
+                + f"'{to_type.name}' but {matches} found."
             )
-        if len(to_planet_connections[0]) != 2:
+        else:
+            conn_type, cache = next(iter(to_planet_connections.items()))
+        if len(cache) != 1:
+            tags = ", ".join(f"'{t}'" for t in conn_type.tags)
             raise NotImplementedError(
-                "The SatelliteCommonPresynaptic strategy for {} handles only single connection sets".format(
-                    self.name
-                )
+                f"The {type(self).__name__} used in `{self.name}` handles only"
+                + f" single tags but {tags} found."
             )
 
-        to_satellite_connections = np.zeros(np.shape(to_planet_connections[0][1]))
+        to_satellite_connections = np.zeros(np.shape(cache[0]))
         counter = 0
         # For each connection, change the post synaptic neuron (planet) substituting the relative satellite
-        for connection_i in to_planet_connections[0][1]:
+        for connection_i in cache[1]:
             if connection_i[0] in from_cells:
                 target_planet = connection_i[1]
                 target_satellite = satellites[np.where(satellite_map == target_planet)]
