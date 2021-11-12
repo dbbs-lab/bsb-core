@@ -67,8 +67,12 @@ class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
         from_compartments = self.from_cell_compartments[0]
         to_compartments = self.to_cell_compartments[0]
         to_type = self.to_cell_types[0]
-        from_placement_set = self.scaffold.get_placement_set(from_type.name, labels=[self.label_pre])
-        to_placement_set = self.scaffold.get_placement_set(to_type.name, labels=[self.label_post])
+        from_placement_set = self.scaffold.get_placement_set(
+            from_type.name, labels=[self.label_pre]
+        )
+        to_placement_set = self.scaffold.get_placement_set(
+            to_type.name, labels=[self.label_post]
+        )
 
         # Load the morphology and voxelization data for the entrire morphology, for each cell type.
         from_morphology_set = MorphologySet(

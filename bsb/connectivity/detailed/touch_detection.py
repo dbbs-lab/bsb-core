@@ -80,7 +80,9 @@ class TouchDetector(ConnectionStrategy, MorphologyStrategy):
                 )
                 touch_info.from_positions = list(touch_info.from_placement.positions)
                 touch_info.from_identifiers = list(touch_info.from_placement.identifiers)
-                touch_info.to_placement = self.scaffold.get_placement_set(to_cell_type, labels=[self.label_post])
+                touch_info.to_placement = self.scaffold.get_placement_set(
+                    to_cell_type, labels=[self.label_post]
+                )
                 touch_info.to_identifiers = list(touch_info.to_placement.identifiers)
                 touch_info.to_positions = list(touch_info.to_placement.positions)
                 # Intersect cells on the widest possible search radius.
