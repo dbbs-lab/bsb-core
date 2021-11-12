@@ -737,7 +737,7 @@ class Scaffold:
                         del f[delgroup]
             self.output_formatter.store_cell_connections(f["/cells"])
 
-    def _connection_types_query(self, postsynaptic=[], presynaptic=[]):
+    def _connection_types_query(self, pre_query=[], post_query=[]):
         # Filter network connection types for any type that satisfies both
         # the presynaptic and postsynaptic query. Empty queries satisfy all
         # types. The presynaptic query is satisfied if the conn type contains
