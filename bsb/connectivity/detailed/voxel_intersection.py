@@ -49,8 +49,8 @@ class VoxelIntersection(ConnectionStrategy, MorphologyStrategy):
         from_compartments = self.from_cell_compartments[0]
         to_compartments = self.to_cell_compartments[0]
         to_type = self.to_cell_types[0]
-        from_placement_set = self.scaffold.get_placement_set(from_type.name)
-        to_placement_set = self.scaffold.get_placement_set(to_type.name)
+        from_placement_set = self.scaffold.get_placement_set(from_type.name, labels=[self.label_pre])
+        to_placement_set = self.scaffold.get_placement_set(to_type.name, labels=[self.label_post])
         from_cells = self.scaffold.get_cells_by_type(from_type.name)
         to_cells = self.scaffold.get_cells_by_type(to_type.name)
 
