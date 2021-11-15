@@ -430,11 +430,6 @@ class ArborAdapter(SimulatorAdapter):
     def simulate(self, simulation):
         if not mpi.Get_rank():
             simulation.record(arbor.spike_recording.all)
-        self.soma_voltages = {}
-        for gid in self.gids:
-            self.soma_voltages[gid] = simulation.sample(
-                (gid, 0), arbor.regular_schedule(0.1)
-            )
         start = time.time()
         report("running simulation", level=1)
         self.start_progress(self.duration)
@@ -447,37 +442,54 @@ class ArborAdapter(SimulatorAdapter):
             report(arbor.profiler_summary(), level=1)
 
     def collect_output(self, simulation):
-        # import plotly.graph_objs as go
+        import h5py, time, random, traceback
 
-        os.makedirs("results_arbor", exist_ok=True)
-        if not mpi.Get_rank():
-            spikes = simulation.spikes()
-            spikes = np.column_stack(
-                (
-                    np.fromiter((l[0][0] for l in spikes), dtype=int),
-                    np.fromiter((l[1] for l in spikes), dtype=int),
-                )
-            )
-            np.savetxt("results_arbor/spikes.txt", spikes)
-            # go.Figure(go.Scatter(x=spikes[:, 1], y=spikes[:, 0], mode="markers")).show()
-
-        for gid, probe_handle in self.soma_voltages.items():
-            if not (data := simulation.samples(probe_handle)):
-                continue
-            np.savetxt(f"results_arbor/{gid}.txt", data[0][0])
-
-        # go.Figure(
-        #     [
-        #         go.Scatter(
-        #             x=data[0][0][:, 0],
-        #             y=data[0][0][:, 1],
-        #             name=str(gid),
-        #         )
-        #         for gid, probe_handle in self.soma_voltages.items()
-        #         if (data := simulation.samples(probe_handle))
-        #     ],
-        #     layout_title_text=f"Node {mpi.Get_rank()}",
-        # ).show()
+        timestamp = str(time.time()).split(".")[0] + str(random.random()).split(".")[1]
+        timestamp = self.broadcast(timestamp)
+        result_path = "results_" + self.name + "_" + timestamp + ".hdf5"
+        rank = self.get_rank()
+        for node in range(self.get_size()):
+            self.barrier()
+            if node == rank:
+                report("Node", rank, "is writing", level=2, all_nodes=True)
+                with h5py.File(result_path, "a") as f:
+                    if rank == 0:
+                        spikes = simulation.spikes()
+                        spikes = np.column_stack(
+                            (
+                                np.fromiter((l[0][0] for l in spikes), dtype=int),
+                                np.fromiter((l[1] for l in spikes), dtype=int),
+                            )
+                        )
+                        f.create_dataset("all_spikes_dump", data=spikes)
+                    f.attrs["configuration_string"] = self.scaffold.configuration._raw
+                    for path, data, meta in self.result.safe_collect():
+                        try:
+                            path = "/".join(f"{p}" for p in path)
+                            if path in f:
+                                # Path exists, append by recreating concatenated data
+                                data = np.concatenate((f[path][()], data))
+                                _meta = d.attrs[k].copy()
+                                _meta.update(meta)
+                                meta = _meta
+                                del f[path]
+                            d = f.create_dataset(path, data=data)
+                            for k, v in meta.items():
+                                d.attrs[k] = v
+                        except Exception as e:
+                            if not isinstance(data, np.ndarray):
+                                warn(
+                                    f"Recorder `{path}` expected numpy.ndarray data,"
+                                    + f" got {type(data)}"
+                                )
+                            else:
+                                warn(
+                                    f"Recorder {path} processing errored out."
+                                    + f" - Data: {data.dtype} {data.shape}"
+                                    + f"\n\n{traceback.format_exc()}"
+                                )
+            self.barrier()
+        return result_path
 
     def get_recipe(self):
         return ArborRecipe(self)
