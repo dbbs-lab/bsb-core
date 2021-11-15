@@ -647,7 +647,7 @@ class NeuronAdapter(SimulatorAdapter):
                         raise RelayError(
                             f"Non-relay {lookup(target)} {target} found in intermediate relay map."
                         )
-                # If we have no more intermediary targets we can be removed from
+                # If we have no more intermediary targets, we can be removed from
                 # the intermediary relay list and be moved to the terminals.
                 if not targets:
                     intermediates_to_remove.append(intermediate)

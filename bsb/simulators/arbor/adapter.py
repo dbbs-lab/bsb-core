@@ -8,6 +8,7 @@ from ...simulation import (
     SimulationResult,
     SimulationRecorder,
 )
+from ...models import ConnectivitySet
 from ...reporting import report, warn
 from ...exceptions import *
 from ...helpers import continuity_hop, get_configurable_class
@@ -346,6 +347,7 @@ class ArborAdapter(SimulatorAdapter):
         # Cache uses the domain decomposition to cache info per gid on this node. The
         # recipe functions use the cache, but luckily aren't called until
         # `arbor.simulation` and `simulation.run`.
+        self._index_relays()
         self._cache_connections()
         self.prepare_devices()
         self._cache_devices()
@@ -436,6 +438,141 @@ class ArborAdapter(SimulatorAdapter):
                     self._connections_on[to_gid].append(
                         conn_model.make_receiver(from_gid, comp_from, comp_on)
                     )
+            for gid, relays in self._relays_on.items():
+                for (from_gid, comp_from, comp_on, conn_model) in relays:
+                    self._connections_from[from_gid].append(comp_from)
+                    self._connections_on[gid].append(
+                        conn_model.make_receiver(from_gid, comp_from, comp_on)
+                    )
+
+    def _index_relays(self):
+        report("Indexing relays.")
+        terminal_relays = {}
+        intermediate_relays = {}
+        output_handler = self.scaffold.output_formatter
+        cell_types = self.scaffold.get_cell_types()
+        type_lookup = {
+            ct.name: range(min(ids), max(ids) + 1)
+            for ct, ids in zip(
+                cell_types, (ct.get_placement_set().identifiers for ct in cell_types)
+            )
+        }
+
+        def lookup(i):
+            for n, t in type_lookup.items():
+                if i in t:
+                    return n
+            else:
+                return None
+
+        for connection_model in self.connection_models.values():
+            name = connection_model.name
+            # Get the connectivity set associated with this connection model
+            connectivity_set = ConnectivitySet(output_handler, connection_model.name)
+            if connectivity_set.is_orphan():
+                continue
+            from_cell_type = connectivity_set.connection_types[0].from_cell_types[0]
+            from_cell_model = self.cell_models[from_cell_type.name]
+            to_cell_type = connectivity_set.connection_types[0].to_cell_types[0]
+            to_cell_model = self.cell_models[to_cell_type.name]
+            if not from_cell_model.relay:
+                continue
+            if to_cell_model.relay:
+                report(
+                    "Adding",
+                    len(connectivity_set),
+                    connection_model.name,
+                    "connections as intermediate.",
+                    level=3,
+                )
+                bin = intermediate_relays
+                connections = connectivity_set.connections
+                target = lambda c: c.to_id
+            else:
+                report(
+                    "Adding",
+                    len(connectivity_set),
+                    connection_model.name,
+                    "connections as terminal.",
+                    level=3,
+                )
+                bin = terminal_relays
+                connections = connectivity_set.intersections
+                target = lambda c: (
+                    c.to_id,
+                    c.from_compartment.id,
+                    c.to_compartment.id,
+                    connection_model,
+                )
+            for id in self.scaffold.get_placement_set(from_cell_type.name).identifiers:
+                if id not in bin:
+                    bin[id] = []
+            for connection in connections:
+                fid = connection.from_id
+                bin[fid].append(target(connection))
+
+        report("Relays indexed, resolving intermediates.")
+
+        interm_transfer = {k: [] for k in intermediate_relays.keys()}
+        while len(intermediate_relays) > 0:
+            intermediates_to_remove = []
+            for intermediate, targets in intermediate_relays.items():
+                for target in targets:
+                    if target in intermediate_relays:
+                        # This target of this intermediary is also an
+                        # intermediary and cannot be resolved to a terminal at
+                        # this point, so we wait until a next iteration where
+                        # the intermediary target might have been resolved.
+                        continue
+                    elif target in terminal_relays:
+                        # The target is a terminal relay and can be removed from
+                        # our intermediary target list and its terminal targets
+                        # added to our terminal target list.
+                        arr = interm_transfer[intermediate]
+                        assert all(
+                            isinstance(t, tuple) for t in terminal_relays[target]
+                        ), f"Terminal relay {lookup(target)} {target} contains non-terminal targets: {terminal_relays[target]}"
+                        arr.extend(terminal_relays[target])
+                        targets.remove(target)
+                    else:
+                        raise RelayError(
+                            f"Non-relay {lookup(target)} {target} found in intermediate relay map."
+                        )
+                # If we have no more intermediary targets, we can be removed from
+                # the intermediary relay list and be moved to the terminals.
+                if not targets:
+                    intermediates_to_remove.append(intermediate)
+                    terminal_relays[intermediate] = interm_transfer.pop(intermediate)
+            for intermediate in intermediates_to_remove:
+                report(
+                    "Intermediate resolved to",
+                    len(terminal_relays[intermediate]),
+                    "targets",
+                    level=4,
+                )
+                intermediate_relays.pop(intermediate, None)
+
+        report("Relays resolved.")
+
+        # Filter out all relays to targets not on this node.
+        self._relays_on = {gid: [] for gid in self.gids}
+        for relay, targets in terminal_relays.items():
+            assert all(
+                isinstance(t, tuple) for t in terminal_relays[target]
+            ), f"Terminal relay {lookup(target)} {target} contains non-terminal targets: {terminal_relays[target]}"
+
+            for conn in targets:
+                to_id = int(conn[0])
+                if to_id in self.gids:
+                    self._relays_on[to_id].append((relay, *conn[1:]))
+        report(
+            "Node",
+            self.get_rank(),
+            "needs to relay",
+            sum(bool(relays) for relays in self._relays_on.values()),
+            "relays.",
+            level=4,
+        )
 
     def prepare_devices(self):
         device_module = __import__("devices", globals(), level=1).__dict__
@@ -448,6 +585,5 @@ class ArborAdapter(SimulatorAdapter):
         self._devices_on = {gid: [] for gid in self.gids}
         for device in self.devices.values():
             targets = device.get_targets()
-            print("Caching", device.name, device)
             for target in targets:
                 self._devices_on[target].append(device)
