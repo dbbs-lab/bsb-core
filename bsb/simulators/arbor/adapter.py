@@ -143,8 +143,32 @@ class ArborCell(SimulationCell):
 class ArborDevice(TargetsNeurons, SimulationDevice):
     node_name = "simulations.?.devices"
 
+    defaults = {"resolution": None, "sampling_policy": "exact"}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._probe_ids = []
+
     def validate(self):
-        pass
+        self.resolution = self.resolution or self.adapter.resolution
+
+    def register_probe_id(self, gid, tag):
+        self._probe_ids.append((gid, tag))
+
+    def prepare_samples(self, sim):
+        self._handles = [self.sample(sim, probe_id) for probe_id in self._probe_ids]
+
+    def sample(self, sim, probe_id):
+        schedule = arbor.regular_schedule(self.resolution)
+        sampling_policy = getattr(arbor.sampling_policy, self.sampling_policy)
+        return sim.sample(probe_id, schedule, sampling_policy)
+
+    def get_samples(self, sim):
+        return [sim.samples(handle) for handle in self._handles]
+
+    def get_meta(self):
+        attrs = ("name", "sampling_policy", "resolution")
+        return dict(zip(attrs, (getattr(self, attr) for attr in attrs)))
 
 
 class ArborConnection(SimulationComponent):
@@ -305,11 +329,17 @@ class ArborRecipe(arbor.recipe):
         return self._adapter._lookup.lookup_kind(gid) == arbor.cell_kind.spike_source
 
     def probes(self, gid):
-        return (
-            [arbor.cable_probe_membrane_voltage("(root)")]
-            if self._adapter._lookup.lookup_kind(gid) == arbor.cell_kind.cable
-            else []
-        )
+        if self._is_relay(gid):
+            return []
+        devices = self._adapter._devices_on[gid]
+        _ntag = 0
+        probes = []
+        for device in devices:
+            device_probes = device.implement(gid)
+            for tag in range(_ntag, _ntag + len(device_probes)):
+                device.register_probe_id(gid, tag)
+            probes.extend(device_probes)
+        return probes
 
     def _name_of(self, gid):
         return self._adapter._lookup._lookup(gid)._type.name
@@ -340,8 +370,14 @@ class ArborAdapter(SimulatorAdapter):
     def get_rank(self):
         return mpi.Get_rank()
 
+    def get_size(self):
+        return mpi.Get_size()
+
     def broadcast(self, data, root=0):
         return mpi.bcast(data, root)
+
+    def barrier(self):
+        return mpi.Barrier()
 
     def init_result(self):
         self.result = SimulationResult()
@@ -373,9 +409,7 @@ class ArborAdapter(SimulatorAdapter):
         recipe = self.get_recipe()
         # Gap junctions are required for domain decomposition
         self._cache_gap_junctions()
-        print("STARTING LOAD BALANCE")
         self.domain = arbor.partition_load_balance(recipe, context)
-        print("LOAD BALANCED")
         self.gids = set(it.chain.from_iterable(g.gids for g in self.domain.groups))
         # Cache uses the domain decomposition to cache info per gid on this node. The
         # recipe functions use the cache, but luckily aren't called until
@@ -385,8 +419,13 @@ class ArborAdapter(SimulatorAdapter):
         self.prepare_devices()
         self._cache_devices()
         simulation = arbor.simulation(recipe, self.domain, context)
+        self.prepare_samples(simulation)
         report("prepared simulation", level=1)
         return simulation
+
+    def prepare_samples(self, sim):
+        for device in self.devices.values():
+            device.prepare_samples(sim)
 
     def simulate(self, simulation):
         if not mpi.Get_rank():
