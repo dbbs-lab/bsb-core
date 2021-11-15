@@ -81,6 +81,13 @@ class SimulatorAdapter(ConfigurableClass):
         pass
 
     @abc.abstractmethod
+    def get_size(self):
+        """
+        Return the size of the collection of all distributed nodes.
+        """
+        pass
+
+    @abc.abstractmethod
     def broadcast(self, data, root=0):
         """
         Broadcast data over MPI

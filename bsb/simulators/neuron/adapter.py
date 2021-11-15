@@ -132,7 +132,7 @@ class NeuronDevice(TargetsNeurons, TargetsSections, SimulationDevice):
             except KeyError:
                 raise DeviceConnectionError(
                     "Missing cell {} on node {} while trying to implement device '{}'. This can occur if the cell was placed in the network but not represented with a model in the simulation config.".format(
-                        target, self.adapter.pc_id, self.name
+                        target, self.adapter.get_rank(), self.name
                     )
                 )
             sections = self.target_section(cell)
@@ -216,7 +216,10 @@ class NeuronAdapter(SimulatorAdapter):
                 )
 
     def get_rank(self):
-        return self.pc_id
+        return self.h.parallel.id()
+
+    def get_size(self):
+        return self.h.parallel.nhost()
 
     def broadcast(self, data, root=0):
         from patch import p
@@ -240,7 +243,7 @@ class NeuronAdapter(SimulatorAdapter):
         self.load_balance()
         report(
             "Load balancing on node",
-            self.pc_id,
+            self.get_rank(),
             "took",
             round(time() - t, 2),
             "seconds",
@@ -253,7 +256,7 @@ class NeuronAdapter(SimulatorAdapter):
         simulator.parallel.barrier()
         report(
             "Cell creation on node",
-            self.pc_id,
+            self.get_rank(),
             "took",
             round(t, 2),
             "seconds",
@@ -264,7 +267,7 @@ class NeuronAdapter(SimulatorAdapter):
         self.create_source_vars()
         report(
             "Transmitter creation on node",
-            self.pc_id,
+            self.get_rank(),
             "took",
             round(time() - t, 2),
             "seconds",
@@ -277,7 +280,7 @@ class NeuronAdapter(SimulatorAdapter):
         t = time() - t
         report(
             "Receiver creation on node",
-            self.pc_id,
+            self.get_rank(),
             "took",
             round(t, 2),
             "seconds",
@@ -289,7 +292,7 @@ class NeuronAdapter(SimulatorAdapter):
         t = time() - t
         report(
             "Device preparation on node",
-            self.pc_id,
+            self.get_rank(),
             "took",
             round(t, 2),
             "seconds",
@@ -301,7 +304,7 @@ class NeuronAdapter(SimulatorAdapter):
         t = time() - t
         report(
             "Device creation on node",
-            self.pc_id,
+            self.get_rank(),
             "took",
             round(t, 2),
             "seconds",
@@ -312,7 +315,7 @@ class NeuronAdapter(SimulatorAdapter):
 
     def init_result(self):
         self.result = SimulationResult()
-        if self.pc_id == 0:
+        if self.get_rank() == 0:
             # Record the time
             self.h.time
             self.result.create_recorder(
@@ -322,12 +325,11 @@ class NeuronAdapter(SimulatorAdapter):
             )
 
     def load_balance(self):
-        pc = self.h.parallel
-        self.nhost = pc.nhost()
-        self.pc_id = pc.id()
+        rank = self.get_rank()
+        size = self.get_size()
         self.cell_total = self.scaffold.get_cell_total()
         # Do a lazy round robin for now.
-        self.node_cells = set(range(pc.id(), self.scaffold.get_cell_total(), pc.nhost()))
+        self.node_cells = set(range(rank, self.cell_total, size))
 
     def simulate(self, simulator):
         from plotly import graph_objects as go
@@ -357,10 +359,10 @@ class NeuronAdapter(SimulatorAdapter):
         timestamp = str(time.time()).split(".")[0] + str(random.random()).split(".")[1]
         timestamp = self.pc.broadcast(timestamp)
         result_path = "results_" + self.name + "_" + timestamp + ".hdf5"
-        for node in range(self.pc.nhost()):
+        for node in range(self.get_size()):
             self.pc.barrier()
-            if node == self.pc_id:
-                report("Node", self.pc_id, "is writing", level=2, all_nodes=True)
+            if node == self.get_rank():
+                report("Node", self.get_rank(), "is writing", level=2, all_nodes=True)
                 with h5py.File(result_path, "a") as f:
                     f.attrs["configuration_string"] = self.scaffold.configuration._raw
                     for path, data, meta in self.result.safe_collect():
@@ -424,7 +426,7 @@ class NeuronAdapter(SimulatorAdapter):
             errr.wrap(TransmitterError, e, prepend=f"[{cell_id}] ")
 
         report(
-            f"Node {self.pc_id} created {tcount} transmitters",
+            f"Node {self.get_rank()} created {tcount} transmitters",
             level=3,
             all_nodes=True,
         )
@@ -532,7 +534,9 @@ class NeuronAdapter(SimulatorAdapter):
                 cell_model.instances.append(instance)
                 self.cells[cell_id] = instance
         report(
-            f"Node {self.pc_id} created {len(self.cells)} cells", level=2, all_nodes=True
+            f"Node {self.get_rank()} created {len(self.cells)} cells",
+            level=2,
+            all_nodes=True,
         )
 
     def prepare_devices(self):
@@ -544,7 +548,7 @@ class NeuronAdapter(SimulatorAdapter):
 
     def create_devices(self):
         for device in self.devices.values():
-            if self.pc_id == 0:
+            if self.get_rank() == 0:
                 # Have root 0 prepare the possibly random targets.
                 targets = device.get_targets()
             else:
@@ -673,7 +677,7 @@ class NeuronAdapter(SimulatorAdapter):
             self.relay_scheme[relay] = node_targets
         report(
             "Node",
-            self.pc_id,
+            self.get_rank(),
             "needs to relay",
             len(self.relay_scheme),
             "relays.",

@@ -374,6 +374,12 @@ class NestAdapter(SimulatorAdapter):
     def get_rank(self):
         return _MPI_rank
 
+    def get_size(self):
+        return _MPI_processes
+
+    def broadcast(self, data, root=0):
+        return mpi4py.MPI.COMM_WORLD.bcast(data, root)
+
     def in_full_control(self):
         if not self.has_lock or not self.read_lock():
             raise AdapterError(
