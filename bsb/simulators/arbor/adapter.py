@@ -65,9 +65,10 @@ class ArborCell(SimulationCell):
 
     def get_description(self, gid):
         if not self.relay:
-            cell_labels = self.create_labels(gid)
-            cell_decor = self.create_decor(gid)
-            cc = self.model_class.cable_cell(decor=cell_decor, labels=cell_labels)
+            morphology, labels, decor = self.model_class.cable_cell_template()
+            labels = self._add_labels(gid, labels, morphology)
+            decor = self._add_decor(gid, decor)
+            cc = arbor.cable_cell(morphology, labels, decor)
             return cc
         else:
             schedule = self.get_schedule(gid)
@@ -81,35 +82,59 @@ class ArborCell(SimulationCell):
             schedule = arbor.explicit_schedule(merged)
         return schedule
 
-    def create_decor(self, gid):
-        decor = arbor.decor()
+    def _add_decor(self, gid, decor):
         self._soma_detector(decor)
         self._create_transmitters(gid, decor)
+        self._create_gaps(gid, decor)
         self._create_receivers(gid, decor)
         return decor
 
-    def create_labels(self, gid):
-        labels = arbor.label_dict()
+    def _add_labels(self, gid, labels, morphology):
+        pwlin = arbor.place_pwlin(morphology)
 
-        def comp_label(comp_id):
-            labels[f"comp_{comp_id}"] = "(location 0 0)"
+        def comp_label(comp):
+            loc, d = pwlin.closest(*comp.start)
+            if d > 0.0001:
+                raise AdapterError(f"Couldn't find {comp.start}, on {self._str(gid)}")
+            labels[f"comp_{comp.id}"] = str(loc)
 
         comps_from = self.adapter._connections_from[gid]
         comps_on = (rcv.comp_on for rcv in self.adapter._connections_on[gid])
-        it.consume(comp_label(i) for i in it.chain(comps_from, comps_on))
+        gaps = (c.to_compartment for c in self.adapter._gap_junctions_on.get(gid, []))
+        it.consume(comp_label(i) for i in it.chain(comps_from, comps_on, gaps))
         return labels
+
+    def _str(self, gid):
+        return f"{self.adapter._name_of(gid)} {gid}"
 
     def _soma_detector(self, decor):
         decor.place("(root)", arbor.spike_detector(-10), self.default_endpoint)
 
     def _create_transmitters(self, gid, decor):
-        for comp_id in set(self.adapter._connections_from[gid]):
-            decor.place("(location 0 0)", arbor.spike_detector(-10), f"comp_{comp_id}")
+        done = set()
+        for comp in self.adapter._connections_from[gid]:
+            if comp.id in done:
+                continue
+            else:
+                done.add(comp.id)
+            decor.place(f'"comp_{comp.id}"', arbor.spike_detector(-10), f"comp_{comp.id}")
+
+    def _create_gaps(self, gid, decor):
+        done = set()
+        for conn in self.adapter._gap_junctions_on.get(gid, []):
+            comp = conn.to_compartment
+            if comp.id in done:
+                continue
+            else:
+                done.add(comp.id)
+            decor.place(f'"comp_{comp.id}"', arbor.junction("gj"), f"gap_{comp.id}")
 
     def _create_receivers(self, gid, decor):
         for rcv in self.adapter._connections_on[gid]:
             decor.place(
-                f'"comp_{rcv.comp_on}"', rcv.synapse, f"comp_{rcv.comp_on}_{rcv.index}"
+                f'"comp_{rcv.comp_on.id}"',
+                rcv.synapse,
+                f"comp_{rcv.comp_on.id}_{rcv.index}",
             )
 
 
@@ -121,14 +146,19 @@ class ArborDevice(TargetsNeurons, SimulationDevice):
 
 
 class ArborConnection(SimulationComponent):
-    defaults = {"gap": False, "delay": 0.025}
-    casts = {"delay": float, "gap": bool}
+    defaults = {"gap": False, "delay": 0.025, "weight": 1.0}
+    casts = {"delay": float, "gap": bool, "weight": float}
 
     def validate(self):
         pass
 
     def make_receiver(*args):
         return Receiver(*args)
+
+    def gap_(self, conn):
+        l = arbor.cell_local_label(f"gap_{conn.to_compartment.id}")
+        g = arbor.cell_global_label(int(conn.from_id), f"gap_{conn.from_compartment.id}")
+        return arbor.gap_junction_connection(g, l, self.weight)
 
 
 class ReceiverCollection(list):
@@ -137,7 +167,7 @@ class ReceiverCollection(list):
         self._endpoint_counters = {}
 
     def append(self, rcv):
-        endpoint = rcv.comp_on
+        endpoint = rcv.comp_on.id
         id = self._endpoint_counters.get(endpoint, 0)
         self._endpoint_counters[endpoint] = id + 1
         rcv.index = id
@@ -161,10 +191,10 @@ class Receiver:
         return self.conn_model.delay
 
     def from_(self):
-        return arbor.cell_global_label(self.from_gid, f"comp_{self.comp_from}")
+        return arbor.cell_global_label(self.from_gid, f"comp_{self.comp_from.id}")
 
     def on(self):
-        return arbor.cell_local_label(f"comp_{self.comp_on}_{self.index}")
+        return arbor.cell_local_label(f"comp_{self.comp_on.id}_{self.index}")
 
 
 class QuickContains:
@@ -266,14 +296,11 @@ class ArborRecipe(arbor.recipe):
             for rcv in self._adapter._connections_on[gid]
         ]
 
+    def gap_junctions_on(self, gid):
+        return [c.model.gap_(c) for c in self._adapter._gap_junctions_on.get(gid, [])]
+
     def _is_relay(self, gid):
         return self._adapter._lookup.lookup_kind(gid) == arbor.cell_kind.spike_source
-
-    def _from_soma(self, gid):
-        return arbor.cell_global_label(gid, "soma_spike_detector")
-
-    def _to_soma(self):
-        return arbor.cell_local_label("soma_synapse")
 
     def probes(self, gid):
         return (
@@ -342,7 +369,11 @@ class ArborAdapter(SimulatorAdapter):
         report("MPI processes:", context.ranks, level=2)
         report("Threads per process:", context.threads, level=2)
         recipe = self.get_recipe()
+        # Gap junctions are required for domain decomposition
+        self._cache_gap_junctions()
+        print("STARTING LOAD BALANCE")
         self.domain = arbor.partition_load_balance(recipe, context)
+        print("LOAD BALANCED")
         self.gids = set(it.chain.from_iterable(g.gids for g in self.domain.groups))
         # Cache uses the domain decomposition to cache info per gid on this node. The
         # recipe functions use the cache, but luckily aren't called until
@@ -410,6 +441,21 @@ class ArborAdapter(SimulatorAdapter):
     def get_recipe(self):
         return ArborRecipe(self)
 
+    def _cache_gap_junctions(self):
+        self._gap_junctions_on = {}
+        for conn_set in self.scaffold.get_connectivity_sets():
+            if conn_set.is_orphan() or not len(conn_set):
+                continue
+            try:
+                conn_model = self.connection_models[conn_set.tag]
+            except KeyError:
+                raise AdapterError(f"Missing connection model `{conn_set.tag}`")
+            if not conn_model.gap:
+                continue
+            for conn in conn_set.intersections:
+                conn.model = conn_model
+                self._gap_junctions_on.setdefault(conn.from_id, []).append(conn)
+
     def _cache_connections(self):
         self._connections_on = {gid: ReceiverCollection() for gid in self.gids}
         self._connections_from = {gid: [] for gid in self.gids}
@@ -424,16 +470,13 @@ class ArborAdapter(SimulatorAdapter):
             if conn_model.gap:
                 continue
             w = conn_model.weight
-            conn_data = conn_set.get_dataset().astype(int)
-            if conn_set.has_compartment_data():
-                comp_data = conn_set.compartment_set.get_dataset()
-            else:
-                comp_data = np.ones(conn_data.shape) * -1
-            for (from_gid, to_gid), (comp_from, comp_on) in zip(conn_data, comp_data):
-                from_gid = int(from_gid)
+            for conn in conn_set.intersections:
+                from_gid = int(conn.from_id)
+                to_gid = int(conn.to_id)
+                comp_from = conn.from_compartment
+                comp_on = conn.to_compartment
                 if from_gid in self._connections_from:
                     self._connections_from[from_gid].append(comp_from)
-                to_gid = int(to_gid)
                 if to_gid in self._connections_on:
                     self._connections_on[to_gid].append(
                         conn_model.make_receiver(from_gid, comp_from, comp_on)
@@ -500,8 +543,8 @@ class ArborAdapter(SimulatorAdapter):
                 connections = connectivity_set.intersections
                 target = lambda c: (
                     c.to_id,
-                    c.from_compartment.id,
-                    c.to_compartment.id,
+                    c.from_compartment,
+                    c.to_compartment,
                     connection_model,
                 )
             for id in self.scaffold.get_placement_set(from_cell_type.name).identifiers:
