@@ -1,5 +1,5 @@
 import numpy as np, random
-from .morphologies import Morphology as BaseMorphology
+from .morphologies import Morphology as BaseMorphology, NilCompartment
 from .helpers import (
     ConfigurableClass,
     dimensions,
@@ -274,8 +274,19 @@ class Connection:
                     "Insufficient arguments given to Connection constructor."
                     + " If one of the 4 arguments for a detailed connection is given, all 4 are required."
                 )
-            self.from_compartment = from_morphology.compartments[from_compartment]
-            self.to_compartment = to_morphology.compartments[to_compartment]
+            if from_compartment < -1:
+                raise RuntimeError("Invalid compartment data")
+            elif from_compartment == -1:
+                self.from_compartment = NilCompartment()
+            else:
+                self.from_compartment = from_morphology.compartments[from_compartment]
+
+            if to_compartment < -1:
+                raise RuntimeError("Invalid compartment data")
+            elif to_compartment == -1:
+                self.to_compartment = NilCompartment()
+            else:
+                self.to_compartment = to_morphology.compartments[to_compartment]
 
 
 class ConnectivitySet(Resource):
