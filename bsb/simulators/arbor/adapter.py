@@ -622,7 +622,6 @@ class ArborAdapter(SimulatorAdapter):
         for device in self.devices.values():
             device_class = "".join(x.title() for x in device.device.split("_"))
             device._bootstrap(device_module[device_class])
-            device.initialise_targets()
 
     def _cache_devices(self):
         self._devices_on = {gid: [] for gid in self.gids}
