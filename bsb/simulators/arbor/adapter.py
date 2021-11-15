@@ -78,6 +78,8 @@ class ArborCell(SimulationCell):
         schedule = arbor.explicit_schedule([])
         for device in self.adapter._devices_on[gid]:
             pattern = device.get_pattern(gid)
+            if not pattern:
+                continue
             merged = pattern + schedule.events(0, float("inf"))
             schedule = arbor.explicit_schedule(merged)
         return schedule
