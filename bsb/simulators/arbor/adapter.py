@@ -298,10 +298,9 @@ class ArborRecipe(arbor.recipe):
         return self._global_properties
 
     def num_cells(self):
-        network = self._adapter.scaffold
-        s = sum(
-            len(ps) for ps in map(network.get_placement_set, network.get_cell_types())
-        )
+        adapter = self._adapter
+        network = adapter.scaffold
+        s = sum(len(ps) for ps in map(network.get_placement_set, adapter.cell_models))
         return s
 
     def num_sources(self, gid):
