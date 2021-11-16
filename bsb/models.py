@@ -478,18 +478,25 @@ class PlacementSet(Resource):
             raise DatasetNotFoundError("PlacementSet '{}' does not exist".format(tag))
         self.type = cell_type
         self.tag = tag
-        self.identifier_set = Resource(handler, root + tag + "/identifiers")
-        self.positions_set = Resource(handler, root + tag + "/positions")
-        self.rotation_set = Resource(handler, root + tag + "/rotations")
+        identifier_resource = Resource(handler, root + tag + "/identifiers")
+        self._filter = f = _Filter()
+
+        def id_source():
+            return np.array(
+                expand_continuity_list(identifier_resource.get_dataset()), dtype=int
+            )
+
+        self._filter.filter_source = id_source
+        self.identifier_set = _FilteredIds(handler, root + tag + "/identifiers", f)
+        self.positions_set = _FilteredResource(handler, root + tag + "/positions", f)
+        self.rotation_set = _FilteredResource(handler, root + tag + "/rotations", f)
 
     @property
     def identifiers(self):
         """
         Return a list of cell identifiers.
         """
-        return np.array(
-            expand_continuity_list(self.identifier_set.get_dataset()), dtype=int
-        )
+        return self.identifier_set.get_dataset()
 
     @property
     def positions(self):
@@ -546,6 +553,45 @@ class PlacementSet(Resource):
         """
         for i in range(len(self)):
             yield None
+
+    def set_filter(self, filter):
+        self._filter.active_filter = filter
+
+
+class _Filter:
+    """
+    To use, set an `active_filter` and `filter_source` function that return numpy arrays.
+
+    `filter_source` should return a dataset of the same shape as the `data` being filtered.
+    `active_filter` will then be called to create a boolean mask from `filter_source`,
+    applied as a filter on the data being filtered. (This means that `filter_source` and
+    `data` should be parallel arrays)
+    """
+
+    active_filter = None
+    filter_source = None
+
+    def filter(self, data):
+        if self.active_filter is None:
+            return data
+        return data[np.isin(self.filter_source(), self.active_filter())]
+
+
+class _FilteredResource(Resource):
+    def __init__(self, handler, path, filter):
+        super().__init__(handler, path)
+        self._filter = filter
+
+    def get_dataset(self, *args, **kwargs):
+        return self._filter.filter(super().get_dataset(*args, **kwargs))
+
+
+class _FilteredIds(_FilteredResource):
+    def get_dataset(self, *args, **kwargs):
+        data = np.array(
+            expand_continuity_list(Resource.get_dataset(self, *args, **kwargs)), dtype=int
+        )
+        return self._filter.filter(data)
 
 
 class Cell:

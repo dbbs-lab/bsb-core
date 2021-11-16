@@ -12,6 +12,7 @@ from .exceptions import *
 from .reporting import report, warn, has_mpi_installed, get_report_file
 from .config import JSONConfig
 import json
+import contextlib
 
 ###############################
 ## Scaffold class
@@ -673,6 +674,65 @@ class Scaffold:
         """
         self.output_formatter.create_output()
 
+    def partial_placement(self, place_types, append=False):
+        if append:
+            raise NotImplementedError(
+                "Coming in v4. Open an issue on GitHub if you require partial (re)placement with append before v4"
+            )
+        raise NotImplementedError(
+            "Coming in v4. Open an issue on GitHub if you require partial (re)placement before v4"
+        )
+
+    @contextlib.contextmanager
+    def partial_connect(self, conn_tags, append=False):
+        """
+        Creates a context in which you can execute connection strategies and will
+        partially compile only the given ``conn_tags`` afterwards.
+
+        Example
+        -------
+
+        .. code-block:: python
+
+          with network.partial_connect(["a_to_b", "b_to_c"]):
+            network.connection_types["a_to_b"].connect()
+            network.connection_types["b_to_c"].connect()
+
+        :param conn_tags: The connection **tags** to write to output. Each
+          connection type that you execute may produce 0, 1 or more tags.
+        :type conn_tags: List[str]
+        """
+        if append:
+            raise NotImplementedError(
+                "Coming in v4. Open an issue on GitHub if you require partial (re)connects with append before v4."
+            )
+        oc = self.cell_connections_by_tag
+        self.cell_connections_by_tag = {
+            cnt: np.zeros((0, 2), dtype=float)
+            for cnt, data in oc.items()
+            if cnt in conn_tags
+        }
+        warn(
+            "Temporary workaround (fix in v4) for partial connect of:"
+            + ", ".join(self.cell_connections_by_tag.keys()),
+        )
+        warn(
+            "Read data with `PlacementSet` and `ConnectivitySet`, do not use `cells_by_type` or `cell_connections_by_tag`!"
+        )
+        warn("Write data with `connect_cells`.")
+        yield
+        with self.output_formatter.load("a") as f:
+            f = f()
+            for tag in self.cell_connections_by_tag.keys():
+                for delgroup in (
+                    f"/cells/connections/{tag}",
+                    f"/cells/connection_compartments/{tag}",
+                    f"/cells/connection_morphologies/{tag}",
+                ):
+                    with contextlib.suppress(KeyError):
+                        del f[delgroup]
+            self.output_formatter.store_cell_connections(f["/cells"])
+
     def _connection_types_query(self, pre_query=[], post_query=[]):
         # Filter network connection types for any type that satisfies both
         # the presynaptic and postsynaptic query. Empty queries satisfy all
@@ -769,7 +829,7 @@ class Scaffold:
         """
         return self.output_formatter.get_connectivity_set(tag)
 
-    def get_placement_set(self, type):
+    def get_placement_set(self, type, labels=None):
         """
         Return a cell type's placement set from the output formatter.
 
@@ -780,7 +840,14 @@ class Scaffold:
         """
         if isinstance(type, str):
             type = self.get_cell_type(type)
-        return self.output_formatter.get_placement_set(type)
+        ps = self.output_formatter.get_placement_set(type)
+        if labels is not None:
+
+            def label_filter():
+                return np.concatenate(tuple(self.get_labelled_ids(l) for l in labels))
+
+            ps.set_filter(label_filter)
+        return ps
 
     def translate_cell_ids(self, data, cell_type):
         """
@@ -994,7 +1061,11 @@ class Scaffold:
         """
         Get all the global identifiers of cells labelled with the specific label.
         """
-        return np.array(self.labels[label], dtype=int)
+        try:
+            data = self.labels[label]
+        except KeyError:
+            data = []
+        return np.array(data, dtype=int)
 
     def get_cell_total(self):
         """

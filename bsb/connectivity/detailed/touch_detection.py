@@ -76,11 +76,13 @@ class TouchDetector(ConnectionStrategy, MorphologyStrategy):
                     to_cell_compartments,
                 )
                 touch_info.from_placement = self.scaffold.get_placement_set(
-                    from_cell_type
+                    from_cell_type, labels=[self.label_pre]
                 )
                 touch_info.from_positions = list(touch_info.from_placement.positions)
                 touch_info.from_identifiers = list(touch_info.from_placement.identifiers)
-                touch_info.to_placement = self.scaffold.get_placement_set(to_cell_type)
+                touch_info.to_placement = self.scaffold.get_placement_set(
+                    to_cell_type, labels=[self.label_post]
+                )
                 touch_info.to_identifiers = list(touch_info.to_placement.identifiers)
                 touch_info.to_positions = list(touch_info.to_placement.positions)
                 # Intersect cells on the widest possible search radius.
@@ -139,12 +141,12 @@ class TouchDetector(ConnectionStrategy, MorphologyStrategy):
         touching_cells = 0
         for i in range(len(candidate_map)):
             if i % 100 == 0:
-                percentage = 100*float(i)/float(len(candidate_map))            
+                percentage = 100 * float(i) / float(len(candidate_map))
                 report(
-                f"Connection progress: {percentage:.2f}%...",
-                level=2,
+                    f"Connection progress: {percentage:.2f}%...",
+                    level=2,
+                    ongoing=True,
                 )
-                counter = 0            
             from_id = touch_info.from_identifiers[i]
             touch_info.from_morphology = self.get_random_morphology(
                 touch_info.from_cell_type
