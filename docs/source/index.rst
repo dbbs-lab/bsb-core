@@ -17,6 +17,7 @@ The Brain Scaffold Builder
    placement
    morphologies/intro
    connectivity
+   simulation/simulation
 
 
 
