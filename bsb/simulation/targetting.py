@@ -35,15 +35,19 @@ class TargetsNeurons:
         target_ids = tree.query_radius([self.origin], self.radius)[0]
         return id_map[target_ids].astype(int).tolist()
 
-    def _targets_cylinder(self):
+    def _targets_cylinder(self, label=None):
         """
         Target all or certain cells within a cylinder of specified radius.
         """
+
+        if label is not None:
+            label = [label]
+
         if self.cell_types == ["mossy_fibers"]:
             target_cells = np.empty((0, 2))
             id_map = np.empty(0)
 
-            ps = self.scaffold.get_placement_set("glomerulus")
+            ps = self.scaffold.get_placement_set("glomerulus", labels=label)
             pos = ps.positions[:, [0, 2]]
             target_cells = np.vstack((target_cells, pos))
             id_map = np.concatenate((id_map, ps.identifiers))
@@ -91,7 +95,6 @@ class TargetsNeurons:
                 np.sum((target_cells[:, [0, 1]] - origin) ** 2, axis=1) < self.radius ** 2
             )
             return id_map[in_range_mask].astype(int).tolist()
-
 
     def _targets_cell_type(self):
         """
