@@ -500,6 +500,11 @@ class Scaffold:
         :param meta: Additional metadata to be stored on the connectivity set.
         :type meta: dict
         """
+        # Some array preprocessing
+        if not isinstance(connectome_data, np.ndarray):
+            connectome_data = np.array(connectome_data)
+        if len(connectome_data.shape) == 1:
+            connectome_data = connectome_data.reshape(-1, 2)
         # Allow 1 connection type to store multiple connectivity datasets by utilizing tags
         tag = tag or connection_type.name
         # Keep track of relevant tags in the connection_type object
@@ -580,7 +585,9 @@ class Scaffold:
         # Map data
         if use_map:
             data_map = use_map
-            data += len(attr_data[map_name])
+            if len(data):
+                # Using `+` on empty dataset errors
+                data += len(attr_data[map_name])
             mapped_data = np.array(data, dtype=int)
         else:
             mapped_data, data_map = map_ndarray(data, _map=attr_data[map_name])
