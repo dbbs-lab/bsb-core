@@ -11,6 +11,7 @@ from .exceptions import *
 from .models import ConnectivitySet, PlacementSet
 from sklearn.neighbors import KDTree
 import os, sys, functools
+import itertools as it
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "dbbs-models"))
 
@@ -277,8 +278,15 @@ class MorphologyRepository(HDF5TreeHandler):
         from patch import p
 
         cell = cls()
-        # Offset all points to the soma point
-        tx, ty, tz = cell.soma[0].x3d(0), cell.soma[0].y3d(0), cell.soma[0].z3d(0)
+        _roots = [s for s in cell.sections if s.parent is None]
+        try:
+            # Offset all points to the soma point
+            tx, ty, tz = cell.soma[0].x3d(0), cell.soma[0].y3d(0), cell.soma[0].z3d(0)
+        except:
+            # If there's no soma defined, offset to the center of the roots.
+            tx = np.mean([s.x3d(0) for s in _roots])
+            ty = np.mean([s.y3d(0) for s in _roots])
+            tz = np.mean([s.z3d(0) for s in _roots])
         # Create a map for some important data that is only available on the Patch objects
         # and that will be lost when we use NEURON's SectionRef to retrieve connected
         # Sections and return new, stripped Section objects without this data present.
@@ -314,7 +322,7 @@ class MorphologyRepository(HDF5TreeHandler):
 
         roots = []
         branch_map = {}
-        for section, parent in section_iter(cell.soma[0], None):
+        for section, parent in it.chain(*(section_iter(s, None) for s in _roots)):
             s_name = section.name()
             try:
                 unvisited.remove(s_name)
