@@ -38,6 +38,7 @@ autodoc_mock_imports = [
     "scipy",
     "six",
     "plotly",
+    "psutil",
 ]
 
 
