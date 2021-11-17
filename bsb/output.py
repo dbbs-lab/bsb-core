@@ -802,39 +802,39 @@ class HDF5Formatter(OutputFormatter, MorphologyRepository):
                 )
 
     def store_cell_connections(self, cells_group):
+        scf = self.scaffold
         connections_group = cells_group.require_group("connections")
         compartments_group = cells_group.require_group("connection_compartments")
         morphologies_group = cells_group.require_group("connection_morphologies")
-        for tag, connectome_data in self.scaffold.cell_connections_by_tag.items():
+        for tag, connectome_data in scf.cell_connections_by_tag.items():
+            _map = f"__map_{tag}"
             related_types = [
-                cnt
-                for cnt in self.scaffold.configuration.connection_types.values()
-                if tag in cnt.tags
+                conn_t
+                for conn_t in scf.configuration.connection_types.values()
+                if tag in conn_t.tags
             ]
             connection_dataset = connections_group.create_dataset(
                 tag, data=connectome_data
             )
             connection_dataset.attrs["tag"] = tag
-            connection_dataset.attrs["connection_types"] = list(
-                map(lambda x: x.name, related_types)
-            )
+            connection_dataset.attrs["connection_types"] = [t.name for t in related_types]
             connection_dataset.attrs["connection_type_classes"] = list(
                 map(get_qualified_class_name, related_types)
             )
-            if tag in self.scaffold._connectivity_set_meta:
-                meta_dict = self.scaffold._connectivity_set_meta[tag]
+            if tag in scf._connectivity_set_meta:
+                meta_dict = scf._connectivity_set_meta[tag]
                 for key in meta_dict:
                     connection_dataset.attrs[key] = meta_dict[key]
-            if tag in self.scaffold.connection_compartments:
+            if tag in scf.connection_compartments:
                 compartments_group.create_dataset(
-                    tag, data=self.scaffold.connection_compartments[tag], dtype=int
+                    tag, data=scf.connection_compartments[tag], dtype=int
                 )
                 morphology_dataset = morphologies_group.create_dataset(
-                    tag, data=self.scaffold.connection_morphologies[tag], dtype=int
+                    tag, data=scf.connection_morphologies[tag], dtype=int
                 )
-                morphology_dataset.attrs["map"] = self.scaffold.connection_morphologies[
-                    tag + "_map"
-                ]
+                # Sanitize values to pure Python strings. H5py errors on numpy str
+                safe_map = [str(x) for x in scf.connection_morphologies[_map]]
+                morphology_dataset.attrs["map"] = safe_map
 
     def store_labels(self, cells_group):
         labels_group = cells_group.create_group("labels")

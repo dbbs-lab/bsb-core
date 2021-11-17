@@ -69,6 +69,18 @@ class Compartment:
         return c
 
 
+class NilCompartment(Compartment):
+    def __init__(self):
+        self.id = -1
+        self.start = float("nan")
+        self.end = float("nan")
+        self.radius = float("nan")
+        self.labels = []
+        self.parent = None
+        self.section_id = None
+        self.morphology = None
+
+
 def branch_iter(branch):
     """
     Iterate over a branch and all of its children depth first.

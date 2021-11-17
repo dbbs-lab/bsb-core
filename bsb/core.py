@@ -394,8 +394,6 @@ class Scaffold:
         report("Simulation runtime: {}".format(time_sim), level=2)
         if quit and hasattr(simulator, "quit"):
             simulator.quit()
-        time_sim = time.time() - t
-        report("Simulation runtime: {}".format(time_sim), level=2)
         return result_path
 
     def get_simulation(self, simulation_name):
@@ -502,6 +500,11 @@ class Scaffold:
         :param meta: Additional metadata to be stored on the connectivity set.
         :type meta: dict
         """
+        # Some array preprocessing
+        if not isinstance(connectome_data, np.ndarray):
+            connectome_data = np.array(connectome_data)
+        if len(connectome_data.shape) == 1:
+            connectome_data = connectome_data.reshape(-1, 2)
         # Allow 1 connection type to store multiple connectivity datasets by utilizing tags
         tag = tag or connection_type.name
         # Keep track of relevant tags in the connection_type object
@@ -575,28 +578,28 @@ class Scaffold:
         Appends or creates the data with a map to a tagged numpy array in a dictionary
         attribute of the scaffold.
         """
+        attr_data = getattr(self, attr)
+        map_name = f"__map_{tag}"
+        if map_name not in attr_data:
+            attr_data[map_name] = []
         # Map data
-        if use_map:  # Is the data already mapped and should we use the given map?
-            if not attr + "_map" in self.__dict__[attr]:
-                self.__dict__[attr][tag + "_map"] = use_map.copy()
-            else:
-                data += len(self.__dict__[attr][tag + "_map"])
-                self.__dict__[attr][tag + "_map"].extend(use_map)
+        if use_map:
+            data_map = use_map
+            if len(data):
+                # Using `+` on empty dataset errors
+                data += len(attr_data[map_name])
             mapped_data = np.array(data, dtype=int)
         else:
-            if not attr + "_map" in self.__dict__[attr]:
-                self.__dict__[attr][tag + "_map"] = []
-            mapped_data, data_map = map_ndarray(
-                data, _map=self.__dict__[attr][tag + "_map"]
-            )
+            mapped_data, data_map = map_ndarray(data, _map=attr_data[map_name])
             mapped_data = np.array(mapped_data, dtype=int)
+        attr_data[map_name].extend(data_map)
 
         # Append data
-        if tag in self.__dict__[attr]:
-            cache = self.__dict__[attr][tag]
-            self.__dict__[attr][tag] = np.concatenate((cache, mapped_data))
+        if tag in attr_data:
+            cache = attr_data[tag]
+            attr_data[tag] = np.concatenate((cache, mapped_data))
         else:
-            self.__dict__[attr][tag] = np.copy(mapped_data)
+            attr_data[tag] = np.copy(mapped_data)
 
     def append_dset(self, name, data):
         """

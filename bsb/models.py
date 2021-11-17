@@ -1,5 +1,5 @@
 import numpy as np, random
-from .morphologies import Morphology as BaseMorphology
+from .morphologies import Morphology as BaseMorphology, NilCompartment
 from .helpers import (
     ConfigurableClass,
     dimensions,
@@ -263,19 +263,19 @@ class Connection:
             or from_morphology is not None
             or to_morphology is not None
         ):
-            # If one of the 4 arguments for a detailed connection is given, all 4 are required.
-            if (
-                from_compartment is None
-                or to_compartment is None
-                or from_morphology is None
-                or to_morphology is None
-            ):
-                raise RuntimeError(
-                    "Insufficient arguments given to Connection constructor."
-                    + " If one of the 4 arguments for a detailed connection is given, all 4 are required."
-                )
-            self.from_compartment = from_morphology.compartments[from_compartment]
-            self.to_compartment = to_morphology.compartments[to_compartment]
+            if from_compartment < -1:
+                raise RuntimeError("Invalid compartment data")
+            elif from_compartment == -1:
+                self.from_compartment = NilCompartment()
+            else:
+                self.from_compartment = from_morphology.compartments[from_compartment]
+
+            if to_compartment < -1:
+                raise RuntimeError("Invalid compartment data")
+            elif to_compartment == -1:
+                self.to_compartment = NilCompartment()
+            else:
+                self.to_compartment = to_morphology.compartments[to_compartment]
 
 
 class ConnectivitySet(Resource):
@@ -291,6 +291,15 @@ class ConnectivitySet(Resource):
         self.tag = tag
         self.compartment_set = Resource(handler, "/cells/connection_compartments/" + tag)
         self.morphology_set = Resource(handler, "/cells/connection_morphologies/" + tag)
+
+    def has_compartment_data(self):
+        """
+        Check if compartment data exists for this connectivity set.
+        """
+        return self.compartment_set.exists()
+
+    def is_orphan(self):
+        return not bool(self.attributes["connection_types"])
 
     @property
     def connections(self):
@@ -320,18 +329,11 @@ class ConnectivitySet(Resource):
         Return a list of :class:`Intersections <.models.Connection>`. Intersections
         contain pre- & postsynaptic identifiers and the intersecting compartments.
         """
-        if not self.compartment_set.exists():
-            raise MissingMorphologyError(
-                "No intersection/morphology information for the '{}' connectivity set.".format(
-                    self.tag
-                )
-            )
-        else:
-            return self.get_intersections()
+        return self.get_intersections()
 
     def get_intersections(self):
         intersections = []
-        morphos = {}
+        morphos = {-1: None}
 
         def _cache_morpho(id):
             # Keep a cache of the morphologies so that all morphologies with the same
@@ -344,9 +346,14 @@ class ConnectivitySet(Resource):
                 morphos[id] = self.scaffold.morphology_repository.get_morphology(name)
 
         cells = self.get_dataset()
-        for cell_ids, comp_ids, morpho_ids in zip(
-            cells, self.compartment_set.get_dataset(), self.morphology_set.get_dataset()
-        ):
+        if self.has_compartment_data():
+            comp_data = self.compartment_set.get_dataset()
+            morpho_data = self.morphology_set.get_dataset()
+        else:
+            comp_data = np.ones(cells.shape) * -1
+            morpho_data = np.ones(cells.shape) * -1
+
+        for cell_ids, comp_ids, morpho_ids in zip(cells, comp_data, morpho_data):
             from_morpho_id = int(morpho_ids[0])
             to_morpho_id = int(morpho_ids[1])
             # Load morphologies from the map if they're not in the cache yet

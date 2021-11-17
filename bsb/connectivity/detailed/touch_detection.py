@@ -111,6 +111,8 @@ class TouchDetector(ConnectionStrategy, MorphologyStrategy):
         to_cell_tree = self.scaffold.trees.cells.get_planar_tree(
             to_cell_type.name, plane=cell_plane
         )
+        if from_cell_tree is None or to_cell_tree is None:
+            return []
         from_count = self.scaffold.get_placed_count(from_cell_type.name)
         to_count = self.scaffold.get_placed_count(to_cell_type.name)
         if hasattr(self, "cell_intersection_radius"):
