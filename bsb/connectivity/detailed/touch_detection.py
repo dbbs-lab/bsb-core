@@ -61,6 +61,8 @@ class TouchDetector(ConnectionStrategy, MorphologyStrategy):
         )
 
     def connect(self):
+        labels_pre = None if self.label_pre is None else [self.label_pre]
+        labels_post = None if self.label_post is None else [self.label_post]
         # Create a dictionary to cache loaded morphologies.
         self.morphology_cache = {}
         for from_cell_type_index in range(len(self.from_cell_types)):
@@ -76,12 +78,12 @@ class TouchDetector(ConnectionStrategy, MorphologyStrategy):
                     to_cell_compartments,
                 )
                 touch_info.from_placement = self.scaffold.get_placement_set(
-                    from_cell_type, labels=[self.label_pre]
+                    from_cell_type, labels=labels_pre
                 )
                 touch_info.from_positions = list(touch_info.from_placement.positions)
                 touch_info.from_identifiers = list(touch_info.from_placement.identifiers)
                 touch_info.to_placement = self.scaffold.get_placement_set(
-                    to_cell_type, labels=[self.label_post]
+                    to_cell_type, labels=labels_post
                 )
                 touch_info.to_identifiers = list(touch_info.to_placement.identifiers)
                 touch_info.to_positions = list(touch_info.to_placement.positions)

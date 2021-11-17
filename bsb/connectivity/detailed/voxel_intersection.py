@@ -43,18 +43,16 @@ class VoxelIntersection(ConnectionStrategy, MorphologyStrategy):
 
         p = index.Property(dimension=3)
         to_cell_tree = index.Index(properties=p)
+        labels_pre = None if self.label_pre is None else [self.label_pre]
+        labels_post = None if self.label_post is None else [self.label_post]
 
         # Select all the cells from the pre- & postsynaptic type for a specific connection.
         from_type = self.from_cell_types[0]
         from_compartments = self.from_cell_compartments[0]
         to_compartments = self.to_cell_compartments[0]
         to_type = self.to_cell_types[0]
-        from_placement_set = self.scaffold.get_placement_set(
-            from_type.name, labels=[self.label_pre]
-        )
-        to_placement_set = self.scaffold.get_placement_set(
-            to_type.name, labels=[self.label_post]
-        )
+        from_ps = self.scaffold.get_placement_set(from_type.name, labels=labels_pre)
+        to_ps = self.scaffold.get_placement_set(to_type.name, labels=labels_post)
         from_cells = self.scaffold.get_cells_by_type(from_type.name)
         to_cells = self.scaffold.get_cells_by_type(to_type.name)
 
@@ -62,14 +60,14 @@ class VoxelIntersection(ConnectionStrategy, MorphologyStrategy):
         from_morphology_set = MorphologySet(
             scaffold,
             from_type,
-            from_placement_set,
+            from_ps,
             compartment_types=from_compartments,
             N=self.voxels_pre,
         )
         to_morphology_set = MorphologySet(
             scaffold,
             to_type,
-            to_placement_set,
+            to_ps,
             compartment_types=to_compartments,
             N=self.voxels_post,
         )
