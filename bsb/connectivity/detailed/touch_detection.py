@@ -63,7 +63,6 @@ class TouchDetector(ConnectionStrategy, MorphologyStrategy):
     def connect(self):
         labels_pre = None if self.label_pre is None else [self.label_pre]
         labels_post = None if self.label_post is None else [self.label_post]
-        # Create a dictionary to cache loaded morphologies.
         self.morphology_cache = {}
         for from_cell_type_index in range(len(self.from_cell_types)):
             from_cell_type = self.from_cell_types[from_cell_type_index]
@@ -210,12 +209,11 @@ class TouchDetector(ConnectionStrategy, MorphologyStrategy):
     def get_compartment_intersections(self, touch_info, from_pos, to_pos):
         from_morpho = touch_info.from_morphology
         to_morpho = touch_info.to_morphology
-        query_points = (
-            to_morpho.get_compartment_positions(touch_info.to_cell_compartments)
-            + to_pos
-            - from_pos
-        )
+        to_comps = to_morpho.get_compartment_positions(touch_info.to_cell_compartments)
         from_tree = from_morpho.get_compartment_tree(touch_info.from_cell_compartments)
+        if from_tree is None or not to_comps:
+            return []
+        query_points = to_comps + to_pos - from_pos
         compartment_hits = from_tree.query_radius(
             query_points, self.compartment_intersection_radius
         )

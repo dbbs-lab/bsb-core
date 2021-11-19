@@ -426,14 +426,18 @@ class Morphology:
         return node_list
 
     def get_compartment_positions(self, labels=None):
-        if labels is None:
-            return self.compartment_tree.get_arrays()[0]
-        return [c.end for c in self.get_compartments(labels=labels)]
+        comp_pos = [c.end for c in self.get_compartments(labels=labels)]
+        return np.array(comp_pos).reshape(-1, 3)
 
     def get_compartment_tree(self, labels=None):
-        if labels is not None:
-            return _compartment_tree(self.get_compartments(labels=labels))
-        return self.compartment_tree
+        if labels is None:
+            return self.compartment_tree
+        else:
+            labelled_comps = self.get_compartments(labels=labels)
+            if labelled_comps:
+                return _compartment_tree(labelled_comps)
+            else:
+                return None
 
     def get_compartment_submask(self, labels):
         ## TODO: Remove; voxelintersection & touchdetection audit should make this code
@@ -463,10 +467,11 @@ class Morphology:
 
 
 def _compartment_tree(compartments):
-    comp_matrix = np.array([c.end for c in compartments])
-    if not len(comp_matrix):
-        comp_matrix = np.array([[float("nan"), float("nan"), float("nan")]])
-    return KDTree(comp_matrix)
+    return KDTree(np.array([c.end for c in compartments]))
+
+
+class EmptyTree:
+    pass
 
 
 class Representation(ConfigurableClass):
