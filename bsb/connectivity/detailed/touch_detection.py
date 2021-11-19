@@ -211,7 +211,7 @@ class TouchDetector(ConnectionStrategy, MorphologyStrategy):
         to_morpho = touch_info.to_morphology
         to_comps = to_morpho.get_compartment_positions(touch_info.to_cell_compartments)
         from_tree = from_morpho.get_compartment_tree(touch_info.from_cell_compartments)
-        if from_tree is None or not to_comps:
+        if from_tree is None or not len(to_comps):
             return []
         query_points = to_comps + to_pos - from_pos
         compartment_hits = from_tree.query_radius(
