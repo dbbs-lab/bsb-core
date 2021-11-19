@@ -465,7 +465,7 @@ class Morphology:
 def _compartment_tree(compartments):
     comp_matrix = np.array([c.end for c in compartments])
     if not len(comp_matrix):
-        comp_matrix = comp_matrix.reshape(-1, 3)
+        comp_matrix = np.array([[float("nan"), float("nan"), float("nan")]])
     return KDTree(comp_matrix)
 
 
