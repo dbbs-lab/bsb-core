@@ -234,7 +234,7 @@ class QuickContains:
             self._kind = arbor.cell_kind.cable
         self._ranges = [
             (start, start + count)
-            for start, count in continuity_hop(iter(ps.identifier_set.get_dataset()))
+            for start, count in continuity_hop(iter(ps._identifiers.get_dataset()))
         ]
 
     def __contains__(self, i):
@@ -259,7 +259,7 @@ class QuickLookup:
         try:
             return next(c for c in self._contains if gid in c)
         except StopIteration:
-            raise GidLookupError(f"Can't find gid {gid}.")
+            raise UnknownGIDError(f"Can't find gid {gid}.") from None
 
 
 class ArborRecipe(arbor.recipe):
