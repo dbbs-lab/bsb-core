@@ -478,12 +478,12 @@ class PlacementSet(Resource):
             raise DatasetNotFoundError("PlacementSet '{}' does not exist".format(tag))
         self.type = cell_type
         self.tag = tag
-        identifier_resource = Resource(handler, root + tag + "/identifiers")
+        self._identifiers = Resource(handler, root + tag + "/identifiers")
         self._filter = f = _Filter()
 
         def id_source():
             return np.array(
-                expand_continuity_list(identifier_resource.get_dataset()), dtype=int
+                expand_continuity_list(self._identifiers.get_dataset()), dtype=int
             )
 
         self._filter.filter_source = id_source
