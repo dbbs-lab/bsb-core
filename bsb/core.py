@@ -1184,3 +1184,15 @@ class ReportListener:
             + str(progress.time),
             token="simulation_progress",
         )
+
+
+def register_cell_targetting(name, f):
+    from .simulation.targetting import TargetsNeurons
+
+    setattr(TargetsNeurons, f"_targets_{name}", f)
+
+
+def register_section_targetting(name, f):
+    from .simulation.targetting import TargetsSections
+
+    setattr(TargetsSections, f"_section_target_{name}", f)
