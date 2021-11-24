@@ -39,7 +39,7 @@ class ConnectomeGlomerulusGolgi(ConnectionStrategy):
         first_glomerulus = int(glomeruli[0, 0])
         r_goc_vol = golgi_cell_type.morphology.dendrite_radius
         if self.detailed:
-            compartments = np.zeros((0, 2))
+            compartments = np.ones((0, 2)) * -1
             comps = self.dendritic_compartments
             total_compartments = len(comps)
 
@@ -78,7 +78,7 @@ class ConnectomeGlomerulusGolgi(ConnectionStrategy):
                     # Compose an empty connection matrix to hold the connection records
                     matrix = np.zeros((total_contacts, 2))
                     # Holds the connection_compartments for this golgi cell
-                    gg_comps = np.zeros(matrix.shape)
+                    gg_comps = np.ones(matrix.shape) * -1
                     # Draw rolls from the exponential distribution equal to the total amount
                     # of synaptic contacts to be made between this Golgi cell and all its
                     # glomeruli.

@@ -438,6 +438,8 @@ class MorphologyRepository(HDF5TreeHandler):
         """
         Load a morphology from repository data
         """
+        if name.startswith("b'"):
+            name = name[2:-1]
         with self.load() as handler:
             # Check if morphology exists
             if not self.morphology_exists(name):

@@ -127,7 +127,7 @@ class ConnectomeGlomerulusGranule(ConnectionStrategy):
                     raise ConnectivityError(
                         "Attempt to connect a glomerulus to a fully saturated granule cell."
                     )
-                compartments.append([0, unoccupied_claw])
+                compartments.append([-1, unoccupied_claw])
             self.scaffold.connect_cells(
                 self,
                 connectome,

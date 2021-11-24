@@ -947,7 +947,7 @@ class Scaffold:
         beginnings = set()
         ends = dict()
         for ct in self.get_cell_types():
-            stretch = ct.get_placement_set().identifier_set.get_dataset()
+            stretch = ct.get_placement_set()._identifiers.get_dataset()
             if len(stretch) != 2:
                 raise ContinuityError(
                     f"Discontinuities in `{ct.name}`:"

@@ -95,6 +95,9 @@ class ArborCell(SimulationCell):
         pwlin = arbor.place_pwlin(morphology)
 
         def comp_label(comp):
+            if comp.id == -1:
+                warn(f"Encountered nil compartment on {gid}")
+                return
             loc, d = pwlin.closest(*comp.start)
             if d > 0.0001:
                 raise AdapterError(f"Couldn't find {comp.start}, on {self._str(gid)}")
@@ -104,6 +107,7 @@ class ArborCell(SimulationCell):
         comps_on = (rcv.comp_on for rcv in self.adapter._connections_on[gid])
         gaps = (c.to_compartment for c in self.adapter._gap_junctions_on.get(gid, []))
         it.consume(comp_label(i) for i in it.chain(comps_from, comps_on, gaps))
+        labels[self.default_endpoint] = "(root)"
         return labels
 
     def _str(self, gid):
@@ -234,7 +238,7 @@ class QuickContains:
             self._kind = arbor.cell_kind.cable
         self._ranges = [
             (start, start + count)
-            for start, count in continuity_hop(iter(ps.identifier_set.get_dataset()))
+            for start, count in continuity_hop(iter(ps._identifiers.get_dataset()))
         ]
 
     def __contains__(self, i):
@@ -259,7 +263,7 @@ class QuickLookup:
         try:
             return next(c for c in self._contains if gid in c)
         except StopIteration:
-            raise GidLookupError(f"Can't find gid {gid}.")
+            raise UnknownGIDError(f"Can't find gid {gid}.") from None
 
 
 class ArborRecipe(arbor.recipe):
