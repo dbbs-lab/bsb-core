@@ -518,7 +518,7 @@
           "targetting": "by_label",
           "labels": ["grc_active_dends_*"],
           "cell_count": 2,
-          "section_type": "soma"
+          "section_types": ["soma"]
         }
       }
     }
