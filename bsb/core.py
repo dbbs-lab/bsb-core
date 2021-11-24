@@ -1174,6 +1174,13 @@ def merge(output_file, *others, label_prefix="merged_"):
     return merged
 
 
+def get_mrepo(file):
+    """
+    Shortcut function to create :class:`.output.MorphologyRepository`
+    """
+    return MorphologyRepository(file)
+
+
 class ReportListener:
     def __init__(self, scaffold, file):
         self.file = file
