@@ -139,9 +139,6 @@ class TargetsNeurons:
         # Broadcast to make sure all the nodes have the same targets for each device.
         self._targets = self.scaffold.MPI.COMM_WORLD.bcast(targets, root=0)
 
-    # Define new targetting methods above this line or they will not be registered.
-    neuron_targetting_types = [s[9:] for s in vars().keys() if s.startswith("_targets_")]
-
 
 class TargetsSections:
     def target_section(self, cell):

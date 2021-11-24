@@ -591,9 +591,9 @@ def map_ndarray(data, _map=None):
         if len(a.shape) > 1:
             for i, b in enumerate(a):
                 n[i] = n_dim_map(b)
-            return n
         else:
-            return list(map(map_1d_array, a))
+            n[:] = list(map(map_1d_array, a))
+        return n
 
     _mapped = n_dim_map(data)
     return _mapped, _map

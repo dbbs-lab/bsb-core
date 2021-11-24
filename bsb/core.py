@@ -590,6 +590,10 @@ class Scaffold:
                 data += len(attr_data[map_name])
             mapped_data = np.array(data, dtype=int)
         else:
+            if data.dtype.type is np.string_:
+                # Explicitly cast numpy strings to str so they don't yield
+                # `b'morphology_name'` when stored as attribute by hdf5.
+                data = data.astype(str)
             mapped_data, data_map = map_ndarray(data, _map=attr_data[map_name])
             mapped_data = np.array(mapped_data, dtype=int)
         attr_data[map_name].extend(data_map)
@@ -1191,3 +1195,15 @@ class ReportListener:
             + str(progress.time),
             token="simulation_progress",
         )
+
+
+def register_cell_targetting(name, f):
+    from .simulation.targetting import TargetsNeurons
+
+    setattr(TargetsNeurons, f"_targets_{name}", f)
+
+
+def register_section_targetting(name, f):
+    from .simulation.targetting import TargetsSections
+
+    setattr(TargetsSections, f"_section_target_{name}", f)
