@@ -354,6 +354,8 @@ class CerebellumLabels(PostProcessingHook):
         cpos = {id: [] for id in mf_ids}
         for mf_id, glom_pos in zip(mf_glom[:, 0], glom_positions):
             cpos[mf_id].append(glom_pos)
+        # Filter out MF without any glom connected to them.
+        cpos = {id: pos for id, pos in cpos.items() if len(pos) > 0}
         centroids = np.array(
             [np.mean(cp, axis=0) if len(cp) else np.nan for cp in cpos.values()]
         )
