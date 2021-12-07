@@ -518,7 +518,7 @@ class ArborAdapter(SimulatorAdapter):
                 continue
             for conn in conn_set.intersections:
                 conn.model = conn_model
-                self._gap_junctions_on.setdefault(conn.from_id, []).append(conn)
+                self._gap_junctions_on.setdefault(conn.to_id, []).append(conn)
 
     def _cache_connections(self):
         self._connections_on = {gid: ReceiverCollection() for gid in self.gids}
