@@ -92,15 +92,20 @@ class ArborCell(SimulationCell):
         return decor
 
     def _add_labels(self, gid, labels, morphology):
-        pwlin = arbor.place_pwlin(morphology)
+        root = pwlin.at(arbor.location(0, 0))
+        pwlin = arbor.place_pwlin(
+            morphology, arbor.isometry.translate(-root.x, -root.y, -root.z)
+        )
 
         def comp_label(comp):
             if comp.id == -1:
                 warn(f"Encountered nil compartment on {gid}")
                 return
             loc, d = pwlin.closest(*comp.start)
-            if d > 0.0001:
-                raise AdapterError(f"Couldn't find {comp.start}, on {self._str(gid)}")
+            if d > 10:
+                raise AdapterError(
+                    f"Couldn't find {comp.start}, on {self._str(gid)}, d = {d}"
+                )
             labels[f"comp_{comp.id}"] = str(loc)
 
         comps_from = self.adapter._connections_from[gid]
@@ -321,7 +326,7 @@ class ArborRecipe(arbor.recipe):
         if self._is_relay(gid):
             return []
         return [
-            arbor.connection(rcv.from_(), rcv.on(), rcv.weight, rcv.delay)
+            arbor.connection(rcv.from_(), rcv.on(), rcv.weight, rcv.delay + 2)
             for rcv in self._adapter._connections_on[gid]
         ]
 
@@ -343,9 +348,6 @@ class ArborRecipe(arbor.recipe):
                 device.register_probe_id(gid, tag)
             probes.extend(device_probes)
         return probes
-
-    def _name_of(self, gid):
-        return self._adapter._lookup._lookup(gid)._type.name
 
 
 class ArborAdapter(SimulatorAdapter):
@@ -393,14 +395,14 @@ class ArborAdapter(SimulatorAdapter):
                 str(e) + " The arbor adapter requires completely continuous GIDs."
             ) from None
         try:
-            context = arbor.context(arbor.proc_allocation(self.threads), mpi)
+            context = arbor.context(arbor.proc_allocation(self.threads, gpu_id=0), mpi)
         except TypeError:
             if mpi.Get_size() > 1:
                 s = mpi.Get_size()
                 warn(
                     f"Arbor does not seem to be built with MPI support, running duplicate simulations on {s} nodes."
                 )
-            context = arbor.context(arbor.proc_allocation(self.threads))
+            context = arbor.context(arbor.proc_allocation(self.threads, gpu_id=0))
         if self.profiling and arbor.config()["profiling"]:
             report("enabling profiler", level=2)
             arbor.profiler_initialize(context)
@@ -685,3 +687,6 @@ class ArborAdapter(SimulatorAdapter):
             targets = device.get_targets()
             for target in targets:
                 self._devices_on[target].append(device)
+
+    def _name_of(self, gid):
+        return self._lookup._lookup(gid)._type.name
