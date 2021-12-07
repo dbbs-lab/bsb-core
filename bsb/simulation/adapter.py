@@ -124,6 +124,7 @@ class SimulatorAdapter(ConfigurableClass):
         for listener in self._progress_listeners:
             listener(progress)
         self._last_progtic = now
+        return progress
 
     def step_progress(self, duration, step=1):
         steps = itertools.chain(np.arange(0, duration), (duration,))
