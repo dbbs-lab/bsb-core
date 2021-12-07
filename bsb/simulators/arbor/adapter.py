@@ -134,10 +134,6 @@ class ArborCell(SimulationCell):
     def _create_gaps(self, gid, decor):
         done = set()
         for conn in self.adapter._gap_junctions_on.get(gid, []):
-            if gid == 0:
-                print(
-                    f"{conn.from_id}\t{conn.to_id}\t{conn.from_compartment.id}\t{conn.to_compartment.id}"
-                )
             comp = conn.to_compartment
             if comp.id in done:
                 continue
