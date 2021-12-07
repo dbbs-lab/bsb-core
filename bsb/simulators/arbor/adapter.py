@@ -392,6 +392,7 @@ class ArborAdapter(SimulatorAdapter):
         self.result = SimulationResult()
 
     def prepare(self):
+        mpi = arbor.mpi_comm()
         try:
             self.scaffold.assert_continuity()
         except AssertionError as e:
