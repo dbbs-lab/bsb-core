@@ -92,6 +92,7 @@ class ArborCell(SimulationCell):
         return decor
 
     def _add_labels(self, gid, labels, morphology):
+        pwlin = arbor.place_pwlin(morphology)
         root = pwlin.at(arbor.location(0, 0))
         pwlin = arbor.place_pwlin(
             morphology, arbor.isometry.translate(-root.x, -root.y, -root.z)
