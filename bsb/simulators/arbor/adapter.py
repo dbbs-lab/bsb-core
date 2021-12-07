@@ -133,17 +133,17 @@ class ArborCell(SimulationCell):
 
     def _create_gaps(self, gid, decor):
         done = set()
-        if gid == 0:
-            print(self.adapter._gap_junctions_on.get(gid, []))
         for conn in self.adapter._gap_junctions_on.get(gid, []):
+            if gid == 0:
+                print(
+                    f"{conn.from_id}\t{conn.to_id}\t{conn.from_compartment.id}\t{conn.to_compartment.id}"
+                )
             comp = conn.to_compartment
             if comp.id in done:
                 continue
             else:
                 done.add(comp.id)
             decor.place(f'"comp_{comp.id}"', arbor.junction("gj"), f"gap_{comp.id}")
-            if gid == 0:
-                print("added", f"gap_{comp.id}")
 
     def _create_receivers(self, gid, decor):
         for rcv in self.adapter._connections_on[gid]:
