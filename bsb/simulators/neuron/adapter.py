@@ -423,7 +423,8 @@ class NeuronAdapter(SimulatorAdapter):
                     cell.create_transmitter(cell.sections[section_id], gid)
                     tcount += 1
         except Exception as e:
-            errr.wrap(TransmitterError, e, prepend=f"[{cell_id}] ")
+            cell.create_transmitter(cell.soma[0], gid)
+            # errr.wrap(TransmitterError, e, prepend=f"[{cell_id}] ")
 
         report(
             f"Node {self.get_rank()} created {tcount} transmitters",
