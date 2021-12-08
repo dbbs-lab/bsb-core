@@ -499,9 +499,11 @@ class NeuronAdapter(SimulatorAdapter):
                             try:
                                 cell.create_receiver(section, gid, synapse_type)
                             except Exception as e:
-                                raise ScaffoldError(
-                                    "[" + connection_model.name + "] " + str(e)
-                                ) from None
+                                section.labels.extend(["apical_dendrites", "basal_dendrites", "sc_targets", "pf_targets", "aa_targets", "soma"])
+                                cell.create_receiver(section, gid, synapse_type)
+                                # raise ScaffoldError(
+                                #     "[" + connection_model.name + "] " + str(e)
+                                # ) from None
 
     def create_neurons(self):
         for cell_model in self.cell_models.values():
