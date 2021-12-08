@@ -363,15 +363,18 @@ class ArborAdapter(SimulatorAdapter):
     casts = {
         "duration": float,
         "resolution": float,
+        "gpu": bool,
     }
 
     required = ["duration"]
 
-    defaults = {"threads": 1, "profiling": True, "resolution": 0.025}
+    defaults = {"threads": 1, "gpu": False, "profiling": True, "resolution": 0.025}
 
     def validate(self):
         if self.threads == "all":
             self.threads = psutil.cpu_count(logical=False)
+        elif self.threads == "hyper":
+            self.threads = psutil.cpu_count(logical=True)
 
     def get_rank(self):
         return mpi.Get_rank()
@@ -389,22 +392,13 @@ class ArborAdapter(SimulatorAdapter):
         self.result = SimulationResult()
 
     def prepare(self):
-        mpi = arbor.mpi_comm()
+        context = self.get_context()
         try:
             self.scaffold.assert_continuity()
         except AssertionError as e:
             raise AssertionError(
                 str(e) + " The arbor adapter requires completely continuous GIDs."
             ) from None
-        try:
-            context = arbor.context(arbor.proc_allocation(self.threads, gpu_id=0), mpi)
-        except TypeError:
-            if mpi.Get_size() > 1:
-                s = mpi.Get_size()
-                warn(
-                    f"Arbor does not seem to be built with MPI support, running duplicate simulations on {s} nodes."
-                )
-            context = arbor.context(arbor.proc_allocation(self.threads, gpu_id=0))
         if self.profiling and arbor.config()["profiling"]:
             report("enabling profiler", level=2)
             arbor.profiler_initialize(context)
@@ -429,6 +423,24 @@ class ArborAdapter(SimulatorAdapter):
         self.prepare_samples(simulation)
         report("prepared simulation", level=1)
         return simulation
+
+    def get_context(self):
+        mpi = arbor.mpi_comm()
+        if self.gpu:
+            alloc = arbor.proc_allocation(self.threads, gpu_id=0)
+        else:
+            alloc = arbor.proc_allocation(self.threads)
+        try:
+            context = arbor.context(alloc, mpi)
+        except TypeError:
+            if mpi.Get_size() > 1:
+                s = mpi.Get_size()
+                warn(
+                    f"Arbor does not seem to be built with MPI support, running duplicate simulations on {s} nodes."
+                )
+            context = arbor.context(alloc)
+
+        return context
 
     def prepare_samples(self, sim):
         for device in self.devices.values():
