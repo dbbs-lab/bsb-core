@@ -31,15 +31,16 @@ class SpikeGenerator(NeuronDevice):
                 pattern = self.get_pattern(target, cell, section, synapse_type)
                 synapse.stimulate(pattern=pattern, weight=1)
             else:
-                warn(
-                    "{} targets {} {} with a {} synapse but it doesn't exist on {}".format(
-                        self.name,
-                        cell.__class__.__name__,
-                        cell.ref_id,
-                        synapse_type,
-                        ",".join(section.labels),
-                    )
-                )
+                pass
+                # warn(
+                #     "{} targets {} {} with a {} synapse but it doesn't exist on {}".format(
+                #         self.name,
+                #         cell.__class__.__name__,
+                #         cell.ref_id,
+                #         synapse_type,
+                #         ",".join(section.labels),
+                #     )
+                # )
 
     def validate_specifics(self):
         if not hasattr(self, "spike_times") and not hasattr(self, "parameters"):
