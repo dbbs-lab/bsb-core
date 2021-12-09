@@ -284,7 +284,14 @@ class Scaffold:
             ):
                 step()
                 if output:
-                    self.compile_output()
+                    if not has_mpi_installed:
+                        self.compile_output()
+                    else:
+                        if self.is_mpi_master:
+                            self.compile_output()
+                            self.MPI.COMM_WORLD.Barrier()
+                        else:
+                            self.MPI.COMM_WORLD.Barrier()
 
             for type in self.configuration.cell_types.values():
                 if type.entity:

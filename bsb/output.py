@@ -712,7 +712,7 @@ class HDF5Formatter(OutputFormatter, MorphologyRepository):
 
     defaults = {
         "file": "scaffold_network_{}.hdf5".format(
-            time.strftime("%Y_%m_%d-%H%M%S") + str(random.random()).split(".")[1]
+            time.strftime("%Y_%m_%d-%H%M%S")
         ),
         "simulator_output_path": False,
         "morphology_repository": None,
