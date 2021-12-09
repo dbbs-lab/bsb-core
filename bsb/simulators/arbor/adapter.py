@@ -415,6 +415,8 @@ class ArborAdapter(SimulatorAdapter):
         # Cache uses the domain decomposition to cache info per gid on this node. The
         # recipe functions use the cache, but luckily aren't called until
         # `arbor.simulation` and `simulation.run`.
+        self._connections_on = {gid: ReceiverCollection() for gid in self.gids}
+        self._connections_from = {gid: [] for gid in self.gids}
         self._index_relays()
         self._cache_connections()
         self.prepare_devices()
@@ -529,8 +531,6 @@ class ArborAdapter(SimulatorAdapter):
                 self._gap_junctions_on.setdefault(conn.to_id, []).append(conn)
 
     def _cache_connections(self):
-        self._connections_on = {gid: ReceiverCollection() for gid in self.gids}
-        self._connections_from = {gid: [] for gid in self.gids}
         for conn_set in self.scaffold.get_connectivity_sets():
             if conn_set.is_orphan() or not len(conn_set):
                 continue
@@ -551,12 +551,6 @@ class ArborAdapter(SimulatorAdapter):
                     self._connections_from[from_gid].append(comp_from)
                 if to_gid in self._connections_on:
                     self._connections_on[to_gid].append(
-                        conn_model.make_receiver(from_gid, comp_from, comp_on)
-                    )
-            for gid, relays in self._relays_on.items():
-                for (from_gid, comp_from, comp_on, conn_model) in relays:
-                    self._connections_from[from_gid].append(comp_from)
-                    self._connections_on[gid].append(
                         conn_model.make_receiver(from_gid, comp_from, comp_on)
                     )
 
@@ -669,8 +663,7 @@ class ArborAdapter(SimulatorAdapter):
 
         report("Relays resolved.")
 
-        # Filter out all relays to targets not on this node.
-        self._relays_on = {gid: [] for gid in self.gids}
+        # Turn terminal relays into connections.
         for relay, targets in terminal_relays.items():
             assert all(
                 isinstance(t, tuple) for t in terminal_relays[target]
@@ -678,13 +671,18 @@ class ArborAdapter(SimulatorAdapter):
 
             for conn in targets:
                 to_id = int(conn[0])
+                if relay in self.gids:
+                    self._connections_from[relay].append(comp_from)
                 if to_id in self.gids:
-                    self._relays_on[to_id].append((relay, *conn[1:]))
+                    from_gid, comp_from, comp_on, conn_model = conn[1:]
+                    self._connections_on[gid].append(
+                        conn_model.make_receiver(from_gid, comp_from, comp_on)
+                    )
         report(
             "Node",
             self.get_rank(),
             "needs to relay",
-            sum(bool(relays) for relays in self._relays_on.values()),
+            sum(bool(relays) for relays in terminal_relays.values()),
             "relays.",
             level=4,
         )
