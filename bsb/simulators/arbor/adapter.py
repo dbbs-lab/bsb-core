@@ -671,10 +671,10 @@ class ArborAdapter(SimulatorAdapter):
 
             for conn in targets:
                 to_id = int(conn[0])
+                from_gid, comp_from, comp_on, conn_model = conn[1:]
                 if relay in self.gids:
                     self._connections_from[relay].append(comp_from)
                 if to_id in self.gids:
-                    from_gid, comp_from, comp_on, conn_model = conn[1:]
                     self._connections_on[gid].append(
                         conn_model.make_receiver(from_gid, comp_from, comp_on)
                     )
