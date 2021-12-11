@@ -185,6 +185,12 @@ class NeuronAdapter(SimulatorAdapter):
         self.cells = {}
         self._next_gid = 0
         self.transmitter_map = {}
+        try:
+            from patch import p
+
+            self.h = p
+        except:
+            pass
 
     def validate(self):
         pass
