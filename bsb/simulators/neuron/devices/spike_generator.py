@@ -52,6 +52,7 @@ class SpikeGenerator(NeuronDevice):
     def create_patterns(self):
         report("Creating spike generator patterns for '{}'".format(self.name), level=3)
         targets = self.get_targets()
+        print("TARGETTING CHECK", self.targetting, targets)
         if hasattr(self, "spike_times"):
             pattern = self.spike_times
             if self.record:
