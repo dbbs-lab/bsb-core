@@ -116,7 +116,6 @@ class TargetsNeurons:
             else:
                 n = total
             n = max(0, min(n, total))
-            print(labelled)
             targets.extend(random.sample(list(labelled), n))
         return targets
 
