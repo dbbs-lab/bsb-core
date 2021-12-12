@@ -23,11 +23,13 @@ from .helpers import (
     fill_configurable_class,
     get_config_path,
 )
-from .simulators.nest import NestAdapter
 from .postprocessing import PostProcessingHook
+from .simulators.nest import NestAdapter
 from .simulators.neuron import NeuronAdapter
+from .simulators.arbor import ArborAdapter
 from .exceptions import *
 import numpy as np
+import errr
 
 
 def _from_hdf5(file):
@@ -115,9 +117,10 @@ class ScaffoldConfig(object):
         self._name = ""
         if not hasattr(self, "_extension"):
             self._extension = ""
-        self.simulators = simulators
+        self.simulators = simulators.copy()
         self.simulators["nest"] = NestAdapter
         self.simulators["neuron"] = NeuronAdapter
+        self.simulators["arbor"] = ArborAdapter
         self.output_formatter = HDF5Formatter()
 
         # Fallback simulation values
@@ -1002,9 +1005,19 @@ class JSONConfig(ScaffoldConfig):
         connection.__dict__["to_cell_compartments"] = to_cell_compartments
 
     def init_simulation_component(self, name, section, component_class, adapter):
-        component = load_configurable_class(
-            name, component_class, SimulationComponent, parameters={"adapter": adapter}
-        )
+        try:
+            component = load_configurable_class(
+                name,
+                component_class,
+                SimulationComponent,
+                parameters={"adapter": adapter},
+            )
+        except Exception as e:
+            errr.wrap(
+                type(e),
+                e,
+                prepend=f"Couldn't load class `{component_class}` for `{name}`: ",
+            )
         fill_configurable_class(component, section)
         return component
 

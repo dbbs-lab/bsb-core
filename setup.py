@@ -18,6 +18,7 @@ requires = [
     "colour>=0.1.5",
     "errr>=1.0.0",
     "rtree>=0.9.7",
+    "psutil>=5.8.0",
 ]
 
 setuptools.setup(
@@ -51,7 +52,7 @@ setuptools.setup(
     },
     extras_require={
         "dev": ["sphinx", "furo", "pre-commit", "black==20.8b1", "nrn-subprocess==1.3.4"],
-        "neuron": ["dbbs_models==1.5.0rc0", "nrn-patch==3.0.0"],
+        "neuron": ["dbbs_models~=2.0.0", "nrn-patch~=3.0.1"],
         "mpi": ["mpi4py"],
     },
 )

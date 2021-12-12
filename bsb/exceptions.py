@@ -37,6 +37,7 @@ _t(
                 ReceptorSpecificationError=_e(),
             ),
             ParallelIntegrityError=_e("rank"),
+            ArborError=_e(),
         ),
         ConnectivityError=_e(
             ExternalSourceError=_e(

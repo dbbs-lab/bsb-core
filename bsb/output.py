@@ -2,7 +2,7 @@ from . import __version__
 from .reporting import warn
 from .helpers import ConfigurableClass, get_qualified_class_name
 from .morphologies import Morphology, Compartment, Branch
-from bsb.helpers import suppress_stdout
+from .helpers import suppress_stdout
 from contextlib import contextmanager
 from abc import abstractmethod, ABC
 import h5py, os, time, pickle, random, numpy as np
@@ -11,6 +11,7 @@ from .exceptions import *
 from .models import ConnectivitySet, PlacementSet
 from sklearn.neighbors import KDTree
 import os, sys, functools
+import itertools as it
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "dbbs-models"))
 
@@ -277,8 +278,15 @@ class MorphologyRepository(HDF5TreeHandler):
         from patch import p
 
         cell = cls()
-        # Offset all points to the soma point
-        tx, ty, tz = cell.soma[0].x3d(0), cell.soma[0].y3d(0), cell.soma[0].z3d(0)
+        _roots = [s for s in cell.sections if s.parent is None]
+        try:
+            # Offset all points to the soma point
+            tx, ty, tz = cell.soma[0].x3d(0), cell.soma[0].y3d(0), cell.soma[0].z3d(0)
+        except:
+            # If there's no soma defined, offset to the center of the roots.
+            tx = np.mean([s.x3d(0) for s in _roots])
+            ty = np.mean([s.y3d(0) for s in _roots])
+            tz = np.mean([s.z3d(0) for s in _roots])
         # Create a map for some important data that is only available on the Patch objects
         # and that will be lost when we use NEURON's SectionRef to retrieve connected
         # Sections and return new, stripped Section objects without this data present.
@@ -314,7 +322,7 @@ class MorphologyRepository(HDF5TreeHandler):
 
         roots = []
         branch_map = {}
-        for section, parent in section_iter(cell.soma[0], None):
+        for section, parent in it.chain(*(section_iter(s, None) for s in _roots)):
             s_name = section.name()
             try:
                 unvisited.remove(s_name)
@@ -430,6 +438,8 @@ class MorphologyRepository(HDF5TreeHandler):
         """
         Load a morphology from repository data
         """
+        if name.startswith("b'"):
+            name = name[2:-1]
         with self.load() as handler:
             # Check if morphology exists
             if not self.morphology_exists(name):
@@ -780,13 +790,13 @@ class HDF5Formatter(OutputFormatter, MorphologyRepository):
 
     def store_cells(self):
         with self.load("a") as f:
-            cells_group = f().create_group("cells")
+            cells_group = f().require_group("cells")
             self.store_placement(cells_group)
             self.store_cell_connections(cells_group)
             self.store_labels(cells_group)
 
     def store_placement(self, cells_group):
-        placement = cells_group.create_group("placement")
+        placement = cells_group.require_group("placement")
         for cell_type in self.scaffold.get_cell_types():
             cell_type_group = placement.create_group(cell_type.name)
             ids = cell_type_group.create_dataset(
@@ -802,45 +812,46 @@ class HDF5Formatter(OutputFormatter, MorphologyRepository):
                 )
 
     def store_cell_connections(self, cells_group):
+        scf = self.scaffold
         connections_group = cells_group.require_group("connections")
         compartments_group = cells_group.require_group("connection_compartments")
         morphologies_group = cells_group.require_group("connection_morphologies")
-        for tag, connectome_data in self.scaffold.cell_connections_by_tag.items():
-            related_types = list(
-                filter(
-                    lambda x: tag in x.tags,
-                    self.scaffold.configuration.connection_types.values(),
-                )
-            )
+        for tag, connectome_data in scf.cell_connections_by_tag.items():
+            _map = f"__map_{tag}"
+            related_types = [
+                conn_t
+                for conn_t in scf.configuration.connection_types.values()
+                if tag in conn_t.tags
+            ]
             connection_dataset = connections_group.create_dataset(
                 tag, data=connectome_data
             )
             connection_dataset.attrs["tag"] = tag
-            connection_dataset.attrs["connection_types"] = list(
-                map(lambda x: x.name, related_types)
-            )
+            connection_dataset.attrs["connection_types"] = [t.name for t in related_types]
             connection_dataset.attrs["connection_type_classes"] = list(
                 map(get_qualified_class_name, related_types)
             )
-            if tag in self.scaffold._connectivity_set_meta:
-                meta_dict = self.scaffold._connectivity_set_meta[tag]
+            if tag in scf._connectivity_set_meta:
+                meta_dict = scf._connectivity_set_meta[tag]
                 for key in meta_dict:
                     connection_dataset.attrs[key] = meta_dict[key]
-            if tag in self.scaffold.connection_compartments:
+            if tag in scf.connection_compartments:
                 compartments_group.create_dataset(
-                    tag, data=self.scaffold.connection_compartments[tag], dtype=int
+                    tag, data=scf.connection_compartments[tag], dtype=int
                 )
                 morphology_dataset = morphologies_group.create_dataset(
-                    tag, data=self.scaffold.connection_morphologies[tag], dtype=int
+                    tag, data=scf.connection_morphologies[tag], dtype=int
                 )
-                morphology_dataset.attrs["map"] = self.scaffold.connection_morphologies[
-                    tag + "_map"
-                ]
+                # Sanitize values to pure Python strings. H5py errors on numpy str
+                safe_map = [str(x) for x in scf.connection_morphologies[_map]]
+                morphology_dataset.attrs["map"] = safe_map
 
     def store_labels(self, cells_group):
         labels_group = cells_group.create_group("labels")
-        for label in self.scaffold.labels.keys():
-            labels_group.create_dataset(label, data=self.scaffold.labels[label])
+        for label, data in self.scaffold.labels.items():
+            # Make sure the data is one-dimensional
+            vector = np.array(data).reshape(-1)
+            labels_group.create_dataset(label, data=vector)
 
     def store_statistics(self):
         with self.load("a") as f:

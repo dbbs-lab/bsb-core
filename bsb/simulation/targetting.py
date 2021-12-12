@@ -91,10 +91,8 @@ class TargetsNeurons:
             if not cell_model.cell_type.relay
         ]
         if hasattr(self, "cell_types"):
-            target_types = list(filter(lambda c: c.name in self.cell_types, target_types))
-        target_ids = [
-            cell_type.get_placement_set().identifiers for cell_type in target_types
-        ]
+            target_types = [t for t in target_types if t.name in self.cell_types]
+        target_ids = [t.get_placement_set().identifiers for t in target_types]
         representatives = [
             random.choice(type_ids) for type_ids in target_ids if len(target_ids) > 0
         ]
@@ -133,18 +131,6 @@ class TargetsNeurons:
             self.adapter.get_rank(),
         )
 
-    def get_patterns(self):
-        """
-        Return the patterns of the device.
-        """
-        if hasattr(self, "_patterns"):
-            return self._patterns
-        raise ParallelIntegrityError(
-            f"MPI process %rank% failed a checkpoint."
-            + " `initialise_patterns` should always be called before `get_patterns` on all MPI processes.",
-            self.adapter.get_rank(),
-        )
-
     def initialise_targets(self):
         if self.adapter.get_rank() == 0:
             targets = self._get_targets()
@@ -152,18 +138,6 @@ class TargetsNeurons:
             targets = None
         # Broadcast to make sure all the nodes have the same targets for each device.
         self._targets = self.scaffold.MPI.COMM_WORLD.bcast(targets, root=0)
-
-    def initialise_patterns(self):
-        if self.adapter.get_rank() == 0:
-            # Have root 0 prepare the possibly random patterns.
-            patterns = self.create_patterns()
-        else:
-            patterns = None
-        # Broadcast to make sure all the nodes have the same patterns for each device.
-        self._patterns = self.scaffold.MPI.COMM_WORLD.bcast(patterns, root=0)
-
-    # Define new targetting methods above this line or they will not be registered.
-    neuron_targetting_types = [s[9:] for s in vars().keys() if s.startswith("_targets_")]
 
 
 class TargetsSections:

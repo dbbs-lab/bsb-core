@@ -1,5 +1,5 @@
 import numpy as np, random
-from .morphologies import Morphology as BaseMorphology
+from .morphologies import Morphology as BaseMorphology, NilCompartment
 from .helpers import (
     ConfigurableClass,
     dimensions,
@@ -263,19 +263,19 @@ class Connection:
             or from_morphology is not None
             or to_morphology is not None
         ):
-            # If one of the 4 arguments for a detailed connection is given, all 4 are required.
-            if (
-                from_compartment is None
-                or to_compartment is None
-                or from_morphology is None
-                or to_morphology is None
-            ):
-                raise RuntimeError(
-                    "Insufficient arguments given to Connection constructor."
-                    + " If one of the 4 arguments for a detailed connection is given, all 4 are required."
-                )
-            self.from_compartment = from_morphology.compartments[from_compartment]
-            self.to_compartment = to_morphology.compartments[to_compartment]
+            if from_compartment < -1:
+                raise RuntimeError("Invalid compartment data")
+            elif from_compartment == -1:
+                self.from_compartment = NilCompartment()
+            else:
+                self.from_compartment = from_morphology.compartments[from_compartment]
+
+            if to_compartment < -1:
+                raise RuntimeError("Invalid compartment data")
+            elif to_compartment == -1:
+                self.to_compartment = NilCompartment()
+            else:
+                self.to_compartment = to_morphology.compartments[to_compartment]
 
 
 class ConnectivitySet(Resource):
@@ -291,6 +291,15 @@ class ConnectivitySet(Resource):
         self.tag = tag
         self.compartment_set = Resource(handler, "/cells/connection_compartments/" + tag)
         self.morphology_set = Resource(handler, "/cells/connection_morphologies/" + tag)
+
+    def has_compartment_data(self):
+        """
+        Check if compartment data exists for this connectivity set.
+        """
+        return self.compartment_set.exists()
+
+    def is_orphan(self):
+        return not bool(self.attributes["connection_types"])
 
     @property
     def connections(self):
@@ -320,18 +329,11 @@ class ConnectivitySet(Resource):
         Return a list of :class:`Intersections <.models.Connection>`. Intersections
         contain pre- & postsynaptic identifiers and the intersecting compartments.
         """
-        if not self.compartment_set.exists():
-            raise MissingMorphologyError(
-                "No intersection/morphology information for the '{}' connectivity set.".format(
-                    self.tag
-                )
-            )
-        else:
-            return self.get_intersections()
+        return self.get_intersections()
 
     def get_intersections(self):
         intersections = []
-        morphos = {}
+        morphos = {-1: None}
 
         def _cache_morpho(id):
             # Keep a cache of the morphologies so that all morphologies with the same
@@ -344,9 +346,14 @@ class ConnectivitySet(Resource):
                 morphos[id] = self.scaffold.morphology_repository.get_morphology(name)
 
         cells = self.get_dataset()
-        for cell_ids, comp_ids, morpho_ids in zip(
-            cells, self.compartment_set.get_dataset(), self.morphology_set.get_dataset()
-        ):
+        if self.has_compartment_data():
+            comp_data = self.compartment_set.get_dataset()
+            morpho_data = self.morphology_set.get_dataset()
+        else:
+            comp_data = np.ones(cells.shape) * -1
+            morpho_data = np.ones(cells.shape) * -1
+
+        for cell_ids, comp_ids, morpho_ids in zip(cells, comp_data, morpho_data):
             from_morpho_id = int(morpho_ids[0])
             to_morpho_id = int(morpho_ids[1])
             # Load morphologies from the map if they're not in the cache yet
@@ -471,18 +478,25 @@ class PlacementSet(Resource):
             raise DatasetNotFoundError("PlacementSet '{}' does not exist".format(tag))
         self.type = cell_type
         self.tag = tag
-        self.identifier_set = Resource(handler, root + tag + "/identifiers")
-        self.positions_set = Resource(handler, root + tag + "/positions")
-        self.rotation_set = Resource(handler, root + tag + "/rotations")
+        self._identifiers = Resource(handler, root + tag + "/identifiers")
+        self._filter = f = _Filter()
+
+        def id_source():
+            return np.array(
+                expand_continuity_list(self._identifiers.get_dataset()), dtype=int
+            )
+
+        self._filter.filter_source = id_source
+        self.identifier_set = _FilteredIds(handler, root + tag + "/identifiers", f)
+        self.positions_set = _FilteredResource(handler, root + tag + "/positions", f)
+        self.rotation_set = _FilteredResource(handler, root + tag + "/rotations", f)
 
     @property
     def identifiers(self):
         """
         Return a list of cell identifiers.
         """
-        return np.array(
-            expand_continuity_list(self.identifier_set.get_dataset()), dtype=int
-        )
+        return self.identifier_set.get_dataset()
 
     @property
     def positions(self):
@@ -522,7 +536,7 @@ class PlacementSet(Resource):
         ]
 
     def __iter__(self):
-        id_iter = iterate_continuity_list(self.identifier_set.get_dataset())
+        id_iter = iterate_continuity_list(self._identifiers.get_dataset())
         iterators = [iter(id_iter), self._none(), self._none()]
         if self.positions_set.exists():
             iterators[1] = iter(self.positions)
@@ -531,7 +545,7 @@ class PlacementSet(Resource):
         return zip(*iterators)
 
     def __len__(self):
-        return count_continuity_list(self.identifier_set)
+        return count_continuity_list(self._identifiers)
 
     def _none(self):
         """
@@ -539,6 +553,45 @@ class PlacementSet(Resource):
         """
         for i in range(len(self)):
             yield None
+
+    def set_filter(self, filter):
+        self._filter.active_filter = filter
+
+
+class _Filter:
+    """
+    To use, set an `active_filter` and `filter_source` function that return numpy arrays.
+
+    `filter_source` should return a dataset of the same shape as the `data` being filtered.
+    `active_filter` will then be called to create a boolean mask from `filter_source`,
+    applied as a filter on the data being filtered. (This means that `filter_source` and
+    `data` should be parallel arrays)
+    """
+
+    active_filter = None
+    filter_source = None
+
+    def filter(self, data):
+        if self.active_filter is None:
+            return data
+        return data[np.isin(self.filter_source(), self.active_filter())]
+
+
+class _FilteredResource(Resource):
+    def __init__(self, handler, path, filter):
+        super().__init__(handler, path)
+        self._filter = filter
+
+    def get_dataset(self, *args, **kwargs):
+        return self._filter.filter(super().get_dataset(*args, **kwargs))
+
+
+class _FilteredIds(_FilteredResource):
+    def get_dataset(self, *args, **kwargs):
+        data = np.array(
+            expand_continuity_list(Resource.get_dataset(self, *args, **kwargs)), dtype=int
+        )
+        return self._filter.filter(data)
 
 
 class Cell:

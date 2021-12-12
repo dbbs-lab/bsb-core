@@ -6,6 +6,7 @@ from ...simulation import (
     TargetsSections,
     SimulationResult,
     SimulationRecorder,
+    SimulationDevice,
 )
 from ...helpers import get_configurable_class
 from ...reporting import report, warn
@@ -15,6 +16,7 @@ import random, os, sys
 import numpy as np
 import traceback
 import errr
+import time
 
 
 try:
@@ -81,7 +83,7 @@ class NeuronConnection(SimulationComponent):
         return self.synapses
 
 
-class NeuronDevice(TargetsNeurons, TargetsSections, SimulationComponent):
+class NeuronDevice(TargetsNeurons, TargetsSections, SimulationDevice):
     node_name = "simulations.?.devices"
 
     device_types = [
@@ -115,34 +117,6 @@ class NeuronDevice(TargetsNeurons, TargetsSections, SimulationComponent):
                 )
             )
 
-    def create_patterns(self):
-        raise NotImplementedError(
-            "The "
-            + self.__class__.__name__
-            + " device does not implement any `create_patterns` function."
-        )
-
-    def get_pattern(self, target, cell=None, section=None, synapse=None):
-        raise NotImplementedError(
-            "The "
-            + self.__class__.__name__
-            + " device does not implement any `get_pattern` function."
-        )
-
-    def implement(self, target, location):
-        raise NotImplementedError(
-            "The "
-            + self.__class__.__name__
-            + " device does not implement any `implement` function."
-        )
-
-    def validate_specifics(self):
-        raise NotImplementedError(
-            "The "
-            + self.__class__.__name__
-            + " device does not implement any `validate_specifics` function."
-        )
-
     def get_locations(self, target):
         locations = []
         if target in self.adapter.relay_scheme:
@@ -158,20 +132,12 @@ class NeuronDevice(TargetsNeurons, TargetsSections, SimulationComponent):
             except KeyError:
                 raise DeviceConnectionError(
                     "Missing cell {} on node {} while trying to implement device '{}'. This can occur if the cell was placed in the network but not represented with a model in the simulation config.".format(
-                        target, self.adapter.pc_id, self.name
+                        target, self.adapter.get_rank(), self.name
                     )
                 )
             sections = self.target_section(cell)
             locations.extend(TargetLocation(cell, section) for section in sections)
         return locations
-
-
-class PatternlessDevice:
-    def create_patterns(*args, **kwargs):
-        pass
-
-    def get_pattern(*args, **kwargs):
-        pass
 
 
 class NeuronEntity:
@@ -228,6 +194,11 @@ class NeuronAdapter(SimulatorAdapter):
         for connection_model in self.connection_models.values():
             # Get the connectivity set associated with this connection model
             connectivity_set = ConnectivitySet(output_handler, connection_model.name)
+            if connectivity_set.is_orphan():
+                warn(
+                    f"No connection types contributed any `{connection_model.name}` connections."
+                )
+                continue
             from_type = connectivity_set.connection_types[0].from_cell_types[0]
             to_type = connectivity_set.connection_types[0].to_cell_types[0]
             from_cell_model = self.cell_models[from_type.name]
@@ -245,7 +216,15 @@ class NeuronAdapter(SimulatorAdapter):
                 )
 
     def get_rank(self):
-        return self.pc_id
+        return self.h.parallel.id()
+
+    def get_size(self):
+        return self.h.parallel.nhost()
+
+    def broadcast(self, data, root=0):
+        from patch import p
+
+        return p.parallel.broadcast(data, root=root)
 
     def prepare(self):
         from patch import p as simulator
@@ -264,7 +243,7 @@ class NeuronAdapter(SimulatorAdapter):
         self.load_balance()
         report(
             "Load balancing on node",
-            self.pc_id,
+            self.get_rank(),
             "took",
             round(time() - t, 2),
             "seconds",
@@ -277,7 +256,7 @@ class NeuronAdapter(SimulatorAdapter):
         simulator.parallel.barrier()
         report(
             "Cell creation on node",
-            self.pc_id,
+            self.get_rank(),
             "took",
             round(t, 2),
             "seconds",
@@ -288,7 +267,7 @@ class NeuronAdapter(SimulatorAdapter):
         self.create_source_vars()
         report(
             "Transmitter creation on node",
-            self.pc_id,
+            self.get_rank(),
             "took",
             round(time() - t, 2),
             "seconds",
@@ -301,7 +280,7 @@ class NeuronAdapter(SimulatorAdapter):
         t = time() - t
         report(
             "Receiver creation on node",
-            self.pc_id,
+            self.get_rank(),
             "took",
             round(t, 2),
             "seconds",
@@ -313,7 +292,7 @@ class NeuronAdapter(SimulatorAdapter):
         t = time() - t
         report(
             "Device preparation on node",
-            self.pc_id,
+            self.get_rank(),
             "took",
             round(t, 2),
             "seconds",
@@ -325,7 +304,7 @@ class NeuronAdapter(SimulatorAdapter):
         t = time() - t
         report(
             "Device creation on node",
-            self.pc_id,
+            self.get_rank(),
             "took",
             round(t, 2),
             "seconds",
@@ -336,7 +315,7 @@ class NeuronAdapter(SimulatorAdapter):
 
     def init_result(self):
         self.result = SimulationResult()
-        if self.pc_id == 0:
+        if self.get_rank() == 0:
             # Record the time
             self.h.time
             self.result.create_recorder(
@@ -346,12 +325,11 @@ class NeuronAdapter(SimulatorAdapter):
             )
 
     def load_balance(self):
-        pc = self.h.parallel
-        self.nhost = pc.nhost()
-        self.pc_id = pc.id()
+        rank = self.get_rank()
+        size = self.get_size()
         self.cell_total = self.scaffold.get_cell_total()
         # Do a lazy round robin for now.
-        self.node_cells = set(range(pc.id(), self.scaffold.get_cell_total(), pc.nhost()))
+        self.node_cells = set(range(rank, self.cell_total, size))
 
     def simulate(self, simulator):
         from plotly import graph_objects as go
@@ -364,11 +342,12 @@ class NeuronAdapter(SimulatorAdapter):
         pc.set_maxstep(10)
         simulator.finitialize(self.initial)
         progression = 0
-        while progression < self.duration:
-            progression += 1
-            pc.psolve(progression)
+        self.start_progress(self.duration)
+        for oi, i in self.step_progress(self.duration, 1):
+            t = time.time()
+            pc.psolve(i)
             pc.barrier()
-            self.progress(progression, self.duration)
+            self.progress(i)
             if os.path.exists("interrupt_neuron"):
                 report("Iterrupt requested. Stopping simulation.", level=1)
                 break
@@ -380,10 +359,10 @@ class NeuronAdapter(SimulatorAdapter):
         timestamp = str(time.time()).split(".")[0] + str(random.random()).split(".")[1]
         timestamp = self.pc.broadcast(timestamp)
         result_path = "results_" + self.name + "_" + timestamp + ".hdf5"
-        for node in range(self.scaffold.MPI.COMM_WORLD.size):
+        for node in range(self.get_size()):
             self.pc.barrier()
-            if node == self.pc_id:
-                report("Node", self.pc_id, "is writing", level=2, all_nodes=True)
+            if node == self.get_rank():
+                report("Node", self.get_rank(), "is writing", level=2, all_nodes=True)
                 with h5py.File(result_path, "a") as f:
                     f.attrs["configuration_string"] = self.scaffold.configuration._raw
                     for path, data, meta in self.result.safe_collect():
@@ -447,7 +426,7 @@ class NeuronAdapter(SimulatorAdapter):
             errr.wrap(TransmitterError, e, prepend=f"[{cell_id}] ")
 
         report(
-            f"Node {self.pc_id} created {tcount} transmitters",
+            f"Node {self.get_rank()} created {tcount} transmitters",
             level=3,
             all_nodes=True,
         )
@@ -479,6 +458,8 @@ class NeuronAdapter(SimulatorAdapter):
         return ConnectivitySet(self.scaffold.output_formatter, model.name)
 
     def _is_transmitter_set(self, set):
+        if set.is_orphan():
+            return False
         name = set.connection_types[0].from_cell_types[0].name
         from_cell_model = self.cell_models[name]
         return not from_cell_model.relay
@@ -488,6 +469,8 @@ class NeuronAdapter(SimulatorAdapter):
         for connection_model in self.connection_models.values():
             # Get the connectivity set associated with this connection model
             connectivity_set = ConnectivitySet(output_handler, connection_model.name)
+            if connectivity_set.is_orphan():
+                continue
             from_cell_type = connectivity_set.connection_types[0].from_cell_types[0]
             if self.cell_models[from_cell_type.name].relay:
                 continue
@@ -551,7 +534,9 @@ class NeuronAdapter(SimulatorAdapter):
                 cell_model.instances.append(instance)
                 self.cells[cell_id] = instance
         report(
-            f"Node {self.pc_id} created {len(self.cells)} cells", level=2, all_nodes=True
+            f"Node {self.get_rank()} created {len(self.cells)} cells",
+            level=2,
+            all_nodes=True,
         )
 
     def prepare_devices(self):
@@ -559,23 +544,17 @@ class NeuronAdapter(SimulatorAdapter):
         for device in self.devices.values():
             # CamelCase the snake_case to obtain the class name
             device_class = "".join(x.title() for x in device.device.split("_"))
-            device.__class__ = device_module.__dict__[device_class]
-            # Re-initialise the device
-            # TODO: Switch to better config in v4
-            device.initialise(device.scaffold)
-            device.validate_specifics()
-            device.initialise_targets()
-            device.initialise_patterns()
+            device._bootstrap(device_module.__dict__[device_class])
 
     def create_devices(self):
         for device in self.devices.values():
-            if self.pc_id == 0:
+            if self.get_rank() == 0:
                 # Have root 0 prepare the possibly random targets.
                 targets = device.get_targets()
             else:
                 targets = None
             # Broadcast to make sure all the nodes have the same targets for each device.
-            targets = self.scaffold.MPI.COMM_WORLD.bcast(targets, root=0)
+            targets = self.broadcast(targets, root=0)
             for target in targets:
                 for location in device.get_locations(target):
                     device.implement(target, location)
@@ -604,6 +583,8 @@ class NeuronAdapter(SimulatorAdapter):
             name = connection_model.name
             # Get the connectivity set associated with this connection model
             connectivity_set = ConnectivitySet(output_handler, connection_model.name)
+            if connectivity_set.is_orphan():
+                continue
             from_cell_type = connectivity_set.connection_types[0].from_cell_types[0]
             from_cell_model = self.cell_models[from_cell_type.name]
             to_cell_type = connectivity_set.connection_types[0].to_cell_types[0]
@@ -670,7 +651,7 @@ class NeuronAdapter(SimulatorAdapter):
                         raise RelayError(
                             f"Non-relay {lookup(target)} {target} found in intermediate relay map."
                         )
-                # If we have no more intermediary targets we can be removed from
+                # If we have no more intermediary targets, we can be removed from
                 # the intermediary relay list and be moved to the terminals.
                 if not targets:
                     intermediates_to_remove.append(intermediate)
@@ -696,7 +677,7 @@ class NeuronAdapter(SimulatorAdapter):
             self.relay_scheme[relay] = node_targets
         report(
             "Node",
-            self.pc_id,
+            self.get_rank(),
             "needs to relay",
             len(self.relay_scheme),
             "relays.",
@@ -740,7 +721,7 @@ class LocationRecorder(SimulationRecorder):
         self.id = cell.ref_id
         self.tag = str(cell.ref_id)
         if section is not None:
-            meta["section"] = gc.sections.index(section)
+            meta["section"] = cell.sections.index(section)
             self.tag += "." + section.name().split(".")[-1]
             if x is not None:
                 self.tag += "(" + str(x) + ")"
