@@ -590,6 +590,10 @@ class Scaffold:
                 data += len(attr_data[map_name])
             mapped_data = np.array(data, dtype=int)
         else:
+            if data.dtype.type is np.string_:
+                # Explicitly cast numpy strings to str so they don't yield
+                # `b'morphology_name'` when stored as attribute by hdf5.
+                data = data.astype(str)
             mapped_data, data_map = map_ndarray(data, _map=attr_data[map_name])
             mapped_data = np.array(mapped_data, dtype=int)
         attr_data[map_name].extend(data_map)
@@ -943,7 +947,7 @@ class Scaffold:
         beginnings = set()
         ends = dict()
         for ct in self.get_cell_types():
-            stretch = ct.get_placement_set().identifier_set.get_dataset()
+            stretch = ct.get_placement_set()._identifiers.get_dataset()
             if len(stretch) != 2:
                 raise ContinuityError(
                     f"Discontinuities in `{ct.name}`:"
@@ -1170,6 +1174,13 @@ def merge(output_file, *others, label_prefix="merged_"):
     return merged
 
 
+def get_mrepo(file):
+    """
+    Shortcut function to create :class:`.output.MorphologyRepository`
+    """
+    return MorphologyRepository(file)
+
+
 class ReportListener:
     def __init__(self, scaffold, file):
         self.file = file
@@ -1184,3 +1195,15 @@ class ReportListener:
             + str(progress.time),
             token="simulation_progress",
         )
+
+
+def register_cell_targetting(name, f):
+    from .simulation.targetting import TargetsNeurons
+
+    setattr(TargetsNeurons, f"_targets_{name}", f)
+
+
+def register_section_targetting(name, f):
+    from .simulation.targetting import TargetsSections
+
+    setattr(TargetsSections, f"_section_target_{name}", f)

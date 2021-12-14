@@ -438,6 +438,8 @@ class MorphologyRepository(HDF5TreeHandler):
         """
         Load a morphology from repository data
         """
+        if name.startswith("b'"):
+            name = name[2:-1]
         with self.load() as handler:
             # Check if morphology exists
             if not self.morphology_exists(name):
@@ -846,8 +848,10 @@ class HDF5Formatter(OutputFormatter, MorphologyRepository):
 
     def store_labels(self, cells_group):
         labels_group = cells_group.create_group("labels")
-        for label in self.scaffold.labels.keys():
-            labels_group.create_dataset(label, data=self.scaffold.labels[label])
+        for label, data in self.scaffold.labels.items():
+            # Make sure the data is one-dimensional
+            vector = np.array(data).reshape(-1)
+            labels_group.create_dataset(label, data=vector)
 
     def store_statistics(self):
         with self.load("a") as f:

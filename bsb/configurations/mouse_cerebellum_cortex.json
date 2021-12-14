@@ -403,8 +403,8 @@
         "parallel_fiber_to_stellate": {
           "synapses": ["AMPA", "NMDA"]
         },
-	       "basket_to_purkinje": {
-	          "synapses": ["GABA"]
+	      "basket_to_purkinje": {
+          "synapses": ["GABA"]
 	      },
         "stellate_to_purkinje": {
           "synapses": ["GABA"]
@@ -482,7 +482,7 @@
           "device": "spike_generator",
           "targetting": "by_label",
           "labels": ["central_mossy_fibers"],
-          "synapses": [],
+          "synapses": ["AMPA", "NMDA"],
           "spike_times": [6000.0, 6003.0, 6006.0, 6012.0, 6020.0]
         },
         "mossy_fiber_input_sync_imp": {
@@ -518,7 +518,7 @@
           "targetting": "by_label",
           "labels": ["grc_active_dends_*"],
           "cell_count": 2,
-          "section_type": "soma"
+          "section_types": ["soma"]
         }
       }
     }
