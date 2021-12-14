@@ -19,6 +19,7 @@ from sklearn.neighbors import KDTree
 from ..exceptions import *
 from ..reporting import report
 from .. import config
+import operator
 
 
 class MorphologySet:

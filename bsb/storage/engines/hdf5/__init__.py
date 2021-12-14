@@ -7,7 +7,8 @@ from .config_store import ConfigStore
 from .label import Label
 from .morphology_repository import MorphologyRepository
 from datetime import datetime
-import h5py, os, filelock
+import h5py
+import os
 from mpilock import sync
 
 
