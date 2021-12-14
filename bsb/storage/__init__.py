@@ -238,6 +238,16 @@ class Storage:
         """
         return self._PlacementSet(self._engine, type)
 
+    def get_connectivity_set(self, type):
+        """
+        Return a ConnectivitySet for the given type.
+
+        :param type: Specific cell type.
+        :type type: :class:`CellType <.models.CellType>`
+        :returns: :class:`ConnectivitySet <.storage.interfaces.ConnectivitySet>`
+        """
+        return self._ConnectivitySet(self._engine, type)
+
     @_on_master
     def init(self, scaffold):
         """
