@@ -10,6 +10,8 @@ sent to a ``distributor`` that is supposed to use the ``indicators`` to ask the
 generates indices and rotations. In more complex cases the ``selector`` and
 ``distributor`` can both load the morphologies but this will slow things down.
 
+In the simulation step, these (possibly dynamically modified) morphologies are passed
+to the cell model instantiators.
 """
 import abc, numpy as np, pickle, h5py, math, itertools
 from ..voxels import VoxelCloud, detect_box_compartments, Box
@@ -134,8 +136,8 @@ class Branch:
         self._full_labels = []
         self._label_masks = {}
         self._parent = None
-        for v, vector in enumerate(self.__class__.vectors):
-            self.__dict__[vector] = args[v]
+        for v, vector in enumerate(type(self).vectors):
+            setattr(self, vector, args[v])
 
     @property
     def size(self):
@@ -145,7 +147,17 @@ class Branch:
         :returns: Number of points on the branch.
         :rtype: int
         """
-        return len(getattr(self, self.__class__.vectors[0]))
+        return len(getattr(self, type(self).vectors[0]))
+
+    def __len__(self):
+        return self.size
+
+    @property
+    def points(self):
+        """
+        Return the vectors of this branch as a matrix.
+        """
+        return self.as_matrix(with_radius=True)
 
     @property
     def terminal(self):
@@ -167,7 +179,7 @@ class Branch:
         """
         self._full_labels.extend(labels)
 
-    def label_points(self, label, mask):
+    def label_points(self, label, mask, join=operator.or_):
         """
         Add labels to specific points on the branch. See :func:`label
         <.morphologies.Morphology.label>` to label the entire branch.
@@ -176,8 +188,26 @@ class Branch:
         :type label: str
         :param mask: Boolean mask equal in size to the branch that determines which points get labelled.
         :type mask: np.ndarray(dtype=bool, shape=(branch_size,))
+        :param join: The operation to use to combine the new labels with the existing
+          labels. Defaults to ``|`` (``operator.or_``).
+        :type join: operator function
         """
-        self._label_masks[label] = np.array(mask, dtype=bool)
+        mask = np.array(mask, dtype=bool)
+        if label in self._label_masks:
+            labels = self._label_masks[label]
+            self._label_masks[label] = join(labels, mask)
+        else:
+            self._label_masks[label] = mask
+
+    @property
+    def children(self):
+        """
+        Collection of the child branches of this branch.
+
+        :returns: list of :class:`Branches <.morphologies.Branch>`
+        :rtype: list
+        """
+        return self._children.copy()
 
     def attach_child(self, branch):
         """
@@ -186,6 +216,8 @@ class Branch:
         :param branch: Child branch
         :type branch: :class:`Branch <.morphologies.Branch>`
         """
+        if branch._parent is not None:
+            branch._parent.detach_child(branch)
         self._children.append(branch)
         branch._parent = self
 
@@ -202,28 +234,16 @@ class Branch:
         except ValueError:
             raise ValueError("Branch could not be detached, it is not a child branch.")
 
-    def to_compartments(self, start_id=0, parent=None):
-        comp_id = start_id
-
-        def to_comp(data, labels):
-            nonlocal comp_id, parent
-            comp = Compartment(*data, id=comp_id, parent=parent, labels=labels)
-            comp_id += 1
-            parent = comp
-            return comp
-
-        # Walk over each pair of points as the start and end if a compartment.
-        # Start from the end of the parent branch's last compartment.
-        comps = [
-            to_comp(data, labels)
-            for data, labels in _pairwise_iter(self.walk(), self.label_walk())
-        ]
-        return comps
-
     def walk(self):
-        return zip(*(self.__dict__[v] for v in self.__class__.vectors))
+        """
+        Iterate over the points in the branch.
+        """
+        return zip(*(vars(self)[v] for v in type(self).vectors))
 
     def label_walk(self):
+        """
+        Iterate over the labels of each point in the branch.
+        """
         labels = self._full_labels.copy()
         n = self.size
         shared = np.ones((n, len(labels)), dtype=bool)
@@ -231,6 +251,161 @@ class Branch:
         label_row = np.array(labels)
         label_matrix = np.column_stack((shared, *self._label_masks.values()))
         return (label_row[label_matrix[i, :]] for i in range(n))
+
+    def has_label(self, label):
+        """
+        Check if this branch is branch labelled with ``label``.
+
+        .. warning:
+
+          Returns ``False`` even if all points are individually labelled with ``label``.
+          Only when the branch itself is labelled will it return ``True``.
+
+        :param label: The label to check for.
+        :type label: str
+        :rtype: boolean
+        """
+        return label in self._full_labels
+
+    def has_any_label(self, labels):
+        """
+        Check if this branch is branch labelled with any of ``labels``.
+
+        .. warning:
+
+          Returns ``False`` even if all points are individually labelled with ``label``.
+          Only when the branch itself is labelled will it return ``True``.
+
+        :param labels: The labels to check for.
+        :type labels: list
+        :rtype: boolean
+        """
+        return any(self.has_label(l) for l in labels)
+
+    def get_labelled_points(self, label):
+        """
+        Filter out all points with a certain label
+
+        :param label: The label to check for.
+        :type label: str
+        :returns: All points with the label.
+        :rtype: List[np.ndarray]
+        """
+
+        point_label_iter = zip(self.walk(), self.label_walk())
+        return list(p for p, labels in point_label_iter if label in labels)
+
+    def introduce_point(self, index, *args, labels=None):
+        """
+        Insert a new point at ``index``, before the existing point at ``index``.
+
+        :param index: Index of the new point.
+        :type index: int
+        :param args: Vector coordinates of the new point
+        :type args: float
+        :param labels: The labels to assign to the point.
+        :type labels: list
+        """
+        for v, vector_name in enumerate(type(self).vectors):
+            vector = getattr(self, vector_name)
+            new_vector = np.concatenate((vector[:index], [args[v]], vector[index:]))
+            setattr(self, vector_name, new_vector)
+        if labels is None:
+            labels = set()
+        for label, mask in self._label_masks.items():
+            has_label = label in labels
+            new_mask = np.concatenate((mask[:index], [has_label], mask[index:]))
+            self._label_masks[label] = new_mask
+
+    def introduce_arc_point(self, arc_val):
+        """
+        Introduce a new point at the given arc length.
+
+        :param arc_val: Arc length between 0 and 1 to introduce new point at.
+        :type arc_val: float
+        :returns: The index of the new point.
+        :rtype: int
+        """
+        arc = self.as_arc()
+        arc_point_floor = self.floor_arc_point(arc_val)
+        arc_point_ceil = self.ceil_arc_point(arc_val)
+        arc_floor = arc[arc_point_floor]
+        arc_ceil = arc[arc_point_ceil]
+        point_floor = self[arc_point_floor]
+        point_ceil = self[arc_point_ceil]
+        rem = (arc_val - arc_floor) / (arc_ceil - arc_floor)
+        new_point = (point_ceil - point_floor) * rem + point_floor
+        new_index = arc_point_floor + 1
+        self.introduce_point(new_index, *new_point)
+        return new_index
+
+    def get_arc_point(self, arc, eps=1e-10):
+        """
+        Strict search for an arc point within an epsilon.
+
+        :param arc: Arclength position to look for.
+        :type arc: float
+        :param eps: Maximum distance/tolerance to accept an arc point as a match.
+        :type eps: float
+        :returns: The matched arc point index, or ``None`` if no match is found
+        :rtype: Union[int, None]
+        """
+        arc_values = self.as_arc()
+        arc_match = (i for i, arc_p in enumerate(arc_values) if abs(arc_p - arc) < eps)
+        return next(arc_match, None)
+
+    def as_matrix(self, with_radius=False):
+        """
+        Return the branch as a (PxV) matrix. The different vectors (V) are columns and
+        each point (P) is a row.
+
+        :param with_radius: Include the radius vector. Defaults to ``False``.
+        :type with_radius: bool
+        :returns: Matrix of the branch vectors.
+        :rtype: :class:`numpy.ndarray`
+        """
+        # Get all the branch vectors unless not `with_radius`, then filter out `radii`.
+        vector_names = (v for v in type(self).vectors if with_radius or v != "radii")
+        vectors = list(getattr(self, name) for name in vector_names)
+        return np.column_stack(vectors)
+
+    def as_arc(self):
+        """
+        Return the branch as a vector of arclengths in the closed interval [0, 1]. An
+        arclength is the distance each point to the start of the branch along the branch
+        axis, normalized by total branch length. A point at the start will have an
+        arclength close to 0, and a point near the end an arclength close to 1
+
+        :returns: Vector of branch points as arclengths.
+        :rtype: :class:`numpy.ndarray`
+        """
+        arc_distances = np.sqrt(np.sum(np.diff(self.as_matrix(), axis=0) ** 2, axis=1))
+        arc_length = np.sum(arc_distances)
+        return np.cumsum(np.concatenate(([0], arc_distances))) / arc_length
+
+    def floor_arc_point(self, arc):
+        """
+        Get the index of the nearest proximal arc point.
+        """
+        p = 0
+        for i, a in enumerate(self.as_arc()):
+            if a <= arc:
+                p = i
+            else:
+                break
+        return p
+
+    def ceil_arc_point(self, arc):
+        """
+        Get the index of the nearest distal arc point.
+        """
+        for i, a in enumerate(self.as_arc()):
+            if a >= arc:
+                return i
+        return len(self) - 1
+
+    def __getitem__(self, slice):
+        return self.as_matrix(with_radius=True)[slice]
 
 
 def _pairwise_iter(walk_iter, labels_iter):
@@ -252,51 +427,36 @@ class Morphology:
     """
     A multicompartmental spatial representation of a cell based on connected 3D
     compartments.
-
-    :todo: Uncouple from the MorphologyRepository and merge with TrueMorphology.
     """
 
     def __init__(self, roots):
-        self.cloud = None
-        self.has_morphology = True
-        self.has_voxels = False
         self.roots = roots
-        self._compartments = None
-        self.update_compartment_tree()
-
-    @property
-    def compartments(self):
-        if self._compartments is None:
-            self._compartments = self.to_compartments()
-        return self._compartments
 
     @property
     def branches(self):
         """
         Return a depth-first flattened array of all branches.
         """
-        return [*itertools.chain(*(branch_iter(root) for root in self.roots))]
+        return self.get_branches()
 
-    def to_compartments(self):
+    def get_branches(self, labels=None):
         """
-        Return a flattened array of compartments
+        Return a depth-first flattened array of all or the selected branches.
+
+        :param labels: Names of the labels to select.
+        :type labels: list
+        :returns: List of all branches or all branches with any of the labels
+          when given
+        :rtype: list
         """
-        comp_counter = 0
+        root_iter = (branch_iter(root) for root in self.roots)
+        all_branch_iter = itertools.chain(*root_iter)
+        if labels is None:
+            return list(all_branch_iter)
+        else:
+            return [b for b in all_branch_iter if b.has_any_label(labels)]
 
-        def treat_branch(branch, last_parent=None):
-            nonlocal comp_counter
-            comps = branch.to_compartments(comp_counter, last_parent)
-            comp_counter += len(comps)
-            # If this branch has no compartments just pass on the compartment we were
-            # supposed to connect our first compartment to. That way this empty branch
-            # is skipped and the next compartments are still connected in the comp tree.
-            parent_comp = comps[-1] if len(comps) else last_parent
-            child_iters = (treat_branch(b, parent_comp) for b in branch._children)
-            return itertools.chain(comps, *child_iters)
-
-        return [*itertools.chain(*(treat_branch(root) for root in self.roots))]
-
-    def flatten(self, vectors=None, matrix=False):
+    def flatten(self, vectors=None, matrix=False, labels=None):
         """
         Return the flattened vectors of the morphology
 
@@ -309,84 +469,34 @@ class Morphology:
         """
         if vectors is None:
             vectors = Branch.vectors
-        branches = self.branches
+        branches = self.get_branches(labels=labels)
         if not branches:
+            # Empty morphology (or no branches with given labels)
             if matrix:
                 return np.empty((0, len(vectors)))
             return tuple(np.empty(0) for _ in vectors)
-        t = tuple(np.concatenate(tuple(getattr(b, v) for b in branches)) for v in vectors)
+        # Concatenate all of the branch vectors tail-to-head, store a tuple of
+        # all the concatenated vector types.
+        def concat_branches(v):
+            return np.concatenate(tuple(getattr(b, v) for b in branches))
+
+        t = tuple(concat_branches(v) for v in vectors)
+        # Then optionally stack the vectors into a matrix or return the tuple
         return np.column_stack(t) if matrix else t
 
-    def update_compartment_tree(self):
-        # Eh, this code will be refactored soon, if you're still seeing this in v4 open an
-        # issue.
-        if self.compartments:
-            self.compartment_tree = KDTree(np.array([c.end for c in self.compartments]))
+    def voxelize(self, N, labels=None):
+        return VoxelCloud.create(self.get_branches(labels=labels), N)
 
-    def voxelize(self, N, compartments=None):
-        self.cloud = VoxelCloud.create(self, N, compartments=compartments)
-
-    def create_compartment_map(self, tree, boxes, voxels, box_size):
-        compartment_map = []
-        box_positions = np.column_stack(boxes[:, voxels])
-        for i in range(box_positions.shape[0]):
-            box_origin = box_positions[i, :]
-            compartment_map.append(detect_box_compartments(tree, box_origin, box_size))
-        return compartment_map
-
-    def get_bounding_box(self, compartments=None, centered=True):
-        # Use the compartment tree to get a quick array of the compartments positions
-        compartment_positions = np.array(
-            list(map(lambda c: c.midpoint, compartments or self.compartments))
-        )
-        # Determine the amount of dimensions of the morphology. Let's hope 3 ;)
-        n_dimensions = range(compartment_positions.shape[1])
-        # Create a bounding box
-        outer_box = Box()
-        # The outer box dimensions are equal to the maximum distance between compartments in each of n dimensions
-        outer_box.dimensions = np.array(
-            [
-                np.max(compartment_positions[:, i]) - np.min(compartment_positions[:, i])
-                for i in n_dimensions
-            ]
-        )
-        # The outer box origin should be in the middle of the outer bounds if 'centered' is True. (So lowermost point + sometimes half of dimensions)
-        outer_box.origin = np.array(
-            [
-                np.min(compartment_positions[:, i])
-                + (outer_box.dimensions[i] / 2) * int(centered)
-                for i in n_dimensions
-            ]
-        )
-        return outer_box
+    def get_bounding_box(self, labels=None, centered=True):
+        # Should return a 0 based or soma centered bounding box from the
+        # branches
+        raise NotImplementedError("v4")
 
     def get_search_radius(self, plane="xyz"):
-        pos = np.array(self.compartment_tree.get_arrays()[0])
-        dimensions = ["x", "y", "z"]
-        try:
-            max_dists = np.max(
-                np.abs(np.array([pos[:, dimensions.index(d)] for d in plane])), axis=1
-            )
-        except ValueError as e:
-            raise ValueError("Unknown dimensions in dimension string '{}'".format(plane))
-        return np.sqrt(np.sum(max_dists ** 2))
-
-    def get_compartment_network(self):
-        compartments = self.compartments
-        node_list = [set([]) for c in compartments]
-        # Add child nodes to their parent's adjacency set
-        for node in compartments[1:]:
-            if node.parent is None:
-                continue
-            node_list[int(node.parent.id)].add(int(node.id))
-        return node_list
-
-    def get_compartment_positions(self, labels=None):
-        if labels is None:
-            return self.compartment_tree.get_arrays()[0]
-        return [c.end for c in self.get_compartments(labels=labels)]
+        raise NotImplementedError("Search radii should be replaced by Rtrees.")
 
     def get_plot_range(self, offset=[0.0, 0.0, 0.0]):
+        raise NotImplementedError("Plotting should be factored out for deprecation.")
         compartments = self.compartment_tree.get_arrays()[0]
         n_dimensions = range(compartments.shape[1])
         mins = np.array([np.min(compartments[:, i]) + offset[i] for i in n_dimensions])
@@ -397,26 +507,6 @@ class Morphology:
         )
         return list(zip(mins.tolist(), (mins + max).tolist()))
 
-    def get_compartment_tree(self, labels=None):
-        if labels is not None:
-            return _compartment_tree(self.get_compartments(labels=labels))
-        return self.compartment_tree
-
-    def get_compartment_submask(self, labels):
-        ## TODO: Remove; voxelintersection & touchdetection audit should make this code
-        ## obsolete.
-        return [c.id for c in self.get_compartments(labels)]
-
-    def get_compartments(self, labels=None):
-        if labels is None:
-            return self.compartments.copy()
-        return [c for c in self.compartments if any(l in labels for l in c.labels)]
-
-    def get_branches(self, labels=None):
-        if labels is None:
-            return self.branches
-        return [b for b in self.branches if any(l in labels for l in b._full_labels)]
-
     def rotate(self, v0, v):
         """
 
@@ -426,16 +516,8 @@ class Morphology:
 
         """
         R = get_rotation_matrix(v0, v)
-
-        for c in range(len(self.compartments)):
-            self.compartments[c].start = R.dot(self.compartments[c].start)
-            self.compartments[c].end = R.dot(self.compartments[c].end)
-
-        self.update_compartment_tree()
-
-
-def _compartment_tree(compartments):
-    return KDTree(np.array([c.end for c in compartments]))
+        raise NotImplementedError("Branch rotation")
+        R.dot()
 
 
 def get_rotation_matrix(v0, v):
