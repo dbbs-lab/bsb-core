@@ -42,4 +42,3 @@ Developer Guides
 
   dev/installation
   dev/documentation
-  dev/obfuscation
