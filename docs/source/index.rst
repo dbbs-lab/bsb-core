@@ -48,4 +48,3 @@ The Brain Scaffold Builder
 
   dev/installation
   dev/documentation
-  dev/obfuscation

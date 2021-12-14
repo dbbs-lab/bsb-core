@@ -169,7 +169,7 @@ class Branch:
         """
         return not self._children
 
-    def label(self, *labels):
+    def label_all(self, *labels):
         """
         Add labels to every point on the branch. See :func:`label_points
         <.morphologies.Morphology.label_points>` to label individual points.

@@ -65,7 +65,7 @@ def _branch(b_root_group):
     branch._tmp_parent = int(attrs.get("parent", -1))
     if attrs.get("neuron_section", None) is not None:
         branch._neuron_sid = attrs.get("neuron_section")
-    branch.label(*attrs.get("branch_labels", iter(())))
+    branch.label_all(*attrs.get("branch_labels", iter(())))
     for label, dataset in b_root_group["labels"].items():
         branch.label_points(label, dataset[()])
     return branch
