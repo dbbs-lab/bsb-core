@@ -80,10 +80,14 @@ class ConnectivitySet(
         if eptr is None:
             eptr = total + new_rows
         # Resize and insert data.
+        src_end = src_ds[(eptr - new_rows):]
+        dest_end = dest_ds[(eptr - new_rows):]
         src_ds.resize(len(src_ds) + new_rows, axis=0)
         dest_ds.resize(len(dest_ds) + new_rows, axis=0)
         src_ds[iptr:eptr] = np.concatenate((src_ds[iptr:(eptr - new_rows)], src_locs))
+        src_ds[eptr:] = src_end
         dest_ds[iptr:eptr] = np.concatenate((dest_ds[iptr:(eptr - new_rows)], dest_locs))
+        dest_ds[eptr:] = dest_end
 
     def _store_pointers(self, group, chunk, n, total):
         print("Storing pointers", chunk, n)
