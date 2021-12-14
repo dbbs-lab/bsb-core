@@ -14,6 +14,18 @@ import numpy as np
 import contextlib
 
 
+def get_chunk_tag(chunk):
+    """
+    Return the base name of a chunk inside the HDF5 file.
+
+    :param chunk: Chunk (e.g. ``(0, 0, 0)``)
+    :type chunk: iterable
+    :returns: Chunk name (e.g. ``"0.0.0"``)
+    :rtype: str
+    """
+    return ".".join(str(int(float(c))) for c in chunk)
+
+
 class ChunkLoader:
     """
     :class:`~.storage.engines.hdf5.resource.Resource` mixin to organize chunked properties
@@ -64,18 +76,7 @@ class ChunkLoader:
         """
         if chunk is None:
             return self._path + "/chunks/"
-        return self._path + "/chunks/" + self.get_chunk_tag(chunk)
-
-    def get_chunk_tag(self, chunk):
-        """
-        Return the base name of a chunk inside the HDF5 file.
-
-        :param chunk: Chunk (e.g. ``(0, 0, 0)``)
-        :type chunk: iterable
-        :returns: Chunk name (e.g. ``"0.0.0"``)
-        :rtype: str
-        """
-        return ".".join(map(lambda c: str(int(float(c))), chunk))
+        return self._path + "/chunks/" + get_chunk_tag(chunk)
 
     def load_chunk(self, chunk):
         """
