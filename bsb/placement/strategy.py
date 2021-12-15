@@ -26,7 +26,6 @@ class PlacementStrategy(abc.ABC, SortableByAfter):
     indicator_class = PlacementIndicator
 
     def __boot__(self):
-        self.cell_type = self._config_parent
         self._queued_jobs = []
 
     @abc.abstractmethod

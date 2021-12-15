@@ -19,14 +19,16 @@ class ConnectivitySet(
         :class:`ConnectivitySet <.storage.interfaces.IConnectivitySet>`.
     """
 
-    def __init__(self, engine, tag):
-        self.tag = tag
+    def __init__(self, engine, pre_type, post_type, tag=None):
+        self.tag = tag or f"{pre_type.name}_to_{post_type.name}"
+        self._pre = pre_type
+        self._post = post_type
         super().__init__(engine, _root + tag)
         if not self.exists(engine, tag):
             raise DatasetNotFoundError("ConnectivitySet '{}' does not exist".format(tag))
 
     @classmethod
-    def create(cls, engine, tag):
+    def create(cls, engine, pre_type, post_type, tag):
         """
         Create the structure for this connectivity set in the HDF5 file. Connectivity sets are
         stored under ``/cells/connections/<tag>``.
@@ -35,16 +37,21 @@ class ConnectivitySet(
         with engine._write() as fence:
             with engine._handle("a") as h:
                 g = h.create_group(path)
+                g.attrs["pre"] = pre_type.name
+                g.attrs["post"] = post_type.name
         return cls(engine, tag)
 
     @staticmethod
-    def exists(engine, tag):
+    def exists(engine, pre_type=None, post_type=None, tag=None):
+        if tag is None:
+            if not (pre_type and post_type):
+                raise Exception("Provide either types or a tag")
         with engine._read():
             with engine._handle("r") as h:
                 return _root + tag in h
 
     @classmethod
-    def require(cls, engine, tag):
+    def require(cls, engine, pre_type, post_type, tag=None):
         path = _root + tag
         with engine._write():
             with engine._handle("a") as h:
