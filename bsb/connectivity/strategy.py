@@ -39,5 +39,5 @@ class ConnectionStrategy(abc.ABC, SortableByAfter):
     def connect(self, presyn_collection, postsyn_collection):
         pass
 
-    def connect_cells(self, pre_type, post_type, src_locs, dest_locs):
+    def connect_cells(self, pre_type, post_type, src_locs, dest_locs, tag=None):
         pass
