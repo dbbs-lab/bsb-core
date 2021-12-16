@@ -27,7 +27,7 @@ class ConnectionStrategy(abc.ABC, SortableByAfter):
         return objects.values()  # No sorting of connection types required.
 
     def get_after(self):
-        return None if not self.has_after() else self.after
+        return [] if not self.has_after() else self.after
 
     def has_after(self):
         return hasattr(self, "after")
@@ -41,3 +41,21 @@ class ConnectionStrategy(abc.ABC, SortableByAfter):
 
     def connect_cells(self, pre_type, post_type, src_locs, dest_locs, tag=None):
         pass
+
+    def queue(self, pool, chunk_size):
+        """
+        Specifies how to queue this connectivity strategy into a job pool. Can
+        be overridden, the default implementation asks each partition to chunk
+        itself and creates 1 placement job per chunk.
+        """
+        # Reset jobs that we own
+        self._queued_jobs = []
+        # Get the queued jobs of all the strategies we depend on.
+        deps = set(itertools.chain(*(strat._queued_jobs for strat in self.get_after())))
+        for p in self.partitions:
+            print("Queueing smth")
+            chunks = p.to_chunks(chunk_size)
+            for chunk in chunks:
+                print("Queueing chunk")
+                job = pool.queue_placement(self, chunk, chunk_size, deps=deps)
+                self._queued_jobs.append(job)

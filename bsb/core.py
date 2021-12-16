@@ -13,18 +13,6 @@ from .reporting import report, warn, has_mpi_installed, get_report_file
 from .config._config import Configuration
 from ._pool import create_job_pool
 
-###############################
-## Scaffold class
-#    * Bootstraps configuration
-#    * Loads geometries, morphologies, ...
-#    * Creates network architecture
-#    * Sets up simulation
-
-
-class TreeCollectionGroup:
-    def add_collection(self, name, handler):
-        self.__dict__[name] = TreeCollection(name, handler)
-
 
 def from_hdf5(file):
     """
@@ -153,10 +141,28 @@ class Scaffold:
         strategies = PlacementStrategy.resolve_order(strategies)
         pool = create_job_pool(self)
         if pool.is_master():
-            if strategies is None:
-                types = self.get_cell_types()
-                strategies = [c.placement for c in types]
-            strategies = PlacementStrategy.resolve_order(strategies)
+            for strategy in strategies:
+                strategy.queue(pool, self.network.chunk_size)
+            loop = self._progress_terminal_loop(pool, debug=DEBUG)
+            try:
+                pool.execute(loop)
+            except:
+                self._stop_progress_loop(loop, debug=DEBUG)
+                raise
+            finally:
+                self._stop_progress_loop(loop, debug=DEBUG)
+        else:
+            pool.execute()
+
+    def run_connectivity(self, strategies=None, DEBUG=True):
+        """
+        Run connection strategies.
+        """
+        if strategies is None:
+            strategies = list(self.connectivity.values())
+        strategies = ConnectionStrategy.resolve_order(strategies)
+        pool = create_job_pool(self)
+        if pool.is_master():
             for strategy in strategies:
                 strategy.queue(pool, self.network.chunk_size)
             loop = self._progress_terminal_loop(pool, debug=DEBUG)

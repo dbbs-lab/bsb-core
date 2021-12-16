@@ -97,7 +97,7 @@ class PlacementStrategy(abc.ABC, SortableByAfter):
         return hasattr(self, "after")
 
     def get_after(self):
-        return None if not self.has_after() else self.after
+        return [] if not self.has_after() else self.after
 
     def create_after(self):
         # I think the reflist should always be there.
@@ -108,17 +108,19 @@ class PlacementStrategy(abc.ABC, SortableByAfter):
 class FixedPositions(PlacementStrategy):
     positions = config.attr(type=np.array)
 
-    def place(self, chunk, chunk_size):
-        self.scaffold.place_cells(self.cell_type, self.positions)
+    def place(self, chunk, chunk_size, indicators):
+        for indicator in indicators:
+            ct = indicator.cell_type
+            self.place_cells(ct, indicator, self.positions, chunk)
 
-    def get_placement_count(self):
+    def guess_cell_count(self):
         return len(self.positions)
 
 
 class Entities(PlacementStrategy):
     """
-    Implementation of the placement of entities (e.g., mossy fibers) that do not have
-    a 3D position, but that need to be connected with other cells of the scaffold.
+    Implementation of the placement of entities that do not have a 3D position,
+    but that need to be connected with other cells of the network.
     """
 
     entities = True
@@ -132,11 +134,4 @@ class Entities(PlacementStrategy):
             cell_type = indicator.cell_type
             # Guess total number, not chunk number, as entities bypass chunking.
             n = indicator.guess()
-            if n == 0:
-                warn(
-                    "Volume or density too low, no '{}' cells will be placed".format(
-                        cell_type.name
-                    ),
-                    PlacementWarning,
-                )
             self.scaffold.create_entities(cell_type, n)
