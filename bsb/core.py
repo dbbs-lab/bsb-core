@@ -296,9 +296,15 @@ class Scaffold:
                             self.compile_output()
                             self.MPI.COMM_WORLD.bcast(self.output_formatter.file, root=0)
                         else:
-                            std_warn(
-                                "ResourceWarning: Distributed compiling under MPI is not possible. All nodes except the master node are waiting, doing nothing. Please reduce the number of nodes to 1.",ResourceWarning)
-                            self.output_formatter.file = self.MPI.COMM_WORLD.bcast(None, root=0)
+                            warn(
+                                "Distributed compiling under MPI is not possible."
+                                + "All nodes except the master node are waiting, "
+                                + "doing nothing. Please compile on a single node.",
+                                ResourceWarning,
+                            )
+                            self.output_formatter.file = self.MPI.COMM_WORLD.bcast(
+                                None, root=0
+                            )
 
             for type in self.configuration.cell_types.values():
                 if type.entity:
