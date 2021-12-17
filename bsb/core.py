@@ -289,7 +289,22 @@ class Scaffold:
             ):
                 step()
                 if output:
-                    self.compile_output()
+                    if not has_mpi_installed:
+                        self.compile_output()
+                    else:
+                        if self.is_mpi_master:
+                            self.compile_output()
+                            self.MPI.COMM_WORLD.bcast(self.output_formatter.file, root=0)
+                        else:
+                            warn(
+                                "Distributed compiling under MPI is not possible."
+                                + "All nodes except the master node are waiting, "
+                                + "doing nothing. Please compile on a single node.",
+                                ResourceWarning,
+                            )
+                            self.output_formatter.file = self.MPI.COMM_WORLD.bcast(
+                                None, root=0
+                            )
 
             for type in self.configuration.cell_types.values():
                 if type.entity:
@@ -715,7 +730,8 @@ class Scaffold:
         """
         if append:
             raise NotImplementedError(
-                "Coming in v4. Open an issue on GitHub if you require partial (re)connects with append before v4."
+                "Coming in v4. Open an issue on GitHub if you require partial"
+                + "(re)connects with append before v4."
             )
         oc = self.cell_connections_by_tag
         self.cell_connections_by_tag = {
@@ -728,7 +744,8 @@ class Scaffold:
             + ", ".join(self.cell_connections_by_tag.keys()),
         )
         warn(
-            "Read data with `PlacementSet` and `ConnectivitySet`, do not use `cells_by_type` or `cell_connections_by_tag`!"
+            "Read data with `PlacementSet` and `ConnectivitySet`,"
+            + " do not use `cells_by_type` or `cell_connections_by_tag`!"
         )
         warn("Write data with `connect_cells`.")
         yield
@@ -763,13 +780,17 @@ class Scaffold:
 
     def query_connection_types(self, any=None, pre=None, post=None):
         """
-        Search for connection types that include specific cell types as pre- or postsynaptic targets.
+        Search for connection types that include specific cell types as pre- or
+        postsynaptic targets.
 
-        :param any: Cell type names that will include connection types that have the given cell types as either pre- or postsynaptic targets.
+        :param any: Cell type names that will include connection types that
+          have the given cell types as either pre- or postsynaptic targets.
         :type any: string or sequence of strings.
-        :param postsynaptic: Cell type names that will include connection types that have the given cell types as postsynaptic targets.
+        :param postsynaptic: Cell type names that will include connection types
+          that have the given cell types as postsynaptic targets.
         :type postsynaptic: Union[CellType, List[CellType]].
-        :param presynaptic: Cell type names that will include connection types that have the given cell types as presynaptic targets.
+        :param presynaptic: Cell type names that will include connection types
+          that have the given cell types as presynaptic targets.
         :type presynaptic: Union[CellType, List[CellType]].
         :returns: The connection types that meet the specified criteria.
         :rtype: dict
@@ -787,13 +808,17 @@ class Scaffold:
 
     def query_connection_cache(self, any=None, pre=None, post=None):
         """
-        Get the connections currently in the cache for connection types that include certain cell types as targets.
+        Get the connections currently in the cache for connection types that
+        include certain cell types as targets.
 
-        :param any: Cell type names that will include connection types that have the given cell types as either pre- or postsynaptic targets.
+        :param any: Cell type names that will include connection types that have
+          the given cell types as either pre- or postsynaptic targets.
         :type any: string or sequence of strings.
-        :param postsynaptic: Cell type names that will include connection types that have the given cell types as postsynaptic targets.
+        :param postsynaptic: Cell type names that will include connection types
+          that have the given cell types as postsynaptic targets.
         :type postsynaptic: Union[CellType, List[CellType]].
-        :param presynaptic: Cell type names that will include connection types that have the given cell types as presynaptic targets.
+        :param presynaptic: Cell type names that will include connection types
+          that have the given cell types as presynaptic targets.
         :type presynaptic: Union[CellType, List[CellType]].
 
         :see: query_connection_types
@@ -803,13 +828,17 @@ class Scaffold:
 
     def query_connection_sets(self, any=None, pre=None, post=None):
         """
-        Get the connectivity sets from storage for connection types that include certain cell types as targets.
+        Get the connectivity sets from storage for connection types that include
+        certain cell types as targets.
 
-        :param any: Cell type names that will include connection types that have the given cell types as either pre- or postsynaptic targets.
+        :param any: Cell type names that will include connection types that have
+          the given cell types as either pre- or postsynaptic targets.
         :type any: string or sequence of strings.
-        :param postsynaptic: Cell type names that will include connection types that have the given cell types as postsynaptic targets.
+        :param postsynaptic: Cell type names that will include connection types
+          that have the given cell types as postsynaptic targets.
         :type postsynaptic: Union[CellType, List[CellType]].
-        :param presynaptic: Cell type names that will include connection types that have the given cell types as presynaptic targets.
+        :param presynaptic: Cell type names that will include connection types
+          that have the given cell types as presynaptic targets.
         :type presynaptic: Union[CellType, List[CellType]].
 
         :see: query_connection_types
@@ -928,7 +957,8 @@ class Scaffold:
         """
         Return the specified cell type.
 
-        :param identifier: Unique identifier of the cell type in the configuration, either its name or ID.
+        :param identifier: Unique identifier of the cell type in the configuration,
+          either its name or ID.
         :type identifier: string (name) or int (ID)
         :returns: The cell type
         :rtype: :class:`.models.CellType`
@@ -938,10 +968,12 @@ class Scaffold:
 
     def assert_continuity(self, gaps_ok=False):
         """
-        Assert that all PlacementSets consist of only 1 continuous stretch of IDs, and that all PlacementSets follow
+        Assert that all PlacementSets consist of only 1 continuous stretch of IDs, and
+          that all PlacementSets follow
         each other without gaps, starting from zero.
 
-        :param gaps_ok: Check that just the cell types are continuous, but allow gaps between them.
+        :param gaps_ok: Check that just the cell types are continuous, but allow gaps
+          between them.
         :type gaps_ok: bool
         """
         beginnings = set()
