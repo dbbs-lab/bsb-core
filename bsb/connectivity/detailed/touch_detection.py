@@ -1,6 +1,6 @@
 import numpy as np
 from ..strategy import ConnectionStrategy
-from .shared import MorphologyStrategy
+from .shared import Intersectional
 from ...reporting import report, warn
 from random import sample as sample_elements
 from ... import config
@@ -18,7 +18,7 @@ class TouchInformation:
 
 
 @config.node
-class TouchDetector(ConnectionStrategy, MorphologyStrategy):
+class TouchDetector(ConnectionStrategy, Intersectional):
     """
     Connectivity based on intersection of detailed morphologies
     """

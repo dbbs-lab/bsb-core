@@ -1,13 +1,13 @@
 import numpy as np
 from ..strategy import ConnectionStrategy
-from .shared import MorphologyStrategy
+from .shared import Intersectional
 from ...exceptions import *
 from ... import config
 from ...config import types
 
 
 @config.node
-class VoxelIntersection(ConnectionStrategy, MorphologyStrategy):
+class VoxelIntersection(Intersectional, ConnectionStrategy):
     """
     This strategy voxelizes morphologies into collections of cubes, thereby reducing
     the spatial specificity of the provided traced morphologies by grouping multiple

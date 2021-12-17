@@ -1,7 +1,7 @@
 import numpy as np
 import math
 from ..strategy import ConnectionStrategy
-from .shared import MorphologyStrategy
+from .shared import Intersectional
 from ... import config
 from ...config import types
 from ...exceptions import *
@@ -32,7 +32,7 @@ class FiberTransform(abc.ABC):
 
 
 @config.node
-class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
+class FiberIntersection(Intersectional, ConnectionStrategy):
     """
     FiberIntersection connection strategies voxelize a fiber and find its intersections with postsynaptic cells.
     It's a specific case of VoxelIntersection.
