@@ -100,7 +100,7 @@ def overrides(cls, hook):
     :param hook: Name of the hook to look for.
     :type hook: str
     """
-    return hasattr(cls, hook) and getattr(cls, hook) is not _super(cls, hook)
+    return hook in vars(cls)
 
 
 def _hook(cls, hook, before):
