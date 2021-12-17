@@ -462,7 +462,7 @@ class ConfigurationDictAttribute(ConfigurationAttribute):
             for ckey, value in _cfgdict.items():
                 _cfgdict[ckey] = self.child_type(value, _parent=_cfgdict, _key=ckey)
         except (RequirementError, CastError) as e:
-            if not e.node:
+            if not (hasattr(e, "node") and e.node):
                 e.node, e.attr = _cfgdict, ckey
             raise
         except Exception as e:
