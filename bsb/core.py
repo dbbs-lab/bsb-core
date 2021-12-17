@@ -272,15 +272,25 @@ class Scaffold:
         for hook in self.configuration.after_connectivity.values():
             hook.after_connectivity()
 
-    def compile(self):
+    def compile(
+        self,
+        skip_placement=False,
+        skip_connectivity=False,
+        skip_after_placement=False,
+        skip_after_connectivity=False,
+    ):
         """
         Run all steps in the scaffold sequence to obtain a full network.
         """
         t = time.time()
-        self.run_placement()
-        # self.run_after_placement()
-        # self.run_connectivity()
-        # self.run_after_connectivity()
+        if not skip_placement:
+            self.run_placement()
+        if not skip_after_placement:
+            self.run_after_placement()
+        if not skip_connectivity:
+            self.run_connectivity()
+        if not skip_after_connectivity:
+            self.run_after_connectivity()
         report("Runtime: {}".format(time.time() - t), 2)
 
     def clear(self):
