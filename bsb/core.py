@@ -2,8 +2,6 @@ from .statistics import Statistics
 from .plotting import plot_network
 import numpy as np
 import time
-from .trees import TreeCollection
-from .output import MorphologyRepository
 from .helpers import map_ndarray, listify_input
 from .placement import PlacementStrategy
 from .connectivity import ConnectionStrategy
@@ -66,9 +64,6 @@ class Scaffold:
 
         # # Debug statistics, unused.
         # self.statistics = Statistics(self)
-        # self.trees = TreeCollectionGroup()
-        # self.trees.add_collection("cells", self.storage)
-        # self.trees.add_collection("morphologies", self.storage)
         # self._nextId = 0
         # # Use the configuration to initialise all components such as cells and layers
         # # to prepare for the network architecture compilation.
