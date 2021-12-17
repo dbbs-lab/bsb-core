@@ -255,12 +255,9 @@ class ParticleSystem:
                 neighbourhood_packing_factor < 0.5 and partner_packing_factor < 0.5
             )
             if expansions > 100:
-                print("ERROR! Unable to find suited neighbourhood around", epicenter)
-                exit()
-        # print("Neighbourhood of {} particles with radius {} and packing factor of {}. Found after {} expansions.".format(
-        #     len(neighbour_ids), neighbourhood_radius, partner_packing_factor, expansions
-        # ))
-        # print(len(partner_ids), "particles will be moved.")
+                raise Exception(
+                    f"ERROR! Unable to find suited neighbourhood around {epicenter}"
+                )
         return Neighbourhood(
             epicenter, neighbours, neighbourhood_radius, partners, partner_radius
         )
@@ -399,13 +396,13 @@ def get_particles_trace(particles, dimensions=3, axes={"x": 0, "y": 1, "z": 2}, 
             x=list(map(lambda p: p.position[axes["x"]], particles)),
             y=list(map(lambda p: p.position[axes["y"]], particles)),
             z=list(map(lambda p: p.position[axes["z"]], particles)),
-            **trace_kwargs
+            **trace_kwargs,
         )
     elif dimensions == 2:
         return go.Scatter(
             x=list(map(lambda p: p.position[axes["x"]], particles)),
             y=list(map(lambda p: p.position[axes["y"]], particles)),
-            **trace_kwargs
+            **trace_kwargs,
         )
     elif dimensions == 1:
         return go.Scatter(
@@ -514,12 +511,10 @@ class AdaptiveNeighbourhood(ParticleSystem):
             )
             neighbourhood_ok = neighbourhood_packing_factor < 0.5
             if expansions > 100:
-                print("ERROR! Unable to find suited neighbourhood around", epicenter)
-                exit()
-        # print("Neighbourhood of {} particles with radius {} and packing factor of {}. Found after {} expansions.".format(
-        #     len(neighbour_ids), neighbourhood_radius, partner_packing_factor, expansions
-        # ))
-        # print(len(partner_ids), "particles will be moved.")
+                raise Exception(
+                    f"ERROR! Unable to find suited neighbourhood around {epicenter}"
+                )
+
         return Neighbourhood(
             epicenter, neighbours, neighbourhood_radius, partners, partner_radius
         )
@@ -554,8 +549,9 @@ class SmallestNeighbourhood(ParticleSystem):
                 neighbourhood_packing_factor < 0.5 and partner_packing_factor < 0.5
             )
             if expansions > 100:
-                print("ERROR! Unable to find suited neighbourhood around", epicenter)
-                exit()
+                raise Exception(
+                    f"ERROR! Unable to find suited neighbourhood around {epicenter}"
+                )
         # print("Neighbourhood of {} particles with radius {} and packing factor of {}. Found after {} expansions.".format(
         #     len(neighbour_ids), neighbourhood_radius, partner_packing_factor, expansions
         # ))
