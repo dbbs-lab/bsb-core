@@ -88,7 +88,8 @@ class PlacementStrategy(abc.ABC, SortableByAfter):
 
     @classmethod
     def get_ordered(cls, objects):
-        return sorted(objects, key=lambda s: s.guess_cell_count())
+        # No need to sort placement strategies, just obey dependencies.
+        return objects
 
     def guess_cell_count(self):
         return sum(ind.guess() for ind in self.get_indicators().values())

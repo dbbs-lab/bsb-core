@@ -4,6 +4,7 @@ from ..helpers import SortableByAfter
 from ..functions import compute_intersection_slice
 from ..models import ConnectivitySet
 import abc
+from itertools import chain
 
 
 def _targetting_req(section):
@@ -25,7 +26,8 @@ class ConnectionStrategy(abc.ABC, SortableByAfter):
 
     @classmethod
     def get_ordered(cls, objects):
-        return objects.values()  # No sorting of connection types required.
+        # No need to sort connectivity strategies, just obey dependencies.
+        return objects
 
     def get_after(self):
         return [] if not self.has_after() else self.after
@@ -56,12 +58,15 @@ class ConnectionStrategy(abc.ABC, SortableByAfter):
         # Reset jobs that we own
         self._queued_jobs = []
         # Get the queued jobs of all the strategies we depend on.
-        deps = set(itertools.chain(*(strat._queued_jobs for strat in self.get_after())))
-        for p in self.partitions:
-            print("Queueing smth")
-            chunks = p.to_chunks(chunk_size)
-            for chunk in chunks:
-                print("Queueing chunk")
-                roi = self.get_region_of_interest(chunk, chunk_size)
-                job = pool.queue_connectivity(self, chunk, chunk_size, roi, deps=deps)
-                self._queued_jobs.append(job)
+        deps = set(chain.from_iterable(strat._queued_jobs for strat in self.get_after()))
+        pre_types = self.presynaptic.cell_types
+        # Iterate over each chunk that is populated by our presynaptic cell types.
+        from_chunks = set(
+            chain.from_iterable(ct.get_placement_set().get_chunks() for ct in pre_types)
+        )
+        for chunk in from_chunks:
+            print("Queueing chunk", chunk)
+            # Find each presynaptic chunk's postsynaptic region of interest
+            roi = self.get_region_of_interest(chunk, chunk_size)
+            job = pool.queue_connectivity(self, chunk, chunk_size, roi, deps=deps)
+            self._queued_jobs.append(job)
