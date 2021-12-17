@@ -5,6 +5,7 @@ from ..functions import compute_intersection_slice
 from ..models import ConnectivitySet
 import abc
 
+
 def _targetting_req(section):
     return "labels" not in section
 
@@ -42,6 +43,10 @@ class ConnectionStrategy(abc.ABC, SortableByAfter):
     def connect_cells(self, pre_type, post_type, src_locs, dest_locs, tag=None):
         pass
 
+    @abc.abstractmethod
+    def get_region_of_interest(self, chunk, chunk_size):
+        pass
+
     def queue(self, pool, chunk_size):
         """
         Specifies how to queue this connectivity strategy into a job pool. Can
@@ -57,5 +62,6 @@ class ConnectionStrategy(abc.ABC, SortableByAfter):
             chunks = p.to_chunks(chunk_size)
             for chunk in chunks:
                 print("Queueing chunk")
-                job = pool.queue_placement(self, chunk, chunk_size, deps=deps)
+                roi = self.get_region_of_interest(chunk, chunk_size)
+                job = pool.queue_connectivity(self, chunk, chunk_size, roi, deps=deps)
                 self._queued_jobs.append(job)
