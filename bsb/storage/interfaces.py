@@ -54,24 +54,6 @@ class ConfigStore(Interface):
         pass
 
 
-class TreeCollectionHandler(Interface):
-    """
-    Interface that allows a Engine to handle storage of TreeCollections.
-    """
-
-    @abc.abstractmethod
-    def load_tree(collection_name, tree_name):
-        pass
-
-    @abc.abstractmethod
-    def store_tree_collections(self, tree_collections):
-        pass
-
-    @abc.abstractmethod
-    def list_trees(self, collection_name):
-        pass
-
-
 class PlacementSet(Interface):
     @abc.abstractmethod
     def __init__(self, engine, type):
@@ -143,6 +125,10 @@ class PlacementSet(Interface):
 
     @abc.abstractmethod
     def append_additional(self, name, chunk, data):
+        pass
+
+    @abc.abstractmethod
+    def get_chunks(self):
         pass
 
 
