@@ -125,7 +125,12 @@ class BsbCompile(BaseCommand, name="compile"):
         # Bootstrap the scaffold and clear the storage if not in append mode
         network = Scaffold(cfg, clear=not context.append)
         network.resize(context.x, context.y, context.z)
-        network.compile()
+        network.compile(
+            skip_placement=True,
+            skip_after_placement=True,
+            skip_connectivity=False,
+            skip_after_connectivity=True,
+        )
 
     def get_options(self):
         return {
