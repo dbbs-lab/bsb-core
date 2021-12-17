@@ -4,6 +4,7 @@ from ..reporting import warn
 import inspect, re, sys, itertools, warnings, errr
 from functools import wraps
 from ._hooks import overrides
+import importlib
 
 
 def compile_isc(node_cls, dynamic_config):
@@ -317,7 +318,7 @@ def _search_module_path(class_name, module_path, cfg_classname):
 
 
 def _get_module_class(class_name, module_name, cfg_classname):
-    module_ref = __import__(module_name, globals(), locals(), [class_name], 0)
+    module_ref = importlib.import_module(module_name)
     module_dict = module_ref.__dict__
     if not class_name in module_dict:
         raise DynamicClassNotFoundError("Class not found: " + cfg_classname)
