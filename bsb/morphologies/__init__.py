@@ -34,6 +34,9 @@ class MorphologySet:
         self._loaders = loaders
         self._rotations = rotations
 
+    def __len__(self):
+        return len(self._m_indices)
+
     def get_indices(self):
         return self._m_indices
 
