@@ -221,8 +221,8 @@ class TestRepositories(unittest.TestCase):
         m = Morphology([branch])
         mr = bsb.output.MorphologyRepository("tmp.h5")
         mr.get_handle("w")
-        mr.save_morphology("test", m)
-        m_loaded = mr.get_morphology("test")
+        mr.save("test", m)
+        m_loaded = mr.load("test")
         branch_loaded = m_loaded.roots[0]
         self.assertEqual(["B"], branch_loaded._full_labels)
         self.assertEqual(

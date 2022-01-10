@@ -68,10 +68,8 @@ class TestMorphologyCache(unittest.TestCase):
     def test_equal_rotations(self):
         # Verify that for 0 0 rotations and 360 360 rotations, compartments are in the same position
         for m in self.morphologies_start:
-            morpho_0 = self.scaffold.morphology_repository.get_morphology(m + "__0_0")
-            morpho_360 = self.scaffold.morphology_repository.get_morphology(
-                m + "__360_360"
-            )
+            morpho_0 = self.scaffold.morphology_repository.load(m + "__0_0")
+            morpho_360 = self.scaffold.morphology_repository.load(m + "__360_360")
             comp_start_0 = ()
             comp_start_360 = ()
             comp_end_0 = ()

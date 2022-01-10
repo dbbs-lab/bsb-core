@@ -87,7 +87,7 @@ Let's start with loading a morphology and inspecting its root
   # Alternatively if you have your MR inside of a compiled network:
   network = from_hdf5("network.hdf5")
   mr = network.morphology_repository
-  morfo = mr.get_morphology("my_morphology")
+  morfo = mr.load("my_morphology")
 
   # Use a local reference to the properties if you're not going to manipulate the
   # morphology, as they require a full search of the morphology to be determined every
@@ -124,7 +124,7 @@ data of the whole morphology in an object you can do this by flattening the morp
 
   network = from_hdf5("network.hdf5")
   mr = network.morphology_repository
-  morfo = mr.get_morphology("my_morphology")
+  morfo = mr.load("my_morphology")
 
   print("All the branches in depth-first order:", morfo.branches)
   print("All the points on those branches in depth first order:")

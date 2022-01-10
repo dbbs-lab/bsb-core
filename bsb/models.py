@@ -265,7 +265,7 @@ class ConnectivitySet(Resource):
                 name = self.morphology_set.unmap_one(id)[0]
                 if isinstance(name, bytes):
                     name = name.decode("UTF-8")
-                morphos[id] = self.scaffold.morphology_repository.get_morphology(name)
+                morphos[id] = self.scaffold.morphology_repository.load(name)
 
         cells = self.get_dataset()
         for cell_ids, comp_ids, morpho_ids in zip(

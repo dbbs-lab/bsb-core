@@ -222,8 +222,8 @@ class SpoofDetails(PostProcessingHook):
         morphologies = np.column_stack((_from, _to))
         # Generate the map
         morpho_map = [from_morphologies[0], to_morphologies[0]]
-        from_m = self.scaffold.morphology_repository.get_morphology(from_morphologies[0])
-        to_m = self.scaffold.morphology_repository.get_morphology(to_morphologies[0])
+        from_m = self.scaffold.morphology_repository.load(from_morphologies[0])
+        to_m = self.scaffold.morphology_repository.load(to_morphologies[0])
         # Select random axons and dendrites to connect
         axons = np.array(from_m.get_compartment_submask(["axon"]))
         dendrites = np.array(from_m.get_compartment_submask(["dendrites"]))

@@ -281,7 +281,7 @@ def plot_detailed_network(
                 "We haven't implemented plotting different morphologies per cell type yet. Open an issue if you need it."
             )
         cells = network.get_placement_set(cell_type.name).cells
-        morpho = mr.get_morphology(m_names[0])
+        morpho = mr.load(m_names[0])
         for cell in cells:
             if ids is not None and cell.id not in ids:
                 continue
