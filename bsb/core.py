@@ -593,7 +593,7 @@ class Scaffold:
 
         return list(p for p in self.placement.values() if of(p))
 
-    def get_placement_set(self, type):
+    def get_placement_set(self, type, chunks=None):
         """
         Return a cell type's placement set from the output formatter.
 
@@ -604,7 +604,7 @@ class Scaffold:
         """
         if isinstance(type, str):
             type = self.cell_types[type]
-        return self.storage.get_placement_set(type)
+        return self.storage.get_placement_set(type, chunks=chunks)
 
     def translate_cell_ids(self, data, cell_type):
         """
