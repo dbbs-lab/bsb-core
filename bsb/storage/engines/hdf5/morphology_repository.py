@@ -44,7 +44,7 @@ class MorphologyRepository(Resource, IMorphologyRepository):
     def has(self, name):
         with self._engine._read():
             with self._engine._handle("r") as repo:
-                return f"{_root}/{name}" in repo
+                return f"{self._path}/{name}" in repo
 
     def load(self, name):
         with self._engine._read():
@@ -53,7 +53,7 @@ class MorphologyRepository(Resource, IMorphologyRepository):
                     group = repo[f"{self._path}/{name}/"]
                 except:
                     raise MissingMorphologyError(
-                        f"Repository at `{self._engine._root}` contains no morphology named `{name}`."
+                        f"`{self._engine.root}` contains no morphology named `{name}`."
                     ) from None
                 return _morphology(group)
 
@@ -65,7 +65,7 @@ class MorphologyRepository(Resource, IMorphologyRepository):
                         self.remove(name)
                     else:
                         raise MorphologyRepositoryError(
-                            f"A morphology called '{name}' already exists in this repository."
+                            f"A morphology called '{name}' already exists in `{self._engine.root}`."
                         )
                 root = repo["/morphologies"].create_group(name)
                 branches_group = root.create_group("branches")
@@ -102,7 +102,7 @@ class MorphologyRepository(Resource, IMorphologyRepository):
         with self._engine._write():
             with self._engine._handle("a") as repo:
                 try:
-                    del repo[f"{_root}/{name}"]
+                    del repo[f"{self._path}/{name}"]
                 except KeyError:
                     raise MorphologyRepositoryError(f"'{name}' doesn't exist.") from None
 
