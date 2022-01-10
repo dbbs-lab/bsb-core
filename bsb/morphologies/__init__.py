@@ -43,8 +43,10 @@ class MorphologySet:
     def get_rotations(self):
         return self._rotations
 
-    def iter_morphologies(self, cache=True):
-        if not cache:
+    def iter_morphologies(self, cache=True, unique=False):
+        if unique:
+            yield from (l.load() for l in self._loaders)
+        elif not cache:
             yield from (self._loaders[idx].load() for idx in self._m_indices)
         else:
             _cached = {}
@@ -52,6 +54,12 @@ class MorphologySet:
                 if idx not in _cached:
                     _cached[idx] = self._loaders[idx].load()
                 yield _cached[idx].copy()
+
+    def iter_meta(self, unique=False):
+        if unique:
+            yield from (l.get_meta() for l in self._loaders)
+        else:
+            yield from (self._loaders[idx].get_meta() for idx in self._m_indices)
 
     def _serialize_loaders(self):
         return [loader.get_meta()["name"] for loader in self._loaders]
