@@ -228,15 +228,20 @@ class Storage:
                 )
             )
 
-    def get_placement_set(self, type):
+    def get_placement_set(self, type, chunks=None):
         """
         Return a PlacementSet for the given type.
 
         :param type: Specific cell type.
         :type type: :class:`CellType <.models.CellType>`
+        :param chunks: Optionally load a specific list of chunks.
+        :type chunks: list[tuple[float, float, float]]
         :returns: :class:`PlacementSet <.storage.interfaces.PlacementSet>`
         """
-        return self._PlacementSet(self._engine, type)
+        ps = self._PlacementSet(self._engine, type)
+        if chunks is not None:
+            ps.set_chunks(chunks)
+        return ps
 
     def get_connectivity_set(self, type):
         """
