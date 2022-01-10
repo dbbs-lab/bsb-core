@@ -90,6 +90,12 @@ class ChunkLoader:
         """
         self._chunks.discard(tuple(chunk))
 
+    def set_chunks(self, chunks):
+        self._chunks = set(tuple(c) for c in chunks)
+
+    def clear_chunks(self):
+        self._chunks = set()
+
     def require_chunk(self, chunk):
         """
         Create a chunk if it doesn't exist yet, or do nothing.
