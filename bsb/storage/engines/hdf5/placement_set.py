@@ -28,8 +28,8 @@ class _MapSelector:
 
 class PlacementSet(
     Resource,
-    IPlacementSet,
     ChunkLoader,
+    IPlacementSet,
     properties=(_pos_prop, _rot_prop, _morpho_prop),
     collections=("labels", "additional"),
 ):
