@@ -63,7 +63,9 @@ class ConnectionStrategy(abc.ABC, SortableByAfter):
         pre_types = self.presynaptic.cell_types
         # Iterate over each chunk that is populated by our presynaptic cell types.
         from_chunks = set(
-            chain.from_iterable(ct.get_placement_set().get_chunks() for ct in pre_types)
+            chain.from_iterable(
+                ct.get_placement_set().get_all_chunks() for ct in pre_types
+            )
         )
         for chunk in from_chunks:
             print("Queueing chunk", chunk)
