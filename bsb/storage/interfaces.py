@@ -10,8 +10,8 @@ class Interface(abc.ABC):
 
 
 class Engine(Interface):
-    def __init__(self, resource_identifier):
-        self.resource_identifier = resource_identifier
+    def __init__(self, root):
+        self.root = root
 
     @property
     def format(self):
