@@ -58,6 +58,12 @@ class ChunkLoader:
     def get_loaded_chunks(self):
         return self._chunks.copy()
 
+    def get_all_chunks(self):
+        with self._engine._read():
+            with self._engine._handle("r") as h:
+                chunks = list(h[self._path + "/chunks"].keys())
+        return [tuple(map(int, c.split("."))) for c in chunks]
+
     @contextlib.contextmanager
     def chunk_context(self, *chunks):
         old_chunks = self._chunks

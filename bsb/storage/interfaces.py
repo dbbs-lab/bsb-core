@@ -81,6 +81,10 @@ class PlacementSet(Interface):
         if not self.exists(engine, type):
             self.create(engine, type)
 
+    @abc.abstractmethod
+    def get_all_chunks(self):
+        pass
+
     @abc.abstractproperty
     def load_positions(self):
         """
@@ -125,10 +129,6 @@ class PlacementSet(Interface):
 
     @abc.abstractmethod
     def append_additional(self, name, chunk, data):
-        pass
-
-    @abc.abstractmethod
-    def get_chunks(self):
         pass
 
 

@@ -83,11 +83,6 @@ class PlacementSet(
                 chunks = g.require_group("chunks")
         return cls(engine, cell_type)
 
-    def get_chunks(self):
-        with self._engine._read():
-            with self._engine._handle("r") as h:
-                return list(h[self._path + "/chunks"].keys())
-
     def load_positions(self):
         """
         Load the cell positions.
