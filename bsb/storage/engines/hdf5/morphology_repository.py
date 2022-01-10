@@ -12,6 +12,7 @@ class MorphologyRepository(Resource, IMorphologyRepository):
         super().__init__(engine, _root)
 
     def select(self, *selectors):
+        print("selectors", selectors)
         all_loaders = [self.preload(name) for name in self.keys()]
         selected = []
         for selector in selectors:
@@ -28,9 +29,17 @@ class MorphologyRepository(Resource, IMorphologyRepository):
 
         return loader
 
-    # LOL, nice metadata
     def get_meta(self, name):
-        return {"name": name}
+        with self._engine._read():
+            with self._engine._handle("r") as repo:
+                try:
+                    meta = dict(repo[f"{self._path}/{name}/"].attrs)
+                except KeyError:
+                    raise MissingMorphologyError(
+                        f"`{self._engine.root}` contains no morphology named `{name}`."
+                    ) from None
+        meta["name"] = name
+        return meta
 
     def has(self, name):
         with self._engine._read():
