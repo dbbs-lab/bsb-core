@@ -22,7 +22,8 @@ class _MapSelector:
                 f"Morphology repository misses the following morphologies required by {self._ps.tag}: {', '.join(missing)}"
             )
 
-    def pick(self, name):
+    def pick(self, stored_morphology):
+        name = stored_morphology.get_meta()["name"]
         return name in self._names
 
 
