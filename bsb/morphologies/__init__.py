@@ -56,7 +56,7 @@ class MorphologySet:
     def merge(self, other):
         merge_offset = len(self._loaders)
         merged_loaders = self._loaders + other._loaders
-        print(self._m_indices, self._m_indices.shape, other._m_indices.shape)
+        print("merge", self._m_indices, self._m_indices.shape, other._m_indices.shape)
         merged_indices = np.concatenate(
             (self._m_indices, other._m_indices + merge_offset)
         )
