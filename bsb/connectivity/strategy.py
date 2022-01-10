@@ -20,6 +20,7 @@ class HemitypeNode:
 
 @config.dynamic
 class ConnectionStrategy(abc.ABC, SortableByAfter):
+    name = config.attr(key=True)
     presynaptic = config.attr(type=HemitypeNode, required=True)
     postsynaptic = config.attr(type=HemitypeNode, required=True)
     after = config.reflist(refs.placement_ref)
