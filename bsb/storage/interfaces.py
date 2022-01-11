@@ -166,7 +166,8 @@ class Label(Interface):
 
 
 class StoredMorphology:
-    def __init__(self, loader, meta):
+    def __init__(self, name, loader, meta):
+        self.name = name
         self._loader = loader
         self._meta = meta
 
