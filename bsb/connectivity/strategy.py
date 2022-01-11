@@ -18,6 +18,23 @@ class HemitypeNode:
     labels = config.attr(type=types.list())
 
 
+class ConnectionCollection:
+    def __init__(self, scaffold, cell_types, roi):
+        self.scaffold = scaffold
+        self.cell_types = cell_types
+        self.roi = roi
+
+    @property
+    def placement(self):
+        return {ct.name: ct.get_placement_set(roi) for ct in cell_types}
+
+    def __getattr__(self, attr):
+        return self.placement[attr]
+
+    def __getitem__(self, item):
+        return self.placement[item]
+
+
 @config.dynamic
 class ConnectionStrategy(abc.ABC, SortableByAfter):
     name = config.attr(key=True)
@@ -42,6 +59,11 @@ class ConnectionStrategy(abc.ABC, SortableByAfter):
     @abc.abstractmethod
     def connect(self, presyn_collection, postsyn_collection):
         pass
+
+    def _get_connect_args_from_job(self, chunk, chunk_size, roi):
+        pre = ConnectionCollection(self.scaffold, self.presynaptic.cell_types, [chunk])
+        post = ConnectionCollection(self.scaffold, self.postsynaptic.cell_types, roi)
+        return pre, post
 
     def connect_cells(self, pre_type, post_type, src_locs, dest_locs, tag=None):
         pass
