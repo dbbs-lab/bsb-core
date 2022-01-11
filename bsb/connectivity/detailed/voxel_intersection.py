@@ -26,7 +26,7 @@ class VoxelIntersection(Intersectional, ConnectionStrategy):
     def validate(self):
         pass
 
-    def connect(self):
+    def connect(self, pre, post):
         scaffold = self.scaffold
 
         # Import rtree & instantiate the index with its properties.
