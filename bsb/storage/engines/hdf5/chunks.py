@@ -56,7 +56,10 @@ class ChunkLoader:
             self._collections.append(col)
 
     def get_loaded_chunks(self):
-        return self._chunks.copy()
+        if not self._chunks:
+            return self.get_all_chunks()
+        else:
+            return self._chunks.copy()
 
     def get_all_chunks(self):
         with self._engine._read():
@@ -140,13 +143,12 @@ class ChunkedProperty:
 
     def load(self, raw=False):
         with self.loader._engine._read():
-            if not self.loader._chunks:
-                chunk_group = Resource(self.loader._engine, self.loader._path + "/chunks")
-                self.loader._chunks = set(
-                    tuple(int(x) for x in k.split(".")) for k in chunk_group.keys()
-                )
+            if self.loader._chunks:
+                chunks = self.loader._chunks
+            else:
+                chunks = self.loader.get_all_chunks()
             reader = self._chunk_reader(raw=raw)
-            chunk_loader = map(reader, self.loader._chunks)
+            chunk_loader = map(reader, chunks)
             # Concatenate all non-empty chunks together
             chunked_data = tuple(c for c in chunk_loader if c.size)
         if not len(chunked_data):
