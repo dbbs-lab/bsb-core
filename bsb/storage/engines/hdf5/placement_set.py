@@ -130,13 +130,17 @@ class PlacementSet(
             )
 
     def _get_morphology_loaders(self):
+        loaded_names = set()
+        stor_mor = []
         with self._engine._read():
             with self._engine._handle("r") as f:
                 for chunk in self.get_loaded_chunks():
-                    print("Loaded chunk:", chunk)
                     path = self.get_chunk_path(chunk)
                     _map = f[path].attrs.get("morphology_loaders", [])
-                    return self._engine.morphologies.select(_MapSelector(self, _map))
+                    cmlist = self._engine.morphologies.select(_MapSelector(self, _map))
+                    stor_mor.extend(m for m in cmlist if m.name not in loaded_names)
+                    loaded_names.update(m.name for m in cmlist)
+        return stor_mor
 
     def _set_morphology_loaders(self, map):
         with self._engine._write():
