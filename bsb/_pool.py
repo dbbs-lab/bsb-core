@@ -147,9 +147,32 @@ class PlacementJob(ChunkedJob):
 
     @staticmethod
     def execute(job_owner, f, args, kwargs):
-        placement = job_owner.placement[args[0]]
+        name = args[0]
+        placement = job_owner.placement[name]
         indicators = placement.get_indicators()
         return f(placement, *args[1:], indicators, **kwargs)
+
+
+class ConnectivityJob(ChunkedJob):
+    """
+    Dispatches the execution of a chunk of a placement strategy through a JobPool.
+    """
+
+    def __init__(self, pool, strategy, chunk, chunk_size, roi, deps=None):
+        args = (strategy.name, chunk, chunk_size, roi)
+        super(ChunkedJob, self).__init__(
+            pool, strategy.connect.__func__, args, {}, deps=deps
+        )
+        self._cname = strategy.__class__.__name__
+        self._name = strategy.name
+        self._c = chunk
+
+    @staticmethod
+    def execute(job_owner, f, args, kwargs):
+        name = args[0]
+        connectivity = job_owner.connectivity[name]
+        collections = connectivity._get_connect_args_from_job(*args[1:])
+        return f(connectivity, *collections, **kwargs)
 
 
 class JobPool:
@@ -200,6 +223,11 @@ class JobPool:
 
     def queue_placement(self, strategy, chunk, chunk_size, deps=None):
         job = PlacementJob(self, strategy, chunk, chunk_size, deps)
+        self._put(job)
+        return job
+
+    def queue_connectivity(self, strategy, chunk, chunk_size, roi, deps=None):
+        job = ConnectivityJob(self, strategy, chunk, chunk_size, roi, deps)
         self._put(job)
         return job
 
