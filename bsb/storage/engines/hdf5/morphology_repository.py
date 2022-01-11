@@ -12,7 +12,6 @@ class MorphologyRepository(Resource, IMorphologyRepository):
         super().__init__(engine, _root)
 
     def select(self, *selectors):
-        print("selectors", selectors)
         all_loaders = [self.preload(name) for name in self.keys()]
         selected = []
         for selector in selectors:
@@ -21,7 +20,7 @@ class MorphologyRepository(Resource, IMorphologyRepository):
         return selected
 
     def preload(self, name):
-        return StoredMorphology(self._make_loader(name), self.get_meta(name))
+        return StoredMorphology(name, self._make_loader(name), self.get_meta(name))
 
     def _make_loader(self, name):
         def loader():
