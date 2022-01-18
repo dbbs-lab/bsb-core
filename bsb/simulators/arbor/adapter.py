@@ -429,23 +429,32 @@ class ArborAdapter(SimulatorAdapter):
         return simulation
 
     def get_context(self):
-        print("mpicomm?")
+        print("mpicomm?", flush=True)
         mpi = arbor.mpi_comm()
-        print("mpicomm!")
+        print("mpicomm!", flush=True)
         if self.gpu:
+            print("gpu?", flush=True)
             alloc = arbor.proc_allocation(self.threads, gpu_id=0)
+            print("gpu!", flush=True)
         else:
+            print("threads?", flush=True)
             alloc = arbor.proc_allocation(self.threads)
+            print("threads!", flush=True)
         try:
+            print("mkctx?", flush=True)
             context = arbor.context(alloc, mpi)
+            print("mkctx!", flush=True)
         except TypeError:
-            if mpi.Get_size() > 1:
-                s = mpi.Get_size()
+            print("using mpi obj", flush=True)
+            s = mpi.Get_size()
+            if s > 1:
                 warn(
                     f"Arbor does not seem to be built with MPI support, running duplicate simulations on {s} nodes."
                 )
+            print("nompialloc?", flush=True)
             context = arbor.context(alloc)
-
+            print("nompialloc!", flush=True)
+        print("returning")
         return context
 
     def prepare_samples(self, sim):
