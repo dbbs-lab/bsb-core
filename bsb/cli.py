@@ -195,10 +195,10 @@ def start_cli():
     if hasattr(cl_args, "func"):
         cl_args.func(cl_args)
     else:
+        from .reporting import set_verbosity, set_report_file
         from .config import JSONConfig
         from .core import Scaffold, from_hdf5
         from .output import MorphologyRepository, HDF5Formatter
-        from .reporting import set_verbosity, set_report_file
 
         # Should we change the verbosity setting?
         if cl_args.verbose is not None:
