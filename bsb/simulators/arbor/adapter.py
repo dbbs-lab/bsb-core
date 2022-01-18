@@ -433,7 +433,7 @@ class ArborAdapter(SimulatorAdapter):
         mpi = arbor.mpi_comm()
         print("mpicomm!", flush=True)
         if self.gpu:
-            print("gpu?", flush=True)
+            print("gpu?", self.threads, flush=True)
             alloc = arbor.proc_allocation(self.threads, gpu_id=0)
             print("gpu!", flush=True)
         else:
@@ -441,7 +441,7 @@ class ArborAdapter(SimulatorAdapter):
             alloc = arbor.proc_allocation(self.threads)
             print("threads!", flush=True)
         try:
-            print("mkctx?", flush=True)
+            print("mkctx?", alloc, mpi, flush=True)
             context = arbor.context(alloc, mpi)
             print("mkctx!", flush=True)
         except TypeError:
