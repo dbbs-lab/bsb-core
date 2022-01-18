@@ -392,6 +392,7 @@ class ArborAdapter(SimulatorAdapter):
         self.result = SimulationResult()
 
     def prepare(self):
+        print("inprep", flush=True)
         context = self.get_context()
         try:
             self.scaffold.assert_continuity()

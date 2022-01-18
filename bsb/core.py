@@ -382,6 +382,7 @@ class Scaffold:
         :type simulation_name: string
         """
         t = time.time()
+        print("insim", flush=True)
         simulation, simulator = self.prepare_simulation(simulation_name)
         # If we're reporting to a file, add a stream of progress event messages..
         report_file = get_report_file()
@@ -414,6 +415,7 @@ class Scaffold:
         Retrieve and prepare the default single-instance adapter for a simulation.
         """
         simulation = self.get_simulation(simulation_name)
+        print("preprep", flush=True)
         simulator = simulation.prepare()
         return simulation, simulator
 
