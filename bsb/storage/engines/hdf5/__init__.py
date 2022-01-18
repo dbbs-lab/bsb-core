@@ -18,7 +18,6 @@ class HDF5Engine(Engine):
         super().__init__(root)
         self._file = root
         self._lock = sync()
-        self.morphologies = MorphologyRepository(self)
 
     def _read(self):
         return self._lock.read()
