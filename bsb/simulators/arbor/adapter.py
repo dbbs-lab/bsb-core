@@ -403,6 +403,7 @@ class ArborAdapter(SimulatorAdapter):
         if self.profiling and arbor.config()["profiling"]:
             report("enabling profiler", level=2)
             arbor.profiler_initialize(context)
+        print("initres", flush=True)
         self.init_result()
         self._lookup = QuickLookup(self)
         report("preparing simulation", level=1)
@@ -428,7 +429,9 @@ class ArborAdapter(SimulatorAdapter):
         return simulation
 
     def get_context(self):
+        print("mpicomm?")
         mpi = arbor.mpi_comm()
+        print("mpicomm!")
         if self.gpu:
             alloc = arbor.proc_allocation(self.threads, gpu_id=0)
         else:
