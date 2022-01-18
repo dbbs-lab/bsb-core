@@ -430,7 +430,7 @@ class ArborAdapter(SimulatorAdapter):
 
     def get_context(self):
         print("mpicomm?", flush=True)
-        mpi = arbor.mpi_comm()
+        # mpi = arbor.mpi_comm()
         print("mpicomm!", flush=True)
         if self.gpu:
             print("gpu?", self.threads, flush=True)
