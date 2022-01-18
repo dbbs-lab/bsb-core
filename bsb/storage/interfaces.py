@@ -7,8 +7,15 @@ import arbor
 
 
 class Interface(abc.ABC):
+    _iface_engine_key = None
+
     def __init__(self, handler):
         self._handler = handler
+
+    def __init_subclass__(cls, **kwargs):
+        # Only change engine key if explicitly given.
+        if "engine_key" in kwargs:
+            cls._iface_engine_key = kwargs["engine_key"]
 
 
 class Engine(Interface):

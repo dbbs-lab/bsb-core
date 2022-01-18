@@ -50,6 +50,8 @@ class NotSupported:
     "implementation" of every storage feature that isn't provided by an engine.
     """
 
+    _iface_engine_key = None
+
     def __init__(self, engine, operation):
         # Storage which engine and feature it is that isn't supported.
         self.engine = engine
@@ -132,14 +134,19 @@ class Storage:
             raise UnknownStorageEngineError(
                 "The storage engine '{}' was not found.".format(engine)
             )
+        # All engines should provide an Engine interface implementation, which we will use
+        # to shim basic functionalities, and to pass on to features we produce.
+        self._engine = _engines[engine]["Engine"](root)
         # Load the engine's interface onto the object, this allows consumer construction
         # of features, but it is not advised. More properly the Storage object itself
         # should provide factory methods.
         for interface_name, interface in _engines[engine].items():
             self.__dict__["_" + interface_name] = interface
-        # All engines should provide an Engine interface implementation, which we will use
-        # to shim basic functionalities, and to pass on to features we produce.
-        self._engine = self._Engine(root)
+            # Interfaces can define an autobinding key so that singletons are available
+            # on the engine under that key.
+            key = interface._iface_engine_key
+            if key is not None:
+                self._engine.__dict__[key] = interface(self._engine)
         self._engine._format = engine
         self._features = [
             fname for fname, supported in view_support()[engine].items() if supported
