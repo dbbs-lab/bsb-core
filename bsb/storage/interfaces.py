@@ -2,6 +2,8 @@ import abc
 import types
 import functools
 from contextlib import contextmanager
+import numpy as np
+import arbor
 
 
 class Interface(abc.ABC):
@@ -136,6 +138,103 @@ class MorphologyRepository(Interface):
     @abc.abstractmethod
     def select(self, selector):
         pass
+
+    def import_swc(self, file, name, overwrite=False):
+        """
+        Import and store .swc file contents as a morphology in the repository.
+        """
+        labels = arbor.label_dict(
+            dict(soma="(tag 1)", axon="(tag 2)", dendrites="(tag 3)")
+        )
+        try:
+            morpho = arbor.load_swc_arbor(file)
+        except RuntimeError:
+            morpho = arbor.load_swc_neuron(file)
+
+        return self.import_arb(morpho, labels, name, overwrite=overwrite)
+
+    def import_asc(self, file, name, overwrite=False):
+        """
+        Import and store .asc file contents as a morphology in the repository.
+        """
+        asc = arbor.load_asc(file)
+        return self.import_arb(asc.morpho, asc.labels, name, overwrite=overwrite)
+
+    def import_arb(self, morphology, labels, name, overwrite=False, centering=True):
+        decor = arbor.decor()
+        morpho_roots = set(
+            i
+            for i in range(morphology.num_branches)
+            if morphology.branch_parent(i) == 4294967295
+        )
+        root_prox = [r[0].prox for r in map(morphology.branch_segments, morpho_roots)]
+        center = np.mean([[p.x, p.y, p.z] for p in root_prox], axis=0)
+        parent = None
+        roots = []
+        stack = []
+        cable_id = morpho_roots.pop()
+        while True:
+            segments = morphology.branch_segments(cable_id)
+            if not segments:
+                branch = Branch([], [], [], [])
+            else:
+                # Prepend the proximal end of the first segment to get [p0, p1, ..., pN]
+                x = np.array([segments[0].prox.x] + [s.dist.x for s in segments])
+                y = np.array([segments[0].prox.y] + [s.dist.y for s in segments])
+                z = np.array([segments[0].prox.z] + [s.dist.z for s in segments])
+                r = np.array(
+                    [segments[0].prox.radius] + [s.dist.radius for s in segments]
+                )
+                if centering:
+                    x -= center[0]
+                    y -= center[1]
+                    z -= center[2]
+                branch = Branch(x, y, z, r)
+            branch._cable_id = cable_id
+            if parent:
+                parent.attach_child(branch)
+            else:
+                roots.append(branch)
+            children = morphology.branch_children(cable_id)
+            if children:
+                stack.extend((branch, child) for child in reversed(children))
+            if stack:
+                parent, cable_id = stack.pop()
+            elif not morpho_roots:
+                break
+            else:
+                parent = None
+                cable_id = morpho_roots.pop()
+
+        morpho = Morphology(roots)
+        branches = morpho.branches
+        branch_map = {branch._cable_id: branch for branch in branches}
+        cc = arbor.cable_cell(morphology, labels, decor)
+        for label in labels:
+            if "excl:" in label or label == "all":
+                continue
+            label_cables = cc.cables(f'"{label}"')
+            for cable in label_cables:
+                cable_id = cable.branch
+                branch = branch_map[cable_id]
+                if cable.dist == 1 and cable.prox == 0:
+                    branch.label_all(label)
+                else:
+                    prox_index = branch.get_arc_point(cable.prox, eps=1e-7)
+                    if prox_index is None:
+                        prox_index = branch.introduce_arc_point(cable.prox)
+                    dist_index = branch.get_arc_point(cable.dist, eps=1e-7)
+                    if dist_index is None:
+                        dist_index = branch.introduce_arc_point(cable.dist)
+                    mask = np.array(
+                        [False] * prox_index
+                        + [True] * (dist_index - prox_index + 1)
+                        + [False] * (len(branch) - dist_index - 1)
+                    )
+                    branch.label_points(label, mask)
+
+        self.save(name, morpho, overwrite=overwrite)
+        return morpho
 
 
 class ConnectivitySet(Interface):

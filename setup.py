@@ -18,6 +18,7 @@ requires = [
     "colour>=0.1.5",
     "errr>=1.0.0",
     "rtree>=0.9.7",
+    "arbor>=0.5",
 ]
 
 setuptools.setup(
