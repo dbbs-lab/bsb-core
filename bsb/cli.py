@@ -195,10 +195,13 @@ def start_cli():
     if hasattr(cl_args, "func"):
         cl_args.func(cl_args)
     else:
+        print("Alive", flush=True)
         from .reporting import set_verbosity, set_report_file
         from .config import JSONConfig
         from .core import Scaffold, from_hdf5
         from .output import MorphologyRepository, HDF5Formatter
+
+        print("import Alive", flush=True)
 
         # Should we change the verbosity setting?
         if cl_args.verbose is not None:
@@ -211,16 +214,21 @@ def start_cli():
 
         if cl_args.ctype == "json":
             # Load scaffold from json config
+            print("PreCFG", flush=True)
             scaffoldConfig = JSONConfig(file=cl_args.config)
+            print("PostCFG", flush=True)
             scaffoldInstance = Scaffold(scaffoldConfig)
+            print("PostInst", flush=True)
         elif cl_args.ctype == "hdf5":
             # Load scaffold from HDF5
+            print("PreHDF5", flush=True)
             file = cl_args.hdf5
             if cl_args.reconfigure is not None:
                 config = JSONConfig(file=cl_args.reconfigure)
                 HDF5Formatter.reconfigure(file, config)
             # Extract the config stored in the hdf5 file.
             scaffoldInstance = from_hdf5(file)
+            print("PostInstH5", flush=True)
 
         if hasattr(cl_args, "x") and hasattr(cl_args, "z") and (cl_args.x or cl_args.z):
             resize_kwargs = {}
@@ -243,6 +251,7 @@ def start_cli():
         if (
             cl_args.task == "run" or cl_args.task == "simulate"
         ):  # Do we need to run a simulation?
+            print("PreSim", flush=True)
             scaffoldInstance.run_simulation(cl_args.simulation, quit=True)
 
 
