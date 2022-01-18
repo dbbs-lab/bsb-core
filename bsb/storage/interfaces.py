@@ -146,6 +146,22 @@ class MorphologyRepository(Interface, engine_key="morphologies"):
     def select(self, selector):
         pass
 
+    @abc.abstractmethod
+    def save(self, selector):
+        pass
+
+    @abc.abstractmethod
+    def has(self, selector):
+        pass
+
+    @abc.abstractmethod
+    def preload(self, selector):
+        pass
+
+    @abc.abstractmethod
+    def load(self, selector):
+        pass
+
     def import_swc(self, file, name, overwrite=False):
         """
         Import and store .swc file contents as a morphology in the repository.
