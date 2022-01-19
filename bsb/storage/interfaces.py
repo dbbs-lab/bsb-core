@@ -4,6 +4,7 @@ import functools
 from contextlib import contextmanager
 import numpy as np
 import arbor
+from bsb.morphologies import Morphology, Branch
 
 
 class Interface(abc.ABC):
