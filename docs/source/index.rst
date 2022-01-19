@@ -34,6 +34,12 @@ The Brain Scaffold Builder
   topology/topology-toc
 
 .. toctree::
+  :maxdepth: 2
+  :caption: Morphologies
+
+  morphologies/morphology-toc
+
+.. toctree::
    :maxdepth: 2
    :caption: References
 
