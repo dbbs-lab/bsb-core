@@ -120,9 +120,7 @@ class PlacementSet(
         """
         try:
             return MorphologySet(
-                self._get_morphology_loaders(),
-                self._morphology_chunks.load(),
-                self._rotation_chunks.load(),
+                self._get_morphology_loaders(), self._morphology_chunks.load()
             )
         except DatasetNotFoundError:
             raise DatasetNotFoundError(
