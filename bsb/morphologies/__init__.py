@@ -106,7 +106,9 @@ class MorphologyDistributor:
         selectors = indicator.assert_indication("morphological")
         loaders = self.scaffold.storage.morphologies.select(*selectors)
         if not loaders:
-            ids = np.zeros(len(positions))
+            raise EmptySelectionError(
+                "Given selectors did not find any suitable morphologies", selectors
+            )
         else:
             ids = np.random.default_rng().integers(len(loaders), size=len(positions))
         return MorphologySet(loaders, ids, np.zeros((len(positions), 3)))
