@@ -25,23 +25,18 @@ import operator
 class MorphologySet:
     """
     Associates a set of :class:`StoredMorphologies
-    <.storage.interfaces.StoredMorphology>` to a dataset of indices and their
-    rotations.
+    <.storage.interfaces.StoredMorphology>` to cells
     """
 
-    def __init__(self, loaders, m_indices, rotations):
+    def __init__(self, loaders, m_indices):
         self._m_indices = m_indices
         self._loaders = loaders
-        self._rotations = rotations
 
     def __len__(self):
         return len(self._m_indices)
 
     def get_indices(self):
         return self._m_indices
-
-    def get_rotations(self):
-        return self._rotations
 
     def iter_morphologies(self, cache=True, unique=False):
         if unique:
@@ -50,7 +45,7 @@ class MorphologySet:
             yield from (self._loaders[idx].load() for idx in self._m_indices)
         else:
             _cached = {}
-            for idx in zip(self._m_indices, self._rotations):
+            for idx in self._m_indices:
                 if idx not in _cached:
                     _cached[idx] = self._loaders[idx].load()
                 yield _cached[idx].copy()
@@ -67,12 +62,10 @@ class MorphologySet:
     def merge(self, other):
         merge_offset = len(self._loaders)
         merged_loaders = self._loaders + other._loaders
-        print("merge", self._m_indices, self._m_indices.shape, other._m_indices.shape)
         merged_indices = np.concatenate(
             (self._m_indices, other._m_indices + merge_offset)
         )
-        merged_rotations = np.concatenate((self._rotations, other._rotations))
-        return MorphologySet(merged_loaders, merged_indices, merged_rotations)
+        return MorphologySet(merged_loaders, merged_indices)
 
 
 @config.dynamic(
@@ -111,7 +104,7 @@ class MorphologyDistributor:
             )
         else:
             ids = np.random.default_rng().integers(len(loaders), size=len(positions))
-        return MorphologySet(loaders, ids, np.zeros((len(positions), 3)))
+        return MorphologySet(loaders, ids)
 
 
 def branch_iter(branch):
