@@ -26,7 +26,7 @@ class ConnectionCollection:
 
     @property
     def placement(self):
-        return {ct.name: ct.get_placement_set(roi) for ct in cell_types}
+        return {ct: ct.get_placement_set(self.roi) for ct in self.cell_types}
 
     def __getattr__(self, attr):
         return self.placement[attr]

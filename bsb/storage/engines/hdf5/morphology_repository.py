@@ -79,8 +79,8 @@ class MorphologyRepository(Resource, IMorphologyRepository):
                         parent_id = -1
                     self._save_branch(branches_group, id, branch, parent_id)
                 points = morphology.flatten(["x", "y", "z"], matrix=True)
-                root.attrs["lsb"] = np.min(points, axis=0)
-                root.attrs["msb"] = np.max(points, axis=0)
+                root.attrs["ldc"] = np.min(points, axis=0)
+                root.attrs["mdc"] = np.max(points, axis=0)
         # Clean up the temporary ids stored on each branch.
         for branch in morphology.branches:
             del branch._tmp_id

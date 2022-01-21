@@ -34,8 +34,8 @@ class Intersectional:
         ms_list = [ps.load_morphologies() for ps in ps_list]
         metas = list(chain.from_iterable(ms.iter_meta(unique=True) for ms in ms_list))
         # TODO: Combine morphology extension information with PS rotation information.
-        _min = reduce(lambda a, b: tuple(map(min, a, b["lsb"])), metas, (0, 0, 0))
-        _max = reduce(lambda a, b: tuple(map(max, a, b["msb"])), metas, (0, 0, 0))
+        _min = reduce(lambda a, b: tuple(map(min, a, b["ldc"])), metas, (0, 0, 0))
+        _max = reduce(lambda a, b: tuple(map(max, a, b["mdc"])), metas, (0, 0, 0))
         # Get the chunk coordinates of the boundaries of this chunk convoluted with the
         # extension of the intersecting morphologies.
         lbounds = np.floor(np.array(_min) / chunk_size)
