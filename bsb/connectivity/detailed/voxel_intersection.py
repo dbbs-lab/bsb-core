@@ -27,45 +27,19 @@ class VoxelIntersection(Intersectional, ConnectionStrategy):
         pass
 
     def connect(self, pre, post):
-        scaffold = self.scaffold
+        # Since the pretypes are reused per posttype and require costly IO, cache them.
+        pre_placement_cache = [
+            (pre_type, pre_set, pre_set.load_morphologies())
+            for pre_type, pre_set in pre.placement.items()
+        ]
+        for post_type, post_set in post.placement.items():
+            box_tree = post_set.load_box_tree()
+            for pre_type, pre_set, pre_loaders in pre_placement_cache:
+                pre_m_boxes = pre_set.load_boxes(cache=pre_loaders)
+                candidates = box_tree.query(pre_m_boxes)
+                print("Presyn candidates of postsyn 0:", candidates[0])
 
-        # Import rtree & instantiate the index with its properties.
-        from rtree import index
-        from rtree.index import Rtree
-
-        p = index.Property(dimension=3)
-        to_cell_tree = index.Index(properties=p)
-
-        # Select all the cells from the pre- & postsynaptic type for a specific connection.
-        from_type = self.presynaptic.type
-        from_compartments = self.from_cell_compartments[0]
-        to_compartments = self.to_cell_compartments[0]
-        to_type = self.postsynaptic.type
-        from_placement_set = self.scaffold.get_placement_set(from_type.name)
-        to_placement_set = self.scaffold.get_placement_set(to_type.name)
-        from_cells = self.scaffold.get_cells_by_type(from_type.name)
-        to_cells = self.scaffold.get_cells_by_type(to_type.name)
-
-        # Load the morphology and voxelization data for the entrire morphology, for each cell type.
-        from_morphology_set = from_placement_set.load_morphologies(
-            scaffold,
-            from_type,
-            from_placement_set,
-            compartment_types=from_compartments,
-            N=self.voxels_pre,
-        )
-        to_morphology_set = to_placement_set.load_morphologies(
-            scaffold,
-            to_type,
-            to_placement_set,
-            compartment_types=to_compartments,
-            N=self.voxels_post,
-        )
-        joined_map = (
-            from_morphology_set._morphology_map + to_morphology_set._morphology_map
-        )
-        joined_map_offset = len(from_morphology_set._morphology_map)
-
+        return
         # For every postsynaptic cell, derive the box incorporating all voxels,
         # and store that box in the tree, to later find intersections with that cell.
         for i, (to_cell, morphology) in enumerate(to_morphology_set):
