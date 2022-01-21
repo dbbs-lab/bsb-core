@@ -91,6 +91,12 @@ class PlacementSet(Interface):
         if not self.exists(engine, type):
             self.create(engine, type)
 
+    def clear(self, chunks=None):
+        """
+        Override with a method to clear (some chunks of) the placement set
+        """
+        pass
+
     @abc.abstractmethod
     def get_all_chunks(self):
         pass
