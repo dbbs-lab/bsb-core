@@ -96,6 +96,151 @@ def _validate_branch_args(args):
         raise TypeError(f"__init__ is missing {n} required {w}: {missing}.")
 
 
+class SubTree:
+    def __init__(self, branches, sanitize=True):
+        if sanitize:
+            # Find the roots of the full subtree(s) emanating from the given, possibly
+            # overlapping branches.
+            if len(branches) < 2:
+                # The roots of the subtrees of 0 or 1 branches is eaqual to the 0 or 1
+                # branches.
+                self.roots = branches
+            else:
+                # Collect the deduplicated subtree emanating from all given branches
+                sub = set(chain.from_iterable(b.get_branches() for b in branches))
+                # Find the root branches whose parents are not part of the subtrees
+                self.roots = [b for b in sub if b.parent not in sub]
+        else:
+            # No subtree sanitizing: Assume the whole tree is given, or only the roots
+            # have been given, and just take all literal root (non-parent-having)
+            # branches.
+            self.roots = [b for b in branches if b.parent is None]
+
+    @property
+    def branches(self):
+        """
+        Return a depth-first flattened array of all branches.
+        """
+        return self.get_branches()
+
+    def select(self, *labels):
+        if not labels:
+            labels = None
+        return SubTree(self.get_branches(labels))
+
+    def get_branches(self, labels=None):
+        """
+        Return a depth-first flattened array of all or the selected branches.
+
+        :param labels: Names of the labels to select.
+        :type labels: list
+        :returns: List of all branches, or the ones fully labelled with any of
+          the given labels.
+        :rtype: list
+        """
+        root_iter = (branch_iter(root) for root in self.roots)
+        all_branch = itertools.chain(*root_iter)
+        if labels is None:
+            return list(all_branch)
+        else:
+            return [b for b in all_branch if any(b.fully_labelled_as(l) for l in labels)]
+
+    def flatten(self, vectors=None, matrix=False, labels=None):
+        """
+        Return the flattened vectors of the morphology
+
+        :param vectors: List of vectors to return such as ['x', 'y', 'z'] to get the
+          positional vectors.
+        :type vectors: list of str
+        :returns: Tuple of the vectors in the given order, if `matrix` is True a
+          matrix composed of the vectors is returned instead.
+        :rtype: tuple of ndarrays (`matrix=False`) or matrix (`matrix=True`)
+        """
+        if vectors is None:
+            vectors = Branch.vectors
+        branches = self.get_branches(labels=labels)
+        if not branches:
+            if matrix:
+                return np.empty((0, len(vectors)))
+            return tuple(np.empty(0) for _ in vectors)
+        t = tuple(np.concatenate(tuple(getattr(b, v) for b in branches)) for v in vectors)
+        return np.column_stack(t) if matrix else t
+
+    def rotate(self, rot, center=None):
+        """
+        Point rotation
+
+        :param rot: Scipy rotation
+        :type: :class:`scipy.spatial.transform.Rotation`
+        """
+        for b in self.branches:
+            points = b.as_matrix(with_radius=False)
+            if center is not None:
+                points -= center
+            rotated_points = rot.apply(points)
+            if center is not None:
+                rotated_points += center
+            b.x, b.y, b.z = rotated_points.T
+
+    def root_rotate(self, rot):
+        """
+        Rotate the subtree emanating from each root around the start of the root
+        """
+        for b in self.roots:
+            group = SubTree([b])
+            group.rotate(rot, group.origin)
+
+    def translate(self, point):
+        if len(point) != 3:
+            raise ValueError("Point must be a sequence of x, y and z coordinates")
+        for p, vector in zip(point, Branch.vectors):
+            for branch in self.branches:
+                array = getattr(branch, vector)
+                array += p
+
+    @property
+    def origin(self):
+        return np.mean([r.get_point(0) for r in self.roots], axis=0)
+
+    def center(self):
+        self.translate(-self.origin)
+
+    def close_gaps(self):
+        for branch in self.branches:
+            if branch.parent is not None:
+                gap_offset = branch.parent.get_point(-1) - branch.get_point(0)
+                if not np.allclose(gap_offset, 0):
+                    SubTree([branch]).translate(gap_offset)
+
+    def collapse(self, on=None):
+        if on is None:
+            on = self.origin
+        for root in self.roots:
+            root.translate(on - root.get_point(0))
+
+
+def _copy_api(cls, wrap=lambda self: self):
+    # Wraps functions so they are called with `self` wrapped in `wrap`
+    def make_wrapper(f):
+        @functools.wraps(f)
+        def wrapper(self, *args, **kwargs):
+            return f(wrap(self), *args, **kwargs)
+
+        return wrapper
+
+    # Decorates a class so that it copies and wraps (see above) the public API of `cls`
+    def decorator(decorated_cls):
+        for key, f in vars(cls).items():
+            if inspect.isfunction(f) and not key.startswith("_"):
+                setattr(decorated_cls, key, make_wrapper(f))
+
+        return decorated_cls
+
+    return decorator
+
+# For every `SubTree.f` there is a `Branch.f` == `SubTree([branch]).f` so we copy and wrap
+# the public API of `SubTree` onto `Branch`, with the `SubTree([self])` wrapped into it.
+@_copy_api(SubTree, lambda self: SubTree([self]))
 class Branch:
     """
     A vector based representation of a series of point in space. Can be a root or
@@ -397,14 +542,17 @@ def _pairwise_iter(walk_iter, labels_iter):
         start = end
 
 
-class Morphology:
+class Morphology(SubTree):
     """
-    A multicompartmental spatial representation of a cell based on connected 3D
-    compartments.
+    A multicompartmental spatial representation of a cell based on a directed acyclic
+    graph of branches whom consist of data vectors, each element of a vector being a
+    coordinate or other associated data of a point on the branch.
     """
 
     def __init__(self, roots):
-        self.roots = roots
+        super().__init__(roots, sanitize=False)
+        if len(self.roots) < len(roots):
+            warn("None-root branches given as morphology input.", MorphologyWarning)
 
     @property
     def branches(self):
