@@ -712,7 +712,7 @@ class ConfigurationAttributeCatcher(ConfigurationAttribute):
 
     def __catch__(self, node, key, value):
         # Try to cast to our type, if it fails it will be caught by whoever is asking us
-        # to catch this and know we don't catch this value.
+        # to catch this and we don't catch this value.
         cast = self.type(value, _parent=node, _key=key)
         # If succesfully cast, catch this value by executing our catch callback.
         self.catch_callback(node, _getattr(node, self.attr_name), key, cast)
