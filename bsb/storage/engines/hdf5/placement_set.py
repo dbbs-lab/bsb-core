@@ -209,7 +209,6 @@ class PlacementSet(
             self._set_morphology_loaders(morphology_set._serialize_loaders())
             self._morphology_chunks.clear(chunk)
             self._morphology_chunks.append(chunk, morphology_set.get_indices())
-            self._rotation_chunks.append(chunk, new_set.get_rotations())
 
     def append_entities(self, chunk, count, additional=None):
         self.append_data(chunk, count=count, additional=additional)
