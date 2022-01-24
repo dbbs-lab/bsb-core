@@ -60,6 +60,7 @@ class MorphologyRepository(Resource, IMorphologyRepository):
     def save(self, name, morphology, overwrite=False):
         with self._engine._write():
             with self._engine._handle("a") as repo:
+                me = self.require(repo)
                 if self.has(name):
                     if overwrite:
                         self.remove(name)
@@ -67,7 +68,7 @@ class MorphologyRepository(Resource, IMorphologyRepository):
                         raise MorphologyRepositoryError(
                             f"A morphology called '{name}' already exists in `{self._engine.root}`."
                         )
-                root = repo["/morphologies"].create_group(name)
+                root = me.create_group(name)
                 branches_group = root.create_group("branches")
                 for id, branch in enumerate(morphology.branches):
                     # Cheap trick: store the id assigned to each branch so that parent
