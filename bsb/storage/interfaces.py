@@ -221,7 +221,8 @@ class MorphologyRepository(Interface, engine_key="morphologies"):
         )
         try:
             morpho = arbor.load_swc_arbor(file)
-        except RuntimeError:
+        except RuntimeError as e:
+            warn(f"Couldn't parse swc: `{e}`. Falling back to NEURON-style parsing.")
             morpho = arbor.load_swc_neuron(file)
 
         return self.import_arb(morpho, labels, name, overwrite=overwrite)
