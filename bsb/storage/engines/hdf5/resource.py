@@ -7,6 +7,9 @@ class Resource:
         self._engine = engine
         self._path = path
 
+    def require(self, handle):
+        return handle.require_group(self._path)
+
     def create(self, data, *args, **kwargs):
         with self._engine._write():
             with self._engine._handle("a") as f:
