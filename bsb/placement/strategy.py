@@ -5,9 +5,106 @@ from ..reporting import report, warn
 from .. import config
 from ..config import refs, types
 from ..helpers import SortableByAfter
-from ..morphologies import MorphologyDistributor
+from ..morphologies import MorphologySet
 from .indicator import PlacementIndications, PlacementIndicator
 import numpy as np
+
+
+@config.dynamic
+class Distributor(abc.ABC):
+    @abc.abstractmethod
+    def distribute(self, partitions, indicator, positions):
+        pass
+
+
+@config.dynamic(
+    required=False, default="random", auto_classmap=True
+)
+class MorphologyDistributor(Distributor):
+    pass
+
+
+class RandomMorphologies(MorphologyDistributor, classmap_entry="random"):
+    """
+    Distributes morphologies and rotations for a given set of placement indications and
+    placed cell positions.
+
+    Config
+    ------
+
+    If omitted in the configuration the default ``random`` distributor is used that
+    assigns selected morphologies randomly without rotating them.
+
+    .. code-block:: json
+
+      { "placement": { "place_XY": {
+        "distribute": {
+            "morphologies": {"cls": "random"}
+        }
+      }}}
+    """
+    def distribute(self, partitions, indicator, positions):
+        """
+        Uses the morphology selection indicators to select morphologies and
+        returns a MorphologySet of randomly assigned morphologies
+        """
+        selectors = indicator.assert_indication("morphological")
+        loaders = self.scaffold.storage.morphologies.select(*selectors)
+        if not loaders:
+            raise EmptySelectionError(
+                "Given selectors did not find any suitable morphologies", selectors
+            )
+        else:
+            ids = np.random.default_rng().integers(len(loaders), size=len(positions))
+        return MorphologySet(loaders, ids)
+
+
+@config.dynamic(
+    required=False, default="none", auto_classmap=True
+)
+class RotationDistributor(Distributor):
+    """
+    Rotates everything by nothing!
+    """
+    @abc.abstractmethod
+    def distribute(self, partitions, indicator, positions):
+        pass
+
+
+class ExplicitNoRotations(RotationDistributor, classmap_entry="explicitly_none"):
+    def distribute(self, partitions, indicator, positions):
+        print("zeroing!", len(positions))
+        return np.zeros((len(positions), 3))
+
+
+# Sentinel mixin class to tag RotationDistributor as being overridable by morphology
+# distributor.
+class Implicit:
+    pass
+
+
+class ImplicitNoRotations(ExplicitNoRotations, Implicit, classmap_entry="none"):
+    pass
+
+
+@config.node
+class DistributorsNode:
+    morphologies = config.attr(type=MorphologyDistributor, default=dict, call_default=True)
+    rotations = config.attr(type=ImplicitNoRotations, default=dict, call_default=True)
+    properties = config.catch_all(type=Distributor)
+
+    def _curry(self, partitions, indicator, positions):
+        def curried(key):
+            return self(key, partitions, indicator, positions)
+
+        return curried
+
+    def __call__(self, key, partitions, indicator, positions):
+        if key in ("morphologies", "rotations"):
+            distributor = getattr(self, key)
+        else:
+            distributor = self.properties[key]
+        return distributor.distribute(partitions, indicator, positions)
 
 
 @config.dynamic
@@ -22,7 +119,7 @@ class PlacementStrategy(abc.ABC, SortableByAfter):
     partitions = config.reflist(refs.partition_ref, required=True)
     overrides = config.dict(type=PlacementIndications)
     after = config.reflist(refs.placement_ref)
-    distributor = config.attr(type=MorphologyDistributor, default=dict, call_default=True)
+    distribute = config.attr(type=DistributorsNode, default=dict, call_default=True)
     indicator_class = PlacementIndicator
 
     def __boot__(self):
@@ -37,23 +134,42 @@ class PlacementStrategy(abc.ABC, SortableByAfter):
         """
         pass
 
-    def place_cells(self, cell_type, indicator, positions, chunk):
+    def place_cells(self, indicator, positions, chunk):
         print("Should we place morphologies:", indicator.use_morphologies())
+        distr_ = self.distribute._curry(self.partitions, indicator, positions)
+
         if indicator.use_morphologies():
-            self.place_morphologies(cell_type, indicator, positions, chunk)
+            print("Using morphologies")
+            morphologies = distr_("morphologies")
+            # Strict type check for unpacking into morphologies and rotations
+            if isinstance(morphologies, tuple):
+                print("Distribution returned tuple")
+                try:
+                    morphologies, rotations = morphologies
+                except TypeError:
+                    raise ValueError(
+                        "Morphology distributors may only return tuples when they are"
+                        + " to be unpacked as (morphologies, rotations)"
+                    ) from None
+                # Tagging your RotationDistributor with `Implicit` makes it overridable
+                # by the MorphologyDistributor.
+                if not isinstance(self.distribute.rotations, Implicit):
+                    rotations = distr_("rotations")
+            else:
+                print("Getting rotations")
+                rotations = distr_("rotations")
         else:
-            self.place_somas(cell_type, positions, chunk)
+            morphologies, rotations = None, None
 
-    def place_morphologies(self, cell_type, indicator, positions, chunk):
-        print("Distributing morphologies")
-        morphology_set = self.distributor.distribute(cell_type, indicator, positions)
-        print("Distributed morphologies")
+        additional = {prop: curry(prop) for prop in self.distribute.properties.keys()}
         self.scaffold.place_cells(
-            cell_type, positions, morphologies=morphology_set, chunk=chunk
+            indicator.cell_type,
+            positions=positions,
+            rotations=rotations,
+            morphologies=morphologies,
+            additional=additional,
+            chunk=chunk
         )
-
-    def place_somas(self, cell_type, positions, chunk):
-        self.scaffold.place_cells(cell_type, positions, chunk=chunk)
 
     def queue(self, pool, chunk_size):
         """
