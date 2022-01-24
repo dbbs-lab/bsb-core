@@ -74,45 +74,6 @@ class MorphologySet:
         return MorphologySet(merged_loaders, merged_indices)
 
 
-@config.dynamic(
-    required=False, default="random", auto_classmap=True, classmap_entry="random"
-)
-class MorphologyDistributor:
-    """
-    Distributes morphologies and rotations for a given set of placement indications and
-    placed cell positions.
-
-    Config
-    ------
-
-    If omitted in the configuration the default ``random`` distributor is used that
-    assigns selected morphologies randomly without rotating them.
-
-    .. code-block:: json
-
-      { "placement": { "place_XY": {
-        "distributor": {
-          "cls": "random"
-        }
-      }}}
-    """
-
-    def distribute(self, cell_type, indicator, positions):
-        """
-        Uses the morphology selection indicators to select morphologies and
-        returns a MorphologySet of randomly assigned morphologies
-        """
-        selectors = indicator.assert_indication("morphological")
-        loaders = self.scaffold.storage.morphologies.select(*selectors)
-        if not loaders:
-            raise EmptySelectionError(
-                "Given selectors did not find any suitable morphologies", selectors
-            )
-        else:
-            ids = np.random.default_rng().integers(len(loaders), size=len(positions))
-        return MorphologySet(loaders, ids)
-
-
 def branch_iter(branch):
     """
     Iterate over a branch and all of its children depth first.
