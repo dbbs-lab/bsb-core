@@ -169,6 +169,7 @@ class PlacementSet(
         chunk,
         positions=None,
         morphologies=None,
+        rotations=None,
         additional=None,
         count=None,
     ):
@@ -197,8 +198,14 @@ class PlacementSet(
 
         if positions is not None:
             self._position_chunks.append(chunk, positions)
+        if rotations is not None and morphologies is None:
+            raise ValueError("Can't append rotations without morphologies.")
         if morphologies is not None:
             self._append_morphologies(chunk, morphologies)
+            if rotations is None:
+                rotations = np.zeros((len(morphologies), 3))
+            self._rotation_chunks.append(chunk, rotations)
+
         if additional is not None:
             for key, ds in additional.items():
                 self.append_additional(key, chunk, ds)
