@@ -101,7 +101,7 @@ class PlacementIndicator:
                     "Relation specified but no ratio indications provided."
                 )
         try:
-            # 1.2 cells == 0.8p for 1, 0.2p for 2
+            # 1.2 cells == 0.8 probability for 1, 0.2 probability for 2
             return int(np.floor(estimate) + (np.random.rand() < estimate % 1))
         except NameError:
             # If `estimate` is undefined after all this then there were no indicators.
