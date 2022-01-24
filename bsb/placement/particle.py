@@ -13,7 +13,6 @@ class ParticlePlacement(PlacementStrategy):
     restrict = config.attr(type=dict)
 
     def place(self, chunk, chunk_size, indicators):
-        print("Hello world?", chunk, chunk_size)
         voxels = list(
             itertools.chain(
                 *(p.chunk_to_voxels(chunk, chunk_size) for p in self.partitions)
@@ -59,5 +58,5 @@ class ParticlePlacement(PlacementStrategy):
                 continue
             positions = np.empty((len(particle_positions), 3))
             positions[:] = particle_positions
-            print("Pacing cells", cell_type, indicator, chunk)
-            self.place_cells(cell_type, indicator, positions, chunk)
+            print(f"Placing {len(positions)} {cell_type.name} in {chunk}")
+            self.place_cells(indicator, positions, chunk)
