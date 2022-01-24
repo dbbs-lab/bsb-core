@@ -231,10 +231,7 @@ def _get_dynamic_class(node_cls, kwargs):
     else:
         loaded_cls_name = dynamic_attr.default
     module_path = ["__main__", node_cls.__module__]
-    if hasattr(node_cls, "_config_dynamic_classmap"):
-        classmap = node_cls._config_dynamic_classmap
-    else:
-        classmap = None
+    classmap = getattr(node_cls, "_config_dynamic_classmap", None)
     try:
         dynamic_cls = _load_class(
             loaded_cls_name, module_path, interface=node_cls, classmap=classmap
