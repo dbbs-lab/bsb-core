@@ -13,13 +13,19 @@ generates indices and rotations. In more complex cases the ``selector`` and
 In the simulation step, these (possibly dynamically modified) morphologies are passed
 to the cell model instantiators.
 """
-import abc, numpy as np, pickle, h5py, math, itertools
-from ..voxels import VoxelCloud, detect_box_compartments, Box
-from sklearn.neighbors import KDTree
-from ..exceptions import *
-from ..reporting import report
-from .. import config
+import abc
+import pickle
+import h5py
+import math
+import itertools
+import functools
 import operator
+import inspect
+import numpy as np
+from ..voxels import VoxelCloud, detect_box_compartments, Box
+from ..exceptions import *
+from ..reporting import report, warn
+from .. import config
 
 
 class MorphologySet:
