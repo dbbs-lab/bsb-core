@@ -2,6 +2,7 @@ from .statistics import Statistics
 from .plotting import plot_network
 import numpy as np
 import time
+import itertools
 from .helpers import map_ndarray, listify_input
 from .placement import PlacementStrategy
 from .connectivity import ConnectionStrategy
@@ -60,6 +61,7 @@ class Scaffold:
         self._bootstrap(config, storage)
 
         if clear:
+            print("clearing")
             self.clear()
 
         # # Debug statistics, unused.
@@ -177,58 +179,6 @@ class Scaffold:
         else:
             pool.execute()
 
-    def _progress_terminal_loop(self, pool, debug=False):
-        import curses, time
-
-        if debug:
-
-            def loop(jobs):
-                print("Total jobs:", len(jobs))
-                print("Running jobs:", sum(1 for q in jobs if q._future.running()))
-                print("Finished:", sum(1 for q in jobs if q._future.done()))
-                time.sleep(1)
-
-            return loop
-
-        stdscr = curses.initscr()
-        curses.noecho()
-        curses.cbreak()
-        stdscr.keypad(True)
-
-        def loop(jobs):
-            total = len(jobs)
-            running = list(q for q in jobs if q._future.running())
-            done = sum(1 for q in jobs if q._future.done())
-
-            stdscr.clear()
-            stdscr.addstr(0, 0, "-- Reconstruction progress --")
-            stdscr.addstr(1, 2, f"Total jobs: {total}")
-            stdscr.addstr(2, 2, f"Remaining jobs: {total - done}")
-            stdscr.addstr(3, 2, f"Running jobs: {len(running)}")
-            stdscr.addstr(4, 2, f"Finished jobs: {done}")
-            for i, j in enumerate(running):
-                stdscr.addstr(
-                    6 + i,
-                    2,
-                    f"* Worker {i}: <{j._cname}>{j._name} {j._c}",
-                )
-
-            stdscr.refresh()
-            time.sleep(0.1)
-
-        loop._stdscr = stdscr
-        return loop
-
-    def _stop_progress_loop(self, loop, debug=False):
-        if debug:
-            return
-        import curses
-
-        curses.nocbreak()
-        loop._stdscr.keypad(False)
-        curses.echo()
-        curses.endwin()
-
     def run_placement_strategy(self, strategy):
         """
         Run a single placement strategy.
@@ -259,17 +209,49 @@ class Scaffold:
         skip_connectivity=False,
         skip_after_placement=False,
         skip_after_connectivity=False,
+        only=None,
+        skip=None,
+        clear=False,
+        append=False,
+        redo=False,
+        force=False,
     ):
         """
-        Run all steps in the scaffold sequence to obtain a full network.
+        Run reconstruction steps in the scaffold sequence to obtain a full network.
         """
+        exists = self.storage.exists()
+        p_strats = self.get_placement(skip=skip, only=only)
+        c_strats = self.get_connectivity(skip=skip, only=only)
+        todo_list_str = ", ".join(s.name for s in itertools.chain(p_strats, c_strats))
+        report(f"Compiling the following strategies: {todo_list_str}", level=2)
+        if sum((clear, redo, append)) > 1:
+            raise InputError("`clear`, `redo` and `append` are mutually exclusive.")
+        if exists:
+            if not (clear or append or redo):
+                raise FileExistsError(
+                    f"The `{self.storage.format}` storage"
+                    + f" at `{self.storage.root}` already exists."
+                    + " Use `clear`, `append` or `redo` to pick"
+                    + " what to do with existing data."
+                )
+            if clear:
+                self.clear()
+            elif redo:
+                # In order to properly redo things, we clear some placement and connection
+                # data, but since multiple placement/connection strategies can contribute
+                # to the same sets we might be wiping their data too, and they will need
+                # to be cleared and reran as well, might cause a large chain reaction.
+                p_strats, c_strats = self._redo_chain(p_strats, c_strats, skip, force)
+            # else:
+            #   append mode is luckily simpler, just don't clear anything :)
+
         t = time.time()
         if not skip_placement:
-            self.run_placement()
+            self.run_placement(p_strats)
         if not skip_after_placement:
             self.run_after_placement()
         if not skip_connectivity:
-            self.run_connectivity()
+            self.run_connectivity(c_strats)
         if not skip_after_connectivity:
             self.run_after_connectivity()
         report("Runtime: {}".format(time.time() - t), 2)
@@ -378,40 +360,27 @@ class Scaffold:
         # Append entity data to the default chunk 000
         ps.append_entities((0, 0, 0), count)
 
-    def get_connectivity_sets(self):
-        """
-        Return all connectivity sets from the output formatter.
-
-        :param tag: Unique identifier of the connectivity set in the output formatter
-        :type tag: string
-        :returns: A connectivity set
-        :rtype: :class:`.models.ConnectivitySet`
-        """
-        return self.output_formatter.get_connectivity_sets()
-
-    def get_connectivity_set(self, tag):
-        """
-        Return a connectivity set from the output formatter.
-
-        :param tag: Unique identifier of the connectivity set in the output formatter
-        :type tag: string
-        :returns: A connectivity set
-        :rtype: :class:`.models.ConnectivitySet`
-        """
-        return self.output_formatter.get_connectivity_set(tag)
+    def get_placement(self, cell_types=None, skip=None, only=None):
+        if cell_types is not None:
+            cell_types = [
+                self.cell_types[ct] if isinstance(ct, str) else ct for ct in cell_types
+            ]
+        return [
+            val
+            for key, val in self.placement.items()
+            if (cell_types is None or any(ct in cell_types for ct in val.cell_types))
+            and (only is None or key in only)
+            and (skip is None or key not in skip)
+        ]
 
     def get_placement_of(self, *cell_types):
         """
-        Find all of the placement strategies that include certain cell types.
+        Find all of the placement strategies that given certain cell types.
 
-        :param cell_types: Cell types of interest.
-        :type cell_types: :class:`.objects.CellType`
+        :param cell_types: Cell types (or their names) of interest.
+        :type cell_types: Union[:class:`.objects.CellType`, str]
         """
-
-        def of(p):
-            return any(ct in p.cell_types for ct in cell_types)
-
-        return list(p for p in self.placement.values() if of(p))
+        return self.get_placement(cell_types=cell_types)
 
     def get_placement_set(self, type, chunks=None):
         """
@@ -426,73 +395,47 @@ class Scaffold:
             type = self.cell_types[type]
         return self.storage.get_placement_set(type, chunks=chunks)
 
-    def translate_cell_ids(self, data, cell_type):
+    def get_connectivity(
+        self, anywhere=None, presynaptic=None, postsynaptic=None, skip=None, only=None
+    ):
+        conntype_filtered = self._connection_types_query(
+            any_query=set(self._sanitize_ct(anywhere)),
+            pre_query=set(self._sanitize_ct(presynaptic)),
+            post_query=set(self._sanitize_ct(postsynaptic)),
+        )
+        return [
+            ct
+            for ct in conntype_filtered
+            if (only is None or ct.name in only) and (skip is None or ct.name not in skip)
+        ]
+
+    def get_connectivity_sets(self):
         """
-        Return the global ids of the N-th cells of a cell type
+        Return all connectivity sets from the output formatter.
 
-        .. code-block:: python
-
-            cell_type = scaffold.get_cell_type('granule_cell')
-            # Get the global ids of the first 3 granule cells.
-            global_ids = scaffold.translate_cell_ids([0, 1, 2], cell_type)
-
-        .. code-block::
-
-            >>> [1312, 1313, 1314]
-
-        :param data: A valid index for a :class:`numpy.ndarray`
-        :param cell_type: A cell type.
-        :type cell_type: :class:`.models.CellType`
+        :param tag: Unique identifier of the connectivity set in the output formatter
+        :type tag: string
+        :returns: A connectivity set
+        :rtype: :class:`.models.ConnectivitySet`
         """
-        if not self.is_compiled():
-            return self.cells_by_type[cell_type.name][data, 0]
-        else:
-            return self.get_placement_set(cell_type).identifiers[data]
+        return self.storage.get_connectivity_sets()
 
-    def get_connection_type(self, name):
+    def get_connectivity_set(self, tag):
         """
-        Get the specified connection type.
+        Return a connectivity set from the output formatter.
 
-        :param name: Unique identifier of the connection type in the configuration.
-        :type name: string
-
-        :returns: The connection type
-        :rtype: :class:`.connectivity.ConnectionStrategy`
-        :raise TypeNotFoundError: When the specified name is not known.
+        :param tag: Unique identifier of the connectivity set in the output formatter
+        :type tag: string
+        :returns: A connectivity set
+        :rtype: :class:`~.storage.interfaces.ConnectivitySet`
         """
-        if name not in self.configuration.connection_types:
-            raise TypeNotFoundError("Unknown connection type '{}'".format(name))
-        return self.configuration.connection_types[name]
+        return self.storage.get_connectivity_set(tag)
 
-    def get_cell_types(self, entities=True):
+    def get_cell_types(self):
         """
-        Return a collection of all configured cell types.
-
-        :param entities: In/exclude entity types
-        :type entities: bool
-        :returns: List of cell types
+        Return a list of all cell types in the network.
         """
-        if entities:
-            return list(self.configuration.cell_types.values())
-        else:
-            return [c for c in self.configuration.cell_types.values() if not c.entity]
-
-    def get_placed_count(self, cell_type_name):
-        """
-        Return the amount of cell of a cell type placed in the volume.
-
-        :param cell_type_name: Unique identifier of the cell type in the configuration.
-        :type cell_type_name: string
-        """
-        return self.statistics.cells_placed[cell_type_name]
-
-    def is_compiled(self):
-        """
-        Returns whether there persistent storage of this network has been created.
-
-        :rtype: boolean
-        """
-        return self.output_formatter.exists()
+        return list(self.configuration.cell_types.values())
 
     def create_adapter(self, simulation_name):
         """
@@ -521,6 +464,7 @@ class Scaffold:
         :param ids: global identifiers of the cells that need to be labelled.
         :type ids: iterable
         """
+        raise NotImplementedError("Label interface is RIP, revisit")
         self.storage.Label(label).label(ids)
 
     def get_labels(self, pattern=None):
@@ -541,6 +485,7 @@ class Scaffold:
         :returns: All labels matching the pattern
         :rtype: list
         """
+        raise NotImplementedError("Label interface is RIP, revisit")
         if pattern is None:
             return self.storage._Label.list()
         if pattern.endswith("*"):
@@ -550,29 +495,11 @@ class Scaffold:
             finder = lambda l: l == pattern
         return list(filter(finder, self.storage._Label.list()))
 
-    def get_labelled_ids(self, label):
-        """
-        Get all the global identifiers of cells labelled with the specific label.
-        """
-        return np.array(self.labels[label], dtype=int)
-
     def get_cell_total(self):
         """
         Return the total amount of cells and entities placed.
         """
-        return sum(list(self.statistics.cells_placed.values()))
-
-    def create_filter(self, **kwargs):
-        """
-        Create a :class:`Filter <.storage.interfaces.Filter>`. Each keyword argument
-        given to this function must match a supported filter type. The values of the
-        keyword arguments are then set as a filter of that type.
-
-        Filters need to be activated in order to exert their filtering function.
-        """
-        f = self.storage.create_filter(**kwargs)
-        print("f:", f.__class__, dir(f))
-        return self.storage.create_filter(**kwargs)
+        return sum(len(ct.get_placement_set()) for ct in self.get_cell_types())
 
     def for_blender(self):
         """
@@ -587,17 +514,142 @@ class Scaffold:
         return self
 
     def merge(self, other, label=None):
-        warn(
-            "The merge function currently only merges cell positions."
-            + " Only cell types that exist in the calling network will be copied."
+        raise NotImplementedError("Revisit: merge PS & CT, done?")
+
+    def _sanitize_ct(self, seq_str_or_none):
+        if seq_str_or_none is None:
+            return []
+        try:
+            if isinstance(seq_str_or_none, str):
+                return [self.cell_types[seq_str_or_none]]
+            return [
+                self.cell_types[s] if isinstance(s, str) else s for s in seq_str_or_none
+            ]
+        except KeyError as e:
+            raise NodeNotFoundError(f"Cell type `{e.args[0]}` not found.")
+
+    def _progress_terminal_loop(self, pool, debug=False):
+        import curses, time
+
+        if debug:
+
+            def loop(jobs):
+                print("Total jobs:", len(jobs))
+                print("Running jobs:", sum(1 for q in jobs if q._future.running()))
+                print("Finished:", sum(1 for q in jobs if q._future.done()))
+                time.sleep(1)
+
+            return loop
+
+        stdscr = curses.initscr()
+        curses.noecho()
+        curses.cbreak()
+        stdscr.keypad(True)
+
+        def loop(jobs):
+            total = len(jobs)
+            running = list(q for q in jobs if q._future.running())
+            done = sum(1 for q in jobs if q._future.done())
+
+            stdscr.clear()
+            stdscr.addstr(0, 0, "-- Reconstruction progress --")
+            stdscr.addstr(1, 2, f"Total jobs: {total}")
+            stdscr.addstr(2, 2, f"Remaining jobs: {total - done}")
+            stdscr.addstr(3, 2, f"Running jobs: {len(running)}")
+            stdscr.addstr(4, 2, f"Finished jobs: {done}")
+            for i, j in enumerate(running):
+                stdscr.addstr(
+                    6 + i,
+                    2,
+                    f"* Worker {i}: <{j._cname}>{j._name} {j._c}",
+                )
+
+            stdscr.refresh()
+            time.sleep(0.1)
+
+        loop._stdscr = stdscr
+        return loop
+
+    def _stop_progress_loop(self, loop, debug=False):
+        if debug:
+            return
+        import curses
+
+        curses.nocbreak()
+        loop._stdscr.keypad(False)
+        curses.echo()
+        curses.endwin()
+
+    def _connection_types_query(self, any_query=set(), pre_query=set(), post_query=set()):
+        # Filter network connection types for any type that satisfies both
+        # the presynaptic and postsynaptic query. Empty queries satisfy all
+        # types. The presynaptic query is satisfied if the conn type contains
+        # any of the queried cell types presynaptically, and same for post.
+        # The any query is satisfied if a cell type is found either pre or post.
+
+        def partial_query(types, query):
+            return not query or any(cell_type in query for cell_type in types)
+
+        def query(conn_type):
+            pre_match = partial_query(conn_type.presynaptic.cell_types, pre_query)
+            post_match = partial_query(conn_type.postsynaptic.cell_types, post_query)
+            any_match = partial_query(
+                conn_type.presynaptic.cell_types, any_query
+            ) or partial_query(conn_type.postsynaptic.cell_types, any_query)
+            return any_match or (pre_match and post_match)
+
+        types = self.connectivity.values()
+        return [*filter(query, types)]
+
+    def _redo_chain(self, p_strats, c_strats, skip, force):
+        p_contrib = set(p_strats)
+        while True:
+            # Get all the placement strategies that effect the current set of CT.
+            cell_types = set(itertools.chain(*(ps.cell_types for ps in p_strats)))
+            contrib = set(self.get_placement(cell_types))
+            # Keep repeating until no new contributors are fished up.
+            if contrib.issubset(p_contrib):
+                break
+            # Grow the placement chain
+            p_contrib.update(contrib)
+        report(
+            f"Redo-affected placement: " + " ".join(ps.name for ps in p_contrib), level=2
         )
-        for ct in self.get_cell_types():
-            if next((c for c in other.get_cell_types() if c.name == ct.name), None):
-                ps = c.get_placement_set()
-                ids = self.place_cells(ct, ct.layer_instance, ps.get_dataset())
-                if label is not None:
-                    self.label_cells(ids, label)
-        self.compile_output()
+        exit()
+
+        clear_conns = network.get_connection_strategies(anywhere=cell_types)
+
+        # report(f"Clearing " + " ".join(ct.name for ct in cell_types), level=2)
+        partially_cleared = set()
+        for cell_type in cell_types:
+            cell_type.clear_placement(force=force)
+            partially_cleared.update(cell_type.clear_connections(force=force))
+        # A
+        report(f"Clearing " + " ".join(ct.name for ct in clear_conns), level=2)
+        for conn_type in clear_conns:
+            conn_type.clear(force=force)
+
+        # Don't do greedy things without `force`
+        if not force:
+            # Error if we need to redo things the user asked to skip
+            unskipped = [p.name for p in p_strats if p.name in skip]
+            if unskipped:
+                skipstr = ", ".join(unskipped)
+                raise RedoError(
+                    f"Need to redo {unskipped}, but was asked to skip."
+                    + " Omit from `skip` or use `force` (not recommended)."
+                )
+            # Error if we need to redo things the user didn't ask for
+            for label, chain, og in zip(
+                ("placement", "connection"), (p_contrib, c_contrib), (p_strats, c_strats)
+            ):
+                if len(chain) > len(og):
+                    new = chain - og
+                    raise RedoError(
+                        f"Need to redo additional {label} strategies: "
+                        + ", ".join(n.name for n in new)
+                        + " Include them or use `force` (not recommended)."
+                    )
 
 
 class ReportListener:
