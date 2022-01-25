@@ -2,6 +2,10 @@ class Context:
     def __init__(self, options):
         self.options = options
 
+    def __str__(self):
+        opt = "; ".join(f"{opt.name}: {opt.get()}" for opt in self.options.values())
+        return f"<Context options({opt})>"
+
 
 class CLIContext(Context):
     def set_cli_namespace(self, namespace):
@@ -16,6 +20,10 @@ class CLIContext(Context):
             if option.name == attr:
                 return option.get()
         return super().__getattribute__(attr)
+
+    def __str__(self):
+        base = super().__str__()
+        return base[:-1] + f" {self.arguments}>"
 
 
 def get_cli_context():
