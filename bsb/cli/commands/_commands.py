@@ -1,3 +1,7 @@
+"""
+Contains builtin commands.
+"""
+
 from . import BaseCommand
 from ...option import BsbOption
 from ...exceptions import *

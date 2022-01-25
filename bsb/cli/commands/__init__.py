@@ -1,3 +1,11 @@
+"""
+Contains all of the logic required to create commands. It should always suffice to import
+just this module for a user to create their own commands.
+
+Inherit from :class:`BaseCommand` for regular CLI style commands, or from
+:class:`BsbCommand` if you want more freedom in what exactly constitutes a command to the
+BSB.
+"""
 import abc
 import argparse
 from ...exceptions import *
