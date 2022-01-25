@@ -64,7 +64,7 @@ configuration:
   config = from_json("config.json")
   scaffold = Scaffold(config)
   # Compile the empty network.
-  scaffold.compile_network()
+  scaffold.compile()
   # Your mostly empty HDF5 file `my_network.hdf5` should appear
 
 Or to achieve the same thing from the CLI:
