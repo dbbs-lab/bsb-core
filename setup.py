@@ -58,6 +58,7 @@ setuptools.setup(
         "bsb.engines": ["hdf5 = bsb.storage.engines.hdf5"],
         "bsb.options": [
             "verbosity = bsb._options:verbosity",
+            "sudo = bsb._options:sudo",
             "version = bsb._options:version",
         ],
     },

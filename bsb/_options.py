@@ -26,6 +26,25 @@ class VerbosityOption(
         return 1
 
 
+class ForceFlag(
+    BsbOption,
+    name="force",
+    cli=("f", "force"),
+    env=("BSB_FOOTGUN_MODE",),
+    script=("sudo",),
+):
+    """
+    Enable sudo mode. Will execute destructive actions without confirmation, error or user
+    interaction.
+    """
+
+    def setter(self, value):
+        return bool(value)
+
+    def get_default(self):
+        return False
+
+
 class VersionFlag(
     BsbOption,
     name="version",
@@ -53,3 +72,7 @@ def verbosity():
 
 def version():
     return VersionFlag
+
+
+def sudo():
+    return ForceFlag
