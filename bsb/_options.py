@@ -63,7 +63,7 @@ class VersionFlag(
         return __version__
 
     def action(self, namespace):
-        report(self.get(), level=1)
+        report("bsb " + str(self.get()), level=1)
 
 
 def verbosity():
