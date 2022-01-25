@@ -260,6 +260,10 @@ class Branch:
             setattr(self, vector, args[v])
 
     @property
+    def parent(self):
+        return self._parent
+
+    @property
     def size(self):
         """
         Returns the amount of points on this branch
