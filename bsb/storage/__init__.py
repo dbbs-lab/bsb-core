@@ -166,6 +166,14 @@ class Storage:
     def morphologies(self):
         return self._engine.morphologies
 
+    @property
+    def root(self):
+        return self._root
+
+    @property
+    def format(self):
+        return self._engine._format
+
     @_on_master
     def exists(self):
         """
