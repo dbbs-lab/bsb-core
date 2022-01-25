@@ -79,6 +79,5 @@ class ParallelArrayPlacement(PlacementStrategy):
                     cells[(i * len(x)) : ((i + 1) * len(x)), 1] = y
                     cells[(i * len(x)) : ((i + 1) * len(x)), 2] = z
                 # Place all the cells in 1 batch (more efficient)
-                self.scaffold.place_cells(
-                    cell_type, cells[cells[:, 0] < dims.width - radius], chunk=chunk
-                )
+                positions = cells[cells[:, 0] < dims.width - radius]
+                self.place_cells(indicator, positions, chunk=chunk)

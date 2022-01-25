@@ -53,6 +53,7 @@ class Satellite(PlacementStrategy):
             self.place_type(chunk, chunk_size, indicator)
 
     def place_type(self, chunk, chunk_size, indicator):
+        # STRATEGY DISABLED DURING v4 REWORK
         return
         cell_type = indicator.cell_type
         scaffold = self.scaffold
@@ -173,4 +174,4 @@ class Satellite(PlacementStrategy):
                 scaffold._planets[cell_type.name] = []
             scaffold._planets[cell_type.name].extend(planet_ids)
 
-        scaffold.place_cells(cell_type, satellites_pos)
+        self.place_cells(indicator, satellites_pos, chunk=chunk)
