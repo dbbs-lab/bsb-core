@@ -71,7 +71,6 @@ class RotationDistributor(Distributor):
 
 class ExplicitNoRotations(RotationDistributor, classmap_entry="explicitly_none"):
     def distribute(self, partitions, indicator, positions):
-        print("zeroing!", len(positions))
         return np.zeros((len(positions), 3))
 
 
@@ -135,15 +134,12 @@ class PlacementStrategy(abc.ABC, SortableByAfter):
         pass
 
     def place_cells(self, indicator, positions, chunk):
-        print("Should we place morphologies:", indicator.use_morphologies())
         distr_ = self.distribute._curry(self.partitions, indicator, positions)
 
         if indicator.use_morphologies():
-            print("Using morphologies")
             morphologies = distr_("morphologies")
             # Strict type check for unpacking into morphologies and rotations
             if isinstance(morphologies, tuple):
-                print("Distribution returned tuple")
                 try:
                     morphologies, rotations = morphologies
                 except TypeError:
@@ -156,7 +152,6 @@ class PlacementStrategy(abc.ABC, SortableByAfter):
                 if not isinstance(self.distribute.rotations, Implicit):
                     rotations = distr_("rotations")
             else:
-                print("Getting rotations")
                 rotations = distr_("rotations")
         else:
             morphologies, rotations = None, None
@@ -182,10 +177,8 @@ class PlacementStrategy(abc.ABC, SortableByAfter):
         # Get the queued jobs of all the strategies we depend on.
         deps = set(itertools.chain(*(strat._queued_jobs for strat in self.get_after())))
         for p in self.partitions:
-            print("Queueing smth")
             chunks = p.to_chunks(chunk_size)
             for chunk in chunks:
-                print("Queueing chunk")
                 job = pool.queue_placement(self, chunk, chunk_size, deps=deps)
                 self._queued_jobs.append(job)
 
