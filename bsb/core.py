@@ -235,33 +235,6 @@ class Scaffold:
         """
         self.run_placement([strategy])
 
-    def connect_cell_types(self):
-        """
-        Run the connection strategies of all cell types.
-        """
-        sorted_connection_types = ConnectionStrategy.resolve_order(
-            self.configuration.connection_types
-        )
-        for connection_type in sorted_connection_types:
-            self.connect_type(connection_type)
-
-    def connect_type(self, connection_type):
-        """
-        Run a connection type
-        """
-        connection_type.connect()
-        # Iterates for each tag of the connection_type
-        for tag in range(len(connection_type.tags)):
-            conn_num = np.shape(connection_type.get_connection_matrices()[tag])[0]
-            source_name = connection_type.from_cell_types[0].name
-            target_name = connection_type.to_cell_types[0].name
-            report(
-                "Finished connecting {} with {} (tag: {} - total connections: {}).".format(
-                    source_name, target_name, connection_type.tags[tag], conn_num
-                ),
-                level=2,
-            )
-
     def run_after_placement(self):
         """
         Run after placement hooks.
@@ -382,56 +355,8 @@ class Scaffold:
             additional=additional,
         )
 
-    def connect_cells(
-        self,
-        connection_type,
-        connectome_data,
-        tag=None,
-        morphologies=None,
-        compartments=None,
-        meta=None,
-        morpho_map=None,
-    ):
-        """
-        Store connections for a connection type. Will store the
-        ``connectome_data`` under ``bsb.cell_connections_by_tag``, a
-        mapped version of the morphology names under
-        ``bsb.connection_morphologies`` and the compartments under
-        ``bsb.connection_compartments``.
-
-        :param connection_type: The connection type. The name of the connection type will be used by default as the tag.
-        :type connection_type: :class:`ConnectionStrategy`
-        :param connectome_data: A 2D ndarray with 2 columns: the presynaptic cell id and the postsynaptic cell id.
-        :type connectome_data: :class:`numpy.ndarray`
-        :param tag: The name of the dataset in the storage. If no tag is given, the name of the connection type is used. This parameter can be used to create multiple different connection set per connection type.
-        :type tag: string
-        :param morphologies: A 2D ndarray with 2 columns: the presynaptic morphology name and the postsynaptic morphology name.
-        :type morphologies: :class:`numpy.ndarray`
-        :param compartments: A 2D ndarray with 2 columns: the presynaptic compartment id and the postsynaptic compartment id.
-        :type compartments: :class:`numpy.ndarray`
-        :param meta: Additional metadata to be stored on the connectivity set.
-        :type meta: dict
-        """
-        # Allow 1 connection type to store multiple connectivity datasets by utilizing tags
-        tag = tag or connection_type.name
-        # Keep track of relevant tags in the connection_type object
-        if tag not in connection_type.tags:
-            connection_type.tags.append(tag)
-        self._append_tagged("cell_connections_by_tag", tag, connectome_data)
-        if compartments is not None or morphologies is not None:
-            if len(morphologies) != len(connectome_data) or len(compartments) != len(
-                connectome_data
-            ):
-                raise MorphologyDataError(
-                    "The morphological data did not match the connectome data."
-                )
-            self._append_mapped(
-                "connection_morphologies", tag, morphologies, use_map=morpho_map
-            )
-            self._append_tagged("connection_compartments", tag, compartments)
-        # Store the metadata internally until the output is compiled.
-        if meta is not None:
-            self._connectivity_set_meta[tag] = meta
+    def connect_cells(self):
+        raise NotImplementedError("hehe, todo!")
 
     def create_entities(self, cell_type, count):
         """
@@ -452,127 +377,6 @@ class Scaffold:
         ps = self.get_placement_set(cell_type)
         # Append entity data to the default chunk 000
         ps.append_entities((0, 0, 0), count)
-
-    def _append_tagged(self, attr, tag, data):
-        """
-        Appends or creates data to a tagged numpy array in a dictionary attribute of
-        the scaffold.
-        """
-        if tag in self.__dict__[attr]:
-            cache = self.__dict__[attr][tag]
-            self.__dict__[attr][tag] = np.concatenate((cache, data))
-        else:
-            self.__dict__[attr][tag] = np.copy(data)
-
-    def _append_mapped(self, attr, tag, data, use_map=None):
-        """
-        Appends or creates the data with a map to a tagged numpy array in a dictionary
-        attribute of the scaffold.
-        """
-        # Map data
-        if use_map:  # Is the data already mapped and should we use the given map?
-            if not attr + "_map" in self.__dict__[attr]:
-                self.__dict__[attr][tag + "_map"] = use_map.copy()
-            else:
-                data += len(self.__dict__[attr][tag + "_map"])
-                self.__dict__[attr][tag + "_map"].extend(use_map)
-            mapped_data = np.array(data, dtype=int)
-        else:
-            if not attr + "_map" in self.__dict__[attr]:
-                self.__dict__[attr][tag + "_map"] = []
-            mapped_data, data_map = map_ndarray(
-                data, _map=self.__dict__[attr][tag + "_map"]
-            )
-            mapped_data = np.array(mapped_data, dtype=int)
-
-        # Append data
-        if tag in self.__dict__[attr]:
-            cache = self.__dict__[attr][tag]
-            self.__dict__[attr][tag] = np.concatenate((cache, mapped_data))
-        else:
-            self.__dict__[attr][tag] = np.copy(mapped_data)
-
-    def _connection_types_query(self, postsynaptic=[], presynaptic=[]):
-        # This function searches through all connection types that include the given
-        # pre- and/or postsynaptic cell types.
-
-        # Make sure the inputs are lists.
-        postsynaptic = listify_input(postsynaptic)
-        presynaptic = listify_input(presynaptic)
-
-        # Local function that checks for any intersection between 2 lists based on a given f.
-        def any_intersect(l1, l2, f=lambda x: x):
-            if not l2:  # Return True if there's no pre/post targets specified
-                return True
-            for e1 in l1:
-                if f(e1) in l2:
-                    return True
-            return False
-
-        # Extract the connection types as tuples so that they can be turned back into a
-        # dictionary after filtering
-        connection_items = self.configuration.connection_types.items()
-        # Lambda that includes any connection type with at least one of the specified
-        # presynaptic and one of the specified postsynaptic connections.
-        # If the post- or presynaptic constraints are empty all connection types pass for
-        # that constraint.
-        intersect = lambda c: any_intersect(
-            c[1].to_cell_types, postsynaptic, lambda x: x.name
-        ) and any_intersect(c[1].from_cell_types, presynaptic, lambda x: x.name)
-        # Filter all connection types based on the lambda function.
-        filtered_connection_items = list(
-            filter(
-                intersect,
-                connection_items,
-            )
-        )
-        # Turn the filtered result into a dictionary.
-        return dict(filtered_connection_items)
-
-    def get_connection_types_by_cell_type(
-        self, any=None, postsynaptic=None, presynaptic=None
-    ):
-        """
-        Search for connection types that include specific cell types as pre- or postsynaptic targets.
-
-        :param any: Cell type names that will include connection types that have the given cell types as either pre- or postsynaptic targets.
-        :type any: string or sequence of strings.
-        :param postsynaptic: Cell type names that will include connection types that have the given cell types as postsynaptic targets.
-        :type postsynaptic: string or sequence of strings.
-        :param presynaptic: Cell type names that will include connection types that have the given cell types as presynaptic targets.
-        :type presynaptic: string or sequence of strings.
-        :returns: The connection types that meet the specified criteria.
-        :rtype: dict
-        """
-        if any is None and postsynaptic is None and presynaptic is None:
-            raise ArgumentError("No cell types specified")
-        # Make a list out of the input elements
-        postsynaptic = listify_input(postsynaptic)
-        presynaptic = listify_input(presynaptic)
-        # Initialize empty omitted lists
-        if any is not None:  # Add any cell types as both post and presynaptic targets
-            any = listify_input(any)
-            postsynaptic.extend(any)
-            presynaptic.extend(any)
-        # Execute the query and return results.
-        return self._connection_types_query(postsynaptic, presynaptic)
-
-    def get_connections_by_cell_type(self, any=None, postsynaptic=None, presynaptic=None):
-        """
-        Get the connectivity sets from storage for connection types that include certain cell types as targets.
-
-        :see: get_connection_types_by_cell_type
-        :rtype: :class:`bsb.models.ConnectivitySet`
-        """
-        # Find the connection types that have the specified targets
-        connection_types = self.get_connection_types_by_cell_type(
-            any, postsynaptic, presynaptic
-        )
-        # Map them to a list of tuples with the 1st element the connection type
-        # and the connection matrices appended behind it.
-        return list(
-            map(lambda x: (x, *x.get_connectivity_sets()), connection_types.values())
-        )
 
     def get_connectivity_sets(self):
         """
