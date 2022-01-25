@@ -109,6 +109,12 @@ class Scaffold:
         self.storage.init(self)
         self.configuration._bootstrap(self)
 
+    def clear(self):
+        """
+        Clears the storage. This deletes any existing network data!
+        """
+        self.storage.renew(self)
+
     def resize(self, x=None, y=None, z=None):
         """
         Updates the topology boundary indicators. Use before placement, updates
@@ -294,12 +300,6 @@ class Scaffold:
         if not skip_after_connectivity:
             self.run_after_connectivity()
         report("Runtime: {}".format(time.time() - t), 2)
-
-    def clear(self):
-        """
-        Clears the storage. This deletes the network!
-        """
-        self.storage.renew(self)
 
     def run_simulation(self, simulation_name, quit=False):
         """
