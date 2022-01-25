@@ -34,6 +34,10 @@ class Append(
     pass
 
 
+class Redo(BsbOption, name="redo", cli=("redo", "r"), env=("BSB_REDO_MODE",), flag=True):
+    pass
+
+
 class Output(BsbOption, name="output", cli=("output", "o"), env=("BSB_OUTPUT_FILE",)):
     pass
 
@@ -127,13 +131,18 @@ class BsbCompile(BaseCommand, name="compile"):
 
         cfg = from_json(context.config)
         # Bootstrap the scaffold and clear the storage if not in append mode
-        network = Scaffold(cfg, clear=not context.append)
+        network = Scaffold(cfg)
         network.resize(context.x, context.y, context.z)
         network.compile(
-            skip_placement=True,
-            skip_after_placement=True,
-            skip_connectivity=False,
-            skip_after_connectivity=True,
+            skip_placement=context.skip_placement,
+            skip_after_placement=context.skip_after_placement,
+            skip_connectivity=context.skip_connectivity,
+            skip_after_connectivity=context.skip_after_connectivity,
+            only=context.only,
+            skip=context.skip,
+            force=context.force,
+            append=context.append,
+            redo=context.redo,
         )
 
     def get_options(self):
@@ -149,6 +158,7 @@ class BsbCompile(BaseCommand, name="compile"):
             "no_connectivity": SkipConnectivity(),
             "no_after_connectivity": SkipAfterConnectivity(),
             "append": Append(),
+            "redo": Redo(),
             "plot": Plot(),
             "output": Output(),
         }
