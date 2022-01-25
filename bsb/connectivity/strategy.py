@@ -95,3 +95,6 @@ class ConnectionStrategy(abc.ABC, SortableByAfter):
             roi = self.get_region_of_interest(chunk, chunk_size)
             job = pool.queue_connectivity(self, chunk, chunk_size, roi, deps=deps)
             self._queued_jobs.append(job)
+
+    def get_cell_types(self):
+        return set(self.presynaptic.cell_types) | set(self.postsynaptic.cell_types)
