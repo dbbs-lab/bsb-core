@@ -4,6 +4,7 @@ from ...interfaces import PlacementSet as IPlacementSet
 from ....morphologies import MorphologySet
 from .chunks import ChunkLoader, ChunkedProperty
 import numpy as np
+import itertools
 
 _pos_prop = lambda l: ChunkedProperty(l, "position", shape=(0, 3), dtype=float)
 _rot_prop = lambda l: ChunkedProperty(l, "rotation", shape=(0, 3), dtype=float)
@@ -148,21 +149,13 @@ class PlacementSet(
                     f[path].attrs["morphology_loaders"] = map
 
     def __iter__(self):
-        return zip(
-            self._none(self.load_positions()),
-            self._none(self.load_morphologies()),
+        return itertools.zip_longest(
+            self.load_positions(),
+            self.load_morphologies(),
         )
 
     def __len__(self):
-        return sum(self._position_chunks.load(raw=True))
-
-    def _none(self, starter):
-        """
-        Yield from ``starter`` then start yielding ``None``
-        """
-        yield from starter
-        while True:
-            yield None
+        return len(self._position_chunks.load())
 
     def append_data(
         self,
