@@ -69,7 +69,7 @@ def report(*message, level=2, ongoing=False, token=None, nodes=None, all_nodes=F
             with open(_report_file, "a") as f:
                 f.write(_encode(token or "", message))
         else:
-            print(message, end="\n" if not ongoing else "\r")
+            print(message, end="\n" if not ongoing else "\r", flush=True)
 
 
 def warn(message, category=None, stacklevel=2):
