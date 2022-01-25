@@ -10,7 +10,7 @@ class Context:
 class CLIContext(Context):
     def set_cli_namespace(self, namespace):
         for option in self.options.values():
-            for tag in option.__class__.cli.tags:
+            for tag in _tags_to_namespace(option.__class__.cli.tags):
                 if hasattr(namespace, tag):
                     option.cli = getattr(namespace, tag)
         self.arguments = namespace
@@ -30,3 +30,7 @@ def get_cli_context():
     from .options import get_options
 
     return CLIContext(get_options())
+
+
+def _tags_to_namespace(tags):
+    yield from (tag.replace("-", "_") for tag in tags)
