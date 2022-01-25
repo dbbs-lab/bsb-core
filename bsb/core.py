@@ -605,8 +605,8 @@ class Scaffold:
         p_contrib = set(p_strats)
         while True:
             # Get all the placement strategies that effect the current set of CT.
-            cell_types = set(itertools.chain(*(ps.cell_types for ps in p_strats)))
-            contrib = set(self.get_placement(cell_types))
+            full_wipe = set(itertools.chain(*(ps.cell_types for ps in p_contrib)))
+            contrib = set(self.get_placement(full_wipe))
             # Keep repeating until no new contributors are fished up.
             if contrib.issubset(p_contrib):
                 break
@@ -615,41 +615,51 @@ class Scaffold:
         report(
             f"Redo-affected placement: " + " ".join(ps.name for ps in p_contrib), level=2
         )
-        exit()
 
-        clear_conns = network.get_connection_strategies(anywhere=cell_types)
-
-        # report(f"Clearing " + " ".join(ct.name for ct in cell_types), level=2)
-        partially_cleared = set()
-        for cell_type in cell_types:
-            cell_type.clear_placement(force=force)
-            partially_cleared.update(cell_type.clear_connections(force=force))
-        # A
-        report(f"Clearing " + " ".join(ct.name for ct in clear_conns), level=2)
-        for conn_type in clear_conns:
-            conn_type.clear(force=force)
-
+        c_contrib = set(c_strats)
+        conn_wipe = full_wipe.copy()
+        while True:
+            contrib = set(self.get_connectivity(anywhere=conn_wipe))
+            conn_wipe.update(itertools.chain(*(ct.get_cell_types() for ct in contrib)))
+            if contrib.issubset(c_contrib):
+                break
+            c_contrib.update(contrib)
+        report(
+            f"Redo-affected connectivity: " + " ".join(cs.name for cs in c_contrib),
+            level=2,
+        )
         # Don't do greedy things without `force`
         if not force:
             # Error if we need to redo things the user asked to skip
-            unskipped = [p.name for p in p_strats if p.name in skip]
-            if unskipped:
-                skipstr = ", ".join(unskipped)
-                raise RedoError(
-                    f"Need to redo {unskipped}, but was asked to skip."
-                    + " Omit from `skip` or use `force` (not recommended)."
-                )
+            if skip is not None:
+                unskipped = [p.name for p in p_strats if p.name in skip]
+                if unskipped:
+                    skipstr = ", ".join(unskipped)
+                    raise RedoError(
+                        f"Need to redo {unskipped}, but was asked to skip."
+                        + ". Omit from `skip` or use `force` (not recommended)."
+                    )
             # Error if we need to redo things the user didn't ask for
             for label, chain, og in zip(
                 ("placement", "connection"), (p_contrib, c_contrib), (p_strats, c_strats)
             ):
                 if len(chain) > len(og):
-                    new = chain - og
+                    new = chain.difference(og)
                     raise RedoError(
                         f"Need to redo additional {label} strategies: "
                         + ", ".join(n.name for n in new)
-                        + " Include them or use `force` (not recommended)."
+                        + ". Include them or use `force` (not recommended)."
                     )
+
+        for ct in full_wipe:
+            report(f"Clearing all data of {ct.name}", level=2)
+            ct.clear()
+
+        for ct in conn_wipe:
+            report(f"Clearing connectivity data of {ct.name}", level=2)
+            ct.clear_connections()
+
+        return p_contrib, c_contrib
 
 
 class ReportListener:
