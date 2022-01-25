@@ -32,6 +32,7 @@ class ForceFlag(
     cli=("f", "force"),
     env=("BSB_FOOTGUN_MODE",),
     script=("sudo",),
+    flag=True,
 ):
     """
     Enable sudo mode. Will execute destructive actions without confirmation, error or user
