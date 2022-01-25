@@ -158,7 +158,7 @@ class ChunkedProperty:
             chunk_loader = map(reader, chunks)
             # Concatenate all non-empty chunks together
             chunked_data = tuple(c for c in chunk_loader if c.size)
-        if not len(chunked_data):
+        if not chunked_data:
             return np.empty(self.shape)
         return np.concatenate(chunked_data)
 
@@ -179,7 +179,7 @@ class ChunkedProperty:
 
         # If this property has an extractor and we're not in raw mode, wrap the above
         # reader to extract the data
-        if self.extract is not None and not raw:
+        if not (raw or self.extract is None):
             _f = read_chunk
 
             def read_chunk(chunk):
