@@ -7,6 +7,7 @@ _t(
         CLIError=_e(
             CommandError=_e(),
             ConfigTemplateNotFoundError=_e("template", "path"),
+            InputError=_e(),
         ),
         ConfigurationError=_e(
             ConfigurationFormatError=_e(),
@@ -30,8 +31,17 @@ _t(
             ),
             UnknownConfigAttrError=_e("attributes"),
         ),
-        PlacementError=_e(
-            "cell_type", PlacementRelationError=_e("cell_type", "relation")
+        CompilationError=_e(
+            ConnectivityError=_e(
+                "connection_type",
+                FiberTransformError=_e(
+                    QuiverFieldError=_e(),
+                ),
+            ),
+            PlacementError=_e(
+                "cell_type", PlacementRelationError=_e("cell_type", "relation")
+            ),
+            RedoError=_e(),
         ),
         TopologyError=_e(
             UnmanagedPartitionError=_e(),
@@ -60,11 +70,6 @@ _t(
                 ReceptorSpecificationError=_e(),
             ),
             ParallelIntegrityError=_e("rank"),
-        ),
-        ConnectivityError=_e(
-            FiberTransformError=_e(
-                QuiverFieldError=_e(),
-            ),
         ),
         MorphologyError=_e(
             MorphologyRepositoryError=_e(),
