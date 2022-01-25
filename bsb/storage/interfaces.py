@@ -72,7 +72,7 @@ class PlacementSet(Interface):
         pass
 
     @abc.abstractclassmethod
-    def create(self, engine, type):
+    def create(cls, engine, type):
         """
         Override with a method to create the placement set.
         """
@@ -93,6 +93,7 @@ class PlacementSet(Interface):
         if not self.exists(engine, type):
             self.create(engine, type)
 
+    @abc.abstractmethod
     def clear(self, chunks=None):
         """
         Override with a method to clear (some chunks of) the placement set
@@ -103,14 +104,14 @@ class PlacementSet(Interface):
     def get_all_chunks(self):
         pass
 
-    @abc.abstractproperty
+    @abc.abstractmethod
     def load_positions(self):
         """
         Return a dataset of cell positions.
         """
         pass
 
-    @abc.abstractproperty
+    @abc.abstractmethod
     def load_rotations(self):
         """
         Return a dataset of cell rotations.
@@ -120,7 +121,7 @@ class PlacementSet(Interface):
         """
         pass
 
-    @abc.abstractproperty
+    @abc.abstractmethod
     def load_morphologies(self):
         """
         Return a :class:`~.storage.interfaces.MorphologySet` associated to the cells.
@@ -314,7 +315,38 @@ class MorphologyRepository(Interface, engine_key="morphologies"):
 
 
 class ConnectivitySet(Interface):
-    pass
+    @abc.abstractclassmethod
+    def create(cls, engine, tag):
+        """
+        Override with a method to create the placement set.
+        """
+        pass
+
+    @abc.abstractstaticmethod
+    def exists(self, engine, tag):
+        """
+        Override with a method to check existence of the placement set
+        """
+        pass
+
+    def require(self, engine, tag):
+        """
+        Can be overridden with a method to make sure the placement set exists. The default
+        implementation uses the class's ``exists`` and ``create`` methods.
+        """
+        if not self.exists(engine, tag):
+            self.create(engine, tag)
+
+    @abc.abstractmethod
+    def clear(self, chunks=None):
+        """
+        Override with a method to clear (some chunks of) the placement set
+        """
+        pass
+
+    @abc.abstractclassmethod
+    def get_tags(cls, engine):
+        pass
 
 
 class Label(Interface):
