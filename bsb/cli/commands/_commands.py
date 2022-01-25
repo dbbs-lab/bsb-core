@@ -38,6 +38,12 @@ class Redo(BsbOption, name="redo", cli=("redo", "r"), env=("BSB_REDO_MODE",), fl
     pass
 
 
+class Clear(
+    BsbOption, name="clear", cli=("clear", "w"), env=("BSB_CLEAR_MODE",), flag=True
+):
+    pass
+
+
 class Output(BsbOption, name="output", cli=("output", "o"), env=("BSB_OUTPUT_FILE",)):
     pass
 
@@ -140,6 +146,7 @@ class BsbCompile(BaseCommand, name="compile"):
             skip_after_connectivity=context.skip_after_connectivity,
             only=context.only,
             skip=context.skip,
+            clear=context.clear,
             force=context.force,
             append=context.append,
             redo=context.redo,
@@ -159,6 +166,7 @@ class BsbCompile(BaseCommand, name="compile"):
             "no_after_connectivity": SkipAfterConnectivity(),
             "append": Append(),
             "redo": Redo(),
+            "clear": Clear(),
             "plot": Plot(),
             "output": Output(),
         }
