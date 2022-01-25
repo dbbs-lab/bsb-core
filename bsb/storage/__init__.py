@@ -258,7 +258,17 @@ class Storage:
             ps.set_chunks(chunks)
         return ps
 
-    def get_connectivity_set(self, type):
+    def get_connectivity_set(self, tag):
+        """
+        Get a connection set.
+
+        :param tag: Connection tag
+        :type tag: str
+        :returns: :class:`~.storage.interfaces.ConnectivitySet`
+        """
+        return self._ConnectivitySet(self._engine, tag)
+
+    def get_connectivity_sets(self):
         """
         Return a ConnectivitySet for the given type.
 
@@ -266,7 +276,10 @@ class Storage:
         :type type: :class:`CellType <.models.CellType>`
         :returns: :class:`ConnectivitySet <.storage.interfaces.ConnectivitySet>`
         """
-        return self._ConnectivitySet(self._engine, type)
+        return [
+            self._ConnectivitySet(self._engine, tag)
+            for tag in self._ConnectivitySet.get_tags(self._engine)
+        ]
 
     @_on_master
     def init(self, scaffold):
