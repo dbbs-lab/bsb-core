@@ -26,6 +26,12 @@ class ConnectivitySet(Resource, IConnectivitySet):
             raise DatasetNotFoundError("ConnectivitySet '{}' does not exist".format(tag))
 
     @classmethod
+    def get_tags(cls, engine):
+        with engine._read():
+            with engine._handle("r") as h:
+                return list(h[_root].keys())
+
+    @classmethod
     def create(cls, engine, pre_type, post_type, tag):
         """
         Create the structure for this connectivity set in the HDF5 file. Connectivity sets are
@@ -56,6 +62,9 @@ class ConnectivitySet(Resource, IConnectivitySet):
                 g = h.require_group(path)
         return cls(engine, tag)
 
+    def clear(self):
+        raise NotImplementedError("Will do once I have some sample data")
+
     def append_data(self, src_chunk, dest_chunk, src_locs, dest_locs):
         if len(src_locs) != len(dest_locs):
             raise ValueError("Connectivity matrices must be of same length.")
@@ -67,6 +76,7 @@ class ConnectivitySet(Resource, IConnectivitySet):
         # Require the data
         grp = h.require_group(self._path + get_chunk_tag(dest_chunk))
         unpack_me = [None, None]
+        # Double "require_dataset" construct.
         for i, tag in enumerate(("source_loc", "dest_loc")):
             if tag in grp:
                 unpack_me[i] = grp[tag]
