@@ -69,3 +69,15 @@ class CellType:
 
     def get_placement_set(self, chunks=None):
         return self.scaffold.get_placement_set(self.name, chunks=chunks)
+
+    def clear(self, force=False):
+        self.clear_placement(force=force)
+        self.clear_connections(force=force)
+
+    def clear_placement(self, force=False):
+        self.get_placement_set().clear()
+
+    def clear_connections(self, force=False):
+        for conn_set in self.scaffold.get_connectivity_sets():
+            if self is conn_set.presynaptic or self is conn_set.postsynaptic:
+                conn_set.clear()
