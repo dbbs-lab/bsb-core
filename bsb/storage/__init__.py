@@ -271,11 +271,7 @@ class Storage:
     @_on_master
     def init(self, scaffold):
         """
-        Initialize the storage to be ready for use by the specified scaffold:
-
-        * Require existence of all PlacementSets.
-
-        (That's it, for now ^_^)
+        Initialize the storage to be ready for use by the specified scaffold.
         """
         for cell_type in scaffold.get_cell_types():
             self._PlacementSet.require(self._engine, cell_type)

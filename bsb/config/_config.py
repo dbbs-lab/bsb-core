@@ -61,7 +61,7 @@ class Configuration:
             if attr_name == "storage":
                 # At this point the storage has already been instantiated from the config
                 # node and added to the scaffold so we should not overwrite its `storage`
-                # attribute with the config node again.
+                # attribute with the _config node_ of itself.
                 continue
             setattr(scaffold, attr_name, getattr(self, attr_name))
         # Initialise the topology from the defined regions
