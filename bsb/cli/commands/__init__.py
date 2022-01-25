@@ -1,6 +1,7 @@
 import abc
 import argparse
 from ...exceptions import *
+from ...reporting import report
 
 
 class BaseParser(argparse.ArgumentParser):
@@ -78,6 +79,7 @@ class BaseCommand(BsbCommand, abstract=True):
         namespace.__dict__ = {k: v[1] for k, v in reduced.items()}
         self.add_locals(context)
         context.set_cli_namespace(namespace)
+        report(f"Context: {context}", level=4)
         self.handler(context)
 
     def add_locals(self, context):
