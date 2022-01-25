@@ -260,17 +260,19 @@ class Scaffold:
         """
         Run after placement hooks.
         """
-        pool = create_job_pool(self)
-        for hook in self.configuration.after_placement.values():
-            pool.queue(hook.after_placement)
-        pool.execute(self._pool_event_loop)
+        warn("After placement disabled")
+        # pool = create_job_pool(self)
+        # for hook in self.configuration.after_placement.values():
+        #     pool.queue(hook.after_placement)
+        # pool.execute(self._pool_event_loop)
 
     def run_after_connectivity(self):
         """
         Run after placement hooks.
         """
-        for hook in self.configuration.after_connectivity.values():
-            hook.after_connectivity()
+        warn("After connectivity disabled")
+        # for hook in self.configuration.after_connectivity.values():
+        #     hook.after_connectivity()
 
     def compile(
         self,
