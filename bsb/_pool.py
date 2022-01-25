@@ -277,9 +277,7 @@ class JobPool:
 
             q = self._queue.copy()
             # As long as any of the jobs aren't done yet we repeat the master_event_loop
-            while (
-                open_jobs := [j._future for j in self._queue if not j._future.done()]
-            ) :
+            while open_jobs := [j._future for j in self._queue if not j._future.done()]:
                 if master_event_loop:
                     # If there is an event loop, run it and hand it a copy of the jobqueue
                     master_event_loop(q)

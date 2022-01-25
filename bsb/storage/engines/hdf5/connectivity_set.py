@@ -6,10 +6,8 @@ import numpy as np
 
 _root = "/cells/connections/"
 
-class ConnectivitySet(
-    Resource,
-    IConnectivitySet
-):
+
+class ConnectivitySet(Resource, IConnectivitySet):
     """
     Fetches placement data from storage.
 
@@ -74,7 +72,9 @@ class ConnectivitySet(
                 unpack_me[i] = grp[tag]
             else:
                 # Require dataset is absolutely useless as existing shape must be known ...
-                unpack_me[i] = grp.create_dataset(tag, shape=(0, 3), dtype=int, chunks=(1024, 3), maxshape=(None, 3))
+                unpack_me[i] = grp.create_dataset(
+                    tag, shape=(0, 3), dtype=int, chunks=(1024, 3), maxshape=(None, 3)
+                )
         src_ds, dest_ds = unpack_me
         # Move the pointers that keep track of the chunks
         new_rows = len(src_locs)
@@ -87,13 +87,15 @@ class ConnectivitySet(
         if eptr is None:
             eptr = total + new_rows
         # Resize and insert data.
-        src_end = src_ds[(eptr - new_rows):]
-        dest_end = dest_ds[(eptr - new_rows):]
+        src_end = src_ds[(eptr - new_rows) :]
+        dest_end = dest_ds[(eptr - new_rows) :]
         src_ds.resize(len(src_ds) + new_rows, axis=0)
         dest_ds.resize(len(dest_ds) + new_rows, axis=0)
-        src_ds[iptr:eptr] = np.concatenate((src_ds[iptr:(eptr - new_rows)], src_locs))
+        src_ds[iptr:eptr] = np.concatenate((src_ds[iptr : (eptr - new_rows)], src_locs))
         src_ds[eptr:] = src_end
-        dest_ds[iptr:eptr] = np.concatenate((dest_ds[iptr:(eptr - new_rows)], dest_locs))
+        dest_ds[iptr:eptr] = np.concatenate(
+            (dest_ds[iptr : (eptr - new_rows)], dest_locs)
+        )
         dest_ds[eptr:] = dest_end
 
     def _store_pointers(self, group, chunk, n, total):
@@ -140,6 +142,7 @@ class ConnectivitySet(
                 src = grp["source_loc"][()]
                 dest = grp["dest_loc"][()]
         return src_chunks, chunk_ptrs, src, dest
+
 
 def _sort_triple(a, b):
     # Comparator for chunks by bitshift and sum of the coords.

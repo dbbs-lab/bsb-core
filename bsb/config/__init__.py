@@ -108,7 +108,7 @@ class ConfigurationModule:
             )
         )
         for d in path:
-            if (files := glob.glob(os.path.join(d, template))) :
+            if files := glob.glob(os.path.join(d, template)):
                 break
         else:
             raise ConfigTemplateNotFoundError(

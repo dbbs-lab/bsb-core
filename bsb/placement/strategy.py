@@ -17,9 +17,7 @@ class Distributor(abc.ABC):
         pass
 
 
-@config.dynamic(
-    required=False, default="random", auto_classmap=True
-)
+@config.dynamic(required=False, default="random", auto_classmap=True)
 class MorphologyDistributor(Distributor):
     pass
 
@@ -43,6 +41,7 @@ class RandomMorphologies(MorphologyDistributor, classmap_entry="random"):
         }
       }}}
     """
+
     def distribute(self, partitions, indicator, positions):
         """
         Uses the morphology selection indicators to select morphologies and
@@ -59,13 +58,12 @@ class RandomMorphologies(MorphologyDistributor, classmap_entry="random"):
         return MorphologySet(loaders, ids)
 
 
-@config.dynamic(
-    required=False, default="none", auto_classmap=True
-)
+@config.dynamic(required=False, default="none", auto_classmap=True)
 class RotationDistributor(Distributor):
     """
     Rotates everything by nothing!
     """
+
     @abc.abstractmethod
     def distribute(self, partitions, indicator, positions):
         pass
@@ -89,7 +87,9 @@ class ImplicitNoRotations(ExplicitNoRotations, Implicit, classmap_entry="none"):
 
 @config.node
 class DistributorsNode:
-    morphologies = config.attr(type=MorphologyDistributor, default=dict, call_default=True)
+    morphologies = config.attr(
+        type=MorphologyDistributor, default=dict, call_default=True
+    )
     rotations = config.attr(type=ImplicitNoRotations, default=dict, call_default=True)
     properties = config.catch_all(type=Distributor)
 
@@ -168,7 +168,7 @@ class PlacementStrategy(abc.ABC, SortableByAfter):
             rotations=rotations,
             morphologies=morphologies,
             additional=additional,
-            chunk=chunk
+            chunk=chunk,
         )
 
     def queue(self, pool, chunk_size):

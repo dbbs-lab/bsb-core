@@ -238,6 +238,7 @@ def _copy_api(cls, wrap=lambda self: self):
 
     return decorator
 
+
 # For every `SubTree.f` there is a `Branch.f` == `SubTree([branch]).f` so we copy and wrap
 # the public API of `SubTree` onto `Branch`, with the `SubTree([self])` wrapped into it.
 @_copy_api(SubTree, lambda self: SubTree([self]))

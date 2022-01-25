@@ -142,7 +142,9 @@ class PlacementSet(Interface):
         pass
 
     @abc.abstractmethod
-    def append_data(self, chunk, positions=None, morphologies=None, rotations=None, additional=None):
+    def append_data(
+        self, chunk, positions=None, morphologies=None, rotations=None, additional=None
+    ):
         pass
 
     @abc.abstractmethod
