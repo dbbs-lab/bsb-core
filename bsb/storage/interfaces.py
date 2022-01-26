@@ -4,7 +4,8 @@ import functools
 from contextlib import contextmanager
 import numpy as np
 import arbor
-from bsb.morphologies import Morphology, Branch
+from ..morphologies import Morphology, Branch
+from ..trees import BoxTree
 from rtree import index as rtree
 from scipy.spatial.transform import Rotation
 
@@ -152,12 +153,17 @@ class PlacementSet(Interface):
     def append_additional(self, name, chunk, data):
         pass
 
-    def load_boxes(self, cache=None):
+    def load_boxes(self, cache=None, itr=True):
+        print("boxes of", self.type.name)
         if cache is None:
+            print("no cache")
             mset = self.load_morphologies()
+            print(len(mset), "morphologies stored")
         else:
             mset = cache
+            print(len(mset), "morphologies cached")
         expansion = [*zip([0] * 4 + [1] * 4, ([0] * 2 + [1] * 2) * 2, [0, 1] * 4)]
+        print("hihi expansion table", expansion)
 
         def _box_of(m, o, r):
             oo = (m["ldc"], m["mdc"])
@@ -171,27 +177,14 @@ class PlacementSet(Interface):
             )
 
         iters = (mset.iter_meta(), self.load_positions(), self.load_rotations())
-        return [*map(_box_of, *iters)]
+        iter = map(_box_of, *iters)
+        if itr:
+            return iter
+        else:
+            return list(iter)
 
     def load_box_tree(self, cache=None):
-        tree = BoxRTree(self.load_boxes(cache=cache))
-        return tree
-
-
-class BoxTree(abc.ABC):
-    @abc.abstractmethod
-    def query(self, boxes):
-        pass
-
-
-class BoxRTree(BoxTree):
-    def __init__(self, boxes):
-        self._rtree = rtree.Index(properties=rtree.Property(dimension=3))
-        for id, box in enumerate(boxes):
-            self._rtree.insert(id, box)
-
-    def query(self, boxes):
-        return [[*self._rtree.intersection(box, objects=False)] for box in boxes]
+        return BoxTree(self.load_boxes(cache=cache, itr=True))
 
 
 class MorphologyRepository(Interface, engine_key="morphologies"):
