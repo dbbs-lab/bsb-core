@@ -151,33 +151,3 @@ class SortableByAfter:
                 )
         # Return the sorted array.
         return sorting_objects
-
-
-def map_ndarray(data, _map=None):
-    if _map is None:
-        _map = []
-    last_index = -1
-    last_value = None
-
-    def map_1d_array(e):
-        nonlocal last_index, last_value, _map
-        if last_index == -1 or e != last_value:
-            try:
-                last_index = _map.index(e)
-            except ValueError as ex:
-                last_index = len(_map)
-                _map.append(e)
-            last_value = e
-        return last_index
-
-    def n_dim_map(a):
-        n = np.empty(a.shape, dtype=int)
-        if len(a.shape) > 1:
-            for i, b in enumerate(a):
-                n[i] = n_dim_map(b)
-            return n
-        else:
-            return list(map(map_1d_array, a))
-
-    _mapped = n_dim_map(data)
-    return _mapped, _map
