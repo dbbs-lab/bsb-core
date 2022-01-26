@@ -22,149 +22,81 @@ class VoxelIntersection(Intersectional, ConnectionStrategy):
     contacts = config.attr(type=types.distribution(), default=1)
     voxels_pre = config.attr(type=int, default=50)
     voxels_post = config.attr(type=int, default=50)
+    cache = config.attr(type=bool, default=True)
+    favor_cache = config.attr(type=types.in_(["pre", "post"]), default="pre")
 
     def validate(self):
         pass
 
     def connect(self, pre, post):
-        # Since the pretypes are reused per posttype and require costly IO, cache them.
-        pre_placement_cache = [
-            (pre_type, pre_set, pre_set.load_morphologies())
-            for pre_type, pre_set in pre.placement.items()
-        ]
-        for post_type, post_set in post.placement.items():
-            box_tree = post_set.load_box_tree()
-            print("post boxes bounds", box_tree._rtree.bounds)
-            for pre_type, pre_set, pre_loaders in pre_placement_cache:
-                pre_m_boxes = pre_set.load_boxes(cache=pre_loaders)
-                print("pre boxes:", pre_m_boxes)
-                candidates = box_tree.query(pre_m_boxes)
-                print("Presyn candidates of postsyn 0:", candidates[0])
-
-        return
-        # For every postsynaptic cell, derive the box incorporating all voxels,
-        # and store that box in the tree, to later find intersections with that cell.
-        for i, (to_cell, morphology) in enumerate(to_morphology_set):
-            self.assert_voxelization(morphology, to_compartments)
-            to_offset = np.concatenate((to_cell.position, to_cell.position))
-            to_box = morphology.cloud.get_voxel_box()
-            to_cell_tree.insert(i, tuple(to_box + to_offset))
-
-        # For each presynaptic cell, find all postsynaptic cells that its outer
-        # box intersects with.
-        connections_out = []
-        compartments_out = []
-        morphologies_out = []
-        for from_cell, from_morpho in from_morphology_set:
-            # Make sure that the voxelization was successful
-            self.assert_voxelization(from_morpho, from_compartments)
-            # Get the outer box of the morphology.
-            from_box = from_morpho.cloud.get_voxel_box()
-            # Get a map from voxel index to compartments in that voxel.
-            from_map = from_morpho.cloud.map
-            # Transform the box into a rectangle that we can query the Rtree with.
-            this_box = tuple(
-                from_box + np.concatenate((from_cell.position, from_cell.position))
-            )
-            # Query the Rtree for intersections of to_cell boxes with our from_cell box
-            cell_intersections = list(to_cell_tree.intersection(this_box, objects=False))
-            # Loop over each intersected partner to find and select compartment intersections
-            for partner in cell_intersections:
-                # Only select a fraction of the total possible matches, based on how much
-                # affinity there is between the cell types.
-                # Affinity 1: All cells whose voxels intersect are considered to grow
-                # towards eachother and always form a connection with other cells in their
-                # voxelspace
-                # Affinity 0: Cells completely ignore other cells in their voxelspace and
-                # don't form connections.
-                if np.random.rand() >= self.affinity:
-                    continue
-                # Get the precise morphology of the to_cell we collided with
-                to_cell, to_morpho = to_morphology_set[partner]
-                # Get the map from voxel id to list of compartments in that voxel.
-                to_map = to_morpho.cloud.map
-                # Find which voxels inside the cell boxes actually intersect with eachother.
-                voxel_intersections = self.intersect_clouds(
-                    from_morpho.cloud,
-                    to_morpho.cloud,
-                    from_cell.position,
-                    to_cell.position,
+        raise NotImplementedError("under construction")
+        if self.cache:
+            cache = {
+                set_: set_.load_morphologies()
+                for set_ in itertools.chain(
+                    pre.placement.values(), post.placement.values()
                 )
-                # Returns a list of lists: the elements in the inner lists are the indices of the
-                # voxels in the from morphology, the indices of the lists inside of the outer list
-                # are the to voxel indices.
-                #
-                # Find non-empty lists: these voxels actually have intersections
-                intersecting_to_voxels = np.nonzero(voxel_intersections)[0]
-                if not len(intersecting_to_voxels):
-                    # No intersections found? Do nothing, continue to next partner.
-                    continue
-                # Dictionary that stores the target compartments for each to_voxel.
-                target_comps_per_to_voxel = {}
-                # Iterate over each to_voxel index.
-                for to_voxel_id in intersecting_to_voxels:
-                    # Get the list of voxels that the to_voxel intersects with.
-                    intersecting_voxels = voxel_intersections[to_voxel_id]
-                    target_compartments = []
-                    for from_voxel_id in intersecting_voxels:
-                        # Store all of the compartments in the from_voxel as
-                        # possible candidates for these cells' connections
-                        target_compartments.extend(from_map[from_voxel_id])
-                    target_comps_per_to_voxel[to_voxel_id] = target_compartments
-                # Weigh the random sampling by the amount of compartments so that voxels
-                # with more compartments have a higher chance of having one of their many
-                # compartments randomly picked.
-                voxel_weights = [
-                    len(to_map[to_voxel_id]) * len(from_targets)
-                    for to_voxel_id, from_targets in target_comps_per_to_voxel.items()
-                ]
-                weight_sum = sum(voxel_weights)
-                voxel_weights = [w / weight_sum for w in voxel_weights]
-                contacts = round(self.contacts.sample())
-                candidates = list(target_comps_per_to_voxel.items())
-                while contacts > 0:
-                    contacts -= 1
-                    # Pick a random voxel and its targets
-                    random_candidate_id = np.random.choice(
-                        range(len(candidates)), 1, p=voxel_weights
-                    )[0]
-                    # Pick a to_voxel_id and its target compartments from the list of candidates
-                    random_to_voxel_id, random_compartments = candidates[
-                        random_candidate_id
-                    ]
-                    # Pick a random from and to compartment of the chosen voxel pair
-                    from_compartment = np.random.choice(random_compartments, 1)[0]
-                    to_compartment = np.random.choice(to_map[random_to_voxel_id], 1)[0]
-                    compartments_out.append([from_compartment, to_compartment])
-                    morphologies_out.append(
-                        [from_morpho._set_index, joined_map_offset + to_morpho._set_index]
-                    )
-                    connections_out.append([from_cell.id, to_cell.id])
-
-        self.scaffold.connect_cells(
-            self,
-            np.array(connections_out or np.empty((0, 2))),
-            morphologies=np.array(morphologies_out or np.empty((0, 2), dtype=str)),
-            compartments=np.array(compartments_out or np.empty((0, 2))),
-            morpho_map=joined_map,
-        )
-
-    def intersect_clouds(self, from_cloud, to_cloud, from_pos, to_pos):
-        voxel_intersections = []
-        translation = to_pos - from_pos
-        for v, voxel in enumerate(to_cloud.get_voxels(cache=True)):
-            relative_position = np.add(voxel, translation)
-            relative_box = np.add(relative_position, to_cloud.grid_size)
-            box = np.concatenate((relative_position, relative_box))
-            voxel_intersections.append(
-                list(from_cloud.tree.intersection(tuple(box), objects=False))
+            }
+        if self.favor_cache == "pre":
+            targets = self.pre
+            candidates = self.post
+        else:
+            targets = self.post
+            candidates = self.pre
+        combo_itr = self.candidate_intersection(targets, candidates)
+        for target_set, cand_set, match_itr in combo_itr:
+            if self.cache:
+                target_mset = cache[target_set]
+                cand_mset = cache[cand_set]
+            else:
+                target_mset = target_set.load_morphologies()
+                cand_mset = cand_set.load_morphologies()
+            self._match_voxel_intersection(
+                match_itr, target_set, cand_set, target_mset, cand_mset
             )
-        return voxel_intersections
 
-    def assert_voxelization(self, morphology, compartment_types):
-        if len(morphology.cloud.get_voxels()) == 0:
-            raise IncompleteMorphologyError(
-                "Can't intersect without any {} in the {} morphology".format(
-                    ", ".join(compartment_types), morphology.morphology_name
-                )
-            )
+    def _match_voxel_intersection(self, matches, tset, cset, tmset=None, cmset=None):
+        if tmset is None:
+            tmset = tset.load_morphologies()
+        if cmset is None:
+            cmset = cset.load_morphologies()
+        if self.cache:
+            load = lambda m: m.cached_load
+            voxelize = lambda m: m.cached_voxelize
+        else:
+            load = lambda m: m.load
+            voxelize = lambda m: m.voxelize
+
+        target_itrs = zip(tset.load_positions(), tset.load_rotations(), tmset)
+        rotations = cset.load_rotations().cache()
+        positions = cset.load_positions()
+        for target, candidates in enumerate(matches):
+            tpos, trot, tsm = next(target_itrs)
+            if not candidates:
+                # No need to load or voxelize if there's no candidates anyway
+                continue
+            # Load and voxelize the target into a box tree
+            voxels = voxelize(load(tsm)())(N=self._n_tvoxels)
+            tree = voxels.as_boxtree(cache=self.cache)
+            for cand in candidates:
+                cpos = positions[cand]
+                crot = rotations[cand]
+                morpho = load(cmset[cand])()
+                if self.cache:
+                    # Don't mutate the cached version
+                    morpho = morpho.copy()
+                # Transform relative to target:
+                # 1) Rotate self by own rotation
+                # 2) Translate by position relative to target
+                # 3) Anti-rotate by target rotation
+                # Gives us the candidate relative to the target without having to modify,
+                # reload, recalculate or revoxelize any of the target morphologies.
+                # So in the case of a single target morphology we can keep that around.
+                morpho.rotate(crot)
+                morpho.translate(cpos - tpos)
+                morpho.rotate(-trot)
+                voxels = morpho.voxelize(N=self._n_cvoxels)
+                overlap = tree.query(voxels.as_coords(interleaved=False))
+                target_voxels = [i for i, v in enumerate(overlap) if v]
+                candidate_voxels = set(itertools.chain.from_iterable(overlap))
+                data = voxels.get_data(candidate_voxels)
