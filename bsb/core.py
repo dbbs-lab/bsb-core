@@ -3,7 +3,6 @@ from .plotting import plot_network
 import numpy as np
 import time
 import itertools
-from .helpers import map_ndarray, listify_input
 from .placement import PlacementStrategy
 from .connectivity import ConnectionStrategy
 from warnings import warn as std_warn
