@@ -22,7 +22,7 @@ import functools
 import operator
 import inspect
 import numpy as np
-from ..voxels import VoxelCloud, detect_box_compartments, Box
+from ..voxels import Voxels
 from ..exceptions import *
 from ..reporting import report, warn
 from .. import config
@@ -612,7 +612,11 @@ class Morphology(SubTree):
         return np.column_stack(t) if matrix else t
 
     def voxelize(self, N, labels=None):
-        return VoxelCloud.create(self.get_branches(labels=labels), N)
+        if labels is not None:
+            raise NotImplementedError(
+                "Can't voxelize labelled parts yet, require Selection API in morphologies.py, todo"
+            )
+        return Voxels.from_morphology(self, N)
 
     def get_bounding_box(self, labels=None, centered=True):
         # Should return a 0 based or soma centered bounding box from the
