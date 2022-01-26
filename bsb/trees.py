@@ -1,4 +1,5 @@
 from rtree import index as rtree
+import abc
 
 
 class BoxTreeInterface(abc.ABC):
