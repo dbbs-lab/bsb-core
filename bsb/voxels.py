@@ -69,3 +69,45 @@ class Voxels:
         else:
             tiled = np.broadcast(self._size, tocorrectshape)
             return np.column_stack((coords, tiled))
+
+    @classmethod
+    def from_morphology(cls, morphology, estimate_n):
+        # Find a good distribution of amount of voxels per side
+        size = morphology.meta["mdc"] - morphology.meta["ldc"]
+        per_side = _eq_sides(size, estimate_n)
+        voxel_size = size / per_side
+        branch_vcs = [
+            b.as_matrix(with_radius=False) // voxel_size for b in morphology.branches
+        ]
+        voxel_reduce = {}
+        for branch, point_vcs in enumerate(branch_vcs):
+            for point, point_vc in enumerate(point_vcs):
+                voxel_reduce.setdefault(tuple(point_vc), []).append((branch, point))
+        voxels = np.array(tuple(voxel_reduce.keys()))
+        voxel_data = list(voxel_reduce.values())
+        return cls(voxels, voxel_size, voxel_data=voxel_data)
+
+
+def _eq_sides(sides, n):
+    # Use the relative magnitudes of each side
+    norm = sides / max(sides)
+    # Find out how many divisions each side should to form a grid with `n` rhomboids.
+    per_side = norm * (n / np.product(norm)) ** (1 / len(sides))
+    # Divisions should be integers, and minimum 1
+    int_sides = np.maximum(np.floor(per_side), 1)
+    order = np.argsort(sides)
+    smallest = order[0]
+    if len(sides) > 2:
+        # Because of the integer rounding the product isn't necesarily optimal, so we keep
+        # the safest (smallest) value, and solve the problem again in 1 less dimension.
+        solved = int_sides[smallest]
+        look_for = n / solved
+        others = sides[order[1:]]
+        int_sides[order[1:]] = _eq_sides(others, look_for)
+    else:
+        # In the final 2-dimensional case the remainder of the division is rounded off
+        # to the nearest integer, giving the smallest error on the product and final
+        # number of rhomboids in the grid.
+        largest = order[1]
+        int_sides[largest] = round(n / int_sides[smallest])
+    return int_sides
