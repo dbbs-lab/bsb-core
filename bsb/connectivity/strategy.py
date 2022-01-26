@@ -1,7 +1,6 @@
 from .. import config
 from ..config import refs, types
 from ..helpers import SortableByAfter
-from ..functions import compute_intersection_slice
 from ..models import ConnectivitySet
 import abc
 from itertools import chain
