@@ -33,7 +33,7 @@ class MorphologyRepository(Resource, IMorphologyRepository):
         with self._engine._read():
             with self._engine._handle("r") as repo:
                 try:
-                    meta = dict(repo[f"{self._path}/{name}/"].attrs)
+                    meta = _meta(repo[f"{self._path}/{name}/"])
                 except KeyError:
                     raise MissingMorphologyError(
                         f"`{self._engine.root}` contains no morphology named `{name}`."
@@ -116,7 +116,12 @@ def _morphology(m_root_group):
     morpho = Morphology(roots)
     # Until after rework a morphology still needs to know its name:
     morpho.morphology_name = m_root_group.name.split("/")[-1]
+    morpho.meta = _meta(m_root_group)
     return morpho
+
+
+def _meta(group):
+    return dict(group.attrs)
 
 
 def _branch(b_root_group):
