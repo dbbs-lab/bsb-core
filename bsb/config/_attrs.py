@@ -315,7 +315,7 @@ class ConfigurationAttribute:
             raise
         except Exception as e:
             raise CastError(
-                f"Couldn't cast '{value}' into {self.type.__name__}",
+                f"Couldn't cast '{value}' into {self.type.__name__}: {e}",
                 instance,
                 self.attr_name,
             )
