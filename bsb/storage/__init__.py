@@ -57,13 +57,19 @@ class NotSupported:
         self.engine = engine
         self.operation = operation
 
-    def __call__(self, *args, **kwargs):
+    def _unsupported_err(self):
         # Throw an error detailing the lack of support of our engine for our feature.
         raise NotImplementedError(
             "The {} storage engine does not support the {} feature".format(
                 self.engine.upper(), self.operation
             )
         )
+
+    def __call__(self, *args, **kwargs):
+        self._unsupported_err()
+
+    def __getattr__(self, attr):
+        self._unsupported_err()
 
 
 # Go through all available engines to determine which Interfaces are provided and therefor
