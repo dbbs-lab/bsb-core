@@ -228,23 +228,23 @@ class Storage:
         """
         from ..core import Scaffold
 
-        config = self.load_config()
+        config = self.load_active_config()
         return Scaffold(config, self)
 
-    def load_config(self):
+    def load_active_config(self):
         """
         Load the configuration object from the storage.
 
         :returns: :class:`Configuration <.config.Configuration>`
         """
-        return self._ConfigStore(self._engine).load()
+        return self._engine.files.load_active_config()
 
     @_on_master
-    def store_config(self, config):
+    def store_active_config(self, config):
         """
         Store a configuration object in the storage.
         """
-        self._ConfigStore(self._engine).store(config)
+        return self._engine.files.store_active_config(config)
 
     def supports(self, feature):
         return feature in self._features
