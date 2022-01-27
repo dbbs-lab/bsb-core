@@ -332,8 +332,12 @@ def make_dictable(node_cls):
         else:
             raise KeyError(attr)
 
+    def __iter__(self):
+        return (attr for attr in _get_class_config_attrs(self.__class__))
+
     node_cls.__contains__ = __contains__
     node_cls.__getitem__ = __getitem__
+    node_cls.__iter__ = __iter__
 
 
 def make_tree(node_cls):
