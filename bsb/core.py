@@ -95,9 +95,9 @@ class Scaffold:
         # create a default config and create a storage from it.
         if config is not None and storage is not None:
             self.storage = storage
-            storage.store_config(config)
+            storage.store_active_config(config)
         elif storage is not None:
-            config = storage.load_config()
+            config = storage.load_active_config()
         else:
             from bsb.storage import Storage
 

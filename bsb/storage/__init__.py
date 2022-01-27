@@ -228,8 +228,7 @@ class Storage:
         """
         from ..core import Scaffold
 
-        config = self.load_active_config()
-        return Scaffold(config, self)
+        return Scaffold(storage=self)
 
     def load_active_config(self):
         """
