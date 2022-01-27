@@ -177,6 +177,10 @@ class Storage:
         return self._engine.morphologies
 
     @property
+    def files(self):
+        return self._engine.files
+
+    @property
     def root(self):
         return self._root
 
