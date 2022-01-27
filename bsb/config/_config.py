@@ -78,3 +78,9 @@ class Configuration:
         for node in walk_nodes(self):
             node.scaffold = scaffold
             run_hook(node, "boot")
+
+    def __str__(self):
+        return str(self.__tree__())
+
+    def __repr__(self):
+        return super().__repr__()
