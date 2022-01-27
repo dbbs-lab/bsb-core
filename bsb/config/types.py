@@ -6,6 +6,7 @@ from inspect import signature as _inspect_signature
 
 _any = any
 _reserved_keywords = ["_parent", "_key"]
+_list = list
 
 
 class TypeHandler(abc.ABC):
@@ -331,7 +332,25 @@ def scalar_expand(scalar_type, size=None, expand=None):
     return type_handler
 
 
-_list = list
+def list_or_scalar(scalar_type, size=None):
+    """
+    Type validator that accepts a scalar or list of said scalars.
+
+    :param scalar_type: Type of the scalar
+    :type scalar_type: type
+    :param size: Expand the scalar to an array of a fixed size.
+    :type size: int
+    :returns: Type validator function
+    :rtype: callable
+    """
+    type_handler = or_(list(scalar_type, size), scalar_type)
+
+    type_handler.__name__ += " or " + scalar_type.__name__
+    return type_handler
+
+
+def voxel_size():
+    return list_or_scalar(float(), 3)
 
 
 def list(type=str, size=None):
