@@ -143,23 +143,27 @@ class Storage:
         # All engines should provide an Engine interface implementation, which we will use
         # to shim basic functionalities, and to pass on to features we produce.
         self._engine = _engines[engine]["Engine"](root)
+        self._features = [
+            fname for fname, supported in view_support()[engine].items() if supported
+        ]
+        self._engine._format = engine
+        self._root = root
+        self._comm = comm or MPI.COMM_WORLD
+        self._master = master
+
         # Load the engine's interface onto the object, this allows consumer construction
         # of features, but it is not advised. More properly the Storage object itself
         # should provide factory methods.
-        for interface_name, interface in _engines[engine].items():
-            self.__dict__["_" + interface_name] = interface
+        for name, interface in _engines[engine].items():
+            self.__dict__["_" + name] = interface
             # Interfaces can define an autobinding key so that singletons are available
             # on the engine under that key.
             key = interface._iface_engine_key
             if key is not None:
-                self._engine.__dict__[key] = interface(self._engine)
-        self._engine._format = engine
-        self._features = [
-            fname for fname, supported in view_support()[engine].items() if supported
-        ]
-        self._root = root
-        self._comm = comm or MPI.COMM_WORLD
-        self._master = master
+                if self.supports(name):
+                    self._engine.__dict__[key] = interface(self._engine)
+                else:
+                    self._engine.__dict__[key] = NotSupported(self._engine.format, name)
         # The storage should be created at the root as soon as we initialize because
         # features might immediatly require the basic structure to be present.
         if not self.exists():
