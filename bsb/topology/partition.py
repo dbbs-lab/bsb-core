@@ -4,8 +4,9 @@
 
 from .. import config
 from ..config import types
-from ..config.refs import region_ref, partition_ref
+from ..config.refs import region_ref
 from ..exceptions import *
+from ..voxels import VoxelSet, VoxelLoader
 import numpy as np
 
 
@@ -109,3 +110,34 @@ class Layer(Partition, classmap_entry="layer"):
     # TODO: Layer stacking
     # TODO: Layer scaling
     # TODO: Layer centering
+
+
+@config.node
+class Voxels(Partition, classmap_entry="voxels"):
+    voxels = config.attr(type=VoxelLoader, required=True)
+
+    def boot(self):
+        self.voxelset = self.voxels.get_voxelset()
+
+    def to_chunks(self, chunk_size):
+        print(
+            "Thalamus as",
+            len(self.voxelset.snap_to_grid(chunk_size, unique=True)),
+            "chunks",
+        )
+        return self.voxelset.snap_to_grid(chunk_size, unique=True)
+
+    def chunk_to_voxels(self, chunk, chunk_size):
+        if not hasattr(self, "_map"):
+            vs = self.voxelset.snap_to_grid(chunk_size)
+            map = {}
+            for i, chunk in enumerate(vs):
+                map.setdefault(tuple(chunk), []).append(i)
+            self._map = {k: self.voxelset[v] for k, v in map.items()}
+        return self._map.get(
+            tuple(chunk), VoxelSet(np.empty((0, 3)), np.array([1, 1, 1]))
+        )
+
+    def layout(self, boundaries):
+        # Buondaries are currently the network dimensions in JSON file
+        self.boundaries = boundaries
