@@ -1,4 +1,5 @@
 from .strategy import PlacementStrategy
+from ..voxels import VoxelSet
 from ..particles import ParticleSystem
 from ..exceptions import *
 from ..reporting import report, warn
@@ -13,10 +14,8 @@ class ParticlePlacement(PlacementStrategy):
     restrict = config.attr(type=dict)
 
     def place(self, chunk, chunk_size, indicators):
-        voxels = list(
-            itertools.chain(
-                *(p.chunk_to_voxels(chunk, chunk_size) for p in self.partitions)
-            )
+        voxels = VoxelSet.concatenate(
+            *(p.chunk_to_voxels(chunk, chunk_size) for p in self.partitions)
         )
         # Define the particles for the particle system.
         particles = [

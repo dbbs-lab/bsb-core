@@ -107,8 +107,8 @@ class ParticleSystem:
         self.scaffold = scaffold
 
     def fill(self, voxels, particles):
-        # Amount of spatial dimensions, extracted from the dimensions of the first voxel
-        self.dimensions = len(voxels[0][0])
+        # Amount of spatial dimensions
+        self.dimensions = voxels.raw(copy=False).shape[1]
         # Extend list of particle types in the system
         self.particle_types.extend(particles)
         # Max particle type radius
@@ -117,13 +117,19 @@ class ParticleSystem:
         # Set initial radius for collision/rearrangement to 2 times the largest particle type radius
         self.search_radius = self.max_radius * 2
         # Create a list of voxels where the particles can be placed.
-        self.voxels.extend([ParticleVoxel(v[0], v[1]) for v in voxels])
+        self.voxels.extend(
+            ParticleVoxel(ldc, size)
+            for ldc, size in zip(
+                voxels.as_spatial_coords(copy=False), voxels.get_size_matrix(copy=False)
+            )
+        )
         # Reset particles
         self.particles = []
         for particle_type in self.particle_types:
             radius = particle_type["radius"]
             placement_voxels = particle_type["voxels"]
             particle_count = particle_type["count"]
+            print("Placing", particle_type)
             # Generate a matrix with random positions for the particles
             # Add an extra dimension to determine in which voxels to place the particles
             placement_matrix = np.random.rand(particle_count, self.dimensions + 1)
