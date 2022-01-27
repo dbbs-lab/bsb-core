@@ -53,9 +53,9 @@ class NetworkDescription(Interface):
     pass
 
 
-class ConfigStore(Interface):
+class FileStore(Interface, engine_key="files"):
     @abc.abstractmethod
-    def store(self, cso):
+    def store(self, content, id=None, meta=None):
         pass
 
     @abc.abstractmethod
@@ -63,7 +63,15 @@ class ConfigStore(Interface):
         pass
 
     @abc.abstractmethod
-    def get_parser_name(self):
+    def remove(self, id):
+        pass
+
+    @abc.abstractmethod
+    def store_active_config(self, config):
+        pass
+
+    @abc.abstractmethod
+    def load_active_config(self):
         pass
 
 
