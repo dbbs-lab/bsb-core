@@ -72,7 +72,7 @@ class VoxelSet:
         if (
             any(s.has_data for s in sets)
             or any(not s.regular for s in sets)
-            or any(np.allclose(s._size, sets[0]._size) for s in sets)
+            or any(not np.allclose(s._size, sets[0]._size) for s in sets)
         ):
             raise NotImplementedError(
                 "Can only concat same size index coords without data for now"
