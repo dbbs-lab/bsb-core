@@ -22,7 +22,7 @@ import functools
 import operator
 import inspect
 import numpy as np
-from ..voxels import Voxels
+from ..voxels import VoxelSet
 from ..exceptions import *
 from ..reporting import report, warn
 from .. import config
@@ -616,7 +616,7 @@ class Morphology(SubTree):
             raise NotImplementedError(
                 "Can't voxelize labelled parts yet, require Selection API in morphologies.py, todo"
             )
-        return Voxels.from_morphology(self, N)
+        return VoxelSet.from_morphology(self, N)
 
     def get_bounding_box(self, labels=None, centered=True):
         # Should return a 0 based or soma centered bounding box from the

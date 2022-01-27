@@ -1,10 +1,12 @@
+from . import config
+from .config import types
 import numpy as np
-from scipy import ndimage
-from time import sleep
 import functools
+import abc
+import nrrd
 
 
-class Voxels:
+class VoxelSet:
     def __init__(self, voxels, size, voxel_data=None, irregular=False):
         voxel_size = np.array(size, copy=False)
         if len(size.shape) > 1:
