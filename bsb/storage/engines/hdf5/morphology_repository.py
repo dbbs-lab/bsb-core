@@ -60,7 +60,7 @@ class MorphologyRepository(Resource, IMorphologyRepository):
     def save(self, name, morphology, overwrite=False):
         with self._engine._write():
             with self._engine._handle("a") as repo:
-                me = self.require(repo)
+                me = repo[self._path]
                 if self.has(name):
                     if overwrite:
                         self.remove(name)
@@ -114,8 +114,6 @@ def _morphology(m_root_group):
     _attach_branches(branches)
     roots = [b for b in branches if b._parent is None]
     morpho = Morphology(roots)
-    # Until after rework a morphology still needs to know its name:
-    morpho.morphology_name = m_root_group.name.split("/")[-1]
     morpho.meta = _meta(m_root_group)
     return morpho
 
@@ -135,8 +133,6 @@ def _branch(b_root_group):
         )
     attrs = b_root_group.attrs
     branch._tmp_parent = int(attrs.get("parent", -1))
-    if attrs.get("neuron_section", None) is not None:
-        branch._neuron_sid = attrs.get("neuron_section")
     branch.label_all(*attrs.get("branch_labels", iter(())))
     for label, dataset in b_root_group["labels"].items():
         branch.label_points(label, dataset[()])
