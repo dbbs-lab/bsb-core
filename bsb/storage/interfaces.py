@@ -123,7 +123,7 @@ class PlacementSet(Interface):
     @abc.abstractmethod
     def load_rotations(self):
         """
-        Return a dataset of cell rotations.
+        Return a :class:`~.morphologies.RotationSet`.
 
         :raises: DatasetNotFoundError when there is no rotation information for this
            cell type.
@@ -133,7 +133,7 @@ class PlacementSet(Interface):
     @abc.abstractmethod
     def load_morphologies(self):
         """
-        Return a :class:`~.storage.interfaces.MorphologySet` associated to the cells.
+        Return a :class:`~.morphologies.MorphologySet` associated to the cells.
 
         :return: Set of morphologies
         :rtype: :class:`~.storage.interfaces.MorphologySet`
@@ -177,7 +177,7 @@ class PlacementSet(Interface):
             # Make the 8 corners of the box
             corners = np.array([[oo[x][0], oo[y][1], oo[z][2]] for x, y, z in expansion])
             # Rotate them
-            rotbox = Rotation.from_euler("xyz", r).apply(corners)
+            rotbox = r.apply(corners)
             # Find outer box of rotated and translated starting box
             return np.concatenate(
                 (np.min(rotbox, axis=0) + o, np.max(rotbox, axis=0) + o)
