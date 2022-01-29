@@ -48,6 +48,30 @@ class MorphologySet:
     def get_indices(self):
         return self._m_indices
 
+    def get(self, index, cache=True, hard_cache=False):
+        data = self._m_indices[index]
+        if data.ndim:
+            if hard_cache:
+                return np.array([self._loaders[idx].cached_load() for idx in data])
+            elif cache:
+                res = []
+                for idx in data:
+                    if idx not in self._cached:
+                        self._cached[idx] = self._loaders[idx].load()
+                    res.append(self._cached[idx].copy())
+            else:
+                res = np.array([self._loaders[idx].load() for idx in data])
+            return res
+        elif cache:
+            if hard_cache:
+                return self._loaders[data].cached_load()
+            elif data not in self._cached:
+                self._cached[data] = self._loaders[data].load()
+            return self._cached[data]
+
+    def clear_soft_cache(self):
+        self._cached = {}
+
     def iter_morphologies(self, cache=True, unique=False, hard_cache=False):
         if unique:
             if hard_cache:
