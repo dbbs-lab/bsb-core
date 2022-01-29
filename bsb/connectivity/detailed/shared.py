@@ -43,11 +43,12 @@ class Intersectional:
         return lbounds, ubounds
 
     def candidate_intersection(self, target_coll, candidate_coll):
-        cand_cache = [
-            (ctype, cset, cset.load_boxes())
-            for ctype, cset in candidate_coll.placement.items()
+        target_cache = [
+            (ttype, tset, tset.load_boxes())
+            for ttype, tset in target_coll.placement.items()
         ]
-        for ttype, tset in target_coll.placement.items():
-            box_tree = tset.load_box_tree()
-            for ctype, cset, cboxes in cand_cache:
-                yield (tset, cset, box_tree.query(cboxes))
+        for ctype, cset in candidate_coll.placement.items():
+            box_tree = cset.load_box_tree()
+            print("Target has,", len(box_tree), "boxes")
+            for ttype, tset, tboxes in target_cache:
+                yield (tset, cset, box_tree.query(tboxes))
