@@ -41,14 +41,22 @@ class MorphologySet:
     def __len__(self):
         return len(self._m_indices)
 
+    def __iter__(self):
+        return self.iter_morphologies()
+
     def get_indices(self):
         return self._m_indices
 
-    def iter_morphologies(self, cache=True, unique=False):
+    def iter_morphologies(self, cache=True, unique=False, hard_cache=False):
         if unique:
-            yield from (l.load() for l in self._loaders)
+            if hard_cache:
+                yield from (l.cached_load() for l in self._loaders)
+            else:
+                yield from (l.load() for l in self._loaders)
         elif not cache:
             yield from (self._loaders[idx].load() for idx in self._m_indices)
+        elif hard_cache:
+            yield from (self._loaders[idx].cached_load() for idx in self._m_indices)
         else:
             _cached = {}
             for idx in self._m_indices:
