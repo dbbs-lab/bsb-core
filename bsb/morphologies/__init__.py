@@ -188,9 +188,9 @@ class SubTree:
         """
         return self.get_branches()
 
-    @propery
+    @property
     def bounds(self):
-        f = self.flatten()
+        f = self.flatten(matrix=True, vectors=["x", "y", "z"])
         return np.min(f, axis=0), np.max(f, axis=0)
 
     def select(self, *labels):
