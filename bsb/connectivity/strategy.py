@@ -1,7 +1,6 @@
 from .. import config
 from ..config import refs, types
 from ..helpers import SortableByAfter
-from ..models import ConnectivitySet
 import abc
 from itertools import chain
 
@@ -39,7 +38,7 @@ class ConnectionStrategy(abc.ABC, SortableByAfter):
     name = config.attr(key=True)
     presynaptic = config.attr(type=HemitypeNode, required=True)
     postsynaptic = config.attr(type=HemitypeNode, required=True)
-    after = config.reflist(refs.placement_ref)
+    after = config.reflist(refs.connectivity_ref)
 
     @classmethod
     def get_ordered(cls, objects):

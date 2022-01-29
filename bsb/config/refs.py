@@ -69,9 +69,20 @@ class PlacementReference(Reference):
         return isinstance(value, PlacementStrategy)
 
 
+class ConnectivityReference(Reference):
+    def __call__(self, root, here):
+        return root.connectivity
+
+    def is_ref(self, value):
+        from ..connectivity import ConnectionStrategy
+
+        return isinstance(value, ConnectionStrategy)
+
+
 cell_type_ref = CellTypeReference()
 partition_ref = PartitionReference()
 placement_ref = PlacementReference()
+connectivity_ref = ConnectivityReference()
 regional_ref = RegionalReference()
 region_ref = RegionReference()
 

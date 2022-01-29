@@ -9,7 +9,6 @@ from ...simulation import (
 from ... import config
 from ...config import types
 from ...reporting import report, warn
-from ...models import ConnectivitySet
 from ...exceptions import *
 import random, os, sys
 import numpy as np
@@ -151,10 +150,9 @@ class NeuronSimulation(Simulation):
         pass
 
     def validate_prepare(self):
-        output_handler = self.scaffold.output_formatter
         for connection_model in self.connection_models.values():
             # Get the connectivity set associated with this connection model
-            connectivity_set = ConnectivitySet(output_handler, connection_model.name)
+            connectivity_set = self.scaffold.get_connectivity_set(connection_model.name)
             from_type = connectivity_set.connection_types[0].presynaptic.type
             to_type = connectivity_set.connection_types[0].postsynaptic.type
             from_cell_model = self.cell_models[from_type.name]
@@ -403,7 +401,7 @@ class NeuronSimulation(Simulation):
         return [self._model_to_set(model) for model in models]
 
     def _model_to_set(self, model):
-        return ConnectivitySet(self.scaffold.output_formatter, model.name)
+        return self.scaffold.get_connectivity_set(model.name)
 
     def _is_transmitter_set(self, set):
         name = set.connection_types[0].from_cell_types[0].name
@@ -411,10 +409,9 @@ class NeuronSimulation(Simulation):
         return not from_cell_model.relay
 
     def create_receivers(self):
-        output_handler = self.scaffold.output_formatter
         for connection_model in self.connection_models.values():
             # Get the connectivity set associated with this connection model
-            connectivity_set = ConnectivitySet(output_handler, connection_model.name)
+            connectivity_set = self.scaffold.get_connectivity_set(connection_model.name)
             from_cell_type = connectivity_set.connection_types[0].presynaptic.type
             if self.cell_models[from_cell_type.name].relay:
                 continue
@@ -511,7 +508,6 @@ class NeuronSimulation(Simulation):
         report("Indexing relays.")
         terminal_relays = {}
         intermediate_relays = {}
-        output_handler = self.scaffold.output_formatter
         cell_types = self.scaffold.get_cell_types()
         type_lookup = {
             ct.name: range(min(ids), max(ids) + 1)
@@ -529,8 +525,7 @@ class NeuronSimulation(Simulation):
 
         for connection_model in self.connection_models.values():
             name = connection_model.name
-            # Get the connectivity set associated with this connection model
-            connectivity_set = ConnectivitySet(output_handler, connection_model.name)
+            connectivity_set = self.scaffold.get_connectivity_set(connection_model.name)
             from_cell_type = connectivity_set.connection_types[0].presynaptic.type
             from_cell_model = self.cell_models[from_cell_type.name]
             to_cell_type = connectivity_set.connection_types[0].postsynaptic.type

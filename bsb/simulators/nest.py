@@ -4,7 +4,6 @@ from ..simulation import (
     CellModel,
     NeuronTargetting,
 )
-from ..models import ConnectivitySet
 from ..reporting import report, warn
 from ..exceptions import *
 from .. import config
@@ -685,7 +684,7 @@ class NestSimulation(Simulation):
         for connection_model in order:
             name = connection_model.name
             nest_name = self.suffixed(name)
-            cs = ConnectivitySet(self.scaffold.output_formatter, name)
+            cs = self.scaffold.get_connectivity_set(name)
             if not cs.exists():
                 warn(
                     'Expected connection dataset "{}" not found. Skipping it.'.format(

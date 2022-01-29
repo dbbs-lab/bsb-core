@@ -1,4 +1,5 @@
 import numpy as np
+import itertools
 from ..strategy import ConnectionStrategy
 from .shared import Intersectional
 from ...exceptions import *
@@ -29,25 +30,28 @@ class VoxelIntersection(Intersectional, ConnectionStrategy):
         pass
 
     def connect(self, pre, post):
-        raise NotImplementedError("under construction")
         if self.cache:
             cache = {
-                set_: set_.load_morphologies()
+                set_.tag: set_.load_morphologies()
                 for set_ in itertools.chain(
                     pre.placement.values(), post.placement.values()
                 )
             }
         if self.favor_cache == "pre":
-            targets = self.pre
-            candidates = self.post
+            targets = pre
+            candidates = post
+            self._n_tvoxels = self.voxels_pre
+            self._n_cvoxels = self.voxels_post
         else:
-            targets = self.post
-            candidates = self.pre
+            targets = post
+            candidates = pre
+            self._n_tvoxels = self.voxels_post
+            self._n_cvoxels = self.voxels_pre
         combo_itr = self.candidate_intersection(targets, candidates)
         for target_set, cand_set, match_itr in combo_itr:
             if self.cache:
-                target_mset = cache[target_set]
-                cand_mset = cache[cand_set]
+                target_mset = cache[target_set.tag]
+                cand_mset = cache[cand_set.tag]
             else:
                 target_mset = target_set.load_morphologies()
                 cand_mset = cand_set.load_morphologies()
@@ -55,48 +59,51 @@ class VoxelIntersection(Intersectional, ConnectionStrategy):
                 match_itr, target_set, cand_set, target_mset, cand_mset
             )
 
-    def _match_voxel_intersection(self, matches, tset, cset, tmset=None, cmset=None):
-        if tmset is None:
-            tmset = tset.load_morphologies()
-        if cmset is None:
-            cmset = cset.load_morphologies()
-        if self.cache:
-            load = lambda m: m.cached_load
-            voxelize = lambda m: m.cached_voxelize
-        else:
-            load = lambda m: m.load
-            voxelize = lambda m: m.voxelize
-
-        target_itrs = zip(tset.load_positions(), tset.load_rotations(), tmset)
-        rotations = cset.load_rotations().cache()
+    def _match_voxel_intersection(self, matches, tset, cset, tmset, cmset):
+        # Soft caching caches at the IO level and gives you a fresh copy of the morphology
+        # each time, the `cached_voxelize` function we need wouldn't have any effect!
+        tm_iter = tmset.iter_morphologies(cache=self.cache, hard_cache=self.cache)
+        target_itrs = zip(tset.load_positions(), tset.load_rotations().iter(), tm_iter)
+        rotations = cset.load_rotations()
         positions = cset.load_positions()
         for target, candidates in enumerate(matches):
-            tpos, trot, tsm = next(target_itrs)
+            tpos, trot, tmor = next(target_itrs)
             if not candidates:
                 # No need to load or voxelize if there's no candidates anyway
                 continue
             # Load and voxelize the target into a box tree
-            voxels = voxelize(load(tsm)())(N=self._n_tvoxels)
+            if self.cache:
+                voxels = tmor.cached_voxelize(N=self._n_tvoxels)
+            else:
+                voxels = tmor.voxelize(N=self._n_tvoxels)
             tree = voxels.as_boxtree(cache=self.cache)
+            print("Target bounds", tmor.bounds)
             for cand in candidates:
                 cpos = positions[cand]
                 crot = rotations[cand]
-                morpho = load(cmset[cand])()
-                if self.cache:
-                    # Don't mutate the cached version
-                    morpho = morpho.copy()
-                # Transform relative to target:
+                morpho = cmset.get(cand, cache=self.cache, hard_cache=False)
+                # Transform candidate, keep target unrotated and untranslated at origin:
                 # 1) Rotate self by own rotation
                 # 2) Translate by position relative to target
                 # 3) Anti-rotate by target rotation
                 # Gives us the candidate relative to the target without having to modify,
                 # reload, recalculate or revoxelize any of the target morphologies.
                 # So in the case of a single target morphology we can keep that around.
+                print("Candidate bounds:", morpho.bounds)
+                print("Translate", cpos - tpos)
                 morpho.rotate(crot)
                 morpho.translate(cpos - tpos)
-                morpho.rotate(-trot)
+                morpho.rotate(trot.inv())
                 voxels = morpho.voxelize(N=self._n_cvoxels)
-                overlap = tree.query(voxels.as_coords(interleaved=False))
+                overlap = list(tree.query(voxels.as_boxes()))
                 target_voxels = [i for i, v in enumerate(overlap) if v]
                 candidate_voxels = set(itertools.chain.from_iterable(overlap))
-                data = voxels.get_data(candidate_voxels)
+                print(
+                    "Overlap:",
+                    len(target_voxels),
+                    len(candidate_voxels),
+                    "out of",
+                    len(tree),
+                    len(voxels),
+                )
+                # data = voxels.get_data(candidate_voxels)
