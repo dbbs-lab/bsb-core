@@ -113,8 +113,7 @@ def _morphology(m_root_group):
     branches = [_branch(b_group) for b_group in _int_ordered_iter(b_root_group)]
     _attach_branches(branches)
     roots = [b for b in branches if b._parent is None]
-    morpho = Morphology(roots)
-    morpho.meta = _meta(m_root_group)
+    morpho = Morphology(roots, meta=_meta(m_root_group))
     return morpho
 
 

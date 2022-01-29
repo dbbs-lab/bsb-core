@@ -307,10 +307,15 @@ class Morphology(SubTree):
     coordinate or other associated data of a point on the branch.
     """
 
-    def __init__(self, roots):
+    def __init__(self, roots, meta=None):
         super().__init__(roots, sanitize=False)
         if len(self.roots) < len(roots):
             warn("None-root branches given as morphology input.", MorphologyWarning)
+        self._meta = meta if meta is not None else {}
+
+    @property
+    def meta(self):
+        return self._meta
 
 
 def _copy_api(cls, wrap=lambda self: self):
@@ -351,7 +356,7 @@ class Branch:
     def __init__(self, *args, labels=None):
         _validate_branch_args(args)
         self._children = []
-        self._full_labels = []
+        self._full_labels = labels if labels is not None else []
         self._label_masks = {}
         self._parent = None
         for v, vector in enumerate(type(self).vectors):
