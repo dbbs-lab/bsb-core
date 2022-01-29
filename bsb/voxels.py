@@ -1,5 +1,6 @@
 from . import config
 from .config import types
+from .trees import BoxTree
 import numpy as np
 import functools
 import abc
@@ -189,7 +190,7 @@ class VoxelSet:
         if hasattr(self, "_sizes"):
             return np.column_stack((coords, self._sizes))
         else:
-            tiled = np.broadcast(self._size, tocorrectshape)
+            tiled = coords + np.ones(3) * self._size
             return np.column_stack((coords, tiled))
 
     @classmethod
