@@ -280,10 +280,10 @@ class TestMorphologies(unittest.TestCase):
         branch_A.attach_child(branch_C)
         branch_B.attach_child(branch_D)
         self.assertEqual([branch_B, branch_C], branch_A._children)
-        self.assertFalse(branch_A.terminal)
-        self.assertFalse(branch_B.terminal)
-        self.assertTrue(branch_C.terminal)
-        self.assertTrue(branch_D.terminal)
+        self.assertFalse(branch_A.is_terminal)
+        self.assertFalse(branch_B.is_terminal)
+        self.assertTrue(branch_C.is_terminal)
+        self.assertTrue(branch_D.is_terminal)
         branch_A.detach_child(branch_C)
         self.assertIsNone(branch_C._parent)
         with self.assertRaises(ValueError):
@@ -301,9 +301,9 @@ class TestMorphologies(unittest.TestCase):
         comps = branch.to_compartments()
         self.assertTrue(np.array_equal(comps[0].midpoint, [0.5, 0.5, 0.5]))
         self.assertEqual(comps[0].spherical, np.sqrt(3) / 2)
-        self.assertTrue(branch.terminal)
+        self.assertTrue(branch.is_terminal)
         branch.attach_child(Branch(*(np.ones(0) for i in range(len(Branch.vectors)))))
-        self.assertFalse(branch.terminal)
+        self.assertFalse(branch.is_terminal)
 
 
 class TestMorphologyLabels(unittest.TestCase):

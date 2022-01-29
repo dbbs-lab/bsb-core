@@ -385,9 +385,19 @@ class Branch:
         return self.as_matrix(with_radius=True)
 
     @property
-    def terminal(self):
+    def is_root(self):
         """
-        Returns whether this branch is terminal or has children.
+        Returns whether this branch is root or if it has a parent.
+
+        :returns: True if this branch has no parent, False otherwise.
+        :rtype: bool
+        """
+        return not self._parent
+
+    @property
+    def is_terminal(self):
+        """
+        Returns whether this branch is terminal or if it has children.
 
         :returns: True if this branch has no children, False otherwise.
         :rtype: bool
