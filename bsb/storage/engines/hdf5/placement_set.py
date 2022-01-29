@@ -1,7 +1,7 @@
 from ....exceptions import *
 from .resource import Resource
 from ...interfaces import PlacementSet as IPlacementSet
-from ....morphologies import MorphologySet
+from ....morphologies import MorphologySet, RotationSet
 from .chunks import ChunkLoader, ChunkedProperty
 import numpy as np
 import itertools
@@ -107,7 +107,7 @@ class PlacementSet(
            cell type.
         """
         try:
-            return self._rotation_chunks.load()
+            return RotationSet(self._rotation_chunks.load())
         except DatasetNotFoundError:
             raise DatasetNotFoundError(
                 "No rotation information for the '{}' placement set.".format(self.tag)
