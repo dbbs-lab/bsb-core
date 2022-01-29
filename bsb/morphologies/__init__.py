@@ -188,6 +188,11 @@ class SubTree:
         """
         return self.get_branches()
 
+    @propery
+    def bounds(self):
+        f = self.flatten()
+        return np.min(f, axis=0), np.max(f, axis=0)
+
     def select(self, *labels):
         if not labels:
             labels = None
