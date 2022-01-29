@@ -104,7 +104,6 @@ class RotationSet:
         return self._rot(angles)
 
     def _rot(self, angles):
-        print("Got angles:", angles)
         return Rotation.from_euler("xyz", angles)
 
 
