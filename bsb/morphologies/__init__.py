@@ -259,6 +259,10 @@ class SubTree:
             )
         return VoxelSet.from_morphology(self, N)
 
+    @functools.cache
+    def cached_voxelize(self, N, labels=None):
+        return self.voxelize(N, labels=labels)
+
 
 class Morphology(SubTree):
     """
@@ -312,6 +316,9 @@ class Branch:
         self._parent = None
         for v, vector in enumerate(type(self).vectors):
             setattr(self, vector, args[v])
+
+    def __getitem__(self, slice):
+        return self.as_matrix(with_radius=True)[slice]
 
     @property
     def parent(self):
@@ -582,8 +589,10 @@ class Branch:
                 return i
         return len(self) - 1
 
-    def __getitem__(self, slice):
-        return self.as_matrix(with_radius=True)[slice]
+    @functools.wraps(SubTree.cached_voxelize)
+    @functools.cache
+    def cached_voxelize(self, *args, **kwargs):
+        return SubTree([self]).voxelize(*args, **kwargs)
 
 
 def _pairwise_iter(walk_iter, labels_iter):
