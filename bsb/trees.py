@@ -15,7 +15,7 @@ class BoxRTree(BoxTreeInterface):
             self._rtree.insert(id, box)
 
     def query(self, boxes):
-        return [[*self._rtree.intersection(box, objects=False)] for box in boxes]
+        return ([*self._rtree.intersection(box, objects=False)] for box in boxes)
 
 
 # Cheapo provider
