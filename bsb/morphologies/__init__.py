@@ -38,6 +38,7 @@ class MorphologySet:
     def __init__(self, loaders, m_indices):
         self._m_indices = m_indices
         self._loaders = loaders
+        self._cached = {}
 
     def __len__(self):
         return len(self._m_indices)
@@ -115,7 +116,14 @@ class RotationSet:
         return self.iter()
 
     def __getitem__(self, index):
-        return np.fromiter((self._rot(d) for d in self._data[index]), dtype=Rotation)
+        data = self._data[index]
+        if data.ndim == 2:
+            return np.array([self._rot(d) for d in data])
+        else:
+            return self._rot(data)
+
+    def __len__(self):
+        return len(self._data)
 
     def iter(self, cache=False):
         if cache:
