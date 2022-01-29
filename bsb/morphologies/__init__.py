@@ -68,7 +68,7 @@ class MorphologySet:
                 return self._loaders[data].cached_load()
             elif data not in self._cached:
                 self._cached[data] = self._loaders[data].load()
-            return self._cached[data]
+            return self._cached[data].copy()
 
     def clear_soft_cache(self):
         self._cached = {}
