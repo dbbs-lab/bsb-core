@@ -42,17 +42,12 @@ class Intersectional:
         ubounds = np.ceil(np.array(_max) / chunk_size)
         return lbounds, ubounds
 
-    def candidate_intersection(self, pre, post):
-        raise NotImplementedError("under construction")
-        pre_placement_cache = [
-            (pre_type, pre_set, pre_set.load_morphologies())
-            for pre_type, pre_set in pre.placement.items()
+    def candidate_intersection(self, target_coll, candidate_coll):
+        cand_cache = [
+            (ctype, cset, cset.load_boxes())
+            for ctype, cset in candidate_coll.placement.items()
         ]
-        for post_type, post_set in post.placement.items():
-            box_tree = post_set.load_box_tree()
-            print("post boxes bounds", box_tree._rtree.bounds)
-            for pre_type, pre_set, pre_loaders in pre_placement_cache:
-                pre_m_boxes = pre_set.load_boxes(cache=pre_loaders)
-                print("pre boxes:", len(pre_m_boxes))
-                candidates = box_tree.query(pre_m_boxes)
-                print("Presyn candidates of postsyn 0:", candidates[0])
+        for ttype, tset in target_coll.placement.items():
+            box_tree = tset.load_box_tree()
+            for ctype, cset, cboxes in cand_cache:
+                yield (tset, cset, box_tree.query(cboxes))
