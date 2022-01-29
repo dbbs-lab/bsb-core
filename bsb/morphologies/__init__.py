@@ -317,6 +317,14 @@ class Morphology(SubTree):
     def meta(self):
         return self._meta
 
+    def copy(self):
+        branch_copy_map = {branch: branch.copy() for branch in self.get_branches()}
+        for og, copy in branch_copy_map.items():
+            if not og.is_root:
+                # Look up the copy of the parent, and attach the child copy to it.
+                branch_copy_map[og.parent].attach_child(copy)
+        return self.__class__([branch_copy_map[r] for r in self.roots], meta=self.meta)
+
 
 def _copy_api(cls, wrap=lambda self: self):
     # Wraps functions so they are called with `self` wrapped in `wrap`
@@ -365,6 +373,9 @@ class Branch:
     def __getitem__(self, slice):
         return self.as_matrix(with_radius=True)[slice]
 
+    def __copy__(self):
+        return self.copy()
+
     @property
     def parent(self):
         return self._parent
@@ -408,6 +419,16 @@ class Branch:
         :rtype: bool
         """
         return not self._children
+
+    def copy(self):
+        """
+        Return a parentless and childless copy of the branch.
+        """
+        cls = type(self)
+        new = cls(*(getattr(self, vector).copy() for vector in cls.vectors))
+        new._full_labels = self._full_labels.copy()
+        new._label_masks = {k: v.copy() for k, v in self._label_masks.items()}
+        return new
 
     def label_all(self, *labels):
         """
