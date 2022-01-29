@@ -289,7 +289,11 @@ def _copy_api(cls, wrap=lambda self: self):
     # Decorates a class so that it copies and wraps (see above) the public API of `cls`
     def decorator(decorated_cls):
         for key, f in vars(cls).items():
-            if inspect.isfunction(f) and not key.startswith("_"):
+            if (
+                inspect.isfunction(f)
+                and not key.startswith("_")
+                and key not in vars(decorated_cls)
+            ):
                 setattr(decorated_cls, key, make_wrapper(f))
 
         return decorated_cls
