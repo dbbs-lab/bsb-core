@@ -171,7 +171,6 @@ class PlacementSet(Interface):
             mset = cache
             print(len(mset), "morphologies cached")
         expansion = [*zip([0] * 4 + [1] * 4, ([0] * 2 + [1] * 2) * 2, [0, 1] * 4)]
-        print("hihi expansion table", expansion)
 
         def _box_of(m, o, r):
             oo = (m["ldc"], m["mdc"])
