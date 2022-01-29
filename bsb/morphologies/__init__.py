@@ -226,6 +226,26 @@ class SubTree:
         for root in self.roots:
             root.translate(on - root.get_point(0))
 
+    def voxelize(self, N, labels=None):
+        if labels is not None:
+            raise NotImplementedError(
+                "Can't voxelize labelled parts yet, require Selection API in morphologies.py, todo"
+            )
+        return VoxelSet.from_morphology(self, N)
+
+
+class Morphology(SubTree):
+    """
+    A multicompartmental spatial representation of a cell based on a directed acyclic
+    graph of branches whom consist of data vectors, each element of a vector being a
+    coordinate or other associated data of a point on the branch.
+    """
+
+    def __init__(self, roots):
+        super().__init__(roots, sanitize=False)
+        if len(self.roots) < len(roots):
+            warn("None-root branches given as morphology input.", MorphologyWarning)
+
 
 def _copy_api(cls, wrap=lambda self: self):
     # Wraps functions so they are called with `self` wrapped in `wrap`
@@ -553,150 +573,3 @@ def _pairwise_iter(walk_iter, labels_iter):
         labels = next(labels_iter)
         yield (start, end, radius), labels
         start = end
-
-
-class Morphology(SubTree):
-    """
-    A multicompartmental spatial representation of a cell based on a directed acyclic
-    graph of branches whom consist of data vectors, each element of a vector being a
-    coordinate or other associated data of a point on the branch.
-    """
-
-    def __init__(self, roots):
-        super().__init__(roots, sanitize=False)
-        if len(self.roots) < len(roots):
-            warn("None-root branches given as morphology input.", MorphologyWarning)
-
-    @property
-    def branches(self):
-        """
-        Return a depth-first flattened array of all branches.
-        """
-        return self.get_branches()
-
-    def get_branches(self, labels=None):
-        """
-        Return a depth-first flattened array of all or the selected branches.
-
-        :param labels: Names of the labels to select.
-        :type labels: list
-        :returns: List of all branches or all branches with any of the labels
-          when given
-        :rtype: list
-        """
-        root_iter = (branch_iter(root) for root in self.roots)
-        all_branch_iter = itertools.chain(*root_iter)
-        if labels is None:
-            return list(all_branch_iter)
-        else:
-            return [b for b in all_branch_iter if b.has_any_label(labels)]
-
-    def flatten(self, vectors=None, matrix=False, labels=None):
-        """
-        Return the flattened vectors of the morphology
-
-        :param vectors: List of vectors to return such as ['x', 'y', 'z'] to get the
-          positional vectors.
-        :type vectors: list of str
-        :returns: Tuple of the vectors in the given order, if `matrix` is True a
-          matrix composed of the vectors is returned instead.
-        :rtype: tuple of ndarrays (`matrix=False`) or matrix (`matrix=True`)
-        """
-        if vectors is None:
-            vectors = Branch.vectors
-        branches = self.get_branches(labels=labels)
-        if not branches:
-            # Empty morphology (or no branches with given labels)
-            if matrix:
-                return np.empty((0, len(vectors)))
-            return tuple(np.empty(0) for _ in vectors)
-        # Concatenate all of the branch vectors tail-to-head, store a tuple of
-        # all the concatenated vector types.
-        def concat_branches(v):
-            return np.concatenate(tuple(getattr(b, v) for b in branches))
-
-        t = tuple(concat_branches(v) for v in vectors)
-        # Then optionally stack the vectors into a matrix or return the tuple
-        return np.column_stack(t) if matrix else t
-
-    def voxelize(self, N, labels=None):
-        if labels is not None:
-            raise NotImplementedError(
-                "Can't voxelize labelled parts yet, require Selection API in morphologies.py, todo"
-            )
-        return VoxelSet.from_morphology(self, N)
-
-    def get_bounding_box(self, labels=None, centered=True):
-        # Should return a 0 based or soma centered bounding box from the
-        # branches
-        raise NotImplementedError("v4")
-
-    def get_search_radius(self, plane="xyz"):
-        raise NotImplementedError("Search radii should be replaced by Rtrees.")
-
-    def get_plot_range(self, offset=[0.0, 0.0, 0.0]):
-        raise NotImplementedError("Plotting should be factored out for deprecation.")
-        compartments = self.compartment_tree.get_arrays()[0]
-        n_dimensions = range(compartments.shape[1])
-        mins = np.array([np.min(compartments[:, i]) + offset[i] for i in n_dimensions])
-        max = np.max(
-            np.array(
-                [np.max(compartments[:, i]) - mins[i] + offset[i] for i in n_dimensions]
-            )
-        )
-        return list(zip(mins.tolist(), (mins + max).tolist()))
-
-    def rotate(self, v0, v):
-        """
-
-        Rotate a morphology to be oriented as vector v, supposing to start from orientation v0.
-        norm(v) = norm(v0) = 1
-        Rotation matrix R, representing a rotation of angle alpha around vector k
-
-        """
-        R = get_rotation_matrix(v0, v)
-        raise NotImplementedError("Branch rotation")
-        R.dot()
-
-
-def get_rotation_matrix(v0, v):
-    I = np.identity(3)
-    # Reduce 1-size dimensions
-    v0 = np.array(v0).squeeze()
-    v = np.array(v).squeeze()
-    # Normalize orientation vectors
-    v0 = v0 / np.linalg.norm(v0)
-    v = v / np.linalg.norm(v0)
-    alpha = np.arccos(np.dot(v0, v))
-
-    if math.isclose(alpha, 0.0, rel_tol=1e-4):
-        report(
-            "Rotating morphology between parallel orientation vectors, {} and {}!".format(
-                v0, v
-            ),
-            level=3,
-        )
-        # We will not rotate the morphology, thus R = I
-        return I
-    elif math.isclose(alpha, np.pi, rel_tol=1e-4):
-        report(
-            "Rotating morphology between antiparallel orientation vectors, {} and {}!".format(
-                v0, v
-            ),
-            level=3,
-        )
-        # We will rotate the morphology of 180° around a vector orthogonal to
-        # the starting vector v0 (the same would be if we take the ending vector
-        # v). We set the first and third components to 1; the second one is
-        # obtained to have the scalar product with v0 equal to 0
-        kx = 1
-        kz = 1
-        ky = -(v0[0] + v0[2]) / v0[1]
-        k = np.array([kx, ky, kz])
-    else:
-        k = (np.cross(v0, v)) / math.sin(alpha)
-        k = k / np.linalg.norm(k)
-
-    K = np.array([[0, -k[2], k[1]], [k[2], 0, -k[0]], [-k[1], k[0], 0]])
-    # Compute and return the rotation matrix using Rodrigues' formula
-    return I + math.sin(alpha) * K + (1 - math.cos(alpha)) * np.linalg.matrix_power(K, 2)
