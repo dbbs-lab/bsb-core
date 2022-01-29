@@ -22,6 +22,7 @@ import functools
 import operator
 import inspect
 import numpy as np
+from scipy.spatial.transform import Rotation
 from ..voxels import VoxelSet
 from ..exceptions import *
 from ..reporting import report, warn
@@ -80,6 +81,31 @@ class MorphologySet:
             (self._m_indices, other._m_indices + merge_offset)
         )
         return MorphologySet(merged_loaders, merged_indices)
+
+
+class RotationSet:
+    def __init__(self, data):
+        self._data = data
+
+    def __iter__(self):
+        return self.iter()
+
+    def __getitem__(self, index):
+        return np.fromiter((self._rot(d) for d in self._data[index]), dtype=Rotation)
+
+    def iter(self, cache=False):
+        if cache:
+            yield from (self._cached_rot(tuple(d)) for d in self._data)
+        else:
+            yield from (self._rot(d) for d in self._data)
+
+    @functools.cache
+    def _cached_rot(self, angles):
+        return self._rot(angles)
+
+    def _rot(self, angles):
+        print("Got angles:", angles)
+        return Rotation.from_euler("xyz", angles)
 
 
 def branch_iter(branch):
