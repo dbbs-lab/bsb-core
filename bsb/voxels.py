@@ -15,17 +15,17 @@ class VoxelSet:
         if len(voxel_size.shape) > 1:
             # Voxels given in spatial coords with individual size
             self._sizes = voxel_size
-            self._coords = voxels
+            self._coords = np.array(voxels, copy=False)
             self._regular = False
         elif irregular:
             # Voxels given in spatial coords but of equal size
             self._size = voxel_size
-            self._coords = voxels
+            self._coords = np.array(voxels, copy=False)
             self._regular = False
         else:
             # Voxels given in index coords
             self._size = voxel_size
-            self._indices = voxels
+            self._indices = np.array(voxels, copy=False, dtype=int)
             self._regular = True
         self._voxel_data = voxel_data
 
