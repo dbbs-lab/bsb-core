@@ -3,9 +3,10 @@ from .plotting import plot_network
 import numpy as np
 import time
 import itertools
+from warnings import warn as std_warn
 from .placement import PlacementStrategy
 from .connectivity import ConnectionStrategy
-from warnings import warn as std_warn
+from .storage import Chunk, Storage
 from .exceptions import *
 from .reporting import report, warn, has_mpi_installed, get_report_file
 from .config._config import Configuration
@@ -20,7 +21,6 @@ def from_hdf5(file):
     :returns: A scaffold object
     :rtype: :class:`Scaffold`
     """
-    from .storage import Storage
 
     storage = Storage("hdf5", file)
     return storage.load()
@@ -166,7 +166,7 @@ class Scaffold:
         pool = create_job_pool(self)
         if pool.is_master():
             for strategy in strategies:
-                strategy.queue(pool, self.network.chunk_size)
+                strategy.queue(pool)
             loop = self._progress_terminal_loop(pool, debug=DEBUG)
             try:
                 pool.execute(loop)
@@ -324,7 +324,7 @@ class Scaffold:
         :type positions: Any `np.concatenate` type of shape (N, 3).
         """
         if chunk is None:
-            chunk = np.array([0, 0, 0])
+            chunk = Chunk([0, 0, 0], self.network.chunk_size)
         cell_count = positions.shape[0]
         if cell_count == 0:
             return
@@ -357,7 +357,8 @@ class Scaffold:
             return
         ps = self.get_placement_set(cell_type)
         # Append entity data to the default chunk 000
-        ps.append_entities((0, 0, 0), count)
+        chunk = Chunk([0, 0, 0], self.network.chunk_size)
+        ps.append_entities(chunk, count)
 
     def get_placement(self, cell_types=None, skip=None, only=None):
         if cell_types is not None:
