@@ -10,6 +10,7 @@ objects within them.
 """
 
 from .resource import Resource
+from ..._chunks import Chunk
 import numpy as np
 import contextlib
 
@@ -57,7 +58,7 @@ class ChunkLoader:
                     # If any chunks have been written, this HDF5 file is tagged with a
                     # chunk size
                     size = self._get_chunk_size(h)
-        return [Chunk.from_id(c, size) for c in chunks]
+        return [Chunk.from_id(int(c), size) for c in chunks]
 
     @contextlib.contextmanager
     def chunk_context(self, *chunks):
@@ -135,8 +136,8 @@ class ChunkLoader:
             raise Exception(f"Chunk size mismatch. File: {fsize}. Given: {size}")
         handle.attrs["chunk_size"] = size
 
-    def _get_chunk_size(self, handle, size):
-        handle.attrs["chunk_size"] = size
+    def _get_chunk_size(self, handle):
+        return handle.attrs["chunk_size"]
 
 
 class ChunkedProperty:
