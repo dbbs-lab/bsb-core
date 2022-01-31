@@ -59,12 +59,13 @@ class ConnectionStrategy(abc.ABC, SortableByAfter):
         pass
 
     def _get_connect_args_from_job(self, chunk, chunk_size, roi):
-        pre = ConnectionCollection(self.scaffold, self.presynaptic.cell_types, [chunk])
-        post = ConnectionCollection(self.scaffold, self.postsynaptic.cell_types, roi)
+        pre = ConnectionCollection(self.scaffold, self.presynaptic.cell_types, roi)
+        post = ConnectionCollection(self.scaffold, self.postsynaptic.cell_types, [chunk])
         return pre, post
 
-    def connect_cells(self, pre_type, post_type, src_locs, dest_locs, tag=None):
-        pass
+    def connect_cells(self, pre_set, post_set, src_locs, dest_locs, tag=None):
+        tag = f"{pre_set.cell_type.name}_to_{post_set.cell_type.name}"
+        self.scaffold.get_connectivity_set()
 
     @abc.abstractmethod
     def get_region_of_interest(self, chunk, chunk_size):
@@ -87,10 +88,17 @@ class ConnectionStrategy(abc.ABC, SortableByAfter):
                 ct.get_placement_set().get_all_chunks() for ct in pre_types
             )
         )
+        # For determining the ROI, it's more logical and often easier to determine where
+        # axons can go, then where they can come from, so we let them do that, and flip
+        # the results around to get our single-post-chunk, multi-pre-chunk ROI. We store
+        # "connections arriving on", not "connections going to" for each cell.
+        rois = {}
         for chunk in from_chunks:
+            for to_chunk in self.get_region_of_interest(chunk, chunk_size):
+                rois.setdefault(to_chunk, []).append(chunk)
+
+        for chunk, roi in rois.items():
             print("Queueing chunk", chunk)
-            # Find each presynaptic chunk's postsynaptic region of interest
-            roi = self.get_region_of_interest(chunk, chunk_size)
             job = pool.queue_connectivity(self, chunk, chunk_size, roi, deps=deps)
             self._queued_jobs.append(job)
 
