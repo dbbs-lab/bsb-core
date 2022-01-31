@@ -76,6 +76,17 @@ class VoxelSet:
         )
 
     @classmethod
+    def empty(cls, size=None):
+        return cls(np.empty((0, 3)), np.empty((0, 3)))
+
+    @classmethod
+    def one(cls, ldc, mdc, data=None):
+        voxels = cls(np.array([ldc]), np.array([mdc - ldc]))
+        if data is not None:
+            voxels._voxel_data = np.array([data], dtype=object)
+        return voxels
+
+    @classmethod
     def concatenate(cls, *sets):
         if (
             any(s.has_data for s in sets)
