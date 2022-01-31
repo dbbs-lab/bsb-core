@@ -194,17 +194,8 @@ class VoxelSet:
 
     def snap_to_grid(self, grid_size, unique=False):
         if self.regular:
-            print(
-                "regular voxels",
-                self._indices,
-                grid_size,
-                self._size,
-                (grid_size / self._size),
-            )
             grid = self._indices // (grid_size / self._size)
-            print("outcome", grid)
         else:
-            print("irregular voxels", self._coords, grid_size)
             grid = self._coords // grid_size
         voxel_data = self._voxel_data
         if unique:

@@ -7,6 +7,7 @@ from ..config import types
 from ..config.refs import region_ref
 from ..exceptions import *
 from ..voxels import VoxelSet, VoxelLoader
+from ..storage import Chunk
 import numpy as np
 
 
@@ -132,8 +133,8 @@ class Voxels(Partition, classmap_entry="voxels"):
         if not hasattr(self, "_map"):
             vs = self.voxelset.snap_to_grid(chunk.dimensions)
             map = {}
-            for i, chunk in enumerate(vs):
-                map.setdefault(chunk, []).append(i)
+            for i, idx in enumerate(vs):
+                map.setdefault(idx.view(Chunk).id, []).append(i)
             self._map = {k: self.voxelset[v] for k, v in map.items()}
         return self._map.get(chunk, VoxelSet(np.empty((0, 3)), np.array([1, 1, 1])))
 
