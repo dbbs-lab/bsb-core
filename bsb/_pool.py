@@ -126,9 +126,8 @@ class Job:
 
 
 class ChunkedJob(Job):
-    def __init__(self, pool, f, chunk, chunk_size, deps=None):
-        args = (chunk, chunk_size)
-        super().__init__(pool, f, args, {}, deps=deps)
+    def __init__(self, pool, f, chunk, deps=None):
+        super().__init__(pool, f, (chunk,), {}, deps=deps)
 
 
 class PlacementJob(ChunkedJob):
@@ -136,8 +135,8 @@ class PlacementJob(ChunkedJob):
     Dispatches the execution of a chunk of a placement strategy through a JobPool.
     """
 
-    def __init__(self, pool, strategy, chunk, chunk_size, deps=None):
-        args = (strategy.name, chunk, chunk_size)
+    def __init__(self, pool, strategy, chunk, deps=None):
+        args = (strategy.name, chunk)
         super(ChunkedJob, self).__init__(
             pool, strategy.place.__func__, args, {}, deps=deps
         )
@@ -158,8 +157,8 @@ class ConnectivityJob(ChunkedJob):
     Dispatches the execution of a chunk of a placement strategy through a JobPool.
     """
 
-    def __init__(self, pool, strategy, chunk, chunk_size, roi, deps=None):
-        args = (strategy.name, chunk, chunk_size, roi)
+    def __init__(self, pool, strategy, chunk, roi, deps=None):
+        args = (strategy.name, chunk, roi)
         super(ChunkedJob, self).__init__(
             pool, strategy.connect.__func__, args, {}, deps=deps
         )
@@ -216,18 +215,18 @@ class JobPool:
         self._put(job)
         return job
 
-    def queue_chunk(self, f, chunk, chunk_size, deps=None):
-        job = ChunkedJob(self, f, chunk, chunk_size, deps)
+    def queue_chunk(self, f, chunk, deps=None):
+        job = ChunkedJob(self, f, chunk, deps)
         self._put(job)
         return job
 
-    def queue_placement(self, strategy, chunk, chunk_size, deps=None):
-        job = PlacementJob(self, strategy, chunk, chunk_size, deps)
+    def queue_placement(self, strategy, chunk, deps=None):
+        job = PlacementJob(self, strategy, chunk, deps)
         self._put(job)
         return job
 
-    def queue_connectivity(self, strategy, chunk, chunk_size, roi, deps=None):
-        job = ConnectivityJob(self, strategy, chunk, chunk_size, roi, deps)
+    def queue_connectivity(self, strategy, chunk, roi, deps=None):
+        job = ConnectivityJob(self, strategy, chunk, roi, deps)
         self._put(job)
         return job
 
