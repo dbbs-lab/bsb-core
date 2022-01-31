@@ -96,25 +96,58 @@ class VoxelSet:
 
     @classmethod
     def concatenate(cls, *sets):
-        if (
-            any(s.has_data for s in sets)
-            or any(not s.regular for s in sets)
-            or any(not np.allclose(s._size, sets[0]._size) for s in sets)
+        # Short circuit "stupid" concat requests
+        if not sets:
+            return cls.empty()
+        elif len(sets) == 1:
+            return sets[0].copy()
+
+        if any(s.has_data for s in sets):
+            data = np.concatenate([s.get_data(copy=False) for s in sets])
+        else:
+            data = None
+        primer = None
+        # Check which sets we are concatenating, maybe we can keep them in reduced data
+        # forms. If they don't line up, we expand and concatenate the expanded forms.
+        if any(
+            # `primer` is assigned the first non-empty set, all sizes must match sizes can
+            # still be 0D, 1D or 2D, but if they're allclose broadcasted it is fine! :)
+            not np.allclose(s.get_size(copy=False), primer.get_size(copy=False))
+            for s in sets
+            if (primer := primer or s)
         ):
-            raise NotImplementedError(
-                "Can only concat same size index coords without data for now"
+            sizes = primer.get_size()
+            if len(sizes.shape) > 1:
+                # We happened to pick a VoxelSet that has a size matrix of equal sizes,
+                # so we take the opportunity to reduce it.
+                sizes = sizes[0]
+            if np.allclose(sizes, sizes[0]):
+                # Voxelset is actually even cubic regular!
+                sizes = sizes[0]
+            if all(s.regular for s in sets):
+                # Index coords with same sizes can simply be stacked
+                voxels = np.concatenate([s.raw(copy=False) for s in sets])
+                irregular = False
+            else:
+                voxels = np.concatenate([s.as_spatial_coords(copy=False) for s in sets])
+                irregular = True
+        else:
+            # We can't keep a single size, so expand into a matrix where needed and concat
+            sizes = np.concatenate([s.get_size_matrix(copy=False) for s in sets])
+            voxels = np.concatenate([s.as_spatial_coords(copy=False) for s in sets])
+            irregular = True
+        return VoxelSet(voxels, sizes, voxel_data=data, irregular=irregular)
+
+    def copy(self):
+        if self.is_empty:
+            return VoxelSet.empty()
+        else:
+            return VoxelSet(
+                self.raw(copy=True),
+                self.get_size(copy=True),
+                self.get_data(copy=True) if self.has_data else None,
+                irregular=not self.regular,
             )
-        alloc = np.empty(
-            (
-                sum(s.raw(copy=False).shape[0] for s in sets),
-                sets[0].raw(copy=False).shape[1],
-            )
-        )
-        ptr = 0
-        for s in sets:
-            l = len(s)
-            alloc[ptr : (ptr + l)] = s.raw(copy=False)
-        return VoxelSet(alloc, sets[0]._size)
 
     def raw(self, copy=True):
         coords = self._indices if self.regular else self._coords
