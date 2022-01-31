@@ -9,14 +9,14 @@ from .indicator import PlacementIndicator
 
 
 class SatelliteIndicator(PlacementIndicator):
-    def guess(self, chunk=None, chunk_size=None):
+    def guess(self, chunk=None):
         planet_types = self._strat.planet_types
 
         def strats_of(pt):
             return self._strat.scaffold.get_placement_of(pt)
 
         def count_of(strat, pt):
-            return strat.get_indicators()[pt.name].guess(chunk, chunk_size)
+            return strat.get_indicators()[pt.name].guess(chunk)
 
         return (
             sum(
@@ -48,11 +48,11 @@ class Satellite(PlacementStrategy):
     def get_after(self):
         return self.scaffold.get_placement_of(*self.planet_types)
 
-    def place(self, chunk, chunk_size, indicators):
+    def place(self, chunk, indicators):
         for indicator in indicators.values():
-            self.place_type(chunk, chunk_size, indicator)
+            self.place_type(chunk, indicator)
 
-    def place_type(self, chunk, chunk_size, indicator):
+    def place_type(self, chunk, indicator):
         # STRATEGY DISABLED DURING v4 REWORK
         return
         cell_type = indicator.cell_type

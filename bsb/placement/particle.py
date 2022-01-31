@@ -13,9 +13,9 @@ class ParticlePlacement(PlacementStrategy):
     bounded = config.attr(type=bool, default=False)
     restrict = config.attr(type=dict)
 
-    def place(self, chunk, chunk_size, indicators):
+    def place(self, chunk, indicators):
         voxels = VoxelSet.concatenate(
-            *(p.chunk_to_voxels(chunk, chunk_size) for p in self.partitions)
+            *(p.chunk_to_voxels(chunk) for p in self.partitions)
         )
         # Define the particles for the particle system.
         particles = [
@@ -24,7 +24,7 @@ class ParticlePlacement(PlacementStrategy):
                 # Place particles in all voxels
                 "voxels": list(range(len(voxels))),
                 "radius": indicator.get_radius(),
-                "count": int(indicator.guess(chunk, chunk_size)),
+                "count": int(indicator.guess(chunk)),
             }
             for name, indicator in indicators.items()
         ]
@@ -45,7 +45,7 @@ class ParticlePlacement(PlacementStrategy):
                 )
                 for name, indicator in indicators.items():
                     pruned = pruned_per_type[name]
-                    total = indicator.guess(chunk, chunk_size)
+                    total = indicator.guess(chunk)
                     pct = int((pruned / total) * 100)
                     report(f"{pruned} {name} ({pct}%) cells pruned.")
 

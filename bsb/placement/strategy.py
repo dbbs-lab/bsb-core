@@ -6,6 +6,7 @@ from .. import config
 from ..config import refs, types
 from ..helpers import SortableByAfter
 from ..morphologies import MorphologySet
+from ..storage import Chunk
 from .indicator import PlacementIndications, PlacementIndicator
 import numpy as np
 
@@ -125,7 +126,7 @@ class PlacementStrategy(abc.ABC, SortableByAfter):
         self._queued_jobs = []
 
     @abc.abstractmethod
-    def place(self, chunk, chunk_size, indicators):
+    def place(self, chunk, indicators):
         """
         Central method of each placement strategy. Given a chunk, should fill that chunk
         with cells by calling the scaffold's (available as ``self.scaffold``)
@@ -179,7 +180,7 @@ class PlacementStrategy(abc.ABC, SortableByAfter):
         for p in self.partitions:
             chunks = p.to_chunks(chunk_size)
             for chunk in chunks:
-                job = pool.queue_placement(self, chunk, chunk_size, deps=deps)
+                job = pool.queue_placement(self, Chunk(chunk, chunk_size), deps=deps)
                 self._queued_jobs.append(job)
 
     def is_entities(self):
@@ -218,7 +219,7 @@ class PlacementStrategy(abc.ABC, SortableByAfter):
 class FixedPositions(PlacementStrategy):
     positions = config.attr(type=np.array)
 
-    def place(self, chunk, chunk_size, indicators):
+    def place(self, chunk, indicators):
         for indicator in indicators:
             ct = indicator.cell_type
             self.place_cells(ct, indicator, self.positions, chunk)
@@ -237,9 +238,9 @@ class Entities(PlacementStrategy):
 
     def queue(self, pool, chunk_size):
         # Entities ignore chunks since they don't intrinsically store any data.
-        pool.queue_placement(self, np.array([0, 0, 0]), chunk_size)
+        pool.queue_placement(self, Chunk([0, 0, 0], chunk_size))
 
-    def place(self, chunk, chunk_size, indicators):
+    def place(self, chunk, indicators):
         for indicator in indicators.values():
             cell_type = indicator.cell_type
             # Guess total number, not chunk number, as entities bypass chunking.

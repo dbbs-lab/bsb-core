@@ -13,7 +13,7 @@ class ParallelArrayPlacement(PlacementStrategy):
     spacing_x = config.attr(type=float, required=True)
     angle = config.attr(type=types.deg_to_radian(), required=True)
 
-    def place(self, chunk, chunk_size, indicators):
+    def place(self, chunk, indicators):
         """
         Cell placement: Create a lattice of parallel arrays/lines in the layer's surface.
         """
@@ -36,7 +36,7 @@ class ParallelArrayPlacement(PlacementStrategy):
                 # Amount of parallel arrays of cells
                 n_arrays = x_pos.shape[0]
                 # Number of cells
-                n = indicator.guess(chunk, chunk_size)
+                n = indicator.guess(chunk)
                 # Add extra cells to fill the lattice error volume which will be pruned
                 n += int((n_arrays * spacing_x % dims.width) / dims.width * n)
                 # cells to distribute along the rows
