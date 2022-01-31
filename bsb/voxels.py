@@ -194,7 +194,7 @@ class VoxelSet:
             return np.column_stack((coords, tiled))
 
     @classmethod
-    def from_morphology(cls, morphology, estimate_n):
+    def from_morphology(cls, morphology, estimate_n, with_data=True):
         # Find a good distribution of amount of voxels per side
         size = morphology.meta["mdc"] - morphology.meta["ldc"]
         per_side = _eq_sides(size, estimate_n)
@@ -202,13 +202,17 @@ class VoxelSet:
         branch_vcs = [
             b.as_matrix(with_radius=False) // voxel_size for b in morphology.branches
         ]
-        voxel_reduce = {}
-        for branch, point_vcs in enumerate(branch_vcs):
-            for point, point_vc in enumerate(point_vcs):
-                voxel_reduce.setdefault(tuple(point_vc), []).append((branch, point))
-        voxels = np.array(tuple(voxel_reduce.keys()))
-        voxel_data = list(voxel_reduce.values())
-        return cls(voxels, voxel_size, voxel_data=voxel_data)
+        if with_data:
+            voxel_reduce = {}
+            for branch, point_vcs in enumerate(branch_vcs):
+                for point, point_vc in enumerate(point_vcs):
+                    voxel_reduce.setdefault(tuple(point_vc), []).append((branch, point))
+            voxels = np.array(tuple(voxel_reduce.keys()))
+            voxel_data = np.array(list(voxel_reduce.values()), dtype=object)
+            return cls(voxels, voxel_size, voxel_data=voxel_data)
+        else:
+            voxels = np.array(set((itertools.chain.from_iterable(branch_vcs))))
+            return cls(voxels, voxel_size)
 
 
 @config.dynamic(
