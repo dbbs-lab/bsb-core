@@ -4,6 +4,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
 from bsb.core import Scaffold
 from bsb.config import from_json
+from bsb.storage import Chunk
 from bsb.exceptions import *
 from bsb.models import Layer, CellType
 from test_setup import get_config, skip_parallel, timeout
@@ -24,7 +25,7 @@ class TestChunks(unittest.TestCase):
         chunk0 = self.ps.load_positions()
         # Unloaded the chunks loaded by the other test. The desired behavior is then to
         # read all chunks.
-        self.ps.unload_chunk((0, 0, 0))
+        self.ps.unload_chunk(Chunk((0, 0, 0), (100, 100, 100)))
         chunk_all = self.ps.load_positions()
         self.assertGreater(len(chunk_all), len(chunk0))
 
@@ -42,12 +43,12 @@ class TestChunks(unittest.TestCase):
         self.assertEqual(0, len(pos), "Cell pos found before cell placement. Cleared?")
         p = network.placement.test_placement
         cs = network.network.chunk_size
-        p.place(np.array([0, 0, 0]), cs, p.get_indicators())
+        p.place(Chunk(np.array([0, 0, 0]), cs), p.get_indicators())
         pos = ps.load_positions()
         self.assertGreater(len(pos), 0, "No data loaded from chunk 000 after placement")
         # Force the addition of garbage data in another chunk, to be ignored by this
         # PlacementSet as it is set to load data only from chunk (0,0,0)
-        ps.append_data((0, 0, 1), [0])
+        ps.append_data(Chunk((0, 0, 1), (100, 100, 100)), [0])
         pos2 = ps.load_positions()
         self.assertEqual(
             pos.tolist(), pos2.tolist(), "PlacementSet loaded extraneous chunk data"

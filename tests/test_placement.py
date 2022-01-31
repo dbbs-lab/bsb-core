@@ -19,7 +19,7 @@ def test_dud(scaffold, x, y):
     return x
 
 
-def test_chunk(scaffold, chunk, chunk_size):
+def test_chunk(scaffold, chunk):
     return chunk
 
 
@@ -143,12 +143,12 @@ class SchedulerBaseTest:
 
     def test_placement_job(self):
         pool = JobPool(network)
-        job = pool.queue_placement(dud, [0, 0, 0], (100, 100, 100))
+        job = pool.queue_placement(dud, Chunk([0, 0, 0], (100, 100, 100)))
         pool.execute()
 
     def test_chunked_job(self):
         pool = JobPool(network)
-        job = pool.queue_chunk(test_chunk, [0, 0, 0], (100, 100, 100))
+        job = pool.queue_chunk(test_chunk, Chunk([0, 0, 0], (100, 100, 100)))
         pool.execute()
 
 
