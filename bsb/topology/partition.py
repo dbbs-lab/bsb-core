@@ -31,40 +31,40 @@ class Partition:
     def layout(self, boundaries):
         return NotImplementedError("Partitions should define a `layout` method")
 
-    def volume(self, chunk=None, chunk_size=None):
+    def volume(self, chunk=None):
         if chunk is not None:
             # Create an intersection between the partition and the chunk
-            low = np.maximum(self.boundaries.ldc, chunk * chunk_size)
-            high = np.minimum(self.boundaries.mdc, (chunk + 1) * chunk_size)
+            low = np.maximum(self.boundaries.ldc, chunk.ldc)
+            high = np.minimum(self.boundaries.mdc, chunk.mdc)
             return np.product(np.maximum(high - low, 0))
         else:
             return np.product(self.boundaries.dimensions)
 
-    def surface(self, chunk=None, chunk_size=None):
+    def surface(self, chunk=None):
         if chunk is not None:
             # Gets the xz "square" from a volume
             sq = lambda v: np.array(v)[[0, 2]]
             ldc = sq(self.boundaries.ldc)
             mdc = sq(self.boundaries.mdc)
-            chunk = sq(chunk)
-            chunk_size = sq(chunk_size)
+            cl = sq(chunk.ldc)
+            cm = sq(chunk.mdc)
             # Create an intersection between the partition and the chunk
-            low = np.maximum(ldc, chunk * chunk_size)
-            high = np.minimum(mdc, (chunk + 1) * chunk_size)
+            low = np.maximum(ldc, cl)
+            high = np.minimum(mdc, cm)
             return np.product(np.maximum(high - low, 0))
         else:
             return self.boundaries.width * self.boundaries.depth
 
     def to_chunks(self, chunk_size):
         # Get the low and high range of the boundaries in chunk coordinates
-        low_r = np.floor(self.boundaries.ldc / chunk_size).astype(int)
-        high_r = np.ceil(self.boundaries.mdc / chunk_size).astype(int)
+        low_r = (self.boundaries.ldc // chunk_size).astype(int)
+        high_r = (self.boundaries.mdc // chunk_size).astype(int)
         # Create a grid that includes all the chunk coordinates within those boundaries
         coords = np.mgrid[tuple(range(low, high) for low, high in zip(low_r, high_r))]
         # Order the coordinate grid into a list of chunk coordinates.
         return np.column_stack(tuple(dim.ravel() for dim in coords))
 
-    def chunk_to_voxels(self, chunk, chunk_size):
+    def chunk_to_voxels(self, chunk):
         """
         Return an approximation of this partition intersected with a chunk as a list of
         voxels.
@@ -72,8 +72,8 @@ class Partition:
         Default implementation creates a parallellepepid intersection between the
         LDC, MDC and chunk boundaries.
         """
-        low = np.maximum(self.boundaries.ldc, chunk * chunk_size)
-        high = np.minimum(self.boundaries.mdc, (chunk + 1) * chunk_size)
+        low = np.maximum(self.boundaries.ldc, chunk.ldc)
+        high = np.minimum(self.boundaries.mdc, chunk.mdc)
         # Return 0 voxels when the coords are OOB for this partition
         if np.any(low > high):
             return []
@@ -127,16 +127,14 @@ class Voxels(Partition, classmap_entry="voxels"):
         )
         return self.voxelset.snap_to_grid(chunk_size, unique=True)
 
-    def chunk_to_voxels(self, chunk, chunk_size):
+    def chunk_to_voxels(self, chunk):
         if not hasattr(self, "_map"):
-            vs = self.voxelset.snap_to_grid(chunk_size)
+            vs = self.voxelset.snap_to_grid(chunk.dimensions)
             map = {}
             for i, chunk in enumerate(vs):
-                map.setdefault(tuple(chunk), []).append(i)
+                map.setdefault(chunk, []).append(i)
             self._map = {k: self.voxelset[v] for k, v in map.items()}
-        return self._map.get(
-            tuple(chunk), VoxelSet(np.empty((0, 3)), np.array([1, 1, 1]))
-        )
+        return self._map.get(chunk, VoxelSet(np.empty((0, 3)), np.array([1, 1, 1])))
 
     def layout(self, boundaries):
         # Buondaries are currently the network dimensions in JSON file

@@ -52,7 +52,7 @@ class PlacementIndicator:
             )
         return ind
 
-    def guess(self, chunk=None, chunk_size=None):
+    def guess(self, chunk=None):
         count = self.indication("count")
         density = self.indication("density")
         planar_density = self.indication("planar_density")
@@ -60,11 +60,11 @@ class PlacementIndicator:
         density_ratio = self.indication("density_ratio")
         count_ratio = self.indication("count_ratio")
         if count is not None:
-            estimate = self._estim_for_chunk(chunk, chunk_size, count)
+            estimate = self._estim_for_chunk(chunk, count)
         if density is not None:
-            estimate = self._density_to_estim(density, chunk, chunk_size)
+            estimate = self._density_to_estim(density, chunk)
         if planar_density is not None:
-            estimate = self._pdensity_to_estim(planar_density, chunk, chunk_size)
+            estimate = self._pdensity_to_estim(planar_density, chunk)
         if relative_to is not None:
             relation = relative_to
             if count_ratio is not None:
@@ -73,7 +73,7 @@ class PlacementIndicator:
                     sum(PlacementIndicator(s, relation).guess() for s in strats)
                     * count_ratio
                 )
-                estimate = self._estim_for_chunk(chunk, chunk_size, estimate)
+                estimate = self._estim_for_chunk(chunk, estimate)
             elif density_ratio is not None:
                 # Create an indicator based on this strategy for the related CT.
                 # This means we'll read only the CT indications, and ignore any
@@ -83,12 +83,10 @@ class PlacementIndicator:
                 rel_density = rel_ind.indication("density")
                 rel_pl_density = rel_ind.indication("planar_density")
                 if rel_density is not None:
-                    estimate = self._density_to_estim(
-                        rel_density * density_ratio, chunk, chunk_size
-                    )
+                    estimate = self._density_to_estim(rel_density * density_ratio, chunk)
                 elif rel_pl_density is not None:
                     estimate = self._pdensity_to_estim(
-                        rel_pl_density * density_ratio, chunk, chunk_size
+                        rel_pl_density * density_ratio, chunk
                     )
                 else:
                     raise PlacementRelationError(
@@ -109,19 +107,17 @@ class PlacementIndicator:
                 f"No configuration indicators found for the number of '{self._cell_type.name}' in '{self._strat.name}'"
             )
 
-    def _density_to_estim(self, density, chunk=None, size=None):
-        return sum(p.volume(chunk, size) * density for p in self._strat.partitions)
+    def _density_to_estim(self, density, chunk=None):
+        return sum(p.volume(chunk) * density for p in self._strat.partitions)
 
-    def _pdensity_to_estim(self, planar_density, chunk=None, size=None):
-        return sum(
-            p.surface(chunk, size) * planar_density for p in self._strat.partitions
-        )
+    def _pdensity_to_estim(self, planar_density, chunk=None):
+        return sum(p.surface(chunk) * planar_density for p in self._strat.partitions)
 
-    def _estim_for_chunk(self, chunk, chunk_size, count):
+    def _estim_for_chunk(self, chunk, count):
         if chunk is None:
             return count
         # When getting with absolute count for a chunk give back the count
         # proportional to the volume in this chunk vs total volume
-        chunk_volume = sum(p.volume(chunk, chunk_size) for p in self._strat.partitions)
+        chunk_volume = sum(p.volume(chunk) for p in self._strat.partitions)
         total_volume = sum(p.volume() for p in self._strat.partitions)
         return count * chunk_volume / total_volume
