@@ -47,11 +47,10 @@ class PlacementSet(
         root = "/cells/placement/"
         tag = cell_type.name
         super().__init__(engine, root + tag)
+        IPlacementSet.__init__(self, engine, cell_type)
+        ChunkLoader.__init__(self)
         if not self.exists(engine, cell_type):
             raise DatasetNotFoundError("PlacementSet '{}' does not exist".format(tag))
-        ChunkLoader.__init__(self)
-        self.type = cell_type
-        self.tag = tag
 
     @classmethod
     def create(cls, engine, cell_type):
