@@ -109,10 +109,10 @@ class VoxelSet:
         primer = None
         # Check which sets we are concatenating, maybe we can keep them in reduced data
         # forms. If they don't line up, we expand and concatenate the expanded forms.
-        if any(
+        if all(
             # `primer` is assigned the first non-empty set, all sizes must match sizes can
             # still be 0D, 1D or 2D, but if they're allclose broadcasted it is fine! :)
-            not np.allclose(s.get_size(copy=False), primer.get_size(copy=False))
+            np.allclose(s.get_size(copy=False), primer.get_size(copy=False))
             for s in sets
             if (primer := primer or s)
         ):
@@ -121,7 +121,7 @@ class VoxelSet:
                 # We happened to pick a VoxelSet that has a size matrix of equal sizes,
                 # so we take the opportunity to reduce it.
                 sizes = sizes[0]
-            if np.allclose(sizes, sizes[0]):
+            if len(sizes.shape) > 0 and np.allclose(sizes, sizes[0]):
                 # Voxelset is actually even cubic regular!
                 sizes = sizes[0]
             if all(s.regular for s in sets):
@@ -209,9 +209,7 @@ class VoxelSet:
     def select(self, ldc, mdc):
         voxel_data = self._voxel_data
         coords = self.as_spatial_coords(copy=False)
-        print("Looking for", ldc, mdc, "with voxelset in", self.bounds)
         inside = np.all(np.logical_and(ldc <= coords, coords < mdc), axis=1)
-        print(sum(inside))
         return self[inside]
 
     def select_chunk(self, chunk):
