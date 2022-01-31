@@ -151,16 +151,16 @@ class VoxelSet:
                 grid = np.unique(grid, axis=0)
         return VoxelSet(grid, grid_size, voxel_data)
 
-    def select(self, ldc, size):
+    def select(self, ldc, mdc):
         voxel_data = self._voxel_data
         coords = self.as_spatial_coords(copy=False)
-        print("Looking for", ldc, size, "with voxelset in", self.bounds)
-        inside = np.all(np.logical_and(ldc <= coords, coords < ldc + size), axis=1)
+        print("Looking for", ldc, mdc, "with voxelset in", self.bounds)
+        inside = np.all(np.logical_and(ldc <= coords, coords < mdc), axis=1)
         print(sum(inside))
         return self[inside]
 
-    def select_chunk(self, chunk, chunk_size):
-        return self.select(np.array(chunk) * chunk_size, chunk_size)
+    def select_chunk(self, chunk):
+        return self.select(chunk.ldc, chunk.mdc)
 
     def unique(self):
         raise NotImplementedError("and another one")
