@@ -4,10 +4,10 @@ import numpy as np
 
 
 class Intersectional:
-    def get_region_of_interest(self, chunk, chunk_size):
+    def get_region_of_interest(self, chunk):
         post_ps = [ct.get_placement_set() for ct in self.postsynaptic.cell_types]
-        lpre, upre = self._get_rect_ext(tuple(chunk_size), True)
-        lpost, upost = self._get_rect_ext(tuple(chunk_size), False)
+        lpre, upre = self._get_rect_ext(chunk, True)
+        lpost, upost = self._get_rect_ext(chunk, False)
         # Combine upper and lower bounds
         bounds = list(
             np.arange(l1 - u2 + c, u1 - l2 + c + 1)
@@ -25,7 +25,7 @@ class Intersectional:
         return [t for c in clist if (t := tuple(c)) in self._occ_chunks]
 
     @cache
-    def _get_rect_ext(self, chunk_size, pre_post_flag):
+    def _get_rect_ext(self, chunk, pre_post_flag):
         if pre_post_flag:
             types = self.presynaptic.cell_types
         else:
@@ -34,12 +34,10 @@ class Intersectional:
         ms_list = [ps.load_morphologies() for ps in ps_list]
         metas = list(chain.from_iterable(ms.iter_meta(unique=True) for ms in ms_list))
         # TODO: Combine morphology extension information with PS rotation information.
-        _min = reduce(lambda a, b: tuple(map(min, a, b["ldc"])), metas, (0, 0, 0))
-        _max = reduce(lambda a, b: tuple(map(max, a, b["mdc"])), metas, (0, 0, 0))
         # Get the chunk coordinates of the boundaries of this chunk convoluted with the
         # extension of the intersecting morphologies.
-        lbounds = np.floor(np.array(_min) / chunk_size)
-        ubounds = np.ceil(np.array(_max) / chunk_size)
+        lbounds = np.min([m["ldc"] for m in metas], axis=0) // chunk.dimensions
+        ubounds = np.max([m["mdc"] for m in metas], axis=0) // chunk.dimensions
         return lbounds, ubounds
 
     def candidate_intersection(self, target_coll, candidate_coll):
