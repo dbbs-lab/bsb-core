@@ -68,6 +68,14 @@ class VoxelSet:
         return hasattr(self, "_size")
 
     @property
+    def size(self):
+        return self.get_size()
+
+    @property
+    def data(self):
+        return self.get_data()
+
+    @property
     @functools.cache
     def bounds(self):
         return (
@@ -114,15 +122,20 @@ class VoxelSet:
             coords = coords.copy()
         return coords
 
-    @property
-    def size(self):
-        if self.has_equal_sizes:
-            return np.array(self._size)
+    def get_data(self, copy=True):
+        if self.has_data:
+            return np.array(self._voxel_data, copy=copy)
         else:
-            return np.array(self._sizes)
+            return np.empty(len(self), dtype=object)
+
+    def get_size(self, copy=True):
+        if self.of_equal_size:
+            return np.array(self._size, copy=copy)
+        else:
+            return np.array(self._sizes, copy=copy)
 
     def get_size_matrix(self, copy=True):
-        if self.has_equal_sizes:
+        if self.of_equal_size:
             size = np.ones(3) * self._size
             sizes = np.tile(size, len(self.raw(copy=False)))
         else:
