@@ -1,7 +1,6 @@
 from ....exceptions import *
 from .resource import Resource
 from ...interfaces import ConnectivitySet as IConnectivitySet
-from .chunks import get_chunk_tag
 import numpy as np
 
 _root = "/cells/connections/"

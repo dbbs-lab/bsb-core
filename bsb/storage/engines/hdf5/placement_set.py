@@ -182,9 +182,9 @@ class PlacementSet(
                     + " without any positional, or morphological data."
                 )
             with self._engine._write():
-                self.require_chunk(chunk)
-                path = self.get_chunk_path(chunk)
                 with self._engine._handle("a") as f:
+                    self.require_chunk(chunk, handle=f)
+                    path = self.get_chunk_path(chunk)
                     prev_count = f[path].attrs.get("entity_count", 0)
                     f[path].attrs["entity_count"] = prev_count + count
 
