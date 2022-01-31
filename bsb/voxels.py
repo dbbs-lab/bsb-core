@@ -37,7 +37,7 @@ class VoxelSet:
 
     def __getitem__(self, index):
         voxels = self.raw(copy=False)[index]
-        if self.has_equal_sizes:
+        if self.of_equal_size:
             voxel_size = self._size
         else:
             voxel_size = self._sizes[index]
@@ -63,7 +63,7 @@ class VoxelSet:
         return self._regular
 
     @property
-    def has_equal_sizes(self):
+    def of_equal_size(self):
         # One size fits all
         return hasattr(self, "_size")
 
