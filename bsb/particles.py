@@ -129,7 +129,6 @@ class ParticleSystem:
             radius = particle_type["radius"]
             placement_voxels = particle_type["voxels"]
             particle_count = particle_type["count"]
-            print("Placing", particle_type)
             # Generate a matrix with random positions for the particles
             # Add an extra dimension to determine in which voxels to place the particles
             placement_matrix = np.random.rand(particle_count, self.dimensions + 1)

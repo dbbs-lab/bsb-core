@@ -76,8 +76,9 @@ class Partition:
         high = np.minimum(self.boundaries.mdc, chunk.mdc)
         # Return 0 voxels when the coords are OOB for this partition
         if np.any(low > high):
-            return []
-        return [[low, high - low]]
+            return VoxelSet.empty()
+        else:
+            return VoxelSet.one(low, high)
 
 
 @config.node
