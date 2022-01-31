@@ -18,6 +18,7 @@ from inspect import isclass
 from ..exceptions import *
 from .. import plugins
 import mpi4py.MPI as MPI
+import numpy as np
 
 # Import the interfaces child module through a relative import as a sibling.
 interfaces = __import__("interfaces", globals=globals(), level=1)
@@ -360,3 +361,36 @@ def view_support(engine=None):
             feature_name: not isinstance(feature, NotSupported)
             for feature_name, feature in _engines[engine].items()
         }
+
+
+class Chunk(np.ndarray):
+    def __new__(cls, chunk, chunk_size):
+        obj = super().__new__(cls, (3,), dtype=np.short)
+        obj[:] = chunk
+        obj._size = np.array(chunk_size, dtype=float)
+        return obj
+
+    def __array_finalize__(self, obj):
+        if obj is not None:
+            self._size = getattr(obj, "_size", None)
+
+    @property
+    def extent(self):
+        return self._size
+
+    @property
+    def id(self):
+        return sum(self[i] * 2 ** (i * 16) for i in range(3))
+
+    @property
+    def box(self):
+        return np.concatenate((self.ldc, self.mdc))
+
+    @property
+    def ldc(self):
+        return self._size * self
+
+    @property
+    def mdc(self):
+        # self._size * (self + 1) might overflow when this formula will not.
+        return self._size * self + self._size
