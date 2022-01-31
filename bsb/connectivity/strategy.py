@@ -58,7 +58,7 @@ class ConnectionStrategy(abc.ABC, SortableByAfter):
     def connect(self, presyn_collection, postsyn_collection):
         pass
 
-    def _get_connect_args_from_job(self, chunk, chunk_size, roi):
+    def _get_connect_args_from_job(self, chunk, roi):
         pre = ConnectionCollection(self.scaffold, self.presynaptic.cell_types, roi)
         post = ConnectionCollection(self.scaffold, self.postsynaptic.cell_types, [chunk])
         return pre, post
@@ -68,10 +68,10 @@ class ConnectionStrategy(abc.ABC, SortableByAfter):
         self.scaffold.get_connectivity_set()
 
     @abc.abstractmethod
-    def get_region_of_interest(self, chunk, chunk_size):
+    def get_region_of_interest(self, chunk):
         pass
 
-    def queue(self, pool, chunk_size):
+    def queue(self, pool):
         """
         Specifies how to queue this connectivity strategy into a job pool. Can
         be overridden, the default implementation asks each partition to chunk
@@ -94,12 +94,12 @@ class ConnectionStrategy(abc.ABC, SortableByAfter):
         # "connections arriving on", not "connections going to" for each cell.
         rois = {}
         for chunk in from_chunks:
-            for to_chunk in self.get_region_of_interest(chunk, chunk_size):
+            for to_chunk in self.get_region_of_interest(chunk):
                 rois.setdefault(to_chunk, []).append(chunk)
 
         for chunk, roi in rois.items():
             print("Queueing chunk", chunk)
-            job = pool.queue_connectivity(self, chunk, chunk_size, roi, deps=deps)
+            job = pool.queue_connectivity(self, chunk, roi, deps=deps)
             self._queued_jobs.append(job)
 
     def get_cell_types(self):
