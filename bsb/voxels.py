@@ -47,6 +47,13 @@ class VoxelSet:
             voxel_data = None
         return VoxelSet(voxels, voxel_size, voxel_data)
 
+    def __bool__(self):
+        return not self.is_empty
+
+    @property
+    def is_empty(self):
+        return not len(self)
+
     @property
     def has_data(self):
         return self._voxel_data is not None
