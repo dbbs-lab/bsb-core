@@ -14,18 +14,6 @@ import numpy as np
 import contextlib
 
 
-def get_chunk_tag(chunk):
-    """
-    Return the base name of a chunk inside the HDF5 file.
-
-    :param chunk: Chunk (e.g. ``(0, 0, 0)``)
-    :type chunk: iterable
-    :returns: Chunk name (e.g. ``"0.0.0"``)
-    :rtype: str
-    """
-    return ".".join(str(int(float(c))) for c in chunk)
-
-
 class ChunkLoader:
     """
     :class:`~.storage.engines.hdf5.resource.Resource` mixin to organize chunked properties
@@ -65,12 +53,16 @@ class ChunkLoader:
         with self._engine._read():
             with self._engine._handle("r") as h:
                 chunks = list(h[self._path + "/chunks"].keys())
-        return [tuple(map(int, c.split("."))) for c in chunks]
+                if chunks:
+                    # If any chunks have been written, this HDF5 file is tagged with a
+                    # chunk size
+                    size = self._get_chunk_size(h)
+        return [Chunk.from_id(c, size) for c in chunks]
 
     @contextlib.contextmanager
     def chunk_context(self, *chunks):
         old_chunks = self._chunks
-        self._chunks = set(map(tuple, chunks))
+        self._chunks = set(chunks)
         yield
         self._chunks = old_chunks
 
@@ -84,43 +76,51 @@ class ChunkLoader:
         :rtype: str
         """
         if chunk is None:
-            return self._path + "/chunks/"
-        return self._path + "/chunks/" + get_chunk_tag(chunk)
+            return f"{self._path}/chunks/"
+        else:
+            return f"{self._path}/chunks/{chunk.id}"
 
     def load_chunk(self, chunk):
         """
         Add a chunk to read data from when loading properties/collections.
         """
-        self._chunks.add(tuple(chunk))
+        self._chunks.add(chunk)
 
     def unload_chunk(self, chunk):
         """
         Remove a chunk to read data from when loading properties/collections.
         """
-        self._chunks.discard(tuple(chunk))
+        self._chunks.discard(chunk)
 
     def set_chunks(self, chunks):
-        self._chunks = set(tuple(c) for c in chunks)
+        self._chunks = set(chunks)
 
     def clear_chunks(self):
         self._chunks = set()
 
-    def require_chunk(self, chunk):
+    def require_chunk(self, chunk, handle=None):
         """
         Create a chunk if it doesn't exist yet, or do nothing.
         """
-        with self._engine._write():
-            with self._engine._handle("a") as f:
-                path = self.get_chunk_path(chunk)
-                if path in f:
-                    return
-                chunk_group = f.create_group(path)
-                for p in self._properties:
-                    chunk_group.create_dataset(
-                        f"{path}/{p.name}", p.shape, maxshape=p.maxshape, dtype=p.dtype
-                    )
-                for c in self._collections:
-                    chunk_group.create_group(path + f"/{c.name}")
+        if handle is not None:
+            self._require(chunk, handle)
+        else:
+            with self._engine._write():
+                with self._engine._handle("a") as handle:
+                    self._require(chunk, handle)
+
+    def _require(self, chunk, handle):
+        path = self.get_chunk_path(chunk)
+        if path in handle:
+            return
+        chunk_group = handle.create_group(path)
+        self._set_chunk_size(handle, chunk.dimensions)
+        for p in self._properties:
+            chunk_group.create_dataset(
+                f"{path}/{p.name}", p.shape, maxshape=p.maxshape, dtype=p.dtype
+            )
+        for c in self._collections:
+            chunk_group.create_group(path + f"/{c.name}")
 
     def clear(self, chunks=None):
         if chunks is None:
@@ -128,6 +128,15 @@ class ChunkLoader:
         for chunk in chunks:
             for prop in self._properties:
                 prop.clear(chunk)
+
+    def _set_chunk_size(self, handle, size):
+        fsize = handle.attrs.get("chunk_size", size)
+        if not np.allclose(fsize, size):
+            raise Exception(f"Chunk size mismatch. File: {fsize}. Given: {size}")
+        handle.attrs["chunk_size"] = size
+
+    def _get_chunk_size(self, handle, size):
+        handle.attrs["chunk_size"] = size
 
 
 class ChunkedProperty:
@@ -204,9 +213,9 @@ class ChunkedProperty:
         """
         if self.insert is not None:
             data = self.insert(data)
-        self.loader.require_chunk(chunk)
         with self.loader._engine._write():
             with self.loader._engine._handle("a") as f:
+                self.loader.require_chunk(chunk, handle=f)
                 chunk_group = f[self.loader.get_chunk_path(chunk)]
                 if self.name not in chunk_group:
                     chunk_group.create_dataset(
@@ -223,9 +232,9 @@ class ChunkedProperty:
                     dset[start_pos:] = data
 
     def clear(self, chunk):
-        self.loader.require_chunk(chunk)
         with self.loader._engine._write():
             with self.loader._engine._handle("a") as f:
+                self.loader.require_chunk(chunk, handle=f)
                 chunk_group = f[self.loader.get_chunk_path(chunk)]
                 if self.name not in chunk_group:
                     chunk_group.create_dataset(
