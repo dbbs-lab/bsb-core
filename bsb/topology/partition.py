@@ -57,8 +57,8 @@ class Partition:
 
     def to_chunks(self, chunk_size):
         # Get the low and high range of the boundaries in chunk coordinates
-        low_r = (self.boundaries.ldc // chunk_size).astype(int)
-        high_r = (self.boundaries.mdc // chunk_size).astype(int)
+        low_r = np.floor(self.boundaries.ldc / chunk_size).astype(int)
+        high_r = np.ceil(self.boundaries.mdc / chunk_size).astype(int)
         # Create a grid that includes all the chunk coordinates within those boundaries
         coords = np.mgrid[tuple(range(low, high) for low, high in zip(low_r, high_r))]
         # Order the coordinate grid into a list of chunk coordinates.
