@@ -27,7 +27,10 @@ class Chunk(np.ndarray):
         self._size = state[-1]
 
     def __eq__(self, other):
-        return self.id == other.astype(Chunk).id
+        if isinstance(other, int) or len(other.shape) == 0:
+            return self.id == other
+        else:
+            return self.id == other.view(Chunk).id
 
     @property
     def dimensions(self):
