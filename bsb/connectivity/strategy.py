@@ -98,9 +98,9 @@ class ConnectionStrategy(abc.ABC, SortableByAfter):
                 rois.setdefault(to_chunk, []).append(chunk)
 
         for chunk, roi in rois.items():
-            print("Queueing chunk", chunk)
             job = pool.queue_connectivity(self, chunk, roi, deps=deps)
             self._queued_jobs.append(job)
+        report(f"Queued {len(self._queued_jobs)} jobs for {self.name}", level=2)
 
     def get_cell_types(self):
         return set(self.presynaptic.cell_types) | set(self.postsynaptic.cell_types)

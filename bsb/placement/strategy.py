@@ -182,6 +182,7 @@ class PlacementStrategy(abc.ABC, SortableByAfter):
             for chunk in chunks:
                 job = pool.queue_placement(self, Chunk(chunk, chunk_size), deps=deps)
                 self._queued_jobs.append(job)
+        report(f"Queued {len(self._queued_jobs)} jobs for {self.name}", level=2)
 
     def is_entities(self):
         return "entities" in self.__class__.__dict__ and self.__class__.entities
