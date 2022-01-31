@@ -136,7 +136,7 @@ class Voxels(Partition, classmap_entry="voxels"):
             for i, idx in enumerate(vs):
                 map.setdefault(idx.view(Chunk).id, []).append(i)
             self._map = {k: self.voxelset[v] for k, v in map.items()}
-        return self._map.get(chunk, VoxelSet(np.empty((0, 3)), np.array([1, 1, 1])))
+        return self._map.get(chunk, VoxelSet.empty())
 
     def layout(self, boundaries):
         # Buondaries are currently the network dimensions in JSON file
