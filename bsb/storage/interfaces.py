@@ -13,8 +13,8 @@ from scipy.spatial.transform import Rotation
 class Interface(abc.ABC):
     _iface_engine_key = None
 
-    def __init__(self, handler):
-        self._handler = handler
+    def __init__(self, engine):
+        self._engine = engine
 
     def __init_subclass__(cls, **kwargs):
         # Only change engine key if explicitly given.
@@ -77,8 +77,18 @@ class FileStore(Interface, engine_key="files"):
 
 class PlacementSet(Interface):
     @abc.abstractmethod
-    def __init__(self, engine, type):
-        pass
+    def __init__(self, engine, cell_type):
+        self._engine = engine
+        self._type = cell_type
+        self._tag = cell_type.name
+
+    @property
+    def cell_type(self):
+        return self._type
+
+    @property
+    def tag(self):
+        return self._tag
 
     @abc.abstractclassmethod
     def create(cls, engine, type):
@@ -162,14 +172,10 @@ class PlacementSet(Interface):
         pass
 
     def load_boxes(self, cache=None, itr=True):
-        print("boxes of", self.type.name)
         if cache is None:
-            print("no cache")
             mset = self.load_morphologies()
-            print(len(mset), "morphologies stored")
         else:
             mset = cache
-            print(len(mset), "morphologies cached")
         expansion = [*zip([0] * 4 + [1] * 4, ([0] * 2 + [1] * 2) * 2, [0, 1] * 4)]
 
         def _box_of(m, o, r):
