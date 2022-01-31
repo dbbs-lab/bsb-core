@@ -374,6 +374,20 @@ class Chunk(np.ndarray):
         if obj is not None:
             self._size = getattr(obj, "_size", None)
 
+    def __hash__(self):
+        return int(self.id)
+
+    def __reduce__(self):
+        # Pickle ourselves, appending the `_size` attribute to our reduced state
+        pickled_state = super().__reduce__()
+        new_state = pickled_state[2] + (self._size,)
+        return (pickled_state[0], pickled_state[1], new_state)
+
+    def __setstate__(self, state):
+        # Unpickle ourselves, grabbing the state we appended for `_size`
+        super().__setstate__(state[:-1])
+        self._size = state[-1]
+
     @property
     def dimensions(self):
         return self._size
