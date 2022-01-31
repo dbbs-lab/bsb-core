@@ -13,7 +13,7 @@ class MorphologyRepository(Resource, IMorphologyRepository):
         super().__init__(engine, _root)
 
     def select(self, *selectors):
-        all_loaders = [self.preload(name) for name in self.keys()]
+        all_loaders = self.all()
         selected = []
         for selector in selectors:
             selector.validate(all_loaders)
@@ -40,6 +40,9 @@ class MorphologyRepository(Resource, IMorphologyRepository):
                     ) from None
         meta["name"] = name
         return meta
+
+    def all(self):
+        return [self.preload(name) for name in self.keys()]
 
     def has(self, name):
         with self._engine._read():

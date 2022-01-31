@@ -202,6 +202,10 @@ class PlacementSet(Interface):
 
 class MorphologyRepository(Interface, engine_key="morphologies"):
     @abc.abstractmethod
+    def all(self):
+        pass
+
+    @abc.abstractmethod
     def select(self, selector):
         pass
 
