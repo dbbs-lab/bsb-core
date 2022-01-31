@@ -375,7 +375,7 @@ class Chunk(np.ndarray):
             self._size = getattr(obj, "_size", None)
 
     @property
-    def extent(self):
+    def dimensions(self):
         return self._size
 
     @property
