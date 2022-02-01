@@ -8,33 +8,45 @@ The Brain Scaffold Builder
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
+   :caption: Getting Started
 
    usage/installation
    usage/getting-started
    usage/cli
-   guides
-   placement
-   morphologies/intro
-   connectivity
-   simulation/simulation
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Configuration
+
+   config/configuration-toc
 
 
+.. toctree::
+  :maxdepth: 2
+  :caption: CLI
 
-Indices and tables
-==================
+  cli/cli-toc
+
+.. toctree::
+  :maxdepth: 2
+  :caption: Topology
+
+  topology/topology-toc
+
+.. toctree::
+  :maxdepth: 2
+  :caption: Morphologies
+
+  morphologies/morphology-toc
 
 .. toctree::
    :maxdepth: 2
    :caption: References
 
-   configuration
+   references/configuration
    reference
    genindex
    py-modindex
-
-Developer Guides
-================
 
 .. toctree::
   :maxdepth: 2

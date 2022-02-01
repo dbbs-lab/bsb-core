@@ -1,170 +1,253 @@
 from ..exceptions import *
-from ..helpers import ConfigurableClass
-import abc
+import abc, itertools
 from ..exceptions import *
 from ..reporting import report, warn
+from .. import config
+from ..config import refs, types
+from ..helpers import SortableByAfter
+from ..morphologies import MorphologySet
+from ..storage import Chunk
+from .indicator import PlacementIndications, PlacementIndicator
+import numpy as np
 import numpy as np, os
 
 
-class PlacementStrategy(ConfigurableClass):
-    def __init__(self, cell_type):
-        super().__init__()
-        self.cell_type = cell_type
-        self.layer = None
-        self.radius = None
-        self.density = None
-        self.planar_density = None
-        self.placement_count_ratio = None
-        self.density_ratio = None
-        self.placement_relative_to = None
-        self.count = None
+@config.dynamic
+class Distributor(abc.ABC):
+    @abc.abstractmethod
+    def distribute(self, partitions, indicator, positions):
+        pass
+
+
+@config.dynamic(required=False, default="random", auto_classmap=True)
+class MorphologyDistributor(Distributor):
+    pass
+
+
+class RandomMorphologies(MorphologyDistributor, classmap_entry="random"):
+    """
+    Distributes morphologies and rotations for a given set of placement indications and
+    placed cell positions.
+
+    Config
+    ------
+
+    If omitted in the configuration the default ``random`` distributor is used that
+    assigns selected morphologies randomly without rotating them.
+
+    .. code-block:: json
+
+      { "placement": { "place_XY": {
+        "distribute": {
+            "morphologies": {"cls": "random"}
+        }
+      }}}
+    """
+
+    def distribute(self, partitions, indicator, positions):
+        """
+        Uses the morphology selection indicators to select morphologies and
+        returns a MorphologySet of randomly assigned morphologies
+        """
+        selectors = indicator.assert_indication("morphological")
+        loaders = self.scaffold.storage.morphologies.select(*selectors)
+        if not loaders:
+            raise EmptySelectionError(
+                "Given selectors did not find any suitable morphologies", selectors
+            )
+        else:
+            ids = np.random.default_rng().integers(len(loaders), size=len(positions))
+        return MorphologySet(loaders, ids)
+
+
+@config.dynamic(required=False, default="none", auto_classmap=True)
+class RotationDistributor(Distributor):
+    """
+    Rotates everything by nothing!
+    """
 
     @abc.abstractmethod
-    def place(self):
+    def distribute(self, partitions, indicator, positions):
         pass
+
+
+class ExplicitNoRotations(RotationDistributor, classmap_entry="explicitly_none"):
+    def distribute(self, partitions, indicator, positions):
+        return np.zeros((len(positions), 3))
+
+
+# Sentinel mixin class to tag RotationDistributor as being overridable by morphology
+# distributor.
+class Implicit:
+    pass
+
+
+class ImplicitNoRotations(ExplicitNoRotations, Implicit, classmap_entry="none"):
+    pass
+
+
+@config.node
+class DistributorsNode:
+    morphologies = config.attr(
+        type=MorphologyDistributor, default=dict, call_default=True
+    )
+    rotations = config.attr(type=ImplicitNoRotations, default=dict, call_default=True)
+    properties = config.catch_all(type=Distributor)
+
+    def _curry(self, partitions, indicator, positions):
+        def curried(key):
+            return self(key, partitions, indicator, positions)
+
+        return curried
+
+    def __call__(self, key, partitions, indicator, positions):
+        if key in ("morphologies", "rotations"):
+            distributor = getattr(self, key)
+        else:
+            distributor = self.properties[key]
+        return distributor.distribute(partitions, indicator, positions)
+
+
+@config.dynamic
+class PlacementStrategy(abc.ABC, SortableByAfter):
+    """
+    Quintessential interface of the placement module. Each placement strategy defines an
+    approach to placing neurons into a volume.
+    """
+
+    name = config.attr(key=True)
+    cell_types = config.reflist(refs.cell_type_ref, required=True)
+    partitions = config.reflist(refs.partition_ref, required=True)
+    overrides = config.dict(type=PlacementIndications)
+    after = config.reflist(refs.placement_ref)
+    distribute = config.attr(type=DistributorsNode, default=dict, call_default=True)
+    indicator_class = PlacementIndicator
+
+    def __boot__(self):
+        self._queued_jobs = []
+
+    @abc.abstractmethod
+    def place(self, chunk, indicators):
+        """
+        Central method of each placement strategy. Given a chunk, should fill that chunk
+        with cells by calling the scaffold's (available as ``self.scaffold``)
+        :func:`~bsb.core.Scaffold.place_cells` method.
+        """
+        pass
+
+    def place_cells(self, indicator, positions, chunk):
+        distr_ = self.distribute._curry(self.partitions, indicator, positions)
+
+        if indicator.use_morphologies():
+            morphologies = distr_("morphologies")
+            # Strict type check for unpacking into morphologies and rotations
+            if isinstance(morphologies, tuple):
+                try:
+                    morphologies, rotations = morphologies
+                except TypeError:
+                    raise ValueError(
+                        "Morphology distributors may only return tuples when they are"
+                        + " to be unpacked as (morphologies, rotations)"
+                    ) from None
+                # Tagging your RotationDistributor with `Implicit` makes it overridable
+                # by the MorphologyDistributor.
+                if not isinstance(self.distribute.rotations, Implicit):
+                    rotations = distr_("rotations")
+            else:
+                rotations = distr_("rotations")
+        else:
+            morphologies, rotations = None, None
+
+        additional = {prop: curry(prop) for prop in self.distribute.properties.keys()}
+        self.scaffold.place_cells(
+            indicator.cell_type,
+            positions=positions,
+            rotations=rotations,
+            morphologies=morphologies,
+            additional=additional,
+            chunk=chunk,
+        )
+
+    def queue(self, pool, chunk_size):
+        """
+        Specifies how to queue this placement strategy into a job pool. Can be overridden,
+        the default implementation asks each partition to chunk itself and creates 1
+        placement job per chunk.
+        """
+        # Reset jobs that we own
+        self._queued_jobs = []
+        # Get the queued jobs of all the strategies we depend on.
+        deps = set(itertools.chain(*(strat._queued_jobs for strat in self.get_after())))
+        for p in self.partitions:
+            chunks = p.to_chunks(chunk_size)
+            for chunk in chunks:
+                job = pool.queue_placement(self, Chunk(chunk, chunk_size), deps=deps)
+                self._queued_jobs.append(job)
+        report(f"Queued {len(self._queued_jobs)} jobs for {self.name}", level=2)
 
     def is_entities(self):
         return "entities" in self.__class__.__dict__ and self.__class__.entities
 
-    @abc.abstractmethod
-    def get_placement_count(self):
+    def get_indicators(self):
+        """
+        Return indicators per cell type. Indicators collect all configuration information
+        into objects that can produce guesses as to how many cells of a type should be
+        placed in a volume.
+        """
+        return {
+            ct.name: self.__class__.indicator_class(self, ct) for ct in self.cell_types
+        }
+
+    @classmethod
+    def get_ordered(cls, objects):
+        # No need to sort placement strategies, just obey dependencies.
+        return objects
+
+    def guess_cell_count(self):
+        return sum(ind.guess() for ind in self.get_indicators().values())
+
+    def has_after(self):
+        return hasattr(self, "after")
+
+    def get_after(self):
+        return [] if not self.has_after() else self.after
+
+    def create_after(self):
+        # I think the reflist should always be there.
         pass
 
 
-class MightBeRelative:
-    """
-    Validation class for PlacementStrategies that can be configured relative to other
-    cell types.
-    """
+@config.node
+class FixedPositions(PlacementStrategy):
+    positions = config.attr(type=np.array)
 
-    def validate(self):
-        if self.placement_relative_to is not None:
-            # Store the relation.
-            self.relation = self.scaffold.configuration.cell_types[
-                self.placement_relative_to
-            ]
-            if self.density_ratio is not None and self.relation.placement.layer is None:
-                # A layer volume is required for relative density calculations.
-                raise ConfigurationError(
-                    "Cannot place cells relative to the density of a placement strategy that isn't tied to a layer."
-                )
+    def place(self, chunk, indicators):
+        for indicator in indicators:
+            ct = indicator.cell_type
+            self.place_cells(ct, indicator, self.positions, chunk)
 
-    def get_relative_count(self):
-        # Get the placement count of the ratio cell type and multiply their count by the ratio.
-        return int(
-            self.relation.placement.get_placement_count() * self.placement_count_ratio
-        )
-
-    def get_relative_density_count(self):
-        # Get the density of the ratio cell type and multiply it by the ratio.
-        ratio = placement.placement_count_ratio
-        n1 = self.relation.placement.get_placement_count()
-        V1 = self.relation.placement.layer_instance.volume
-        V2 = layer.volume
-        return int(n1 * ratio * V2 / V1)
-
-
-class MustBeRelative(MightBeRelative):
-    """
-    Validation class for PlacementStrategies that must be configured relative to other
-    cell types.
-    """
-
-    def validate(self):
-        if (
-            not hasattr(self, "placement_relative_to")
-            or self.placement_relative_to is None
-        ):
-            raise ConfigurationError(
-                "The {} requires you to configure another cell type under `placement_relative_to`."
-            )
-        super().validate()
-
-
-class Layered(MightBeRelative):
-    """
-    Class for placement strategies that depend on Layer objects.
-    """
-
-    def validate(self):
-        super().validate()
-        # Check if the layer is given and exists.
-        config = self.scaffold.configuration
-        if not hasattr(self, "layer"):
-            raise AttributeMissingError(
-                "Required attribute 'layer' missing from {}".format(self.name)
-            )
-        if self.layer not in config.layers:
-            raise LayerNotFoundError(
-                "Unknown layer '{}' in {}".format(self.layer, self.name)
-            )
-        self.layer_instance = self.scaffold.configuration.layers[self.layer]
-        if hasattr(self, "y_restriction"):
-            self.restriction_minimum = float(self.y_restriction[0])
-            self.restriction_maximum = float(self.y_restriction[1])
-        else:
-            self.restriction_minimum = 0.0
-            self.restriction_maximum = 1.0
-        self.restriction_factor = self.restriction_maximum - self.restriction_minimum
-
-    def get_placement_count(self):
-        """
-        Get the placement count proportional to the available volume in the layer
-        times the cell type density.
-        """
-        layer = self.layer_instance
-        available_volume = layer.available_volume
-        placement = self.cell_type.placement
-        if placement.count is not None:
-            return int(placement.count)
-        if placement.placement_count_ratio is not None:
-            return self.get_relative_count()
-        if placement.density_ratio is not None:
-            return self.get_relative_density_count()
-        if placement.planar_density is not None:
-            # Calculate the planar density
-            return int(layer.width * layer.depth * placement.planar_density)
-        if hasattr(self, "restriction_factor"):
-            # Add a restriction factor to the available volume
-            return int(available_volume * self.restriction_factor * placement.density)
-        # Default: calculate N = V * C
-        return int(available_volume * placement.density)
-
-
-class FixedPositions(Layered, PlacementStrategy):
-    casts = {"positions": np.array}
-
-    def place(self):
-        self.scaffold.place_cells(self.cell_type, self.layer_instance, self.positions)
-
-    def get_placement_count(self):
+    def guess_cell_count(self):
         return len(self.positions)
 
 
-class Entities(Layered, PlacementStrategy):
+class Entities(PlacementStrategy):
     """
-    Implementation of the placement of entities (e.g., mossy fibers) that do not have
-    a 3D position, but that need to be connected with other cells of the scaffold.
+    Implementation of the placement of entities that do not have a 3D position,
+    but that need to be connected with other cells of the network.
     """
 
     entities = True
 
-    def place(self):
-        # Variables
-        cell_type = self.cell_type
-        scaffold = self.scaffold
+    def queue(self, pool, chunk_size):
+        # Entities ignore chunks since they don't intrinsically store any data.
+        pool.queue_placement(self, Chunk([0, 0, 0], chunk_size))
 
-        # Get the number of cells that belong in the available volume.
-        n_cells_to_place = self.get_placement_count()
-        if n_cells_to_place == 0:
-            warn(
-                "Volume or density too low, no '{}' cells will be placed".format(
-                    cell_type.name
-                ),
-                PlacementWarning,
-            )
-
-        scaffold.create_entities(cell_type, n_cells_to_place)
+    def place(self, chunk, indicators):
+        for indicator in indicators.values():
+            cell_type = indicator.cell_type
+            # Guess total number, not chunk number, as entities bypass chunking.
+            n = indicator.guess()
+            self.scaffold.create_entities(cell_type, n)
 
 
 class ExternalPlacement(PlacementStrategy):

@@ -1,16 +1,14 @@
 from ...simulation import (
-    SimulatorAdapter,
-    SimulationComponent,
-    SimulationCell,
-    TargetsNeurons,
-    TargetsSections,
-    SimulationResult,
+    Simulation,
     SimulationRecorder,
-    SimulationDevice,
+    CellModel,
+    ConnectionModel,
+    DeviceModel,
+    NeuronTargetting,
 )
-from ...helpers import get_configurable_class
+from ... import config
+from ...config import types
 from ...reporting import report, warn
-from ...models import ConnectivitySet
 from ...exceptions import *
 import random, os, sys
 import numpy as np
@@ -19,47 +17,21 @@ import errr
 import time
 
 
-try:
-    import neuron
-
-    _has_neuron = True
-except ImportError:
-    _has_neuron = False
-
-
-class NeuronCell(SimulationCell):
-    node_name = "simulations.?.cell_models"
-
-    casts = {
-        "record_soma": bool,
-        "record_spikes": bool,
-        "parameters": dict,
-    }
-
-    defaults = {
-        "record_soma": False,
-        "record_spikes": False,
-        "parameters": {},
-        "entity": False,
-    }
+@config.node
+class NeuronCell(CellModel):
+    model = config.attr(
+        type=types.class_(), required=lambda s: not ("relay" in s and s["relay"])
+    )
+    record_soma = config.attr(default=False)
+    record_spikes = config.attr(default=False)
+    entity = config.attr(default=False)
 
     def boot(self):
         super().boot()
         self.instances = []
-        if not self.relay and _has_neuron:
-            self.model_class = get_configurable_class(self.model)
-        self.cell_type = self.scaffold.get_cell_type(self.name)
 
     def __getitem__(self, i):
         return self.instances[i]
-
-    def validate(self):
-        if not self.relay and not hasattr(self, "model"):
-            raise ConfigurationError(
-                "Missing required attribute 'model' in " + self.get_config_node()
-            )
-        if not self.relay and _has_neuron:
-            self.model_class = get_configurable_class(self.model)
 
     def get_parameters(self):
         # Get the default synapse parameters
@@ -67,55 +39,47 @@ class NeuronCell(SimulationCell):
         return params
 
 
-class NeuronConnection(SimulationComponent):
-    node_name = "simulations.?.connection_models"
+_str_list = types.list(type=str)
 
-    required = ["synapses"]
 
-    casts = {"synapses": list}
-
-    defaults = {"source": None}
-
-    def validate(self):
-        pass
+@config.node
+class NeuronConnection(ConnectionModel):
+    synapse = config.attr(
+        type=types.or_(types.dict(type=_str_list), _str_list), required=True
+    )
+    source = config.attr(type=str, default=None)
 
     def resolve_synapses(self):
         return self.synapses
 
 
-class NeuronDevice(TargetsNeurons, TargetsSections, SimulationDevice):
-    node_name = "simulations.?.devices"
+@config.dynamic(attr_name="device", type=types.in_classmap(), auto_classmap=True)
+class NeuronDevice(DeviceModel):
+    radius = config.attr(type=float)
+    origin = config.attr(type=types.list(type=float, size=3))
+    targetting = config.attr(type=NeuronTargetting, required=True)
+    io = config.attr(type=types.in_(["input", "output"]), required=True)
 
-    device_types = [
-        "spike_generator",
-        "current_clamp",
-        "voltage_clamp",
-        "spike_recorder",
-        "voltage_recorder",
-        "synapse_recorder",
-        "ion_recorder",
-    ]
+    def create_patterns(self):
+        raise NotImplementedError(
+            "The "
+            + self.__class__.__name__
+            + " device does not implement any `create_patterns` function."
+        )
 
-    casts = {
-        "radius": float,
-        "origin": [float],
-    }
+    def get_pattern(self, target, cell=None, section=None, synapse=None):
+        raise NotImplementedError(
+            "The "
+            + self.__class__.__name__
+            + " device does not implement any `get_pattern` function."
+        )
 
-    defaults = {}
-
-    required = ["targetting", "device", "io"]
-
-    def validate(self):
-        if self.device not in self.__class__.device_types:
-            raise ConfigurationError(
-                "Unknown device '{}' for {}".format(self.device, self.get_config_node())
-            )
-        if self.targetting == "cell_type" and not hasattr(self, "cell_types"):
-            raise ConfigurationError(
-                "Device '{}' targets cells using the 'cell_type' mechanism, but does not specify the required 'cell_types' attribute.".format(
-                    self.name
-                )
-            )
+    def implement(self, target, location):
+        raise NotImplementedError(
+            "The "
+            + self.__class__.__name__
+            + " device does not implement any `implement` function."
+        )
 
     def get_locations(self, target):
         locations = []
@@ -156,32 +120,21 @@ class NeuronEntity:
         raise NotImplementedError("Entities do not have a soma to record.")
 
 
-class NeuronAdapter(SimulatorAdapter):
+@config.node
+class NeuronSimulation(Simulation):
     """
     Interface between the scaffold model and the NEURON simulator.
     """
 
     simulator_name = "neuron"
-
-    configuration_classes = {
-        "cell_models": NeuronCell,
-        "connection_models": NeuronConnection,
-        "devices": NeuronDevice,
-    }
-
-    casts = {
-        "temperature": float,
-        "duration": float,
-        "resolution": float,
-        "initial": float,
-    }
-
-    defaults = {"initial": -65.0}
-
-    required = ["temperature", "duration", "resolution"]
+    cell_models = config.dict(type=NeuronCell, required=True)
+    connection_models = config.dict(type=NeuronConnection, required=True)
+    devices = config.dict(type=NeuronDevice, required=True)
+    resolution = config.attr(type=float, default=1.0)
+    initial = config.attr(type=float, default=-65.0)
+    temperature = config.attr(type=float, required=True)
 
     def __init__(self):
-        super().__init__()
         self.cells = {}
         self._next_gid = 0
         self.transmitter_map = {}
@@ -190,17 +143,11 @@ class NeuronAdapter(SimulatorAdapter):
         pass
 
     def validate_prepare(self):
-        output_handler = self.scaffold.output_formatter
         for connection_model in self.connection_models.values():
             # Get the connectivity set associated with this connection model
-            connectivity_set = ConnectivitySet(output_handler, connection_model.name)
-            if connectivity_set.is_orphan():
-                warn(
-                    f"No connection types contributed any `{connection_model.name}` connections."
-                )
-                continue
-            from_type = connectivity_set.connection_types[0].from_cell_types[0]
-            to_type = connectivity_set.connection_types[0].to_cell_types[0]
+            connectivity_set = self.scaffold.get_connectivity_set(connection_model.name)
+            from_type = connectivity_set.connection_types[0].presynaptic.type
+            to_type = connectivity_set.connection_types[0].postsynaptic.type
             from_cell_model = self.cell_models[from_type.name]
             to_cell_model = self.cell_models[to_type.name]
             if (
@@ -455,7 +402,7 @@ class NeuronAdapter(SimulatorAdapter):
         return [self._model_to_set(model) for model in models]
 
     def _model_to_set(self, model):
-        return ConnectivitySet(self.scaffold.output_formatter, model.name)
+        return self.scaffold.get_connectivity_set(model.name)
 
     def _is_transmitter_set(self, set):
         if set.is_orphan():
@@ -465,17 +412,14 @@ class NeuronAdapter(SimulatorAdapter):
         return not from_cell_model.relay
 
     def create_receivers(self):
-        output_handler = self.scaffold.output_formatter
         for connection_model in self.connection_models.values():
             # Get the connectivity set associated with this connection model
-            connectivity_set = ConnectivitySet(output_handler, connection_model.name)
-            if connectivity_set.is_orphan():
-                continue
-            from_cell_type = connectivity_set.connection_types[0].from_cell_types[0]
+            connectivity_set = self.scaffold.get_connectivity_set(connection_model.name)
+            from_cell_type = connectivity_set.connection_types[0].presynaptic.type
             if self.cell_models[from_cell_type.name].relay:
                 continue
             from_cell_model = self.cell_models[from_cell_type.name]
-            to_cell_type = connectivity_set.connection_types[0].to_cell_types[0]
+            to_cell_type = connectivity_set.connection_types[0].postsynaptic.type
             to_cell_model = self.cell_models[to_cell_type.name]
             if self.cell_models[to_cell_type.name].relay:
                 raise NotImplementedError("Sorry, no relays yet, only for devices")
@@ -563,7 +507,6 @@ class NeuronAdapter(SimulatorAdapter):
         report("Indexing relays.")
         terminal_relays = {}
         intermediate_relays = {}
-        output_handler = self.scaffold.output_formatter
         cell_types = self.scaffold.get_cell_types()
         type_lookup = {
             ct.name: range(min(ids), max(ids) + 1)
@@ -581,13 +524,10 @@ class NeuronAdapter(SimulatorAdapter):
 
         for connection_model in self.connection_models.values():
             name = connection_model.name
-            # Get the connectivity set associated with this connection model
-            connectivity_set = ConnectivitySet(output_handler, connection_model.name)
-            if connectivity_set.is_orphan():
-                continue
-            from_cell_type = connectivity_set.connection_types[0].from_cell_types[0]
+            connectivity_set = self.scaffold.get_connectivity_set(connection_model.name)
+            from_cell_type = connectivity_set.connection_types[0].presynaptic.type
             from_cell_model = self.cell_models[from_cell_type.name]
-            to_cell_type = connectivity_set.connection_types[0].to_cell_types[0]
+            to_cell_type = connectivity_set.connection_types[0].postsynaptic.type
             to_cell_model = self.cell_models[to_cell_type.name]
             if not from_cell_model.relay:
                 continue
@@ -697,6 +637,10 @@ class NeuronAdapter(SimulatorAdapter):
 
     def register_spike_recorder(self, cell, recorder):
         self.result.add(SpikeRecorder("soma_spikes", cell, recorder))
+
+
+class NeuronAdapter:
+    Simulation = NeuronSimulation
 
 
 class LocationRecorder(SimulationRecorder):

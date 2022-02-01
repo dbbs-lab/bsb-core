@@ -1,0 +1,20 @@
+{
+  "arr": {
+    "with": ["a", "b", ["a", "c"]],
+    "many": {},
+    "importable": {
+      "dicts": {
+        "that": "are",
+        "even": {
+          "nested": "eh"
+        }
+      }
+    }
+  },
+  "imp": {
+    "$import": {
+      "ref": "#/arr",
+      "values": ["with", "importable"]
+    }
+  }
+}

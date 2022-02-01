@@ -1,22 +1,26 @@
-import os, numpy as np
-from .strategy import ConnectionStrategy, TouchingConvergenceDivergence
+import numpy as np
+from .strategy import ConnectionStrategy
+from .. import config
 from ..exceptions import *
 from ..reporting import report, warn
 
 
-class Convergence(TouchingConvergenceDivergence):
+@config.node
+class Convergence(ConnectionStrategy):
     """
     Implementation of a general convergence connectivity between
     two populations of cells (this does not work with entities)
     """
+
+    convergence = config.attr(type=float, required=True)
 
     def validate(self):
         pass
 
     def connect(self):
         # Source and target neurons are extracted
-        from_type = self.from_cell_types[0]
-        to_type = self.to_cell_types[0]
+        from_type = self.presynaptic.type
+        to_type = self.postsynaptic.type
         pre = self.from_cells[from_type.name]
         post = self.to_cells[to_type.name]
         convergence = self.convergence
@@ -40,8 +44,8 @@ class AllToAll(ConnectionStrategy):
         pass
 
     def connect(self):
-        from_type = self.from_cell_types[0]
-        to_type = self.to_cell_types[0]
+        from_type = self.presynaptic.type
+        to_type = self.postsynaptic.type
         from_cells = self.from_cells[from_type.name]
         to_cells = self.to_cells[to_type.name]
         l = len(to_cells)

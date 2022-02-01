@@ -12,7 +12,7 @@
     "store_compound_kd_tree": true,
     "store_pf_kd_trees": true
   },
-  "layers": {
+  "partitions": {
     "test_layer": {
       "thickness": 600,
       "stack": {
@@ -87,7 +87,7 @@
       }
     }
   },
-  "connection_types": {
+  "connectivity": {
     "mossy_to_glomerulus": {
       "class": "bsb.connectivity.ConnectomeMossyGlomerulus",
       "from_cell_types": [{"type": "mossy_fibers", "compartments": ["soma"]}],

@@ -1,346 +1,319 @@
-from .helpers import dimensions, origin
+from . import config
+from .config import types
+from .trees import BoxTree
 import numpy as np
-from scipy import ndimage
-from time import sleep
-from sklearn.neighbors import KDTree
-from .functions import get_distances
+import functools
+import abc
+import nrrd
 
 
-class VoxelCloud:
-    def __init__(self, bounds, voxels, grid_size, map, occupancies=None):
-        from rtree import index
-
-        self.bounds = bounds
-        self.grid_size = grid_size
-        self.voxels = voxels
-        self.voxel_cache = None
-        self.map = map
-        self.occupancies = occupancies
-        p = index.Property(dimension=3)
-        voxel_tree = index.Index(properties=p)
-        voxel_positions = self.get_voxels()
-        # Add each voxel box to an Rtree index
-        for v, voxel_position in enumerate(voxel_positions):
-            av = np.add(voxel_position, grid_size)
-            bv = np.concatenate((voxel_position, av))
-            voxel_tree.insert(v, tuple(bv))
-        self.tree = voxel_tree
-
-    def get_boxes(self):
-        return m_grid(self.bounds, self.grid_size)
-
-    def get_voxels(self, cache=False):
-        def _voxels():
-            return self.get_boxes()[:, self.voxels].T
-
-        if cache:
-            if self.voxel_cache is not None:
-                return self.voxel_cache
-            self.voxel_cache = _voxels()
-            return self.voxel_cache
-        return _voxels()
-
-    def get_occupancies(self):
-        if self.occupancies is None:
-            voxel_occupancy = np.array(list(map(lambda x: len(x), self.map)))
-            max_voxel_occupancy = max(voxel_occupancy)
-            normalized_voxel_occupancy = voxel_occupancy / (max_voxel_occupancy)
-            self.occupancies = normalized_voxel_occupancy
-        return self.occupancies
-
-    def center_of_mass(self):
-        boxes = self.get_boxes()
-        points = boxes + self.grid_size / 2
-        voxels = self.voxels
-        occupancies = self.get_occupancies()
-        point_positions = np.column_stack(points[:, voxels]).T
-        return center_of_mass(point_positions, occupancies)
-
-    @staticmethod
-    def create(morphology, N, compartments=None):
-        from rtree import index
-        from rtree.index import Rtree
-
-        p = index.Property(dimension=3)
-        tree = index.Index(properties=p)
-        if compartments is None:
-            compartments = morphology.compartments
-        N = min(len(compartments), N)
-        for compartment in compartments:
-            tree.insert(
-                int(compartment.id), tuple([*compartment.midpoint, *compartment.midpoint])
-            )
-        hit_detector = HitDetector.for_rtree(tree)
-        bounds, voxels, length, error = voxelize(
-            N, morphology.get_bounding_box(compartments=compartments), hit_detector
-        )
-        voxel_map = morphology.create_compartment_map(
-            tree, m_grid(bounds, length), voxels, length
-        )
-        if error == 0:
-            return VoxelCloud(bounds, voxels, length, voxel_map)
+class VoxelSet:
+    def __init__(self, voxels, size, voxel_data=None, irregular=False):
+        voxel_size = np.array(size, copy=False)
+        if not len(voxel_size.shape):
+            self._cubic = True
+        if len(voxel_size.shape) > 1:
+            # Voxels given in spatial coords with individual size
+            self._sizes = voxel_size
+            self._coords = np.array(voxels, copy=False)
+            self._regular = False
+        elif irregular:
+            # Voxels given in spatial coords but of equal size
+            self._size = voxel_size
+            self._coords = np.array(voxels, copy=False)
+            self._regular = False
         else:
-            raise NotImplementedError(
-                "Voxelization error: could not find the right amount of voxels. Try N {}".format(
-                    # Suggest the closest we got to N for a next attempt
-                    ("+" if error > 0 else "")
-                    + str(error)
-                )
-            )
+            # Voxels given in index coords
+            self._size = voxel_size
+            self._indices = np.array(voxels, copy=False, dtype=int)
+            self._regular = True
+        self._voxel_data = voxel_data
 
-    def intersect(self, other):
-        raise NotImplementedError("Intersecting 2 voxel clouds is a to do")
+    def __iter__(self):
+        return iter(self.raw(copy=False))
 
-    def get_voxel_box(self):
-        """
-        Return the box encompassing the voxels.
-        """
-        voxel_positions = self.get_voxels()
-        min_x, min_y, min_z, max_x, max_y, max_z = (
-            np.min(voxel_positions[:, 0]),
-            np.min(voxel_positions[:, 1]),
-            np.min(voxel_positions[:, 2]),
-            np.max(voxel_positions[:, 0]),
-            np.max(voxel_positions[:, 1]),
-            np.max(voxel_positions[:, 2]),
-        )
-        box = [
-            min_x,
-            min_y,
-            min_z,
-            max_x + self.grid_size,
-            max_y + self.grid_size,
-            max_z + self.grid_size,
-        ]
-        # print(min_x, min_y, min_z, max_x, max_y, max_z)
-        return box
+    def __len__(self):
+        return len(self.raw(copy=False))
 
+    def __getitem__(self, index):
+        voxels = self.raw(copy=False)[index]
+        if self.of_equal_size:
+            voxel_size = self._size
+        else:
+            voxel_size = self._sizes[index]
+        if self.has_data:
+            voxel_data = self._voxel_data[index]
+        else:
+            voxel_data = None
+        return VoxelSet(voxels, voxel_size, voxel_data)
 
-_class_dimensions = dimensions
-_class_origin = origin
+    def __bool__(self):
+        return not self.is_empty
 
+    @property
+    def is_empty(self):
+        return not len(self)
 
-class Box(dimensions, origin):
-    def __init__(self, dimensions=None, origin=None):
-        _class_dimensions.__init__(self, dimensions)
-        _class_origin.__init__(self, origin)
+    @property
+    def has_data(self):
+        return self._voxel_data is not None
 
-    @staticmethod
-    def from_bounds(bounds):
-        dimensions = np.amax(bounds, axis=1) - np.amin(bounds, axis=1)
-        origin = np.amin(bounds, axis=1) + dimensions / 2
-        return Box(dimensions=dimensions, origin=origin)
+    @property
+    def regular(self):
+        return self._regular
 
+    @property
+    def of_equal_size(self):
+        # One size fits all
+        return hasattr(self, "_size")
+
+    @property
+    def size(self):
+        return self.get_size()
+
+    @property
+    def data(self):
+        return self.get_data()
+
+    @property
+    @functools.cache
     def bounds(self):
-        dim = self.dimensions
-        dim[dim < 5.0] = 5.0
-        # Moving the bounds by a fraction helps prevent points on a plane being
-        # sorted into multiple voxels
-        return np.column_stack(
-            (self.origin - dim / 2 - 0.0001, self.origin + dim / 2 + 0.0004)
+        return (
+            np.min(self.as_spatial_coords(copy=False), axis=0),
+            np.max(self.as_spatial_coords(copy=False), axis=0),
         )
-
-
-def m_grid(bounds, size):
-    return np.mgrid[
-        bounds[0, 0] : bounds[0, 1] : size,
-        bounds[1, 0] : bounds[1, 1] : size,
-        bounds[2, 0] : bounds[2, 1] : size,
-    ]
-
-
-def voxelize(N, box_data, hit_detector, max_iterations=80, precision_iterations=30):
-    # Initialise
-    bounds = box_data.bounds()
-    box_length = np.max(
-        box_data.dimensions
-    )  # Size of the edge of a cube in the box counting grid
-    best_length, best_error = box_length, N  # Keep track of our best results so far
-    last_box_count, last_box_length = (
-        0.0,
-        0.0,
-    )  # Keep track of the previous iteration for binary search jumps
-    precision_i, i = 0.0, 0.0  # Keep track of the iterations
-    crossed_treshold = (
-        False  # Should we consider each next iteration as merely increasing precision?
-    )
-
-    # Refine the grid size each iteration to find the right amount of boxes that trigger the hit_detector
-    while i < max_iterations and precision_i < precision_iterations:
-        i += 1
-        if (
-            crossed_treshold
-        ):  # Are we doing these iterations just to increase precision, or still trying to find a solution?
-            precision_i += 1
-        box_count = 0  # Reset box count
-        boxes_x, boxes_y, boxes_z = m_grid(bounds, box_length)  # Create box counting grid
-        # Create a voxel grid where voxels are switched on if they trigger the hit_detector
-        voxels = np.zeros(
-            (boxes_x.shape[0], boxes_x.shape[1], boxes_x.shape[2]), dtype=bool
-        )
-        # Iterate over all the boxes in the total grid.
-        for x_i in range(boxes_x.shape[0]):
-            for y_i in range(boxes_x.shape[1]):
-                for z_i in range(boxes_x.shape[2]):
-                    # Get the lower corner of the query box
-                    x = boxes_x[x_i, y_i, z_i]
-                    y = boxes_y[x_i, y_i, z_i]
-                    z = boxes_z[x_i, y_i, z_i]
-                    hit = hit_detector(
-                        np.array([x, y, z]), box_length
-                    )  # Is this box a hit? (Does it cover some part of the object?)
-                    voxels[x_i, y_i, z_i] = hit  # If its a hit, turn on the voxel
-                    box_count += int(hit)  # If its a hit, increase the box count
-        if last_box_count < N and box_count >= N:
-            # We've crossed the treshold from overestimating to underestimating
-            # the box_length. A solution is found, but more precise values lie somewhere in between,
-            # so start counting the precision iterations
-            crossed_treshold = True
-        if (
-            box_count < N
-        ):  # If not enough boxes cover the object we should decrease the box length (and increase box count)
-            new_box_length = box_length - np.abs(box_length - last_box_length) / 2
-        else:  # If too many boxes cover the object we should increase the box length (and decrease box count)
-            new_box_length = box_length + np.abs(box_length - last_box_length) / 2
-        # Store the results of this iteration and prepare variables for the next iteration.
-        last_box_length, last_box_count = box_length, box_count
-        box_length = new_box_length
-        if (
-            abs(N - box_count) <= best_error
-        ):  # Only store the following values if they improve the previous best results.
-            best_error, best_length = abs(N - box_count), last_box_length
-            best_bounds, best_voxels = bounds, voxels
-
-    # Return best results and error
-    return best_bounds, best_voxels, best_length, best_error
-
-
-def detect_box_compartments(tree, box_origin, box_size):
-    """
-    Given a tree of compartment locations and a box, it will return the ids of all compartments in the outer sphere of the box
-
-    :param box_origin: The lowermost corner of the box.
-    """
-    # Return all compartment id's that intersect with this box
-    return list(
-        tree.intersection(tuple([*box_origin, *(box_origin + box_size)]), objects=False)
-    )
-
-
-def center_of_mass(points, weights=None):
-    if weights is None:
-        cog = [np.sum(points[dim, :]) / points.shape[1] for dim in range(points.shape[0])]
-    else:
-        cog = [
-            np.sum(points[dim, :] * weights) for dim in range(points.shape[0])
-        ] / np.sum(weights)
-    return cog
-
-
-def set_attraction(attractor, voxels):
-    attraction_voxels = np.indices(voxels.shape)[:, voxels].T
-    attraction_map = np.zeros(voxels.shape)
-    dist = np.sqrt(
-        np.sum(
-            (attraction_voxels - attractor + np.ones(len(attractor)) * 0.5) ** 2, axis=1
-        )
-    )
-    distance_sorting = dist.argsort()[::-1]
-    attraction = 1
-    first_voxel = distance_sorting[0]
-    attraction_map[
-        attraction_voxels[first_voxel, 0],
-        attraction_voxels[first_voxel, 1],
-        attraction_voxels[first_voxel, 2],
-    ] = 1
-    last_distance = dist[first_voxel]
-    for v in distance_sorting[1:]:
-        distance = dist[v]
-        attraction += int(distance < last_distance)
-        attraction_map[
-            attraction_voxels[v, 0], attraction_voxels[v, 1], attraction_voxels[v, 2]
-        ] = attraction
-        last_distance = distance
-    return attraction_map
-
-
-class VoxelTransformer:
-    def __init__(self, attractor, field):
-        self.carriers = []
-        self.attractor = attractor
-        self.field = field
-        self.occupied = {}
-
-    def occupy(self, position):
-        if position in self.occupied:
-            raise VoxelTransformError("Position already occupied")
-
-    def add_carrier(self, payload, position):
-        if position in self.occupied:
-            raise VoxelTransformError("Position already occupied")
-        carrier = VoxelTransformCarrier(self, payload, position)
-        self.carriers.append(carrier)
-
-    def is_unoccupied(self, position):
-        return not tuple(position) in self.occupied
-
-    def transform(self):
-        ind = np.indices(self.field.shape)[:, self.field > 0].T
-        furthest_carrier_first = self.get_furthest_carriers()
-        for carrier in furthest_carrier_first:
-            dists = np.array(get_distances(ind, carrier.position))
-            dist_sort = dists.argsort()
-            for attempt in range(len(dist_sort)):
-                attempt_position = tuple(ind[dist_sort[attempt]])
-                if self.is_unoccupied(attempt_position):
-                    self.occupied[attempt_position] = True
-                    carrier.position = attempt_position
-                    break
-
-    def get_furthest_carriers(self):
-        positions = list(map(lambda p: p.position, self.carriers))
-        distances = self.get_attractor_distances(positions)
-        return np.array(self.carriers)[np.argsort(distances)[::-1]]
-
-    def get_attractor_distances(self, candidates):
-        return get_distances(candidates, self.attractor - 0.5)
-
-
-class VoxelTransformCarrier:
-    def __init__(self, transformer, payload, position):
-        pos = tuple(position)
-        self.transformer = transformer
-        self.id = len(transformer.carriers)
-        self.payload = payload
-        self.position = pos
-        self.color = np.random.rand(3)
-
-
-class HitDetector:
-    """
-    Wrapper class for commonly used hit detectors in the voxelization process.
-    """
-
-    def __init__(self, detector):
-        self.detector = detector
-
-    def __call__(self, position, size):
-        return self.detector(position, size)
 
     @classmethod
-    def for_rtree(cls, tree):
-        """
-        Factory function that creates a hit detector for the given morphology.
+    def empty(cls, size=None):
+        return cls(np.empty((0, 3)), np.empty((0, 3)))
 
-        :param morphology: A morphology.
-        :type morphology: :class:`TrueMorphology`
-        :returns: A hit detector
-        :rtype: :class:`HitDetector`
-        """
-        # Create the detector function
-        def tree_detector(box_origin, box_size):
-            # Report a hit if more than 0 compartments are within the box.
-            return len(detect_box_compartments(tree, box_origin, box_size)) > 0
+    @classmethod
+    def one(cls, ldc, mdc, data=None):
+        voxels = cls(np.array([ldc]), np.array([mdc - ldc]))
+        if data is not None:
+            voxels._voxel_data = np.array([data], dtype=object)
+        return voxels
 
-        # Return the tree detector function as the factory product
-        return cls(tree_detector)
+    @classmethod
+    def concatenate(cls, *sets):
+        # Short circuit "stupid" concat requests
+        if not sets:
+            return cls.empty()
+        elif len(sets) == 1:
+            return sets[0].copy()
+
+        if any(s.has_data for s in sets):
+            data = np.concatenate([s.get_data(copy=False) for s in sets])
+        else:
+            data = None
+        primer = None
+        # Check which sets we are concatenating, maybe we can keep them in reduced data
+        # forms. If they don't line up, we expand and concatenate the expanded forms.
+        if all(
+            # `primer` is assigned the first non-empty set, all sizes must match sizes can
+            # still be 0D, 1D or 2D, but if they're allclose broadcasted it is fine! :)
+            np.allclose(s.get_size(copy=False), primer.get_size(copy=False))
+            for s in sets
+            if (primer := primer or s)
+        ):
+            sizes = primer.get_size()
+            if len(sizes.shape) > 1:
+                # We happened to pick a VoxelSet that has a size matrix of equal sizes,
+                # so we take the opportunity to reduce it.
+                sizes = sizes[0]
+            if len(sizes.shape) > 0 and np.allclose(sizes, sizes[0]):
+                # Voxelset is actually even cubic regular!
+                sizes = sizes[0]
+            if all(s.regular for s in sets):
+                # Index coords with same sizes can simply be stacked
+                voxels = np.concatenate([s.raw(copy=False) for s in sets])
+                irregular = False
+            else:
+                voxels = np.concatenate([s.as_spatial_coords(copy=False) for s in sets])
+                irregular = True
+        else:
+            # We can't keep a single size, so expand into a matrix where needed and concat
+            sizes = np.concatenate([s.get_size_matrix(copy=False) for s in sets])
+            voxels = np.concatenate([s.as_spatial_coords(copy=False) for s in sets])
+            irregular = True
+        return VoxelSet(voxels, sizes, voxel_data=data, irregular=irregular)
+
+    def copy(self):
+        if self.is_empty:
+            return VoxelSet.empty()
+        else:
+            return VoxelSet(
+                self.raw(copy=True),
+                self.get_size(copy=True),
+                self.get_data(copy=True) if self.has_data else None,
+                irregular=not self.regular,
+            )
+
+    def raw(self, copy=True):
+        coords = self._indices if self.regular else self._coords
+        if copy:
+            coords = coords.copy()
+        return coords
+
+    def get_data(self, index=None, /, copy=True):
+        if index is not None:
+            if self.has_data:
+                return self._voxel_data[index]
+            else:
+                return np.empty(len(self.raw(copy=False)[index]), dtype=object)
+        elif self.has_data:
+            return np.array(self._voxel_data, copy=copy)
+        else:
+            return np.empty(len(self), dtype=object)
+
+    def get_size(self, copy=True):
+        if self.of_equal_size:
+            return np.array(self._size, copy=copy)
+        else:
+            return np.array(self._sizes, copy=copy)
+
+    def get_size_matrix(self, copy=True):
+        if self.of_equal_size:
+            size = np.ones(3) * self._size
+            sizes = np.tile(size, len(self.raw(copy=False)))
+        else:
+            sizes = self._sizes
+            if copy:
+                sizes = sizes.copy()
+        return sizes
+
+    def as_spatial_coords(self, copy=True):
+        if self.regular:
+            coords = self._to_spatial_coords()
+        else:
+            coords = self._coords
+            if copy:
+                coords = coords.copy()
+        return coords
+
+    def as_boxtree(self, cache=False):
+        if cache:
+            return self._boxtree_cache()
+        else:
+            return self._boxtree()
+
+    def snap_to_grid(self, grid_size, unique=False):
+        if self.regular:
+            grid = self._indices // (grid_size / self._size)
+        else:
+            grid = self._coords // grid_size
+        voxel_data = self._voxel_data
+        if unique:
+            if self.has_data:
+                grid, id = np.unique(grid, return_index=True, axis=0)
+                voxel_data = voxel_data[id]
+            else:
+                grid = np.unique(grid, axis=0)
+        return VoxelSet(grid, grid_size, voxel_data)
+
+    def select(self, ldc, mdc):
+        voxel_data = self._voxel_data
+        coords = self.as_spatial_coords(copy=False)
+        inside = np.all(np.logical_and(ldc <= coords, coords < mdc), axis=1)
+        return self[inside]
+
+    def select_chunk(self, chunk):
+        return self.select(chunk.ldc, chunk.mdc)
+
+    def unique(self):
+        raise NotImplementedError("and another one")
+
+    def _to_spatial_coords(self):
+        return self._indices * self._size
+
+    @functools.cache
+    def _boxtree_cache(self):
+        return self._boxtree()
+
+    def _boxtree(self):
+        return BoxTree(self.as_boxes())
+
+    def as_boxes(self, cache=False):
+        if cache:
+            return self._boxes_cache()
+        else:
+            return self._boxes()
+
+    @functools.cache
+    def _boxes_cache(self):
+        return self._boxes()
+
+    def _boxes(self):
+        coords = self.as_spatial_coords(copy=False)
+        if hasattr(self, "_sizes"):
+            return np.column_stack((coords, self._sizes))
+        else:
+            tiled = coords + np.ones(3) * self._size
+            return np.column_stack((coords, tiled))
+
+    @classmethod
+    def from_morphology(cls, morphology, estimate_n, with_data=True):
+        # Find a good distribution of amount of voxels per side
+        size = morphology.meta["mdc"] - morphology.meta["ldc"]
+        per_side = _eq_sides(size, estimate_n)
+        voxel_size = size / per_side
+        branch_vcs = [
+            b.as_matrix(with_radius=False) // voxel_size for b in morphology.branches
+        ]
+        if with_data:
+            voxel_reduce = {}
+            for branch, point_vcs in enumerate(branch_vcs):
+                for point, point_vc in enumerate(point_vcs):
+                    voxel_reduce.setdefault(tuple(point_vc), []).append((branch, point))
+            voxels = np.array(tuple(voxel_reduce.keys()))
+            voxel_data = np.array(list(voxel_reduce.values()), dtype=object)
+            return cls(voxels, voxel_size, voxel_data=voxel_data)
+        else:
+            voxels = np.array(set((itertools.chain.from_iterable(branch_vcs))))
+            return cls(voxels, voxel_size)
+
+
+@config.dynamic(
+    attr_name="type", auto_classmap=True, required=True, type=types.in_classmap()
+)
+class VoxelLoader(abc.ABC):
+    @abc.abstractmethod
+    def get_voxelset(self):
+        pass
+
+
+@config.node
+class NrrdVoxelLoader(VoxelLoader, classmap_entry="nrrd"):
+    source = config.attr(type=str, required=True)
+    mask_value = config.attr(type=int, required=True)
+    voxel_size = config.attr(type=types.voxel_size(), required=True)
+
+    def get_voxelset(self):
+        data, header = nrrd.read(self.source)
+        voxels = np.transpose(np.nonzero(data == self.mask_value))
+        return VoxelSet(voxels, self.voxel_size)
+
+
+def _eq_sides(sides, n):
+    # Use the relative magnitudes of each side
+    norm = sides / max(sides)
+    # Find out how many divisions each side should to form a grid with `n` rhomboids.
+    per_side = norm * (n / np.product(norm)) ** (1 / len(sides))
+    # Divisions should be integers, and minimum 1
+    int_sides = np.maximum(np.floor(per_side), 1)
+    order = np.argsort(sides)
+    smallest = order[0]
+    if len(sides) > 2:
+        # Because of the integer rounding the product isn't necesarily optimal, so we keep
+        # the safest (smallest) value, and solve the problem again in 1 less dimension.
+        solved = int_sides[smallest]
+        look_for = n / solved
+        others = sides[order[1:]]
+        int_sides[order[1:]] = _eq_sides(others, look_for)
+    else:
+        # In the final 2-dimensional case the remainder of the division is rounded off
+        # to the nearest integer, giving the smallest error on the product and final
+        # number of rhomboids in the grid.
+        largest = order[1]
+        int_sides[largest] = round(n / int_sides[smallest])
+    return int_sides

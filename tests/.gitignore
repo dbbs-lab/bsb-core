@@ -5,4 +5,4 @@
 !test_*
 *.pyc
 !configs/
-!mr/
+!parser_tests/

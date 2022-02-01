@@ -1,11 +1,10 @@
 import numpy as np
 import math
 from ..strategy import ConnectionStrategy
-from .shared import MorphologyStrategy
-from ...helpers import DistributionConfiguration
-from ...models import MorphologySet
+from .shared import Intersectional
+from ... import config
+from ...config import types
 from ...exceptions import *
-from ...helpers import ConfigurableClass
 from ...networks import FiberMorphology, Branch
 from ...plotting import plot_fiber_morphology
 from ...reporting import report, warn
@@ -16,7 +15,24 @@ from rtree import index
 from rtree.index import Rtree
 
 
-class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
+class FiberTransform(abc.ABC):
+    def boot(self):
+        self._branch_cut_num = 0
+
+    def transform_branches(self, branches, offset=None):
+        if offset is None:
+            offset = np.zeros(3)
+        for branch in branches:
+            self.transform_branch(branch, offset)
+            self.transform_branches(branch.child_branches, offset)
+
+    @abc.abstractmethod
+    def transform_branch(self):
+        pass
+
+
+@config.node
+class FiberIntersection(Intersectional, ConnectionStrategy):
     """
     FiberIntersection connection strategies voxelize a fiber and find its intersections with postsynaptic cells.
     It's a specific case of VoxelIntersection.
@@ -33,28 +49,11 @@ class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
 
     """
 
-    casts = {
-        "affinity": float,
-        "contacts": DistributionConfiguration.cast,
-        "resolution": float,
-        "to_plot": list,
-    }
-
-    defaults = {
-        "affinity": 1.0,
-        "contacts": DistributionConfiguration.cast(1),
-        "resolution": 20.0,
-        "to_plot": [],
-        "transformation": None,
-    }
-
-    def initialise(self, scaffold):
-        super().initialise(scaffold)
-        if self.transformation is not None:
-            self.transformation.initialise(self.scaffold)
-
-    def validate(self):
-        pass
+    affinity = config.attr(default=1.0)
+    contacts = config.attr(type=types.distribution(), default=1)
+    resolution = config.attr(default=20.0)
+    to_plot = config.attr(type=list)
+    transformation = config.attr(type=FiberTransform)
 
     def connect(self):
         scaffold = self.scaffold
@@ -73,13 +72,9 @@ class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
         to_ps = self.scaffold.get_placement_set(to_type.name, labels=labels_post)
 
         # Load the morphology and voxelization data for the entrire morphology, for each cell type.
-        from_morphology_set = MorphologySet(
-            scaffold, from_type, from_ps, compartment_types=from_compartments
-        )
+        from_morphology_set = from_placement_set.load_morphologies()
 
-        to_morphology_set = MorphologySet(
-            scaffold, to_type, to_ps, compartment_types=to_compartments
-        )
+        to_morphology_set = to_placement_set.load_morphologies()
         joined_map = (
             from_morphology_set._morphology_map + to_morphology_set._morphology_map
         )
@@ -238,9 +233,6 @@ class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
                     from_compartment = np.random.choice(random_compartments, 1)[0]
                     to_compartment = np.random.choice(to_map[random_to_voxel_id], 1)[0]
                     compartments_out.append([from_compartment.id, to_compartment])
-                    morphologies_out.append(
-                        [from_morpho._set_index, joined_map_offset + to_morpho._set_index]
-                    )
                     connections_out.append([from_cell.id, to_cell.id])
 
         # Throw warning on cut fibers:
@@ -254,9 +246,7 @@ class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
         self.scaffold.connect_cells(
             self,
             np.array(connections_out or np.empty((0, 2))),
-            morphologies=np.array(morphologies_out or np.empty((0, 2), dtype=str)),
             compartments=np.array(compartments_out or np.empty((0, 2))),
-            morpho_map=joined_map,
         )
 
     def intersect_voxel_tree(self, from_voxel_tree, to_cloud, to_pos):
@@ -316,24 +306,6 @@ class FiberIntersection(ConnectionStrategy, MorphologyStrategy):
             )
 
         return bounding_box, voxel_tree, map, voxel_list
-
-
-class FiberTransform(ConfigurableClass):
-    def __init__(self):
-        super().__init__()
-        self._branch_cut_num = 0
-
-    def transform_branches(self, branches, offset=None):
-        if offset is None:
-            offset = np.zeros(3)
-
-        for branch in branches:
-            self.transform_branch(branch, offset)
-            self.transform_branches(branch.child_branches, offset)
-
-    @abc.abstractmethod
-    def transform_branch(self):
-        pass
 
 
 class QuiverTransform(FiberTransform):

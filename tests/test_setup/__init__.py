@@ -1,15 +1,54 @@
-import os, sys
+import os, sys, unittest, mpi4py, threading
 import numpy as np
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 from bsb.core import Scaffold, from_hdf5
-from bsb.config import JSONConfig
+
+# from scaffold.config import JSONConfig
 
 scaffold_lookup = {}
 mr_path = os.path.join(os.path.dirname(__file__), "..", "morphologies.h5")
 mr_top_path = os.path.join(os.path.dirname(__file__), "..", "..", "morphologies.h5")
 mr_rot_path = os.path.join(os.path.dirname(__file__), "..", "morpho_rotated.h5")
 rotations_step = [30, 60]
+
+_mpi_size = mpi4py.MPI.COMM_WORLD.Get_size()
+
+
+def skip_parallel(o):
+    return unittest.skipIf(_mpi_size > 1, "Skipped during parallel testing.")(o)
+
+
+def single_process_test(o):
+    import inspect
+
+    if inspect.isclass(o) and issubclass(o, unittest.TestCase):
+        return unittest.skipIf(_mpi_size > 1, "Single process test.")(o)
+    elif callable(o):
+
+        def wrapper(*args, **kwargs):
+            if mpi4py.MPI.COMM_WORLD.Get_rank() == 0:
+                o(*args, **kwargs)
+            else:
+                return
+
+        return wrapper
+
+
+def multi_process_test(o):
+    import inspect
+
+    if inspect.isclass(o) and issubclass(o, unittest.TestCase):
+        return unittest.skipIf(_mpi_size < 2, "Multi process test.")(o)
+    elif callable(o):
+
+        def wrapper(*args, **kwargs):
+            if _mpi_size > 1:
+                o(*args, **kwargs)
+            else:
+                return
+
+        return wrapper
 
 
 def get_test_network(x=None, z=None):
@@ -370,3 +409,61 @@ def prep_rotations():
         mr.import_arbz("GolgiCell_A", dbbs_models.GolgiCell)
         mc = MorphologyCache(mr)
         mc.rotate_all_morphologies(rotations_step[0], rotations_step[1])
+
+
+def get_config(file):
+    return os.path.abspath(
+        os.path.join(
+            os.path.dirname(__file__),
+            "..",
+            "configs",
+            file + ".json" if not file.endswith(".json") else "",
+        )
+    )
+
+
+_exc_threads = {}
+
+
+def excepthook(args, /):
+    h = hash(args.thread)
+    _exc_threads[h] = args.exc_value
+
+
+threading.excepthook = excepthook
+
+
+def timeout(timeout, abort=False):
+    def decorator(f):
+        def timed_f(*args, **kwargs):
+            thread = threading.Thread(target=f, args=args, kwargs=kwargs)
+            thread.start()
+            thread.join(timeout=timeout)
+            if thread.is_alive():
+                err = TimeoutError(
+                    1,
+                    f"{f.__name__} timed out on rank {mpi4py.MPI.COMM_WORLD.Get_rank()}",
+                    args,
+                    kwargs,
+                )
+                if abort:
+                    import traceback
+
+                    errlines = traceback.format_exception(
+                        type(err), err, err.__traceback__
+                    )
+                    print(
+                        *errlines,
+                        file=sys.stderr,
+                        flush=True,
+                    )
+                    mpi4py.MPI.COMM_WORLD.Abort(1)
+                raise err
+            elif hash(thread) in _exc_threads:
+                e = _exc_threads[hash(thread)]
+                del _exc_threads[hash(thread)]
+                raise e
+
+        return timed_f
+
+    return decorator

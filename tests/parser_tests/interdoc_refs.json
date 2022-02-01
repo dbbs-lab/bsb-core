@@ -1,0 +1,16 @@
+{
+  "refs": {
+    "whats the": {
+      "$ref": "basics.json#/nest me hard"
+    },
+    "and": {
+      "$ref": "intradoc_refs.json#/refs/whats the"
+    },
+    "far": {
+      "$ref": "far/targetme.json#/this/key"
+    }
+  },
+  "target": {
+    "for": "another"
+  }
+}

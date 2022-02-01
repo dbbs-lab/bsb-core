@@ -1,4 +1,4 @@
-__version__ = "3.10.2"
+__version__ = "4.0.0a1"
 
 import functools
 
@@ -8,4 +8,5 @@ try:
 except AttributeError:
     functools.cache = functools.lru_cache
 
-from .reporting import set_verbosity, report, warn
+from ._mpi import *
+from .reporting import report, warn

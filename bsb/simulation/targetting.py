@@ -1,94 +1,56 @@
 import random, numpy as np
+from .. import config
+from ..config import types
 from ..exceptions import *
 from itertools import chain
 
 
-class TargetsNeurons:
-    def initialise(self, scaffold):
-        super().initialise(scaffold)
-        # Set targetting method
-        get_targets_name = "_targets_" + self.targetting
-        method = (
-            getattr(self, get_targets_name) if hasattr(self, get_targets_name) else None
-        )
-        if not callable(method):
-            raise NotImplementedError(
-                "Unimplemented neuron targetting type '{}' in {}".format(
-                    self.targetting, self.node_name
-                )
+@config.dynamic(attr_name="type", auto_classmap=True)
+class NeuronTargetting:
+    def __boot__(self):
+        self.device = self._config_parent
+        self.simulation = self.device.simulation if self.device is not None else None
+
+    def get_targets(self):
+        raise NotImplementedError(
+            "Targetting mechanism '{}' did not implement a `get_targets` method".format(
+                self.type
             )
-        self._get_targets = method
-
-    def _targets_local(self):
-        """
-        Target all or certain cells in a spherical location.
-        """
-        # Compile a list of the cells and build a compound tree.
-        target_cells = np.empty((0, 3))
-        id_map = np.empty(0)
-        for t in self.cell_types:
-            pos = self.scaffold.get_placement_set(t).positions
-            target_cells = np.vstack((target_cells, pos))
-            id_map = np.concatenate((id_map, cells[:, 0]))
-        tree = KDTree(target_cells)
-        # Query the tree for all the targets
-        target_ids = tree.query_radius([self.origin], self.radius)[0]
-        return id_map[target_ids].astype(int).tolist()
-
-    def _targets_cylinder(self):
-        """
-        Target all or certain cells within a cylinder of specified radius.
-        """
-        # Compile a list of the cells.
-        target_cells = np.empty((0, 3))
-        id_map = np.empty(0)
-        for t in self.cell_types:
-            ps = self.scaffold.get_placement_set(t)
-            # TODO: Cylinders in other planes than the XZ plane
-            pos = ps.positions[:, [0, 2]]
-            target_cells = np.vstack((target_cells, pos))
-            id_map = np.concatenate((id_map, ps.identifiers))
-
-        if not hasattr(self, "origin"):
-            x = self.scaffold.configuration.X
-            z = self.scaffold.configuration.Z
-            origin = np.array((x, z))
-        else:
-            origin = np.array(self.origin)
-        # Find cells falling into the cylinder volume
-        in_range_mask = (
-            np.sum((target_positions[:, [0, 2]] - origin) ** 2, axis=1) < self.radius ** 2
         )
-        return id_map[in_range_mask].astype(int).tolist()
 
-    def _targets_cell_type(self):
-        """
-        Target all cells of certain cell types
-        """
-        ids = np.concatenate(
-            tuple(self.scaffold.get_placement_set(t).identifiers for t in self.cell_types)
-        )
-        n = len(ids)
-        # Use the `cell_fraction` or `cell_count` attribute to determine what portion of
-        # the selected ids to exclude.
-        if n != 0:
-            r_threshold = getattr(
-                self, "cell_fraction", getattr(self, "cell_count", n) / n
-            )
-            if r_threshold == 1:
-                return ids
-            elif r_threshold == 0:
-                return np.empty(0)
-            else:
-                return ids[np.random.random_sample(n) <= r_threshold]
-        else:
-            return np.empty(0)
 
-    def _targets_representatives(self):
-        target_types = [
-            cell_model.cell_type
+@config.node
+class CellTypeTargetting(NeuronTargetting, classmap_entry="cell_type"):
+    """
+    Targetting mechanism (use ``"type": "cell_type"``) to target all identifiers of
+    certain cell types.
+    """
+
+    cell_types = config.attr(type=types.list(type=str), required=True)
+
+    def get_targets(self):
+        sets = [self.scaffold.get_placement_set(t) for t in self.cell_types]
+        ids = []
+        for set in sets:
+            ids.extend(set.identifiers)
+        return ids
+
+
+@config.node
+class RepresentativesTargetting(NeuronTargetting, classmap_entry="representatives"):
+    """
+    Targetting mechanism (use ``"type": "representatives"``) to target all identifiers
+    of certain cell types.
+    """
+
+    cell_types = config.attr(type=types.list(type=str))
+
+    def get_targets(self):
+        filter_types = self.cell_types or self.adapter.cell_models.keys()
+        target_ids = [
+            cell_model.cell_type.get_placement_set().identifiers
             for cell_model in self.adapter.cell_models.values()
-            if not cell_model.cell_type.relay
+            if not cell_model.cell_type.relay and cell_model.name in filter_types
         ]
         if hasattr(self, "cell_types"):
             target_types = [t for t in target_types if t.name in self.cell_types]
@@ -98,46 +60,77 @@ class TargetsNeurons:
         ]
         return representatives
 
-    def _targets_by_id(self):
+
+@config.node
+class ByIdTargetting(NeuronTargetting, classmap_entry="by_id"):
+    """
+    Targetting mechanism (use ``"type": "by_id"``) to target all given identifiers.
+    """
+
+    targets = config.attr(type=types.list(type=int), required=True)
+
+    def get_targets(self):
         return self.targets
 
-    def _targets_by_label(self):
-        frac = getattr(self, "cell_fraction", None)
-        count = getattr(self, "cell_count", None)
-        all_labels = chain(*map(self.scaffold.get_labels, self.labels))
-        targets = []
-        for label in all_labels:
-            labelled = self.scaffold.labels[label]
-            total = len(labelled)
-            if frac is not None:
-                n = np.ceil(frac * total)
-            elif count is not None:
-                n = count
-            else:
-                n = total
-            n = max(0, min(n, total))
-            targets.extend(random.sample(list(labelled), n))
-        return targets
+
+@config.node
+class CylindricalTargetting(NeuronTargetting, classmap_entry="cylinder"):
+    """
+    Targetting mechanism (use ``"type": "cylinder"``) to target all cells in a
+    horizontal cylinder (xz circle expanded along y).
+    """
+
+    cell_types = config.attr(type=types.list(type=str))
+    origin = config.attr(type=types.list(type=float, size=2))
+    radius = config.attr(type=float, required=True)
+
+    def boot(self):
+        if self.cell_types is None:
+            self.cell_types = [m.cell_type for m in self.adapter.cell_models.values()]
+        if self.origin is None:
+            network = self.scaffold.configuration.network
+            self.origin = [network.x / 2, network.z / 2]
 
     def get_targets(self):
         """
-        Return the targets of the device.
+        Target all or certain cells within a cylinder of specified radius.
         """
-        if hasattr(self, "_targets"):
-            return self._targets
-        raise ParallelIntegrityError(
-            f"MPI process %rank% failed a checkpoint."
-            + " `initialise_targets` should always be called before `get_targets` on all MPI processes.",
-            self.adapter.get_rank(),
-        )
+        sets = [self.scaffold.get_placement_set(t) for t in self.cell_types]
+        targets = []
+        for set in sets:
+            if not set.positions:
+                continue
+            distances = np.sum((set.positions[:, [0, 2]] - self.origin) ** 2)
+            targets.extend(set.identifiers[distances <= self.radius])
+        return np.array(targets)
 
-    def initialise_targets(self):
-        if self.adapter.get_rank() == 0:
-            targets = self._get_targets()
-        else:
-            targets = None
-        # Broadcast to make sure all the nodes have the same targets for each device.
-        self._targets = self.scaffold.MPI.COMM_WORLD.bcast(targets, root=0)
+
+@config.node
+class SphericalTargetting(NeuronTargetting, classmap_entry="sphere"):
+    """
+    Targetting mechanism (use ``"type": "sphere"``) to target all cells in a sphere.
+    """
+
+    cell_types = config.attr(type=types.list(type=str))
+    origin = config.attr(type=types.list(type=float, size=3), required=True)
+    radius = config.attr(type=float, required=True)
+
+    def boot(self):
+        if self.cell_types is None:
+            self.cell_types = [m.cell_type for m in self.adapter.cell_models.values()]
+
+    def get_targets(self):
+        """
+        Target all or certain cells within a cylinder of specified radius.
+        """
+        sets = [self.scaffold.get_placement_set(t) for t in self.cell_types]
+        targets = []
+        for set in sets:
+            if not set.positions:
+                continue
+            distances = np.sum((set.positions - self.origin) ** 2)
+            targets.extend(set.identifiers[distances <= self.radius])
+        return np.array(targets)
 
 
 class TargetsSections:

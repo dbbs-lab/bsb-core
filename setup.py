@@ -10,15 +10,16 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 requires = [
-    "h5py>=2.9.0",
+    "h5py>=3.0.0",
     "numpy>=1.19.0",
-    "scipy>=1.3.1",
-    "scikit-learn>=0.20.3",
+    "scipy>=1.5.2",
+    "scikit-learn>=0.23.2",
     "plotly>=4.1.0",
     "colour>=0.1.5",
     "errr>=1.0.0",
     "rtree>=0.9.7",
     "psutil>=5.8.0",
+    "arbor>=0.5",
 ]
 
 setuptools.setup(
@@ -28,7 +29,7 @@ setuptools.setup(
     author_email="robingilbert.deschepper@unipv.it",
     description="A package for modelling morphologically detailed neuronal microcircuits.",
     include_package_data=True,
-    package_data={"bsb": ["configurations/*.json"]},
+    package_data={"bsb": ["config/templates/*.json"]},
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/dbbs-lab/bsb",
@@ -43,16 +44,35 @@ setuptools.setup(
         "Programming Language :: Python :: 3.9",
         "Operating System :: OS Independent",
     ],
-    entry_points={"console_scripts": ["bsb = bsb.cli:scaffold_cli"]},
+    entry_points={
+        "console_scripts": ["bsb = bsb.cli:handle_cli"],
+        "bsb.adapters": [
+            "nest = bsb.simulators.nest",
+            "neuron = bsb.simulators.neuron",
+        ],
+        "bsb.commands": [
+            "compile = bsb.cli.commands._commands:compile",
+            "simulate = bsb.cli.commands._commands:simulate",
+        ],
+        "bsb.config.parsers": ["json = bsb.config.parsers.json"],
+        "bsb.config.templates": ["bsb_templates = bsb.config.templates"],
+        "bsb.engines": ["hdf5 = bsb.storage.engines.hdf5"],
+        "bsb.options": [
+            "verbosity = bsb._options:verbosity",
+            "sudo = bsb._options:sudo",
+            "version = bsb._options:version",
+        ],
+    },
+    python_requires="~=3.8",
     install_requires=requires,
     project_urls={
         "Bug Tracker": "https://github.com/dbbs-lab/bsb/issues/",
-        "Documentation": "https://dbbs-docs.rf.gd/",
+        "Documentation": "https://bsb.readthedocs.io/",
         "Source Code": "https://github.com/dbbs-lab/bsb/",
     },
     extras_require={
         "dev": ["sphinx", "furo", "pre-commit", "black==20.8b1", "nrn-subprocess==1.3.4"],
         "neuron": ["dbbs_models~=2.0.0", "nrn-patch~=3.0.1"],
-        "mpi": ["mpi4py"],
+        "mpi": ["mpi4py", "zwembad", "mpilock"],
     },
 )

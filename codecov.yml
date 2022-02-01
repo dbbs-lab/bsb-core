@@ -8,3 +8,5 @@ coverage:
       default:
         informational: true
         target: 0
+ignore:
+  - bsb/storage/interfaces.py

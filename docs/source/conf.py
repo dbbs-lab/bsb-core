@@ -29,16 +29,15 @@ autodoc_mock_imports = [
     "mpi4py.MPI",
     "dbbs_models",
     "arborize",
-    "rtree",
-    "rtree.index",
     "h5py",
     "joblib",
-    "numpy",
     "sklearn",
     "scipy",
     "six",
     "plotly",
     "psutil",
+    "mpilock",
+    "zwembad",
 ]
 
 
@@ -78,6 +77,7 @@ extensions = [
     "sphinx.ext.ifconfig",
     "sphinx.ext.viewcode",
     "divio_docs_theme",
+    "sphinxemoji.sphinxemoji",
 ]
 
 # Add any paths that contain templates here, relative to this directory.

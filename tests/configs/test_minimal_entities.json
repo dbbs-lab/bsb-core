@@ -7,7 +7,7 @@
     "simulation_volume_x": 400.0,
     "simulation_volume_z": 400.0
   },
-  "layers": {
+  "partitions": {
     "granular_layer": {
       "thickness": 150.0,
       "origin": [0.0, 0.0, 0.0]
@@ -16,14 +16,17 @@
   "cell_types": {
     "entity_type": {
       "entity": true,
-      "placement": {
-        "class": "bsb.placement.Entities",
-        "layer": "granular_layer",
-        "count": 100
-      }
     }
   },
-  "connection_types": {
+  "placement": {
+    "test_entities": {
+      "class": "bsb.placement.Entities",
+      "partitions": ["granular_layer"],
+      "cell_type": ["entity_type"],
+      "count": 100
+    }
+  },
+  "connectivity": {
 
   },
   "simulations": {

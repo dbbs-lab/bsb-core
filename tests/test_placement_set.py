@@ -1,9 +1,8 @@
 import unittest, os, sys, numpy as np, h5py, test_setup
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
 from bsb.core import Scaffold, from_hdf5
-from bsb.config import JSONConfig
-from bsb.models import PlacementSet, Cell
 from bsb.exceptions import DatasetNotFoundError
 
 
@@ -14,6 +13,7 @@ def relative_to_tests_folder(path):
 double_neuron_config = relative_to_tests_folder("configs/test_double_neuron.json")
 
 
+@unittest.skip("Re-enabling tests gradually while advancing v4.0 rework")
 class TestPlacementSets(unittest.TestCase):
     """
     Check if the scaffold can create a single cell type.

@@ -1,49 +1,38 @@
-from .strategy import Layered, PlacementStrategy
+from .strategy import PlacementStrategy
+from ..voxels import VoxelSet
 from ..particles import ParticleSystem
 from ..exceptions import *
 from ..reporting import report, warn
+from .. import config
+import itertools, numpy as np
 
 
-class ParticlePlacement(Layered, PlacementStrategy):
+@config.node
+class ParticlePlacement(PlacementStrategy):
+    prune = config.attr(type=bool, default=True)
+    bounded = config.attr(type=bool, default=False)
+    restrict = config.attr(type=dict)
 
-    casts = {
-        "prune": bool,
-        "bounded": bool,
-    }
-
-    defaults = {
-        "prune": True,
-        "bounded": False,
-    }
-
-    def place(self):
-        cell_type = self.cell_type
-        layer = self.layer_instance
-        origin = layer.origin.copy()
-        # Shift voxel origin up based on y_restriction.
-        origin[1] = layer.origin[1] + layer.thickness * self.restriction_minimum
-        # Computing voxel thickness based on y_restriction
-        volume = [layer.width, layer.thickness * self.restriction_factor, layer.depth]
-        # Create a list of voxels with the current restricted layer as only voxel.
-        voxels = [[origin, volume]]
+    def place(self, chunk, indicators):
+        voxels = VoxelSet.concatenate(
+            *(p.chunk_to_voxels(chunk) for p in self.partitions)
+        )
         # Define the particles for the particle system.
         particles = [
             {
-                "name": cell_type.name,
-                "voxels": [0],
-                "radius": cell_type.placement.radius,
-                "count": self.get_placement_count(),
+                "name": name,
+                # Place particles in all voxels
+                "voxels": list(range(len(voxels))),
+                "radius": indicator.get_radius(),
+                "count": int(indicator.guess(chunk)),
             }
+            for name, indicator in indicators.items()
         ]
         # Create and fill the particle system.
         system = ParticleSystem(track_displaced=True, scaffold=self.scaffold)
         system.fill(voxels, particles)
-        # Raise a warning if no cells could be placed in the volume
+
         if len(system.particles) == 0:
-            warn(
-                "Did not place any {} cell in the {}!".format(cell_type.name, layer.name),
-                PlacementWarning,
-            )
             return
 
         # Find the set of colliding particles
@@ -54,12 +43,19 @@ class ParticlePlacement(Layered, PlacementStrategy):
                 number_pruned, pruned_per_type = system.prune(
                     at_risk_particles=system.displaced_particles
                 )
-                report(
-                    "{} {} ({}%) cells pruned.".format(
-                        number_pruned,
-                        cell_type.name,
-                        int((number_pruned / self.get_placement_count()) * 100),
-                    )
-                )
-        particle_positions = system.positions
-        self.scaffold.place_cells(cell_type, layer, particle_positions)
+                for name, indicator in indicators.items():
+                    pruned = pruned_per_type[name]
+                    total = indicator.guess(chunk)
+                    pct = int((pruned / total) * 100)
+                    report(f"{pruned} {name} ({pct}%) cells pruned.")
+
+        for pt in system.particle_types:
+            cell_type = self.scaffold.cell_types[pt["name"]]
+            indicator = indicators[pt["name"]]
+            particle_positions = [p.position for p in system.particles if p.type is pt]
+            if len(particle_positions) == 0:
+                continue
+            positions = np.empty((len(particle_positions), 3))
+            positions[:] = particle_positions
+            print(f"Placing {len(positions)} {cell_type.name} in {chunk}")
+            self.place_cells(indicator, positions, chunk)

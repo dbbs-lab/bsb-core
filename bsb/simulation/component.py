@@ -1,14 +1,13 @@
-from ..helpers import ConfigurableClass, SortableByAfter
+from .. import config
+from ..helpers import SortableByAfter
 
 
-class SimulationComponent(ConfigurableClass, SortableByAfter):
-    def __init__(self, adapter):
-        super().__init__()
-        self.adapter = adapter
-        self.simulation = None
+@config.node
+class SimulationComponent(SortableByAfter):
+    name = config.attr(key=True)
 
-    def get_config_node(self):
-        return self.node_name + "." + self.name
+    def __boot__(self):
+        self.simulation = self._config_parent._config_parent
 
     @classmethod
     def get_ordered(cls, objects):

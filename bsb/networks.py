@@ -1,5 +1,4 @@
 import math, numpy as np, random
-from .morphologies import Compartment
 
 
 def depth_first_branches(adjacency_list, node=0, return_visited=False):

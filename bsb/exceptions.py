@@ -4,23 +4,56 @@ _t(
     globals(),
     ScaffoldError=_e(
         SpatialDimensionError=_e(),
+        CLIError=_e(
+            CommandError=_e(),
+            ConfigTemplateNotFoundError=_e("template", "path"),
+            InputError=_e(),
+        ),
         ConfigurationError=_e(
             ConfigurationFormatError=_e(),
             DynamicClassError=_e(
-                ConfigurableClassNotFoundError=_e(),
+                DynamicClassNotFoundError=_e(),
+                DynamicClassInheritanceError=_e(),
+                ClassMapMissingError=_e(),
             ),
             CastError=_e(
-                UnionCastError=_e(),
-                ConfigurableCastError=_e(
-                    UnknownDistributionError=_e(),
-                    InvalidDistributionError=_e(),
-                ),
+                "node",
+                "attr",
+                DistributionCastError=_e(),
+                UnresolvedClassCastError=_e(),
+                UnfitClassCastError=_e("node", "attr"),
             ),
             CastConfigurationError=_e(),
+            IndicatorError=_e(),
+            RequirementError=_e("node", "attr"),
+            ReferenceError=_e(
+                NoReferenceAttributeSignal=_e(),
+            ),
+            UnknownConfigAttrError=_e("attributes"),
         ),
-        TypeNotFoundError=_e(),
-        LayerNotFoundError=_e(),
-        SimulationNotFoundError=_e(),
+        CompilationError=_e(
+            ConnectivityError=_e(
+                "connection_type",
+                FiberTransformError=_e(
+                    QuiverFieldError=_e(),
+                ),
+            ),
+            PlacementError=_e(
+                "cell_type", PlacementRelationError=_e("cell_type", "relation")
+            ),
+            RedoError=_e(),
+        ),
+        TopologyError=_e(
+            UnmanagedPartitionError=_e(),
+            LayoutError=_e(
+                MissingBoundaryError=_e(),
+            ),
+        ),
+        TypeHandlingError=_e(
+            NoneReferenceError=_e(),
+            InvalidReferenceError=_e("value"),
+        ),
+        NodeNotFoundError=_e("query"),
         AdapterError=_e(
             NeuronError=_e(
                 DeviceConnectionError=_e(),
@@ -54,6 +87,10 @@ _t(
             MorphologyDataError=_e(),
             CircularMorphologyError=_e("morphology", "component").set(list_details=True),
             CompartmentError=_e(),
+            EmptySelectionError=_e("selectors"),
+        ),
+        OptionError=_e(
+            ReadOnlyOptionError=_e("option", "tag"),
         ),
         PlacementError=_e(
             ContinuityError=_e(),
@@ -68,8 +105,18 @@ _t(
             ),
             DataNotFoundError=_e(),
             AttributeMissingError=_e(),
+            UnknownStorageEngineError=_e(),
         ),
         DataNotProvidedError=_e(),
+        PluginError=_e("plugin"),
+        ParserError=_e(
+            JsonParseError=_e(
+                JsonReferenceError=_e(),
+                JsonImportError=_e(),
+            ),
+        ),
+        OrderError=_e(),
+        ClassError=_e(),
     ),
 )
 
@@ -117,12 +164,5 @@ class KernelWarning(SimulationWarning):
     pass
 
 
-## Misc
-
-
-class OrderError(ScaffoldError):
-    pass
-
-
-class ClassError(ScaffoldError):
+class CriticalDataWarning(ScaffoldWarning):
     pass

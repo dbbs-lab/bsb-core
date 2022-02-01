@@ -1,8 +1,8 @@
 import os, sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
 from bsb.core import Scaffold, from_hdf5
-from bsb.config import JSONConfig
 from bsb.simulators.nest import NestCell
 from bsb.models import Layer, CellType
 from bsb.exceptions import *
@@ -108,7 +108,7 @@ class TestMiniature(unittest.TestCase):
             goc_gap = network.get_connection_type("gap_goc")
             # Connect 2 out of 3 Golgi cells with bidirect halfgap junctions
             c = np.array([[goc[0], goc[1]], [goc[1], goc[0]]])
-            gm = network.morphology_repository.get_morphology("GolgiCell")
+            gm = network.morphology_repository.load("GolgiCell")
             comp_id = gm.get_compartments(labels=["basal_dendrites"])[0].id
             m = np.zeros((len(c), 2))
             mmap = ["GolgiCell"]
@@ -116,9 +116,9 @@ class TestMiniature(unittest.TestCase):
             network.connect_cells(goc_gap, c, None, m, comp, None, mmap)
             # Connect one stellate cell to one Purkinje cell
             c = np.array([[sc[0], pc[0]]])
-            sm = network.morphology_repository.get_morphology("StellateCell")
+            sm = network.morphology_repository.load("StellateCell")
             pre_comp_id = sm.get_compartments(labels=["axon"])[0].id
-            pm = network.morphology_repository.get_morphology("PurkinjeCell")
+            pm = network.morphology_repository.load("PurkinjeCell")
             post_comp_id = pm.get_compartments(labels=["sc_targets"])[0].id
             m = np.array([[1, 0]])
             mmap = ["PurkinjeCell", "StellateCell"]
@@ -219,7 +219,7 @@ class NeuronTest(unittest.TestCase):
         granules = scaffold.get_placement_set("granule_cell").identifiers
         scaffold.connect_cells(mf_to_glom, np.array([[mfs[0], gloms[0]]]))
         conns = np.array([[gloms[0], golgis[0]]] * 20)
-        m = scaffold.morphology_repository.get_morphology("GolgiCell")
+        m = scaffold.morphology_repository.load("GolgiCell")
         morpho_map = ["GolgiCell"]
         morphologies = np.zeros((20, 2))
         compartments = np.zeros((20, 2))
@@ -283,8 +283,8 @@ class NeuronTest(unittest.TestCase):
         grc_to_golgi = scaffold.configuration.connection_types["granule_to_golgi"]
         grcs = scaffold.get_placement_set("granule_cell").identifiers
         golgis = scaffold.get_placement_set("golgi_cell").identifiers
-        m_gol = scaffold.morphology_repository.get_morphology("GolgiCell")
-        m_grc = scaffold.morphology_repository.get_morphology("GranuleCell")
+        m_gol = scaffold.morphology_repository.load("GolgiCell")
+        m_grc = scaffold.morphology_repository.load("GranuleCell")
         comps = m_gol.get_compartments(["basal_dendrites"])
 
         conns = np.array([[grcs[0], golgis[0]]] * 20)
@@ -333,8 +333,8 @@ class NeuronTest(unittest.TestCase):
         grc_to_golgi = scaffold.configuration.connection_types["granule_to_purkinje"]
         grcs = scaffold.get_placement_set("granule_cell").identifiers
         golgis = scaffold.get_placement_set("purkinje_cell").identifiers
-        m_gol = scaffold.morphology_repository.get_morphology("PurkinjeCell")
-        m_grc = scaffold.morphology_repository.get_morphology("GranuleCell")
+        m_gol = scaffold.morphology_repository.load("PurkinjeCell")
+        m_grc = scaffold.morphology_repository.load("GranuleCell")
         comps = [c.id for c in m_gol.compartments if c.type == 3]
 
         conns = np.array([[grcs[0], golgis[0]]] * 100)
@@ -385,8 +385,8 @@ class NeuronTest(unittest.TestCase):
         grc_to_golgi = scaffold.configuration.connection_types["granule_to_purkinje"]
         grcs = scaffold.get_placement_set("granule_cell").identifiers
         golgis = scaffold.get_placement_set("purkinje_cell").identifiers
-        m_gol = scaffold.morphology_repository.get_morphology("PurkinjeCell")
-        m_grc = scaffold.morphology_repository.get_morphology("GranuleCell")
+        m_gol = scaffold.morphology_repository.load("PurkinjeCell")
+        m_grc = scaffold.morphology_repository.load("GranuleCell")
         comps = [c.id for c in m_gol.compartments if c.type == 3]
 
         conns = np.array([[grcs[0], golgis[0]]] * 80)
@@ -434,8 +434,8 @@ class NeuronTest(unittest.TestCase):
         grc_to_golgi = scaffold.configuration.connection_types["granule_to_golgi"]
         grcs = scaffold.get_placement_set("granule_cell").identifiers
         golgis = scaffold.get_placement_set("golgi_cell").identifiers
-        m_gol = scaffold.morphology_repository.get_morphology("GolgiCell")
-        m_grc = scaffold.morphology_repository.get_morphology("GranuleCell")
+        m_gol = scaffold.morphology_repository.load("GolgiCell")
+        m_grc = scaffold.morphology_repository.load("GranuleCell")
         comps = m_gol.get_compartments(["apical_dendrites"])
 
         conns = np.array([[grcs[0], golgis[0]]] * 80)
@@ -484,8 +484,8 @@ class NeuronTest(unittest.TestCase):
         grc_to_golgi = scaffold.configuration.connection_types["granule_to_stellate"]
         grcs = scaffold.get_placement_set("granule_cell").identifiers
         golgis = scaffold.get_placement_set("stellate_cell").identifiers
-        m_grc = scaffold.morphology_repository.get_morphology("GranuleCell")
-        m_gol = scaffold.morphology_repository.get_morphology("StellateCell")
+        m_grc = scaffold.morphology_repository.load("GranuleCell")
+        m_gol = scaffold.morphology_repository.load("StellateCell")
         comps = m_gol.get_compartments(["dendrites"])
 
         conns = np.array([[grcs[0], golgis[0]]] * 3)

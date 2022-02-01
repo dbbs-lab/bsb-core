@@ -12,7 +12,7 @@
     "store_compound_kd_tree": true,
     "store_pf_kd_trees": true
   },
-  "layers": {
+  "partitions": {
     "test_layer": {
       "thickness": 600,
       "stack": {
@@ -54,7 +54,7 @@
       }
     }
   },
-  "connection_types": {
+  "connectivity": {
     "connection": {
       "class": "bsb.connectivity.AllToAll",
       "from_cell_types": [{"type": "from_cell", "compartments": ["axon"]}],

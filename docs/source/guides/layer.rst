@@ -47,7 +47,7 @@ together in a vertical stack. To stack layers together you need to configure
 :ref:`cref_position_in_stack`. Each stack requires exactly one definition of its
 :ref:`cref_stack_position`, which can be supplied in any of the layers it consists of::
 
-  "layers": {
+  "partitions": {
     "layer_a": {
       "thickness": 150.0,
       "stack": {

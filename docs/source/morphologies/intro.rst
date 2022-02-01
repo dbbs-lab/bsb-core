@@ -12,13 +12,6 @@ branch with 4 points ``p0, p1, p2, p3``::
   z = [z0, z1, z2, z3]
   r = [r0, r1, r2, r3]
 
-The points on the branch can also be described as individual ``Compartments``::
-
-  branch0 = [c0, c1, c2]
-  c0 = Comp(start=[x0, y0, z0], end=[x1, y1, z1], radius=r1)
-  c1 = Comp(start=[x1, y1, z1], end=[x2, y2, z2], radius=r2)
-  c2 = Comp(start=[x2, y2, z2], end=[x3, y3, z3], radius=r3)
-
 Branches also specify which other branches they are connected to and in this way the
 entire network of neuronal processes can be described. Those branches that do not have a
 parent branch are called ``roots``. A morphology can have as many roots as it likes;
@@ -35,14 +28,45 @@ The ``branches`` attribute is the result of a depth-first iteration of the roots
 kind of iteration over roots or branches will always follow this same depth-first order.
 
 The data of these morphologies are stored in ``MorphologyRepositories`` as groups of
-branches following the first vector-based branch description. If you want to use
-``compartments``  you'll have to call ``branch.to_compartments()`` or
-``morphology.to_compartments()``. For a root branch this will yield ``n - 1`` compartments
-formed as line segments between pairs of points on the branch. For non-root branches an
-extra compartment is prepended between the last point of the parent branch and the first
-point of the child branch. Compartments are individuals so branches are no longer used to
-describe the network of points, instead each compartment lists their own parent
-compartment.
+branches following the first vector-based branch description.
+
+=========================
+Constructing morphologies
+=========================
+
+Although morphologies are usually imported from files into storage, it can be useful to
+know how to create them for debugging, testing and validating. First create your branches,
+then attach them together and provide the roots to the Morphology constructor:
+
+.. code-block:: python
+
+  from bsb.morphologies import Branch, Morphology
+  import numpy as np
+
+  # x, y, z, radii
+  branch = Branch(
+    np.array([0, 1, 2]),
+    np.array([0, 1, 2]),
+    np.array([0, 1, 2]),
+    np.array([1, 1, 1]),
+  )
+  child_branch = Branch(
+    np.array([2, 3, 4]),
+    np.array([2, 3, 4]),
+    np.array([2, 3, 4]),
+    np.array([1, 1, 1]),
+  )
+  branch.attach_child(child_branch)
+  m = Morphology([branch])
+
+.. note::
+
+  Attaching branches is merely a graph-level connection that aids in iterating the
+  morphology, no spatial connection information is inferred between the branches.
+  Detaching and attaching it elsewhere won't result in any spatial changes, it will only
+  affect iteration order. Keep in mind that that still affects how they are stored and
+  still has drastic consequences if connections have already been made using that
+  morphology (as connections use branch indices).
 
 Using morphologies
 ------------------
@@ -63,7 +87,7 @@ Let's start with loading a morphology and inspecting its root
   # Alternatively if you have your MR inside of a compiled network:
   network = from_hdf5("network.hdf5")
   mr = network.morphology_repository
-  morfo = mr.get_morphology("my_morphology")
+  morfo = mr.load("my_morphology")
 
   # Use a local reference to the properties if you're not going to manipulate the
   # morphology, as they require a full search of the morphology to be determined every
@@ -92,7 +116,7 @@ Let's start with loading a morphology and inspecting its root
 As you can see an individual branch contains all the positional data of the individual
 points in the morphology. The morphology object itself then contains the collection of
 branches. Normally you'd use the ``.branches`` but if you want to work with the positional
-data of the whole morphology in a object you can do this by flattening the morphology:
+data of the whole morphology in an object you can do this by flattening the morphology:
 
 .. code-block:: python
 
@@ -100,9 +124,98 @@ data of the whole morphology in a object you can do this by flattening the morph
 
   network = from_hdf5("network.hdf5")
   mr = network.morphology_repository
-  morfo = mr.get_morphology("my_morphology")
+  morfo = mr.load("my_morphology")
 
   print("All the branches in depth-first order:", morfo.branches)
   print("All the points on those branches in depth first order:")
   print("- As vectors:", morfo.flatten())
   print("- As matrix:", morfo.flatten(matrix=True).shape)
+
+=====================
+Morphology preloading
+=====================
+
+Reading the morphology data from the repository takes time. Usually morphologies are
+passed around in the framework as :class:`StoredMorphologies
+<.storage.interfaces.StoredMorphology>`. These objects have a
+:meth:`.storage.interfaces.StoredMorphology.load` method to load the
+:class:`.morphologies.Morphology` object from storage and a
+:meth:`.storage.interfaces.StoredMorphology.get_meta` method to return the metadata.
+
+====================
+Morphology selectors
+====================
+
+The most common way of telling the framework which morphologies to use is through
+:class:`MorphologySelectors <.objects.cell_type.MorphologySelector>`. A selector should
+implement :meth:`~.objects.cell_type.MorphologySelector.validate` and
+:meth:`~.objects.cell_type.MorphologySelector.pick` methods.
+
+``validate`` can be used to assert that all the required morphologies are present, while
+``pick`` needs to return ``True``/``False`` to include a morphology or not. Both methods
+are handed :class:`.storage.interfaces.StoredMorphology` objects, only ``load``
+morphologies if it is impossible to determine the outcome from the metadata.
+
+.. code-block:: python
+
+  from bsb.objects.cell_type import MorphologySelector
+  from bsb import config
+
+  @config.node
+  class MySizeSelector(MorphologySelector, classmap_entry="by_size"):
+    min_size = config.attr(type=float, default=20)
+    max_size = config.attr(type=float, default=50)
+
+    def validate(self, morphos):
+      if not all("size" in m.get_meta() for m in morphos):
+        raise Exception("Missing size metadata for the size selector")
+
+    def pick(self, morpho):
+      meta = morpho.get_meta()
+      return meta["size"] > self.min_size and meta["size"] < self.max_size
+
+===================
+Morphology metadata
+===================
+
+Currently unspecified, up to the Storage and MorphologyRepository support to return a
+dictionary of available metadata from
+:meth:`.storage.interfaces.MorphologyRepository.get_meta`.
+
+
+=======================
+Morphology distributors
+=======================
+
+
+
+==============
+MorphologySets
+==============
+
+:class:`MorphologySets <.morphologies.MorphologySet>` are the result of
+:class:`.morphologies.MorphologyDistributor` assigning morphologies to placed cells. They
+consist of a list of :class:`StoredMorphologies <.storage.interfaces.StoredMorphology>`, a
+vector of indices referring to these stored morphologies and a vector of rotations. You
+can use :meth:`~.morphologies.MorphologySet.iter_morphologies` to iterate over each
+morphology. Each iteration creates its own :class:`~.morphologies.Morphology` object and
+rotates it. With the ``cache`` kwarg you can keep a template per morphology to rapidly
+copy, skipping the storage read operation (at the cost of keeping these templates in
+memory).
+
+.. code-block:: python
+
+  ps = network.get_placement_set("my_detailed_neurons")
+  positions = ps.load_positions()
+  morphology_set = ps.load_morphologies()
+  cache = morphology_set.iter_morphologies(cache=True)
+  for pos, morphology in zip(positions, cache):
+    pass
+  del cache
+
+=========
+Reference
+=========
+
+.. automodule:: bsb.morphologies
+  :members:

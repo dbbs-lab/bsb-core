@@ -1,4 +1,5 @@
 import warnings, base64, io, sys, functools
+from ._mpi import *
 
 
 def wrap_writer(stream, writer):
@@ -24,23 +25,7 @@ except io.UnsupportedOperation:  # pragma: nocover
             f"Unable to create unbuffered wrapper around `sys.stdout` ({sys.stdout.__class__.__name__})."
         )
 
-_verbosity = 1
 _report_file = None
-
-
-def set_verbosity(v):
-    """
-    Set the verbosity of the scaffold package.
-    """
-    global _verbosity
-    _verbosity = v
-
-
-def get_verbosity():
-    """
-    Return the verbosity of the scaffold package.
-    """
-    return _verbosity
 
 
 def set_report_file(v):
@@ -72,12 +57,14 @@ def report(*message, level=2, ongoing=False, token=None, nodes=None, all_nodes=F
     :type level: int
     :param ongoing: The message is part of an ongoing progress report. This replaces the endline (`\\n`) character with a carriage return (`\\r`) character
     """
+    from . import options
+
     message = " ".join(map(str, message))
     if (
         (is_mpi_master and nodes is None)
         or all_nodes
         or (nodes is not None and MPI_rank in nodes)
-    ) and _verbosity >= level:
+    ) and options.verbosity >= level:
         if _report_file:
             with open(_report_file, "a") as f:
                 f.write(_encode(token or "", message))
@@ -85,7 +72,7 @@ def report(*message, level=2, ongoing=False, token=None, nodes=None, all_nodes=F
             print(message, end="\n" if not ongoing else "\r", flush=True)
 
 
-def warn(message, category=None):
+def warn(message, category=None, stacklevel=2):
     """
     Send a warning.
 
@@ -93,37 +80,17 @@ def warn(message, category=None):
     :type message: str
     :param category: The class of the warning.
     """
-    if _verbosity > 0:
+    from . import options
+
+    if options.verbosity > 0:
         if _report_file:
             with open(_report_file, "a") as f:
                 f.write(_encode(str(category or "warning"), message))
         else:
-            warnings.warn(message, category, stacklevel=2)
+            warnings.warn(message, category, stacklevel=stacklevel)
 
 
 def _encode(header, message):
     header = base64.b64encode(bytes(header, "UTF-8")).decode("UTF-8")
     message = base64.b64encode(bytes(message, "UTF-8")).decode("UTF-8")
     return preamble + header + preamble_bar + message + preamble
-
-
-# Initialize MPI when this module is loaded, so that communications work even before
-# any scaffold is created.
-
-try:
-    try:
-        import nest
-    except:
-        pass
-    from mpi4py import MPI as _MPI
-
-    MPI_rank = _MPI.COMM_WORLD.rank
-    has_mpi_installed = True
-    is_mpi_master = MPI_rank == 0
-    is_mpi_slave = MPI_rank != 0
-except ImportError:
-    has_mpi_installed = False
-    is_mpi_master = True
-    is_mpi_slave = False
-
-report("Reporting module initialised.", level=4)

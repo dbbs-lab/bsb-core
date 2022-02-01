@@ -1,151 +1,54 @@
-from ..helpers import ConfigurableClass, SortableByAfter
-from ..functions import compute_intersection_slice
-from ..models import ConnectivitySet
+from .. import config
+from ..config import refs, types
+from ..helpers import SortableByAfter
+from ..reporting import report, warn
+from ..exceptions import *
 import abc
+from itertools import chain
 
 
-class _SimulationPlaceholder:
-    pass
+def _targetting_req(section):
+    return "labels" not in section
 
 
-class ConnectionStrategy(ConfigurableClass, SortableByAfter):
-    def __init__(self):
-        super().__init__()
-        self.simulation = _SimulationPlaceholder()
-        self.tags = []
-        self.label_pre = None
-        self.label_post = None
+@config.node
+class HemitypeNode:
+    cell_types = config.reflist(refs.cell_type_ref, required=_targetting_req)
+    compartments = config.attr(type=types.list())
+    labels = config.attr(type=types.list())
 
-    @abc.abstractmethod
-    def connect(self):
-        pass
 
-    def _wrap_connect(this):
-        # This function is called after the ConnectionStrategy instance if constructed,
-        # and replaces its user-defined `connect` function with a wrapped version of
-        # itself. The wrapper provides the ConnectionStrategy with the cell type ids it
-        # needs and might execute it multiple times. The set(s) of provided cell ids are
-        # defined by the `from_cell_types` and `to_cell_types` arrays in the JSON config
-        # of the ConnectionStrategy. If it contains a `with_label` the cell types will be
-        # filtered to a subset of cells that are labelled with the label. If the
-        # with_label ends on a wilcard (e.g. "label-big-*") multiple labels might apply
-        # and the ConnectionStrategy is repeated for each label.
-        import types
+class ConnectionCollection:
+    def __init__(self, scaffold, cell_types, roi):
+        self.scaffold = scaffold
+        self.cell_types = cell_types
+        self.roi = roi
 
-        # Store a local reference to the original connect function
-        connect = this.connect
-        # Wrapper closure that calls the local `connect`, referencing the original connect
-        def wrapped_connect(self):
-            # Handle with_label specifications.
-            # This is a dirty solution that only implements the wanted microzone behavior
-            # See https://github.com/Helveg/cerebellum-scaffold/issues/236
+    @property
+    def placement(self):
+        return {ct: ct.get_placement_set(self.roi) for ct in self.cell_types}
 
-            # Introduced a local variable "mixed" that can be updated considering an attribute inside connection_types in the json file
-            # if it is necessary to mix the 2 labeled populations when connecting them (like microzone positive and negative)
-            if hasattr(self, "mix_labels"):
-                mixed = self.mix_labels
-            else:
-                mixed = False
+    def __getattr__(self, attr):
+        return self.placement[attr]
 
-            if len(self._from_cell_types) == 0:
-                # No specific type specification? No labelling either -> do connect.
-                self._set_cells()
-                connect()
-            elif "with_label" not in {
-                **self._from_cell_types[0],
-                **self._to_cell_types[0],
-            }:
-                # No labels specified -> select all cells and do connect.
-                self._set_cells()
-                connect()
-            else:
-                # Label specified
-                labels_pre = []
-                if "with_label" in self._from_cell_types[0].keys():
-                    labels_specification_pre = self._from_cell_types[0]["with_label"]
-                    if not isinstance(labels_specification_pre, list):
-                        labels_specification_pre = [labels_specification_pre]
-                    for label_specification_pre in labels_specification_pre:
-                        labels_pre.extend(
-                            self.scaffold.get_labels(label_specification_pre)
-                        )
+    def __getitem__(self, item):
+        return self.placement[item]
 
-                labels_post = []
-                if "with_label" in self._to_cell_types[0].keys():
-                    labels_specification_post = self._to_cell_types[0]["with_label"]
-                    if not isinstance(labels_specification_post, list):
-                        labels_specification_post = [labels_specification_post]
-                    for label_specification_post in labels_specification_post:
-                        labels_post.extend(
-                            self.scaffold.get_labels(label_specification_post)
-                        )
 
-                n_pre = len(labels_pre)
-                n_post = len(labels_post)
-                label_matrix = []
-
-                if n_pre * n_post != 0:
-                    for i in range(n_pre):
-                        if mixed:
-                            for j in range(n_post):
-                                label_matrix.append([labels_pre[i], labels_post[j]])
-                        else:
-                            label_matrix.append([labels_pre[i], labels_post[i]])
-                elif n_pre > 0:
-                    for i in range(n_pre):
-                        label_matrix.append([labels_pre[i], labels_post])
-                else:
-                    for j in range(n_post):
-                        label_matrix.append([labels_pre, labels_post[j]])
-
-                for label_pre, label_post in label_matrix:
-                    self.label_pre, self.label_post = label_pre, label_post
-                    self._set_cells(label_pre, label_post)
-                    connect()
-                    self.label_pre, self.label_post = None, None
-
-        # Replace the connect function of this instance with a wrapped version.
-        this.connect = types.MethodType(wrapped_connect, this)
-
-    def _set_cells(self, label_pre=None, label_post=None):
-        """
-        Sets the current relevant set of cells on the ConnectionStrategy object so
-        that they can be unused during the `connect` call. If any labels are given
-        then the total set of cells of the pre- and postsynaptic types are reduced to
-        only cells with that label.
-        """
-        self.from_cells = {}
-        self.to_cells = {}
-        types = ["from_cell", "to_cell"]
-        labels = {"from_cell": label_pre, "to_cell": label_post}
-        # Repeat the same steps for the presynaptic and postsynaptic cell types.
-        for t in types:
-            label = labels[t]
-            # Iterate over the from or to cell types.
-            for cell_type in self.__dict__[t + "_types"]:
-                # Get the cell matrix for the cell type.
-                cells = cell_type.get_cells()
-                if label:
-                    # Get all ids for the cell type.
-                    ids = list(cell_type.get_placement_set().identifiers)
-                    ids.sort()
-                    # Get the cells with the current label
-                    labelled = self.scaffold.get_labelled_ids(label).tolist()
-                    labelled.sort()
-                    # Get intersection between cells of this type and the labelled cells
-                    label_slice = compute_intersection_slice(ids, labelled)
-                    # Store the filtered cells under from_cells/to_cells
-                    self.__dict__[t + "s"][cell_type.name] = cells[label_slice]
-                else:
-                    # Don't filter by label and store the cells under from_cells/to_cells
-                    self.__dict__[t + "s"][cell_type.name] = cells
+@config.dynamic
+class ConnectionStrategy(abc.ABC, SortableByAfter):
+    name = config.attr(key=True)
+    presynaptic = config.attr(type=HemitypeNode, required=True)
+    postsynaptic = config.attr(type=HemitypeNode, required=True)
+    after = config.reflist(refs.connectivity_ref)
 
     @classmethod
     def get_ordered(cls, objects):
-        return objects.values()  # No sorting of connection types required.
+        # No need to sort connectivity strategies, just obey dependencies.
+        return objects
 
     def get_after(self):
-        return None if not self.has_after() else self.after
+        return [] if not self.has_after() else self.after
 
     def has_after(self):
         return hasattr(self, "after")
@@ -153,28 +56,55 @@ class ConnectionStrategy(ConfigurableClass, SortableByAfter):
     def create_after(self):
         self.after = []
 
-    def get_connection_matrices(self):
-        return [self.scaffold.cell_connections_by_tag[tag] for tag in self.tags]
-
-    def get_connectivity_sets(self):
-        return [ConnectivitySet(self.scaffold.output_formatter, tag) for tag in self.tags]
-
-
-class TouchingConvergenceDivergence(ConnectionStrategy):
-    casts = {"divergence": int, "convergence": int}
-
-    required = ["divergence", "convergence"]
-
-    def validate(self):
+    @abc.abstractmethod
+    def connect(self, presyn_collection, postsyn_collection):
         pass
 
-    def connect(self):
+    def _get_connect_args_from_job(self, chunk, roi):
+        pre = ConnectionCollection(self.scaffold, self.presynaptic.cell_types, roi)
+        post = ConnectionCollection(self.scaffold, self.postsynaptic.cell_types, [chunk])
+        return pre, post
+
+    def connect_cells(self, pre_set, post_set, src_locs, dest_locs, tag=None):
+        cs = self.scaffold.require_connectivity_set(
+            pre_set.cell_type, post_set.cell_type, tag
+        )
+        cs.muxed_append(pre_set, post_set, src_locs, dest_locs)
+
+    @abc.abstractmethod
+    def get_region_of_interest(self, chunk):
         pass
 
+    def queue(self, pool):
+        """
+        Specifies how to queue this connectivity strategy into a job pool. Can
+        be overridden, the default implementation asks each partition to chunk
+        itself and creates 1 placement job per chunk.
+        """
+        # Reset jobs that we own
+        self._queued_jobs = []
+        # Get the queued jobs of all the strategies we depend on.
+        deps = set(chain.from_iterable(strat._queued_jobs for strat in self.get_after()))
+        pre_types = self.presynaptic.cell_types
+        # Iterate over each chunk that is populated by our presynaptic cell types.
+        from_chunks = set(
+            chain.from_iterable(
+                ct.get_placement_set().get_all_chunks() for ct in pre_types
+            )
+        )
+        # For determining the ROI, it's more logical and often easier to determine where
+        # axons can go, then where they can come from, so we let them do that, and flip
+        # the results around to get our single-post-chunk, multi-pre-chunk ROI. We store
+        # "connections arriving on", not "connections going to" for each cell.
+        rois = {}
+        for chunk in from_chunks:
+            for to_chunk in self.get_region_of_interest(chunk):
+                rois.setdefault(to_chunk, []).append(chunk)
 
-class TouchConnect(ConnectionStrategy):
-    def validate(self):
-        pass
+        for chunk, roi in rois.items():
+            job = pool.queue_connectivity(self, chunk, roi, deps=deps)
+            self._queued_jobs.append(job)
+        report(f"Queued {len(self._queued_jobs)} jobs for {self.name}", level=2)
 
-    def connect(self):
-        pass
+    def get_cell_types(self):
+        return set(self.presynaptic.cell_types) | set(self.postsynaptic.cell_types)

@@ -2,7 +2,6 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from .networks import all_depth_first_branches, get_branch_points, reduce_branch
 import numpy as np, math, functools
-from .morphologies import Compartment
 from contextlib import contextmanager
 import random, types
 from .reporting import warn
@@ -214,7 +213,7 @@ def _plot_network(network, fig, cubic, swapaxes):
                 y=pos[:, 1 if not swapaxes else 2],
                 z=pos[:, 2 if not swapaxes else 1],
                 mode="markers",
-                marker=dict(color=color, size=type.placement.radius),
+                marker=dict(color=color, size=type.spatial.radius),
                 opacity=type.plotting.opacity,
                 name=type.plotting.label,
             )
@@ -282,7 +281,7 @@ def plot_detailed_network(
                 "We haven't implemented plotting different morphologies per cell type yet. Open an issue if you need it."
             )
         cells = network.get_placement_set(cell_type.name).cells
-        morpho = mr.get_morphology(m_names[0])
+        morpho = mr.load(m_names[0])
         for cell in cells:
             if ids is not None and cell.id not in ids:
                 continue
@@ -290,7 +289,7 @@ def plot_detailed_network(
                 morpho,
                 cell.position,
                 color=cell_type.plotting.color,
-                soma_radius=cell_type.placement.soma_radius,
+                soma_radius=cell_type.spatial.radius,
                 segment_radius=segment_radius,
             )
     ms.prepare_plot()

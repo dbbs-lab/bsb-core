@@ -1,54 +1,38 @@
 import abc, random, types
 import numpy as np
-from ..helpers import ConfigurableClass
 from ..reporting import report
 from ..exceptions import *
 from time import time
 import itertools
+from .. import plugins, config
+from .cell import CellModel
+from .connection import ConnectionModel
+from .device import DeviceModel
 
 
-class SimulatorAdapter(ConfigurableClass):
+class ProgressEvent:
+    def __init__(progression, duration, time):
+        self.progression = progression
+        self.duration = duration
+        self.time = time
+
+
+@config.pluggable(key="simulator", plugin_name="simulator adapter")
+class Simulation:
+    duration = config.attr(type=float, required=True)
+    cell_models = config.slot(type=CellModel, required=True)
+    connection_models = config.slot(type=ConnectionModel, required=True)
+    devices = config.slot(type=DeviceModel, required=True)
+
+    @classmethod
+    def __plugins__(cls):
+        if not hasattr(cls, "_plugins"):
+            cls._plugins = plugins.discover("adapters")
+        return {name: plugin.Simulation for name, plugin in cls._plugins.items()}
+
     def __init__(self):
-        super().__init__()
-        self.cell_models = {}
-        self.connection_models = {}
-        self.devices = {}
         self.entities = {}
         self._progress_listeners = []
-
-    def get_configuration_classes(self):
-        if not hasattr(self.__class__, "simulator_name"):
-            raise AttributeMissingError(
-                "The SimulatorAdapter {} is missing the class attribute 'simulator_name'".format(
-                    self.__class__
-                )
-            )
-        # Check for the 'configuration_classes' class attribute
-        if not hasattr(self.__class__, "configuration_classes"):
-            raise AdapterError(
-                "The '{}' adapter class needs to set the 'configuration_classes' class attribute to a dictionary of configurable classes (str or class).".format(
-                    self.simulator_name
-                )
-            )
-        classes = self.configuration_classes
-        keys = ["cell_models", "connection_models", "devices"]
-        # Check for the presence of required classes
-        for requirement in keys:
-            if requirement not in classes:
-                raise AdapterError(
-                    "{} adapter: The 'configuration_classes' dictionary requires a class under the '{}' key.".format(
-                        self.simulator_name, requirement
-                    )
-                )
-        # Test if they are all children of the ConfigurableClass class
-        for class_key in keys:
-            if not issubclass(classes[class_key], ConfigurableClass):
-                raise AdapterError(
-                    "{} adapter: The configuration class '{}' should inherit from ConfigurableClass".format(
-                        self.simulator_name, class_key
-                    )
-                )
-        return self.configuration_classes
 
     @abc.abstractmethod
     def prepare(self, hdf5, simulation_config):
@@ -72,6 +56,10 @@ class SimulatorAdapter(ConfigurableClass):
         Collect the output of a simulation that completed
         """
         pass
+
+    def progress(self, progression, duration):
+        report("Simulated {}/{}ms".format(progression, duration), level=3, ongoing=True)
+        progress = ProgressEvent(progression, duration, time())
 
     @abc.abstractmethod
     def get_rank(self):

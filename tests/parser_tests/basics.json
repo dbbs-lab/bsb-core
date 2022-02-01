@@ -1,0 +1,7 @@
+{
+  "hello": "world",
+  "list": [1, 2, 3, "waddup"],
+  "nest me hard": {
+    "oh yea": "just like that"
+  }
+}

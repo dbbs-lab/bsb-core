@@ -1,7 +1,7 @@
 import unittest, os, sys, numpy as np, h5py, importlib
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from bsb.config import JSONConfig
+sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
 from bsb.core import Scaffold
 from bsb.output import HDF5Formatter
 import bsb.helpers, test_setup
@@ -24,6 +24,7 @@ def neuron_installed():
     return importlib.util.find_spec("neuron")
 
 
+@unittest.skip("Re-enabling tests gradually while advancing v4.0 rework")
 @unittest.skipIf(not neuron_installed(), "NEURON is not importable.")
 class TestPostProcessing(unittest.TestCase):
     @classmethod

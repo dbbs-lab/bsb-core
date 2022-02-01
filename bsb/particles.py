@@ -107,8 +107,8 @@ class ParticleSystem:
         self.scaffold = scaffold
 
     def fill(self, voxels, particles):
-        # Amount of spatial dimensions, extracted from the dimensions of the first voxel
-        self.dimensions = len(voxels[0][0])
+        # Amount of spatial dimensions
+        self.dimensions = voxels.raw(copy=False).shape[1]
         # Extend list of particle types in the system
         self.particle_types.extend(particles)
         # Max particle type radius
@@ -117,7 +117,12 @@ class ParticleSystem:
         # Set initial radius for collision/rearrangement to 2 times the largest particle type radius
         self.search_radius = self.max_radius * 2
         # Create a list of voxels where the particles can be placed.
-        self.voxels.extend([ParticleVoxel(v[0], v[1]) for v in voxels])
+        self.voxels.extend(
+            ParticleVoxel(ldc, size)
+            for ldc, size in zip(
+                voxels.as_spatial_coords(copy=False), voxels.get_size_matrix(copy=False)
+            )
+        )
         # Reset particles
         self.particles = []
         for particle_type in self.particle_types:
@@ -256,12 +261,9 @@ class ParticleSystem:
                 neighbourhood_packing_factor < 0.5 and partner_packing_factor < 0.5
             )
             if expansions > 100:
-                print("ERROR! Unable to find suited neighbourhood around", epicenter)
-                exit()
-        # print("Neighbourhood of {} particles with radius {} and packing factor of {}. Found after {} expansions.".format(
-        #     len(neighbour_ids), neighbourhood_radius, partner_packing_factor, expansions
-        # ))
-        # print(len(partner_ids), "particles will be moved.")
+                raise Exception(
+                    f"ERROR! Unable to find suited neighbourhood around {epicenter}"
+                )
         return Neighbourhood(
             epicenter, neighbours, neighbourhood_radius, partners, partner_radius
         )
@@ -346,7 +348,7 @@ class ParticleSystem:
         pruned = self.remove_particles(out_of_bounds_ids)
         number_pruned = len(out_of_bounds_ids)
         tot_number_pruned = len(out_of_bounds_ids)
-        number_pruned_per_type = {}
+        number_pruned_per_type = {t["name"]: 0 for t in self.particle_types}
         if tot_number_pruned > 0:
             for t in unique_types:
                 number_pruned_per_type[t] = out_of_bounds_types.count(t)
@@ -400,13 +402,13 @@ def get_particles_trace(particles, dimensions=3, axes={"x": 0, "y": 1, "z": 2}, 
             x=list(map(lambda p: p.position[axes["x"]], particles)),
             y=list(map(lambda p: p.position[axes["y"]], particles)),
             z=list(map(lambda p: p.position[axes["z"]], particles)),
-            **trace_kwargs
+            **trace_kwargs,
         )
     elif dimensions == 2:
         return go.Scatter(
             x=list(map(lambda p: p.position[axes["x"]], particles)),
             y=list(map(lambda p: p.position[axes["y"]], particles)),
-            **trace_kwargs
+            **trace_kwargs,
         )
     elif dimensions == 1:
         return go.Scatter(
@@ -515,12 +517,10 @@ class AdaptiveNeighbourhood(ParticleSystem):
             )
             neighbourhood_ok = neighbourhood_packing_factor < 0.5
             if expansions > 100:
-                print("ERROR! Unable to find suited neighbourhood around", epicenter)
-                exit()
-        # print("Neighbourhood of {} particles with radius {} and packing factor of {}. Found after {} expansions.".format(
-        #     len(neighbour_ids), neighbourhood_radius, partner_packing_factor, expansions
-        # ))
-        # print(len(partner_ids), "particles will be moved.")
+                raise Exception(
+                    f"ERROR! Unable to find suited neighbourhood around {epicenter}"
+                )
+
         return Neighbourhood(
             epicenter, neighbours, neighbourhood_radius, partners, partner_radius
         )
@@ -555,8 +555,9 @@ class SmallestNeighbourhood(ParticleSystem):
                 neighbourhood_packing_factor < 0.5 and partner_packing_factor < 0.5
             )
             if expansions > 100:
-                print("ERROR! Unable to find suited neighbourhood around", epicenter)
-                exit()
+                raise Exception(
+                    f"ERROR! Unable to find suited neighbourhood around {epicenter}"
+                )
         # print("Neighbourhood of {} particles with radius {} and packing factor of {}. Found after {} expansions.".format(
         #     len(neighbour_ids), neighbourhood_radius, partner_packing_factor, expansions
         # ))

@@ -2,9 +2,8 @@
 import unittest, os, sys, numpy as np, h5py, test_setup
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
 from bsb.core import Scaffold, from_hdf5
-from bsb.config import JSONConfig
-from bsb.models import MorphologySet, PlacementSet
 from bsb.output import MorphologyRepository, MorphologyCache
 from bsb.morphologies import Morphology, Branch
 
@@ -18,6 +17,7 @@ config_file = relative_to_tests_folder(
 )
 
 
+@unittest.skip("Re-enabling tests gradually while advancing v4.0 rework")
 class TestMorphologyCache(unittest.TestCase):
     """
     Test the creation of a morphology cache with rotated versions of some basic morphologies
@@ -68,10 +68,8 @@ class TestMorphologyCache(unittest.TestCase):
     def test_equal_rotations(self):
         # Verify that for 0 0 rotations and 360 360 rotations, compartments are in the same position
         for m in self.morphologies_start:
-            morpho_0 = self.scaffold.morphology_repository.get_morphology(m + "__0_0")
-            morpho_360 = self.scaffold.morphology_repository.get_morphology(
-                m + "__360_360"
-            )
+            morpho_0 = self.scaffold.morphology_repository.load(m + "__0_0")
+            morpho_360 = self.scaffold.morphology_repository.load(m + "__360_360")
             comp_start_0 = ()
             comp_start_360 = ()
             comp_end_0 = ()
@@ -107,6 +105,7 @@ class TestMorphologyCache(unittest.TestCase):
         # Rz = []    step[0]
 
 
+@unittest.skip("Re-enabling tests gradually while advancing v4.0 rework")
 class TestMorhologySetsRotations(unittest.TestCase):
     """
     Test scaffold with cells associated to a certain rotated morphology
@@ -165,6 +164,7 @@ class TestMorhologySetsRotations(unittest.TestCase):
         )
 
 
+@unittest.skip("Re-enabling tests gradually while advancing v4.0 rework")
 class TestRotation(unittest.TestCase):
     """
     Test the validity of rotations

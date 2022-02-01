@@ -1,14 +1,14 @@
 from ..simulation import (
-    SimulatorAdapter,
+    Simulation,
     SimulationComponent,
-    SimulationCell,
-    TargetsNeurons,
+    CellModel,
+    NeuronTargetting,
 )
-from ..models import ConnectivitySet
-from ..helpers import ListEvalConfiguration, listify_input
 from ..reporting import report, warn
 from ..exceptions import *
-import time, os, json, weakref, numpy as np
+from .. import config
+from ..config import types, nodes as config_nodes
+import os, json, weakref, numpy as np
 from itertools import chain
 from copy import deepcopy
 from sklearn.neighbors import KDTree
@@ -58,43 +58,43 @@ class MapsScaffoldIdentifiers:
         return [self.scaffold_to_nest_map[id] for id in ids]
 
 
-class NestCell(SimulationCell, MapsScaffoldIdentifiers):
+def _merge_params(node, models, model_key, model_params):
+    # Take the default set of parameters
+    merger = node.parameters.copy()
+    # Merge the model specific parameters
+    merger.update(model_params)
+    # Place the merged dict back in the catch_all dictionary under the model key
+    models[model_key] = merger
 
-    node_name = "simulations.?.cell_models"
+
+def _unmerge_params(node, key):
+    to_remove = set(node.parameters)
+    return {k: v for k, v in node.model_parameters[key].items() if k not in to_remove}
+
+
+@config.node
+class NestCell(CellModel, MapsScaffoldIdentifiers):
+    neuron_model = config.attr(type=str)
+    relay = config.attr(default=False)
+    parameters = config.dict(type=types.any())
+    model_parameters = config.catch_all(
+        type=dict, catch=_merge_params, tree_cb=_unmerge_params
+    )
 
     def boot(self):
-        super().boot()
         self.receptor_specifications = {}
+        self.neuron_model = self.neuron_model or self.simulation.default_neuron_model
         self.reset()
         if self.relay:
-            # If a cell type is marked as a relay then the cell model should be a
-            # parameterless "parrot_neuron" model if no specifics are provided.
-            #
-            # Set the default relay model to "parrot_neuron"
-            if not hasattr(self, "neuron_model"):
-                self.neuron_model = "parrot_neuron"
-            # Set the default parameter dict to empty
-            if not hasattr(self, "parameters"):
-                self.parameters = {}
-            # Set the default relay model parameter dict to empty
-            if not hasattr(self, self.neuron_model):
-                self.__dict__[self.neuron_model] = {}
+            self.neuron_model = "parrot_neuron"
 
-        # The cell model contains a 'parameters' attribute and many sets of
-        # neuron model specific sets of parameters. Each set of neuron model
-        # specific parameters can define receptor specifications.
-        # Extract those if present to the designated receptor_specifications dict.
-        for neuron_model in self.__dict__:
-            model_parameters = self.__dict__[neuron_model]
-            # Iterate over the model specific parameter dicts with receptor
-            # specifications, excluding the default parameter dict.
-            if (
-                neuron_model != "parameters"
-                and isinstance(model_parameters, dict)
-                and "receptors" in model_parameters
-            ):
+        # Each cell model is loaded with a set of parameters for each nest model that can
+        # be used for it. We iterate over them and take out the `receptors` parameter to
+        # obtain this model's `receptor_specifications`
+        for model_name, model_parameters in self.model_parameters.items():
+            if "receptors" in model_parameters:
                 # Transfer the receptor specifications
-                self.receptor_specifications[neuron_model] = model_parameters["receptors"]
+                self.receptor_specifications[model_name] = model_parameters["receptors"]
                 del model_parameters["receptors"]
 
     def validate(self):
@@ -129,39 +129,43 @@ class NestCell(SimulationCell, MapsScaffoldIdentifiers):
             return {}
 
 
+@config.node
+class NestConnectionSettings:
+    rule = config.attr(type=str)
+    model = config.attr(type=str)
+    weight = config.attr(type=float, required=True)
+    delay = config.attr(type=types.distribution(), required=True)
+
+
+@config.node
+class NestSynapseSettings:
+    model_settings = config.catch_all(type=dict)
+
+
+@config.node
 class NestConnection(SimulationComponent):
-    node_name = "simulations.?.connection_models"
+    connection = config.attr(type=NestConnectionSettings, required=True)
+    synapse = config.attr(type=NestSynapseSettings, required=True)
+    synapse_model = config.attr(type=str)
+    plastic = config.attr(default=False)
+    hetero = config.attr(default=False)
+    teaching = config.attr(type=str)
+    is_teaching = config.attr(default=False)
 
-    casts = {"synapse": dict, "connection": dict}
-
-    required = ["synapse", "connection"]
-
-    defaults = {
-        "plastic": False,
-        "hetero": None,
-        "teaching": None,
-        "is_teaching": False,
-    }
+    def boot(self):
+        self.synapse_model = self.synapse_model or self.simulation.default_synapse_model
 
     def validate(self):
-        if "weight" not in self.connection:
-            raise ConfigurationError(
-                "Missing 'weight' in the connection parameters of "
-                + self.node_name
-                + "."
-                + self.name
-            )
         if self.plastic:
-            # Set plasticity synapse dict defaults
+            # Set plasticity synapse dict defaults for on each possible model
             synapse_defaults = {
                 "A_minus": 0.0,
                 "A_plus": 0.0,
                 "Wmin": 0.0,
                 "Wmax": 4000.0,
             }
-            for key, value in synapse_defaults.items():
-                if key not in self.synapse:
-                    self.synapse[key] = value
+            for key, model in self.synapse.model_settings.items():
+                self.synapse.model_settings[key] = synapse_defaults.update(model)
 
     def get_synapse_parameters(self, synapse_model_name):
         # Get the default synapse parameters
@@ -185,7 +189,7 @@ class NestConnection(SimulationComponent):
             if "Wmin" in params:
                 params["Wmin"] = np.abs(params["Wmin"])
             params["receptor_type"] = self.get_receptor_type()
-        params["model"] = self.adapter.suffixed(self.name)
+        params["model"] = self.simulation.suffixed(self.name)
         return params
 
     def _get_cell_types(self, key="from"):
@@ -215,7 +219,7 @@ class NestConnection(SimulationComponent):
                 "Specifying receptor types of connections consisiting of more than 1 cell type is currently undefined behaviour."
             )
         to_cell_type = to_cell_types[0]
-        to_cell_model = self.adapter.cell_models[to_cell_type.name]
+        to_cell_model = self.simulation.cell_models[to_cell_type.name]
         return to_cell_model.neuron_model in to_cell_model.receptor_specifications
 
     def get_receptor_type(self):
@@ -230,11 +234,11 @@ class NestConnection(SimulationComponent):
             )
         to_cell_type = to_cell_types[0]
         from_cell_type = from_cell_types[0]
-        to_cell_model = self.adapter.cell_models[to_cell_type.name]
-        if from_cell_type.name in self.adapter.cell_models.keys():
-            from_cell_model = self.adapter.cell_models[from_cell_type.name]
+        to_cell_model = self.simulation.cell_models[to_cell_type.name]
+        if from_cell_type.name in self.simulation.cell_models.keys():
+            from_cell_model = self.simulation.cell_models[from_cell_type.name]
         else:  # For neurons receiving from entities
-            from_cell_model = self.adapter.entities[from_cell_type.name]
+            from_cell_model = self.simulation.entities[from_cell_type.name]
         receptors = to_cell_model.get_receptor_specifications()
         if from_cell_model.name not in receptors:
             raise ReceptorSpecificationError(
@@ -245,19 +249,18 @@ class NestConnection(SimulationComponent):
         return receptors[from_cell_model.name]
 
 
-class NestDevice(TargetsNeurons, SimulationComponent):
-    node_name = "simulations.?.devices"
-
-    casts = {
-        "radius": float,
-        "origin": [float],
-        "parameters": dict,
-        "stimulus": ListEvalConfiguration.cast,
-    }
-
-    defaults = {"connection": {"rule": "all_to_all"}, "synapse": None}
-
-    required = ["targetting", "device", "io", "parameters"]
+@config.node
+class NestDevice(SimulationComponent):
+    name = config.attr(type=str, key=True)
+    device = config.attr(type=str, required=True)
+    parameters = config.dict(
+        type=types.or_(
+            types.evaluation(), types.number(), types.distribution(), types.any()
+        )
+    )
+    connection = config.attr(type=NestConnectionSettings)
+    targetting = config.attr(type=NeuronTargetting)
+    io = config.attr(type=types.in_(["input", "output"]))
 
     def validate(self):
         if self.io not in ("input", "output"):
@@ -274,8 +277,7 @@ class NestDevice(TargetsNeurons, SimulationComponent):
             )
             self.parameters[stimulus_name] = self.stimulus.eval()
 
-    def boot(self):
-        super().boot()
+    def __boot__(self):
         self.protocol = get_device_protocol(self)
 
     def get_nest_targets(self):
@@ -290,44 +292,28 @@ class NestEntity(NestDevice, MapsScaffoldIdentifiers):
     node_name = "simulations.?.entities"
 
     def boot(self):
-        super().boot()
         self.reset_identifiers()
 
 
-class NestAdapter(SimulatorAdapter):
+@config.node
+class NestSimulation(Simulation):
     """
     Interface between the scaffold model and the NEST simulator.
     """
 
     simulator_name = "nest"
 
-    configuration_classes = {
-        "cell_models": NestCell,
-        "connection_models": NestConnection,
-        "devices": NestDevice,
-        "entities": NestEntity,
-    }
+    cell_models = config.dict(type=NestCell, required=True)
+    connection_models = config.dict(type=NestConnection, required=True)
+    devices = config.dict(type=NestDevice, required=True)
+    modules = config.list(type=str)
+    threads = config.attr(type=types.int(min=1), default=1)
+    resolution = config.attr(type=types.float(min=0.0), default=1.0)
+    default_synapse_model = config.attr(type=str, default="static_synapse")
+    default_neuron_model = config.attr(type=str, default="iaf_cond_alpha")
+    verbosity = config.attr(type=str, default="M_ERROR")
 
-    casts = {"threads": int, "modules": list}
-
-    defaults = {
-        "default_synapse_model": "static_synapse",
-        "default_neuron_model": "iaf_cond_alpha",
-        "verbosity": "M_ERROR",
-        "threads": 1,
-        "resolution": 1.0,
-        "modules": [],
-    }
-
-    required = [
-        "default_neuron_model",
-        "default_synapse_model",
-        "duration",
-        "resolution",
-        "threads",
-    ]
-
-    @cached_property
+    @property
     def nest(self):
         report("Importing  NEST...", level=2)
         import nest
@@ -337,7 +323,6 @@ class NestAdapter(SimulatorAdapter):
         return self._nest
 
     def __init__(self):
-        super().__init__()
         self.result = SimulationResult()
         self.is_prepared = False
         self.suffix = ""
@@ -751,7 +736,7 @@ class NestAdapter(SimulatorAdapter):
         for connection_model in order:
             name = connection_model.name
             nest_name = self.suffixed(name)
-            cs = ConnectivitySet(self.scaffold.output_formatter, name)
+            cs = self.scaffold.get_connectivity_set(name)
             if not cs.exists():
                 warn(
                     'Expected connection dataset "{}" not found. Skipping it.'.format(
@@ -999,6 +984,10 @@ class NestAdapter(SimulatorAdapter):
         return str + "_" + self.suffix
 
 
+class NestAdapter:
+    Simulation = NestSimulation
+
+
 def catch_dict_error(message):
     def handler(e):
         attributes = list(
@@ -1046,7 +1035,7 @@ class SpikeRecorder(SimulationRecorder):
                 # if len(file_spikes):
                 if len(file_spikes.shape) > 1:
                     scaffold_ids = np.array(
-                        self.device_model.adapter.get_scaffold_ids(file_spikes[:, 0])
+                        self.device_model.simulation.get_scaffold_ids(file_spikes[:, 0])
                     )
                     self.cell_types = list(
                         set(
@@ -1111,7 +1100,7 @@ class SpikeDetectorProtocol(DeviceProtocol):
             self.device._orig_label = self.device.parameters["label"]
         self.device.parameters["label"] = self.device._orig_label + device_tag
         if mpi4py.MPI.COMM_WORLD.rank == 0:
-            self.device.adapter.result.add(SpikeRecorder(self.device))
+            self.device.simulation.result.add(SpikeRecorder(self.device))
 
 
 def get_device_protocol(device):
@@ -1121,3 +1110,7 @@ def get_device_protocol(device):
 
 
 _device_protocols = {"spike_detector": SpikeDetectorProtocol}
+
+
+# Register the NestAdapter as the entry point to this simulator plugin.
+__plugin__ = NestAdapter

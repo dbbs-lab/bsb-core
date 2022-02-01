@@ -1,6 +1,7 @@
 import unittest, os, sys, numpy as np, h5py, importlib
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
 from bsb.core import Scaffold
 from bsb.models import Layer, CellType
 from test_setup import get_test_network
@@ -14,9 +15,7 @@ _nest_available = importlib.util.find_spec("nest") is not None
 _using_morphologies = True
 
 
-@unittest.skipIf(
-    not _using_morphologies, "Morphologies are required for the connectivity tests."
-)
+@unittest.skip("Re-enabling tests gradually while advancing v4.0 rework")
 class TestConnectivity(unittest.TestCase):
     @classmethod
     def setUpClass(self):

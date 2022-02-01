@@ -1,12 +1,10 @@
 import numpy as np
 from ..strategy import ConnectionStrategy
-from .shared import MorphologyStrategy
-from ...helpers import (
-    DistributionConfiguration,
-    assert_attr_in,
-)
+from .shared import Intersectional
 from ...reporting import report, warn
 from random import sample as sample_elements
+from ... import config
+from ...config import types
 
 
 class TouchInformation:
@@ -19,46 +17,19 @@ class TouchInformation:
         self.to_cell_compartments = to_cell_compartments
 
 
-class TouchDetector(ConnectionStrategy, MorphologyStrategy):
+@config.node
+class TouchDetector(ConnectionStrategy, Intersectional):
     """
     Connectivity based on intersection of detailed morphologies
     """
 
-    casts = {
-        "compartment_intersection_radius": float,
-        "cell_intersection_radius": float,
-        "synapses": DistributionConfiguration.cast,
-        "allow_zero_synapses": bool,
-    }
-
-    defaults = {
-        "cell_intersection_plane": "xyz",
-        "compartment_intersection_plane": "xyz",
-        "compartment_intersection_radius": 5.0,
-        "synapses": DistributionConfiguration.cast(1),
-        "allow_zero_synapses": False,
-    }
-
-    required = [
-        "cell_intersection_plane",
-        "compartment_intersection_plane",
-        "compartment_intersection_radius",
-    ]
-
-    def validate(self):
-        planes = ["xyz", "xy", "xz", "yz", "x", "y", "z"]
-        assert_attr_in(
-            self.__dict__,
-            "cell_intersection_plane",
-            planes,
-            "connection_types.{}".format(self.name),
-        )
-        assert_attr_in(
-            self.__dict__,
-            "compartment_intersection_plane",
-            planes,
-            "connection_types.{}".format(self.name),
-        )
+    _planes = ["xyz", "xy", "xz", "yz", "x", "y", "z"]
+    compartment_intersection_radius = config.attr(type=float, default=5.0)
+    cell_intersection_radius = config.attr(type=float)
+    cell_intersection_plane = config.attr(type=types.in_(_planes), default="xyz")
+    compartment_intersection_plane = config.attr(type=types.in_(_planes), default="xyz")
+    contacts = config.attr(type=types.distribution(), default=1)
+    allow_zero_contacts = config.attr(type=bool, default=False)
 
     def connect(self):
         labels_pre = None if self.label_pre is None else [self.label_pre]

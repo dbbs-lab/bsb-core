@@ -1,0 +1,19 @@
+{
+  "get": {
+    "a": {
+      "secret": "key",
+      "nested secrets": {
+        "vim": "is hard",
+        "and": "convoluted"
+      }
+    }
+  },
+  "refs": {
+    "whats the": {
+      "$ref": "#/get/a"
+    },
+    "omitted_doc": {
+      "$ref": "/get/a"
+    }
+  }
+}
