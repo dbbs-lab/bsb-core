@@ -5,13 +5,13 @@ from ....simulation.results import (
     PresetPathMixin,
     PresetMetaMixin,
 )
-from ....simulation.device import PatternlessDevice
+from ....simulation.device import Patternless
 from ....exceptions import *
 from ....reporting import report, warn
 import numpy as np
 
 
-class Probe(PatternlessDevice, ArborDevice):
+class Probe(Patternless, ArborDevice):
     required = ["targetting", "probe_type"]
 
     def get_probe_name(self):
