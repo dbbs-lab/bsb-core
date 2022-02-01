@@ -283,6 +283,16 @@ class Storage:
         """
         return self._ConnectivitySet(self._engine, tag)
 
+    def require_connectivity_set(self, tag, pre=None, post=None):
+        """
+        Get a connection set.
+
+        :param tag: Connection tag
+        :type tag: str
+        :returns: :class:`~.storage.interfaces.ConnectivitySet`
+        """
+        return self._ConnectivitySet.require(self._engine, tag, pre, post)
+
     def get_connectivity_sets(self):
         """
         Return a ConnectivitySet for the given type.

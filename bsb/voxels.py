@@ -155,8 +155,13 @@ class VoxelSet:
             coords = coords.copy()
         return coords
 
-    def get_data(self, copy=True):
-        if self.has_data:
+    def get_data(self, index=None, /, copy=True):
+        if index is not None:
+            if self.has_data:
+                return self._voxel_data[index]
+            else:
+                return np.empty(len(self.raw(copy=False)[index]), dtype=object)
+        elif self.has_data:
             return np.array(self._voxel_data, copy=copy)
         else:
             return np.empty(len(self), dtype=object)

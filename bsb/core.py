@@ -95,7 +95,6 @@ class Scaffold:
         # create a default config and create a storage from it.
         if config is not None and storage is not None:
             self.storage = storage
-            storage.store_active_config(config)
         elif storage is not None:
             config = storage.load_active_config()
         else:
@@ -109,6 +108,7 @@ class Scaffold:
         self.storage = storage
         self.storage.init(self)
         self.configuration._bootstrap(self)
+        self.storage.store_active_config(config)
 
     def clear(self):
         """
@@ -246,10 +246,14 @@ class Scaffold:
 
         t = time.time()
         if not skip_placement:
+            placement_todo = ", ".join(s.name for s in p_strats)
+            report(f"Starting placement strategies: {placement_todo}", level=3)
             self.run_placement(p_strats)
         if not skip_after_placement:
             self.run_after_placement()
         if not skip_connectivity:
+            connectivity_todo = ", ".join(s.name for s in c_strats)
+            report(f"Starting connectivity strategies: {connectivity_todo}", level=3)
             self.run_connectivity(c_strats)
         if not skip_after_connectivity:
             self.run_after_connectivity()
@@ -420,7 +424,10 @@ class Scaffold:
         """
         return self.storage.get_connectivity_sets()
 
-    def get_connectivity_set(self, tag):
+    def require_connectivity_set(self, pre, post, tag=None):
+        return self.storage.require_connectivity_set(pre, post, tag)
+
+    def get_connectivity_set(self, tag=None, pre=None, post=None):
         """
         Return a connectivity set from the output formatter.
 
@@ -429,7 +436,26 @@ class Scaffold:
         :returns: A connectivity set
         :rtype: :class:`~.storage.interfaces.ConnectivitySet`
         """
-        return self.storage.get_connectivity_set(tag)
+        if tag is None:
+            try:
+                tag = f"{pre.name}_to_{post.name}"
+            except:
+                raise ValueError("Supply either `tag` or a valid pre and post cell type.")
+        cs = self.storage.get_connectivity_set(tag)
+        if pre and pre.name != cs._pre_name:
+            raise ValueError(
+                "Given and stored type mismatch:" + f" {pre.name} vs {cs._pre_name}"
+            )
+        if post and post.name != cs._post_name:
+            raise ValueError(
+                "Given and stored type mismatch:" + f" {post.name} vs {cs._post_name}"
+            )
+        try:
+            cs.pre = self.cell_types[cs._pre_name]
+            cs.post = self.cell_types[cs._post_name]
+        except KeyError as e:
+            raise NodeNotFoundError(f"Couldn't load {tag}, missing {e.args[0]}") from None
+        return cs
 
     def get_cell_types(self):
         """

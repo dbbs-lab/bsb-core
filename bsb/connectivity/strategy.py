@@ -1,6 +1,8 @@
 from .. import config
 from ..config import refs, types
 from ..helpers import SortableByAfter
+from ..reporting import report, warn
+from ..exceptions import *
 import abc
 from itertools import chain
 
@@ -64,8 +66,10 @@ class ConnectionStrategy(abc.ABC, SortableByAfter):
         return pre, post
 
     def connect_cells(self, pre_set, post_set, src_locs, dest_locs, tag=None):
-        tag = f"{pre_set.cell_type.name}_to_{post_set.cell_type.name}"
-        self.scaffold.get_connectivity_set()
+        cs = self.scaffold.require_connectivity_set(
+            pre_set.cell_type, post_set.cell_type, tag
+        )
+        cs.muxed_append(pre_set, post_set, src_locs, dest_locs)
 
     @abc.abstractmethod
     def get_region_of_interest(self, chunk):

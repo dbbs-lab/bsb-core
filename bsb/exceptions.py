@@ -150,3 +150,7 @@ class SimulationWarning(ScaffoldWarning):
 
 class KernelWarning(SimulationWarning):
     pass
+
+
+class CriticalDataWarning(ScaffoldWarning):
+    pass
