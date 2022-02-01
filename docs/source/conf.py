@@ -103,7 +103,7 @@ language = None
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = ["guides/labels.rst"]
+exclude_patterns = ["guides/labels.rst", "guides/blender.rst", "guides/layer.rst"]
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = None

@@ -137,9 +137,9 @@ def _parser_method_docs(parser):
         :param file: Path to a file to read the data from.
         :type file: str
         :param data: Data object to hand directly to the parser
-        :type data: any
+        :type data: Any
         :returns: A Configuration
-        :rtype: :class:`Configuration <.conf.Configuration>`
+        :rtype: :class:`~.config.Configuration`
     """
     )
 

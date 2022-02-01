@@ -28,14 +28,6 @@ bsb.storage.engines.hdf5.file\_store module
    :undoc-members:
    :show-inheritance:
 
-bsb.storage.engines.hdf5.label module
--------------------------------------
-
-.. automodule:: bsb.storage.engines.hdf5.label
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 bsb.storage.engines.hdf5.morphology\_repository module
 ------------------------------------------------------
 

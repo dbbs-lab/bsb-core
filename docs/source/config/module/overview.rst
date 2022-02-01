@@ -8,7 +8,7 @@ Role in the scaffold
 
 Configuration plays a key role in the scaffold builder. It is the main mechanism to
 describe a model. A scaffold model can be initialized from a Configuration object, either
-from a standalone file or provided by the :doc:`Storage </storage/overview>`. In both
+from a standalone file or provided by the :class:`~.storage.Storage`. In both
 cases the raw configuration string is parsed into a Python tree of dictionaries and lists.
 This configuration tree is then passed to the Configuration class for :ref:`casting
 <configuration-casting>`. How a tree is to be cast into a Configuration object can be
@@ -35,8 +35,8 @@ units:
 
   If a list or dictionary contains regular values instead of other configuration units,
   the :func:`types.list <.config.types.list>` and :func:`types.dict
-  <.config.types.dict>` are used instead of the :func:`conf.list <.config.list>` and
-  :func:`conf.dict <.config.dict>`.
+  <.config.types.dict>` are used instead of the :func:`config.list <.config.list>` and
+  :func:`config.dict <.config.dict>`.
 
 Configuration nodes
 ===================
@@ -301,7 +301,7 @@ from which the reference value can be retrieved.
     return root.locations
 
 This reference object would create the link seen in the first reference example. For more
-advanced uses of the reference object see :doc:`/config/module/ref`.
+advanced uses of the reference object see :doc:`/config/module/refs`.
 
 Reference lists
 ---------------

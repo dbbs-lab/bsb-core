@@ -31,7 +31,7 @@ class Scaffold:
 
     This is the main object of the bsb package, it represents a network and puts together
     all the pieces that make up the model description such as the
-    :class:`~.configuration.Configuration` with the technical side like the
+    :class:`~.config.Configuration` with the technical side like the
     :class:`~.storage.Storage`.
     """
 
@@ -41,14 +41,14 @@ class Scaffold:
 
         :param config: The configuration to use for this network. If it is omitted the
           :ref:`default configuration <default-config>` is used.
-        :type config: :class:`.config.Configuration`
+        :type config: :class:`~.config.Configuration`
         :param storage: The storage to use to read and write data for this network. If it
           is omitted the configuration's ``Storage`` node is used to construct one.
-        :type storage: :class:`.storage.Storage`
+        :type storage: :class:`~.storage.Storage`
         :param clear: Start with a new network, clearing any previously stored information
         :type clear: bool
         :returns: A network object
-        :rtype: :class:`.core.Scaffold`
+        :rtype: :class:`~.core.Scaffold`
         """
         self._initialise_MPI()
         self._bootstrap(config, storage)
@@ -103,6 +103,14 @@ class Scaffold:
         self.storage.init(self)
         self.configuration._bootstrap(self)
         self.storage.store_active_config(config)
+
+    @property
+    def morphologies(self):
+        return self.storage.morphologies
+
+    @property
+    def files(self):
+        return self.storage.files
 
     def clear(self):
         """
@@ -480,7 +488,7 @@ class Scaffold:
         Store labels for the given cells. Labels can be used to identify subsets of cells.
 
         :param ids: global identifiers of the cells that need to be labelled.
-        :type ids: iter
+        :type ids: Iterable
         """
         raise NotImplementedError("Label interface is RIP, revisit")
         self.storage.Label(label).label(ids)

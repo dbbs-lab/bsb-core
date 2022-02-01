@@ -3,7 +3,7 @@ Placement sets
 ##############
 
 :class:`PlacementSets <.storage.interfaces.PlacementSet>` are constructed from the
-:doc:`/guides/output` and can be used to retrieve lists of identifiers, positions,
+:class:`~.storage.Storage` and can be used to retrieve lists of identifiers, positions,
 morphologies, rotations and additional datasets.
 
 .. warning::

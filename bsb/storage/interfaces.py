@@ -54,6 +54,10 @@ class NetworkDescription(Interface):
 
 
 class FileStore(Interface, engine_key="files"):
+    """
+    Interface for the storage and retrieval of files essential to the network description.
+    """
+
     @abc.abstractmethod
     def store(self, content, id=None, meta=None):
         pass
@@ -225,6 +229,10 @@ class MorphologyRepository(Interface, engine_key="morphologies"):
     def load(self, selector):
         pass
 
+    @abc.abstractmethod
+    def get_meta(self, name):
+        pass
+
     def import_swc(self, file, name, overwrite=False):
         """
         Import and store .swc file contents as a morphology in the repository.
@@ -356,29 +364,6 @@ class ConnectivitySet(Interface):
 
     @abc.abstractclassmethod
     def get_tags(cls, engine):
-        pass
-
-
-class Label(Interface):
-    @abc.abstractmethod
-    def label(self, identifiers):
-        pass
-
-    @abc.abstractmethod
-    def unlabel(self, identifiers):
-        pass
-
-    @abc.abstractmethod
-    def store(self, identifiers):
-        pass
-
-    @property
-    @abc.abstractmethod
-    def cells(self):
-        pass
-
-    @abc.abstractmethod
-    def list(self):
         pass
 
 

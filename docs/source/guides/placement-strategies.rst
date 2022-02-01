@@ -24,13 +24,14 @@ Configuration
 ParallelArrayPlacement
 **********************
 
-*Class*: :class:`.placement.ParallelArrayPlacement`
+*Class*: :class:`bsb.placement.ParallelArrayPlacement
+<.placement.arrays.ParallelArrayPlacement>`
 
 **************
 FixedPositions
 **************
 
-*Class*: :class:`.placement.FixedPositions`
+*Class*: :class:`bsb.placement.FixedPositions <~.placement.strategy.FixedPositions>`
 
 This class places the cells in fixed positions specified in the attribute ``positions``.
 

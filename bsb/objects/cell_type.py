@@ -8,6 +8,7 @@ from ..placement import PlacementStrategy
 from ..placement.indicator import PlacementIndications
 from ..helpers import SortableByAfter
 from ..exceptions import *
+import abc
 
 
 @config.dynamic(
@@ -16,13 +17,14 @@ from ..exceptions import *
     required=False,
     default="by_name",
 )
-class MorphologySelector:
-    def __init_subclass__(cls, **kwargs):
-        super().__init_subclass__(**kwargs)
-        if cls is MorphologySelector:
-            return
-        if not hasattr(cls, "pick"):
-            raise RuntimeError("MorphologySelectors must define a `pick` method.")
+class MorphologySelector(abc.ABC):
+    @abc.abstractmethod
+    def validate(self, all_morphos):
+        pass
+
+    @abc.abstractmethod
+    def pick(self, morphology):
+        pass
 
 
 @config.node

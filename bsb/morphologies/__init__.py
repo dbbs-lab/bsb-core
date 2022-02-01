@@ -230,10 +230,10 @@ class SubTree:
 
         :param vectors: List of vectors to return such as ['x', 'y', 'z'] to get the
           positional vectors.
-        :type vectors: list of str
+        :type vectors: list[str]
         :returns: Tuple of the vectors in the given order, if `matrix` is True a
           matrix composed of the vectors is returned instead.
-        :rtype: tuple of ndarrays (`matrix=False`) or matrix (`matrix=True`)
+        :rtype: Union[Tuple[numpy.ndarray],numpy.ndarray]
         """
         if vectors is None:
             vectors = Branch.vectors
@@ -441,8 +441,8 @@ class Branch:
 
     def label_all(self, *labels):
         """
-        Add labels to every point on the branch. See :func:`label_points
-        <.morphologies.Morphology.label_points>` to label individual points.
+        Add labels to every point on the branch. See
+        :meth:`~.morphologies.Branch.label_points` to label individual points.
 
         :param labels: Label(s) for the branch.
         :type labels: str
@@ -451,8 +451,8 @@ class Branch:
 
     def label_points(self, label, mask, join=operator.or_):
         """
-        Add labels to specific points on the branch. See :func:`label
-        <.morphologies.Morphology.label>` to label the entire branch.
+        Add labels to specific points on the branch. See
+        :meth:`~.morphologies.Branch.label_all` to label the entire branch.
 
         :param label: Label to apply to the points.
         :type label: str
@@ -461,7 +461,7 @@ class Branch:
         :type mask: numpy.ndarray[bool]
         :param join: If the label already existed, this determines how the existing and
           new masks are joined together. Defaults to ``|`` (``operator.or_``).
-        :type join: function
+        :type join: Callable
         """
         mask = np.array(mask, dtype=bool)
         if label in self._label_masks:
@@ -534,7 +534,7 @@ class Branch:
 
         :param label: The label to check for.
         :type label: str
-        :rtype: boolean
+        :rtype: bool
         """
         return label in self._full_labels
 
@@ -549,7 +549,7 @@ class Branch:
 
         :param labels: The labels to check for.
         :type labels: list
-        :rtype: boolean
+        :rtype: bool
         """
         return any(self.has_label(l) for l in labels)
 
@@ -560,7 +560,7 @@ class Branch:
         :param label: The label to check for.
         :type label: str
         :returns: All points with the label.
-        :rtype: List[np.ndarray]
+        :rtype: List[numpy.ndarray]
         """
 
         point_label_iter = zip(self.walk(), self.label_walk())

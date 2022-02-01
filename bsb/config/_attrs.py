@@ -176,11 +176,11 @@ def attr(**kwargs):
     or  :func:`pluggable <.config.pluggable>` decorators.
 
     :param type: Type of the attribute's value.
-    :type type: callable
+    :type type: Callable
     :param required: Should an error be thrown if the attribute is not present?
     :type required: bool
     :param default: Default value.
-    :type default: any
+    :type default: Any
     :param call_default: Should the default value be used (False) or called (True).
       Useful for default values that should not be shared among objects.
     :type call_default: bool

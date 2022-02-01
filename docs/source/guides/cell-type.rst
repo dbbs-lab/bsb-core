@@ -11,9 +11,9 @@ Configuration
 
 In the root node of the configuration file the ``cell_types`` dictionary configures all
 the cell types. The key in the dictionary will become the cell type name. Each entry
-should contain a correct configuration for a :class:`.placement.PlacementStrategy` and
-:class:`.morphologies.Morphology` under the ``placement`` and ``morphology`` attributes
-respectively.
+should contain a correct configuration for a
+:class:`~.placement.strategy.PlacementStrategy` and :class:`.morphologies.Morphology`
+under the ``placement`` and ``morphology`` attributes respectively.
 
 Optionally a ``plotting`` dictionary can be provided when the scaffold's plotting
 functions are used.
@@ -25,12 +25,12 @@ Basic usage
 
 * ``class``: the importable name of the placement strategy class. 3 built-in
   implementations of the placement strategy are available:
-  :class:`~.placement.ParticlePlacement`,
-  :class:`~.placement.ParallelArrayPlacement` and
-  :class:`~.placement.Satellite`
+  :class:`~.placement.particle.ParticlePlacement`,
+  :class:`~.placement.arrays.ParallelArrayPlacement` and
+  :class:`~.placement.satellite.Satellite`
 * ``layer``: The topological layer in which this cell type appears.
 * ``soma_radius``: Radius of the cell soma in µm.
-* ``density``: Cell density, see :ref:`specifying_cell_count` for more possibilities.
+* ``density``: Cell density.
 
 2. Select one of the morphologies that suits your cell type and configure its required
 attributes. Inside of the morphology attribute, a ``detailed_morphologies`` attribute

@@ -358,8 +358,9 @@ class QuiverTransform(FiberTransform):
         compartment[n+1].end = compartment[n+1].start + cross_prod * length_comp
 
         :param branch: a branch of the current fiber to be transformed
-        :type branch: Branch object
+        :type branch: :~class:`.morphologies.Branch`
         :returns: a transformed branch
+        :rtype: :~class:`.morphologies.Branch`
 
         """
         orientation_data = self.quivers

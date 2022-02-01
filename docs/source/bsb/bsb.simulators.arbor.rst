@@ -17,7 +17,6 @@ bsb.simulators.arbor.adapter module
 
 .. automodule:: bsb.simulators.arbor.adapter
    :members:
-   :undoc-members:
    :show-inheritance:
 
 Module contents

@@ -49,7 +49,7 @@ def after(hook, cls, essential=False):
     :param hook: Name of the method to hook.
     :type hook: str
     :param cls: Class to hook.
-    :type cls: class
+    :type cls: type
     :param essential: If the hook is essential, it will always be executed even in child classes that override the hook. Essential hooks are only lost if the method on ``cls`` is replaced.
     :type essential: bool
     """
@@ -63,7 +63,7 @@ def before(hook, cls, essential=False):
     :param hook: Name of the method to hook.
     :type hook: str
     :param cls: Class to hook.
-    :type cls: class
+    :type cls: type
     :param essential: If the hook is essential, it will always be executed even in child classes that override the hook. Essential hooks are only lost if the method on ``cls`` is replaced.
     :type essential: bool
     """

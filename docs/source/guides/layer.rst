@@ -1,3 +1,10 @@
+
+!!!!!!!!!  CURRENTLY IN EXCLUDEPATTERNS  !!!!!!!!!
+!!   This file is ignored while we restructure  !!
+!!             the documentation                !!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
 ######
 Layers
 ######

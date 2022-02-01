@@ -77,14 +77,6 @@ bsb.particles module
    :undoc-members:
    :show-inheritance:
 
-bsb.plotting module
--------------------
-
-.. automodule:: bsb.plotting
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 bsb.plugins module
 ------------------
 
