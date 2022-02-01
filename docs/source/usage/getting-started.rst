@@ -4,7 +4,7 @@ Getting Started
 
 This guide aims to get your first model running with the bare minimum steps. If you'd like
 to familiarize yourself with the core concepts and get a more top level understanding
-first, check out the :doc:`top-level-guide` before you continue.
+first, check out the :doc:`./top-level-guide` before you continue.
 
 There are 2 ways of building models using the Brain Scaffold Builder (BSB), the first is
 through **configuration**, the second is **scripting**. The 2 methods complement each
@@ -133,13 +133,12 @@ Next we can start defining cell types and how to place them in said partition:
     }
   }
 
-Cell types define how to represent cells in space (as points, morphologies,
-ROIs, ...). The ``placement`` nodes can then use this information to place cell
-type(s) into partition(s) using a ``PlacementStrategy`` class, either one
-provided out of the box by the BSB or your own (see
-:doc:`/guides/placement-strategies`). The :class:`.placement.ParticlePlacement`
-just considers the cells as somas and bumps them around as repelling particles
-until there is no overlap between the somas.
+Cell types define how to represent cells in space (as points, morphologies, ROIs, ...).
+The ``placement`` nodes can then use this information to place cell type(s) into
+partition(s) using a :class:`~bsb.placement.strategy.PlacementStrategy` class, either one
+provided out of the box by the BSB or your own (see :doc:`/guides/placement-strategies`).
+The :class:`~bsb.placement.particle.ParticlePlacement` just considers the cells as somas
+and bumps them around as repelling particles until there is no overlap between the somas.
 
 At this point we can repeat the CLI command with the plotting flag ``-p`` to
 look at the result:

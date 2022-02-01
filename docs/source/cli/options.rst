@@ -1,21 +1,21 @@
-############
+#######
 Options
-############
+#######
 
 The command line interface uses options to specify global settings or command specific
 settings. Options can be set using environment variables, the CLI command and/or through
 the ``bsb.options`` module, listed here in ascending order of priority. Custom options can
 be registered through the ``bsb.options`` entry point or directly using either
-:func:`bsb.options.register_module_option` or :func:`bsb.option.BsbOption.register`.
+:func:`.options.register_module_option` or :func:`.option.BsbOption.register`.
 
 .. note::
 
   Add your custom options to the ``bsb.options`` entry point to have it detected by CLI
   commands.
 
-=========================
+========================
 Writing your own options
-=========================
+========================
 
 You can create your own options by defining a class that inherits from :class:
 

@@ -64,6 +64,9 @@ class OptionsModule(types.ModuleType):
         return discover("options")
 
     def register_module_option(self, tag, option):
+        """
+        Register an option as a global BSB option
+        """
         global _options
 
         if tag in _options:

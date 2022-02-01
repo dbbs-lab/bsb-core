@@ -11,6 +11,7 @@ The Brain Scaffold Builder
    :caption: Getting Started
 
    usage/installation
+   usage/top-level-guide
    usage/getting-started
    usage/cli
 
@@ -52,6 +53,12 @@ The Brain Scaffold Builder
    bsb/modules
    genindex
    py-modindex
+
+.. toctree::
+  :maxdepth: 2
+  :caption: User Guides
+  
+  guides
 
 .. toctree::
   :maxdepth: 2
