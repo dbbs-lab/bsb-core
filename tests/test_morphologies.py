@@ -2,8 +2,8 @@ import unittest, os, sys, numpy as np, h5py
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
-import bsb.output, test_setup
 from bsb.morphologies import Morphology, Branch
+from bsb.storage.engines.hdf5 import morphology_repository as _mr_module
 from bsb.exceptions import *
 
 
@@ -17,7 +17,7 @@ class TestRepositories(unittest.TestCase):
             g = f.create_group("morphologies")
             g = g.create_group("M")
             g.create_group("branches")
-            m = bsb.output._morphology(g)
+            m = _mr_module._morphology(g)
         msg = "Empty morfo should not have root branches"
         self.assertEqual(0, len(m.roots), msg)
         msg = "Empty morfo should not have branches"
@@ -42,11 +42,11 @@ class TestRepositories(unittest.TestCase):
             b0.create_dataset("x", data=[])
             b0.create_group("labels")
             with self.assertRaises(MorphologyDataError):
-                m = bsb.output._morphology(g)
+                m = _mr_module._morphology(g)
             b0.create_dataset("y", data=[])
             b0.create_dataset("z", data=[])
             b0.create_dataset("radii", data=[])
-            m = bsb.output._morphology(g)
+            m = _mr_module._morphology(g)
             msg = "Empty unattached branches should still be root."
             self.assertEqual(1, len(m.roots), msg)
             self.assertEqual(1, len(m.branches), "Missing branch")
@@ -73,7 +73,7 @@ class TestRepositories(unittest.TestCase):
             b0.create_dataset("y", data=[1])
             b0.create_dataset("z", data=[1])
             b0.create_dataset("radii", data=[1])
-            m = bsb.output._morphology(g)
+            m = _mr_module._morphology(g)
             msg = "Single point unattached branches should still be root."
             self.assertEqual(1, len(m.roots), msg)
             self.assertEqual(1, len(m.branches), "Missing branch")
@@ -102,7 +102,7 @@ class TestRepositories(unittest.TestCase):
                 b0.create_dataset("y", data=[i * 2])
                 b0.create_dataset("z", data=[i * 2])
                 b0.create_dataset("radii", data=[i * 2])
-            m = bsb.output._morphology(g)
+            m = _mr_module._morphology(g)
             msg = "Single point unattached branches should still be root."
             self.assertEqual(5, len(m.roots), msg)
             self.assertEqual(5, len(m.branches), "Missing branch")
@@ -137,7 +137,7 @@ class TestRepositories(unittest.TestCase):
                 b0.create_dataset("z", data=[i * 2])
                 b0.create_dataset("radii", data=[i * 2])
             b["4"].attrs["parent"] = 0
-            m = bsb.output._morphology(g)
+            m = _mr_module._morphology(g)
             msg = "1 out of 5 branches was attached, 4 roots expected."
             self.assertEqual(4, len(m.roots), msg)
             self.assertEqual(5, len(m.branches), "Missing branch")
@@ -173,7 +173,7 @@ class TestRepositories(unittest.TestCase):
                 b0.create_dataset("z", data=[])
                 b0.create_dataset("radii", data=[])
                 b0.create_group("labels")
-            m = bsb.output._morphology(g)
+            m = _mr_module._morphology(g)
             msg = "Empty unattached branches should still be root."
             self.assertEqual(5, len(m.roots), msg)
             msg = "Missing branch"
@@ -219,7 +219,7 @@ class TestRepositories(unittest.TestCase):
         branch.label_points("A", [False, True] + [False] * (v - 2))
         branch.label_all("B")
         m = Morphology([branch])
-        mr = bsb.output.MorphologyRepository("tmp.h5")
+        mr = _mr_module.MorphologyRepository("tmp.h5")
         mr.get_handle("w")
         mr.save("test", m)
         m_loaded = mr.load("test")
@@ -237,8 +237,8 @@ class TestMorphologies(unittest.TestCase):
         super().setUpClass()
 
     def test_int_ordered_iter(self):
-        unit = bsb.output._is_invalid_order
-        unit2 = bsb.output._int_ordered_iter
+        unit = _mr_module._is_invalid_order
+        unit2 = _mr_module._int_ordered_iter
         # Check sequence
         self.assertFalse(unit([]))
         self.assertFalse(unit([0]))
@@ -298,9 +298,6 @@ class TestMorphologies(unittest.TestCase):
             np.array([0, 1, 2]),
         )
         self.assertEqual(3, branch.size, "Incorrect branch size")
-        comps = branch.to_compartments()
-        self.assertTrue(np.array_equal(comps[0].midpoint, [0.5, 0.5, 0.5]))
-        self.assertEqual(comps[0].spherical, np.sqrt(3) / 2)
         self.assertTrue(branch.is_terminal)
         branch.attach_child(Branch(*(np.ones(0) for i in range(len(Branch.vectors)))))
         self.assertFalse(branch.is_terminal)
@@ -333,36 +330,3 @@ class TestMorphologyLabels(unittest.TestCase):
         self.assertEqual(
             [["B"], ["B", "A"]] + [["B"]] * (v - 2), list(map(list, branch.label_walk()))
         )
-
-
-class TestLegacy(unittest.TestCase):
-    def test_legacy_runs_without_errors(self):
-        import random
-
-        # The old compartment based system should still run without errors
-        v = len(Branch.vectors)
-        root = Branch(*(np.ones(v) for i in range(v)))
-        branches = [root]
-        for _ in range(20):
-            branch = Branch(*(np.ones(v) for i in range(v)))
-            branch.label_all(random.choice(["A", "B", "C"]))
-            random.choice(branches).attach_child(branch)
-            branches.append(branch)
-        m = Morphology([root])
-        # Call all of the legacy functions
-        m.update_compartment_tree()
-        m.voxelize(1)
-        # Too complex to give correct input and already covered by other tests
-        # m.create_compartment_map()
-        m.get_bounding_box()
-        m.get_search_radius()
-        m.get_compartment_network()
-        m.get_compartment_positions()
-        m.get_compartment_positions(labels=["A"])
-        m.get_compartment_tree()
-        m.get_compartment_tree(labels=["B"])
-        m.get_compartment_submask(["C"])
-        m.get_compartments()
-        m.get_compartments(labels=["A"])
-        m.get_branches()
-        m.get_branches(labels=["B"])

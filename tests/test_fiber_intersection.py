@@ -3,8 +3,7 @@ import unittest, os, sys, numpy as np, h5py, importlib
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
 from bsb.core import Scaffold
-from bsb.models import Layer, CellType, ConnectivitySet
-from bsb.output import MorphologyRepository
+from bsb.config import from_json
 import test_setup
 
 
@@ -22,10 +21,9 @@ class TestFiberIntersection(unittest.TestCase):
     def setUpClass(self):
         super(TestFiberIntersection, self).setUpClass()
         # Make sure the MR exists
-        test_setup.prep_morphologies()
         # The scaffold has only the Granular layer (100x100x150) with 20 GrCs
         # and 1 GoC placed, as specified in the config file
-        self.config = JSONConfig(file=fiber_transform_config)
+        self.config = cfg = from_json(fiber_transform_config)
         # Defining quivers field to include also voxels outside the scaffold
         # volume
         self.quivers_field = np.zeros(
@@ -36,15 +34,11 @@ class TestFiberIntersection(unittest.TestCase):
         self.quivers_field[0, :] = basic_quiver[0]
         self.quivers_field[1, :] = basic_quiver[1]
         self.quivers_field[2, :] = basic_quiver[2]
-        self.config.connection_types[
-            "parallel_fiber_to_golgi_bended"
-        ].transformation.quivers = self.quivers_field
-        self.config.connection_types[
-            "parallel_fiber_to_golgi_bended"
-        ].transformation.vol_start = [-500.0, -500.0, -500.0]
+        transform = cfg.connection_types.parallel_fiber_to_golgi_bended.transformation
+        transform.quivers = self.quivers_field
+        transform.vol_start = [-500.0, -500.0, -500.0]
         self.scaffold = Scaffold(self.config)
-        self.scaffold.morphology_repository = MorphologyRepository(morpho_file)
-        self.scaffold.compile_network()
+        self.scaffold.compile()
 
     def test_fiber_connections(self):
         pre_type = "granule_cell"
@@ -81,11 +75,10 @@ class TestFiberIntersection(unittest.TestCase):
         self.quivers_field[0, :] = basic_quiver[0]
         self.quivers_field[1, :] = basic_quiver[1]
         self.quivers_field[2, :] = basic_quiver[2]
-        self.config.connection_types[
-            "parallel_fiber_to_golgi_bended"
-        ].transformation.quivers = self.quivers_field
+        bended = self.config.connection_types.parallel_fiber_to_golgi_bended
+        bended.transformation.quivers = self.quivers_field
         self.scaffold = Scaffold(self.config)
-        self.scaffold.compile_network()
+        self.scaffold.compile()
         cs_transform = self.scaffold.get_connectivity_set(conn_type_transform)
         self.assertTrue(len(cs_transform.connections) <= num_conn)
 

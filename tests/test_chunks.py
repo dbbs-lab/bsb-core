@@ -6,7 +6,6 @@ from bsb.core import Scaffold
 from bsb.config import from_json
 from bsb.storage import Chunk
 from bsb.exceptions import *
-from bsb.models import Layer, CellType
 from test_setup import get_config, skip_parallel, timeout
 
 
@@ -38,7 +37,7 @@ class TestChunks(unittest.TestCase):
         cfg = from_json(get_config("test_single"))
         self.network = network = Scaffold(cfg, clear=True)
         self.ps = ps = network.get_placement_set("test_cell")
-        ps.load_chunk((0, 0, 0))
+        ps.load_chunk(Chunk((0, 0, 0), (100, 100, 100)))
         pos = ps.load_positions()
         self.assertEqual(0, len(pos), "Cell pos found before cell placement. Cleared?")
         p = network.placement.test_placement

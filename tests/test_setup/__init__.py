@@ -385,32 +385,6 @@ def _create_test_network(*dimensions):
         scaffold.compile_network()
 
 
-def prep_morphologies():
-    if not os.path.exists(mr_path):
-        from bsb.output import MorphologyRepository as MR
-        import dbbs_models
-
-        mr = MR(mr_path)
-        mr.import_arbz_module(dbbs_models)
-        import shutil
-
-        shutil.copyfile(mr_path, mr_top_path)
-
-
-def prep_rotations():
-    if not os.path.exists(mr_rot_path):
-        from bsb.output import MorphologyRepository, MorphologyCache
-        import dbbs_models
-
-        mr = MorphologyRepository(mr_rot_path)
-        mr.get_handle("w")
-        mr.import_arbz("GranuleCell", dbbs_models.GranuleCell)
-        mr.import_arbz("GolgiCell", dbbs_models.GolgiCell)
-        mr.import_arbz("GolgiCell_A", dbbs_models.GolgiCell)
-        mc = MorphologyCache(mr)
-        mc.rotate_all_morphologies(rotations_step[0], rotations_step[1])
-
-
 def get_config(file):
     return os.path.abspath(
         os.path.join(
