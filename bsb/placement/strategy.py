@@ -29,9 +29,6 @@ class RandomMorphologies(MorphologyDistributor, classmap_entry="random"):
     Distributes morphologies and rotations for a given set of placement indications and
     placed cell positions.
 
-    Config
-    ------
-
     If omitted in the configuration the default ``random`` distributor is used that
     assigns selected morphologies randomly without rotating them.
 
