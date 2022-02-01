@@ -16,3 +16,4 @@ psutil==5.8.0
 coverage==5.4
 zwembad==1.2.0
 mpilock==1.1.0
+pynrrd==0.4.2
