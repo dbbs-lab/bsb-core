@@ -561,12 +561,20 @@ def in_classmap():
     """
 
     def type_handler(value, _parent, _key=None):
+        class_name = _parent.__class__.__name__
         if not hasattr(_parent.__class__, "_config_dynamic_classmap"):
             raise ClassMapMissingError(
-                "Class map missing for '{}'".format(_parent.__class__.__name__)
+                f"Class map missing for `{class_name}`,"
+                + " required when using `in_classmap` type handler."
             )
-
-        return value in _parent.__class__._config_dynamic_classmap
+        classmap = _parent.__class__._config_dynamic_classmap
+        if value not in classmap:
+            classmap_str = ", ".join(f"'{key}'" for key in classmap)
+            raise TypeError(
+                f"'{value}' is not a valid classmap identifier for `{class_name}`."
+                + f" Choose from: {classmap_str}"
+            )
+        return value
 
     type_handler.__name__ = "a classmap value"
     return type_handler
