@@ -70,6 +70,15 @@ _t(
                 ReceptorSpecificationError=_e(),
             ),
             ParallelIntegrityError=_e("rank"),
+            ArborError=_e(),
+        ),
+        ConnectivityError=_e(
+            ExternalSourceError=_e(
+                MissingSourceError=_e(),
+                IncompleteExternalMapError=_e(),
+                SourceQualityError=_e(),
+            ),
+            UnknownGIDError=_e(),
         ),
         MorphologyError=_e(
             MorphologyRepositoryError=_e(),
@@ -82,6 +91,9 @@ _t(
         ),
         OptionError=_e(
             ReadOnlyOptionError=_e("option", "tag"),
+        ),
+        PlacementError=_e(
+            ContinuityError=_e(),
         ),
         TreeError=_e(),
         VoxelizationError=_e(

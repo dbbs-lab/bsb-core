@@ -60,14 +60,16 @@ class FiberIntersection(Intersectional, ConnectionStrategy):
 
         p = index.Property(dimension=3)
         to_cell_tree = index.Index(properties=p)
+        labels_pre = None if self.label_pre is None else [self.label_pre]
+        labels_post = None if self.label_post is None else [self.label_post]
 
         # Select all the cells from the pre- & postsynaptic type for a specific connection.
         from_type = self.from_cell_types[0]
         from_compartments = self.from_cell_compartments[0]
         to_compartments = self.to_cell_compartments[0]
         to_type = self.to_cell_types[0]
-        from_placement_set = self.scaffold.get_placement_set(from_type.name)
-        to_placement_set = self.scaffold.get_placement_set(to_type.name)
+        from_ps = self.scaffold.get_placement_set(from_type.name, labels=labels_pre)
+        to_ps = self.scaffold.get_placement_set(to_type.name, labels=labels_post)
 
         # Load the morphology and voxelization data for the entrire morphology, for each cell type.
         from_morphology_set = from_placement_set.load_morphologies()
@@ -96,6 +98,9 @@ class FiberIntersection(Intersectional, ConnectionStrategy):
             # (1) Extract the FiberMorpho object for each branch in the from_compartments
             # of the presynaptic morphology
             compartments = from_morpho.get_compartments(from_compartments)
+            if not compartments:
+                warn(f"Missing `{from_compartments}` compartments.")
+                continue
             morpho_rotation = from_cell.rotation
             fm = FiberMorphology(compartments, morpho_rotation)
 

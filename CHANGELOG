@@ -1,4 +1,26 @@
-# 3.8 - Added a bit of love for the NEURON adapter
+# 3.9
+
+## 3.9.0 - Partial (re)connecting, network merging and repeated NEST simulations
+
+* WARNING: Removed the cell cache API, the cell cache is still there internally but
+  spoofed and not to be used relied on in any user code anymore!
+* Running repeated NEST simulations no longer causes strange IO issues, growing
+  device labels, or module loading warnings and has an example (#280, #292, #295).
+* Added support for partial (re)connection of networks (#303).
+* The PlacementSet API can now be used during labelled connectivity by passing the
+  `labels` kwarg. The labels of the current connection can be accessed inside the
+  `connect` function as `self.label_pre` and `self.label_post` (#310).
+* Added `network.merge` function (#278).
+* Added `get_rank` and `broadcast` to adapter interface so that `mpi4py` can
+  remain an optional dependency (#283).
+* More progress reporting during reconstruction (#305).
+* Fixed NEST spike recorders (#284).
+* Added NEST fork installation instructions.
+* Added support for external sources of placement and connectivity (#273).
+
+# 3.8
+
+## 3.8.0 - Added a bit of love for the NEURON adapter
 
 * BREAKING: NEURON devices will by default target all sections instead of 1
   soma section.

@@ -3,6 +3,10 @@ class Statistics:
         self.scaffold = scaffold
         self.cells_placed = CellsPlaced(scaffold)
 
+    @property
+    def connections(self):
+        return {cs.tag: len(cs) for cs in self.scaffold.get_connectivity_sets()}
+
 
 class CellsPlaced:
     def __init__(self, scaffold):

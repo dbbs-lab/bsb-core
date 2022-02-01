@@ -279,8 +279,6 @@ class Scaffold:
         report("Simulation runtime: {}".format(time_sim), level=2)
         if quit and hasattr(simulator, "quit"):
             simulator.quit()
-        time_sim = time.time() - t
-        report("Simulation runtime: {}".format(time_sim), level=2)
         return result_path
 
     def get_simulation(self, simulation_name):
@@ -702,3 +700,15 @@ class ReportListener:
             + str(progress.time),
             token="simulation_progress",
         )
+
+
+def register_cell_targetting(name, f):
+    from .simulation.targetting import TargetsNeurons
+
+    setattr(TargetsNeurons, f"_targets_{name}", f)
+
+
+def register_section_targetting(name, f):
+    from .simulation.targetting import TargetsSections
+
+    setattr(TargetsSections, f"_section_target_{name}", f)

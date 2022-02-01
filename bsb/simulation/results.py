@@ -14,9 +14,17 @@ class SimulationResult:
         self.add(recorder)
         return recorder
 
+    def _collect(self, recorder):
+        return recorder.get_path(), recorder.get_data(), recorder.get_meta()
+
     def collect(self):
         for recorder in self.recorders:
-            yield recorder.get_path(), recorder.get_data(), recorder.get_meta()
+            if hasattr(recorder, "multi_collect"):
+                yield from (
+                    self._collect(subrecorder) for subrecorder in recorder.multi_collect()
+                )
+            else:
+                yield self._collect(recorder)
 
     def safe_collect(self):
         gen = iter(self.collect())
@@ -48,6 +56,14 @@ class ClosureRecorder(SimulationRecorder):
         self.get_data = data_func
         if meta_func:
             self.get_meta = meta_func
+
+
+class MultiRecorder(SimulationRecorder):
+    def get_data(*args, **kwargs):
+        raise RuntimeError("Multirecorder data should be collected from children.")
+
+    def multi_collect(self, *args, **kwargs):
+        raise NotImplementedError("Multirecorders need to implement `multi_collect`.")
 
 
 class PresetPathMixin:

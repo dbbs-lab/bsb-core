@@ -10,10 +10,22 @@ from .. import config
 from ..config import types, nodes as config_nodes
 import os, json, weakref, numpy as np
 from itertools import chain
+from copy import deepcopy
 from sklearn.neighbors import KDTree
 from ..simulation import SimulationRecorder, SimulationResult
 import warnings
+import h5py
 import time
+
+try:
+    from functools import cached_property, cache
+except:
+    from functools import lru_cache
+
+    cache = lru_cache(None)
+
+    def cached_property(f):
+        return property(cache(f))
 
 
 try:
@@ -22,11 +34,13 @@ try:
 
     _MPI_processes = mpi4py.MPI.COMM_WORLD.Get_size()
     _MPI_rank = mpi4py.MPI.COMM_WORLD.Get_rank()
-except ImportError:
+except ImportError as e:
+    warn(f"Could not import `mpi4py.MPI`: {e}")
     _MPI_processes = 1
     _MPI_rank = 0
 
-LOCK_ATTRIBUTE = "dbbs_scaffold_lock"
+_LOCK_ATTRIBUTE = "_dbbs_scaffold_lock"
+_HOT_MODULE_ATTRIBUTE = "_dbbs_scaffold_hot_modules"
 
 
 class MapsScaffoldIdentifiers:
@@ -301,14 +315,12 @@ class NestSimulation(Simulation):
 
     @property
     def nest(self):
-        try:
-            return self._nest
-        except AttributeError:
-            report("Importing  NEST...", level=2)
-            import nest
+        report("Importing  NEST...", level=2)
+        import nest
 
-            self._nest = nest
-            return self._nest
+        self._nest = nest
+        setattr(nest, _HOT_MODULE_ATTRIBUTE, set())
+        return self._nest
 
     def __init__(self):
         self.result = SimulationResult()
@@ -347,6 +359,12 @@ class NestSimulation(Simulation):
     def get_rank(self):
         return _MPI_rank
 
+    def get_size(self):
+        return _MPI_processes
+
+    def broadcast(self, data, root=0):
+        return mpi4py.MPI.COMM_WORLD.bcast(data, root)
+
     def in_full_control(self):
         if not self.has_lock or not self.read_lock():
             raise AdapterError(
@@ -362,7 +380,7 @@ class NestSimulation(Simulation):
         self.has_lock = True
 
     def single_lock(self):
-        if hasattr(self.nest, LOCK_ATTRIBUTE):
+        if hasattr(self.nest, _LOCK_ATTRIBUTE):
             raise KernelLockedError(
                 "This adapter is not in multi-instance mode and another adapter is already managing the kernel."
             )
@@ -386,13 +404,13 @@ class NestSimulation(Simulation):
         self.write_lock(lock_data)
 
     def read_lock(self):
-        if hasattr(self.nest, LOCK_ATTRIBUTE):
-            return getattr(self.nest, LOCK_ATTRIBUTE)
+        if hasattr(self.nest, _LOCK_ATTRIBUTE):
+            return getattr(self.nest, _LOCK_ATTRIBUTE)
         else:
             return None
 
     def write_lock(self, lock_data):
-        setattr(self.nest, LOCK_ATTRIBUTE, lock_data)
+        setattr(self.nest, _LOCK_ATTRIBUTE, lock_data)
 
     def enable_multi(self, suffix):
         self.suffix = suffix
@@ -416,7 +434,7 @@ class NestSimulation(Simulation):
 
     def delete_lock(self):
         try:
-            delattr(self.nest, LOCK_ATTRIBUTE)
+            delattr(self.nest, _LOCK_ATTRIBUTE)
         except AttributeError:
             pass
 
@@ -426,6 +444,9 @@ class NestSimulation(Simulation):
     def reset_kernel(self):
         self.nest.set_verbosity(self.verbosity)
         self.nest.ResetKernel()
+        # Reset which modules we should consider explicitly loaded by the user
+        # to appropriately warn them when they load them twice.
+        setattr(self.nest, _HOT_MODULE_ATTRIBUTE, set())
         self.reset_processes(self.threads)
         self.nest.SetKernelStatus(
             {
@@ -501,14 +522,32 @@ class NestSimulation(Simulation):
         if not self.is_prepared:
             warn("Adapter has not been prepared", SimulationWarning)
         report("Simulating...", level=2)
-        simulator.Simulate(self.duration)
-        report("Simulation finished.", level=2)
+        tick = time.time()
+        with simulator.RunManager():
+            for oi, i in self.step_progress(self.duration, step=1):
+                simulator.Run(i - oi)
+                self.progress(i)
+        report(f"Simulation done. {time.time() - tick:.2f}s elapsed.", level=2)
+        if self.has_lock:
+            self.release_lock()
+
+    def step(self, simulator, dt):
+        if not self.is_prepared:
+            warn("Adapter has not been prepared", SimulationWarning)
+        report("Simulating...", level=2)
+        tick = time.time()
+        with simulator.RunManager():
+            for oi, i in self.step_progress(self.duration, step=dt):
+                simulator.Run(i - oi)
+                yield self.progress(i)
+
+        report(f"Simulation done. {time.time() - tick:.2f}s elapsed.", level=2)
         if self.has_lock:
             self.release_lock()
 
     def collect_output(self, simulator):
-        import h5py, time
-
+        report("Collecting output...", level=2)
+        tick = time.time()
         try:
             import mpi4py
 
@@ -548,6 +587,11 @@ class NestSimulation(Simulation):
                                 )
                             )
         mpi4py.MPI.COMM_WORLD.bcast(result_path, root=0)
+        report(
+            f"Output collected in '{result_path}'. "
+            + f"{time.time() - tick:.2f}s elapsed.",
+            level=2,
+        )
         return result_path
 
     def validate(self):
@@ -593,12 +637,19 @@ class NestSimulation(Simulation):
 
     def install_modules(self):
         for module in self.modules:
+            hot = getattr(self.nest, _HOT_MODULE_ATTRIBUTE)
             try:
                 self.nest.Install(module)
+                hot.add(module)
             except Exception as e:
                 if e.errorname == "DynamicModuleManagementError":
                     if "loaded already" in e.message:
-                        warn("Module {} already installed".format(module), KernelWarning)
+                        # Modules stay loaded in between `ResetKernel` calls. We
+                        # assume that there's nothing to warn the user about if
+                        # the adapter installs the modules each
+                        # `reset`/`prepare` cycle.
+                        if module in hot:
+                            warn(f"Already installed '{module}'.", KernelWarning)
                     elif "file not found" in e.message:
                         raise NestModuleError(
                             "Module {} not found".format(module)
@@ -681,6 +732,7 @@ class NestSimulation(Simulation):
         Connect the cells in NEST according to the connection model configurations
         """
         order = NestConnection.resolve_order(self.connection_models)
+
         for connection_model in order:
             name = connection_model.name
             nest_name = self.suffixed(name)
@@ -694,12 +746,22 @@ class NestSimulation(Simulation):
                 )
                 continue
             # Get the NEST identifiers for the connections made in the connectivity matrix
-            presynaptic_sources = np.array(
-                self.get_nest_ids(np.array(cs.from_identifiers, dtype=int))
-            )
-            postsynaptic_targets = np.array(
-                self.get_nest_ids(np.array(cs.to_identifiers, dtype=int))
-            )
+            try:
+                presynaptic_sources = np.array(
+                    self.get_nest_ids(np.array(cs.from_identifiers, dtype=int))
+                )
+            except KeyError as e:
+                raise UnknownGIDError(
+                    f"Unknown GID {e.args[0]} in presynaptic `{name}` data."
+                ) from None
+            try:
+                postsynaptic_targets = np.array(
+                    self.get_nest_ids(np.array(cs.to_identifiers, dtype=int))
+                )
+            except KeyError as e:
+                raise UnknownGIDError(
+                    f"Unknown GID {e.args[0]} in postsynaptic `{name}` data."
+                ) from None
             if not len(presynaptic_sources) or not len(postsynaptic_targets):
                 warn("No connections for " + name)
                 continue
@@ -721,21 +783,32 @@ class NestSimulation(Simulation):
             report("Creating connections " + nest_name, level=3)
             # Create the connections in NEST
             if not (connection_model.plastic and connection_model.hetero):
-                self.execute_command(
-                    self.nest.Connect,
-                    presynaptic_sources,
-                    postsynaptic_targets,
-                    connection_specifications,
-                    connection_parameters,
-                    exceptions={
-                        "IncompatibleReceptorType": {
-                            "from": None,
-                            "exception": catch_receptor_error(
-                                "Invalid receptor specifications in {}: ".format(name)
-                            ),
-                        }
-                    },
-                )
+                receptor_cfg = connection_parameters.get("receptor_type", [])
+                # Repeat connections per receptor type
+                receptor_types = listify_input(receptor_cfg)
+                if not len(receptor_types):
+                    # If no receptor types are specified, go over the connection loop
+                    # once, without setting any receptor type in the conn params.
+                    receptor_types.append(None)
+                for receptor_type in receptor_types:
+                    single_connection_parameters = deepcopy(connection_parameters)
+                    if receptor_type is not None:
+                        single_connection_parameters["receptor_type"] = receptor_type
+                    self.execute_command(
+                        self.nest.Connect,
+                        presynaptic_sources,
+                        postsynaptic_targets,
+                        connection_specifications,
+                        single_connection_parameters,
+                        exceptions={
+                            "IncompatibleReceptorType": {
+                                "from": None,
+                                "exception": catch_receptor_error(
+                                    "Invalid receptor specifications in {}: ".format(name)
+                                ),
+                            }
+                        },
+                    )
             else:
                 # Create the volume transmitter if the connection is plastic with heterosynaptic plasticity
                 report("Creating volume transmitter for " + name, level=3)
@@ -841,7 +914,7 @@ class NestSimulation(Simulation):
                             device_model.get_config_node()
                         ),
                     }
-                }
+                },
             )
 
     def create_model(self, cell_model):
@@ -959,7 +1032,8 @@ class SpikeRecorder(SimulationRecorder):
             spikes = np.zeros((0, 2), dtype=float)
             for file in files:
                 file_spikes = np.loadtxt(file)
-                if len(file_spikes):
+                # if len(file_spikes):
+                if len(file_spikes.shape) > 1:
                     scaffold_ids = np.array(
                         self.device_model.simulation.get_scaffold_ids(file_spikes[:, 0])
                     )
@@ -1022,7 +1096,9 @@ class SpikeDetectorProtocol(DeviceProtocol):
             )
         device_tag = str(_randint())
         device_tag = mpi4py.MPI.COMM_WORLD.bcast(device_tag, root=0)
-        self.device.parameters["label"] += device_tag
+        if not hasattr(self.device, "_orig_label"):
+            self.device._orig_label = self.device.parameters["label"]
+        self.device.parameters["label"] = self.device._orig_label + device_tag
         if mpi4py.MPI.COMM_WORLD.rank == 0:
             self.device.simulation.result.add(SpikeRecorder(self.device))
 

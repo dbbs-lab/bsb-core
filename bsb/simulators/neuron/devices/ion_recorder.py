@@ -1,4 +1,5 @@
-from ..adapter import NeuronDevice, PatternlessDevice
+from ..adapter import NeuronDevice
+from ....simulation.device import PatternlessDevice
 from ....simulation.results import SimulationRecorder, PresetPathMixin, PresetMetaMixin
 from ....reporting import report, warn
 from arborize import get_section_synapses

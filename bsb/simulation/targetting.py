@@ -52,6 +52,9 @@ class RepresentativesTargetting(NeuronTargetting, classmap_entry="representative
             for cell_model in self.adapter.cell_models.values()
             if not cell_model.cell_type.relay and cell_model.name in filter_types
         ]
+        if hasattr(self, "cell_types"):
+            target_types = [t for t in target_types if t.name in self.cell_types]
+        target_ids = [t.get_placement_set().identifiers for t in target_types]
         representatives = [
             random.choice(type_ids) for type_ids in target_ids if len(target_ids) > 0
         ]

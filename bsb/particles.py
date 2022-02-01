@@ -196,7 +196,8 @@ class ParticleSystem:
                 if self.track_displaced:
                     self.displaced_particles.update(neighbourhood.partners)
                 self.resolve_neighbourhood(neighbourhood)
-                report(str(i) + " / " + str(t), level=3, ongoing=True)
+                if not i % 100:
+                    report(str(i) + " / " + str(t), level=3, ongoing=True)
             # Double check that there's no collisions left
             self.freeze()
             self.find_colliding_particles()
