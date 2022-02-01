@@ -78,6 +78,7 @@ extensions = [
     "sphinx.ext.viewcode",
     "divio_docs_theme",
     "sphinxemoji.sphinxemoji",
+    "sphinx.ext.intersphinx",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -102,10 +103,15 @@ language = None
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = []
+exclude_patterns = ["guides/labels.rst"]
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = None
+
+intersphinx_mapping = {
+    "python": ("https://docs.python.org/3", None),
+    "numpy": ("https://numpy.org/doc/stable/", None),
+}
 
 
 # -- Options for HTML output -------------------------------------------------

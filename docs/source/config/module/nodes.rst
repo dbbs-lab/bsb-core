@@ -109,6 +109,8 @@ or use the default ``Example`` implicitly by omitting the dynamic attribute:
 
   }
 
+.. _classmap:
+
 Class maps
 ----------
 

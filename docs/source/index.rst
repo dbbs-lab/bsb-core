@@ -40,6 +40,12 @@ The Brain Scaffold Builder
   morphologies/morphology-toc
 
 .. toctree::
+  :maxdepth: 2
+  :caption: Simulation
+
+  simulation/simulation-toc
+
+.. toctree::
    :maxdepth: 2
    :caption: References
 
@@ -53,3 +59,4 @@ The Brain Scaffold Builder
 
   dev/installation
   dev/documentation
+  dev/plugins

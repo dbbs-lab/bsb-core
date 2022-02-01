@@ -205,7 +205,7 @@ Defining simulations
 
 The definition of simulations begins with chosing a simulator, either ``nest``,
 ``neuron`` or ``arbor``. Each simulator has their adapter and each adapter its
-own requirements, see :doc:`/simulation/adapters.rst`. All of them share the
+own requirements, see :doc:`/simulation/adapters`. All of them share the
 commonality that they configure ``cell_models``, ``connection_models`` and
 ``devices``.
 
@@ -332,7 +332,7 @@ NEURON
 ~~~~~~
 
 In NEURON an assortment of devices is provided by the BSB to send input, or
-record output. See :doc:`/simulation/neuron/devices.rst` for a complete list.
+record output. See :doc:`/simulation/neuron/devices` for a complete list.
 Some devices like voltage and spike recorders can be placed by requesting them
 on cell models using :guilabel:`record_soma` or :guilabel:`record_spikes`.
 
