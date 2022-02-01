@@ -1,4 +1,5 @@
 import numpy as np
+import functools
 from .strategy import ConnectionStrategy
 from .. import config
 from ..exceptions import *
@@ -40,8 +41,16 @@ class AllToAll(ConnectionStrategy):
     All to all connectivity between two neural populations
     """
 
-    def validate(self):
-        pass
+    def get_region_of_interest(self, chunk):
+        # All to all needs all pre chunks per post chunk.
+        # Fingers crossed for out of memory errors.
+        return self._get_all_pre_chunks()
+
+    @functools.cache
+    def _get_all_pre_chunks(self):
+        all_ps = self.presynaptic.placement.values()
+        chunks = set(itertools.chain.from_iterable(ps.get_all_chunks() for ps in all_ps))
+        return list(chunks)
 
     def connect(self):
         from_type = self.presynaptic.type
