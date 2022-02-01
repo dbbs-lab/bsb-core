@@ -1,7 +1,10 @@
 from ...simulation import (
     Simulation,
     SimulationRecorder,
-    SimulationDevice,
+    CellModel,
+    ConnectionModel,
+    DeviceModel,
+    NeuronTargetting,
 )
 from ... import config
 from ...config import types
@@ -51,7 +54,7 @@ class NeuronConnection(ConnectionModel):
 
 
 @config.dynamic(attr_name="device", type=types.in_classmap(), auto_classmap=True)
-class NeuronDevice(TargetsNeurons, TargetsSections, SimulationDevice):
+class NeuronDevice(DeviceModel):
     radius = config.attr(type=float)
     origin = config.attr(type=types.list(type=float, size=3))
     targetting = config.attr(type=NeuronTargetting, required=True)
