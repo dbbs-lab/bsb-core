@@ -22,7 +22,5 @@ jobs:
         python -m pip install pip
         pip install -r docs/requirements.txt
         pip install sphinx==4.3.0
-    - name: Build documentations
-      run: cd docs && sphinx-build -n -b html source build/html
     - name: Fail documentations on warnings
       run: cd docs && sphinx-build -nW -b html source build/html
