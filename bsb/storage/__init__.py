@@ -2,7 +2,7 @@
     This module imports all supported storage engines, objects that read and write data,
     which are present as subfolders of the `engine` folder, and provides them
     transparently to the user, as a part of the :class:`Storage <.storage.Storage>`
-    factory class. The module scans the :module:`.storage.interfaces` module for any class
+    factory class. The module scans the :mod:`.storage.interfaces` module for any class
     that inherits from :class:`Interface <.storage.interfaces.Interface>`  to collect all
     Feature Interfaces and then scans the ``storage.engines.*`` submodules for any class
     that provides an implementation of those features.
