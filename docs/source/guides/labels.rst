@@ -5,13 +5,15 @@ Labels
 How to label neurons
 ********************
 
-After placing cells inside the scaffold model, it is possible to define postprocessing functions
-that modify some features of the scaffold. For instance, it is possible to define a function
-that, given a specific cell type, assigns a label to each cell belonging to that cell type 
-(e.g., subdivide a certain population into different subpopulations according to their position in the 3D space.)
+After placing cells inside the scaffold model, it is possible to define postprocessing
+functions that modify some features of the scaffold. For instance, it is possible to
+define a function that, given a specific cell type, assigns a label to each cell belonging
+to that cell type  (e.g., subdivide a certain population into different subpopulations
+according to their position in the 3D space.)
 
-Postprocessing functions can be configured in the ``after_placement`` dictionary of the root node of the
-configuration file, specifying each postprocessing function with its name, e.g. "Labels":
+Postprocessing functions can be configured in the ``after_placement`` dictionary of the
+root node of the configuration file, specifying each postprocessing function with its
+name, e.g. "Labels":
 
 .. code-block:: json
 
@@ -24,7 +26,8 @@ configuration file, specifying each postprocessing function with its name, e.g. 
     }
   }
 
-For more information on linking your Python classes to the configuration file see :doc:`/config/intro`.
+For more information on linking your Python classes to the configuration file see
+:doc:`/config/intro`.
 
 Example of a Python class for labeling neurons.
 -----------------------------------------------
@@ -63,11 +66,12 @@ Example of a Python class for labeling neurons.
               subpopulation_2, label="cell_A_type_2",
           )
 
-In this example, we can see that the ``LabelCellA`` class must inherit from ``PostProcessingHook``
-and it must specify a method ``after_placement`` in which the neural population ``cell_A`` is subdivided
-into two populations:
+In this example, we can see that the ``LabelCellA`` class must inherit from
+``PostProcessingHook`` and it must specify a method ``after_placement`` in which the
+neural population ``cell_A`` is subdivided into two populations:
 
 * ``subpopulation_1`` contains the ids of the first half of the population
 * ``subpopulation_2`` contains the ids of the second half of the population
-Then, these ids are used to assign the labels ``cell_A_type_1`` and ``cell_A_type_2`` to ``subpopulation_1`` and
-``subpopulation_2``, respectively.
+
+Then, these ids are used to assign the labels ``cell_A_type_1`` and ``cell_A_type_2`` to
+``subpopulation_1`` and ``subpopulation_2``, respectively.
