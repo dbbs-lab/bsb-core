@@ -99,3 +99,14 @@ This would import ``/simulations/twin_pulse`` from the
 ``stop`` time of the ``pulse1`` device.
 
 See :doc:`/config/parsers/json` to read more on the JSON parser.
+
+.. _default-config:
+
+=====================
+Default configuration
+=====================
+
+You can create a default configuration by calling :meth:`Configuration.default
+<.config.Configuration.default>`. It corresponds to the following JSON:
+
+<<<insert default>>>
