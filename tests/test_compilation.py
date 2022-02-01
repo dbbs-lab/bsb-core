@@ -3,7 +3,6 @@ import unittest, os, sys, numpy as np, h5py
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
 from bsb.core import Scaffold, from_hdf5
-from bsb.models import Layer, CellType
 from bsb.placement import Satellite
 from test_setup import get_test_network
 

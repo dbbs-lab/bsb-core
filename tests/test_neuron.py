@@ -4,7 +4,6 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
 from bsb.core import Scaffold, from_hdf5
 from bsb.simulators.nest import NestCell
-from bsb.models import Layer, CellType
 from bsb.exceptions import *
 from mpi4py.MPI import COMM_WORLD as mpi
 import unittest, numpy as np, h5py, importlib, nrnsub, test_setup
