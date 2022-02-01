@@ -1,8 +1,6 @@
 from ..adapter import ArborDevice
 from ....simulation.results import SimulationRecorder, PresetPathMixin, PresetMetaMixin
-from ....helpers import listify_input
 from ....exceptions import *
-from ....functions import poisson_train
 from ....reporting import report, warn
 import numpy as np
 

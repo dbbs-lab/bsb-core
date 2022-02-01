@@ -20,6 +20,7 @@ requires = [
     "rtree>=0.9.7",
     "psutil>=5.8.0",
     "arbor>=0.5",
+    "pynrrd~=0.4"
 ]
 
 setuptools.setup(
@@ -47,6 +48,7 @@ setuptools.setup(
     entry_points={
         "console_scripts": ["bsb = bsb.cli:handle_cli"],
         "bsb.adapters": [
+            "arbor = bsb.simulators.arbor",
             "nest = bsb.simulators.nest",
             "neuron = bsb.simulators.neuron",
         ],
