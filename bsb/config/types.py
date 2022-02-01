@@ -570,7 +570,7 @@ def in_classmap():
         classmap = _parent.__class__._config_dynamic_classmap
         if value not in classmap:
             classmap_str = ", ".join(f"'{key}'" for key in classmap)
-            raise TypeError(
+            raise CastError(
                 f"'{value}' is not a valid classmap identifier for `{class_name}`."
                 + f" Choose from: {classmap_str}"
             )
