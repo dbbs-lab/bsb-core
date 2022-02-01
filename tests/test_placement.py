@@ -8,6 +8,7 @@ from bsb.config import Configuration
 from bsb.objects import CellType
 from bsb.topology import Region, Partition
 from bsb.exceptions import *
+from bsb.storage import Chunk
 from bsb.placement import PlacementStrategy
 from bsb._pool import JobPool, FakeFuture, create_job_pool
 from test_setup import timeout
@@ -26,7 +27,7 @@ def test_chunk(scaffold, chunk):
 class PlacementDud(PlacementStrategy):
     name = "dud"
 
-    def place(self, chunk, chunk_size, indicators):
+    def place(self, chunk, indicators):
         pass
 
 
@@ -51,6 +52,10 @@ def single_layer_placement(offset=[0.0, 0.0, 0.0]):
     dud._cell_types = [dud_cell]
     network.configuration._bootstrap(network)
     return dud, network
+
+
+def _chunk(x, y, z):
+    return Chunk((x, y, z), (100, 100, 100))
 
 
 class TestIndicators(unittest.TestCase):
@@ -80,15 +85,15 @@ class TestIndicators(unittest.TestCase):
         top = 400 * top_ratio / 4
         for x, y, z in ((0, 0, 0), (0, 0, 1), (1, 0, 0), (1, 0, 1)):
             with self.subTest(x=x, y=y, z=z):
-                guess = dud_ind.guess(np.array([x, y, z]), np.array([100, 100, 100]))
+                guess = dud_ind.guess(_chunk(x, y, z))
                 self.assertTrue(np.floor(bottom) <= guess <= np.ceil(bottom))
         for x, y, z in ((0, 1, 0), (0, 1, 1), (1, 1, 0), (1, 1, 1)):
             with self.subTest(x=x, y=y, z=z):
-                guess = dud_ind.guess(np.array([x, y, z]), np.array([100, 100, 100]))
+                guess = dud_ind.guess(_chunk(x, y, z))
                 self.assertTrue(np.floor(top) <= guess <= np.ceil(top))
         for x, y, z in ((0, -1, 0), (0, 2, 0), (2, 1, 0), (1, 1, -3)):
             with self.subTest(x=x, y=y, z=z):
-                guess = dud_ind.guess(np.array([x, y, z]), np.array([100, 100, 100]))
+                guess = dud_ind.guess(_chunk(x, y, z))
                 self.assertEqual(0, guess)
 
     def test_negative_guess(self):
@@ -101,15 +106,15 @@ class TestIndicators(unittest.TestCase):
         top = 40 * top_ratio / 4
         for x, y, z in ((-3, -3, -3), (-3, -3, -2), (-2, -3, -3), (-2, -3, -2)):
             with self.subTest(x=x, y=y, z=z):
-                guess = dud_ind.guess(np.array([x, y, z]), np.array([100, 100, 100]))
+                guess = dud_ind.guess(_chunk(x, y, z))
                 self.assertTrue(np.floor(bottom) <= guess <= np.ceil(bottom))
         for x, y, z in ((-3, -2, -3), (-3, -2, -2), (-2, -2, -3), (-2, -2, -2)):
             with self.subTest(x=x, y=y, z=z):
-                guess = dud_ind.guess(np.array([x, y, z]), np.array([100, 100, 100]))
+                guess = dud_ind.guess(_chunk(x, y, z))
                 self.assertTrue(np.floor(top) <= guess <= np.ceil(top))
         for x, y, z in ((0, -1, 0), (0, 0, 0), (2, 0, 0), (1, 1, -3)):
             with self.subTest(x=x, y=y, z=z):
-                guess = dud_ind.guess(np.array([x, y, z]), np.array([100, 100, 100]))
+                guess = dud_ind.guess(_chunk(x, y, z))
                 self.assertEqual(0, guess)
 
 
@@ -143,12 +148,12 @@ class SchedulerBaseTest:
 
     def test_placement_job(self):
         pool = JobPool(network)
-        job = pool.queue_placement(dud, Chunk([0, 0, 0], (100, 100, 100)))
+        job = pool.queue_placement(dud, _chunk(0, 0, 0))
         pool.execute()
 
     def test_chunked_job(self):
         pool = JobPool(network)
-        job = pool.queue_chunk(test_chunk, Chunk([0, 0, 0], (100, 100, 100)))
+        job = pool.queue_chunk(test_chunk, _chunk(0, 0, 0))
         pool.execute()
 
 

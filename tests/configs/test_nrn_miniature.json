@@ -1,38 +1,31 @@
 {
   "name": "Test miniature NEURON network",
-  "output": {
-    "format": "bsb.output.HDF5Formatter",
-    "file": "nrn_miniature.hdf5",
-    "morphology_repository": "morphologies.h5"
+  "storage": {
+    "engine": "hdf5",
+    "root": "nrn_miniature.hdf5"
   },
-  "network_architecture": {
-    "simulation_volume_x": 150.0,
-    "simulation_volume_z": 150.0,
-    "store_kd_trees": true,
-    "store_compound_kd_tree": true,
-    "store_pf_kd_trees": true
+  "network": {
+    "x": 150.0,
+    "y": 600,
+    "z": 150.0
   },
-  "layers": {
+  "regions": {
+    "cerebellar_cortex": {
+
+    }
+  },
+  "partitions": {
     "test_layer": {
       "thickness": 600,
-      "stack": {
-        "stack_id": 0,
-        "position_in_stack": 0,
-        "position": [0.0, 0.0, 0.0]
-      }
+      "region": "cerebellar_cortex",
+      "z_index": 0
     }
   },
   "cell_types": {
     "golgi_cell": {
-      "placement": {
-        "class": "bsb.placement.FixedPositions",
-        "layer": "test_layer",
-        "soma_radius": 2.5,
-        "count": 3,
-        "positions": [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]]
-      },
-      "morphology": {
-        "class": "bsb.morphologies.NoGeometry"
+      "spatial": {
+        "radius": 2.5,
+        "count": 3
       },
       "plotting": {
         "display_name": "Golgi cell",
@@ -40,15 +33,9 @@
       }
     },
     "purkinje_cell": {
-      "placement": {
-        "class": "bsb.placement.FixedPositions",
-        "layer": "test_layer",
-        "soma_radius": 2.5,
-        "count": 2,
-        "positions": [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0]]
-      },
-      "morphology": {
-        "class": "bsb.morphologies.NoGeometry"
+      "spatial": {
+        "radius": 2.5,
+        "count": 2
       },
       "plotting": {
         "display_name": "Purkinje cell",
@@ -56,15 +43,9 @@
       }
     },
     "stellate_cell": {
-      "placement": {
-        "class": "bsb.placement.FixedPositions",
-        "layer": "test_layer",
-        "soma_radius": 2.5,
-        "count": 2,
-        "positions": [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0]]
-      },
-      "morphology": {
-        "class": "bsb.morphologies.NoGeometry"
+      "spatial": {
+        "radius": 2.5,
+        "count": 2
       },
       "plotting": {
         "display_name": "Stellate cell",
@@ -72,21 +53,28 @@
       }
     }
   },
-  "connection_types": {
-    "gap_goc": {
-      "class": "bsb.connectivity.ConnectomeGlomerulusGranule",
-      "from_cell_types": [{"type": "golgi_cell", "compartments": ["basal_dendrites"]}],
-      "to_cell_types": [{"type": "golgi_cell", "compartments": ["basal_dendrites"]}],
-      "divergence": 50,
-      "convergence": 4
+  "placement": {
+    "granular_layer_placement": {
+      "cls": "bsb.placement.FixedPositions",
+      "partitions": ["test_layer"],
+      "cell_types": ["golgi_cell"],
+      "positions": [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]]
     },
-    "stellate_to_purkinje": {
-      "class": "bsb.connectivity.ConnectomeGlomerulusGranule",
-      "from_cell_types": [{"type": "stellate_cell", "compartments": ["axon"]}],
-      "to_cell_types": [{"type": "purkinje_cell", "compartments": ["soma"]}],
-      "divergence": 50,
-      "convergence": 4
+    "purkinje_layer_placement": {
+      "cls": "bsb.placement.FixedPositions",
+      "partitions": ["test_layer"],
+      "cell_types": ["purkinje_cell"],
+      "positions": [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0]]
+    },
+    "molecular_layer_placement": {
+      "cls": "bsb.placement.FixedPositions",
+      "partitions": ["test_layer"],
+      "cell_types": ["stellate_cell"],
+      "positions": [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0]]
     }
+  },
+  "connectivity": {
+
   },
   "simulations": {
     "test": {

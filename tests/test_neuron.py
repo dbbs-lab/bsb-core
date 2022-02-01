@@ -3,7 +3,7 @@ import os, sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
 from bsb.core import Scaffold, from_hdf5
-from bsb.simulators.nest import NestCell
+from bsb.config import from_json
 from bsb.exceptions import *
 from mpi4py.MPI import COMM_WORLD as mpi
 import unittest, numpy as np, h5py, importlib, nrnsub, test_setup
@@ -27,76 +27,16 @@ def neuron_installed():
     return importlib.util.find_spec("neuron")
 
 
-class MockedCell:
-    _package = None
-
-
-@unittest.skip("Our model's synapses are not multiplicative")
-class MultiplicityTest(unittest.TestCase):
-    def test_cortex_model_synapses(self):
-        cfg = JSONConfig(config)
-        _ = Scaffold(cfg)
-        for name, model in cfg.simulations["poc"].cell_models.items():
-            if model.relay:
-                continue
-            with self.subTest(model=name):
-                self._test_model(model.model_class)
-
-    def _test_model(self, model_class):
-        for name, synapse_config in model_class.synapse_types.items():
-            with self.subTest(synapse=name):
-                synapse_factory = self._get_synapse_factory(synapse_config)
-                finit = 0 if "GABA" in name else -65
-                self._test_synapse_multiplicity(name, synapse_factory, finit=finit)
-
-    def _test_synapse_multiplicity(self, name, synapse_factory, finit=-65):
-        from patch import p
-
-        section_single = p.Section()
-        section_single.record()
-        section_multi = p.Section()
-        section_multi.record()
-        synapse_single = synapse_factory(section_single)
-        synapse_multi_1 = synapse_factory(section_multi)
-        synapse_multi_2 = synapse_factory(section_multi)
-        for s in [synapse_multi_1, synapse_single, synapse_single]:
-            s.stimulate(delay=0, number=4, interval=25, weight=1)
-
-        p.finitialize(finit)
-        p.continuerun(150)
-
-        # TODO: Check here that both section's recorded voltages are almost equal
-
-    def _get_synapse_factory(self, synapse_config):
-        from arborize.synapse import Synapse
-
-        def synapse_factory(section):
-            cell = self._mock_cell()
-            synapse_point_process = synapse_config["point_process"]
-            synapse_variant = None
-            if isinstance(synapse_point_process, tuple):
-                synapse_variant = synapse_point_process[1]
-                synapse_point_process = synapse_point_process[0]
-            return Synapse(
-                cell, section, synapse_point_process, {}, variant=synapse_variant
-            )
-
-        return synapse_factory
-
-    def _mock_cell(self):
-        return MockedCell()
-
-
+@unittest.skip("Simulators fixed last in v4, NEURON extra-special last.")
 class TestMiniature(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
         if mpi.Get_rank():
             mpi.Barrier()
-            network = from_hdf("nrn_miniature.hdf5")
+            network = from_hdf5("nrn_miniature.hdf5")
         else:
-            test_setup.prep_morphologies()
-            config = JSONConfig(miniature_config)
+            config = from_json(miniature_config)
             network = Scaffold(config)
             network.place_cell_types()
             network.compile_output()
