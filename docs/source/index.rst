@@ -43,8 +43,7 @@ The Brain Scaffold Builder
    :maxdepth: 2
    :caption: References
 
-   references/configuration
-   reference
+   bsb/modules
    genindex
    py-modindex
 
