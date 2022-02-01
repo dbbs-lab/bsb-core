@@ -1,17 +1,16 @@
 from ...simulation import (
-    SimulatorAdapter,
-    SimulationComponent,
-    SimulationCell,
-    SimulationDevice,
-    TargetsNeurons,
-    TargetsSections,
+    Simulation,
+    CellModel,
+    ConnectionModel,
+    DeviceModel,
     SimulationResult,
     SimulationRecorder,
 )
-from ...models import ConnectivitySet
+from ...simulation.targetting import NeuronTargetting
+from ... import config
+from ...config import types
 from ...reporting import report, warn
 from ...exceptions import *
-from ...helpers import continuity_hop, get_configurable_class
 from mpi4py.MPI import COMM_WORLD as mpi
 import numpy as np
 import itertools as it
@@ -54,7 +53,7 @@ def _consume(iterator, n=None):
 it.consume = _consume
 
 
-class ArborCell(SimulationCell):
+class ArborCell(CellModel):
     node_name = "simulations.?.cell_models"
     default_endpoint = "comp_-1"
 
@@ -144,16 +143,15 @@ class ArborCell(SimulationCell):
             )
 
 
-class ArborDevice(TargetsNeurons, SimulationDevice):
-    node_name = "simulations.?.devices"
+@config.node
+class ArborDevice(DeviceModel):
+    targetting = config.attr(type=NeuronTargetting, required=True)
+    resolution = config.attr(type=float)
+    sampling_policy = config.attr(type=types.in_([""]))
 
     defaults = {"resolution": None, "sampling_policy": "exact"}
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._probe_ids = []
-
-    def validate(self):
+    def __boot__(self):
         self.resolution = self.resolution or self.adapter.resolution
 
     def register_probe_id(self, gid, tag):
@@ -175,7 +173,7 @@ class ArborDevice(TargetsNeurons, SimulationDevice):
         return dict(zip(attrs, (getattr(self, attr) for attr in attrs)))
 
 
-class ArborConnection(SimulationComponent):
+class ArborConnection(ConnectionModel):
     defaults = {"gap": False, "delay": 0.025, "weight": 1.0}
     casts = {"delay": float, "gap": bool, "weight": float}
 
@@ -348,21 +346,9 @@ class ArborRecipe(arbor.recipe):
         return self._adapter._lookup._lookup(gid)._type.name
 
 
-class ArborAdapter(SimulatorAdapter):
-    simulator_name = "arbor"
-
-    configuration_classes = {
-        "cell_models": ArborCell,
-        "connection_models": ArborConnection,
-        "devices": ArborDevice,
-    }
-
-    casts = {
-        "duration": float,
-        "resolution": float,
-    }
-
-    required = ["duration"]
+@config.node
+class ArborSimulation(Simulation):
+    duration = config.attr(type=float, required=True)
 
     defaults = {"threads": 1, "profiling": True, "resolution": 0.025}
 
@@ -685,3 +671,7 @@ class ArborAdapter(SimulatorAdapter):
             targets = device.get_targets()
             for target in targets:
                 self._devices_on[target].append(device)
+
+
+class ArborAdapter:
+    Simulation = ArborSimulation

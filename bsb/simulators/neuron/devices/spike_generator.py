@@ -1,12 +1,12 @@
+from .... import config
 from ..adapter import NeuronDevice
 from ....simulation.results import SimulationRecorder, PresetPathMixin, PresetMetaMixin
-from ....helpers import listify_input
 from ....exceptions import *
-from ....functions import poisson_train
 from ....reporting import report, warn
 import numpy as np
 
 
+@config.node
 class SpikeGenerator(NeuronDevice):
     defaults = {"record": True}
     casts = {
@@ -46,7 +46,6 @@ class SpikeGenerator(NeuronDevice):
             raise ConfigurationError(
                 f"{self.name} is missing `spike_times` or `parameters`"
             )
-        self.synapses = listify_input(self.synapses)
 
     def create_patterns(self):
         report("Creating spike generator patterns for '{}'".format(self.name), level=3)
@@ -94,3 +93,30 @@ class GeneratorRecorder(PresetPathMixin, PresetMetaMixin, SimulationRecorder):
 
     def get_data(self):
         return np.array(self.pattern)
+
+
+# Kopimismed from abandoned neuronpy project. By Tom McCavish
+def poisson_train(frequency, duration, start_time=0, seed=None):
+    """
+    Generator function for a Homogeneous Poisson train.
+    :param frequency: The mean spiking frequency.
+    :param duration: Maximum duration.
+    :param start_time: Timestamp.
+    :param seed: Seed for the random number generator. If None, this will be
+            decided by numpy, which chooses the system time.
+    :return: A relative spike time from t=start_time, in seconds (not ms).
+    EXAMPLE::
+        # Make a list of spikes at 20 Hz for 3 seconds
+        spikes = [i for i in poisson_train(20, 3)]
+    """
+    cur_time = start_time
+    end_time = duration + start_time
+    rangen = np.random.mtrand.RandomState()
+    if seed is not None:
+        rangen.seed(seed)
+    isi = 1.0 / frequency
+    while cur_time <= end_time:
+        cur_time += isi * rangen.exponential()
+        if cur_time > end_time:
+            return
+        yield cur_time
