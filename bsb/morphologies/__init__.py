@@ -74,6 +74,15 @@ class MorphologySet:
         self._cached = {}
 
     def iter_morphologies(self, cache=True, unique=False, hard_cache=False):
+        """
+        Iterate over the morphologies in a MorphologySet with full control over caching.
+
+        :param cache: Use :ref:`soft-caching` (1 copy stored in mem per cache miss, 1 copy
+          created from that per cache hit).
+        :type cache: bool
+        :param hard_cache: Use :ref:`hard-caching` (1 copy stored on the loader, always
+          same copy returned from that loader forever).
+        """
         if unique:
             if hard_cache:
                 yield from (l.cached_load() for l in self._loaders)
@@ -447,11 +456,12 @@ class Branch:
 
         :param label: Label to apply to the points.
         :type label: str
-        :param mask: Boolean mask equal in size to the branch that determines which points get labelled.
-        :type mask: np.ndarray(dtype=bool, shape=(branch_size,))
-        :param join: The operation to use to combine the new labels with the existing
-          labels. Defaults to ``|`` (``operator.or_``).
-        :type join: operator function
+        :param mask: Boolean mask equal in size to the branch. Elements set to `True` will
+          be considered labelled.
+        :type mask: numpy.ndarray[bool]
+        :param join: If the label already existed, this determines how the existing and
+          new masks are joined together. Defaults to ``|`` (``operator.or_``).
+        :type join: function
         """
         mask = np.array(mask, dtype=bool)
         if label in self._label_masks:
