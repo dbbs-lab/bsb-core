@@ -47,6 +47,7 @@ setuptools.setup(
     entry_points={
         "console_scripts": ["bsb = bsb.cli:handle_cli"],
         "bsb.adapters": [
+            "arbor = bsb.simulators.arbor",
             "nest = bsb.simulators.nest",
             "neuron = bsb.simulators.neuron",
         ],
