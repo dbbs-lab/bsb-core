@@ -102,12 +102,9 @@ def poisson_train(frequency, duration, start_time=0, seed=None):
     :param frequency: The mean spiking frequency.
     :param duration: Maximum duration.
     :param start_time: Timestamp.
-    :param seed: Seed for the random number generator. If None, this will be
-            decided by numpy, which chooses the system time.
-    :return: A relative spike time from t=start_time, in seconds (not ms).
-    EXAMPLE::
-        # Make a list of spikes at 20 Hz for 3 seconds
-        spikes = [i for i in poisson_train(20, 3)]
+    :param seed: Seed for the random number generator. If None, this will be decided by
+        numpy, which chooses the system time.
+    :returns: A relative spike time from t=start_time, in seconds (not ms).
     """
     cur_time = start_time
     end_time = duration + start_time
