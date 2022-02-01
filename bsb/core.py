@@ -28,17 +28,11 @@ def from_hdf5(file):
 
 class Scaffold:
     """
-    This is the main object of the bsb package and bootstraps itself
-    with a :doc:`configuration </configuration>`.
 
-    During the compilation phase it can :doc:`place </placement>` and
-    :doc:`connect </connectivity>` cells based on Layers,
-    :doc:`cell type </guides/cell-type>` and :doc:`connection type
-    </guides/connection-type>` configuration.
-
-    The output can be stored in different :doc:`formats </guides/formats>` and
-    can be used to have the scaffold set up simulations in common neuroscience
-    simulators such as NEST or NEURON.
+    This is the main object of the bsb package, it represents a network and puts together
+    all the pieces that make up the model description such as the
+    :class:`~.configuration.Configuration` with the technical side like the
+    :class:`~.storage.Storage`.
     """
 
     def __init__(self, config=None, storage=None, clear=False):
@@ -46,7 +40,7 @@ class Scaffold:
         Bootstraps a network object.
 
         :param config: The configuration to use for this network. If it is omitted the
-          :doc:`default configuration <config/default>` is used.
+          :ref:`default configuration <default-config>` is used.
         :type config: :class:`.config.Configuration`
         :param storage: The storage to use to read and write data for this network. If it
           is omitted the configuration's ``Storage`` node is used to construct one.
@@ -264,7 +258,7 @@ class Scaffold:
         Run a simulation starting from the default single-instance adapter.
 
         :param simulation_name: Name of the simulation in the configuration.
-        :type simulation_name: string
+        :type simulation_name: str
         """
         t = time.time()
         simulation, simulator = self.prepare_simulation(simulation_name)
@@ -321,7 +315,7 @@ class Scaffold:
             scaffold.place_cells(cell_type, cell_type.layer_instance, [[0., 0., 0.]])
 
         :param cell_type: The type of the cells to place.
-        :type cell_type: :class:`.models.CellType`
+        :type cell_type: :class:`~.objects.cell_type.CellType`
         :param positions: A collection of xyz positions to place the cells on.
         :type positions: Any `np.concatenate` type of shape (N, 3).
         """
@@ -350,7 +344,7 @@ class Scaffold:
         connection and simulation step.
 
         :param cell_type: The cell type of the entities
-        :type cell_type: :class:`.models.CellType`
+        :type cell_type: :class:`~.objects.cell_type.CellType`
         :param count: Number of entities to place
         :type count: int
         :todo: Allow `additional` data for entities
@@ -380,7 +374,7 @@ class Scaffold:
         Find all of the placement strategies that given certain cell types.
 
         :param cell_types: Cell types (or their names) of interest.
-        :type cell_types: Union[:class:`.objects.CellType`, str]
+        :type cell_types: Union[:class:`~.objects.cell_type.CellType`, str]
         """
         return self.get_placement(cell_types=cell_types)
 
@@ -389,9 +383,9 @@ class Scaffold:
         Return a cell type's placement set from the output formatter.
 
         :param tag: Unique identifier of the placement set in the storage
-        :type tag: string
+        :type tag: str
         :returns: A placement set
-        :rtype: :class:`.models.PlacementSet`
+        :rtype: :class:`~.storage.interfaces.PlacementSet`
         """
         if isinstance(type, str):
             type = self.cell_types[type]
@@ -416,9 +410,9 @@ class Scaffold:
         Return all connectivity sets from the output formatter.
 
         :param tag: Unique identifier of the connectivity set in the output formatter
-        :type tag: string
+        :type tag: str
         :returns: A connectivity set
-        :rtype: :class:`.models.ConnectivitySet`
+        :rtype: :class:`~.storage.interfaces.ConnectivitySet`
         """
         return self.storage.get_connectivity_sets()
 
@@ -430,7 +424,7 @@ class Scaffold:
         Return a connectivity set from the output formatter.
 
         :param tag: Unique identifier of the connectivity set in the output formatter
-        :type tag: string
+        :type tag: str
         :returns: A connectivity set
         :rtype: :class:`~.storage.interfaces.ConnectivitySet`
         """
@@ -486,7 +480,7 @@ class Scaffold:
         Store labels for the given cells. Labels can be used to identify subsets of cells.
 
         :param ids: global identifiers of the cells that need to be labelled.
-        :type ids: iterable
+        :type ids: iter
         """
         raise NotImplementedError("Label interface is RIP, revisit")
         self.storage.Label(label).label(ids)
@@ -504,7 +498,7 @@ class Scaffold:
             labels = scaffold.get_labels("label-*")
 
         :param pattern: An exact match or pattern ending in a wildcard (*) character.
-        :type pattern: string
+        :type pattern: str
 
         :returns: All labels matching the pattern
         :rtype: list
