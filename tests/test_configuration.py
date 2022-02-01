@@ -6,7 +6,6 @@ from bsb.core import Scaffold
 from bsb import config
 from bsb.config import from_json, Configuration
 from bsb.exceptions import *
-from bsb.models import Layer, CellType
 
 
 def relative_to_tests_folder(path):
