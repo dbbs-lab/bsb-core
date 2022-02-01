@@ -7,7 +7,7 @@ class TestCLI(unittest.TestCase):
     def test_availability(self):
         import bsb, subprocess
 
-        our_version = bytes(bsb.__version__, encoding="utf-8")
+        our_version = bytes(f"bsb {bsb.__version__}", encoding="utf-8")
         # Split on newlines to ignore any prepended spammy output in case of environment
         # specific warnings when running BSB commands.
         cli_version = subprocess.check_output("bsb --version".split()).split(b"\n")[-2]
