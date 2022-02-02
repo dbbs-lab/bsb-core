@@ -5,7 +5,6 @@ from contextlib import contextmanager
 from .placement_set import PlacementSet
 from .connectivity_set import ConnectivitySet
 from .file_store import FileStore
-from .label import Label
 from .morphology_repository import MorphologyRepository
 from datetime import datetime
 import h5py

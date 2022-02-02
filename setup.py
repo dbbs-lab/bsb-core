@@ -20,6 +20,7 @@ requires = [
     "rtree>=0.9.7",
     "psutil>=5.8.0",
     "arbor>=0.5",
+    "pynrrd~=0.4"
 ]
 
 setuptools.setup(
@@ -47,6 +48,7 @@ setuptools.setup(
     entry_points={
         "console_scripts": ["bsb = bsb.cli:handle_cli"],
         "bsb.adapters": [
+            "arbor = bsb.simulators.arbor",
             "nest = bsb.simulators.nest",
             "neuron = bsb.simulators.neuron",
         ],
@@ -71,7 +73,14 @@ setuptools.setup(
         "Source Code": "https://github.com/dbbs-lab/bsb/",
     },
     extras_require={
-        "dev": ["sphinx", "furo", "pre-commit", "black==20.8b1", "nrn-subprocess==1.3.4"],
+        "dev": [
+            "sphinx",
+            "furo",
+            "pre-commit",
+            "black==20.8b1",
+            "nrn-subprocess==1.3.4",
+            "sphinxemoji",
+        ],
         "neuron": ["dbbs_models~=2.0.0", "nrn-patch~=3.0.1"],
         "mpi": ["mpi4py", "zwembad", "mpilock"],
     },

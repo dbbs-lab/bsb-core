@@ -1,5 +1,5 @@
 from ..adapter import NeuronDevice
-from ....simulation.device import PatternlessDevice
+from ....simulation.device import Patternless
 from ....simulation.results import SimulationRecorder, PresetPathMixin, PresetMetaMixin
 from ....reporting import report, warn
 from arborize import get_section_synapses
@@ -7,7 +7,7 @@ import numpy as np
 import itertools
 
 
-class IonRecorder(PatternlessDevice, NeuronDevice):
+class IonRecorder(Patternless, NeuronDevice):
     defaults = {
         "record_current": True,
         "record_concentration": False,

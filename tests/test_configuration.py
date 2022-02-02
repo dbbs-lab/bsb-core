@@ -5,8 +5,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
 from bsb.core import Scaffold
 from bsb import config
 from bsb.config import from_json, Configuration
+from bsb.config import types
 from bsb.exceptions import *
-from bsb.models import Layer, CellType
 
 
 def relative_to_tests_folder(path):
@@ -644,9 +644,6 @@ class TestWalk(unittest.TestCase):
         self.assertEqual(len(iter_collected), 7)
 
 
-from bsb.config import types
-
-
 class TestTypes(unittest.TestCase):
     def test_in(self):
         @config.node
@@ -889,7 +886,6 @@ class TestTypes(unittest.TestCase):
         with self.assertRaises(CastError):
             cfg = Test({"a": "MyTestClass"})
 
-    @unittest.expectedFailure
     def test_in_classmap(self):
         @config.root
         class Test:
@@ -910,11 +906,11 @@ class TestTypes(unittest.TestCase):
         # If a string is invalid a cast error should be raised
         with self.assertRaises(CastError):
             Classmap2Parent.cls.type("aa", _parent=t.c, _key="cls")
-        # To whoever fixes the classmaps: This might start throwing an error because d
-        # is not mapped to an actual class; The type validator however shouldn't complain.
-        # It should only check whether the given value is in the classmap or not. If an
-        # error occurs outside of the type handler that's supposed to happen.
-        self.assertEqual("d", Test(c="d"))
+        # `d` is in the classmap, but not mapped to an actual class. This test verifies
+        # that the `in_classmap` type handler will nod and allow `d` to be pass and burn
+        # later on, where it is supposed to burn.
+        with self.assertRaises(UnresolvedClassCastError):
+            self.assertEqual("d", Test(c={"cls": "d"}))
 
 
 @config.dynamic(

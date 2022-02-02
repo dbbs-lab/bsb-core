@@ -21,9 +21,9 @@ class ChunkLoader:
     and collections within itself.
 
     :param properties: An iterable of functions that construct :class:`.ChunkedProperty`.
-    :type: iterable
+    :type: Iterable
     :param properties: An iterable of names for constructing :class:`.ChunkedCollection`.
-    :type: iterable
+    :type: Iterable
     """
 
     def __init_subclass__(cls, properties=(), collections=(), **kwargs):
@@ -71,8 +71,8 @@ class ChunkLoader:
         """
         Return the full HDF5 path of a chunk.
 
-        :param chunk: Chunk (e.g. ``(0, 0, 0)``)
-        :type chunk: iterable
+        :param chunk: Chunk
+        :type chunk: :class:`.storage.Chunk`
         :returns: HDF5 path
         :rtype: str
         """
@@ -209,8 +209,8 @@ class ChunkedProperty:
         """
         Append data to a property chunk. Will create it if it doesn't exist.
 
-        :param chunk: Chunk coordinates
-        :type chunk: (int, int, int)
+        :param chunk: Chunk
+        :type chunk: :class:`.storage.Chunk`
         """
         if self.insert is not None:
             data = self.insert(data)

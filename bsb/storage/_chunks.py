@@ -2,6 +2,10 @@ import numpy as np
 
 
 class Chunk(np.ndarray):
+    """
+    Chunk identifier, consisting of chunk coordinates and size.
+    """
+
     def __new__(cls, chunk, chunk_size):
         obj = super().__new__(cls, (3,), dtype=np.short)
         obj[:] = chunk

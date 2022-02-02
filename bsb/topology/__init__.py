@@ -14,7 +14,7 @@ def create_topology(regions):
     root.
 
     :param regions: Any iterable of regions.
-    :type regions: iterable
+    :type regions: Iterable
     """
     regions = list(regions)
     if len(roots := get_root_regions(regions)) == 1:
@@ -30,7 +30,7 @@ def get_partitions(regions):
     Get all of the partitions belonging to the group of regions and their subregions.
 
     :param regions: Any iterable of regions.
-    :type regions: iterable
+    :type regions: Iterable
     """
 
     def collect_deps(region, ignore):
@@ -58,7 +58,7 @@ def get_root_regions(regions):
     Get all of the root regions, not belonging to any other region in the given group.
 
     :param regions: Any iterable of regions.
-    :type regions: iterable
+    :type regions: Iterable
     """
     managed = set()
 

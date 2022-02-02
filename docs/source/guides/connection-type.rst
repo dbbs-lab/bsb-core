@@ -27,20 +27,21 @@ volume. They are defined in the configuration under ``connection_types``:
     }
   }
 
-The :guilabel:`class` specifies which ``ConnectionStrategy`` to load for this conenction
-type. The :guilabel:`from_cell_types` and :guilabel:`to_cell_types` specify which pre- and
-postsynaptic cell types to use respectively. The cell type definitions in those lists have
-to contain a :guilabel:`type` that links to an existing cell type and can optionally
-contain hints to which :guilabel:`compartments` of the morphology to use.
+The :guilabel:`class` specifies which :class:`~.connectivity.strategy.ConnectionStrategy`
+to load for this conenction type. The :guilabel:`from_cell_types` and
+:guilabel:`to_cell_types` specify which pre- and postsynaptic cell types to use
+respectively. The cell type definitions in those lists have to contain a :guilabel:`type`
+that links to an existing cell type and can optionally contain hints to which
+:guilabel:`compartments` of the morphology to use.
 
 Creating your own
 =================
 
 In order to create your own connection type, create an importable module (refer to the
-`Python documentation <https://docs.python.org/3/tutorial/modules.html>`_) with inside
-a class inheriting from :class:`.connectivity.ConnectionStrategy`. Let's start by
-deconstructing a full code example that connects cells that are near each other between
-a ``min`` and ``max`` distance:
+`Python documentation <https://docs.python.org/3/tutorial/modules.html>`_) with inside a
+class inheriting from :class:`~.connectivity.strategy.ConnectionStrategy`. Let's start by
+deconstructing a full code example that connects cells that are near each other between a
+``min`` and ``max`` distance:
 
 .. code-block:: python
 
@@ -199,8 +200,8 @@ configuration, you can define the subpopulation label:
 
 Using more than one label
 -------------------------
-If under ``connection_types`` more than one label has been specified, it is possible to choose 
-whether the labels must be used serially or in a mixed way, by including a new attribute ``mix_labels``. 
+If under ``connection_types`` more than one label has been specified, it is possible to choose
+whether the labels must be used serially or in a mixed way, by including a new attribute ``mix_labels``.
 For instance:
 
 .. code-block:: json

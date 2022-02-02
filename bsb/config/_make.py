@@ -371,8 +371,7 @@ def walk_node_attributes(node):
     Walk over all of the child configuration nodes and attributes of ``node``.
 
     :returns: attribute, node, parents
-    :rtype: :class:`ConfigurationAttribute <.config._attrs.ConfigurationAttribute>`,
-      any, tuple
+    :rtype: Tuple[:class:`~.config.ConfigurationAttribute`, Any, Tuple]
     """
     if hasattr(node.__class__, "_config_attrs"):
         attrs = node.__class__._config_attrs
@@ -394,7 +393,7 @@ def walk_nodes(node):
     Walk over all of the child configuration nodes of ``node``.
 
     :returns: node generator
-    :rtype: any
+    :rtype: Any
     """
     if hasattr(node.__class__, "_config_attrs"):
         attrs = node.__class__._config_attrs

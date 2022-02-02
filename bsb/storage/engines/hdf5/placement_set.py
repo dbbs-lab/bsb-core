@@ -40,7 +40,8 @@ class PlacementSet(
 
     .. note::
 
-        Use :func:`.core.get_placement_set` to correctly obtain a PlacementSet.
+        Use :meth:`Scaffold.get_placement_set <.core.Scaffold.get_placement_set>` to
+        correctly obtain a PlacementSet.
     """
 
     def __init__(self, engine, cell_type):
@@ -169,9 +170,9 @@ class PlacementSet(
         Append data to the PlacementSet.
 
         :param positions: Cell positions
-        :type positions: ndararray
+        :type positions: :class:`numpy.ndarray`
         :param rotations: Cell rotations
-        :type rotations: ndararray
+        :type rotations: :class:`numpy.ndarray`
         :param morphologies: The associated MorphologySet.
         :type morphologies: class:`~.storage.interfaces.MorphologySet`
         """

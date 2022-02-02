@@ -2,65 +2,81 @@
 Placement sets
 ##############
 
-:class:`PlacementSets <.models.PlacementSet>` are constructed from the
-:doc:`/guides/output` and can be used to retrieve lists of identifiers, positions,
-rotations and additional datasets. It can also be used to construct a list of
-:class:`Cells <.models.Cell>` that combines that information into objects.
+:class:`PlacementSets <.storage.interfaces.PlacementSet>` are constructed from the
+:class:`~.storage.Storage` and can be used to retrieve lists of identifiers, positions,
+morphologies, rotations and additional datasets.
 
-.. note::
+.. warning::
   Loading these datasets from storage is an expensive operation. Store a local reference
-  to the data you retrieve::
-
-    data = placement_set.identifiers # Store a local variable
-    cell0 = data[0] # NOT: placement_set.identifiers[0]
-    cell1 = data[1] # NOT: placement_set.identifiers[1]
+  to the data you retrieve, don't make multiple calls.
 
 =========================
 Retrieving a PlacementSet
 =========================
 
-The output formatter of the scaffold is responsible for retrieving the dataset from the
-output storage. The scaffold itself has a method ``get_placement_set`` that takes a name
-of a cell type as input which will defer to the output formatter and returns a
-PlacementSet. If the placement set does not exist, an ``DatesetNotFoundError`` is thrown.
+Multiple ``get_placement_set`` methods exist in several places as shortcuts to create the
+same :class:`~.storage.interfaces.PlacementSet`. If the placement set does not exist, a
+``DatesetNotFoundError`` is thrown.
 
 .. code-block:: python
 
-  ps = scaffold.get_placement_set("granule_cell")
+  from bsb.core import from_hdf5
+
+  network = from_hdf5("my_network.hdf5")
+  ps = network.get_placement_set("my_cell")
+  ps = network.get_placement_set(network.cell_types.my_cell)
+  ps = network.cell_types.my_cell.get_placement_set()
+  # Usually not the right choice:
+  ps = network.storage.get_placement_set(network.cell_types.my_cell)
 
 
 ===========
 Identifiers
 ===========
 
-The identifiers of the cells of a cell type can be retrieved using the ``identifiers``
-property. Identifiers are stored in a :ref:`format_nc_list`.
-
-.. code-block:: python
-
-  for n, cell_id in enumerate(ps.identifiers):
-    print("I am", ps.tag, "number", n, "with ID", cell_id)
+Cells have no global identifiers, instead you use the indices of their data, i.e. the
+n-th position belongs to cell n, and the n-th rotation will therefor also belong to it.
 
 =========
 Positions
 =========
 
-The positions of the cells can be retrieved using the ``positions`` property. This dataset
-is not present on entity types:
+The positions of the cells can be retrieved using the
+:meth:`~.storage.interfaces.PlacementSet.load_positions` method.
 
 .. code-block:: python
 
-  for n, cell_id, position in zip(range(len(ps)), ps.identifiers, ps.positions):
-    print("I am", ps.tag, "number", n, "with ID", cell_id)
+  for n, position in enumerate(ps.positions):
+    print("I am", ps.tag, "number", n)
     print("My position is", position)
 
+============
+Morphologies
+============
+
+The positions of the cells can be retrieved using the
+:meth:`~.storage.interfaces.PlacementSet.load_morphologies` method.
+
+.. code-block:: python
+
+  for n, (pos, morpho) in enumerate(zip(ps.load_positions(), ps.load_morphologies())):
+    print("I am", ps.tag, "number", n)
+    print("My position is", position)
+
+.. warning::
+
+	Loading morphologies is especially expensive.
+
+  :meth:`~.storage.interfaces.PlacementSet.load_morphologies` returns a
+  :class:`~.morphologies.MorphologySet`. There are better ways to iterate over it using
+  either **soft caching** or **hard caching**.
 
 =========
 Rotations
 =========
 
-Some placement strategies or external data sources might also provide rotational information for each cell.
-The ``rotations`` property works analogous to the ``positions`` property.
+The positions of the cells can be retrieved using the
+:meth:`~.storage.interfaces.PlacementSet.load_rotations` method.
 
 ===================
 Additional datasets

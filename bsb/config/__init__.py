@@ -21,6 +21,7 @@ from ._attrs import (
     slot,
     pluggable,
     catch_all,
+    ConfigurationAttribute,
 )
 from ._make import walk_node_attributes, walk_nodes
 from ._hooks import on, before, after, run_hook, has_hook
@@ -29,6 +30,7 @@ from ..exceptions import *
 
 
 _path = __path__
+ConfigurationAttribute.__module__ = __name__
 
 
 class ConfigurationModule:
@@ -74,6 +76,10 @@ class ConfigurationModule:
             self._cfg_cls = Configuration
             self._cfg_cls.__module__ = __name__
         return self._cfg_cls
+
+    @property
+    def ConfigurationAttribute(self):
+        return ConfigurationAttribute
 
     def get_parser(self, parser_name):
         """
@@ -137,9 +143,9 @@ def _parser_method_docs(parser):
         :param file: Path to a file to read the data from.
         :type file: str
         :param data: Data object to hand directly to the parser
-        :type data: any
+        :type data: Any
         :returns: A Configuration
-        :rtype: :class:`Configuration <.conf.Configuration>`
+        :rtype: :class:`~.config.Configuration`
     """
     )
 
@@ -171,5 +177,4 @@ for name, parser in plugins.discover("config.parsers").items():
     ConfigurationModule.__all__.append("from_" + name)
 
 ConfigurationModule.__all__ = sorted(ConfigurationModule.__all__)
-
 sys.modules[__name__] = ConfigurationModule(__name__)

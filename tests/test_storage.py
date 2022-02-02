@@ -5,7 +5,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
 from bsb.core import Scaffold
 from bsb.config import from_json
 from bsb.exceptions import *
-from bsb.storage import Storage
+from bsb.storage import Storage, Chunk
 from test_setup import get_config, timeout
 import mpi4py.MPI as MPI
 
@@ -67,7 +67,7 @@ class TestHDF5Storage(unittest.TestCase):
             with self.subTest(type=cell_type.name):
                 ps = s._PlacementSet(s._engine, cell_type)
                 # Test that the placement set is functional after init call
-                ps.append_data(np.array([0, 0, 0]), [0])
+                ps.append_data(Chunk((0, 0, 0), (100, 100, 100)), [0])
 
     @timeout(3)
     def test_renew(self):
@@ -81,7 +81,7 @@ class TestHDF5Storage(unittest.TestCase):
         ps = s._PlacementSet.require(s._engine, cfg.cell_types.test_cell)
         with ps._engine._master_write() as fence:
             fence.guard()
-            ps.append_data(np.array([0, 0, 0]), [0])
+            ps.append_data(Chunk((0, 0, 0), (100, 100, 100)), [0])
         self.assertEqual(
             1,
             len(ps.load_positions()),

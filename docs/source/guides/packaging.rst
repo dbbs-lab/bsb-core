@@ -1,3 +1,5 @@
 ===================
-NEURON module
+BSB Packaging Guide
 ===================
+
+TODO

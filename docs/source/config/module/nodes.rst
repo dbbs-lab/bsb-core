@@ -109,6 +109,8 @@ or use the default ``Example`` implicitly by omitting the dynamic attribute:
 
   }
 
+.. _classmap:
+
 Class maps
 ----------
 
@@ -172,9 +174,9 @@ must provide an attribute with the same name.
 
 .. note::
 
-	Currently the provided attribute slots enforce just the presence, not any kind of
-  inheritance or deeper inspection. It's up to a plugin author to understand the purpose
-  of the slot and to comply with its intentions.
+  	Currently the provided attribute slots enforce just the presence, not any kind of
+  	inheritance or deeper inspection. It's up to a plugin author to understand the purpose
+  	of the slot and to comply with its intentions.
 
 Consider the following example:
 
