@@ -527,11 +527,13 @@ def _src_req(s):
 
 @config.node
 class NrrdVoxelLoader(VoxelLoader, classmap_entry="nrrd"):
-    mask_source = config.attr(type=str)
     source = config.attr(type=str, required=_src_req)
     sources = config.attr(type=types.list(str), required=_src_req)
     mask_value = config.attr(type=int)
+    mask_source = config.attr(type=str)
     voxel_size = config.attr(type=types.voxel_size(), required=True)
+    keys = config.attr(type=types.list(str))
+    sparse = config.attr(type=bool, default=True)
 
     # NOTE: BOOT IS CALLED AFTER GET_VOXEL_SET!
     def boot(self):
