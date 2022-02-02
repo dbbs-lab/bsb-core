@@ -20,6 +20,7 @@ requires = [
     "rtree>=0.9.7",
     "psutil>=5.8.0",
     "arbor>=0.5",
+    "pynrrd~=0.4"
 ]
 
 setuptools.setup(
