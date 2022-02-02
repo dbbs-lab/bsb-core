@@ -514,9 +514,16 @@ class VoxelLoader(abc.ABC):
     def get_voxelset(self):
         pass
 
+
 def _src_req(s):
-    if not("source" in s or "sources" in s):
-        raise RequirementError("Either a 'source' file or 'sources' file list is required")
+    given_attrs = ("source" in s) + ("sources" in s)
+    if not given_attrs:
+        raise RequirementError("A `source` or `sources` attribute is required.")
+    if given_attrs == 2:
+        raise RequirementError(
+            "The `source` and `sources` attributes are mutually exclusive."
+        )
+
 
 @config.node
 class NrrdVoxelLoader(VoxelLoader, classmap_entry="nrrd"):
@@ -526,18 +533,18 @@ class NrrdVoxelLoader(VoxelLoader, classmap_entry="nrrd"):
     mask_value = config.attr(type=int)
     voxel_size = config.attr(type=types.voxel_size(), required=True)
 
-    # NOTE: BOOT IS CALLED AFTER GET_VOXEL_SET! 
+    # NOTE: BOOT IS CALLED AFTER GET_VOXEL_SET!
     def boot(self):
         print("Booting up NRRDVL")
         if self.mask_source is not None:
             self._mask_sources = [self.mask_source]
-        else: 
+        else:
             self._mask_sources = self.sources.copy()
 
         if self.mask_value:
             self._mask_condition = lambda data: data == self.mask_value
-        else: 
-            self._mask_condition = lambda data: data != 0 
+        else:
+            self._mask_condition = lambda data: data != 0
 
     def get_voxelset(self):
         print("Getting voxel set!")
@@ -546,12 +553,12 @@ class NrrdVoxelLoader(VoxelLoader, classmap_entry="nrrd"):
         for mask_src in self._mask_sources:
             mask_data, _ = nrrd.read(mask_src)
             mask = mask | self._mask_condition(mask_data)
-        
+
         for source in self.sources[1:]:
             data, _ = nrrd.read(source)
             voxels_data = data[mask]
             print(voxels_data.shape)
-        
+
         return VoxelSet(np.transpose(np.nonzero(mask)), self.voxel_size)
 
 
