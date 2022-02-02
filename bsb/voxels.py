@@ -537,10 +537,16 @@ class NrrdVoxelLoader(VoxelLoader, classmap_entry="nrrd"):
 
     def boot(self):
         print("Booting up NRRDVL")
-        if self.mask_source is not None:
-            self._mask_sources = [self.mask_source]
+        if self.source is not None:
+            self._src = [self.source]
         else:
-            self._mask_sources = self.sources.copy()
+            self._src = self.sources.copy()
+        if self.mask_source is not None:
+            self._mask_src = [self.mask_source]
+        else:
+            self._mask_src = self._src.copy()
+
+        _validate_source_compat(self._mask_src, self._src)
 
         if self.mask_value:
             self._mask_condition = lambda data: data == self.mask_value
@@ -561,6 +567,10 @@ class NrrdVoxelLoader(VoxelLoader, classmap_entry="nrrd"):
             print(voxels_data.shape)
 
         return VoxelSet(np.transpose(np.nonzero(mask)), self.voxel_size)
+
+
+def _validate_source_compat(masks, sources):
+    pass
 
 
 def _eq_sides(sides, n):
