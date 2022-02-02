@@ -137,7 +137,7 @@ Installing NEST
 ===============
 
 The BSB currently runs a fork of NEST 2.18, to install it, follow the instructions below.
-The instructions assume you are using `pyenv <https://github.com/pyenv/pyenv-installer>`_
+The instructions assume you are using `pyenv`_
 for virtual environments.
 
 .. code-block:: bash

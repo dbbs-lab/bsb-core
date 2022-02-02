@@ -106,9 +106,9 @@ def in_(container):
     Uses the `in` operator.
 
     :param container: List of possible values
-    :type container: container
+    :type container: list
     :returns: Type validator function
-    :rtype: function
+    :rtype: Callable
     """
     error_msg = "a value in: " + str(container)
 
@@ -127,10 +127,10 @@ def or_(*type_args):
     Type validator. Attempts to cast the value to any of the given types in order.
 
     :param type_args: Another type validator
-    :type type_args: function
+    :type type_args: Callable
     :returns: Type validator function
     :raises: TypeError if none of the given type validators can cast the value.
-    :rtype: function
+    :rtype: Callable
     """
     handler_name = "any of: " + ", ".join(map(lambda x: x.__name__, type_args))
     # Make sure to wrap all type handlers so that they accept the parent and key args.
@@ -173,10 +173,10 @@ def class_(module_path=None):
 
     :param module_path: List of the modules that should be searched when doing a
       relative import.
-    :type module_path: list of module
-    :returns: Type validator function
+    :type module_path: list[str]
     :raises: TypeError when value can't be cast.
-    :rtype: function
+    :returns: Type validator function
+    :rtype: Callable
     """
 
     def type_handler(value):
@@ -203,7 +203,7 @@ def int(min=None, max=None):
     :type max: int
     :returns: Type validator function
     :raises: TypeError when value can't be cast.
-    :rtype: function
+    :rtype: Callable
     """
     handler_name = "int"
     if min is not None and max is not None:
@@ -242,7 +242,7 @@ def float(min=None, max=None):
     :type max: float
     :returns: Type validator function
     :raises: TypeError when value can't be cast.
-    :rtype: function
+    :rtype: Callable
     """
     handler_name = "float"
     if min is not None and max is not None:
@@ -276,7 +276,7 @@ def number(min=None, max=None):
     :type max: float
     :returns: Type validator function
     :raises: TypeError when value can't be cast.
-    :rtype: function
+    :rtype: Callable
     """
     handler_name = "number"
     if min is not None and max is not None:
@@ -314,9 +314,9 @@ def scalar_expand(scalar_type, size=None, expand=None):
     :param size: Expand the scalar to an array of a fixed size.
     :type size: int
     :param expand: A function that takes the scalar value as argument and returns the expanded form.
-    :type expand: callable
+    :type expand: Callable
     :returns: Type validator function
-    :rtype: callable
+    :rtype: Callable
     """
 
     if expand is None:
@@ -341,7 +341,7 @@ def list_or_scalar(scalar_type, size=None):
     :param size: Expand the scalar to an array of a fixed size.
     :type size: int
     :returns: Type validator function
-    :rtype: callable
+    :rtype: Callable
     """
     type_handler = or_(list(scalar_type, size), scalar_type)
 
@@ -359,11 +359,11 @@ def list(type=str, size=None):
     validates the length of the list.
 
     :param type: Type validator of the elements.
-    :type type: function
+    :type type: Callable
     :param size: Mandatory length of the list.
     :type size: int
     :returns: Type validator function
-    :rtype: function
+    :rtype: Callable
     """
 
     def type_handler(value):
@@ -399,9 +399,9 @@ def dict(type=str):
     Type validator for dicts. Type casts each element to the given type.
 
     :param type: Type validator of the elements.
-    :type type: function
+    :type type: Callable
     :returns: Type validator function
-    :rtype: function
+    :rtype: Callable
     """
 
     def type_handler(value):
@@ -427,7 +427,7 @@ def fraction():
     (inclusive).
 
     :returns: Type validator function
-    :rtype: function
+    :rtype: Callable
     """
 
     def type_handler(value):
@@ -476,7 +476,7 @@ def constant_distr():
     want to use a single constant value instead.
 
     :returns: Type validator function
-    :rtype: function
+    :rtype: Callable
     """
 
     def type_handler(value):
@@ -492,7 +492,7 @@ def distribution():
     :class:`Distribution <.config.nodes.Distribution>` node.
 
     :returns: Type validator function
-    :rtype: function
+    :rtype: Callable
     """
     from .nodes import Distribution
 
@@ -505,7 +505,7 @@ class evaluation(TypeHandler):
     config. The evaluation context provides ``numpy`` as ``np``.
 
     :returns: Type validator function
-    :rtype: function
+    :rtype: Callable
     """
 
     def __init__(self):
@@ -529,7 +529,7 @@ class evaluation(TypeHandler):
         Return the original configuration node associated with the given evaluated value.
 
         :param value: A value that was produced by this type handler.
-        :type value: any
+        :type value: Any
         :raises: NoneReferenceError when `value` is `None`, InvalidReferenceError when
           there is no config associated to the object id of this value.
         """
@@ -557,7 +557,7 @@ def in_classmap():
     dynamic node.
 
     :returns: Type validator function
-    :rtype: function
+    :rtype: Callable
     """
 
     def type_handler(value, _parent, _key=None):

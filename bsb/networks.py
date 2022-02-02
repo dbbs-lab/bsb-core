@@ -1,3 +1,5 @@
+# TODO: to be cleaned up and useful parts integrated into morphologies.
+
 import math, numpy as np, random
 
 
@@ -125,7 +127,6 @@ class Branch:
         compartments in the attribute `_original`.
 
         :param compartment: The compartment to split.
-        :type compartment: :class:`.morphologies.Compartment`
         :param n: The amount of pieces to split the compartment into.
         :type n: int
         """

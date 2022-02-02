@@ -74,6 +74,15 @@ class MorphologySet:
         self._cached = {}
 
     def iter_morphologies(self, cache=True, unique=False, hard_cache=False):
+        """
+        Iterate over the morphologies in a MorphologySet with full control over caching.
+
+        :param cache: Use :ref:`soft-caching` (1 copy stored in mem per cache miss, 1 copy
+          created from that per cache hit).
+        :type cache: bool
+        :param hard_cache: Use :ref:`hard-caching` (1 copy stored on the loader, always
+          same copy returned from that loader forever).
+        """
         if unique:
             if hard_cache:
                 yield from (l.cached_load() for l in self._loaders)
@@ -109,6 +118,10 @@ class MorphologySet:
 
 
 class RotationSet:
+    """
+    Set of rotations. Returned rotations are of :class:`scipy.spatial.transform.Rotation`
+    """
+
     def __init__(self, data):
         self._data = data
 
@@ -162,6 +175,10 @@ def _validate_branch_args(args):
 
 
 class SubTree:
+    """
+    Collection of branches, not necesarily all connected.
+    """
+
     def __init__(self, branches, sanitize=True):
         if sanitize:
             # Find the roots of the full subtree(s) emanating from the given, possibly
@@ -221,10 +238,10 @@ class SubTree:
 
         :param vectors: List of vectors to return such as ['x', 'y', 'z'] to get the
           positional vectors.
-        :type vectors: list of str
+        :type vectors: list[str]
         :returns: Tuple of the vectors in the given order, if `matrix` is True a
           matrix composed of the vectors is returned instead.
-        :rtype: tuple of ndarrays (`matrix=False`) or matrix (`matrix=True`)
+        :rtype: Union[Tuple[numpy.ndarray],numpy.ndarray]
         """
         if vectors is None:
             vectors = Branch.vectors
@@ -432,8 +449,8 @@ class Branch:
 
     def label_all(self, *labels):
         """
-        Add labels to every point on the branch. See :func:`label_points
-        <.morphologies.Morphology.label_points>` to label individual points.
+        Add labels to every point on the branch. See
+        :meth:`~.morphologies.Branch.label_points` to label individual points.
 
         :param labels: Label(s) for the branch.
         :type labels: str
@@ -442,16 +459,17 @@ class Branch:
 
     def label_points(self, label, mask, join=operator.or_):
         """
-        Add labels to specific points on the branch. See :func:`label
-        <.morphologies.Morphology.label>` to label the entire branch.
+        Add labels to specific points on the branch. See
+        :meth:`~.morphologies.Branch.label_all` to label the entire branch.
 
         :param label: Label to apply to the points.
         :type label: str
-        :param mask: Boolean mask equal in size to the branch that determines which points get labelled.
-        :type mask: np.ndarray(dtype=bool, shape=(branch_size,))
-        :param join: The operation to use to combine the new labels with the existing
-          labels. Defaults to ``|`` (``operator.or_``).
-        :type join: operator function
+        :param mask: Boolean mask equal in size to the branch. Elements set to `True` will
+          be considered labelled.
+        :type mask: numpy.ndarray[bool]
+        :param join: If the label already existed, this determines how the existing and
+          new masks are joined together. Defaults to ``|`` (``operator.or_``).
+        :type join: Callable
         """
         mask = np.array(mask, dtype=bool)
         if label in self._label_masks:
@@ -524,7 +542,7 @@ class Branch:
 
         :param label: The label to check for.
         :type label: str
-        :rtype: boolean
+        :rtype: bool
         """
         return label in self._full_labels
 
@@ -539,7 +557,7 @@ class Branch:
 
         :param labels: The labels to check for.
         :type labels: list
-        :rtype: boolean
+        :rtype: bool
         """
         return any(self.has_label(l) for l in labels)
 
@@ -550,7 +568,7 @@ class Branch:
         :param label: The label to check for.
         :type label: str
         :returns: All points with the label.
-        :rtype: List[np.ndarray]
+        :rtype: List[numpy.ndarray]
         """
 
         point_label_iter = zip(self.walk(), self.label_walk())

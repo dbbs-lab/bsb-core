@@ -52,10 +52,11 @@ def report(*message, level=2, ongoing=False, token=None, nodes=None, all_nodes=F
     Send a message to the appropriate output channel.
 
     :param message: Text message to send.
-    :type message: string
+    :type message: str
     :param level: Verbosity level of the message.
     :type level: int
     :param ongoing: The message is part of an ongoing progress report. This replaces the endline (`\\n`) character with a carriage return (`\\r`) character
+    :type ongoing: bool
     """
     from . import options
 

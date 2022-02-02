@@ -20,6 +20,12 @@ class BaseParser(argparse.ArgumentParser):
     """
 
     def error(self, message):
+        """
+        Raise message, instead of exiting.
+
+        :param message: Error message
+        :type message: str
+        """
         raise CommandError(message)
 
 

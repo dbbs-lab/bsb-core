@@ -13,10 +13,10 @@ this:
 
 The :guilabel:`regions`, :guilabel:`partitions`, :guilabel:`cell_types`,
 :guilabel:`placement` and :guilabel:`connection_types` spaceholders hold the configuration
-for :class:`Regions <.topology.Region>`, :class:`Partitions <.topology.Partition>`,
-:class:`CellTypes <.objects.CellType>`, :class:`PlacementStrategies
-<.placement.PlacementStrategy>` and :class:`ConnectionStrategies
-<.connectivity.ConnectionStrategy>` respectively.
+for :class:`Regions <.topology.region.Region>`, :class:`Partitions <.topology.partition.Partition>`,
+:class:`CellTypes <.objects.cell_type.CellType>`, :class:`PlacementStrategies
+<.placement.strategy.PlacementStrategy>` and :class:`ConnectionStrategies
+<.connectivity.strategy.ConnectionStrategy>` respectively.
 
 When you're configuring a model you'll mostly be using **configuration attributes**,
 **configuration nodes/dictionaries** and **configuration lists**. These basic concepts and
@@ -31,7 +31,7 @@ are and are a great starting point.
 In short,  ``my_file.py`` is importable as ``my_file`` when it is in the working
 directory. Any classes inside of it can be referenced in a config file as
 ``my_file.MyClass``. Although this basic use works fine in 1 directory we have a
-:doc:`best practices guide </packaging>` on how to properly make your classes discoverable
+:doc:`best practices guide </guides/packaging>` on how to properly make your classes discoverable
 on your entire machine. You can even distribute them as a package to other people.
 
 Here's an example of how you could use the ``MySpecialConnection`` class in your Python
@@ -99,3 +99,14 @@ This would import ``/simulations/twin_pulse`` from the
 ``stop`` time of the ``pulse1`` device.
 
 See :doc:`/config/parsers/json` to read more on the JSON parser.
+
+.. _default-config:
+
+=====================
+Default configuration
+=====================
+
+You can create a default configuration by calling :meth:`Configuration.default
+<.config.Configuration.default>`. It corresponds to the following JSON:
+
+<<<insert default>>>

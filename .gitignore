@@ -10,7 +10,6 @@ bsb-*/
 pip-wheel-metadata/
 .python-version
 *.swc
-dev/
 dev_env/
 test_env/
 nrnmech.dll

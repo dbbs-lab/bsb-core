@@ -10,3 +10,11 @@ Config module
    nodes
    types
    hooks
+
+
+.. automodule:: bsb.config
+  :members:
+  :undoc-members:
+  :show-inheritance:
+  :noindex:
+  :exclude-members: ConfigurationAttribute

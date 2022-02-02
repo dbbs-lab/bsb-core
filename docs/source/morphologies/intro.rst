@@ -73,7 +73,7 @@ Using morphologies
 
 For this introduction we're going to assume that you have a ``MorphologyRepository`` with
 morphologies already present in them. To learn how to create your own morphologies stored
-in ``MorphologyRepositories`` see :doc:`morphologies/repository`.
+in ``MorphologyRepositories`` see :doc:`./repository`.
 
 Let's start with loading a morphology and inspecting its root
 :class:`~.morphologies.Branch`:
@@ -180,7 +180,7 @@ Morphology metadata
 
 Currently unspecified, up to the Storage and MorphologyRepository support to return a
 dictionary of available metadata from
-:meth:`.storage.interfaces.MorphologyRepository.get_meta`.
+:meth:`~.storage.interfaces.MorphologyRepository.get_meta`.
 
 
 =======================
@@ -194,24 +194,21 @@ MorphologySets
 ==============
 
 :class:`MorphologySets <.morphologies.MorphologySet>` are the result of
-:class:`.morphologies.MorphologyDistributor` assigning morphologies to placed cells. They
-consist of a list of :class:`StoredMorphologies <.storage.interfaces.StoredMorphology>`, a
-vector of indices referring to these stored morphologies and a vector of rotations. You
-can use :meth:`~.morphologies.MorphologySet.iter_morphologies` to iterate over each
-morphology. Each iteration creates its own :class:`~.morphologies.Morphology` object and
-rotates it. With the ``cache`` kwarg you can keep a template per morphology to rapidly
-copy, skipping the storage read operation (at the cost of keeping these templates in
-memory).
+:class:`distributors <.placement.strategy.MorphologyDistributor>` assigning morphologies
+to placed cells. They consist of a list of :class:`StoredMorphologies
+<.storage.interfaces.StoredMorphology>`, a vector of indices referring to these stored
+morphologies and a vector of rotations. You can use
+:meth:`~.morphologies.MorphologySet.iter_morphologies` to iterate over each morphology.
 
 .. code-block:: python
 
   ps = network.get_placement_set("my_detailed_neurons")
   positions = ps.load_positions()
   morphology_set = ps.load_morphologies()
+  rotations = ps.load_rotations()
   cache = morphology_set.iter_morphologies(cache=True)
-  for pos, morphology in zip(positions, cache):
-    pass
-  del cache
+  for pos, morpho, rot in zip(positions, cache, rotations):
+    morpho.rotate(rot)
 
 =========
 Reference

@@ -2,10 +2,10 @@
 Overview
 ########
 
-The topology module helps the placement module determine the shape and
-organization of the simulated space. Every simulated space contains a flat
-collection of :class:`Partitions <.topology.Partition>` organized into a hierarchy
-by a tree of :class:`Regions <.topology.Region>`.
+The topology module helps the placement module determine the shape and organization of the
+simulated space. Every simulated space contains a flat collection of :class:`Partitions
+<.topology.partition.Partition>` organized into a hierarchy by a tree of :class:`Regions
+<.topology.region.Region>`.
 
 Partitions are defined by a least dominant corner (e.g. ``(50, 50, 50)``) and a
 most dominant corner (e.g. ``(90, 90, 90)``) referred to as the LDC and MDC
