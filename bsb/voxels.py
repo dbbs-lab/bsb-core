@@ -549,25 +549,40 @@ class NrrdVoxelLoader(VoxelLoader, classmap_entry="nrrd"):
         self._validate_source_compat()
 
         if self.mask_value:
-            self._mask_condition = lambda data: data == self.mask_value
+            self._mask_cond = lambda data: data == self.mask_value
         else:
-            self._mask_condition = lambda data: data != 0
+            self._mask_cond = lambda data: data != 0
 
     def get_voxelset(self):
-        print("Getting voxel set!")
-        data, _ = nrrd.read(self._mask_sources[0])
-        mask = np.zeros(data.shape, dtype=bool)
-        for mask_src in self._mask_sources:
-            mask_data, _ = nrrd.read(mask_src)
-            mask = mask | self._mask_condition(mask_data)
+        mask = np.zeros(self._mask_shape, dtype=bool)
+        if self.sparse:
+            # Use integer (sparse) indexing
+            mask = [np.empty((0,), dtype=int) for i in range(3)]
+            for mask_src in self._mask_src:
+                mask_data, _ = nrrd.read(mask_src)
+                new_mask = np.nonzero(self._mask_cond(mask_data))
+                for i, mask_vector in enumerate(new_mask):
+                    mask[i] = np.concatenate((mask[i], mask_vector))
+            inter = np.unique(mask, axis=1)
+            mask = tuple(inter[i, :] for i in range(3))
+        else:
+            # Use boolean (dense) indexing
+            for mask_src in self._mask_src:
+                mask_data, _ = nrrd.read(mask_src)
+                mask = mask | self._mask_cond(mask_data)
+            mask = np.nonzero(mask)
 
-        for source in self.sources[1:]:
+        voxel_data = np.empty((len(mask[0]), len(self._src)))
+        for i, source in enumerate(self._src):
             data, _ = nrrd.read(source)
-            voxels_data = data[mask]
-            print(voxels_data.shape)
+            voxel_data[:, i] = data[mask]
 
-        return VoxelSet(np.transpose(np.nonzero(mask)), self.voxel_size)
-
+        return VoxelSet(
+            np.transpose(mask),
+            self.voxel_size,
+            voxel_data=voxel_data,
+            data_keys=self.keys,
+        )
 
     def _validate_source_compat(self):
         mask_headers = {s: nrrd.read_header(s) for s in self._mask_src}
