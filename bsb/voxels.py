@@ -535,7 +535,6 @@ class NrrdVoxelLoader(VoxelLoader, classmap_entry="nrrd"):
     keys = config.attr(type=types.list(str))
     sparse = config.attr(type=bool, default=True)
 
-    # NOTE: BOOT IS CALLED AFTER GET_VOXEL_SET!
     def boot(self):
         print("Booting up NRRDVL")
         if self.mask_source is not None:
