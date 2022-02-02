@@ -118,6 +118,10 @@ class MorphologySet:
 
 
 class RotationSet:
+    """
+    Set of rotations. Returned rotations are of :class:`scipy.spatial.transform.Rotation`
+    """
+
     def __init__(self, data):
         self._data = data
 
@@ -171,6 +175,10 @@ def _validate_branch_args(args):
 
 
 class SubTree:
+    """
+    Collection of branches, not necesarily all connected.
+    """
+
     def __init__(self, branches, sanitize=True):
         if sanitize:
             # Find the roots of the full subtree(s) emanating from the given, possibly

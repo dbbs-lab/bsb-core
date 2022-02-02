@@ -138,9 +138,6 @@ class PlacementSet(Interface):
     def load_rotations(self):
         """
         Return a :class:`~.morphologies.RotationSet`.
-
-        :raises: DatasetNotFoundError when there is no rotation information for this
-           cell type.
         """
         pass
 
@@ -150,10 +147,7 @@ class PlacementSet(Interface):
         Return a :class:`~.morphologies.MorphologySet` associated to the cells.
 
         :return: Set of morphologies
-        :rtype: :class:`~.storage.interfaces.MorphologySet`
-
-        :raises: DatasetNotFoundError when there is no rotation information for this
-           cell type.
+        :rtype: :class:`~.morphologies.MorphologySet`
         """
         pass
 

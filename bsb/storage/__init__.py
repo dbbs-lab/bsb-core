@@ -21,6 +21,10 @@ from ._chunks import Chunk
 import mpi4py.MPI as MPI
 import numpy as np
 
+
+# Pretend `Chunk` is defined here, for UX. It's only defined in `_chunks` to avoid
+# circular imports anyway.
+Chunk.__module__ = __name__
 # Import the interfaces child module through a relative import as a sibling.
 interfaces = __import__("interfaces", globals=globals(), level=1)
 
@@ -263,10 +267,10 @@ class Storage:
         Return a PlacementSet for the given type.
 
         :param type: Specific cell type.
-        :type type: :class:`CellType <.models.CellType>`
+        :type type: :class:`~.objects.cell_type.CellType`
         :param chunks: Optionally load a specific list of chunks.
         :type chunks: list[tuple[float, float, float]]
-        :returns: :class:`PlacementSet <.storage.interfaces.PlacementSet>`
+        :returns: :class:`~.storage.interfaces.PlacementSet`
         """
         ps = self._PlacementSet(self._engine, type)
         if chunks is not None:
@@ -298,8 +302,8 @@ class Storage:
         Return a ConnectivitySet for the given type.
 
         :param type: Specific cell type.
-        :type type: :class:`CellType <.models.CellType>`
-        :returns: :class:`ConnectivitySet <.storage.interfaces.ConnectivitySet>`
+        :type type: :class:`~.objects.cell_type.CellType`
+        :returns: :class:`~.storage.interfaces.ConnectivitySet`
         """
         return [
             self._ConnectivitySet(self._engine, tag)
@@ -322,30 +326,6 @@ class Storage:
         self.remove(_bcast=False)
         self.create(_bcast=False)
         self.init(scaffold, _bcast=False)
-
-    def Label(self, label):
-        """
-        Factory method for the Label feature. The label feature can be used to tag
-        cells with labels and to retrieve or filter by sets of labelled cells.
-
-        :returns: :class:`Label <.storage.interfaces.Label>`
-        """
-        return self._Label(self._engine, label)
-
-    def create_filter(self, **kwargs):
-        """
-        Create a :class:`Filter <.storage.interfaces.Filter>`. Each keyword argument
-        given to this function must match a supported filter type. The values of the
-        keyword arguments are then set as a filter of that type.
-
-        Filters need to be activated in order to exert their filtering function.
-        """
-        self.assert_support("Filter")
-        return self._Filter.create(self._engine, **kwargs)
-
-    def get_filters(self, filter_type):
-        self.assert_support("Filter")
-        return self._Filter.get_filters(filter_type)
 
 
 def view_support(engine=None):

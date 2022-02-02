@@ -14,7 +14,6 @@ Subpackages
    bsb.objects
    bsb.placement
    bsb.simulation
-   bsb.simulators
    bsb.storage
    bsb.topology
 

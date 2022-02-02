@@ -26,6 +26,8 @@ autodoc_mock_imports = [
     "glia",
     "patch",
     "mpi4py",
+    "rtree",
+    "rtree.index",
     "mpi4py.MPI",
     "dbbs_models",
     "arborize",
@@ -38,6 +40,7 @@ autodoc_mock_imports = [
     "psutil",
     "mpilock",
     "zwembad",
+    "arbor",
 ]
 
 
@@ -103,7 +106,12 @@ language = None
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = ["guides/labels.rst", "guides/blender.rst", "guides/layer.rst"]
+exclude_patterns = [
+    "bsb/bsb.simulators*",
+    "guides/labels.rst",
+    "guides/blender.rst",
+    "guides/layer.rst",
+]
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = None
@@ -112,6 +120,8 @@ intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
     "numpy": ("https://numpy.org/doc/stable/", None),
     "scipy": ("https://docs.scipy.org/doc/scipy/", None),
+    "errr": ("https://errr.readthedocs.io/en/latest/", None),
+    "mpi4py": ("https://mpi4py.readthedocs.io/en/stable/", None),
 }
 
 

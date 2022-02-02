@@ -11,3 +11,4 @@ Guides
   guides/placement-strategies
   guides/connection-strategies
   guides/placement-set
+  guides/packaging

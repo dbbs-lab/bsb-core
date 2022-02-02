@@ -13,7 +13,7 @@ class ConnectivitySet(Resource, IConnectivitySet):
 
     .. note::
 
-        Use :func:`Scaffold.get_connectivity_set <.core.Scaffold.get_connectivity_set>` to
+        Use :meth:`Scaffold.get_connectivity_set <.core.Scaffold.get_connectivity_set>` to
         correctly obtain a :class:`~.storage.interfaces.ConnectivitySet`.
     """
 

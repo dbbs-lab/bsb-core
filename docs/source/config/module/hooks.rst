@@ -8,7 +8,7 @@ cooperation: the developer declares which hooks they provide and the user is sup
 only hook those functions. Using the hooks in other places will behave slightly different,
 see the note on `wild hooks`_.
 
-For a list of BSB endorsed hooks see :doc:`list_of_hooks`.
+For a list of BSB endorsed hooks see `list of hooks`_.
 
 =============
 Calling hooks
@@ -73,3 +73,9 @@ used during the operation of the class and your hook will be executed anyway. Yo
 even use the hooking system on any class not part of the BSB at all. Just keep in mind
 that if you place an essential hook onto a target method that's never explicitly invoked
 as a hook that it will never run at all.
+
+=============
+List of hooks
+=============
+
+``__boot__``?

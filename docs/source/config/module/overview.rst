@@ -72,10 +72,10 @@ Dynamic nodes
 -------------
 
 An important part to the interfacing system of the scaffold builder are custom strategies.
-Any user can implement a simple functional interface such as the :class:`PlacementStrategy
-<.placement.strategy.PlacementStrategy>` to design a new way of placing cells. Placement
-configuration nodes can then use these strategies by specifying the :guilabel:`cls`
-attribute:
+Any user can implement a simple functional interface such as the
+:class:`~.placement.strategy.PlacementStrategy` to design a new way of placing cells.
+Placement configuration nodes can then use these strategies by specifying the
+:guilabel:`cls` attribute:
 
 .. code-block:: json
 
@@ -128,7 +128,7 @@ Configuration dictionaries
 ==========================
 
 Configuration dictionaries hold configuration nodes. If you need a dictionary of values
-use the :class:`types.dict <.config.types.dict>` syntax instead.
+use the :func:`types.dict <.config.types.dict>` syntax instead.
 
 .. code-block:: python
 
@@ -169,7 +169,7 @@ Configuration lists
 ===================
 
 Configuration dictionaries hold unnamed collections of configuration nodes. If you need a
-list of values use the :class:`types.list <.config.types.list>` syntax instead.
+list of values use the :func:`types.list <.config.types.list>` syntax instead.
 
 .. code-block:: python
 
@@ -227,8 +227,8 @@ and placed under ``where`` so that in the config object:
   >>> print(conf.where_reference)
   'A'
 
-References are defined inside of configuration nodes by passing a :ref:`reference object
-<quick-reference-object>` to the ``config.ref`` function:
+References are defined inside of configuration nodes by passing a `reference object
+<quick-reference-object>`_ to the :func:`.config.ref` function:
 
 .. code-block:: python
 
@@ -300,8 +300,7 @@ from which the reference value can be retrieved.
   def locations_reference(root, here):
     return root.locations
 
-This reference object would create the link seen in the first reference example. For more
-advanced uses of the reference object see :doc:`/config/module/refs`.
+This reference object would create the link seen in the first reference example.
 
 Reference lists
 ---------------

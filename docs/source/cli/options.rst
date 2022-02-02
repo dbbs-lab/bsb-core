@@ -6,7 +6,7 @@ The command line interface uses options to specify global settings or command sp
 settings. Options can be set using environment variables, the CLI command and/or through
 the ``bsb.options`` module, listed here in ascending order of priority. Custom options can
 be registered through the ``bsb.options`` entry point or directly using either
-:func:`.options.register_module_option` or :func:`.option.BsbOption.register`.
+:func:`.options.register_module_option` or :meth:`.option.BsbOption.register`.
 
 .. note::
 

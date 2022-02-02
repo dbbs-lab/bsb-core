@@ -24,12 +24,17 @@ Your ``MyOption`` will also be available on all CLI commands as ``--my_setting``
 be read from the ``MY_SETTING`` environment variable.
 """
 
+# Store the module magic for unpolluted namespace copy
+_module_magic = globals().copy()
+
 import sys, types
 from .exceptions import OptionError, ReadOnlyOptionError
 from .plugins import discover
 
 _options = {}
 _option_values = {}
+
+_pre_freeze = set(globals().keys())
 
 
 def _get_option(tag):
@@ -44,7 +49,69 @@ def _get_tag(tag):
     return _get_option(tag).__class__.script.tags[0]
 
 
-class OptionsModule(types.ModuleType):
+def get_option_classes():
+    return discover("options")
+
+
+def register_module_option(tag, option):
+    """
+    Register an option as a global BSB option
+    """
+    global _options
+
+    if tag in _options:
+        raise OptionError(
+            f"The '{tag}' tag is already taken by {_options[tag].__class__}."
+        )
+    else:
+        _options[tag] = option
+
+
+def _remove_tags(*tags):
+    """
+    Removes tags. Testing purposes only, undefined behavior.
+    """
+    global _options, _option_values
+    for tag in tags:
+        del _options[tag]
+
+
+def set_module_option(tag, value):
+    global _option_values, _options
+
+    if (option := _get_option(tag)).readonly:
+        raise ReadOnlyOptionError("'%tag%' is a read-only option.", option, tag)
+    _option_values[_get_tag(tag)] = value
+
+
+def get_module_option(tag):
+    global _option_values, _options
+    tag = _get_tag(tag)
+
+    if tag in _option_values:
+        return _option_values[tag]
+    else:
+        return _options[tag].get()
+
+
+def is_module_option_set(tag):
+    global _option_values
+
+    return _get_tag(tag) in _option_values
+
+
+def get_options():
+    global _options
+
+    return _options.copy()
+
+
+_post_freeze = set(globals().keys()).difference(_pre_freeze)
+
+
+class _OptionsModule(types.ModuleType):
+    __name__ = "bsb.options"
+
     def __getattr__(self, attr):
         if attr in ["__path__", "__warningregistry__", "__qualname__"]:
             # __path__:
@@ -53,76 +120,28 @@ class OptionsModule(types.ModuleType):
             # __warningregistry__:
             # The `unittest` module checks existence.
             # __qualname__:
-            # is inspected by sphinx.
+            # Sphinx checks this
             raise super().__getattribute__(attr)
         return self.get_module_option(attr)
 
     def __setattr__(self, attr, value):
         self.set_module_option(attr, value)
 
-    def get_option_classes(self):
-        return discover("options")
 
-    def register_module_option(self, tag, option):
-        """
-        Register an option as a global BSB option
-        """
-        global _options
+_om = _OptionsModule(__name__)
+# Copy the module magic from the original module.
+_om.__dict__.update(_module_magic)
+# Copy over the intended API from the original module.
+for _key, _value in zip(_post_freeze, map(globals().get, _post_freeze)):
+    _om.__dict__[_key] = _value
+# Set the module's public API.
+_om.__dict__["__all__"] = sorted([k for k in vars(_om).keys() if not k.startswith("_")])
 
-        if tag in _options:
-            raise OptionError(
-                f"The '{tag}' tag is already taken by {_options[tag].__class__}."
-            )
-        else:
-            _options[tag] = option
-
-    def _remove_tags(self, *tags):
-        """
-        Removes tags. Testing purposes only, undefined behavior.
-        """
-        global _options, _option_values
-        for tag in tags:
-            del _options[tag]
-
-    def set_module_option(self, tag, value):
-        global _option_values, _options
-
-        if (option := _get_option(tag)).readonly:
-            raise ReadOnlyOptionError("'%tag%' is a read-only option.", option, tag)
-        _option_values[_get_tag(tag)] = value
-
-    def get_module_option(self, tag):
-        global _option_values, _options
-        tag = _get_tag(tag)
-
-        if tag in _option_values:
-            return _option_values[tag]
-        else:
-            return _options[tag].get()
-
-    def is_module_option_set(self, tag):
-        global _option_values
-
-        return _get_tag(tag) in _option_values
-
-    def get_options(self):
-        global _options
-
-        return _options.copy()
-
-    __mro__ = []
-
-
-om = OptionsModule(__name__)
-excl = ["sys", "types", "OptionError", "OptionsModule", "discover", "om", "excl"]
-vars = {k: v for k, v in globals().items() if k not in excl}
-om.__dict__.update(vars)
-om.__dict__["__all__"] = sorted([k for k in om.__dict__.keys() if not k.startswith("_")])
-
+# Register the discoverable options
 plugins = discover("options")
 for plugin in plugins.values():
     option = plugin()
     for tag in plugin.script.tags:
-        om.register_module_option(tag, option)
+        _om.register_module_option(tag, option)
 
-sys.modules[__name__] = om
+sys.modules[__name__] = _om

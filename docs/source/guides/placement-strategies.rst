@@ -31,7 +31,7 @@ ParallelArrayPlacement
 FixedPositions
 **************
 
-*Class*: :class:`bsb.placement.FixedPositions <~.placement.strategy.FixedPositions>`
+*Class*: :class:`bsb.placement.FixedPositions <.placement.strategy.FixedPositions>`
 
 This class places the cells in fixed positions specified in the attribute ``positions``.
 
