@@ -6,7 +6,12 @@ decorate your classes and add class attributes using ``x =
 config.attr/dict/list/ref/reflist`` to populate your classes with powerful attributes.
 """
 
-import os, sys, itertools
+import os
+import sys
+import os
+import glob
+import itertools
+from shutil import copy2 as copy_file
 
 _list = list
 from ._attrs import (
@@ -104,9 +109,6 @@ class ConfigurationModule:
         return _list(itertools.chain((os.getcwd(),), env_paths, *plugin_paths.values()))
 
     def copy_template(self, template, output="network_configuration.json", path=None):
-        from shutil import copy2 as copy_file
-        import os, glob, itertools
-
         path = _list(
             map(
                 os.path.abspath,
