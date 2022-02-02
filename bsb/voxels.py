@@ -540,7 +540,9 @@ class NrrdVoxelLoader(VoxelLoader, classmap_entry="nrrd"):
             self._mask_condition = lambda data: data != 0 
 
     def get_voxelset(self):
-        mask = np.zeros(self._mask_sources[0],dtype=bool)
+        print("Getting voxel set!")
+        data, _ = nrrd.read(self._mask_sources[0])
+        mask = np.zeros(data.shape, dtype=bool)
         for mask_src in self._mask_sources:
             mask_data, _ = nrrd.read(mask_src)
             mask = mask | self._mask_condition(mask_data)
