@@ -11,6 +11,8 @@ class TestVoxelSet(unittest.TestCase):
         self.regulars = [
             VoxelSet([[0, 0, 0], [1, 0, 0], [2, 0, 0]], 2),
             VoxelSet([[0, 0, 0], [1, 0, 0], [2, 0, 0]], [2, 2, 2]),
+            VoxelSet([[0, 0, 0], [1, 0, 0], [2, 2, 0]], [-1, 2, 2]),
+            VoxelSet([[0, 0, 0], [1, 0, 0], [2, 0, 0]], -1),
         ]
         self.irregulars = [
             VoxelSet([[0, 0, 0], [1, 0, 0], [2, 0, 0]], 1, irregular=True),
@@ -45,9 +47,9 @@ class TestVoxelSet(unittest.TestCase):
         for set in self.regulars:
             s = set.get_size(copy=False)
             self.assertTrue(set.get_size(copy=False) is s)
-            self.assertFalse(set.get_size(copy=True) is s)
+            self.assertTrue(set.get_size(copy=True) is not s)
             self.assertEqual(np.ndarray, type(s))
-            self.assertClose(2, [1, 1, 1] * s)
+            self.assertClose(s, [1, 1, 1] * s)
 
         for set in self.irregulars:
             s = set.get_size(copy=False)
@@ -58,7 +60,18 @@ class TestVoxelSet(unittest.TestCase):
     def test_spatial_coords(self):
         set = self.regulars[0]
         self.assertClose([[0, 0, 0], [2, 0, 0], [4, 0, 0]], set.as_spatial_coords())
+        set = self.regulars[2]
+        self.assertClose([[0, 0, 0], [-1, 0, 0], [-2, 4, 0]], set.as_spatial_coords())
+        set = self.irregulars[0]
+        self.assertTrue(set.as_spatial_coords() is not set._coords)
 
+    def test_as_boxes(self):
+        set = self.regulars[2]
+        set.as_boxes()
+
+    def test_as_boxtree(self):
+        set = self.regulars[2]
+        set.as_boxtree()
 
     def test_get_data(self):
         for label, set in self.all.items():
