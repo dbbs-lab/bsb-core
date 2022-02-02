@@ -546,7 +546,7 @@ class NrrdVoxelLoader(VoxelLoader, classmap_entry="nrrd"):
         else:
             self._mask_src = self._src.copy()
 
-        _validate_source_compat(self._mask_src, self._src)
+        self._validate_source_compat()
 
         if self.mask_value:
             self._mask_condition = lambda data: data == self.mask_value
@@ -569,8 +569,32 @@ class NrrdVoxelLoader(VoxelLoader, classmap_entry="nrrd"):
         return VoxelSet(np.transpose(np.nonzero(mask)), self.voxel_size)
 
 
-def _validate_source_compat(masks, sources):
-    pass
+    def _validate_source_compat(self):
+        mask_headers = {s: nrrd.read_header(s) for s in self._mask_src}
+        source_headers = {s: nrrd.read_header(s) for s in self._src}
+        all_headers = mask_headers.copy()
+        all_headers.update(source_headers)
+        dim_probs = [(s, d) for s, h in all_headers.items() if (d := h["dimension"]) != 3]
+        if dim_probs:
+            summ = ", ".join(f"'{s}' has {d}" for s, d in dim_probs)
+            raise ConfigurationError(f"NRRD voxels must contain 3D arrays; {summ}")
+        mask_sizes = {s: [*h["sizes"]] for s, h in mask_headers.items()}
+        source_sizes = {s: [*h["sizes"]] for s, h in source_headers.items()}
+        all_sizes = mask_sizes.copy()
+        all_sizes.update(source_sizes)
+        self._mask_shape = np.maximum.reduce([*mask_sizes.values()])
+        src_shape = np.minimum.reduce([*source_sizes.values()])
+        __ = None
+        # Check for any size mismatch
+        if self.strict and any(size != (__ := __ or size) for size in all_sizes.values()):
+            raise ConfigurationError(
+                f"NRRD file size mismatch in `{self.get_node_name()}`: {all_sizes}"
+            )
+        elif np.any(self._mask_shape > src_shape):
+            raise ConfigurationError(
+                f"NRRD mask too big; it may select OOB source voxels:"
+                + f" {self._mask_shape} > {src_shape}"
+            )
 
 
 def _eq_sides(sides, n):
