@@ -7,7 +7,7 @@ import functools
 import itertools
 import abc
 import nrrd
-
+from bsb.exceptions import *
 
 class VoxelData(np.ndarray):
     """
@@ -514,17 +514,43 @@ class VoxelLoader(abc.ABC):
     def get_voxelset(self):
         pass
 
+def _src_req(s):
+    if not("source" in s or "sources" in s):
+        raise RequirementError("Either a 'source' file or 'sources' file list is required")
 
 @config.node
 class NrrdVoxelLoader(VoxelLoader, classmap_entry="nrrd"):
-    source = config.attr(type=str, required=True)
-    mask_value = config.attr(type=int, required=True)
+    mask_source = config.attr(type=str)
+    source = config.attr(type=str, required=_src_req)
+    sources = config.attr(type=types.list(str), required=_src_req)
+    mask_value = config.attr(type=int)
     voxel_size = config.attr(type=types.voxel_size(), required=True)
 
+    # NOTE: BOOT IS CALLED AFTER GET_VOXEL_SET! 
+    def boot(self):
+        print("Booting up NRRDVL")
+        if self.mask_source is not None:
+            self._mask_sources = [self.mask_source]
+        else: 
+            self._mask_sources = self.sources.copy()
+
+        if self.mask_value:
+            self._mask_condition = lambda data: data == self.mask_value
+        else: 
+            self._mask_condition = lambda data: data != 0 
+
     def get_voxelset(self):
-        data, header = nrrd.read(self.source)
-        voxels = np.transpose(np.nonzero(data == self.mask_value))
-        return VoxelSet(voxels, self.voxel_size)
+        mask = np.zeros(self._mask_sources[0],dtype=bool)
+        for mask_src in self._mask_sources:
+            mask_data, _ = nrrd.read(mask_src)
+            mask = mask | self._mask_condition(mask_data)
+        
+        for source in self.sources[1:]:
+            data, _ = nrrd.read(source)
+            voxels_data = data[mask]
+            print(voxels_data.shape)
+        
+        return VoxelSet(np.transpose(np.nonzero(mask)), self.voxel_size)
 
 
 def _eq_sides(sides, n):

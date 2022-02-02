@@ -2,6 +2,7 @@
     Module for the Partition configuration nodes and its dependencies.
 """
 
+import functools
 from .. import config
 from ..config import types
 from ..config.refs import region_ref
@@ -118,8 +119,9 @@ class Layer(Partition, classmap_entry="layer"):
 class Voxels(Partition, classmap_entry="voxels"):
     voxels = config.attr(type=VoxelLoader, required=True)
 
-    def boot(self):
-        self.voxelset = self.voxels.get_voxelset()
+    @functools.cached_property
+    def voxelset(self):
+        return self.voxels.get_voxelset()
 
     def to_chunks(self, chunk_size):
         print(
