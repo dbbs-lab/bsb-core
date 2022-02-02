@@ -8,26 +8,52 @@ import nrrd
 
 
 class VoxelSet:
-    def __init__(self, voxels, size, voxel_data=None, irregular=False):
+    def __init__(self, voxels, size, voxel_data=None, data_keys=None, irregular=False):
+        """
+        Constructs a voxel set from the given voxel indices or coordinates.
+
+        :param voxels: The spatial coordinates, or grid indices of each voxel. Nx3 matrix
+        :type voxels: :class:`numpy.ndarray`
+        :param size: The global or individual size of the voxels. If it has 2 dimensions
+          it needs to have the same length as `voxels`, and will be used as individual
+          voxels.
+        :type size: :class:`numpy.ndarray`
+
+        .. warning::
+
+            If :class:`numpy.ndarray` are passed, they will not be copied in order to save
+            memory and time. You may accidentally change a voxelset if you later change
+            the same array.
+        """
+        voxels = np.array(voxels, copy=False)
         voxel_size = np.array(size, copy=False)
+        if voxel_data is not None:
+            self._voxel_data = np.array(voxel_data, copy=False)
+        else:
+            self._voxel_data = None
+        if data_keys is None:
+            data_keys = []
+        self._data_keys = [*data_keys]
+
         if not len(voxel_size.shape):
             self._cubic = True
-        if len(voxel_size.shape) > 1:
+        if voxel_size.ndim > 1:
+            if voxel_size.size != voxels.size:
+                raise ValueError("`voxels` and `size` length unequal.")
             # Voxels given in spatial coords with individual size
             self._sizes = voxel_size
-            self._coords = np.array(voxels, copy=False)
+            self._coords = voxels
             self._regular = False
         elif irregular:
             # Voxels given in spatial coords but of equal size
             self._size = voxel_size
-            self._coords = np.array(voxels, copy=False)
+            self._coords = voxels
             self._regular = False
         else:
             # Voxels given in index coords
             self._size = voxel_size
             self._indices = np.array(voxels, copy=False, dtype=int)
             self._regular = True
-        self._voxel_data = voxel_data
 
     def __iter__(self):
         return iter(self.raw(copy=False))
@@ -155,6 +181,13 @@ class VoxelSet:
             coords = coords.copy()
         return coords
 
+    @property
+    def data(self):
+        if self.has_data:
+            return self._voxel_data.copy()
+        else:
+            return None
+
     def get_data(self, index=None, /, copy=True):
         if index is not None:
             if self.has_data:
@@ -210,6 +243,19 @@ class VoxelSet:
             else:
                 grid = np.unique(grid, axis=0)
         return VoxelSet(grid, grid_size, voxel_data)
+
+    def resize(self, size):
+        val = np.array(size, copy=False)
+        if np.array(size).type.python_type is object:
+            raise Exception("no no no")
+        if val.ndim > 1:
+            if val.size != len(self):
+                raise Exception("Hell to the no")
+            if self.regular:
+                self._coords = self.as_spatial_coords()
+                del self._indices
+                self._regular = False
+        self._size = size
 
     def select(self, ldc, mdc):
         voxel_data = self._voxel_data
