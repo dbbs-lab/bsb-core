@@ -388,28 +388,41 @@ class NrrdVoxelLoader(VoxelLoader, classmap_entry="nrrd"):
 
 
 def _eq_sides(sides, n):
+    zeros = np.isclose(sides, 0)
+    if all(zeros):
+        # An empty or 1 point morphology should make only 1 (empty) voxel
+        return np.array([1])
+    elif any(zeros):
+        # Remove any zeros, by fixing their dimensions to 1 (zero-width) partition
+        solution = np.ones(len(sides))
+        solution[~zeros] = _eq_sides(sides[~zeros], n)
+        return solution
+    elif len(sides) == 1:
+        # Only 1 dimension, only 1 solution: all voxels along that dimension.
+        return np.array([n])
+
     # Use the relative magnitudes of each side
     norm = sides / max(sides)
     # Find out how many divisions each side should to form a grid with `n` rhomboids.
     per_side = norm * (n / np.product(norm)) ** (1 / len(sides))
     # Divisions should be integers, and minimum 1
-    int_sides = np.maximum(np.floor(per_side), 1)
+    solution = np.maximum(np.floor(per_side), 1)
     order = np.argsort(sides)
     smallest = order[0]
     if len(sides) > 2:
         # Because of the integer rounding the product isn't necesarily optimal, so we keep
         # the safest (smallest) value, and solve the problem again in 1 less dimension.
-        solved = int_sides[smallest]
+        solved = solution[smallest]
         look_for = n / solved
         others = sides[order[1:]]
-        int_sides[order[1:]] = _eq_sides(others, look_for)
+        solution[order[1:]] = _eq_sides(others, look_for)
     else:
         # In the final 2-dimensional case the remainder of the division is rounded off
         # to the nearest integer, giving the smallest error on the product and final
         # number of rhomboids in the grid.
         largest = order[1]
-        int_sides[largest] = round(n / int_sides[smallest])
-    return int_sides
+        solution[largest] = round(n / solution[smallest])
+    return solution
 
 
 # https://stackoverflow.com/a/24769712/1016004
