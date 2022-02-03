@@ -74,7 +74,7 @@ class VoxelSet:
 
     def __getitem__(self, index):
         voxels = self.raw(copy=False)[index]
-        if self.of_equal_size:
+        if self._single_size:
             voxel_size = self._size
         else:
             voxel_size = self._sizes[index]
@@ -114,8 +114,7 @@ class VoxelSet:
 
     @property
     def of_equal_size(self):
-        # One size fits all
-        return hasattr(self, "_size")
+        return self._single_size or len(np.unique(self._sizes, axis=0)) < 2
 
     @property
     def size(self):
@@ -145,9 +144,11 @@ class VoxelSet:
 
         :rtype: tuple[numpy.ndarray, numpy.ndarray]
         """
+        boxes = self.as_boxes()
+        dims = boxes.shape[1] // 2
         return (
-            np.min(self.as_spatial_coords(copy=False), axis=0),
-            np.max(self.as_spatial_coords(copy=False), axis=0),
+            np.min(boxes[:, :dims], axis=0),
+            np.max(boxes[:, dims:], axis=0),
         )
 
     @classmethod
@@ -230,26 +231,24 @@ class VoxelSet:
             return None
 
     def get_data(self, index=None, /, copy=True):
-        if index is not None:
-            if self.has_data:
+        if self.has_data:
+            if index is not None:
                 return self._voxel_data[index]
             else:
-                return np.empty(len(self.raw(copy=False)[index]), dtype=object)
-        elif self.has_data:
-            return np.array(self._voxel_data, copy=copy)
+                return np.array(self._voxel_data, copy=copy)
         else:
-            return np.empty(len(self), dtype=object)
+            return None
 
     def get_size(self, copy=True):
-        if self.of_equal_size:
+        if self._single_size:
             return np.array(self._size, copy=copy)
         else:
             return np.array(self._sizes, copy=copy)
 
     def get_size_matrix(self, copy=True):
-        if self.of_equal_size:
+        if self._single_size:
             size = np.ones(3) * self._size
-            sizes = np.tile(size, len(self.raw(copy=False)))
+            sizes = np.tile(size, (len(self.raw(copy=False)), 1))
         else:
             sizes = self._sizes
             if copy:
@@ -264,6 +263,12 @@ class VoxelSet:
             if copy:
                 coords = coords.copy()
         return coords
+
+    def as_boxes(self, cache=False):
+        if cache:
+            return self._boxes_cache()
+        else:
+            return self._boxes()
 
     def as_boxtree(self, cache=False):
         if cache:
@@ -310,6 +315,11 @@ class VoxelSet:
     def unique(self):
         raise NotImplementedError("and another one")
 
+    @property
+    def _single_size(self):
+        # One size fits all
+        return hasattr(self, "_size")
+
     def _to_spatial_coords(self):
         return self._indices * self._size
 
@@ -320,23 +330,22 @@ class VoxelSet:
     def _boxtree(self):
         return BoxTree(self.as_boxes())
 
-    def as_boxes(self, cache=False):
-        if cache:
-            return self._boxes_cache()
-        else:
-            return self._boxes()
-
     @functools.cache
     def _boxes_cache(self):
         return self._boxes()
 
     def _boxes(self):
-        coords = self.as_spatial_coords(copy=False)
-        if hasattr(self, "_sizes"):
-            return np.column_stack((coords, self._sizes))
+        base = self.as_spatial_coords(copy=False)
+        sizes = self.get_size(copy=False)
+        shifted = base + sizes
+        lt0 = sizes < 0
+        if np.any(lt0):
+            mdc = np.where(lt0, base, shifted)
+            ldc = np.where(lt0, shifted, base)
         else:
-            tiled = coords + np.ones(3) * self._size
-            return np.column_stack((coords, tiled))
+            ldc = base
+            mdc = shifted
+        return np.column_stack((ldc, mdc))
 
     @classmethod
     def from_morphology(cls, morphology, estimate_n, with_data=True):
@@ -404,3 +413,13 @@ def _eq_sides(sides, n):
         largest = order[1]
         int_sides[largest] = round(n / int_sides[smallest])
     return int_sides
+
+
+# https://stackoverflow.com/a/24769712/1016004
+def _is_broadcastable(shape1, shape2):
+    for a, b in zip(shape1[::-1], shape2[::-1]):
+        if a == 1 or b == 1 or a == b:
+            pass
+        else:
+            return False
+    return True
