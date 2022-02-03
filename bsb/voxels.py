@@ -30,8 +30,14 @@ class VoxelSet:
         voxel_size = np.array(size, copy=False)
         if voxels.dtype.name == "object":
             raise ValueError("Couldn't convert given `voxels` to a voxel matrix")
-        if voxels.ndim != 2 and len(voxels):
-            raise ValueError("`voxels` needs to be convertable to a 2D matrix")
+        if voxels.ndim != 2:
+            if not len(voxels):
+                # Try some massaging in case of empty arrays
+                voxels = voxels.reshape(-1, 3)
+                if not len(voxel_size):
+                    voxel_size = voxel_size.reshape(-1, 3)
+            else:
+                raise ValueError("`voxels` needs to be convertable to a 2D matrix")
         if voxels.ndim == 2 and voxels.shape[1] != 3:
             raise ValueError("`voxels` needs to have 3 columns, 1 for each spatial dim.")
         if not _is_broadcastable(voxels.shape, voxel_size.shape):
@@ -87,8 +93,14 @@ class VoxelSet:
             voxel_size = self._sizes[index]
         if self.has_data:
             data = self._data[index]
+            if data.ndim < 2:
+                data.reshape(-1, self._data.shape[1])
         else:
             data = None
+        if voxels.ndim == 0:
+            raise Exception("holla")
+        if voxels.ndim == 1:
+            voxels = voxels.reshape(-1, 3)
         return VoxelSet(voxels, voxel_size, data)
 
     def __bool__(self):
