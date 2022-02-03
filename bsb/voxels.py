@@ -27,6 +27,17 @@ class VoxelSet:
         """
         voxels = np.array(voxels, copy=False)
         voxel_size = np.array(size, copy=False)
+        if voxels.dtype.name == "object":
+            raise ValueError("Couldn't convert given `voxels` to a voxel matrix")
+        if voxels.ndim != 2 and len(voxels):
+            raise ValueError("`voxels` needs to be convertable to a 2D matrix")
+        if voxels.ndim == 2 and voxels.shape[1] != 3:
+            raise ValueError("`voxels` needs to have 3 columns, 1 for each spatial dim.")
+        if not _is_broadcastable(voxels.shape, voxel_size.shape):
+            raise ValueError(
+                f"Shape {voxel_size.shape} of `size` is"
+                + f" invalid for voxel shape {voxels.shape}"
+            )
         if voxel_data is not None:
             self._voxel_data = np.array(voxel_data, copy=False)
         else:
