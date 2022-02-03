@@ -67,22 +67,22 @@ class VoxelSet:
             self._regular = True
 
     def __iter__(self):
-        return iter(self.raw(copy=False))
+        return iter(self.get_raw(copy=False))
 
     def __len__(self):
-        return len(self.raw(copy=False))
+        return len(self.get_raw(copy=False))
 
     def __getitem__(self, index):
-        voxels = self.raw(copy=False)[index]
+        voxels = self.get_raw(copy=False)[index]
         if self._single_size:
             voxel_size = self._size
         else:
             voxel_size = self._sizes[index]
         if self.has_data:
-            voxel_data = self._voxel_data[index]
+            data = self._data[index]
         else:
-            voxel_data = None
-        return VoxelSet(voxels, voxel_size, voxel_data)
+            data = None
+        return VoxelSet(voxels, voxel_size, data)
 
     def __bool__(self):
         return not self.is_empty
@@ -103,7 +103,7 @@ class VoxelSet:
 
         :rtype: bool
         """
-        return self._voxel_data is not None
+        return self._data is not None
 
     @property
     def regular(self):
@@ -137,6 +137,10 @@ class VoxelSet:
         return self.get_data()
 
     @property
+    def raw(self):
+        return self.get_raw()
+
+    @property
     @functools.cache
     def bounds(self):
         """
@@ -159,7 +163,7 @@ class VoxelSet:
     def one(cls, ldc, mdc, data=None):
         voxels = cls(np.array([ldc]), np.array([mdc - ldc]))
         if data is not None:
-            voxels._voxel_data = np.array([data], dtype=object)
+            voxels._data = np.array([data], dtype=object)
         return voxels
 
     @classmethod
@@ -194,7 +198,7 @@ class VoxelSet:
                 sizes = sizes[0]
             if all(s.regular for s in sets):
                 # Index coords with same sizes can simply be stacked
-                voxels = np.concatenate([s.raw(copy=False) for s in sets])
+                voxels = np.concatenate([s.get_raw(copy=False) for s in sets])
                 irregular = False
             else:
                 voxels = np.concatenate([s.as_spatial_coords(copy=False) for s in sets])
@@ -204,38 +208,31 @@ class VoxelSet:
             sizes = np.concatenate([s.get_size_matrix(copy=False) for s in sets])
             voxels = np.concatenate([s.as_spatial_coords(copy=False) for s in sets])
             irregular = True
-        return VoxelSet(voxels, sizes, voxel_data=data, irregular=irregular)
+        return VoxelSet(voxels, sizes, data=data, irregular=irregular)
 
     def copy(self):
         if self.is_empty:
             return VoxelSet.empty()
         else:
             return VoxelSet(
-                self.raw(copy=True),
+                self.raw,
                 self.get_size(copy=True),
                 self.get_data(copy=True) if self.has_data else None,
                 irregular=not self.regular,
             )
 
-    def raw(self, copy=True):
+    def get_raw(self, copy=True):
         coords = self._indices if self.regular else self._coords
         if copy:
             coords = coords.copy()
         return coords
 
-    @property
-    def data(self):
-        if self.has_data:
-            return self._voxel_data.copy()
-        else:
-            return None
-
     def get_data(self, index=None, /, copy=True):
         if self.has_data:
             if index is not None:
-                return self._voxel_data[index]
+                return self._data[index]
             else:
-                return np.array(self._voxel_data, copy=copy)
+                return np.array(self._data, copy=copy)
         else:
             return None
 
@@ -248,7 +245,7 @@ class VoxelSet:
     def get_size_matrix(self, copy=True):
         if self._single_size:
             size = np.ones(3) * self._size
-            sizes = np.tile(size, (len(self.raw(copy=False)), 1))
+            sizes = np.tile(size, (len(self.get_raw(copy=False)), 1))
         else:
             sizes = self._sizes
             if copy:
@@ -281,14 +278,14 @@ class VoxelSet:
             grid = self._indices // (grid_size / self._size)
         else:
             grid = self._coords // grid_size
-        voxel_data = self._voxel_data
+        data = self._data
         if unique:
             if self.has_data:
                 grid, id = np.unique(grid, return_index=True, axis=0)
-                voxel_data = voxel_data[id]
+                data = data[id]
             else:
                 grid = np.unique(grid, axis=0)
-        return VoxelSet(grid, grid_size, voxel_data)
+        return VoxelSet(grid, grid_size, data)
 
     def resize(self, size):
         val = np.array(size, copy=False)
@@ -304,7 +301,7 @@ class VoxelSet:
         self._size = size
 
     def select(self, ldc, mdc):
-        voxel_data = self._voxel_data
+        data = self._data
         coords = self.as_spatial_coords(copy=False)
         inside = np.all(np.logical_and(ldc <= coords, coords < mdc), axis=1)
         return self[inside]
@@ -362,8 +359,8 @@ class VoxelSet:
                 for point, point_vc in enumerate(point_vcs):
                     voxel_reduce.setdefault(tuple(point_vc), []).append((branch, point))
             voxels = np.array(tuple(voxel_reduce.keys()))
-            voxel_data = np.array(list(voxel_reduce.values()), dtype=object)
-            return cls(voxels, voxel_size, voxel_data=voxel_data)
+            data = np.array(list(voxel_reduce.values()), dtype=object)
+            return cls(voxels, voxel_size, data=data)
         else:
             voxels = np.array(set((itertools.chain.from_iterable(branch_vcs))))
             return cls(voxels, voxel_size)
