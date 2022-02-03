@@ -8,16 +8,17 @@ import nrrd
 
 
 class VoxelSet:
-    def __init__(self, voxels, size, voxel_data=None, data_keys=None, irregular=False):
+    def __init__(self, voxels, size, data=None, data_keys=None, irregular=False):
         """
         Constructs a voxel set from the given voxel indices or coordinates.
 
         :param voxels: The spatial coordinates, or grid indices of each voxel. Nx3 matrix
-        :type voxels: :class:`numpy.ndarray`
+        :type voxels: numpy.ndarray
         :param size: The global or individual size of the voxels. If it has 2 dimensions
           it needs to have the same length as `voxels`, and will be used as individual
           voxels.
-        :type size: :class:`numpy.ndarray`
+        :type size: numpy.ndarray
+        :param data:
 
         .. warning::
 
