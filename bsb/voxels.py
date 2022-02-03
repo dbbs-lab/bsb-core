@@ -89,14 +89,27 @@ class VoxelSet:
 
     @property
     def is_empty(self):
+        """
+        Whether the set contain any voxels
+
+        :rtype: bool
+        """
         return not len(self)
 
     @property
     def has_data(self):
+        """
+        Whether the set has any data associated to the voxels
+
+        :rtype: bool
+        """
         return self._voxel_data is not None
 
     @property
     def regular(self):
+        """
+        Whether the voxels are placed on a regular grid.
+        """
         return self._regular
 
     @property
@@ -106,15 +119,32 @@ class VoxelSet:
 
     @property
     def size(self):
+        """
+        The size of the voxels. When it is 0D or 1D it counts as the size for all voxels,
+        if it is 2D it is 1 an individual size per voxel.
+
+        :rtype: numpy.ndarray
+        """
         return self.get_size()
 
     @property
     def data(self):
+        """
+        The size of the voxels. When it is 0D or 1D it counts as the size for all voxels,
+        if it is 2D it is 1 an individual size per voxel.
+
+        :rtype: Union[numpy.ndarray, None]
+        """
         return self.get_data()
 
     @property
     @functools.cache
     def bounds(self):
+        """
+        The minimum and maximum coordinates of this set.
+
+        :rtype: tuple[numpy.ndarray, numpy.ndarray]
+        """
         return (
             np.min(self.as_spatial_coords(copy=False), axis=0),
             np.max(self.as_spatial_coords(copy=False), axis=0),
