@@ -294,9 +294,9 @@ class VoxelSet:
 
     def snap_to_grid(self, grid_size, unique=False):
         if self.regular:
-            grid = self._indices // (grid_size / self._size)
+            grid = self._indices // _safe_zero_div(grid_size / _safe_zero_div(self._size))
         else:
-            grid = self._coords // grid_size
+            grid = self._coords // _safe_zero_div(grid_size)
         data = self._data
         if unique:
             if self.has_data:
@@ -375,7 +375,8 @@ class VoxelSet:
         per_side = _eq_sides(size, estimate_n)
         voxel_size = size / per_side
         branch_vcs = [
-            b.as_matrix(with_radius=False) // voxel_size for b in morphology.branches
+            b.as_matrix(with_radius=False) // _safe_zero_div(voxel_size)
+            for b in morphology.branches
         ]
         if with_data:
             voxel_reduce = {}
@@ -386,7 +387,7 @@ class VoxelSet:
             data = np.array(list(voxel_reduce.values()), dtype=object)
             return cls(voxels, voxel_size, data=data)
         else:
-            voxels = np.array(set((itertools.chain.from_iterable(branch_vcs))))
+            voxels = np.unique(np.concatenate(branch_vcs), axis=0)
             return cls(voxels, voxel_size)
 
 
