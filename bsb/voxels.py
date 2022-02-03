@@ -452,3 +452,7 @@ def _is_broadcastable(shape1, shape2):
         else:
             return False
     return True
+
+
+def _safe_zero_div(arr):
+    return np.where(np.isclose(arr, 0), np.finfo(float).max, arr)
