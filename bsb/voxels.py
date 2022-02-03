@@ -365,8 +365,13 @@ class VoxelSet:
 
     @classmethod
     def from_morphology(cls, morphology, estimate_n, with_data=True):
+        meta = morphology.meta
+        if "mdc" in meta and "ldc" in meta:
+            ldc, mdc = meta["ldc"], meta["mdc"]
+        else:
+            ldc, mdc = morphology.bounds
         # Find a good distribution of amount of voxels per side
-        size = morphology.meta["mdc"] - morphology.meta["ldc"]
+        size = mdc - ldc
         per_side = _eq_sides(size, estimate_n)
         voxel_size = size / per_side
         branch_vcs = [
