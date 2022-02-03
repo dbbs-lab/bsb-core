@@ -39,10 +39,16 @@ class VoxelSet:
                 f"Shape {voxel_size.shape} of `size` is"
                 + f" invalid for voxel shape {voxels.shape}"
             )
-        if voxel_data is not None:
-            self._voxel_data = np.array(voxel_data, copy=False)
+        if data is not None:
+            self._data = np.array(data, copy=False)
+            if self._data.ndim == 0:
+                raise ValueError("Invalid non-sequence voxel data")
+            elif self._data.ndim == 1:
+                self._data = self._data.reshape(-1, 1)
+            if len(self._data) != len(voxels):
+                raise ValueError("`voxels` and `data` length unequal.")
         else:
-            self._voxel_data = None
+            self._data = None
         if data_keys is None:
             data_keys = []
         self._data_keys = [*data_keys]
