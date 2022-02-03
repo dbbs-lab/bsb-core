@@ -246,6 +246,14 @@ class TestVoxelSet(unittest.TestCase):
         self.assertEqual(1, len(vs), "Point morpho")
         self.assertClose(0, vs.get_raw(copy=False))
 
+    def test_select(self):
+        for label, set in self.all.items():
+            with self.subTest(label=label):
+                vs = set.select([0, 0, 0], [0, 0, 0])
+                self.assertEqual(0, len(vs), "empty select nonempty set")
+                vs = set.select([-1000, -1000, -1000], [1000, 1000, 1000])
+                self.assertEqual(len(set), len(vs), "big select didnt select all")
+
     def test_index(self):
         pass
         # for label, set in self.all.items():
