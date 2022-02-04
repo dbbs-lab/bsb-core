@@ -49,7 +49,7 @@ class Output(BsbOption, name="output", cli=("output", "o"), env=("BSB_OUTPUT_FIL
 
 
 class Plot(
-    BsbOption, name="output", cli=("plot", "p"), env=("BSB_PLOT_NETWORK",), flag=True
+    BsbOption, name="plot", cli=("plot", "p"), env=("BSB_PLOT_NETWORK",), flag=True
 ):
     pass
 
@@ -151,6 +151,11 @@ class BsbCompile(BaseCommand, name="compile"):
             append=context.append,
             redo=context.redo,
         )
+
+        if context.plot:
+            from bsb.plotting import plot_network
+
+            plot_network(network)
 
     def get_options(self):
         return {

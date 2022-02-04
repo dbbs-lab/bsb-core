@@ -202,10 +202,10 @@ def _input_highlight(f, required=False):
 
 def _plot_network(network, fig, cubic, swapaxes):
     xmin, xmax, ymin, ymax, zmin, zmax = tuple([0] * 6)
-    for type in network.configuration.cell_types.values():
+    for type in network.cell_types.values():
         if type.entity:
             continue
-        pos = network.cells_by_type[type.name][:, [2, 3, 4]]
+        pos = type.get_placement_set().load_positions()
         color = type.plotting.color
         fig.add_trace(
             go.Scatter3d(
@@ -215,7 +215,7 @@ def _plot_network(network, fig, cubic, swapaxes):
                 mode="markers",
                 marker=dict(color=color, size=type.spatial.radius),
                 opacity=type.plotting.opacity,
-                name=type.plotting.label,
+                name=type.plotting.display_name or type.name,
             )
         )
         xmin = min(xmin, np.min(pos[:, 0], initial=0))
@@ -236,22 +236,11 @@ def _plot_network(network, fig, cubic, swapaxes):
 
 
 @_network_figure
-def plot_network(
-    network, fig=None, cubic=True, swapaxes=True, show=True, legend=True, from_memory=True
-):
+def plot_network(network, fig=None, cubic=True, swapaxes=True, show=True, legend=True):
     """
     Plot a network, either from the current cache or the storage.
     """
-    if from_memory:
-        _plot_network(network, fig, cubic, swapaxes)
-    else:
-        network.reset_network_cache()
-        for type in network.configuration.cell_types.values():
-            if type.entity:
-                continue
-            # Load from HDF5
-            network.get_cells_by_type(type.name)
-        _plot_network(network, fig, cubic, swapaxes)
+    _plot_network(network, fig, cubic, swapaxes)
     return fig
 
 
