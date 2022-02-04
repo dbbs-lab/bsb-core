@@ -49,9 +49,15 @@ class VoxelData(np.ndarray):
 
     @property
     def keys(self):
+        """
+        Returns the keys, or column labels, associated to each data column.
+        """
         return self._keys.copy()
 
     def copy(self):
+        """
+        Return a new copy of the voxel data
+        """
         new = super().copy()
         new._keys = self._keys.copy()
         return new
