@@ -59,23 +59,74 @@ class FileStore(Interface, engine_key="files"):
     """
 
     @abc.abstractmethod
-    def store(self, content, id=None, meta=None):
+    def all(self):
+        """
+        Return all ids and associated metadata in the file store.
+        """
         pass
 
     @abc.abstractmethod
-    def load(self):
+    def store(self, content, id=None, meta=None):
+        """
+        Store content in the file store.
+
+        :param content: Content to be stored
+        :type content: str
+        :param id: Optional specific id for the content to be stored under.
+        :type id: str
+        :param meta: Metadata for the content
+        :type meta: dict
+        :returns: The id the content was stored under
+        :rtype: str
+        """
+        pass
+
+    @abc.abstractmethod
+    def load(self, id):
+        """
+        Load the content of an object in the file store.
+
+        :param id: id of the content to be loaded.
+        :type id: str
+        :returns: The content of the stored object
+        :rtype: str
+        :raises FileNotFoundError: The given id doesn't exist in the file store.
+        """
         pass
 
     @abc.abstractmethod
     def remove(self, id):
+        """
+        Remove the content of an object in the file store.
+
+        :param id: id of the content to be removed.
+        :type id: str
+        :raises FileNotFoundError: The given id doesn't exist in the file store.
+        """
         pass
 
     @abc.abstractmethod
     def store_active_config(self, config):
+        """
+        Store configuration in the file store and mark it as the active configuration of
+        the stored network.
+
+        :param config: Configuration to be stored
+        :type config: :class:`~.config.Configuration`
+        :returns: The id the config was stored under
+        :rtype: str
+        """
         pass
 
     @abc.abstractmethod
     def load_active_config(self):
+        """
+        Load the active configuration stored in the file store.
+
+        :returns: The active configuration
+        :rtype: :class:`~.config.Configuration`
+        :raises Exception: When there's no active configuration in the file store.
+        """
         pass
 
 
