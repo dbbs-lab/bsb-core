@@ -12,7 +12,7 @@ class FileStore(Resource, IFileStore):
     def __init__(self, engine):
         super().__init__(engine, _root)
 
-    def get_all(self):
+    def all(self):
         with self._engine._read():
             with self._engine._handle("r") as root:
                 store = root[self._path]
@@ -62,8 +62,8 @@ class FileStore(Resource, IFileStore):
         id = self._active_config_id()
         if id is not None:
             self.remove(id)
-        self.store(json.dumps(config.__tree__()), {"active_config": True})
+        return self.store(json.dumps(config.__tree__()), {"active_config": True})
 
     def _active_config_id(self):
-        match = (id for id, m in self.get_all().items() if m.get("active_config", False))
+        match = (id for id, m in self.all().items() if m.get("active_config", False))
         return next(match, None)
