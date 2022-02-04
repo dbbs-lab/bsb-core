@@ -20,7 +20,10 @@ requires = [
     "rtree>=0.9.7",
     "psutil>=5.8.0",
     "arbor>=0.5",
-    "pynrrd~=0.4"
+    "pynrrd~=0.4",
+    "mpilock~=1.1",
+    "mpi4py",
+    "zwembad",
 ]
 
 setuptools.setup(
