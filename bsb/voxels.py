@@ -206,12 +206,12 @@ class VoxelSet:
         primer = None
         # Check which sets we are concatenating, maybe we can keep them in reduced data
         # forms. If they don't line up, we expand and concatenate the expanded forms.
-        if all(
+        if any(
             # `primer` is assigned the first non-empty set, all sizes must match sizes can
             # still be 0D, 1D or 2D, but if they're allclose broadcasted it is fine! :)
-            np.allclose(s.get_size(copy=False), primer.get_size(copy=False))
+            not np.allclose(s.get_size(copy=False), primer.get_size(copy=False))
             for s in sets
-            if (primer := primer or s)
+            if s and (primer := primer or s)
         ):
             sizes = primer.get_size()
             if len(sizes.shape) > 1:
