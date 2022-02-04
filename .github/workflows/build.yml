@@ -40,4 +40,4 @@ jobs:
       run: |
         coverage run -p -m unittest discover -v -s ./tests
         mpiexec -n 2 coverage run -p -m unittest discover -v -s ./tests
-        bash <(curl -s https://codecov.io/bash) -t 2f17a47c-ba2a-47c4-9864-c6661afe1f85
+        bash <(curl -s https://codecov.io/bash)

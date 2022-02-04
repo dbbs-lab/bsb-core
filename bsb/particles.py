@@ -108,7 +108,7 @@ class ParticleSystem:
 
     def fill(self, voxels, particles):
         # Amount of spatial dimensions
-        self.dimensions = voxels.raw(copy=False).shape[1]
+        self.dimensions = voxels.get_raw(copy=False).shape[1]
         # Extend list of particle types in the system
         self.particle_types.extend(particles)
         # Max particle type radius

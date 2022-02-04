@@ -96,8 +96,8 @@ _t(
             ContinuityError=_e(),
         ),
         TreeError=_e(),
-        VoxelizationError=_e(
-            VoxelTransformError=_e(),
+        VoxelSetError=_e(
+            EmptyVoxelSetError=_e(),
         ),
         ResourceError=_e(
             DatasetNotFoundError=_e(
