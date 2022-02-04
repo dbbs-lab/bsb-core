@@ -1,7 +1,10 @@
 import unittest
 import numpy as np
+import random
 from bsb.voxels import VoxelSet
+from bsb.storage import Chunk
 from bsb.morphologies import Branch, Morphology
+from bsb.exceptions import *
 from itertools import count as _ico, chain as _ic
 
 
@@ -253,6 +256,77 @@ class TestVoxelSet(unittest.TestCase):
                 self.assertEqual(0, len(vs), "empty select nonempty set")
                 vs = set.select([-1000, -1000, -1000], [1000, 1000, 1000])
                 self.assertEqual(len(set), len(vs), "big select didnt select all")
+        # vs([[0, 0, 0], [1, 0, 0], [2, 0, 0]], [2, 2, 2]),
+        vs = self.regulars[1]
+        res = vs.select([-1, -1, -1], [3.5, 0.5, 0.5])
+        self.assertEqual(2, len(res), "unexpected selection")
+        self.assertClose(0, res.raw[0], "unexpected selection")
+        self.assertClose([1, 0, 0], res.raw[1], "unexpected selection")
+        c = Chunk([0, 0, 0], [100, 100, 100])
+        res = vs.select_chunk(c)
+        self.assertEqual(len(res), len(vs), "big chunk didnt select all")
+
+    def test_resize(self):
+        vs = self.regulars[0]
+        _vs = vs.copy()
+        vs.resize([1, 1, 1])
+        self.assertClose(vs.as_spatial_coords() * 2, _vs.as_spatial_coords(), "not half")
+        self.assertTrue(vs.regular, "still regular")
+        with self.assertRaises(ValueError):
+            vs.resize(None)
+        with self.assertRaises(ValueError):
+            vs.resize([[3, 3, 3], [3, 3, 3]])
+        vs.resize([[3, 3, 3], [3, 3, 3], [3, 3, 3]])
+        self.assertFalse(vs.regular, "of equal size, but not regular anymore")
+
+    def test_empty(self):
+        self.assertEqual(0, len(self.empty))
+        self.assertFalse(self.empty)
+        self.assertEqual((0, 3), self.empty.get_size_matrix().shape)
+
+    def test_empty_concat(self):
+        vs = VoxelSet.concatenate(self.empty)
+
+    def test_double_empty_concat(self):
+        vs = VoxelSet.concatenate(self.empty, self.empty)
+
+    def test_data_concat(self):
+        vs = VoxelSet.concatenate(self.data[3], self.regulars[2])
+
+    def test_bounds(self):
+        for label, set in self.all.items():
+            if not label.startswith("empty"):
+                with self.subTest(label=label):
+                    bounds = set.bounds
+                    self.assertIs(bounds, set.bounds, "bounds should be cached")
+                    self.assertEqual(2, len(bounds), "should be tuple of min max")
+                    self.assertIs(tuple, type(bounds), "should be tuple")
+                    self.assertEqual(3, len(bounds[0]), "3 dim")
+                    self.assertEqual(3, len(bounds[1]), "3 dim")
+                    self.assertTrue(all(a <= b for a, b in zip(*bounds)), "min max")
+        with self.assertRaises(EmptyVoxelSetError):
+            self.empty.bounds
+        vs = self.unequals[0]
+
+    def test_one(self):
+        vs = VoxelSet.one([100, 0, 0], [120, 20, 20])
+        self.assertEqual(1, len(vs), "voxelset with single voxel should be len 1")
+        b = vs.bounds
+        self.assertClose([100, 0, 0], b[0], "incorr min bounds")
+        self.assertClose([120, 20, 20], b[1], "incorr max bounds")
+        vs = VoxelSet.one([120, 20, 20], [100, 0, 0])
+        b = vs.bounds
+        self.assertClose([100, 0, 0], b[0], "incorr min bounds")
+        self.assertClose([120, 20, 20], b[1], "incorr max bounds")
+        vs = VoxelSet.one([[100, 0, 0]], [120, 20, 20])
+        with self.assertRaises(ValueError):
+            vs = VoxelSet.one([100, 0, 0, 0], [120, 20, 20])
+        vs = VoxelSet.one([[100, 0, 0]], [120, 20, 20], 1)
+        self.assertEqual(1, vs.get_data(0))
+        vs = VoxelSet.one([[100, 0, 0]], [120, 20, 20], [1])
+        self.assertEqual(1, vs.get_data(0))
+        vs = VoxelSet.one([[100, 0, 0]], [120, 20, 20], [1, 1])
+        self.assertEqual([1, 1], list(vs.get_data(0)))
 
     def test_index(self):
         pass
@@ -275,4 +349,10 @@ class TestVoxelSet(unittest.TestCase):
                 )
 
     def test_concatenate(self):
-        ...
+        for i in range(1000):
+            choices = random.choices(list(self.all.items()), k=random.randint(0, 5))
+            n = len(choices)
+            labels = [lbl for lbl, set_ in choices]
+            sets = [set_ for lbl, set_ in choices]
+            with self.subTest(labels=labels):
+                vs = VoxelSet.concatenate(*sets)
