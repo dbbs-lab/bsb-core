@@ -172,8 +172,13 @@ class Storage:
                     self._engine.__dict__[key] = NotSupported(self._engine.format, name)
         # The storage should be created at the root as soon as we initialize because
         # features might immediatly require the basic structure to be present.
-        if not self.exists():
+        self._preexisted = self.exists()
+        if not self._preexisted:
             self.create()
+
+    @property
+    def preexisted(self):
+        return self._preexisted
 
     def is_master(self):
         return self._comm.Get_rank() == self._master
