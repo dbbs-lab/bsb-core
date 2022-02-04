@@ -54,11 +54,11 @@ You can verify that the installation works with
 
 .. code-block:: bash
 
-    bsb -v=3 compile -x=100 -z=100 -p
+    bsb -v=3 compile -x=100 -z=100
 
 This should generate a template config and an HDF5 file in your current directory and open
-a plot of the generated network, it should contain a column of ``base_type`` cells. If no
-errors occur you are ready to :doc:`get started <getting-started>`.
+, it should contain a column of ``base_type`` cells. If no errors occur you are ready to
+:doc:`get started <getting-started>`.
 
 Another verification method is to import the package in a Python script:
 
