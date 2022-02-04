@@ -4,6 +4,7 @@ from .trees import BoxTree
 from .exceptions import *
 import numpy as np
 import functools
+import itertools
 import abc
 import nrrd
 
@@ -45,6 +46,10 @@ class VoxelData(np.ndarray):
     def __array_finalize__(self, obj):
         if obj is not None:
             self._keys = []
+
+    @property
+    def keys(self):
+        return self._keys.copy()
 
     def copy(self):
         new = super().copy()
@@ -301,14 +306,32 @@ class VoxelSet:
 
         if any(s.has_data for s in sets):
             fillers = [s.get_data(copy=False) for s in sets]
-            md = max(f.shape[1] for f in fillers if f is not None)
+            # Find all keys among data to concatenate
+            all_keys = set(itertools.chain(*(f.keys for f in fillers if f is not None)))
+            # Create an index for each key
+            keys = [*sorted(set(all_keys), key=str)]
+            # Allocate enough columns for all keys, or a data array with more unlabelled
+            # columns than that.
+            md = max(len(keys), *(f.shape[1] for f in fillers if f is not None))
+            if not keys:
+                keys = None
+            elif md > len(keys):
+                # Find and pad `keys` with labels for the extra numerical columns.
+                extra = md - len(keys)
+                new_nums = (s for c in itertools.count() if (s := str(c)) not in keys)
+                keys.extend(itertools.islice(new_nums, extra))
+                keys.extend(range(len(keys), md))
+                keys = sorted(keys)
             ln = [len(s) for s in sets]
             data = np.empty((sum(ln), md), dtype=object)
             ptr = 0
             for l, fill in zip(ln, fillers):
                 if fill is not None:
-                    c = fill.shape[1]
-                    data[ptr : (ptr + l), :c] = fill
+                    if not fill.keys:
+                        cols = slice(None, fill.shape[1])
+                    else:
+                        cols = [keys.index(key) for key in fill.keys]
+                    data[ptr : (ptr + l), cols] = fill
                     ptr += l
         else:
             data = None

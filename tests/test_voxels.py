@@ -135,6 +135,12 @@ class TestVoxelSet(unittest.TestCase):
             VoxelSet([1, 2, 3], [[1, 0, 0]])
         with self.assertRaises(ValueError):
             VoxelSet([[1, 0, 0, 0]], [[1, 0, 0]])
+        VoxelSet([[1, 2, 3], [1, 2, 3]], 2, [[1], [2]], data_keys=["a"])
+        arr = np.array([[1], [2]])
+        VoxelSet([[1, 2, 3], [1, 2, 3]], 2, VoxelData(arr))
+        VoxelSet([[1, 2, 3], [1, 2, 3]], 2, VoxelData(arr), data_keys=["a"])
+        with self.assertRaises(ValueError):
+            VoxelSet([[1, 2, 3], [1, 2, 3]], 2, VoxelData(arr), data_keys=["a", "b"])
 
     def test_data_ctor(self):
         with self.assertRaises(ValueError):
@@ -414,6 +420,11 @@ class TestVoxelSet(unittest.TestCase):
                 self.assertEqual(1, len(sel), "selected 1 index, should have 1 voxel")
                 sel = vs[:]
                 self.assertEqual(len(vs), len(sel), "indexed all, should have all voxels")
+        vs = self.regulars[0]
+        v0 = vs[0]
+        self.assertEqual(VoxelSet, type(v0), "single voxel index didn't make a VoxelSet")
+        vs = self.data1d[0]
+        vs[1:]
 
     def test_copy(self):
         for label, set in self.all.items():
@@ -442,23 +453,44 @@ class TestVoxelSet(unittest.TestCase):
             with self.subTest(labels=labels):
                 vs = VoxelSet.concatenate(*sets)
 
+    def test_concatenate_wdata_case1(self):
+        # Special case, don't rmember why exactly anymore
+        vs = VoxelSet.concatenate(
+            self.data1d[1], self.data1d[1], self.data1d[2], self.data1d[0]
+        )
+
     def test_concatenate_same_datakeys(self):
         vs1 = self.data_keys[0]
         p = VoxelSet.concatenate(vs1, vs1)
         self.assertEqual((6, 2), p._data.shape, "Same key cols not on same cols")
         self.assertEqual(["a", "b"], p._data._keys)
 
+    def test_concatenate_wdata_big_unum(self):
+        vs = self.data1d[0]
+        vs._data = VoxelData(np.column_stack([[3] * 3] * 5))
+        cat = VoxelSet.concatenate(vs, self.data_keys[0])
+        self.assertEqual(
+            ["0", "1", "2", "a", "b"], cat._data.keys, "should add unnumbered cols"
+        )
+        self.assertTrue(np.all(cat._data[3:, :3] == None), "unum cols should be first")
+
     def test_concatenate_partial_same_datakeys(self):
         vs1 = self.data_keys[0]
-        vs2 = self.data1d[1]
+        vs2 = self.data_keys[1]
         p = VoxelSet.concatenate(vs1, vs2)
         self.assertEqual((6, 3), p._data.shape, "Overlapping cols not together")
+        # `ab + bc` should be merged to `abc` with Nones in the corners.
+        self.assertTrue(np.all(p._data[:3, 0] != None))
+        self.assertTrue(np.all(p._data[3:, 0] == None))
+        self.assertTrue(np.all(p._data[:, 1] != None))
+        self.assertTrue(np.all(p._data[3:, 2] != None))
+        self.assertTrue(np.all(p._data[:3, 2] == None))
 
     def test_concatenate_with_and_without_datakeys(self):
         vs1 = self.data_keys[0]
         vs2 = self.data1d[1]
         p = VoxelSet.concatenate(vs1, vs2)
-        self.assertEqual((6, 3), p._data.shape, "Labelled cols should go seperately")
+        self.assertEqual((6, 2), p._data.shape, "Labelled cols should go seperately")
 
 
 class TestVoxelData(unittest.TestCase):
@@ -482,3 +514,6 @@ class TestVoxelData(unittest.TestCase):
         self.assertTrue(np.all(vd[:] == vd), "Selecting all should eq all")
         self.assertTrue(np.all(vd[:, :] == vd), "Selecting all should eq all")
         self.assertTrue(np.all(vd[:, 0] == vd), "Selecting all should eq all")
+
+    def test_getitem(self):
+        VoxelData(np.array([1]), keys=["alpha"])[0]
