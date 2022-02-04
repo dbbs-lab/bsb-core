@@ -324,11 +324,11 @@ class VoxelSet:
 
     def resize(self, size):
         val = np.array(size, copy=False)
-        if np.array(size).type.python_type is object:
-            raise Exception("no no no")
+        if val.dtype.name == "object":
+            raise ValueError("Size must be number type")
         if val.ndim > 1:
-            if val.size != len(self):
-                raise Exception("Hell to the no")
+            if len(val) != len(self):
+                raise ValueError("Individual voxel sizes must match amount of voxels.")
             if self.regular:
                 self._coords = self.as_spatial_coords()
                 del self._indices
