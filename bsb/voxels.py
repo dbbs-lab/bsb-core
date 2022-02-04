@@ -1,6 +1,7 @@
 from . import config
 from .config import types
 from .trees import BoxTree
+from .exceptions import *
 import numpy as np
 import functools
 import abc
@@ -167,6 +168,8 @@ class VoxelSet:
 
         :rtype: tuple[numpy.ndarray, numpy.ndarray]
         """
+        if self.is_empty:
+            raise EmptyVoxelSetError("Empty VoxelSet has no bounds.")
         boxes = self.as_boxes()
         dims = boxes.shape[1] // 2
         return (
