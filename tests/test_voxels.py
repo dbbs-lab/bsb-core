@@ -1,7 +1,7 @@
 import unittest
 import numpy as np
 import random
-from bsb.voxels import VoxelSet
+from bsb.voxels import VoxelSet, VoxelData
 from bsb.storage import Chunk
 from bsb.morphologies import Branch, Morphology
 from bsb.exceptions import *
@@ -60,12 +60,62 @@ class TestVoxelSet(unittest.TestCase):
             )
         )
 
-        self.data = [
+        self.data1d = [
             vs([[0, 0, 0], [1, 0, 0], [2, 0, 0]], 2, [[1], [0], [1]]),
-            vs([[0, 0, 0], [1, 0, 0], [2, 0, 0]], [2, 2, 2], [[1], [0], [1]]),
+            vs([[0, 0, 0], [1, 0, 0], [2, 0, 0]], [2, 2, 2], [[1], [1], [1]]),
             vs([[0, 0, 0], [1, 0, 0], [2, 2, 0]], [-1, 2, 2], [[1], [0], [1]]),
-            vs([[0, 0, 0], [1, 0, 0], [2, 0, 0]], -1, [[1], [0], [1]]),
+            vs([[0, 0, 0], [1, 0, 0], [2, 0, 0]], -1, [1, 0, 1]),
             vs([[0, 0, 0], [1, 0, 0], [0, 0, 0]], -1, [[1], [0], [1]]),
+        ]
+        self.data2d = [
+            vs([[0, 0, 0], [1, 0, 0], [2, 0, 0]], 2, [[1, 1], [0, 1], [1, 1]]),
+            vs(
+                [[0, 0, 0], [1, 0, 0], [2, 0, 0]],
+                [2, 2, 2],
+                [[1, "a"], [0, "b"], [1, "c"]],
+            ),
+            vs(
+                [[0, 0, 0], [1, 0, 0], [2, 2, 0]],
+                [-1, 2, 2],
+                [[1, "a"], ["d", "b"], [1, "c"]],
+            ),
+            vs(
+                [[0, 0, 0], [1, 0, 0], [2, 2, 0]],
+                [-1, 2, 2],
+                [[None, type], [None, None], [None, int]],
+            ),
+        ]
+        self.data_dict = dict(
+            _ic(
+                zip((f"data1d_{i}" for i in _ico()), self.data1d),
+                zip((f"data2d_{i}" for i in _ico()), self.data2d),
+            )
+        )
+        self.data_keys = [
+            vs(
+                [[0, 0, 0], [1, 0, 0], [2, 0, 0]],
+                2,
+                [[1, 1], [0, 1], [1, 1]],
+                data_keys=["a", "b"],
+            ),
+            vs(
+                [[0, 0, 0], [1, 0, 0], [2, 0, 0]],
+                [2, 2, 2],
+                [[1, "a"], [0, "b"], [1, "c"]],
+                data_keys=["b", "c"],
+            ),
+            vs(
+                [[0, 0, 0], [1, 0, 0], [2, 2, 0]],
+                [-1, 2, 2],
+                [[1, "a"], ["d", "b"], [1, "c"]],
+                data_keys=[1, "c"],
+            ),
+            vs(
+                [[0, 0, 0], [1, 0, 0], [2, 2, 0]],
+                [-1, 2, 2],
+                [[None, type], [None, None], [None, int]],
+                data_keys=[1, "c"],
+            ),
         ]
 
     def test_weird_usage(self):
@@ -96,6 +146,7 @@ class TestVoxelSet(unittest.TestCase):
         VoxelSet([[1, 2, 3]], 1, [[1, 2]])
         with self.assertWarns(np.VisibleDeprecationWarning):
             VoxelSet([[1, 2, 3], [0, 0, 0]], 1, [[1, 2], [1]])
+        het = VoxelSet([[1, 2, 3], [2, 0, 0]], 1, [[1, 2], [1, "a"]])
 
     def test_unequal_len(self):
         with self.assertRaises(ValueError):
@@ -162,6 +213,10 @@ class TestVoxelSet(unittest.TestCase):
                 set.as_boxtree()
 
     def test_get_data(self):
+        for set in self.data1d:
+            self.assertEqual(2, set.data.ndim, "data should always be 2d")
+            self.assertIsNot(set.data, set.data, "data prop should copy")
+
         for label, set in self.all.items():
             with self.subTest(label=label):
                 self.assertEqual(None, set.get_data(), "No index no data should be None")
@@ -176,10 +231,12 @@ class TestVoxelSet(unittest.TestCase):
                 vs = set.snap_to_grid([1, 1, 0])
                 self.assertTrue(vs.regular, "snap to grid should make regular grid")
                 self.assertClose(0, vs.raw[:, 2], "0 width dimension should be flat")
-        for set in self.data:
+        for set in self.data1d:
             vs = set.snap_to_grid([1, 1, 1])
             self.assertEqual(set.data.shape, vs.data.shape, "snap to grid changed data")
-            self.assertClose(set.data, vs.data, "snap to grid changed data")
+            self.assertClose(
+                set.data.astype(int), vs.data.astype(int), "snap to grid changed data"
+            )
 
     def test_snap_unique(self):
         for set in self.dupes:
@@ -187,7 +244,7 @@ class TestVoxelSet(unittest.TestCase):
             self.assertEqual(len(set), len(vs), "voxels dropped without unique")
             vs = set.snap_to_grid([1, 1, 1], unique=True)
             self.assertNotEqual(len(set), len(vs), "no duplicates dropped with unique")
-        for set in self.data:
+        for set in self.data1d:
             vs = set.snap_to_grid([1, 1, 1], unique=True)
             self.assertEqual(len(vs.raw), len(vs.data), "data wrong with unique")
 
@@ -226,9 +283,7 @@ class TestVoxelSet(unittest.TestCase):
                 self.assertTrue(set, "non empty set False")
 
     def test_from_flat_morphology(self):
-        branches = [
-            Branch([i, i, i, i, i], [0, 1, 2, 3, 4], [0] * 5, [1] * 5) for i in range(5)
-        ]
+        branches = [Branch([i] * 5, [0, 1, 2, 3, 4], [0] * 5, [1] * 5) for i in range(5)]
         morpho = Morphology(branches)
         vs = morpho.voxelize(16)
         self.assertLess(0, len(vs), "Empty voxelset from non empty morpho")
@@ -237,6 +292,15 @@ class TestVoxelSet(unittest.TestCase):
         vs = VoxelSet.from_morphology(morpho, 16, with_data=False)
         self.assertLess(0, len(vs), "Empty voxelset from non empty morpho")
         self.assertClose(0, vs.get_raw(copy=False)[:, 2], "Flat morphology not flat VS")
+
+    def test_from_3d_morphology(self):
+        branches = [Branch([i] * 5, [0, 1, 2, 3, 4], [i] * 5, [1] * 5) for i in range(5)]
+        morpho = Morphology(branches)
+        vs = morpho.voxelize(16)
+        self.assertLess(0, len(vs), "Empty voxelset from non empty morpho")
+        data = vs.get_data()
+        vs = VoxelSet.from_morphology(morpho, 16, with_data=False)
+        self.assertLess(0, len(vs), "Empty voxelset from non empty morpho")
 
     def test_from_empty_morphology(self):
         empty_morpho = Morphology([])
@@ -291,7 +355,14 @@ class TestVoxelSet(unittest.TestCase):
         vs = VoxelSet.concatenate(self.empty, self.empty)
 
     def test_data_concat(self):
-        vs = VoxelSet.concatenate(self.data[3], self.regulars[2])
+        vs = VoxelSet.concatenate(self.data1d[3], self.regulars[2])
+        self.assertEqual([1, 0, 1], vs._data[:3].reshape(-1).tolist())
+        self.assertEqual([None] * 3, vs._data[3:].reshape(-1).tolist())
+        vs = VoxelSet.concatenate(self.data2d[2], self.regulars[2])
+        self.assertEqual([["1", "a"], ["d", "b"], ["1", "c"]], vs._data[:3].tolist())
+        self.assertEqual([[None] * 2] * 3, vs._data[3:].tolist())
+        vs = VoxelSet.concatenate(self.data2d[2], self.data1d[1])
+        self.assertEqual([[1, None]] * 3, vs._data[3:].tolist())
 
     def test_bounds(self):
         for label, set in self.all.items():
@@ -326,19 +397,23 @@ class TestVoxelSet(unittest.TestCase):
         vs = VoxelSet.one([[100, 0, 0]], [120, 20, 20], [1])
         self.assertEqual(1, vs.get_data(0))
         vs = VoxelSet.one([[100, 0, 0]], [120, 20, 20], [1, 1])
-        self.assertEqual([1, 1], list(vs.get_data(0)))
+        self.assertEqual([1, 1], list(np.array(vs.get_data(0))[0]))
 
     def test_index(self):
-        pass
-        # for label, set in self.all.items():
-        #     vs = set[0:0, 0, 0, 0]
-        #     print(set[0:0, 0])
-        #     print(len(vs), vs.get_raw(copy=False).shape)
-        #     with self.assertRaises(IndexError):
-        #         vs = set[0:0, 0]
-        #     if not vs.is_empty:
-        #         print(vs)
-        #         print(len(vs), vs.get_raw(copy=False).shape)
+        for label, set in self.all.items():
+            vs = set[0:0]
+            self.assertTrue(vs.is_empty, "Empty selection should be empty set")
+            with self.assertRaises(IndexError):
+                vs["test"]
+            with self.assertRaises(IndexError):
+                vs[:, "test"]
+            with self.assertRaises(IndexError):
+                vs = set[0:1, 0]
+            if not vs.is_empty:
+                sel = vs[1]
+                self.assertEqual(1, len(sel), "selected 1 index, should have 1 voxel")
+                sel = vs[:]
+                self.assertEqual(len(vs), len(sel), "indexed all, should have all voxels")
 
     def test_copy(self):
         for label, set in self.all.items():
@@ -356,3 +431,54 @@ class TestVoxelSet(unittest.TestCase):
             sets = [set_ for lbl, set_ in choices]
             with self.subTest(labels=labels):
                 vs = VoxelSet.concatenate(*sets)
+                self.assertEqual(sum(len(s) for s in sets), len(vs))
+
+    def test_concatenate_wdata(self):
+        for i in range(1000):
+            choices = random.choices(list(self.data_dict.items()), k=random.randint(0, 5))
+            n = len(choices)
+            labels = [lbl for lbl, set_ in choices]
+            sets = [set_ for lbl, set_ in choices]
+            with self.subTest(labels=labels):
+                vs = VoxelSet.concatenate(*sets)
+
+    def test_concatenate_same_datakeys(self):
+        vs1 = self.data_keys[0]
+        p = VoxelSet.concatenate(vs1, vs1)
+        self.assertEqual((6, 2), p._data.shape, "Same key cols not on same cols")
+        self.assertEqual(["a", "b"], p._data._keys)
+
+    def test_concatenate_partial_same_datakeys(self):
+        vs1 = self.data_keys[0]
+        vs2 = self.data1d[1]
+        p = VoxelSet.concatenate(vs1, vs2)
+        self.assertEqual((6, 3), p._data.shape, "Overlapping cols not together")
+
+    def test_concatenate_with_and_without_datakeys(self):
+        vs1 = self.data_keys[0]
+        vs2 = self.data1d[1]
+        p = VoxelSet.concatenate(vs1, vs2)
+        self.assertEqual((6, 3), p._data.shape, "Labelled cols should go seperately")
+
+
+class TestVoxelData(unittest.TestCase):
+    def test_ctor(self):
+        vd = VoxelData(np.array([1, 1, 1, 1]), keys=["alpha"])
+        self.assertEqual(2, vd.ndim, "VoxelData should be 2d")
+        vd = VoxelData(np.array(1), keys=["alpha"])
+        self.assertEqual(2, vd.ndim, "VoxelData should be 2d")
+        with self.assertRaises(IndexError):
+            vd["beta"]
+        with self.assertRaises(ValueError):
+            VoxelData(np.array([1, 1, 1]), keys=["a", "b", "c"])
+        with self.assertRaises(ValueError):
+            VoxelSet(
+                [[0, 0, 0], [1, 0, 0], [2, 0, 0]],
+                [2, 2, 2],
+                [[1, "a"], [0, "b"], [1, "c"]],
+                data_keys=["b", "b"],
+            ),
+        self.assertTrue(np.all(vd["alpha"] == vd), "Selecting all should eq all")
+        self.assertTrue(np.all(vd[:] == vd), "Selecting all should eq all")
+        self.assertTrue(np.all(vd[:, :] == vd), "Selecting all should eq all")
+        self.assertTrue(np.all(vd[:, 0] == vd), "Selecting all should eq all")

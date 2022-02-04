@@ -20,6 +20,8 @@ class VoxelData(np.ndarray):
         obj[:] = data
         if keys is not None:
             keys = [str(k) for k in keys]
+            if len(set(keys)) != len(keys):
+                raise ValueError("Data keys must be unique")
             if len(keys) != data.shape[1]:
                 raise ValueError("Amount of data keys must match amount of data columns")
             obj._keys = keys
@@ -307,9 +309,11 @@ class VoxelSet:
                 if fill is not None:
                     c = fill.shape[1]
                     data[ptr : (ptr + l), :c] = fill
+                    ptr += l
         else:
             data = None
-        return VoxelSet(voxels, sizes, data=data, irregular=irregular)
+            keys = None
+        return VoxelSet(voxels, sizes, data=data, data_keys=keys, irregular=irregular)
 
     def copy(self):
         if self.is_empty:
