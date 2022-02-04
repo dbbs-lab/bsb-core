@@ -8,6 +8,74 @@ import abc
 import nrrd
 
 
+class VoxelData(np.ndarray):
+    """
+    Chunk identifier, consisting of chunk coordinates and size.
+    """
+
+    def __new__(cls, data, keys=None):
+        if data.ndim < 2:
+            data = data.reshape(-1, 1)
+        obj = super().__new__(cls, data.shape, dtype=object)
+        obj[:] = data
+        if keys is not None:
+            keys = [str(k) for k in keys]
+            if len(keys) != data.shape[1]:
+                raise ValueError("Amount of data keys must match amount of data columns")
+            obj._keys = keys
+        else:
+            obj._keys = []
+        return obj
+
+    def __getitem__(self, index):
+        if self.ndim > 1:
+            index, keys = self._rewrite_index(index)
+        vd = super().__getitem__(index)
+        if isinstance(vd, VoxelData):
+            if vd.ndim == 1:
+                if keys:
+                    vd = vd.reshape(-1, len(keys))
+                else:
+                    vd = vd.reshape(-1, self.shape[1])
+            vd._keys = keys
+        return vd
+
+    def __array_finalize__(self, obj):
+        if obj is not None:
+            self._keys = []
+
+    def copy(self):
+        new = super().copy()
+        new._keys = self._keys.copy()
+        return new
+
+    def _split_index(self, index):
+        try:
+            if isinstance(index, tuple):
+                cols = [self._keys.index(idx) for idx in index if isinstance(idx, str)]
+                keys = [self._keys[c] for c in cols]
+                index = tuple(idx for idx in index if not isinstance(idx, str))
+            elif isinstance(index, str):
+                cols = [self._keys.index(index)]
+                keys = [self._keys[cols[0]]]
+                index = (slice(None),)
+            else:
+                index = (index,)
+                cols = slice(None)
+                keys = getattr(self, "_keys", [])
+        except ValueError as e:
+            key = str(e).split("'")[1]
+            raise IndexError(f"Voxel data key '{key}' does not exist.") from None
+        return index, cols, keys
+
+    def _rewrite_index(self, index):
+        index, cols, keys = self._split_index(index)
+        if cols:
+            return (*index, cols), keys
+        else:
+            return index, keys
+
+
 class VoxelSet:
     def __init__(self, voxels, size, data=None, data_keys=None, irregular=False):
         """
@@ -47,18 +115,18 @@ class VoxelSet:
                 + f" invalid for voxel shape {voxels.shape}"
             )
         if data is not None:
-            self._data = np.array(data, copy=False)
-            if self._data.ndim == 0:
-                raise ValueError("Invalid non-sequence voxel data")
-            elif self._data.ndim == 1:
-                self._data = self._data.reshape(-1, 1)
+            if isinstance(data, VoxelData):
+                if data_keys is None:
+                    self._data = data
+                else:
+                    self._data = VoxelData(data, keys=data_keys)
+            else:
+                data = np.array(data, copy=False)
+                self._data = VoxelData(data, keys=data_keys)
             if len(self._data) != len(voxels):
                 raise ValueError("`voxels` and `data` length unequal.")
         else:
             self._data = None
-        if data_keys is None:
-            data_keys = []
-        self._data_keys = [*data_keys]
 
         if not len(voxel_size.shape):
             self._cubic = True
@@ -87,19 +155,18 @@ class VoxelSet:
         return len(self.get_raw(copy=False))
 
     def __getitem__(self, index):
-        voxels = self.get_raw(copy=False)[index]
-        if self._single_size:
-            voxel_size = self._size
-        else:
-            voxel_size = self._sizes[index]
         if self.has_data:
             data = self._data[index]
-            if data.ndim < 2:
-                data.reshape(-1, self._data.shape[1])
+            index, _, _ = self._data._split_index(index)
         else:
-            data = None
-        if voxels.ndim == 0:
-            raise Exception("holla")
+            data, keys = None, None
+        if isinstance(index, tuple) and len(index) > 1:
+            raise IndexError("Too many indices for VoxelSet, maximum 1.")
+        voxels = self.get_raw(copy=False)[index]
+        if self._single_size:
+            voxel_size = self._size.copy()
+        else:
+            voxel_size = self._sizes[index]
         if voxels.ndim == 1:
             voxels = voxels.reshape(-1, 3)
         return VoxelSet(voxels, voxel_size, data)
@@ -240,7 +307,6 @@ class VoxelSet:
                 if fill is not None:
                     c = fill.shape[1]
                     data[ptr : (ptr + l), :c] = fill
-            print(data)
         else:
             data = None
         return VoxelSet(voxels, sizes, data=data, irregular=irregular)
@@ -267,7 +333,7 @@ class VoxelSet:
             if index is not None:
                 return self._data[index]
             else:
-                return np.array(self._data, copy=copy)
+                return self._data.copy()
         else:
             return None
 
