@@ -183,10 +183,13 @@ class VoxelSet:
 
     @classmethod
     def one(cls, ldc, mdc, data=None):
-        voxels = cls(np.array([ldc]), np.array([mdc - ldc]))
-        if data is not None:
-            voxels._data = np.array([data], dtype=object)
-        return voxels
+        ldc = np.array(ldc, copy=False).reshape(-1)
+        mdc = np.array(mdc, copy=False).reshape(-1)
+        if ldc.shape != (3,) or mdc.shape != (3,):
+            raise ValueError(
+                "Arguments to `VoxelSet.one` should be shape (3,) minmax coords of voxel."
+            )
+        return cls(np.array([ldc]), np.array([mdc - ldc]), np.array([data]))
 
     @classmethod
     def concatenate(cls, *sets):
