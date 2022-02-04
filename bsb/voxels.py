@@ -199,10 +199,6 @@ class VoxelSet:
         elif len(sets) == 1:
             return sets[0].copy()
 
-        if any(s.has_data for s in sets):
-            data = np.concatenate([s.get_data(copy=False) for s in sets])
-        else:
-            data = None
         primer = None
         # Check which sets we are concatenating, maybe we can keep them in reduced data
         # forms. If they don't line up, we expand and concatenate the expanded forms.
@@ -233,6 +229,20 @@ class VoxelSet:
             sizes = np.concatenate([s.get_size_matrix(copy=False) for s in sets])
             voxels = np.concatenate([s.as_spatial_coords(copy=False) for s in sets])
             irregular = True
+
+        if any(s.has_data for s in sets):
+            fillers = [s.get_data(copy=False) for s in sets]
+            md = max(f.shape[1] for f in fillers if f is not None)
+            ln = [len(s) for s in sets]
+            data = np.empty((sum(ln), md), dtype=object)
+            ptr = 0
+            for l, fill in zip(ln, fillers):
+                if fill is not None:
+                    c = fill.shape[1]
+                    data[ptr : (ptr + l), :c] = fill
+            print(data)
+        else:
+            data = None
         return VoxelSet(voxels, sizes, data=data, irregular=irregular)
 
     def copy(self):
