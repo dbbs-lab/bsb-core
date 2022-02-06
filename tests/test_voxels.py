@@ -385,6 +385,16 @@ class TestVoxelSet(unittest.TestCase):
             self.empty.bounds
         vs = self.unequals[0]
 
+    def test_str(self):
+        for label, set in self.all.items():
+            with self.subTest(label=label):
+                self.assertEqual(str(set), repr(set))
+        for label, set in self.data_dict.items():
+            with self.subTest(label=label):
+                self.assertEqual(str(set), repr(set))
+        for set in self.data_keys:
+            self.assertEqual(str(set), repr(set))
+
     def test_one(self):
         vs = VoxelSet.one([100, 0, 0], [120, 20, 20])
         self.assertEqual(1, len(vs), "voxelset with single voxel should be len 1")
@@ -415,11 +425,11 @@ class TestVoxelSet(unittest.TestCase):
                 vs[:, "test"]
             with self.assertRaises(IndexError):
                 vs = set[0:1, 0]
-            if not vs.is_empty:
-                sel = vs[1]
+            if not set.is_empty:
+                sel = set[1]
                 self.assertEqual(1, len(sel), "selected 1 index, should have 1 voxel")
-                sel = vs[:]
-                self.assertEqual(len(vs), len(sel), "indexed all, should have all voxels")
+                sel = set[:]
+                self.assertEqual(len(set), len(sel), "indexed all, didn't get all voxels")
         vs = self.regulars[0]
         v0 = vs[0]
         self.assertEqual(VoxelSet, type(v0), "single voxel index didn't make a VoxelSet")
