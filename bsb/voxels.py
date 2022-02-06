@@ -183,7 +183,7 @@ class VoxelSet:
         if voxels.ndim == 1:
             voxels = voxels.reshape(-1, 3)
         return VoxelSet(voxels, voxel_size, data)
-        
+
     def __str__(self):
         cls = type(self)
         obj = f"<{cls.__module__}.{cls.__name__} object at {hex(id(self))}>"
