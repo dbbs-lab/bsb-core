@@ -88,20 +88,3 @@ Take a look at the [contribution guide](CONTRIBUTING.md)
 ## Simulation interfaces are not reinstated yet in v4
 
 Shouldn't be much work, famous last words.
-
-## Topology module scripting requires workarounds
-
-If you're using the topology module to define regions and partitions from scripts you will
-have to update the `_partitions` variable manually for regions:
-
-```python
-from bsb.topology import Region, Partition
-
-r = Region(cls="group", partitions=[])
-r._partitions = []
-p = Partition(cls="layer", region=r)
-r._partitions.append(p)
-```
-
-Everything works fine from the config so we recommend defining the topology in a config
-file while we work on a fix!
