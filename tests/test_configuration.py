@@ -337,7 +337,6 @@ class TestPopulate(unittest.TestCase):
         self.assertEqual(1, len(pop_root.lists.reflist))
         self.assertEqual(pop_root.referrers, pop_root.lists.reflist[0])
 
-    @unittest.skip("See https://github.com/dbbs-lab/bsb/issues/94")
     def test_populate_reflist_with_refkeys_unique(self):
         # Test that unicity also takes into account existing reference keys.
         pop_root = PopRoot(
@@ -362,6 +361,7 @@ class TestPopulate(unittest.TestCase):
         _bootstrap(pop_root, None)
         self.assertEqual(4, len(pop_root.lists.reflist))
         self.assertEqual(pop_root.referrers, pop_root.lists.reflist[0])
+        HasRefs.ref_ref.pop_unique = True
 
     def test_reflist_populate(self):
         pop_root = PopRoot(
@@ -371,7 +371,6 @@ class TestPopulate(unittest.TestCase):
         self.assertEqual(1, len(pop_root.lists.list), "Reflist did not populate uniquely")
         self.assertEqual(pop_root.referrers, pop_root.lists.list[0])
 
-    @unittest.skip("See https://github.com/dbbs-lab/bsb/issues/94")
     def test_no_unique_reflist_populate(self):
         HasRefs.reflist.pop_unique = False
         pop_root = PopRoot(
@@ -380,6 +379,7 @@ class TestPopulate(unittest.TestCase):
         _bootstrap(pop_root, None)
         self.assertEqual(3, len(pop_root.lists.list))
         self.assertEqual(pop_root.referrers, pop_root.lists.list[0])
+        HasRefs.reflist.pop_unique = True
 
 
 class TestHooks(unittest.TestCase):

@@ -33,9 +33,11 @@ class PlacementDud(PlacementStrategy):
 
 def single_layer_placement(offset=[0.0, 0.0, 0.0]):
     network = Scaffold()
-    network.regions["dud_region"] = reg = Region(name="dud_region", offset=offset)
     network.partitions["dud_layer"] = part = Partition(
         name="dud_layer", thickness=120, region="dud_region"
+    )
+    network.regions["dud_region"] = reg = Region(
+        name="dud_region", offset=offset, partitions=[part]
     )
     dud_cell = CellType(name="dud", spatial={"count": 40, "radius": 2})
     network.cell_types["dud"] = dud_cell
@@ -43,13 +45,10 @@ def single_layer_placement(offset=[0.0, 0.0, 0.0]):
         name="dud",
         cls="PlacementDud",
         partitions=[part],
-        cell_types=[],
+        cell_types=[dud_cell],
         overrides={"dud": {}},
     )
     network.placement["dud"] = dud
-    reg._partitions = [part]
-    dud._partitions = [part]
-    dud._cell_types = [dud_cell]
     network.configuration._bootstrap(network)
     return dud, network
 
