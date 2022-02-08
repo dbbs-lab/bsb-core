@@ -613,6 +613,8 @@ class ConfigurationReferenceListAttribute(ConfigurationReferenceAttribute):
             _setattr(instance, self.attr_name, refs)
 
     def __get__(self, instance, owner):
+        if instance is None:
+            return self
         if self.should_resolve_on_set(instance):
             return super().__get__(instance, owner)
         else:
