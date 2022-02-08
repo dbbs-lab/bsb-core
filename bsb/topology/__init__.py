@@ -2,8 +2,8 @@
 Topology module
 """
 
-from .region import Region
-from .partition import Partition
+from .region import Region, Stack
+from .partition import Partition, Layer, Voxels
 import numpy as np
 
 
