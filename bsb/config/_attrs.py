@@ -287,7 +287,10 @@ def _setattr(instance, name, value):
 
 
 def _getattr(instance, name):
-    return instance.__dict__["_" + name]
+    try:
+        return instance.__dict__["_" + name]
+    except KeyError as e:
+        instance.__getattribute__(e.args[0])
 
 
 def _hasattr(instance, name):
