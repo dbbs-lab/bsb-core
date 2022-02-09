@@ -30,6 +30,9 @@ class parsed_node:
     def __str__(self):
         return "<parsed config '{}'>".format(self.location())
 
+    def __repr__(self):
+        return super().__str__()
+
 
 def _traverse_wrap(node, iter):
     for key, value in iter:
