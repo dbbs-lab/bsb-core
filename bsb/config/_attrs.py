@@ -17,6 +17,13 @@ from ..exceptions import *
 import abc
 
 
+# Watch out, lots of builtins have another meaning in this module.
+_list = list
+_dict = dict
+_type = type
+_property = property
+
+
 def root(root_cls):
     """
     Decorate a class as a configuration root node.
@@ -244,11 +251,6 @@ def provides(val=None, /, **kwargs):
         return decorator
     else:
         return decorator(val)
-
-
-_list = list
-_dict = dict
-_type = type
 
 
 def list(**kwargs):
