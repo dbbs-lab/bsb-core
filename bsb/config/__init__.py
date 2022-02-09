@@ -24,7 +24,7 @@ from ._attrs import (
     ref,
     reflist,
     slot,
-    provides,
+    property,
     unset,
     pluggable,
     catch_all,
@@ -52,7 +52,7 @@ class ConfigurationModule:
     ref = staticmethod(ref)
     reflist = staticmethod(reflist)
     slot = staticmethod(slot)
-    provides = staticmethod(provides)
+    property = staticmethod(property)
     catch_all = staticmethod(catch_all)
     unset = staticmethod(unset)
 

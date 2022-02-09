@@ -15,13 +15,13 @@ from ._make import (
 from .types import TypeHandler, _wrap_reserved
 from ..exceptions import *
 import abc
+import builtins
 
 
 # Watch out, lots of builtins have another meaning in this module.
 _list = list
 _dict = dict
 _type = type
-_property = property
 
 
 def root(root_cls):
@@ -234,7 +234,7 @@ def slot(**kwargs):
     return ConfigurationAttributeSlot(**kwargs)
 
 
-def provides(val=None, /, **kwargs):
+def property(val=None, /, **kwargs):
     """
     Provide a value for a parent class' attribute. Can be a value or a callable, a
     property object will be created from it either way.
@@ -242,10 +242,10 @@ def provides(val=None, /, **kwargs):
 
     def decorator(val):
         if callable(val):
-            prop = property(val)
+            prop = builtins.property(val)
         else:
-            prop = property(lambda s: val)
-        return ConfigurationAttributeProvider(prop, **kwargs)
+            prop = builtins.property(lambda s: val)
+        return ConfigurationProperty(prop, **kwargs)
 
     if val is None:
         return decorator
@@ -406,7 +406,7 @@ class cfglist(_list):
     def get_node_name(self):
         return self._config_parent.get_node_name() + "." + self._config_attr_name
 
-    @property
+    @builtins.property
     def _config_attr_name(self):
         return self._config_attr.attr_name
 
@@ -466,7 +466,7 @@ class cfgdict(_dict):
                 self.get_node_name() + " object has no attribute '{}'".format(name)
             )
 
-    @property
+    @builtins.property
     def _config_attr_name(self):
         return self._config_attr.attr_name
 
@@ -720,16 +720,26 @@ class ConfigurationAttributeSlot(ConfigurationAttribute):
         )
 
 
-class ConfigurationAttributeProvider(ConfigurationAttribute):
+class ConfigurationProperty(ConfigurationAttribute):
     def __init__(self, prop, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.prop = prop
+        self.fget = prop
+        self.fset = None
+
+    def setter(self, f):
+        self.fset = f
+        return self
 
     def __get__(self, instance, owner):
-        return self.prop.__get__(instance, owner)
+        return self.fget(instance, owner)
 
     def __set__(self, instance, value):
-        return self.prop.__set__(instance, value)
+        try:
+            f = self.fset
+        except:
+            raise AttributeError("Can't set attribute") from None
+        else:
+            return f(instance, value)
 
 
 def _collect_kv(n, d, k, v):

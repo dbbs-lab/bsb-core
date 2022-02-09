@@ -173,7 +173,8 @@ def compile_postnew(cls, root=False):
                 setattr(self, name, self._config_key)
                 attr.flag_pristine(self)
             elif (value := values[name]) is None:
-                setattr(self, name, attr.get_default())
+                if _is_settable_attr(attr):
+                    setattr(self, name, attr.get_default())
                 attr.flag_pristine(self)
             else:
                 setattr(self, name, value)
@@ -202,6 +203,10 @@ def wrap_root_postnew(post_new):
         _bubble_up_warnings(log)
 
     return __post_new__
+
+
+def _is_settable_attr(attr):
+    return not hasattr(attr, "fget") or attr.fset
 
 
 def _bubble_up_exc(exc):
