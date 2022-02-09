@@ -3,6 +3,7 @@
 """
 
 from ._make import (
+    compile_class,
     compile_postnew,
     compile_new,
     compile_isc,
@@ -30,6 +31,8 @@ def node(node_cls, root=False, dynamic=False, pluggable=False):
     """
     Decorate a class as a configuration node.
     """
+    # Recreate the class to set its metaclass a posteriori
+    node_cls = compile_class(node_cls)
     attrs = {
         k: v
         for k, v in node_cls.__dict__.items()

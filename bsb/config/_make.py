@@ -7,6 +7,62 @@ from ._hooks import overrides
 import importlib
 
 
+def make_metaclass(cls):
+    # We make a `NodeMeta` class for each decorated node class, in compliance with any
+    # metaclasses they might already have (to prevent metaclass confusion).
+    # The purpose of the metaclass is to rewrite `__new__` and `__init__` arguments,
+    # and to always call `__new__` and `__init__` in the same manner.
+    # The metaclass makes it so that there are 3 overloaded constructor forms:
+    #
+    # MyNode({ <config dict values> })
+    # MyNode(config="dict", values="here")
+    # ParentNode(me=MyNode(...))
+    #
+    # The third makes it that type handling and other types of casting opt out early
+    # and keep the object reference that the user gives them
+    class ConfigArgRewrite(type):
+        def __call__(meta_subject, *args, _parent=None, _key=None, **kwargs):
+            # Rewrite the arguments
+            primer = args[0] if args else None
+            if isinstance(primer, meta_subject):
+                _set_pk(primer, _parent, _key)
+                return primer
+            elif isinstance(primer, dict):
+                args = args[1:]
+                primed = primer.copy()
+                primed.update(kwargs)
+                kwargs = primed
+            # Call the base class's new with internal arguments
+            instance = meta_subject.__new__(
+                meta_subject, _parent=_parent, _key=_key, **kwargs
+            )
+            # Call the end user's __init__ with the rewritten arguments, if one is defined
+            if overrides(meta_subject, "__init__", mro=True):
+                instance.__init__(*args, **kwargs)
+            return instance
+
+    metaclasses = set(base.__class__ for base in cls.__bases__)
+    print("making cls", metaclasses)
+
+    class NodeMeta(ConfigArgRewrite, *metaclasses):
+        pass
+
+    return NodeMeta
+
+
+def compile_class(cls):
+    # print("pre", cls, cls.__bases__, cls.__class__, metaclasses)
+    cls_dict = dict(cls.__dict__)
+    # print(cls, cls_dict.keys())
+    if "__dict__" in cls_dict:
+        del cls_dict["__dict__"]
+    if "__weakref__" in cls_dict:
+        del cls_dict["__weakref__"]
+    cls = make_metaclass(cls)(cls.__name__, cls.__bases__, cls_dict)
+    # print("post", cls, cls.__bases__, cls.__class__, cls.__class__.__bases__)
+    return cls
+
+
 def compile_isc(node_cls, dynamic_config):
     if not dynamic_config or not dynamic_config.auto_classmap:
         return node_cls.__init_subclass__
@@ -42,22 +98,11 @@ def compile_new(node_cls, dynamic=False, pluggable=False, root=False):
     else:
         class_determinant = _node_determinant
 
-    def __new__(_cls, *args, _parent=None, _key=None, **kwargs):
-        args = list(args)
-        primer = args[0] if args else None
-        if isinstance(primer, dict):
-            args = args[1:]
-            (primed := primer.copy()).update(kwargs)
-            kwargs = primed
+    def __new__(_cls, _parent=None, _key=None, **kwargs):
         ncls = class_determinant(_cls, kwargs)
-        if isinstance(primer, ncls):
-            _set_pk(primer, _parent, _key)
-            return primer
         instance = object.__new__(ncls)
         _set_pk(instance, _parent, _key)
-        instance.__post_new__(*args, **kwargs)
-        if instance.__class__ is not node_cls:
-            instance.__init__(*args, **kwargs)
+        instance.__post_new__(**kwargs)
         return instance
 
     return __new__
@@ -70,6 +115,7 @@ def _set_pk(obj, parent, key):
         obj._config_attr_order = []
     if not hasattr(obj, "_config_state"):
         obj._config_state = {}
+    print(obj, obj.__class__, obj.__class__.__dict__)
     for a in _get_class_config_attrs(obj.__class__).values():
         if a.key:
             from ._attrs import _setattr
@@ -78,14 +124,7 @@ def _set_pk(obj, parent, key):
 
 
 def compile_postnew(cls, root=False):
-    def __post_new__(self, *args, _parent=None, _key=None, **kwargs):
-        primer = args[0] if args else None
-        if isinstance(primer, self.__class__):
-            return
-        elif isinstance(primer, dict):
-            args = args[1:]
-            (primed := primer.copy()).update(kwargs)
-            kwargs = primed
+    def __post_new__(self, _parent=None, _key=None, **kwargs):
         attrs = _get_class_config_attrs(self.__class__)
         keys = list(kwargs.keys())
         self._config_attr_order = list(kwargs.keys())
