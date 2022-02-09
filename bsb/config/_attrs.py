@@ -231,6 +231,14 @@ def slot(**kwargs):
     return ConfigurationAttributeSlot(**kwargs)
 
 
+def provides(**kwargs):
+    """
+    Provide a value for a parent class' attribute. Can be a value or a callable, a
+    property object will be created from it either way.
+    """
+    return ConfigurationAttributeProvider(**kwargs)
+
+
 _list = list
 _dict = dict
 _type = type
@@ -686,6 +694,10 @@ class ConfigurationAttributeSlot(ConfigurationAttribute):
                 instance.__class__._bsb_entry_point.dist,
             )
         )
+
+
+class ConfigurationAttributeProvider(ConfigurationAttribute):
+    pass
 
 
 def _collect_kv(n, d, k, v):
