@@ -241,10 +241,7 @@ def property(val=None, /, **kwargs):
     """
 
     def decorator(val):
-        if callable(val):
-            prop = builtins.property(val)
-        else:
-            prop = builtins.property(lambda s: val)
+        prop = val if callable(val) else lambda s: val
         return ConfigurationProperty(prop, **kwargs)
 
     if val is None:
@@ -721,9 +718,9 @@ class ConfigurationAttributeSlot(ConfigurationAttribute):
 
 
 class ConfigurationProperty(ConfigurationAttribute):
-    def __init__(self, prop, *args, **kwargs):
+    def __init__(self, fget, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fget = prop
+        self.fget = fget
         self.fset = None
 
     def setter(self, f):
@@ -731,7 +728,9 @@ class ConfigurationProperty(ConfigurationAttribute):
         return self
 
     def __get__(self, instance, owner):
-        return self.fget(instance, owner)
+        if instance is None:
+            return owner
+        return self.fget(instance)
 
     def __set__(self, instance, value):
         try:
