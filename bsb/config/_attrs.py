@@ -22,9 +22,7 @@ def root(root_cls):
     Decorate a class as a configuration root node.
     """
     root_cls.attr_name = root_cls.node_name = r"{root}"
-    node(root_cls, root=True)
-
-    return root_cls
+    return node(root_cls, root=True)
 
 
 def node(node_cls, root=False, dynamic=False, pluggable=False):
