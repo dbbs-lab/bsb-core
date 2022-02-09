@@ -55,6 +55,7 @@ def compile_new(node_cls, dynamic=False, pluggable=False, root=False):
             return primer
         instance = object.__new__(ncls)
         _set_pk(instance, _parent, _key)
+        instance.__post_new__(*args, **kwargs)
         if instance.__class__ is not node_cls:
             instance.__init__(*args, **kwargs)
         return instance
@@ -76,17 +77,8 @@ def _set_pk(obj, parent, key):
             _setattr(obj, a.attr_name, key)
 
 
-def compile_init(cls, root=False):
-    if overrides(cls, "__init__"):
-        init = cls.__init__
-    else:
-
-        def dud(*args, **kwargs):
-            pass
-
-        init = dud
-
-    def __init__(self, *args, _parent=None, _key=None, **kwargs):
+def compile_postnew(cls, root=False):
+    def __post_new__(self, *args, _parent=None, _key=None, **kwargs):
         primer = args[0] if args else None
         if isinstance(primer, self.__class__):
             return
@@ -109,7 +101,7 @@ def compile_init(cls, root=False):
                     raise RequirementError(f"Missing required attribute '{name}'")
             except RequirementError as e:
                 if name == getattr(self.__class__, "_config_dynamic_attr", None):
-                    # If the dynamic attribute errors in `__init__` the constructor of a
+                    # If the dynamic attribute errors in `__post_new__` the constructor of a
                     # non dynamic child class was called, and the dynamic attribute is no
                     # longer required, so silence the error and continue.
                     pass
@@ -139,22 +131,20 @@ def compile_init(cls, root=False):
                 warn(warning, ConfigurationWarning)
                 setattr(self, key, value)
 
-        init(self, *args, **leftovers)
-
-    return __init__
+    return __post_new__
 
 
-def wrap_root_init(init):
-    def __init__(self, *args, _parent=None, _key=None, **kwargs):
+def wrap_root_postnew(post_new):
+    def __post_new__(self, *args, _parent=None, _key=None, **kwargs):
         with warnings.catch_warnings(record=True) as log:
             try:
-                init(self, *args, _parent=None, _key=None, **kwargs)
+                post_new(self, *args, _parent=None, _key=None, **kwargs)
             except (CastError, RequirementError) as e:
                 _bubble_up_exc(e)
             _resolve_references(self)
         _bubble_up_warnings(log)
 
-    return __init__
+    return __post_new__
 
 
 def _bubble_up_exc(exc):

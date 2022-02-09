@@ -3,13 +3,13 @@
 """
 
 from ._make import (
-    compile_init,
+    compile_postnew,
     compile_new,
     compile_isc,
     make_get_node_name,
     make_dictable,
     make_tree,
-    wrap_root_init,
+    wrap_root_postnew,
 )
 from .types import TypeHandler, _wrap_reserved
 from ..exceptions import *
@@ -49,9 +49,9 @@ def node(node_cls, root=False, dynamic=False, pluggable=False):
     else:
         node_cls._config_attrs = attrs
 
-    node_cls.__init__ = compile_init(node_cls, root=root)
+    node_cls.__post_new__ = compile_postnew(node_cls, root=root)
     if root:
-        node_cls.__init__ = wrap_root_init(node_cls.__init__)
+        node_cls.__post_new__ = wrap_root_postnew(node_cls.__post_new__)
     node_cls.__new__ = compile_new(
         node_cls, dynamic=dynamic, pluggable=pluggable, root=root
     )
