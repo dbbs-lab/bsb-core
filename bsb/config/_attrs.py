@@ -612,6 +612,14 @@ class ConfigurationReferenceListAttribute(ConfigurationReferenceAttribute):
             refs = self.resolve_reference_list(instance, remote, remote_keys)
             _setattr(instance, self.attr_name, refs)
 
+    def __get__(self, instance, owner):
+        if instance is None:
+            return self
+        if self.should_resolve_on_set(instance):
+            return super().__get__(instance, owner)
+        else:
+            return getattr(instance, self.get_ref_key())
+
     def get_ref_key(self):
         return self.ref_key or (self.attr_name + "_references")
 

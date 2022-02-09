@@ -185,6 +185,30 @@ class VoxelSet:
             voxels = voxels.reshape(-1, 3)
         return VoxelSet(voxels, voxel_size, data)
 
+    def __str__(self):
+        cls = type(self)
+        obj = f"<{cls.__module__}.{cls.__name__} object at {hex(id(self))}>"
+        if self.is_empty:
+            insert = "[EMPTY] "
+        else:
+            insert = f"with {len(self)} voxels from "
+            insert += f"{tuple(self.bounds[0])} to {tuple(self.bounds[1])}, "
+            if self.regular:
+                insert += f"same size {self.size}, "
+            else:
+                insert += "individual sizes, "
+            if self.has_data:
+                if self._data.keys:
+                    insert += f"with keyed data ({', '.join(self._data.keys)}) "
+                else:
+                    insert += f"with {self._data.shape[1]} data columns "
+            else:
+                insert += "without data "
+        return obj.replace("at 0x", insert + "at 0x")
+
+    def __repr__(self):
+        return self.__str__()
+
     def __bool__(self):
         return not self.is_empty
 

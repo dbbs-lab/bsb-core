@@ -85,28 +85,6 @@ Take a look at the [contribution guide](CONTRIBUTING.md)
 
 # Known issues
 
-## If MPI is used but mpi4py is not installed, undefined behavior may occur
+## Simulation interfaces are not reinstated yet in v4
 
-The BSB determines the amount of NEST virtual processes by using mpi4py to get the amount
-of MPI processes. But if the package is not installed it is assumed no MPI simulations
-will be ran and the amount of virtual processes might be lower than expected when used in
-combination with OpenMP. Be sure to `pip install` using the `[MPI]` requirement tag.
-
-## Topology module scripting requires workarounds
-
-If you're using the topology module to define regions and partitions from scripts you
-cannot use the child class constructors but have to use the root `Region` and `Partition`
-constructors with a `cls` kwarg and you will have to update the `_partitions` variable
-manually for regions:
-
-```python
-from bsb.topology import Region, Partition
-
-r = Region(cls="group", partitions=[])
-r._partitions = []
-p = Partition(cls="layer", region=r)
-r._partitions.append(p)
-```
-
-Everything works fine from the config though so we recommend defining the topology in a
-config file while we work on a fix!
+Shouldn't be much work, famous last words.

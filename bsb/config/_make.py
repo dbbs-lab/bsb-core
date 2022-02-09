@@ -108,10 +108,16 @@ def compile_init(cls, root=False):
                 if value is None and attr.required(kwargs):
                     raise RequirementError(f"Missing required attribute '{name}'")
             except RequirementError as e:
-                # Catch both our own and possible `attr.required` RequirementErrors and
-                # set the node detail before passing it on
-                e.node = self
-                raise
+                if name == getattr(self.__class__, "_config_dynamic_attr", None):
+                    # If the dynamic attribute errors in `__init__` the constructor of a
+                    # non dynamic child class was called, and the dynamic attribute is no
+                    # longer required, so silence the error and continue.
+                    pass
+                else:
+                    # Catch both our own and possible `attr.required` RequirementErrors
+                    # and set the node detail before passing it on
+                    e.node = self
+                    raise
         for attr in attrs.values():
             name = attr.attr_name
             if attr.key and attr.attr_name not in kwargs:
