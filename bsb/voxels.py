@@ -9,6 +9,7 @@ import abc
 import nrrd
 from bsb.exceptions import *
 
+
 class VoxelData(np.ndarray):
     """
     Chunk identifier, consisting of chunk coordinates and size.
@@ -536,24 +537,9 @@ class NrrdVoxelLoader(VoxelLoader, classmap_entry="nrrd"):
     sparse = config.attr(type=bool, default=True)
     strict = config.attr(type=bool, default=True)
 
-    def boot(self):
-        if self.source is not None:
-            self._src = [self.source]
-        else:
-            self._src = self.sources.copy()
-        if self.mask_source is not None:
-            self._mask_src = [self.mask_source]
-        else:
-            self._mask_src = self._src.copy()
-
-        self._validate_source_compat()
-
-        if self.mask_value:
-            self._mask_cond = lambda data: data == self.mask_value
-        else:
-            self._mask_cond = lambda data: data != 0
-
     def get_voxelset(self):
+        if not getattr(self, "_validated", False):
+            self._validate()
         mask = np.zeros(self._mask_shape, dtype=bool)
         if self.sparse:
             # Use integer (sparse) indexing
@@ -583,6 +569,24 @@ class NrrdVoxelLoader(VoxelLoader, classmap_entry="nrrd"):
             voxel_data=voxel_data,
             data_keys=self.keys,
         )
+
+    def _validate(self):
+        if self.source is not None:
+            self._src = [self.source]
+        else:
+            self._src = self.sources.copy()
+        if self.mask_source is not None:
+            self._mask_src = [self.mask_source]
+        else:
+            self._mask_src = self._src.copy()
+
+        self._validate_source_compat()
+
+        if self.mask_value:
+            self._mask_cond = lambda data: data == self.mask_value
+        else:
+            self._mask_cond = lambda data: data != 0
+        self._validated = True
 
     def _validate_source_compat(self):
         mask_headers = {s: nrrd.read_header(s) for s in self._mask_src}
