@@ -5,6 +5,7 @@ import inspect, re, sys, itertools, warnings, errr
 from functools import wraps
 from ._hooks import overrides
 import importlib
+import inspect
 
 
 def make_metaclass(cls):
@@ -38,28 +39,46 @@ def make_metaclass(cls):
             )
             # Call the end user's __init__ with the rewritten arguments, if one is defined
             if overrides(meta_subject, "__init__", mro=True):
-                instance.__init__(*args, **kwargs)
+                sig = inspect.signature(instance.__init__)
+                try:
+                    # Check whether the arguments match the signature. We use `sig.bind`
+                    # so that the function isn't actually called, as this could mask
+                    # `TypeErrors` that occur inside the function.
+                    sig.bind(*args, **kwargs)
+                except TypeError as e:
+                    # Since the user might not know where all these additional arguments
+                    # are coming from, inform them that config nodes get passed their
+                    # config attrs, and how to correctly override __init__.
+                    Param = inspect.Parameter
+                    help_params = {"self": Param("self", Param.POSITIONAL_OR_KEYWORD)}
+                    help_params.update(sig._parameters)
+                    help_params["kwargs"] = Param("kwargs", Param.VAR_KEYWORD)
+                    sig._parameters = help_params
+                    raise TypeError(
+                        f"`{instance.__init__.__module__}.__init__` {e}."
+                        + " When overriding `__init__` on config nodes, do not define"
+                        + " any positional arguments, and catch any additional"
+                        + " configuration attributes that are passed as keyword arguments"
+                        + f": e.g. 'def __init__{sig}'"
+                    ) from None
+                else:
+                    instance.__init__(*args, **kwargs)
             return instance
 
-    metaclasses = set(base.__class__ for base in cls.__bases__)
-    print("making cls", metaclasses)
-
-    class NodeMeta(ConfigArgRewrite, *metaclasses):
+    # Avoid metaclass conflicts by prepending our rewrite class to existing metaclass MRO
+    class NodeMeta(ConfigArgRewrite, *cls.__class__.__mro__):
         pass
 
     return NodeMeta
 
 
 def compile_class(cls):
-    # print("pre", cls, cls.__bases__, cls.__class__, metaclasses)
     cls_dict = dict(cls.__dict__)
-    # print(cls, cls_dict.keys())
     if "__dict__" in cls_dict:
         del cls_dict["__dict__"]
     if "__weakref__" in cls_dict:
         del cls_dict["__weakref__"]
     cls = make_metaclass(cls)(cls.__name__, cls.__bases__, cls_dict)
-    # print("post", cls, cls.__bases__, cls.__class__, cls.__class__.__bases__)
     return cls
 
 
@@ -115,7 +134,6 @@ def _set_pk(obj, parent, key):
         obj._config_attr_order = []
     if not hasattr(obj, "_config_state"):
         obj._config_state = {}
-    print(obj, obj.__class__, obj.__class__.__dict__)
     for a in _get_class_config_attrs(obj.__class__).values():
         if a.key:
             from ._attrs import _setattr
