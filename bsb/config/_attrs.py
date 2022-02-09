@@ -231,12 +231,23 @@ def slot(**kwargs):
     return ConfigurationAttributeSlot(**kwargs)
 
 
-def provides(**kwargs):
+def provides(val=None, /, **kwargs):
     """
     Provide a value for a parent class' attribute. Can be a value or a callable, a
     property object will be created from it either way.
     """
-    return ConfigurationAttributeProvider(**kwargs)
+
+    def decorator(val):
+        if callable(val):
+            prop = property(val)
+        else:
+            prop = property(lambda s: val)
+        return ConfigurationAttributeProvider(prop, **kwargs)
+
+    if val is None:
+        return decorator
+    else:
+        return decorator(val)
 
 
 _list = list
@@ -697,7 +708,15 @@ class ConfigurationAttributeSlot(ConfigurationAttribute):
 
 
 class ConfigurationAttributeProvider(ConfigurationAttribute):
-    pass
+    def __init__(self, prop, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.prop = prop
+
+    def __get__(self, instance, owner):
+        return self.prop.__get__(instance, owner)
+
+    def __set__(self, instance, value):
+        return self.prop.__set__(instance, value)
 
 
 def _collect_kv(n, d, k, v):
