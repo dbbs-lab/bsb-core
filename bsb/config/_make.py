@@ -226,6 +226,8 @@ def _get_class_config_attrs(cls):
     for p_cls in reversed(cls.__mro__):
         if hasattr(p_cls, "_config_attrs"):
             attrs.update(p_cls._config_attrs)
+        for unset in getattr(p_cls, "_config_unset", []):
+            attrs.pop(unset, None)
     return attrs
 
 

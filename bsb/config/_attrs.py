@@ -31,25 +31,20 @@ def node(node_cls, root=False, dynamic=False, pluggable=False):
     """
     # Recreate the class to set its metaclass a posteriori
     node_cls = compile_class(node_cls)
-    attrs = {
-        k: v
-        for k, v in node_cls.__dict__.items()
-        if isinstance(v, ConfigurationAttribute)
-    }
-    # Give the attributes the name they were assigned in the class
-    for name, a in attrs.items():
-        a.attr_name = name
-
-    if hasattr(node_cls, "_config_attrs"):
-        # If _config_attrs is already present on the class it's possible that we inherited
-        # it from our parent. If so we shouldn't update the parent's dictionary but copy
-        # it and update it with ours.
-        n_attrs = node_cls._config_attrs.copy()
-        n_attrs.update(attrs)
-        node_cls._config_attrs = n_attrs
-    else:
-        node_cls._config_attrs = attrs
-
+    node_cls._config_unset = []
+    # Inherit the parent's attributes, if any exist on the class already
+    attrs = getattr(node_cls, "_config_attrs", {}).copy()
+    for k, v in _dict(node_cls.__dict__).items():
+        # Add our attributes
+        if isinstance(v, ConfigurationAttribute):
+            if v.unset:
+                attrs.pop(k, None)
+                delattr(node_cls, k)
+                # Keep track of what this class wants to unset, in case of MRO traversal.
+                node_cls._config_unset.append(k)
+            else:
+                attrs[k] = v
+    node_cls._config_attrs = attrs
     node_cls.__post_new__ = compile_postnew(node_cls, root=root)
     if root:
         node_cls.__post_new__ = wrap_root_postnew(node_cls.__post_new__)
@@ -282,6 +277,13 @@ def catch_all(**kwargs):
     return ConfigurationAttributeCatcher(**kwargs)
 
 
+def unset():
+    """
+    Override and unset an inherited configuration attribute.
+    """
+    return ConfigurationAttribute(unset=True)
+
+
 def _setattr(instance, name, value):
     instance.__dict__["_" + name] = value
 
@@ -310,6 +312,7 @@ class ConfigurationAttribute:
         call_default=None,
         required=False,
         key=False,
+        unset=False,
     ):
         if not callable(required):
             self.required = lambda s: required
@@ -319,6 +322,10 @@ class ConfigurationAttribute:
         self.default = default
         self.call_default = call_default
         self.type = self._get_type(type)
+        self.unset = unset
+
+    def __set_name__(self, owner, name):
+        self.attr_name = name
 
     def __get__(self, instance, owner):
         if instance is None:
