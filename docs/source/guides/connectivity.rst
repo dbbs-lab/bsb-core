@@ -108,7 +108,6 @@ parameters. The ``.placement`` attribute contains the placement data under consi
 as :class:`PlacementSets <.storage.interfaces.PlacementSet>`.
 
 .. note::
-
   The ``connect`` function is called multiple times, usually once per postsynaptic "chunk"
   populated by the postsynaptic cell types. For each chunk, a region of interest is
   determined of chunks that could contain cells to be connected. This is transparent to
@@ -126,10 +125,8 @@ Connection types and labels
 ===========================
 
 .. warning::
-
-	The following documentation has not been updated to v4 yet, please bother a dev to do so
-  |:stuck_out_tongue_winking_eye:|
-
+  The following documentation has not been updated to v4 yet, please bother a dev to do so
+  |:stuck_out_tongue_winking_eye:|.
 
 When defining a connection type under ``connectivity`` in the configuration file, it is
 possible to select specific subpopulations inside the attributes ``from_cell_types``
