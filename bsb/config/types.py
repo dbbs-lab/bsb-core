@@ -3,6 +3,7 @@ from ._hooks import overrides
 from ._make import _load_class
 import math, sys, numpy as np, abc, functools, weakref
 from inspect import signature as _inspect_signature
+import builtins
 
 _any = any
 _reserved_keywords = ["_parent", "_key"]
@@ -110,7 +111,7 @@ def in_(container):
     :returns: Type validator function
     :rtype: Callable
     """
-    error_msg = "a value in: " + str(container)
+    error_msg = "a value in: " + builtins.str(container)
 
     def type_handler(value):
         if value in container:
@@ -143,11 +144,11 @@ def or_(*type_args):
                 v = t(value, _parent=_parent, _key=_key)
             except Exception as e:
                 type_error = (
-                    str(e.__class__.__module__)
+                    builtins.str(e.__class__.__module__)
                     + "."
-                    + str(e.__class__.__name__)
+                    + builtins.str(e.__class__.__name__)
                     + ": "
-                    + str(e)
+                    + builtins.str(e)
                 )
                 type_errors[t.__name__] = type_error
             else:
@@ -189,7 +190,35 @@ def class_(module_path=None):
     return type_handler
 
 
-_int = int
+def str(strip=False, lower=False, upper=False):
+    """
+    Type validator. Attempts to cast the value to an str, optionally with some sanitation.
+
+    :param strip: Trim whitespaces
+    :type strip: bool
+    :param lower: Convert value to lowercase
+    :type lower: bool
+    :param upper: Convert value to uppercase
+    :type upper: bool
+    :returns: Type validator function
+    :raises: TypeError when value can't be cast.
+    :rtype: Callable
+    """
+    handler_name = "str"
+    # Compile a custom function to sanitize the string according to args
+    fstr = "def f(s): return str(s)"
+    for add, mod in zip((strip, lower, upper), ("strip", "lower", "upper")):
+        if add:
+            fstr += f".{mod}()"
+    go_fish = builtins.dict()
+    exec(compile(fstr, "__", "exec"), go_fish)
+    f = go_fish["f"]
+
+    def type_handler(value):
+        return f(value)
+
+    type_handler.__name__ = handler_name
+    return type_handler
 
 
 def int(min=None, max=None):
@@ -215,7 +244,7 @@ def int(min=None, max=None):
 
     def type_handler(value):
         try:
-            v = _int(value)
+            v = builtins.int(value)
             if min is not None and min > v or max is not None and max < v:
                 raise Exception()
             return v
@@ -288,8 +317,8 @@ def number(min=None, max=None):
 
     def type_handler(value):
         try:
-            if isinstance(value, _int):
-                v = _int(value)
+            if isinstance(value, builtins.int):
+                v = builtins.int(value)
                 if min is not None and min > v or max is not None and max < v:
                     raise Exception()
             else:
@@ -512,9 +541,9 @@ class evaluation(TypeHandler):
         self._references = {}
 
     def __call__(self, value):
-        cfg = _dict(value)
-        statement = str(cfg.get("statement", "None"))
-        locals = _dict(cfg.get("variables", {}))
+        cfg = builtins.dict(value)
+        statement = builtins.str(cfg.get("statement", "None"))
+        locals = builtins.dict(cfg.get("variables", {}))
         globals = {"np": np}
         res = eval(statement, globals, locals)
         self._references[id(res)] = value
