@@ -276,7 +276,6 @@ class ArborRecipe(arbor.recipe):
     def __init__(self, adapter):
         super().__init__()
         self._adapter = adapter
-        self._catalogue = self._get_catalogue()
         self._global_properties = arbor.neuron_cable_properties()
         self._global_properties.set_property(Vm=-65, tempK=300, rL=35.4, cm=0.01)
         self._global_properties.set_ion(ion="na", int_con=10, ext_con=140, rev_pot=50)
@@ -287,7 +286,7 @@ class ArborRecipe(arbor.recipe):
         self._global_properties.set_ion(
             ion="h", valence=1, int_con=1.0, ext_con=1.0, rev_pot=-34
         )
-        self._global_properties.register(self._catalogue)
+        self._global_properties.catalogue = self._get_catalogue()
 
     def _get_catalogue(self):
         catalogue = arbor.default_catalogue()
