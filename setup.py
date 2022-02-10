@@ -24,6 +24,7 @@ requires = [
     "mpilock~=1.1",
     "mpi4py",
     "zwembad",
+    "requests",
 ]
 
 setuptools.setup(

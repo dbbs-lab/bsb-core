@@ -2,12 +2,14 @@ from . import config
 from .config import types
 from .trees import BoxTree
 from .exceptions import *
+from .reporting import report
 import numpy as np
 import functools
 import itertools
+import collections
 import abc
+import requests
 import nrrd
-from bsb.exceptions import *
 
 
 class VoxelData(np.ndarray):
@@ -550,15 +552,15 @@ class NrrdVoxelLoader(VoxelLoader, classmap_entry="nrrd"):
     )
     mask_value = config.attr(type=int)
     mask_source = config.attr(type=str)
+    mask_only = config.attr(type=bool, default=False)
     voxel_size = config.attr(type=types.voxel_size(), required=True)
     keys = config.attr(type=types.list(str))
     sparse = config.attr(type=bool, default=True)
     strict = config.attr(type=bool, default=True)
 
     def get_voxelset(self):
-        if not getattr(self, "_validated", False):
-            self._validate()
-        mask = np.zeros(self._mask_shape, dtype=bool)
+        mask_shape = self._validate()
+        mask = np.zeros(mask_shape, dtype=bool)
         if self.sparse:
             # Use integer (sparse) indexing
             mask = [np.empty((0,), dtype=int) for i in range(3)]
@@ -576,19 +578,25 @@ class NrrdVoxelLoader(VoxelLoader, classmap_entry="nrrd"):
                 mask = mask | self._mask_cond(mask_data)
             mask = np.nonzero(mask)
 
-        voxel_data = np.empty((len(mask[0]), len(self._src)))
-        for i, source in enumerate(self._src):
-            data, _ = nrrd.read(source)
-            voxel_data[:, i] = data[mask]
+        if not self.mask_only:
+            voxel_data = np.empty((len(mask[0]), len(self._src)))
+            for i, source in enumerate(self._src):
+                data, _ = nrrd.read(source)
+                voxel_data[:, i] = data[mask]
 
         return VoxelSet(
             np.transpose(mask),
             self.voxel_size,
-            voxel_data=voxel_data,
+            data=voxel_data if not self.mask_only else None,
             data_keys=self.keys,
         )
 
     def _validate(self):
+        self._validate_sources()
+        self._validate_source_compat()
+        self._validate_mask_condition()
+
+    def _validate_sources(self):
         if self.source is not None:
             self._src = [self.source]
         else:
@@ -597,14 +605,6 @@ class NrrdVoxelLoader(VoxelLoader, classmap_entry="nrrd"):
             self._mask_src = [self.mask_source]
         else:
             self._mask_src = self._src.copy()
-
-        self._validate_source_compat()
-
-        if self.mask_value:
-            self._mask_cond = lambda data: data == self.mask_value
-        else:
-            self._mask_cond = lambda data: data != 0
-        self._validated = True
 
     def _validate_source_compat(self):
         mask_headers = {s: nrrd.read_header(s) for s in self._mask_src}
@@ -619,19 +619,154 @@ class NrrdVoxelLoader(VoxelLoader, classmap_entry="nrrd"):
         source_sizes = {s: [*h["sizes"]] for s, h in source_headers.items()}
         all_sizes = mask_sizes.copy()
         all_sizes.update(source_sizes)
-        self._mask_shape = np.maximum.reduce([*mask_sizes.values()])
-        src_shape = np.minimum.reduce([*source_sizes.values()])
-        __ = None
+        mask_shape = np.maximum.reduce([*mask_sizes.values()])
+        if self.mask_only:
+            src_shape = mask_shape
+        else:
+            src_shape = np.minimum.reduce([*source_sizes.values()])
+        first = _repeat_first()
         # Check for any size mismatch
-        if self.strict and any(size != (__ := __ or size) for size in all_sizes.values()):
+        if self.strict and any(size != first(size) for size in all_sizes.values()):
             raise ConfigurationError(
                 f"NRRD file size mismatch in `{self.get_node_name()}`: {all_sizes}"
             )
-        elif np.any(self._mask_shape > src_shape):
+        elif np.any(mask_shape > src_shape):
             raise ConfigurationError(
                 f"NRRD mask too big; it may select OOB source voxels:"
-                + f" {self._mask_shape} > {src_shape}"
+                + f" {mask_shape} > {src_shape}"
             )
+        return mask_shape
+
+    def _validate_mask_condition(self):
+        if self.mask_value:
+            self._mask_cond = lambda data: data == self.mask_value
+        else:
+            self._mask_cond = lambda data: data != 0
+
+
+@config.node
+class AllenStructureLoader(NrrdVoxelLoader, classmap_entry="allen"):
+    struct_id = config.attr(
+        type=int, required=types.mut_excl("struct_id", "struct_name", required=True)
+    )
+    struct_name = config.attr(
+        type=types.str(strip=True, lower=True),
+        required=types.mut_excl("struct_id", "struct_name", required=True),
+    )
+    source = config.attr(
+        type=str, required=types.mut_excl("source", "sources", required=False)
+    )
+    sources = config.attr(
+        type=types.list(str),
+        required=types.mut_excl("source", "sources", required=False),
+        default=list,
+        call_default=True,
+    )
+
+    @config.property
+    def mask_only(self):
+        return self.source is None and len(self.sources) == 0
+
+    @config.property
+    @functools.cache
+    def mask_source(self):
+        url = "http://download.alleninstitute.org/informatics-archive/current-release/mouse_ccf/annotation/ccf_2017/annotation_25.nrrd"
+        fname = "_annotations_25.nrrd.cache"
+        with open(fname, "wb") as f:
+            report("Downloading Allen Brain Atlas annotations", level=3)
+            content = requests.get(url).content
+            f.write(requests.get(url).content)
+        return fname
+
+    @functools.cache
+    def _dl_structure_ontology(self):
+        url = "http://api.brain-map.org/api/v2/structure_graph_download/1.json"
+        report("Downloading Allen Brain Atlas structure ontology", level=3)
+        payload = requests.get(url).json()
+        if not payload.get("success", False):
+            raise AllenApiError(f"Could not fetch ontology from Allen API at '{url}'")
+        return payload["msg"]
+
+    def get_structure_mask_condition(self, find):
+        mask = self.get_structure_mask(find)
+        if len(mask) > 1:
+            return lambda data: np.isin(data, mask)
+        else:
+            mask0 = mask[0]
+            return lambda data: data == mask0
+
+    def get_structure_mask(self, find):
+        struct = self.find_structure(find)
+        values = set()
+
+        def flatmask(item):
+            values.add(item["id"])
+
+        self._visit_structure([struct], flatmask)
+        return np.array([*values], dtype=int)
+
+    @functools.singledispatchmethod
+    def find_structure(self, id):
+        find = lambda x: x["id"] == id
+        try:
+            return self._find_structure(find)
+        except NodeNotFoundError:
+            raise NodeNotFoundError(f"Could not find structure with id '{id}'") from None
+
+    @find_structure.register
+    def _(self, name: str):
+        proc = lambda s: s.strip().lower()
+        _name = proc(name)
+        find = lambda x: proc(x["name"]) == _name or proc(x["acronym"]) == _name
+        try:
+            return self._find_structure(find)
+        except NodeNotFoundError:
+            raise NodeNotFoundError(
+                f"Could not find structure with name '{name}'"
+            ) from None
+
+    def _find_structure(self, find):
+        result = None
+
+        def visitor(item):
+            nonlocal result
+            if find(item):
+                result = item
+                return True
+
+        tree = self._dl_structure_ontology()
+        self._visit_structure(tree, visitor)
+        if result is None:
+            raise NodeNotFoundError("Could not find a node that satisfies constraints.")
+        return result
+
+    def _visit_structure(self, tree, visitor):
+        deck = collections.deque(tree)
+        while True:
+            try:
+                item = deck.popleft()
+            except IndexError:
+                break
+            if visitor(item):
+                break
+            deck.extend(item["children"])
+
+    def _validate_mask_condition(self):
+        id = self.struct_id if self.struct_id is not None else self.struct_name
+        self._mask_cond = self.get_structure_mask_condition(id)
+
+
+def _repeat_first():
+    _set = False
+    first = None
+
+    def repeater(val):
+        nonlocal _set
+        if not _set:
+            first, _set = val, True
+        return first
+
+    return repeater
 
 
 def _eq_sides(sides, n):
