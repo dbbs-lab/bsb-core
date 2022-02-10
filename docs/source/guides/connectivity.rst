@@ -23,7 +23,7 @@ simulation volume. They are defined in the configuration under ``connectivity``:
 
 The :guilabel:`cls` specifies which :class:`~.connectivity.strategy.ConnectionStrategy` to
 load. The :guilabel:`pre` and :guilabel:`post` specify the two :class:`hemitypes
-<.connectivity.strategy.HemiTypeNode>`.
+<.connectivity.strategy.HemitypeNode>`.
 
 Creating your own
 =================
