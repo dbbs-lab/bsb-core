@@ -402,7 +402,7 @@ class Scaffold:
     def get_connectivity(
         self, anywhere=None, presynaptic=None, postsynaptic=None, skip=None, only=None
     ):
-        conntype_filtered = self._connection_types_query(
+        conntype_filtered = self._connectivity_query(
             any_query=set(self._sanitize_ct(anywhere)),
             pre_query=set(self._sanitize_ct(presynaptic)),
             post_query=set(self._sanitize_ct(postsynaptic)),
@@ -606,7 +606,7 @@ class Scaffold:
         curses.echo()
         curses.endwin()
 
-    def _connection_types_query(self, any_query=set(), pre_query=set(), post_query=set()):
+    def _connectivity_query(self, any_query=set(), pre_query=set(), post_query=set()):
         # Filter network connection types for any type that satisfies both
         # the presynaptic and postsynaptic query. Empty queries satisfy all
         # types. The presynaptic query is satisfied if the conn type contains

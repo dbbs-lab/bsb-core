@@ -12,7 +12,7 @@ this:
 .. include:: _empty_root_nodes.rst
 
 The :guilabel:`regions`, :guilabel:`partitions`, :guilabel:`cell_types`,
-:guilabel:`placement` and :guilabel:`connection_types` spaceholders hold the configuration
+:guilabel:`placement` and :guilabel:`connectivity` spaceholders hold the configuration
 for :class:`Regions <.topology.region.Region>`, :class:`Partitions <.topology.partition.Partition>`,
 :class:`CellTypes <.objects.cell_type.CellType>`, :class:`PlacementStrategies
 <.placement.strategy.PlacementStrategy>` and :class:`ConnectionStrategies
@@ -28,11 +28,12 @@ your Python classes to the configuration file they should be **importable**. The
 `documentation <https://docs.python.org/3/tutorial/modules.html>`_ explains what modules
 are and are a great starting point.
 
-In short,  ``my_file.py`` is importable as ``my_file`` when it is in the working
-directory. Any classes inside of it can be referenced in a config file as
-``my_file.MyClass``. Although this basic use works fine in 1 directory we have a
-:doc:`best practices guide </guides/packaging>` on how to properly make your classes discoverable
-on your entire machine. You can even distribute them as a package to other people.
+In short,  ``my_file.py`` is importable as ``my_file`` when it is in the working directory
+or on the path Python searches. Any classes inside of it can be referenced in a config
+file as ``my_file.MyClass``. Although this basic use works fine for a single directory, we
+have a :doc:`best practices guide </guides/packaging>` on how to properly make your
+classes discoverable on your entire machine. You can even distribute them as a package to
+other people the same way.
 
 Here's an example of how you could use the ``MySpecialConnection`` class in your Python
 file ``connectome.py`` as a class in the configuration:
