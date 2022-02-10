@@ -607,3 +607,38 @@ def in_classmap():
 
     type_handler.__name__ = "a classmap value"
     return type_handler
+
+
+def mut_excl(*mutuals, required=True, max=1):
+    """
+    Requirement handler for mutually exclusive attributes.
+
+    :param mutuals: The keys of the mutually exclusive attributes.
+    :type mutuals: str
+    :param required: Whether at least one of the keys is required
+    :type required: bool
+    :param max: The maximum amount of keys that may occur together.
+    :type max: int
+    :returns: Requirement function
+    :rtype: Callable
+    """
+    listed = ", ".join(f"`{m}`" for m in mutuals[:-1])
+    if len(mutuals) > 1:
+        listed += f" {{}} `{mutuals[-1]}`"
+
+    def requirement(section):
+        bools = [m in section for m in mutuals]
+        given = sum(bools)
+        if given > max:
+            if max > 1:
+                err_msg = f"Maximum {max} of {listed} may be specified. {given} given."
+            else:
+                err_msg = f"The {listed} attributes are mutually exclusive."
+            err_msg = err_msg.format("and")
+            raise RequirementError(err_msg)
+        if not given and required:
+            err_msg = f"A {listed} attribute is required.".format("or")
+            raise RequirementError(err_msg)
+        return False
+
+    return requirement
