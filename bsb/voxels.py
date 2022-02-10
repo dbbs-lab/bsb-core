@@ -540,20 +540,14 @@ class VoxelLoader(abc.ABC):
         pass
 
 
-def _src_req(s):
-    given_attrs = ("source" in s) + ("sources" in s)
-    if not given_attrs:
-        raise RequirementError("A `source` or `sources` attribute is required.")
-    if given_attrs == 2:
-        raise RequirementError(
-            "The `source` and `sources` attributes are mutually exclusive."
-        )
-
-
 @config.node
 class NrrdVoxelLoader(VoxelLoader, classmap_entry="nrrd"):
-    source = config.attr(type=str, required=_src_req)
-    sources = config.attr(type=types.list(str), required=_src_req)
+    source = config.attr(
+        type=str, required=types.mut_excl("source", "sources", required=True)
+    )
+    sources = config.attr(
+        type=types.list(str), required=types.mut_excl("source", "sources", required=True)
+    )
     mask_value = config.attr(type=int)
     mask_source = config.attr(type=str)
     voxel_size = config.attr(type=types.voxel_size(), required=True)
