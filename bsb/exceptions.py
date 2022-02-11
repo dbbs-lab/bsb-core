@@ -33,7 +33,7 @@ _t(
         ),
         CompilationError=_e(
             ConnectivityError=_e(
-                "connection_type",
+                "connection_strategy",
                 FiberTransformError=_e(
                     QuiverFieldError=_e(),
                 ),

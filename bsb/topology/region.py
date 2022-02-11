@@ -7,7 +7,7 @@ from ..config import types, refs
 from ..exceptions import *
 
 
-@config.dynamic(required=False, default="stack", auto_classmap=True)
+@config.dynamic(required=False, default="group", auto_classmap=True)
 class Region:
     """
     Base region.
