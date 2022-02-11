@@ -105,7 +105,6 @@ class BsbOption:
         list=False,
         readonly=False,
         action=False,
-        **kwargs,
     ):
         """
         Subclass hook that defines the characteristics of the subclassed option class.
