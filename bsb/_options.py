@@ -11,6 +11,7 @@ class VerbosityOption(
     BsbOption,
     name="verbosity",
     cli=("v", "verbosity"),
+    project=("verbosity",),
     env=("BSB_VERBOSITY",),
     script=("verbosity",),
 ):

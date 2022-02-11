@@ -2,6 +2,10 @@
 This module contains the classes required to construct options.
 """
 import os
+import toml
+import pathlib
+import functools
+from .exceptions import OptionError
 
 
 class OptionDescriptor:
@@ -20,14 +24,14 @@ class OptionDescriptor:
     def __get__(self, instance, owner):
         if instance is None:
             return self
-        return getattr(instance, f"_{self.slug}_value", instance.get_default())
+        return getattr(instance, f"_bsbopt_{self.slug}_value", instance.get_default())
 
     def __set__(self, instance, value):
         set_value = getattr(instance, "setter", lambda x: x)(value)
-        setattr(instance, f"_{self.slug}_value", set_value)
+        setattr(instance, f"_bsbopt_{self.slug}_value", set_value)
 
     def is_set(self, instance):
-        return hasattr(instance, f"_{self.slug}_value")
+        return hasattr(instance, f"_bsbopt_{self.slug}_value")
 
 
 class CLIOptionDescriptor(OptionDescriptor, slug="cli"):
@@ -51,6 +55,10 @@ class EnvOptionDescriptor(OptionDescriptor, slug="env"):
             if tag in os.environ:
                 return os.environ[tag]
 
+    def __set__(self, instance, value):
+        for tag in self.tags:
+            os.environ[tag] = getattr(instance, "setter", lambda x: x)(value)
+
     def is_set(self, instance):
         return any(tag in os.environ for tag in self.tags)
 
@@ -59,6 +67,9 @@ class ScriptOptionDescriptor(OptionDescriptor, slug="script"):
     """
     Descriptor that retrieves and sets its value from/to the :mod:`bsb.options` module.
     """
+
+    # This class uses `self.tags[0]`, because all tags are aliases of eachother in the
+    # options module.
 
     def __get__(self, instance, owner):
         if instance is None:
@@ -85,6 +96,40 @@ class ScriptOptionDescriptor(OptionDescriptor, slug="script"):
         return any(is_module_option_set(tag) for tag in self.tags)
 
 
+class ProjectOptionDescriptor(OptionDescriptor, slug="project"):
+    """
+    Descriptor that retrieves and stores values in the `pyproject.toml` file. Traverses
+    up the filesystem tree until one is found.
+    """
+
+    def __init__(self, *tags):
+        if len(tags) > 1:
+            raise OptionError(f"Project option can have only 1 tag, got {tags}.")
+        super().__init__(*(tags[0].split(".") if tags else ()))
+
+    def __get__(self, instance, owner):
+        if self.tags:
+            _, proj = _pyproject_bsb()
+            for tag in self.tags[:-1]:
+                proj = proj.get(tag, None)
+                if proj is None:
+                    return None
+            return proj.get(self.tags[-1], None)
+
+    def __set__(self, instance, value):
+        if self.tags:
+            path, proj = _pyproject_bsb()
+            deeper = proj
+            for tag in self.tags[:-1]:
+                deeper = deeper.setdefault(tag, {})
+            deeper[self.tags[-1]] = value
+            _save_pyproject_bsb(proj)
+
+    def is_set(self, instance):
+        if self.tag:
+            return self.tag in proj
+
+
 class BsbOption:
     """
     Base option class. Can be subclassed to create new options.
@@ -96,8 +141,9 @@ class BsbOption:
     def __init_subclass__(
         cls,
         name=None,
-        cli=(),
         env=(),
+        project=(),
+        cli=(),
         script=(),
         description=None,
         flag=False,
@@ -132,8 +178,9 @@ class BsbOption:
         :type action: boolean
         """
         cls.name = name
-        cls.cli = CLIOptionDescriptor(*cli)
         cls.env = EnvOptionDescriptor(*env)
+        cls.project = ProjectOptionDescriptor(*project)
+        cls.cli = CLIOptionDescriptor(*cli)
         cls.script = ScriptOptionDescriptor(*script)
         cls.description = description
         cls.is_flag = flag
@@ -226,3 +273,33 @@ class BsbOption:
         from . import options
 
         options._remove_tags(*cls.script.tags)
+
+
+@functools.cache
+def _pyproject_content():
+    path = pathlib.Path.cwd()
+    while str(path) != path.root:
+        proj = path / "pyproject.toml"
+        if proj.exists():
+            with open("pyproject.toml", "r") as f:
+                return proj, toml.load(f)
+        path = path.parent
+    return None, {}
+
+
+@functools.cache
+def _pyproject_bsb():
+    path, content = _pyproject_content()
+    return path, content.get("tools", {}).get("bsb", {})
+
+
+def _save_pyproject_bsb(project):
+    path, content = _pyproject_content()
+    if path is None:
+        raise OptionError(
+            "No 'pyproject.toml' in current dir or parents,"
+            + " can't set project settings."
+        )
+    content.setdefault("tools", {})["bsb"] = project
+    with open(path, "w") as f:
+        toml.dump(content, f)

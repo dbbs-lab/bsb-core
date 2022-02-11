@@ -106,6 +106,15 @@ def get_options():
     return _options.copy()
 
 
+def store(tag, value):
+    global _options
+
+    option = _options.get(tag, None)
+    if option is None:
+        raise OptionError(f"'{tag}' is not an option name.")
+    option.project = value
+
+
 _post_freeze = set(globals().keys()).difference(_pre_freeze)
 
 
