@@ -112,6 +112,7 @@ def store(tag, value):
     option = _options.get(tag, None)
     if option is None:
         raise OptionError(f"'{tag}' is not an option name.")
+    set_module_option(tag, value)
     option.project = value
 
 
