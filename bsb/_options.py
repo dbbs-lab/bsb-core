@@ -68,6 +68,21 @@ class VersionFlag(
         report("bsb " + str(self.get()), level=1)
 
 
+class ConfigOption(
+    BsbOption,
+    name="config",
+    cli=("c", "config"),
+    project=("config",),
+    env=("BSB_CONFIG_FILE",),
+):
+    """
+    Specify the config file to use when creating new networks through the CLI.
+    """
+
+    def get_default(self):
+        return "network_configuration.json"
+
+
 def verbosity():
     return VerbosityOption
 
@@ -78,3 +93,7 @@ def version():
 
 def sudo():
     return ForceFlag
+
+
+def config():
+    return ConfigOption

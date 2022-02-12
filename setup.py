@@ -67,6 +67,7 @@ setuptools.setup(
             "verbosity = bsb._options:verbosity",
             "sudo = bsb._options:sudo",
             "version = bsb._options:version",
+            "config = bsb._options:config",
         ],
     },
     python_requires="~=3.8",

@@ -5,6 +5,7 @@ Contains builtin commands.
 from . import BaseCommand
 from ...option import BsbOption
 from ...exceptions import *
+from ..._options import ConfigOption
 from . import _projects
 
 
@@ -92,21 +93,6 @@ class SkipAfterConnectivity(
     flag=True,
 ):
     pass
-
-
-class ConfigOption(
-    BsbOption,
-    name="config",
-    cli=("c", "config"),
-    project=("config",),
-    env=("BSB_CONFIG_FILE",),
-):
-    """
-    Specify the config file to use when creating new networks through the CLI.
-    """
-
-    def get_default(self):
-        return "network_configuration.json"
 
 
 class MakeConfigCommand(BaseCommand, name="make-config"):
