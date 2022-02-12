@@ -58,7 +58,6 @@ def register_project_option(option):
     global _project
 
     path = type(option).project.tags
-    print("Registering", option, "as", path)
     section = _project
     for slug in path[:-1]:
         section = section.setdefault(slug, {})
@@ -69,8 +68,6 @@ def register_project_option(option):
         )
     else:
         section[path[-1]] = option
-
-    print("After registration", _project)
 
 
 def get_project_option(path):
