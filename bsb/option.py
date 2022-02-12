@@ -192,12 +192,15 @@ class BsbOption:
         cls.use_action = action
         cls.positional = False
 
-    def get(self):
+    def get(self, prio=None):
         """
         Get the option's value. Cascades the script, cli, env & default descriptors together.
 
         :returns: option value
         """
+        if prio is not None:
+            return getattr(self, prio)
+
         cls = self.__class__
         if cls.script.is_set(self):
             return self.script
@@ -284,7 +287,7 @@ def _pyproject_content():
         proj = path / "pyproject.toml"
         if proj.exists():
             with open(proj, "r") as f:
-                return proj, toml.load(f)
+                return proj.resolve(), toml.load(f)
         path = path.parent
     return None, {}  # pragma: nocover
 

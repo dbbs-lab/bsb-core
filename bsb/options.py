@@ -31,34 +31,60 @@ import sys, types
 from .exceptions import OptionError, ReadOnlyOptionError
 from .plugins import discover
 
+
 _options = {}
-_project = {}
-_option_values = {}
+_project_options = {}
+_module_options = {}
+_module_option_values = {}
 
 _pre_freeze = set(globals().keys())
 
 
-def _get_option(tag):
-    global _options
+def _get_module_option(tag):
+    global _module_options
 
-    if tag not in _options:
-        raise OptionError(f"Unknown option '{tag}'")
-    return _options[tag]
+    if tag not in _module_options:
+        raise OptionError(f"Unknown module option '{tag}'")
+    return _module_options[tag]
 
 
-def _get_tag(tag):
-    return _get_option(tag).__class__.script.tags[0]
+def _get_module_tag(tag):
+    tags = _get_module_option(tag).__class__.script.tags
+    if tags:
+        return tags[0]
+    else:
+        return None
 
 
 def get_option_classes():
     return discover("options")
 
 
+def get_option(name):
+    global _options
+
+    if name in _options:
+        return _options[name]
+    else:
+        raise OptionError(f"Unknown option '{name}'")
+
+
+def register_option(name, option):
+    global _options
+
+    if name in _options:
+        raise OptionError(
+            f"The '{name}' option name is already taken by {_options[name].__class__}."
+        )
+    else:
+        _options[name] = option
+
+
 def register_project_option(option):
-    global _project
+    global _project_options
 
     path = type(option).project.tags
-    section = _project
+    section = _project_options
     for slug in path[:-1]:
         section = section.setdefault(slug, {})
 
@@ -70,13 +96,15 @@ def register_project_option(option):
         section[path[-1]] = option
 
 
-def get_project_option(path):
-    section = _project
+def get_project_option(tag):
+    global _project_options
+    path = tag.split(".")
+    section = _project_options
     for slug in path:
         if slug in section:
             section = section[slug]
         else:
-            raise OptionError(f"The project option `{'.'.join(path)}` does not exist.")
+            raise OptionError(f"The project option `{tag}` does not exist.")
     return section
 
 
@@ -84,47 +112,50 @@ def register_module_option(tag, option):
     """
     Register an option as a global BSB option
     """
-    global _options
+    global _module_options
 
-    if tag in _options:
+    if tag in _module_options:
         raise OptionError(
-            f"The '{tag}' tag is already taken by {_options[tag].__class__}."
+            f"The '{tag}' tag is already taken by {_module_options[tag].__class__}."
         )
     else:
-        _options[tag] = option
+        _module_options[tag] = option
 
 
 def _remove_tags(*tags):
     """
     Removes tags. Testing purposes only, undefined behavior.
     """
-    global _options, _option_values
+    global _module_options, _module_option_values
     for tag in tags:
-        del _options[tag]
+        del _module_options[tag]
 
 
 def set_module_option(tag, value):
-    global _option_values, _options
+    global _module_option_values, _module_options
 
-    if (option := _get_option(tag)).readonly:
+    if (option := _get_module_option(tag)).readonly:
         raise ReadOnlyOptionError("'%tag%' is a read-only option.", option, tag)
-    _option_values[_get_tag(tag)] = value
+    mod_tag = _get_module_tag(tag)
+    if mod_tag is None:
+        raise OptionError(f"'{tag}' can't be set through the options module.")
+    _module_option_values[mod_tag] = value
 
 
 def get_module_option(tag):
-    global _option_values, _options
-    tag = _get_tag(tag)
+    global _module_option_values, _module_options
+    tag = _get_module_tag(tag)
 
-    if tag in _option_values:
-        return _option_values[tag]
+    if tag in _module_option_values:
+        return _module_option_values[tag]
     else:
-        return _options[tag].get()
+        return _module_options[tag].get()
 
 
 def is_module_option_set(tag):
-    global _option_values
+    global _module_option_values
 
-    return _get_tag(tag) in _option_values
+    return _get_module_tag(tag) in _module_option_values
 
 
 def get_options():
@@ -133,13 +164,23 @@ def get_options():
     return _options.copy()
 
 
-def store(tag, value):
-    global _project
-
-    option = _project.get(tag, None)
+def store(path, value):
+    option = get_project_option(path)
     if option is None:
-        raise OptionError(f"'{tag}' is not an option name.")
+        raise OptionError(f"'{path}' is not an option name.")
     option.project = value
+
+
+def read(path):
+    option = get_project_option(path)
+
+    if option is None:
+        raise OptionError(f"'{tag}' is not a project option.")
+    return option.get(prio="project")
+
+
+def get(tag, prio=None):
+    option = get_option()
 
 
 _post_freeze = set(globals().keys()).difference(_pre_freeze)
@@ -177,6 +218,7 @@ _om.__dict__["__all__"] = sorted([k for k in vars(_om).keys() if not k.startswit
 plugins = discover("options")
 for plugin in plugins.values():
     option = plugin()
+    _om.register_option(option.name, option)
     for tag in plugin.script.tags:
         _om.register_module_option(tag, option)
     if plugin.project.tags:
