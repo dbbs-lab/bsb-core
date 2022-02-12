@@ -108,6 +108,8 @@ class ProjectOptionDescriptor(OptionDescriptor, slug="project"):
         super().__init__(*(tags[0].split(".") if tags else ()))
 
     def __get__(self, instance, owner):
+        if instance is None:
+            return self
         if self.tags:
             _, proj = _pyproject_bsb()
             for tag in self.tags[:-1]:
@@ -281,10 +283,10 @@ def _pyproject_content():
     while str(path) != path.root:
         proj = path / "pyproject.toml"
         if proj.exists():
-            with open("pyproject.toml", "r") as f:
+            with open(proj, "r") as f:
                 return proj, toml.load(f)
         path = path.parent
-    return None, {}
+    return None, {}  # pragma: nocover
 
 
 @functools.cache

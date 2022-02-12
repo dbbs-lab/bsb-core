@@ -32,6 +32,7 @@ from .exceptions import OptionError, ReadOnlyOptionError
 from .plugins import discover
 
 _options = {}
+_project = {}
 _option_values = {}
 
 _pre_freeze = set(globals().keys())
@@ -51,6 +52,35 @@ def _get_tag(tag):
 
 def get_option_classes():
     return discover("options")
+
+
+def register_project_option(option):
+    global _project
+
+    path = type(option).project.tags
+    print("Registering", option, "as", path)
+    section = _project
+    for slug in path[:-1]:
+        section = section.setdefault(slug, {})
+
+    if path[-1] in section:
+        raise OptionError(
+            f"The '{'.'.join(path)}' tag is already taken by {section[tag].__class__}."
+        )
+    else:
+        section[path[-1]] = option
+
+    print("After registration", _project)
+
+
+def get_project_option(path):
+    section = _project
+    for slug in path:
+        if slug in section:
+            section = section[slug]
+        else:
+            raise OptionError(f"The project option `{'.'.join(path)}` does not exist.")
+    return section
 
 
 def register_module_option(tag, option):
@@ -107,12 +137,11 @@ def get_options():
 
 
 def store(tag, value):
-    global _options
+    global _project
 
-    option = _options.get(tag, None)
+    option = _project.get(tag, None)
     if option is None:
         raise OptionError(f"'{tag}' is not an option name.")
-    set_module_option(tag, value)
     option.project = value
 
 
@@ -153,5 +182,7 @@ for plugin in plugins.values():
     option = plugin()
     for tag in plugin.script.tags:
         _om.register_module_option(tag, option)
+    if plugin.project.tags:
+        _om.register_project_option(option)
 
 sys.modules[__name__] = _om

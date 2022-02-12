@@ -461,7 +461,7 @@ class Scaffold:
         """
         Return a list of all cell types in the network.
         """
-        return list(self.configuration.cell_types.values())
+        return [*self.configuration.cell_types.values()]
 
     def create_adapter(self, simulation_name):
         """
