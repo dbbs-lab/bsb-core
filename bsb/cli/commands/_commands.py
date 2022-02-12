@@ -98,7 +98,8 @@ class ConfigOption(
     BsbOption,
     name="config",
     cli=("c", "config"),
-    env=("BSB_CONFIG_FILE",),  # TODO: project=("config_file")
+    project=("config",),
+    env=("BSB_CONFIG_FILE",),
 ):
     """
     Specify the config file to use when creating new networks through the CLI.
