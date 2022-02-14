@@ -37,6 +37,8 @@ _project_options = {}
 _module_options = {}
 _module_option_values = {}
 
+# Everything defined between pre-freeze and post-freeze may be considered to be added to
+# the `_OptionsModule` instance, place all public API functions between them.
 _pre_freeze = set(globals().keys())
 
 
@@ -57,10 +59,25 @@ def _get_module_tag(tag):
 
 
 def get_option_classes():
+    """
+    Return all of the classes that are used to create singleton options from. Useful to
+    access the option descriptors rather than the option values.
+
+    :returns: The classes of all the installed options by name.
+    :rtype: dict[str, bsb.option.BsbOption]
+    """
     return discover("options")
 
 
 def get_option(name):
+    """
+    Return an option
+
+    :param name: Name of the option to look for.
+    :type name: str
+    :returns: The option singleton of that name.
+    :rtype: dict[str, bsb.option.BsbOption]
+    """
     global _options
 
     if name in _options:
@@ -70,6 +87,15 @@ def get_option(name):
 
 
 def register_option(name, option):
+    """
+    Register an option as a global BSB option. Options that are installed by the plugin
+    system are automatically registered on import of the BSB.
+
+    :param name: Name for the option, used to store and retrieve its singleton.
+    :type name: str
+    :param option: Option instance, to be used as a singleton.
+    :type option: :class:`.option.BsbOption`
+    """
     global _options
 
     if name in _options:
@@ -79,8 +105,20 @@ def register_option(name, option):
     else:
         _options[name] = option
 
+    for tag in plugin.script.tags:
+        _register_module_option(tag, option)
+    if plugin.project.tags:
+        _register_project_option(option)
 
-def register_project_option(option):
+
+def _register_project_option(option):
+    """
+    Register an option that can be manipulated from ``pyproject.toml``, unregistered
+    options can be used, but :func:`.options.store` and :func:`.options.read` won't work.
+
+    :param option: Option.
+    :type option: :class:`.option.BsbOption`
+    """
     global _project_options
 
     path = type(option).project.tags
@@ -97,6 +135,14 @@ def register_project_option(option):
 
 
 def get_project_option(tag):
+    """
+    Find a project option
+
+    :param tag: dot-separated path of the option. e.g. ``networks.config_link``.
+    :type tag: str
+    :returns: Project option instance
+    :rtype: :class:`.option.BsbOption`
+    """
     global _project_options
     path = tag.split(".")
     section = _project_options
@@ -108,9 +154,9 @@ def get_project_option(tag):
     return section
 
 
-def register_module_option(tag, option):
+def _register_module_option(tag, option):
     """
-    Register an option as a global BSB option
+    Register an option that can be manipulated from :mod:`bsb.options`.
     """
     global _module_options
 
@@ -131,8 +177,28 @@ def _remove_tags(*tags):
         del _module_options[tag]
 
 
+def reset_module_option(tag):
+    global _module_option_values
+    opt = _get_module_option(tag)
+    # Module option values always stored under the "module tag" (= tag 0)
+    try:
+        del _module_option_values[type(opt).script.tags[0]]
+    except KeyError:
+        pass
+
+
 def set_module_option(tag, value):
-    global _module_option_values, _module_options
+    """
+    Set the value of a module option. Does the same thing as ``setattr(options, tag,
+    value)``.
+
+    :param tag: Name the option is registered with in the module.
+    :type tag: str
+    :param value: New module value for the option
+    :type value: Any
+    """
+
+    global _module_option_values
 
     if (option := _get_module_option(tag)).readonly:
         raise ReadOnlyOptionError("'%tag%' is a read-only option.", option, tag)
@@ -143,6 +209,12 @@ def set_module_option(tag, value):
 
 
 def get_module_option(tag):
+    """
+    Get the value of a module option. Does the same thing as ``getattr(options, tag)``
+
+    :param tag: Name the option is registered with in the module.
+    :type tag: str
+    """
     global _module_option_values, _module_options
     tag = _get_module_tag(tag)
 
@@ -153,26 +225,53 @@ def get_module_option(tag):
 
 
 def is_module_option_set(tag):
+    """
+    Check if a module option was set.
+
+    :param tag: Name the option is registered with in the module.
+    :type tag: str
+    :returns: Whether the option was ever set from the module
+    :rtype: bool
+    """
     global _module_option_values
 
     return _get_module_tag(tag) in _module_option_values
 
 
 def get_options():
+    """
+    Get all the registered option singletons.
+    """
     global _options
 
     return _options.copy()
 
 
-def store(path, value):
-    option = get_project_option(path)
+def store(tag, value):
+    """
+    Store an option value permanently in the project settings.
+
+    :param tag: Dot-separated path of the project option
+    :type tag: str
+    :param value: New value for the project option
+    :type value: Any
+    """
+    option = get_project_option(tag)
     if option is None:
-        raise OptionError(f"'{path}' is not an option name.")
+        raise OptionError(f"'{tag}' is not an option name.")
     option.project = value
 
 
-def read(path):
-    option = get_project_option(path)
+def read(tag):
+    """
+    Read an option value from the project settings.
+
+    :param tag: Dot-separated path of the project option
+    :type tag: str
+    :returns: Value for the project option
+    :rtype: Any
+    """
+    option = get_project_option(tag)
 
     if option is None:
         raise OptionError(f"'{tag}' is not a project option.")
@@ -180,7 +279,19 @@ def read(path):
 
 
 def get(tag, prio=None):
-    option = get_option()
+    """
+    Retrieve the cascaded value for an option.
+
+    :param tag: Name the option is registered with.
+    :type tag: str
+    :param prio: Give priority to a type of value. Can be any of 'script', 'cli',
+      'project', 'env'.
+    :type prio: str
+    :returns: (Possibly prioritized) value of the option.
+    :rtype: Any
+    """
+    option = get_option(tag)
+    return option.get(prio=prio)
 
 
 _post_freeze = set(globals().keys()).difference(_pre_freeze)
@@ -204,6 +315,14 @@ class _OptionsModule(types.ModuleType):
     def __setattr__(self, attr, value):
         self.set_module_option(attr, value)
 
+    def __delattr__(self, attr):
+        try:
+            opt = _get_module_option(attr)
+        except OptionError:
+            pass
+        else:
+            del opt.script
+
 
 _om = _OptionsModule(__name__)
 # Copy the module magic from the original module.
@@ -219,9 +338,5 @@ plugins = discover("options")
 for plugin in plugins.values():
     option = plugin()
     _om.register_option(option.name, option)
-    for tag in plugin.script.tags:
-        _om.register_module_option(tag, option)
-    if plugin.project.tags:
-        _om.register_project_option(option)
 
 sys.modules[__name__] = _om
