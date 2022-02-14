@@ -84,6 +84,8 @@ the following command:
 This value will remain active until you close your shell session. To keep the value around
 you can store it in a configuration file like ``~/.bashrc`` or ``~/.profile``.
 
+.. _options_list:
+
 List of options
 ---------------
 
@@ -117,7 +119,7 @@ List of options
   * *project*: None.
 
   * *env*: None.
-  
+
 * ``config``: The default config file to use, if omitted in commands.
 
   * *script*: None (when scripting, you should create a :class:`~.config.Configuration`)

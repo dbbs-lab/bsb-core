@@ -6,7 +6,17 @@ The command line interface is composed of a collection of `pluggable <Writing yo
 commands>`_ commands. Open up your favorite terminal and enter the ``bsb --help`` command
 to verify you correctly installed the software.
 
+Each command can give command specific arguments, options or set `global options
+<options_list>`_. For example:
 
+.. code-block:: bash
+
+  # Without arguments, relying on project settings defaults
+  bsb compile
+  # Providing the argument
+  bsb compile my_config.json
+  # Overriding the global verbosity option
+  bsb compile --verbosity 4
 
 =========================
 Writing your own commands
