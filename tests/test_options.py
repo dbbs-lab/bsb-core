@@ -201,7 +201,7 @@ class TestScriptOption(unittest.TestCase):
         self.assertFalse(v_descr.is_set(self.opt["verbosity"]), "verbosity not set")
 
     def test_script_register(self):
-        self.opt["verbosity"]._unregister()
+        self.opt["verbosity"].unregister()
         self.opt["verbosity"].register()
         with self.assertRaises(OptionError):
             self.opt["verbosity"].register()

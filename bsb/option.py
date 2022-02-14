@@ -242,6 +242,8 @@ class BsbOption:
         :param action: Indicates that the option should execute its ``action`` method.
         :type action: boolean
         """
+        if name is None:
+            raise OptionError("Options must be given a name in the class argument list.")
         cls.name = name
         cls.env = EnvOptionDescriptor(*env, flag=flag)
         cls.project = ProjectOptionDescriptor(*project)
@@ -301,6 +303,9 @@ class BsbOption:
         """
         Register this option into an ``argparse`` parser.
         """
+        if not self.get_cli_tags():
+            return
+
         kwargs = {}
         kwargs["help"] = self.description
         kwargs["dest"] = level * "_" + self.name
@@ -331,9 +336,11 @@ class BsbOption:
         """
         from . import options
 
-        options.register_option(cls.name, cls())
+        opt = cls()
+        options.register_option(cls.name, opt)
+        return opt
 
-    def _unregister(self):  # pragma: nocover
+    def unregister(self):
         """
         Remove this option class from the :mod:`bsb.options` module, not part of the
         public API as removing options is undefined behavior but useful for testing.
