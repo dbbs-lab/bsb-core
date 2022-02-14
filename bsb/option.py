@@ -67,8 +67,17 @@ class EnvOptionDescriptor(OptionDescriptor, slug="env"):
                 return self._parse(os.environ[tag])
 
     def __set__(self, instance, value):
+        value = getattr(instance, "setter", lambda x: x)(value)
+        parsed = self._rev_parse(value)
         for tag in self.tags:
-            os.environ[tag] = getattr(instance, "setter", lambda x: x)(value)
+            os.environ[tag] = parsed
+
+    def __delete__(self, instance):
+        for tag in self.tags:
+            try:
+                del os.environ[tag]
+            except KeyError:
+                pass
 
     def is_set(self, instance):
         return any(tag in os.environ for tag in self.tags)
@@ -81,6 +90,12 @@ class EnvOptionDescriptor(OptionDescriptor, slug="env"):
                 return False
         else:
             return value
+
+    def _rev_parse(self, value):
+        if self.flag:
+            return "ON" if value else "OFF"
+        else:
+            return str(value)
 
 
 class ScriptOptionDescriptor(OptionDescriptor, slug="script"):
