@@ -42,10 +42,11 @@ class ProjectNewCommand(BaseCommand, name="new"):
                             "morpho": "morphologies.h5",
                             "networks": {
                                 "config_link": [
+                                    "sys",
                                     "network_configuration.json",
                                     "always",
                                 ],
-                                "morpho_link": ["morphologies.h5", "changes"],
+                                "morpho_link": ["sys", "morphologies.h5", "changes"],
                             },
                         }
                     }
