@@ -61,10 +61,11 @@ class EnvOptionDescriptor(OptionDescriptor, slug="env"):
     def __get__(self, instance, owner):
         if instance is None:
             return self
+        getter = getattr(instance, "getter", lambda x: x)
         # Iterate the env for all tags, if none are set this returns `None`
         for tag in self.tags:
             if tag in os.environ:
-                return self._parse(os.environ[tag])
+                return self._parse(getter(os.environ[tag]))
 
     def __set__(self, instance, value):
         value = getattr(instance, "setter", lambda x: x)(value)
