@@ -5,14 +5,13 @@ import sys
 import inspect
 
 
-def handle_cli(dryrun=False):
+def handle_cli():
+    return handle_command(sys.argv[1:])
+
+
+def handle_command(command, dryrun=False):
     reset_cli_context()
     context = get_cli_context()
-    handle_command(sys.argv[1:], context, dryrun=dryrun)
-    return context
-
-
-def handle_command(command, context, dryrun=False):
     root_command = load_root_command()
     parser = root_command.get_parser(context)
     try:
@@ -27,6 +26,7 @@ def handle_command(command, context, dryrun=False):
         namespace.handler(namespace, dryrun=dryrun)
     else:  # pragma: nocover
         raise DryrunError(f"`{namespace.handler.__name__}` doesn't support dryruns.")
+    return context
 
 
 def _can_dryrun(handler, namespace):
