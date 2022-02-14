@@ -3,13 +3,14 @@ from .commands import load_root_command
 from ..exceptions import *
 import sys
 import inspect
+import builtins
 
 
 def handle_cli():
-    handle_command(sys.argv[1:])
+    handle_command(sys.argv[1:], exit=True)
 
 
-def handle_command(command, dryrun=False):
+def handle_command(command, dryrun=False, exit=False):
     reset_cli_context()
     context = get_cli_context()
     root_command = load_root_command()
@@ -17,8 +18,11 @@ def handle_command(command, dryrun=False):
     try:
         namespace = parser.parse_args(command)
     except CommandError as e:
-        print(e)
-        exit(1)
+        if exit:
+            print(e)
+            builtins.exit(1)
+        else:
+            raise
     if not dryrun:
         for action in namespace.internal_action_list or ():
             action(namespace)
