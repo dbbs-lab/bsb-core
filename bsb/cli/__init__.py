@@ -1,4 +1,4 @@
-from .._contexts import get_cli_context
+from .._contexts import get_cli_context, reset_cli_context
 from .commands import load_root_command
 from ..exceptions import *
 import sys
@@ -6,6 +6,7 @@ import inspect
 
 
 def handle_cli(dryrun=False):
+    reset_cli_context()
     context = get_cli_context()
     handle_command(sys.argv[1:], context, dryrun=dryrun)
     return context

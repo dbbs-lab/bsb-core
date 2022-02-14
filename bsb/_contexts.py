@@ -28,6 +28,13 @@ class CLIContext(Context):
         return base[:-1] + f" {self.arguments}>"
 
 
+def reset_cli_context():
+    from .options import get_options
+
+    for opt in get_options().values():
+        del opt.cli
+
+
 def get_cli_context():
     from .options import get_options
 
