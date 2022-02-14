@@ -31,17 +31,19 @@ additional paths to search extra locations, if the configuration isn't a registe
 template.
 
 * ``template.json``: Filename of the template to look for. Templates can be registered
-  through the ``bsb.config.templates`` :doc:`plugin endpoint </dev/plugins>``. Does not
+  through the ``bsb.config.templates`` :doc:`plugin endpoint </dev/plugins>`. Does not
   need to be a json file, just a file that can be parsed by your installed parsers.
 * ``output.json``: Filename to be created.
 * ``--path``: Give additional paths to be searched for the template here.
 
 ``compile [my-config.json] [-p] [-o file]``
-====================================
+===========================================
 
 Compiles a network architecture according to the configuration. If no configuration is
 specified, the project default is used.
 
+* ``my-config.json``: Path to the configuration file that should be compiled. If omitted
+  the :ref:`project configuration <project_settings>` path is used.
 * ``-p``: Plot the created network.
 * ``-o``, ``--output``: Output the result to a specific file. If omitted the value from
   the configuration, the project default, or a timestamped filename are used.

@@ -9,7 +9,7 @@ the CLI value will override the env value.
 
 The script values can be set from the ``bsb.options`` module, CLI values can be passed to
 the command line, project settings can be stored in ``pyproject.toml``, and env values can
-be set as environment variables.
+be set through use of environment variables.
 
 Using script values
 -------------------
@@ -88,26 +88,46 @@ List of options
 ---------------
 
 * ``verbosity``: Determines how much output is produced when running the BSB.
+
   * *script*: ``verbosity``
+
   * *cli*: ``v``, ``verbosity``
+
   * *project*: ``verbosity``
+
   * *env*: ``BSB_VERBOSITY``
+
 * ``force``: Enables sudo mode. Will execute destructive actions without confirmation,
   error or user interaction. Use with caution.
+
   * *script*: ``sudo``
+
   * *cli*: ``f``, ``force``
+
   * *project*: None.
+
   * *env*: ``BSB_FOOTGUN_MODE``
+
 * ``version``: Tells you the BSB version. **readonly**
+
   * *script*: ``version``
+
   * *cli*: ``version``
+
   * *project*: None.
+
   * *env*: None.
+  
 * ``config``: The default config file to use, if omitted in commands.
+
   * *script*: None (when scripting, you should create a :class:`~.config.Configuration`)
     object.
+
   * *cli*: ``config``, usually positional. e.g. ``bsb compile conf.json``
+
   * *project*: ``config``
+
+.. _project_settings:
 
 ``pyproject.toml`` structure
 ----------------------------
@@ -122,3 +142,50 @@ The BSB's project-wide settings are all stored in ``pyproject.toml`` under ``too
   [tools.bsb.networks]
   config_link = ["sys", "network_configuration.json", "always"]
   morpho_link = ["sys", "morphologies.h5", "changes"]
+
+========================
+Writing your own options
+========================
+
+You can create your own options by defining a class that inherits from
+:class:`~.option.BsbOption`:
+
+.. code-block:: python
+
+  from bsb.options import BsbOption
+  from bsb.reporting import report
+
+  class GreetingsOption(
+    BsbOption,
+    name="greeting",
+    script=("greeting",),
+    env=("BSB_GREETING",),
+    cli=("g", "greet"),
+    action=True,
+  ):
+    def get_default(self):
+      return "Hello World! The weather today is: optimal modelling conditions."
+
+    def action(self, namespace):
+      # Actions are run before the CLI options such as verbosity take global effect.
+      # Instead we can read or write the command namespace and act accordingly.
+      if namespace.verbosity >= 2:
+        report(self.get(), level=1)
+
+  __plugin__ = GreetingsOption
+
+In setup.py (assuming the above module is importable as ``my_pkg.greetings``)::
+
+  "entry_points": {
+    "bsb.options" = ["greeting = my_pkg.greetings"]
+  }
+
+After installing the setup with pip your option will be available::
+
+  $> bsb
+  $> bsb -g
+  $> bsb -v 2 -g
+  Hello World! The weather today is: optimal modelling conditions.
+  $> export BSB_GREETING="2 PIs walk into a conference..."
+  $> bsb -v 2 --greet
+  2 PIs walk into a conference...
