@@ -23,6 +23,8 @@ class CLIContext(Context):
 
     def __str__(self):
         base = super().__str__()
+        if not hasattr(self, "arguments"):
+            return base[:-1] + " without CLI arguments>"
         return base[:-1] + f" {self.arguments}>"
 
 
