@@ -5,6 +5,7 @@ import os
 import toml
 import pathlib
 import functools
+import argparse
 from .exceptions import OptionError
 
 
@@ -248,6 +249,7 @@ class BsbOption:
             args = self.get_cli_tags()
         if self.is_flag:
             kwargs["action"] += "_false" if self.inverted_flag else "_true"
+            kwargs["default"] = argparse.SUPPRESS
         if self.use_extend:
             kwargs["action"] = "extend"
             kwargs["nargs"] = "+"
