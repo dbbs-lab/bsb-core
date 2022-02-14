@@ -184,8 +184,15 @@ class ProjectOptionDescriptor(OptionDescriptor, slug="project"):
                 _save_pyproject_bsb(proj)
 
     def is_set(self, instance):
-        if self.tag:
-            return self.tag in proj
+        if self.tags:
+            _, proj = _pyproject_bsb()
+            for tag in self.tags[:-1]:
+                proj = proj.get(tag, None)
+                if proj is None:
+                    return False
+            return self.tags[-1] in proj
+        else:
+            return False
 
 
 class BsbOption:
@@ -262,6 +269,8 @@ class BsbOption:
             return self.script
         if cls.cli.is_set(self):
             return self.cli
+        if cls.project.is_set(self):
+            return self.project
         if cls.env.is_set(self):
             return self.env
         return self.get_default()
