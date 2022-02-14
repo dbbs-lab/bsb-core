@@ -79,7 +79,7 @@ class BaseCommand(BsbCommand, abstract=True):
                 c._parent = self
                 c.add_to_parser(subparsers, context, locals, level + 1)
 
-    def execute_handler(self, namespace):
+    def execute_handler(self, namespace, dryrun=False):
         reduced = {}
         context = namespace._context
         for k, v in namespace.__dict__.items():
@@ -94,7 +94,8 @@ class BaseCommand(BsbCommand, abstract=True):
         self.add_locals(context)
         context.set_cli_namespace(namespace)
         report(f"Context: {context}", level=4)
-        self.handler(context)
+        if not dryrun:
+            self.handler(context)
 
     def add_locals(self, context):
         # Merge our options into the context, preserving those in the context as we're

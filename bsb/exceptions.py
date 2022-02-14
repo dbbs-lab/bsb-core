@@ -8,6 +8,7 @@ _t(
             CommandError=_e(),
             ConfigTemplateNotFoundError=_e("template", "path"),
             InputError=_e(),
+            DryrunError=_e(),
         ),
         ConfigurationError=_e(
             ConfigurationFormatError=_e(),
