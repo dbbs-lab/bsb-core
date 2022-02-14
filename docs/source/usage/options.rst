@@ -62,7 +62,14 @@ file, or use :func:`.options.store`:
 
   bsb.options.store("verbosity", 4)
 
-The value will be written to ``pyproject.toml`` and saved permanently at project level
+The value will be written to ``pyproject.toml`` and saved permanently at project level. To
+read any ``pyproject.toml`` values you can use :func:`.options.read`:
+
+.. code-block:: python
+
+  import bsb.options
+
+  link = bsb.options.read("networks.config_link")
 
 Using env values
 ----------------
@@ -96,3 +103,22 @@ List of options
   * *cli*: ``version``
   * *project*: None.
   * *env*: None.
+* ``config``: The default config file to use, if omitted in commands.
+  * *script*: None (when scripting, you should create a :class:`~.config.Configuration`)
+    object.
+  * *cli*: ``config``, usually positional. e.g. ``bsb compile conf.json``
+  * *project*: ``config``
+
+``pyproject.toml`` structure
+----------------------------
+
+The BSB's project-wide settings are all stored in ``pyproject.toml`` under ``tools.bsb``:
+
+.. code-block:: toml
+
+  [tools.bsb]
+  config = "network_configuration.json"
+
+  [tools.bsb.networks]
+  config_link = ["sys", "network_configuration.json", "always"]
+  morpho_link = ["sys", "morphologies.h5", "changes"]
