@@ -8,16 +8,13 @@ import tempfile
 from bsb.exceptions import *
 from bsb.option import _pyproject_content, _pyproject_bsb, _save_pyproject_bsb
 from bsb import options
-from bsb.cli import handle_cli
+from bsb.cli import handle_command
 from bsb._contexts import get_cli_context
 
 
 class TestCLIOptions(unittest.TestCase):
     def run_command(self, *args, dryrun=True):
-        old_args = sys.argv[1:]
-        sys.argv[1:] = args
-        context = handle_cli(dryrun=dryrun)
-        sys.argv[1:] = old_args
+        context = handle_command(args, dryrun=dryrun)
         return context
 
     def test_cli_opt(self):
