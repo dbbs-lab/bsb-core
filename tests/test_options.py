@@ -44,6 +44,14 @@ class TestCLIOptions(unittest.TestCase):
         self.assertTrue(f3, "env value not overridden by cli value")
         del os.environ["BSB_FOOTGUN_MODE"]
 
+    def test_del(self):
+        # del is important for CLI context resetting before starting a new command.
+        context = self.run_command("compile", "--force")
+        descr = type(context.options["force"]).cli
+        self.assertTrue(descr.is_set(context.options["force"]), "args didnt set cli")
+        del context.options["force"].cli
+        self.assertFalse(descr.is_set(context.options["force"]), "del didnt clear cli")
+
 
 class TestEnvOptions(unittest.TestCase):
     def setUp(self):
@@ -138,14 +146,18 @@ class TestProjectOptions(unittest.TestCase):
         self.assertTrue(content.get("_dbl_", False), "Wrong toml content?")
         path.unlink()
 
-    def test_project_set(self):
+    def test_project_descr(self):
         with self.assertRaises(OptionError):
-            options.store("config", "hello.json")
+            options.store("version", "hello.json")
         _pyproject_content.cache_clear()
         with open(self.proj, "w") as f:
             toml.dump({}, f)
         options.store("config", "hello.json")
-        self.assertEqual("hello.json", options.read("config"), "message")
+        self.assertEqual("hello.json", options.read("config"), "not stored/read")
+        opt = options.get_options()["config"]
+        self.assertTrue(type(opt).project.is_set(opt), "written and read but not is_set")
+        del opt.project
+        self.assertEqual(None, options.read("config"), "not deleted")
 
 
 class TestScriptOptions(unittest.TestCase):
@@ -168,7 +180,21 @@ class TestScriptOptions(unittest.TestCase):
         self.assertFalse(script.is_set(self.opt["version"]), "script def counts as isset")
 
     def test_script_set(self):
-        self.opt["sudo"] = True
-        self.assertTrue(self.opt["sudo"], "script opt not set")
-        with self.assertRaises(OptionError):
+        self.opt["force"].script = True
+        self.assertTrue(self.opt["force"].script, "script opt not set")
+        with self.assertRaises(OptionError, msg="no script binding opt may not set"):
             self.opt["config"].script = True
+        self.assertTrue(self.opt["force"].get(), "script prio broken")
+
+    def test_script_del(self):
+        v_descr = type(self.opt["verbosity"]).script
+        preset = options.verbosity
+        self.assertFalse(v_descr.is_set(self.opt["verbosity"]), "verbosity set?")
+        options.verbosity = 4
+        self.assertTrue(v_descr.is_set(self.opt["verbosity"]), "verbosity not set")
+        del options.verbosity
+        self.assertFalse(v_descr.is_set(self.opt["verbosity"]), "verbosity not set")
+
+    def test_script_register(self):
+        self.opt["verbosity"]._unregister()
+        self.opt["verbosity"].register()
