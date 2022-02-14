@@ -48,13 +48,17 @@ class EnvOptionDescriptor(OptionDescriptor, slug="env"):
     Descriptor that retrieves its value from the environment variables.
     """
 
+    def __init__(self, *args, flag=False):
+        super().__init__(*args)
+        self.flag = flag
+
     def __get__(self, instance, owner):
         if instance is None:
             return self
         # Iterate the env for all tags, if none are set this returns `None`
         for tag in self.tags:
             if tag in os.environ:
-                return os.environ[tag]
+                return self._parse(os.environ[tag])
 
     def __set__(self, instance, value):
         for tag in self.tags:
@@ -62,6 +66,15 @@ class EnvOptionDescriptor(OptionDescriptor, slug="env"):
 
     def is_set(self, instance):
         return any(tag in os.environ for tag in self.tags)
+
+    def _parse(self, value):
+        if self.flag:
+            if value.strip().upper() in ("ON", "TRUE", "1", "YES"):
+                return True
+            else:
+                return False
+        else:
+            return value
 
 
 class ScriptOptionDescriptor(OptionDescriptor, slug="script"):
@@ -181,7 +194,7 @@ class BsbOption:
         :type action: boolean
         """
         cls.name = name
-        cls.env = EnvOptionDescriptor(*env)
+        cls.env = EnvOptionDescriptor(*env, flag=flag)
         cls.project = ProjectOptionDescriptor(*project)
         cls.cli = CLIOptionDescriptor(*cli)
         cls.script = ScriptOptionDescriptor(*script)
