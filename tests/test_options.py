@@ -1,15 +1,53 @@
 import unittest
 import pathlib
 import os
+import sys
 import toml
 import tempfile
 
 from bsb.exceptions import *
 from bsb.option import _pyproject_content, _pyproject_bsb, _save_pyproject_bsb
 from bsb import options
+from bsb.cli import handle_cli
+from bsb._contexts import get_cli_context
 
 
-class TestOptions(unittest.TestCase):
+class TestCLIOptions(unittest.TestCase):
+    def run_command(self, *args, dryrun=True):
+        old_args = sys.argv[1:]
+        sys.argv[1:] = args
+        context = handle_cli(dryrun=dryrun)
+        sys.argv[1:] = old_args
+        return context
+
+    def test_cli_opt(self):
+        context = self.run_command("--version")
+        force = context.options["force"].get(prio="cli")
+        self.assertFalse(force, "force arg was not given, still True")
+        context = self.run_command("--version", "--force")
+        force = context.options["force"].get(prio="cli")
+        self.assertTrue(force, "force arg given, still False")
+
+    def test_cli_env_prio(self):
+        os.environ["BSB_FOOTGUN_MODE"] = "ON"
+        context = self.run_command("compile")
+        f1 = context.options["force"].get(prio="env")
+        f2 = context.options["force"].get(prio="cli")
+        f3 = context.options["force"].get()
+        self.assertTrue(f1, "env flag option not True when value ON.")
+        self.assertFalse(f2, "force not set, still True")
+        self.assertTrue(f3, "cli not set, still obscured the env value")
+        os.environ["BSB_FOOTGUN_MODE"] = "OFF"
+        context = self.run_command("compile", "--force")
+        f1 = context.options["force"].get(prio="env")
+        f2 = context.options["force"].get(prio="cli")
+        f3 = context.options["force"].get()
+        self.assertFalse(f1, "env flag option not False when value OFF.")
+        self.assertTrue(f2, "force not set, still True")
+        self.assertTrue(f3, "env value not overridden by cli value")
+
+
+class TestProjectOptions(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
