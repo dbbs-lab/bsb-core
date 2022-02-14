@@ -23,6 +23,9 @@ class VerbosityOption(
     def setter(self, value):
         return int(value)
 
+    def getter(self, value):
+        return int(value)
+
     def get_default(self):
         return 1
 
