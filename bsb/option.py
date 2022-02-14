@@ -119,7 +119,7 @@ class ScriptOptionDescriptor(OptionDescriptor, slug="script"):
     def __set__(self, instance, value):
         if not self.tags:
             # This option has no options module binding
-            return None
+            raise OptionError(f"{instance.name} can't be set through `bsb.options`.")
         from .options import set_module_option
 
         set_value = getattr(instance, "setter", lambda x: x)(value)
