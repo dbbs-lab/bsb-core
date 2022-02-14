@@ -31,6 +31,12 @@ class OptionDescriptor:
         set_value = getattr(instance, "setter", lambda x: x)(value)
         setattr(instance, f"_bsbopt_{self.slug}_value", set_value)
 
+    def __delete__(self, instance):
+        try:
+            delattr(instance, f"_bsbopt_{self.slug}_value")
+        except AttributeError:
+            pass
+
     def is_set(self, instance):
         return hasattr(instance, f"_bsbopt_{self.slug}_value")
 
@@ -104,6 +110,12 @@ class ScriptOptionDescriptor(OptionDescriptor, slug="script"):
         set_value = getattr(instance, "setter", lambda x: x)(value)
         return set_module_option(self.tags[0], set_value)
 
+    def __delete__(self, instance):
+        from .options import reset_module_option
+
+        for tag in self.tags:
+            reset_module_option(tag)
+
     def is_set(self, instance):
         from .options import is_module_option_set
 
@@ -140,6 +152,20 @@ class ProjectOptionDescriptor(OptionDescriptor, slug="project"):
                 deeper = deeper.setdefault(tag, {})
             deeper[self.tags[-1]] = value
             _save_pyproject_bsb(proj)
+
+    def __delete__(self, instance):
+        if self.tags:
+            path, proj = _pyproject_bsb()
+            for tag in self.tags[:-1]:
+                proj = proj.get(tag, None)
+                if proj is None:
+                    return None
+            try:
+                del proj[self.tags[-1]]
+            except KeyError:
+                pass
+            else:
+                _save_pyproject_bsb(proj)
 
     def is_set(self, instance):
         if self.tag:
