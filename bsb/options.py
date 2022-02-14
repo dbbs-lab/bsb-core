@@ -42,7 +42,7 @@ _module_option_values = {}
 _pre_freeze = set(globals().keys())
 
 
-def _get_module_option(tag):
+def _get_module_option(tag):  # pragma: nocover
     global _module_options
 
     if tag not in _module_options:
@@ -50,12 +50,8 @@ def _get_module_option(tag):
     return _module_options[tag]
 
 
-def _get_module_tag(tag):
-    tags = _get_module_option(tag).__class__.script.tags
-    if tags:
-        return tags[0]
-    else:
-        return None
+def _get_module_tag(tag):  # pragma: nocover
+    return _get_module_option(tag).__class__.script.tags[0]
 
 
 def get_option_classes():
@@ -105,13 +101,38 @@ def register_option(name, option):
     else:
         _options[name] = option
 
-    for tag in plugin.script.tags:
+    for tag in type(option).script.tags:
         _register_module_option(tag, option)
-    if plugin.project.tags:
+    if type(option).project.tags:
         _register_project_option(option)
 
 
-def _register_project_option(option):
+def unregister_option(option):
+    """
+    Unregister a globally registered option. Also removes its script and project parts.
+
+    :param option: Option singleton, to be removed.
+    :type option: :class:`.option.BsbOption`
+    """
+    global _options, _project_options
+
+    del _options[option.name]
+    _remove_module_tags(*type(option).script.tags)
+    path = type(option).project.tags
+    if path:
+        section = _project_options
+        for slug in path[:-1]:
+            if slug in section:
+                section = section[slug]
+            else:
+                return
+        try:
+            del section[path[-1]]
+        except KeyError:
+            pass
+
+
+def _register_project_option(option):  # pragma: nocover
     """
     Register an option that can be manipulated from ``pyproject.toml``, unregistered
     options can be used, but :func:`.options.store` and :func:`.options.read` won't work.
@@ -128,7 +149,7 @@ def _register_project_option(option):
 
     if path[-1] in section:
         raise OptionError(
-            f"The '{'.'.join(path)}' tag is already taken by {section[tag].__class__}."
+            f"The '{'.'.join(path)}' tag is already taken by {section[path[-1]].__class__}."
         )
     else:
         section[path[-1]] = option
@@ -154,7 +175,7 @@ def get_project_option(tag):
     return section
 
 
-def _register_module_option(tag, option):
+def _register_module_option(tag, option):  # pragma: nocover
     """
     Register an option that can be manipulated from :mod:`bsb.options`.
     """
@@ -168,13 +189,20 @@ def _register_module_option(tag, option):
         _module_options[tag] = option
 
 
-def _remove_tags(*tags):
+def _remove_module_tags(*tags):  # pragma: nocover
     """
-    Removes tags. Testing purposes only, undefined behavior.
+    Removes tags.
     """
     global _module_options, _module_option_values
     for tag in tags:
-        del _module_options[tag]
+        try:
+            del _module_options[tag]
+        except KeyError:
+            pass
+        try:
+            del _module_option_values[tag]
+        except KeyError:
+            pass
 
 
 def reset_module_option(tag):
@@ -203,8 +231,6 @@ def set_module_option(tag, value):
     if (option := _get_module_option(tag)).readonly:
         raise ReadOnlyOptionError("'%tag%' is a read-only option.", option, tag)
     mod_tag = _get_module_tag(tag)
-    if mod_tag is None:
-        raise OptionError(f"'{tag}' can't be set through the options module.")
     _module_option_values[mod_tag] = value
 
 
@@ -256,10 +282,7 @@ def store(tag, value):
     :param value: New value for the project option
     :type value: Any
     """
-    option = get_project_option(tag)
-    if option is None:
-        raise OptionError(f"'{tag}' is not an option name.")
-    option.project = value
+    get_project_option(tag).project = value
 
 
 def read(tag):
@@ -271,11 +294,7 @@ def read(tag):
     :returns: Value for the project option
     :rtype: Any
     """
-    option = get_project_option(tag)
-
-    if option is None:
-        raise OptionError(f"'{tag}' is not a project option.")
-    return option.get(prio="project")
+    return get_project_option(tag).get(prio="project")
 
 
 def get(tag, prio=None):
@@ -319,7 +338,7 @@ class _OptionsModule(types.ModuleType):
         try:
             opt = _get_module_option(attr)
         except OptionError:
-            pass
+            raise super().__delattr__(attr) from None
         else:
             del opt.script
 

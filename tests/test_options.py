@@ -12,7 +12,7 @@ from bsb.cli import handle_command
 from bsb._contexts import get_cli_context
 
 
-class TestCLIOptions(unittest.TestCase):
+class TestCLIOption(unittest.TestCase):
     def run_command(self, *args, dryrun=True):
         context = handle_command(args, dryrun=dryrun)
         return context
@@ -53,7 +53,7 @@ class TestCLIOptions(unittest.TestCase):
         self.assertFalse(descr.is_set(context.options["force"]), "del didnt clear cli")
 
 
-class TestEnvOptions(unittest.TestCase):
+class TestEnvOption(unittest.TestCase):
     def setUp(self):
         self.opt = options.get_options()
 
@@ -82,7 +82,7 @@ class TestEnvOptions(unittest.TestCase):
         self.assertEqual("OFF", os.environ["BSB_FOOTGUN_MODE"], "env opt rev parsed bad")
 
 
-class TestProjectOptions(unittest.TestCase):
+class TestProjectOption(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
@@ -146,21 +146,26 @@ class TestProjectOptions(unittest.TestCase):
         self.assertTrue(content.get("_dbl_", False), "Wrong toml content?")
         path.unlink()
 
-    def test_project_descr(self):
+    def test_project_settings(self):
         with self.assertRaises(OptionError):
             options.store("version", "hello.json")
+        with self.assertRaises(OptionError):
+            options.store("versionnnn", "hello.json")
+        with self.assertRaises(OptionError):
+            options.read("versionnnn")
         _pyproject_content.cache_clear()
         with open(self.proj, "w") as f:
             toml.dump({}, f)
         options.store("config", "hello.json")
         self.assertEqual("hello.json", options.read("config"), "not stored/read")
+        self.assertEqual("hello.json", options.get("config", prio="project"), "prio bork")
         opt = options.get_options()["config"]
         self.assertTrue(type(opt).project.is_set(opt), "written and read but not is_set")
         del opt.project
         self.assertEqual(None, options.read("config"), "not deleted")
 
 
-class TestScriptOptions(unittest.TestCase):
+class TestScriptOption(unittest.TestCase):
     def setUp(self):
         self.opt = options.get_options()
 
@@ -198,3 +203,47 @@ class TestScriptOptions(unittest.TestCase):
     def test_script_register(self):
         self.opt["verbosity"]._unregister()
         self.opt["verbosity"].register()
+        with self.assertRaises(OptionError):
+            self.opt["verbosity"].register()
+
+
+class TestOptions(unittest.TestCase):
+    def setUp(self):
+        self.opt = options.get_options()
+
+    def test_get_option(self):
+        cfg_opt = options.get_option("config")
+        with self.assertRaises(OptionError):
+            options.get_option("doesntexist")
+        with self.assertRaises(OptionError):
+            options.get_module_option("config")
+
+    def test_discovery(self):
+        cls = options.get_option_classes()
+        self.assertTrue(len(cls) > 0, "no discovery")
+
+    def test_options_get_fallback(self):
+        v_descr = type(self.opt["verbosity"]).script
+        self.assertFalse(
+            v_descr.is_set(self.opt["verbosity"]),
+            "verbosity should not be set before test start",
+        )
+        self.assertEqual(1, options.verbosity, "verbosity should fall back to default")
+
+    def test_options_set(self):
+        options.verbosity = 2
+        self.assertEqual(2, options.verbosity, "verbosity not set")
+        with self.assertRaises(OptionError):
+            options.config = 3
+        # Clean up the script value we set for this test.
+        del self.opt["verbosity"].script
+        # Double reset shouldn't error
+        del self.opt["verbosity"].script
+
+    def test_set_module_option(self):
+        with self.assertRaises(OptionError):
+            options.set_module_option("config", 3)
+        options.set_module_option("verbosity", 3)
+        del options.verbosity
+        with self.assertRaises(AttributeError):
+            del options.verbosityy
