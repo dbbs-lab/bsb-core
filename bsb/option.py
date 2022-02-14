@@ -144,7 +144,7 @@ class ProjectOptionDescriptor(OptionDescriptor, slug="project"):
     """
 
     def __init__(self, *tags):
-        if len(tags) > 1:
+        if len(tags) > 1:  # pragma: nocover
             raise OptionError(f"Project option can have only 1 tag, got {tags}.")
         super().__init__(*(tags[0].split(".") if tags else ()))
 
@@ -326,7 +326,7 @@ class BsbOption:
             options.register_module_option(tag, o)
 
     @classmethod
-    def _unregister(cls):
+    def _unregister(cls):  # pragma: nocover
         """
         Remove this option class from the :mod:`bsb.options` module, not part of the
         public API as removing options is undefined behavior but useful for testing.
