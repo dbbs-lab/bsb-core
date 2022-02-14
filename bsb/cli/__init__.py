@@ -6,7 +6,7 @@ import inspect
 
 
 def handle_cli():
-    return handle_command(sys.argv[1:])
+    handle_command(sys.argv[1:])
 
 
 def handle_command(command, dryrun=False):

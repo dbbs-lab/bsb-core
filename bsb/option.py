@@ -333,7 +333,7 @@ class BsbOption:
 
         o = cls()
         for tag in cls.script.tags:
-            options.register_module_option(tag, o)
+            options._register_module_option(tag, o)
 
     @classmethod
     def _unregister(cls):  # pragma: nocover
