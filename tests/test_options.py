@@ -45,6 +45,36 @@ class TestCLIOptions(unittest.TestCase):
         self.assertFalse(f1, "env flag option not False when value OFF.")
         self.assertTrue(f2, "force not set, still True")
         self.assertTrue(f3, "env value not overridden by cli value")
+        del os.environ["BSB_FOOTGUN_MODE"]
+
+
+class TestEnvOptions(unittest.TestCase):
+    def setUp(self):
+        self.opt = options.get_options()
+
+    def test_env_get(self):
+        for opt in self.opt.values():
+            self.assertFalse(type(opt).env.is_set(opt), "No BSB env vars should be set.")
+
+    def test_env_set(self):
+        v_opt = self.opt["verbosity"]
+        v_opt.env = 4
+        self.assertEqual("4", os.environ["BSB_VERBOSITY"], "opt setting failed")
+        self.assertEqual(4, v_opt.env, "opt getting failed")
+        self.assertTrue(type(v_opt).env.is_set(v_opt), "should be set before del")
+        del v_opt.env
+        self.assertFalse(type(v_opt).env.is_set(v_opt), "should not be set after del")
+        self.assertNotIn("BSB_VERBOSITY", os.environ, "opt deleting failed")
+        # Double del shouldn't error
+        del v_opt.env
+
+    def test_parse(self):
+        self.assertIsNone(self.opt["force"].env, "unset env opt should be None")
+        self.opt["force"].env = True
+        self.assertEqual("ON", os.environ["BSB_FOOTGUN_MODE"], "env opt not rev parsed")
+        self.assertTrue(self.opt["force"].env is True, "env opt not parsed")
+        self.opt["force"].env = False
+        self.assertEqual("OFF", os.environ["BSB_FOOTGUN_MODE"], "env opt rev parsed bad")
 
 
 class TestProjectOptions(unittest.TestCase):
@@ -119,3 +149,29 @@ class TestProjectOptions(unittest.TestCase):
             toml.dump({}, f)
         options.store("config", "hello.json")
         self.assertEqual("hello.json", options.read("config"), "message")
+
+
+class TestScriptOptions(unittest.TestCase):
+    def setUp(self):
+        self.opt = options.get_options()
+
+    def test_script_get(self):
+        from bsb import __version__
+
+        ver = self.opt["version"].script
+        self.assertEqual(__version__, ver, "script get mismatch")
+        with self.assertRaises(ReadOnlyOptionError):
+            self.opt["version"].script = "5.0"
+        # Read one without bindings:
+        self.assertIsNone(self.opt["config"].script, "no bindings should be None")
+
+    def test_script_isset(self):
+        script = type(self.opt["version"]).script
+        self.opt["version"]
+        self.assertFalse(script.is_set(self.opt["version"]), "script def counts as isset")
+
+    def test_script_set(self):
+        self.opt["sudo"] = True
+        self.assertTrue(self.opt["sudo"], "script opt not set")
+        with self.assertRaises(OptionError):
+            self.opt["config"].script = True
