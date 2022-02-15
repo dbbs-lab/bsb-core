@@ -5,9 +5,7 @@ import math, sys, numpy as np, abc, functools, weakref
 from inspect import signature as _inspect_signature
 import builtins
 
-_any = any
 _reserved_keywords = ["_parent", "_key"]
-_list = list
 
 
 class TypeHandler(abc.ABC):
@@ -382,7 +380,7 @@ def voxel_size():
     return list_or_scalar(float(), 3)
 
 
-def list(type=str, size=None):
+def list(type=builtins.str, size=None):
     """
     Type validator for lists. Type casts each element to the given type and optionally
     validates the length of the list.
@@ -400,7 +398,7 @@ def list(type=str, size=None):
         # default to an empty list.
         if value is None:
             return None
-        v = _list(value)
+        v = builtins.list(value)
         try:
             for i, e in enumerate(v):
                 v[i] = type(e)
@@ -420,10 +418,7 @@ def list(type=str, size=None):
     return type_handler
 
 
-_dict = dict
-
-
-def dict(type=str):
+def dict(type=builtins.str):
     """
     Type validator for dicts. Type casts each element to the given type.
 
@@ -436,7 +431,7 @@ def dict(type=str):
     def type_handler(value):
         if value is None:
             return None
-        v = _dict(value)
+        v = builtins.dict(value)
         try:
             for k, e in v.items():
                 v[k] = type(e)
@@ -517,7 +512,7 @@ def constant_distr():
 
 def distribution():
     """
-    Type validator. Type casts a float to a constant distribution or a _dict to a
+    Type validator. Type casts a float to a constant distribution or a dict to a
     :class:`Distribution <.config.nodes.Distribution>` node.
 
     :returns: Type validator function
