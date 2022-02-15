@@ -78,8 +78,16 @@ def compile_class(cls):
         del cls_dict["__dict__"]
     if "__weakref__" in cls_dict:
         del cls_dict["__weakref__"]
-    cls = make_metaclass(cls)(cls.__name__, cls.__bases__, cls_dict)
-    return cls
+    ncls = make_metaclass(cls)(cls.__name__, cls.__bases__, cls_dict)
+    classmap = getattr(ncls, "_config_dynamic_classmap", None)
+    if classmap is not None:
+        # Replace the reference to the old class with the new class.
+        # The auto classmap entry is added in `__init_subclass__`, which happens before
+        # we replace the class.
+        for k, v in classmap.items():
+            if v is cls:
+                classmap[k] = ncls
+    return ncls
 
 
 def compile_isc(node_cls, dynamic_config):
