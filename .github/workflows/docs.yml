@@ -21,6 +21,6 @@ jobs:
       run: |
         python -m pip install pip
         pip install -r docs/requirements.txt
-        pip install sphinx==4.3.0
+        pip install sphinx==4.4.0
     - name: Fail documentations on warnings
       run: cd docs && sphinx-build -nW -b html . _build/html
