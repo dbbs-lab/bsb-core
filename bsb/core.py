@@ -555,7 +555,6 @@ class Scaffold:
             raise NodeNotFoundError(f"Cell type `{e.args[0]}` not found.")
 
     def _progress_terminal_loop(self, pool, debug=False):
-        import curses, time
 
         if debug:
 
@@ -566,6 +565,8 @@ class Scaffold:
                 time.sleep(1)
 
             return loop
+
+        import curses, time
 
         stdscr = curses.initscr()
         curses.noecho()
