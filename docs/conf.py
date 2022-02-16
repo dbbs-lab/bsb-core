@@ -33,7 +33,7 @@ extensions = [
     "sphinx.ext.viewcode",
     "sphinx.ext.intersphinx",
     "sphinxemoji.sphinxemoji",
-    "sphinx_tabs.tabs",
+    "sphinx_design",
 ]
 
 autodoc_mock_imports = [

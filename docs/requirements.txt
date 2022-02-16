@@ -5,5 +5,5 @@ rtree==0.9.7
 numpy==1.19.4
 pynrrd==0.4.2
 sphinxemoji==0.2.0
-sphinx-tabs==3.2.0
 furo==2022.2.14.1
+sphinx_design==0.0.13
