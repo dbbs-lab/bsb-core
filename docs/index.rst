@@ -57,8 +57,8 @@ The Brain Scaffold Builder
 .. toctree::
   :maxdepth: 2
   :caption: User Guides
-  
-  guides
+
+  guides/toc
 
 .. toctree::
   :maxdepth: 2
