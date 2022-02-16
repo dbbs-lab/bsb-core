@@ -23,7 +23,16 @@ class CLIContext(Context):
 
     def __str__(self):
         base = super().__str__()
+        if not hasattr(self, "arguments"):
+            return base[:-1] + " without CLI arguments>"
         return base[:-1] + f" {self.arguments}>"
+
+
+def reset_cli_context():
+    from .options import get_options
+
+    for opt in get_options().values():
+        del opt.cli
 
 
 def get_cli_context():

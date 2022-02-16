@@ -2,6 +2,11 @@
 This module contains the classes required to construct options.
 """
 import os
+import toml
+import pathlib
+import functools
+import argparse
+from .exceptions import OptionError
 
 
 class OptionDescriptor:
@@ -20,14 +25,20 @@ class OptionDescriptor:
     def __get__(self, instance, owner):
         if instance is None:
             return self
-        return getattr(instance, f"_{self.slug}_value", instance.get_default())
+        return getattr(instance, f"_bsbopt_{self.slug}_value", instance.get_default())
 
     def __set__(self, instance, value):
         set_value = getattr(instance, "setter", lambda x: x)(value)
-        setattr(instance, f"_{self.slug}_value", set_value)
+        setattr(instance, f"_bsbopt_{self.slug}_value", set_value)
+
+    def __delete__(self, instance):
+        try:
+            delattr(instance, f"_bsbopt_{self.slug}_value")
+        except AttributeError:
+            pass
 
     def is_set(self, instance):
-        return hasattr(instance, f"_{self.slug}_value")
+        return hasattr(instance, f"_bsbopt_{self.slug}_value")
 
 
 class CLIOptionDescriptor(OptionDescriptor, slug="cli"):
@@ -43,22 +54,58 @@ class EnvOptionDescriptor(OptionDescriptor, slug="env"):
     Descriptor that retrieves its value from the environment variables.
     """
 
+    def __init__(self, *args, flag=False):
+        super().__init__(*args)
+        self.flag = flag
+
     def __get__(self, instance, owner):
         if instance is None:
             return self
+        getter = getattr(instance, "getter", lambda x: x)
         # Iterate the env for all tags, if none are set this returns `None`
         for tag in self.tags:
             if tag in os.environ:
-                return os.environ[tag]
+                return self._parse(getter(os.environ[tag]))
+
+    def __set__(self, instance, value):
+        value = getattr(instance, "setter", lambda x: x)(value)
+        parsed = self._rev_parse(value)
+        for tag in self.tags:
+            os.environ[tag] = parsed
+
+    def __delete__(self, instance):
+        for tag in self.tags:
+            try:
+                del os.environ[tag]
+            except KeyError:
+                pass
 
     def is_set(self, instance):
         return any(tag in os.environ for tag in self.tags)
+
+    def _parse(self, value):
+        if self.flag:
+            if value.strip().upper() in ("ON", "TRUE", "1", "YES"):
+                return True
+            else:
+                return False
+        else:
+            return value
+
+    def _rev_parse(self, value):
+        if self.flag:
+            return "ON" if value else "OFF"
+        else:
+            return str(value)
 
 
 class ScriptOptionDescriptor(OptionDescriptor, slug="script"):
     """
     Descriptor that retrieves and sets its value from/to the :mod:`bsb.options` module.
     """
+
+    # This class uses `self.tags[0]`, because all tags are aliases of eachother in the
+    # options module.
 
     def __get__(self, instance, owner):
         if instance is None:
@@ -73,16 +120,79 @@ class ScriptOptionDescriptor(OptionDescriptor, slug="script"):
     def __set__(self, instance, value):
         if not self.tags:
             # This option has no options module binding
-            return None
+            raise OptionError(f"{instance.name} can't be set through `bsb.options`.")
         from .options import set_module_option
 
         set_value = getattr(instance, "setter", lambda x: x)(value)
         return set_module_option(self.tags[0], set_value)
 
+    def __delete__(self, instance):
+        from .options import reset_module_option
+
+        for tag in self.tags:
+            reset_module_option(tag)
+
     def is_set(self, instance):
         from .options import is_module_option_set
 
         return any(is_module_option_set(tag) for tag in self.tags)
+
+
+class ProjectOptionDescriptor(OptionDescriptor, slug="project"):
+    """
+    Descriptor that retrieves and stores values in the `pyproject.toml` file. Traverses
+    up the filesystem tree until one is found.
+    """
+
+    def __init__(self, *tags):
+        if len(tags) > 1:  # pragma: nocover
+            raise OptionError(f"Project option can have only 1 tag, got {tags}.")
+        super().__init__(*(tags[0].split(".") if tags else ()))
+
+    def __get__(self, instance, owner):
+        if instance is None:
+            return self
+        if self.tags:
+            _, proj = _pyproject_bsb()
+            for tag in self.tags[:-1]:
+                proj = proj.get(tag, None)
+                if proj is None:
+                    return None
+            return proj.get(self.tags[-1], None)
+
+    def __set__(self, instance, value):
+        if self.tags:
+            path, proj = _pyproject_bsb()
+            deeper = proj
+            for tag in self.tags[:-1]:
+                deeper = deeper.setdefault(tag, {})
+            deeper[self.tags[-1]] = value
+            _save_pyproject_bsb(proj)
+
+    def __delete__(self, instance):
+        if self.tags:
+            path, proj = _pyproject_bsb()
+            for tag in self.tags[:-1]:
+                proj = proj.get(tag, None)
+                if proj is None:
+                    return None
+            try:
+                del proj[self.tags[-1]]
+            except KeyError:
+                pass
+            else:
+                _save_pyproject_bsb(proj)
+
+    def is_set(self, instance):
+        if self.tags:
+            _, proj = _pyproject_bsb()
+            for tag in self.tags[:-1]:
+                proj = proj.get(tag, None)
+                if proj is None:
+                    return False
+            return self.tags[-1] in proj
+        else:
+            return False
 
 
 class BsbOption:
@@ -96,8 +206,9 @@ class BsbOption:
     def __init_subclass__(
         cls,
         name=None,
-        cli=(),
         env=(),
+        project=(),
+        cli=(),
         script=(),
         description=None,
         flag=False,
@@ -105,7 +216,6 @@ class BsbOption:
         list=False,
         readonly=False,
         action=False,
-        **kwargs,
     ):
         """
         Subclass hook that defines the characteristics of the subclassed option class.
@@ -132,9 +242,12 @@ class BsbOption:
         :param action: Indicates that the option should execute its ``action`` method.
         :type action: boolean
         """
+        if name is None:
+            raise OptionError("Options must be given a name in the class argument list.")
         cls.name = name
+        cls.env = EnvOptionDescriptor(*env, flag=flag)
+        cls.project = ProjectOptionDescriptor(*project)
         cls.cli = CLIOptionDescriptor(*cli)
-        cls.env = EnvOptionDescriptor(*env)
         cls.script = ScriptOptionDescriptor(*script)
         cls.description = description
         cls.is_flag = flag
@@ -144,17 +257,22 @@ class BsbOption:
         cls.use_action = action
         cls.positional = False
 
-    def get(self):
+    def get(self, prio=None):
         """
         Get the option's value. Cascades the script, cli, env & default descriptors together.
 
         :returns: option value
         """
+        if prio is not None:
+            return getattr(self, prio)
+
         cls = self.__class__
         if cls.script.is_set(self):
             return self.script
         if cls.cli.is_set(self):
             return self.cli
+        if cls.project.is_set(self):
+            return self.project
         if cls.env.is_set(self):
             return self.env
         return self.get_default()
@@ -185,6 +303,9 @@ class BsbOption:
         """
         Register this option into an ``argparse`` parser.
         """
+        if not self.get_cli_tags():
+            return
+
         kwargs = {}
         kwargs["help"] = self.description
         kwargs["dest"] = level * "_" + self.name
@@ -197,6 +318,7 @@ class BsbOption:
             args = self.get_cli_tags()
         if self.is_flag:
             kwargs["action"] += "_false" if self.inverted_flag else "_true"
+            kwargs["default"] = argparse.SUPPRESS
         if self.use_extend:
             kwargs["action"] = "extend"
             kwargs["nargs"] = "+"
@@ -214,16 +336,45 @@ class BsbOption:
         """
         from . import options
 
-        o = cls()
-        for tag in cls.script.tags:
-            options.register_module_option(tag, o)
+        opt = cls()
+        options.register_option(cls.name, opt)
+        return opt
 
-    @classmethod
-    def _unregister(cls):
+    def unregister(self):
         """
         Remove this option class from the :mod:`bsb.options` module, not part of the
         public API as removing options is undefined behavior but useful for testing.
         """
         from . import options
 
-        options._remove_tags(*cls.script.tags)
+        options.unregister_option(self)
+
+
+@functools.cache
+def _pyproject_content():
+    path = pathlib.Path.cwd()
+    while str(path) != path.root:
+        proj = path / "pyproject.toml"
+        if proj.exists():
+            with open(proj, "r") as f:
+                return proj.resolve(), toml.load(f)
+        path = path.parent
+    return None, {}  # pragma: nocover
+
+
+@functools.cache
+def _pyproject_bsb():
+    path, content = _pyproject_content()
+    return path, content.get("tools", {}).get("bsb", {})
+
+
+def _save_pyproject_bsb(project):
+    path, content = _pyproject_content()
+    if path is None:
+        raise OptionError(
+            "No 'pyproject.toml' in current dir or parents,"
+            + " can't set project settings."
+        )
+    content.setdefault("tools", {})["bsb"] = project
+    with open(path, "w") as f:
+        toml.dump(content, f)

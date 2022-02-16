@@ -4,4 +4,3 @@
 
    intro
    commands
-   options

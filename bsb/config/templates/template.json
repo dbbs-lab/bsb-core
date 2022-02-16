@@ -2,7 +2,7 @@
   "name": "Empty template",
   "storage": {
     "engine": "hdf5",
-    "root": "template.hdf5"
+    "root": "network.hdf5"
   },
   "network": {
     "x": 400.0,

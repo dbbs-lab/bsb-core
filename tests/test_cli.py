@@ -27,7 +27,7 @@ class TestCLI(unittest.TestCase):
         import os, bsb.options
         from bsb.option import BsbOption
 
-        class TestOption(BsbOption, env=("GRZLGRK",), script=("GRZLGRK",)):
+        class TestOption(BsbOption, name="_test_", env=("GRZLGRK",), script=("GRZLGRK",)):
             pass
 
         TestOption.register()
@@ -46,22 +46,23 @@ class TestCLI(unittest.TestCase):
         os.environ["GRZLGRK"] = "Hello"
         self.assertEqual(o.get(), "Bye")
         del os.environ["GRZLGRK"]
+        o.unregister()
 
 
 class TestOptions(unittest.TestCase):
     def test_get_cli_tags(self):
         from bsb.option import BsbOption
 
-        class t1(BsbOption, cli=("a",)):
+        class t1(BsbOption, name="t1", cli=("a",)):
             pass
 
-        class t2(BsbOption, cli=("a", "b")):
+        class t2(BsbOption, name="t2", cli=("a", "b")):
             pass
 
-        class t3(BsbOption, cli=("a", "ave")):
+        class t3(BsbOption, name="t3", cli=("a", "ave")):
             pass
 
-        class t4(BsbOption, cli=("cC")):
+        class t4(BsbOption, name="t4", cli=("cC")):
             pass
 
         self.assertEqual(["-a"], t1().get_cli_tags())
@@ -78,11 +79,11 @@ class TestOptions(unittest.TestCase):
         from bsb.option import BsbOption
 
         # Test that registering an option into the module works
-        class t1(BsbOption, script=("aaa",)):
+        class t1(BsbOption, name="testTTTT", script=("aaa",)):
             def get_default(self):
                 return 5
 
-        t1.register()
+        opt = t1.register()
         self.assertEqual(5, bsb.options.aaa)
-        t1._unregister()
+        opt.unregister()
         self.assertRaises(bsb.exceptions.OptionError, lambda: bsb.options.aaa)
