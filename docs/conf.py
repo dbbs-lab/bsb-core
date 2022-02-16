@@ -32,7 +32,6 @@ extensions = [
     "sphinx.ext.viewcode",
     "sphinx.ext.intersphinx",
     "sphinxemoji.sphinxemoji",
-    "furo",
     "sphinx_tabs.tabs",
 ]
 
