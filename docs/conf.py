@@ -1,7 +1,10 @@
-# Fetch the version
 import os
 
-bsb_init_file = os.path.join(os.path.dirname(__file__), "..", "bsb", "__init__.py")
+# Make the `bsb` package discoverable without having to install it
+bsb_folder = os.path.join(os.path.dirname(__file__), "..", "bsb")
+sys.path.insert(0, bsb_folder)
+# Fetch the `__version__`
+bsb_init_file = os.path.join(bsb_folder, "__init__.py")
 with open(bsb_init_file, "r") as f:
     for line in f:
         if "__version__ = " in line:
