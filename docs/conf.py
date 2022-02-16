@@ -31,8 +31,8 @@ extensions = [
     "sphinx.ext.ifconfig",
     "sphinx.ext.viewcode",
     "sphinx.ext.intersphinx",
-    "divio_docs_theme",
     "sphinxemoji.sphinxemoji",
+    "furo",
     "sphinx_tabs.tabs",
 ]
 
