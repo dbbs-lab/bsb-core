@@ -129,6 +129,8 @@ List of options
 
   * *project*: ``config``
 
+  * *env*: ``BSB_CONFIG_FILE``
+
 .. _project_settings:
 
 ``pyproject.toml`` structure
@@ -149,8 +151,8 @@ The BSB's project-wide settings are all stored in ``pyproject.toml`` under ``too
 Writing your own options
 ========================
 
-You can create your own options by defining a class that inherits from
-:class:`~.option.BsbOption`:
+You can create your own options as a :doc:`plugin </dev/plugins>` by defining a class that
+inherits from :class:`~.option.BsbOption`:
 
 .. code-block:: python
 
@@ -174,20 +176,25 @@ You can create your own options by defining a class that inherits from
       if namespace.verbosity >= 2:
         report(self.get(), level=1)
 
+  # Make `GreetingsOption` available as the default plugin object of this module.
   __plugin__ = GreetingsOption
 
-In setup.py (assuming the above module is importable as ``my_pkg.greetings``)::
+Plugins are installed by ``pip`` which takes its information from
+``setup.py``/``setup.cfg``, where you can specify an entry point::
 
   "entry_points": {
     "bsb.options" = ["greeting = my_pkg.greetings"]
   }
 
-After installing the setup with pip your option will be available::
+After installing the setup with ``pip`` your option will be available::
 
+  $> pip install -e .
   $> bsb
-  $> bsb -g
-  $> bsb -v 2 -g
+  $> bsb --greet
+  $> bsb -v 2 --greet
   Hello World! The weather today is: optimal modelling conditions.
   $> export BSB_GREETING="2 PIs walk into a conference..."
   $> bsb -v 2 --greet
   2 PIs walk into a conference...
+
+For more information on setting up plugins (even just locally) see :doc:`/dev/plugins`.
