@@ -25,11 +25,11 @@ class TestStorage(unittest.TestCase):
 class TestHDF5Storage(unittest.TestCase):
     _open_storages = []
 
-    @timeout(3, abort=True)
+    @timeout(10, abort=True)
     def setUp(self):
         MPI.COMM_WORLD.Barrier()
 
-    @timeout(3, abort=True)
+    @timeout(10, abort=True)
     def tearDown(self):
         MPI.COMM_WORLD.Barrier()
 
@@ -52,7 +52,7 @@ class TestHDF5Storage(unittest.TestCase):
         s = Storage("hdf5", rstr)
         return s
 
-    @timeout(3)
+    @timeout(10)
     def test_init(self):
         # Use the init function to instantiate a storage container to its initial
         # empty state. This test avoids the `Scaffold` object as instantiating it might
@@ -69,7 +69,7 @@ class TestHDF5Storage(unittest.TestCase):
                 # Test that the placement set is functional after init call
                 ps.append_data(Chunk((0, 0, 0), (100, 100, 100)), [0])
 
-    @timeout(3)
+    @timeout(10)
     def test_renew(self):
         # Use the renew mechanism to reinstantiate a storage container to its initial
         # empty state. This test avoids the `Scaffold` object as instantiating it might
@@ -98,7 +98,7 @@ class TestHDF5Storage(unittest.TestCase):
             "`storage.renew()` did not clear placement data.",
         )
 
-    @timeout(6)
+    @timeout(10)
     def test_move(self):
         s = self.random_storage()
         old_root = s._root
@@ -112,7 +112,7 @@ class TestHDF5Storage(unittest.TestCase):
         self.assertTrue(os.path.exists(s._root))
         MPI.COMM_WORLD.Barrier()
 
-    @timeout(3)
+    @timeout(10)
     def test_remove_create(self):
         s = self.random_storage()
         s.remove()
