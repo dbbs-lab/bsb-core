@@ -320,6 +320,7 @@ class Storage:
         """
         Initialize the storage to be ready for use by the specified scaffold.
         """
+        self.store_active_config(scaffold.configuration)
         for cell_type in scaffold.get_cell_types():
             self._PlacementSet.require(self._engine, cell_type)
 
