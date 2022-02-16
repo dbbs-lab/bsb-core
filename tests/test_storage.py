@@ -12,7 +12,7 @@ import mpi4py.MPI as MPI
 
 class _ScaffoldDummy:
     def __init__(self, cfg):
-        self.cfg = cfg
+        self.cfg = self.configuration = cfg
 
     def get_cell_types(self):
         return list(self.cfg.cell_types.values())
