@@ -3,6 +3,7 @@ from ...option import BsbOption
 from ...reporting import report
 from ... import config
 import pathlib
+import toml
 
 
 class ProjectNewCommand(BaseCommand, name="new"):
@@ -10,11 +11,9 @@ class ProjectNewCommand(BaseCommand, name="new"):
         return {}
 
     def add_parser_arguments(self, parser):
+        parser.add_argument("project_name", nargs="?", help="Project name", default="")
         parser.add_argument(
-            "project_name", nargs="?", help="Project name & root folder", default=""
-        )
-        parser.add_argument(
-            "path", nargs="?", default=".", help="Project name & root folder"
+            "path", nargs="?", default=".", help="Location of the project"
         )
 
     def handler(self, context):
@@ -31,13 +30,29 @@ class ProjectNewCommand(BaseCommand, name="new"):
                 f"Could not create '{root.absolute()}', directory exists.", level=0
             )
 
+        (root / name).mkdir()
         template = input("Config template [template.json]: ") or "template.json"
         config.copy_template(template, output=root / "network_configuration.json")
-
-        # # TODO: decide on "config", "build", "publish"
-        for d in (".bsb", name):
-            (root / d).mkdir()
-
+        with open(root / "pyproject.toml", "w") as f:
+            toml.dump(
+                {
+                    "tools": {
+                        "bsb": {
+                            "config": "network_configuration.json",
+                            "morpho": "morphologies.h5",
+                            "networks": {
+                                "config_link": [
+                                    "sys",
+                                    "network_configuration.json",
+                                    "always",
+                                ],
+                                "morpho_link": ["sys", "morphologies.h5", "changes"],
+                            },
+                        }
+                    }
+                },
+                f,
+            )
         with open(root / name / "__init__.py", "w") as f:
             f.write("\n")
         with open(root / name / "placement.py", "w") as f:
