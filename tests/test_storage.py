@@ -36,19 +36,13 @@ class TestHDF5Storage(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         super().tearDownClass()
-        for s in cls._open_storages:
-            os.remove(s)
-
-    def rstr(self):
-        rstr = "".join(random.choices(string.ascii_uppercase + string.digits, k=15))
-        rstr = MPI.COMM_WORLD.bcast(rstr, root=0)
-        return rstr
+        if not MPI.COMM_WORLD.Get_rank():
+            for s in cls._open_storages:
+                os.remove(s)
 
     def random_storage(self):
-        rstr = None
-        rstr = self.rstr()
-        if not MPI.COMM_WORLD.Get_rank():
-            self.__class__._open_storages.append(rstr)
+        rstr = f"random_storage_{len(self.__class__._open_storages)}.hdf5"
+        self.__class__._open_storages.append(rstr)
         s = Storage("hdf5", rstr)
         return s
 
@@ -103,7 +97,7 @@ class TestHDF5Storage(unittest.TestCase):
         s = self.random_storage()
         old_root = s._root
         self.assertTrue(os.path.exists(s._root))
-        s.move(self.rstr())
+        s.move(f"2x2{s._root}")
         self.assertFalse(os.path.exists(old_root))
         self.assertTrue(os.path.exists(s._root))
         self.assertTrue(s.exists())
