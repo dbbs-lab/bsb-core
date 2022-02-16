@@ -58,7 +58,8 @@ def node(node_cls, root=False, dynamic=False, pluggable=False):
     node_cls.__new__ = compile_new(
         node_cls, dynamic=dynamic, pluggable=pluggable, root=root
     )
-    node_cls.__init_subclass__ = compile_isc(node_cls, dynamic)
+    if dynamic:
+        node_cls.__init_subclass__ = compile_isc(node_cls, dynamic)
     make_get_node_name(node_cls, root=root)
     make_tree(node_cls)
     make_dictable(node_cls)
