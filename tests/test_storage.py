@@ -12,7 +12,7 @@ import mpi4py.MPI as MPI
 
 class _ScaffoldDummy:
     def __init__(self, cfg):
-        self.cfg = cfg
+        self.cfg = self.configuration = cfg
 
     def get_cell_types(self):
         return list(self.cfg.cell_types.values())
@@ -22,45 +22,45 @@ class TestStorage(unittest.TestCase):
     pass
 
 
+# WATCH OUT! These tests are super sensitive to race conditions! Especially through use
+# of the @on_master etc decorators in storage.py functions under MPI! We need a more
+# detailed MPI checkpointing system, instead of a Barrier system. Consecutive barriers
+# can cause slippage, where 1 node skips a Barrier, and it causes sync and race issues,
+# and eventually deadlock when it doesn't join the others for the last collective Barrier.
 class TestHDF5Storage(unittest.TestCase):
     _open_storages = []
 
-    @timeout(3, abort=True)
+    @timeout(10, abort=True)
     def setUp(self):
         MPI.COMM_WORLD.Barrier()
 
-    @timeout(3, abort=True)
+    @timeout(10, abort=True)
     def tearDown(self):
         MPI.COMM_WORLD.Barrier()
 
     @classmethod
     def tearDownClass(cls):
         super().tearDownClass()
-        for s in cls._open_storages:
-            os.remove(s)
-
-    def rstr(self):
-        rstr = "".join(random.choices(string.ascii_uppercase + string.digits, k=15))
-        rstr = MPI.COMM_WORLD.bcast(rstr, root=0)
-        return rstr
+        if not MPI.COMM_WORLD.Get_rank():
+            for s in cls._open_storages:
+                os.remove(s)
 
     def random_storage(self):
-        rstr = None
-        rstr = self.rstr()
-        if not MPI.COMM_WORLD.Get_rank():
-            self.__class__._open_storages.append(rstr)
+        rstr = f"random_storage_{len(self.__class__._open_storages)}.hdf5"
+        self.__class__._open_storages.append(rstr)
         s = Storage("hdf5", rstr)
         return s
 
-    @timeout(3)
+    @timeout(10)
     def test_init(self):
         # Use the init function to instantiate a storage container to its initial
         # empty state. This test avoids the `Scaffold` object as instantiating it might
         # create or remove data by relying on `renew` or `init` in its constructor.
         cfg = from_json(get_config("test_single"))
         s = self.random_storage()
-        self.assertTrue(os.path.exists(s._root))
         s.create()
+        self.assertTrue(os.path.exists(s._root))
+        self.assertTrue(s.exists())
         s.init(_ScaffoldDummy(cfg))
         # Test that `init` created the placement sets for each cell type
         for cell_type in cfg.cell_types.values():
@@ -69,7 +69,7 @@ class TestHDF5Storage(unittest.TestCase):
                 # Test that the placement set is functional after init call
                 ps.append_data(Chunk((0, 0, 0), (100, 100, 100)), [0])
 
-    @timeout(3)
+    @timeout(10)
     def test_renew(self):
         # Use the renew mechanism to reinstantiate a storage container to its initial
         # empty state. This test avoids the `Scaffold` object as instantiating it might
@@ -98,21 +98,21 @@ class TestHDF5Storage(unittest.TestCase):
             "`storage.renew()` did not clear placement data.",
         )
 
-    @timeout(6)
+    @timeout(10)
     def test_move(self):
         s = self.random_storage()
         old_root = s._root
+        s.create()
         self.assertTrue(os.path.exists(s._root))
-        s.move(self.rstr())
+        s.move(f"2x2{s._root}")
         self.assertFalse(os.path.exists(old_root))
         self.assertTrue(os.path.exists(s._root))
-        self.assertTrue(s.exists())
         s.move(old_root)
         self.assertTrue(os.path.exists(old_root))
         self.assertTrue(os.path.exists(s._root))
-        MPI.COMM_WORLD.Barrier()
+        self.assertTrue(s.exists())
 
-    @timeout(3)
+    @timeout(10)
     def test_remove_create(self):
         s = self.random_storage()
         s.remove()

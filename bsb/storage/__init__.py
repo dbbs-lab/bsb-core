@@ -199,7 +199,6 @@ class Storage:
     def format(self):
         return self._engine._format
 
-    @_on_master
     def exists(self):
         """
         Check whether the storage exists at the root.
@@ -320,6 +319,7 @@ class Storage:
         """
         Initialize the storage to be ready for use by the specified scaffold.
         """
+        self.store_active_config(scaffold.configuration, _bcast=False)
         for cell_type in scaffold.get_cell_types():
             self._PlacementSet.require(self._engine, cell_type)
 

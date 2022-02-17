@@ -44,6 +44,9 @@ _t(
             ),
             RedoError=_e(),
         ),
+        GatewayError=_e(
+            AllenApiError=_e(),
+        ),
         TopologyError=_e(
             UnmanagedPartitionError=_e(),
             LayoutError=_e(

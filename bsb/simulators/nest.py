@@ -322,7 +322,7 @@ class NestSimulation(Simulation):
         setattr(nest, _HOT_MODULE_ATTRIBUTE, set())
         return self._nest
 
-    def __init__(self):
+    def __init__(self, **kwargs):
         self.result = SimulationResult()
         self.is_prepared = False
         self.suffix = ""

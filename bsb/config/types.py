@@ -3,10 +3,9 @@ from ._hooks import overrides
 from ._make import _load_class
 import math, sys, numpy as np, abc, functools, weakref
 from inspect import signature as _inspect_signature
+import builtins
 
-_any = any
 _reserved_keywords = ["_parent", "_key"]
-_list = list
 
 
 class TypeHandler(abc.ABC):
@@ -110,7 +109,7 @@ def in_(container):
     :returns: Type validator function
     :rtype: Callable
     """
-    error_msg = "a value in: " + str(container)
+    error_msg = "a value in: " + builtins.str(container)
 
     def type_handler(value):
         if value in container:
@@ -143,11 +142,11 @@ def or_(*type_args):
                 v = t(value, _parent=_parent, _key=_key)
             except Exception as e:
                 type_error = (
-                    str(e.__class__.__module__)
+                    builtins.str(e.__class__.__module__)
                     + "."
-                    + str(e.__class__.__name__)
+                    + builtins.str(e.__class__.__name__)
                     + ": "
-                    + str(e)
+                    + builtins.str(e)
                 )
                 type_errors[t.__name__] = type_error
             else:
@@ -189,7 +188,35 @@ def class_(module_path=None):
     return type_handler
 
 
-_int = int
+def str(strip=False, lower=False, upper=False):
+    """
+    Type validator. Attempts to cast the value to an str, optionally with some sanitation.
+
+    :param strip: Trim whitespaces
+    :type strip: bool
+    :param lower: Convert value to lowercase
+    :type lower: bool
+    :param upper: Convert value to uppercase
+    :type upper: bool
+    :returns: Type validator function
+    :raises: TypeError when value can't be cast.
+    :rtype: Callable
+    """
+    handler_name = "str"
+    # Compile a custom function to sanitize the string according to args
+    fstr = "def f(s): return str(s)"
+    for add, mod in zip((strip, lower, upper), ("strip", "lower", "upper")):
+        if add:
+            fstr += f".{mod}()"
+    go_fish = builtins.dict()
+    exec(compile(fstr, "__", "exec"), go_fish)
+    f = go_fish["f"]
+
+    def type_handler(value):
+        return f(value)
+
+    type_handler.__name__ = handler_name
+    return type_handler
 
 
 def int(min=None, max=None):
@@ -215,7 +242,7 @@ def int(min=None, max=None):
 
     def type_handler(value):
         try:
-            v = _int(value)
+            v = builtins.int(value)
             if min is not None and min > v or max is not None and max < v:
                 raise Exception()
             return v
@@ -288,8 +315,8 @@ def number(min=None, max=None):
 
     def type_handler(value):
         try:
-            if isinstance(value, _int):
-                v = _int(value)
+            if isinstance(value, builtins.int):
+                v = builtins.int(value)
                 if min is not None and min > v or max is not None and max < v:
                     raise Exception()
             else:
@@ -353,7 +380,7 @@ def voxel_size():
     return list_or_scalar(float(), 3)
 
 
-def list(type=str, size=None):
+def list(type=builtins.str, size=None):
     """
     Type validator for lists. Type casts each element to the given type and optionally
     validates the length of the list.
@@ -371,7 +398,7 @@ def list(type=str, size=None):
         # default to an empty list.
         if value is None:
             return None
-        v = _list(value)
+        v = builtins.list(value)
         try:
             for i, e in enumerate(v):
                 v[i] = type(e)
@@ -391,10 +418,7 @@ def list(type=str, size=None):
     return type_handler
 
 
-_dict = dict
-
-
-def dict(type=str):
+def dict(type=builtins.str):
     """
     Type validator for dicts. Type casts each element to the given type.
 
@@ -407,7 +431,7 @@ def dict(type=str):
     def type_handler(value):
         if value is None:
             return None
-        v = _dict(value)
+        v = builtins.dict(value)
         try:
             for k, e in v.items():
                 v[k] = type(e)
@@ -488,7 +512,7 @@ def constant_distr():
 
 def distribution():
     """
-    Type validator. Type casts a float to a constant distribution or a _dict to a
+    Type validator. Type casts a float to a constant distribution or a dict to a
     :class:`Distribution <.config.nodes.Distribution>` node.
 
     :returns: Type validator function
@@ -512,9 +536,9 @@ class evaluation(TypeHandler):
         self._references = {}
 
     def __call__(self, value):
-        cfg = _dict(value)
-        statement = str(cfg.get("statement", "None"))
-        locals = _dict(cfg.get("variables", {}))
+        cfg = builtins.dict(value)
+        statement = builtins.str(cfg.get("statement", "None"))
+        locals = builtins.dict(cfg.get("variables", {}))
         globals = {"np": np}
         res = eval(statement, globals, locals)
         self._references[id(res)] = value
@@ -578,3 +602,38 @@ def in_classmap():
 
     type_handler.__name__ = "a classmap value"
     return type_handler
+
+
+def mut_excl(*mutuals, required=True, max=1):
+    """
+    Requirement handler for mutually exclusive attributes.
+
+    :param mutuals: The keys of the mutually exclusive attributes.
+    :type mutuals: str
+    :param required: Whether at least one of the keys is required
+    :type required: bool
+    :param max: The maximum amount of keys that may occur together.
+    :type max: int
+    :returns: Requirement function
+    :rtype: Callable
+    """
+    listed = ", ".join(f"`{m}`" for m in mutuals[:-1])
+    if len(mutuals) > 1:
+        listed += f" {{}} `{mutuals[-1]}`"
+
+    def requirement(section):
+        bools = [m in section for m in mutuals]
+        given = sum(bools)
+        if given > max:
+            if max > 1:
+                err_msg = f"Maximum {max} of {listed} may be specified. {given} given."
+            else:
+                err_msg = f"The {listed} attributes are mutually exclusive."
+            err_msg = err_msg.format("and")
+            raise RequirementError(err_msg)
+        if not given and required:
+            err_msg = f"A {listed} attribute is required.".format("or")
+            raise RequirementError(err_msg)
+        return False
+
+    return requirement

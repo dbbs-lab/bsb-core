@@ -225,7 +225,7 @@ class Scaffold:
         c_strats = self.get_connectivity(skip=skip, only=only)
         todo_list_str = ", ".join(s.name for s in itertools.chain(p_strats, c_strats))
         report(f"Compiling the following strategies: {todo_list_str}", level=2)
-        if sum((clear, redo, append)) > 1:
+        if sum((bool(clear), bool(redo), bool(append))) > 1:
             raise InputError("`clear`, `redo` and `append` are mutually exclusive.")
         if existed:
             if not (clear or append or redo):
@@ -555,7 +555,6 @@ class Scaffold:
             raise NodeNotFoundError(f"Cell type `{e.args[0]}` not found.")
 
     def _progress_terminal_loop(self, pool, debug=False):
-        import curses, time
 
         if debug:
 
@@ -566,6 +565,8 @@ class Scaffold:
                 time.sleep(1)
 
             return loop
+
+        import curses, time
 
         stdscr = curses.initscr()
         curses.noecho()

@@ -90,7 +90,7 @@ def has_hook(instance, hook):
     return hasattr(instance, hook) or hasattr(instance, _dunder(hook))
 
 
-def overrides(cls, hook):
+def overrides(cls, hook, mro=False):
     """
     Returns ``True`` if a class has implemented a method or ``False`` if it has inherited
     it.
@@ -100,7 +100,14 @@ def overrides(cls, hook):
     :param hook: Name of the hook to look for.
     :type hook: str
     """
-    return hook in vars(cls)
+    if not mro:
+        return hook in vars(cls)
+    else:
+
+        class NotDefined:
+            pass
+
+        return getattr(cls, hook, NotDefined) is not getattr(object, hook, NotDefined)
 
 
 def _hook(cls, hook, before):

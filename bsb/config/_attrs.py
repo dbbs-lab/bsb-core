@@ -3,17 +3,25 @@
 """
 
 from ._make import (
-    compile_init,
+    compile_class,
+    compile_postnew,
     compile_new,
     compile_isc,
     make_get_node_name,
     make_dictable,
     make_tree,
-    wrap_root_init,
+    wrap_root_postnew,
 )
 from .types import TypeHandler, _wrap_reserved
 from ..exceptions import *
 import abc
+import builtins
+
+
+# Watch out, lots of builtins have another meaning in this module.
+_list = list
+_dict = dict
+_type = type
 
 
 def root(root_cls):
@@ -21,41 +29,37 @@ def root(root_cls):
     Decorate a class as a configuration root node.
     """
     root_cls.attr_name = root_cls.node_name = r"{root}"
-    node(root_cls, root=True)
-
-    return root_cls
+    return node(root_cls, root=True)
 
 
 def node(node_cls, root=False, dynamic=False, pluggable=False):
     """
     Decorate a class as a configuration node.
     """
-    attrs = {
-        k: v
-        for k, v in node_cls.__dict__.items()
-        if isinstance(v, ConfigurationAttribute)
-    }
-    # Give the attributes the name they were assigned in the class
-    for name, a in attrs.items():
-        a.attr_name = name
-
-    if hasattr(node_cls, "_config_attrs"):
-        # If _config_attrs is already present on the class it's possible that we inherited
-        # it from our parent. If so we shouldn't update the parent's dictionary but copy
-        # it and update it with ours.
-        n_attrs = node_cls._config_attrs.copy()
-        n_attrs.update(attrs)
-        node_cls._config_attrs = n_attrs
-    else:
-        node_cls._config_attrs = attrs
-
-    node_cls.__init__ = compile_init(node_cls, root=root)
+    # Recreate the class to set its metaclass a posteriori
+    node_cls = compile_class(node_cls)
+    node_cls._config_unset = []
+    # Inherit the parent's attributes, if any exist on the class already
+    attrs = getattr(node_cls, "_config_attrs", {}).copy()
+    for k, v in _dict(node_cls.__dict__).items():
+        # Add our attributes
+        if isinstance(v, ConfigurationAttribute):
+            if v.unset:
+                attrs.pop(k, None)
+                delattr(node_cls, k)
+                # Keep track of what this class wants to unset, in case of MRO traversal.
+                node_cls._config_unset.append(k)
+            else:
+                attrs[k] = v
+    node_cls._config_attrs = attrs
+    node_cls.__post_new__ = compile_postnew(node_cls, root=root)
     if root:
-        node_cls.__init__ = wrap_root_init(node_cls.__init__)
+        node_cls.__post_new__ = wrap_root_postnew(node_cls.__post_new__)
     node_cls.__new__ = compile_new(
         node_cls, dynamic=dynamic, pluggable=pluggable, root=root
     )
-    node_cls.__init_subclass__ = compile_isc(node_cls, dynamic)
+    if dynamic:
+        node_cls.__init_subclass__ = compile_isc(node_cls, dynamic)
     make_get_node_name(node_cls, root=root)
     make_tree(node_cls)
     make_dictable(node_cls)
@@ -231,9 +235,20 @@ def slot(**kwargs):
     return ConfigurationAttributeSlot(**kwargs)
 
 
-_list = list
-_dict = dict
-_type = type
+def property(val=None, /, **kwargs):
+    """
+    Provide a value for a parent class' attribute. Can be a value or a callable, a
+    property object will be created from it either way.
+    """
+
+    def decorator(val):
+        prop = val if callable(val) else lambda s: val
+        return ConfigurationProperty(prop, **kwargs)
+
+    if val is None:
+        return decorator
+    else:
+        return decorator(val)
 
 
 def list(**kwargs):
@@ -262,12 +277,22 @@ def catch_all(**kwargs):
     return ConfigurationAttributeCatcher(**kwargs)
 
 
+def unset():
+    """
+    Override and unset an inherited configuration attribute.
+    """
+    return ConfigurationAttribute(unset=True)
+
+
 def _setattr(instance, name, value):
     instance.__dict__["_" + name] = value
 
 
 def _getattr(instance, name):
-    return instance.__dict__["_" + name]
+    try:
+        return instance.__dict__["_" + name]
+    except KeyError as e:
+        instance.__getattribute__(e.args[0])
 
 
 def _hasattr(instance, name):
@@ -287,6 +312,7 @@ class ConfigurationAttribute:
         call_default=None,
         required=False,
         key=False,
+        unset=False,
     ):
         if not callable(required):
             self.required = lambda s: required
@@ -296,6 +322,10 @@ class ConfigurationAttribute:
         self.default = default
         self.call_default = call_default
         self.type = self._get_type(type)
+        self.unset = unset
+
+    def __set_name__(self, owner, name):
+        self.attr_name = name
 
     def __get__(self, instance, owner):
         if instance is None:
@@ -374,7 +404,7 @@ class cfglist(_list):
     def get_node_name(self):
         return self._config_parent.get_node_name() + "." + self._config_attr_name
 
-    @property
+    @builtins.property
     def _config_attr_name(self):
         return self._config_attr.attr_name
 
@@ -434,7 +464,7 @@ class cfgdict(_dict):
                 self.get_node_name() + " object has no attribute '{}'".format(name)
             )
 
-    @property
+    @builtins.property
     def _config_attr_name(self):
         return self._config_attr.attr_name
 
@@ -686,6 +716,30 @@ class ConfigurationAttributeSlot(ConfigurationAttribute):
                 instance.__class__._bsb_entry_point.dist,
             )
         )
+
+
+class ConfigurationProperty(ConfigurationAttribute):
+    def __init__(self, fget, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fget = fget
+        self.fset = None
+
+    def setter(self, f):
+        self.fset = f
+        return self
+
+    def __get__(self, instance, owner):
+        if instance is None:
+            return owner
+        return self.fget(instance)
+
+    def __set__(self, instance, value):
+        try:
+            f = self.fset
+        except:
+            raise AttributeError("Can't set attribute") from None
+        else:
+            return f(instance, value)
 
 
 def _collect_kv(n, d, k, v):

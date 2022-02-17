@@ -12,8 +12,8 @@ import os
 import glob
 import itertools
 from shutil import copy2 as copy_file
+import builtins
 
-_list = list
 from ._attrs import (
     attr,
     list,
@@ -24,6 +24,8 @@ from ._attrs import (
     ref,
     reflist,
     slot,
+    property,
+    unset,
     pluggable,
     catch_all,
     ConfigurationAttribute,
@@ -50,7 +52,9 @@ class ConfigurationModule:
     ref = staticmethod(ref)
     reflist = staticmethod(reflist)
     slot = staticmethod(slot)
+    property = staticmethod(property)
     catch_all = staticmethod(catch_all)
+    unset = staticmethod(unset)
 
     node = staticmethod(node)
     root = staticmethod(root)
@@ -73,7 +77,7 @@ class ConfigurationModule:
 
     # Load the Configuration class on demand, not on import, to avoid circular
     # dependencies.
-    @property
+    @builtins.property
     def Configuration(self):
         if not hasattr(self, "_cfg_cls"):
             from ._config import Configuration
@@ -82,7 +86,7 @@ class ConfigurationModule:
             self._cfg_cls.__module__ = __name__
         return self._cfg_cls
 
-    @property
+    @builtins.property
     def ConfigurationAttribute(self):
         return ConfigurationAttribute
 
@@ -106,15 +110,15 @@ class ConfigurationModule:
         else:
             env_paths = env_paths.split(":")
         plugin_paths = plugins.discover("config.templates")
-        return _list(itertools.chain((os.getcwd(),), env_paths, *plugin_paths.values()))
+        return [*itertools.chain((os.getcwd(),), env_paths, *plugin_paths.values())]
 
     def copy_template(self, template, output="network_configuration.json", path=None):
-        path = _list(
-            map(
+        path = [
+            *map(
                 os.path.abspath,
                 itertools.chain(self.get_config_path(), path or ()),
             )
-        )
+        ]
         for d in path:
             if files := glob.glob(os.path.join(d, template)):
                 break
@@ -124,7 +128,7 @@ class ConfigurationModule:
             )
         copy_file(files[0], output)
 
-    __all__ = _list(vars().keys() - {"__init__", "__qualname__", "__module__"})
+    __all__ = [*(vars().keys() - {"__init__", "__qualname__", "__module__"})]
 
 
 def _parser_method_docs(parser):

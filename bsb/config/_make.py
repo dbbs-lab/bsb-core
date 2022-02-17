@@ -5,6 +5,89 @@ import inspect, re, sys, itertools, warnings, errr
 from functools import wraps
 from ._hooks import overrides
 import importlib
+import inspect
+
+
+def make_metaclass(cls):
+    # We make a `NodeMeta` class for each decorated node class, in compliance with any
+    # metaclasses they might already have (to prevent metaclass confusion).
+    # The purpose of the metaclass is to rewrite `__new__` and `__init__` arguments,
+    # and to always call `__new__` and `__init__` in the same manner.
+    # The metaclass makes it so that there are 3 overloaded constructor forms:
+    #
+    # MyNode({ <config dict values> })
+    # MyNode(config="dict", values="here")
+    # ParentNode(me=MyNode(...))
+    #
+    # The third makes it that type handling and other types of casting opt out early
+    # and keep the object reference that the user gives them
+    class ConfigArgRewrite(type):
+        def __call__(meta_subject, *args, _parent=None, _key=None, **kwargs):
+            # Rewrite the arguments
+            primer = args[0] if args else None
+            if isinstance(primer, meta_subject):
+                _set_pk(primer, _parent, _key)
+                return primer
+            elif isinstance(primer, dict):
+                args = args[1:]
+                primed = primer.copy()
+                primed.update(kwargs)
+                kwargs = primed
+            # Call the base class's new with internal arguments
+            instance = meta_subject.__new__(
+                meta_subject, _parent=_parent, _key=_key, **kwargs
+            )
+            # Call the end user's __init__ with the rewritten arguments, if one is defined
+            if overrides(meta_subject, "__init__", mro=True):
+                sig = inspect.signature(instance.__init__)
+                try:
+                    # Check whether the arguments match the signature. We use `sig.bind`
+                    # so that the function isn't actually called, as this could mask
+                    # `TypeErrors` that occur inside the function.
+                    sig.bind(*args, **kwargs)
+                except TypeError as e:
+                    # Since the user might not know where all these additional arguments
+                    # are coming from, inform them that config nodes get passed their
+                    # config attrs, and how to correctly override __init__.
+                    Param = inspect.Parameter
+                    help_params = {"self": Param("self", Param.POSITIONAL_OR_KEYWORD)}
+                    help_params.update(sig._parameters)
+                    help_params["kwargs"] = Param("kwargs", Param.VAR_KEYWORD)
+                    sig._parameters = help_params
+                    raise TypeError(
+                        f"`{instance.__init__.__module__}.__init__` {e}."
+                        + " When overriding `__init__` on config nodes, do not define"
+                        + " any positional arguments, and catch any additional"
+                        + " configuration attributes that are passed as keyword arguments"
+                        + f": e.g. 'def __init__{sig}'"
+                    ) from None
+                else:
+                    instance.__init__(*args, **kwargs)
+            return instance
+
+    # Avoid metaclass conflicts by prepending our rewrite class to existing metaclass MRO
+    class NodeMeta(ConfigArgRewrite, *cls.__class__.__mro__):
+        pass
+
+    return NodeMeta
+
+
+def compile_class(cls):
+    cls_dict = dict(cls.__dict__)
+    if "__dict__" in cls_dict:
+        del cls_dict["__dict__"]
+    if "__weakref__" in cls_dict:
+        del cls_dict["__weakref__"]
+    ncls = make_metaclass(cls)(cls.__name__, cls.__bases__, cls_dict)
+    classmap = getattr(ncls, "_config_dynamic_classmap", None)
+    if classmap is not None:
+        # Replace the reference to the old class with the new class.
+        # The auto classmap entry is added in `__init_subclass__`, which happens before
+        # we replace the class.
+        for k, v in classmap.items():
+            if v is cls:
+                classmap[k] = ncls
+    return ncls
 
 
 def compile_isc(node_cls, dynamic_config):
@@ -42,21 +125,11 @@ def compile_new(node_cls, dynamic=False, pluggable=False, root=False):
     else:
         class_determinant = _node_determinant
 
-    def __new__(_cls, *args, _parent=None, _key=None, **kwargs):
-        args = list(args)
-        primer = args[0] if args else None
-        if isinstance(primer, dict):
-            args = args[1:]
-            (primed := primer.copy()).update(kwargs)
-            kwargs = primed
+    def __new__(_cls, _parent=None, _key=None, **kwargs):
         ncls = class_determinant(_cls, kwargs)
-        if isinstance(primer, ncls):
-            _set_pk(primer, _parent, _key)
-            return primer
         instance = object.__new__(ncls)
         _set_pk(instance, _parent, _key)
-        if instance.__class__ is not node_cls:
-            instance.__init__(*args, **kwargs)
+        instance.__post_new__(**kwargs)
         return instance
 
     return __new__
@@ -76,24 +149,8 @@ def _set_pk(obj, parent, key):
             _setattr(obj, a.attr_name, key)
 
 
-def compile_init(cls, root=False):
-    if overrides(cls, "__init__"):
-        init = cls.__init__
-    else:
-
-        def dud(*args, **kwargs):
-            pass
-
-        init = dud
-
-    def __init__(self, *args, _parent=None, _key=None, **kwargs):
-        primer = args[0] if args else None
-        if isinstance(primer, self.__class__):
-            return
-        elif isinstance(primer, dict):
-            args = args[1:]
-            (primed := primer.copy()).update(kwargs)
-            kwargs = primed
+def compile_postnew(cls, root=False):
+    def __post_new__(self, _parent=None, _key=None, **kwargs):
         attrs = _get_class_config_attrs(self.__class__)
         keys = list(kwargs.keys())
         self._config_attr_order = list(kwargs.keys())
@@ -109,7 +166,7 @@ def compile_init(cls, root=False):
                     raise RequirementError(f"Missing required attribute '{name}'")
             except RequirementError as e:
                 if name == getattr(self.__class__, "_config_dynamic_attr", None):
-                    # If the dynamic attribute errors in `__init__` the constructor of a
+                    # If the dynamic attribute errors in `__post_new__` the constructor of a
                     # non dynamic child class was called, and the dynamic attribute is no
                     # longer required, so silence the error and continue.
                     pass
@@ -124,7 +181,8 @@ def compile_init(cls, root=False):
                 setattr(self, name, self._config_key)
                 attr.flag_pristine(self)
             elif (value := values[name]) is None:
-                setattr(self, name, attr.get_default())
+                if _is_settable_attr(attr):
+                    setattr(self, name, attr.get_default())
                 attr.flag_pristine(self)
             else:
                 setattr(self, name, value)
@@ -139,22 +197,24 @@ def compile_init(cls, root=False):
                 warn(warning, ConfigurationWarning)
                 setattr(self, key, value)
 
-        init(self, *args, **leftovers)
-
-    return __init__
+    return __post_new__
 
 
-def wrap_root_init(init):
-    def __init__(self, *args, _parent=None, _key=None, **kwargs):
+def wrap_root_postnew(post_new):
+    def __post_new__(self, *args, _parent=None, _key=None, **kwargs):
         with warnings.catch_warnings(record=True) as log:
             try:
-                init(self, *args, _parent=None, _key=None, **kwargs)
+                post_new(self, *args, _parent=None, _key=None, **kwargs)
             except (CastError, RequirementError) as e:
                 _bubble_up_exc(e)
             _resolve_references(self)
         _bubble_up_warnings(log)
 
-    return __init__
+    return __post_new__
+
+
+def _is_settable_attr(attr):
+    return not hasattr(attr, "fget") or attr.fset
 
 
 def _bubble_up_exc(exc):
@@ -179,6 +239,8 @@ def _get_class_config_attrs(cls):
     for p_cls in reversed(cls.__mro__):
         if hasattr(p_cls, "_config_attrs"):
             attrs.update(p_cls._config_attrs)
+        for unset in getattr(p_cls, "_config_unset", []):
+            attrs.pop(unset, None)
     return attrs
 
 
