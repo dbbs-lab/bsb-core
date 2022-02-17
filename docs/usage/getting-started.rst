@@ -2,76 +2,102 @@
 Getting Started
 ###############
 
-This guide aims to get your first model running with the bare minimum steps. If you'd like
-to familiarize yourself with the core concepts and get a more top level understanding
-first, check out the :doc:`./top-level-guide` before you continue.
+Follow the :doc:`/usage/installation`:
+
+* Set up a new environment
+* Install the software into the environment
+
+.. note::
+
+	This guide aims to get your first model running with the bare minimum steps. If you'd
+	like to familiarize yourself with the core concepts and get a more top level
+	understanding first, check out the :doc:`./top-level-guide` before you continue.
 
 There are 2 ways of building models using the Brain Scaffold Builder (BSB), the first is
 through **configuration**, the second is **scripting**. The 2 methods complement each
 other so that you can load the general model from a configuration file and then layer on
-more complex steps under your full control in a Python script.
+more complex steps under your full control in a Python script. Be sure to take a quick
+look at each code tab to see the equivalent forms of configuration coding!
 
-=================
-Creating a config
-=================
+.. rubric:: Start a new project
 
-Let's create a bare configuration file called ``network_configuration.json``:
-
-.. code-block:: json
-
-  {
-    "storage": {
-      "engine": "hdf5",
-      "root": "my_network.hdf5"
-    },
-    "network": {
-      "x": 50,
-      "y": 200,
-      "z": 50
-    },
-    "regions": {
-
-    },
-    "partitions": {
-
-    },
-    "cell_types": {
-
-    },
-    "placement": {
-
-    },
-    "connectivity": {
-
-    },
-    "simulations": {
-
-    }
-  }
-
-This configuration file declares that we'll be creating a model in an HDF5
-format as a file called ``my_network.hdf5`` and that the estimated scale of the
-network is a square column of 50 by 200 by 50 micrometer.
-
-We can already use the CLI tool or a script to create an empty network from this
-configuration:
-
-.. code-block:: python
-
-  from bsb.core import Scaffold
-  from bsb.config import from_json
-
-  config = from_json("config.json")
-  scaffold = Scaffold(config)
-  # Compile the empty network.
-  scaffold.compile()
-  # Your mostly empty HDF5 file `my_network.hdf5` should appear
-
-Or to achieve the same thing from the CLI:
+Use the command below to create a new project directory and some starter files:
 
 .. code-block:: bash
 
-  scaffold -c=config.json compile
+  bsb new my_first_model
+
+You'll be asked some questions; enter a value, or just press Enter to select the default
+value. The proposed ``starting_example.json`` template is a good first configuration file.
+
+The project now contains a couple of important files:
+
+* A configuration file, your components are declared and parametrized here.
+* A ``pyproject.toml`` file, your project settings are declared here.
+* A ``placement.py`` and ``connectome.py`` file, to put your code in.
+
+Take a look at ``starting_example.json``; it contains a nondescript ``brain_region``, a
+``base_layer``, a ``base_type`` and an ``example_placement``. These minimal components are
+enough to *compile* your first network. You can do this from the CLI or Python:
+
+.. tab-set-code::
+
+  .. code-block:: bash
+
+    bsb compile --verbosity 3 --plot
+
+  .. code-block:: python
+
+    from bsb.core import Scaffold
+    from bsb.config import from_json
+    from bsb.plotting import plot_network
+    import bsb.options
+
+    bsb.options.verbosity = 3
+    config = from_json("starting_example.json")
+    scaffold = Scaffold(config)
+    scaffold.compile()
+    plot_network(scaffold)
+
+The ``verbosity`` helps you follow along what instructions the framework is executing and
+``plot`` should.. open a plot |:slight_smile:|.
+
+.. rubric:: What next?
+
+.. grid:: 1 1 2 2
+    :gutter: 1
+
+    .. grid-item-card:: :octicon:`report;1em;sd-text-info` Continue getting started
+      :link: https://example.com
+
+      Follow the rest of the guide to get to know some basics about defining your
+      configurables such as ``CellTypes``, ``Placement`` blocks, ``Connectivity`` blocks
+      and ``Simulations``.
+
+    .. grid-item-card::
+      :link: https://example.com
+
+      Learn about configurables
+
+    .. grid-item-card::
+      :link: https://example.com
+
+      Learn about writing components
+
+    .. grid-item-card::
+      :link: https://example.com
+
+      View examples
+
+    .. grid-item-card::
+      :link: https://example.com
+
+      Become a developer
+
+    .. grid-item-card::
+      :link: https://example.com
+
+      Sponsor the project
 
 Defining a volume
 =================
@@ -453,7 +479,6 @@ the BSB CLI command, or the Python script command:
   mpirun -n 4 bsb simulate my_network.hdf5 your_simulation
 
 
-=======================
 Extending the framework
 =======================
 
