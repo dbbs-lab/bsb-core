@@ -22,6 +22,11 @@ class TestStorage(unittest.TestCase):
     pass
 
 
+# WATCH OUT! These tests are super sensitive to race conditions! Especially through use
+# of the @on_master etc decorators in storage.py functions under MPI! We need a more
+# detailed MPI checkpointing system, instead of a Barrier system. Consecutive barriers
+# can cause slippage, where 1 node skips a Barrier, and it causes sync and race issues,
+# and eventually deadlock when it doesn't join the others for the last collective Barrier.
 class TestHDF5Storage(unittest.TestCase):
     _open_storages = []
 
@@ -53,8 +58,9 @@ class TestHDF5Storage(unittest.TestCase):
         # create or remove data by relying on `renew` or `init` in its constructor.
         cfg = from_json(get_config("test_single"))
         s = self.random_storage()
-        self.assertTrue(os.path.exists(s._root))
         s.create()
+        self.assertTrue(os.path.exists(s._root))
+        self.assertTrue(s.exists())
         s.init(_ScaffoldDummy(cfg))
         # Test that `init` created the placement sets for each cell type
         for cell_type in cfg.cell_types.values():
@@ -96,15 +102,15 @@ class TestHDF5Storage(unittest.TestCase):
     def test_move(self):
         s = self.random_storage()
         old_root = s._root
+        s.create()
         self.assertTrue(os.path.exists(s._root))
         s.move(f"2x2{s._root}")
         self.assertFalse(os.path.exists(old_root))
         self.assertTrue(os.path.exists(s._root))
-        self.assertTrue(s.exists())
         s.move(old_root)
         self.assertTrue(os.path.exists(old_root))
         self.assertTrue(os.path.exists(s._root))
-        MPI.COMM_WORLD.Barrier()
+        self.assertTrue(s.exists())
 
     @timeout(10)
     def test_remove_create(self):
