@@ -1,3 +1,5 @@
+.. _get-started:
+
 ###############
 Getting Started
 ###############
@@ -62,47 +64,6 @@ enough to *compile* your first network. You can do this from the CLI or Python:
 
 The ``verbosity`` helps you follow along what instructions the framework is executing and
 ``plot`` should.. open a plot |:slight_smile:|.
-
-.. rubric:: What next?
-
-.. grid:: 1 1 2 2
-    :gutter: 1
-
-    .. grid-item-card:: :octicon:`flame;1em;sd-text-warning` Continue getting started
-	    :link: getting-started-configurables
-	    :link-type: ref
-
-	    Follow the rest of the guide for basics on as ``CellTypes``, ``Placement`` blocks,
-	    ``Connectivity`` blocks and ``Simulations``.
-
-    .. grid-item-card:: :octicon:`tools;1em;sd-text-warning` Components
-	    :link: components
-	    :link-type: ref
-
-	    Learn how to write your own components to e.g. place or connect cells.
-
-    .. grid-item-card:: :octicon:`database;1em;sd-text-warning` Simulations
-	    :link: simulations
-	    :link-type: ref
-
-	    Learn how to simulate your network models
-
-    .. grid-item-card:: :octicon:`device-camera-video;1em;sd-text-warning` Examples
-	    :link: examples
-	    :link-type: ref
-
-	    View examples explained step by step
-
-    .. grid-item-card:: :octicon:`package-dependents;1em;sd-text-warning` Plugins
-	    :link: plugins
-	    :link-type: ref
-
-	    Learn to package your code for others to use!
-
-    .. grid-item-card:: :octicon:`octoface;1em;sd-text-warning` Contributing
-	    :link: https://github.com/dbbs-lab/bsb
-
-	    Help out the project by contributing code.
 
 .. _getting-started-configurables:
 
@@ -188,9 +149,10 @@ partitions. You can use :class:`PlacementStrategies
 <.placement.strategy.PlacementStrategy>` provided out of the box by the BSB or your own
 component by setting the :guilabel:`cls`. The
 :class:`~bsb.placement.particle.ParticlePlacement` considers the cells as somas and
-bumps them around as repelling particles until there is no overlap between the somas.
+bumps them around as repelling particles until there is no overlap between the somas. The
+data is stored in :class:`PlacementSets <.storage.interfaces.PlacementSet>` per cell type.
 
-At this point you can take another look at your network:
+Take another look at your network:
 
 .. code-block:: bash
 
@@ -207,16 +169,64 @@ Connectivity
 .. code-block:: json
 
   {
-    "connectivity": {
+		"connectivity": {
       "A_to_B": {
         "cls": "bsb.connectivity.AllToAll",
-        "from_type": "cell_type_A",
-        "to_type": "cell_type_B"
+        "pre": {
+          "cell_types": ["cell_type_A"]
+        },
+        "post": {
+            "cell_types": ["cell_type_B"]
+        }
       }
     }
   }
 
-<More conn info>
+The ``connectivity`` blocks specify connections between systems of cell types. They can
+create connections between single or multiple pre and postsynaptic cell types, and can
+produce one or many :class:`ConnectivitySets <.storage.interfaces.ConnectivitySet>`.
 
-At this point compiling the network generates cell positions and connections and
-we can move to the :ref:`simulations` stage.
+Regenerate the network once more, now it will also contain your connections! With your
+cells and connections in place, you're ready to move to the :ref:`simulations` stage.
+
+
+.. rubric:: What next?
+
+.. grid:: 1 1 2 2
+    :gutter: 1
+
+    .. grid-item-card:: :octicon:`flame;1em;sd-text-warning` Continue getting started
+	    :link: all-guides
+	    :link-type: ref
+
+	    Follow the rest of the guides for basics on as ``CellTypes``, ``Placement`` blocks,
+	    ``Connectivity`` blocks and ``Simulations``.
+
+    .. grid-item-card:: :octicon:`tools;1em;sd-text-warning` Components
+	    :link: components
+	    :link-type: ref
+
+	    Learn how to write your own components to e.g. place or connect cells.
+
+    .. grid-item-card:: :octicon:`database;1em;sd-text-warning` Simulations
+	    :link: simulations
+	    :link-type: ref
+
+	    Learn how to simulate your network models
+
+    .. grid-item-card:: :octicon:`device-camera-video;1em;sd-text-warning` Examples
+	    :link: examples
+	    :link-type: ref
+
+	    View examples explained step by step
+
+    .. grid-item-card:: :octicon:`package-dependents;1em;sd-text-warning` Plugins
+	    :link: plugins
+	    :link-type: ref
+
+	    Learn to package your code for others to use!
+
+    .. grid-item-card:: :octicon:`octoface;1em;sd-text-warning` Contributing
+	    :link: https://github.com/dbbs-lab/bsb
+
+	    Help out the project by contributing code.

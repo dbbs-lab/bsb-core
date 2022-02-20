@@ -1,3 +1,5 @@
+.. _all-guides:
+
 ======
 Guides
 ======

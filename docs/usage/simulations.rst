@@ -209,7 +209,7 @@ either the ``targetting`` (docs incomplete) or the ``labelling`` system (docs
 incomplete) can help you target exactly the right cells.
 
 Running a simulation
-====================
+--------------------
 
 Simulations can be run through the CLI tool, or for more control through the ``bsb``
 library. When using the CLI, the framework sets up a "hands off" simulation:
