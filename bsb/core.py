@@ -93,7 +93,6 @@ class Scaffold:
         self.storage = storage
         self.storage.init(self)
         self.configuration._bootstrap(self)
-        self.storage.store_active_config(config)
 
     @property
     def morphologies(self):
