@@ -6,7 +6,7 @@ import itertools
 from warnings import warn as std_warn
 from .placement import PlacementStrategy
 from .connectivity import ConnectionStrategy
-from .storage import Chunk, Storage
+from .storage import Chunk, Storage, _util as _storutil
 from .exceptions import *
 from .reporting import report, warn, has_mpi_installed, get_report_file
 from .config._config import Configuration
@@ -238,6 +238,7 @@ class Scaffold:
         """
         Run reconstruction steps in the scaffold sequence to obtain a full network.
         """
+        self._load_config_link()
         existed = self.storage.preexisted
         p_strats = self.get_placement(skip=skip, only=only)
         c_strats = self.get_connectivity(skip=skip, only=only)
@@ -687,6 +688,27 @@ class Scaffold:
             ct.clear_connections()
 
         return p_contrib, c_contrib
+
+    def _load_config_link(self):
+        import bsb.option
+        import bsb.config
+
+        path, content = bsb.option._pyproject_bsb()
+        links = content.get("links", {})
+        conflink = links.get("config", None)
+        if conflink:
+            path = path.parent if path else os.getcwd()
+            config_link = _storutil.link(self.files, path, *conflink)
+            if config_link.exists():
+                report(f"Pulling configuration from linked {config_link}.", level=4)
+                stream = config_link.get()
+                self.configuration = cfg = bsb.config.from_file(stream)
+                self.storage.store_active_config(cfg)
+            else:
+                warn(
+                    f"Missing configuration link {config_link}."
+                    + " Update or remove the link from your project settings."
+                )
 
 
 class ReportListener:
