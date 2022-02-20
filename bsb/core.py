@@ -54,16 +54,7 @@ class Scaffold:
         self._bootstrap(config, storage)
 
         if clear:
-            print("clearing")
             self.clear()
-
-        # # Debug statistics, unused.
-        # self.statistics = Statistics(self)
-        # self._nextId = 0
-        # # Use the configuration to initialise all components such as cells and layers
-        # # to prepare for the network architecture compilation.
-        # self._intialise_components()
-        # self._intialise_simulators()
 
     def _initialise_MPI(self):
         # Delegate initialization of MPI to the reporting module. Which is weird, bu
@@ -521,24 +512,6 @@ class Scaffold:
             finder = lambda l: l == pattern
         return list(filter(finder, self.storage._Label.list()))
 
-    def get_cell_total(self):
-        """
-        Return the total amount of cells and entities placed.
-        """
-        return sum(len(ct.get_placement_set()) for ct in self.get_cell_types())
-
-    def for_blender(self):
-        """
-        Binds all blender functions onto the scaffold object.
-        """
-        from .blender import _mixin
-
-        for f_name, f in _mixin.__dict__.items():
-            if callable(f) and not f_name.startswith("_"):
-                self.__dict__[f_name] = f.__get__(self)
-
-        return self
-
     def merge(self, other, label=None):
         raise NotImplementedError("Revisit: merge PS & CT, done?")
 
@@ -703,15 +676,3 @@ class ReportListener:
             + str(progress.time),
             token="simulation_progress",
         )
-
-
-def register_cell_targetting(name, f):
-    from .simulation.targetting import TargetsNeurons
-
-    setattr(TargetsNeurons, f"_targets_{name}", f)
-
-
-def register_section_targetting(name, f):
-    from .simulation.targetting import TargetsSections
-
-    setattr(TargetsSections, f"_section_target_{name}", f)
