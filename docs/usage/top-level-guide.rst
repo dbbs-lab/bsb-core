@@ -31,7 +31,7 @@ with :meth:`scaffold.get_connectivity_set <.core.Scaffold.get_placement_set>` et
 The configuration object contains a structured tree of configurable objects, that in
 totality describe your network model. You can either fill out configuration file to be
 parsed, or write the objects yourself in Python. There are several parts of a
-configuration to be filled out, take a look at `config`_ to find out the details.
+configuration to be filled out, take a look at `config`_.
 
 The storage object provides access to an underlying engine that performs read and write
 operations in a certain data format. You can use the storage object to manipulate the data
@@ -63,3 +63,14 @@ add on every piece you need after validating the last!
 
 Configuration
 =============
+
+.. figure:: /images/configuration.png
+  :figwidth: 90%
+  :figclass: only-light
+
+.. figure:: /images/configuration_dark.png
+  :figwidth: 90%
+  :figclass: only-dark
+
+Configuration objects are trees with the above blocks defined (dashed = optional) and
+can be loaded from various formats, JSON by default, or created from code.
