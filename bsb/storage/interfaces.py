@@ -95,6 +95,20 @@ class FileStore(Interface, engine_key="files"):
         pass
 
     @abc.abstractmethod
+    def stream(self, id, binary=False):
+        """
+        Stream the content of an object in the file store.
+
+        :param id: id of the content to be streamed.
+        :type id: str
+        :param binary: Whether to return file in text or bytes mode.
+        :type binary: bool
+        :returns: A readable file-like object of the content.
+        :raises FileNotFoundError: The given id doesn't exist in the file store.
+        """
+        pass
+
+    @abc.abstractmethod
     def remove(self, id):
         """
         Remove the content of an object in the file store.

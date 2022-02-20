@@ -2,8 +2,9 @@ from ...interfaces import FileStore as IFileStore
 from .resource import Resource
 from .... import __version__
 from ....exceptions import *
-import json
 from uuid import uuid4
+import json
+import io
 
 _root = "files"
 
@@ -23,6 +24,13 @@ class FileStore(Resource, IFileStore):
             with self._engine._handle("r") as root:
                 ds = root[f"{self._path}/{id}"]
                 return ds[()].decode("utf-8"), dict(ds.attrs)
+
+    def stream(self, id, binary=False):
+        content = self.load(id)
+        if not binary:
+            return io.TextIOWrapper(content)
+        else:
+            return io.BytesIO(content)
 
     def remove(self, id):
         with self._engine._write():
