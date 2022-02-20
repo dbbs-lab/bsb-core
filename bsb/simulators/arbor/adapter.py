@@ -391,7 +391,6 @@ class ArborAdapter(SimulatorAdapter):
         self.result = SimulationResult()
 
     def prepare(self):
-        print("inprep", flush=True)
         context = self.get_context()
         try:
             self.scaffold.assert_continuity()
@@ -402,58 +401,56 @@ class ArborAdapter(SimulatorAdapter):
         if self.profiling and arbor.config()["profiling"]:
             report("enabling profiler", level=2)
             arbor.profiler_initialize(context)
-        print("initres", flush=True)
         self.init_result()
         self._lookup = QuickLookup(self)
         report("preparing simulation", level=1)
         report("MPI processes:", context.ranks, level=2)
         report("Threads per process:", context.threads, level=2)
+        s = time.time()
         recipe = self.get_recipe()
+        report(f"Recipe construction took {time.time() - s:.2f}s on node {self.get_rank()}", level=2)
         # Gap junctions are required for domain decomposition
+        t = time.time()
         self._cache_gap_junctions()
+        report(f"Gap junctions took {time.time() - t:.2f}s on node {self.get_rank()}", level=2)
+        t = time.time()
         self.domain = arbor.partition_load_balance(recipe, context)
         self.gids = set(it.chain.from_iterable(g.gids for g in self.domain.groups))
+        report(f"Load balancing took {time.time() - t:.2f}s on node {self.get_rank()}", level=2)
         # Cache uses the domain decomposition to cache info per gid on this node. The
         # recipe functions use the cache, but luckily aren't called until
         # `arbor.simulation` and `simulation.run`.
+        t = time.time()
         self._connections_on = {gid: ReceiverCollection() for gid in self.gids}
         self._connections_from = {gid: [] for gid in self.gids}
         self._index_relays()
         self._cache_connections()
+        report(f"Connections took {time.time() - t:.2f}s on node {self.get_rank()}", level=2)
         self.prepare_devices()
         self._cache_devices()
+        t = time.time()
         simulation = arbor.simulation(recipe, self.domain, context)
+        report(f"Simulation construction took {time.time() - t:.2f}s on node {self.get_rank()}", level=2)
+        t = time.time()
         self.prepare_samples(simulation)
-        report("prepared simulation", level=1)
+        report(f"Sampling prep took {time.time() - t:.2f}s on node {self.get_rank()}", level=2)
+        report(f"Prepared simulation in {time.time() - s:.2f}s on node {self.get_rank()}", level=1)
         return simulation
 
     def get_context(self):
-        print("mpicomm?", flush=True)
-        # mpi = arbor.mpi_comm()
-        print("mpicomm!", flush=True)
         if self.gpu:
-            print("gpu?", self.threads, flush=True)
             alloc = arbor.proc_allocation(self.threads, gpu_id=0)
-            print("gpu!", flush=True)
         else:
-            print("threads?", flush=True)
             alloc = arbor.proc_allocation(self.threads)
-            print("threads!", flush=True)
         try:
-            print("mkctx?", alloc, mpi, flush=True)
             context = arbor.context(alloc, mpi)
-            print("mkctx!", flush=True)
         except TypeError:
-            print("using mpi obj", flush=True)
             s = mpi.Get_size()
             if s > 1:
                 warn(
                     f"Arbor does not seem to be built with MPI support, running duplicate simulations on {s} nodes."
                 )
-            print("nompialloc?", flush=True)
             context = arbor.context(alloc)
-            print("nompialloc!", flush=True)
-        print("returning")
         return context
 
     def prepare_samples(self, sim):
@@ -481,20 +478,21 @@ class ArborAdapter(SimulatorAdapter):
         timestamp = self.broadcast(timestamp)
         result_path = "results_" + self.name + "_" + timestamp + ".hdf5"
         rank = self.get_rank()
+        t = time.time()
         for node in range(self.get_size()):
             self.barrier()
             if node == rank:
                 report("Node", rank, "is writing", level=2, all_nodes=True)
                 with h5py.File(result_path, "a") as f:
                     if rank == 0:
-                        spikes = simulation.spikes()
-                        spikes = np.column_stack(
-                            (
-                                np.fromiter((l[0][0] for l in spikes), dtype=int),
-                                np.fromiter((l[1] for l in spikes), dtype=int),
-                            )
-                        )
+                        s = time.time()
+                        spikes = np.array([[l[0][0], l[1]] for l in simulation.spikes()])
+                        spikes = np.unique(spikes, axis=0)
+                        spikes = np.where(np.isnan(spikes), 0, spikes)
+                        report(f"Spike processing took {time.time() - s:.2f}s on node {self.get_rank()}", level=2)
+                        s = time.time()
                         f.create_dataset("all_spikes_dump", data=spikes)
+                        report(f"Spike writing took {time.time() - s:.2f}s on node {self.get_rank()}", level=2)
                     f.attrs["configuration_string"] = self.scaffold.configuration._raw
                     for path, data, meta in self.result.safe_collect():
                         try:
@@ -522,6 +520,7 @@ class ArborAdapter(SimulatorAdapter):
                                     + f"\n\n{traceback.format_exc()}"
                                 )
             self.barrier()
+        report(f"Output collection took {time.time() - t:.2f}s on node {self.get_rank()}", level=2)
         return result_path
 
     def get_recipe(self):
