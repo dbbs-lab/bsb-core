@@ -116,10 +116,7 @@ class TargetsNeurons:
             else:
                 n = total
             n = max(0, min(n, total))
-            print("tpre", targets)
-            targets.extend(random.sample(list(labelled), n))
-            print("tpost", targets)
-            print("labels?", list(labelled))
+            targets.extend(random.sample(labelled.ravel().tolist(), n))
         return targets
 
     def get_targets(self):
