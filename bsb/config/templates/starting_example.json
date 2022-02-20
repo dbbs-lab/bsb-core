@@ -1,5 +1,5 @@
 {
-  "name": "Empty template",
+  "name": "Starting example",
   "storage": {
     "engine": "hdf5",
     "root": "network.hdf5"
@@ -33,7 +33,7 @@
     }
   },
   "placement": {
-    "base_type_placement": {
+    "example_placement": {
       "cls": "bsb.placement.ParticlePlacement",
       "cell_types": ["base_type"],
       "partitions": ["base_layer"]

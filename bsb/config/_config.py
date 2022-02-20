@@ -28,7 +28,6 @@ class Configuration:
     """
 
     name = attr()
-    components = attr(type=builtins.dict)
     storage = attr(type=StorageNode, required=True)
     network = attr(type=NetworkNode, required=True)
     regions = dict(type=Region)

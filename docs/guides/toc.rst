@@ -1,3 +1,5 @@
+.. _all-guides:
+
 ======
 Guides
 ======
@@ -7,6 +9,7 @@ Guides
 
   /usage/options
   cell-type
+  components
   connectivity
   simulation
   placement-strategies
