@@ -35,9 +35,9 @@ value. The proposed ``starting_example.json`` template is a good first configura
 
 The project now contains a couple of important files:
 
-* A configuration file, your components are declared and parametrized here.
-* A ``pyproject.toml`` file, your project settings are declared here.
-* A ``placement.py`` and ``connectome.py`` file, to put your code in.
+* A configuration file: your components are declared and parametrized here.
+* A ``pyproject.toml`` file: your project settings are declared here.
+* A ``placement.py`` and ``connectome.py`` file to put your code in.
 
 Take a look at ``starting_example.json``; it contains a nondescript ``brain_region``, a
 ``base_layer``, a ``base_type`` and an ``example_placement``. These minimal components are
