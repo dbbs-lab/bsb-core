@@ -55,14 +55,6 @@ class Configuration:
         return conf
 
     def _bootstrap(self, scaffold):
-        # Transfer config to the scaffold object
-        for attr_name in self._config_attrs:
-            if attr_name == "storage":
-                # At this point the storage has already been instantiated from the config
-                # node and added to the scaffold so we should not overwrite its `storage`
-                # attribute with the _config node_ of itself.
-                continue
-            setattr(scaffold, attr_name, getattr(self, attr_name))
         # Initialise the topology from the defined regions
         regions = builtins.list(self.regions.values())
         scaffold.topology = topology = create_topology(regions)

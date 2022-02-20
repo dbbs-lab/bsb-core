@@ -13,6 +13,30 @@ from .config._config import Configuration
 from ._pool import create_job_pool
 
 
+_cfg_props = (
+    "network",
+    "regions",
+    "partitions",
+    "cell_types",
+    "placement",
+    "after_placement",
+    "connectivity",
+    "after_connectivity",
+    "simulations",
+)
+
+
+def _config_property(name):
+    def fget(self):
+        return self.configuration[name]
+
+    def fset(self, value):
+        self.configuration[name] = value
+
+    prop = property(fget)
+    return prop.setter(fset)
+
+
 def from_hdf5(file):
     """
     Generate a :class:`.core.Scaffold` from an HDF5 file.
@@ -93,6 +117,10 @@ class Scaffold:
         self.storage = storage
         self.storage.init(self)
         self.configuration._bootstrap(self)
+
+    storage_cfg = _config_property("storage")
+    for attr in _cfg_props:
+        vars()[attr] = _config_property(attr)
 
     @property
     def morphologies(self):
