@@ -30,6 +30,8 @@ _module_magic = globals().copy()
 import sys, types
 from .exceptions import OptionError, ReadOnlyOptionError
 from .plugins import discover
+from . import option as _bsboptmod
+from .reporting import report
 
 
 _options = {}
@@ -285,16 +287,23 @@ def store(tag, value):
     get_project_option(tag).project = value
 
 
-def read(tag):
+def read(tag=None):
     """
-    Read an option value from the project settings.
+    Read an option value from the project settings. Returns all project settings if tag is
+    omitted.
 
     :param tag: Dot-separated path of the project option
     :type tag: str
     :returns: Value for the project option
     :rtype: Any
     """
-    return get_project_option(tag).get(prio="project")
+    if tag is None:
+
+        path, content = _bsboptmod._pyproject_bsb()
+        report(f"Reading project settings from '{path}'", level=4)
+        return content
+    else:
+        return get_project_option(tag).get(prio="project")
 
 
 def get(tag, prio=None):
