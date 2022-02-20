@@ -7,6 +7,7 @@ Guides
 
   /usage/options
   cell-type
+  components
   connectivity
   simulation
   placement-strategies

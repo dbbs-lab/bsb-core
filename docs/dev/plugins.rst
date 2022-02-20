@@ -1,3 +1,5 @@
+.. _plugins:
+
 #######
 Plugins
 #######
@@ -5,9 +7,7 @@ Plugins
 The BSB is extensively extendible. While most smaller things such as a new placement or
 connectivity strategy can be used simply by importing or dynamic configuration, larger
 components such as new storage engines, configuration parsers or simulation backends are
-added into the BSB through its plugin system. Some types of plugins are also rather small
-but require integration outside of a python context such as CLI commands or Blender
-animations.
+added into the BSB through its plugin system.
 
 =================
 Creating a plugin

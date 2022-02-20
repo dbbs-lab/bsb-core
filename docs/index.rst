@@ -14,6 +14,7 @@ The Brain Scaffold Builder
    usage/top-level-guide
    usage/getting-started
    usage/cli
+   usage/simulations
 
 .. toctree::
    :maxdepth: 2
@@ -59,6 +60,12 @@ The Brain Scaffold Builder
   :caption: User Guides
 
   guides/toc
+
+.. toctree::
+  :maxdepth: 2
+  :caption: Examples
+
+  examples/toc
 
 .. toctree::
   :maxdepth: 2

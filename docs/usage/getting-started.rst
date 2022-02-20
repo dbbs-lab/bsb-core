@@ -19,7 +19,8 @@ other so that you can load the general model from a configuration file and then 
 more complex steps under your full control in a Python script. Be sure to take a quick
 look at each code tab to see the equivalent forms of configuration coding!
 
-.. rubric:: Start a new project
+Create a project
+================
 
 Use the command below to create a new project directory and some starter files:
 
@@ -67,73 +68,88 @@ The ``verbosity`` helps you follow along what instructions the framework is exec
 .. grid:: 1 1 2 2
     :gutter: 1
 
-    .. grid-item-card:: :octicon:`report;1em;sd-text-info` Continue getting started
-      :link: https://example.com
+    .. grid-item-card:: :octicon:`flame;1em;sd-text-warning` Continue getting started
+	    :link: getting-started-configurables
+	    :link-type: ref
 
-      Follow the rest of the guide to get to know some basics about defining your
-      configurables such as ``CellTypes``, ``Placement`` blocks, ``Connectivity`` blocks
-      and ``Simulations``.
+	    Follow the rest of the guide for basics on as ``CellTypes``, ``Placement`` blocks,
+	    ``Connectivity`` blocks and ``Simulations``.
 
-    .. grid-item-card::
-      :link: https://example.com
+    .. grid-item-card:: :octicon:`tools;1em;sd-text-warning` Components
+	    :link: components
+	    :link-type: ref
 
-      Learn about configurables
+	    Learn how to write your own components to e.g. place or connect cells.
 
-    .. grid-item-card::
-      :link: https://example.com
+    .. grid-item-card:: :octicon:`database;1em;sd-text-warning` Simulations
+	    :link: simulations
+	    :link-type: ref
 
-      Learn about writing components
+	    Learn how to simulate your network models
 
-    .. grid-item-card::
-      :link: https://example.com
+    .. grid-item-card:: :octicon:`device-camera-video;1em;sd-text-warning` Examples
+	    :link: examples
+	    :link-type: ref
 
-      View examples
+	    View examples explained step by step
 
-    .. grid-item-card::
-      :link: https://example.com
+    .. grid-item-card:: :octicon:`package-dependents;1em;sd-text-warning` Plugins
+	    :link: plugins
+	    :link-type: ref
 
-      Become a developer
+	    Learn to package your code for others to use!
 
-    .. grid-item-card::
-      :link: https://example.com
+    .. grid-item-card:: :octicon:`octoface;1em;sd-text-warning` Contributing
+	    :link: https://github.com/dbbs-lab/bsb
 
-      Sponsor the project
+	    Help out the project by contributing code.
 
-Defining a volume
-=================
+.. _getting-started-configurables:
 
-In order to generate output with actual cell positions and connection we have to
-define regions, what partitions they are made of, which cell populations exist,
-how to place them and how to connect them.
+Define starter components
+=========================
 
-Let's begin by adding a ``cortex`` region, with a ``base_layer``:
+Topology
+--------
+
+Your network model needs a description of its shape, which is called the topology of the
+network. The topology exists of 2 types of components: :class:`Regions
+<.topology.region.Region>` and :class:`Partitions <.topology.partition.Partition>`.
+Regions combine multiple partitions and/or regions together, in a hierarchy, all the way
+up to a single topmost region, while partitions are exact pieces of volume that can be
+filled with cells.
+
+To get started, we'll add a ``cortex`` region, and populate it with a ``base_layer``:
 
 .. code-block:: json
 
   {
     "regions": {
       "cortex": {
-        "origin": [0.0, 0.0, 0.0]
+        "origin": [0.0, 0.0, 0.0],
+				"partitions": ["base_layer"]
       }
     },
     "partitions": {
       "base_layer": {
-        "thickness": 600,
-        "region": "cortex",
-        "z_index": 0
+				"type": "layer",
+        "thickness": 100
       }
     }
   }
 
-The default behavior of a region is to take on the shape of the network and to
-arrange its partitions within this volume. This configuration will result in a
-single 50x200x50 partition. For more information on how to create more
-complicated network topologies see the :doc:`/topology/intro`.
+The ``cortex`` does not specify a region :guilabel:`type`, so it is a group. The
+:guilabel:`type` of ``base_layer`` is ``layer``, they specify their size in 1 dimension,
+and fill up the space in the other dimensions. See :doc:`/topology/intro` for more
+explanation on topology components.
 
-Defining cell types and placement
-=================================
+Cell types
+----------
 
-Next we can start defining cell types and how to place them in said partition:
+The :class:`~.objects.cell_type.CellType` is a definition of a cell population. During
+placement 3D positions, optionally rotations and morphologies or other properties will be
+created for them. In the simplest case you define a soma :guilabel:`radius` and
+:guilabel:`density` or fixed :guilabel:`count`:
 
 .. code-block:: json
 
@@ -142,39 +158,51 @@ Next we can start defining cell types and how to place them in said partition:
       "cell_type_A": {
         "spatial": {
           "radius": 7,
-          "count": 10
+					"density": 1e-3
         }
       },
       "cell_type_B": {
         "spatial": {
-          "radius": 2.5,
-          "density": 1e-3
+          "radius": 7,
+					"count": 10
         }
       }
-    },
-    "placement": {
-      "cls": "bsb.placement.ParticlePlacement",
-      "cell_types": ["cell_type_A", "cell_type_B"],
-      "partitions": ["base_layer"]
     }
   }
 
-Cell types define how to represent cells in space (as points, morphologies, ROIs, ...).
-The ``placement`` nodes can then use this information to place cell type(s) into
-partition(s) using a :class:`~bsb.placement.strategy.PlacementStrategy` class, either one
-provided out of the box by the BSB or your own (see :doc:`/guides/placement-strategies`).
-The :class:`~bsb.placement.particle.ParticlePlacement` just considers the cells as somas
-and bumps them around as repelling particles until there is no overlap between the somas.
+Placement
+---------
 
-At this point we can repeat the CLI command with the plotting flag ``-p`` to
-look at the result:
+.. code-block:: json
+
+	{
+		"placement": {
+			"cls": "bsb.placement.ParticlePlacement",
+			"cell_types": ["cell_type_A", "cell_type_B"],
+			"partitions": ["base_layer"]
+		}
+	}
+
+The ``placement`` blocks use the cell type indications to place cell types into
+partitions. You can use :class:`PlacementStrategies
+<.placement.strategy.PlacementStrategy>` provided out of the box by the BSB or your own
+component by setting the :guilabel:`cls`. The
+:class:`~bsb.placement.particle.ParticlePlacement` considers the cells as somas and
+bumps them around as repelling particles until there is no overlap between the somas.
+
+At this point you can take another look at your network:
 
 .. code-block:: bash
 
-	bsb compile -c=config.json -p
+	bsb compile -v 3 -p
 
-Defining connection types
-=========================
+.. note::
+
+	We're using the short forms ``-v`` and ``-p`` of the CLI options ``--verbosity`` and
+	``--plot``, respectively. You can use ``bsb --help`` to inspect the CLI options.
+
+Connectivity
+------------
 
 .. code-block:: json
 
@@ -191,356 +219,4 @@ Defining connection types
 <More conn info>
 
 At this point compiling the network generates cell positions and connections and
-we can move to the simulation stage.
-
-Defining simulations
-====================
-
-.. code-block:: json
-
-  {
-    "simulations": {
-      "nrn_example": {
-        "simulator": "neuron",
-        "temperature": 32,
-        "resolution": 0.1,
-        "duration": 1000,
-        "cell_models": {
-
-        },
-        "connection_models": {
-
-        },
-        "devices": {
-
-        }
-      },
-      "nest_example": {
-        "simulator": "nest",
-        "default_neuron_model": "iaf_cond_alpha",
-        "default_synapse_model": "static_synapse",
-        "duration": 1000.0,
-        "modules": ["my_extension_module"],
-        "cell_models": {
-
-        }
-      }
-    }
-  }
-
-The definition of simulations begins with chosing a simulator, either ``nest``,
-``neuron`` or ``arbor``. Each simulator has their adapter and each adapter its
-own requirements, see :doc:`/simulation/adapters`. All of them share the
-commonality that they configure ``cell_models``, ``connection_models`` and
-``devices``.
-
-Defining cell models
---------------------
-
-A cell model is used to describe a member of a cell type during a simulation.
-
-NEURON
-~~~~~~
-
-A cell model is described by loading external ``arborize.CellModel`` classes:
-
-.. code-block:: json
-
-  {
-    "cell_models": {
-      "cell_type_A": {
-        "model": "dbbs_models.GranuleCell",
-        "record_soma": true,
-        "record_spikes": true
-      },
-      "cell_type_B": {
-        "model": "dbbs_models.PurkinjeCell",
-        "record_soma": true,
-        "record_spikes": true
-      }
-    }
-  }
-
-This example dictates that during simulation setup, any member of
-``cell_type_A`` should be created by importing and using
-``dbbs_models.GranuleCell``. Documentation incomplete, see ``arborize`` docs ad
-interim.
-
-NEST
-~~~~
-
-In NEST the cell models need to correspond to the available models in NEST and
-parameters can be given:
-
-.. code-block:: json
-
-  {
-    "cell_models": {
-      "cell_type_A": {
-        "neuron_model": "iaf_cond_alpha",
-        "parameters": {
-          "t_ref": 1.5,
-          "C_m": 7.0,
-          "V_th": -41.0,
-          "V_reset": -70.0,
-          "E_L": -62.0,
-          "I_e": 0.0,
-          "tau_syn_ex": 5.8,
-          "tau_syn_in": 13.61,
-          "g_L": 0.29
-        }
-      },
-      "cell_type_B": {
-        "neuron_model": "iaf_cond_alpha",
-        "parameters": {
-          "t_ref": 1.5,
-          "C_m": 7.0,
-          "V_th": -41.0,
-          "V_reset": -70.0,
-          "E_L": -62.0,
-          "I_e": 0.0,
-          "tau_syn_ex": 5.8,
-          "tau_syn_in": 13.61,
-          "g_L": 0.29
-        }
-      }
-    }
-  }
-
-Defining connection models
---------------------------
-
-Connection models represent the connections between cells during a simulation.
-
-NEURON
-~~~~~~
-
-Once more the connection models are predefined inside of ``arborize`` and they
-can be referenced by name:
-
-.. code-block:: json
-
-  {
-    "connection_models": {
-      "A_to_B": {
-        "synapses": ["AMPA", "NMDA"]
-      }
-    }
-  }
-
-NEST
-~~~~
-
-Connection models need to match the available connection models in NEST:
-
-.. code-block:: json
-
-  {
-    "connection_models": {
-      "A_to_B": {
-        "synapse_model": "static_synapse",
-        "connection": {
-          "weight":-0.3,
-          "delay": 5.0
-        },
-        "synapse": {
-          "static_synapse": {}
-        }
-      }
-    }
-  }
-
-Defining devices
-----------------
-
-NEURON
-~~~~~~
-
-In NEURON an assortment of devices is provided by the BSB to send input, or
-record output. See :doc:`/simulation/neuron/devices` for a complete list.
-Some devices like voltage and spike recorders can be placed by requesting them
-on cell models using :guilabel:`record_soma` or :guilabel:`record_spikes`.
-
-In addition to voltage and spike recording we'll place a spike generator and a
-voltage clamp:
-
-.. code-block:: json
-
-  {
-    "devices": {
-      "stimulus": {
-        "io": "input",
-        "device": "spike_generator",
-        "targetting": "cell_type",
-        "cell_types": ["cell_type_A"],
-        "synapses": ["AMPA"],
-        "start": 500,
-        "number": 10,
-        "interval": 10,
-        "noise": true
-      },
-      "voltage_clamp": {
-        "io": "input",
-        "device": "voltage_clamp",
-        "targetting": "cell_type",
-        "cell_types": ["cell_type_B"],
-        "cell_count": 1,
-        "section_types": ["soma"],
-        "section_count": 1,
-        "parameters": {
-          "delay": 0,
-          "duration": 1000,
-          "after": 0,
-          "voltage": -63
-        }
-      }
-    }
-  }
-
-The voltage clamp targets 1 random ``cell_type_B`` which is a bit awkward, but
-either the ``targetting`` (docs incomplete) or the ``labelling`` system (docs
-incomplete) can help you target exactly the right cells.
-
-Running a simulation
-====================
-
-Simulations can be run through the CLI tool, or for more control through the
-``bsb`` library.
-
-CLI simulations
----------------
-
-After network compilation you should have obtained an ``hdf5`` network file. It
-contains all the required information, including a copy of its configuration. We
-can use all of that to set up a "hands off" simulation, it tells the framework
-to:
-
-* Read the network file
-* Read the simulation configuration
-* Translate the simulation configuration to the simulator
-* Create all cells, connections and devices
-* Run the simulation
-* Collect all the output
-
-.. code-block:: bash
-
-  bsb simulate my_network.hdf5 my_sim_name
-
-Script simulations
-------------------
-
-To have more control simulations can also be set up from Python. For example,
-this is what a parameter sweep would look like:
-
-.. code-block:: python
-
-  from bsb.core import from_hdf5
-  import dbbs_models
-  import nrnsub
-
-  # Read the network file
-  network = from_hdf("my_network.hdf5")
-
-  # Make sure each NEURON simulation is ran in isolation
-  @nrnsub.isolate
-  def sweep(param):
-    # Get an adapter to the simulation
-    adapter = network.create_adapter("my_sim_name")
-    # Modify the parameter to sweep
-    dbbs_models.GranuleCell.synapses["AMPA"]["U"] = param
-    # Prepare simulator & instantiate all the cells and connections
-    simulation = adapter.prepare()
-    # Optionally perform more custom operations before the simulation here.
-    # Run the simulation
-    adapter.simulate(simulation)
-    # Optionally perform more operations or even additional simulation here.
-    # Collect all results in an HDF5 file and get the path to it.
-    result_file = adapter.collect_output()
-    return result_file
-
-  for i in range(11):
-    # Sweep parameter from 0 to 1 in 0.1 increments
-    result_file = sweep(i / 10)
-
-.. note::
-
-	For a more extensive introduction to the possibilities of configuring model
-	components, check out the :doc:`/config/intro`!
-
-
-Parallel simulations
---------------------
-
-To parallelize any task the BSB can execute you can prepend the MPI command in front of
-the BSB CLI command, or the Python script command:
-
-.. code-block:: bash
-
-  mpirun -n 4 bsb simulate my_network.hdf5 your_simulation
-
-
-Extending the framework
-=======================
-
-The framework allows you to plug in user code pretty much anywhere. Neat.
-
-Here's how you do it (theoretically):
-
-#. Identify which **interface** you need to extend. An interface is a programming concept
-   that lets you take one of the objects of the framework and define some functions on it.
-   The framework has predefined this set of functions and expects you to provide them.
-   Interfaces in the framework are always classes.
-
-#. Create a class that inherits from that interface and implement the required and/or
-   interesting looking functions of its public API (which will be specified).
-
-#. Refer to the class from the configuration by its importable module name, or use a
-   :ref:`classmap`.
-
-With a quick example, there's the ``MorphologySelector`` interface, which lets you specify
-how a subset of the available morphologies should be selected for a certain group of
-cells:
-
-1. The interface is ``bsb.morphologies.MorphologySelector`` and the docs specify it has
-   a ``validate(self, morphos)`` and ``pick(self, morpho)`` function.
-
-2. Instant-Python |:tm:|, just add water:
-
-.. code-block:: python
-
-  from bsb.objects.cell_type import MorphologySelector
-  from bsb import config
-
-  @config.node
-  class MySizeSelector(MorphologySelector):
-    min_size = config.attr(type=float, default=20)
-    max_size = config.attr(type=float, default=50)
-
-    def validate(self, morphos):
-      if not all("size" in m.get_meta() for m in morphos):
-        raise Exception("Missing size metadata for the size selector")
-
-    def pick(self, morpho):
-      meta = morpho.get_meta()
-      return meta["size"] > self.min_size and meta["size"] < self.max_size
-
-3. Assuming that that code is in a ``select.py`` file relative to the working directory
-you can now access:
-
-.. code-block:: json
-
-  {
-    "selector": "select.MySizeSelector",
-    "min_size": 30,
-    "max_size": 50
-  }
-
-For the model to work after you've extended the framework you have to include the Python
-code, or even better, become an author of a plugin! |:heart_eyes:|
-
-Installing plugins
-==================
-
-The fanciness doesn't end there, you can also (hopefully, somewhere in the future) install
-community plugins, and they will provide extensions through Python's packaging system,
-readily importable as for example ``their_plugin.selectors.TheirSizeSelector``.
+we can move to the :ref:`simulations` stage.

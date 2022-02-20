@@ -59,5 +59,7 @@ Workflow
 The framework promotes iterative improvements on the model. Start small, and incrementally
 add on every piece you need after validating the last!
 
+.. _config:
+
 Configuration
 =============
