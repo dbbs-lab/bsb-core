@@ -6,6 +6,7 @@ references.
 import json, os
 from ...exceptions import *
 from ...reporting import warn
+from ._parser import Parser
 
 
 def _json_iter(obj):  # pragma: nocover
@@ -142,12 +143,13 @@ class JsonMeta:
     pass
 
 
-class JsonParser:
+class JsonParser(Parser):
     """
     Parser plugin class to parse JSON configuration files.
     """
 
     data_description = "JSON"
+    data_extensions = ("json",)
 
     def parse(self, content, path=None):
         # Parses the content. If path is set it's used as the root for the multi-document
