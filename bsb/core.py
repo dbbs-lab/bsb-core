@@ -239,6 +239,7 @@ class Scaffold:
         Run reconstruction steps in the scaffold sequence to obtain a full network.
         """
         self._load_config_link()
+        self._load_morpho_link()
         existed = self.storage.preexisted
         p_strats = self.get_placement(skip=skip, only=only)
         c_strats = self.get_connectivity(skip=skip, only=only)
@@ -690,25 +691,48 @@ class Scaffold:
         return p_contrib, c_contrib
 
     def _load_config_link(self):
-        import bsb.option
         import bsb.config
+
+        link = self._get_link("config")
+        if link.exists():
+            report(f"Pulling configuration from linked {link}.", level=2)
+            stream = link.get()
+            self.configuration = cfg = bsb.config.from_file(stream)
+            self.storage.store_active_config(cfg)
+        else:
+            warn(
+                f"Missing configuration link {link}."
+                + " Update or remove the link from your project settings."
+            )
+
+    def _load_morpho_link(self):
+        link = self._get_link("morpho")
+        if link._src != "sys":
+            raise ScaffoldError("Morphology repository link can only be a 'sys' link.")
+        if link.exists():
+            path = link.id
+            try:
+                mr = Storage("hdf5", path).morphologies
+                loaders = mr.all()
+            except:
+                raise ScaffoldError("Morphology repository link must be HDF5 repository.")
+            else:
+                report(f"Pulling morphologies from linked {link}.", level=2)
+                for loader in loaders:
+                    morpho = loader.load()
+                    self.morphologies.save(loader.name, morpho, overwrite=True)
+
+    def _get_link(self, name):
+        import bsb.option
 
         path, content = bsb.option._pyproject_bsb()
         links = content.get("links", {})
-        conflink = links.get("config", None)
-        if conflink:
+        link = links.get(name, None)
+        if link:
             path = path.parent if path else os.getcwd()
-            config_link = _storutil.link(self.files, path, *conflink)
-            if config_link.exists():
-                report(f"Pulling configuration from linked {config_link}.", level=4)
-                stream = config_link.get()
-                self.configuration = cfg = bsb.config.from_file(stream)
-                self.storage.store_active_config(cfg)
-            else:
-                warn(
-                    f"Missing configuration link {config_link}."
-                    + " Update or remove the link from your project settings."
-                )
+            return _storutil.link(self.files, path, *link)
+        else:
+            return _storutil.nolink()
 
 
 class ReportListener:

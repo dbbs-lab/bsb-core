@@ -1,5 +1,14 @@
 import os
+import io
 import pathlib
+
+
+class _NoLink:
+    def exists(self):
+        return False
+
+    def get(self):
+        return io.StringIO("")
 
 
 class FileLink:
@@ -29,11 +38,12 @@ class FileLink:
         else:
             return os.path.exists(self.id)
 
-    def get(self):
+    def get(self, binary=None):
+        binary = self._b if binary is None else binary
         if self._src == "sys":
             return open(self.id, f"r{'b' if self._b else ''}")
         else:
-            return self.store.stream(self.id, binary=self._b)
+            return self.store.stream(self.id, binary=binary)
 
 
 def syslink(path, update="always"):
@@ -50,3 +60,7 @@ def link(store, proj_dir, source, id, update):
         return FileLink("sys", proj_dir / id, update=update)
     elif source == "source":
         return FileLink("source", id, store=store, update=update)
+
+
+def nolink():
+    return _NoLink()

@@ -41,12 +41,7 @@ class HDF5Engine(Engine):
                 handle.create_group("cells/connections")
                 handle.create_group("cells/labels")
                 handle.create_group("files")
-                if os.path.exists("morphologies.hdf5"):
-                    print("morpho copy hack")
-                    with h5py.File("morphologies.hdf5", "r") as f:
-                        f.copy("morphologies", handle)
-                else:
-                    handle.create_group("morphologies")
+                handle.create_group("morphologies")
 
     def move(self, new_root):
         from shutil import move
