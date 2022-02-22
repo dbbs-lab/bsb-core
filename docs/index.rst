@@ -16,7 +16,7 @@ and explicit code understandable and reusable by your peers.
 
     .. grid-item-card:: :octicon:`flame;1em;sd-text-warning` Get started
       :link: get-started
-	    :link-type: ref
+      :link-type: ref
 
       Get started with your first project!
 

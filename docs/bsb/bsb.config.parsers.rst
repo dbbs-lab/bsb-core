@@ -16,6 +16,6 @@ Module contents
 ---------------
 
 .. automodule:: bsb.config.parsers
-   :members:
+   :members: Parser
    :undoc-members:
    :show-inheritance:
