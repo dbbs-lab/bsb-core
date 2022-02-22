@@ -70,6 +70,12 @@ class Configuration:
             node.scaffold = scaffold
             run_hook(node, "boot")
 
+    def _update_storage_node(self, storage):
+        if self.storage.engine != storage.format:
+            self.storage.engine = storage.format
+        if self.storage.root != storage.root:
+            self.storage.root = storage.root
+
     def __str__(self):
         return str(self.__tree__())
 
