@@ -34,14 +34,14 @@ class FileLink:
 
     def exists(self):
         if self._src == "store":
-            return self._id in store.all()
+            return self.id in self.store.all()
         else:
             return os.path.exists(self.id)
 
     def get(self, binary=None):
         binary = self._b if binary is None else binary
         if self._src == "sys":
-            return open(self.id, f"r{'b' if self._b else ''}")
+            return open(self.id, f"r{'b' if binary else ''}")
         else:
             return self.store.stream(self.id, binary=binary)
 
@@ -57,8 +57,10 @@ def storelink(store, id, update="always"):
 def link(store, proj_dir, source, id, update):
     if source == "sys":
         return FileLink("sys", proj_dir / id, update=update)
-    elif source == "source":
-        return FileLink("source", id, store=store, update=update)
+    elif source == "store":
+        return FileLink("store", id, store=store, update=update)
+    else:
+        raise ValueError(f"'{source}' not a valid link source. Pick 'sys' or 'store'")
 
 
 def nolink():
