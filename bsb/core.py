@@ -113,7 +113,7 @@ class Scaffold:
             # No storage given, create one.
             report(f"Creating storage from config.", level=4)
             storage = Storage(config.storage.engine, config.storage.root)
-        elif clear:
+        if clear:
             # Storage given, but asked to clear it before use.
             storage.remove()
             storage.create()
@@ -750,6 +750,8 @@ class Scaffold:
 
     def _load_morpho_link(self):
         link = self._get_link("morpho")
+        if link is None:
+            return
         if link._src != "sys":
             raise ScaffoldError("Morphology repository link can only be a 'sys' link.")
         if link.exists():
