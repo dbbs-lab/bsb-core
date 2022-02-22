@@ -97,6 +97,7 @@ _t(
             ReadOnlyOptionError=_e("option", "tag"),
         ),
         PlacementError=_e(
+            ChunkError=_e(),
             ContinuityError=_e(),
         ),
         TreeError=_e(),

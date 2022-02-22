@@ -1,4 +1,7 @@
 import numpy as np
+from ..exceptions import *
+
+_iinfo = np.iinfo(np.int16)
 
 
 class Chunk(np.ndarray):
@@ -7,6 +10,10 @@ class Chunk(np.ndarray):
     """
 
     def __new__(cls, chunk, chunk_size):
+        if any(c < _iinfo.min or c > _iinfo.max for c in chunk):
+            raise ChunkError(
+                f"Chunk coordinates must be between {_iinfo.min} and {_iinfo.max}."
+            )
         obj = super().__new__(cls, (3,), dtype=np.short)
         obj[:] = chunk
         obj._size = np.array(chunk_size, dtype=float)
@@ -42,7 +49,7 @@ class Chunk(np.ndarray):
 
     @property
     def id(self):
-        return sum(self[i] * 2 ** (i * 16) for i in range(3))
+        return sum(n * 2 ** (i * 16) for i, n in enumerate(self.view(np.uint16)))
 
     @property
     def box(self):
@@ -59,7 +66,6 @@ class Chunk(np.ndarray):
 
     @classmethod
     def from_id(cls, id, size):
-        unpacked = np.array([id], dtype=np.dtype("u8")).view("u2")
-        if unpacked[-1]:
-            raise OverflowError("int too large to be a chunk id")
-        return cls(unpacked[:-1], size)
+        raw = [id, id / 2 ** 16, id / 2 ** 32]
+        unpacked = np.array(raw, dtype=np.uint16).astype(np.int16)
+        return cls(unpacked, size)
