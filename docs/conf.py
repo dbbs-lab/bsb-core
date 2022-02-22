@@ -89,6 +89,14 @@ exclude_patterns = [
 #
 html_theme = "furo"
 
+html_theme_options = {
+    "light_logo": "bsb.svg",
+    "dark_logo": "bsb_dark.svg",
+    "sidebar_hide_name": True,
+}
+
+html_favicon = "_static/bsb_ico.svg"
+
 html_context = {
     "maintainer": "Robin De Schepper",
     "project_pretty_name": "BSB",
