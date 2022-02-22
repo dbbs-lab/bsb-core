@@ -136,6 +136,18 @@ class Scaffold:
         """
         self.storage.renew(self)
 
+    def clear_placement(self):
+        """
+        Clears the placement storage.
+        """
+        self.storage.clear_placement()
+
+    def clear_connectivity(self):
+        """
+        Clears the connectivity storage.
+        """
+        self.storage.clear_connectivity()
+
     def resize(self, x=None, y=None, z=None):
         """
         Updates the topology boundary indicators. Use before placement, updates

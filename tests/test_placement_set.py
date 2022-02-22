@@ -30,7 +30,7 @@ class TestPlacementSets(unittest.TestCase):
     def test_hdf5_structure(self):
         with h5py.File(self.scaffold.output_formatter.file, "r") as h:
             for key in ["from", "to"]:
-                group = h["cells/placement/" + key + "_cell"]
+                group = h["placement/" + key + "_cell"]
                 self.assertTrue(
                     "identifiers" in group,
                     "Identifiers dataset missing for the " + key + "_cell",

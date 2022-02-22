@@ -48,6 +48,14 @@ class Engine(Interface):
     def remove(self):
         pass
 
+    @abc.abstractmethod
+    def clear_placement(self):
+        pass
+
+    @abc.abstractmethod
+    def clear_connectivity(self):
+        pass
+
 
 class NetworkDescription(Interface):
     pass
