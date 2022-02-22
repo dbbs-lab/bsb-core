@@ -56,7 +56,6 @@ def storelink(store, id, update="always"):
 
 def link(store, proj_dir, source, id, update):
     if source == "sys":
-        print(proj_dir, id, proj_dir / id)
         return FileLink("sys", proj_dir / id, update=update)
     elif source == "source":
         return FileLink("source", id, store=store, update=update)
