@@ -31,22 +31,25 @@ class ProjectNewCommand(BaseCommand, name="new"):
             )
 
         (root / name).mkdir()
-        template = input("Config template [template.json]: ") or "template.json"
-        config.copy_template(template, output=root / "network_configuration.json")
+        template = input("Config template [skeleton.json]: ") or "skeleton.json"
+        output = (
+            input("Config file [network_configuration.json]: ")
+            or "network_configuration.json"
+        )
+        config.copy_template(template, output=root / output)
         with open(root / "pyproject.toml", "w") as f:
             toml.dump(
                 {
                     "tools": {
                         "bsb": {
-                            "config": "network_configuration.json",
-                            "morpho": "morphologies.h5",
-                            "networks": {
-                                "config_link": [
+                            "config": output,
+                            "links": {
+                                "config": [
                                     "sys",
-                                    "network_configuration.json",
+                                    output,
                                     "always",
                                 ],
-                                "morpho_link": ["sys", "morphologies.h5", "changes"],
+                                "morpho": ["sys", "morphologies.hdf5", "newer"],
                             },
                         }
                     }

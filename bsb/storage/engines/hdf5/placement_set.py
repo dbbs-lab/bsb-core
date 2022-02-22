@@ -9,6 +9,7 @@ import itertools
 _pos_prop = lambda l: ChunkedProperty(l, "position", shape=(0, 3), dtype=float)
 _rot_prop = lambda l: ChunkedProperty(l, "rotation", shape=(0, 3), dtype=float)
 _morpho_prop = lambda l: ChunkedProperty(l, "morphology", shape=(0,), dtype=int)
+_root = "/placement/"
 
 
 class _MapSelector:
@@ -45,9 +46,8 @@ class PlacementSet(
     """
 
     def __init__(self, engine, cell_type):
-        root = "/cells/placement/"
         tag = cell_type.name
-        super().__init__(engine, root + tag)
+        super().__init__(engine, _root + tag)
         IPlacementSet.__init__(self, engine, cell_type)
         ChunkLoader.__init__(self)
         if not self.exists(engine, cell_type):
@@ -57,11 +57,10 @@ class PlacementSet(
     def create(cls, engine, cell_type):
         """
         Create the structure for this placement set in the HDF5 file. Placement sets are
-        stored under ``/cells/placement/<tag>``.
+        stored under ``/placement/<tag>``.
         """
-        root = "/cells/placement/"
         tag = cell_type.name
-        path = root + tag
+        path = _root + tag
         with engine._write() as fence:
             with engine._handle("a") as h:
                 g = h.create_group(path)
@@ -72,13 +71,12 @@ class PlacementSet(
     def exists(engine, cell_type):
         with engine._read():
             with engine._handle("r") as h:
-                return "/cells/placement/" + cell_type.name in h
+                return "/placement/" + cell_type.name in h
 
     @classmethod
     def require(cls, engine, cell_type):
-        root = "/cells/placement/"
         tag = cell_type.name
-        path = root + tag
+        path = _root + tag
         with engine._write():
             with engine._handle("a") as h:
                 g = h.require_group(path)

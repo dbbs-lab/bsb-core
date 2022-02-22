@@ -9,7 +9,6 @@ connectivity strategy can be used simply by importing or dynamic configuration, 
 components such as new storage engines, configuration parsers or simulation backends are
 added into the BSB through its plugin system.
 
-=================
 Creating a plugin
 =================
 
@@ -49,7 +48,7 @@ Or if you'd like to register multiple plugins in the same module you can explici
 specify different functions in the different entry points.
 
 Examples
-========
+--------
 
 In Python:
 
@@ -86,15 +85,27 @@ In ``setup``:
         "bsb.engines": ["my_pkg.plugins:storage_plugin"]
     }
 
-==========
 Categories
 ==========
 
-``bsb.adapters``
-================
+Configuration parsers
+---------------------
 
-``bsb.config.parsers``
-======================
+**Category:** ``bsb.config.parsers``
 
-``bsb.engines``
-===============
+Inherit from :class:`.config.parsers.Parser`. When installed a ``from_<plugin-name>``
+parser function is added to the :mod:`bsb.config` module. You can set the class variable
+``data_description`` to describe what kind of data this parser parses to users. You can
+also set ``data_extensions`` to a sequence of extensions that this parser will be
+considered first for when parsing files of unknown content.
+
+
+Storage engines
+---------------
+
+**Category:** ``bsb.engines``
+
+Simulator adapters
+------------------
+
+**Category:** ``bsb.adapters``

@@ -13,6 +13,7 @@ import glob
 import itertools
 from shutil import copy2 as copy_file
 import builtins
+import traceback
 
 from ._attrs import (
     attr,
@@ -128,6 +129,17 @@ class ConfigurationModule:
             )
         copy_file(files[0], output)
 
+    def from_file(self, file):
+        path = getattr(file, "name", None)
+        if path is not None:
+            path = os.path.abspath(path)
+        return self.from_content(file.read(), path)
+
+    def from_content(self, content, path=None):
+        ext = path.split(".")[-1] if path is not None else None
+        parser, tree, meta = _try_parsers(content, self._parser_classes, ext)
+        return _from_parsed(self, parser, tree, meta, path)
+
     __all__ = [*(vars().keys() - {"__init__", "__qualname__", "__module__"})]
 
 
@@ -156,6 +168,32 @@ def _parser_method_docs(parser):
     )
 
 
+def _try_parsers(content, classes, ext=None, path=None):  # pragma: nocover
+    if ext is not None:
+        file_has_parser_ext = lambda kv: ext in getattr(kv[1], "data_extensions", ())
+        classes = builtins.dict(sorted(classes.items(), key=file_has_parser_ext))
+    exc = {}
+    for name, cls in classes.items():
+        try:
+            tree, meta = cls().parse(content, path=path)
+        except Exception as e:
+            exc[name] = e
+        else:
+            return (name, tree, meta)
+    msges = [
+        (f"Can't parse with {n}:", traceback.format_exception(e)) for n, e in exc.items()
+    ]
+    raise ParserError("\n".join(msges))
+
+
+def _from_parsed(self, parser_name, tree, meta, file=None):
+    conf = self.Configuration(tree)
+    conf._parser = parser_name
+    conf._meta = meta
+    conf._file = file
+    return conf
+
+
 def parser_factory(name, parser):
     # This factory produces the methods for the `bsb.config.from_*` parser methods that
     # load the content of a file-like object or a simple string as a Configuration object.
@@ -165,11 +203,7 @@ def parser_factory(name, parser):
             with open(file, "r") as f:
                 data = f.read()
         tree, meta = parser().parse(data, path=path or file)
-        conf = self.Configuration(tree)
-        conf._parser = name
-        conf._meta = meta
-        conf._file = file
-        return conf
+        return _from_parsed(self, name, tree, meta, file)
 
     parser_method.__name__ = "from_" + name
     parser_method.__doc__ = _parser_method_docs(parser)

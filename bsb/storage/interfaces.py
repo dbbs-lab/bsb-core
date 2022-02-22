@@ -48,6 +48,14 @@ class Engine(Interface):
     def remove(self):
         pass
 
+    @abc.abstractmethod
+    def clear_placement(self):
+        pass
+
+    @abc.abstractmethod
+    def clear_connectivity(self):
+        pass
+
 
 class NetworkDescription(Interface):
     pass
@@ -90,6 +98,20 @@ class FileStore(Interface, engine_key="files"):
         :type id: str
         :returns: The content of the stored object
         :rtype: str
+        :raises FileNotFoundError: The given id doesn't exist in the file store.
+        """
+        pass
+
+    @abc.abstractmethod
+    def stream(self, id, binary=False):
+        """
+        Stream the content of an object in the file store.
+
+        :param id: id of the content to be streamed.
+        :type id: str
+        :param binary: Whether to return file in text or bytes mode.
+        :type binary: bool
+        :returns: A readable file-like object of the content.
         :raises FileNotFoundError: The given id doesn't exist in the file store.
         """
         pass

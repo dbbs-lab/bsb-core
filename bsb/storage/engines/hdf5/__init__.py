@@ -37,16 +37,10 @@ class HDF5Engine(Engine):
         with self._write():
             with self._handle("w") as handle:
                 handle.create_group("cells")
-                handle.create_group("cells/placement")
-                handle.create_group("cells/connections")
-                handle.create_group("cells/labels")
+                handle.create_group("placement")
+                handle.create_group("connectivity")
                 handle.create_group("files")
-                if os.path.exists("morphologies.hdf5"):
-                    print("morpho copy hack")
-                    with h5py.File("morphologies.hdf5", "r") as f:
-                        f.copy("morphologies", handle)
-                else:
-                    handle.create_group("morphologies")
+                handle.create_group("morphologies")
 
     def move(self, new_root):
         from shutil import move
@@ -59,6 +53,16 @@ class HDF5Engine(Engine):
     def remove(self):
         with self._write() as fence:
             os.remove(self._file)
+
+    def clear_placement(self):
+        with self._write():
+            with self._handle("w") as handle:
+                del handle["placement"]
+
+    def clear_connectivity(self):
+        with self._write():
+            with self._handle("w") as handle:
+                del handle["connectome"]
 
 
 def _get_default_root():

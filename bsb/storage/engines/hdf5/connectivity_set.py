@@ -4,7 +4,7 @@ from ... import Chunk
 from ...interfaces import ConnectivitySet as IConnectivitySet
 import numpy as np
 
-_root = "/cells/connections/"
+_root = "/connectivity/"
 
 
 class ConnectivitySet(Resource, IConnectivitySet):
@@ -39,7 +39,7 @@ class ConnectivitySet(Resource, IConnectivitySet):
     def create(cls, engine, pre_type, post_type, tag=None):
         """
         Create the structure for this connectivity set in the HDF5 file. Connectivity sets are
-        stored under ``/cells/connections/<tag>``.
+        stored under ``/connectivity/<tag>``.
         """
         if tag is None:
             tag = f"{pre_type.name}_to_{post_type.name}"

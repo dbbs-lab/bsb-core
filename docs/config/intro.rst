@@ -12,11 +12,11 @@ this:
 .. include:: _empty_root_nodes.rst
 
 The :guilabel:`regions`, :guilabel:`partitions`, :guilabel:`cell_types`,
-:guilabel:`placement` and :guilabel:`connectivity` spaceholders hold the configuration
-for :class:`Regions <.topology.region.Region>`, :class:`Partitions <.topology.partition.Partition>`,
-:class:`CellTypes <.objects.cell_type.CellType>`, :class:`PlacementStrategies
-<.placement.strategy.PlacementStrategy>` and :class:`ConnectionStrategies
-<.connectivity.strategy.ConnectionStrategy>` respectively.
+:guilabel:`placement` and :guilabel:`connectivity` spaceholders hold the configuration for
+:class:`Regions <.topology.region.Region>`, :class:`Partitions
+<.topology.partition.Partition>`, :class:`CellTypes <.objects.cell_type.CellType>`,
+:class:`PlacementStrategies <.placement.strategy.PlacementStrategy>` and
+:class:`ConnectionStrategies <.connectivity.strategy.ConnectionStrategy>` respectively.
 
 When you're configuring a model you'll mostly be using **configuration attributes**,
 **configuration nodes/dictionaries** and **configuration lists**. These basic concepts and

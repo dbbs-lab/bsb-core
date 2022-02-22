@@ -332,6 +332,14 @@ class Storage:
         self.create(_bcast=False)
         self.init(scaffold, _bcast=False)
 
+    @_on_master
+    def clear_placement(self):
+        self._engine.clear_placement()
+
+    @_on_master
+    def clear_connectivity(self):
+        self._engine.clear_connectivity()
+
 
 def view_support(engine=None):
     """

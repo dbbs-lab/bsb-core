@@ -1,0 +1,36 @@
+{
+  "name": "Skeleton configuration",
+  "storage": {
+    "engine": "hdf5",
+    "root": "network.hdf5"
+  },
+  "network": {
+    "x": 100.0,
+    "y": 100.0,
+    "z": 100.0
+  },
+  "regions": {
+
+  },
+  "partitions": {
+
+  },
+  "cell_types": {
+
+  },
+  "placement": {
+
+  },
+  "after_placement": {
+
+  },
+  "connectivity": {
+
+  },
+  "after_connectivity": {
+
+  },
+  "simulations": {
+
+  }
+}

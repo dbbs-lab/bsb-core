@@ -159,6 +159,7 @@ class TestProjectOption(unittest.TestCase):
         options.store("config", "hello.json")
         self.assertEqual("hello.json", options.read("config"), "not stored/read")
         self.assertEqual("hello.json", options.get("config", prio="project"), "prio bork")
+        self.assertEqual({"config": "hello.json"}, options.read(), "read all failed")
         opt = options.get_options()["config"]
         self.assertTrue(type(opt).project.is_set(opt), "written and read but not is_set")
         del opt.project

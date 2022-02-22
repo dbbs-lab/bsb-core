@@ -6,11 +6,35 @@ import itertools
 from warnings import warn as std_warn
 from .placement import PlacementStrategy
 from .connectivity import ConnectionStrategy
-from .storage import Chunk, Storage
+from .storage import Chunk, Storage, _util as _storutil
 from .exceptions import *
 from .reporting import report, warn, has_mpi_installed, get_report_file
 from .config._config import Configuration
 from ._pool import create_job_pool
+
+
+_cfg_props = (
+    "network",
+    "regions",
+    "partitions",
+    "cell_types",
+    "placement",
+    "after_placement",
+    "connectivity",
+    "after_connectivity",
+    "simulations",
+)
+
+
+def _config_property(name):
+    def fget(self):
+        return self.configuration[name]
+
+    def fset(self, value):
+        self.configuration[name] = value
+
+    prop = property(fget)
+    return prop.setter(fset)
 
 
 def from_hdf5(file):
@@ -50,20 +74,10 @@ class Scaffold:
         :returns: A network object
         :rtype: :class:`~.core.Scaffold`
         """
+        self._configuration = None
+        self._storage = None
         self._initialise_MPI()
-        self._bootstrap(config, storage)
-
-        if clear:
-            print("clearing")
-            self.clear()
-
-        # # Debug statistics, unused.
-        # self.statistics = Statistics(self)
-        # self._nextId = 0
-        # # Use the configuration to initialise all components such as cells and layers
-        # # to prepare for the network architecture compilation.
-        # self._intialise_components()
-        # self._intialise_simulators()
+        self._bootstrap(config, storage, clear=clear)
 
     def _initialise_MPI(self):
         # Delegate initialization of MPI to the reporting module. Which is weird, bu
@@ -83,26 +97,59 @@ class Scaffold:
             self.is_mpi_master = True
             self.is_mpi_slave = False
 
-    def _bootstrap(self, config, storage):
-        # If both config and storage are given, overwrite the config in the storage. If
-        # just the storage is given, load the config from storage. If neither is given,
-        # create a default config and create a storage from it.
-        if config is not None and storage is not None:
-            self.storage = storage
-        elif storage is not None:
-            config = storage.load_active_config()
-        else:
-            from bsb.storage import Storage
-
-            if config is None:
+    def _bootstrap(self, config, storage, clear=False):
+        if config is None:
+            # No config given, check for linked configs, or stored configs, otherwise
+            # make default config.
+            linked = self._get_linked_config()
+            if linked:
+                report(f"Pulling configuration from linked {link}.", level=2)
+                config = linked
+            elif storage is not None:
+                config = storage.load_active_config()
+            else:
                 config = Configuration.default()
+        if not storage:
+            # No storage given, create one.
+            report(f"Creating storage from config.", level=4)
             storage = Storage(config.storage.engine, config.storage.root)
-
-        self.configuration = config
+        if clear:
+            # Storage given, but asked to clear it before use.
+            storage.remove()
+            storage.create()
+        # Synchronize the scaffold, config and storage objects for use together
+        self._configuration = config
+        # Make sure the storage config node reflects the storage we are using
+        config._update_storage_node(storage)
+        # First, the scaffold is passed to each config node, and their boot methods called.
+        self._configuration._bootstrap(self)
+        # Then, `storage` is initted for the scaffold, and `config` is stored.
         self.storage = storage
-        self.storage.init(self)
-        self.configuration._bootstrap(self)
-        self.storage.store_active_config(config)
+        # Check for linked morphologies
+        self._load_morpho_link()
+
+    storage_cfg = _config_property("storage")
+    for attr in _cfg_props:
+        vars()[attr] = _config_property(attr)
+
+    @property
+    def configuration(self):
+        return self._configuration
+
+    @configuration.setter
+    def configuration(self, cfg):
+        self._configuration = cfg
+        cfg._bootstrap(self)
+        self.storage.store_active_config(cfg)
+
+    @property
+    def storage(self):
+        return self._storage
+
+    @storage.setter
+    def storage(self, storage):
+        self._storage = storage
+        storage.init(self)
 
     @property
     def morphologies(self):
@@ -117,6 +164,18 @@ class Scaffold:
         Clears the storage. This deletes any existing network data!
         """
         self.storage.renew(self)
+
+    def clear_placement(self):
+        """
+        Clears the placement storage.
+        """
+        self.storage.clear_placement()
+
+    def clear_connectivity(self):
+        """
+        Clears the connectivity storage.
+        """
+        self.storage.clear_connectivity()
 
     def resize(self, x=None, y=None, z=None):
         """
@@ -236,7 +295,8 @@ class Scaffold:
                     + " what to do with existing data."
                 )
             if clear:
-                self.clear()
+                self.clear_placement()
+                self.clear_connectivity()
             elif redo:
                 # In order to properly redo things, we clear some placement and connection
                 # data, but since multiple placement/connection strategies can contribute
@@ -521,24 +581,6 @@ class Scaffold:
             finder = lambda l: l == pattern
         return list(filter(finder, self.storage._Label.list()))
 
-    def get_cell_total(self):
-        """
-        Return the total amount of cells and entities placed.
-        """
-        return sum(len(ct.get_placement_set()) for ct in self.get_cell_types())
-
-    def for_blender(self):
-        """
-        Binds all blender functions onto the scaffold object.
-        """
-        from .blender import _mixin
-
-        for f_name, f in _mixin.__dict__.items():
-            if callable(f) and not f_name.startswith("_"):
-                self.__dict__[f_name] = f.__get__(self)
-
-        return self
-
     def merge(self, other, label=None):
         raise NotImplementedError("Revisit: merge PS & CT, done?")
 
@@ -688,6 +730,56 @@ class Scaffold:
 
         return p_contrib, c_contrib
 
+    def _get_linked_config(self):
+        import bsb.config
+
+        link = self._get_link("config")
+        if link is None:
+            return None
+        elif link._src != "sys":
+            raise ScaffoldError("Configuration link can only be a 'sys' link.")
+        elif link.exists():
+            stream = link.get()
+            return bsb.config.from_file(stream)
+        else:
+            warn(
+                f"Missing configuration link {link}."
+                + " Update or remove the link from your project settings."
+            )
+            return None
+
+    def _load_morpho_link(self):
+        link = self._get_link("morpho")
+        if link is None:
+            return
+        if link._src != "sys":
+            raise ScaffoldError("Morphology repository link can only be a 'sys' link.")
+        if link.exists():
+            path = link.id
+            try:
+                mr = Storage("hdf5", path).morphologies
+                loaders = mr.all()
+            except:
+                raise ScaffoldError("Morphology repository link must be HDF5 repository.")
+            else:
+                report(f"Pulling morphologies from linked {link}.", level=2)
+                for loader in loaders:
+                    morpho = loader.load()
+                    self.morphologies.save(loader.name, morpho, overwrite=True)
+
+    def _get_link(self, name):
+        import bsb.option
+
+        path, content = bsb.option._pyproject_bsb()
+        links = content.get("links", {})
+        link = links.get(name, None)
+        if link:
+            path = path.parent if path else os.getcwd()
+            files = None if self.storage is None else self.files
+            return _storutil.link(files, path, *link)
+        else:
+            return None
+
 
 class ReportListener:
     def __init__(self, scaffold, file):
@@ -703,15 +795,3 @@ class ReportListener:
             + str(progress.time),
             token="simulation_progress",
         )
-
-
-def register_cell_targetting(name, f):
-    from .simulation.targetting import TargetsNeurons
-
-    setattr(TargetsNeurons, f"_targets_{name}", f)
-
-
-def register_section_targetting(name, f):
-    from .simulation.targetting import TargetsSections
-
-    setattr(TargetsSections, f"_section_target_{name}", f)
