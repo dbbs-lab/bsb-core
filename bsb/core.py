@@ -74,11 +74,10 @@ class Scaffold:
         :returns: A network object
         :rtype: :class:`~.core.Scaffold`
         """
+        self._configuration = None
+        self._storage = None
         self._initialise_MPI()
-        self._bootstrap(config, storage)
-
-        if clear:
-            self.clear()
+        self._bootstrap(config, storage, clear=clear)
 
     def _initialise_MPI(self):
         # Delegate initialization of MPI to the reporting module. Which is weird, bu
@@ -98,29 +97,59 @@ class Scaffold:
             self.is_mpi_master = True
             self.is_mpi_slave = False
 
-    def _bootstrap(self, config, storage):
-        # If both config and storage are given, overwrite the config in the storage. If
-        # just the storage is given, load the config from storage. If neither is given,
-        # create a default config and create a storage from it.
-        if config is not None and storage is not None:
-            self.storage = storage
-        elif storage is not None:
-            config = storage.load_active_config()
-        else:
-            from bsb.storage import Storage
-
-            if config is None:
+    def _bootstrap(self, config, storage, clear=False):
+        if config is None:
+            # No config given, check for linked configs, or stored configs, otherwise
+            # make default config.
+            linked = self._get_linked_config()
+            if linked:
+                report(f"Pulling configuration from linked {link}.", level=2)
+                config = linked
+            elif storage is not None:
+                config = storage.load_active_config()
+            else:
                 config = Configuration.default()
+        if not storage:
+            # No storage given, create one.
+            report(f"Creating storage from config.", level=4)
             storage = Storage(config.storage.engine, config.storage.root)
-
-        self.configuration = config
+        elif clear:
+            # Storage given, but asked to clear it before use.
+            storage.remove()
+            storage.create()
+        # Synchronize the scaffold, config and storage objects for use together
+        self._configuration = config
+        # Make sure the storage config node reflects the storage we are using
+        config._update_storage_node(storage)
+        # First, the scaffold is passed to each config node, and their boot methods called.
+        self._configuration._bootstrap(self)
+        # Then, `storage` is initted for the scaffold, and `config` is stored.
         self.storage = storage
-        self.storage.init(self)
-        self.configuration._bootstrap(self)
+        # Check for linked morphologies
+        self._load_morpho_link()
 
     storage_cfg = _config_property("storage")
     for attr in _cfg_props:
         vars()[attr] = _config_property(attr)
+
+    @property
+    def configuration(self):
+        return self._configuration
+
+    @configuration.setter
+    def configuration(self, cfg):
+        self._configuration = cfg
+        cfg._bootstrap(self)
+        self.storage.store_active_config(cfg)
+
+    @property
+    def storage(self):
+        return self._storage
+
+    @storage.setter
+    def storage(self, storage):
+        self._storage = storage
+        storage.init(self)
 
     @property
     def morphologies(self):
@@ -250,8 +279,6 @@ class Scaffold:
         """
         Run reconstruction steps in the scaffold sequence to obtain a full network.
         """
-        self._load_config_link()
-        self._load_morpho_link()
         existed = self.storage.preexisted
         p_strats = self.get_placement(skip=skip, only=only)
         c_strats = self.get_connectivity(skip=skip, only=only)
@@ -268,7 +295,8 @@ class Scaffold:
                     + " what to do with existing data."
                 )
             if clear:
-                self.clear()
+                self.clear_placement()
+                self.clear_connectivity()
             elif redo:
                 # In order to properly redo things, we clear some placement and connection
                 # data, but since multiple placement/connection strategies can contribute
@@ -702,20 +730,23 @@ class Scaffold:
 
         return p_contrib, c_contrib
 
-    def _load_config_link(self):
+    def _get_linked_config(self):
         import bsb.config
 
         link = self._get_link("config")
-        if link.exists():
-            report(f"Pulling configuration from linked {link}.", level=2)
+        if link is None:
+            return None
+        elif link._src != "sys":
+            raise ScaffoldError("Configuration link can only be a 'sys' link.")
+        elif link.exists():
             stream = link.get()
-            self.configuration = cfg = bsb.config.from_file(stream)
-            self.storage.store_active_config(cfg)
+            return bsb.config.from_file(stream)
         else:
             warn(
                 f"Missing configuration link {link}."
                 + " Update or remove the link from your project settings."
             )
+            return None
 
     def _load_morpho_link(self):
         link = self._get_link("morpho")
@@ -742,9 +773,10 @@ class Scaffold:
         link = links.get(name, None)
         if link:
             path = path.parent if path else os.getcwd()
-            return _storutil.link(self.files, path, *link)
+            files = None if self.storage is None else self.files
+            return _storutil.link(files, path, *link)
         else:
-            return _storutil.nolink()
+            return None
 
 
 class ReportListener:
