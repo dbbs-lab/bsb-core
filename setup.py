@@ -22,6 +22,7 @@ requires = [
     "arbor~=0.5",
     "pynrrd~=0.4",
     "mpilock~=1.1",
+    "morphio~=3.3",
     "mpi4py",
     "zwembad",
     "toml",

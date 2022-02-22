@@ -18,3 +18,4 @@ zwembad==1.2.0
 mpilock==1.1.0
 pynrrd==0.4.2
 toml==0.10.2
+morphio==3.3.2
