@@ -49,7 +49,7 @@ class Chunk(np.ndarray):
 
     @property
     def id(self):
-        return sum(n * 2 ** (i * 16) for i, n in enumerate(self.view(np.uint16)))
+        return sum(n * 2 ** (i * 16) for i, n in enumerate(self.astype(np.uint16)))
 
     @property
     def box(self):
