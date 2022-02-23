@@ -4,7 +4,7 @@ import pathlib
 import appdirs
 import contextlib
 
-_bsb_dirs = appdirs.AppDirs("DBBS", "BSB")
+_bsb_dirs = appdirs.AppDirs("bsb")
 _cache_path = pathlib.Path(_bsb_dirs.user_cache_dir)
 
 
