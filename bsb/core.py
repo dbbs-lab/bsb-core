@@ -169,7 +169,7 @@ class Scaffold:
         """
         Clears the placement storage.
         """
-        self.storage.clear_placement()
+        self.storage.clear_placement(self)
 
     def clear_connectivity(self):
         """
@@ -295,6 +295,7 @@ class Scaffold:
                     + " what to do with existing data."
                 )
             if clear:
+                print("Clearing data")
                 self.clear_placement()
                 self.clear_connectivity()
             elif redo:
@@ -736,7 +737,7 @@ class Scaffold:
         link = self._get_link("config")
         if link is None:
             return None
-        elif link._src != "sys":
+        elif link.type != "sys":
             raise ScaffoldError("Configuration link can only be a 'sys' link.")
         elif link.exists():
             stream = link.get()
@@ -752,12 +753,11 @@ class Scaffold:
         link = self._get_link("morpho")
         if link is None:
             return
-        if link._src != "sys":
+        if link.type != "sys":
             raise ScaffoldError("Morphology repository link can only be a 'sys' link.")
         if link.exists():
-            path = link.id
             try:
-                mr = Storage("hdf5", path).morphologies
+                mr = Storage("hdf5", link.path).morphologies
                 loaders = mr.all()
             except:
                 raise ScaffoldError("Morphology repository link must be HDF5 repository.")

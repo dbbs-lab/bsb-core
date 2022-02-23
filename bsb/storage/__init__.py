@@ -320,6 +320,10 @@ class Storage:
         Initialize the storage to be ready for use by the specified scaffold.
         """
         self.store_active_config(scaffold.configuration, _bcast=False)
+        self.init_placement(scaffold, _bcast=False)
+
+    @_on_master
+    def init_placement(self, scaffold):
         for cell_type in scaffold.get_cell_types():
             self._PlacementSet.require(self._engine, cell_type)
 
@@ -333,8 +337,10 @@ class Storage:
         self.init(scaffold, _bcast=False)
 
     @_on_master
-    def clear_placement(self):
+    def clear_placement(self, scaffold=None):
         self._engine.clear_placement()
+        if scaffold is not None:
+            self.init_placement(scaffold, _bcast=False)
 
     @_on_master
     def clear_connectivity(self):

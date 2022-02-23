@@ -56,14 +56,14 @@ class HDF5Engine(Engine):
 
     def clear_placement(self):
         with self._write():
-            with self._handle("w") as handle:
+            with self._handle("a") as handle:
                 handle.require_group("placement")
                 del handle["placement"]
                 handle.require_group("placement")
 
     def clear_connectivity(self):
         with self._write():
-            with self._handle("w") as handle:
+            with self._handle("a") as handle:
                 handle.require_group("connectivity")
                 del handle["connectivity"]
                 handle.require_group("connectivity")

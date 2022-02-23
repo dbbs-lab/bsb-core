@@ -172,15 +172,52 @@ class BsbSimulate(BaseCommand, name="simulate"):
         pass
 
     def get_options(self):
-        return {"skip": Skip(), "only": Only()}
+        return {
+            "skip": Skip(),
+            "only": Only(),
+        }
 
     def add_parser_arguments(self, parser):
-        parser.add_argument("hello", help="positional")
+        pass
 
 
-def compile():
-    return BsbCompile
+class CacheCommand(BaseCommand, name="cache"):  # pragma: nocover
+    def handler(self, context):
+        import shutil
+        from datetime import datetime
+        from ...storage._util import _cache_path
 
+        if context.clear:
+            try:
+                shutil.rmtree(_cache_path / "*")
+            except:
+                print("No cache found")
+            else:
+                print("Cache cleared")
+        else:
+            _cache_path.mkdir(parents=True, exist_ok=True)
+            files = [*_cache_path.iterdir()]
+            maxlen = 5
+            try:
+                maxlen = max(maxlen, max(len(l.name) for l in files))
+            except ValueError:
+                print("Cache is empty")
+            else:
+                print(f"{'Files'.ljust(maxlen, ' ')}    Cached at\t\t\t    Size")
+                total_mb = 0
+                for f in files:
+                    name = f.name.ljust(maxlen, " ")
+                    stat = f.stat()
+                    stamp = datetime.fromtimestamp(stat.st_mtime)
+                    total_mb += (mb := stat.st_size / 1e6)
+                    line = f"{name}    {stamp}    {mb:.2f}MB"
+                    print(line)
+                print(f"Total: {total_mb:.2f}MB".rjust(len(line)))
 
-def simulate():
-    return BsbSimulate
+    def get_options(self):
+        return {
+            "clear": Clear(),
+        }
+
+    def add_parser_arguments(self, parser):
+        pass
