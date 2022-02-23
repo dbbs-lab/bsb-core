@@ -675,9 +675,9 @@ class AllenStructureLoader(NrrdVoxelLoader, classmap_entry="allen"):
 
         url = "http://download.alleninstitute.org/informatics-archive/current-release/mouse_ccf/annotation/ccf_2017/annotation_25.nrrd"
         fname = "_annotations_25.nrrd.cache"
-        link = _storutil.cachelink(fname)
+        link = _storutil.cachelink(fname, binary=True)
         if link.should_update():
-            with link.set(binary=True) as f:
+            with link.set() as f:
                 report("Downloading Allen Brain Atlas annotations", level=3)
                 content = requests.get(url).content
                 f.write(requests.get(url).content)

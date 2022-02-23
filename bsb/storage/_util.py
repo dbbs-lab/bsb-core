@@ -92,23 +92,23 @@ class StoreLink(FileLink):
         return self.store.stream(self.id, binary=binary)
 
 
-def syslink(path, update="always"):
-    return FileLink(pathlib.Path(os.path.abspath(path)), update=update)
+def syslink(path, update="always", binary=False):
+    return FileLink(pathlib.Path(os.path.abspath(path)), update=update, binary=binary)
 
 
-def cachelink(path, update="never"):
-    return CacheLink(path, update=update)
+def cachelink(path, update="never", binary=False):
+    return CacheLink(path, update=update, binary=binary)
 
 
-def storelink(store, id, update="always"):
-    return FileLink("store", id, store=store, update=update)
+def storelink(store, id, update="always", binary=False):
+    return StoreLink(store, id, update=update, binary=binary)
 
 
 def link(store, proj_dir, source, id, update):
     if source == "sys":
         return FileLink(proj_dir / id, update=update)
     elif source == "store":
-        return StoreLink(id, update=update)
+        return StoreLink(store, id, update=update)
     elif source == "cache":
         return CacheLink(id, update=update)
     else:
