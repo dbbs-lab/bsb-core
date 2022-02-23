@@ -17,11 +17,13 @@ import abc
 import pickle
 import h5py
 import math
+import inspect
 import itertools
 import functools
 import operator
 import inspect
 import numpy as np
+from collections import deque
 from scipy.spatial.transform import Rotation
 from ..voxels import VoxelSet
 from ..exceptions import *
@@ -159,19 +161,6 @@ def branch_iter(branch):
     yield branch
     for child in branch._children:
         yield from branch_iter(child)
-
-
-def _validate_branch_args(args):
-    vec = Branch.vectors
-    if len(args) > len(vec):
-        raise TypeError(
-            f"__init__ takes {len(vec) + 1} arguments but {len(args) + 1} given."
-        )
-    if len(args) < len(vec):
-        n = len(vec) - len(args)
-        w = "argument" if n == 1 else "arguments"
-        missing = ", ".join(map("'{}'".format, vec[-n:]))
-        raise TypeError(f"__init__ is missing {n} required {w}: {missing}.")
 
 
 class SubTree:
@@ -378,19 +367,22 @@ class Branch:
     connected to a parent branch. Can be a terminal branch or have multiple children.
     """
 
-    vectors = ["x", "y", "z", "radii"]
-
-    def __init__(self, *args, labels=None):
-        _validate_branch_args(args)
+    def __init__(self, points, radii, labels=None):
+        self._points = points
+        self._radii = radii
         self._children = []
-        self._full_labels = labels if labels is not None else []
-        self._label_masks = {}
+        self._properties = {}
         self._parent = None
-        for v, vector in enumerate(type(self).vectors):
-            setattr(self, vector, args[v])
 
-    def __getitem__(self, slice):
-        return self.as_matrix(with_radius=True)[slice]
+    def set_properties(self, **kwargs):
+        for prop, values in kwargs.items():
+            if len(values) != len(self):
+                raise ValueError(f"Expected {len(self)} {prop}, got {len(values)}.")
+            self._properties[prop] = values
+
+    def __getattr__(self, attr):
+        if attr in self._properties:
+            return self._properties[attr]
 
     def __copy__(self):
         return self.copy()
@@ -407,7 +399,7 @@ class Branch:
         :returns: Number of points on the branch.
         :rtype: int
         """
-        return len(getattr(self, type(self).vectors[0]))
+        return len(self._points)
 
     def __len__(self):
         return self.size
@@ -417,7 +409,7 @@ class Branch:
         """
         Return the vectors of this branch as a matrix.
         """
-        return self.as_matrix(with_radius=True)
+        return self._points
 
     @property
     def is_root(self):
@@ -444,7 +436,7 @@ class Branch:
         Return a parentless and childless copy of the branch.
         """
         cls = type(self)
-        new = cls(*(getattr(self, vector).copy() for vector in cls.vectors))
+        new = cls(self._points.copy(), self._radii.copy())
         new._full_labels = self._full_labels.copy()
         new._label_masks = {k: v.copy() for k, v in self._label_masks.items()}
         return new
@@ -691,6 +683,17 @@ class Branch:
         return SubTree([self]).voxelize(*args, **kwargs)
 
 
+class Labels(np.ndarray):
+    def __new__(subtype, *args, **kwargs):
+        bound = inspect.signature(super().__new__).bind(*args, **kwargs)
+        super().__new__(subtype, *args, **kwargs)
+        obj.labels = []
+
+    def __array_finalize__(self, obj):
+        if obj is not None:
+            self.labels = getattr(obj, "labels", []).copy()
+
+
 def _pairwise_iter(walk_iter, labels_iter):
     try:
         start = np.array(next(walk_iter)[:3])
@@ -704,3 +707,68 @@ def _pairwise_iter(walk_iter, labels_iter):
         labels = next(labels_iter)
         yield (start, end, radius), labels
         start = end
+
+
+def _swc_branch_dfs(adjacency, branches, node):
+    branch = []
+    branch_id = len(branches)
+    branches.append((None, branch))
+    node_stack = deque()
+    while True:
+        branch.append(node)
+        child_nodes = adjacency[node]
+        if not child_nodes:
+            try:
+                parent_bid, parent, node = node_stack.pop()
+            except IndexError:
+                break
+            else:
+                branch = [parent]
+                branch_id = len(branches)
+                branches.append((parent_bid, branch))
+        elif len(child_nodes) == 1:
+            node = child_nodes[0]
+        else:
+            node_stack.extend((branch_id, node, child) for child in reversed(child_nodes))
+            adjacency[node] = []
+
+
+def _swc_to_morpho(content):
+    data = np.array(
+        [
+            swc_data
+            for line in content.split("\n")
+            if not line.strip().startswith("#")
+            and (swc_data := [float(x) for x in line.split() if x != ""])
+        ]
+    )
+    if data.dtype.name == "object":
+        err_lines = ", ".join(i for i, d in enumerate(data) if len(d) != 7)
+        raise ValueError(f"SWC incorrect on lines: {err_lines}")
+    samples = data[:, 0].astype(int)
+    id_map = dict(zip(samples, itertools.count()))
+    id_map[-1] = -1
+    adjacency = {n: [] for n in range(len(samples))}
+    adjacency[-1] = []
+    map_ids = np.vectorize(id_map.get)
+    parents = map_ids(data[:, 6])
+    for s, p in enumerate(parents):
+        adjacency[p].append(s)
+    node_branches = []
+    for root_node in adjacency[-1]:
+        _swc_branch_dfs(adjacency, node_branches, root_node)
+
+    branches = []
+    roots = []
+    for parent, branch_nodes in node_branches:
+        node_data = data[branch_nodes]
+        branch = Branch(node_data[:, 2:5], node_data[:, 5])
+        tags = node_data[:, 1]
+        tags[0] = tags[1]
+        branch.set_properties(tags=tags)
+        if parent is not None:
+            branches[parent].attach_child(branch)
+        else:
+            roots.append(branch)
+        branches.append(branch)
+    return Morphology(roots)
