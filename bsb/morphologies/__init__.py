@@ -22,6 +22,7 @@ import itertools
 import functools
 import operator
 import inspect
+import morphio
 import numpy as np
 from collections import deque
 from scipy.spatial.transform import Rotation
@@ -178,7 +179,7 @@ class SubTree:
                 self.roots = branches
             else:
                 # Collect the deduplicated subtree emanating from all given branches
-                sub = set(chain.from_iterable(b.get_branches() for b in branches))
+                sub = set(itertools.chain(*(b.get_branches() for b in branches)))
                 # Find the root branches whose parents are not part of the subtrees
                 self.roots = [b for b in sub if b.parent not in sub]
         else:
@@ -186,6 +187,17 @@ class SubTree:
             # have been given, and just take all literal root (non-parent-having)
             # branches.
             self.roots = [b for b in branches if b.parent is None]
+        self._is_shared = False
+
+    @property
+    def size(self):
+        return len(self)
+
+    def __len__(self):
+        if self._is_shared:
+            return len(self._shared._points)
+        else:
+            return sum(b.size for b in self.get_branches())
 
     @property
     def branches(self):
@@ -196,7 +208,7 @@ class SubTree:
 
     @functools.cached_property
     def bounds(self):
-        f = self.flatten(matrix=True, vectors=["x", "y", "z"])
+        f = self.flatten()
         if not len(f):
             return np.zeros(3), np.zeros(3)
         return np.min(f, axis=0), np.max(f, axis=0)
@@ -219,30 +231,59 @@ class SubTree:
         root_iter = (branch_iter(root) for root in self.roots)
         all_branch = itertools.chain(*root_iter)
         if labels is None:
-            return list(all_branch)
+            return [*all_branch]
         else:
-            return [b for b in all_branch if any(b.fully_labelled_as(l) for l in labels)]
+            return [b for b in all_branch if b.contains_label(*labels)]
 
-    def flatten(self, vectors=None, matrix=False, labels=None):
+    def flatten(self):
         """
-        Return the flattened vectors of the morphology
+        Return the flattened points of the morphology or subtree.
 
-        :param vectors: List of vectors to return such as ['x', 'y', 'z'] to get the
-          positional vectors.
-        :type vectors: list[str]
-        :returns: Tuple of the vectors in the given order, if `matrix` is True a
-          matrix composed of the vectors is returned instead.
-        :rtype: Union[Tuple[numpy.ndarray],numpy.ndarray]
+        :rtype: numpy.ndarray
         """
-        if vectors is None:
-            vectors = Branch.vectors
-        branches = self.get_branches(labels=labels)
+        if self._is_shared:
+            return self._shared._points
+        branches = self.get_branches()
         if not branches:
-            if matrix:
-                return np.empty((0, len(vectors)))
-            return tuple(np.empty(0) for _ in vectors)
-        t = tuple(np.concatenate(tuple(getattr(b, v) for b in branches)) for v in vectors)
-        return np.column_stack(t) if matrix else t
+            return np.empty((0, 3))
+        return np.vstack(tuple(b.points for b in branches))
+
+    def flatten_radii(self):
+        """
+        Return the flattened radii of the morphology or subtree.
+
+        :rtype: numpy.ndarray
+        """
+        if self._is_shared:
+            return self._shared._radii
+        branches = self.get_branches()
+        if not branches:
+            return np.empty((0, 3))
+        return np.vstack(tuple(b.radii for b in branches))
+
+    def flatten_labels(self):
+        """
+        Return the flattened labels of the morphology or subtree.
+
+        :rtype: numpy.ndarray
+        """
+        if self._is_shared:
+            return self._shared._labels
+        else:
+            raise NotImplementedError("todo")
+
+    def flatten_properties(self):
+        """
+        Return the flattened properties of the morphology or subtree.
+
+        :rtype: numpy.ndarray
+        """
+        if self._is_shared:
+            if not self._shared._prop:
+                return np.empty((len(self), 0))
+            return np.column_stack(self._shared._prop.values())
+        else:
+            raise NotImplementedError("todo")
 
     def rotate(self, rot, center=None):
         """
@@ -251,18 +292,23 @@ class SubTree:
         :param rot: Scipy rotation
         :type: :class:`scipy.spatial.transform.Rotation`
         """
-        for b in self.branches:
-            points = b.as_matrix(with_radius=False)
-            if center is not None:
-                points -= center
-            rotated_points = rot.apply(points)
-            if center is not None:
-                rotated_points += center
-            b.x, b.y, b.z = rotated_points.T
+        if self._is_shared:
+            self._shared._points[:] = self._rotate(self._shared._points, rot, center)
+        else:
+            for b in self.branches:
+                b.points[:] = self._rotate(b.points, rot, center)
+
+    def _rotate(self, points, rot, center):
+        if center is not None:
+            points -= center
+        rotated_points = rot.apply(points)
+        if center is not None:
+            rotated_points += center
+        return rotated_points
 
     def root_rotate(self, rot):
         """
-        Rotate the subtree emanating from each root around the start of the root
+        Rotate the subtree emanating from each root around the start of that root
         """
         for b in self.roots:
             group = SubTree([b])
@@ -271,19 +317,26 @@ class SubTree:
     def translate(self, point):
         if len(point) != 3:
             raise ValueError("Point must be a sequence of x, y and z coordinates")
-        for p, vector in zip(point, Branch.vectors):
+        if self._is_shared:
+            self._shared._points[:] += point
+        else:
             for branch in self.branches:
-                array = getattr(branch, vector)
-                array += p
+                branch.points[:] += point
 
     @property
     def origin(self):
         return np.mean([r.get_point(0) for r in self.roots], axis=0)
 
     def center(self):
+        """
+        Center the morphology on the origin
+        """
         self.translate(-self.origin)
 
     def close_gaps(self):
+        """
+        Close any head-to-tail gaps between parent and child branches.
+        """
         for branch in self.branches:
             if branch.parent is not None:
                 gap_offset = branch.parent.get_point(-1) - branch.get_point(0)
@@ -291,12 +344,23 @@ class SubTree:
                     SubTree([branch]).translate(gap_offset)
 
     def collapse(self, on=None):
+        """
+        Collapse all of the roots of the morphology or subtree onto a single point.
+
+        :param on: Index of the root to collapse on. Collapses onto the origin by default.
+        :type on: int
+        """
         if on is None:
             on = self.origin
         for root in self.roots:
             root.translate(on - root.get_point(0))
 
     def voxelize(self, N, labels=None):
+        """
+        Turn the morphology or subtree into an approximating set of axis-aligned cuboids.
+
+        :rtype: .voxels.VoxelSet
+        """
         if labels is not None:
             raise NotImplementedError(
                 "Can't voxelize labelled parts yet, require Selection API in morphologies.py, todo"
@@ -305,7 +369,47 @@ class SubTree:
 
     @functools.cache
     def cached_voxelize(self, N, labels=None):
+        """
+        Turn the morphology or subtree into an approximating set of axis-aligned cuboids
+        and cache the result.
+
+        :rtype: .voxels.VoxelSet
+        """
         return self.voxelize(N, labels=labels)
+
+
+class _SharedBuffers:
+    def __init__(self, points, radii, labels, properties):
+        self._points = points
+        self._radii = radii
+        self._labels = labels if labels is not None else _Labels.none(len(radii))
+        self._prop = properties
+
+    def points_shared(self, branches):
+        return all(b.points.base is self._points for b in branches)
+
+    def radii_shared(self, branches):
+        return all(b.radii.base is self._radii for b in branches)
+
+    def labels_shared(self, branches):
+        return all(b.labels.base is self._labels for b in branches)
+
+    def properties_shared(self, branches):
+        return all(
+            (
+                b._properties.keys() == self._prop.keys() and all(c.base is self._prop[c])
+                for a, c in b._properties.items()
+            )
+            for b in branches
+        )
+
+    def all_buffers_shared(self, branches):
+        return (
+            self.points_shared(branches)
+            and self.radii_shared(branches)
+            and self.labels_shared(branches)
+            and self.properties_shared(branches)
+        )
 
 
 class Morphology(SubTree):
@@ -315,11 +419,35 @@ class Morphology(SubTree):
     coordinate or other associated data of a point on the branch.
     """
 
-    def __init__(self, roots, meta=None):
+    def __init__(self, roots, meta=None, shared_buffers=None):
         super().__init__(roots, sanitize=False)
         if len(self.roots) < len(roots):
             warn("None-root branches given as morphology input.", MorphologyWarning)
         self._meta = meta if meta is not None else {}
+        if shared_buffers is None:
+            self._shared = None
+            self._is_shared = False
+        else:
+            self._shared = _SharedBuffers(*shared_buffers)
+            self._is_shared = self._check_shared()
+            for branch in self.branches:
+                branch._on_mutate = self._mutnotif
+
+    def _check_shared(self):
+        if self._shared is None:
+            return False
+        return self._shared.all_buffers_shared(self.branches)
+
+    def _mutnotif(self):
+        self._shared = False
+
+    @property
+    def is_optimized(self):
+        return self._shared
+
+    def optimize(self):
+        if not self._is_shared:
+            raise NotImplementedError("todo")
 
     @property
     def meta(self):
@@ -332,6 +460,24 @@ class Morphology(SubTree):
                 # Look up the copy of the parent, and attach the child copy to it.
                 branch_copy_map[og.parent].attach_child(copy)
         return self.__class__([branch_copy_map[r] for r in self.roots], meta=self.meta)
+
+    @classmethod
+    def from_swc(cls, file, branch_class=None):
+        """
+        Create a Morphology from a file-like object.
+        """
+        if branch_class is None:
+            branch_class = Branch
+        return _swc_to_morpho(cls, branch_class, file.read())
+
+    @classmethod
+    def from_file(cls, path, branch_class=None):
+        """
+        Create a Morphology from a file on the file system through MorphIO.
+        """
+        if branch_class is None:
+            branch_class = Branch
+        return _import(cls, branch_class, path)
 
 
 def _copy_api(cls, wrap=lambda self: self):
@@ -367,12 +513,20 @@ class Branch:
     connected to a parent branch. Can be a terminal branch or have multiple children.
     """
 
-    def __init__(self, points, radii, labels=None):
+    def __init__(self, points, radii, labels=None, properties=None):
         self._points = points
         self._radii = radii
         self._children = []
-        self._properties = {}
+        if labels is None:
+            labels = _Labels.none(len(points))
+        elif not isinstance(labels, _Labels):
+            labels = _Labels.from_seq(len(points), labels)
+        self._labels = labels
+        if properties is None:
+            properties = {}
+        self._properties = properties
         self._parent = None
+        self._on_mutate = lambda: None
 
     def set_properties(self, **kwargs):
         for prop, values in kwargs.items():
@@ -383,9 +537,15 @@ class Branch:
     def __getattr__(self, attr):
         if attr in self._properties:
             return self._properties[attr]
+        else:
+            super().__getattribute__(attr)
 
     def __copy__(self):
         return self.copy()
+
+    def __bool__(self):
+        # Without this, empty branches are False, and messes with parent checking.
+        return True
 
     @property
     def parent(self):
@@ -410,6 +570,20 @@ class Branch:
         Return the vectors of this branch as a matrix.
         """
         return self._points
+
+    @property
+    def radii(self):
+        """
+        Return the vectors of this branch as a matrix.
+        """
+        return self._radii
+
+    @property
+    def labels(self):
+        """
+        Return the vectors of this branch as a matrix.
+        """
+        return self._labels
 
     @property
     def is_root(self):
@@ -511,21 +685,16 @@ class Branch:
         """
         Iterate over the points in the branch.
         """
-        return zip(*(vars(self)[v] for v in type(self).vectors))
+        return zip(
+            self.points[:, 0],
+            self.points[:, 1],
+            self.points[:, 2],
+            self.radii,
+            self.labels.walk(),
+            *self.properties.values(),
+        )
 
-    def label_walk(self):
-        """
-        Iterate over the labels of each point in the branch.
-        """
-        labels = self._full_labels.copy()
-        n = self.size
-        shared = np.ones((n, len(labels)), dtype=bool)
-        labels.extend(self._label_masks.keys())
-        label_row = np.array(labels)
-        label_matrix = np.column_stack((shared, *self._label_masks.values()))
-        return (label_row[label_matrix[i, :]] for i in range(n))
-
-    def has_label(self, label):
+    def contains_label(self, *labels):
         """
         Check if this branch is branch labelled with ``label``.
 
@@ -538,7 +707,7 @@ class Branch:
         :type label: str
         :rtype: bool
         """
-        return label in self._full_labels
+        return self.labels.contains(*labels)
 
     def has_any_label(self, labels):
         """
@@ -564,9 +733,7 @@ class Branch:
         :returns: All points with the label.
         :rtype: List[numpy.ndarray]
         """
-
-        point_label_iter = zip(self.walk(), self.label_walk())
-        return list(p for p, labels in point_label_iter if label in labels)
+        return self.points[self.labels.get_mask(label)]
 
     def introduce_point(self, index, *args, labels=None):
         """
@@ -579,6 +746,7 @@ class Branch:
         :param labels: The labels to assign to the point.
         :type labels: list
         """
+        self._on_mutate()
         for v, vector_name in enumerate(type(self).vectors):
             vector = getattr(self, vector_name)
             new_vector = np.concatenate((vector[:index], [args[v]], vector[index:]))
@@ -627,21 +795,6 @@ class Branch:
         arc_match = (i for i, arc_p in enumerate(arc_values) if abs(arc_p - arc) < eps)
         return next(arc_match, None)
 
-    def as_matrix(self, with_radius=False):
-        """
-        Return the branch as a (PxV) matrix. The different vectors (V) are columns and
-        each point (P) is a row.
-
-        :param with_radius: Include the radius vector. Defaults to ``False``.
-        :type with_radius: bool
-        :returns: Matrix of the branch vectors.
-        :rtype: :class:`numpy.ndarray`
-        """
-        # Get all the branch vectors unless not `with_radius`, then filter out `radii`.
-        vector_names = (v for v in type(self).vectors if with_radius or v != "radii")
-        vectors = list(getattr(self, name) for name in vector_names)
-        return np.column_stack(vectors)
-
     def as_arc(self):
         """
         Return the branch as a vector of arclengths in the closed interval [0, 1]. An
@@ -652,7 +805,7 @@ class Branch:
         :returns: Vector of branch points as arclengths.
         :rtype: :class:`numpy.ndarray`
         """
-        arc_distances = np.sqrt(np.sum(np.diff(self.as_matrix(), axis=0) ** 2, axis=1))
+        arc_distances = np.sqrt(np.sum(np.diff(self.points, axis=0) ** 2, axis=1))
         arc_length = np.sum(arc_distances)
         return np.cumsum(np.concatenate(([0], arc_distances))) / arc_length
 
@@ -683,15 +836,26 @@ class Branch:
         return SubTree([self]).voxelize(*args, **kwargs)
 
 
-class Labels(np.ndarray):
-    def __new__(subtype, *args, **kwargs):
-        bound = inspect.signature(super().__new__).bind(*args, **kwargs)
-        super().__new__(subtype, *args, **kwargs)
-        obj.labels = []
+class _Labels(np.ndarray):
+    def __new__(subtype, *args, labels=None, **kwargs):
+        kwargs["dtype"] = int
+        obj = super().__new__(subtype, *args, **kwargs)
+        if labels is None:
+            labels = {0: []}
+        obj.labels = labels
+        return obj
 
     def __array_finalize__(self, obj):
         if obj is not None:
-            self.labels = getattr(obj, "labels", []).copy()
+            self.labels = getattr(obj, "labels", {0: []})
+
+    @classmethod
+    def none(cls, len):
+        return cls(len, buffer=np.zeros(len, dtype=int))
+
+    @classmethod
+    def from_seq(cls, len, seq):
+        return cls(len, buffer=np.ones(len), labels={0: [], 1: [*seq]})
 
 
 def _pairwise_iter(walk_iter, labels_iter):
@@ -733,7 +897,7 @@ def _swc_branch_dfs(adjacency, branches, node):
             adjacency[node] = []
 
 
-def _swc_to_morpho(content):
+def _swc_to_morpho(cls, branch_cls, content):
     data = np.array(
         [
             swc_data
@@ -760,15 +924,87 @@ def _swc_to_morpho(content):
 
     branches = []
     roots = []
+    _len = len(samples)
+    points = np.empty((_len, 3))
+    radii = np.empty(_len)
+    tags = np.empty(_len, dtype=int)
+    labels = _Labels.none(_len)
+    ptr = 0
     for parent, branch_nodes in node_branches:
+        nptr = ptr + len(branch_nodes)
         node_data = data[branch_nodes]
-        branch = Branch(node_data[:, 2:5], node_data[:, 5])
-        tags = node_data[:, 1]
-        tags[0] = tags[1]
-        branch.set_properties(tags=tags)
+        points[ptr:nptr] = node_data[:, 2:5]
+        branch_points = points[ptr:nptr]
+        radii[ptr:nptr] = node_data[:, 5]
+        branch_radii = radii[ptr:nptr]
+        tags[ptr:nptr] = node_data[:, 1]
+        tags[ptr] = tags[ptr + 1]
+        branch_tags = tags[ptr:nptr]
+        branch_labels = labels[ptr:nptr]
+        ptr = nptr
+        branch = branch_cls(branch_points, branch_radii, branch_labels)
+        branch.set_properties(tags=branch_tags)
+        branches.append(branch)
         if parent is not None:
             branches[parent].attach_child(branch)
         else:
             roots.append(branch)
-        branches.append(branch)
-    return Morphology(roots)
+    morpho = cls(roots, shared_buffers=(points, radii, None, {"tags": tags}))
+    assert morpho._check_shared(), "SWC import didn't result in shareable buffers."
+    return morpho
+
+
+class Soma:
+    def __init__(self, obj):
+        self._o = obj
+
+    def __getattr__(self, attr):
+        return getattr(self._o, attr)
+
+
+def _import(cls, branch_cls, file):
+    morpho_io = morphio.Morphology(file)
+    # We create shared buffers for the entire morphology, which optimize operations on the
+    # entire morphology such as `.flatten`, subtree transformations and IO.  The branches
+    # have views on those buffers, and as long as no points are added or removed, we can
+    # keep working in shared buffer mode.
+    soma = Soma(morpho_io.soma)
+    _len = len(morpho_io.points) + len(soma.points)
+    points = np.empty((_len, 3))
+    radii = np.empty(_len)
+    tags = np.empty(_len, dtype=int)
+    labels = _Labels.none(_len)
+    soma.children = morpho_io.root_sections
+    section_stack = deque([(None, soma)])
+    branch = None
+    roots = []
+    counter = itertools.count(1)
+    ptr = 0
+    while (i := next(counter)) :
+        try:
+            parent, section = section_stack.pop()
+        except IndexError:
+            break
+        else:
+            nptr = ptr + len(section.points)
+            # Fill the branch data into the shared buffers and create views into them.
+            points[ptr:nptr] = section.points
+            branch_points = points[ptr:nptr]
+            radii[ptr:nptr] = section.diameters / 2
+            branch_radii = radii[ptr:nptr]
+            tags[ptr:nptr] = np.ones(len(section.points), dtype=int) * int(section.type)
+            branch_tags = tags[ptr:nptr]
+            branch_labels = labels[ptr:nptr]
+            ptr = nptr
+            # Pass the shared buffer views to the branch
+            branch = branch_cls(branch_points, branch_radii, branch_labels)
+            branch.set_properties(tags=branch_tags)
+            if parent:
+                parent.attach_child(branch)
+            else:
+                roots.append(branch)
+            children = reversed([(branch, child) for child in section.children])
+            section_stack.extend(children)
+    morpho = cls(roots, shared_buffers=(points, radii, labels, {"tags": tags}))
+    assert morpho._check_shared(), "MorphIO import didn't result in shareable buffers."
+    return morpho

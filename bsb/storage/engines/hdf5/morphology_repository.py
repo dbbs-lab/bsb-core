@@ -1,8 +1,10 @@
-from ....morphologies import Morphology, Branch
+from ....morphologies import Morphology, Branch, _Labels
 from ....exceptions import *
 from ...interfaces import MorphologyRepository as IMorphologyRepository, StoredMorphology
 from .resource import Resource
 import numpy as np
+import json
+import itertools
 
 _root = "/morphologies"
 
@@ -52,12 +54,42 @@ class MorphologyRepository(Resource, IMorphologyRepository):
         with self._engine._read():
             with self._engine._handle("r") as repo:
                 try:
-                    group = repo[f"{self._path}/{name}/"]
+                    root = repo[f"{self._path}/{name}/"]
                 except:
                     raise MissingMorphologyError(
                         f"`{self._engine.root}` contains no morphology named `{name}`."
                     ) from None
-                return _morphology(group)
+                data = root["data"][()]
+                points = data[:, :3].copy()
+                radii = data[:, 3].copy()
+                labelsets = json.loads(root["data"].attrs["labels"])
+                labels = _Labels(len(points), buffer=data[:, 4].copy(), labels=labelsets)
+                prop_names = root["data"].attrs["properties"]
+                props = {k: v for k, v in zip(prop_names, data[:, 5:])}
+                parents = {-1: None}
+                branch_id = itertools.count()
+                roots = []
+                ptr = 0
+                for nptr, p in root["graph"][()]:
+                    radii[ptr:nptr]
+                    labels[ptr:nptr]
+                    {k: v[ptr:nptr] for k, v in props.items()}
+                    branch = Branch(
+                        points[ptr:nptr],
+                        radii[ptr:nptr],
+                        labels[ptr:nptr],
+                        {k: v[ptr:nptr] for k, v in props.items()},
+                    )
+                    parent = parents.get(p, None)
+                    parents[next(branch_id)] = branch
+                    if parent:
+                        parent.attach_child(branch)
+                    else:
+                        roots.append(branch)
+                    ptr = nptr
+                morpho = Morphology(roots, shared_buffers=(points, radii, labels, props))
+                assert morpho._check_shared(), "Morpho read with unshareable buffers"
+                return morpho
 
     def save(self, name, morphology, overwrite=False):
         with self._engine._write():
@@ -71,35 +103,31 @@ class MorphologyRepository(Resource, IMorphologyRepository):
                             f"A morphology called '{name}' already exists in `{self._engine.root}`."
                         )
                 root = me.create_group(name)
-                branches_group = root.create_group("branches")
-                for id, branch in enumerate(morphology.branches):
-                    # Cheap trick: store the id assigned to each branch so that parent
-                    # branches can give their id to their children for serialization.
-                    branch._tmp_id = id
-                    if branch._parent is not None:
-                        parent_id = branch._parent._tmp_id
-                    else:
-                        parent_id = -1
-                    self._save_branch(branches_group, id, branch, parent_id)
-                points = morphology.flatten(["x", "y", "z"], matrix=True)
-                root.attrs["ldc"] = np.min(points, axis=0)
-                root.attrs["mdc"] = np.max(points, axis=0)
-        # Clean up the temporary ids stored on each branch.
-        for branch in morphology.branches:
-            del branch._tmp_id
-
-    def _save_branch(self, group, branch_id, branch, parent_id):
-        branch_group = group.create_group(str(branch_id))
-        branch_group.attrs["parent"] = parent_id
-        # Save vectors
-        for v in Branch.vectors:
-            branch_group.create_dataset(v, data=getattr(branch, v))
-        # Save branch labels
-        branch_group.attrs["branch_labels"] = branch._full_labels
-        # Save point labels
-        label_group = branch_group.create_group("labels")
-        for label, label_mask in branch._label_masks.items():
-            label_group.create_dataset(label, data=label_mask, dtype=np.bool)
+                # Optimizing a morphology goes through the same steps as what is required
+                # to save it to disk; plus, now the user's object is optimized :)
+                morphology.optimize()
+                branches = morphology.branches
+                n_prop = len(morphology._shared._prop)
+                data = np.empty((len(morphology), 5 + n_prop))
+                data[:, :3] = morphology._shared._points
+                data[:, 3] = morphology._shared._radii
+                data[:, 4] = morphology._shared._labels
+                for i, prop in enumerate(morphology._shared._prop.values()):
+                    data[:, 5 + i] = prop
+                dds = root.create_dataset("data", data=data)
+                dds.attrs["labels"] = json.dumps(morphology._shared._labels.labels)
+                dds.attrs["properties"] = [*morphology._shared._prop.keys()]
+                graph = np.empty((len(branches), 2))
+                parents = {None: -1}
+                ptr = 0
+                for i, branch in enumerate(morphology.branches):
+                    graph[i, 0] = ptr
+                    graph[i, 1] = parents[branch.parent]
+                    parents[branch] = i
+                    ptr += len(branch)
+                root.create_dataset("graph", data=graph, dtype=int)
+                root.attrs["ldc"] = np.min(morphology._shared._points, axis=0)
+                root.attrs["mdc"] = np.max(morphology._shared._points, axis=0)
 
     def remove(self, name):
         with self._engine._write():
@@ -110,73 +138,5 @@ class MorphologyRepository(Resource, IMorphologyRepository):
                     raise MorphologyRepositoryError(f"'{name}' doesn't exist.") from None
 
 
-def _morphology(m_root_group):
-    b_root_group = m_root_group["branches"]
-    branches = [_branch(b_group) for b_group in _int_ordered_iter(b_root_group)]
-    _attach_branches(branches)
-    roots = [b for b in branches if b._parent is None]
-    morpho = Morphology(roots, meta=_meta(m_root_group))
-    return morpho
-
-
 def _meta(group):
     return dict(group.attrs)
-
-
-def _branch(b_root_group):
-    vectors = _group_vector_iter(b_root_group, Branch.vectors)
-    try:
-        branch = Branch(*vectors)
-    except KeyError:
-        missing = [v for v in Branch.vectors if v not in b_root_group]
-        raise MorphologyDataError(
-            f"Missing branch vectors {missing} in '{b_root_group.name}'."
-        )
-    attrs = b_root_group.attrs
-    branch._tmp_parent = int(attrs.get("parent", -1))
-    branch.label_all(*attrs.get("branch_labels", iter(())))
-    for label, dataset in b_root_group["labels"].items():
-        branch.label_points(label, dataset[()])
-    return branch
-
-
-def _attach_branches(branches):
-    for branch in branches:
-        if branch._tmp_parent < 0:
-            continue
-        branches[branch._tmp_parent].attach_child(branch)
-        del branch._tmp_parent
-
-
-def _group_vector_iter(group, vector_labels):
-    return (group[label][()] for label in vector_labels)
-
-
-def _is_invalid_order(order):
-    # Checks sequential order starting from zero. [] is also valid.
-    #
-    # We need to prepend 0 to a 1 element diff so that 0 - 0 = len([0]) - 1 and all else
-    # is rejected. `np.diff` behaves differently if `prepend` is set or not, there is no
-    # default value that we can set that won't cause an error so we construct a dict and
-    # either add the prepend kwarg to it or not and pass the dict as **kwargs.
-    k = dict()
-    if len(order) == 1:
-        k["prepend"] = 0
-    return bool(len(order) and np.sum(np.diff(order, **k)) != len(order) - 1)
-
-
-def _int_ordered_iter(group):
-    # Sort the group keys as ascending integers, then make sure they are a part of the
-    # sequence [0, 1, 2, ..., n]
-    try:
-        neg = [*(g for g in group.keys() if int(g) < 0)]
-    except ValueError:
-        raise MorphologyDataError("Non numeric branch names are not allowed")
-    if neg:
-        raise MorphologyDataError(f"Branches with negative numbers {neg} are not allowed")
-    order = sorted(map(int, group.keys()))
-    if _is_invalid_order(order):
-        raise MorphologyDataError(
-            f"Non sequential branch numbering found: {order}. Branch numbers need to correspond with their index."
-        )
-    return (group[str(o)] for o in order)
