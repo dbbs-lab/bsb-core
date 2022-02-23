@@ -3,7 +3,6 @@ from ....exceptions import *
 from ...interfaces import MorphologyRepository as IMorphologyRepository, StoredMorphology
 from .resource import Resource
 import numpy as np
-import arbor
 
 _root = "/morphologies"
 
