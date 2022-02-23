@@ -3,20 +3,8 @@ Morphologies
 ############
 
 Morphologies are the 3D representation of a cell. In the BSB they consist of branches,
-pieces of cable described as vectors of the properties of points. Consider the following
-branch with 4 points ``p0, p1, p2, p3``::
-
-  branch0 = [x, y, z, r]
-  x = [x0, x1, x2, x3]
-  y = [y0, y1, y2, y3]
-  z = [z0, z1, z2, z3]
-  r = [r0, r1, r2, r3]
-
-Branches also specify which other branches they are connected to and in this way the
-entire network of neuronal processes can be described. Those branches that do not have a
-parent branch are called ``roots``. A morphology can have as many roots as it likes;
-usually in the case of 1 root it represents the soma; in the case of many roots they each
-represent the start of a process such as an axon on dendrite around an imaginary soma.
+pieces of cables, consisting of points with spatial coordinates and a radius. On top of
+that each point can also be given labels, and properties.
 
 In the end a morphology can be summed up in pseudo-code as::
 
