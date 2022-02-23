@@ -26,6 +26,7 @@ requires = [
     "zwembad",
     "toml",
     "requests",
+    "appdirs~=1.4",
 ]
 
 setuptools.setup(
