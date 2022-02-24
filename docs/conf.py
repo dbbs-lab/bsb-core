@@ -1,4 +1,4 @@
-import os
+import os, sys
 
 # Fetch the `__version__`
 bsb_folder = os.path.join(os.path.dirname(__file__), "..", "bsb")
@@ -8,6 +8,7 @@ with open(bsb_init_file, "r") as f:
         if "__version__ = " in line:
             exec(line.strip())
             break
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 # -- Project information -----------------------------------------------------
 
