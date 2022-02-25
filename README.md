@@ -3,9 +3,7 @@
 [![Build Status](https://travis-ci.com/dbbs-lab/bsb.svg?branch=master)](https://travis-ci.com/dbbs-lab/bsb)
 [![codecov](https://codecov.io/gh/dbbs-lab/bsb/branch/master/graph/badge.svg)](https://codecov.io/gh/dbbs-lab/bsb)
 
-**Note:** The scaffold framework is still under heavy development. Please check the
-**_Known Issues_** section at the bottom for important issues that fell victim to our
-deadlines and will be solved at a later date.
+<h3>:closed_book: Read the documentation on https://bsb.readthedocs.io/en/latest</h3>
 
 # BSB: A scaffold modelling framework
 This package is intended to facilitate spatially, topologically and morphologically
