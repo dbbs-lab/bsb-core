@@ -141,7 +141,7 @@ class TestUtil(unittest.TestCase):
         self.assertFalse(link.exists())
         link = _util.nolink()
         self.assertFalse(link.exists())
-        junk = "__dsgss__dd.txt"
+        junk = f"__dsgss__dd{MPI.COMM_WORLD.Get_rank()}.txt"
         with open(junk, "w") as f:
             f.write("Your Highness?")
         link = _util.syslink(junk)
