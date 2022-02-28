@@ -428,7 +428,10 @@ class Morphology(SubTree):
             self._shared = None
             self._is_shared = False
         else:
-            self._shared = _SharedBuffers(*shared_buffers)
+            if isinstance(shared_buffers, _SharedBuffers):
+                self._shared = shared_buffers
+            else:
+                self._shared = _SharedBuffers(*shared_buffers)
             self._is_shared = self._check_shared()
             for branch in self.branches:
                 branch._on_mutate = self._mutnotif
