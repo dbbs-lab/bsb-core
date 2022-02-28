@@ -146,7 +146,9 @@ class TestUtil(unittest.TestCase):
             f.write("Your Highness?")
         link = _util.syslink(junk)
         self.assertTrue(link.exists())
-        str(link)
+        f = link.get()
+        print(f, f.name, f.read())
+        f.close()
         with link.get() as f:
             self.assertEqual("Your Highness?", f.read(), "message")
         with link.get(binary=True) as f:
