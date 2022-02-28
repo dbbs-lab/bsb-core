@@ -975,7 +975,9 @@ def _swc_to_morpho(cls, branch_cls, content):
             branches[parent].attach_child(branch)
         else:
             roots.append(branch)
-    morpho = cls(roots, shared_buffers=(points, radii, None, {"tags": tags}))
+    # Then save the shared data matrices on the morphology
+    morpho = cls(roots, shared_buffers=(points, radii, labels, {"tags": tags}))
+    # And assert that this shared buffer mode succeeded
     assert morpho._check_shared(), "SWC import didn't result in shareable buffers."
     return morpho
 
