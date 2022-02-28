@@ -237,9 +237,9 @@ Morphology preloading
 Reading the morphology data from the repository takes time. Usually morphologies are
 passed around in the framework as :class:`StoredMorphologies
 <.storage.interfaces.StoredMorphology>`. These objects have a
-:meth:`.storage.interfaces.StoredMorphology.load` method to load the
-:class:`.morphologies.Morphology` object from storage and a
-:meth:`.storage.interfaces.StoredMorphology.get_meta` method to return the metadata.
+:meth:`~.storage.interfaces.StoredMorphology.load` method to load the
+:class:`~.morphologies.Morphology` object from storage and a
+:meth:`~.storage.interfaces.StoredMorphology.get_meta` method to return the metadata.
 
 Morphology selectors
 --------------------
@@ -251,7 +251,7 @@ implement :meth:`~.objects.cell_type.MorphologySelector.validate` and
 
 ``validate`` can be used to assert that all the required morphologies are present, while
 ``pick`` needs to return ``True``/``False`` to include a morphology or not. Both methods
-are handed :class:`.storage.interfaces.StoredMorphology` objects, only ``load``
+are handed :class:`~.storage.interfaces.StoredMorphology` objects, only ``load``
 morphologies if it is impossible to determine the outcome from the metadata.
 
 .. code-block:: python
