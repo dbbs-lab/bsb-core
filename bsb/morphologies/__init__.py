@@ -439,7 +439,7 @@ class Morphology(SubTree):
         return self._shared.all_buffers_shared(self.branches)
 
     def _mutnotif(self):
-        self._shared = False
+        self._is_shared = False
 
     @property
     def is_optimized(self):
