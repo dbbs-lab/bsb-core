@@ -465,7 +465,17 @@ class Morphology(SubTree):
     def from_swc(cls, file, branch_class=None):
         """
         Create a Morphology from a file-like object.
+
+        :param file: path or file-like object to parse.
+        :type file: Union[str, TextIO]
+        :param branch_class: Custom branch class
+        :type branch_class: type
+        :returns: The parsed morphology, with the SWC tags as a property.
+        :rtype: bsb.morphologies.Morphology
         """
+        if isinstance(file, str):
+            with open(file, "r") as f:
+                return cls.from_swc(f, branch_class)
         if branch_class is None:
             branch_class = Branch
         return _swc_to_morpho(cls, branch_class, file.read())
