@@ -385,6 +385,12 @@ class _SharedBuffers:
         self._labels = labels if labels is not None else _Labels.none(len(radii))
         self._prop = properties
 
+    def copy(self):
+        copied_props = {k: v.copy() for k, v in self._prop.items()}
+        return self.__class__(
+            self._points.copy(), self._radii.copy(), self._labels.copy(), copied_props
+        )
+
     def points_shared(self, branches):
         return all(b.points.base is self._points for b in branches)
 
@@ -409,6 +415,15 @@ class _SharedBuffers:
             and self.radii_shared(branches)
             and self.labels_shared(branches)
             and self.properties_shared(branches)
+        )
+
+    def get_shared(self, start, end):
+        copied_props = {k: v[start:end] for k, v in self._prop.items()}
+        return (
+            self._points[start:end],
+            self._radii[start:end],
+            self._labels[start:end],
+            copied_props,
         )
 
 
@@ -457,12 +472,21 @@ class Morphology(SubTree):
         return self._meta
 
     def copy(self):
-        branch_copy_map = {branch: branch.copy() for branch in self.get_branches()}
-        for og, copy in branch_copy_map.items():
-            if not og.is_root:
-                # Look up the copy of the parent, and attach the child copy to it.
-                branch_copy_map[og.parent].attach_child(copy)
-        return self.__class__([branch_copy_map[r] for r in self.roots], meta=self.meta)
+        self.optimize()
+        buffers = self._shared.copy()
+        roots = []
+        branch_copy_map = {}
+        bid = itertools.count()
+        ptr = 0
+        for branch in self.branches:
+            nptr = ptr + len(branch)
+            nbranch = Branch(*buffers.get_shared(ptr, nptr))
+            branch_copy_map[branch] = nbranch
+            if not branch.is_root:
+                branch_copy_map[branch.parent].attach_child(nbranch)
+            else:
+                roots.append(nbranch)
+        return self.__class__(roots, shared_buffers=buffers, meta=self.meta.copy())
 
     @classmethod
     def from_swc(cls, file, branch_class=None):
