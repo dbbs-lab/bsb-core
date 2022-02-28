@@ -124,6 +124,18 @@ class TestHDF5Storage(unittest.TestCase):
         self.assertTrue(os.path.exists(s._root))
         self.assertTrue(s.exists())
 
+    def test_eq(self):
+        s = self.random_storage()
+        s2 = self.random_storage()
+        self.assertEqual(s, s, "Same storage should be equal")
+        self.assertNotEqual(s, s2, "Diff storages should be unequal")
+        self.assertEqual(s.files, s.files, "Singletons equal")
+        self.assertNotEqual(s.files, s2.files, "Diff singletons unequal")
+        self.assertNotEqual(s.files, s.morphologies, "Diff singletons unequal")
+        self.assertEqual(s.morphologies, s.morphologies, "Singletons equal")
+        self.assertNotEqual(s.morphologies, s2.morphologies, "Dff singletons unequal")
+        self.assertNotEqual(s.morphologies, "hello", "weird comp should be unequal")
+
 
 class TestUtil(unittest.TestCase):
     def test_links(self):
