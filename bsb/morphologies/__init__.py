@@ -604,21 +604,22 @@ class Branch:
     @property
     def points(self):
         """
-        Return the vectors of this branch as a matrix.
+        Return the spatial coordinates of the points on this branch.
         """
         return self._points
 
     @property
     def radii(self):
         """
-        Return the vectors of this branch as a matrix.
+        Return the radii of the points on this branch.
         """
         return self._radii
 
     @property
     def labels(self):
         """
-        Return the vectors of this branch as a matrix.
+        Return the labels of the points on this branch. Labels are represented as a number
+        that is associated to a set of labels. See :ref:`morphology_labels` for more info.
         """
         return self._labels
 
