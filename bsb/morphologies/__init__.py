@@ -922,19 +922,23 @@ def _swc_to_morpho(cls, branch_cls, content):
     if data.dtype.name == "object":
         err_lines = ", ".join(i for i, d in enumerate(data) if len(d) != 7)
         raise ValueError(f"SWC incorrect on lines: {err_lines}")
+    # `data` is the raw SWC data, `samples` and `parents` are the graph nodes and edges.
     samples = data[:, 0].astype(int)
+    # Map possibly irregular sample IDs (SWC spec allows this) to an ordered 0 to N map.
     id_map = dict(zip(samples, itertools.count()))
     id_map[-1] = -1
+    # Create an adjacency list of the graph described in the SWC data
     adjacency = {n: [] for n in range(len(samples))}
     adjacency[-1] = []
     map_ids = np.vectorize(id_map.get)
     parents = map_ids(data[:, 6])
     for s, p in enumerate(parents):
         adjacency[p].append(s)
+    # Now turn the adjacency list into a list of unbranching stretches of the graph.
+    # Call these `node_branches` because they only contain the sample/node ids.
     node_branches = []
     for root_node in adjacency[-1]:
         _swc_branch_dfs(adjacency, node_branches, root_node)
-
     branches = []
     roots = []
     _len = sum(len(s[1]) for s in node_branches)
@@ -942,19 +946,28 @@ def _swc_to_morpho(cls, branch_cls, content):
     radii = np.empty(_len)
     tags = np.empty(_len, dtype=int)
     labels = _Labels.none(_len)
+    # Now turn each "node branch" into an actual branch by looking up the node data in the
+    # samples array. We copy over the node data into several contiguous matrices that will
+    # form the basis of the Morphology data structure.
     ptr = 0
     for parent, branch_nodes in node_branches:
         nptr = ptr + len(branch_nodes)
         node_data = data[branch_nodes]
+        # Example with the points data matrix: copy over the swc data into contiguous arr
         points[ptr:nptr] = node_data[:, 2:5]
+        # Then create a partial view into that data matrix for the branch
         branch_points = points[ptr:nptr]
+        # Same here for radius,
         radii[ptr:nptr] = node_data[:, 5]
         branch_radii = radii[ptr:nptr]
+        # the SWC tags
         tags[ptr:nptr] = node_data[:, 1]
         tags[ptr] = tags[ptr + 1]
         branch_tags = tags[ptr:nptr]
+        # And the (empty) labels
         branch_labels = labels[ptr:nptr]
         ptr = nptr
+        # Use the views to construct the branch
         branch = branch_cls(branch_points, branch_radii, branch_labels)
         branch.set_properties(tags=branch_tags)
         branches.append(branch)
