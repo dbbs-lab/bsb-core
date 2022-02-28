@@ -18,6 +18,11 @@ class HDF5Engine(Engine):
         self._root = root
         self._lock = sync()
 
+    def __eq__(self, other):
+        return self._format == getattr(other, "_format", None) and self._root == getattr(
+            other, "_root", None
+        )
+
     def _read(self):
         return self._lock.read()
 
