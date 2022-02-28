@@ -643,46 +643,37 @@ class Branch:
         """
         return not self._children
 
-    def copy(self):
+    def copy(self, branch_class=None):
         """
         Return a parentless and childless copy of the branch.
-        """
-        cls = type(self)
-        new = cls(self._points.copy(), self._radii.copy())
-        new._full_labels = self._full_labels.copy()
-        new._label_masks = {k: v.copy() for k, v in self._label_masks.items()}
-        return new
 
-    def label_all(self, *labels):
+        :param branch_class: Custom branch creation class
+        :type branch_class: type
+        :returns: A branch, or `branch_class` if given, without parents or children.
+        :rtype: bsb.morphologies.Branch
+        """
+        cls = branch_class or type(self)
+        props = {k: v.copy() for k, v in self._properties}
+        return cls(self._points.copy(), self._radii.copy(), self._labels.copy(), props)
+
+    def label(self, *labels):
         """
         Add labels to every point on the branch. See
         :meth:`~.morphologies.Branch.label_points` to label individual points.
 
-        :param labels: Label(s) for the branch.
+        :param labels: Label(s) for the branch. The first argument may also be a boolean
+          or integer mask to select the points to label.
         :type labels: str
         """
-        self._full_labels.extend(labels)
-
-    def label_points(self, label, mask, join=operator.or_):
-        """
-        Add labels to specific points on the branch. See
-        :meth:`~.morphologies.Branch.label_all` to label the entire branch.
-
-        :param label: Label to apply to the points.
-        :type label: str
-        :param mask: Boolean mask equal in size to the branch. Elements set to `True` will
-          be considered labelled.
-        :type mask: numpy.ndarray[bool]
-        :param join: If the label already existed, this determines how the existing and
-          new masks are joined together. Defaults to ``|`` (``operator.or_``).
-        :type join: Callable
-        """
-        mask = np.array(mask, dtype=bool)
-        if label in self._label_masks:
-            labels = self._label_masks[label]
-            self._label_masks[label] = join(labels, mask)
+        points = None
+        if not labels:
+            return
+        elif not isinstance(labels[0], str):
+            points = labels[0]
+            labels = labels[1:]
         else:
-            self._label_masks[label] = mask
+            points = np.ones(len(self))
+        self._labels.label(labels, points)
 
     @property
     def children(self):
