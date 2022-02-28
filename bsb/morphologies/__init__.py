@@ -937,7 +937,7 @@ def _swc_to_morpho(cls, branch_cls, content):
 
     branches = []
     roots = []
-    _len = len(samples)
+    _len = sum(len(s[1]) for s in node_branches)
     points = np.empty((_len, 3))
     radii = np.empty(_len)
     tags = np.empty(_len, dtype=int)
