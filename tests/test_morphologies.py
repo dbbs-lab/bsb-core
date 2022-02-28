@@ -5,6 +5,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
 from bsb.morphologies import Morphology, Branch
 from bsb.storage.engines.hdf5 import morphology_repository as _mr_module
 from bsb.exceptions import *
+from scipy.spatial.transform import Rotation
 
 
 @unittest.skip("Re-enabling tests gradually while advancing v4.0 rework")
@@ -301,6 +302,18 @@ class TestMorphologies(unittest.TestCase):
         self.assertTrue(branch.is_terminal)
         branch.attach_child(Branch(*(np.ones(0) for i in range(len(Branch.vectors)))))
         self.assertFalse(branch.is_terminal)
+
+    def test_chaining(self):
+        branch = Branch(
+            np.array([0, 1, 2]),
+            np.array([0, 1, 2]),
+            np.array([0, 1, 2]),
+            np.array([0, 1, 2]),
+        )
+        m = Morphology([branch])
+        r = Rotation.from_euler("z", 0)
+        res = m.rotate(r).root_rotate(r).translate([0, 0, 0]).collapse().close_gaps()
+        self.assertEqual(m, res, "chaining calls should return self")
 
 
 class TestMorphologyLabels(unittest.TestCase):
