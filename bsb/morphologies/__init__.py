@@ -908,8 +908,9 @@ def _swc_branch_dfs(adjacency, branches, node):
     branches.append((None, branch))
     node_stack = deque()
     while True:
-        branch.append(node)
-        child_nodes = adjacency[node]
+        if node is not None:
+            branch.append(node)
+            child_nodes = adjacency[node]
         if not child_nodes:
             try:
                 parent_bid, parent, node = node_stack.pop()
@@ -923,7 +924,8 @@ def _swc_branch_dfs(adjacency, branches, node):
             node = child_nodes[0]
         else:
             node_stack.extend((branch_id, node, child) for child in reversed(child_nodes))
-            adjacency[node] = []
+            child_nodes = []
+            node = None
 
 
 def _swc_to_morpho(cls, branch_cls, content):
