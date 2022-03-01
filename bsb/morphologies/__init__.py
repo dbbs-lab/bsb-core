@@ -576,8 +576,8 @@ class Branch:
     """
 
     def __init__(self, points, radii, labels=None, properties=None):
-        self._points = points
-        self._radii = radii
+        self._points = points if isinstance(points, np.ndarray) else np.array(points)
+        self._radii = radii if isinstance(radii, np.ndarray) else np.array(radii)
         self._children = []
         if labels is None:
             labels = _Labels.none(len(points))
@@ -586,7 +586,10 @@ class Branch:
         self._labels = labels
         if properties is None:
             properties = {}
-        self._properties = properties
+        self._properties = {
+            k: v if isinstance(v, np.ndarray) else np.array(v)
+            for k, v in properties.items()
+        }
         self._parent = None
         self._on_mutate = lambda: None
 

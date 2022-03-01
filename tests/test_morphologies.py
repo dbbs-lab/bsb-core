@@ -6,6 +6,42 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
 from bsb.morphologies import Morphology, Branch, _Labels
 from bsb.storage import Storage
 from bsb.exceptions import *
+from test_setup import get_morphology, NumpyTestCase
+
+
+class TestIO(NumpyTestCase, unittest.TestCase):
+    def test_swc_2comp(self):
+        m = Morphology.from_swc(get_morphology("2comp.swc"))
+        self.assertEqual(2, len(m), "Expected 2 points on the morphology")
+        self.assertEqual(1, len(m.roots), "Expected 1 root on the morphology")
+        self.assertClose([1, 1], m.properties, "tags not loaded")
+        self.assertClose([1, 1], m.tags, "tags should be all soma")
+        self.assertClose(0, m.labels, "swc import is unlabelled")
+
+    def test_swc_2root(self):
+        m = Morphology.from_swc(get_morphology("2root.swc"))
+        self.assertEqual(2, len(m), "Expected 2 points on the morphology")
+        self.assertEqual(2, len(m.roots), "Expected 2 roots on the morphology")
+
+    def test_swc_branch_filling(self):
+        m = Morphology.from_swc(get_morphology("3branch.swc"))
+        # SWC specifies child-parent edges, when translating that to branches, at branch
+        # points some points need to be duplicated: there's 4 samples (SWC) and 2 child
+        # branches -> 2 extra points == 6 points
+        self.assertEqual(6, len(m), "Expected 6 points on the morphology")
+        self.assertEqual(3, len(m.branches), "Expected 3 branches on the morphology")
+        self.assertEqual(1, len(m.roots), "Expected 1 root on the morphology")
+
+    def test_known(self):
+        # TODO: Check the morphos visually with glover
+        m = Morphology.from_swc(get_morphology("PurkinjeCell.swc"))
+        self.assertEqual(3834, len(m), "Amount of point on purkinje changed")
+        self.assertEqual(459, len(m.branches), "Amount of branches on purkinje changed")
+        self.assertClose(
+            42.45157433053635,
+            np.mean(m.points),
+            "value of the universe, life and everything changed.",
+        )
 
 
 class TestRepositories(unittest.TestCase):
@@ -74,106 +110,46 @@ class TestRepositories(unittest.TestCase):
         with h5py.File("test.h5", "w") as f:
             g = f.create_group("morphologies")
             g = g.create_group("M")
-            b = g.create_group("branches")
-            for i in range(5):
-                b0 = b.create_group(str(i))
-                b0.create_dataset("x", data=[i * 2])
-                b0.create_group("labels")
-                b0.create_dataset("y", data=[i * 2])
-                b0.create_dataset("z", data=[i * 2])
-                b0.create_dataset("radii", data=[i * 2])
-            m = _mr_module._morphology(g)
+            data = np.ones((5, 5))
+            data[:, 0] = np.arange(5) * 2
+            data[:, 1] = np.arange(5) * 2
+            data[:, 2] = np.arange(5) * 2
+            data[:, 3] = np.arange(5) * 2
+            ds = g.create_dataset("data", data=data)
+            ds.attrs["labels"] = json.dumps({1: []})
+            ds.attrs["properties"] = []
+            g.create_dataset("graph", data=[[i + 1, -1] for i in range(5)])
+            mr = Storage("hdf5", "test.h5").morphologies
+            m = mr.load("M")
             msg = "Single point unattached branches should still be root."
             self.assertEqual(5, len(m.roots), msg)
             self.assertEqual(5, len(m.branches), "Missing branch")
             msg = "Flatten of single point branches should produce n-branch x n-vectors matrix."
-            matrix = m.flatten(matrix=True)
-            self.assertEqual((5, len(Branch.vectors)), matrix.shape, msg)
+            matrix = m.flatten()
+            self.assertEqual((5, 3), matrix.shape, msg)
             msg = "Flatten produced an incorrect matrix"
             self.assertTrue(
-                np.array_equal(np.array([[i * 2] * 4 for i in range(5)]), matrix), msg
+                np.array_equal(np.array([[i * 2] * 3 for i in range(5)]), matrix), msg
             )
-            t = m.flatten()
-            msg = "Single point branches morfo flatten to vector should produce vectors."
-            self.assertEqual(len(Branch.vectors), len(t), msg)
-            self.assertEqual(5, len(t[0]), msg)
-            for vec, v in zip(t, Branch.vectors):
-                with self.subTest(vector=v):
-                    msg = f"Vector {v} did not correctly list the branch data points"
-                    self.assertTrue(np.array_equal([0, 2, 4, 6, 8], vec), msg)
-            msg = "Single point branches should not produce comps"
-            self.assertEqual(0, len(m.to_compartments()), msg)
 
     def test_multi_branch_single_element_depth_first(self):
         with h5py.File("test.h5", "w") as f:
             g = f.create_group("morphologies")
             g = g.create_group("M")
-            b = g.create_group("branches")
-            for i in range(5):
-                b0 = b.create_group(str(i))
-                b0.create_dataset("x", data=[i * 2])
-                b0.create_group("labels")
-                b0.create_dataset("y", data=[i * 2])
-                b0.create_dataset("z", data=[i * 2])
-                b0.create_dataset("radii", data=[i * 2])
-            b["4"].attrs["parent"] = 0
-            m = _mr_module._morphology(g)
+            data = np.ones((5, 5))
+            data[:, 0] = np.arange(5) * 2
+            data[:, 1] = np.arange(5) * 2
+            data[:, 2] = np.arange(5) * 2
+            data[:, 3] = np.arange(5) * 2
+            ds = g.create_dataset("data", data=data)
+            ds.attrs["labels"] = json.dumps({1: []})
+            ds.attrs["properties"] = []
+            g.create_dataset("graph", data=[[i + 1, -1] for i in range(4)] + [[5, 0]])
+            mr = Storage("hdf5", "test.h5").morphologies
+            m = mr.load("M")
             msg = "1 out of 5 branches was attached, 4 roots expected."
             self.assertEqual(4, len(m.roots), msg)
             self.assertEqual(5, len(m.branches), "Missing branch")
-            msg = "Flatten of single point branches should produce n-branch x n-vectors matrix."
-            matrix = m.flatten(matrix=True)
-            self.assertEqual((5, len(Branch.vectors)), matrix.shape, msg)
-            msg = "Flatten produced an incorrect matrix"
-            v = len(Branch.vectors)
-            # We expect the data of the first root first, then its child (8) then the
-            # other roots in order, as a simplest demonstration of the depth first iter.
-            ematrix = np.array([[0] * v, [8] * v, [2] * v, [4] * v, [6] * v])
-            self.assertTrue(np.array_equal(ematrix, matrix), msg)
-            t = m.flatten()
-            msg = "Single point branches morfo flatten to vector should produce vectors."
-            self.assertEqual(len(Branch.vectors), len(t), msg)
-            self.assertEqual(5, len(t[0]), msg)
-            for vec, v in zip(t, Branch.vectors):
-                with self.subTest(vector=v):
-                    msg = f"Vector {v} did not correctly list the branch data points"
-                    self.assertTrue(np.array_equal([0, 8, 2, 4, 6], vec), msg)
-            msg = "Single point branches should not produce comps"
-            self.assertEqual(0, len(m.to_compartments()), msg)
-
-    def test_multiple_empty_branches(self):
-        with h5py.File("test.h5", "w") as f:
-            g = f.create_group("morphologies")
-            g = g.create_group("M")
-            b = g.create_group("branches")
-            for i in range(5):
-                b0 = b.create_group(str(i))
-                b0.create_dataset("x", data=[])
-                b0.create_dataset("y", data=[])
-                b0.create_dataset("z", data=[])
-                b0.create_dataset("radii", data=[])
-                b0.create_group("labels")
-            m = _mr_module._morphology(g)
-            msg = "Empty unattached branches should still be root."
-            self.assertEqual(5, len(m.roots), msg)
-            msg = "Missing branch"
-            self.assertEqual(5, len(m.branches), msg)
-            msg = "Empty morfo should not have points, even when it has empty branches"
-            self.assertEqual(0, len(m.flatten(matrix=True)), msg)
-            t = m.flatten()
-            msg = "Empty branches morfo flatten to vector should produce vectors."
-            self.assertEqual(len(Branch.vectors), len(t), msg)
-            for i, v in enumerate(Branch.vectors):
-                with self.subTest(vector=v):
-                    msg = f"Flatten to vector produced non-empty {v}"
-                    self.assertEqual(0, len(t[i]), msg)
-            msg = "Empty branches morfo should not have comps"
-            self.assertEqual(0, len(m.to_compartments()), msg)
-            for branch in m.branches:
-                msg = "Unattached branches should not have parents"
-                self.assertIsNone(branch._parent, msg)
-                msg = "Setup without any attached branches should not produce branches with children"
-                self.assertFalse(bool(branch._children), msg)
 
     def test_chain_empty_branches(self):
         pass
@@ -192,23 +168,6 @@ class TestRepositories(unittest.TestCase):
 
     def test_tree_with_empty_branches(self):
         pass
-
-    def test_mr_labels(self):
-        v = len(Branch.vectors)
-        branch = Branch(*(np.ones(v) for i in range(v)))
-        branch.label_points("A", [False, True] + [False] * (v - 2))
-        branch.label_all("B")
-        m = Morphology([branch])
-        mr = _mr_module.MorphologyRepository("tmp.h5")
-        mr.get_handle("w")
-        mr.save("test", m)
-        m_loaded = mr.load("test")
-        branch_loaded = m_loaded.roots[0]
-        self.assertEqual(["B"], branch_loaded._full_labels)
-        self.assertEqual(
-            [["B"], ["B", "A"]] + [["B"]] * (v - 2),
-            list(map(list, branch_loaded.label_walk())),
-        )
 
 
 class TestMorphologies(unittest.TestCase):
@@ -240,14 +199,18 @@ class TestMorphologies(unittest.TestCase):
 
     def test_properties(self):
         branch = Branch(
-            np.array([0, 1, 2]),
-            np.array([0, 1, 2]),
-            np.array([0, 1, 2]),
+            np.array(
+                [
+                    [0, 1, 2],
+                    [0, 1, 2],
+                    [0, 1, 2],
+                ]
+            ),
             np.array([0, 1, 2]),
         )
         self.assertEqual(3, branch.size, "Incorrect branch size")
         self.assertTrue(branch.is_terminal)
-        branch.attach_child(Branch(*(np.ones(0) for i in range(len(Branch.vectors)))))
+        branch.attach_child(branch)
         self.assertFalse(branch.is_terminal)
 
 
