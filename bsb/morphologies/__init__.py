@@ -923,7 +923,7 @@ class Branch:
 
 class _lset(set):
     def __hash__(self):
-        return int.from_bytes(":|\!#è".join(self).encode(), "little")
+        return int.from_bytes(":|\!#è".join(sorted(self)).encode(), "little")
 
     def copy(self):
         return self.__class__(self)
