@@ -258,7 +258,9 @@ class SubTree:
         if labels is None:
             return [*all_branch]
         else:
-            return [b for b in all_branch if b.contains_label(*labels)]
+            return [
+                print("order", b) or b for b in all_branch if b.contains_label(*labels)
+            ]
 
     def flatten(self):
         """
@@ -804,7 +806,7 @@ class Branch:
         """
         return self.labels.contains(*labels)
 
-    def get_labelled_points(self, label):
+    def get_points_labelled(self, label):
         """
         Filter out all points with a certain label
 
@@ -918,7 +920,7 @@ class Branch:
 
 class _lset(set):
     def __hash__(self):
-        return hash(":|\!#è".join(self))
+        return int.from_bytes(":|\!#è".join(self).encode(), "little")
 
     def copy(self):
         return self.__class__(self)
@@ -963,6 +965,13 @@ class _Labels(np.ndarray):
                     return transition
 
         self[points] = np.vectorize(transition)(self[points])
+
+    def contains(self, *labels):
+        return np.any(self.get_mask(*labels))
+
+    def get_mask(self, *labels):
+        has_any = [k for k, v in self.labels.items() if any(l in v for l in labels)]
+        return np.isin(self, has_any)
 
     def walk(self):
         for x in self:
