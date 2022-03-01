@@ -43,6 +43,13 @@ class TestIO(NumpyTestCase, unittest.TestCase):
             "value of the universe, life and everything changed.",
         )
 
+    def test_shared_labels(self):
+        m = Morphology.from_swc(get_morphology("PurkinjeCell.swc"))
+        l = m._shared._labels.labels
+        for b in m.branches:
+            self.assertTrue(l is b._labels.labels, "Labels should be shared")
+            l = b._labels.labels
+
 
 class TestRepositories(unittest.TestCase):
     def test_empty_repository(self):
@@ -214,30 +221,44 @@ class TestMorphologies(unittest.TestCase):
         self.assertFalse(branch.is_terminal)
 
 
-class TestMorphologyLabels(unittest.TestCase):
-    def test_full_labels(self):
-        v = len(Branch.vectors)
-        branch = Branch(*(np.ones(v) for i in range(v)))
-        branch.label_all("A", "B", "C")
-        self.assertEqual(["A", "B", "C"], branch._full_labels)
-        self.assertEqual(["A", "B", "C"], list(next(branch.label_walk())))
-        self.assertTrue(all(["A", "B", "C"] == list(l) for l in branch.label_walk()))
-
-    def test_point_labels(self):
-        v = len(Branch.vectors)
-        branch = Branch(*(np.ones(v) for i in range(v)))
-        branch.label_points("A", [False, True] + [False] * (v - 2))
-        self.assertEqual([], branch._full_labels)
+class TestMorphologyLabels(NumpyTestCase, unittest.TestCase):
+    def test_labels(self):
+        a = _Labels.none(10)
+        self.assertEqual({0: set()}, a.labels, "none labels should be empty")
+        self.assertClose(0, a, "none labels should zero")
+        a.label(["ello"], [1, 2])
+        self.assertEqual({0: set(), 1: {"ello"}}, a.labels)
+        self.assertClose([0, 1, 1, 0, 0, 0, 0, 0, 0, 0], a)
+        a.label(["ello", "goodbye"], [1, 2, 3, 4])
+        self.assertEqual({0: set(), 1: {"ello"}, 2: {"ello", "goodbye"}}, a.labels)
+        self.assertClose([0, 2, 2, 2, 2, 0, 0, 0, 0, 0], a)
+        a.label(["goodbye"], [5, 6])
         self.assertEqual(
-            [[], ["A"]] + [[]] * (v - 2), list(map(list, branch.label_walk()))
+            {0: set(), 1: {"ello"}, 2: {"ello", "goodbye"}, 3: {"goodbye"}}, a.labels
         )
-
-    def test_combo_labels(self):
-        v = len(Branch.vectors)
-        branch = Branch(*(np.ones(v) for i in range(v)))
-        branch.label_points("A", [False, True] + [False] * (v - 2))
-        branch.label_all("B")
-        self.assertEqual(["B"], branch._full_labels)
+        self.assertClose([0, 2, 2, 2, 2, 3, 3, 0, 0, 0], a)
+        a.label(["ello"], [9])
         self.assertEqual(
-            [["B"], ["B", "A"]] + [["B"]] * (v - 2), list(map(list, branch.label_walk()))
+            {0: set(), 1: {"ello"}, 2: {"ello", "goodbye"}, 3: {"goodbye"}}, a.labels
         )
+        self.assertClose([0, 2, 2, 2, 2, 3, 3, 0, 0, 1], a)
+        a.label(["ello"], [*range(10)])
+        self.assertClose([1, 2, 2, 2, 2, 2, 2, 1, 1, 1], a)
+        a.label(["goodbye"], [*range(10)])
+        self.assertClose([2] * 10, a)
+
+    def test_branch_labels(self):
+        b = Branch([[0] * 3] * 10, [1] * 10)
+        a = b._labels
+        self.assertEqual({0: set()}, a.labels, "none labels should be empty")
+        self.assertClose(0, a, "none labels should zero")
+        b.label("ello")
+        self.assertClose(1, a, "full labelling failed")
+        b.label("so long", "goodbye", "sayonara")
+        self.assertClose(2, a, "multifull labelling failed")
+        self.assertEqual(
+            {0: set(), 1: {"ello"}, 2: {"ello", "so long", "goodbye", "sayonara"}},
+            a.labels,
+        )
+        b.label([1, 3], "wow")
+        self.assertClose([2, 3, 2, 3, 2, 2, 2, 2, 2, 2], a, "specific point label failed")

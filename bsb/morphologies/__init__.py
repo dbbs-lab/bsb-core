@@ -700,7 +700,7 @@ class Branch:
             points = labels[0]
             labels = labels[1:]
         else:
-            points = np.ones(len(self))
+            points = np.ones(len(self), dtype=bool)
         self._labels.label(labels, points)
 
     @property
@@ -898,13 +898,35 @@ class _Labels(np.ndarray):
         kwargs["dtype"] = int
         obj = super().__new__(subtype, *args, **kwargs)
         if labels is None:
-            labels = {0: []}
+            labels = {0: set()}
         obj.labels = labels
         return obj
 
     def __array_finalize__(self, obj):
         if obj is not None:
-            self.labels = getattr(obj, "labels", {0: []})
+            self.labels = getattr(obj, "labels", {0: set()})
+
+    def label(self, labels, points):
+        _transitions = {}
+        counter = (c for c in itertools.count() if c not in self.labels)
+
+        def transition(point):
+            nonlocal _transitions
+            if point in _transitions:
+                return _transitions[point]
+            else:
+                trans_labels = self.labels[point].copy()
+                trans_labels.update(labels)
+                for k, v in self.labels.items():
+                    if trans_labels == v:
+                        return k
+                else:
+                    transition = next(counter)
+                    self.labels[transition] = trans_labels
+                    _transitions[point] = transition
+                    return transition
+
+        self[points] = np.vectorize(transition)(self[points])
 
     @classmethod
     def none(cls, len):
@@ -912,22 +934,7 @@ class _Labels(np.ndarray):
 
     @classmethod
     def from_seq(cls, len, seq):
-        return cls(len, buffer=np.ones(len), labels={0: [], 1: [*seq]})
-
-
-def _pairwise_iter(walk_iter, labels_iter):
-    try:
-        start = np.array(next(walk_iter)[:3])
-        # Throw away the first point's labels as there are only n - 1 compartments.
-        _ = next(labels_iter)
-    except StopIteration:
-        return iter(())
-    for data in walk_iter:
-        end = np.array(data[:3])
-        radius = data[3]
-        labels = next(labels_iter)
-        yield (start, end, radius), labels
-        start = end
+        return cls(len, buffer=np.ones(len), labels={0: set(), 1: set(seq)})
 
 
 def _swc_branch_dfs(adjacency, branches, node):
