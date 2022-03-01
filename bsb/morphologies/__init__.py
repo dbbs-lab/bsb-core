@@ -281,7 +281,7 @@ class SubTree:
         if self._is_shared:
             if not self._shared._prop:
                 return np.empty((len(self), 0))
-            return np.column_stack(self._shared._prop.values())
+            return np.column_stack([*self._shared._prop.values()])
         else:
             raise NotImplementedError("todo")
 
