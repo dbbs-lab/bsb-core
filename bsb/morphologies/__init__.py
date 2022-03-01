@@ -189,9 +189,14 @@ class SubTree:
             self.roots = [b for b in branches if b.parent is None]
         self._is_shared = False
 
-    @property
-    def size(self):
-        return len(self)
+    def __getattr__(self, attr):
+        if self._is_shared:
+            if attr in self._shared._prop:
+                return self._shared._prop[attr]
+            else:
+                super().__getattribute__(attr)
+        else:
+            return np.concatenate([getattr(b, attr) for b in self.branches])
 
     def __len__(self):
         if self._is_shared:
@@ -200,11 +205,31 @@ class SubTree:
             return sum(b.size for b in self.get_branches())
 
     @property
+    def size(self):
+        return len(self)
+
+    @property
     def branches(self):
         """
         Return a depth-first flattened array of all branches.
         """
         return self.get_branches()
+
+    @property
+    def points(self):
+        return self.flatten()
+
+    @property
+    def radii(self):
+        return self.flatten_radii()
+
+    @property
+    def labels(self):
+        return self.flatten_labels()
+
+    @property
+    def properties(self):
+        return self.flatten_properties()
 
     @functools.cached_property
     def bounds(self):
