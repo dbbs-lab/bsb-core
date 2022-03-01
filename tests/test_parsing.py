@@ -8,7 +8,7 @@ from bsb.exceptions import *
 
 
 def p(file):
-    return os.path.join(os.path.dirname(__file__), "parser_tests", file)
+    return os.path.join(os.path.dirname(__file__), "data", "parser_tests", file)
 
 
 def c(f):
@@ -67,7 +67,9 @@ class TestJsonRef(unittest.TestCase):
         self.assertTrue(str(parser.references[0]).startswith("<json ref '"))
         # Convert windows backslashes
         wstr = str(parser.references[0]).replace("\\", "/")
-        self.assertTrue(wstr.endswith("/tests/parser_tests/interdoc_refs.json#/target'>"))
+        self.assertTrue(
+            wstr.endswith("/tests/data/parser_tests/interdoc_refs.json#/target'>")
+        )
 
 
 class TestJsonImport(unittest.TestCase):

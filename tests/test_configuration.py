@@ -7,14 +7,15 @@ from bsb import config
 from bsb.config import from_json, Configuration
 from bsb.config import types
 from bsb.exceptions import *
+from test_setup import get_config
 
 
 def relative_to_tests_folder(path):
     return os.path.join(os.path.dirname(__file__), path)
 
 
-minimal_config = relative_to_tests_folder("configs/test_minimal.json")
-full_config = relative_to_tests_folder("configs/test_full_v4.json")
+minimal_config = get_config("test_minimal.json")
+full_config = get_config("test_full_v4.json")
 
 
 @config.root

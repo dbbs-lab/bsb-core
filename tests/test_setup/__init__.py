@@ -390,8 +390,9 @@ def get_config(file):
         os.path.join(
             os.path.dirname(__file__),
             "..",
+            "data",
             "configs",
-            file + ".json" if not file.endswith(".json") else "",
+            file + (".json" if not file.endswith(".json") else ""),
         )
     )
 
