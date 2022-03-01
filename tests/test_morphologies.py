@@ -256,17 +256,9 @@ class TestMorphologies(NumpyTestCase, unittest.TestCase):
         self.assertClose(
             np.array([[1, 1, 1, 101, 101, 101, 201, 201, 201] * 2] * 3).T, m.points
         )
-        # Since `hash`'s salt changes each run, the order in which the labels get sorted
-        # can be different each run, but the order of occurence insensitive pattern
-        # 0-1-2-3-1-3 stays the same.
-        abcd = {}
-        counter = itertools.count()
-        for x in m._shared._labels:
-            if x not in abcd:
-                abcd[x] = next(counter)
         self.assertClose(
-            [0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3, 1, 1, 1, 3, 3, 3],
-            np.vectorize(abcd.get)(m._shared._labels),
+            [0, 0, 0, 1, 1, 1, 3, 3, 3, 2, 2, 2, 1, 1, 1, 2, 2, 2],
+            m._shared._labels,
         )
         self.assertClose(1, m.smth[:6], "prop concat failed")
         self.assertNan(m.smth[6:], "prop concat failed")
@@ -360,16 +352,19 @@ class TestMorphologyLabels(NumpyTestCase, unittest.TestCase):
 
     def test_select(self):
         b = Branch([[0] * 3] * 10, [1] * 10)
+        b.name = "B1"
         b.label("ello")
         b2 = Branch([[0] * 3] * 10, [1] * 10)
+        b2.name = "B2"
         b3 = Branch([[0] * 3] * 10, [1] * 10)
+        b3.name = "B3"
         b4 = Branch([[0] * 3] * 10, [1] * 10)
+        b4.name = "B4"
         b3.attach_child(b4)
         b3.label([1], "ello")
         self.assertTrue(b3.contains_label("ello"))
         m = Morphology([b, b2, b3])
         bs = m.select("ello").branches
-        self.assertEqual([b, b3], m.select("ello").roots)
         self.assertEqual([b, b3, b4], m.select("ello").branches)
         self.assertEqual(len(b), len(b.get_points_labelled("ello")))
         self.assertEqual(1, len(b3.get_points_labelled("ello")))

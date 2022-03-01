@@ -261,9 +261,7 @@ class SubTree:
         if labels is None:
             return [*all_branch]
         else:
-            return [
-                print("order", b) or b for b in all_branch if b.contains_label(*labels)
-            ]
+            return [b for b in all_branch if b.contains_label(*labels)]
 
     def flatten(self):
         """
