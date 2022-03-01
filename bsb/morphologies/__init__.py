@@ -634,7 +634,11 @@ class Branch:
         for prop, values in kwargs.items():
             if len(values) != len(self):
                 raise ValueError(f"Expected {len(self)} {prop}, got {len(values)}.")
-            self._properties[prop] = values
+            if prop in self._properties:
+                self._properties[prop][:] = values
+            else:
+                self._on_mutate()
+                self._properties[prop] = values
 
     def __getattr__(self, attr):
         if attr in self._properties:
@@ -757,6 +761,7 @@ class Branch:
         :param branch: Child branch
         :type branch: :class:`Branch <.morphologies.Branch>`
         """
+        self._on_mutate()
         if branch._parent is not None:
             branch._parent.detach_child(branch)
         self._children.append(branch)
@@ -769,6 +774,7 @@ class Branch:
         :param branch: Child branch
         :type branch: :class:`Branch <.morphologies.Branch>`
         """
+        self._on_mutate()
         try:
             self._children.remove(branch)
             branch._parent = None
@@ -790,33 +796,13 @@ class Branch:
 
     def contains_label(self, *labels):
         """
-        Check if this branch is branch labelled with ``label``.
+        Check if this branch contains any points labelled with any of the given labels.
 
-        .. warning:
-
-          Returns ``False`` even if all points are individually labelled with ``label``.
-          Only when the branch itself is labelled will it return ``True``.
-
-        :param label: The label to check for.
-        :type label: str
+        :param labels: The labels to check for.
+        :type labels: List[str]
         :rtype: bool
         """
         return self.labels.contains(*labels)
-
-    def has_any_label(self, labels):
-        """
-        Check if this branch is branch labelled with any of ``labels``.
-
-        .. warning:
-
-          Returns ``False`` even if all points are individually labelled with ``label``.
-          Only when the branch itself is labelled will it return ``True``.
-
-        :param labels: The labels to check for.
-        :type labels: list
-        :rtype: bool
-        """
-        return any(self.has_label(l) for l in labels)
 
     def get_labelled_points(self, label):
         """
@@ -947,14 +933,14 @@ class _Labels(np.ndarray):
         obj.labels = labels
         return obj
 
+    def __array_finalize__(self, obj):
+        if obj is not None:
+            self.labels = getattr(obj, "labels", {0: _lset()})
+
     def copy(self, *args, **kwargs):
         cp = super().copy(*args, **kwargs)
         cp.labels = {k: v.copy() for k, v in cp.labels.items()}
         return cp
-
-    def __array_finalize__(self, obj):
-        if obj is not None:
-            self.labels = getattr(obj, "labels", {0: _lset()})
 
     def label(self, labels, points):
         _transitions = {}
@@ -977,6 +963,10 @@ class _Labels(np.ndarray):
                     return transition
 
         self[points] = np.vectorize(transition)(self[points])
+
+    def walk(self):
+        for x in self:
+            yield self.labels[x].copy()
 
     @classmethod
     def none(cls, len):
@@ -1129,7 +1119,8 @@ def _swc_to_morpho(cls, branch_cls, content):
     return morpho
 
 
-class Soma:
+# Wrapper to append our own attributes to morphio somas and treat it like any other branch
+class _MorphIoSomaWrapper:
     def __init__(self, obj):
         self._o = obj
 
@@ -1143,7 +1134,7 @@ def _import(cls, branch_cls, file):
     # entire morphology such as `.flatten`, subtree transformations and IO.  The branches
     # have views on those buffers, and as long as no points are added or removed, we can
     # keep working in shared buffer mode.
-    soma = Soma(morpho_io.soma)
+    soma = _MorphIoSomaWrapper(morpho_io.soma)
     _len = len(morpho_io.points) + len(soma.points)
     points = np.empty((_len, 3))
     radii = np.empty(_len)
