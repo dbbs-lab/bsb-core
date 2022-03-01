@@ -175,11 +175,14 @@ class SubTree:
             # overlapping branches.
             if len(branches) < 2:
                 # The roots of the subtrees of 0 or 1 branches is eaqual to the 0 or 1
-                # branches.
+                # branches themselves.
                 self.roots = branches
             else:
-                # Collect the deduplicated subtree emanating from all given branches
-                sub = set(itertools.chain(*(b.get_branches() for b in branches)))
+                # Collect the deduplicated subtree emanating from all given branches; use
+                # dict.fromkeys and .keys to preserve insertion order (i.e. DFS order)
+                sub = dict.fromkeys(
+                    itertools.chain(*(b.get_branches() for b in branches))
+                ).keys()
                 # Find the root branches whose parents are not part of the subtrees
                 self.roots = [b for b in sub if b.parent not in sub]
         else:
