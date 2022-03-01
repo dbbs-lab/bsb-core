@@ -29,7 +29,7 @@ from scipy.spatial.transform import Rotation
 from ..voxels import VoxelSet
 from ..exceptions import *
 from ..reporting import report, warn
-from .. import config
+from .. import config, _util as _gutil
 
 
 class MorphologySet:
@@ -295,7 +295,7 @@ class SubTree:
         if self._is_shared:
             return self._shared._labels
         else:
-            raise NotImplementedError("todo")
+            return _Labels.concatenate(*(b._labels for b in self.get_branches()))
 
     def flatten_properties(self):
         """
@@ -305,10 +305,23 @@ class SubTree:
         """
         if self._is_shared:
             if not self._shared._prop:
-                return np.empty((len(self), 0))
-            return np.column_stack([*self._shared._prop.values()])
+                return {}
+            return self._shared._prop.copy()
         else:
-            raise NotImplementedError("todo")
+            branches = self.get_branches()
+            len_ = sum(len(b) for b in branches)
+            all_props = [*set(_gutil.ichain(b._properties.keys() for b in branches))]
+            props = {k: np.empty(len_) for k in all_props}
+            ptr = 0
+            for branch in self.branches:
+                nptr = ptr + len(branch)
+                for k, v in props.items():
+                    prop = branch._properties.get(k, None)
+                    if prop is None:
+                        prop = np.full(len(branch), np.nan)
+                    v[ptr:nptr] = prop
+                ptr = nptr
+            return props
 
     def rotate(self, rot, center=None):
         """
@@ -488,16 +501,40 @@ class Morphology(SubTree):
     def is_optimized(self):
         return self._shared
 
-    def optimize(self):
-        if not self._is_shared:
-            raise NotImplementedError("todo")
+    def optimize(self, force=False):
+        if force or not self._is_shared:
+            branches = self.branches
+            len_ = sum(len(b) for b in branches)
+            points = np.empty((len_, 3))
+            radii = np.empty(len_)
+            all_props = [*set(_gutil.ichain(b._properties.keys() for b in branches))]
+            props = {k: np.empty(len_) for k in all_props}
+            labels = _Labels.concatenate(*(b._labels for b in branches))
+            ptr = 0
+            for branch in self.branches:
+                nptr = ptr + len(branch)
+                points[ptr:nptr] = branch.points
+                branch._points = points[ptr:nptr]
+                radii[ptr:nptr] = branch.radii
+                branch._radii = radii[ptr:nptr]
+                for k, v in props.items():
+                    prop = branch._properties.get(k, None)
+                    if prop is None:
+                        prop = np.full(len(branch), np.nan)
+                    v[ptr:nptr] = prop
+                    branch._properties[k] = v[ptr:nptr]
+                branch._labels = labels[ptr:nptr]
+                ptr = nptr
+            self._shared = _SharedBuffers(points, radii, labels, props)
+            self._is_shared = True
+            assert self._check_shared(), "optimize should result in shared buffers"
 
     @property
     def meta(self):
         return self._meta
 
     def copy(self):
-        self.optimize()
+        self.optimize(check=False)
         buffers = self._shared.copy()
         roots = []
         branch_copy_map = {}
@@ -893,18 +930,31 @@ class Branch:
         return SubTree([self]).voxelize(*args, **kwargs)
 
 
+class _lset(set):
+    def __hash__(self):
+        return hash(":|\!#è".join(self))
+
+    def copy(self):
+        return self.__class__(self)
+
+
 class _Labels(np.ndarray):
     def __new__(subtype, *args, labels=None, **kwargs):
         kwargs["dtype"] = int
         obj = super().__new__(subtype, *args, **kwargs)
         if labels is None:
-            labels = {0: set()}
+            labels = {0: _lset()}
         obj.labels = labels
         return obj
 
+    def copy(self, *args, **kwargs):
+        cp = super().copy(*args, **kwargs)
+        cp.labels = {k: v.copy() for k, v in cp.labels.items()}
+        return cp
+
     def __array_finalize__(self, obj):
         if obj is not None:
-            self.labels = getattr(obj, "labels", {0: set()})
+            self.labels = getattr(obj, "labels", {0: _lset()})
 
     def label(self, labels, points):
         _transitions = {}
@@ -934,7 +984,50 @@ class _Labels(np.ndarray):
 
     @classmethod
     def from_seq(cls, len, seq):
-        return cls(len, buffer=np.ones(len), labels={0: set(), 1: set(seq)})
+        return cls(len, buffer=np.ones(len), labels={0: _lset(), 1: _lset(seq)})
+
+    @classmethod
+    def concatenate(cls, *label_arrs):
+        if not label_arrs:
+            return _Labels.none(0)
+        total = sum(len(l) for l in label_arrs)
+        collected = {}
+        concat = cls(total, labels=collected)
+        new_labelsets = set()
+        to_map = {}
+        for label_arr in label_arrs:
+            for k, l in label_arr.labels.items():
+                if k not in collected:
+                    # The label spot is available, so take it
+                    collected[k] = l
+                elif collected[k] != l:
+                    # The labelset doesn't match, so this array will have to be mapped,
+                    # and a new spot found for the conflicting labelset.
+                    new_labelsets.add(l)
+                    # np ndarray unhashable, for good reason, so use `id()` for quick hash
+                    to_map[id(label_arr)] = label_arr
+                # else: this labelset matches with the superset's nothing to do
+
+        # Collect new spots for new labelsets
+        counter = (c for c in itertools.count() if c not in collected)
+        lookup = {}
+        for labelset in new_labelsets:
+            key = next(counter)
+            collected[key] = labelset
+            lookup[labelset] = key
+
+        ptr = 0
+        for label_arr in label_arrs:
+            nptr = ptr + len(label_arr)
+            if id(label_arr) in to_map:
+                block = np.vectorize(
+                    {k: lookup.get(v, k) for k, v in label_arr.labels.items()}.get
+                )(label_arr)
+            else:
+                block = label_arr
+            concat[ptr:nptr] = block
+            ptr = nptr
+        return concat
 
 
 def _swc_branch_dfs(adjacency, branches, node):

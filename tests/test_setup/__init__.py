@@ -26,6 +26,13 @@ class NumpyTestCase:
             np.all(a, **kwargs), f"{msg}. Only {trues} out of {all} True"
         )
 
+    def assertNan(self, a, msg="", /, **kwargs):
+        nans = np.isnan(a)
+        all = np.product(a.shape)
+        return self.assertTrue(
+            np.all(a, **kwargs), f"{msg}. Only {np.sum(nans)} out of {all} True"
+        )
+
 
 def skip_parallel(o):
     return unittest.skipIf(_mpi_size > 1, "Skipped during parallel testing.")(o)

@@ -1,5 +1,6 @@
 import unittest, os, sys, numpy as np, h5py
 import json
+import itertools
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
@@ -14,7 +15,6 @@ class TestIO(NumpyTestCase, unittest.TestCase):
         m = Morphology.from_swc(get_morphology("2comp.swc"))
         self.assertEqual(2, len(m), "Expected 2 points on the morphology")
         self.assertEqual(1, len(m.roots), "Expected 1 root on the morphology")
-        self.assertClose([1, 1], m.properties, "tags not loaded")
         self.assertClose([1, 1], m.tags, "tags should be all soma")
         self.assertClose(0, m.labels, "swc import is unlabelled")
 
@@ -37,15 +37,25 @@ class TestIO(NumpyTestCase, unittest.TestCase):
         m = Morphology.from_swc(get_morphology("PurkinjeCell.swc"))
         self.assertEqual(3834, len(m), "Amount of point on purkinje changed")
         self.assertEqual(459, len(m.branches), "Amount of branches on purkinje changed")
-        self.assertClose(
+        self.assertEqual(
             42.45157433053635,
             np.mean(m.points),
             "value of the universe, life and everything changed.",
         )
+        m = Morphology.from_file(get_morphology("GolgiCell.asc"))
+        self.assertEqual(5105, len(m), "Amount of point on purkinje changed")
+        self.assertEqual(227, len(m.branches), "Amount of branches on purkinje changed")
+        self.assertEqual(
+            -11.14412080401295,
+            np.mean(m.points),
+            "something in the points changed.",
+        )
 
     def test_shared_labels(self):
         m = Morphology.from_swc(get_morphology("PurkinjeCell.swc"))
+        m2 = Morphology.from_swc(get_morphology("PurkinjeCell.swc"))
         l = m._shared._labels.labels
+        self.assertIsNot(l, m2._shared._labels.label, "reload shares state")
         for b in m.branches:
             self.assertTrue(l is b._labels.labels, "Labels should be shared")
             l = b._labels.labels
@@ -111,7 +121,7 @@ class TestRepositories(unittest.TestCase):
         self.assertEqual((1,), m.flatten_radii().shape, msg)
         self.assertEqual((1,), m.flatten_labels().shape, msg)
         msg = "Flatten without properties should produce n x 0 matrix."
-        self.assertEqual((1, 0), m.flatten_properties().shape, msg)
+        self.assertEqual({}, m.flatten_properties(), msg)
 
     def test_multi_branch_single_element(self):
         with h5py.File("test.h5", "w") as f:
@@ -177,7 +187,7 @@ class TestRepositories(unittest.TestCase):
         pass
 
 
-class TestMorphologies(unittest.TestCase):
+class TestMorphologies(NumpyTestCase, unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
@@ -219,6 +229,68 @@ class TestMorphologies(unittest.TestCase):
         self.assertTrue(branch.is_terminal)
         branch.attach_child(branch)
         self.assertFalse(branch.is_terminal)
+
+    def test_optimize(self):
+        b1 = self._branch(3)
+        b1.set_properties(smth=np.ones(len(b1)))
+        b2 = self._branch(3)
+        b2.label("oy")
+        b2.translate([100, 100, 100])
+        b2.set_properties(other=np.zeros(len(b2)), smth=np.ones(len(b2)))
+        b3 = self._branch(3)
+        b3.translate([200, 200, 200])
+        b3.label("vey")
+        b3.set_properties(other=np.ones(len(b3)))
+        b4 = self._branch(3)
+        b4.label("oy", "vey")
+        b5 = self._branch(3)
+        b5.label("oy")
+        b5.translate([100, 100, 100])
+        b6 = self._branch(3)
+        b6.translate([200, 200, 200])
+        b6.label("vey", "oy")
+        m = Morphology([b1, b2, b3, b4, b5, b6])
+        m.optimize()
+        self.assertTrue(m._is_shared, "Should be shared after opt")
+        self.assertEqual(18, len(m), "opt changed n points")
+        self.assertClose(
+            np.array([[1, 1, 1, 101, 101, 101, 201, 201, 201] * 2] * 3).T, m.points
+        )
+        # Since `hash`'s salt changes each run, the order in which the labels get sorted
+        # can be different each run, but the order of occurence insensitive pattern
+        # 0-1-2-3-1-3 stays the same.
+        abcd = {}
+        counter = itertools.count()
+        for x in m._shared._labels:
+            if x not in abcd:
+                abcd[x] = next(counter)
+        self.assertClose(
+            [0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3, 1, 1, 1, 3, 3, 3],
+            np.vectorize(abcd.get)(m._shared._labels),
+        )
+        self.assertClose(1, m.smth[:6], "prop concat failed")
+        self.assertNan(m.smth[6:], "prop concat failed")
+        self.assertClose(0, m.other[3:6], "prop concat failed")
+        self.assertClose(1, m.other[6:9], "prop concat failed")
+        self.assertNan(m.other[9:], "prop concat failed")
+        self.assertNan(m.other[:3], "prop concat failed")
+        # Test DFS reorder of opt
+        b1.attach_child(b3)
+        m.roots.remove(b3)
+        b4.attach_child(b6)
+        m.roots.remove(b6)
+        m.optimize(force=True)
+        self.assertClose(
+            np.array([[1, 1, 1, 201, 201, 201, 101, 101, 101] * 2] * 3).T, m.points
+        )
+        # Compare opt to flatten
+        self.assertEqual(
+            m.other[3:9].tolist(), m.flatten_properties()["other"][3:9].tolist()
+        )
+        l1 = m._shared._labels
+        l2 = m.flatten_labels()
+        self.assertClose(l1, l2, "opt v flatten labels discrepancy")
+        self.assertEqual(l1.labels, l2.labels, "opt v flatten labels discrepancy")
 
 
 class TestMorphologyLabels(NumpyTestCase, unittest.TestCase):
@@ -262,3 +334,26 @@ class TestMorphologyLabels(NumpyTestCase, unittest.TestCase):
         )
         b.label([1, 3], "wow")
         self.assertClose([2, 3, 2, 3, 2, 2, 2, 2, 2, 2], a, "specific point label failed")
+
+    def test_copy_labels(self):
+        b = Branch([[0] * 3] * 10, [1] * 10)
+        b.label("ello")
+        b.label("so long", "goodbye", "sayonara")
+        b.label([1, 3], "wow")
+        b2 = b.copy()
+        self.assertEqual(len(b), len(b2), "copy changed n points")
+        self.assertEqual(b._labels.labels, b2._labels.labels, "copy changed labelset")
+        self.assertIsNot(b._labels.labels, b2._labels.labels, "copy shares labels")
+
+    def test_concat(self):
+        b = Branch([[0] * 3] * 10, [1] * 10)
+        b.label("ello")
+        b2 = Branch([[0] * 3] * 10, [1] * 10)
+        b2.label("not ello")
+        # Both branches have a different definition for `1`, so concat should map them.
+        self.assertClose(1, b._labels, "should all be labelled to 1")
+        self.assertClose(1, b2._labels, "should all be labelled to 1")
+        self.assertNotEqual(b._labels.labels, b2._labels.labels, "should have diff def")
+        concat = _Labels.concatenate(b._labels, b2._labels)
+        self.assertClose([1] * 10 + [2] * 10, concat)
+        self.assertEqual({0: set(), 1: {"ello"}, 2: {"not ello"}}, concat.labels)
