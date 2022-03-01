@@ -980,7 +980,8 @@ def _swc_to_morpho(cls, branch_cls, content):
         branch_radii = radii[ptr:nptr]
         # the SWC tags
         tags[ptr:nptr] = node_data[:, 1]
-        tags[ptr] = tags[ptr + 1]
+        if len(branch_nodes) > 1:
+            tags[ptr] = tags[ptr + 1]
         branch_tags = tags[ptr:nptr]
         # And the (empty) labels
         branch_labels = labels[ptr:nptr]
