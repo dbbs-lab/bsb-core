@@ -1,6 +1,11 @@
 import os
 import io
 import pathlib
+import appdirs
+import contextlib
+
+_bsb_dirs = appdirs.AppDirs("bsb")
+_cache_path = pathlib.Path(_bsb_dirs.user_cache_dir)
 
 
 class _NoLink:
@@ -12,55 +17,104 @@ class _NoLink:
 
 
 class FileLink:
-    def __init__(self, source, id, store=None, update="always", binary=False):
-        self._src = source
-        if source not in ("sys", "store"):
-            raise ValueError(f"'{source}' not a valid link source. Pick 'sys' or 'store'")
-        if source == "store" and store is None:
-            raise ValueError("`store` argument required for filestore links.")
-        elif source == "sys" and os.path.abspath(id) != str(id):
-            raise ValueError("Filesystem links must be absolute")
-        self.store = store
-        self.id = id
-        self._upd = update
-        self._b = binary
+    _type = "sys"
+
+    def __init__(self, path, update="always", binary=False):
+        self.path = pathlib.Path(path).resolve()
+        self.upd_mode = update
+        self.binary = binary
+
+    @property
+    def type(self):
+        return self._type
 
     def __str__(self):
-        return (
-            "<"
-            + ("filesystem" if self._src == "sys" else "file store")
-            + f" link '{self.id}'>"
-        )
+        return f"<filesystem link '{self.path}'>"
 
     def exists(self):
-        if self._src == "store":
-            return self.id in self.store.all()
+        return self.path.exists()
+
+    def should_update(self, last_retrieved=None):
+        if not self.exists():
+            return False
+        if self.upd_mode == "never":
+            return False
+        if last_retrieved is None:
+            return True
         else:
-            return os.path.exists(self.id)
+            return os.path.getmtime(self.path) > last_retrieved
 
     def get(self, binary=None):
-        binary = self._b if binary is None else binary
-        if self._src == "sys":
-            return open(self.id, f"r{'b' if binary else ''}")
-        else:
-            return self.store.stream(self.id, binary=binary)
+        binary = self.binary if binary is None else binary
+        return open(self.path, f"r{'b' if binary else ''}")
+
+    def set(self, binary=None):
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        binary = self.binary if binary is None else binary
+        return open(self.path, f"w{'b' if binary else ''}")
 
 
-def syslink(path, update="always"):
-    return FileLink("sys", pathlib.Path(os.path.abspath(path)), update=update)
+class CacheLink(FileLink):
+    _type = "cache"
+
+    def __init__(self, path, update="never", binary=False):
+        path = _cache_path / path
+        super().__init__(path, update=update, binary=binary)
+
+    def should_update(self, source_timestamp=None):
+        if not self.exists():
+            return True
+        if self.upd_mode == "never":
+            return False
+        return os.path.getmtime(self.path) < source_timestamp
 
 
-def storelink(store, id, update="always"):
-    return FileLink("store", id, store=store, update=update)
+class StoreLink(FileLink):
+    _type = "store"
+
+    def __init__(self, store, id, update="always", binary=False):
+        self.store = store
+        self.id = id
+        self.upd_mode = update
+        self.binary = binary
+
+    def __str__(self):
+        return f"<filestore link '{self.id}@{self.store}'>"
+
+    def exists(self):
+        return self.id in self.store.all()
+
+    def should_update(self):
+        return False
+
+    def get(self, binary=None):
+        binary = self.binary if binary is None else binary
+        return self.store.stream(self.id, binary=binary)
+
+
+def syslink(path, update="always", binary=False):
+    return FileLink(pathlib.Path(os.path.abspath(path)), update=update, binary=binary)
+
+
+def cachelink(path, update="never", binary=False):
+    return CacheLink(path, update=update, binary=binary)
+
+
+def storelink(store, id, update="always", binary=False):
+    return StoreLink(store, id, update=update, binary=binary)
 
 
 def link(store, proj_dir, source, id, update):
     if source == "sys":
-        return FileLink("sys", proj_dir / id, update=update)
+        return FileLink(proj_dir / id, update=update)
     elif source == "store":
-        return FileLink("store", id, store=store, update=update)
+        return StoreLink(store, id, update=update)
+    elif source == "cache":
+        return CacheLink(id, update=update)
     else:
-        raise ValueError(f"'{source}' not a valid link source. Pick 'sys' or 'store'")
+        raise ValueError(
+            f"'{source}' not a valid link source. Pick 'sys', 'store' or 'cache'."
+        )
 
 
 def nolink():

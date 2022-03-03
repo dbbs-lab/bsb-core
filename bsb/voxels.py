@@ -4,6 +4,7 @@ from .trees import BoxTree
 from .exceptions import *
 from .reporting import report
 import numpy as np
+import json
 import functools
 import itertools
 import collections
@@ -668,22 +669,38 @@ class AllenStructureLoader(NrrdVoxelLoader, classmap_entry="allen"):
     @config.property
     @functools.cache
     def mask_source(self):
+        from .storage import _util as _storutil
+
         url = "http://download.alleninstitute.org/informatics-archive/current-release/mouse_ccf/annotation/ccf_2017/annotation_25.nrrd"
         fname = "_annotations_25.nrrd.cache"
-        with open(fname, "wb") as f:
-            report("Downloading Allen Brain Atlas annotations", level=3)
-            content = requests.get(url).content
-            f.write(requests.get(url).content)
-        return fname
+        link = _storutil.cachelink(fname, binary=True)
+        if link.should_update():
+            with link.set() as f:
+                report("Downloading Allen Brain Atlas annotations", level=3)
+                content = requests.get(url).content
+                f.write(requests.get(url).content)
+        else:
+            report("Using cached Allen Brain Atlas annotations", level=4)
+        return str(link.path)
 
     @functools.cache
     def _dl_structure_ontology(self):
+        from .storage import _util as _storutil
+
         url = "http://api.brain-map.org/api/v2/structure_graph_download/1.json"
-        report("Downloading Allen Brain Atlas structure ontology", level=3)
-        payload = requests.get(url).json()
-        if not payload.get("success", False):
-            raise AllenApiError(f"Could not fetch ontology from Allen API at '{url}'")
-        return payload["msg"]
+        fname = "_allen_ontology.cache"
+        link = _storutil.cachelink(fname)
+        if link.should_update():
+            report("Downloading Allen Brain Atlas structure ontology", level=3)
+            payload = requests.get(url).json()
+            if not payload.get("success", False):
+                raise AllenApiError(f"Could not fetch ontology from Allen API at '{url}'")
+            with link.set() as f:
+                json.dump(payload["msg"], f)
+        else:
+            report("Using cached Allen Brain Atlas ontology", level=4)
+        with link.get() as f:
+            return json.load(f)
 
     def get_structure_mask_condition(self, find):
         mask = self.get_structure_mask(find)

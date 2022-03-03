@@ -26,6 +26,7 @@ requires = [
     "zwembad",
     "toml",
     "requests",
+    "appdirs~=1.4",
 ]
 
 setuptools.setup(
@@ -58,8 +59,7 @@ setuptools.setup(
             "neuron = bsb.simulators.neuron",
         ],
         "bsb.commands": [
-            "compile = bsb.cli.commands._commands:compile",
-            "simulate = bsb.cli.commands._commands:simulate",
+            "commands = bsb.cli.commands._commands",
         ],
         "bsb.config.parsers": ["json = bsb.config.parsers.json"],
         "bsb.config.templates": ["bsb_templates = bsb.config.templates"],

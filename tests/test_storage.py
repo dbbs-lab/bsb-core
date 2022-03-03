@@ -131,15 +131,10 @@ class TestUtil(unittest.TestCase):
         netw = Scaffold(cfg)
         # Needs more tests, these tests basically only test instantiation
         link = _util.link(netw.files, pathlib.Path.cwd(), "sys", "hellooo", "always")
+        link = _util.link(netw.files, pathlib.Path.cwd(), "cache", "hellooo", "always")
         link = _util.link(netw.files, pathlib.Path.cwd(), "store", "hellooo", "always")
         with self.assertRaises(ValueError):
-            _util.link(netw.files, pathlib.Path.cwd(), "invalid", "hellooo", "a")
-        with self.assertRaises(ValueError):
-            _util.FileLink("sys", "oh")
-        with self.assertRaises(ValueError):
-            _util.FileLink("store", "oh")
-        with self.assertRaises(ValueError):
-            _util.FileLink("invalid", "oh")
+            _util.link("invalid", "oh", "invalid", "ah", "ah")
         link = _util.syslink("hellooooo")
         self.assertFalse(link.exists())
         link = _util.storelink(netw.files, "iddd")
