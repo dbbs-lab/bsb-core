@@ -107,8 +107,11 @@ cell later on in simulation.
 
 .. literalinclude:: ../../examples/morphologies/labels.py
 
-
 .. rubric:: Properties
+
+Branches and morphologies can be given additional properties. The basic properties are
+``x``, ``y``, ``z``, ``radii`` and ``labels``. When you use
+:meth:`~.morphologies.Morphology.from_swc`, it adds ``tags`` as an extra property.
 
 .. _transform:
 
