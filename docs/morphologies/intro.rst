@@ -99,6 +99,17 @@ Once you're done with the morphology you can save it again:
   Labels'll cost you almost no memory or disk space! You can also add as many properties
   as you like, but they'll cost you memory and disk space per point on the morphology.
 
+.. rubric:: Labels
+
+Branches or points can be labelled, and pieces of the morphology can be selected by their
+label. Labels are also useful targets to insert biophysical mechanisms into parts of the
+cell later on in simulation.
+
+.. literalinclude:: ../../examples/morphologies/labels.py
+
+
+.. rubric:: Properties
+
 .. _transform:
 
 =======================
