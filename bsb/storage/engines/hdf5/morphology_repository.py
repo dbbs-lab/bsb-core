@@ -115,7 +115,9 @@ class MorphologyRepository(Resource, IMorphologyRepository):
                 for i, prop in enumerate(morphology._shared._prop.values()):
                     data[:, 5 + i] = prop
                 dds = root.create_dataset("data", data=data)
-                dds.attrs["labels"] = json.dumps(morphology._shared._labels.labels)
+                dds.attrs["labels"] = json.dumps(
+                    {k: list(v) for k, v in morphology._shared._labels.labels.items()}
+                )
                 dds.attrs["properties"] = [*morphology._shared._prop.keys()]
                 graph = np.empty((len(branches), 2))
                 parents = {None: -1}

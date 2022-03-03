@@ -959,6 +959,8 @@ class _Labels(np.ndarray):
         obj = super().__new__(subtype, *args, **kwargs)
         if labels is None:
             labels = {0: _lset()}
+        if any(not isinstance(v, _lset) for v in labels.values()):
+            labels = {k: _lset(v) for k, v in labels.items()}
         obj.labels = labels
         return obj
 
