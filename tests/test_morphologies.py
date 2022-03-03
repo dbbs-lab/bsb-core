@@ -364,7 +364,7 @@ class TestMorphologyLabels(NumpyTestCase, unittest.TestCase):
         b3.label([1], "ello")
         self.assertTrue(b3.contains_label("ello"))
         m = Morphology([b, b2, b3])
-        bs = m.select("ello").branches
-        self.assertEqual([b, b3, b4], m.select("ello").branches)
+        bs = m.subtree("ello").branches
+        self.assertEqual([b, b3, b4], m.subtree("ello").branches)
         self.assertEqual(len(b), len(b.get_points_labelled("ello")))
         self.assertEqual(1, len(b3.get_points_labelled("ello")))

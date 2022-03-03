@@ -461,14 +461,14 @@ class VoxelSet:
                 self._regular = False
         self._size = size
 
-    def select(self, ldc, mdc):
+    def crop(self, ldc, mdc):
         data = self._data
         coords = self.as_spatial_coords(copy=False)
         inside = np.all(np.logical_and(ldc <= coords, coords < mdc), axis=1)
         return self[inside]
 
-    def select_chunk(self, chunk):
-        return self.select(chunk.ldc, chunk.mdc)
+    def crop_chunk(self, chunk):
+        return self.crop(chunk.ldc, chunk.mdc)
 
     def unique(self):
         raise NotImplementedError("and another one")

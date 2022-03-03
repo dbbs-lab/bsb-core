@@ -324,18 +324,18 @@ class TestVoxelSet(test_setup.NumpyTestCase, unittest.TestCase):
     def test_select(self):
         for label, set in self.all.items():
             with self.subTest(label=label):
-                vs = set.select([0, 0, 0], [0, 0, 0])
+                vs = set.crop([0, 0, 0], [0, 0, 0])
                 self.assertEqual(0, len(vs), "empty select nonempty set")
-                vs = set.select([-1000, -1000, -1000], [1000, 1000, 1000])
+                vs = set.crop([-1000, -1000, -1000], [1000, 1000, 1000])
                 self.assertEqual(len(set), len(vs), "big select didnt select all")
         # vs([[0, 0, 0], [1, 0, 0], [2, 0, 0]], [2, 2, 2]),
         vs = self.regulars[1]
-        res = vs.select([-1, -1, -1], [3.5, 0.5, 0.5])
+        res = vs.crop([-1, -1, -1], [3.5, 0.5, 0.5])
         self.assertEqual(2, len(res), "unexpected selection")
         self.assertClose(0, res.raw[0], "unexpected selection")
         self.assertClose([1, 0, 0], res.raw[1], "unexpected selection")
         c = Chunk([0, 0, 0], [100, 100, 100])
-        res = vs.select_chunk(c)
+        res = vs.crop_chunk(c)
         self.assertEqual(len(res), len(vs), "big chunk didnt select all")
 
     def test_resize(self):

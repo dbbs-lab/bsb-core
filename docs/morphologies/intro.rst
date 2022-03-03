@@ -110,8 +110,8 @@ downstream branches (i.e. the branches *emanating* from a set of roots). A subtr
 roots equal to the roots of the morphology is equal to the entire morphology, and all
 transformations valid on a subtree are also valid morphology transformations.
 
-Selection
----------
+Creating subtrees
+-----------------
 
 Subtrees can be selected using label(s) on the morphology.
 
@@ -121,9 +121,9 @@ Subtrees can be selected using label(s) on the morphology.
 
 .. code-block:: python
 
-  axon = morfo.select("axon")
+  axon = morfo.subtree("axon")
   # Multiple labels can be given
-  hybrid = morfo.select("proximal", "distal")
+  hybrid = morfo.subtree("proximal", "distal")
 
 .. warning::
 
@@ -139,7 +139,7 @@ well:
 
 .. code-block:: python
 
-  tuft = morfo.select("dendritic_piece")
+  tuft = morfo.subtree("dendritic_piece")
 
 Translation
 -----------

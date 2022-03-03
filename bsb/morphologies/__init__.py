@@ -241,7 +241,7 @@ class SubTree:
             return np.zeros(3), np.zeros(3)
         return np.min(f, axis=0), np.max(f, axis=0)
 
-    def select(self, *labels):
+    def subtree(self, *labels):
         if not labels:
             labels = None
         return SubTree(self.get_branches(labels))
@@ -325,6 +325,27 @@ class SubTree:
                     v[ptr:nptr] = prop
                 ptr = nptr
             return props
+
+    def label(self, *labels):
+        """
+        Add labels to the morphology or subtree.
+
+        :param labels: Label(s) for the branch. The first argument may also be a boolean
+          or integer mask to select the points to label.
+        :type labels: str
+        """
+        if not labels:
+            return
+        elif self._is_shared:
+            if not isinstance(labels[0], str):
+                points = labels[0]
+                labels = labels[1:]
+            else:
+                points = np.ones(len(self), dtype=bool)
+            self._labels.label(labels, points)
+        else:
+            for b in self.branches:
+                b.label(*labels)
 
     def rotate(self, rot, center=None):
         """
@@ -730,8 +751,7 @@ class Branch:
 
     def label(self, *labels):
         """
-        Add labels to every point on the branch. See
-        :meth:`~.morphologies.Branch.label_points` to label individual points.
+        Add labels to the branch.
 
         :param labels: Label(s) for the branch. The first argument may also be a boolean
           or integer mask to select the points to label.
