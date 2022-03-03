@@ -307,7 +307,7 @@ a :class:`~.morphologies.RotationSet`.
 
 .. warning::
 
-	The rotations returned by a morphology distributor may be ignored when a
+	The rotations returned by a morphology distributor may be overruled when a
 	:class:`~.placement.strategy.RotationDistributor` is defined for the same placement
 	block.
 
