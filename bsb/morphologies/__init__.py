@@ -602,6 +602,12 @@ class Morphology(SubTree):
             branch_class = Branch
         return _import(cls, branch_class, path)
 
+    @classmethod
+    def from_arbor(cls, arb_m, centering=True, branch_class=None):
+        if branch_class is None:
+            branch_class = Branch
+        return _import_arb(cls, arb_m, centering, branch_class)
+
 
 def _copy_api(cls, wrap=lambda self: self):
     # Wraps functions so they are called with `self` wrapped in `wrap`
@@ -1203,4 +1209,79 @@ def _import(cls, branch_cls, file):
             section_stack.extend(children)
     morpho = cls(roots, shared_buffers=(points, radii, labels, {"tags": tags}))
     assert morpho._check_shared(), "MorphIO import didn't result in shareable buffers."
+    return morpho
+
+
+def _import_arb(cls, arb_m, centering, branch_class):
+    import arbor
+
+    decor = arbor.decor()
+    morpho_roots = set(
+        i for i in range(arb_m.num_branches) if arb_m.branch_parent(i) == 4294967295
+    )
+    root_prox = [r[0].prox for r in map(arb_m.branch_segments, morpho_roots)]
+    center = np.mean([[p.x, p.y, p.z] for p in root_prox], axis=0)
+    parent = None
+    roots = []
+    stack = []
+    cable_id = morpho_roots.pop()
+    while True:
+        segments = arb_m.branch_segments(cable_id)
+        if not segments:
+            branch = Branch([], [], [], [])
+        else:
+            # Prepend the proximal end of the first segment to get [p0, p1, ..., pN]
+            x = np.array([segments[0].prox.x] + [s.dist.x for s in segments])
+            y = np.array([segments[0].prox.y] + [s.dist.y for s in segments])
+            z = np.array([segments[0].prox.z] + [s.dist.z for s in segments])
+            r = np.array([segments[0].prox.radius] + [s.dist.radius for s in segments])
+            if centering:
+                x -= center[0]
+                y -= center[1]
+                z -= center[2]
+            branch = branch_class(x, y, z, r)
+        branch._cable_id = cable_id
+        if parent:
+            parent.attach_child(branch)
+        else:
+            roots.append(branch)
+        children = arb_m.branch_children(cable_id)
+        if children:
+            stack.extend((branch, child) for child in reversed(children))
+        if stack:
+            parent, cable_id = stack.pop()
+        elif not morpho_roots:
+            break
+        else:
+            parent = None
+            cable_id = morpho_roots.pop()
+
+    morpho = cls(roots)
+    branches = morpho.branches
+    branch_map = {branch._cable_id: branch for branch in branches}
+    cc = arbor.cable_cell(arb_m, labels, decor)
+    for label in labels:
+        if "excl:" in label or label == "all":
+            continue
+        label_cables = cc.cables(f'"{label}"')
+        for cable in label_cables:
+            cable_id = cable.branch
+            branch = branch_map[cable_id]
+            if cable.dist == 1 and cable.prox == 0:
+                branch.label(label)
+            else:
+                prox_index = branch.get_arc_point(cable.prox, eps=1e-7)
+                if prox_index is None:
+                    prox_index = branch.introduce_arc_point(cable.prox)
+                dist_index = branch.get_arc_point(cable.dist, eps=1e-7)
+                if dist_index is None:
+                    dist_index = branch.introduce_arc_point(cable.dist)
+                mask = np.array(
+                    [False] * prox_index
+                    + [True] * (dist_index - prox_index + 1)
+                    + [False] * (len(branch) - dist_index - 1)
+                )
+                branch.label(mask, label)
+
+    morpho.optimize()
     return morpho
