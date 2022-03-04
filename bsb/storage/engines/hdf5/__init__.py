@@ -15,8 +15,13 @@ from mpilock import sync
 class HDF5Engine(Engine):
     def __init__(self, root):
         super().__init__(root)
-        self._file = root
+        self._root = root
         self._lock = sync()
+
+    def __eq__(self, other):
+        return self._format == getattr(other, "_format", None) and self._root == getattr(
+            other, "_root", None
+        )
 
     def _read(self):
         return self._lock.read()
@@ -28,10 +33,10 @@ class HDF5Engine(Engine):
         return self._lock.single_write()
 
     def _handle(self, mode):
-        return h5py.File(self._file, mode)
+        return h5py.File(self._root, mode)
 
     def exists(self):
-        return os.path.exists(self._file)
+        return os.path.exists(self._root)
 
     def create(self):
         with self._write():
@@ -46,13 +51,13 @@ class HDF5Engine(Engine):
         from shutil import move
 
         with self._write():
-            move(self._file, new_root)
+            move(self._root, new_root)
 
-        self._file = new_root
+        self._root = new_root
 
     def remove(self):
         with self._write() as fence:
-            os.remove(self._file)
+            os.remove(self._root)
 
     def clear_placement(self):
         with self._write():
