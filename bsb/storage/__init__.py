@@ -276,10 +276,10 @@ class Storage:
         Return a PlacementSet for the given type.
 
         :param type: Specific cell type.
-        :type type: :class:`~.cell_types.CellType
+        :type type: ~bsb.cell_types.CellType
         :param chunks: Optionally load a specific list of chunks.
         :type chunks: list[tuple[float, float, float]]
-        :returns: :class:`~.storage.interfaces.PlacementSet`
+        :returns: ~bsb.storage.interfaces.PlacementSet
         """
         ps = self._PlacementSet(self._engine, type)
         if chunks is not None:
@@ -292,7 +292,7 @@ class Storage:
 
         :param tag: Connection tag
         :type tag: str
-        :returns: :class:`~.storage.interfaces.ConnectivitySet`
+        :returns: ~bsb.storage.interfaces.ConnectivitySet
         """
         return self._ConnectivitySet(self._engine, tag)
 
@@ -302,7 +302,7 @@ class Storage:
 
         :param tag: Connection tag
         :type tag: str
-        :returns: :class:`~.storage.interfaces.ConnectivitySet`
+        :returns: ~bsb.storage.interfaces.ConnectivitySet
         """
         return self._ConnectivitySet.require(self._engine, tag, pre, post)
 
@@ -311,8 +311,8 @@ class Storage:
         Return a ConnectivitySet for the given type.
 
         :param type: Specific cell type.
-        :type type: :class:`~.cell_types.CellType
-        :returns: :class:`~.storage.interfaces.ConnectivitySet`
+        :type type: ~bsb.cell_types.CellType
+        :returns: ~bsb.storage.interfaces.ConnectivitySet
         """
         return [
             self._ConnectivitySet(self._engine, tag)

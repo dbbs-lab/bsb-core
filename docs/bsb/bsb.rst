@@ -10,7 +10,6 @@ Subpackages
    bsb.cli
    bsb.config
    bsb.topology
-   bsb.cell_types
    bsb.morphologies
    bsb.placement
    bsb.connectivity
@@ -29,7 +28,7 @@ bsb.core module
    :show-inheritance:
 
 bsb.cell_types module
----------------
+---------------------
 
 .. automodule:: bsb.cell_types
    :members:

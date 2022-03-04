@@ -61,6 +61,10 @@ def _not_an_entity(section):
 
 @config.node
 class CellType:
+    """
+    Information on a population of cells.
+    """
+
     name = config.attr(key=True)
     spatial = config.attr(
         type=Representation, required=_not_an_entity, default={"radius": None}
