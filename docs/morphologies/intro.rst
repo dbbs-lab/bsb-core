@@ -99,6 +99,8 @@ Once you're done with the morphology you can save it again:
   Labels'll cost you almost no memory or disk space! You can also add as many properties
   as you like, but they'll cost you memory and disk space per point on the morphology.
 
+.. _morphology_labels:
+
 .. rubric:: Labels
 
 Branches or points can be labelled, and pieces of the morphology can be selected by their

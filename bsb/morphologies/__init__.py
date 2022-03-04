@@ -421,7 +421,7 @@ class SubTree:
         """
         Turn the morphology or subtree into an approximating set of axis-aligned cuboids.
 
-        :rtype: .voxels.VoxelSet
+        :rtype: bsb.voxels.VoxelSet
         """
         if labels is not None:
             raise NotImplementedError(
@@ -435,7 +435,7 @@ class SubTree:
         Turn the morphology or subtree into an approximating set of axis-aligned cuboids
         and cache the result.
 
-        :rtype: .voxels.VoxelSet
+        :rtype: bsb.voxels.VoxelSet
         """
         return self.voxelize(N, labels=labels)
 
@@ -580,7 +580,6 @@ class Morphology(SubTree):
         Create a Morphology from a file-like object.
 
         :param file: path or file-like object to parse.
-        :type file: Union[str, TextIO]
         :param branch_class: Custom branch class
         :type branch_class: type
         :returns: The parsed morphology, with the SWC tags as a property.
