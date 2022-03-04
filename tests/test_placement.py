@@ -5,7 +5,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
 from bsb.core import Scaffold
 from bsb.config import Configuration
-from bsb.objects import CellType
+from bsb.cell_types import CellType
 from bsb.topology import Region, Partition
 from bsb.exceptions import *
 from bsb.storage import Chunk

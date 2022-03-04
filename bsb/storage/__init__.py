@@ -276,7 +276,7 @@ class Storage:
         Return a PlacementSet for the given type.
 
         :param type: Specific cell type.
-        :type type: :class:`~.objects.cell_type.CellType`
+        :type type: :class:`~.cell_types.CellType
         :param chunks: Optionally load a specific list of chunks.
         :type chunks: list[tuple[float, float, float]]
         :returns: :class:`~.storage.interfaces.PlacementSet`
@@ -311,7 +311,7 @@ class Storage:
         Return a ConnectivitySet for the given type.
 
         :param type: Specific cell type.
-        :type type: :class:`~.objects.cell_type.CellType`
+        :type type: :class:`~.cell_types.CellType
         :returns: :class:`~.storage.interfaces.ConnectivitySet`
         """
         return [

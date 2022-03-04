@@ -111,7 +111,7 @@ explanation on topology components.
 Cell types
 ----------
 
-The :class:`~.objects.cell_type.CellType` is a definition of a cell population. During
+The :class:`~.cell_types.CellType` is a definition of a cell population. During
 placement 3D positions, optionally rotations and morphologies or other properties will be
 created for them. In the simplest case you define a soma :guilabel:`radius` and
 :guilabel:`density` or fixed :guilabel:`count`:

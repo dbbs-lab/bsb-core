@@ -9,13 +9,13 @@ Subpackages
 
    bsb.cli
    bsb.config
-   bsb.connectivity
+   bsb.topology
+   bsb.cell_types
    bsb.morphologies
-   bsb.objects
    bsb.placement
+   bsb.connectivity
    bsb.simulation
    bsb.storage
-   bsb.topology
 
 Submodules
 ----------
@@ -24,6 +24,14 @@ bsb.core module
 ---------------
 
 .. automodule:: bsb.core
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+bsb.cell_types module
+---------------
+
+.. automodule:: bsb.cell_types
    :members:
    :undoc-members:
    :show-inheritance:
