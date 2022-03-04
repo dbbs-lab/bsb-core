@@ -7,6 +7,11 @@ class Resource:
         self._engine = engine
         self._path = path
 
+    def __eq__(self, other):
+        return (
+            self._engine == getattr(other, "_engine", None) and self._path == other._path
+        )
+
     def require(self, handle):
         return handle.require_group(self._path)
 

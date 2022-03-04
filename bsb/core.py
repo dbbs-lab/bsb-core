@@ -103,7 +103,7 @@ class Scaffold:
             # make default config.
             linked = self._get_linked_config()
             if linked:
-                report(f"Pulling configuration from linked {link}.", level=2)
+                report(f"Pulling configuration from linked {linked}.", level=2)
                 config = linked
             elif storage is not None:
                 config = storage.load_active_config()
