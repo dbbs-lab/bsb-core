@@ -176,6 +176,9 @@ class Storage:
         if not self._preexisted:
             self.create()
 
+    def __eq__(self, other):
+        return self._engine == getattr(other, "_engine", None)
+
     @property
     def preexisted(self):
         return self._preexisted
