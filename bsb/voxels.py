@@ -437,9 +437,9 @@ class VoxelSet:
 
     def snap_to_grid(self, grid_size, unique=False):
         if self.regular:
-            grid = self._indices // _safe_zero_div(grid_size / _safe_zero_div(self._size))
+            grid = self._indices // _squash_zero(grid_size / _squash_zero(self._size))
         else:
-            grid = self._coords // _safe_zero_div(grid_size)
+            grid = self._coords // _squash_zero(grid_size)
         data = self._data
         if unique:
             if self.has_data:
@@ -462,14 +462,14 @@ class VoxelSet:
                 self._regular = False
         self._size = size
 
-    def select(self, ldc, mdc):
+    def crop(self, ldc, mdc):
         data = self._data
         coords = self.as_spatial_coords(copy=False)
         inside = np.all(np.logical_and(ldc <= coords, coords < mdc), axis=1)
         return self[inside]
 
-    def select_chunk(self, chunk):
-        return self.select(chunk.ldc, chunk.mdc)
+    def crop_chunk(self, chunk):
+        return self.crop(chunk.ldc, chunk.mdc)
 
     def unique(self):
         raise NotImplementedError("and another one")
@@ -517,10 +517,7 @@ class VoxelSet:
         size = mdc - ldc
         per_side = _eq_sides(size, estimate_n)
         voxel_size = size / per_side
-        branch_vcs = [
-            b.as_matrix(with_radius=False) // _safe_zero_div(voxel_size)
-            for b in morphology.branches
-        ]
+        branch_vcs = [b.points // _squash_zero(voxel_size) for b in morphology.branches]
         if with_data:
             voxel_reduce = {}
             for branch, point_vcs in enumerate(branch_vcs):
@@ -834,5 +831,5 @@ def _is_broadcastable(shape1, shape2):
     return True
 
 
-def _safe_zero_div(arr):
+def _squash_zero(arr):
     return np.where(np.isclose(arr, 0), np.finfo(float).max, arr)

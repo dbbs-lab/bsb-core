@@ -16,21 +16,43 @@ import numpy as np, os
 class Distributor(abc.ABC):
     @abc.abstractmethod
     def distribute(self, partitions, indicator, positions):
+        """
+        Is called to distribute cell properties.
+
+        :param partitions: The partitions the cells were placed in.
+        :type partitions: List[~bsb.topology.partition.Partition]
+        :param indicator: The indicator of the cell type whose properties are being
+          distributed.
+        :param positions: Positions of the cells.
+        :type positions: numpy.ndarray
+        :returns: An array with the property data
+        :rtype: numpy.ndarray
+        """
         pass
 
 
 @config.dynamic(required=False, default="random", auto_classmap=True)
 class MorphologyDistributor(Distributor):
-    pass
+    @abc.abstractmethod
+    def distribute(self, partitions, indicator, positions):
+        """
+        Is called to distribute cell morphologies and optionally rotations.
+
+        :param partitions: The partitions the morphologies need to be distributed in.
+        :type partitions: List[~bsb.topology.partition.Partition]
+        :param indicator: The indicator of the cell type whose morphologies are being
+          distributed.
+        :param positions: Placed positions under consideration
+        :type positions: numpy.ndarray
+        :returns: A MorphologySet with assigned morphologies, and optionally a RotationSet
+        :rtype: Union[~bsb.morphologies.MorphologySet, Tuple[~bsb.morphologies.MorphologySet, ~bsb.morphologies.RotationSet]]
+        """
+        pass
 
 
 class RandomMorphologies(MorphologyDistributor, classmap_entry="random"):
     """
-    Distributes morphologies and rotations for a given set of placement indications and
-    placed cell positions.
-
-    If omitted in the configuration the default ``random`` distributor is used that
-    assigns selected morphologies randomly without rotating them.
+    Distributes selected morphologies randomly without rotating them.
 
     .. code-block:: json
 

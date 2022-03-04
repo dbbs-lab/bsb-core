@@ -15,6 +15,25 @@ rotations_step = [30, 60]
 _mpi_size = mpi4py.MPI.COMM_WORLD.Get_size()
 
 
+class NumpyTestCase:
+    def assertClose(self, a, b, msg="", /, **kwargs):
+        return self.assertTrue(np.allclose(a, b, **kwargs), f"Expected {a}, got {b}")
+
+    def assertAll(self, a, msg="", /, **kwargs):
+        trues = np.sum(a.astype(bool))
+        all = np.product(a.shape)
+        return self.assertTrue(
+            np.all(a, **kwargs), f"{msg}. Only {trues} out of {all} True"
+        )
+
+    def assertNan(self, a, msg="", /, **kwargs):
+        nans = np.isnan(a)
+        all = np.product(a.shape)
+        return self.assertTrue(
+            np.all(a, **kwargs), f"{msg}. Only {np.sum(nans)} out of {all} True"
+        )
+
+
 def skip_parallel(o):
     return unittest.skipIf(_mpi_size > 1, "Skipped during parallel testing.")(o)
 
@@ -390,8 +409,21 @@ def get_config(file):
         os.path.join(
             os.path.dirname(__file__),
             "..",
+            "data",
             "configs",
-            file + ".json" if not file.endswith(".json") else "",
+            file + (".json" if not file.endswith(".json") else ""),
+        )
+    )
+
+
+def get_morphology(file):
+    return os.path.abspath(
+        os.path.join(
+            os.path.dirname(__file__),
+            "..",
+            "data",
+            "morphologies",
+            file,
         )
     )
 

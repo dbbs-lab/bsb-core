@@ -1,6 +1,5 @@
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-from .networks import all_depth_first_branches, get_branch_points, reduce_branch
 import numpy as np, math, functools
 from contextlib import contextmanager
 import random, types
@@ -606,7 +605,7 @@ def get_morphology_range(morphology, offset=None, soma_radius=None):
     if offset is None:
         offset = [0.0, 0.0, 0.0]
     r = soma_radius or 0.0
-    itr = enumerate(morphology.flatten(vectors=["x", "y", "z"]))
+    itr = enumerate(morphology.flatten())
     r = [[min(min(v), -r) + offset[i], max(max(v), r) + offset[i]] for i, v in itr]
     return r
 

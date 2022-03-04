@@ -22,7 +22,8 @@ except io.UnsupportedOperation:  # pragma: nocover
             setattr(sys.stdout, w, wrapped)
     except:
         warnings.warn(
-            f"Unable to create unbuffered wrapper around `sys.stdout` ({sys.stdout.__class__.__name__})."
+            "Unable to create unbuffered wrapper around `sys.stdout`"
+            + f" ({sys.stdout.__class__.__name__})."
         )
 
 _report_file = None
@@ -55,7 +56,7 @@ def report(*message, level=2, ongoing=False, token=None, nodes=None, all_nodes=F
     :type message: str
     :param level: Verbosity level of the message.
     :type level: int
-    :param ongoing: The message is part of an ongoing progress report. This replaces the endline (`\\n`) character with a carriage return (`\\r`) character
+    :param ongoing: The message is part of an ongoing progress report.
     :type ongoing: bool
     """
     from . import options

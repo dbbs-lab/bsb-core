@@ -3,34 +3,22 @@ Morphologies
 ############
 
 Morphologies are the 3D representation of a cell. In the BSB they consist of branches,
-pieces of cable described as vectors of the properties of points. Consider the following
-branch with 4 points ``p0, p1, p2, p3``::
+pieces of cables, consisting of points with spatial coordinates and a radius. On top of
+that each point can also be given labels, and properties.
 
-  branch0 = [x, y, z, r]
-  x = [x0, x1, x2, x3]
-  y = [y0, y1, y2, y3]
-  z = [z0, z1, z2, z3]
-  r = [r0, r1, r2, r3]
-
-Branches also specify which other branches they are connected to and in this way the
-entire network of neuronal processes can be described. Those branches that do not have a
-parent branch are called ``roots``. A morphology can have as many roots as it likes;
-usually in the case of 1 root it represents the soma; in the case of many roots they each
-represent the start of a process such as an axon on dendrite around an imaginary soma.
-
-In the end a morphology can be summed up in pseudo-code as::
+A morphology can be summed up as::
 
   m = Morphology(roots)
-  m.roots = <all roots>
-  m.branches = <all branches, depth first starting from the roots>
+  m.roots == <all roots>
+  m.branches == <all branches, depth first starting from the roots>
 
 The ``branches`` attribute is the result of a depth-first iteration of the roots list. Any
-kind of iteration over roots or branches will always follow this same depth-first order.
+kind of iteration over roots or branches will always follow this same depth-first order,
+and this order is implicitly used as the branch id as well.
 
-The data of these morphologies are stored in ``MorphologyRepositories`` as groups of
-branches following the first vector-based branch description.
+Morphologies can be stored in :class:`MorphologyRepositories
+<.storage.interfaces.MorphologyRepository>`.
 
-=========================
 Constructing morphologies
 =========================
 
@@ -43,93 +31,91 @@ then attach them together and provide the roots to the Morphology constructor:
   from bsb.morphologies import Branch, Morphology
   import numpy as np
 
-  # x, y, z, radii
-  branch = Branch(
-    np.array([0, 1, 2]),
-    np.array([0, 1, 2]),
-    np.array([0, 1, 2]),
+  # XYZ, radius,
+  root = Branch(
+    np.array([
+      [0, 1, 2],
+      [0, 1, 2],
+      [0, 1, 2],
+    ]),
     np.array([1, 1, 1]),
   )
   child_branch = Branch(
-    np.array([2, 3, 4]),
-    np.array([2, 3, 4]),
-    np.array([2, 3, 4]),
+    np.array([
+      [2, 3, 4],
+      [2, 3, 4],
+      [2, 3, 4],
+    ]),
     np.array([1, 1, 1]),
   )
-  branch.attach_child(child_branch)
-  m = Morphology([branch])
+  root.attach_child(child_branch)
+  m = Morphology([root])
+
+Importing
+---------
+
+More commonly you will import morphologies from SWC or ASC files:
+
+.. literalinclude:: ../../examples/morphologies/import.py
+  :lines: 2-5
+  :language: python
+
+Once we have our :class:`~.morphologies.Morphology` object we can save it in
+:class:`~.storage.Storage`; storages and networks have a ``morphologies`` attribute that
+links to a :class:`~.storage.interfaces.MorphologyRepository` that can save and load
+morphologies:
+
+.. literalinclude:: ../../examples/morphologies/import.py
+  :lines: 8-11
+  :language: python
+
+Basic use
+---------
+
+Morphologies and branches contain spatial data in the ``points`` and ``radii`` attributes.
+Points can be individually labelled with arbitrary strings, and additional properties for
+each point can be assigned to morphologies/branches:
+
+.. literalinclude:: ../../examples/morphologies/usage.py
+  :lines: 1-6
+  :language: python
+
+Once loaded we can do :ref:`transformations <transform>`, label or assign properties on the
+morphology:
+
+.. literalinclude:: ../../examples/morphologies/usage.py
+  :lines: 8-17
+  :language: python
+
+Once you're done with the morphology you can save it again:
+
+.. literalinclude:: ../../examples/morphologies/usage.py
+  :lines: 19
+  :language: python
 
 .. note::
 
-  Attaching branches is merely a graph-level connection that aids in iterating the
-  morphology, no spatial connection information is inferred between the branches.
-  Detaching and attaching it elsewhere won't result in any spatial changes, it will only
-  affect iteration order. Keep in mind that that still affects how they are stored and
-  still has drastic consequences if connections have already been made using that
-  morphology (as connections use branch indices).
+  You can assign as many labels as you like (2^64 combinations max |:innocent:|)!
+  Labels'll cost you almost no memory or disk space! You can also add as many properties
+  as you like, but they'll cost you memory and disk space per point on the morphology.
 
-Using morphologies
-------------------
+.. _morphology_labels:
 
-For this introduction we're going to assume that you have a ``MorphologyRepository`` with
-morphologies already present in them. To learn how to create your own morphologies stored
-in ``MorphologyRepositories`` see :doc:`./repository`.
+.. rubric:: Labels
 
-Let's start with loading a morphology and inspecting its root
-:class:`~.morphologies.Branch`:
+Branches or points can be labelled, and pieces of the morphology can be selected by their
+label. Labels are also useful targets to insert biophysical mechanisms into parts of the
+cell later on in simulation.
 
-.. code-block:: python
+.. literalinclude:: ../../examples/morphologies/labels.py
 
-  from bsb.core import from_hdf5
-  from bsb.output import MorphologyRepository
+.. rubric:: Properties
 
-  mr = MorphologyRepository("path/to/mr.hdf5")
-  # Alternatively if you have your MR inside of a compiled network:
-  network = from_hdf5("network.hdf5")
-  mr = network.morphology_repository
-  morfo = mr.load("my_morphology")
+Branches and morphologies can be given additional properties. The basic properties are
+``x``, ``y``, ``z``, ``radii`` and ``labels``. When you use
+:meth:`~.morphologies.Morphology.from_swc`, it adds ``tags`` as an extra property.
 
-  # Use a local reference to the properties if you're not going to manipulate the
-  # morphology, as they require a full search of the morphology to be determined every
-  # time the property is accessed.
-  roots = morfo.roots
-  branches = morfo.branches
-  print("Loaded a morphology with", len(roots), "roots, and", len(branches), "branches")
-  # In most morphologies there will be a single root, representing the soma.
-  soma_branch = roots[0]
-
-  # Use the vectors of the branch (this is the most performant option)
-  print("A branch can be represented by the following vectors:")
-  print("x:", soma_branch.x)
-  print("y:", soma_branch.y)
-  print("z:", soma_branch.z)
-  print("r:", soma_branch.radii)
-  # Use the points property to retrieve a matrix notation of the branch
-  # (Stacks the vectors into a 2d matrix)
-  print("The soma can also be represented by the following matrix:", soma_branch.points)
-
-  # There's also an iterator to walk over the points in the vectors
-  print("The soma is defined as the following points:")
-  for point in soma_branch.walk():
-    print("*", point)
-
-As you can see an individual branch contains all the positional data of the individual
-points in the morphology. The morphology object itself then contains the collection of
-branches. Normally you'd use the ``.branches`` but if you want to work with the positional
-data of the whole morphology in an object you can do this by flattening the morphology:
-
-.. code-block:: python
-
-  from bsb.core import from_hdf5
-
-  network = from_hdf5("network.hdf5")
-  mr = network.morphology_repository
-  morfo = mr.load("my_morphology")
-
-  print("All the branches in depth-first order:", morfo.branches)
-  print("All the points on those branches in depth first order:")
-  print("- As vectors:", morfo.flatten())
-  print("- As matrix:", morfo.flatten(matrix=True).shape)
+.. _transform:
 
 =======================
 Subtree transformations
@@ -140,8 +126,8 @@ downstream branches (i.e. the branches *emanating* from a set of roots). A subtr
 roots equal to the roots of the morphology is equal to the entire morphology, and all
 transformations valid on a subtree are also valid morphology transformations.
 
-Selection
----------
+Creating subtrees
+-----------------
 
 Subtrees can be selected using label(s) on the morphology.
 
@@ -151,15 +137,17 @@ Subtrees can be selected using label(s) on the morphology.
 
 .. code-block:: python
 
-  axon = morfo.select("axon")
+  axon = morfo.subtree("axon")
   # Multiple labels can be given
-  hybrid = morfo.select("proximal", "distal")
+  hybrid = morfo.subtree("proximal", "distal")
 
 .. warning::
 
-	Only branches that have all of their points labelled with a label will be selected.
+	Branches will be selected as soon as they have one or more points labelled with a
+	selected label.
 
-Selection will always select all emanating branches as well:
+Selections will always include all the branches emanating (downtree) from the selection as
+well:
 
 .. figure:: /images/m_trans/emanating.png
   :figwidth: 350px
@@ -167,7 +155,7 @@ Selection will always select all emanating branches as well:
 
 .. code-block:: python
 
-  tuft = morfo.select("dendritic_piece")
+  tuft = morfo.subtree("dendritic_piece")
 
 Translation
 -----------
@@ -262,20 +250,23 @@ Calls to any of the above functions can be chained together:
 
   dendrites.close_gaps().center().rotate(r)
 
-=====================
-Morphology preloading
-=====================
+Morphology classes in the framework
+===================================
 
+The framework deals quite a bit with morphologies, here are some interesting classes for
+once you dig deeper into morphologies.
+
+Morphology preloading
+---------------------
 Reading the morphology data from the repository takes time. Usually morphologies are
 passed around in the framework as :class:`StoredMorphologies
 <.storage.interfaces.StoredMorphology>`. These objects have a
-:meth:`.storage.interfaces.StoredMorphology.load` method to load the
-:class:`.morphologies.Morphology` object from storage and a
-:meth:`.storage.interfaces.StoredMorphology.get_meta` method to return the metadata.
+:meth:`~.storage.interfaces.StoredMorphology.load` method to load the
+:class:`~.morphologies.Morphology` object from storage and a
+:meth:`~.storage.interfaces.StoredMorphology.get_meta` method to return the metadata.
 
-====================
 Morphology selectors
-====================
+--------------------
 
 The most common way of telling the framework which morphologies to use is through
 :class:`MorphologySelectors <.cell_types.MorphologySelector>`. A selector should
@@ -284,7 +275,7 @@ implement :meth:`~.cell_types.MorphologySelector.validate` and
 
 ``validate`` can be used to assert that all the required morphologies are present, while
 ``pick`` needs to return ``True``/``False`` to include a morphology or not. Both methods
-are handed :class:`.storage.interfaces.StoredMorphology` objects, only ``load``
+are handed :class:`~.storage.interfaces.StoredMorphology` objects, only ``load``
 morphologies if it is impossible to determine the outcome from the metadata.
 
 .. code-block:: python
@@ -305,24 +296,34 @@ morphologies if it is impossible to determine the outcome from the metadata.
       meta = morpho.get_meta()
       return meta["size"] > self.min_size and meta["size"] < self.max_size
 
-===================
 Morphology metadata
-===================
+-------------------
 
 Currently unspecified, up to the Storage and MorphologyRepository support to return a
 dictionary of available metadata from
 :meth:`~.storage.interfaces.MorphologyRepository.get_meta`.
 
 
-=======================
 Morphology distributors
-=======================
+-----------------------
+
+A :class:`~.placement.strategy.MorphologyDistributor` is a special type of
+:class:`~.placement.strategy.Distributor` that is usually called after positions have been
+generated by a :class:`~.placement.strategy.PlacementStrategy` to assign morphologies, and
+optionally rotations. The :meth:`~.placement.strategy.MorphologyDistributor.distribute`
+method is called with the partitions, the indicators for the cell type and the positions;
+the method has to return a :class:`~.morphologies.MorphologySet` or a tuple together with
+a :class:`~.morphologies.RotationSet`.
+
+.. warning::
+
+	The rotations returned by a morphology distributor may be overruled when a
+	:class:`~.placement.strategy.RotationDistributor` is defined for the same placement
+	block.
 
 
-
-==============
 MorphologySets
-==============
+--------------
 
 :class:`MorphologySets <.morphologies.MorphologySet>` are the result of
 :class:`distributors <.placement.strategy.MorphologyDistributor>` assigning morphologies
@@ -341,7 +342,6 @@ morphologies and a vector of rotations. You can use
   for pos, morpho, rot in zip(positions, cache, rotations):
     morpho.rotate(rot)
 
-=========
 Reference
 =========
 

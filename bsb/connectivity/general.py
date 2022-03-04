@@ -1,7 +1,7 @@
 import numpy as np
 import functools
 from .strategy import ConnectionStrategy
-from .. import config
+from .. import config, _util as _gutil
 from ..exceptions import *
 from ..reporting import report, warn
 
@@ -49,7 +49,7 @@ class AllToAll(ConnectionStrategy):
     @functools.cache
     def _get_all_pre_chunks(self):
         all_ps = self.presynaptic.placement.values()
-        chunks = set(itertools.chain.from_iterable(ps.get_all_chunks() for ps in all_ps))
+        chunks = set(_gutil.ichain(ps.get_all_chunks() for ps in all_ps))
         return list(chunks)
 
     def connect(self):

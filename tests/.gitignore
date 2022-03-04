@@ -1,8 +1,4 @@
 *
 !.gitignore
-!profiling/
-!profiling.py
 !test_*
 *.pyc
-!configs/
-!parser_tests/

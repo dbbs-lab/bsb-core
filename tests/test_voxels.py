@@ -1,3 +1,5 @@
+import os
+import sys
 import unittest
 import numpy as np
 import random
@@ -7,18 +9,12 @@ from bsb.morphologies import Branch, Morphology
 from bsb.exceptions import *
 from itertools import count as _ico, chain as _ic
 
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
+import test_setup
 
-class TestVoxelSet(unittest.TestCase):
-    def assertClose(self, a, b, msg="", /, **kwargs):
-        return self.assertTrue(np.allclose(a, b, **kwargs), f"Expected {a}, got {b}")
 
-    def assertAll(self, a, msg="", /, **kwargs):
-        trues = np.sum(a.astype(bool))
-        all = np.product(a.shape)
-        return self.assertTrue(
-            np.all(a, **kwargs), f"{msg}. Only {trues} out of {all} True"
-        )
-
+class TestVoxelSet(test_setup.NumpyTestCase, unittest.TestCase):
     def setUp(self):
         vs = VoxelSet
         self.regulars = [
@@ -289,7 +285,10 @@ class TestVoxelSet(unittest.TestCase):
                 self.assertTrue(set, "non empty set False")
 
     def test_from_flat_morphology(self):
-        branches = [Branch([i] * 5, [0, 1, 2, 3, 4], [0] * 5, [1] * 5) for i in range(5)]
+        branches = [
+            Branch(np.array(([i] * 5, [0, 1, 2, 3, 4], [0] * 5)).T, [1] * 5)
+            for i in range(5)
+        ]
         morpho = Morphology(branches)
         vs = morpho.voxelize(16)
         self.assertLess(0, len(vs), "Empty voxelset from non empty morpho")
@@ -300,7 +299,10 @@ class TestVoxelSet(unittest.TestCase):
         self.assertClose(0, vs.get_raw(copy=False)[:, 2], "Flat morphology not flat VS")
 
     def test_from_3d_morphology(self):
-        branches = [Branch([i] * 5, [0, 1, 2, 3, 4], [i] * 5, [1] * 5) for i in range(5)]
+        branches = [
+            Branch(np.array(([i] * 5, [0, 1, 2, 3, 4], [i] * 5)).T, [1] * 5)
+            for i in range(5)
+        ]
         morpho = Morphology(branches)
         vs = morpho.voxelize(16)
         self.assertLess(0, len(vs), "Empty voxelset from non empty morpho")
@@ -314,7 +316,7 @@ class TestVoxelSet(unittest.TestCase):
         self.assertEqual(0, len(vs), "Non-empty voxelset from empty morpho")
 
     def test_from_point_morphology(self):
-        point_morpho = Morphology([Branch([100], [1], [100], [1])])
+        point_morpho = Morphology([Branch(np.array([[100, 1, 100]]), [1])])
         vs = point_morpho.voxelize(16)
         self.assertEqual(1, len(vs), "Point morpho")
         self.assertClose(0, vs.get_raw(copy=False))
@@ -322,18 +324,18 @@ class TestVoxelSet(unittest.TestCase):
     def test_select(self):
         for label, set in self.all.items():
             with self.subTest(label=label):
-                vs = set.select([0, 0, 0], [0, 0, 0])
+                vs = set.crop([0, 0, 0], [0, 0, 0])
                 self.assertEqual(0, len(vs), "empty select nonempty set")
-                vs = set.select([-1000, -1000, -1000], [1000, 1000, 1000])
+                vs = set.crop([-1000, -1000, -1000], [1000, 1000, 1000])
                 self.assertEqual(len(set), len(vs), "big select didnt select all")
         # vs([[0, 0, 0], [1, 0, 0], [2, 0, 0]], [2, 2, 2]),
         vs = self.regulars[1]
-        res = vs.select([-1, -1, -1], [3.5, 0.5, 0.5])
+        res = vs.crop([-1, -1, -1], [3.5, 0.5, 0.5])
         self.assertEqual(2, len(res), "unexpected selection")
         self.assertClose(0, res.raw[0], "unexpected selection")
         self.assertClose([1, 0, 0], res.raw[1], "unexpected selection")
         c = Chunk([0, 0, 0], [100, 100, 100])
-        res = vs.select_chunk(c)
+        res = vs.crop_chunk(c)
         self.assertEqual(len(res), len(vs), "big chunk didnt select all")
 
     def test_resize(self):
