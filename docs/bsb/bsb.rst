@@ -44,14 +44,6 @@ bsb.helpers module
    :undoc-members:
    :show-inheritance:
 
-bsb.networks module
--------------------
-
-.. automodule:: bsb.networks
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 bsb.option module
 -----------------
 
