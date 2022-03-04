@@ -242,6 +242,14 @@ Collapsing
 
 Collapse the roots of a subtree onto a single point, by default the origin.
 
+.. rubric:: Call chaining
+
+Calls to any of the above functions can be chained together:
+
+.. code-block:: python
+
+  dendrites.close_gaps().center().rotate(r)
+
 Morphology classes in the framework
 ===================================
 

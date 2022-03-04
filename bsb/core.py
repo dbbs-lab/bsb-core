@@ -37,7 +37,7 @@ def _config_property(name):
     return prop.setter(fset)
 
 
-def from_hdf5(file):
+def from_hdf5(file, missing_ok=False):
     """
     Generate a :class:`.core.Scaffold` from an HDF5 file.
 
@@ -46,7 +46,7 @@ def from_hdf5(file):
     :rtype: :class:`Scaffold`
     """
 
-    storage = Storage("hdf5", file)
+    storage = Storage("hdf5", file, missing_ok=missing_ok)
     return storage.load()
 
 

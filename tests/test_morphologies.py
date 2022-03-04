@@ -9,6 +9,7 @@ from bsb.morphologies import Morphology, Branch, _Labels
 from bsb.storage import Storage
 from bsb.exceptions import *
 from test_setup import get_morphology, NumpyTestCase
+from scipy.spatial.transform import Rotation
 
 
 class TestIO(NumpyTestCase, unittest.TestCase):
@@ -302,6 +303,18 @@ class TestMorphologies(NumpyTestCase, unittest.TestCase):
         l2 = m.flatten_labels()
         self.assertClose(l1, l2, "opt v flatten labels discrepancy")
         self.assertEqual(l1.labels, l2.labels, "opt v flatten labels discrepancy")
+
+    def test_chaining(self):
+        branch = Branch(
+            np.array([0, 1, 2]),
+            np.array([0, 1, 2]),
+            np.array([0, 1, 2]),
+            np.array([0, 1, 2]),
+        )
+        m = Morphology([branch])
+        r = Rotation.from_euler("z", 0)
+        res = m.rotate(r).root_rotate(r).translate([0, 0, 0]).collapse().close_gaps()
+        self.assertEqual(m, res, "chaining calls should return self")
 
 
 class TestMorphologyLabels(NumpyTestCase, unittest.TestCase):

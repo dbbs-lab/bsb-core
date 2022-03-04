@@ -375,6 +375,7 @@ class SubTree:
         for b in self.roots:
             group = SubTree([b])
             group.rotate(rot, group.origin)
+        return self
 
     def translate(self, point):
         if len(point) != 3:
@@ -387,13 +388,14 @@ class SubTree:
 
     @property
     def origin(self):
-        return np.mean([r.get_point(0) for r in self.roots], axis=0)
+        return np.mean([r[0][:3] for r in self.roots], axis=0)
 
     def center(self):
         """
         Center the morphology on the origin
         """
         self.translate(-self.origin)
+        return self
 
     def close_gaps(self):
         """
@@ -401,9 +403,10 @@ class SubTree:
         """
         for branch in self.branches:
             if branch.parent is not None:
-                gap_offset = branch.parent.get_point(-1) - branch.get_point(0)
+                gap_offset = branch.parent[-1][:3] - branch[0][:3]
                 if not np.allclose(gap_offset, 0):
                     SubTree([branch]).translate(gap_offset)
+        return self
 
     def collapse(self, on=None):
         """
@@ -415,7 +418,8 @@ class SubTree:
         if on is None:
             on = self.origin
         for root in self.roots:
-            root.translate(on - root.get_point(0))
+            root.translate(on - root[0][:3])
+        return self
 
     def voxelize(self, N, labels=None):
         """

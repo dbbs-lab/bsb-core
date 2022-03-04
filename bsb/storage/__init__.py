@@ -127,7 +127,7 @@ class Storage:
     underlying engine.
     """
 
-    def __init__(self, engine, root, comm=None, master=0):
+    def __init__(self, engine, root, comm=None, master=0, missing_ok=True):
         """
         Create a Storage provider based on a specific `engine` uniquely identified
         by the root object.
@@ -173,6 +173,8 @@ class Storage:
         # The storage should be created at the root as soon as we initialize because
         # features might immediatly require the basic structure to be present.
         self._preexisted = self.exists()
+        if not (missing_ok or self._preexisted):
+            raise FileNotFoundError(f"`{engine}` storage at '{root}' does not exist.")
         if not self._preexisted:
             self.create()
 
