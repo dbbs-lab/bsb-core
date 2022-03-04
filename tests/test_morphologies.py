@@ -1,6 +1,7 @@
 import unittest, os, sys, numpy as np, h5py
 import json
 import itertools
+import mpi4py
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
@@ -62,17 +63,71 @@ class TestIO(NumpyTestCase, unittest.TestCase):
 
 
 class TestRepositories(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        if mpi4py.MPI.COMM_WORLD.Get_rank() == 0:
+            with h5py.File("test.h5", "w") as f:
+                g = f.create_group("morphologies")
+                g = g.create_group("M")
+                ds = g.create_dataset("data", data=np.empty((0, 5)))
+                ds.attrs["labels"] = json.dumps({0: []})
+                ds.attrs["properties"] = []
+                g.create_dataset("graph", data=[])
+            with h5py.File("test2.h5", "w") as f:
+                g = f.create_group("morphologies")
+                g = g.create_group("M")
+                ds = g.create_dataset("data", data=np.empty((0, 5)))
+                ds.attrs["labels"] = json.dumps({0: []})
+                ds.attrs["properties"] = []
+                g.create_dataset("graph", data=[[0, -1], [0, -1], [0, -1]])
+            with h5py.File("test3.h5", "w") as f:
+                g = f.create_group("morphologies")
+                g = g.create_group("M")
+                ds = g.create_dataset("data", data=np.ones((1, 5)))
+                ds.attrs["labels"] = json.dumps({1: []})
+                ds.attrs["properties"] = []
+                g.create_dataset("graph", data=[[0, -1]])
+            with h5py.File("test4.h5", "w") as f:
+                g = f.create_group("morphologies")
+                g = g.create_group("M")
+                data = np.ones((5, 5))
+                data[:, 0] = np.arange(5) * 2
+                data[:, 1] = np.arange(5) * 2
+                data[:, 2] = np.arange(5) * 2
+                data[:, 3] = np.arange(5) * 2
+                ds = g.create_dataset("data", data=data)
+                ds.attrs["labels"] = json.dumps({1: []})
+                ds.attrs["properties"] = []
+                g.create_dataset("graph", data=[[i + 1, -1] for i in range(5)])
+            with h5py.File("test5.h5", "w") as f:
+                g = f.create_group("morphologies")
+                g = g.create_group("M")
+                data = np.ones((5, 5))
+                data[:, 0] = np.arange(5) * 2
+                data[:, 1] = np.arange(5) * 2
+                data[:, 2] = np.arange(5) * 2
+                data[:, 3] = np.arange(5) * 2
+                ds = g.create_dataset("data", data=data)
+                ds.attrs["labels"] = json.dumps({1: []})
+                ds.attrs["properties"] = []
+                g.create_dataset("graph", data=[[i + 1, -1] for i in range(4)] + [[5, 0]])
+        mpi4py.MPI.COMM_WORLD.Barrier()
+
+    @classmethod
+    def tearDownClass(cls):
+        super().tearDownClass()
+        if mpi4py.MPI.COMM_WORLD.Get_rank() == 0:
+            os.remove("test.h5")
+            os.remove("test2.h5")
+            os.remove("test4.h5")
+            os.remove("test5.h5")
+        mpi4py.MPI.COMM_WORLD.Barrier()
+
     def test_empty_repository(self):
         pass
 
     def test_empty(self):
-        with h5py.File("test.h5", "w") as f:
-            g = f.create_group("morphologies")
-            g = g.create_group("M")
-            ds = g.create_dataset("data", data=np.empty((0, 5)))
-            ds.attrs["labels"] = json.dumps({0: []})
-            ds.attrs["properties"] = []
-            g.create_dataset("graph", data=[])
         mr = Storage("hdf5", "test.h5").morphologies
         m = mr.load("M")
         msg = "Empty morfo should not have root branches"
@@ -85,14 +140,7 @@ class TestRepositories(unittest.TestCase):
         self.assertTrue(m._check_shared(), "Empty morpho not shared")
 
     def test_empty_branches(self):
-        with h5py.File("test.h5", "w") as f:
-            g = f.create_group("morphologies")
-            g = g.create_group("M")
-            ds = g.create_dataset("data", data=np.empty((0, 5)))
-            ds.attrs["labels"] = json.dumps({0: []})
-            ds.attrs["properties"] = []
-            g.create_dataset("graph", data=[[0, -1], [0, -1], [0, -1]])
-        mr = Storage("hdf5", "test.h5").morphologies
+        mr = Storage("hdf5", "test2.h5").morphologies
         m = mr.load("M")
         msg = "Empty unattached branches should still be root."
         self.assertEqual(3, len(m.roots), msg)
@@ -103,14 +151,7 @@ class TestRepositories(unittest.TestCase):
         self.assertTrue(m._check_shared(), "Load should produce shared")
 
     def test_single_branch_single_element(self):
-        with h5py.File("test.h5", "w") as f:
-            g = f.create_group("morphologies")
-            g = g.create_group("M")
-            ds = g.create_dataset("data", data=np.ones((1, 5)))
-            ds.attrs["labels"] = json.dumps({1: []})
-            ds.attrs["properties"] = []
-            g.create_dataset("graph", data=[[0, -1]])
-        mr = Storage("hdf5", "test.h5").morphologies
+        mr = Storage("hdf5", "test3.h5").morphologies
         m = mr.load("M")
         msg = "Single point unattached branches should still be root."
         self.assertEqual(1, len(m.roots), msg)
@@ -124,49 +165,27 @@ class TestRepositories(unittest.TestCase):
         self.assertEqual({}, m.flatten_properties(), msg)
 
     def test_multi_branch_single_element(self):
-        with h5py.File("test.h5", "w") as f:
-            g = f.create_group("morphologies")
-            g = g.create_group("M")
-            data = np.ones((5, 5))
-            data[:, 0] = np.arange(5) * 2
-            data[:, 1] = np.arange(5) * 2
-            data[:, 2] = np.arange(5) * 2
-            data[:, 3] = np.arange(5) * 2
-            ds = g.create_dataset("data", data=data)
-            ds.attrs["labels"] = json.dumps({1: []})
-            ds.attrs["properties"] = []
-            g.create_dataset("graph", data=[[i + 1, -1] for i in range(5)])
-            mr = Storage("hdf5", "test.h5").morphologies
-            m = mr.load("M")
-            msg = "Single point unattached branches should still be root."
-            self.assertEqual(5, len(m.roots), msg)
-            self.assertEqual(5, len(m.branches), "Missing branch")
-            msg = "Flatten of single point branches should produce n-branch x n-vectors matrix."
-            matrix = m.flatten()
-            self.assertEqual((5, 3), matrix.shape, msg)
-            msg = "Flatten produced an incorrect matrix"
-            self.assertTrue(
-                np.array_equal(np.array([[i * 2] * 3 for i in range(5)]), matrix), msg
-            )
+        mr = Storage("hdf5", "test4.h5").morphologies
+        m = mr.load("M")
+        msg = "Single point unattached branches should still be root."
+        self.assertEqual(5, len(m.roots), msg)
+        self.assertEqual(5, len(m.branches), "Missing branch")
+        msg = (
+            "Flatten of single point branches should produce n-branch x n-vectors matrix."
+        )
+        matrix = m.flatten()
+        self.assertEqual((5, 3), matrix.shape, msg)
+        msg = "Flatten produced an incorrect matrix"
+        self.assertTrue(
+            np.array_equal(np.array([[i * 2] * 3 for i in range(5)]), matrix), msg
+        )
 
     def test_multi_branch_single_element_depth_first(self):
-        with h5py.File("test.h5", "w") as f:
-            g = f.create_group("morphologies")
-            g = g.create_group("M")
-            data = np.ones((5, 5))
-            data[:, 0] = np.arange(5) * 2
-            data[:, 1] = np.arange(5) * 2
-            data[:, 2] = np.arange(5) * 2
-            data[:, 3] = np.arange(5) * 2
-            ds = g.create_dataset("data", data=data)
-            ds.attrs["labels"] = json.dumps({1: []})
-            ds.attrs["properties"] = []
-            g.create_dataset("graph", data=[[i + 1, -1] for i in range(4)] + [[5, 0]])
-            mr = Storage("hdf5", "test.h5").morphologies
-            m = mr.load("M")
-            msg = "1 out of 5 branches was attached, 4 roots expected."
-            self.assertEqual(4, len(m.roots), msg)
-            self.assertEqual(5, len(m.branches), "Missing branch")
+        mr = Storage("hdf5", "test5.h5").morphologies
+        m = mr.load("M")
+        msg = "1 out of 5 branches was attached, 4 roots expected."
+        self.assertEqual(4, len(m.roots), msg)
+        self.assertEqual(5, len(m.branches), "Missing branch")
 
     def test_chain_empty_branches(self):
         pass
