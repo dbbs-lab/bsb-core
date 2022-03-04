@@ -363,10 +363,10 @@ class SubTree:
 
     def _rotate(self, points, rot, center):
         if center is not None:
-            points -= center
+            points = points - center
         rotated_points = rot.apply(points)
         if center is not None:
-            rotated_points += center
+            rotated_points = rotated_points + center
         return rotated_points
 
     def root_rotate(self, rot):
@@ -382,15 +382,15 @@ class SubTree:
         if len(point) != 3:
             raise ValueError("Point must be a sequence of x, y and z coordinates")
         if self._is_shared:
-            self._shared._points[:] += point
+            self._shared._points[:] = self._shared._points + point
         else:
             for branch in self.branches:
-                branch.points[:] += point
+                branch.points[:] = branch.points[:] + point
         return self
 
     @property
     def origin(self):
-        return np.mean([r[0][:3] for r in self.roots], axis=0)
+        return np.mean([r.points[0] for r in self.roots], axis=0)
 
     def center(self):
         """
@@ -405,7 +405,7 @@ class SubTree:
         """
         for branch in self.branches:
             if branch.parent is not None:
-                gap_offset = branch.parent[-1][:3] - branch[0][:3]
+                gap_offset = branch.parent.points[-1] - branch.points[0]
                 if not np.allclose(gap_offset, 0):
                     SubTree([branch]).translate(gap_offset)
         return self
@@ -420,7 +420,7 @@ class SubTree:
         if on is None:
             on = self.origin
         for root in self.roots:
-            root.translate(on - root[0][:3])
+            root.translate(on - root.points[0])
         return self
 
     def voxelize(self, N, labels=None):
