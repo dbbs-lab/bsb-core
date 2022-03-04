@@ -2,12 +2,12 @@
     Module for the CellType configuration node and its dependencies.
 """
 
-from .. import config
-from ..config import types
-from ..placement import PlacementStrategy
-from ..placement.indicator import PlacementIndications
-from ..helpers import SortableByAfter
-from ..exceptions import *
+from . import config
+from .config import types
+from .placement import PlacementStrategy
+from .placement.indicator import PlacementIndications
+from .helpers import SortableByAfter
+from .exceptions import *
 import abc
 
 
@@ -61,6 +61,10 @@ def _not_an_entity(section):
 
 @config.node
 class CellType:
+    """
+    Information on a population of cells.
+    """
+
     name = config.attr(key=True)
     spatial = config.attr(
         type=Representation, required=_not_an_entity, default={"radius": None}

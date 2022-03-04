@@ -22,7 +22,7 @@ class CellTypeReference(Reference):
         return root.cell_types
 
     def is_ref(self, value):
-        from ..objects import CellType
+        from ..cell_types import CellType
 
         return isinstance(value, CellType)
 

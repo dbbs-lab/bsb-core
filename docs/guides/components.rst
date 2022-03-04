@@ -56,7 +56,7 @@ cells:
 
 .. code-block:: python
 
-  from bsb.objects.cell_type import MorphologySelector
+  from bsb.cell_types import MorphologySelector
   from bsb import config
 
   @config.node

@@ -14,7 +14,7 @@ this:
 The :guilabel:`regions`, :guilabel:`partitions`, :guilabel:`cell_types`,
 :guilabel:`placement` and :guilabel:`connectivity` spaceholders hold the configuration for
 :class:`Regions <.topology.region.Region>`, :class:`Partitions
-<.topology.partition.Partition>`, :class:`CellTypes <.objects.cell_type.CellType>`,
+<.topology.partition.Partition>`, :class:`CellTypes <.cell_types.CellType>`,
 :class:`PlacementStrategies <.placement.strategy.PlacementStrategy>` and
 :class:`ConnectionStrategies <.connectivity.strategy.ConnectionStrategy>` respectively.
 

@@ -269,9 +269,9 @@ Morphology selectors
 --------------------
 
 The most common way of telling the framework which morphologies to use is through
-:class:`MorphologySelectors <.objects.cell_type.MorphologySelector>`. A selector should
-implement :meth:`~.objects.cell_type.MorphologySelector.validate` and
-:meth:`~.objects.cell_type.MorphologySelector.pick` methods.
+:class:`MorphologySelectors <.cell_types.MorphologySelector>`. A selector should
+implement :meth:`~.cell_types.MorphologySelector.validate` and
+:meth:`~.cell_types.MorphologySelector.pick` methods.
 
 ``validate`` can be used to assert that all the required morphologies are present, while
 ``pick`` needs to return ``True``/``False`` to include a morphology or not. Both methods
@@ -280,7 +280,7 @@ morphologies if it is impossible to determine the outcome from the metadata.
 
 .. code-block:: python
 
-  from bsb.objects.cell_type import MorphologySelector
+  from bsb.cell_types import MorphologySelector
   from bsb import config
 
   @config.node

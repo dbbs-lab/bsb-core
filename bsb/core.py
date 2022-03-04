@@ -384,7 +384,7 @@ class Scaffold:
             scaffold.place_cells(cell_type, cell_type.layer_instance, [[0., 0., 0.]])
 
         :param cell_type: The type of the cells to place.
-        :type cell_type: :class:`~.objects.cell_type.CellType`
+        :type cell_type: ~bsb.cell_types.CellType
         :param positions: A collection of xyz positions to place the cells on.
         :type positions: Any `np.concatenate` type of shape (N, 3).
         """
@@ -413,7 +413,7 @@ class Scaffold:
         connection and simulation step.
 
         :param cell_type: The cell type of the entities
-        :type cell_type: :class:`~.objects.cell_type.CellType`
+        :type cell_type: ~bsb.cell_types.CellType
         :param count: Number of entities to place
         :type count: int
         :todo: Allow `additional` data for entities
@@ -443,7 +443,7 @@ class Scaffold:
         Find all of the placement strategies that given certain cell types.
 
         :param cell_types: Cell types (or their names) of interest.
-        :type cell_types: Union[:class:`~.objects.cell_type.CellType`, str]
+        :type cell_types: Union[~bsb.cell_types.CellType, str]
         """
         return self.get_placement(cell_types=cell_types)
 

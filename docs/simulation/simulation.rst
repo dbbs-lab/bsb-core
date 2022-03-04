@@ -43,7 +43,7 @@ values are ``arbor``, ``nest`` or ``neuron``. Also included in the top level blo
   }
 
 The :guilabel:`cell_models` are the simulator specific representations of the network's
-:class:`cell types <.objects.cell_type.CellType>`, the :guilabel:`connection_models` of the network's
+:class:`cell types <.cell_types.CellType>`, the :guilabel:`connection_models` of the network's
 :class:`connectivity types <.connectivity.strategy.ConnectionStrategy>` and the :guilabel:`devices`
 define the experimental setup (such as input stimuli and recorders). All of the above is
 simulation backend specific and are covered in detail below.
