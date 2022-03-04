@@ -26,11 +26,11 @@ try:
     _has_arbor = True
 except ImportError:
     _has_arbor = False
-    import types
+    import types as _t
 
     # Mock missing requirements, as arbor is, like
     # all simulators, an optional dep. of the BSB.
-    arbor = types.ModuleType("arbor")
+    arbor = _t.ModuleType("arbor")
     arbor.recipe = type("mock_recipe", (), dict())
 
     def get(*arg):
