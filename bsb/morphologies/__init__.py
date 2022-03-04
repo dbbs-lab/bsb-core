@@ -334,18 +334,18 @@ class SubTree:
           or integer mask to select the points to label.
         :type labels: str
         """
-        if not labels:
-            return
-        elif self._is_shared:
-            if not isinstance(labels[0], str):
-                points = labels[0]
-                labels = labels[1:]
+        if labels:
+            if self._is_shared:
+                if not isinstance(labels[0], str):
+                    points = labels[0]
+                    labels = labels[1:]
+                else:
+                    points = np.ones(len(self), dtype=bool)
+                self._labels.label(labels, points)
             else:
-                points = np.ones(len(self), dtype=bool)
-            self._labels.label(labels, points)
-        else:
-            for b in self.branches:
-                b.label(*labels)
+                for b in self.branches:
+                    b.label(*labels)
+        return self
 
     def rotate(self, rot, center=None):
         """
@@ -359,6 +359,7 @@ class SubTree:
         else:
             for b in self.branches:
                 b.points[:] = self._rotate(b.points, rot, center)
+        return self
 
     def _rotate(self, points, rot, center):
         if center is not None:
@@ -385,6 +386,7 @@ class SubTree:
         else:
             for branch in self.branches:
                 branch.points[:] += point
+        return self
 
     @property
     def origin(self):

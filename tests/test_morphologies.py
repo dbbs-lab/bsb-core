@@ -306,9 +306,13 @@ class TestMorphologies(NumpyTestCase, unittest.TestCase):
 
     def test_chaining(self):
         branch = Branch(
-            np.array([0, 1, 2]),
-            np.array([0, 1, 2]),
-            np.array([0, 1, 2]),
+            np.array(
+                [
+                    [0, 1, 2],
+                    [0, 1, 2],
+                    [0, 1, 2],
+                ]
+            ),
             np.array([0, 1, 2]),
         )
         m = Morphology([branch])
