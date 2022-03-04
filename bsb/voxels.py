@@ -521,7 +521,6 @@ class VoxelSet:
         if with_data:
             voxel_reduce = {}
             for branch, point_vcs in enumerate(branch_vcs):
-                print(point_vcs.shape)
                 for point, point_vc in enumerate(point_vcs):
                     voxel_reduce.setdefault(tuple(point_vc), []).append((branch, point))
             voxels = np.array(tuple(voxel_reduce.keys()))
