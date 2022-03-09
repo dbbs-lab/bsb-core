@@ -19,7 +19,7 @@ The BSB requires Python 3.8+.
 This software can be installed as a Python package from PyPI through pip:
 
 ```
-pip install bsb>=4.0.0a0
+pip install "bsb>=4.0.0a0"
 ```
 
 ### Developers
