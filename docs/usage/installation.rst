@@ -46,9 +46,9 @@ Instructions
 
 The scaffold framework can be installed using ``pip``:
 
-  .. code-block:: bash
+.. code-block:: bash
 
-    pip install bsb>=4.0.0a0
+  pip install "bsb>=4.0.0a0"
 
 You can verify that the installation works with
 
