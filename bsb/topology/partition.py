@@ -28,7 +28,7 @@ def _size_requirements(section):
 )
 class Partition:
     name = config.attr(key=True)
-    region = config.ref(region_ref, populate="partitions", required=True)
+    region = config.ref(region_ref)
 
     def layout(self, boundaries):
         return NotImplementedError("Partitions should define a `layout` method")

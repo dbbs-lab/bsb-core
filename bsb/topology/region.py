@@ -22,7 +22,7 @@ class Region:
         default=lambda: [0.0, 0.0, 0.0],
         call_default=True,
     )
-    partitions = config.reflist(refs.regional_ref)
+    partitions = config.reflist(refs.regional_ref, required=True)
 
     def get_dependencies(self):
         if self.partitions:
