@@ -12,10 +12,8 @@ from ..postprocessing import PostProcessingHook
 from ..exceptions import *
 import os, builtins
 from ..topology import (
-    get_root_regions,
     get_partitions,
     create_topology,
-    Boundary,
     Region,
     Partition,
 )
@@ -57,15 +55,15 @@ class Configuration:
     def _bootstrap(self, scaffold):
         # Initialise the topology from the defined regions
         regions = builtins.list(self.regions.values())
-        scaffold.topology = topology = create_topology(regions)
+        # Arrange the topology based on network boundaries
+        scaffold.topology = topology = create_topology(
+            regions, [0.0, 0.0, 0.0], [self.network.x, self.network.y, self.network.z]
+        )
         # If there are any partitions not part of the topology, raise an error
         if unmanaged := set(self.partitions.values()) - get_partitions([topology]):
             p = "', '".join(p.name for p in unmanaged)
             raise UnmanagedPartitionError(f"Please make '{p}' part of a Region.")
-        # Do an initial arrangement of the topology based on network boundaries
-        topology.arrange(
-            Boundary([0.0, 0.0, 0.0], [self.network.x, self.network.y, self.network.z])
-        )
+        # Activate the scaffold property of each config node
         for node in walk_nodes(self):
             node.scaffold = scaffold
             run_hook(node, "boot")

@@ -3,6 +3,8 @@
 """
 
 import functools
+import abc
+from ._layout import Layout, RhomboidData
 from .. import config
 from ..config import types
 from ..config.refs import region_ref
@@ -26,28 +28,76 @@ def _size_requirements(section):
     default="layer",
     auto_classmap=True,
 )
-class Partition:
+class Partition(abc.ABC):
     name = config.attr(key=True)
-    region = config.ref(region_ref)
+    region = config.ref(region_ref, populate="children")
 
-    def layout(self, boundaries):
-        return NotImplementedError("Partitions should define a `layout` method")
+    @abc.abstractmethod
+    def volume(self, chunk=None):
+        pass
+
+    @abc.abstractmethod
+    def surface(self, chunk=None):
+        pass
+
+    @abc.abstractmethod
+    def to_chunks(self, chunk_size):
+        pass
+
+    @abc.abstractmethod
+    def chunk_to_voxels(self, chunk):
+        pass
+
+    @abc.abstractmethod
+    def rotate(self, rotation):
+        pass
+
+    @abc.abstractmethod
+    def translate(self, offset):
+        pass
+
+    @abc.abstractmethod
+    def scale(self, factors):
+        pass
+
+    @abc.abstractmethod
+    def get_layout(self, hint):
+        pass
+
+
+@config.node
+class Rhomboid(Partition, classmap_entry="rhomboid"):
+    dataclass = RhomboidData
+    dimensions = config.attr(type=types.list(type=float, size=3))
+    can_scale = config.attr(type=bool, default=True)
+    origin = config.attr(type=types.list(type=float, size=3))
+    can_move = config.attr(type=bool, default=True)
+    orientation = config.attr(type=types.list(type=float, size=3))
+    can_rotate = config.attr(type=bool, default=True)
 
     def volume(self, chunk=None):
         if chunk is not None:
             # Create an intersection between the partition and the chunk
-            low = np.maximum(self.boundaries.ldc, chunk.ldc)
-            high = np.minimum(self.boundaries.mdc, chunk.mdc)
+            low = np.maximum(self.ldc, chunk.ldc)
+            high = np.minimum(self.mdc, chunk.mdc)
             return np.product(np.maximum(high - low, 0))
         else:
-            return np.product(self.boundaries.dimensions)
+            return np.product(self.data.dimensions)
+
+    @property
+    def mdc(self):
+        return self.data.mdc
+
+    @property
+    def ldc(self):
+        return self.data.ldc
 
     def surface(self, chunk=None):
         if chunk is not None:
             # Gets the xz "square" from a volume
             sq = lambda v: np.array(v)[[0, 2]]
-            ldc = sq(self.boundaries.ldc)
-            mdc = sq(self.boundaries.mdc)
+            ldc = sq(self.ldc)
+            mdc = sq(self.mdc)
             cl = sq(chunk.ldc)
             cm = sq(chunk.mdc)
             # Create an intersection between the partition and the chunk
@@ -55,13 +105,13 @@ class Partition:
             high = np.minimum(mdc, cm)
             return np.product(np.maximum(high - low, 0))
         else:
-            return self.boundaries.width * self.boundaries.depth
+            return self.data.width * self.data.depth
 
     def to_chunks(self, chunk_size):
-        # Get the low and high range of the boundaries in chunk coordinates
-        low_r = np.floor(self.boundaries.ldc / chunk_size).astype(int)
-        high_r = np.ceil(self.boundaries.mdc / chunk_size).astype(int)
-        # Create a grid that includes all the chunk coordinates within those boundaries
+        # Get the low and high range of the data in chunk coordinates
+        low_r = np.floor(self.ldc / chunk_size).astype(int)
+        high_r = np.ceil(self.mdc / chunk_size).astype(int)
+        # Create a grid that includes all the chunk coordinates within those data
         coords = np.mgrid[tuple(range(low, high) for low, high in zip(low_r, high_r))]
         # Order the coordinate grid into a list of chunk coordinates.
         return np.column_stack(tuple(dim.ravel() for dim in coords))
@@ -72,19 +122,46 @@ class Partition:
         voxels.
 
         Default implementation creates a parallellepepid intersection between the
-        LDC, MDC and chunk boundaries.
+        LDC, MDC and chunk data.
         """
-        low = np.maximum(self.boundaries.ldc, chunk.ldc)
-        high = np.minimum(self.boundaries.mdc, chunk.mdc)
+        low = np.maximum(self.ldc, chunk.ldc)
+        high = np.minimum(self.mdc, chunk.mdc)
         # Return 0 voxels when the coords are OOB for this partition
         if np.any(low > high):
             return VoxelSet.empty()
         else:
             return VoxelSet.one(low, high)
 
+    def rotate(self, rot):
+        raise LayoutError("Rotation not implemented yet.")
+
+    def translate(self, translation):
+        self.data.ldc += translation
+        self.data.mdc += translation
+
+    def scale(self, factors):
+        self.data.mdc = self.data.ldc + (self.data.mdc - self.data.ldc) * factors
+
+    def get_dependencies(self):
+        """
+        Return other partitions or regions that need to be laid out before this.
+        """
+        return []
+
+    def get_layout(self, hint):
+        if self.dimensions is None:
+            dim = hint.data.mdc - hint.data.ldc
+        else:
+            dim = self.dimensions
+        if self.origin is None:
+            orig = hint.data.ldc
+        else:
+            orig = self.origin
+        return Layout(RhomboidData(orig, dim - orig), owner=self)
+
 
 @config.node
-class Layer(Partition, classmap_entry="layer"):
+class Layer(Rhomboid, classmap_entry="layer"):
     thickness = config.attr(type=float, required=_size_requirements)
     xz_scale = config.attr(
         type=types.or_(
@@ -99,16 +176,6 @@ class Layer(Partition, classmap_entry="layer"):
     )
     xz_center = config.attr(type=bool, default=False)
     stack_index = config.attr(type=float, default=0)
-
-    def get_dependencies(self):
-        """
-        Return other partitions or regions that need to be laid out before this.
-        """
-        return []
-
-    def layout(self, boundaries):
-        self.boundaries = boundaries
-        boundaries.height = self.thickness
 
     # TODO: Layer stacking
     # TODO: Layer scaling

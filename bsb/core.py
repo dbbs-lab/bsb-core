@@ -183,7 +183,7 @@ class Scaffold:
         only the abstract topology tree, does not rescale, prune or otherwise
         alter already existing placement data.
         """
-        from .topology import Boundary
+        from .topology._layout import box_layout
 
         if x is not None:
             self.network.x = x
@@ -191,8 +191,8 @@ class Scaffold:
             self.network.y = y
         if z is not None:
             z = self.network.z
-        self.topology.arrange(
-            Boundary([0.0, 0.0, 0.0], [self.network.x, self.network.y, self.network.z])
+        self.topology.do_layout(
+            box_layout([0.0, 0.0, 0.0], [self.network.x, self.network.y, self.network.z])
         )
 
     def run_placement(self, strategies=None, DEBUG=True):

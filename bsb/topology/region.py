@@ -2,13 +2,15 @@
 Module for the Region types.
 """
 
+from ._layout import Layout
 from .. import config
 from ..config import types, refs
 from ..exceptions import *
+import abc
 
 
 @config.dynamic(required=False, default="group", auto_classmap=True)
-class Region:
+class Region(abc.ABC):
     """
     Base region.
 
@@ -17,38 +19,50 @@ class Region:
     """
 
     name = config.attr(key=True)
-    offset = config.attr(
-        type=types.list(type=float, size=3),
-        default=lambda: [0.0, 0.0, 0.0],
-        call_default=True,
-    )
-    partitions = config.reflist(refs.regional_ref, required=True)
+    children = config.reflist(refs.regional_ref, required=True)
 
     def get_dependencies(self):
-        if self.partitions:
-            return self.partitions.copy()
+        if self.children:
+            return self.children.copy()
         else:
             return []
 
     def __boot__(self):
         pass
 
-    def arrange(self, boundaries):
-        self.boundaries = boundaries
-        self.boundaries.offset(self.offset)
-        for p in self.partitions:
-            if hasattr(p, "arrange"):
-                p.arrange(self.boundaries)
-            else:
-                p.layout(self.boundaries)
-            if not hasattr(p, "boundaries"):
-                raise MissingBoundaryError(
-                    f"{p} did not define any boundaries after layout call."
-                )
+    def get_layout(self, hint):
+        layouts = [dep.get_layout(hint) for dep in self.get_dependencies()]
+        return Layout(None, owner=self, children=layouts)
+
+    def do_layout(self, hint):
+        layout = self.get_layout(hint)
+        layout.accept()
+
+    @abc.abstractmethod
+    def rotate(self, rotation):
+        pass
+
+    @abc.abstractmethod
+    def translate(self, offset):
+        pass
+
+    @abc.abstractmethod
+    def scale(self, factors):
+        pass
 
 
 class RegionGroup(Region, classmap_entry="group"):
-    origin = None
+    def rotate(self, rotation):
+        for child in self.children:
+            child.rotate(rotation)
+
+    def translate(self, offset):
+        for child in self.children:
+            child.translate(offset)
+
+    def scale(self, factors):
+        for child in self.children:
+            child.scale(factors)
 
 
 @config.node
@@ -60,21 +74,22 @@ class Stack(Region, classmap_entry="stack"):
 
     axis = config.attr(default="y")
 
-    def arrange(self, boundary):
-        boundary.offset(self.offset)
-        stack_height = 0
-        for p in sorted(
-            self.get_dependencies(), key=lambda p: getattr(p, "stack_index", 0)
-        ):
-            if hasattr(p, "arrange"):
-                p.arrange(boundary.copy())
-            else:
-                p.layout(boundary.copy())
-            if not hasattr(p, "boundaries"):
-                raise MissingBoundaryError(
-                    f"{p} did not define any boundaries after layout call."
-                )
-            p.boundaries.y += stack_height
-            stack_height += p.boundaries.height
-        boundary.height = stack_height
-        self.boundaries = boundary
+    def get_layout(self, hint):
+        layout = super().get_layout(hint)
+        stack_size = 0
+        axis_idx = ("x", "y", "z").index(self.axis)
+        trans_eye = np.zeros(3)
+        trans_eye[axis_idx] = 1
+        for child in layout.children:
+            translation = (hint.ldc[axis_idx] + stack_size - child.data.ldc) * trans_eye
+            if not np.allclose(0, translation):
+                child.propose_translate(translation)
+            stack_size += child.data.dimensions * trans_eye
+        ldc = hint.ldc.copy()
+        mdc = hint.mdc
+        mdc[axis_idx] = ldc[axis_idx] + stack_size
+        layout.data = RhomboidData(ldc, mdc)
+        return layout
+
+    def do_layout(self, hint):
+        layout = self.get_layout(hint)
