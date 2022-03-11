@@ -538,7 +538,14 @@ class Morphology(SubTree):
             points = np.empty((len_, 3))
             radii = np.empty(len_)
             all_props = [*set(_gutil.ichain(b._properties.keys() for b in branches))]
-            props = {k: np.empty(len_) for k in all_props}
+            types = [
+                next(_p[k].dtype for b in branches if k in (_p := b._properties))
+                for k in all_props
+            ]
+            props = {
+                k: np.empty(len_, dtype=b._properties[k].dtype)
+                for k, t in zip(all_props, types)
+            }
             labels = _Labels.concatenate(*(b._labels for b in branches))
             ptr = 0
             for branch in self.branches:
