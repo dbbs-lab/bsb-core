@@ -277,7 +277,7 @@ class ArborRecipe(arbor.recipe):
         super().__init__()
         self._adapter = adapter
         self._global_properties = arbor.neuron_cable_properties()
-        self._global_properties.set_property(Vm=-65, tempK=300, rL=35.4, cm=0.01)
+        self._global_properties.set_property(Vm=-65, tempK=305.15, rL=35.4, cm=0.01)
         self._global_properties.set_ion(ion="na", int_con=10, ext_con=140, rev_pot=50)
         self._global_properties.set_ion(ion="k", int_con=54.4, ext_con=2.5, rev_pot=-77)
         self._global_properties.set_ion(
@@ -408,15 +408,24 @@ class ArborAdapter(SimulatorAdapter):
         report("Threads per process:", context.threads, level=2)
         s = time.time()
         recipe = self.get_recipe()
-        report(f"Recipe construction took {time.time() - s:.2f}s on node {self.get_rank()}", level=2)
+        report(
+            f"Recipe construction took {time.time() - s:.2f}s on node {self.get_rank()}",
+            level=2,
+        )
         # Gap junctions are required for domain decomposition
         t = time.time()
         self._cache_gap_junctions()
-        report(f"Gap junctions took {time.time() - t:.2f}s on node {self.get_rank()}", level=2)
+        report(
+            f"Gap junctions took {time.time() - t:.2f}s on node {self.get_rank()}",
+            level=2,
+        )
         t = time.time()
         self.domain = arbor.partition_load_balance(recipe, context)
         self.gids = set(it.chain.from_iterable(g.gids for g in self.domain.groups))
-        report(f"Load balancing took {time.time() - t:.2f}s on node {self.get_rank()}", level=2)
+        report(
+            f"Load balancing took {time.time() - t:.2f}s on node {self.get_rank()}",
+            level=2,
+        )
         # Cache uses the domain decomposition to cache info per gid on this node. The
         # recipe functions use the cache, but luckily aren't called until
         # `arbor.simulation` and `simulation.run`.
@@ -425,16 +434,27 @@ class ArborAdapter(SimulatorAdapter):
         self._connections_from = {gid: [] for gid in self.gids}
         self._index_relays()
         self._cache_connections()
-        report(f"Connections took {time.time() - t:.2f}s on node {self.get_rank()}", level=2)
+        report(
+            f"Connections took {time.time() - t:.2f}s on node {self.get_rank()}", level=2
+        )
         self.prepare_devices()
         self._cache_devices()
         t = time.time()
         simulation = arbor.simulation(recipe, self.domain, context)
-        report(f"Simulation construction took {time.time() - t:.2f}s on node {self.get_rank()}", level=2)
+        report(
+            f"Simulation construction took {time.time() - t:.2f}s on node {self.get_rank()}",
+            level=2,
+        )
         t = time.time()
         self.prepare_samples(simulation)
-        report(f"Sampling prep took {time.time() - t:.2f}s on node {self.get_rank()}", level=2)
-        report(f"Prepared simulation in {time.time() - s:.2f}s on node {self.get_rank()}", level=1)
+        report(
+            f"Sampling prep took {time.time() - t:.2f}s on node {self.get_rank()}",
+            level=2,
+        )
+        report(
+            f"Prepared simulation in {time.time() - s:.2f}s on node {self.get_rank()}",
+            level=1,
+        )
         return simulation
 
     def get_context(self):
@@ -489,10 +509,16 @@ class ArborAdapter(SimulatorAdapter):
                         spikes = np.array([[l[0][0], l[1]] for l in simulation.spikes()])
                         spikes = np.unique(spikes, axis=0)
                         spikes = np.where(np.isnan(spikes), 0, spikes)
-                        report(f"Spike processing took {time.time() - s:.2f}s on node {self.get_rank()}", level=2)
+                        report(
+                            f"Spike processing took {time.time() - s:.2f}s on node {self.get_rank()}",
+                            level=2,
+                        )
                         s = time.time()
                         f.create_dataset("all_spikes_dump", data=spikes)
-                        report(f"Spike writing took {time.time() - s:.2f}s on node {self.get_rank()}", level=2)
+                        report(
+                            f"Spike writing took {time.time() - s:.2f}s on node {self.get_rank()}",
+                            level=2,
+                        )
                     f.attrs["configuration_string"] = self.scaffold.configuration._raw
                     for path, data, meta in self.result.safe_collect():
                         try:
@@ -520,7 +546,10 @@ class ArborAdapter(SimulatorAdapter):
                                     + f"\n\n{traceback.format_exc()}"
                                 )
             self.barrier()
-        report(f"Output collection took {time.time() - t:.2f}s on node {self.get_rank()}", level=2)
+        report(
+            f"Output collection took {time.time() - t:.2f}s on node {self.get_rank()}",
+            level=2,
+        )
         return result_path
 
     def get_recipe(self):
