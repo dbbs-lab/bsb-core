@@ -542,10 +542,7 @@ class Morphology(SubTree):
                 next(_p[k].dtype for b in branches if k in (_p := b._properties))
                 for k in all_props
             ]
-            props = {
-                k: np.empty(len_, dtype=b._properties[k].dtype)
-                for k, t in zip(all_props, types)
-            }
+            props = {k: np.empty(len_, dtype=t) for k, t in zip(all_props, types)}
             labels = _Labels.concatenate(*(b._labels for b in branches))
             ptr = 0
             for branch in self.branches:
