@@ -464,6 +464,33 @@ class cfgdict(_dict):
                 self.get_node_name() + " object has no attribute '{}'".format(name)
             )
 
+    def add(self, key, *args, **kwargs):
+        self[key] = self._config_type(*args, _parent=self, _key=key, **kwargs)
+
+    def __setitem__(self, key, value):
+        try:
+            value = self._config_type(value, _parent=self, _key=key)
+        except (RequirementError, CastError) as e:
+            if not (hasattr(e, "node") and e.node):
+                e.node, e.attr = _cfgdict, key
+            raise
+        except Exception as e:
+            import traceback
+
+            raise CastError(
+                "Couldn't cast {}.{} from '{}' into a {}".format(
+                    self.get_node_name(), key, value, self._config_type.__name__
+                )
+                + "\n"
+                + traceback.format_exc()
+            )
+        else:
+            super().__setitem__(key, value)
+
+    def update(self, other):
+        for ckey, value in other.items():
+            self[ckey] = value
+
     @builtins.property
     def _config_attr_name(self):
         return self._config_attr.attr_name
@@ -484,27 +511,13 @@ class ConfigurationDictAttribute(ConfigurationAttribute):
         )
 
     def fill(self, value, _parent, _key=None):
-        _cfgdict = cfgdict(value or _dict())
+        _cfgdict = cfgdict()
         _cfgdict._config_parent = _parent
         _cfgdict._config_key = _key
         _cfgdict._config_attr = self
-        try:
-            for ckey, value in _cfgdict.items():
-                _cfgdict[ckey] = self.child_type(value, _parent=_cfgdict, _key=ckey)
-        except (RequirementError, CastError) as e:
-            if not (hasattr(e, "node") and e.node):
-                e.node, e.attr = _cfgdict, ckey
-            raise
-        except Exception as e:
-            import traceback
+        _cfgdict._config_type = self.child_type
+        _cfgdict.update(value or _dict())
 
-            raise CastError(
-                "Couldn't cast {}.{} from '{}' into a {}".format(
-                    self.get_node_name(_parent), ckey, value, self.child_type.__name__
-                )
-                + "\n"
-                + traceback.format_exc()
-            )
         return _cfgdict
 
     def _get_type(self, type):
