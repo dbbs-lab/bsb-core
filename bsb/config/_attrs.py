@@ -18,6 +18,7 @@ from .types import TypeHandler, _wrap_reserved
 from ..exceptions import *
 import abc
 import builtins
+import itertools
 
 
 def root(root_cls):
@@ -448,6 +449,30 @@ class cfglist(builtins.list):
         super().append(item)
         self._postset((item,))
 
+    def insert(self, index, item):
+        super().insert(index, item)
+        self._postset((item,))
+
+    def pop(self, index=-1):
+        ex_item = super().pop(index)
+        _unset_nodes(ex_item)
+        return ex_item
+
+    def clear(self):
+        for node in self:
+            _unset_nodes(node)
+        super().clear()
+
+    def sort(self, **kwargs):
+        super().sort(**kwargs)
+        for i, item in enumerate(self):
+            item._config_key = i
+
+    def reverse(self):
+        super().reverse()
+        for i, item in enumerate(self):
+            item._config_key = i
+
     def extend(self, items):
         items = tuple(items)
         super().extend(items)
@@ -531,10 +556,6 @@ class cfgdict(builtins.dict):
                 self.get_node_name() + " object has no attribute '{}'".format(name)
             )
 
-    def add(self, key, *args, **kwargs):
-        self[key] = value = self._config_type(*args, _parent=self, _key=key, **kwargs)
-        return value
-
     def __setitem__(self, key, value):
         if key in self:
             _unset_nodes(self[key])
@@ -560,9 +581,44 @@ class cfgdict(builtins.dict):
             if _is_booted(root):
                 _boot_nodes(value, root.scaffold)
 
+    def add(self, key, *args, **kwargs):
+        self[key] = value = self._config_type(*args, _parent=self, _key=key, **kwargs)
+        return value
+
+    def clear(self):
+        for node in self.values():
+            _unset_nodes(node)
+        super().clear()
+
+    def pop(self, key):
+        item = super().pop(key)
+        _unset_nodes(item)
+        return item
+
+    def popitem(self):
+        key, value = super().popitem()
+        _unset_nodes(value)
+        return key, value
+
+    def setdefault(self, key, value):
+        if key in self:
+            return self[key]
+        else:
+            self[key] = value
+            return self[key]
+
     def update(self, other):
         for ckey, value in other.items():
             self[ckey] = value
+
+    def __ior__(self, other):
+        ex_values = tuple(self.values())
+        super().__ior__(other)
+        new_values = tuple(self.values())
+        for removed_node in (e for e in ex_values if e not in new_values):
+            _unset_nodes(removed_node)
+        for added_node in (a for a in new_values if a not in ex_values):
+            _boot_nodes(added_node, self.scaffold)
 
     @builtins.property
     def _config_attr_name(self):
