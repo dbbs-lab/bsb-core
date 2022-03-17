@@ -80,4 +80,4 @@ class Configuration:
         return str(self.__tree__())
 
     def __repr__(self):
-        return super().__repr__()
+        return f"{type(self).__qualname__}({self})"
