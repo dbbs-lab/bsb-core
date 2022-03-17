@@ -2,6 +2,7 @@
     An attrs-inspired class annotation system, but my A stands for amateuristic.
 """
 
+from ._hooks import run_hook
 from ._make import (
     compile_class,
     compile_postnew,
@@ -11,6 +12,7 @@ from ._make import (
     make_dictable,
     make_tree,
     wrap_root_postnew,
+    walk_nodes,
 )
 from .types import TypeHandler, _wrap_reserved
 from ..exceptions import *
@@ -23,6 +25,7 @@ def root(root_cls):
     Decorate a class as a configuration root node.
     """
     root_cls.attr_name = root_cls.node_name = r"{root}"
+    root_cls._config_isroot = True
     return node(root_cls, root=True)
 
 
@@ -47,8 +50,10 @@ def node(node_cls, root=False, dynamic=False, pluggable=False):
                 attrs[k] = v
     node_cls._config_attrs = attrs
     node_cls.__post_new__ = compile_postnew(node_cls, root=root)
+    node_cls._config_isroot = root
     if root:
         node_cls.__post_new__ = wrap_root_postnew(node_cls.__post_new__)
+        node_cls._config_isbooted = False
     node_cls.__new__ = compile_new(
         node_cls, dynamic=dynamic, pluggable=pluggable, root=root
     )
@@ -293,10 +298,39 @@ def _hasattr(instance, name):
     return "_" + name in instance.__dict__
 
 
+def _get_root(obj):
+    parent = obj
+    while hasattr(parent, "_config_parent") and parent._config_parent is not None:
+        parent = parent._config_parent
+    return parent
+
+
+def _strict_root(obj):
+    root = _get_root(obj)
+    return root if getattr(root, "_config_isroot", False) else None
+
+
+def _is_booted(obj):
+    return obj and obj._config_isbooted
+
+
+def _root_is_booted(obj):
+    root = _strict_root(obj)
+    return _is_booted(root)
+
+
 def _boot_nodes(top_node, scaffold):
     for node in walk_nodes(top_node):
         node.scaffold = scaffold
         run_hook(node, "boot")
+
+
+def _unset_nodes(top_node):
+    for node in walk_nodes(top_node):
+        del node.scaffold
+        node._config_parent = None
+        node._config_key = None
+        run_hook(node, "unboot")
 
 
 class ConfigurationAttribute:
@@ -333,6 +367,9 @@ class ConfigurationAttribute:
         return _getattr(instance, self.attr_name)
 
     def __set__(self, instance, value):
+        if _hasattr(instance, self.attr_name):
+            ex_value = _getattr(instance, self.attr_name)
+            _unset_nodes(ex_value)
         if value is None:
             # Don't cast None to a value of the attribute type.
             return _setattr(instance, self.attr_name, None)
@@ -351,6 +388,9 @@ class ConfigurationAttribute:
             )
         # The value was cast to its intented type and the new value can be set.
         _setattr(instance, self.attr_name, value)
+        root = _strict_root(instance)
+        if _is_booted(root):
+            _boot_nodes(value, root.scaffold)
 
     def _get_type(self, type):
         # Determine type of the attribute
@@ -403,6 +443,33 @@ class ConfigurationAttribute:
 class cfglist(builtins.list):
     def get_node_name(self):
         return self._config_parent.get_node_name() + "." + self._config_attr_name
+
+    def append(self, item):
+        super().append(item)
+        self._postset((item,))
+
+    def extend(self, items):
+        items = tuple(items)
+        super().extend(items)
+        self._postset(items)
+
+    def __setitem__(self, index, item):
+        if isinstance(index, int):
+            ex_items = [self[index]]
+            items = [item]
+        else:
+            ex_items = self[index]
+            items = item = tuple(item)
+        for ex_item in ex_items:
+            _unset_nodes(ex_item)
+        super().__setitem__(index, item)
+        self._postset(items)
+
+    def _postset(self, items):
+        root = _strict_root(self)
+        if _is_booted(root):
+            for item in items:
+                _boot_nodes(item, root.scaffold)
 
     @builtins.property
     def _config_attr_name(self):
@@ -465,9 +532,12 @@ class cfgdict(builtins.dict):
             )
 
     def add(self, key, *args, **kwargs):
-        self[key] = self._config_type(*args, _parent=self, _key=key, **kwargs)
+        self[key] = value = self._config_type(*args, _parent=self, _key=key, **kwargs)
+        return value
 
     def __setitem__(self, key, value):
+        if key in self:
+            _unset_nodes(self[key])
         try:
             value = self._config_type(value, _parent=self, _key=key)
         except (RequirementError, CastError) as e:
@@ -486,6 +556,9 @@ class cfgdict(builtins.dict):
             )
         else:
             super().__setitem__(key, value)
+            root = _strict_root(value)
+            if _is_booted(root):
+                _boot_nodes(value, root.scaffold)
 
     def update(self, other):
         for ckey, value in other.items():

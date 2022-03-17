@@ -121,6 +121,9 @@ class Scaffold:
         self._configuration = config
         # Make sure the storage config node reflects the storage we are using
         config._update_storage_node(storage)
+        # Give the scaffold access to the unitialized storage object (for use during
+        # config bootstrapping).
+        self._storage = storage
         # First, the scaffold is passed to each config node, and their boot methods called.
         self._configuration._bootstrap(self)
         # Then, `storage` is initted for the scaffold, and `config` is stored.
