@@ -293,6 +293,12 @@ def _hasattr(instance, name):
     return "_" + name in instance.__dict__
 
 
+def _boot_nodes(top_node, scaffold):
+    for node in walk_nodes(top_node):
+        node.scaffold = scaffold
+        run_hook(node, "boot")
+
+
 class ConfigurationAttribute:
     """
     Base implementation of all the different configuration attributes. Call the factory
