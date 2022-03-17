@@ -79,6 +79,9 @@ class Scaffold:
         self._initialise_MPI()
         self._bootstrap(config, storage, clear=clear)
 
+    def __contains__(self, component):
+        return getattr(component, "scaffold", None) is self
+
     def _initialise_MPI(self):
         # Delegate initialization of MPI to the reporting module. Which is weird, bu
         # required to make NEURON play nice. Check the results here and copy them over.
