@@ -18,12 +18,6 @@ import abc
 import builtins
 
 
-# Watch out, lots of builtins have another meaning in this module.
-_list = list
-_dict = dict
-_type = type
-
-
 def root(root_cls):
     """
     Decorate a class as a configuration root node.
@@ -41,7 +35,7 @@ def node(node_cls, root=False, dynamic=False, pluggable=False):
     node_cls._config_unset = []
     # Inherit the parent's attributes, if any exist on the class already
     attrs = getattr(node_cls, "_config_attrs", {}).copy()
-    for k, v in _dict(node_cls.__dict__).items():
+    for k, v in builtins.dict(node_cls.__dict__).items():
         # Add our attributes
         if isinstance(v, ConfigurationAttribute):
             if v.unset:
@@ -222,7 +216,7 @@ def reflist(reference, **kwargs):
     Create a configuration reference list.
     """
     if "default" not in kwargs:
-        kwargs["default"] = _list
+        kwargs["default"] = builtins.list
         kwargs["call_default"] = True
     return ConfigurationReferenceListAttribute(reference, **kwargs)
 
@@ -356,9 +350,9 @@ class ConfigurationAttribute:
         # Determine type of the attribute
         if not type and self.default is not None:
             if self.should_call_default():
-                t = _type(self.default())
+                t = builtins.type(self.default())
             else:
-                t = _type(self.default)
+                t = builtins.type(self.default)
         else:
             t = type or str
         # This call wraps the type handler so that it accepts all reserved keyword args
@@ -400,7 +394,7 @@ class ConfigurationAttribute:
         return cdf or (cdf is None and callable(self.default))
 
 
-class cfglist(_list):
+class cfglist(builtins.list):
     def get_node_name(self):
         return self._config_parent.get_node_name() + "." + self._config_attr_name
 
@@ -418,7 +412,7 @@ class ConfigurationListAttribute(ConfigurationAttribute):
         _setattr(instance, self.attr_name, self.fill(value, _parent=instance))
 
     def fill(self, value, _parent, _key=None):
-        _cfglist = cfglist(value or _list())
+        _cfglist = cfglist(value or builtins.list())
         _cfglist._config_parent = _parent
         _cfglist._config_attr = self
         if value is None:
@@ -455,7 +449,7 @@ class ConfigurationListAttribute(ConfigurationAttribute):
         return [e if not hasattr(e, "__tree__") else e.__tree__() for e in val]
 
 
-class cfgdict(_dict):
+class cfgdict(builtins.dict):
     def __getattr__(self, name):
         try:
             return self[name]
@@ -516,7 +510,7 @@ class ConfigurationDictAttribute(ConfigurationAttribute):
         _cfgdict._config_key = _key
         _cfgdict._config_attr = self
         _cfgdict._config_type = self.child_type
-        _cfgdict.update(value or _dict())
+        _cfgdict.update(value or builtins.dict())
 
         return _cfgdict
 
@@ -641,7 +635,7 @@ class ConfigurationReferenceListAttribute(ConfigurationReferenceAttribute):
             _setattr(instance, self.attr_name, [])
             return
         try:
-            remote_keys = _list(iter(value))
+            remote_keys = builtins.list(iter(value))
         except TypeError:
             raise ReferenceError(
                 "Reference list '{}' of {} is not iterable.".format(
@@ -673,7 +667,7 @@ class ConfigurationReferenceListAttribute(ConfigurationReferenceAttribute):
             return None
         if _hasattr(instance, self.attr_name):
             remote_keys.extend(_getattr(instance, self.attr_name))
-            remote_keys = _list(set(remote_keys))
+            remote_keys = builtins.list(set(remote_keys))
         return self.resolve_reference_list(instance, remote, remote_keys)
 
     def resolve_reference_list(self, instance, remote, remote_keys):
@@ -764,7 +758,7 @@ class ConfigurationAttributeCatcher(ConfigurationAttribute):
         self,
         *args,
         type=str,
-        initial=_dict,
+        initial=builtins.dict,
         catch=_collect_kv,
         contains=None,
         tree_cb=None,
