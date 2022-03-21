@@ -33,9 +33,10 @@ except ImportError as e:
     # all simulators, an optional dep. of the BSB.
     arbor = types.ModuleType("arbor")
     arbor.recipe = type("mock_recipe", (), dict())
+    _arb_err = e
 
     def get(*arg):
-        raise ImportError(f"Arbor not installed: {e}")
+        raise ImportError(f"Arbor not installed: {_arb_err}")
 
     arbor.__getattr__ = get
 
