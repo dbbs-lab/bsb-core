@@ -25,7 +25,7 @@ try:
     import arbor
 
     _has_arbor = True
-except ImportError:
+except ImportError as e:
     _has_arbor = False
     import types
 
@@ -35,7 +35,7 @@ except ImportError:
     arbor.recipe = type("mock_recipe", (), dict())
 
     def get(*arg):
-        raise ImportError("Arbor not installed.")
+        raise ImportError(f"Arbor not installed: {e}")
 
     arbor.__getattr__ = get
 
