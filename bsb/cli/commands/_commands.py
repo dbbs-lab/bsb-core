@@ -106,7 +106,7 @@ class MakeConfigCommand(BaseCommand, name="make-config"):
         return {}
 
     def add_parser_arguments(self, parser):
-        parser.add_argument("template", nargs="?", default="template.json")
+        parser.add_argument("template", nargs="?", default="skeleton.json")
         parser.add_argument("output", nargs="?", default="network_configuration.json")
         parser.add_argument(
             "--path",
