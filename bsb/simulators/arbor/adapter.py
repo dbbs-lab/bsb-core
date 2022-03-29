@@ -464,7 +464,7 @@ class ArborAdapter(SimulatorAdapter):
         else:
             alloc = arbor.proc_allocation(self.threads)
         try:
-            context = arbor.context(alloc, mpi)
+            context = arbor.context(alloc, arbor.mpi_comm())
         except TypeError:
             s = mpi.Get_size()
             if s > 1:
