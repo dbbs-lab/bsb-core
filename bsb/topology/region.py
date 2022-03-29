@@ -93,3 +93,15 @@ class Stack(Region, classmap_entry="stack"):
 
     def do_layout(self, hint):
         layout = self.get_layout(hint)
+
+    def rotate(self, rotation):
+        for child in self.children:
+            child.rotate(rotation)
+
+    def translate(self, offset):
+        for child in self.children:
+            child.translate(offset)
+
+    def scale(self, factors):
+        for child in self.children:
+            child.scale(factors)
