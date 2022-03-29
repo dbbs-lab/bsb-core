@@ -1193,7 +1193,7 @@ def _import(cls, branch_cls, file):
     roots = []
     counter = itertools.count(1)
     ptr = 0
-    while (i := next(counter)) :
+    while i := next(counter):
         try:
             parent, section = section_stack.pop()
         except IndexError:
