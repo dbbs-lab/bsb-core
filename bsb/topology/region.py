@@ -9,7 +9,7 @@ from ..exceptions import *
 import abc
 
 
-@config.dynamic(required=False, default="group", auto_classmap=True)
+@config.dynamic(attr_name="type", required=False, default="group", auto_classmap=True)
 class Region(abc.ABC):
     """
     Base region.
