@@ -10,6 +10,6 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     - name: Black Check
-      uses: jpetrucciani/black-check@20.8b1
+      uses: jpetrucciani/black-check@master
       with:
         path: 'bsb'

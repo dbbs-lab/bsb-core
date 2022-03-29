@@ -7,6 +7,7 @@ from ...option import BsbOption
 from ...exceptions import *
 from ..._options import ConfigOption
 from . import _projects
+import itertools
 
 
 class XScale(BsbOption, name="x", cli=("x",), env=("BSB_CONFIG_NETWORK_X",)):
@@ -95,6 +96,13 @@ class SkipAfterConnectivity(
     pass
 
 
+def _flatten_arr_args(arr):
+    if arr is None:
+        return arr
+    else:
+        return list(itertools.chain.from_iterable(a.split(",") for a in arr))
+
+
 class MakeConfigCommand(BaseCommand, name="make-config"):
     def handler(self, context):
         from ...config import copy_template
@@ -106,7 +114,7 @@ class MakeConfigCommand(BaseCommand, name="make-config"):
         return {}
 
     def add_parser_arguments(self, parser):
-        parser.add_argument("template", nargs="?", default="template.json")
+        parser.add_argument("template", nargs="?", default="skeleton.json")
         parser.add_argument("output", nargs="?", default="network_configuration.json")
         parser.add_argument(
             "--path",
@@ -131,8 +139,8 @@ class BsbCompile(BaseCommand, name="compile"):
             skip_after_placement=context.skip_after_placement,
             skip_connectivity=context.skip_connectivity,
             skip_after_connectivity=context.skip_after_connectivity,
-            only=context.only,
-            skip=context.skip,
+            only=_flatten_arr_args(context.only),
+            skip=_flatten_arr_args(context.skip),
             clear=context.clear,
             force=context.force,
             append=context.append,

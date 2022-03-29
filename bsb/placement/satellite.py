@@ -81,7 +81,7 @@ class Satellite(PlacementStrategy):
             planet_ids = planet_cells.load_identifiers()
             planets_pos = planet_cells.load_positions()
             planet_count = len(planets_pos)
-            dist = np.empty((planet_count ** 2))
+            dist = np.empty((planet_count**2))
             for I in range(planet_count):
                 for J in range(planet_count):
                     dist[I * planet_count + J] = np.linalg.norm(

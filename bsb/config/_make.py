@@ -21,7 +21,7 @@ def make_metaclass(cls):
     #
     # The third makes it that type handling and other types of casting opt out early
     # and keep the object reference that the user gives them
-    class ConfigArgRewrite(type):
+    class ConfigArgRewrite:
         def __call__(meta_subject, *args, _parent=None, _key=None, **kwargs):
             # Rewrite the arguments
             primer = args[0] if args else None
@@ -79,6 +79,10 @@ def compile_class(cls):
     if "__weakref__" in cls_dict:
         del cls_dict["__weakref__"]
     ncls = make_metaclass(cls)(cls.__name__, cls.__bases__, cls_dict)
+    for method in ncls.__dict__.values():
+        cl = getattr(method, "__closure__", None)
+        if cl and cl[0].cell_contents is cls:
+            cl[0].cell_contents = ncls
     classmap = getattr(ncls, "_config_dynamic_classmap", None)
     if classmap is not None:
         # Replace the reference to the old class with the new class.
