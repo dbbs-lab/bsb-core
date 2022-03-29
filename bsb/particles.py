@@ -22,7 +22,7 @@ class Particle:
 
     def displace_by(self, other):
         A = self.position - other.position
-        d = np.sqrt(np.sum(A ** 2))
+        d = np.sqrt(np.sum(A**2))
         collision_radius = self.radius + other.radius
         f = Particle.get_displacement_force(collision_radius, d)
         f_inert = f * other.volume / (other.volume + self.volume)
@@ -461,7 +461,7 @@ def get_particle_trace(particle):
 
 
 def sphere_volume(radius):
-    return 4 / 3 * np.pi * radius ** 3
+    return 4 / 3 * np.pi * radius**3
 
 
 def distance(a, b):
