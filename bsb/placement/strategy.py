@@ -245,7 +245,12 @@ class FixedPositions(PlacementStrategy):
     def place(self, chunk, indicators):
         for indicator in indicators:
             ct = indicator.cell_type
-            self.place_cells(ct, indicator, self.positions, chunk)
+            chunk_positions = self.positions[
+                np.logical_and(
+                    self.positions >= chunk.ldc, self.positions < chunk.mdc
+                ).all(axis=1)
+            ]
+            self.place_cells(indicator, chunk_positions, chunk)
 
     def guess_cell_count(self):
         return len(self.positions)
