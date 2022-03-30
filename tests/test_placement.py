@@ -12,7 +12,7 @@ from bsb.exceptions import *
 from bsb.storage import Chunk
 from bsb.placement import PlacementStrategy, RandomPlacement
 from bsb._pool import JobPool, FakeFuture, create_job_pool
-from test_setup import timeout, get_config
+from test_setup import timeout, get_config, NumpyTestCase
 from time import sleep
 
 
@@ -211,7 +211,28 @@ class TestSerialScheduler(unittest.TestCase, SchedulerBaseTest):
     pass
 
 
-class TestPlacementStrategies(unittest.TestCase):
+class TestPlacementStrategies(NumpyTestCase, unittest.TestCase):
+    def test_fixed_positions(self):
+        super().setUpClass()
+        cfg = Configuration.default()
+        cfg.storage.root = "fixed_pos.hdf5"
+        cfg.regions.add("test_region")
+        cfg.partitions.add("test_part", region="test_region", thickness=100)
+        network = Scaffold(cfg)
+        t = network.cell_types.add("test", spatial=dict(radius=1, density=1e-3))
+        fixed_place = network.placement.add(
+            "test_place",
+            cls="bsb.placement.FixedPositions",
+            partitions=["test_part"],
+            cell_types=["test"],
+        )
+        fixed_place.positions = wanted = np.tile(np.arange(10).reshape(-1, 1), 3)
+        network.compile(clear=True)
+        wanted = fixed_place.positions
+        placed = t.get_placement_set().load_positions()
+        self.assertEqual(len(wanted), len(placed), "incorrect num of cells placed")
+        self.assertClose(wanted, placed, "fixed positions changed")
+
     def test_random_placement(self):
         cfg = from_json(get_config("test_single.json"))
         cfg.storage.root = "random_placement.hdf5"
