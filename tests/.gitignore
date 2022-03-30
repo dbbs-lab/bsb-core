@@ -1,4 +1,3 @@
-*
-!.gitignore
-!test_*
+*.txt
+*.hdf5
 *.pyc
