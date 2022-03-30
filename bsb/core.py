@@ -129,7 +129,8 @@ class Scaffold:
         self._storage = storage
         # First, the scaffold is passed to each config node, and their boot methods called.
         self._configuration._bootstrap(self)
-        # Then, `storage` is initted for the scaffold, and `config` is stored.
+        # Then, `storage` is initted for the scaffold, and `config` is stored (happens
+        # inside the `storage` property).
         self.storage = storage
         # Check for linked morphologies
         self._load_morpho_link()
