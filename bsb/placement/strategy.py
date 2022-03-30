@@ -243,7 +243,11 @@ class FixedPositions(PlacementStrategy):
     positions = config.attr(type=np.array)
 
     def place(self, chunk, indicators):
-        for indicator in indicators:
+        if self.positions is None:
+            raise RuntimeError(
+                f"{self.name} requires the `positions` to be specified in the configuration, or before placement is scheduled."
+            )
+        for indicator in indicators.values():
             ct = indicator.cell_type
             chunk_positions = self.positions[
                 np.logical_and(
