@@ -13,6 +13,7 @@ from ._make import (
     make_tree,
     wrap_root_postnew,
     walk_nodes,
+    _resolve_references,
 )
 from .types import TypeHandler, _wrap_reserved
 from ..exceptions import *
@@ -492,6 +493,9 @@ class cfglist(builtins.list):
 
     def _postset(self, items):
         root = _strict_root(self)
+        if root is not None:
+            for item in items:
+                _resolve_references(root, item)
         if _is_booted(root):
             for item in items:
                 _boot_nodes(item, root.scaffold)
@@ -578,6 +582,8 @@ class cfgdict(builtins.dict):
         else:
             super().__setitem__(key, value)
             root = _strict_root(value)
+            if root is not None:
+                _resolve_references(root, value)
             if _is_booted(root):
                 _boot_nodes(value, root.scaffold)
 
