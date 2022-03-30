@@ -24,6 +24,9 @@ class ConnectionCollection:
         self.cell_types = cell_types
         self.roi = roi
 
+    def __iter__(self):
+        return iter(self.cell_types)
+
     @property
     def placement(self):
         return {ct: ct.get_placement_set(self.roi) for ct in self.cell_types}
