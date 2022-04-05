@@ -507,7 +507,15 @@ class ArborAdapter(SimulatorAdapter):
                 with h5py.File(result_path, "a") as f:
                     if rank == 0:
                         s = time.time()
-                        spikes = np.array([[l[0][0], l[1]] for l in simulation.spikes()])
+                        dedup = {}
+                        spikes = np.array(
+                            [
+                                [l[0][0], l[1]]
+                                for l in simulation.spikes()
+                                if l[0][1] == dedup.setdefault(l[0][0], l[0][1])
+                            ]
+                        )
+                        del dedup
                         spikes = np.unique(spikes, axis=0)
                         spikes = np.where(np.isnan(spikes), 0, spikes)
                         report(
