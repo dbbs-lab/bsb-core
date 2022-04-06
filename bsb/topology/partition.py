@@ -85,12 +85,16 @@ class Rhomboid(Partition, classmap_entry="rhomboid"):
             return np.product(self.data.dimensions)
 
     @property
+    def data(self):
+        return self._data
+
+    @property
     def mdc(self):
-        return self.data.mdc
+        return self._data.mdc
 
     @property
     def ldc(self):
-        return self.data.ldc
+        return self._data.ldc
 
     def surface(self, chunk=None):
         if chunk is not None:
