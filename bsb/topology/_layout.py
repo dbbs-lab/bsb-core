@@ -15,6 +15,10 @@ class Layout:
     def data(self):
         return self._data
 
+    @property
+    def children(self):
+        return self._children
+
     def accept(self):
         self.swap()
 
@@ -33,9 +37,10 @@ class Layout:
         super().__getattribute__(attr)
 
     def swap(self):
-        if self._owner is not None and hasattr(self._owner, "_data"):
-            old = self._owner._data
+        if self._owner is not None:
+            old = getattr(self._owner, "_data", None)
             self._owner._data = self._data
+            self._data = old
         for child in self._children:
             child.swap()
 
@@ -89,6 +94,10 @@ class RhomboidData(PartitionData):
     @z.setter
     def z(self, value):
         self.ldc[2] = value
+
+    @property
+    def dimensions(self):
+        return self.mdc - self.ldc
 
     @property
     def width(self):
