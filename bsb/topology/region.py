@@ -2,10 +2,11 @@
 Module for the Region types.
 """
 
-from ._layout import Layout
+from ._layout import Layout, RhomboidData
 from .. import config
 from ..config import types, refs
 from ..exceptions import *
+import numpy as np
 import abc
 
 
@@ -81,14 +82,17 @@ class Stack(Region, classmap_entry="stack"):
         trans_eye = np.zeros(3)
         trans_eye[axis_idx] = 1
         for child in layout.children:
-            translation = (hint.ldc[axis_idx] + stack_size - child.data.ldc) * trans_eye
+            translation = (
+                hint.data.ldc[axis_idx] + stack_size - child.data.ldc
+            ) * trans_eye
             if not np.allclose(0, translation):
                 child.propose_translate(translation)
-            stack_size += child.data.dimensions * trans_eye
-        ldc = hint.ldc.copy()
-        mdc = hint.mdc
+            stack_size += child.data.dimensions[axis_idx]
+        ldc = hint.data.ldc.copy()
+        mdc = hint.data.mdc
+        print(axis_idx, mdc[axis_idx], ldc[axis_idx], stack_size)
         mdc[axis_idx] = ldc[axis_idx] + stack_size
-        layout.data = RhomboidData(ldc, mdc)
+        layout._data = RhomboidData(ldc, mdc)
         return layout
 
     def do_layout(self, hint):
