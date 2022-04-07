@@ -7,6 +7,7 @@ Expect everything to be broken, configs needs to be translated to v4
 ### Breaking changes
 
 * `morphological` changed to `morphologies`.
+* `geometrical` changed to `geometry`.
 
 # 3.10 - Arbor
 

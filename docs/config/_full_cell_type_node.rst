@@ -6,7 +6,7 @@
         "entity": false,
         "spatial": {
           "radius": 10.0,
-          "geometrical": {
+          "geometry": {
             "axon_length": 150.0,
             "other_hints": "hi!"
           },
