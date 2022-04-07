@@ -21,8 +21,13 @@ class BoxRTree(BoxTreeInterface):
     def __len__(self):
         return self._rtree.get_size()
 
-    def query(self, boxes):
-        return ([*self._rtree.intersection(box, objects=False)] for box in boxes)
+    def query(self, boxes, unique=False):
+        all_ = ([*self._rtree.intersection(box, objects=False)] for box in boxes)
+        if unique:
+            seen = set()
+            yield from (seen.add(elem) or elem for a in all_ for elem in a if elem not in seen)
+        else:
+            yield from all_
 
 
 # Cheapo provider
