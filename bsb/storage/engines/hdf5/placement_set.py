@@ -165,14 +165,18 @@ class PlacementSet(
         count=None,
     ):
         """
-        Append data to the PlacementSet.
+        Append data to the placement set.
 
+        :param chunk: The chunk to store data in.
         :param positions: Cell positions
         :type positions: :class:`numpy.ndarray`
         :param rotations: Cell rotations
-        :type rotations: :class:`numpy.ndarray`
-        :param morphologies: The associated MorphologySet.
-        :type morphologies: class:`~.storage.interfaces.MorphologySet`
+        :type rotations: ~bsb.morphologies.RotationSet
+        :param morphologies: Cell morphologies
+        :type morphologies: ~bsb.storage.interfaces.MorphologySet
+        :param count: Amount of entities to place. Excludes the use of any positional,
+          rotational or morphological data.
+        :type count: int
         """
         if count is not None:
             if not (positions is None and morphologies is None):
