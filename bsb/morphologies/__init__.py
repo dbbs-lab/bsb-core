@@ -364,9 +364,10 @@ class SubTree:
     def _rotate(self, points, rot, center):
         if center is not None:
             points = points - center
-        rotated_points = rot.apply(points)
-        if center is not None:
+            rotated_points = rot.apply(points)
             rotated_points = rotated_points + center
+        else:
+            rotated_points = rot.apply(points)
         return rotated_points
 
     def root_rotate(self, rot):
