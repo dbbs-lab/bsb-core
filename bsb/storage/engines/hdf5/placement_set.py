@@ -173,7 +173,7 @@ class PlacementSet(
         :param rotations: Cell rotations
         :type rotations: ~bsb.morphologies.RotationSet
         :param morphologies: Cell morphologies
-        :type morphologies: ~bsb.storage.interfaces.MorphologySet
+        :type morphologies: ~bsb.morphologies.MorphologySet
         :param count: Amount of entities to place. Excludes the use of any positional,
           rotational or morphological data.
         :type count: int

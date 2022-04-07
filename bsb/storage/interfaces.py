@@ -309,7 +309,7 @@ class PlacementSet(Interface):
         :param rotations: Cell rotations
         :type rotations: ~bsb.morphologies.RotationSet
         :param morphologies: Cell morphologies
-        :type morphologies: ~bsb.storage.interfaces.MorphologySet
+        :type morphologies: ~bsb.morphologies.MorphologySet
         :param count: Amount of entities to place. Excludes the use of any positional,
           rotational or morphological data.
         :type count: int
@@ -343,7 +343,7 @@ class PlacementSet(Interface):
         :type morpho_cache: ~bsb.morphologies.MorphologySet
         :returns: An iterator with 6 coordinates per cell: 3 min and 3 max coords, the
           bounding box of that cell's translated and rotated morphology.
-        :rtype: Iterator[Tuple[float * (6,)]]
+        :rtype: Iterator[Tuple[float, float, float, float, float, float]]
         """
         if morpho_cache is None:
             mset = self.load_morphologies()
@@ -394,7 +394,7 @@ class MorphologyRepository(Interface, engine_key="morphologies"):
         Select stored morphologies.
 
         :param selectors: Any number of morphology selectors.
-        :type selectors: List[bsb.placement.strategy.MorphologySelector]
+        :type selectors: List[bsb.placement.indicator.MorphologySelector]
         :returns: All stored morphologies that match at least one selector.
         :rtype: List[~bsb.storage.interfaces.StoredMorphology]
         """
