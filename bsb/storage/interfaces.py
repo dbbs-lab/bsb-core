@@ -242,11 +242,25 @@ class PlacementSet(Interface):
     def append_additional(self, name, chunk, data):
         pass
 
-    def load_boxes(self, cache=None, itr=True):
-        if cache is None:
+    def load_boxes(self, morpho_cache=None):
+        """
+        Load the cells as axis aligned bounding box rhomboids matching the extension,
+        orientation and position in space. This function loads morphologies, unless a
+        `morpho_cache` is given, then that is used.
+
+        :param morpho_cache: If you've previously loaded morphologies with soft or hard
+          caching enabled, you can pass the resulting morphology set here to reuse it. If
+          afterwards you need the morphology set, you best call :meth:`.load_morphologies`
+          first and reuse it here.
+        :type morpho_cache: ~bsb.morphologies.MorphologySet
+        :returns: An iterator with 6 coordinates per cell: 3 min and 3 max coords, the
+          bounding box of that cell's translated and rotated morphology.
+        :rtype: Iterator[Tuple[float * (6,)]]
+        """
+        if morpho_cache is None:
             mset = self.load_morphologies()
         else:
-            mset = cache
+            mset = morpho_cache
         expansion = [*zip([0] * 4 + [1] * 4, ([0] * 2 + [1] * 2) * 2, [0, 1] * 4)]
 
         def _box_of(m, o, r):
@@ -255,20 +269,24 @@ class PlacementSet(Interface):
             corners = np.array([[oo[x][0], oo[y][1], oo[z][2]] for x, y, z in expansion])
             # Rotate them
             rotbox = r.apply(corners)
-            # Find outer box of rotated and translated starting box
+            # Find outer box, by rotating and translating the starting box
             return np.concatenate(
                 (np.min(rotbox, axis=0) + o, np.max(rotbox, axis=0) + o)
             )
 
         iters = (mset.iter_meta(), self.load_positions(), self.load_rotations())
-        iter = map(_box_of, *iters)
-        if itr:
-            return iter
-        else:
-            return list(iter)
+        return map(_box_of, *iters)
 
-    def load_box_tree(self, cache=None):
-        return BoxTree(self.load_boxes(cache=cache, itr=True))
+    def load_box_tree(self, morpho_cache=None):
+        """
+        Load boxes, and form an RTree with them, for fast spatial lookup of rhomboid
+        intersection.
+
+        :param morpho_cache: See :meth:`~bsb.storage.interfaces.PlacementSet.load_boxes`.
+        :returns: A boxtree
+        :rtype: bsb.trees.BoxTree
+        """
+        return BoxTree(list(self.load_boxes(morpho_cache=morpho_cache)))
 
 
 class MorphologyRepository(Interface, engine_key="morphologies"):
