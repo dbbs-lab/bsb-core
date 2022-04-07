@@ -83,7 +83,7 @@ setuptools.setup(
             "sphinx",
             "furo",
             "pre-commit",
-            "black==20.8b1",
+            "black==22.3.0",
             "nrn-subprocess==1.3.4",
             "sphinxemoji",
             "sphinx_design",
