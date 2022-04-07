@@ -569,7 +569,7 @@ class Morphology(SubTree):
         return self._meta
 
     def copy(self):
-        self.optimize(check=False)
+        self.optimize(force=False)
         buffers = self._shared.copy()
         roots = []
         branch_copy_map = {}
