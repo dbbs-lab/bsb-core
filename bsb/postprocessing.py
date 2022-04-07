@@ -105,7 +105,7 @@ class AscendingAxonLengths(PostProcessingHook):
     def after_placement(self):
         granule_type = self.scaffold.cell_types.granule_cell
         granules = self.scaffold.get_placement_set(granule_type.name)
-        granule_geometry = granule_type.spatial.geometrical
+        granule_geometry = granule_type.spatial.geometry
         parallel_fibers = np.zeros((len(granules)))
         pf_height = granule_geometry.pf_height
         pf_height_sd = granule_geometry.pf_height_sd

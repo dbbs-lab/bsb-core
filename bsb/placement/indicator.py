@@ -1,7 +1,39 @@
 from ..exceptions import *
 from .. import config
-from ..config import refs
+from ..config import refs, types
 import numpy as np
+import abc
+
+
+@config.dynamic(
+    attr_name="selector",
+    auto_classmap=True,
+    required=False,
+    default="by_name",
+)
+class MorphologySelector(abc.ABC):
+    @abc.abstractmethod
+    def validate(self, all_morphos):
+        pass
+
+    @abc.abstractmethod
+    def pick(self, morphology):
+        pass
+
+
+@config.node
+class NameSelector(MorphologySelector, classmap_entry="by_name"):
+    names = config.list(type=str)
+
+    def validate(self, all_morphos):
+        missing = set(self.names) - {m.get_meta()["name"] for m in all_morphos}
+        if missing:
+            raise MissingMorphologyError(
+                f"Morphology repository misses the following morphologies required by {self._config_parent._config_parent.get_node_name()}: {', '.join(missing)}"
+            )
+
+    def pick(self, morphology):
+        return morphology.get_meta()["name"] in self.names
 
 
 @config.node
@@ -13,6 +45,8 @@ class PlacementIndications:
     density_ratio = config.attr(type=float)
     relative_to = config.ref(refs.cell_type_ref)
     count = config.attr(type=int)
+    geometry = config.dict(type=types.any())
+    morphologies = config.list(type=MorphologySelector)
 
 
 class _Noner:
@@ -33,7 +67,7 @@ class PlacementIndicator:
         return self.assert_indication("radius")
 
     def use_morphologies(self):
-        return bool(self.indication("morphological"))
+        return bool(self.indication("morphologies"))
 
     def indication(self, attr):
         ind_strat = self._strat.overrides.get(self._cell_type.name) or _Noner()
