@@ -44,6 +44,9 @@ class MorphologySet:
     def __init__(self, loaders, m_indices):
         self._m_indices = m_indices
         self._loaders = loaders
+        check_max = np.max(m_indices, initial=-1)
+        if check_max >= len(loaders):
+            raise Exception(f"Index {check_max} out of range for {len(loaders)}.")
         self._cached = {}
 
     def __len__(self):
@@ -126,6 +129,9 @@ class MorphologySet:
         )
         return MorphologySet(merged_loaders, merged_indices)
 
+    @classmethod
+    def empty(cls):
+        return cls([], np.empty(0, int))
 
 class RotationSet:
     """
