@@ -1,3 +1,17 @@
+# 4.0.0 - Too much to list
+
+Expect everything to be broken, configs needs to be translated to v4
+
+## 4.0.0a7
+
+### Breaking changes
+
+* `morphological` changed to `morphologies`.
+
+# 3.10 - Arbor
+
+* Added a very basic Arbor adapter
+
 # 3.9
 
 ## 3.9.0 - Partial (re)connecting, network merging and repeated NEST simulations

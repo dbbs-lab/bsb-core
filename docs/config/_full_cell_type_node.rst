@@ -10,7 +10,7 @@
             "axon_length": 150.0,
             "other_hints": "hi!"
           },
-          "morphological": [
+          "morphologies": [
             {
               "selector": "by_name",
               "names": ["short_*"]
