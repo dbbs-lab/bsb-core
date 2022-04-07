@@ -185,8 +185,9 @@ class PlacementSet(Interface):
         Can be overridden with a method to make sure the placement set exists. The default
         implementation uses the class's ``exists`` and ``create`` methods.
         """
-        if not self.exists(engine, type):
-            self.create(engine, type)
+        if not cls.exists(engine, type):
+            cls.create(engine, type)
+        return cls(engine, type)
 
     @abc.abstractmethod
     def clear(self, chunks=None):
