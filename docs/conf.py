@@ -65,6 +65,7 @@ intersphinx_mapping = {
     "scipy": ("https://scipy.github.io/devdocs/", None),
     "errr": ("https://errr.readthedocs.io/en/latest/", None),
     "mpi4py": ("https://mpi4py.readthedocs.io/en/stable/", None),
+    "arbor": ("https://docs.arbor-sim.org/en/latest/", None),
 }
 
 # Add any paths that contain templates here, relative to this directory.

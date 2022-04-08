@@ -173,8 +173,8 @@ root.
 Rotation
 --------
 
-Subtrees may be rotated around a singular point (by default around 0), by given 2
-orientation vectors:
+Subtrees may be :meth:`rotated <.morphologies.SubTree.rotate>` around a singular point, by
+giving a :class:`~scipy.spatial.transform.Rotation` (and a center, by default 0):
 
 .. figure:: /images/m_trans/rotate_tree.png
   :figwidth: 350px
@@ -182,7 +182,10 @@ orientation vectors:
 
 .. code-block:: python
 
-  dendrites.rotate([0, 1, 0], [1, 0, 0])
+  from scipy.spatial.transform import Rotation
+
+  r = Rotation.from_euler("xy", 90, 90, degrees=True)
+  dendrites.rotate(r)
 
 .. figure:: /images/m_trans/rotate_dend.png
   :figwidth: 350px
@@ -190,13 +193,17 @@ orientation vectors:
 
 .. code-block:: python
 
-  dendrite.rotate([0, 1, 0], [1, 0, 0])
+  dendrite.rotate(r)
+
+Note that this creates a gap, because we are rotating around the center, root-rotation
+might be preferred here.
 
 
 Root-rotation
 -------------
 
-Subtrees may rotate each subtree around their respective roots:
+Subtrees may be :meth:`root-rotated <.morphologies.SubTree.root_rotate>` around each
+respective root in the tree:
 
 .. figure:: /images/m_trans/root_rotate_dend.png
   :figwidth: 350px
@@ -204,7 +211,7 @@ Subtrees may rotate each subtree around their respective roots:
 
 .. code-block:: python
 
-  dendrite.root_rotate([0, 1, 0], [1, 0, 0])
+  dendrite.root_rotate(r)
 
 .. figure:: /images/m_trans/root_rotate_tree.png
   :figwidth: 350px
@@ -212,7 +219,7 @@ Subtrees may rotate each subtree around their respective roots:
 
 .. code-block:: python
 
-  dendrites.root_rotate([0, 1, 0], [1, 0, 0])
+  dendrites.root_rotate(r)
 
 Gap closing
 -----------
