@@ -1,11 +1,16 @@
 from ..exceptions import *
 from .. import exceptions
 from ..reporting import warn
-import inspect, re, sys, itertools, warnings, errr
-from functools import wraps
 from ._hooks import overrides
+from functools import wraps
+import re
+import itertools
+import warnings
+import errr
 import importlib
 import inspect
+import sys
+import os
 
 
 def make_metaclass(cls):
@@ -387,7 +392,13 @@ def _search_module_path(class_name, module_path, cfg_classname):
 
 
 def _get_module_class(class_name, module_name, cfg_classname):
-    module_ref = importlib.import_module(module_name)
+    sys.path.append(os.getcwd())
+    try:
+        module_ref = importlib.import_module(module_name)
+    finally:
+        tmp = list(reversed(sys.path))
+        tmp.remove(os.getcwd())
+        sys.path = list(reversed(tmp))
     module_dict = module_ref.__dict__
     if not class_name in module_dict:
         raise DynamicClassNotFoundError("Class not found: " + cfg_classname)
