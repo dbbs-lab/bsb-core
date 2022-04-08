@@ -30,9 +30,6 @@ class VoxelIntersection(Intersectional, ConnectionStrategy):
     cache = config.attr(type=bool, default=True)
     favor_cache = config.attr(type=types.in_(["pre", "post"]), default="pre")
 
-    def validate(self):
-        pass
-
     def connect(self, pre, post):
         if self.cache:
             cache = {
