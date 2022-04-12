@@ -1,11 +1,16 @@
 from ..exceptions import *
 from .. import exceptions
 from ..reporting import warn
-import inspect, re, sys, itertools, warnings, errr
-from functools import wraps
 from ._hooks import overrides
+from functools import wraps
+import re
+import itertools
+import warnings
+import errr
 import importlib
 import inspect
+import sys
+import os
 
 
 def make_metaclass(cls):
@@ -21,7 +26,7 @@ def make_metaclass(cls):
     #
     # The third makes it that type handling and other types of casting opt out early
     # and keep the object reference that the user gives them
-    class ConfigArgRewrite(type):
+    class ConfigArgRewrite:
         def __call__(meta_subject, *args, _parent=None, _key=None, **kwargs):
             # Rewrite the arguments
             primer = args[0] if args else None
@@ -79,6 +84,10 @@ def compile_class(cls):
     if "__weakref__" in cls_dict:
         del cls_dict["__weakref__"]
     ncls = make_metaclass(cls)(cls.__name__, cls.__bases__, cls_dict)
+    for method in ncls.__dict__.values():
+        cl = getattr(method, "__closure__", None)
+        if cl and cl[0].cell_contents is cls:
+            cl[0].cell_contents = ncls
     classmap = getattr(ncls, "_config_dynamic_classmap", None)
     if classmap is not None:
         # Replace the reference to the old class with the new class.
@@ -383,7 +392,13 @@ def _search_module_path(class_name, module_path, cfg_classname):
 
 
 def _get_module_class(class_name, module_name, cfg_classname):
-    module_ref = importlib.import_module(module_name)
+    sys.path.append(os.getcwd())
+    try:
+        module_ref = importlib.import_module(module_name)
+    finally:
+        tmp = list(reversed(sys.path))
+        tmp.remove(os.getcwd())
+        sys.path = list(reversed(tmp))
     module_dict = module_ref.__dict__
     if not class_name in module_dict:
         raise DynamicClassNotFoundError("Class not found: " + cfg_classname)

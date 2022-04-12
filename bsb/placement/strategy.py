@@ -68,7 +68,7 @@ class RandomMorphologies(MorphologyDistributor, classmap_entry="random"):
         Uses the morphology selection indicators to select morphologies and
         returns a MorphologySet of randomly assigned morphologies
         """
-        selectors = indicator.assert_indication("morphological")
+        selectors = indicator.assert_indication("morphologies")
         loaders = self.scaffold.storage.morphologies.select(*selectors)
         if not loaders:
             raise EmptySelectionError(

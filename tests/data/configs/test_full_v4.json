@@ -54,7 +54,7 @@
       "spatial": {
         "radius": 2.5,
         "density": 3.9e-3,
-        "geometrical": {
+        "geometry": {
           "pf_height": 126,
           "pf_height_sd": 15
         }

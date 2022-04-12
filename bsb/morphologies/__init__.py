@@ -364,9 +364,10 @@ class SubTree:
     def _rotate(self, points, rot, center):
         if center is not None:
             points = points - center
-        rotated_points = rot.apply(points)
-        if center is not None:
+            rotated_points = rot.apply(points)
             rotated_points = rotated_points + center
+        else:
+            rotated_points = rot.apply(points)
         return rotated_points
 
     def root_rotate(self, rot):
@@ -568,7 +569,7 @@ class Morphology(SubTree):
         return self._meta
 
     def copy(self):
-        self.optimize(check=False)
+        self.optimize(force=False)
         buffers = self._shared.copy()
         roots = []
         branch_copy_map = {}
@@ -1193,7 +1194,7 @@ def _import(cls, branch_cls, file):
     roots = []
     counter = itertools.count(1)
     ptr = 0
-    while (i := next(counter)) :
+    while i := next(counter):
         try:
             parent, section = section_stack.pop()
         except IndexError:

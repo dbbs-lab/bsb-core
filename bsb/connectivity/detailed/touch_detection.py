@@ -18,7 +18,7 @@ class TouchInformation:
 
 
 @config.node
-class TouchDetector(ConnectionStrategy, Intersectional):
+class TouchDetector(Intersectional, ConnectionStrategy):
     """
     Connectivity based on intersection of detailed morphologies
     """
@@ -31,7 +31,7 @@ class TouchDetector(ConnectionStrategy, Intersectional):
     contacts = config.attr(type=types.distribution(), default=1)
     allow_zero_contacts = config.attr(type=bool, default=False)
 
-    def connect(self):
+    def connect(self, pre, post):
         labels_pre = None if self.label_pre is None else [self.label_pre]
         labels_post = None if self.label_post is None else [self.label_post]
         self.morphology_cache = {}
