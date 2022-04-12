@@ -510,7 +510,7 @@ class ArborAdapter(SimulatorAdapter):
                         dedup = {}
                         spikes = np.array(
                             [
-                                [l[0][0], l[1]]
+                                print("spike datum", l) or [l[0][0], l[1]]
                                 for l in simulation.spikes()
                                 if l[0][1] == dedup.setdefault(l[0][0], l[0][1])
                             ]
