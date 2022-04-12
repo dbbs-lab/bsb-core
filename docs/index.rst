@@ -74,6 +74,12 @@ and explicit code understandable and reusable by your peers.
 
 .. toctree::
   :maxdepth: 2
+  :caption: Cell types
+
+  cells/cells-toc
+
+.. toctree::
+  :maxdepth: 2
   :caption: Topology
 
   topology/topology-toc
