@@ -3,7 +3,7 @@ Cell types
 ##########
 
 Cell types are the main component of the scaffold. They will be placed into the
-simulation volume and connected to eachother.
+simulation volume and connected to each other.
 
 *************
 Configuration
