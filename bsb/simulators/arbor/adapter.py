@@ -109,6 +109,7 @@ class ArborCell(SimulationCell):
                     f"Couldn't find {comp.start}, on {self._str(gid)}, d = {d}"
                 )
             labels[f"comp_{comp.id}"] = str(loc)
+            print(f"Adding 'comp_{comp.id}' on {gid}: {loc}")
 
         comps_from = self.adapter._connections_from[gid]
         comps_on = (rcv.comp_on for rcv in self.adapter._connections_on[gid])
