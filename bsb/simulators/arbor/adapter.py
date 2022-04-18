@@ -65,6 +65,7 @@ class ArborCell(SimulationCell):
             self.model_class = get_configurable_class(self.model)
 
     def get_description(self, gid):
+        print("GID", gid, self.relay)
         if not self.relay:
             morphology, labels, decor = self.model_class.cable_cell_template()
             labels = self._add_labels(gid, labels, morphology)
@@ -127,6 +128,11 @@ class ArborCell(SimulationCell):
     def _create_transmitters(self, gid, decor):
         done = set()
         for comp in self.adapter._connections_from[gid]:
+            if self.relay and comp.id != -1:
+                warn(
+                    f"Can only connect relays by default endpoint: {comp.id} in {self.name}"
+                )
+                comp.id = -1
             if comp.id in done:
                 continue
             else:
@@ -145,6 +151,13 @@ class ArborCell(SimulationCell):
 
     def _create_receivers(self, gid, decor):
         for rcv in self.adapter._connections_on[gid]:
+            if self.relay:
+                warn(f"Comp on {gid} {self.name}, is a relay")
+                if rcv.comp_on.id != -1:
+                    warn(
+                        f"Can only connect relays by default endpoint: {rcv.comp_on.id} in {self.name}"
+                    )
+                    rcv.comp_on.id = -1
             decor.place(
                 f'"comp_{rcv.comp_on.id}"',
                 rcv.synapse,
