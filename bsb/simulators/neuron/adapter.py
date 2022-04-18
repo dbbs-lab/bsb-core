@@ -502,14 +502,7 @@ class NeuronAdapter(SimulatorAdapter):
                             )
                         ]
                         for synapse_type in synapse_types:
-                            try:
-                                cell.create_receiver(section, gid, synapse_type)
-                            except Exception as e:
-                                section.available_synapse_types = list(cell.__class__.synapse_types.keys())
-                                cell.create_receiver(section, gid, synapse_type)
-                                # raise ScaffoldError(
-                                #     "[" + connection_model.name + "] " + str(e)
-                                # ) from None
+                            cell.create_receiver(section, gid, synapse_type)
 
     def create_neurons(self):
         for cell_model in self.cell_models.values():
