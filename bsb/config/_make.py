@@ -139,6 +139,8 @@ def compile_new(node_cls, dynamic=False, pluggable=False, root=False):
         instance = object.__new__(ncls)
         _set_pk(instance, _parent, _key)
         instance.__post_new__(**kwargs)
+        if _cls is not ncls:
+            instance.__init__(**kwargs)
         return instance
 
     return __new__
