@@ -776,7 +776,7 @@ def _repeat_first():
     first = None
 
     def repeater(val):
-        nonlocal _set
+        nonlocal _set, first
         if not _set:
             first, _set = val, True
         return first
