@@ -19,8 +19,6 @@ class VoxelData(np.ndarray):
     """
 
     def __new__(cls, data, keys=None):
-        if data.ndim < 2:
-            data = data.reshape(-1, 1)
         obj = super().__new__(cls, data.shape, dtype=object)
         obj[:] = data
         if keys is not None:
@@ -139,6 +137,9 @@ class VoxelSet:
                     self._data = VoxelData(data, keys=data_keys)
             else:
                 data = np.array(data, copy=False)
+                if data.ndim < 2:
+                    cols = len(data_keys) if data_keys else 1
+                    data = data.reshape(-1, cols)
                 self._data = VoxelData(data, keys=data_keys)
             if len(self._data) != len(voxels):
                 raise ValueError("`voxels` and `data` length unequal.")
