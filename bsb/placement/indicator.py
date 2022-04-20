@@ -3,6 +3,7 @@ from .. import config
 from ..config import refs, types
 import numpy as np
 import abc
+import re
 
 
 @config.dynamic(
@@ -25,15 +26,28 @@ class MorphologySelector(abc.ABC):
 class NameSelector(MorphologySelector, classmap_entry="by_name"):
     names = config.list(type=str)
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._names = {n: n.replace("*", r".*").replace("|", "\\|") for n in self.names}
+        self._patterns = {n: re.compile(f"^{pat}$") for n, pat in self._names.items()}
+        self._match = re.compile(f"^({'|'.join(self._names.values())})$")
+
     def validate(self, all_morphos):
-        missing = set(self.names) - {m.get_meta()["name"] for m in all_morphos}
+        repo_names = {m.get_meta()["name"] for m in all_morphos}
+        missing = [
+            n
+            for n, pat in self._patterns.items()
+            if not any(pat.match(rn) for rn in repo_names)
+        ]
         if missing:
             raise MissingMorphologyError(
-                f"Morphology repository misses the following morphologies required by {self._config_parent._config_parent.get_node_name()}: {', '.join(missing)}"
+                "Morphology repository misses the following morphologies required by "
+                + f"{self._config_parent._config_parent.get_node_name()}: "
+                + f"{', '.join(missing)}"
             )
 
     def pick(self, morphology):
-        return morphology.get_meta()["name"] in self.names
+        return self._match.match(morphology.get_meta()["name"]) is not None
 
 
 @config.node
