@@ -27,7 +27,7 @@ class NameSelector(MorphologySelector, classmap_entry="by_name"):
     names = config.list(type=str)
 
     def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+        super().__init__()
         self._names = {n: n.replace("*", r".*").replace("|", "\\|") for n in self.names}
         self._patterns = {n: re.compile(f"^{pat}$") for n, pat in self._names.items()}
         self._match = re.compile(f"^({'|'.join(self._names.values())})$")
