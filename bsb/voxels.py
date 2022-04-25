@@ -19,6 +19,9 @@ class VoxelData(np.ndarray):
     """
 
     def __new__(cls, data, keys=None):
+        print("NEW VD", cls, data.shape, keys)
+        if data.ndim == 1:
+            cls = np.ndarray
         obj = super().__new__(cls, data.shape, dtype=object)
         obj[:] = data
         if keys is not None:
@@ -33,15 +36,11 @@ class VoxelData(np.ndarray):
         return obj
 
     def __getitem__(self, index):
-        if self.ndim > 1:
-            index, keys = self._rewrite_index(index)
+        index, keys = self._rewrite_index(index)
         vd = super().__getitem__(index)
         if isinstance(vd, VoxelData):
-            if vd.ndim == 1:
-                if keys:
-                    vd = vd.reshape(-1, len(keys))
-                else:
-                    vd = vd.reshape(-1, self.shape[1])
+            if len(keys) > 0 and len(vd) != vd.size / len(keys):
+                vd = vd.reshape(-1, len(keys))
             vd._keys = keys
         return vd
 
@@ -76,7 +75,7 @@ class VoxelData(np.ndarray):
                 index = (slice(None),)
             else:
                 index = (index,)
-                cols = slice(None)
+                cols = None
                 keys = getattr(self, "_keys", [])
         except ValueError as e:
             key = str(e).split("'")[1]
