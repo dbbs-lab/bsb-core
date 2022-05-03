@@ -110,7 +110,7 @@ class MorphologySet:
 
     def _serialize_loaders(self):
         return [loader.get_meta()["name"] for loader in self._loaders]
-    
+
     @classmethod
     def empty(cls):
         return cls([], np.empty(0, dtype=int))
