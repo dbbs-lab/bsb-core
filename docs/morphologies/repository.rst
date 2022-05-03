@@ -13,7 +13,8 @@ To access an MR, a :class:`~.storage.Storage` object is required:
   from bsb.storage import Storage
 
   store = Storage("hdf5", "morphologies.hdf5")
-  print(store.morphologies.all())
+  mr = store.morphologies
+  print(mr.all())
 
 Similarly, the built-in MR of a network is accessible as ``network.morphologies``:
 
@@ -22,7 +23,7 @@ Similarly, the built-in MR of a network is accessible as ``network.morphologies`
   from bsb.core import from_hdf5
 
   network = from_hdf("my_existing_model.hdf5")
-  print(network.morphologies.all())
+  mr = network.morphologies
 
 You can use the :meth:`~.storage.interfaces.MorphologyRepository.save` method to store
 :class:`Morphologies <.morphologies.Morphology>`. If you don't immediately need the whole
