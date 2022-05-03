@@ -43,7 +43,8 @@ class NameSelector(MorphologySelector, classmap_entry="by_name"):
         if missing:
             err = "Morphology repository misses the following morphologies"
             if self._config_parent is not None:
-                err += f"required by {self._config_parent._config_parent.get_node_name()}"
+                node = self._config_parent._config_parent
+                err += f" required by {node.get_node_name()}"
             err += f": {', '.join(missing)}"
             raise MissingMorphologyError(err)
 
