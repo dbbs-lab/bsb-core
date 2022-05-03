@@ -26,7 +26,12 @@ class NameSelector(MorphologySelector, classmap_entry="by_name"):
     names = config.list(type=str)
 
     def validate(self, all_morphos):
-        missing = set(self.names) - {m.get_meta()["name"] for m in all_morphos}
+        repo_names = {m.get_meta()["name"] for m in all_morphos}
+        missing = [
+            n
+            for n, pat in self._patterns.items()
+            if not any(pat.match(rn) for rn in repo_names)
+        ]
         if missing:
             raise MissingMorphologyError(
                 f"Morphology repository misses the following morphologies required by {self._config_parent._config_parent.get_node_name()}: {', '.join(missing)}"
