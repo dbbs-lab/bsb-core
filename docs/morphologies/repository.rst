@@ -6,7 +6,16 @@ Morphology repositories (MRs) are an interface of the :mod:`.storage` module and
 supported by the :class:`~.storage.interfaces.Engine` so that morphologies can be stored
 inside the network storage.
 
-The MR of a network is accessible as ``network.morphologies``:
+To access an MR, a :class:`~.storage.Storage` object is required:
+
+.. code-block:: python
+
+  from bsb.storage import Storage
+
+  store = Storage("hdf5", "morphologies.hdf5")
+  print(store.morphologies.all())
+
+Similarly, the built-in MR of a network is accessible as ``network.morphologies``:
 
 .. code-block:: python
 
