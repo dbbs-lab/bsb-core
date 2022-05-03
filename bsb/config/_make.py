@@ -213,13 +213,15 @@ def compile_postnew(cls, root=False):
 
 def wrap_root_postnew(post_new):
     def __post_new__(self, *args, _parent=None, _key=None, **kwargs):
-        with warnings.catch_warnings(record=True) as log:
-            try:
-                post_new(self, *args, _parent=None, _key=None, **kwargs)
-            except (CastError, RequirementError) as e:
-                _bubble_up_exc(e)
-            _resolve_references(self)
-        _bubble_up_warnings(log)
+        try:
+            with warnings.catch_warnings(record=True) as log:
+                try:
+                    post_new(self, *args, _parent=None, _key=None, **kwargs)
+                except (CastError, RequirementError) as e:
+                    _bubble_up_exc(e)
+                _resolve_references(self)
+        finally:
+            _bubble_up_warnings(log)
 
     return __post_new__
 
@@ -242,7 +244,7 @@ def _bubble_up_warnings(log):
             attr = f".{m.attr.attr_name}" if hasattr(m, "attr") else ""
             warn(str(m) + " in " + m.node.get_node_name() + attr, type(m))
         else:
-            warn(str(m), w)
+            warn(str(m), w.category)
 
 
 def _get_class_config_attrs(cls):
