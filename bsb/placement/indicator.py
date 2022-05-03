@@ -28,9 +28,10 @@ class NameSelector(MorphologySelector, classmap_entry="by_name"):
 
     def __init__(self, **kwargs):
         super().__init__()
-        self._names = {n: n.replace("*", r".*").replace("|", "\\|") for n in self.names}
-        self._patterns = {n: re.compile(f"^{pat}$") for n, pat in self._names.items()}
-        self._match = re.compile(f"^({'|'.join(self._names.values())})$")
+        self._pnames = {n: n.replace("*", r".*").replace("|", "\\|") for n in self.names}
+        self._patterns = {n: re.compile(f"^{pat}$") for n, pat in self._pnames.items()}
+        self._empty = not self.names
+        self._match = re.compile(f"^({'|'.join(self._pnames.values())})$")
 
     def validate(self, all_morphos):
         repo_names = {m.get_meta()["name"] for m in all_morphos}
@@ -40,14 +41,17 @@ class NameSelector(MorphologySelector, classmap_entry="by_name"):
             if not any(pat.match(rn) for rn in repo_names)
         ]
         if missing:
-            raise MissingMorphologyError(
-                "Morphology repository misses the following morphologies required by "
-                + f"{self._config_parent._config_parent.get_node_name()}: "
-                + f"{', '.join(missing)}"
-            )
+            err = "Morphology repository misses the following morphologies"
+            if self._config_parent is not None:
+                err += f"required by {self._config_parent._config_parent.get_node_name()}"
+            err += f": {', '.join(missing)}"
+            raise MissingMorphologyError(err)
 
     def pick(self, morphology):
-        return self._match.match(morphology.get_meta()["name"]) is not None
+        return (
+            not self._empty
+            and self._match.match(morphology.get_meta()["name"]) is not None
+        )
 
 
 @config.node
