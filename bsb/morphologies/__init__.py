@@ -996,17 +996,17 @@ class _Labels(np.ndarray):
             if point in _transitions:
                 return _transitions[point]
             else:
-                trans_labels = self.labels[point].copy()
+                trans_labels = self.labels[str(point)].copy()
                 trans_labels.update(labels)
                 for k, v in self.labels.items():
                     if trans_labels == v:
                         return k
-                else:
-                    transition = next(counter)
-                    self.labels[transition] = trans_labels
-                    _transitions[point] = transition
-                    return transition
-
+                    else:
+                        transition = next(counter)
+                        self.labels[transition] = trans_labels
+                        _transitions[point] = transition
+                        return transition
+        
         self[points] = np.vectorize(transition)(self[points])
 
     def contains(self, *labels):
