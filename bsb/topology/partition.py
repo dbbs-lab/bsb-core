@@ -32,6 +32,12 @@ class Partition(abc.ABC):
     name = config.attr(key=True)
     region = config.ref(region_ref, populate="children")
 
+    @property
+    def data(self):
+        # The data property is read-only to users, but `_data` is assigned
+        # during the layout process
+        return self._data
+
     @abc.abstractmethod
     def volume(self, chunk=None):
         pass
@@ -67,7 +73,6 @@ class Partition(abc.ABC):
 
 @config.node
 class Rhomboid(Partition, classmap_entry="rhomboid"):
-    dataclass = RhomboidData
     dimensions = config.attr(type=types.list(type=float, size=3))
     can_scale = config.attr(type=bool, default=True)
     origin = config.attr(type=types.list(type=float, size=3))
@@ -83,10 +88,6 @@ class Rhomboid(Partition, classmap_entry="rhomboid"):
             return np.product(np.maximum(high - low, 0))
         else:
             return np.product(self.data.dimensions)
-
-    @property
-    def data(self):
-        return self._data
 
     @property
     def mdc(self):
@@ -158,16 +159,16 @@ class Rhomboid(Partition, classmap_entry="rhomboid"):
         else:
             dim = self.dimensions
         if self.origin is None:
-            orig = hint.data.ldc
+            orig = hint.data.ldc.copy()
         else:
             orig = self.origin
-        return Layout(RhomboidData(orig, dim - orig), owner=self)
+        return Layout(RhomboidData(orig, dim + orig), owner=self)
 
 
 @config.node
 class Layer(Rhomboid, classmap_entry="layer"):
     thickness = config.attr(type=float, required=_size_requirements)
-    xz_scale = config.attr(
+    volume_scale = config.attr(
         type=types.or_(
             types.list(float, size=2),
             types.scalar_expand(
@@ -180,6 +181,18 @@ class Layer(Rhomboid, classmap_entry="layer"):
     )
     xz_center = config.attr(type=bool, default=False)
     stack_index = config.attr(type=float, default=0)
+
+    def get_layout(self, hint):
+        if self.dimensions is None:
+            dim = hint.data.mdc - hint.data.ldc
+            dim[1] = self.thickness
+        else:
+            dim = self.dimensions
+        if self.origin is None:
+            orig = hint.data.ldc.copy()
+        else:
+            orig = self.origin
+        return Layout(RhomboidData(orig, dim + orig), owner=self)
 
     # TODO: Layer stacking
     # TODO: Layer scaling

@@ -6,6 +6,7 @@ from ._layout import Layout, RhomboidData
 from .. import config
 from ..config import types, refs
 from ..exceptions import *
+from ..reporting import warn
 import numpy as np
 import abc
 
@@ -81,7 +82,11 @@ class Stack(Region, classmap_entry="stack"):
         axis_idx = ("x", "y", "z").index(self.axis)
         trans_eye = np.zeros(3)
         trans_eye[axis_idx] = 1
+
         for child in layout.children:
+            if child.data is None:
+                warn(f"Skipped layout arrangement of {child._owner.name} in {self.name}")
+                continue
             translation = (
                 hint.data.ldc[axis_idx] + stack_size - child.data.ldc
             ) * trans_eye
@@ -90,7 +95,6 @@ class Stack(Region, classmap_entry="stack"):
             stack_size += child.data.dimensions[axis_idx]
         ldc = hint.data.ldc.copy()
         mdc = hint.data.mdc
-        print(axis_idx, mdc[axis_idx], ldc[axis_idx], stack_size)
         mdc[axis_idx] = ldc[axis_idx] + stack_size
         layout._data = RhomboidData(ldc, mdc)
         return layout
