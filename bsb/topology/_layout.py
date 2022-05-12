@@ -24,7 +24,6 @@ class Layout:
 
     def __getattr__(self, attr):
         if attr.startswith("propose_"):
-            print("proposal")
             f = getattr(self._owner, attr[8:])
 
             def swapped_execute(*args, **kwargs):

@@ -167,6 +167,7 @@ class Rhomboid(Partition, classmap_entry="rhomboid"):
 
 @config.node
 class Layer(Rhomboid, classmap_entry="layer"):
+    dimensions = config.unset()
     thickness = config.attr(type=float, required=_size_requirements)
     volume_scale = config.attr(
         type=types.or_(
@@ -179,24 +180,20 @@ class Layer(Rhomboid, classmap_entry="layer"):
         default=lambda: [1.0, 1.0],
         call_default=True,
     )
-    xz_center = config.attr(type=bool, default=False)
+    axis = config.attr(type=types.in_(["x", "y", "z"]), default="y")
     stack_index = config.attr(type=float, default=0)
 
     def get_layout(self, hint):
-        if self.dimensions is None:
-            dim = hint.data.mdc - hint.data.ldc
-            dim[1] = self.thickness
-        else:
-            dim = self.dimensions
+        axis = ["x", "y", "z"].index(self.axis)
+        dim = hint.data.mdc - hint.data.ldc
+        dim[axis] = self.thickness
         if self.origin is None:
             orig = hint.data.ldc.copy()
         else:
             orig = self.origin
         return Layout(RhomboidData(orig, dim + orig), owner=self)
 
-    # TODO: Layer stacking
     # TODO: Layer scaling
-    # TODO: Layer centering
 
 
 @config.node
