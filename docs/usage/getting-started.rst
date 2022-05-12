@@ -92,12 +92,12 @@ To get started, we'll add a ``cortex`` region, and populate it with a ``base_lay
     "regions": {
       "cortex": {
         "origin": [0.0, 0.0, 0.0],
-				"partitions": ["base_layer"]
+        "partitions": ["base_layer"]
       }
     },
     "partitions": {
       "base_layer": {
-				"type": "layer",
+        "type": "layer",
         "thickness": 100
       }
     }
@@ -123,13 +123,13 @@ created for them. In the simplest case you define a soma :guilabel:`radius` and
       "cell_type_A": {
         "spatial": {
           "radius": 7,
-					"density": 1e-3
+          "density": 1e-3
         }
       },
       "cell_type_B": {
         "spatial": {
           "radius": 7,
-					"count": 10
+          "count": 10
         }
       }
     }
@@ -173,7 +173,7 @@ Connectivity
 .. code-block:: json
 
   {
-		"connectivity": {
+    "connectivity": {
       "A_to_B": {
         "cls": "bsb.connectivity.AllToAll",
         "pre": {
