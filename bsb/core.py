@@ -759,14 +759,13 @@ class Scaffold:
         if link.exists():
             try:
                 mr = Storage("hdf5", link.path).morphologies
-                loaders = mr.all()
+                all = mr.all()
             except:
                 raise ScaffoldError("Morphology repository link must be HDF5 repository.")
             else:
-                report(f"Pulling morphologies from linked {link}.", level=2)
-                for loader in loaders:
-                    morpho = loader.load()
-                    self.morphologies.save(loader.name, morpho, overwrite=True)
+                report(f"Pulling {len(all)} morphologies from linked {link}.", level=2)
+                for loader in all:
+                    self.morphologies.save(loader.name, loader.load(), overwrite=True)
 
     def _get_link(self, name):
         import bsb.option
