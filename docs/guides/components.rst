@@ -83,7 +83,7 @@ you can now access:
     "max_size": 50
   }
 
-Share your code with the whole world and become an author of a :ref:`plugins`!
+Share your code with the whole world and become an author of a :ref:`plugin <plugins>`!
 |:heart_eyes:|
 
 Main components
