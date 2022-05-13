@@ -35,6 +35,7 @@ extensions = [
     "sphinx.ext.intersphinx",
     "sphinxemoji.sphinxemoji",
     "sphinx_design",
+    "sphinx_copybutton",
 ]
 
 autodoc_mock_imports = [
