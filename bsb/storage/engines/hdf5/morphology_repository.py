@@ -89,7 +89,9 @@ class MorphologyRepository(Resource, IMorphologyRepository):
                     ptr = nptr
                 meta = _meta(root)
                 meta["name"] = name
-                morpho = Morphology(roots, meta, shared_buffers=(points, radii, labels, props))
+                morpho = Morphology(
+                    roots, meta, shared_buffers=(points, radii, labels, props)
+                )
                 assert morpho._check_shared(), "Morpho read with unshareable buffers"
                 return morpho
 
