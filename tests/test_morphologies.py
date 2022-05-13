@@ -209,7 +209,7 @@ class TestRepositories(unittest.TestCase):
     def test_meta(self):
         m = Morphology.from_swc(get_morphology("PurkinjeCell.swc"))
         mr = Storage("hdf5", "test4.h5").morphologies
-        mr.save("pc", m)
+        mr.save("pc", m, overwrite=True)
         m = mr.load("pc")
         self.assertIn("mdc", m.meta, "missing mdc in loaded morphology")
         self.assertIn("ldc", m.meta, "missing ldc in loaded morphology")
