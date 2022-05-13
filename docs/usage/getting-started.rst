@@ -29,9 +29,9 @@ Use the command below to create a new project directory and some starter files:
 .. code-block:: bash
 
   > bsb new my_first_model
-	Config template [skeleton.json]: starting_example.json
-	Config file [network_configuration.json]:
-	> cd my_first_model
+  Config template [skeleton.json]: starting_example.json
+  Config file [network_configuration.json]:
+  > cd my_first_model
 
 You'll be asked some questions; enter appropriate values, and be sure to select the
 ``starting_example.json`` as the template configuration file, and to navigate your
