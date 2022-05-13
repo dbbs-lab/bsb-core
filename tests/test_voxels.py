@@ -132,6 +132,10 @@ class TestVoxelSet(test_setup.NumpyTestCase, unittest.TestCase):
         with self.assertRaises(ValueError):
             VoxelSet([[1, 0, 0, 0]], [[1, 0, 0]])
         VoxelSet([[1, 2, 3], [1, 2, 3]], 2, [[1], [2]], data_keys=["a"])
+        v = VoxelSet([[1, 2, 3], [1, 2, 3]], 2, [1, 2], data_keys=["a"])
+        self.assertEqual([[1], [2]], v.a.tolist(), "Voxel data should be 2d")
+        v = VoxelSet([[1, 2, 3]], 2, 1, data_keys=["a"])
+        self.assertEqual([[1]], v.a.tolist(), "Voxel data should be 2d")
         arr = np.array([[1], [2]])
         VoxelSet([[1, 2, 3], [1, 2, 3]], 2, VoxelData(arr))
         VoxelSet([[1, 2, 3], [1, 2, 3]], 2, VoxelData(arr), data_keys=["a"])
@@ -414,8 +418,9 @@ class TestVoxelSet(test_setup.NumpyTestCase, unittest.TestCase):
         self.assertEqual(1, vs.get_data(0))
         vs = VoxelSet.one([[100, 0, 0]], [120, 20, 20], [1])
         self.assertEqual(1, vs.get_data(0))
-        vs = VoxelSet.one([[100, 0, 0]], [120, 20, 20], [1, 1])
-        self.assertEqual([1, 1], list(np.array(vs.get_data(0))[0]))
+        vs = VoxelSet.one([100, 0, 0], [120, 20, 20], [1, 1])
+        self.assertEqual((1, 2), vs.get_data().shape, "incorrect interpretation of 2col")
+        self.assertEqual([1, 1], list(vs.get_data(0)))
 
     def test_index(self):
         for label, set in self.all.items():
@@ -507,14 +512,11 @@ class TestVoxelSet(test_setup.NumpyTestCase, unittest.TestCase):
 
 class TestVoxelData(unittest.TestCase):
     def test_ctor(self):
-        vd = VoxelData(np.array([1, 1, 1, 1]), keys=["alpha"])
-        self.assertEqual(2, vd.ndim, "VoxelData should be 2d")
-        vd = VoxelData(np.array(1), keys=["alpha"])
-        self.assertEqual(2, vd.ndim, "VoxelData should be 2d")
+        vd = VoxelData(np.array([[1], [1], [1], [1]]), keys=["alpha"])
         with self.assertRaises(IndexError):
             vd["beta"]
         with self.assertRaises(ValueError):
-            VoxelData(np.array([1, 1, 1]), keys=["a", "b", "c"])
+            VoxelData(np.array([[1], [1], [1]]), keys=["a", "b", "c"])
         with self.assertRaises(ValueError):
             VoxelSet(
                 [[0, 0, 0], [1, 0, 0], [2, 0, 0]],

@@ -19,8 +19,8 @@ class VoxelData(np.ndarray):
     """
 
     def __new__(cls, data, keys=None):
-        if data.ndim == 1:
-            cls = np.ndarray
+        if data.ndim < 2:
+            return super().__new__(np.ndarray, data.shape, dtype=object)
         obj = super().__new__(cls, data.shape, dtype=object)
         obj[:] = data
         if keys is not None:
@@ -186,6 +186,12 @@ class VoxelSet:
         if voxels.ndim == 1:
             voxels = voxels.reshape(-1, 3)
         return VoxelSet(voxels, voxel_size, data)
+
+    def __getattr__(self, key):
+        if key in self._data._keys:
+            return self.get_data(key)
+        else:
+            return super().__getattribute__(key)
 
     def __str__(self):
         cls = type(self)
