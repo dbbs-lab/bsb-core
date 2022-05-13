@@ -19,7 +19,6 @@ class VoxelData(np.ndarray):
     """
 
     def __new__(cls, data, keys=None):
-        print("NEW VD", cls, data.shape, keys)
         if data.ndim == 1:
             cls = np.ndarray
         obj = super().__new__(cls, data.shape, dtype=object)
