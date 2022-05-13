@@ -85,14 +85,14 @@ NEST or multicompartmental neuron simulations with NEURON use:
 
 .. note::
 
-	This does not install the simulators themselves. Just the tools the BSB needs to deal
-	with them. Install the simulators separately according to their respective installation
-	instructions.
+	This does not install the simulators themselves. It installs the Python tools that the
+	BSB needs to deal with them. Install the simulators separately according to their
+	respective installation instructions.
 
 Installing NEST
 ===============
 
-The BSB currently runs a fork of NEST 2.18, to install it, follow the instructions below,
+The BSB currently runs a fork of NEST 2.18. To install it, follow the instructions,
 with a virtual environment activated.
 
 .. code-block:: bash
