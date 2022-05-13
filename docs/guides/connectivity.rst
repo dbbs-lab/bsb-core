@@ -11,10 +11,10 @@ simulation volume. They are defined in the configuration under ``connectivity``:
     "connectivity": {
       "cell_A_to_cell_B": {
         "cls": "bsb.connectivity.VoxelIntersection",
-        "pre": {
+        "presynaptic": {
           "cell_types": ["cell_A"]
         },
-        "post": {
+        "postsynaptic": {
             "cell_types": ["cell_B"]
         }
       }
@@ -80,10 +80,10 @@ An example using this strategy, assuming it is importable from the ``my_module``
         "class": "my_module.ConnectBetween",
         "min": 10,
         "max": 15.5,
-        "pre": {
+        "presynaptic": {
           "cell_types": ["cell_A"]
         },
-        "post": {
+        "postsynaptic": {
           "cell_types": ["cell_B"]
         }
       }
