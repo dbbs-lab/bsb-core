@@ -206,6 +206,14 @@ class TestRepositories(unittest.TestCase):
     def test_tree_with_empty_branches(self):
         pass
 
+    def test_meta(self):
+        m = Morphology.from_swc(get_morphology("PurkinjeCell.swc"))
+        mr = Storage("hdf5", "test4.h5").morphologies
+        mr.save("pc", m)
+        m = mr.load("pc")
+        self.assertIn("mdc", m.meta, "missing mdc in loaded morphology")
+        self.assertIn("ldc", m.meta, "missing ldc in loaded morphology")
+
 
 class TestMorphologies(NumpyTestCase, unittest.TestCase):
     @classmethod
