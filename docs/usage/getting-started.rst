@@ -176,10 +176,10 @@ Connectivity
     "connectivity": {
       "A_to_B": {
         "cls": "bsb.connectivity.AllToAll",
-        "pre": {
+        "presynaptic": {
           "cell_types": ["cell_type_A"]
         },
-        "post": {
+        "postsynaptic": {
             "cell_types": ["cell_type_B"]
         }
       }
