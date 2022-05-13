@@ -353,7 +353,7 @@ class BsbOption:
 @functools.cache
 def _pyproject_content():
     path = pathlib.Path.cwd()
-    while str(path) != path.root:
+    while str(path)[len(path.drive) :] != path.root:
         proj = path / "pyproject.toml"
         if proj.exists():
             with open(proj, "r") as f:
