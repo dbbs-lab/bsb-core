@@ -626,12 +626,28 @@ class cfgdict(builtins.dict):
         for added_node in (a for a in new_values if a not in ex_values):
             _boot_nodes(added_node, self.scaffold)
 
+    def copy(self):
+        return cfgdictcopy(self)
+
     @builtins.property
     def _config_attr_name(self):
         return self._config_attr.attr_name
 
     def get_node_name(self):
         return self._config_parent.get_node_name() + "." + self._config_attr_name
+
+
+class cfgdictcopy(cfgdict):
+    def __init__(self, other):
+        super().__init__(other)
+        self._copied_from = other
+
+    @builtins.property
+    def _config_attr_name(self):
+        return self._copied_from._config_attr_name
+
+    def get_node_name(self):
+        return self._copied_from.get_node_name()
 
 
 class ConfigurationDictAttribute(ConfigurationAttribute):

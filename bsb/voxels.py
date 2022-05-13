@@ -20,7 +20,7 @@ class VoxelData(np.ndarray):
 
     def __new__(cls, data, keys=None):
         if data.ndim < 2:
-            data = data.reshape(-1, 1)
+            return super().__new__(np.ndarray, data.shape, dtype=object)
         obj = super().__new__(cls, data.shape, dtype=object)
         obj[:] = data
         if keys is not None:
@@ -35,15 +35,11 @@ class VoxelData(np.ndarray):
         return obj
 
     def __getitem__(self, index):
-        if self.ndim > 1:
-            index, keys = self._rewrite_index(index)
+        index, keys = self._rewrite_index(index)
         vd = super().__getitem__(index)
         if isinstance(vd, VoxelData):
-            if vd.ndim == 1:
-                if keys:
-                    vd = vd.reshape(-1, len(keys))
-                else:
-                    vd = vd.reshape(-1, self.shape[1])
+            if len(keys) > 0 and len(vd) != vd.size / len(keys):
+                vd = vd.reshape(-1, len(keys))
             vd._keys = keys
         return vd
 
@@ -78,7 +74,7 @@ class VoxelData(np.ndarray):
                 index = (slice(None),)
             else:
                 index = (index,)
-                cols = slice(None)
+                cols = None
                 keys = getattr(self, "_keys", [])
         except ValueError as e:
             key = str(e).split("'")[1]
@@ -139,6 +135,9 @@ class VoxelSet:
                     self._data = VoxelData(data, keys=data_keys)
             else:
                 data = np.array(data, copy=False)
+                if data.ndim < 2:
+                    cols = len(data_keys) if data_keys else 1
+                    data = data.reshape(-1, cols)
                 self._data = VoxelData(data, keys=data_keys)
             if len(self._data) != len(voxels):
                 raise ValueError("`voxels` and `data` length unequal.")
@@ -187,6 +186,12 @@ class VoxelSet:
         if voxels.ndim == 1:
             voxels = voxels.reshape(-1, 3)
         return VoxelSet(voxels, voxel_size, data)
+
+    def __getattr__(self, key):
+        if key in self._data._keys:
+            return self.get_data(key)
+        else:
+            return super().__getattribute__(key)
 
     def __str__(self):
         cls = type(self)
@@ -775,7 +780,7 @@ def _repeat_first():
     first = None
 
     def repeater(val):
-        nonlocal _set
+        nonlocal _set, first
         if not _set:
             first, _set = val, True
         return first

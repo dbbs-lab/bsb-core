@@ -3,6 +3,7 @@ from .. import config
 from ..config import refs, types
 import numpy as np
 import abc
+import re
 
 
 @config.dynamic(
@@ -25,15 +26,33 @@ class MorphologySelector(abc.ABC):
 class NameSelector(MorphologySelector, classmap_entry="by_name"):
     names = config.list(type=str)
 
+    def __init__(self, **kwargs):
+        super().__init__()
+        self._pnames = {n: n.replace("*", r".*").replace("|", "\\|") for n in self.names}
+        self._patterns = {n: re.compile(f"^{pat}$") for n, pat in self._pnames.items()}
+        self._empty = not self.names
+        self._match = re.compile(f"^({'|'.join(self._pnames.values())})$")
+
     def validate(self, all_morphos):
-        missing = set(self.names) - {m.get_meta()["name"] for m in all_morphos}
+        repo_names = {m.get_meta()["name"] for m in all_morphos}
+        missing = [
+            n
+            for n, pat in self._patterns.items()
+            if not any(pat.match(rn) for rn in repo_names)
+        ]
         if missing:
-            raise MissingMorphologyError(
-                f"Morphology repository misses the following morphologies required by {self._config_parent._config_parent.get_node_name()}: {', '.join(missing)}"
-            )
+            err = "Morphology repository misses the following morphologies"
+            if self._config_parent is not None:
+                node = self._config_parent._config_parent
+                err += f" required by {node.get_node_name()}"
+            err += f": {', '.join(missing)}"
+            raise MissingMorphologyError(err)
 
     def pick(self, morphology):
-        return morphology.get_meta()["name"] in self.names
+        return (
+            not self._empty
+            and self._match.match(morphology.get_meta()["name"]) is not None
+        )
 
 
 @config.node
