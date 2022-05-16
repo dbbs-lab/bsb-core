@@ -174,9 +174,11 @@ class NeuronAdapter(SimulatorAdapter):
         "duration": float,
         "resolution": float,
         "initial": float,
+        "coreneuron": bool,
+        "gpu": bool,
     }
 
-    defaults = {"initial": -65.0}
+    defaults = {"initial": -65.0, "coreneuron": False, "gpu": False}
 
     required = ["temperature", "duration", "resolution"]
 
@@ -244,6 +246,13 @@ class NeuronAdapter(SimulatorAdapter):
         simulator.dt = self.resolution
         simulator.celsius = self.temperature
         simulator.tstop = self.duration
+        if self.coreneuron:
+            print(f"ENABLING CORENEURON !!! GPU: {self.gpu}")
+            simulator.CVode().cache_efficient(1)
+            from neuron import coreneuron
+
+            coreneuron.enable = True
+            coreneuron.gpu = self.gpu
 
         t = t0 = time()
         self.load_balance()
