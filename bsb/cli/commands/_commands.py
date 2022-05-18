@@ -196,12 +196,9 @@ class CacheCommand(BaseCommand, name="cache"):  # pragma: nocover
         from ...storage._util import _cache_path
 
         if context.clear:
-            try:
-                shutil.rmtree(_cache_path / "*")
-            except:
-                print("No cache found")
-            else:
-                print("Cache cleared")
+            shutil.rmtree(_cache_path)
+            _cache_path.mkdir(parents=True, exist_ok=True)
+            print("Cache cleared")
         else:
             _cache_path.mkdir(parents=True, exist_ok=True)
             files = [*_cache_path.iterdir()]
