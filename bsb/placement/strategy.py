@@ -164,9 +164,9 @@ class PlacementStrategy(abc.ABC, SortableByAfter):
                 morphologies = distr_("morphologies")
             except EmptySelectionError as e:
                 raise DistributorError(
+                    "%property% distribution of `%strategy.name%` couldn't find any morphologies.",
                     "Morphology",
                     self,
-                    prepend="%property% distribution of `%strategy.name%` couldn't find any morphologies.",
                 ) from None
             # Strict type check for unpacking into morphologies and rotations
             if isinstance(morphologies, tuple):
