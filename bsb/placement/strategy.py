@@ -160,7 +160,14 @@ class PlacementStrategy(abc.ABC, SortableByAfter):
         distr_ = self.distribute._curry(self.partitions, indicator, positions)
 
         if indicator.use_morphologies():
-            morphologies = distr_("morphologies")
+            try:
+                morphologies = distr_("morphologies")
+            except EmptySelectionError as e:
+                raise DistributorError(
+                    "Morphology",
+                    self,
+                    prepend="%property% distribution of `%strategy.name%` couldn't find any morphologies.",
+                ) from None
             # Strict type check for unpacking into morphologies and rotations
             if isinstance(morphologies, tuple):
                 try:
