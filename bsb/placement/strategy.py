@@ -74,7 +74,8 @@ class RandomMorphologies(MorphologyDistributor, classmap_entry="random"):
         loaders = self.scaffold.storage.morphologies.select(*selectors)
         if not loaders:
             raise EmptySelectionError(
-                "Given selectors did not find any suitable morphologies", selectors
+                f"Given {len(selectors)} selectors: did not find any suitable morphologies",
+                selectors,
             )
         else:
             ids = np.random.default_rng().integers(len(loaders), size=len(positions))
@@ -164,7 +165,8 @@ class PlacementStrategy(abc.ABC, SortableByAfter):
                 morphologies = distr_("morphologies")
             except EmptySelectionError as e:
                 raise DistributorError(
-                    "%property% distribution of `%strategy.name%` couldn't find any morphologies.",
+                    "%property% distribution of `%strategy.name%` couldn't find any"
+                    + f" morphologies with {len(e.selectors)} selectors",
                     "Morphology",
                     self,
                 ) from None
