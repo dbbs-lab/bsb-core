@@ -27,6 +27,7 @@ import inspect
 import morphio
 import numpy as np
 from collections import deque
+from pathlib import Path
 from scipy.spatial.transform import Rotation
 from ..voxels import VoxelSet
 from ..exceptions import *
@@ -602,8 +603,8 @@ class Morphology(SubTree):
         :returns: The parsed morphology, with the SWC tags as a property.
         :rtype: bsb.morphologies.Morphology
         """
-        if isinstance(file, str):
-            with open(file, "r") as f:
+        if isinstance(file, str) or isinstance(file, Path):
+            with open(str(file), "r") as f:
                 return cls.from_swc(f, branch_class)
         if branch_class is None:
             branch_class = Branch
