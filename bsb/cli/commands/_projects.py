@@ -15,6 +15,7 @@ class ProjectNewCommand(BaseCommand, name="new"):
         parser.add_argument(
             "path", nargs="?", default=".", help="Location of the project"
         )
+        parser.add_argument("--quickstart", action="store_true")
 
     def handler(self, context):
         name = (
@@ -31,11 +32,15 @@ class ProjectNewCommand(BaseCommand, name="new"):
             )
 
         (root / name).mkdir()
-        template = input("Config template [skeleton.json]: ") or "skeleton.json"
-        output = (
-            input("Config file [network_configuration.json]: ")
-            or "network_configuration.json"
-        )
+        if context.arguments.quickstart:
+            template = "starting_example.json"
+            output = "network_configuration.json"
+        else:
+            template = input("Config template [skeleton.json]: ") or "skeleton.json"
+            output = (
+                input("Config filename [network_configuration.json]: ")
+                or "network_configuration.json"
+            )
         config.copy_template(template, output=root / output)
         with open(root / "pyproject.toml", "w") as f:
             toml.dump(
