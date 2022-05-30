@@ -10,7 +10,6 @@ Guides
   cell-type
   components
   connectivity
-  simulation
   placement-strategies
   connection-strategies
   placement-set
