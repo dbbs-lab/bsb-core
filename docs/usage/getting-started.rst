@@ -78,29 +78,33 @@ Regions combine multiple partitions and/or regions together, in a hierarchy, all
 up to a single topmost region, while partitions are exact pieces of volume that can be
 filled with cells.
 
-To get started, we'll add a ``cortex`` region, and populate it with a ``base_layer``:
+To get started, we'll change the ``brain_region`` into a ``stack``, and add a
+``top_layer``:
 
 .. code-block:: json
 
   {
     "regions": {
-      "cortex": {
-        "origin": [0.0, 0.0, 0.0],
-        "partitions": ["base_layer"]
+      "brain_region": {
+        "cls": "stack"
       }
     },
     "partitions": {
       "base_layer": {
         "type": "layer",
         "thickness": 100
+      },
+      "top_layer": {
+        "type": "layer",
+        "thickness": 100
       }
     }
   }
 
-The ``cortex`` does not specify a region :guilabel:`type`, so it is a group, they don't do
-much. The :guilabel:`type` of ``base_layer`` is ``layer``, they specify their size in 1
-dimension, and fill up the space in the other dimensions. See :doc:`/topology/intro` for
-more explanation on topology components.
+The :guilabel:`cls` of the ``brain_region`` is ``stack``. This means it will place its
+children stacked on top of each other. The :guilabel:`type` of ``base_layer`` is
+``layer``. Layers specify their size in 1 dimension, and fill up the space in the other
+dimensions. See :doc:`/topology/intro` for more explanation on topology components.
 
 Cell types
 ----------
