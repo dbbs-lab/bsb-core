@@ -8,6 +8,8 @@ The JSON parser is built on top of Python's `json
 * JSON references
 * JSON imports
 
+.. _json_ref:
+
 ===============
 JSON References
 ===============
@@ -81,6 +83,8 @@ In this document the deepest JSON path is ``/walk/down/the/path``.
     Pay attention to the initial ``/`` of the reference clause! Without it, you're making
     a reference relative to the current position. With an initial ``/`` you make a
     reference absolute to the root of the document.
+
+.. _json_import:
 
 ============
 JSON Imports

@@ -64,29 +64,10 @@ For more information on creating your own configuration nodes see :doc:`nodes`.
 JSON
 ####
 
-The BSB uses a JSON parser with some extras. The parser has 2 special mechanisms, JSON
-references and JSON imports. This allows parts of the configuration file to be reusable
-across documents and to compose the document from prefab blocks. For example, an entire
-simulation protocol could be imported and the start and stop time of a stimulus adjusted:
-
-.. code-block:: json
-
-  {
-    "simulations": {
-      "premade_sim": {
-        "$ref": "premade_simulations.json#/simulations/twin_pulse",
-        "devices": {
-          "pulse1": {
-            "start": 100,
-            "stop": 200
-          }
-        }
-      }
-    }
-  }
-
-This would import ``/simulations/twin_pulse`` from the ``premade_simulations.json`` JSON
-document and overwrite the ``start`` and ``stop`` time of the ``pulse1`` device.
+The BSB uses a JSON parser with some extras. The parser has 2 special mechanisms,
+:ref:`JSON references <json_ref>` and :ref:`JSON imports <json_import>`. This allows parts
+of the configuration file to be reusable across documents and to compose the document from
+prefab blocks.
 
 See :doc:`/config/parsers/json` to read more on the JSON parser.
 

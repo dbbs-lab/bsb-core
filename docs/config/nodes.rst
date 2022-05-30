@@ -79,11 +79,11 @@ decorate the node.
 Configuring the dynamic attribute
 ---------------------------------
 
-Additional keyword arguments can be passed to the `dynamic` decorator to specify the
-properties of the dynamic attribute. All keyword args are passed to the `attr` decorator
-to create the attribute on the class that specifies the dynamics.
-
-* ``attr_name``, ``required`` and ``default``:
+The same keyword arguments can be passed to the ``dynamic`` decorator as to regular
+`attributes <config_attrs>`_ to specify the properties of the dynamic attribute; As an
+example we specify a new attribute name with ``attr_name="example_type"``, allow the
+dynamic attribute to be omitted ``required=False``, and specify a fallback class with
+``default="Example"``:
 
 .. code-block:: python
 
@@ -93,22 +93,24 @@ to create the attribute on the class that specifies the dynamics.
 
   @config.node
   class Explicit(Example):
-    pass
+    purpose = config.attr(required=True)
 
 ``Example`` can then be defined as either:
 
 .. code-block:: json
 
   {
-    "example_type": "Explicit"
+    "example_type": "Explicit",
+    "purpose": "show explicit dynamic node"
   }
 
-or use the default ``Example`` implicitly by omitting the dynamic attribute:
+or, because of the ``default`` kwarg, ``Example`` can be implicitly used by omitting the
+dynamic attribute:
 
 .. code-block:: json
 
   {
-
+    "purpose": "show implicit fallback"
   }
 
 .. _classmap:
@@ -215,7 +217,8 @@ Configuration attributes
 ========================
 
 An attribute can refer to a singular value of a certain type, a dict, list, reference, or
-to a deeper node:
+to a deeper node. You can use the :func:`config.attr <.config.attr>` in node decorated
+classes to define your attribute:
 
 .. code-block:: python
 
