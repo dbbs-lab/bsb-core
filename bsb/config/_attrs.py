@@ -186,11 +186,9 @@ def attr(**kwargs):
     :param default: Default value.
     :type default: Any
     :param call_default: Should the default value be used (False) or called (True).
-      Useful for default values that should not be shared among objects.
+      Use this to prevent mutable default values.
     :type call_default: bool
-    :param key: If True the key under which the parent of this attribute appears in
-      its parent is stored on this attribute. Useful to store for example the name of
-      a node appearing in a dict
+    :param key: If set, the key of the parent is stored on this attribute.
     """
     return ConfigurationAttribute(**kwargs)
 

@@ -97,9 +97,8 @@ Then, when it is time, the framework will call the strategy's
 
 In short, the objects that are decorated with ``@config.node`` will already be fully
 configured before ``__init__`` is called and all attributes available under ``self`` (e.g.
-``self.min`` and ``self.max``). For more explanation on the configuration system, see
-:doc:`/config/intro`. For specifics on configuration nodes, see
-:doc:`/config/module/nodes`.
+``self.min`` and ``self.max``). For specifics on configuration nodes, see
+:doc:`/config/nodes`.
 
 .. rubric:: Accessing placement data
 

@@ -56,8 +56,6 @@ and explicit code understandable and reusable by your peers.
    usage/installation
    usage/top-level-guide
    usage/getting-started
-   usage/cli
-   usage/simulations
 
 .. toctree::
    :maxdepth: 2
@@ -123,3 +121,4 @@ and explicit code understandable and reusable by your peers.
   dev/installation
   dev/documentation
   dev/plugins
+  dev/hooks
