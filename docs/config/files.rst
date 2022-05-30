@@ -19,44 +19,23 @@ The :guilabel:`regions`, :guilabel:`partitions`, :guilabel:`cell_types`,
 :class:`ConnectionStrategies <.connectivity.strategy.ConnectionStrategy>` respectively.
 
 When you're configuring a model you'll mostly be using configuration :ref:`attributes
-<config_attrs>`, :ref:`nodes <config_nodes>`, :ref:`dictionaries <config_dict>`, and
-:ref:`lists <config_list>`. These configuration units can be declared through the config
-file, or programatically added.
+<config_attrs>`, :ref:`nodes <config_nodes>`, :ref:`dictionaries <config_dict>`,
+:ref:`lists <config_list>`, and :ref:`references <config_ref>`. These configuration units
+can be declared through the config file, or programatically added.
 
-The configuration file passed the data to Python classes that use it to execute tasks such
-as placing cells, connecting cells or simulating cells. In order to link your Python
-classes to the configuration file they should be **importable**. The Python `documentation
-<https://docs.python.org/3/tutorial/modules.html>`_ explains what modules are.
+Code
+####
 
-In short,  ``my_file.py`` is importable as ``my_file`` when it is in the working directory
-or on the path of Python. Any classes inside of it can be referenced in a config file as
-``my_file.MyClass``. Although this basic use works fine for a single directory, we have a
-:doc:`best practices guide </guides/packaging>` on how to properly make your classes
-discoverable on your entire machine. In the same way, you can distribute them as a package
-to other people.
-
-Here's an example of how you could use the ``MySpecialConnection`` class in your Python
-file ``connectome.py`` as a class in the configuration:
+Most of the framework components pass the data on to Python classes, that determine the
+underlying code strategy of the component. In order to link your Python classes to the
+configuration file they should be an `**importable module**
+<https://docs.python.org/3/tutorial/modules.html>`_. Here's an example of how the
+``MySpecialConnection`` class in the local Python file ``connectome.py`` would be
+available to the configuration:
 
 .. code-block:: json
 
   {
-    "storage": {
-      "engine": "hdf5",
-      "root": "my_network.hdf5"
-    },
-    "network": {
-      "x": 200,
-      "z": 200
-    },
-    "regions": {
-
-    },
-    "partitions": {
-    },
-    "cell_types": {
-
-    },
     "connectivity": {
       "A_to_B": {
         "cls": "connectome.MySpecialConnection",

@@ -1,22 +1,18 @@
 .. _simulations:
 
-################################
-Simulating networks with the BSB
-################################
+###################
+Simulating networks
+###################
 
-The BSB manages simulations by deferring as soon as possible to the simulation backends.
-Each simulator has good reasons to make their design choices, fitting to their simulation
-paradigm. These choices lead to divergence in how simulations are described, and each
-simulator has their own niche functions. This means that if you are already familiar with
-a simulator, writing simulation config should feel familiar, on top of that the BSB is
-able to offer you access to each simulator's full set of features. The downside is that
-you're required to write a separate simulation config block per backend.
-
-Now, let's get started.
-
-====================
-Running a simulation
-====================
+.. The BSB manages simulations by deferring as soon as possible to the simulation backends.
+.. Each simulator has good reasons to make their design choices, befitting of their
+.. simulation paradigm. These choices lead to divergence in how simulations are described,
+.. and each simulator has their own niche functions. This means that if you are already
+.. familiar with a simulator, writing simulation config should feel familiar, on top of that
+.. the BSB is able to offer you access to each simulator's full set of features. The downside
+.. is that you're required to write a separate simulation config block per backend.
+..
+.. Now, let's get started.
 
 Simulations can be run through the CLI tool, or for more control through the ``bsb``
 library. When using the CLI, the framework sets up a "hands off" simulation:
@@ -40,11 +36,10 @@ cerebellar granule cell:
   :language: python
 
 
-Parallel simulations
---------------------
+.. rubric:: Parallel simulations
 
-To parallelize any task the BSB can execute you can prepend the MPI command in front of
-the BSB CLI command, or the Python script command:
+To parallelize any BSB task prepend the MPI command in front of the BSB CLI command, or
+the Python script command:
 
 .. code-block:: bash
 
@@ -53,9 +48,9 @@ the BSB CLI command, or the Python script command:
 
 Where ``n`` is the number of parallel nodes you'd like to use.
 
-========================
-Configuring a simulation
-========================
+=============
+Configuration
+=============
 
 Each simulation config block needs to specify which :guilabel:`simulator` they use. Valid
 values are ``arbor``, ``nest`` or ``neuron``. Also included in the top level block are the
@@ -87,7 +82,7 @@ The :guilabel:`cell_models` are the simulator specific representations of the ne
 :class:`cell types <.cell_types.CellType>`, the :guilabel:`connection_models` of the
 network's :class:`connectivity types <.connectivity.strategy.ConnectionStrategy>` and the
 :guilabel:`devices` define the experimental setup (such as input stimuli and recorders).
-All of the above is simulation backend specific and are covered in detail below.
+All of the above is simulation backend specific and is covered per simulator below.
 
 =====
 Arbor
@@ -170,19 +165,14 @@ todo: doc & link to targetting
 NEST
 ====
 
-NEST simulations in the scaffold can be configured setting the attribute ``simulator`` to
-``nest``. The basic NEST simulation properties can be set through the attributes:
+.. rubric:: Additional root attributes:
 
 * ``default_neuron_model``: default model used for all ``cell_models``, unless indicated
   otherwise in the ``neuron_model`` attribute of a specific cell model.
 * ``default_synapse_model``: default model used for all ``connection_models`` (e.g.
   ``static_synapse``), unless differently indicated in the ``synapse_model`` attribute of
   a specific connection model.
-* ``duration``: simulation duration in [ms].
 * ``modules``: list of NEST extension modules to be installed.
-
-Then, the dictionaries ``cell_models``, ``connection_models``, and ``devices``
-specify the properties of each element of the simulation.
 
 .. code-block:: json
 
@@ -211,8 +201,8 @@ specify the properties of each element of the simulation.
     }
   }
 
-Cells
------
+Cell models
+-----------
 In the ``cell_models`` attribute, it is possible to specify simulation-specific properties
 for each cell type:
 
@@ -310,8 +300,8 @@ Granule cells, respectively.
     }
   }
 
-Connections
------------
+Connection models
+-----------------
 
 
 Plasticity
@@ -399,15 +389,15 @@ Example
   }
 
 Devices
-=======
+-------
 
 ======
 NEURON
 ======
 
 
-Cells
------
+Cell models
+-----------
 
 A cell model is described by loading external ``arborize.CellModel`` classes:
 
@@ -433,8 +423,8 @@ This example dictates that during simulation setup, any member of
 ``dbbs_models.GranuleCell``. Documentation incomplete, see ``arborize`` docs ad
 interim.
 
-Connections
------------
+Connection models
+-----------------
 
 Once more the connection models are predefined inside of ``arborize`` and they
 can be referenced by name:
