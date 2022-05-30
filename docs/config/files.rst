@@ -6,8 +6,8 @@ A configuration file describes the components of a scaffold model. It contains t
 instructions to place and connect neurons, how to represent the cells and connections as
 models in simulators and what to stimulate and record in simulations.
 
-The default configuration format is JSON and a standard configuration file might look like
-this:
+The default configuration format is JSON and a standard configuration file is structured
+like this:
 
 .. include:: _empty_root_nodes.rst
 
@@ -19,7 +19,7 @@ The :guilabel:`regions`, :guilabel:`partitions`, :guilabel:`cell_types`,
 :class:`ConnectionStrategies <.connectivity.strategy.ConnectionStrategy>` respectively.
 
 When you're configuring a model you'll mostly be using configuration :ref:`attributes
-<config_attrs>`, :ref:`nodes <config_nodes>` :ref:`dictionaries <config_dict>` and
+<config_attrs>`, :ref:`nodes <config_nodes>`, :ref:`dictionaries <config_dict>`, and
 :ref:`lists <config_list>`. These configuration units can be declared through the config
 file, or programatically added.
 
