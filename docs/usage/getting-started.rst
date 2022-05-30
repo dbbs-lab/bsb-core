@@ -28,24 +28,18 @@ Use the command below to create a new project directory and some starter files:
 
 .. code-block:: bash
 
-  > bsb new my_first_model
-	Config template [skeleton.json]: starting_example.json
-	Config file [network_configuration.json]:
-	> cd my_first_model
-
-You'll be asked some questions; enter appropriate values, and be sure to select the
-``starting_example.json`` as the template configuration file, and to navigate your
-terminal into the new folder.
+  bsb new my_first_model --quickstart
+	cd my_first_model
 
 The project now contains a couple of important files:
 
-* A configuration file: your components are declared and parametrized here.
+* ``network_configuration.json``: your components are declared and parametrized here.
 * A ``pyproject.toml`` file: your project settings are declared here.
 * A ``placement.py`` and ``connectome.py`` file to put your code in.
 
-Take a look at ``starting_example.json``; it contains a nondescript ``brain_region``, a
-``base_layer``, a ``base_type`` and an ``example_placement``. These minimal components are
-enough to *compile* your first network. You can do this from the CLI or Python:
+The configuration contains a generic ``brain_region``, a ``base_layer``, a ``base_type``
+and an ``example_placement``. These minimal components are enough to *compile* your first
+network. You can do this from the CLI or Python:
 
 .. tab-set-code::
 
@@ -61,7 +55,7 @@ enough to *compile* your first network. You can do this from the CLI or Python:
     import bsb.options
 
     bsb.options.verbosity = 3
-    config = from_json("starting_example.json")
+    config = from_json("network_configuration.json")
     scaffold = Scaffold(config)
     scaffold.compile()
     plot_network(scaffold)
@@ -84,29 +78,33 @@ Regions combine multiple partitions and/or regions together, in a hierarchy, all
 up to a single topmost region, while partitions are exact pieces of volume that can be
 filled with cells.
 
-To get started, we'll add a ``cortex`` region, and populate it with a ``base_layer``:
+To get started, we'll change the ``brain_region`` into a ``stack``, and add a
+``top_layer``:
 
 .. code-block:: json
 
   {
     "regions": {
-      "cortex": {
-        "origin": [0.0, 0.0, 0.0],
-        "partitions": ["base_layer"]
+      "brain_region": {
+        "cls": "stack"
       }
     },
     "partitions": {
       "base_layer": {
         "type": "layer",
         "thickness": 100
+      },
+      "top_layer": {
+        "type": "layer",
+        "thickness": 100
       }
     }
   }
 
-The ``cortex`` does not specify a region :guilabel:`type`, so it is a group. The
-:guilabel:`type` of ``base_layer`` is ``layer``, they specify their size in 1 dimension,
-and fill up the space in the other dimensions. See :doc:`/topology/intro` for more
-explanation on topology components.
+The :guilabel:`cls` of the ``brain_region`` is ``stack``. This means it will place its
+children stacked on top of each other. The :guilabel:`type` of ``base_layer`` is
+``layer``. Layers specify their size in 1 dimension, and fill up the space in the other
+dimensions. See :doc:`/topology/intro` for more explanation on topology components.
 
 Cell types
 ----------
@@ -149,12 +147,12 @@ Placement
 	}
 
 The ``placement`` blocks use the cell type indications to place cell types into
-partitions. You can use :class:`PlacementStrategies
-<.placement.strategy.PlacementStrategy>` provided out of the box by the BSB or your own
-component by setting the :guilabel:`cls`. The
-:class:`~bsb.placement.particle.ParticlePlacement` considers the cells as somas and
-bumps them around as repelling particles until there is no overlap between the somas. The
-data is stored in :class:`PlacementSets <.storage.interfaces.PlacementSet>` per cell type.
+partitions. You can use other :class:`PlacementStrategies
+<.placement.strategy.PlacementStrategy>` by setting the :guilabel:`cls` attribute. The BSB
+offers some strategies out of the box, or you can implement your own. The
+:class:`~bsb.placement.particle.ParticlePlacement` considers the cells as spheres and
+bumps them around as repelling particles until there is no overlap between them. The data
+is stored in :class:`PlacementSets <.storage.interfaces.PlacementSet>` per cell type.
 
 Take another look at your network:
 
@@ -176,10 +174,10 @@ Connectivity
     "connectivity": {
       "A_to_B": {
         "cls": "bsb.connectivity.AllToAll",
-        "pre": {
+        "presynaptic": {
           "cell_types": ["cell_type_A"]
         },
-        "post": {
+        "postsynaptic": {
             "cell_types": ["cell_type_B"]
         }
       }

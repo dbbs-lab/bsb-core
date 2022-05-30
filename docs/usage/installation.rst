@@ -50,17 +50,7 @@ The scaffold framework can be installed using ``pip``:
 
   pip install "bsb>=4.0.0a0"
 
-You can verify that the installation works with
-
-.. code-block:: bash
-
-    bsb -v=3 compile -x=100 -z=100 -p
-
-This should generate a template config and an HDF5 file in your current directory and open
-a plot of the generated network, it should contain a column of ``base_type`` cells. If no
-errors occur you are ready to :doc:`get started <getting-started>`.
-
-Another verification method is to import the package in a Python script:
+You can verify that the installation works with:
 
 .. code-block:: python
 
@@ -68,6 +58,8 @@ Another verification method is to import the package in a Python script:
 
   # Create an empty scaffold network with the default configuration.
   scaffold = Scaffold()
+
+You can now head over to the :doc:`get started <getting-started>`.
 
 Simulator backends
 ==================
@@ -85,14 +77,14 @@ NEST or multicompartmental neuron simulations with NEURON use:
 
 .. note::
 
-	This does not install the simulators themselves. Just the tools the BSB needs to deal
-	with them. Install the simulators separately according to their respective installation
-	instructions.
+	This does not install the simulators themselves. It installs the Python tools that the
+	BSB needs to deal with them. Install the simulators separately according to their
+	respective installation instructions.
 
 Installing NEST
 ===============
 
-The BSB currently runs a fork of NEST 2.18, to install it, follow the instructions below,
+The BSB currently runs a fork of NEST 2.18. To install it, follow the instructions,
 with a virtual environment activated.
 
 .. code-block:: bash

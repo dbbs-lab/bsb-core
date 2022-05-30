@@ -6,10 +6,16 @@ List of commands
 compile
 =======
 
-Creates a network
+Create a network from a configuration file.
+
+===
+new
+===
+
+Create a new project structure.
 
 ========
 simulate
 ========
 
-Run a simulation
+Run a simulation.

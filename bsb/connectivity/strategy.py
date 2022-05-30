@@ -42,6 +42,9 @@ class ConnectionStrategy(abc.ABC, SortableByAfter):
     postsynaptic = config.attr(type=HemitypeNode, required=True)
     after = config.reflist(refs.connectivity_ref)
 
+    def __boot__(self):
+        self._queued_jobs = []
+
     @classmethod
     def get_ordered(cls, objects):
         # No need to sort connectivity strategies, just obey dependencies.
