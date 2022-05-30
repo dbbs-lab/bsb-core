@@ -32,8 +32,8 @@ In short,  ``my_file.py`` is importable as ``my_file`` when it is in the working
 or on the path Python searches. Any classes inside of it can be referenced in a config
 file as ``my_file.MyClass``. Although this basic use works fine for a single directory, we
 have a :doc:`best practices guide </guides/packaging>` on how to properly make your
-classes discoverable on your entire machine. You can even distribute them as a package to
-other people the same way.
+classes discoverable on your entire machine. In the same way, you can distribute them as a
+package to other people.
 
 Here's an example of how you could use the ``MySpecialConnection`` class in your Python
 file ``connectome.py`` as a class in the configuration:
@@ -79,7 +79,9 @@ mechanisms, JSON references and JSON imports. This allows parts of the
 configuration file to be reusable across documents and to compose the document
 from prefab blocks where only some key aspects are adjusted. For example, an
 entire simulation protocol could be imported and the start and stop time of a
-stimulus adjusted::
+stimulus adjusted:
+
+.. code-block:: json
 
   {
     "simulations": {
@@ -110,4 +112,25 @@ Default configuration
 You can create a default configuration by calling :meth:`Configuration.default
 <.config.Configuration.default>`. It corresponds to the following JSON:
 
-<<<insert default>>>
+.. code-block:: json
+
+  {
+    "storage": {
+      "engine": "hdf5"
+    },
+    "network": {
+      "x": 200, "y": 200, "z": 200
+    },
+    "partitions": {
+
+    },
+    "cell_types": {
+
+    },
+    "placement": {
+
+    },
+    "connectivity": {
+
+    }
+  }
