@@ -78,9 +78,9 @@ In this document the deepest JSON path is ``/walk/down/the/path``.
 
 .. warning::
 
-	Pay attention to the initial ``/`` of the reference clause! Without it, you're making a
-  reference relative to the current position. With an initial ``/`` you make a reference
-  absolute to the root of the document.
+    Pay attention to the initial ``/`` of the reference clause! Without it, you're making
+    a reference relative to the current position. With an initial ``/`` you make a
+    reference absolute to the root of the document.
 
 ============
 JSON Imports
