@@ -63,4 +63,4 @@ class ProjectNewCommand(BaseCommand, name="new"):
         with open(root / name / "connectome.py", "w") as f:
             f.write("from bsb.connectivity import ConnectionStrategy\n")
 
-        report(f"Created '{name}' project structure.")
+        report(f"Created '{name}' project structure.", level=1)
