@@ -121,3 +121,4 @@ and explicit code understandable and reusable by your peers.
   dev/installation
   dev/documentation
   dev/plugins
+  dev/hooks
