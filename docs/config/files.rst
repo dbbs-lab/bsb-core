@@ -28,7 +28,7 @@ Code
 
 Most of the framework components pass the data on to Python classes, that determine the
 underlying code strategy of the component. In order to link your Python classes to the
-configuration file they should be an `**importable module**
+configuration file they should be an `importable module
 <https://docs.python.org/3/tutorial/modules.html>`_. Here's an example of how the
 ``MySpecialConnection`` class in the local Python file ``connectome.py`` would be
 available to the configuration:
