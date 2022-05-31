@@ -12,26 +12,23 @@ Top Level Guide
 
 The Brain **Scaffold** Builder revolves around the :class:`~.core.Scaffold` object. A
 scaffold ties together all the information in the :class:`~.config.Configuration` with the
-:class:`~.storage.Storage`. The configuration contains your entire model description,
-while the storage contains your model data, like concrete cell positions or connections.
+:class:`~.storage.Storage`. The configuration contains your model description, while the
+storage contains your model data, like concrete cell positions or connections.
 
 Using the scaffold object one can turn the abstract model configuration into a concrete
 storage object full of neuroscience. For it to do so, the configuration needs to describe
 which steps to take to place cells, called ``Placement``, which steps to take to connect
 cells, called ``Connectivity``, and what representations to use during ``Simulation`` for
 those cells and connections. All of these configurable objects can be accessed from the
-scaffold object. Placement under ``scaffold.placement``, etc etc...
+scaffold object, under ``network.placement``, ``network.connectivity``,
+``network.simulations``, ...
 
-Also, using the scaffold object, you can inspect the data in the storage by using the
+Using the scaffold object, you can inspect the data in the storage by using the
 :class:`~.storage.interfaces.PlacementSet` and
 :class:`~.storage.interfaces.ConnectivitySet` APIs. PlacementSets can be obtained with
-:meth:`scaffold.get_placement_set <.core.Scaffold.get_placement_set>`, ConnectivitySets
-with :meth:`scaffold.get_connectivity_set <.core.Scaffold.get_placement_set>` etc etc...
-
-The configuration object contains a structured tree of configurable objects, that in
-totality describe your network model. You can either fill out configuration file to be
-parsed, or write the objects yourself in Python. There are several parts of a
-configuration to be filled out, take a look at `config`_.
+:meth:`scaffold.get_placement_set <.core.Scaffold.get_placement_set>`, and
+ConnectivitySets with :meth:`scaffold.get_connectivity_set
+<.core.Scaffold.get_placement_set>`.
 
 The storage object provides access to an underlying engine that performs read and write
 operations in a certain data format. You can use the storage object to manipulate the data
@@ -56,9 +53,6 @@ Workflow
   :figwidth: 90%
   :figclass: only-dark
 
-The framework promotes iterative improvements on the model. Start small, and incrementally
-add on every piece you need after validating the last!
-
 .. _config:
 
 Configuration
@@ -71,6 +65,3 @@ Configuration
 .. figure:: /images/configuration_dark.png
   :figwidth: 90%
   :figclass: only-dark
-
-Configuration objects are trees with the above blocks defined (dashed = optional) and
-can be loaded from various formats, JSON by default, or created from code.
