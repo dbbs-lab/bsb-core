@@ -8,6 +8,42 @@ import itertools, numpy as np
 
 
 @config.node
+class RandomPlacement(PlacementStrategy):
+    def place(self, chunk, indicators):
+        voxels = VoxelSet.concatenate(
+            *(p.chunk_to_voxels(chunk) for p in self.partitions)
+        )
+        # Define the particles for the particle system.
+        particles = [
+            {
+                "name": name,
+                # Place particles in all voxels
+                "voxels": list(range(len(voxels))),
+                "radius": indicator.get_radius(),
+                "count": int(indicator.guess(chunk)),
+            }
+            for name, indicator in indicators.items()
+        ]
+        # Create and fill the particle system.
+        system = ParticleSystem(track_displaced=True, scaffold=self.scaffold)
+        system.fill(voxels, particles)
+
+        if len(system.particles) == 0:
+            return
+
+        for pt in system.particle_types:
+            cell_type = self.scaffold.cell_types[pt["name"]]
+            indicator = indicators[pt["name"]]
+            particle_positions = [p.position for p in system.particles if p.type is pt]
+            if len(particle_positions) == 0:
+                continue
+            positions = np.empty((len(particle_positions), 3))
+            positions[:] = particle_positions
+            report(f"Placing {len(positions)} {cell_type.name} in {chunk}", level=3)
+            self.place_cells(indicator, positions, chunk)
+
+
+@config.node
 class ParticlePlacement(PlacementStrategy):
     prune = config.attr(type=bool, default=True)
     bounded = config.attr(type=bool, default=False)
@@ -60,5 +96,5 @@ class ParticlePlacement(PlacementStrategy):
                 continue
             positions = np.empty((len(particle_positions), 3))
             positions[:] = particle_positions
-            print(f"Placing {len(positions)} {cell_type.name} in {chunk}")
+            report(f"Placing {len(positions)} {cell_type.name} in {chunk}", level=3)
             self.place_cells(indicator, positions, chunk)
