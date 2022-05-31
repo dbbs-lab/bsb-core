@@ -14,8 +14,8 @@ Simulating networks
 ..
 .. Now, let's get started.
 
-Simulations can be run through the CLI tool, or for more control through the ``bsb``
-library. When using the CLI, the framework sets up a "hands off" simulation:
+Simulations can be run through the CLI tool, or through the ``bsb`` library for more
+control. When using the CLI, the framework sets up a "hands off" simulation workflow:
 
 * Read the network file
 * Read the simulation configuration
@@ -28,13 +28,12 @@ library. When using the CLI, the framework sets up a "hands off" simulation:
 
   bsb simulate my_network.hdf5 my_sim_name
 
-When you use the library, you can set up more complex workflows, for example, this is a
-parameter sweep that loops and modifies the release probability of the AMPA synapse in the
+When you use the library, you can set up more complex workflows. For example a parameter
+sweep that loops and modifies the release probability of the AMPA synapse in the
 cerebellar granule cell:
 
 .. literalinclude:: ../../examples/simulation/parameter_sweep.py
   :language: python
-
 
 .. rubric:: Parallel simulations
 
@@ -43,7 +42,7 @@ the Python script command:
 
 .. code-block:: bash
 
-  mpirun -n 4 bsb simulate my_network.hdf5 your_simulation
+  mpirun -n 4 bsb simulate my_network.hdf5 my_sim_name
   mpirun -n 4 python my_simulation_script.py
 
 Where ``n`` is the number of parallel nodes you'd like to use.

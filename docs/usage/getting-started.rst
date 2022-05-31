@@ -15,11 +15,9 @@ Follow the :doc:`/usage/installation`:
 	like to familiarize yourself with the core concepts and get a more top level
 	understanding first, check out the :doc:`./top-level-guide` before you continue.
 
-There are 2 ways of building models using the Brain Scaffold Builder (BSB), the first is
-through **configuration**, the second is **scripting**. The 2 methods complement each
-other so that you can load the general model from a configuration file and then layer on
-more complex steps under your full control in a Python script. Be sure to take a quick
-look at each code tab to see the equivalent forms of configuration coding!
+The framework supports both declarative statements in configuration formats, or Python
+code. Be sure to take a quick look at each code tab to get a feel for the equivalent forms
+of configuration coding!
 
 Create a project
 ================
@@ -60,8 +58,8 @@ network. You can do this from the CLI or Python:
     scaffold.compile()
     plot_network(scaffold)
 
-The ``verbosity`` helps you follow along what instructions the framework is executing and
-``plot`` should.. open a plot |:slight_smile:|.
+The ``verbosity`` flag increases the amount of output that is generated, to follow along
+or troubleshoot. The ``plot`` flags opens a plot |:slight_smile:|.
 
 .. _getting-started-configurables:
 
@@ -92,11 +90,13 @@ To get started, we'll change the ``brain_region`` into a ``stack``, and add a
     "partitions": {
       "base_layer": {
         "type": "layer",
-        "thickness": 100
+        "thickness": 100,
+				"stack_index": 0
       },
       "top_layer": {
         "type": "layer",
-        "thickness": 100
+        "thickness": 100,
+				"stack_index": 1
       }
     }
   }
