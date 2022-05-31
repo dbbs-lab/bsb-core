@@ -81,25 +81,25 @@ To get started, we'll change the ``brain_region`` into a ``stack``, and add a
 
 .. code-block:: json
 
-  {
-    "regions": {
-      "brain_region": {
-        "cls": "stack"
-      }
-    },
-    "partitions": {
-      "base_layer": {
-        "type": "layer",
-        "thickness": 100,
+	{
+		"regions": {
+			"brain_region": {
+				"cls": "stack"
+			}
+		},
+		"partitions": {
+			"base_layer": {
+				"type": "layer",
+				"thickness": 100,
 				"stack_index": 0
-      },
-      "top_layer": {
-        "type": "layer",
-        "thickness": 100,
+			},
+			"top_layer": {
+				"type": "layer",
+				"thickness": 100,
 				"stack_index": 1
-      }
-    }
-  }
+			}
+		}
+	}
 
 The :guilabel:`cls` of the ``brain_region`` is ``stack``. This means it will place its
 children stacked on top of each other. The :guilabel:`type` of ``base_layer`` is
@@ -116,22 +116,22 @@ created for them. In the simplest case you define a soma :guilabel:`radius` and
 
 .. code-block:: json
 
-  {
-    "cell_types": {
-      "cell_type_A": {
-        "spatial": {
-          "radius": 7,
-          "density": 1e-3
-        }
-      },
-      "cell_type_B": {
-        "spatial": {
-          "radius": 7,
-          "count": 10
-        }
-      }
-    }
-  }
+	{
+		"cell_types": {
+			"cell_type_A": {
+				"spatial": {
+					"radius": 7,
+					"density": 1e-3
+				}
+			},
+			"cell_type_B": {
+				"spatial": {
+					"radius": 7,
+					"count": 10
+				}
+			}
+		}
+	}
 
 Placement
 ---------
