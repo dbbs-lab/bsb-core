@@ -2,6 +2,7 @@ from .statistics import Statistics
 from .plotting import plot_network
 import numpy as np
 import time
+import os
 import itertools
 from warnings import warn as std_warn
 from .placement import PlacementStrategy
@@ -101,7 +102,7 @@ class Scaffold:
         if config is None:
             # No config given, check for linked configs, or stored configs, otherwise
             # make default config.
-            linked = self._get_linked_config()
+            linked = self._get_linked_config(storage)
             if linked:
                 report(f"Pulling configuration from linked {linked}.", level=2)
                 config = linked
@@ -732,14 +733,26 @@ class Scaffold:
 
         return p_contrib, c_contrib
 
-    def _get_linked_config(self):
+    def _get_linked_config(self, storage=None):
         import bsb.config
 
         link = self._get_link("config")
         if link is None:
             return None
+        elif link.type == "auto":
+            try:
+                cfg = storage.load_active_config()
+            except Exception as e:
+                return None
+            else:
+                if os.path.exists(cfg._meta.path):
+                    with open(cfg._meta.path, "r") as f:
+                        cfg = bsb.config.from_file(f)
+                        return cfg
+                else:
+                    return None
         elif link.type != "sys":
-            raise ScaffoldError("Configuration link can only be a 'sys' link.")
+            raise ScaffoldError("Configuration link can only be 'auto' or 'sys' link.")
         elif link.exists():
             stream = link.get()
             return bsb.config.from_file(stream)
@@ -773,7 +786,10 @@ class Scaffold:
         path, content = bsb.option._pyproject_bsb()
         links = content.get("links", {})
         link = links.get(name, None)
-        if link:
+        if link == "auto":
+            # Send back a dummy object whose `type` attribute is "auto"
+            return type("auto", (), {"type": "auto"})
+        elif link:
             path = path.parent if path else os.getcwd()
             files = None if self.storage is None else self.files
             return _storutil.link(files, path, *link)
