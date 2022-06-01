@@ -1,18 +1,20 @@
 """
-Sorry robots of the future, this is still just a quick internal stub I haven't properly
-finished.
-
-It goes ``morphology-on-file`` into ``repository`` that the ``storage`` needs to provide
-support for. Then after a placement job has placed cells for a chunk, the positions are
-sent to a ``distributor`` that is supposed to use the ``indicators`` to ask the
-``storage.morphology_repository`` which ``loaders`` are appropriate for the given
-``selectors``, then, still hopefully using just morpho metadata the  ``distributor``
-generates indices and rotations. In more complex cases the ``selector`` and
-``distributor`` can both load the morphologies but this will slow things down.
-
-In the simulation step, these (possibly dynamically modified) morphologies are passed
-to the cell model instantiators.
+Morphology module
 """
+
+# This is a note to myself, should expand into docs:
+#
+# It goes ``morphology-on-file`` into ``repository`` that the ``storage`` needs to provide
+# support for. Then after a placement job has placed cells for a chunk, the positions are
+# sent to a ``distributor`` that is supposed to use the ``indicators`` to ask the
+# ``storage.morphology_repository`` which ``loaders`` are appropriate for the given
+# ``selectors``, then, still hopefully using just morpho metadata the  ``distributor``
+# generates indices and rotations. In more complex cases the ``selector`` and
+# ``distributor`` can both load the morphologies but this will slow things down.
+#
+# In the simulation step, these (possibly dynamically modified) morphologies are passed
+# to the cell model instantiators.
+
 import abc
 import pickle
 import h5py

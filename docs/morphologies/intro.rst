@@ -302,6 +302,21 @@ morphologies if it is impossible to determine the outcome from the metadata.
       meta = morpho.get_meta()
       return meta["size"] > self.min_size and meta["size"] < self.max_size
 
+.. code-block:: json
+
+  {
+    "cell_type_A": {
+      "spatial": {
+        "morphologies": [
+          {
+            "selector": "by_size",
+            "min_size": 35
+          }
+        ]
+      }
+    }
+  }
+
 Morphology metadata
 -------------------
 
