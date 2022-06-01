@@ -117,7 +117,6 @@ Branches and morphologies can be given additional properties. The basic properti
 
 .. _transform:
 
-=======================
 Subtree transformations
 =======================
 
