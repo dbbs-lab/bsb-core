@@ -561,7 +561,7 @@ class NrrdVoxelLoader(VoxelLoader, classmap_entry="nrrd"):
     sparse = config.attr(type=bool, default=True)
     strict = config.attr(type=bool, default=True)
 
-    def get_voxelset(self):
+    def get_mask(self):
         mask_shape = self._validate()
         mask = np.zeros(mask_shape, dtype=bool)
         if self.sparse:
@@ -580,7 +580,10 @@ class NrrdVoxelLoader(VoxelLoader, classmap_entry="nrrd"):
                 mask_data, _ = nrrd.read(mask_src)
                 mask = mask | self._mask_cond(mask_data)
             mask = np.nonzero(mask)
+        return mask
 
+    def get_voxelset(self):
+        mask = self.get_mask()
         if not self.mask_only:
             voxel_data = np.empty((len(mask[0]), len(self._src)))
             for i, source in enumerate(self._src):
@@ -687,8 +690,9 @@ class AllenStructureLoader(NrrdVoxelLoader, classmap_entry="allen"):
             report("Using cached Allen Brain Atlas annotations", level=4)
         return str(link.path)
 
+    @classmethod
     @functools.cache
-    def _dl_structure_ontology(self):
+    def _dl_structure_ontology(cls):
         from .storage import _util as _storutil
 
         url = "http://api.brain-map.org/api/v2/structure_graph_download/1.json"
@@ -706,45 +710,50 @@ class AllenStructureLoader(NrrdVoxelLoader, classmap_entry="allen"):
         with link.get() as f:
             return json.load(f)
 
-    def get_structure_mask_condition(self, find):
-        mask = self.get_structure_mask(find)
+    @classmethod
+    def get_structure_mask_condition(cls, find):
+        mask = cls.get_structure_mask(find)
         if len(mask) > 1:
             return lambda data: np.isin(data, mask)
         else:
             mask0 = mask[0]
             return lambda data: data == mask0
 
-    def get_structure_mask(self, find):
-        struct = self.find_structure(find)
+    @classmethod
+    def get_structure_mask(cls, find):
+        struct = cls.find_structure(find)
         values = set()
 
         def flatmask(item):
             values.add(item["id"])
 
-        self._visit_structure([struct], flatmask)
+        cls._visit_structure([struct], flatmask)
         return np.array([*values], dtype=int)
 
     @functools.singledispatchmethod
-    def find_structure(self, id):
+    @classmethod
+    def find_structure(cls, id):
         find = lambda x: x["id"] == id
         try:
-            return self._find_structure(find)
+            return cls._find_structure(find)
         except NodeNotFoundError:
             raise NodeNotFoundError(f"Could not find structure with id '{id}'") from None
 
     @find_structure.register
-    def _(self, name: str):
+    @classmethod
+    def _(cls, name: str):
         proc = lambda s: s.strip().lower()
         _name = proc(name)
         find = lambda x: proc(x["name"]) == _name or proc(x["acronym"]) == _name
         try:
-            return self._find_structure(find)
+            return cls._find_structure(find)
         except NodeNotFoundError:
             raise NodeNotFoundError(
                 f"Could not find structure with name '{name}'"
             ) from None
 
-    def _find_structure(self, find):
+    @classmethod
+    def _find_structure(cls, find):
         result = None
 
         def visitor(item):
@@ -753,13 +762,14 @@ class AllenStructureLoader(NrrdVoxelLoader, classmap_entry="allen"):
                 result = item
                 return True
 
-        tree = self._dl_structure_ontology()
-        self._visit_structure(tree, visitor)
+        tree = cls._dl_structure_ontology()
+        cls._visit_structure(tree, visitor)
         if result is None:
             raise NodeNotFoundError("Could not find a node that satisfies constraints.")
         return result
 
-    def _visit_structure(self, tree, visitor):
+    @classmethod
+    def _visit_structure(cls, tree, visitor):
         deck = collections.deque(tree)
         while True:
             try:
@@ -771,6 +781,9 @@ class AllenStructureLoader(NrrdVoxelLoader, classmap_entry="allen"):
             deck.extend(item["children"])
 
     def _validate_mask_condition(self):
+        # We override the `NrrdVoxelLoader`'s `_validate_mask_condition` and use this
+        # function as a hook to find and set the mask condition to select every voxel that
+        # has an id that is part of the structure.
         id = self.struct_id if self.struct_id is not None else self.struct_name
         self._mask_cond = self.get_structure_mask_condition(id)
 
