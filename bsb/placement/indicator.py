@@ -24,7 +24,7 @@ class MorphologySelector(abc.ABC):
 
 @config.node
 class NameSelector(MorphologySelector, classmap_entry="by_name"):
-    names = config.list(type=str)
+    names = config.list(type=str, required=True)
 
     def __init__(self, **kwargs):
         super().__init__()
