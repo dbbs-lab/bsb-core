@@ -3,7 +3,10 @@ import unittest, os, sys, numpy as np, h5py, json, string, random
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
 from bsb.placement.indicator import NameSelector
-from bsb.config import from_json
+from bsb.core import Scaffold
+from bsb.cell_types import CellType
+from bsb.config import from_json, Configuration
+from bsb.morphologies import Morphology, Branch
 from bsb.exceptions import *
 from bsb.storage.interfaces import StoredMorphology
 
@@ -51,3 +54,23 @@ class TestSelectors(unittest.TestCase):
         none = spoof()
         with self.assertRaises(MissingMorphologyError):
             ns.validate(none)
+        ws = NameSelector(names=["*"])
+        self.assertEqual(len(all), sum(map(ws.pick, all)), "wildcard should select all")
+
+    def test_cell_type_shorthand(self):
+        ct = CellType(spatial=dict(morphologies=[{"names": "*"}]))
+        cfg = Configuration(
+            cell_types={"ct": ct},
+            partitions={},
+            regions={},
+            storage={"engine": "hdf5"},
+            network={"x": 100, "y": 100, "z": 100},
+            placement={},
+            connectivity={},
+        )
+        ct.scaffold = s = Scaffold()
+        s.morphologies.save("A", Morphology([Branch([[0, 0, 0]], [1])]))
+        self.assertEqual(1, len(ct.get_morphologies()), "Should select saved morpho")
+        ct.spatial.morphologies[0].names = ["B"]
+        with self.assertRaises(MissingMorphologyError):
+            self.assertEqual(0, len(ct.get_morphologies()), "should select 0 morpho")
