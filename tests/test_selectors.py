@@ -59,15 +59,7 @@ class TestSelectors(unittest.TestCase):
 
     def test_cell_type_shorthand(self):
         ct = CellType(spatial=dict(morphologies=[{"names": "*"}]))
-        cfg = Configuration(
-            cell_types={"ct": ct},
-            partitions={},
-            regions={},
-            storage={"engine": "hdf5"},
-            network={"x": 100, "y": 100, "z": 100},
-            placement={},
-            connectivity={},
-        )
+        cfg = Configuration.default(cell_types={"ct": ct})
         ct.scaffold = s = Scaffold()
         s.morphologies.save("A", Morphology([Branch([[0, 0, 0]], [1])]))
         self.assertEqual(1, len(ct.get_morphologies()), "Should select saved morpho")

@@ -10,6 +10,7 @@ from ..connectivity import ConnectionStrategy
 from ..simulation import Simulation
 from ..postprocessing import PostProcessingHook
 from ..exceptions import *
+from .._util import merge_dicts
 import os, builtins
 from ..topology import (
     get_root_regions,
@@ -40,8 +41,8 @@ class Configuration:
     simulations = dict(type=Simulation)
 
     @classmethod
-    def default(cls):
-        conf = cls(
+    def default(cls, **kwargs):
+        default_args = builtins.dict(
             storage={"engine": "hdf5"},
             network={"x": 200, "y": 200, "z": 200},
             partitions={},
@@ -49,6 +50,8 @@ class Configuration:
             placement={},
             connectivity={},
         )
+        merge_dicts(default_args, kwargs)
+        conf = cls(default_args)
         conf._meta = None
         conf._parser = "json"
         conf._file = None
