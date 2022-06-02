@@ -62,6 +62,5 @@ class Intersectional:
         ]
         for ctype, cset in candidate_coll.placement.items():
             box_tree = cset.load_box_tree()
-            print("Target has,", len(box_tree), "boxes")
             for ttype, tset, tboxes in target_cache:
                 yield (tset, cset, box_tree.query(tboxes))
