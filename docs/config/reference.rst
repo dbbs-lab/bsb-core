@@ -120,3 +120,15 @@ Connectivity
 
 	Connectivity nodes are components and can contain additional component-specific
 	attributes.
+
+.. include:: _full_connectivity_node.rst
+
+* :guilabel:`cls`: Class name of the connectivity strategy algorithm to import.
+
+* :guilabel:`presynaptic`/:guilabel:`postsynaptic`:
+  Hemitype node specificatiosn for the pre/post synaptic side of the synapse.
+
+  * :guilabel:`cell_types`:
+    List of cell type references. It is the underlying strategy that determines how they
+    will interact, so check the component documentation. For most strategies, all the
+    presynaptic cell types will be cross combined with all the postsynaptic cell types.

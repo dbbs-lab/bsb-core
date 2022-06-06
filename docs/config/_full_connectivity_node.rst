@@ -3,15 +3,12 @@
   {
     "connectivity": {
       "my_conn_block": {
-        "cls": "bsb.connectivity.TouchDetection",
+        "cls": "bsb.connectivity.VoxelIntersection",
         "presynaptic": {
-          
+          "cell_types": ["A", "B"]
         },
-        "partitions": ["pA", "pB", "pC"],
-        "overrides": {
-          "my_cell_type": {
-            "density": 0.002
-          }
+        "postsynaptic": {
+          "cell_types": ["C", "D"]
         }
       }
     }
