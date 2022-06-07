@@ -73,7 +73,8 @@ class FileStore(Resource, IFileStore):
         if id is not None:
             self.remove(id)
         config._meta["active_config"] = True
-        return self.store(json.dumps(config.__tree__()), config._meta)
+        meta = {k: v for k, v in config._meta.items() if v is not None}
+        return self.store(json.dumps(config.__tree__()), meta)
 
     def _active_config_id(self):
         match = (id for id, m in self.all().items() if m.get("active_config", False))
