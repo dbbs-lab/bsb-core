@@ -213,6 +213,8 @@ def compile_postnew(cls, root=False):
 
 def wrap_root_postnew(post_new):
     def __post_new__(self, *args, _parent=None, _key=None, **kwargs):
+        if not hasattr(self, "_meta"):
+            self._meta = {"path": None, "produced": True}
         try:
             with warnings.catch_warnings(record=True) as log:
                 try:

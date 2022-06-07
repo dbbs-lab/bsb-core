@@ -52,7 +52,6 @@ class Configuration:
         )
         merge_dicts(default_args, kwargs)
         conf = cls(default_args)
-        conf._meta = None
         conf._parser = "json"
         conf._file = None
         return conf
