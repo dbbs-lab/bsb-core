@@ -90,11 +90,13 @@ To get started, we'll change the ``brain_region`` into a ``stack``, and add a
     "partitions": {
       "base_layer": {
         "type": "layer",
+				"region": "brain_region",
         "thickness": 100,
         "stack_index": 0
       },
       "top_layer": {
         "type": "layer",
+				"region": "brain_region",
         "thickness": 100,
         "stack_index": 1
       }
