@@ -747,33 +747,30 @@ class AllenStructureLoader(NrrdVoxelLoader, classmap_entry="allen"):
         cls._visit_structure([struct], flatmask)
         return np.array([*values], dtype=int)
 
-    @functools.singledispatchmethod
     @classmethod
     def find_structure(cls, id):
         """
-        Find an Allen structure by ID
-        """
-        find = lambda x: x["id"] == id
-        try:
-            return cls._find_structure(find)
-        except NodeNotFoundError:
-            raise NodeNotFoundError(f"Could not find structure with id '{id}'") from None
+        Find an Allen structure by name, acronym or ID.
 
-    @find_structure.register
-    @classmethod
-    def _(cls, name: str):
+        :param id: Query for the name, acronym or ID of the Allen structure.
+        :type id: Union[str, int, float]
+        :returns: Allen structure node of the Allen ontology tree.
+        :rtype: dict
+        :raises: NodeNotFoundError
         """
-        Find an Allen structure by name
-        """
-        proc = lambda s: s.strip().lower()
-        _name = proc(name)
-        find = lambda x: proc(x["name"]) == _name or proc(x["acronym"]) == _name
+        if isinstance(id, str):
+            treat = lambda s: s.strip().lower()
+            _name = treat(name)
+            find = lambda x: treat(x["name"]) == _name or treat(x["acronym"]) == _name
+        elif isinstance(id, int) or isinstance(id, float):
+            id = int(id)
+            find = lambda x: x["id"] == id
+        else:
+            raise TypeError(f"Argument must be a string or a number. {type(id)} given.")
         try:
             return cls._find_structure(find)
         except NodeNotFoundError:
-            raise NodeNotFoundError(
-                f"Could not find structure with name '{name}'"
-            ) from None
+            raise NodeNotFoundError(f"Could not find structure '{id}'") from None
 
     @classmethod
     def _find_structure(cls, find):
