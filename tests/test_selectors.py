@@ -9,6 +9,7 @@ from bsb.config import from_json, Configuration
 from bsb.morphologies import Morphology, Branch
 from bsb.exceptions import *
 from bsb.storage.interfaces import StoredMorphology
+from random import random
 
 
 def spoof(*names):
@@ -60,6 +61,7 @@ class TestSelectors(unittest.TestCase):
     def test_cell_type_shorthand(self):
         ct = CellType(spatial=dict(morphologies=[{"names": "*"}]))
         cfg = Configuration.default(cell_types={"ct": ct})
+        cfg.storage.root = str(random()) + ".hdf5"
         ct.scaffold = s = Scaffold()
         s.morphologies.save("A", Morphology([Branch([[0, 0, 0]], [1])]))
         self.assertEqual(1, len(ct.get_morphologies()), "Should select saved morpho")
