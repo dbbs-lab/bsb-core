@@ -31,6 +31,11 @@ class Engine(Interface):
         # the name of the engine plugin.
         return self._format
 
+    @property
+    @abc.abstractmethod
+    def root_slug(self):
+        pass
+
     @abc.abstractmethod
     def exists(self):
         pass
