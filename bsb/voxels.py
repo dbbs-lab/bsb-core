@@ -712,6 +712,15 @@ class AllenStructureLoader(NrrdVoxelLoader, classmap_entry="allen"):
 
     @classmethod
     def get_structure_mask_condition(cls, find):
+        """
+        Return a lambda that when applied to the mask data, returns a mask that delineates
+        the Allen structure.
+
+        :param find: Acronym or ID of the Allen structure.
+        :type find: Union[str, int]
+        :returns: Masking lambda
+        :rtype: function
+        """
         mask = cls.get_structure_mask(find)
         if len(mask) > 1:
             return lambda data: np.isin(data, mask)
@@ -721,6 +730,14 @@ class AllenStructureLoader(NrrdVoxelLoader, classmap_entry="allen"):
 
     @classmethod
     def get_structure_mask(cls, find):
+        """
+        Return all the set of IDs that make up the requested Allen structure.
+
+        :param find: Acronym or ID of the Allen structure.
+        :type find: Union[str, int]
+        :returns: Set of IDs
+        :rtype: numpy.ndarray
+        """
         struct = cls.find_structure(find)
         values = set()
 
@@ -733,6 +750,9 @@ class AllenStructureLoader(NrrdVoxelLoader, classmap_entry="allen"):
     @functools.singledispatchmethod
     @classmethod
     def find_structure(cls, id):
+        """
+        Find an Allen structure by ID
+        """
         find = lambda x: x["id"] == id
         try:
             return cls._find_structure(find)
@@ -742,6 +762,9 @@ class AllenStructureLoader(NrrdVoxelLoader, classmap_entry="allen"):
     @find_structure.register
     @classmethod
     def _(cls, name: str):
+        """
+        Find an Allen structure by name
+        """
         proc = lambda s: s.strip().lower()
         _name = proc(name)
         find = lambda x: proc(x["name"]) == _name or proc(x["acronym"]) == _name
