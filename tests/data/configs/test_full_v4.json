@@ -11,41 +11,37 @@
   },
   "regions": {
     "some_cortex": {
-      "offset": [0.0, 0.0, 0.0]
+      "offset": [0.0, 0.0, 0.0],
+      "children": ["dcn_layer", "granular_layer", "purkinje_layer", "b_molecular_layer", "t_molecular_layer"]
     },
     "some_olive": {
-      "offset": [260.0, -400.0, 0.0]
+      "offset": [260.0, -400.0, 0.0],
+      "children": ["io_layer"]
     }
   },
   "partitions": {
     "dcn_layer": {
       "thickness": 600.0,
-      "region": "some_cortex",
       "stack_index": 0
     },
     "granular_layer": {
       "thickness": 150.0,
-      "region": "some_cortex",
       "stack_index": 1
     },
     "purkinje_layer": {
       "thickness": 30.0,
-      "region": "some_cortex",
       "stack_index": 2
     },
     "b_molecular_layer": {
       "thickness": 50.0,
-      "region": "some_cortex",
       "stack_index": 3
     },
     "t_molecular_layer": {
       "thickness": 100.0,
-      "region": "some_cortex",
       "stack_index": 4
     },
     "io_layer": {
       "thickness": 15.0,
-      "region": "some_olive",
       "stack_index": 0
     }
   },
@@ -54,7 +50,7 @@
       "spatial": {
         "radius": 2.5,
         "density": 3.9e-3,
-        "geometrical": {
+        "geometry": {
           "pf_height": 126,
           "pf_height_sd": 15
         }

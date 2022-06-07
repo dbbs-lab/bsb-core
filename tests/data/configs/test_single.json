@@ -10,12 +10,13 @@
     "chunk_size": [150, 150, 150]
   },
   "regions": {
-    "test_region": {}
+    "test_region": {
+      "children": ["test_layer"]
+    }
   },
   "partitions": {
     "test_layer": {
-      "thickness": 100.0,
-      "region": "test_region"
+      "thickness": 100.0
     }
   },
   "cell_types": {
