@@ -95,23 +95,23 @@ Placement
 
 * :guilabel:`cell_types`:
   List of cell type references. This list is used to gather placement indications for the
-	underlying strategy. It is the underlying strategy that determines how they will
-	interact, so check the component documentation. For most strategies, passing multiple
-	cell types won't yield functional differences from having more cells in a single type.
+  underlying strategy. It is the underlying strategy that determines how they will
+  interact, so check the component documentation. For most strategies, passing multiple
+  cell types won't yield functional differences from having more cells in a single type.
 
 * :guilabel:`partitions`:
   List of partitions to place the cell types in. Each strategy has their own way of
   dealing with partitions, but most will try to voxelize them (using
-  :meth:`~.topology.partition.Partition.to_voxels`), and combine the voxelsets of each
-	partition. When using multiple partitions, you can save memory if all partitions
-	voxelize into regular same-size voxelsets.
+  :meth:`~.topology.partition.Partition.chunk_to_voxels`), and combine the voxelsets of
+  each partition. When using multiple partitions, you can save memory if all partitions
+  voxelize into regular same-size voxelsets.
 
 * :guilabel:`overrides`:
   Cell types define their own placement indications in the :guilabel:`spatial` node, but
-	they might differ depending on the location they appear in. For this reason, each
-	placement strategy may override the information per cell type. Specify the name of the
-	cell types as the key, and provide a dictionary as value. Each key in the dictionary
-	will override the corresponding cell type key.
+  they might differ depending on the location they appear in. For this reason, each
+  placement strategy may override the information per cell type. Specify the name of the
+  cell types as the key, and provide a dictionary as value. Each key in the dictionary
+  will override the corresponding cell type key.
 
 Connectivity
 ============
