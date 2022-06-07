@@ -731,7 +731,7 @@ class AllenStructureLoader(NrrdVoxelLoader, classmap_entry="allen"):
     @classmethod
     def get_structure_mask(cls, find):
         """
-        Return all the set of IDs that make up the requested Allen structure.
+        Return the set of IDs that make up the requested Allen structure.
 
         :param find: Acronym or ID of the Allen structure.
         :type find: Union[str, int]
