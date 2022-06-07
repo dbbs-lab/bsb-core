@@ -61,7 +61,7 @@ class TestSelectors(unittest.TestCase):
         ct = CellType(spatial=dict(morphologies=[{"names": "*"}]))
         cfg = Configuration.default(cell_types={"ct": ct})
         ct.scaffold = s = Scaffold()
-        s.morphologies.save("A", Morphology([Branch([[0, 0, 0]], [1])]))
+        s.morphologies.save("A", Morphology([Branch([[0, 0, 0]], [1])]), overwrite=True)
         self.assertEqual(1, len(ct.get_morphologies()), "Should select saved morpho")
         ct.spatial.morphologies[0].names = ["B"]
         with self.assertRaises(MissingMorphologyError):
