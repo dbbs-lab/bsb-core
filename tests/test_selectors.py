@@ -63,7 +63,7 @@ class TestSelectors(unittest.TestCase):
             storage={"root": "test_selectors.hdf5"}, cell_types={"ct": ct}
         )
         s = Scaffold(cfg)
-        s.morphologies.save("A", Morphology([Branch([[0, 0, 0]], [1])]))
+        s.morphologies.save("A", Morphology([Branch([[0, 0, 0]], [1])]), overwrite=True)
         self.assertEqual(1, len(ct.get_morphologies()), "Should select saved morpho")
         ct.spatial.morphologies[0].names = ["B"]
         with self.assertRaises(MissingMorphologyError):
