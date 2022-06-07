@@ -139,10 +139,6 @@ class json_imp(json_ref):
                 self.node[key] = target[key]
 
 
-class JsonMeta:
-    pass
-
-
 class JsonParser(Parser):
     """
     Parser plugin class to parse JSON configuration files.
@@ -157,20 +153,18 @@ class JsonParser(Parser):
         # the other documents are parsed by the standard json module (so no recursion yet)
         # After loading all required documents the references are resolved and all values
         # copied over to their final destination.
-        meta = JsonMeta()
-        meta.path = path
         if isinstance(content, str):
             content = parsed_dict(json.loads(content))
         self.root = content
         self.path = path or os.getcwd()
         self.is_doc = path and not os.path.isdir(path)
-        self.meta = meta
         self.references = []
         self.documents = {}
         self._traverse(content, content.items())
         self.resolved_documents = {}
         self._resolve_documents()
         self._resolve_references()
+        meta = {"path": path}
         return content, meta
 
     def _traverse(self, node, iter):

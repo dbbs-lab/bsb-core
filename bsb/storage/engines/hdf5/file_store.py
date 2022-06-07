@@ -65,15 +65,15 @@ class FileStore(Resource, IFileStore):
             # evaluate because files might originate from untrusted sources.
             tree = json.loads(content)
             cfg = Configuration(**tree)
-            cfg._meta = type("ParserMeta", (), meta)
+            cfg._meta = meta
             return cfg
 
     def store_active_config(self, config):
         id = self._active_config_id()
         if id is not None:
             self.remove(id)
-        meta = {"path": config._meta.path, "active_config": True}
-        return self.store(json.dumps(config.__tree__()), meta)
+        config._meta["active_config"] = True
+        return self.store(json.dumps(config.__tree__()), config._meta)
 
     def _active_config_id(self):
         match = (id for id, m in self.all().items() if m.get("active_config", False))
