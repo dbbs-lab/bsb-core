@@ -736,7 +736,7 @@ class Scaffold:
     def _get_linked_config(self, storage=None):
         import bsb.config
 
-        link = self._get_link("config")
+        link = self._get_link_cfg(storage)
         if link is None:
             return None
         elif link.type == "auto":
@@ -745,8 +745,9 @@ class Scaffold:
             except Exception as e:
                 return None
             else:
-                if os.path.exists(cfg._meta.path):
-                    with open(cfg._meta.path, "r") as f:
+                path = cfg._meta.get("path", None)
+                if path and os.path.exists(path):
+                    with open(path, "r") as f:
                         cfg = bsb.config.from_file(f)
                         return cfg
                 else:
@@ -780,21 +781,27 @@ class Scaffold:
                 for loader in all:
                     self.morphologies.save(loader.name, loader.load(), overwrite=True)
 
-    def _get_link(self, name):
+    def _get_link(self, name, subcat=None):
         import bsb.option
 
         path, content = bsb.option._pyproject_bsb()
         links = content.get("links", {})
+        if subcat is not None:
+            links = links.get(subcat, {})
         link = links.get(name, None)
         if link == "auto":
             # Send back a dummy object whose `type` attribute is "auto"
-            return type("auto", (), {"type": "auto"})
+            return type("autolink", (), {"type": "auto"})()
         elif link:
             path = path.parent if path else os.getcwd()
             files = None if self.storage is None else self.files
             return _storutil.link(files, path, *link)
         else:
             return None
+
+    def _get_link_cfg(self, storage):
+        subcat = storage.root_slug if storage is not None else None
+        return self._get_link("config", subcat)
 
 
 class ReportListener:
