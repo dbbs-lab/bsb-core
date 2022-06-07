@@ -719,7 +719,7 @@ class AllenStructureLoader(NrrdVoxelLoader, classmap_entry="allen"):
         :param find: Acronym or ID of the Allen structure.
         :type find: Union[str, int]
         :returns: Masking lambda
-        :rtype: function
+        :rtype: Callable[numpy.ndarray]
         """
         mask = cls.get_structure_mask(find)
         if len(mask) > 1:
