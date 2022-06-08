@@ -240,7 +240,7 @@ class SubTree:
     def properties(self):
         return self.flatten_properties()
 
-    @functools.cached_property
+    @property
     def bounds(self):
         f = self.flatten()
         if not len(f):
