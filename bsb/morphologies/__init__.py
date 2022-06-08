@@ -592,7 +592,7 @@ class Morphology(SubTree):
         return self.__class__(roots, shared_buffers=buffers, meta=self.meta.copy())
 
     @classmethod
-    def from_swc(cls, file, branch_class=None):
+    def from_swc(cls, file, branch_class=None, tags=None):
         """
         Create a Morphology from a file-like object.
 
@@ -607,7 +607,7 @@ class Morphology(SubTree):
                 return cls.from_swc(f, branch_class)
         if branch_class is None:
             branch_class = Branch
-        return _swc_to_morpho(cls, branch_class, file.read())
+        return _swc_to_morpho(cls, branch_class, file.read(), tags=tags)
 
     @classmethod
     def from_file(cls, path, branch_class=None):
@@ -1100,7 +1100,10 @@ def _swc_branch_dfs(adjacency, branches, node):
             node = None
 
 
-def _swc_to_morpho(cls, branch_cls, content):
+def _swc_to_morpho(cls, branch_cls, content, tags=None):
+    tag_map = {1: "soma", 2: "axon", 3: "dendrites"}
+    if tags is not None:
+        tag_map.update(tags)
     data = np.array(
         [
             swc_data
@@ -1153,10 +1156,13 @@ def _swc_to_morpho(cls, branch_cls, content):
         # the SWC tags
         tags[ptr:nptr] = node_data[:, 1]
         if len(branch_nodes) > 1:
+            # Since we add an extra point we have to copy its tag from the next point.
             tags[ptr] = tags[ptr + 1]
         branch_tags = tags[ptr:nptr]
-        # And the (empty) labels
+        # And the labels
         branch_labels = labels[ptr:nptr]
+        for v in np.unique(branch_tags):
+            branch_labels.label([tag_map.get(v, f"tag_{v}")], branch_tags == v)
         ptr = nptr
         # Use the views to construct the branch
         branch = branch_cls(branch_points, branch_radii, branch_labels)
