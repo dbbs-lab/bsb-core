@@ -9,6 +9,7 @@ from bsb.config import from_json, Configuration
 from bsb.morphologies import Morphology, Branch
 from bsb.exceptions import *
 from bsb.storage.interfaces import StoredMorphology
+from test_setup import single_process_test
 
 
 def spoof(*names):
@@ -57,6 +58,7 @@ class TestSelectors(unittest.TestCase):
         ws = NameSelector(names=["*"])
         self.assertEqual(len(all), sum(map(ws.pick, all)), "wildcard should select all")
 
+    @single_process_test
     def test_cell_type_shorthand(self):
         ct = CellType(spatial=dict(morphologies=[{"names": "*"}]))
         cfg = Configuration.default(
