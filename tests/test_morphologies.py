@@ -18,7 +18,8 @@ class TestIO(NumpyTestCase, unittest.TestCase):
         self.assertEqual(2, len(m), "Expected 2 points on the morphology")
         self.assertEqual(1, len(m.roots), "Expected 1 root on the morphology")
         self.assertClose([1, 1], m.tags, "tags should be all soma")
-        self.assertClose(0, m.labels, "swc import is unlabelled")
+        self.assertClose(1, m.labels, "labels should be all soma")
+        self.assertEqual({0: set(), 1: {"soma"}}, m.labels.labels, "incorrect labelsets")
 
     def test_swc_2root(self):
         m = Morphology.from_swc(get_morphology("2root.swc"))
