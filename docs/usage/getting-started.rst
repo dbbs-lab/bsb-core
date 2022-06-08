@@ -27,7 +27,7 @@ Use the command below to create a new project directory and some starter files:
 .. code-block:: bash
 
   bsb new my_first_model --quickstart
-	cd my_first_model
+  cd my_first_model
 
 The project now contains a couple of important files:
 
