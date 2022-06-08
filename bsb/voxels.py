@@ -676,6 +676,10 @@ class AllenStructureLoader(NrrdVoxelLoader, classmap_entry="allen"):
     @config.property
     @functools.cache
     def mask_source(self):
+        return self._dl_mask()
+
+    @classmethod
+    def _dl_mask(cls):
         from .storage import _util as _storutil
 
         url = "http://download.alleninstitute.org/informatics-archive/current-release/mouse_ccf/annotation/ccf_2017/annotation_25.nrrd"
@@ -721,7 +725,7 @@ class AllenStructureLoader(NrrdVoxelLoader, classmap_entry="allen"):
         :returns: Masking lambda
         :rtype: Callable[numpy.ndarray]
         """
-        mask = cls.get_structure_mask(find)
+        mask = cls.get_structure_idset(find)
         if len(mask) > 1:
             return lambda data: np.isin(data, mask)
         else:
@@ -730,6 +734,11 @@ class AllenStructureLoader(NrrdVoxelLoader, classmap_entry="allen"):
 
     @classmethod
     def get_structure_mask(cls, find):
+        mask_data, _ = nrrd.read(self._dl_mask())
+        return self.get_structure_mask_condition(find)(mask_data)
+
+    @classmethod
+    def get_structure_idset(cls, find):
         """
         Return the set of IDs that make up the requested Allen structure.
 
