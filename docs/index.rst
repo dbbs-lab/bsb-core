@@ -91,6 +91,12 @@ and explicit code understandable and reusable by your peers.
 
 .. toctree::
   :maxdepth: 2
+  :caption: Placement
+
+  placement/placement-toc
+
+.. toctree::
+  :maxdepth: 2
   :caption: Simulation
 
   simulation/simulation-toc
@@ -103,16 +109,16 @@ and explicit code understandable and reusable by your peers.
    genindex
    py-modindex
 
+.. _all-guides:
+
 .. toctree::
-  :maxdepth: 2
+  :maxdepth: 1
   :caption: User Guides
 
-  guides/toc
-
-.. toctree::
-  :maxdepth: 2
-  :caption: Examples
-
+  guides/components
+  guides/connectivity
+  guides/connection-strategies
+  guides/packaging
   examples/toc
 
 .. toctree::

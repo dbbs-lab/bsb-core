@@ -3,14 +3,14 @@ Placement sets
 ##############
 
 :class:`PlacementSets <.storage.interfaces.PlacementSet>` are constructed from the
-:class:`~.storage.Storage` and can be used to retrieve lists of identifiers, positions,
-morphologies, rotations and additional datasets.
+:class:`~.storage.Storage` and can be used to retrieve the positions, morphologies,
+rotations and additional datasets.
 
-.. warning::
-  Loading these datasets from storage is an expensive operation. Store a local reference
-  to the data you retrieve, don't make multiple calls.
+.. note::
 
-=========================
+  Loading datasets from storage is an expensive operation. Store a local reference to the
+  data you retrieve instead of making multiple calls.
+
 Retrieving a PlacementSet
 =========================
 
@@ -24,20 +24,18 @@ same :class:`~.storage.interfaces.PlacementSet`. If the placement set does not e
 
   network = from_hdf5("my_network.hdf5")
   ps = network.get_placement_set("my_cell")
+  # Alternatives to obtain the same placement set:
   ps = network.get_placement_set(network.cell_types.my_cell)
   ps = network.cell_types.my_cell.get_placement_set()
-  # Usually not the right choice:
   ps = network.storage.get_placement_set(network.cell_types.my_cell)
 
 
-===========
 Identifiers
 ===========
 
 Cells have no global identifiers, instead you use the indices of their data, i.e. the
-n-th position belongs to cell n, and the n-th rotation will therefor also belong to it.
+n-th position belongs to cell n, and so will the n-th rotation.
 
-=========
 Positions
 =========
 
@@ -50,7 +48,6 @@ The positions of the cells can be retrieved using the
     print("I am", ps.tag, "number", n)
     print("My position is", position)
 
-============
 Morphologies
 ============
 
@@ -71,14 +68,12 @@ The positions of the cells can be retrieved using the
   :class:`~.morphologies.MorphologySet`. There are better ways to iterate over it using
   either **soft caching** or **hard caching**.
 
-=========
 Rotations
 =========
 
 The positions of the cells can be retrieved using the
 :meth:`~.storage.interfaces.PlacementSet.load_rotations` method.
 
-===================
 Additional datasets
 ===================
 
