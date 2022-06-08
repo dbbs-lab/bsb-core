@@ -136,5 +136,5 @@ class Voxels(Partition, classmap_entry="voxels"):
         return self._map.get(chunk, VoxelSet.empty())
 
     def layout(self, boundaries):
-        # Buondaries are currently the network dimensions in JSON file
-        self.boundaries = boundaries
+        self.boundaries = boundaries.copy()
+        self.boundaries.ldc, self.boundaries.mdc = self.voxelset.bounds
