@@ -124,11 +124,6 @@ class Voxels(Partition, classmap_entry="voxels"):
         return self.voxels.get_voxelset()
 
     def to_chunks(self, chunk_size):
-        print(
-            "Thalamus as",
-            len(self.voxelset.snap_to_grid(chunk_size, unique=True)),
-            "chunks",
-        )
         return self.voxelset.snap_to_grid(chunk_size, unique=True)
 
     def chunk_to_voxels(self, chunk):
