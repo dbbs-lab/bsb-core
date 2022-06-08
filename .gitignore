@@ -4,6 +4,7 @@ __pycache__/
 *.hdf5
 *.h5
 build/
+_build/
 dist/
 bsb-*/
 *.egg-info/
