@@ -10,6 +10,8 @@ List of commands
 Every command starts with: ``bsb [OPTIONS]``, where ``[OPTIONS]`` can
 be any combination of :doc:`BSB options </cli/options>`.
 
+.. _bsb_new:
+
 Create a project
 ================
 
@@ -22,6 +24,8 @@ project settings.
 
 * ``project-name``: Name of the project, and of the directory that will be created for it.
 * ``parent-folder``: Filesystem location where the project folder will be created.
+
+.. _bsb_make_config:
 
 Create a configuration
 ======================
@@ -40,6 +44,8 @@ template.
 * ``output.json``: Filename to be created.
 * ``--path``: Give additional paths to be searched for the template here.
 
+.. _bsb_compile:
+
 Compiling a network
 ===================
 
@@ -56,6 +62,8 @@ specified, the project default is used.
 * ``-o``, ``--output``: Output the result to a specific file. If omitted the value from
   the configuration, the project default, or a timestamped filename are used.
 
+.. _bsb_simulate:
+
 Run a simulation
 ================
 
@@ -67,6 +75,8 @@ Run a simulation from a compiled network architecture.
 
 * ``path/to/netw.hdf5``: Path to the network file.
 * ``sim-name``: Name of the simulation.
+
+.. _bsb_cache:
 
 Check the global cache
 ======================

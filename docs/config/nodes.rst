@@ -32,25 +32,14 @@ This node class describes the following configuration:
     }
   }
 
-The ``@config.node`` decorator takes the ordinary class and injects the logic it needs to
-fulfill the tasks of a configuration node. Whenever a node of this type is used in the
-configuration an instance of the node class is created and some work needs to happen:
-
-* The parsed configuration dictionary needs to be cast into an instance of the node class.
-* The configuration attributes of this node class and its parents need to be collected.
-* The attributes on this instance need to be initialized with a default value or ``None``.
-* The keys that are present in the configuration dictionary need to be transferred to the
-  node instance and converted to the specified type (the default type is ``str``)
-
 Dynamic nodes
 =============
 
 Dynamic nodes are those whose node class is configurable from inside the configuration
 node itself. This is done through the use of the ``@dynamic`` decorator instead of the
-node decorator. This will automatically create a required ``class`` attribute.
+node decorator. This will automatically create a required ``cls`` attribute.
 
-The value that is given to this class attribute will be used to import a class to
-instantiate the node:
+The value that is given to this attribute will be used to load the class of the node:
 
 .. code-block:: python
 
@@ -69,7 +58,7 @@ And in the configuration:
   }
 
 This would import the ``bsb.placement`` module and use its ``LayeredRandomWalk`` class to
-decorate the node.
+further process the node.
 
 .. note::
 
