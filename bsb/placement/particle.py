@@ -53,6 +53,7 @@ class ParticlePlacement(PlacementStrategy):
         voxels = VoxelSet.concatenate(
             *(p.chunk_to_voxels(chunk) for p in self.partitions)
         )
+        density_key = indicators["test_cell"].indication("voxel_density_key")
         # Define the particles for the particle system.
         particles = [
             {
@@ -60,7 +61,7 @@ class ParticlePlacement(PlacementStrategy):
                 # Place particles in all voxels
                 "voxels": list(range(len(voxels))),
                 "radius": indicator.get_radius(),
-                "count": int(indicator.guess(chunk)),
+                "densities": voxels.get_data(density_key),
             }
             for name, indicator in indicators.items()
         ]

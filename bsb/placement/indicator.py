@@ -67,6 +67,7 @@ class PlacementIndications:
     count = config.attr(type=int)
     geometry = config.dict(type=types.any())
     morphologies = config.list(type=MorphologySelector)
+    voxel_density_key = config.attr(type=str)
 
 
 class _Noner:
