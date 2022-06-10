@@ -270,6 +270,10 @@ class VoxelSet:
         return self.get_data()
 
     @property
+    def data_keys(self):
+        return self._data.keys
+
+    @property
     def raw(self):
         return self.get_raw()
 
