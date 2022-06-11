@@ -29,10 +29,10 @@ _cfg_props = (
 
 def _config_property(name):
     def fget(self):
-        return self.configuration[name]
+        return getattr(self.configuration, name)
 
     def fset(self, value):
-        self.configuration[name] = value
+        setattr(self.configuration, name, value)
 
     prop = property(fget)
     return prop.setter(fset)
