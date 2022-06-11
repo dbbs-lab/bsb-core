@@ -8,6 +8,10 @@ import itertools, numpy as np
 
 
 class _VoxelBasedParticleSystem:
+    """
+    Internal mixin for particle system placement strategies
+    """
+
     def _fill_system(self, chunk, indicators):
         voxels = VoxelSet.concatenate(
             *(p.chunk_to_voxels(chunk) for p in self.partitions)
