@@ -640,6 +640,7 @@ class cfgdict(builtins.dict):
 class cfgdictcopy(cfgdict):
     def __init__(self, other):
         super().__init__(other)
+        self._config_type = other._config_type
         self._copied_from = other
 
     @builtins.property
@@ -668,7 +669,6 @@ class ConfigurationDictAttribute(ConfigurationAttribute):
         _cfgdict._config_attr = self
         _cfgdict._config_type = self.child_type
         _cfgdict.update(value or builtins.dict())
-
         return _cfgdict
 
     def _get_type(self, type):
