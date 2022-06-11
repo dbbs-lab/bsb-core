@@ -330,6 +330,8 @@ def _unset_nodes(top_node):
         del node.scaffold
         node._config_parent = None
         node._config_key = None
+        if hasattr(node, "_config_index"):
+            node._config_index = None
         run_hook(node, "unboot")
 
 
@@ -445,16 +447,21 @@ class cfglist(builtins.list):
         return self._config_parent.get_node_name() + "." + self._config_attr_name
 
     def append(self, item):
+        item = self._preset(len(self), item)
         super().append(item)
         self._postset((item,))
+        return self[-1]
 
     def insert(self, index, item):
+        item = self._preset(index, item)
         super().insert(index, item)
         self._postset((item,))
+        self._reindex(index)
 
     def pop(self, index=-1):
         ex_item = super().pop(index)
         _unset_nodes(ex_item)
+        self._reindex(index)
         return ex_item
 
     def clear(self):
@@ -464,30 +471,60 @@ class cfglist(builtins.list):
 
     def sort(self, **kwargs):
         super().sort(**kwargs)
-        for i, item in enumerate(self):
-            item._config_key = i
+        self._reindex(0)
 
     def reverse(self):
         super().reverse()
-        for i, item in enumerate(self):
-            item._config_key = i
+        self._reindex(0)
 
     def extend(self, items):
-        items = tuple(items)
+        items = self._fromiter(len(self), items)
         super().extend(items)
         self._postset(items)
 
     def __setitem__(self, index, item):
         if isinstance(index, int):
             ex_items = [self[index]]
+            item = self._preset(index, item)
             items = [item]
+            reindex_from = None
         else:
             ex_items = self[index]
-            items = item = tuple(item)
+            reindex_from = index.indices(len(self))[0]
+            items = item = self._fromiter(reindex_from, item)
         for ex_item in ex_items:
             _unset_nodes(ex_item)
+        # Don't be fooled, item can be a single value or a list, depending on the index.
         super().__setitem__(index, item)
+        if reindex_from is not None:
+            self._reindex(reindex_from)
         self._postset(items)
+
+    def _reindex(self, start):
+        for i in range(start, len(self)):
+            self[i]._config_key = i
+            self[i]._config_index = i
+
+    def _fromiter(self, start, items):
+        return tuple(self._preset(start + i, item) for i, item in enumerate(items))
+
+    def _preset(self, index, item):
+        try:
+            item = self._config_type(item, _parent=self, _key=index)
+            try:
+                item._config_index = index
+            except:
+                pass
+            return item
+        except (RequirementError, CastError) as e:
+            if not e.node:
+                e.node, e.attr = self, index
+            raise
+        except:
+            raise CastError(
+                f"Couldn't cast element {index} from '{item}'"
+                + f" into a {self.child_type.__name__}"
+            )
 
     def _postset(self, items):
         root = _strict_root(self)
@@ -512,31 +549,15 @@ class ConfigurationListAttribute(ConfigurationAttribute):
         _setattr(instance, self.attr_name, self.fill(value, _parent=instance))
 
     def fill(self, value, _parent, _key=None):
-        _cfglist = cfglist(value or builtins.list())
+        _cfglist = cfglist()
         _cfglist._config_parent = _parent
         _cfglist._config_attr = self
-        if value is None:
-            return _cfglist
+        _cfglist._config_type = self.child_type
+        _cfglist.extend(value or builtins.list())
         if self.size is not None and len(_cfglist) != self.size:
             raise CastError(
-                "Couldn't cast {} into a {}-element list.".format(value, self.size)
-            )
-        try:
-            for i, elem in enumerate(_cfglist):
-                _cfglist[i] = self.child_type(elem, _parent=_cfglist, _key=i)
-                try:
-                    _cfglist[i]._config_index = i
-                except:
-                    pass
-        except (RequirementError, CastError) as e:
-            if not e.node:
-                e.node, e.attr = _cfglist, i
-            raise
-        except:
-            raise CastError(
-                "Couldn't cast list element {} from '{}' into a {}".format(
-                    i, elem, self.child_type.__name__
-                )
+                f"Couldn't cast {value} into a {self.size}-element list,"
+                + f" obtained {len(_cfglist)} elements"
             )
         return _cfglist
 
@@ -586,6 +607,11 @@ class cfgdict(builtins.dict):
                 _boot_nodes(value, root.scaffold)
 
     def add(self, key, *args, **kwargs):
+        if key in self:
+            raise KeyError(
+                f"{self.get_node_name()} already contains '{key}'."
+                + " Use `node[key] = value` if you want to overwrite it."
+            )
         self[key] = value = self._config_type(*args, _parent=self, _key=key, **kwargs)
         return value
 
@@ -623,6 +649,7 @@ class cfgdict(builtins.dict):
             _unset_nodes(removed_node)
         for added_node in (a for a in new_values if a not in ex_values):
             _boot_nodes(added_node, self.scaffold)
+        return self
 
     def copy(self):
         return cfgdictcopy(self)
