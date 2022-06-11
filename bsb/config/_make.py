@@ -138,6 +138,8 @@ def compile_new(node_cls, dynamic=False, pluggable=False, root=False):
         ncls = class_determinant(_cls, kwargs)
         instance = object.__new__(ncls)
         _set_pk(instance, _parent, _key)
+        if root:
+            instance._config_isfinished = False
         instance.__post_new__(**kwargs)
         if _cls is not ncls:
             instance.__init__(**kwargs)
@@ -219,6 +221,7 @@ def wrap_root_postnew(post_new):
                     post_new(self, *args, _parent=None, _key=None, **kwargs)
                 except (CastError, RequirementError) as e:
                     _bubble_up_exc(e)
+                self._config_isfinished = True
                 _resolve_references(self)
         finally:
             _bubble_up_warnings(log)
@@ -507,11 +510,11 @@ def _resolve_references(root, start=None, /):
 
     if start is None:
         start = root
-
-    for node, attr in walk_node_attributes(root):
-        if hasattr(attr, "__ref__"):
-            ref = attr.__ref__(node, root)
-            _setattr(node, attr.attr_name, ref)
+    if root._config_isfinished:
+        for node, attr in walk_node_attributes(root):
+            if hasattr(attr, "__ref__"):
+                ref = attr.__ref__(node, root)
+                _setattr(node, attr.attr_name, ref)
 
 
 class WalkIterDescriptor:
