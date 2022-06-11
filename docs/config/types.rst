@@ -1,23 +1,19 @@
-###################
-Configuration types
-###################
+###############
+Type validation
+###############
 
-Configuration types convert given configuration values. Values incompatible with the given
-type are rejected and the user is warned. This makes typing the most immediate form of
-validation that a configuration unit can declare. All configuration attributes,
-dictionaries and lists have types that they are converted to. The default type is ``str``.
+Configuration types convert given configuration values. Values incompatible with the type
+are rejected and the user is warned. The default type is ``str``.
 
 Any callable that takes 1 argument can be used as a type handler. The :mod:`.config.types`
 module provides extra functionality such as validation of list and dictionaries and even
-more complex combinations of types. Every configuration node itself can be used as a type
-aswell.
+more complex combinations of types. Every configuration node itself can be used as a type.
 
 .. warning::
 
 	All of the members of the :mod:`.config.types` module are factory methods: they need to
-	be **called** in order to produce the type handler. Using
-	``config.attr(type=types.any)`` is incorrect and will lead to cryptic or silent errors,
-	use ``config.attr(type=types.any())`` instead.
+	be **called** in order to produce the type handler. Make sure that you use
+	``config.attr(type=types.any())``, as opposed to ``config.attr(type=types.any)``.
 
 Examples
 --------

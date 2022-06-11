@@ -137,7 +137,7 @@ class ConfigurationModule:
 
     def from_content(self, content, path=None):
         ext = path.split(".")[-1] if path is not None else None
-        parser, tree, meta = _try_parsers(content, self._parser_classes, ext)
+        parser, tree, meta = _try_parsers(content, self._parser_classes, ext, path=path)
         return _from_parsed(self, parser, tree, meta, path)
 
     __all__ = [*(vars().keys() - {"__init__", "__qualname__", "__module__"})]

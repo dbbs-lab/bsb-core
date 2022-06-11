@@ -35,6 +35,12 @@ class TestConfiguration(unittest.TestCase):
         config = from_json(minimal_config)
         Scaffold(config)
 
+    def test_default(self):
+        cfg = config.Configuration.default(cell_types={"ct": {"spatial": {"radius": 2}}})
+        netw = Scaffold(cfg)
+        self.assertEqual(200, netw.network.y, "incorrect default value")
+        self.assertIn("ct", netw.cell_types, "data not passed")
+
     def test_default_bootstrap(self):
         cfg = config.Configuration.default()
         Scaffold(cfg)

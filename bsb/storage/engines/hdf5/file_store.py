@@ -64,13 +64,17 @@ class FileStore(Resource, IFileStore):
             # It's a serialized Python dict, so it should be JSON readable. We don't use
             # evaluate because files might originate from untrusted sources.
             tree = json.loads(content)
-            return Configuration(**tree)
+            cfg = Configuration(**tree)
+            cfg._meta = meta
+            return cfg
 
     def store_active_config(self, config):
         id = self._active_config_id()
         if id is not None:
             self.remove(id)
-        return self.store(json.dumps(config.__tree__()), {"active_config": True})
+        config._meta["active_config"] = True
+        meta = {k: v for k, v in config._meta.items() if v is not None}
+        return self.store(json.dumps(config.__tree__()), meta)
 
     def _active_config_id(self):
         match = (id for id, m in self.all().items() if m.get("active_config", False))

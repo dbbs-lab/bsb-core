@@ -18,20 +18,36 @@ def wrap_writer(stream, writer):
     return wrapped.__get__(stream)
 
 
-try:
-    sys.stdout = io.TextIOWrapper(open(sys.stdout.fileno(), "wb", 0), write_through=True)
-except io.UnsupportedOperation:  # pragma: nocover
+def in_notebook():
     try:
-        writers = ["write", "writelines"]
-        for w in writers:
-            writer = getattr(sys.stdout, w)
-            wrapped = wrap_writer(sys.stdout, writer)
-            setattr(sys.stdout, w, wrapped)
-    except:
-        warnings.warn(
-            "Unable to create unbuffered wrapper around `sys.stdout`"
-            + f" ({sys.stdout.__class__.__name__})."
-        )
+        from IPython import get_ipython
+
+        if "IPKernelApp" not in get_ipython().config:  # pragma: no cover
+            return False
+    except ImportError:
+        return False
+    except AttributeError:
+        return False
+    return True
+
+
+# Don't touch stdout if we're in IPython
+if not in_notebook():
+    try:
+        stdout = open(sys.stdout.fileno(), "wb", 0)
+        sys.stdout = io.TextIOWrapper(stdout, write_through=True)
+    except io.UnsupportedOperation:  # pragma: nocover
+        try:
+            writers = ["write", "writelines"]
+            for w in writers:
+                writer = getattr(sys.stdout, w)
+                wrapped = wrap_writer(sys.stdout, writer)
+                setattr(sys.stdout, w, wrapped)
+        except:
+            warnings.warn(
+                "Unable to create unbuffered wrapper around `sys.stdout`"
+                + f" ({sys.stdout.__class__.__name__})."
+            )
 
 _report_file = None
 

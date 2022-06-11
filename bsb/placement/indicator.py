@@ -24,16 +24,16 @@ class MorphologySelector(abc.ABC):
 
 @config.node
 class NameSelector(MorphologySelector, classmap_entry="by_name"):
-    names = config.list(type=str)
+    names = config.list(type=str, required=True)
 
-    def __init__(self, **kwargs):
-        super().__init__()
+    def _cache_patterns(self):
         self._pnames = {n: n.replace("*", r".*").replace("|", "\\|") for n in self.names}
         self._patterns = {n: re.compile(f"^{pat}$") for n, pat in self._pnames.items()}
         self._empty = not self.names
         self._match = re.compile(f"^({'|'.join(self._pnames.values())})$")
 
     def validate(self, all_morphos):
+        self._cache_patterns()
         repo_names = {m.get_meta()["name"] for m in all_morphos}
         missing = [
             n
@@ -49,6 +49,7 @@ class NameSelector(MorphologySelector, classmap_entry="by_name"):
             raise MissingMorphologyError(err)
 
     def pick(self, morphology):
+        self._cache_patterns()
         return (
             not self._empty
             and self._match.match(morphology.get_meta()["name"]) is not None

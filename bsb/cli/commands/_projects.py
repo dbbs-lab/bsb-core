@@ -49,11 +49,7 @@ class ProjectNewCommand(BaseCommand, name="new"):
                         "bsb": {
                             "config": output,
                             "links": {
-                                "config": [
-                                    "sys",
-                                    output,
-                                    "always",
-                                ],
+                                "config": "auto",
                                 "morpho": ["sys", "morphologies.hdf5", "newer"],
                             },
                         }

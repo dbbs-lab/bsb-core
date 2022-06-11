@@ -4,14 +4,14 @@ from mpi4py import MPI
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
 from bsb.core import Scaffold
-from bsb.config import Configuration
+from bsb.config import Configuration, from_json
 from bsb.cell_types import CellType
 from bsb.topology import Region, Partition
 from bsb.exceptions import *
 from bsb.storage import Chunk
-from bsb.placement import PlacementStrategy
+from bsb.placement import PlacementStrategy, RandomPlacement
 from bsb._pool import JobPool, FakeFuture, create_job_pool
-from test_setup import timeout
+from test_setup import timeout, get_config
 from time import sleep
 
 
@@ -214,4 +214,15 @@ class TestSerialScheduler(unittest.TestCase, SchedulerBaseTest):
 
 
 class TestPlacementStrategies(unittest.TestCase):
-    pass
+    def test_random_placement(self):
+        cfg = from_json(get_config("test_single.json"))
+        cfg.placement["test_placement"] = RandomPlacement(
+            name="test_placement",
+            cell_types=[cfg.cell_types.test_cell],
+            partitions=[cfg.partitions.test_layer],
+        )
+        cfg.storage.root = "random_placement.hdf5"
+        network = Scaffold(cfg)
+        network.compile(clear=True)
+        ps = network.get_placement_set("test_cell")
+        self.assertEqual(40, len(ps), "fixed count random placement broken")

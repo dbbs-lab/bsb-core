@@ -43,6 +43,12 @@ class CellType:
     def get_placement_set(self, chunks=None):
         return self.scaffold.get_placement_set(self.name, chunks=chunks)
 
+    def get_morphologies(self):
+        if "morphologies" not in self.spatial:
+            return []
+        else:
+            return self.scaffold.storage.morphologies.select(*self.spatial.morphologies)
+
     def clear(self, force=False):
         self.clear_placement(force=force)
         self.clear_connections(force=force)

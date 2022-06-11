@@ -148,7 +148,7 @@ def _morpho_figure(f):
             **kwargs,
         )
         if set_range:
-            rng = get_morphology_range(morphology, offset=offset, soma_radius=soma_radius)
+            rng = morphology.bounds
             set_scene_range(fig.layout.scene, rng)
             set_scene_aspect(fig.layout.scene, rng)
         if swapaxes:
@@ -352,19 +352,14 @@ def plot_voxel_cloud(
     return fig
 
 
-def get_branch_trace(compartments, offset=[0.0, 0.0, 0.0], color="black", width=1.0):
-    if width == 0:
-        x, y, z = [], [], []
-    else:
-        x = [c.start[0] + offset[0] for c in compartments]
-        y = [c.start[1] + offset[1] for c in compartments]
-        z = [c.start[2] + offset[2] for c in compartments]
-        # Add branch endpoint
-        x.append(compartments[-1].end[0] + offset[0])
-        y.append(compartments[-1].end[1] + offset[1])
-        z.append(compartments[-1].end[2] + offset[2])
+def get_branch_trace(branch, offset=[0.0, 0.0, 0.0], color="black", width=1.0):
     return go.Scatter3d(
-        x=x, y=z, z=y, mode="lines", line=dict(width=width, color=color), showlegend=False
+        x=branch.points[:, 0],
+        y=branch.points[:, 2],
+        z=branch.points[:, 1],
+        mode="lines",
+        line=dict(width=width, color=color),
+        showlegend=False,
     )
 
 
@@ -433,34 +428,12 @@ def plot_morphology(
     reduce_branches=False,
     soma_radius=None,
     soma_opacity=1.0,
-    segment_radius=1.0,
+    width=1.0,
     use_last_soma_comp=True,
 ):
-    compartments = np.array(morphology.compartments.copy())
-    dfs_list = all_depth_first_branches(morphology.get_compartment_network())
-    if reduce_branches:
-        branch_points = get_branch_points(dfs_list)
-        dfs_list = list(map(lambda b: reduce_branch(b, branch_points), dfs_list))
     traces = []
-    for branch in dfs_list[::-1]:
-        branch_comps = compartments[branch]
-        width = _get_branch_width(branch_comps, segment_radius)
-        _color = _get_branch_color(branch_comps, color)
-        traces.append(get_branch_trace(branch_comps, offset, color=_color, width=width))
-    if isinstance(color, dict) and "soma" not in color:
-        raise Exception("Please specify a color for the `soma`.")
-    soma_color = color["soma"] if isinstance(color, dict) else color
-    soma_comps = [c for c in compartments if "soma" in c.labels]
-    # Negative bool = -1/0 (True: -1, last soma comp, False: 0, first soma comp)
-    soma_comp = soma_comps[-use_last_soma_comp]
-    traces.append(
-        get_soma_trace(
-            soma_radius if soma_radius is not None else soma_comp.radius,
-            offset + (soma_comp.end if use_last_soma_comp else soma_comp.start),
-            soma_color,
-            opacity=soma_opacity,
-        )
-    )
+    for branch in morphology.branches:
+        traces.append(get_branch_trace(branch, offset, color=color, width=width))
     for trace in traces:
         fig.add_trace(trace)
     return fig
@@ -570,14 +543,14 @@ def plotly_block_edges(origin, sizes):
 def set_scene_range(scene, bounds):
     if hasattr(scene, "layout"):
         scene = scene.layout.scene  # Scene was a figure
-    scene.xaxis.range = bounds[0]
-    scene.yaxis.range = bounds[2]
-    scene.zaxis.range = bounds[1]
+    scene.xaxis.range = [bounds[0][0], bounds[1][0]]
+    scene.yaxis.range = [bounds[0][2], bounds[1][2]]
+    scene.zaxis.range = [bounds[0][1], bounds[1][1]]
 
 
 def set_scene_aspect(scene, bounds, mode="equal", swapaxes=True):
     if mode == "equal":
-        ratios = np.array([d[1] - d[0] for d in bounds])
+        ratios = bounds[1] - bounds[0]
         ratios = ratios / np.max(ratios)
         items = zip(["x", "z", "y"] if swapaxes else ["x", "y", "z"], ratios)
         scene.aspectratio = dict(items)

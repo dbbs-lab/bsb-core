@@ -3,9 +3,13 @@ import unittest, os, sys, numpy as np, h5py, json, string, random
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
 from bsb.placement.indicator import NameSelector
-from bsb.config import from_json
+from bsb.core import Scaffold
+from bsb.cell_types import CellType
+from bsb.config import from_json, Configuration
+from bsb.morphologies import Morphology, Branch
 from bsb.exceptions import *
 from bsb.storage.interfaces import StoredMorphology
+from test_setup import skip_parallel
 
 
 def spoof(*names):
@@ -51,3 +55,20 @@ class TestSelectors(unittest.TestCase):
         none = spoof()
         with self.assertRaises(MissingMorphologyError):
             ns.validate(none)
+        ws = NameSelector(names=["*"])
+        self.assertEqual(len(all), sum(map(ws.pick, all)), "wildcard should select all")
+
+    # For some reason, under parallel conditions, likely due to the `morphologies.save`,
+    # we deadlock.
+    @skip_parallel
+    def test_cell_type_shorthand(self):
+        ct = CellType(spatial=dict(morphologies=[{"names": "*"}]))
+        cfg = Configuration.default(
+            storage={"root": "test_selectors.hdf5"}, cell_types={"ct": ct}
+        )
+        s = Scaffold(cfg)
+        s.morphologies.save("A", Morphology([Branch([[0, 0, 0]], [1])]), overwrite=True)
+        self.assertEqual(1, len(ct.get_morphologies()), "Should select saved morpho")
+        ct.spatial.morphologies[0].names = ["B"]
+        with self.assertRaises(MissingMorphologyError):
+            self.assertEqual(0, len(ct.get_morphologies()), "should select 0 morpho")

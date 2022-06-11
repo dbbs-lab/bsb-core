@@ -56,8 +56,7 @@ and explicit code understandable and reusable by your peers.
    usage/installation
    usage/top-level-guide
    usage/getting-started
-   usage/cli
-   usage/simulations
+   usage/projects
 
 .. toctree::
    :maxdepth: 2
@@ -92,6 +91,12 @@ and explicit code understandable and reusable by your peers.
 
 .. toctree::
   :maxdepth: 2
+  :caption: Placement
+
+  placement/placement-toc
+
+.. toctree::
+  :maxdepth: 2
   :caption: Simulation
 
   simulation/simulation-toc
@@ -104,16 +109,16 @@ and explicit code understandable and reusable by your peers.
    genindex
    py-modindex
 
+.. _all-guides:
+
 .. toctree::
-  :maxdepth: 2
+  :maxdepth: 1
   :caption: User Guides
 
-  guides/toc
-
-.. toctree::
-  :maxdepth: 2
-  :caption: Examples
-
+  guides/components
+  guides/connectivity
+  guides/connection-strategies
+  guides/packaging
   examples/toc
 
 .. toctree::
@@ -123,3 +128,4 @@ and explicit code understandable and reusable by your peers.
   dev/installation
   dev/documentation
   dev/plugins
+  dev/hooks

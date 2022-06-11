@@ -215,6 +215,8 @@ def compile_postnew(cls, root=False):
 
 def wrap_root_postnew(post_new):
     def __post_new__(self, *args, _parent=None, _key=None, **kwargs):
+        if not hasattr(self, "_meta"):
+            self._meta = {"path": None, "produced": True}
         try:
             with warnings.catch_warnings(record=True) as log:
                 try:
@@ -343,8 +345,7 @@ def _get_pluggable_class(node_cls, kwargs):
     plugin_label = node_cls._config_plugin_name or node_cls.__name__
     if node_cls._config_plugin_key not in kwargs:
         raise CastError(
-            "Pluggable node '{}' must contain a '{}' attribute to select a {}.".format(
-                parent.get_node_name() + "." + key,
+            "Pluggable node must contain a '{}' attribute to select a {}".format(
                 node_cls._config_plugin_key,
                 plugin_label,
             )
