@@ -216,13 +216,14 @@ class TestSerialScheduler(unittest.TestCase, SchedulerBaseTest):
 class TestPlacementStrategies(unittest.TestCase):
     def test_random_placement(self):
         cfg = from_json(get_config("test_single.json"))
-        cfg.placement["test_placement"] = RandomPlacement(
-            name="test_placement",
-            cell_types=[cfg.cell_types.test_cell],
-            partitions=[cfg.partitions.test_layer],
-        )
         cfg.storage.root = "random_placement.hdf5"
         network = Scaffold(cfg)
+        cfg.placement.add(
+            "test_placement",
+            cls="bsb.placement.RandomPlacement",
+            cell_types=["test_cell"],
+            partitions=["test_layer"],
+        )
         network.compile(clear=True)
         ps = network.get_placement_set("test_cell")
         self.assertEqual(40, len(ps), "fixed count random placement broken")
