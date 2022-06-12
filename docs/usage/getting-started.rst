@@ -45,18 +45,9 @@ network. You can do this from the CLI or Python:
 
     bsb compile --verbosity 3 --plot
 
-  .. code-block:: python
-
-    from bsb.core import Scaffold
-    from bsb.config import from_json
-    from bsb.plotting import plot_network
-    import bsb.options
-
-    bsb.options.verbosity = 3
-    config = from_json("network_configuration.json")
-    network = Scaffold(config)
-    network.compile()
-    plot_network(network)
+  .. literalinclude:: getting_started.py
+    :language: python
+    :lines: 1-8,31-
 
 The ``verbosity`` flag increases the amount of output that is generated, to follow along
 or troubleshoot. The ``plot`` flags opens a plot |:slight_smile:|.
@@ -81,43 +72,13 @@ To get started, we'll change the ``brain_region`` into a ``stack``, and add a
 
 .. tab-set-code::
 
-  .. code-block:: json
+  .. literalinclude:: getting-started.json
+    :language: json
+    :lines: 7-25
 
-    {
-      "regions": {
-        "brain_region": {
-          "cls": "stack"
-        }
-      },
-      "partitions": {
-        "base_layer": {
-          "type": "layer",
-          "region": "brain_region",
-          "thickness": 100,
-          "stack_index": 0
-        },
-        "top_layer": {
-          "type": "layer",
-          "region": "brain_region",
-          "thickness": 100,
-          "stack_index": 1
-        }
-      }
-    }
-
-  .. code-block:: python
-
-    from bsb.topology import Stack
-
-    config.partitions.add(
-      "top_layer",
-      region="brain_region",
-      thickness=100,
-      stack_index=1
-    )
-    config.regions["brain_region"] = Stack(partitions=["base_layer", "top_layer"])
-
-
+  .. literalinclude:: getting_started.py
+    :language: python
+    :lines: 10-16
 
 The :guilabel:`cls` of the ``brain_region`` is ``stack``. This means it will place its
 children stacked on top of each other. The :guilabel:`type` of ``base_layer`` is
@@ -134,52 +95,28 @@ created for them. In the simplest case you define a soma :guilabel:`radius` and
 
 .. tab-set-code::
 
-  .. code-block:: json
+  .. literalinclude:: getting-started.json
+    :language: json
+    :lines: 26-39
 
-    {
-      "cell_types": {
-        "cell_type_A": {
-          "spatial": {
-            "radius": 2,
-            "density": 1e-3
-          }
-        },
-        "cell_type_B": {
-          "spatial": {
-            "radius": 7,
-            "count": 10
-          }
-        }
-      }
-    }
+  .. literalinclude:: getting_started.py
+    :language: python
+    :lines: 17
 
-  .. code-block:: python
-
-    config.cell_types.add("cell_type_B", spatial=dict(radius=7, count=10))
 
 Placement
 ---------
 
 .. tab-set-code::
 
-  .. code-block:: json
+  .. literalinclude:: getting-started.json
+    :language: json
+    :lines: 40-51
 
-    {
-      "all_placement": {
-        "cls": "bsb.placement.ParticlePlacement",
-        "cell_types": ["cell_type_A", "cell_type_B"],
-        "partitions": ["base_layer"]
-      }
-    }
+  .. literalinclude:: getting_started.py
+    :language: python
+    :lines: 18-23
 
-  .. code-block:: python
-
-    config.placement.add(
-      "all_placement",
-      cls="bsb.placement.ParticlePlacement",
-      cell_types=["cell_type_A", "cell_type_B"],
-      partitions=["base_layer"],
-    )
 
 The ``placement`` blocks use the cell type indications to place cell types into
 partitions. You can use other :class:`PlacementStrategies
@@ -193,7 +130,7 @@ Take another look at your network:
 
 .. code-block:: bash
 
-	bsb compile -v 3 -p
+  bsb compile -v 3 -p
 
 .. note::
 
@@ -205,30 +142,14 @@ Connectivity
 
 .. tab-set-code::
 
-  .. code-block:: json
+  .. literalinclude:: getting-started.json
+    :language: json
+    :lines: 52-62
 
-    {
-      "connectivity": {
-        "A_to_B": {
-          "cls": "bsb.connectivity.AllToAll",
-          "presynaptic": {
-            "cell_types": ["cell_type_A"]
-          },
-          "postsynaptic": {
-              "cell_types": ["cell_type_B"]
-          }
-        }
-      }
-    }
+  .. literalinclude:: getting_started.py
+    :language: python
+    :lines: 24-29
 
-  .. code-block:: python
-
-    config.connectivity.add(
-      "A_to_B",
-      cls="bsb.connectivity.AllToAll",
-      presynaptic=dict(cell_types=["cell_type_A"]),
-      postsynaptic=dict(cell_types=["cell_type_B"]),
-    )
 
 The ``connectivity`` blocks specify connections between systems of cell types. They can
 create connections between single or multiple pre and postsynaptic cell types, and can
@@ -236,7 +157,6 @@ produce one or many :class:`ConnectivitySets <.storage.interfaces.ConnectivitySe
 
 Regenerate the network once more, now it will also contain your connections! With your
 cells and connections in place, you're ready to move to the :ref:`simulations` stage.
-
 
 .. rubric:: What next?
 
@@ -278,3 +198,14 @@ cells and connections in place, you're ready to move to the :ref:`simulations` s
 	    :link: https://github.com/dbbs-lab/bsb
 
 	    Help out the project by contributing code.
+
+Recap
+-----
+
+.. tab-set-code::
+
+  .. literalinclude:: getting-started.json
+    :language: json
+
+  .. literalinclude:: getting_started.py
+    :language: python
