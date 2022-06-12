@@ -1,6 +1,7 @@
 from . import attr, list, dict, node, root, pluggable, on, after, before
 from ..cell_types import CellType
 from . import types
+from ._attrs import _boot_nodes
 from ._make import walk_nodes
 from ._hooks import run_hook, has_hook
 from .nodes import StorageNode, NetworkNode
@@ -68,9 +69,8 @@ class Configuration:
         topology.arrange(
             Boundary([0.0, 0.0, 0.0], [self.network.x, self.network.y, self.network.z])
         )
-        for node in walk_nodes(self):
-            node.scaffold = scaffold
-            run_hook(node, "boot")
+        _boot_nodes(self, scaffold)
+        self._config_isbooted = True
 
     def _update_storage_node(self, storage):
         if self.storage.engine != storage.format:
@@ -82,4 +82,4 @@ class Configuration:
         return str(self.__tree__())
 
     def __repr__(self):
-        return super().__repr__()
+        return f"{type(self).__qualname__}({self})"

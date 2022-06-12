@@ -36,6 +36,10 @@ class CellType:
     relay = config.attr(type=bool, default=False)
     entity = config.attr(type=bool, default=False)
 
+    def __boot__(self):
+        storage = self.scaffold.storage
+        storage._PlacementSet.require(storage._engine, self)
+
     def get_placement_set(self, chunks=None):
         return self.scaffold.get_placement_set(self.name, chunks=chunks)
 

@@ -29,10 +29,10 @@ _cfg_props = (
 
 def _config_property(name):
     def fget(self):
-        return self.configuration[name]
+        return getattr(self.configuration, name)
 
     def fset(self, value):
-        self.configuration[name] = value
+        setattr(self.configuration, name, value)
 
     prop = property(fget)
     return prop.setter(fset)
@@ -80,6 +80,9 @@ class Scaffold:
         self._initialise_MPI()
         self._bootstrap(config, storage, clear=clear)
 
+    def __contains__(self, component):
+        return getattr(component, "scaffold", None) is self
+
     def _initialise_MPI(self):
         # Delegate initialization of MPI to the reporting module. Which is weird, bu
         # required to make NEURON play nice. Check the results here and copy them over.
@@ -122,6 +125,9 @@ class Scaffold:
         self._configuration = config
         # Make sure the storage config node reflects the storage we are using
         config._update_storage_node(storage)
+        # Give the scaffold access to the unitialized storage object (for use during
+        # config bootstrapping).
+        self._storage = storage
         # First, the scaffold is passed to each config node, and their boot methods called.
         self._configuration._bootstrap(self)
         # Then, `storage` is initted for the scaffold, and `config` is stored.

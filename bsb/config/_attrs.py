@@ -2,6 +2,7 @@
     An attrs-inspired class annotation system, but my A stands for amateuristic.
 """
 
+from ._hooks import run_hook
 from ._make import (
     compile_class,
     compile_postnew,
@@ -11,17 +12,14 @@ from ._make import (
     make_dictable,
     make_tree,
     wrap_root_postnew,
+    walk_nodes,
+    _resolve_references,
 )
 from .types import TypeHandler, _wrap_reserved
 from ..exceptions import *
 import abc
 import builtins
-
-
-# Watch out, lots of builtins have another meaning in this module.
-_list = list
-_dict = dict
-_type = type
+import itertools
 
 
 def root(root_cls):
@@ -29,6 +27,7 @@ def root(root_cls):
     Decorate a class as a configuration root node.
     """
     root_cls.attr_name = root_cls.node_name = r"{root}"
+    root_cls._config_isroot = True
     return node(root_cls, root=True)
 
 
@@ -41,7 +40,7 @@ def node(node_cls, root=False, dynamic=False, pluggable=False):
     node_cls._config_unset = []
     # Inherit the parent's attributes, if any exist on the class already
     attrs = getattr(node_cls, "_config_attrs", {}).copy()
-    for k, v in _dict(node_cls.__dict__).items():
+    for k, v in builtins.dict(node_cls.__dict__).items():
         # Add our attributes
         if isinstance(v, ConfigurationAttribute):
             if v.unset:
@@ -53,8 +52,10 @@ def node(node_cls, root=False, dynamic=False, pluggable=False):
                 attrs[k] = v
     node_cls._config_attrs = attrs
     node_cls.__post_new__ = compile_postnew(node_cls, root=root)
+    node_cls._config_isroot = root
     if root:
         node_cls.__post_new__ = wrap_root_postnew(node_cls.__post_new__)
+        node_cls._config_isbooted = False
     node_cls.__new__ = compile_new(
         node_cls, dynamic=dynamic, pluggable=pluggable, root=root
     )
@@ -220,7 +221,7 @@ def reflist(reference, **kwargs):
     Create a configuration reference list.
     """
     if "default" not in kwargs:
-        kwargs["default"] = _list
+        kwargs["default"] = builtins.list
         kwargs["call_default"] = True
     return ConfigurationReferenceListAttribute(reference, **kwargs)
 
@@ -297,6 +298,46 @@ def _hasattr(instance, name):
     return "_" + name in instance.__dict__
 
 
+def _get_root(obj):
+    parent = obj
+    while hasattr(parent, "_config_parent") and parent._config_parent is not None:
+        parent = parent._config_parent
+    return parent
+
+
+def _strict_root(obj):
+    root = _get_root(obj)
+    return root if getattr(root, "_config_isroot", False) else None
+
+
+def _is_booted(obj):
+    return obj and obj._config_isbooted
+
+
+def _root_is_booted(obj):
+    root = _strict_root(obj)
+    return _is_booted(root)
+
+
+def _boot_nodes(top_node, scaffold):
+    for node in walk_nodes(top_node):
+        node.scaffold = scaffold
+        run_hook(node, "boot")
+
+
+def _unset_nodes(top_node):
+    for node in walk_nodes(top_node):
+        try:
+            del node.scaffold
+        except:
+            pass
+        node._config_parent = None
+        node._config_key = None
+        if hasattr(node, "_config_index"):
+            node._config_index = None
+        run_hook(node, "unboot")
+
+
 class ConfigurationAttribute:
     """
     Base implementation of all the different configuration attributes. Call the factory
@@ -331,6 +372,9 @@ class ConfigurationAttribute:
         return _getattr(instance, self.attr_name)
 
     def __set__(self, instance, value):
+        if _hasattr(instance, self.attr_name):
+            ex_value = _getattr(instance, self.attr_name)
+            _unset_nodes(ex_value)
         if value is None:
             # Don't cast None to a value of the attribute type.
             return _setattr(instance, self.attr_name, None)
@@ -349,14 +393,17 @@ class ConfigurationAttribute:
             )
         # The value was cast to its intented type and the new value can be set.
         _setattr(instance, self.attr_name, value)
+        root = _strict_root(instance)
+        if _is_booted(root):
+            _boot_nodes(value, root.scaffold)
 
     def _get_type(self, type):
         # Determine type of the attribute
         if not type and self.default is not None:
             if self.should_call_default():
-                t = _type(self.default())
+                t = builtins.type(self.default())
             else:
-                t = _type(self.default)
+                t = builtins.type(self.default)
         else:
             t = type or str
         # This call wraps the type handler so that it accepts all reserved keyword args
@@ -398,9 +445,98 @@ class ConfigurationAttribute:
         return cdf or (cdf is None and callable(self.default))
 
 
-class cfglist(_list):
+class cfglist(builtins.list):
     def get_node_name(self):
         return self._config_parent.get_node_name() + "." + self._config_attr_name
+
+    def append(self, item):
+        item = self._preset(len(self), item)
+        super().append(item)
+        self._postset((item,))
+        return self[-1]
+
+    def insert(self, index, item):
+        item = self._preset(index, item)
+        super().insert(index, item)
+        self._postset((item,))
+        self._reindex(index)
+
+    def pop(self, index=-1):
+        ex_item = super().pop(index)
+        _unset_nodes(ex_item)
+        self._reindex(index)
+        return ex_item
+
+    def clear(self):
+        for node in self:
+            _unset_nodes(node)
+        super().clear()
+
+    def sort(self, **kwargs):
+        super().sort(**kwargs)
+        self._reindex(0)
+
+    def reverse(self):
+        super().reverse()
+        self._reindex(0)
+
+    def extend(self, items):
+        items = self._fromiter(len(self), items)
+        super().extend(items)
+        self._postset(items)
+
+    def __setitem__(self, index, item):
+        if isinstance(index, int):
+            ex_items = [self[index]]
+            item = self._preset(index, item)
+            items = [item]
+            reindex_from = None
+        else:
+            ex_items = self[index]
+            reindex_from = index.indices(len(self))[0]
+            items = item = self._fromiter(reindex_from, item)
+        for ex_item in ex_items:
+            _unset_nodes(ex_item)
+        # Don't be fooled, item can be a single value or a list, depending on the index.
+        super().__setitem__(index, item)
+        if reindex_from is not None:
+            self._reindex(reindex_from)
+        self._postset(items)
+
+    def _reindex(self, start):
+        for i in range(start, len(self)):
+            self[i]._config_key = i
+            self[i]._config_index = i
+
+    def _fromiter(self, start, items):
+        return tuple(self._preset(start + i, item) for i, item in enumerate(items))
+
+    def _preset(self, index, item):
+        try:
+            item = self._config_type(item, _parent=self, _key=index)
+            try:
+                item._config_index = index
+            except:
+                pass
+            return item
+        except (RequirementError, CastError) as e:
+            if not e.node:
+                e.node, e.attr = self, index
+            raise
+        except:
+            raise CastError(
+                f"Couldn't cast element {index} from '{item}'"
+                + f" into a {self._config_type.__name__}"
+            )
+
+    def _postset(self, items):
+        root = _strict_root(self)
+        if root is not None:
+            for item in items:
+                _resolve_references(root, item)
+        if _is_booted(root):
+            for item in items:
+                _boot_nodes(item, root.scaffold)
 
     @builtins.property
     def _config_attr_name(self):
@@ -415,32 +551,21 @@ class ConfigurationListAttribute(ConfigurationAttribute):
     def __set__(self, instance, value, _key=None):
         _setattr(instance, self.attr_name, self.fill(value, _parent=instance))
 
+    def __populate__(self, instance, value, unique_list=False):
+        cfglist = _getattr(instance, self.attr_name)
+        if not unique_list or value not in cfglist:
+            builtins.list.append(cfglist, value)
+
     def fill(self, value, _parent, _key=None):
-        _cfglist = cfglist(value or _list())
+        _cfglist = cfglist()
         _cfglist._config_parent = _parent
         _cfglist._config_attr = self
-        if value is None:
-            return _cfglist
+        _cfglist._config_type = self.child_type
+        _cfglist.extend(value or builtins.list())
         if self.size is not None and len(_cfglist) != self.size:
             raise CastError(
-                "Couldn't cast {} into a {}-element list.".format(value, self.size)
-            )
-        try:
-            for i, elem in enumerate(_cfglist):
-                _cfglist[i] = self.child_type(elem, _parent=_cfglist, _key=i)
-                try:
-                    _cfglist[i]._config_index = i
-                except:
-                    pass
-        except (RequirementError, CastError) as e:
-            if not e.node:
-                e.node, e.attr = _cfglist, i
-            raise
-        except:
-            raise CastError(
-                "Couldn't cast list element {} from '{}' into a {}".format(
-                    i, elem, self.child_type.__name__
-                )
+                f"Couldn't cast {value} into a {self.size}-element list,"
+                + f" obtained {len(_cfglist)} elements"
             )
         return _cfglist
 
@@ -453,7 +578,7 @@ class ConfigurationListAttribute(ConfigurationAttribute):
         return [e if not hasattr(e, "__tree__") else e.__tree__() for e in val]
 
 
-class cfgdict(_dict):
+class cfgdict(builtins.dict):
     def __getattr__(self, name):
         try:
             return self[name]
@@ -461,6 +586,83 @@ class cfgdict(_dict):
             raise AttributeError(
                 self.get_node_name() + " object has no attribute '{}'".format(name)
             )
+
+    def __setitem__(self, key, value):
+        if key in self:
+            _unset_nodes(self[key])
+        try:
+            value = self._config_type(value, _parent=self, _key=key)
+        except (RequirementError, CastError) as e:
+            if not (hasattr(e, "node") and e.node):
+                e.node, e.attr = _cfgdict, key
+            raise
+        except Exception as e:
+            import traceback
+
+            raise CastError(
+                "Couldn't cast {}.{} from '{}' into a {}".format(
+                    self.get_node_name(), key, value, self._config_type.__name__
+                )
+                + "\n"
+                + traceback.format_exc()
+            )
+        else:
+            super().__setitem__(key, value)
+            root = _strict_root(value)
+            if root is not None:
+                _resolve_references(root, value)
+            if _is_booted(root):
+                _boot_nodes(value, root.scaffold)
+
+    def add(self, key, *args, **kwargs):
+        if key in self:
+            raise KeyError(
+                f"{self.get_node_name()} already contains '{key}'."
+                + " Use `node[key] = value` if you want to overwrite it."
+            )
+        self[key] = value = self._config_type(*args, _parent=self, _key=key, **kwargs)
+        return value
+
+    def clear(self):
+        for node in self.values():
+            _unset_nodes(node)
+        super().clear()
+
+    def pop(self, key):
+        item = super().pop(key)
+        _unset_nodes(item)
+        return item
+
+    def popitem(self):
+        key, value = super().popitem()
+        _unset_nodes(value)
+        return key, value
+
+    def setdefault(self, key, value):
+        if key in self:
+            return self[key]
+        else:
+            self[key] = value
+            return self[key]
+
+    def update(self, other):
+        for ckey, value in other.items():
+            self[ckey] = value
+
+    def __ior__(self, other):
+        ex_values = tuple(self.values())
+        try:
+            merge_f = super().__ior__
+        except AttributeError:
+            # Patch for 3.8
+            merge_f = super().update
+        merge_f(other)
+        new_values = tuple(self.values())
+        for removed_node in (e for e in ex_values if e not in new_values):
+            _unset_nodes(removed_node)
+        for added_node in (a for a in new_values if a not in ex_values):
+            _boot_nodes(added_node, self.scaffold)
+        return self
 
     def copy(self):
         return cfgdictcopy(self)
@@ -476,6 +678,7 @@ class cfgdict(_dict):
 class cfgdictcopy(cfgdict):
     def __init__(self, other):
         super().__init__(other)
+        self._config_type = other._config_type
         self._copied_from = other
 
     @builtins.property
@@ -498,27 +701,12 @@ class ConfigurationDictAttribute(ConfigurationAttribute):
         )
 
     def fill(self, value, _parent, _key=None):
-        _cfgdict = cfgdict(value or _dict())
+        _cfgdict = cfgdict()
         _cfgdict._config_parent = _parent
         _cfgdict._config_key = _key
         _cfgdict._config_attr = self
-        try:
-            for ckey, value in _cfgdict.items():
-                _cfgdict[ckey] = self.child_type(value, _parent=_cfgdict, _key=ckey)
-        except (RequirementError, CastError) as e:
-            if not (hasattr(e, "node") and e.node):
-                e.node, e.attr = _cfgdict, ckey
-            raise
-        except Exception as e:
-            import traceback
-
-            raise CastError(
-                "Couldn't cast {}.{} from '{}' into a {}".format(
-                    self.get_node_name(_parent), ckey, value, self.child_type.__name__
-                )
-                + "\n"
-                + traceback.format_exc()
-            )
+        _cfgdict._config_type = self.child_type
+        _cfgdict.update(value or builtins.dict())
         return _cfgdict
 
     def _get_type(self, type):
@@ -642,7 +830,7 @@ class ConfigurationReferenceListAttribute(ConfigurationReferenceAttribute):
             _setattr(instance, self.attr_name, [])
             return
         try:
-            remote_keys = _list(iter(value))
+            remote_keys = builtins.list(iter(value))
         except TypeError:
             raise ReferenceError(
                 "Reference list '{}' of {} is not iterable.".format(
@@ -674,7 +862,7 @@ class ConfigurationReferenceListAttribute(ConfigurationReferenceAttribute):
             return None
         if _hasattr(instance, self.attr_name):
             remote_keys.extend(_getattr(instance, self.attr_name))
-            remote_keys = _list(set(remote_keys))
+            remote_keys = builtins.list(set(remote_keys))
         return self.resolve_reference_list(instance, remote, remote_keys)
 
     def resolve_reference_list(self, instance, remote, remote_keys):
@@ -765,7 +953,7 @@ class ConfigurationAttributeCatcher(ConfigurationAttribute):
         self,
         *args,
         type=str,
-        initial=_dict,
+        initial=builtins.dict,
         catch=_collect_kv,
         contains=None,
         tree_cb=None,

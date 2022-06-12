@@ -33,11 +33,11 @@ class PlacementDud(PlacementStrategy):
 
 def single_layer_placement(offset=[0.0, 0.0, 0.0]):
     network = Scaffold()
+    network.regions["dud_region"] = reg = Region(
+        name="dud_region", offset=offset, partitions=[]
+    )
     network.partitions["dud_layer"] = part = Partition(
         name="dud_layer", thickness=120, region="dud_region"
-    )
-    network.regions["dud_region"] = reg = Region(
-        name="dud_region", offset=offset, partitions=[part]
     )
     dud_cell = CellType(name="dud", spatial={"count": 40, "radius": 2})
     network.cell_types["dud"] = dud_cell
@@ -216,13 +216,13 @@ class TestSerialScheduler(unittest.TestCase, SchedulerBaseTest):
 class TestPlacementStrategies(unittest.TestCase):
     def test_random_placement(self):
         cfg = from_json(get_config("test_single.json"))
-        cfg.placement["test_placement"] = RandomPlacement(
-            name="test_placement",
-            cell_types=[cfg.cell_types.test_cell],
-            partitions=[cfg.partitions.test_layer],
-        )
         cfg.storage.root = "random_placement.hdf5"
         network = Scaffold(cfg)
+        cfg.placement["test_placement"] = dict(
+            cls="bsb.placement.RandomPlacement",
+            cell_types=["test_cell"],
+            partitions=["test_layer"],
+        )
         network.compile(clear=True)
         ps = network.get_placement_set("test_cell")
         self.assertEqual(40, len(ps), "fixed count random placement broken")
