@@ -1,8 +1,17 @@
+"""
+Module for binary space partitioning, to facilitate optimal runtime complexity for n-point
+problems.
+"""
+
 from rtree import index as rtree
 import abc
 
 
 class BoxTreeInterface(abc.ABC):
+    """
+    Tree for fast lookup of queries of axis aligned rhomboids.
+    """
+
     @abc.abstractmethod
     def query(self, boxes):
         pass
@@ -13,6 +22,10 @@ class BoxTreeInterface(abc.ABC):
 
 
 class BoxRTree(BoxTreeInterface):
+    """
+    Tree for fast lookup of queries of axis aligned rhomboids using the Rtree package.
+    """
+
     def __init__(self, boxes):
         self._rtree = rtree.Index(properties=rtree.Property(dimension=3))
         for id, box in enumerate(boxes):
@@ -22,10 +35,25 @@ class BoxRTree(BoxTreeInterface):
         return self._rtree.get_size()
 
     def query(self, boxes, unique=False):
-        all_ = ([*self._rtree.intersection(box, objects=False)] for box in boxes)
+        """
+        Given an iterable of ``(min_x, min_y, min_z, max_x, max_y, max_z)`` box tuples,
+        find all the boxes that intersect with them.
+
+        :param boxes: Boxes to look for intersections with.
+        :type boxes: Iterable[Tuple[float, float, float, float, float, float]]
+        :param unique: If ``True``, return a flat generator of unique results. If ``False``
+            (default), per box in ``boxes``, return a list of intersecting boxes.
+        :returns: See ``unique``.
+        :rtype: Union[Iterator[List[Tuple[float, float, float, float, float, float]]],
+            Iterator[Tuple[float, float, float, float, float, float]]]
+        """
+        all_ = (list(self._rtree.intersection(box, objects=False)) for box in boxes)
         if unique:
             seen = set()
-            yield from (seen.add(elem) or elem for a in all_ for elem in a if elem not in seen)
+            # Double for loop over results, skipping those that have been seen before.
+            yield from (
+                seen.add(elem) or elem for a in all_ for elem in a if elem not in seen
+            )
         else:
             yield from all_
 

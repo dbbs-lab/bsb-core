@@ -99,14 +99,6 @@ bsb.reporting module
    :undoc-members:
    :show-inheritance:
 
-bsb.statistics module
----------------------
-
-.. automodule:: bsb.statistics
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 bsb.trees module
 ----------------
 
