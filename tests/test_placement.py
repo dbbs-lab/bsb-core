@@ -233,8 +233,8 @@ class TestVoxelDensities(unittest.TestCase):
             cell_types=dict(
                 test_cell=CellType(spatial=dict(radius=2, density=2, density_key="inhib"))
             ),
-            regions=dict(test_region=dict()),
-            partitions=dict(test_part=dict(type="test", region="test_region")),
+            regions=dict(test_region=dict(children=["test_part"])),
+            partitions=dict(test_part=dict(type="test")),
             placement=dict(
                 voxel_density=dict(
                     cls="bsb.placement.ParticlePlacement",

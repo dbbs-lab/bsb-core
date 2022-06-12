@@ -1050,15 +1050,15 @@ class TestDictScripting(unittest.TestCase):
     def test_ref(self):
         # Check that references get resolved when dynamically added.
         cfg = Configuration.default()
-        reg = cfg.regions.add("ello")
-        part = cfg.partitions.add("test", region="ello", thickness=10)
+        part = cfg.partitions.add("test", thickness=10)
+        reg = cfg.regions.add("ello", children=["test"])
         self.assertIs(reg, part.region, "reference not resolved")
 
     def test_clear(self):
         netw = Scaffold()
-        netw.regions.add("ello")
-        netw.regions.add("ello2")
-        r3 = netw.regions.add("ello3")
+        netw.regions.add("ello", children=[])
+        netw.regions.add("ello2", children=[])
+        r3 = netw.regions.add("ello3", children=[])
         self.assertEqual(RegionGroup, type(r3), "expected group")
         self.assertEqual(3, len(netw.regions), "not added")
         self.assertIs(netw, r3.scaffold, "scaffold not set")
@@ -1070,9 +1070,9 @@ class TestDictScripting(unittest.TestCase):
 
     def test_pop(self):
         netw = Scaffold()
-        netw.regions.add("ello")
-        netw.regions.add("ello2")
-        r3 = netw.regions.add("ello3")
+        netw.regions.add("ello", children=[])
+        netw.regions.add("ello2", children=[])
+        r3 = netw.regions.add("ello3", children=[])
         self.assertEqual(RegionGroup, type(r3), "expected group")
         self.assertEqual(3, len(netw.regions), "not added")
         self.assertIs(netw, r3.scaffold, "scaffold not set")
@@ -1085,9 +1085,9 @@ class TestDictScripting(unittest.TestCase):
 
     def test_popitem(self):
         netw = Scaffold()
-        netw.regions.add("ello")
-        netw.regions.add("ello2")
-        r3 = netw.regions.add("ello3")
+        netw.regions.add("ello", children=[])
+        netw.regions.add("ello2", children=[])
+        r3 = netw.regions.add("ello3", children=[])
         self.assertEqual(RegionGroup, type(r3), "expected group")
         self.assertEqual(3, len(netw.regions), "not added")
         self.assertIs(netw, r3.scaffold, "scaffold not set")
@@ -1100,17 +1100,17 @@ class TestDictScripting(unittest.TestCase):
 
     def test_setdefault(self):
         netw = Scaffold()
-        default = netw.regions.setdefault("ello", dict())
+        default = netw.regions.setdefault("ello", dict(children=[]))
         self.assertEqual(RegionGroup, type(default), "expected group")
-        newer = netw.regions.setdefault("ello", dict())
+        newer = netw.regions.setdefault("ello", dict(children=[]))
         self.assertIs(default, newer, "default not respected")
 
     def test_ior(self):
         n1 = Scaffold()
         n2 = Scaffold()
-        n1.regions.add("test")
-        n2.regions.add("test2")
-        n2.regions.add("test", {"cls": "stack"})
+        n1.regions.add("test", children=[])
+        n2.regions.add("test2", children=[])
+        n2.regions.add("test", children=[], cls="stack")
         n1.regions |= n2.regions
         self.assertEqual(["test", "test2"], list(n1.regions.keys()), "merge right failed")
         self.assertEqual("stack", n1.regions.test.cls, "merge right failed")

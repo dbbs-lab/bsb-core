@@ -7,9 +7,9 @@ import bsb.options
 bsb.options.verbosity = 3
 config = from_json("network_configuration.json")
 
-config.partitions.add("top_layer", region="brain_region", thickness=100, stack_index=1)
+config.partitions.add("top_layer", thickness=100, stack_index=1)
 config.regions["brain_region"] = Stack(
-    partitions=[
+    children=[
         "base_layer",
         "top_layer",
     ]

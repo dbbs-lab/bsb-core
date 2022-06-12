@@ -3,29 +3,41 @@ import unittest, numpy as np
 
 
 def single_layer():
-    c = topology.Layer(thickness=150, stack_index=0, region="r")
+    c = topology.Layer(thickness=150, stack_index=0)
     r = topology.Stack(children=[c])
     topology.create_topology([r], np.array([0, 0, 0]), np.array([100, 100, 100]))
     return r, c
 
 
-class TestTopology(unittest.TestCase):
-    def test_create_topology(self):
+class TestCreateTopology(unittest.TestCase):
+    def test_single(self):
         r = topology.Region(children=[])
-        rb = topology.Region(children=[])
         t = topology.create_topology([r], np.array([0, 0, 0]), np.array([100, 100, 100]))
         self.assertEqual(r, t, "Topology with 1 root region should be the region itself")
+
+    def test_unrelated(self):
+        r = topology.Region(children=[])
+        rb = topology.Region(children=[])
         t = topology.create_topology([r, rb], np.array([0, 0, 0]), np.array([1, 1, 1]))
         self.assertNotEqual(r, t, "Topology with multiple roots should be encapsulated")
+
+    def test_2gen(self):
+        r = topology.Region(children=[])
         r2 = topology.Region(children=[r])
         t = topology.create_topology([r2, r], np.array([0, 0, 0]), np.array([1, 1, 1]))
         self.assertEqual(r2, t, "Dependency interpreted as additional root")
+
+    def test_3gen(self):
+        r = topology.Region(children=[])
+        r2 = topology.Region(children=[r])
         r3 = topology.Region(children=[r2])
         t = topology.create_topology(
             [r3, r2, r], np.array([0, 0, 0]), np.array([100, 100, 100])
         )
         self.assertEqual(r3, t, "Recursive dependency interpreted as additional root")
 
+
+class TestTopology(unittest.TestCase):
     def test_stack(self):
         c = topology.Layer(thickness=150, stack_index=0)
         c2 = topology.Layer(thickness=150, stack_index=1)

@@ -34,7 +34,7 @@ class TestCore(unittest.TestCase):
 
     def test_set_netw_config(self):
         netw = Scaffold()
-        netw.configuration = Configuration.default(regions=dict(x=dict()))
+        netw.configuration = Configuration.default(regions=dict(x=dict(children=[])))
         self.assertEqual(1, len(netw.regions), "setting cfg failed")
 
     def test_netw_props(self):
