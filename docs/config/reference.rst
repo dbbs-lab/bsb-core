@@ -66,7 +66,24 @@ Cell types
 
 * :guilabel:`spatial`: Node for spatial information about the cell.
 
-  * :guilabel:`radius`: Radius of the indicative cell soma (μm).
+  * :guilabel:`radius`: Radius of the indicative cell soma (``μm``).
+
+  * :guilabel:`count`: Fixed number of cells to place.
+
+  * :guilabel:`density`: Volumetric density of cells (``1/(μm^3)``)
+
+  * :guilabel:`planar_density`: Planar density of cells (``1/(μm^2)``)
+
+  * :guilabel:`density_key`: Key of the :ref:`data column <data-columns>` that holds the
+    per voxel density information when this cell type is placed in a :ref:`voxel partition
+    <voxel-partition>`.
+
+  * :guilabel:`relative_to`: Reference to another cell type whose spatial information
+    determines this cell type's number.
+
+  * :guilabel:`density_ratio`: Ratio of densities to maintain with the related cell type.
+
+  * :guilabel:`count_ratio`: Ratio of counts to maintain with the related cell type.
 
   * :guilabel:`geometry`:
     Node for geometric information about the cell. This node may contain arbitrary keys
