@@ -21,7 +21,7 @@ class Region(abc.ABC):
     """
 
     name = config.attr(key=True)
-    children = config.reflist(refs.regional_ref, required=True)
+    children = config.reflist(refs.regional_ref, backref="region", required=True)
 
     def get_dependencies(self):
         if self.children:
