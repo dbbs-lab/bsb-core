@@ -49,34 +49,99 @@ class Partition(abc.ABC):
 
     @abc.abstractmethod
     def volume(self, chunk=None):
+        """
+        Calculate the volume of the partition in μm^3.
+
+        :param chunk: If given, limit the volume of the partition inside of the chunk.
+        :type chunk: bsb.storage.Chunk
+        :returns: Volume of the partition (in the chunk)
+        :rtype: float
+        """
         pass
 
     @abc.abstractmethod
     def surface(self, chunk=None):
+        """
+        Calculate the surface of the partition in μm^2.
+
+        :param chunk: If given, limit the surface of the partition inside of the chunk.
+        :type chunk: bsb.storage.Chunk
+        :returns: Surface of the partition (in the chunk)
+        :rtype: float
+        """
         pass
 
     @abc.abstractmethod
     def to_chunks(self, chunk_size):
+        """
+        Calculate all the chunks this partition occupies when cut into ``chunk_sized``
+        pieces.
+
+        :param chunk_size: Size per chunk (in μm). The slicing always starts at [0, 0, 0].
+        :type chunk_size: numpy.ndarray
+        :returns: Chunks occupied by this partition
+        :rtype: List[bsb.storage.Chunk]
+        """
         pass
 
     @abc.abstractmethod
     def chunk_to_voxels(self, chunk):
+        """
+        Voxelize the partition's occupation in this chunk. Required to fill the partition
+        with cells by the placement module.
+
+        :param chunk: The chunk to calculate voxels for.
+        :type chunk: bsb.storage.Chunk
+        :returns: The set of voxels that together make up the shape of this partition in
+          this chunk.
+        :rtype: bsb.voxels.VoxelSet
+        """
         pass
 
     @abc.abstractmethod
     def rotate(self, rotation):
+        """
+        Rotate the partition by the given rotation object.
+
+        :param rotation: Rotation object.
+        :type rotation: scipy.spatial.transform.Rotation
+        :raises: :class:`.exceptions.LayoutError` if the rotation needs to be rejected.
+        """
         pass
 
     @abc.abstractmethod
     def translate(self, offset):
+        """
+        Translate the partition by the given offset.
+
+        :param offset: Offset, XYZ.
+        :type offset: numpy.ndarray
+        :raises: :class:`.exceptions.LayoutError` if the translation needs to be rejected.
+        """
         pass
 
     @abc.abstractmethod
     def scale(self, factors):
+        """
+        Scale up/down the partition according to the given factors.
+
+        :param factors: Scaling factors, XYZ.
+        :type factors: numpy.ndarray
+        :raises: :class:`.exceptions.LayoutError` if the scaling needs to be rejected.
+        """
         pass
 
     @abc.abstractmethod
     def get_layout(self, hint):
+        """
+        Given a Layout as hint to begin from, create a Layout object that describes how
+        this partition would like to be laid out.
+
+        :param hint: The layout space that this partition should place itself in.
+        :type hint: bsb.topology._layout.Layout
+        :returns: The layout describing the space this partition takes up.
+        :rtype: bsb.topology._layout.Layout
+        """
         pass
 
 
