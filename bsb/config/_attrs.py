@@ -523,7 +523,7 @@ class cfglist(builtins.list):
         except:
             raise CastError(
                 f"Couldn't cast element {index} from '{item}'"
-                + f" into a {self.child_type.__name__}"
+                + f" into a {self._config_type.__name__}"
             )
 
     def _postset(self, items):
@@ -547,6 +547,11 @@ class ConfigurationListAttribute(ConfigurationAttribute):
 
     def __set__(self, instance, value, _key=None):
         _setattr(instance, self.attr_name, self.fill(value, _parent=instance))
+
+    def __populate__(self, instance, value, unique_list=False):
+        cfglist = _getattr(instance, self.attr_name)
+        if not unique_list or value not in cfglist:
+            builtins.list.append(cfglist, value)
 
     def fill(self, value, _parent, _key=None):
         _cfglist = cfglist()

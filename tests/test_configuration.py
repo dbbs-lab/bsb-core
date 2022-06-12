@@ -217,7 +217,7 @@ class TestConfigList(unittest.TestCase):
         self.assertEqual(int_test.l[2], 3)
         test_conf3 = {"l": [1, {}, 3]}
         with self.assertRaises(CastError):
-            TestNormal(test_conf3, TestRoot())
+            TestNormal(test_conf3, _parent=TestRoot())
         test_conf4 = {"l": [{"name": "hi"}, {}]}
         with self.assertRaises(RequirementError):
             Test(test_conf4, TestRoot())
