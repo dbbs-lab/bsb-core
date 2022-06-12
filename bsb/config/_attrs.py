@@ -327,7 +327,10 @@ def _boot_nodes(top_node, scaffold):
 
 def _unset_nodes(top_node):
     for node in walk_nodes(top_node):
-        del node.scaffold
+        try:
+            del node.scaffold
+        except:
+            pass
         node._config_parent = None
         node._config_key = None
         if hasattr(node, "_config_index"):
