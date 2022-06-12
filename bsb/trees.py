@@ -13,7 +13,12 @@ class BoxTreeInterface(abc.ABC):
     """
 
     @abc.abstractmethod
-    def query(self, boxes):
+    def query(self, boxes, unique=False):
+        """
+        Should return a generator that yields lists of intersecting IDs per query box if
+        ``unique=False``. If ``unique=True``, yield a flat list of unique intersecting box
+        IDs for all queried boxes.
+        """
         pass
 
     @abc.abstractmethod
