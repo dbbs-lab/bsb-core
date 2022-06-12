@@ -21,7 +21,6 @@ def create_topology(regions):
         topology = roots[0]
     else:
         topology = Region(cls="group", partitions=regions, name="topology")
-        topology._partitions = regions
     return topology
 
 

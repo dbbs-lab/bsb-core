@@ -54,6 +54,9 @@ def single_layer_placement(offset=[0.0, 0.0, 0.0]):
     return dud, network
 
 
+dud, network = single_layer_placement()
+
+
 def _chunk(x, y, z):
     return Chunk((x, y, z), (100, 100, 100))
 
@@ -249,7 +252,7 @@ class TestVoxelDensities(unittest.TestCase):
         )
         self.assertEqual(4, len(counts), "should have vector of counts per voxel")
         self.assertTrue(np.allclose([78, 16, 8, 27], counts, atol=1), "densities incorr")
-        network.compile()
+        network.compile(clear=True)
         ps = network.get_placement_set("test_cell")
         self.assertGreater(len(ps), 90)
         self.assertLess(len(ps), 130)
