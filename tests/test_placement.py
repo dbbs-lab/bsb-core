@@ -7,6 +7,7 @@ from bsb.core import Scaffold
 from bsb.config import Configuration, from_json
 from bsb.cell_types import CellType
 from bsb.topology import Region, Partition
+from bsb.voxels import VoxelSet, VoxelData
 from bsb.exceptions import *
 from bsb.storage import Chunk
 from bsb.placement import PlacementStrategy, RandomPlacement
@@ -51,6 +52,9 @@ def single_layer_placement(offset=[0.0, 0.0, 0.0]):
     network.placement["dud"] = dud
     network.configuration._bootstrap(network)
     return dud, network
+
+
+dud, network = single_layer_placement()
 
 
 def _chunk(x, y, z):
@@ -115,9 +119,6 @@ class TestIndicators(unittest.TestCase):
             with self.subTest(x=x, y=y, z=z):
                 guess = dud_ind.guess(_chunk(x, y, z))
                 self.assertEqual(0, guess)
-
-
-dud, network = single_layer_placement()
 
 
 class SchedulerBaseTest:
@@ -226,3 +227,64 @@ class TestPlacementStrategies(unittest.TestCase):
         network.compile(clear=True)
         ps = network.get_placement_set("test_cell")
         self.assertEqual(40, len(ps), "fixed count random placement broken")
+
+
+class TestVoxelDensities(unittest.TestCase):
+    def test_particle_vd(self):
+        cfg = Configuration.default(
+            cell_types=dict(
+                test_cell=CellType(spatial=dict(radius=2, density=2, density_key="inhib"))
+            ),
+            regions=dict(test_region=dict()),
+            partitions=dict(test_part=dict(type="test", region="test_region")),
+            placement=dict(
+                voxel_density=dict(
+                    cls="bsb.placement.ParticlePlacement",
+                    partitions=["test_part"],
+                    cell_types=["test_cell"],
+                )
+            ),
+        )
+        network = Scaffold(cfg)
+        counts = network.placement.voxel_density.get_indicators()["test_cell"].guess(
+            chunk=Chunk([0, 0, 0], [100, 100, 100]),
+            voxels=network.partitions.test_part.vs,
+        )
+        self.assertEqual(4, len(counts), "should have vector of counts per voxel")
+        self.assertTrue(np.allclose([78, 16, 8, 27], counts, atol=1), "densities incorr")
+        network.compile(clear=True)
+        ps = network.get_placement_set("test_cell")
+        self.assertGreater(len(ps), 90)
+        self.assertLess(len(ps), 130)
+
+
+class VoxelParticleTest(Partition, classmap_entry="test"):
+    vs = VoxelSet(
+        [
+            [0, 0, 0],
+            [0, 0, 1],
+            [0, 1, 0],
+            [0, 1, 1],
+        ],
+        25,
+        data=VoxelData(
+            np.array(
+                [
+                    [0.005, 0.003],
+                    [0.001, 0.004],
+                    [0.0005, 0.0055],
+                    [0.0017, 0.0033],
+                ]
+            ),
+            keys=["inhib", "excit"],
+        ),
+    )
+
+    def to_chunks(self, chunk_size):
+        return [Chunk([0, 0, 0], chunk_size)]
+
+    def chunk_to_voxels(self, chunk):
+        return self.vs
+
+    def layout(self, boundaries):
+        self.boundaries = boundaries

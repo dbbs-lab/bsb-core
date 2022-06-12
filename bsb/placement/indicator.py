@@ -67,6 +67,7 @@ class PlacementIndications:
     count = config.attr(type=int)
     geometry = config.dict(type=types.any())
     morphologies = config.list(type=MorphologySelector)
+    density_key = config.attr(type=str)
 
 
 class _Noner:
@@ -106,15 +107,18 @@ class PlacementIndicator:
             )
         return ind
 
-    def guess(self, chunk=None):
+    def guess(self, chunk=None, voxels=None):
         count = self.indication("count")
         density = self.indication("density")
+        density_key = self.indication("density_key")
         planar_density = self.indication("planar_density")
         relative_to = self.indication("relative_to")
         density_ratio = self.indication("density_ratio")
         count_ratio = self.indication("count_ratio")
         if count is not None:
             estimate = self._estim_for_chunk(chunk, count)
+        if density_key is not None:
+            pass
         if density is not None:
             estimate = self._density_to_estim(density, chunk)
         if planar_density is not None:
@@ -144,7 +148,8 @@ class PlacementIndicator:
                     )
                 else:
                     raise PlacementRelationError(
-                        "%cell_type.name% requires relation %relation.name% to specify density information.",
+                        "%cell_type.name% requires relation %relation.name%"
+                        + "to specify density information.",
                         self.cell_type,
                         relation,
                     )
@@ -152,14 +157,25 @@ class PlacementIndicator:
                 raise PlacementError(
                     "Relation specified but no ratio indications provided."
                 )
+        if density_key is not None:
+            if voxels is None:
+                raise Exception("Can't guess voxel density without a voxelset.")
+            elif density_key in voxels.data_keys:
+                estimate = self._estim_for_voxels(voxels, density_key)
+            else:
+                raise RuntimeError(f"No voxel density data '{density_key}' found.")
         try:
-            # 1.2 cells == 0.8 probability for 1, 0.2 probability for 2
-            return int(np.floor(estimate) + (np.random.rand() < estimate % 1))
+            estimate = np.array(estimate)
         except NameError:
-            # If `estimate` is undefined after all this then there were no indicators.
+            # If `estimate` is undefined after all this then error out.
             raise IndicatorError(
-                f"No configuration indicators found for the number of '{self._cell_type.name}' in '{self._strat.name}'"
+                "No configuration indicators found for the number of"
+                + f"'{self._cell_type.name}' in '{self._strat.name}'"
             )
+        # 1.2 cells == 0.8 probability for 1, 0.2 probability for 2
+        return (
+            np.floor(estimate) + (np.random.rand(estimate.size) < estimate % 1)
+        ).astype(int)
 
     def _density_to_estim(self, density, chunk=None):
         return sum(p.volume(chunk) * density for p in self._strat.partitions)
@@ -175,3 +191,8 @@ class PlacementIndicator:
         chunk_volume = sum(p.volume(chunk) for p in self._strat.partitions)
         total_volume = sum(p.volume() for p in self._strat.partitions)
         return count * chunk_volume / total_volume
+
+    def _estim_for_voxels(self, voxels, key):
+        return voxels.get_data(key).ravel() * np.product(
+            voxels.get_size_matrix(copy=False), axis=1
+        )

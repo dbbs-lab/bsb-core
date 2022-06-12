@@ -270,6 +270,10 @@ class VoxelSet:
         return self.get_data()
 
     @property
+    def data_keys(self):
+        return self._data.keys
+
+    @property
     def raw(self):
         return self.get_raw()
 
@@ -734,8 +738,8 @@ class AllenStructureLoader(NrrdVoxelLoader, classmap_entry="allen"):
 
     @classmethod
     def get_structure_mask(cls, find):
-        mask_data, _ = nrrd.read(self._dl_mask())
-        return self.get_structure_mask_condition(find)(mask_data)
+        mask_data, _ = nrrd.read(cls._dl_mask())
+        return cls.get_structure_mask_condition(find)(mask_data)
 
     @classmethod
     def get_structure_idset(cls, find):
@@ -769,8 +773,8 @@ class AllenStructureLoader(NrrdVoxelLoader, classmap_entry="allen"):
         """
         if isinstance(id, str):
             treat = lambda s: s.strip().lower()
-            _name = treat(name)
-            find = lambda x: treat(x["name"]) == _name or treat(x["acronym"]) == _name
+            name = treat(id)
+            find = lambda x: treat(x["name"]) == name or treat(x["acronym"]) == name
         elif isinstance(id, int) or isinstance(id, float):
             id = int(id)
             find = lambda x: x["id"] == id

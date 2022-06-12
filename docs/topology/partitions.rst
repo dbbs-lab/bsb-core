@@ -2,6 +2,8 @@
 Partitions
 ##########
 
+.. _voxel-partition:
+
 ======
 Voxels
 ======
@@ -155,6 +157,8 @@ appear in the :guilabel:`sources` attribute:
         # `data[:, 1]` and `type3` in `data[:, 2]`.
         print(vs.data.shape)
         partition = Voxels(voxels=loader)
+
+.. _data-columns:
 
 .. rubric:: Tagging the data columns with keys
 
