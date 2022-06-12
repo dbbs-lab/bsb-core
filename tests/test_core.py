@@ -13,7 +13,7 @@ class TestCore(unittest.TestCase):
     def test_from_hdf5(self):
         # Use the `from_hdf5` function to load a network.
         netw = Scaffold()
-        netw.compile()
+        netw.compile(clear=True)
         netw2 = core.from_hdf5(netw.storage.root)
         with self.assertRaises(FileNotFoundError):
             core.from_hdf5("ehehehehehehe")
