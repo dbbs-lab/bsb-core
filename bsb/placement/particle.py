@@ -50,14 +50,23 @@ class _VoxelBasedParticleSystem:
 
 
 @config.node
-class RandomPlacement(_VoxelBasedParticleSystem, PlacementStrategy):
+class RandomPlacement(PlacementStrategy, _VoxelBasedParticleSystem):
+    """
+    Place cells in random positions.
+    """
+
     def place(self, chunk, indicators):
         system = self._fill_system(chunk, indicators)
         self._extract_system(system, chunk, indicators)
 
 
 @config.node
-class ParticlePlacement(_VoxelBasedParticleSystem, PlacementStrategy):
+class ParticlePlacement(PlacementStrategy, _VoxelBasedParticleSystem):
+    """
+    Place cells in random positions, then have them repel each other until there is no
+    overlap.
+    """
+
     prune = config.attr(type=bool, default=True)
     bounded = config.attr(type=bool, default=False)
     restrict = config.attr(type=dict)
