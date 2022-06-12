@@ -91,7 +91,7 @@ def get_root_regions(regions):
         deps = list(region.get_dependencies()).copy()
         for dep in deps:
             # Only check unchecked regions, ignore visited & partitions
-            if dep not in ignore and hasattr(dep, "arrange"):
+            if dep not in ignore and is_region(dep):
                 ignore.add(dep)
                 extra_deps = collect_deps(dep, ignore)
                 ignore.update(extra_deps)
