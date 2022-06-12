@@ -24,10 +24,7 @@ class Region(abc.ABC):
     children = config.reflist(refs.regional_ref, backref="region", required=True)
 
     def get_dependencies(self):
-        if self.children:
-            return self.children.copy()
-        else:
-            return []
+        return self.children.copy()
 
     def __boot__(self):
         pass
