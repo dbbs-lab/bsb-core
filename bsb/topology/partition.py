@@ -21,6 +21,10 @@ def _size_requirements(section):
         )
 
 
+class _prop(property):
+    pass
+
+
 @config.dynamic(
     attr_name="type",
     type=types.in_classmap(),
@@ -30,7 +34,12 @@ def _size_requirements(section):
 )
 class Partition(abc.ABC):
     name = config.attr(key=True)
-    region = config.ref(region_ref, populate="children")
+
+    @_prop
+    def region(self):
+        return self._region
+
+    region.__backref__ = lambda self, value: setattr(self, "_region", value)
 
     @property
     def data(self):

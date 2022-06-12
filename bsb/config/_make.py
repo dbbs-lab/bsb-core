@@ -208,7 +208,14 @@ def compile_postnew(cls, root=False):
                 warning = ConfigurationWarning(f"Unknown attribute: '{key}'")
                 warning.node = self
                 warn(warning, ConfigurationWarning)
-                setattr(self, key, value)
+                try:
+                    setattr(self, key, value)
+                except AttributeError as e:
+                    raise AttributeError(
+                        f"Unknown configuration attribute key '{key}' conflicts with"
+                        + f" readonly class attribute on `{self.__class__.__module__}"
+                        + f".{self.__class__.__name__}`."
+                    ) from None
 
     return __post_new__
 
