@@ -648,7 +648,12 @@ class cfgdict(builtins.dict):
 
     def __ior__(self, other):
         ex_values = tuple(self.values())
-        super().__ior__(other)
+        try:
+            merge_f = super().__ior__
+        except AttributeError:
+            # Patch for 3.8
+            merge_f = super().update
+        merge_f(other)
         new_values = tuple(self.values())
         for removed_node in (e for e in ex_values if e not in new_values):
             _unset_nodes(removed_node)
