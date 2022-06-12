@@ -80,7 +80,6 @@ class ParticlePlacement(PlacementStrategy, _VoxelBasedParticleSystem):
         if len(colliding) > 0:
             system.solve_collisions()
             if self.prune:
-
                 number_pruned, pruned_per_type = system.prune(
                     at_risk_particles=system.displaced_particles
                 )

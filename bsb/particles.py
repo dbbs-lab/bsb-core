@@ -143,7 +143,8 @@ class ParticleSystem:
         for voxel, count in zip(self.voxels, voxel_counts):
             particle_type["placed"] = particle_type.get("placed", 0) + count
             placement_matrix = np.random.rand(count, self.dimensions)
-            for particle_position in placement_matrix:
+            for in_voxel_pos in placement_matrix:
+                particle_position = voxel.origin + in_voxel_pos * voxel.size
                 self.add_particle(radius, particle_position, type=particle_type)
 
     def _fill_global(self, particle_type):
