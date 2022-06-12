@@ -59,9 +59,10 @@ class Configuration:
         # Initialise the topology from the defined regions
         regions = builtins.list(self.regions.values())
         # Arrange the topology based on network boundaries
-        scaffold.topology = topology = create_topology(
-            regions, [0.0, 0.0, 0.0], [self.network.x, self.network.y, self.network.z]
-        )
+        start = self.network.origin.copy()
+        net = self.network
+        end = [start[0] + net.x, start[1] + net.y, start[2] + net.z]
+        scaffold.topology = topology = create_topology(regions, start, end)
         # If there are any partitions not part of the topology, raise an error
         if unmanaged := set(self.partitions.values()) - get_partitions([topology]):
             p = "', '".join(p.name for p in unmanaged)
