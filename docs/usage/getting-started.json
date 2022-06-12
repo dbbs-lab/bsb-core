@@ -11,7 +11,7 @@
   },
   "regions": {
     "brain_region": {
-      "cls": "stack"
+      "type": "stack"
     }
   },
   "partitions": {

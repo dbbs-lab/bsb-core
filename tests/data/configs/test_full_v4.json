@@ -10,12 +10,16 @@
     "z": 400.0
   },
   "regions": {
+    "some_brain": {
+      "type": "stack",
+      "children": ["some_cortex", "some_olive"]
+    },
     "some_cortex": {
-      "offset": [0.0, 0.0, 0.0],
+      "type": "stack",
       "children": ["dcn_layer", "granular_layer", "purkinje_layer", "b_molecular_layer", "t_molecular_layer"]
     },
     "some_olive": {
-      "offset": [260.0, -400.0, 0.0],
+      "type": "stack",
       "children": ["io_layer"]
     }
   },

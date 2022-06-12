@@ -1110,10 +1110,10 @@ class TestDictScripting(unittest.TestCase):
         n2 = Scaffold()
         n1.regions.add("test", children=[])
         n2.regions.add("test2", children=[])
-        n2.regions.add("test", children=[], cls="stack")
+        n2.regions.add("test", children=[], type="stack")
         n1.regions |= n2.regions
         self.assertEqual(["test", "test2"], list(n1.regions.keys()), "merge right failed")
-        self.assertEqual("stack", n1.regions.test.cls, "merge right failed")
+        self.assertEqual("stack", n1.regions.test.type, "merge right failed")
 
 
 class TestListScripting(unittest.TestCase):
