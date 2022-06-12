@@ -310,6 +310,11 @@ def _strict_root(obj):
     return root if getattr(root, "_config_isroot", False) else None
 
 
+def _booted_root(obj):
+    root = _strict_root(obj)
+    return root if root and root._config_isfinished and root._config_isbooted else None
+
+
 def _is_booted(obj):
     return obj and obj._config_isbooted
 
@@ -675,7 +680,7 @@ class cfgdict(builtins.dict):
         return self._config_parent.get_node_name() + "." + self._config_attr_name
 
 
-class cfgdictcopy(cfgdict):
+class cfgdictcopy(builtins.dict):
     def __init__(self, other):
         super().__init__(other)
         self._config_type = other._config_type
