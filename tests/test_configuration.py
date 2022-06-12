@@ -1147,7 +1147,6 @@ class TestListScripting(unittest.TestCase):
         self.list[:] = [{"names": []}] * 5
         self.assertList(5, prev)
         prev = [self.list[3]]
-        print("PREV", prev)
         self.list[3] = {"names": ["ey"]}
         self.assertList(5, prev)
         self.assertEqual(["ey"], self.list[3].names, "slice replace failed")

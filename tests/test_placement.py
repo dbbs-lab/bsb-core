@@ -218,8 +218,7 @@ class TestPlacementStrategies(unittest.TestCase):
         cfg = from_json(get_config("test_single.json"))
         cfg.storage.root = "random_placement.hdf5"
         network = Scaffold(cfg)
-        cfg.placement.add(
-            "test_placement",
+        cfg.placement["test_placement"] = dict(
             cls="bsb.placement.RandomPlacement",
             cell_types=["test_cell"],
             partitions=["test_layer"],
