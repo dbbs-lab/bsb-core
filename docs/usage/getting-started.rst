@@ -54,9 +54,9 @@ network. You can do this from the CLI or Python:
 
     bsb.options.verbosity = 3
     config = from_json("network_configuration.json")
-    scaffold = Scaffold(config)
-    scaffold.compile()
-    plot_network(scaffold)
+    network = Scaffold(config)
+    network.compile()
+    plot_network(network)
 
 The ``verbosity`` flag increases the amount of output that is generated, to follow along
 or troubleshoot. The ``plot`` flags opens a plot |:slight_smile:|.
@@ -79,29 +79,45 @@ filled with cells.
 To get started, we'll change the ``brain_region`` into a ``stack``, and add a
 ``top_layer``:
 
-.. code-block:: json
+.. tab-set-code::
 
-  {
-    "regions": {
-      "brain_region": {
-        "cls": "stack"
-      }
-    },
-    "partitions": {
-      "base_layer": {
-        "type": "layer",
-				"region": "brain_region",
-        "thickness": 100,
-        "stack_index": 0
+  .. code-block:: json
+
+    {
+      "regions": {
+        "brain_region": {
+          "cls": "stack"
+        }
       },
-      "top_layer": {
-        "type": "layer",
-				"region": "brain_region",
-        "thickness": 100,
-        "stack_index": 1
+      "partitions": {
+        "base_layer": {
+          "type": "layer",
+          "region": "brain_region",
+          "thickness": 100,
+          "stack_index": 0
+        },
+        "top_layer": {
+          "type": "layer",
+          "region": "brain_region",
+          "thickness": 100,
+          "stack_index": 1
+        }
       }
     }
-  }
+
+  .. code-block:: python
+
+    from bsb.topology import Stack
+
+    config.partitions.add(
+      "top_layer",
+      region="brain_region",
+      thickness=100,
+      stack_index=1
+    )
+    config.regions["brain_region"] = Stack(partitions=["base_layer", "top_layer"])
+
+
 
 The :guilabel:`cls` of the ``brain_region`` is ``stack``. This means it will place its
 children stacked on top of each other. The :guilabel:`type` of ``base_layer`` is
@@ -116,37 +132,54 @@ placement 3D positions, optionally rotations and morphologies or other propertie
 created for them. In the simplest case you define a soma :guilabel:`radius` and
 :guilabel:`density` or fixed :guilabel:`count`:
 
-.. code-block:: json
+.. tab-set-code::
 
-  {
-    "cell_types": {
-      "cell_type_A": {
-        "spatial": {
-          "radius": 7,
-          "density": 1e-3
-        }
-      },
-      "cell_type_B": {
-        "spatial": {
-          "radius": 7,
-          "count": 10
+  .. code-block:: json
+
+    {
+      "cell_types": {
+        "cell_type_A": {
+          "spatial": {
+            "radius": 2,
+            "density": 1e-3
+          }
+        },
+        "cell_type_B": {
+          "spatial": {
+            "radius": 7,
+            "count": 10
+          }
         }
       }
     }
-  }
+
+  .. code-block:: python
+
+    config.cell_types.add("cell_type_B", spatial=dict(radius=7, count=10))
 
 Placement
 ---------
 
-.. code-block:: json
+.. tab-set-code::
 
-  {
-    "placement": {
-      "cls": "bsb.placement.ParticlePlacement",
-      "cell_types": ["cell_type_A", "cell_type_B"],
-      "partitions": ["base_layer"]
+  .. code-block:: json
+
+    {
+      "all_placement": {
+        "cls": "bsb.placement.ParticlePlacement",
+        "cell_types": ["cell_type_A", "cell_type_B"],
+        "partitions": ["base_layer"]
+      }
     }
-  }
+
+  .. code-block:: python
+
+    config.placement.add(
+      "all_placement",
+      cls="bsb.placement.ParticlePlacement",
+      cell_types=["cell_type_A", "cell_type_B"],
+      partitions=["base_layer"],
+    )
 
 The ``placement`` blocks use the cell type indications to place cell types into
 partitions. You can use other :class:`PlacementStrategies
@@ -170,21 +203,32 @@ Take another look at your network:
 Connectivity
 ------------
 
-.. code-block:: json
+.. tab-set-code::
 
-  {
-    "connectivity": {
-      "A_to_B": {
-        "cls": "bsb.connectivity.AllToAll",
-        "presynaptic": {
-          "cell_types": ["cell_type_A"]
-        },
-        "postsynaptic": {
-            "cell_types": ["cell_type_B"]
+  .. code-block:: json
+
+    {
+      "connectivity": {
+        "A_to_B": {
+          "cls": "bsb.connectivity.AllToAll",
+          "presynaptic": {
+            "cell_types": ["cell_type_A"]
+          },
+          "postsynaptic": {
+              "cell_types": ["cell_type_B"]
+          }
         }
       }
     }
-  }
+
+  .. code-block:: python
+
+    config.connectivity.add(
+      "A_to_B",
+      cls="bsb.connectivity.AllToAll",
+      presynaptic=dict(cell_types=["cell_type_A"]),
+      postsynaptic=dict(cell_types=["cell_type_B"]),
+    )
 
 The ``connectivity`` blocks specify connections between systems of cell types. They can
 create connections between single or multiple pre and postsynaptic cell types, and can
