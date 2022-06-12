@@ -45,18 +45,9 @@ network. You can do this from the CLI or Python:
 
     bsb compile --verbosity 3 --plot
 
-  .. code-block:: python
-
-    from bsb.core import Scaffold
-    from bsb.config import from_json
-    from bsb.plotting import plot_network
-    import bsb.options
-
-    bsb.options.verbosity = 3
-    config = from_json("network_configuration.json")
-    scaffold = Scaffold(config)
-    scaffold.compile()
-    plot_network(scaffold)
+  .. literalinclude:: getting_started.py
+    :language: python
+    :lines: 1-8,31-
 
 The ``verbosity`` flag increases the amount of output that is generated, to follow along
 or troubleshoot. The ``plot`` flags opens a plot |:slight_smile:|.
@@ -79,29 +70,15 @@ filled with cells.
 To get started, we'll change the ``brain_region`` into a ``stack``, and add a
 ``top_layer``:
 
-.. code-block:: json
+.. tab-set-code::
 
-  {
-    "regions": {
-      "brain_region": {
-        "cls": "stack"
-      }
-    },
-    "partitions": {
-      "base_layer": {
-        "type": "layer",
-				"region": "brain_region",
-        "thickness": 100,
-        "stack_index": 0
-      },
-      "top_layer": {
-        "type": "layer",
-				"region": "brain_region",
-        "thickness": 100,
-        "stack_index": 1
-      }
-    }
-  }
+  .. literalinclude:: getting-started.json
+    :language: json
+    :lines: 7-25
+
+  .. literalinclude:: getting_started.py
+    :language: python
+    :lines: 10-16
 
 The :guilabel:`cls` of the ``brain_region`` is ``stack``. This means it will place its
 children stacked on top of each other. The :guilabel:`type` of ``base_layer`` is
@@ -116,37 +93,30 @@ placement 3D positions, optionally rotations and morphologies or other propertie
 created for them. In the simplest case you define a soma :guilabel:`radius` and
 :guilabel:`density` or fixed :guilabel:`count`:
 
-.. code-block:: json
+.. tab-set-code::
 
-  {
-    "cell_types": {
-      "cell_type_A": {
-        "spatial": {
-          "radius": 7,
-          "density": 1e-3
-        }
-      },
-      "cell_type_B": {
-        "spatial": {
-          "radius": 7,
-          "count": 10
-        }
-      }
-    }
-  }
+  .. literalinclude:: getting-started.json
+    :language: json
+    :lines: 26-39
+
+  .. literalinclude:: getting_started.py
+    :language: python
+    :lines: 17
+
 
 Placement
 ---------
 
-.. code-block:: json
+.. tab-set-code::
 
-  {
-    "placement": {
-      "cls": "bsb.placement.ParticlePlacement",
-      "cell_types": ["cell_type_A", "cell_type_B"],
-      "partitions": ["base_layer"]
-    }
-  }
+  .. literalinclude:: getting-started.json
+    :language: json
+    :lines: 40-51
+
+  .. literalinclude:: getting_started.py
+    :language: python
+    :lines: 18-23
+
 
 The ``placement`` blocks use the cell type indications to place cell types into
 partitions. You can use other :class:`PlacementStrategies
@@ -160,7 +130,7 @@ Take another look at your network:
 
 .. code-block:: bash
 
-	bsb compile -v 3 -p
+  bsb compile -v 3 -p
 
 .. note::
 
@@ -170,21 +140,16 @@ Take another look at your network:
 Connectivity
 ------------
 
-.. code-block:: json
+.. tab-set-code::
 
-  {
-    "connectivity": {
-      "A_to_B": {
-        "cls": "bsb.connectivity.AllToAll",
-        "presynaptic": {
-          "cell_types": ["cell_type_A"]
-        },
-        "postsynaptic": {
-            "cell_types": ["cell_type_B"]
-        }
-      }
-    }
-  }
+  .. literalinclude:: getting-started.json
+    :language: json
+    :lines: 52-62
+
+  .. literalinclude:: getting_started.py
+    :language: python
+    :lines: 24-29
+
 
 The ``connectivity`` blocks specify connections between systems of cell types. They can
 create connections between single or multiple pre and postsynaptic cell types, and can
@@ -192,7 +157,6 @@ produce one or many :class:`ConnectivitySets <.storage.interfaces.ConnectivitySe
 
 Regenerate the network once more, now it will also contain your connections! With your
 cells and connections in place, you're ready to move to the :ref:`simulations` stage.
-
 
 .. rubric:: What next?
 
@@ -234,3 +198,14 @@ cells and connections in place, you're ready to move to the :ref:`simulations` s
 	    :link: https://github.com/dbbs-lab/bsb
 
 	    Help out the project by contributing code.
+
+Recap
+-----
+
+.. tab-set-code::
+
+  .. literalinclude:: getting-started.json
+    :language: json
+
+  .. literalinclude:: getting_started.py
+    :language: python

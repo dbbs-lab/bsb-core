@@ -138,6 +138,8 @@ def compile_new(node_cls, dynamic=False, pluggable=False, root=False):
         ncls = class_determinant(_cls, kwargs)
         instance = object.__new__(ncls)
         _set_pk(instance, _parent, _key)
+        if root:
+            instance._config_isfinished = False
         instance.__post_new__(**kwargs)
         if _cls is not ncls:
             instance.__init__(**kwargs)
@@ -221,6 +223,7 @@ def wrap_root_postnew(post_new):
                     post_new(self, *args, _parent=None, _key=None, **kwargs)
                 except (CastError, RequirementError) as e:
                     _bubble_up_exc(e)
+                self._config_isfinished = True
                 _resolve_references(self)
         finally:
             _bubble_up_warnings(log)
@@ -266,7 +269,10 @@ def _get_node_name(self):
     if hasattr(self, "_config_key"):
         name = "." + str(self._config_key)
     if hasattr(self, "_config_index"):
-        name = "[" + str(self._config_index) + "]"
+        if self._config_index is None:
+            name = "{removed}"
+        else:
+            name = "[" + str(self._config_index) + "]"
     return self._config_parent.get_node_name() + name
 
 
@@ -503,13 +509,16 @@ def walk_node_values(start_node):
         yield node, attr.attr_name, attr.__get__(node, node.__class__)
 
 
-def _resolve_references(root):
+def _resolve_references(root, start=None, /):
     from ._attrs import _setattr
 
-    for node, attr in walk_node_attributes(root):
-        if hasattr(attr, "__ref__"):
-            ref = attr.__ref__(node, root)
-            _setattr(node, attr.attr_name, ref)
+    if start is None:
+        start = root
+    if root._config_isfinished:
+        for node, attr in walk_node_attributes(root):
+            if hasattr(attr, "__ref__"):
+                ref = attr.__ref__(node, root)
+                _setattr(node, attr.attr_name, ref)
 
 
 class WalkIterDescriptor:

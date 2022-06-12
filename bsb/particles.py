@@ -209,7 +209,7 @@ class ParticleSystem:
         self.find_colliding_particles()
         self.displaced_particles = set()
         while self.colliding_count > 0:
-            report("Untangling {} collisions".format(self.colliding_count), level=2)
+            report("Untangling {} collisions".format(self.colliding_count), level=3)
             t = self.colliding_count
             for i, epicenter_particle in enumerate(self.colliding_particles):
                 neighbourhood = self.find_neighbourhood(epicenter_particle)

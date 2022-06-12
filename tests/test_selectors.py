@@ -64,7 +64,7 @@ class TestSelectors(unittest.TestCase):
     def test_cell_type_shorthand(self):
         ct = CellType(spatial=dict(morphologies=[{"names": "*"}]))
         cfg = Configuration.default(
-            storage={"root": "test_selectors.hdf5"}, cell_types={"ct": ct}
+            storage={"root": "selectors_test.hdf5"}, cell_types={"ct": ct}
         )
         s = Scaffold(cfg)
         s.morphologies.save("A", Morphology([Branch([[0, 0, 0]], [1])]), overwrite=True)
