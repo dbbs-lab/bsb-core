@@ -157,9 +157,9 @@ class Storage:
         self._comm = comm or MPI.COMM_WORLD
         self._master = master
 
-        # Load the engine's interface onto the object, this allows consumer construction
-        # of features, but it is not advised. More properly the Storage object itself
-        # should provide factory methods.
+        # Load the engine's interface onto the object, this allows the end user to create
+        # features, but it is not advised. Usually the Storage object
+        # itself provides factory methods that should be used instead.
         for name, interface in _engines[engine].items():
             self.__dict__["_" + name] = interface
             # Interfaces can define an autobinding key so that singletons are available
@@ -199,6 +199,10 @@ class Storage:
     @property
     def root(self):
         return self._root
+
+    @property
+    def root_slug(self):
+        return self._engine.root_slug
 
     @property
     def format(self):

@@ -20,7 +20,7 @@ class VoxelData(np.ndarray):
 
     def __new__(cls, data, keys=None):
         if data.ndim < 2:
-            data = data.reshape(-1, 1)
+            return super().__new__(np.ndarray, data.shape, dtype=object)
         obj = super().__new__(cls, data.shape, dtype=object)
         obj[:] = data
         if keys is not None:
@@ -35,15 +35,11 @@ class VoxelData(np.ndarray):
         return obj
 
     def __getitem__(self, index):
-        if self.ndim > 1:
-            index, keys = self._rewrite_index(index)
+        index, keys = self._rewrite_index(index)
         vd = super().__getitem__(index)
         if isinstance(vd, VoxelData):
-            if vd.ndim == 1:
-                if keys:
-                    vd = vd.reshape(-1, len(keys))
-                else:
-                    vd = vd.reshape(-1, self.shape[1])
+            if len(keys) > 0 and len(vd) != vd.size / len(keys):
+                vd = vd.reshape(-1, len(keys))
             vd._keys = keys
         return vd
 
@@ -78,7 +74,7 @@ class VoxelData(np.ndarray):
                 index = (slice(None),)
             else:
                 index = (index,)
-                cols = slice(None)
+                cols = None
                 keys = getattr(self, "_keys", [])
         except ValueError as e:
             key = str(e).split("'")[1]
@@ -139,6 +135,9 @@ class VoxelSet:
                     self._data = VoxelData(data, keys=data_keys)
             else:
                 data = np.array(data, copy=False)
+                if data.ndim < 2:
+                    cols = len(data_keys) if data_keys else 1
+                    data = data.reshape(-1, cols)
                 self._data = VoxelData(data, keys=data_keys)
             if len(self._data) != len(voxels):
                 raise ValueError("`voxels` and `data` length unequal.")
@@ -187,6 +186,12 @@ class VoxelSet:
         if voxels.ndim == 1:
             voxels = voxels.reshape(-1, 3)
         return VoxelSet(voxels, voxel_size, data)
+
+    def __getattr__(self, key):
+        if key in self._data._keys:
+            return self.get_data(key)
+        else:
+            return super().__getattribute__(key)
 
     def __str__(self):
         cls = type(self)
@@ -263,6 +268,10 @@ class VoxelSet:
         :rtype: Union[numpy.ndarray, None]
         """
         return self.get_data()
+
+    @property
+    def data_keys(self):
+        return self._data.keys
 
     @property
     def raw(self):
@@ -556,7 +565,7 @@ class NrrdVoxelLoader(VoxelLoader, classmap_entry="nrrd"):
     sparse = config.attr(type=bool, default=True)
     strict = config.attr(type=bool, default=True)
 
-    def get_voxelset(self):
+    def get_mask(self):
         mask_shape = self._validate()
         mask = np.zeros(mask_shape, dtype=bool)
         if self.sparse:
@@ -575,7 +584,10 @@ class NrrdVoxelLoader(VoxelLoader, classmap_entry="nrrd"):
                 mask_data, _ = nrrd.read(mask_src)
                 mask = mask | self._mask_cond(mask_data)
             mask = np.nonzero(mask)
+        return mask
 
+    def get_voxelset(self):
+        mask = self.get_mask()
         if not self.mask_only:
             voxel_data = np.empty((len(mask[0]), len(self._src)))
             for i, source in enumerate(self._src):
@@ -668,6 +680,10 @@ class AllenStructureLoader(NrrdVoxelLoader, classmap_entry="allen"):
     @config.property
     @functools.cache
     def mask_source(self):
+        return self._dl_mask()
+
+    @classmethod
+    def _dl_mask(cls):
         from .storage import _util as _storutil
 
         url = "http://download.alleninstitute.org/informatics-archive/current-release/mouse_ccf/annotation/ccf_2017/annotation_25.nrrd"
@@ -682,8 +698,9 @@ class AllenStructureLoader(NrrdVoxelLoader, classmap_entry="allen"):
             report("Using cached Allen Brain Atlas annotations", level=4)
         return str(link.path)
 
+    @classmethod
     @functools.cache
-    def _dl_structure_ontology(self):
+    def _dl_structure_ontology(cls):
         from .storage import _util as _storutil
 
         url = "http://api.brain-map.org/api/v2/structure_graph_download/1.json"
@@ -701,45 +718,75 @@ class AllenStructureLoader(NrrdVoxelLoader, classmap_entry="allen"):
         with link.get() as f:
             return json.load(f)
 
-    def get_structure_mask_condition(self, find):
-        mask = self.get_structure_mask(find)
+    @classmethod
+    def get_structure_mask_condition(cls, find):
+        """
+        Return a lambda that when applied to the mask data, returns a mask that delineates
+        the Allen structure.
+
+        :param find: Acronym or ID of the Allen structure.
+        :type find: Union[str, int]
+        :returns: Masking lambda
+        :rtype: Callable[numpy.ndarray]
+        """
+        mask = cls.get_structure_idset(find)
         if len(mask) > 1:
             return lambda data: np.isin(data, mask)
         else:
             mask0 = mask[0]
             return lambda data: data == mask0
 
-    def get_structure_mask(self, find):
-        struct = self.find_structure(find)
+    @classmethod
+    def get_structure_mask(cls, find):
+        mask_data, _ = nrrd.read(cls._dl_mask())
+        return cls.get_structure_mask_condition(find)(mask_data)
+
+    @classmethod
+    def get_structure_idset(cls, find):
+        """
+        Return the set of IDs that make up the requested Allen structure.
+
+        :param find: Acronym or ID of the Allen structure.
+        :type find: Union[str, int]
+        :returns: Set of IDs
+        :rtype: numpy.ndarray
+        """
+        struct = cls.find_structure(find)
         values = set()
 
         def flatmask(item):
             values.add(item["id"])
 
-        self._visit_structure([struct], flatmask)
+        cls._visit_structure([struct], flatmask)
         return np.array([*values], dtype=int)
 
-    @functools.singledispatchmethod
-    def find_structure(self, id):
-        find = lambda x: x["id"] == id
-        try:
-            return self._find_structure(find)
-        except NodeNotFoundError:
-            raise NodeNotFoundError(f"Could not find structure with id '{id}'") from None
+    @classmethod
+    def find_structure(cls, id):
+        """
+        Find an Allen structure by name, acronym or ID.
 
-    @find_structure.register
-    def _(self, name: str):
-        proc = lambda s: s.strip().lower()
-        _name = proc(name)
-        find = lambda x: proc(x["name"]) == _name or proc(x["acronym"]) == _name
+        :param id: Query for the name, acronym or ID of the Allen structure.
+        :type id: Union[str, int, float]
+        :returns: Allen structure node of the Allen ontology tree.
+        :rtype: dict
+        :raises: NodeNotFoundError
+        """
+        if isinstance(id, str):
+            treat = lambda s: s.strip().lower()
+            name = treat(id)
+            find = lambda x: treat(x["name"]) == name or treat(x["acronym"]) == name
+        elif isinstance(id, int) or isinstance(id, float):
+            id = int(id)
+            find = lambda x: x["id"] == id
+        else:
+            raise TypeError(f"Argument must be a string or a number. {type(id)} given.")
         try:
-            return self._find_structure(find)
+            return cls._find_structure(find)
         except NodeNotFoundError:
-            raise NodeNotFoundError(
-                f"Could not find structure with name '{name}'"
-            ) from None
+            raise NodeNotFoundError(f"Could not find structure '{id}'") from None
 
-    def _find_structure(self, find):
+    @classmethod
+    def _find_structure(cls, find):
         result = None
 
         def visitor(item):
@@ -748,13 +795,14 @@ class AllenStructureLoader(NrrdVoxelLoader, classmap_entry="allen"):
                 result = item
                 return True
 
-        tree = self._dl_structure_ontology()
-        self._visit_structure(tree, visitor)
+        tree = cls._dl_structure_ontology()
+        cls._visit_structure(tree, visitor)
         if result is None:
             raise NodeNotFoundError("Could not find a node that satisfies constraints.")
         return result
 
-    def _visit_structure(self, tree, visitor):
+    @classmethod
+    def _visit_structure(cls, tree, visitor):
         deck = collections.deque(tree)
         while True:
             try:
@@ -766,6 +814,9 @@ class AllenStructureLoader(NrrdVoxelLoader, classmap_entry="allen"):
             deck.extend(item["children"])
 
     def _validate_mask_condition(self):
+        # We override the `NrrdVoxelLoader`'s `_validate_mask_condition` and use this
+        # function as a hook to find and set the mask condition to select every voxel that
+        # has an id that is part of the structure.
         id = self.struct_id if self.struct_id is not None else self.struct_name
         self._mask_cond = self.get_structure_mask_condition(id)
 
@@ -775,7 +826,7 @@ def _repeat_first():
     first = None
 
     def repeater(val):
-        nonlocal _set
+        nonlocal _set, first
         if not _set:
             first, _set = val, True
         return first

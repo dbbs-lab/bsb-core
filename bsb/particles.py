@@ -127,22 +127,42 @@ class ParticleSystem:
         self.particles = []
         for particle_type in self.particle_types:
             radius = particle_type["radius"]
-            placement_voxels = particle_type["voxels"]
-            particle_count = particle_type["count"]
-            # Generate a matrix with random positions for the particles
-            # Add an extra dimension to determine in which voxels to place the particles
-            placement_matrix = np.random.rand(particle_count, self.dimensions + 1)
-            # Generate each particle
-            for positions in placement_matrix:
-                # Determine the voxel to be placed in.
-                particle_voxel_id = int(positions[0] * len(placement_voxels))
-                particle_voxel = self.voxels[placement_voxels[particle_voxel_id]]
-                # Translate the particle into the voxel based on the remaining dimensions
-                particle_position = (
-                    particle_voxel.origin + positions[1:] * particle_voxel.size
-                )
-                # Store the particle object
+            count = particle_type["count"]
+            if count.size == 1:
+                self._fill_global(particle_type)
+            else:
+                self._fill_per_voxel(particle_type)
+
+    def _fill_per_voxel(self, particle_type):
+        voxel_counts = particle_type["count"]
+        radius = particle_type["radius"]
+        if len(voxel_counts) != len(self.voxels):
+            raise Exception(
+                f"Particle system voxel mismatch. Given {len(voxel_counts)} expected {len(self.voxels)}"
+            )
+        for voxel, count in zip(self.voxels, voxel_counts):
+            particle_type["placed"] = particle_type.get("placed", 0) + count
+            placement_matrix = np.random.rand(count, self.dimensions)
+            for in_voxel_pos in placement_matrix:
+                particle_position = voxel.origin + in_voxel_pos * voxel.size
                 self.add_particle(radius, particle_position, type=particle_type)
+
+    def _fill_global(self, particle_type):
+        particle_count = int(particle_type["count"])
+        particle_type["placed"] = particle_type.get("placed", 0) + particle_count
+        radius = particle_type["radius"]
+        # Generate a matrix with random positions for the particles
+        # Add an extra dimension to determine in which voxels to place the particles
+        placement_matrix = np.random.rand(particle_count, self.dimensions + 1)
+        # Generate each particle
+        for row in placement_matrix:
+            # Determine the voxel to be placed in.
+            voxel_id = int(row[0] * len(self.voxels))
+            voxel = self.voxels[voxel_id]
+            # Translate the particle into the voxel based on the remaining dimensions
+            particle_position = voxel.origin + row[1:] * voxel.size
+            # Store the particle object
+            self.add_particle(radius, particle_position, type=particle_type)
 
     def freeze(self):
         self.__frozen_positions = np.array([p.position for p in self.particles])
@@ -189,7 +209,7 @@ class ParticleSystem:
         self.find_colliding_particles()
         self.displaced_particles = set()
         while self.colliding_count > 0:
-            report("Untangling {} collisions".format(self.colliding_count), level=2)
+            report("Untangling {} collisions".format(self.colliding_count), level=3)
             t = self.colliding_count
             for i, epicenter_particle in enumerate(self.colliding_particles):
                 neighbourhood = self.find_neighbourhood(epicenter_particle)

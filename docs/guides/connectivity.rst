@@ -11,10 +11,10 @@ simulation volume. They are defined in the configuration under ``connectivity``:
     "connectivity": {
       "cell_A_to_cell_B": {
         "cls": "bsb.connectivity.VoxelIntersection",
-        "pre": {
+        "presynaptic": {
           "cell_types": ["cell_A"]
         },
-        "post": {
+        "postsynaptic": {
             "cell_types": ["cell_B"]
         }
       }
@@ -80,10 +80,10 @@ An example using this strategy, assuming it is importable from the ``my_module``
         "class": "my_module.ConnectBetween",
         "min": 10,
         "max": 15.5,
-        "pre": {
+        "presynaptic": {
           "cell_types": ["cell_A"]
         },
-        "post": {
+        "postsynaptic": {
           "cell_types": ["cell_B"]
         }
       }
@@ -97,9 +97,8 @@ Then, when it is time, the framework will call the strategy's
 
 In short, the objects that are decorated with ``@config.node`` will already be fully
 configured before ``__init__`` is called and all attributes available under ``self`` (e.g.
-``self.min`` and ``self.max``). For more explanation on the configuration system, see
-:doc:`/config/intro`. For specifics on configuration nodes, see
-:doc:`/config/module/nodes`.
+``self.min`` and ``self.max``). For specifics on configuration nodes, see
+:doc:`/config/nodes`.
 
 .. rubric:: Accessing placement data
 

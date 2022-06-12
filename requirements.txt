@@ -5,7 +5,7 @@ scipy==1.6.0
 rtree==0.9.7
 plotly==4.14.3
 pre-commit==1.21.0
-black==20.8b1
+black==22.3.0
 nrn-patch==3.0.0
 dbbs_models==2.0.0dev3
 colour==0.1.5

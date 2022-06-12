@@ -1,12 +1,14 @@
-###############
-BSB JSON parser
-###############
+###########
+JSON parser
+###########
 
-The BSB's JSON parser is built on top of Python's `json
+The JSON parser is built on top of Python's `json
 <https://docs.python.org/3/library/json.html>`_ module  and adds 2 additional features:
 
 * JSON references
 * JSON imports
+
+.. _json_ref:
 
 ===============
 JSON References
@@ -18,12 +20,12 @@ copy over that dictionary into the parent of the reference statement:
 .. code-block:: json
 
   {
-    "target": {
+    "template": {
       "A": "value",
       "B": "value"
     },
-    "parent": {
-      "$ref": "#/target"
+    "copy": {
+      "$ref": "#/template"
     }
   }
 
@@ -32,11 +34,11 @@ Will be parsed into:
 .. code-block:: json
 
   {
-    "target": {
+    "template": {
       "A": "value",
       "B": "value"
     },
-    "parent": {
+    "copy": {
       "A": "value",
       "B": "value"
     }
@@ -44,23 +46,20 @@ Will be parsed into:
 
 .. note::
 
-	The data that you import/reference will be combined with the data that's already present
-	in the parent. The data that is already present in the parent will overwrite keys that
-	are imported. In the special case that the import and original both specify a dictionary
-	both dictionaries' keys will be merged, with again (and recursively) the original data
-	overwriting the imported data.
+	Imported keys will not override keys that are already present. This way you can specify
+	local data to customize what you import. If both keys are dictionaries, they are merged;
+	with again priority for the local data.
 
 Reference statement
 ===================
 
-The reference statement consists of the ``$ref`` key and a 2-part value. The first part of
-the statement before the ``#`` is the ``document``-clause and the second part the
+The reference statement consists of the :guilabel:`$ref` key and a 2-part value. The first
+part of the statement before the ``#`` is the ``document``-clause and the second part the
 ``reference``-clause. If the ``#`` is omitted the entire value is considered a
 ``reference``-clause.
 
-The document clause can be empty or omitted and the reference will point to somewhere
-within the same document. When a document clause is given it can be an absolute or
-relative path to another JSON document.
+The document clause can be empty or omitted for same document references. When a document
+clause is given it can be an absolute or relative path to another JSON document.
 
 The reference clause must be a JSON path, either absolute or relative to a JSON
 dictionary. JSON paths use the ``/`` to traverse a JSON document:
@@ -77,23 +76,22 @@ dictionary. JSON paths use the ``/`` to traverse a JSON document:
     }
   }
 
-Where the deepest node could be accessed with the JSON path ``/walk/down/the/path``.
+In this document the deepest JSON path is ``/walk/down/the/path``.
 
 .. warning::
 
-	Relative reference clauses are valid! It's easy to forget the initial ``/`` of a
-	reference clause! Take ``other_doc.json#some/path`` as example. If this reference is
-	given from ``my/own/path`` then you'll be looking for ``my/own/path/some/path`` in the
-	other document!
+    Pay attention to the initial ``/`` of the reference clause! Without it, you're making
+    a reference relative to the current position. With an initial ``/`` you make a
+    reference absolute to the root of the document.
+
+.. _json_import:
 
 ============
 JSON Imports
 ============
 
 Imports are the bigger cousin of the reference. They can import multiple dictionaries from
-a common parent at the same time. Where the reference would only be able to import either
-the whole parent or a single child, the import can selectively pick children to copy as
-siblings:
+a common parent at the same time as siblings:
 
 .. code-block:: json
 
@@ -104,6 +102,7 @@ siblings:
       "C": "value"
     },
     "parent": {
+      "D": "value",
       "$import": {
         "ref": "#/target",
         "values": ["A", "C"]
@@ -129,17 +128,17 @@ Will be parsed into:
 
 .. note::
 
-	The data that you import/reference will be combined with the data that's already present
-	in the parent. The data that is already present in the parent will overwrite keys that
-	are imported. In the special case that the import and original both specify a dictionary
-	both dictionaries' keys will be merged, with again (and recursively) the original data
-	overwriting the imported data.
+	If you don't specify any :guilabel:`values` all nodes will be imported.
+
+.. note::
+
+	The same merging rules apply as to the reference.
 
 The import statement
 ====================
 
-The import statement consists of the ``$import`` key and a dictionary with 2 keys:
+The import statement consists of the :guilabel:`$import` key and a dictionary with 2 keys:
 
-* The ``ref`` key (note there's no ``$``) which will be treated as a reference statement.
-  And used to point at the import's reference target.
-* The ``value`` key which lists which keys to import from the reference target.
+* The :guilabel:`ref` key (note there's no ``$``) which will be treated as a reference
+  statement. And used to point at the import's reference target.
+* The :guilabel:`values` key which lists which keys to import from the reference target.

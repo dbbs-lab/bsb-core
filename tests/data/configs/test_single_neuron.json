@@ -1,8 +1,8 @@
 {
   "name": "DBBS Mouse cerebellum configuration v4.0",
-  "output": {
-    "format": "bsb.output.HDF5Formatter",
-    "file": "single_neuron_test.hdf5"
+  "storage": {
+    "engine": "hdf5",
+    "root": "single_neuron_test.hdf5"
   },
   "network": {
     "x": 150.0,
@@ -22,19 +22,21 @@
   },
   "cell_types": {
     "test_cell": {
-      "placement": {
-        "class": "bsb.placement.ParticlePlacement",
-        "layer": "test_layer",
-        "soma_radius": 2.5,
+      "spatial": {
+        "radius": 2.5,
         "count": 4
-      },
-      "morphology": {
-        "class": "bsb.morphologies.NoGeometry"
       },
       "plotting": {
         "display_name": "lonely cell",
         "color": "#E62214"
       }
+    }
+  },
+  "placement": {
+    "cell_placement": {
+      "cls": "bsb.placement.ParticlePlacement",
+      "partitions": ["test_layer"],
+      "cell_types": ["test_cell"]
     }
   },
   "connectivity": {

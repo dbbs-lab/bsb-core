@@ -1,6 +1,7 @@
 from . import attr, list, dict, node, root, pluggable, on, after, before
 from ..cell_types import CellType
 from . import types
+from ._attrs import _boot_nodes
 from ._make import walk_nodes
 from ._hooks import run_hook, has_hook
 from .nodes import StorageNode, NetworkNode
@@ -10,6 +11,7 @@ from ..connectivity import ConnectionStrategy
 from ..simulation import Simulation
 from ..postprocessing import PostProcessingHook
 from ..exceptions import *
+from .._util import merge_dicts
 import os, builtins
 from ..topology import (
     get_partitions,
@@ -38,8 +40,8 @@ class Configuration:
     simulations = dict(type=Simulation)
 
     @classmethod
-    def default(cls):
-        conf = cls(
+    def default(cls, **kwargs):
+        default_args = builtins.dict(
             storage={"engine": "hdf5"},
             network={"x": 200, "y": 200, "z": 200},
             partitions={},
@@ -47,7 +49,8 @@ class Configuration:
             placement={},
             connectivity={},
         )
-        conf._meta = None
+        merge_dicts(default_args, kwargs)
+        conf = cls(default_args)
         conf._parser = "json"
         conf._file = None
         return conf
@@ -64,9 +67,8 @@ class Configuration:
             p = "', '".join(p.name for p in unmanaged)
             raise UnmanagedPartitionError(f"Please make '{p}' part of a Region.")
         # Activate the scaffold property of each config node
-        for node in walk_nodes(self):
-            node.scaffold = scaffold
-            run_hook(node, "boot")
+        _boot_nodes(self, scaffold)
+        self._config_isbooted = True
 
     def _update_storage_node(self, storage):
         if self.storage.engine != storage.format:
@@ -78,4 +80,4 @@ class Configuration:
         return str(self.__tree__())
 
     def __repr__(self):
-        return super().__repr__()
+        return f"{type(self).__qualname__}({self})"

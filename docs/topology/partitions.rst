@@ -2,6 +2,8 @@
 Partitions
 ##########
 
+.. _voxel-partition:
+
 ======
 Voxels
 ======
@@ -153,6 +155,8 @@ appear in the :guilabel:`sources` attribute:
         print(vs.data.shape)
         partition = Voxels(voxels=loader)
 
+.. _data-columns:
+
 .. rubric:: Tagging the data columns with keys
 
 Instead of using the order in which the sources appear, you can add data keys to associate
@@ -207,13 +211,16 @@ a name with each column. Data columns can then be indexed as strings:
 Allen Atlas integration
 -----------------------
 
-The [Allen Brain Atlas](https://mouse.brain-map.org/) provides NRRD files and brain
+The `Allen Brain Atlas <https://mouse.brain-map.org/>`_ provides NRRD files and brain
 structure annotations; with the BSB these can be seamlessly integrated into your workflow
 using the :class:`~.voxels.AllenStructureLoader`. In Allen-speak, partitions are
 ``Structures``, each structure has an id, name and acronym. The BSB accepts any of those
 identifiers and will load the Allen Atlas data and select the structure for you. You
 can then download any Allen Atlas image as a local NRRD file, and associate it to the
-structure:
+structure, by specifying it as a source file (through :guilabel:`source` or :guilabel:`sources`).
+The Allen structure will be converted to a voxel mask, and the mask will be applied to your
+source files, thereby selecting the structure from the source files. Each source file will be
+converted into a data column on the voxelset:
 
 .. tab-set-code::
 
@@ -252,3 +259,4 @@ structure:
           voxel_size=25,
         )
         partition = Voxels(voxels=loader)
+        print("Gene expression values per voxel:", partition.voxelset.expression)

@@ -23,6 +23,10 @@ class HDF5Engine(Engine):
             other, "_root", None
         )
 
+    @property
+    def root_slug(self):
+        return os.path.relpath(self._root)
+
     def _read(self):
         return self._lock.read()
 

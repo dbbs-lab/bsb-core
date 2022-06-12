@@ -1,18 +1,20 @@
 """
-Sorry robots of the future, this is still just a quick internal stub I haven't properly
-finished.
-
-It goes ``morphology-on-file`` into ``repository`` that the ``storage`` needs to provide
-support for. Then after a placement job has placed cells for a chunk, the positions are
-sent to a ``distributor`` that is supposed to use the ``indicators`` to ask the
-``storage.morphology_repository`` which ``loaders`` are appropriate for the given
-``selectors``, then, still hopefully using just morpho metadata the  ``distributor``
-generates indices and rotations. In more complex cases the ``selector`` and
-``distributor`` can both load the morphologies but this will slow things down.
-
-In the simulation step, these (possibly dynamically modified) morphologies are passed
-to the cell model instantiators.
+Morphology module
 """
+
+# This is a note to myself, should expand into docs:
+#
+# It goes ``morphology-on-file`` into ``repository`` that the ``storage`` needs to provide
+# support for. Then after a placement job has placed cells for a chunk, the positions are
+# sent to a ``distributor`` that is supposed to use the ``indicators`` to ask the
+# ``storage.morphology_repository`` which ``loaders`` are appropriate for the given
+# ``selectors``, then, still hopefully using just morpho metadata the  ``distributor``
+# generates indices and rotations. In more complex cases the ``selector`` and
+# ``distributor`` can both load the morphologies but this will slow things down.
+#
+# In the simulation step, these (possibly dynamically modified) morphologies are passed
+# to the cell model instantiators.
+
 import abc
 import pickle
 import h5py
@@ -110,6 +112,10 @@ class MorphologySet:
 
     def _serialize_loaders(self):
         return [loader.get_meta()["name"] for loader in self._loaders]
+
+    @classmethod
+    def empty(cls):
+        return cls([], np.empty(0, dtype=int))
 
     def merge(self, other):
         merge_offset = len(self._loaders)
@@ -234,7 +240,7 @@ class SubTree:
     def properties(self):
         return self.flatten_properties()
 
-    @functools.cached_property
+    @property
     def bounds(self):
         f = self.flatten()
         if not len(f):
@@ -364,9 +370,10 @@ class SubTree:
     def _rotate(self, points, rot, center):
         if center is not None:
             points = points - center
-        rotated_points = rot.apply(points)
-        if center is not None:
+            rotated_points = rot.apply(points)
             rotated_points = rotated_points + center
+        else:
+            rotated_points = rot.apply(points)
         return rotated_points
 
     def root_rotate(self, rot):
@@ -568,7 +575,7 @@ class Morphology(SubTree):
         return self._meta
 
     def copy(self):
-        self.optimize(check=False)
+        self.optimize(force=False)
         buffers = self._shared.copy()
         roots = []
         branch_copy_map = {}
@@ -585,7 +592,7 @@ class Morphology(SubTree):
         return self.__class__(roots, shared_buffers=buffers, meta=self.meta.copy())
 
     @classmethod
-    def from_swc(cls, file, branch_class=None):
+    def from_swc(cls, file, branch_class=None, tags=None):
         """
         Create a Morphology from a file-like object.
 
@@ -600,7 +607,7 @@ class Morphology(SubTree):
                 return cls.from_swc(f, branch_class)
         if branch_class is None:
             branch_class = Branch
-        return _swc_to_morpho(cls, branch_class, file.read())
+        return _swc_to_morpho(cls, branch_class, file.read(), tags=tags)
 
     @classmethod
     def from_file(cls, path, branch_class=None):
@@ -1093,7 +1100,10 @@ def _swc_branch_dfs(adjacency, branches, node):
             node = None
 
 
-def _swc_to_morpho(cls, branch_cls, content):
+def _swc_to_morpho(cls, branch_cls, content, tags=None):
+    tag_map = {1: "soma", 2: "axon", 3: "dendrites"}
+    if tags is not None:
+        tag_map.update(tags)
     data = np.array(
         [
             swc_data
@@ -1146,10 +1156,13 @@ def _swc_to_morpho(cls, branch_cls, content):
         # the SWC tags
         tags[ptr:nptr] = node_data[:, 1]
         if len(branch_nodes) > 1:
+            # Since we add an extra point we have to copy its tag from the next point.
             tags[ptr] = tags[ptr + 1]
         branch_tags = tags[ptr:nptr]
-        # And the (empty) labels
+        # And the labels
         branch_labels = labels[ptr:nptr]
+        for v in np.unique(branch_tags):
+            branch_labels.label([tag_map.get(v, f"tag_{v}")], branch_tags == v)
         ptr = nptr
         # Use the views to construct the branch
         branch = branch_cls(branch_points, branch_radii, branch_labels)

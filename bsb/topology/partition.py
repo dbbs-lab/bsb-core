@@ -205,11 +205,6 @@ class Voxels(Partition, classmap_entry="voxels"):
         return self.voxels.get_voxelset()
 
     def to_chunks(self, chunk_size):
-        print(
-            "Thalamus as",
-            len(self.voxelset.snap_to_grid(chunk_size, unique=True)),
-            "chunks",
-        )
         return self.voxelset.snap_to_grid(chunk_size, unique=True)
 
     def chunk_to_voxels(self, chunk):
@@ -222,5 +217,5 @@ class Voxels(Partition, classmap_entry="voxels"):
         return self._map.get(chunk, VoxelSet.empty())
 
     def layout(self, boundaries):
-        # Buondaries are currently the network dimensions in JSON file
-        self.boundaries = boundaries
+        self.boundaries = boundaries.copy()
+        self.boundaries.ldc, self.boundaries.mdc = self.voxelset.bounds

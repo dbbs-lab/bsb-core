@@ -4,10 +4,11 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
 from bsb.core import Scaffold
 from bsb import config
-from bsb.config import from_json, Configuration
+from bsb.config import from_json, Configuration, _attrs
 from bsb.config import types
 from bsb.exceptions import *
 from test_setup import get_config
+from bsb.topology.region import RegionGroup
 
 
 def relative_to_tests_folder(path):
@@ -216,7 +217,7 @@ class TestConfigList(unittest.TestCase):
         self.assertEqual(int_test.l[2], 3)
         test_conf3 = {"l": [1, {}, 3]}
         with self.assertRaises(CastError):
-            TestNormal(test_conf3, TestRoot())
+            TestNormal(test_conf3, _parent=TestRoot())
         test_conf4 = {"l": [{"name": "hi"}, {}]}
         with self.assertRaises(RequirementError):
             Test(test_conf4, TestRoot())
@@ -1028,3 +1029,159 @@ class TestTreeing(unittest.TestCase):
         cfg, tree = self.bijective("eval", Test, {"a": {"statement": "[1, 2, 3]"}})
         self.assertEqual([1, 2, 3], cfg.a)
         self.assertEqual({"statement": "[1, 2, 3]"}, tree["a"])
+
+
+class TestDictScripting(unittest.TestCase):
+    def test_add(self):
+        netw = Scaffold()
+        cfg = netw.configuration
+        ct = cfg.cell_types.add("test", spatial=dict(radius=2))
+        # Check that the dict operation completed succesfully
+        self.assertEqual(1, len(cfg.cell_types), "add failed")
+        self.assertEqual(["test"], list(cfg.cell_types.keys()), "wrong key")
+        self.assertEqual("test", ct.name, "wrong name")
+        self.assertEqual("{root}.cell_types.test", ct.get_node_name(), "wrong node name")
+        # Check that the `scaffold` attribute gets set.
+        self.assertIs(ct.scaffold, netw, "not booted")
+        with self.assertRaises(KeyError):
+            # Check that `add` doesn't overwrite keys
+            cfg.cell_types.add("test")
+
+    def test_ref(self):
+        # Check that references get resolved when dynamically added.
+        cfg = Configuration.default()
+        reg = cfg.regions.add("ello")
+        part = cfg.partitions.add("test", region="ello", thickness=10)
+        self.assertIs(reg, part.region, "reference not resolved")
+
+    def test_clear(self):
+        netw = Scaffold()
+        netw.regions.add("ello")
+        netw.regions.add("ello2")
+        r3 = netw.regions.add("ello3")
+        self.assertEqual(RegionGroup, type(r3), "expected group")
+        self.assertEqual(3, len(netw.regions), "not added")
+        self.assertIs(netw, r3.scaffold, "scaffold not set")
+        netw.regions.clear()
+        self.assertEqual(0, len(netw.regions), "not cleared")
+        # Check that the objects aren't associated with the config tree anymore
+        self.assertFalse(hasattr(r3, "scaffold"), "scaffold not cleared")
+        self.assertIs(r3, _attrs._get_root(r3), "chain not cleared")
+
+    def test_pop(self):
+        netw = Scaffold()
+        netw.regions.add("ello")
+        netw.regions.add("ello2")
+        r3 = netw.regions.add("ello3")
+        self.assertEqual(RegionGroup, type(r3), "expected group")
+        self.assertEqual(3, len(netw.regions), "not added")
+        self.assertIs(netw, r3.scaffold, "scaffold not set")
+        popped = netw.regions.pop("ello3")
+        self.assertIs(r3, popped, "weird item popped")
+        self.assertEqual(2, len(netw.regions), "should be 2 items left")
+        # Check that the objects aren't associated with the config tree anymore
+        self.assertFalse(hasattr(r3, "scaffold"), "scaffold not cleared")
+        self.assertIs(r3, _attrs._get_root(r3), "chain not cleared")
+
+    def test_popitem(self):
+        netw = Scaffold()
+        netw.regions.add("ello")
+        netw.regions.add("ello2")
+        r3 = netw.regions.add("ello3")
+        self.assertEqual(RegionGroup, type(r3), "expected group")
+        self.assertEqual(3, len(netw.regions), "not added")
+        self.assertIs(netw, r3.scaffold, "scaffold not set")
+        key, popped = netw.regions.popitem()
+        self.assertIs(r3, popped, "weird item popped")
+        self.assertEqual(2, len(netw.regions), "should be 2 items left")
+        # Check that the objects aren't associated with the config tree anymore
+        self.assertFalse(hasattr(r3, "scaffold"), "scaffold not cleared")
+        self.assertIs(r3, _attrs._get_root(r3), "chain not cleared")
+
+    def test_setdefault(self):
+        netw = Scaffold()
+        default = netw.regions.setdefault("ello", dict())
+        self.assertEqual(RegionGroup, type(default), "expected group")
+        newer = netw.regions.setdefault("ello", dict())
+        self.assertIs(default, newer, "default not respected")
+
+    def test_ior(self):
+        n1 = Scaffold()
+        n2 = Scaffold()
+        n1.regions.add("test")
+        n2.regions.add("test2")
+        n2.regions.add("test", {"cls": "stack"})
+        n1.regions |= n2.regions
+        self.assertEqual(["test", "test2"], list(n1.regions.keys()), "merge right failed")
+        self.assertEqual("stack", n1.regions.test.cls, "merge right failed")
+
+
+class TestListScripting(unittest.TestCase):
+    def setUp(self):
+        self.netw = Scaffold()
+        self.list = self.netw.cell_types.add(
+            "test", spatial=dict(radius=2, morphologies=[])
+        ).spatial.morphologies
+
+    def assertList(self, len_, prev=[]):
+        self.assertEqual(len_, len(self.list), f"expected {len_} elements")
+        for i in range(len_):
+            with self.subTest(i=i):
+                item = self.list[i]
+                self.assertEqual(
+                    i,
+                    item._config_index,
+                    f"incorrect indices: {[v._config_index for v in self.list]}",
+                )
+                self.assertEqual("NameSelector", type(item).__name__, "cast failed")
+                self.assertEqual(self.netw, item.scaffold, "scaffold assignment failed")
+        for i, elem in enumerate(prev):
+            with self.subTest(i=i):
+                self.assertFalse(hasattr(elem, "scaffold"), "scaffold not cleared")
+                self.assertEqual(None, elem._config_index, "index not removed")
+
+    def test_indexing(self):
+        self.list[:] = [{"names": []}]
+        self.assertList(1)
+        prev = list(self.list)
+        self.list[:] = [{"names": []}] * 5
+        self.assertList(5, prev)
+        prev = [self.list[3]]
+        self.list[3] = {"names": ["ey"]}
+        self.assertList(5, prev)
+        self.assertEqual(["ey"], self.list[3].names, "slice replace failed")
+        prev = list(self.list[1:4])
+        self.list[1:4] = [{"names": []}]
+        self.assertList(3, prev)
+        # self.assertEqual("{removed}", prev[0].get_node_name(), 'removed node name failed')
+
+    def test_append(self):
+        item = self.list.append({"names": []})
+        self.assertEqual("NameSelector", type(item).__name__, "Expected cast to default.")
+        self.assertEqual(1, len(self.list), "append failed")
+        self.assertEqual(0, item._config_index, "weird index")
+        with self.assertRaises(RequirementError):
+            item = self.list.append({})
+        self.assertEqual(1, len(self.list), "append should have failed")
+
+    def test_insert(self):
+        self.list[:] = [{"names": []}] * 3
+        item = self.list.insert(1, {"names": ["ey"]})
+        self.assertList(4)
+        self.assertEqual(["ey"], self.list[1].names, "inserted names incorrect")
+        with self.assertRaises(RequirementError):
+            self.list.insert(0, {})
+
+    def test_order(self):
+        self.list[:] = [{"names": []}] * 3
+        # No default sorting mechanism for nodes. Which makes sense, it's all insertion
+        # order based.
+        with self.assertRaises(TypeError):
+            self.list.sort()
+        self.list.reverse()
+        self.assertList(3)
+
+    def test_pop(self):
+        self.list[:] = [{"names": []}] * 3
+        item = self.list.pop()
+        self.assertList(2)

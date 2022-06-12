@@ -3,7 +3,7 @@
   {
     "partitions": {
       "my_partition": {
-        "cls": "layer",
+        "type": "layer",
         "thickness": 100.0,
         "stack_index": 0
       }

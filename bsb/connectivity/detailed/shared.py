@@ -2,6 +2,8 @@ from itertools import chain
 from functools import reduce, cache
 import numpy as np
 from ...storage import Chunk
+from ...reporting import warn
+from ...exceptions import *
 
 
 class Intersectional:
@@ -25,6 +27,10 @@ class Intersectional:
                 chain.from_iterable(ps.get_all_chunks() for ps in post_ps)
             )
         if not self._occ_chunks:
+            warn(
+                f"No {', '.join(ps.tag for ps in post_ps)} were placed, skipping {self.name}",
+                ConnectivityWarning,
+            )
             return []
         else:
             size = next(iter(self._occ_chunks)).dimensions
@@ -38,6 +44,9 @@ class Intersectional:
             types = self.postsynaptic.cell_types
         ps_list = [ct.get_placement_set() for ct in types]
         ms_list = [ps.load_morphologies() for ps in ps_list]
+        if not sum(map(len, ms_list)):
+            # No cells placed, return smallest possible RoI.
+            return [np.array([0, 0, 0]), np.array([0, 0, 0])]
         metas = list(chain.from_iterable(ms.iter_meta(unique=True) for ms in ms_list))
         # TODO: Combine morphology extension information with PS rotation information.
         # Get the chunk coordinates of the boundaries of this chunk convoluted with the
@@ -53,6 +62,5 @@ class Intersectional:
         ]
         for ctype, cset in candidate_coll.placement.items():
             box_tree = cset.load_box_tree()
-            print("Target has,", len(box_tree), "boxes")
             for ttype, tset, tboxes in target_cache:
                 yield (tset, cset, box_tree.query(tboxes))

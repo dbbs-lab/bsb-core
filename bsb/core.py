@@ -1,7 +1,7 @@
-from .statistics import Statistics
 from .plotting import plot_network
 import numpy as np
 import time
+import os
 import itertools
 from warnings import warn as std_warn
 from .placement import PlacementStrategy
@@ -28,10 +28,10 @@ _cfg_props = (
 
 def _config_property(name):
     def fget(self):
-        return self.configuration[name]
+        return getattr(self.configuration, name)
 
     def fset(self, value):
-        self.configuration[name] = value
+        setattr(self.configuration, name, value)
 
     prop = property(fget)
     return prop.setter(fset)
@@ -79,6 +79,9 @@ class Scaffold:
         self._initialise_MPI()
         self._bootstrap(config, storage, clear=clear)
 
+    def __contains__(self, component):
+        return getattr(component, "scaffold", None) is self
+
     def _initialise_MPI(self):
         # Delegate initialization of MPI to the reporting module. Which is weird, bu
         # required to make NEURON play nice. Check the results here and copy them over.
@@ -101,7 +104,7 @@ class Scaffold:
         if config is None:
             # No config given, check for linked configs, or stored configs, otherwise
             # make default config.
-            linked = self._get_linked_config()
+            linked = self._get_linked_config(storage)
             if linked:
                 report(f"Pulling configuration from linked {linked}.", level=2)
                 config = linked
@@ -121,6 +124,9 @@ class Scaffold:
         self._configuration = config
         # Make sure the storage config node reflects the storage we are using
         config._update_storage_node(storage)
+        # Give the scaffold access to the unitialized storage object (for use during
+        # config bootstrapping).
+        self._storage = storage
         # First, the scaffold is passed to each config node, and their boot methods called.
         self._configuration._bootstrap(self)
         # Then, `storage` is initted for the scaffold, and `config` is stored.
@@ -732,14 +738,27 @@ class Scaffold:
 
         return p_contrib, c_contrib
 
-    def _get_linked_config(self):
+    def _get_linked_config(self, storage=None):
         import bsb.config
 
-        link = self._get_link("config")
+        link = self._get_link_cfg(storage)
         if link is None:
             return None
+        elif link.type == "auto":
+            try:
+                cfg = storage.load_active_config()
+            except Exception as e:
+                return None
+            else:
+                path = cfg._meta.get("path", None)
+                if path and os.path.exists(path):
+                    with open(path, "r") as f:
+                        cfg = bsb.config.from_file(f)
+                        return cfg
+                else:
+                    return None
         elif link.type != "sys":
-            raise ScaffoldError("Configuration link can only be a 'sys' link.")
+            raise ScaffoldError("Configuration link can only be 'auto' or 'sys' link.")
         elif link.exists():
             stream = link.get()
             return bsb.config.from_file(stream)
@@ -759,27 +778,35 @@ class Scaffold:
         if link.exists():
             try:
                 mr = Storage("hdf5", link.path).morphologies
-                loaders = mr.all()
+                all = mr.all()
             except:
                 raise ScaffoldError("Morphology repository link must be HDF5 repository.")
             else:
-                report(f"Pulling morphologies from linked {link}.", level=2)
-                for loader in loaders:
-                    morpho = loader.load()
-                    self.morphologies.save(loader.name, morpho, overwrite=True)
+                report(f"Pulling {len(all)} morphologies from linked {link}.", level=2)
+                for loader in all:
+                    self.morphologies.save(loader.name, loader.load(), overwrite=True)
 
-    def _get_link(self, name):
+    def _get_link(self, name, subcat=None):
         import bsb.option
 
         path, content = bsb.option._pyproject_bsb()
         links = content.get("links", {})
+        if subcat is not None:
+            links = links.get(subcat, {})
         link = links.get(name, None)
-        if link:
+        if link == "auto":
+            # Send back a dummy object whose `type` attribute is "auto"
+            return type("autolink", (), {"type": "auto"})()
+        elif link:
             path = path.parent if path else os.getcwd()
             files = None if self.storage is None else self.files
             return _storutil.link(files, path, *link)
         else:
             return None
+
+    def _get_link_cfg(self, storage):
+        subcat = storage.root_slug if storage is not None else None
+        return self._get_link("config", subcat)
 
 
 class ReportListener:

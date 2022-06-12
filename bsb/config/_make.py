@@ -1,11 +1,16 @@
 from ..exceptions import *
 from .. import exceptions
 from ..reporting import warn
-import inspect, re, sys, itertools, warnings, errr
-from functools import wraps
 from ._hooks import overrides
+from functools import wraps
+import re
+import itertools
+import warnings
+import errr
 import importlib
 import inspect
+import sys
+import os
 
 
 def make_metaclass(cls):
@@ -133,7 +138,11 @@ def compile_new(node_cls, dynamic=False, pluggable=False, root=False):
         ncls = class_determinant(_cls, kwargs)
         instance = object.__new__(ncls)
         _set_pk(instance, _parent, _key)
+        if root:
+            instance._config_isfinished = False
         instance.__post_new__(**kwargs)
+        if _cls is not ncls:
+            instance.__init__(**kwargs)
         return instance
 
     return __new__
@@ -206,13 +215,18 @@ def compile_postnew(cls, root=False):
 
 def wrap_root_postnew(post_new):
     def __post_new__(self, *args, _parent=None, _key=None, **kwargs):
-        with warnings.catch_warnings(record=True) as log:
-            try:
-                post_new(self, *args, _parent=None, _key=None, **kwargs)
-            except (CastError, RequirementError) as e:
-                _bubble_up_exc(e)
-            _resolve_references(self)
-        _bubble_up_warnings(log)
+        if not hasattr(self, "_meta"):
+            self._meta = {"path": None, "produced": True}
+        try:
+            with warnings.catch_warnings(record=True) as log:
+                try:
+                    post_new(self, *args, _parent=None, _key=None, **kwargs)
+                except (CastError, RequirementError) as e:
+                    _bubble_up_exc(e)
+                self._config_isfinished = True
+                _resolve_references(self)
+        finally:
+            _bubble_up_warnings(log)
 
     return __post_new__
 
@@ -235,7 +249,7 @@ def _bubble_up_warnings(log):
             attr = f".{m.attr.attr_name}" if hasattr(m, "attr") else ""
             warn(str(m) + " in " + m.node.get_node_name() + attr, type(m))
         else:
-            warn(str(m), w)
+            warn(str(m), w.category)
 
 
 def _get_class_config_attrs(cls):
@@ -255,7 +269,10 @@ def _get_node_name(self):
     if hasattr(self, "_config_key"):
         name = "." + str(self._config_key)
     if hasattr(self, "_config_index"):
-        name = "[" + str(self._config_index) + "]"
+        if self._config_index is None:
+            name = "{removed}"
+        else:
+            name = "[" + str(self._config_index) + "]"
     return self._config_parent.get_node_name() + name
 
 
@@ -331,8 +348,7 @@ def _get_pluggable_class(node_cls, kwargs):
     plugin_label = node_cls._config_plugin_name or node_cls.__name__
     if node_cls._config_plugin_key not in kwargs:
         raise CastError(
-            "Pluggable node '{}' must contain a '{}' attribute to select a {}.".format(
-                parent.get_node_name() + "." + key,
+            "Pluggable node must contain a '{}' attribute to select a {}".format(
                 node_cls._config_plugin_key,
                 plugin_label,
             )
@@ -387,7 +403,13 @@ def _search_module_path(class_name, module_path, cfg_classname):
 
 
 def _get_module_class(class_name, module_name, cfg_classname):
-    module_ref = importlib.import_module(module_name)
+    sys.path.append(os.getcwd())
+    try:
+        module_ref = importlib.import_module(module_name)
+    finally:
+        tmp = list(reversed(sys.path))
+        tmp.remove(os.getcwd())
+        sys.path = list(reversed(tmp))
     module_dict = module_ref.__dict__
     if not class_name in module_dict:
         raise DynamicClassNotFoundError("Class not found: " + cfg_classname)
@@ -487,13 +509,16 @@ def walk_node_values(start_node):
         yield node, attr.attr_name, attr.__get__(node, node.__class__)
 
 
-def _resolve_references(root):
+def _resolve_references(root, start=None, /):
     from ._attrs import _setattr
 
-    for node, attr in walk_node_attributes(root):
-        if hasattr(attr, "__ref__"):
-            ref = attr.__ref__(node, root)
-            _setattr(node, attr.attr_name, ref)
+    if start is None:
+        start = root
+    if root._config_isfinished:
+        for node, attr in walk_node_attributes(root):
+            if hasattr(attr, "__ref__"):
+                ref = attr.__ref__(node, root)
+                _setattr(node, attr.attr_name, ref)
 
 
 class WalkIterDescriptor:

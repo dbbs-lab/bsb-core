@@ -1,3 +1,34 @@
+# 4.0.0 - Too much to list
+
+## 4.0.0a8
+
+* Improved storage interface documentation.
+* Fixed local modules not being found by config (#386).
+* Fixed inheritance and signatures of `TouchDetector`.
+* Documented cell types (#424).
+* Fixed dynamic node initialization (#425).
+* Fixed config dictionary copying (#432).
+* Added `MorphologySet.empty` (#426).
+* Fixed morphology property loading from MR (#434).
+* Fixed dissapearance of warnings when config loading errors out (#440).
+* Allow wildcards in `by_name` morphology selector.
+* Added copy button to documentation code blocks (#446).
+* Warn and skip connections when no cells are placed (#442).
+* Fixed 2d indexing of VoxelData class (#437).
+* Load meta dictionary of morphologies (#435).
+* Fixed error with queued jobs when dependency isn't queued (#445).
+
+## 4.0.0a7
+
+### Breaking changes
+
+* `morphological` changed to `morphologies`.
+* `geometrical` changed to `geometry`.
+
+# 3.10 - Arbor
+
+* Added a very basic Arbor adapter
+
 # 3.9
 
 ## 3.9.0 - Partial (re)connecting, network merging and repeated NEST simulations

@@ -1,96 +1,45 @@
-########
-Overview
-########
+#####
+Nodes
+#####
 
-====================
-Role in the scaffold
-====================
+.. _config_nodes:
 
-Configuration plays a key role in the scaffold builder. It is the main mechanism to
-describe a model. A scaffold model can be initialized from a Configuration object, either
-from a standalone file or provided by the :class:`~.storage.Storage`. In both
-cases the raw configuration string is parsed into a Python tree of dictionaries and lists.
-This configuration tree is then passed to the Configuration class for :ref:`casting
-<configuration-casting>`. How a tree is to be cast into a Configuration object can be
-described using configuration unit syntax.
+Nodes are the recursive backbone backbone of the Configuration object. Nodes can contain
+other nodes under their attributes and in that way recurse deeper into the configuration.
+Nodes can also be used as types in dictionaries or lists.
 
-.. _configuration-units:
-
-===================
-Configuration units
-===================
-
-When the configuration tree is being cast into a Configuration object there are 5 key
-units:
-
-- A **configuration attribute** represented by a key-value pair.
-- A **configuration reference** points to another location in the configuration.
-- A **configuration node** represented by a dictionary.
-- A **configuration dictionary** represented by a dictionary where each key-value pair
-  represents another configuration unit.
-- A **configuration list** represented by a list where each value represents another
-  configuration unit.
-
-.. note::
-
-  If a list or dictionary contains regular values instead of other configuration units,
-  the :func:`types.list <.config.types.list>` and :func:`types.dict
-  <.config.types.dict>` are used instead of the :func:`config.list <.config.list>` and
-  :func:`config.dict <.config.dict>`.
-
-Configuration nodes
-===================
-
-A node in the configuration can be described by creating a class and applying the
-``@config.node`` decorator to it. This decorator will look for ``config.attr`` and other
-configuration unit constructors on the class to create the configuration information on
-the class. This node class can then be used in the type argument of another configuration
-attribute, dictionary, or list:
+Node classes contain the description of a node type in the configuration. Here's an example
+to illustrate:
 
 .. code-block:: python
 
   from bsb import config
 
   @config.node
-  class CandyNode:
-    name = config.attr(type=str, required=True)
-    sweetness = config.attr(type=float, default=3.0)
+  class CellType:
+    name = config.attr(key=True)
+    color = config.attr()
+    radius = config.attr(type=float, required=True)
 
-This candy node class now represents the following JSON dictionary:
-
-.. code-block:: json
-
-  {
-    "name": "Lollypop",
-    "sweetness": 12.0
-  }
-
-You will mainly design configuration nodes and other configuration logic when designing
-custom strategies.
-
-Dynamic nodes
--------------
-
-An important part to the interfacing system of the scaffold builder are custom strategies.
-Any user can implement a simple functional interface such as the
-:class:`~.placement.strategy.PlacementStrategy` to design a new way of placing cells.
-Placement configuration nodes can then use these strategies by specifying the
-:guilabel:`cls` attribute:
+This node class describes the following configuration:
 
 .. code-block:: json
 
   {
-    "my_cell_type": {
-      "placement": {
-        "cls": "my_package.MyStrategy"
-      }
+    "cell_type_name": {
+      "radius": 13.0,
+      "color": "red"
     }
   }
 
-This dynamic loading is achieved by creating a node class with the ``@config.dynamic``
-decorator instead of the node decorator. This will add a configuration attribute ``cls``
-to the node class and use the value of this class to create an instance of another node
-class, provided that the latter inherits from the former, enforcing the interface.
+Dynamic nodes
+=============
+
+Dynamic nodes are those whose node class is configurable from inside the configuration
+node itself. This is done through the use of the ``@dynamic`` decorator instead of the
+node decorator. This will automatically create a required ``cls`` attribute.
+
+The value that is given to this attribute will be used to load the class of the node:
 
 .. code-block:: python
 
@@ -100,10 +49,165 @@ class, provided that the latter inherits from the former, enforcing the interfac
     def place(self):
       pass
 
+And in the configuration:
+
+.. code-block:: json
+
+  {
+    "cls": "bsb.placement.LayeredRandomWalk"
+  }
+
+This would import the ``bsb.placement`` module and use its ``LayeredRandomWalk`` class to
+further process the node.
+
+.. note::
+
+	The child class must inherit from the dynamic node class.
+
+
+Configuring the dynamic attribute
+---------------------------------
+
+The same keyword arguments can be passed to the ``dynamic`` decorator as to regular
+`attributes <config_attrs>`_ to specify the properties of the dynamic attribute; As an
+example we specify a new attribute name with ``attr_name="example_type"``, allow the
+dynamic attribute to be omitted ``required=False``, and specify a fallback class with
+``default="Example"``:
+
+.. code-block:: python
+
+  @config.dynamic(attr_name="example_type", required=False, default="Example")
+  class Example:
+    pass
+
+  @config.node
+  class Explicit(Example):
+    purpose = config.attr(required=True)
+
+``Example`` can then be defined as either:
+
+.. code-block:: json
+
+  {
+    "example_type": "Explicit",
+    "purpose": "show explicit dynamic node"
+  }
+
+or, because of the ``default`` kwarg, ``Example`` can be implicitly used by omitting the
+dynamic attribute:
+
+.. code-block:: json
+
+  {
+    "purpose": "show implicit fallback"
+  }
+
+.. _classmap:
+
+Class maps
+----------
+
+A preset map of shorter entries can be given to be mapped to an absolute or
+relative class path, or a class object:
+
+.. code-block:: python
+
+   @dynamic(classmap={"short": "pkg.with.a.long.name.DynClass"})
+   class Example:
+       pass
+
+If ``short`` is used the dynamic class will resolve to ``pkg.with.a.long.name.DynClass``.
+
+Automatic class maps
+~~~~~~~~~~~~~~~~~~~~
+
+Automatic class maps can be generated by setting the ``auto_classmap`` keyword argument.
+Child classes can then register themselves in the classmap of the parent by providing the
+``classmap_entry`` keyword argument in their class definition argument list.
+
+.. code-block:: python
+
+  @dynamic(auto_classmap=True)
+  class Example:
+    pass
+
+  class MappedChild(Example, classmap_entry="short"):
+    pass
+
+This will generate a mapping from ``short`` to the ``my.module.path.MappedChild`` class.
+
+If the base class is not supposed to be abstract, it can be added to the
+classmap as well:
+
+.. code-block:: python
+
+  @dynamic(auto_classmap=True, classmap_entry="self")
+  class Example:
+    pass
+
+  class MappedChild(Example, classmap_entry="short"):
+    pass
+
+
+Root node
+=========
+
+The root node is the Configuration object and is at the basis of the tree of nodes.
+
+Pluggable nodes
+===============
+
+A part of your configuration file might be using plugins, these plugins can behave quite
+different from eachother and forcing them all to use the same configuration might hinder
+their function or cause friction for users to configure them properly. To solve this parts
+of the configuration are *pluggable*. This means that what needs to be configured in the
+node can be determined by the plugin that you select for it. Homogeneity can be enforced
+by defining *slots*. If a slot attribute is defined inside of a then the plugin must
+provide an attribute with the same name.
+
+.. note::
+
+  	Currently the provided attribute slots enforce just the presence, not any kind of
+  	inheritance or deeper inspection. It's up to a plugin author to understand the purpose
+  	of the slot and to comply with its intentions.
+
+Consider the following example:
+
+.. code-block:: python
+
+  import bsb.plugins, bsb.config
+
+  @bsb.config.pluggable(key="plugin", plugin_name="puppy generator")
+  class PluginNode:
+    @classmethod
+    def __plugins__(cls):
+        if not hasattr(cls, "_plugins"):
+            cls._plugins = bsb.plugins.discover("puppy_generators")
+        return cls._plugins
+
+.. code-block:: json
+
+  {
+    "plugin": "labradoodle",
+    "labrador_percentage": 110,
+    "poodle_percentage": 60
+  }
+
+The decorator argument ``key`` determines which attribute will be read to find out which
+plugin the user wants to configure. The class method ``__plugins__`` will be used to
+fetch the plugins every time a plugin is configured (usually finding these plugins isn't
+that fast so caching them is recommended). The returned plugin objects should be
+configuration node classes. These classes will then be used to further handle the given
+configuration.
+
+.. _config_attrs:
+
 Configuration attributes
 ========================
 
-An attribute can refer to a singular value of a certain type, or to another node:
+An attribute can refer to a singular value of a certain type, a dict, list, reference, or
+to a deeper node. You can use the :func:`config.attr <.config.attr>` in node decorated
+classes to define your attribute:
 
 .. code-block:: python
 
@@ -123,6 +227,8 @@ An attribute can refer to a singular value of a certain type, or to another node
       "sweetness": 4.5
     }
   }
+
+.. _config_dict:
 
 Configuration dictionaries
 ==========================
@@ -165,6 +271,8 @@ Items in configuration dictionaries can be accessed using dot notation or indexi
 Using the ``key`` keyword argument on a configuration attribute will pass the key in the
 dictionary to the attribute so that ``inventory.candies.Lollypop.name == "Lollypop"``.
 
+.. _config_list:
+
 Configuration lists
 ===================
 
@@ -199,6 +307,8 @@ list of values use the :func:`types.list <.config.types.list>` syntax instead.
       }
     ]
   }
+
+.. _config_ref:
 
 Configuration references
 ========================
@@ -388,10 +498,8 @@ descriptor for the population attribute and define a ``__populate__`` method on 
 
 todo: Mention ``pop_unique``
 
-
 .. _configuration-casting:
 
-=======
 Casting
 =======
 
