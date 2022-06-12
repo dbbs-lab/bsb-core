@@ -1,4 +1,3 @@
-from .statistics import Statistics
 from .plotting import plot_network
 import numpy as np
 import time
