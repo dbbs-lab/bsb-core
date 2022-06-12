@@ -13,7 +13,7 @@
     "test_region": {
       "children": ["test_layer"]
     }
-  }
+  },
   "partitions": {
     "test_layer": {
       "type": "layer",
