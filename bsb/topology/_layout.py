@@ -3,6 +3,13 @@ import numpy as np
 
 
 class Layout:
+    """
+    Container class for all types of partition data. The layout swaps the data of the
+    partition with temporary layout associated data, and tries out experimental changes
+    to the partition data, if the layout process fails, the original partition data is
+    reinstated.
+    """
+
     def __init__(self, data, owner=None, children=None, frozen=False):
         if children is None:
             children = []
@@ -18,6 +25,14 @@ class Layout:
     @property
     def children(self):
         return self._children
+
+    def copy(self):
+        return Layout(
+            data=self._data.copy(),
+            owner=self._owner,
+            children=self._children,
+            frozen=self._frozen,
+        )
 
     def accept(self):
         self.swap()
