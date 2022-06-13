@@ -156,24 +156,24 @@
   },
   "placement": {
     "granular_layer_innervation": {
-      "cls": "bsb.placement.Entities",
+      "strategy": "bsb.placement.Entities",
       "partitions": ["granular_layer"],
       "cell_types": ["mossy_fibers"]
     },
     "granular_layer_placement": {
-      "cls": "bsb.placement.ParticlePlacement",
+      "strategy": "bsb.placement.ParticlePlacement",
       "partitions": ["granular_layer"],
       "cell_types": ["granule_cell", "golgi_cell", "glomerulus"]
     },
     "purkinje_layer_placement": {
-      "cls": "bsb.placement.ParallelArrayPlacement",
+      "strategy": "bsb.placement.ParallelArrayPlacement",
       "partitions": ["purkinje_layer"],
       "cell_types": ["purkinje_cell"],
       "spacing_x": 130.0,
       "angle": 70.0
     },
     "molecular_layer_placement": {
-      "cls": "bsb.placement.ParticlePlacement",
+      "strategy": "bsb.placement.ParticlePlacement",
       "partitions": ["b_molecular_layer", "t_molecular_layer"],
       "cell_types": ["stellate_cell", "basket_cell"],
       "restrict": {
@@ -182,25 +182,25 @@
       }
     },
     "dcn_placement": {
-      "cls": "bsb.placement.ParticlePlacement",
+      "strategy": "bsb.placement.ParticlePlacement",
       "partitions": ["dcn_layer"],
       "cell_types": ["dcn_cell"]
     },
     "dcn_satellite_placement": {
-      "cls": "bsb.placement.Satellite",
+      "strategy": "bsb.placement.Satellite",
       "cell_types": ["dcn_interneuron"],
       "planet_types": ["dcn_cell"],
       "per_planet": 1.0
     },
     "io_layer_placement": {
-      "cls": "bsb.placement.ParticlePlacement",
+      "strategy": "bsb.placement.ParticlePlacement",
       "partitions": ["io_layer"],
       "cell_types": ["io_cell"]
     }
   },
   "connectivity": {
     "io_to_dcn": {
-      "cls": "bsb.connectivity.AllToAll",
+      "strategy": "bsb.connectivity.AllToAll",
       "presynaptic": {
         "cell_types": ["io_cell"],
         "compartments": ["axon"],

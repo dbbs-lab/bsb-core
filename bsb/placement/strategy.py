@@ -12,7 +12,7 @@ import numpy as np
 import numpy as np, os
 
 
-@config.dynamic
+@config.dynamic(attr_name="strategy", required=True)
 class Distributor(abc.ABC):
     @abc.abstractmethod
     def distribute(self, partitions, indicator, positions):
@@ -31,7 +31,9 @@ class Distributor(abc.ABC):
         pass
 
 
-@config.dynamic(required=False, default="random", auto_classmap=True)
+@config.dynamic(
+    attr_name="strategy", required=False, default="random", auto_classmap=True
+)
 class MorphologyDistributor(Distributor):
     @abc.abstractmethod
     def distribute(self, partitions, indicator, positions):
@@ -58,7 +60,7 @@ class RandomMorphologies(MorphologyDistributor, classmap_entry="random"):
 
       { "placement": { "place_XY": {
         "distribute": {
-            "morphologies": {"cls": "random"}
+            "morphologies": {"strategy": "random"}
         }
       }}}
     """
@@ -79,7 +81,7 @@ class RandomMorphologies(MorphologyDistributor, classmap_entry="random"):
         return MorphologySet(loaders, ids)
 
 
-@config.dynamic(required=False, default="none", auto_classmap=True)
+@config.dynamic(attr_name="strategy", required=False, default="none", auto_classmap=True)
 class RotationDistributor(Distributor):
     """
     Rotates everything by nothing!
@@ -127,7 +129,7 @@ class DistributorsNode:
         return distributor.distribute(partitions, indicator, positions)
 
 
-@config.dynamic
+@config.dynamic(attr_name="strategy", required=True)
 class PlacementStrategy(abc.ABC, SortableByAfter):
     """
     Quintessential interface of the placement module. Each placement strategy defines an

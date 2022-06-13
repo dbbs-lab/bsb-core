@@ -40,7 +40,7 @@ def single_layer_placement(offset=[0.0, 0.0, 0.0]):
     network.cell_types["dud"] = dud_cell
     dud = PlacementDud(
         name="dud",
-        cls="PlacementDud",
+        strategy="PlacementDud",
         partitions=[part],
         cell_types=[dud_cell],
         overrides={"dud": {}},
@@ -217,7 +217,7 @@ class TestPlacementStrategies(unittest.TestCase):
         cfg.storage.root = "random_placement.hdf5"
         network = Scaffold(cfg)
         cfg.placement["test_placement"] = dict(
-            cls="bsb.placement.RandomPlacement",
+            strategy="bsb.placement.RandomPlacement",
             cell_types=["test_cell"],
             partitions=["test_layer"],
         )
@@ -236,7 +236,7 @@ class TestVoxelDensities(unittest.TestCase):
             partitions=dict(test_part=dict(type="test")),
             placement=dict(
                 voxel_density=dict(
-                    cls="bsb.placement.ParticlePlacement",
+                    strategy="bsb.placement.ParticlePlacement",
                     partitions=["test_part"],
                     cell_types=["test_cell"],
                 )

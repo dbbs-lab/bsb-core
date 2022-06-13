@@ -32,9 +32,12 @@ def on(hook, cls, essential=False, before=False):
     :type hook: str
     :param cls: Class to hook.
     :type cls: type
-    :param essential: If the hook is essential, it will always be executed even in child classes that override the hook. Essential hooks are only lost if the method on ``cls`` is replaced.
+    :param essential: If the hook is essential, it will always be executed even in child
+      classes that override the hook. Essential hooks are only lost if the method on
+      ``cls`` is replaced.
     :type essential: bool
-    :param before: If ``before`` the hook is executed before the method, otherwise afterwards.
+    :param before: If ``before`` the hook is executed before the method, otherwise
+      afterwards.
     :type before: bool
     """
     if essential:
@@ -50,7 +53,9 @@ def after(hook, cls, essential=False):
     :type hook: str
     :param cls: Class to hook.
     :type cls: type
-    :param essential: If the hook is essential, it will always be executed even in child classes that override the hook. Essential hooks are only lost if the method on ``cls`` is replaced.
+    :param essential: If the hook is essential, it will always be executed even in child
+      classes that override the hook. Essential hooks are only lost if the method on
+      ``cls`` is replaced.
     :type essential: bool
     """
     return on(hook, cls, essential=essential, before=False)
@@ -64,7 +69,9 @@ def before(hook, cls, essential=False):
     :type hook: str
     :param cls: Class to hook.
     :type cls: type
-    :param essential: If the hook is essential, it will always be executed even in child classes that override the hook. Essential hooks are only lost if the method on ``cls`` is replaced.
+    :param essential: If the hook is essential, it will always be executed even in child
+      classes that override the hook. Essential hooks are only lost if the method on
+      ``cls`` is replaced.
     :type essential: bool
     """
     return on(hook, cls, essential=essential, before=True)

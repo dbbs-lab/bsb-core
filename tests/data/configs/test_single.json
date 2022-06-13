@@ -33,7 +33,7 @@
   },
   "placement": {
       "test_placement": {
-        "cls": "bsb.placement.ParticlePlacement",
+        "strategy": "bsb.placement.ParticlePlacement",
         "partitions": ["test_layer"],
         "cell_types": ["test_cell"]
       }
