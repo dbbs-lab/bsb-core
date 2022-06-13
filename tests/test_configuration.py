@@ -1185,3 +1185,12 @@ class TestListScripting(unittest.TestCase):
         self.list[:] = [{"names": []}] * 3
         item = self.list.pop()
         self.assertList(2)
+
+
+class TestScripting(unittest.TestCase):
+    def test_booted_root(self):
+        cfg = Configuration.default()
+        self.assertIsNone(_attrs._booted_root(cfg), "shouldnt be booted yet")
+        self.assertIsNone(_attrs._booted_root(cfg.partitions), "shouldnt be booted yet")
+        Scaffold(cfg)
+        self.assertIsNotNone(_attrs._booted_root(cfg), "now it should be booted")
