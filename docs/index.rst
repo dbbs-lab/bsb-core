@@ -58,6 +58,8 @@ and explicit code understandable and reusable by your peers.
    usage/getting-started
    usage/getting-started-morpho
    usage/projects
+   guides/toc
+   examples/toc
 
 .. toctree::
    :maxdepth: 2
@@ -109,18 +111,6 @@ and explicit code understandable and reusable by your peers.
    bsb/modules
    genindex
    py-modindex
-
-.. _all-guides:
-
-.. toctree::
-  :maxdepth: 1
-  :caption: User Guides
-
-  guides/components
-  guides/connectivity
-  guides/connection-strategies
-  guides/packaging
-  examples/toc
 
 .. toctree::
   :maxdepth: 2
