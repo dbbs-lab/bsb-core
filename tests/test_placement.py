@@ -283,5 +283,8 @@ class VoxelParticleTest(Partition, classmap_entry="test"):
     def chunk_to_voxels(self, chunk):
         return self.vs
 
-    def layout(self, boundaries):
-        self.boundaries = boundaries
+    def get_layout(self, hint):
+        return hint.copy()
+
+    # Noop city bish, noop noop city bish
+    surface = volume = scale = translate = rotate = lambda self, smth: 5
