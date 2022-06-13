@@ -23,6 +23,12 @@ class Region(abc.ABC):
     name = config.attr(key=True)
     children = config.reflist(refs.regional_ref, backref="region", required=True)
 
+    @property
+    def data(self):
+        # The data property is read-only to users, but `_data` is assigned
+        # during the layout process
+        return self._data
+
     def get_dependencies(self):
         return self.children.copy()
 
@@ -50,6 +56,7 @@ class Region(abc.ABC):
         pass
 
 
+@config.node
 class RegionGroup(Region, classmap_entry="group"):
     def rotate(self, rotation):
         for child in self.children:
@@ -65,7 +72,7 @@ class RegionGroup(Region, classmap_entry="group"):
 
 
 @config.node
-class Stack(Region, classmap_entry="stack"):
+class Stack(RegionGroup, classmap_entry="stack"):
     """
     Stack components on top of each other based on their ``stack_index`` and adjust its
     own height accordingly.
