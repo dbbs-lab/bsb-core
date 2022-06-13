@@ -36,7 +36,7 @@ partition to it, by loading it as a :guilabel:`source` file:
 .. literalinclude:: ../../../examples/atlas/allen_structure.json
   :language: json
   :lines: 15-26
-  :emphasize-lines: 8,9
+  :emphasize-lines: 7,8
 
 The :guilabel:`source` file will be loaded, and the values at the coordinates of the
 voxels that make up our partition are associated as a column of data. We use the
@@ -51,7 +51,7 @@ or other data, we need to select which data column we want to use for the densit
 .. literalinclude:: ../../../examples/atlas/allen_structure.json
   :language: json
   :lines: 27-35
-  :emphasize-lines: 6
+  :emphasize-lines: 5
 
 That's it! If we compile the network, ``my_cell`` will be placed into ``declive`` with
 different densities in each voxel, according to the values provided in
