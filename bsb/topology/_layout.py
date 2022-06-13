@@ -79,6 +79,9 @@ class RhomboidData(PartitionData):
         # Most dominant corner
         self.mdc = np.array(mdc, dtype=float, copy=False)
 
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self.ldc}, {self.mdc})"
+
     def copy(self):
         """
         Copy this boundary to a new instance.
