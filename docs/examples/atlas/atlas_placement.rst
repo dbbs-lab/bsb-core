@@ -15,7 +15,7 @@ We start by defining the basics: a region, a cell type and a partition component
 
 .. literalinclude:: ../../../examples/atlas/allen_structure.json
   :language: json
-  :lines: 12-20,23-31,33-35
+  :lines: 12-20,23-30,32-34
   :emphasize-lines: 6,8
 
 The :guilabel:`struct_name` refers to the Allen structure acronym or name. You can also
@@ -27,7 +27,7 @@ density of ``0.003/μm^3``:
 
 .. literalinclude:: ../../../examples/atlas/allen_structure.json
   :language: json
-  :lines: 36-42
+  :lines: 35-41
 
 If however, we have an image of the cell densities available, we can link our ``declive``
 partition to it, by loading it as a :guilabel:`source` file:
@@ -35,7 +35,7 @@ partition to it, by loading it as a :guilabel:`source` file:
 
 .. literalinclude:: ../../../examples/atlas/allen_structure.json
   :language: json
-  :lines: 15-26
+  :lines: 15-25
   :emphasize-lines: 7,8
 
 The :guilabel:`source` file will be loaded, and the values at the coordinates of the
@@ -50,8 +50,8 @@ or other data, we need to select which data column we want to use for the densit
 
 .. literalinclude:: ../../../examples/atlas/allen_structure.json
   :language: json
-  :lines: 27-35
-  :emphasize-lines: 5
+  :lines: 26-34
+  :emphasize-lines: 6
 
 That's it! If we compile the network, ``my_cell`` will be placed into ``declive`` with
 different densities in each voxel, according to the values provided in
