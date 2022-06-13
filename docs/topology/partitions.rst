@@ -208,6 +208,8 @@ a name with each column. Data columns can then be indexed as strings:
         print(vs.data[:, "type1", "type3"])
         partition = Voxels(voxels=loader)
 
+.. _allen-atlas-integration:
+
 Allen Atlas integration
 -----------------------
 
