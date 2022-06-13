@@ -19,8 +19,7 @@
         "type": "allen",
         "struct_name": "DEC",
         "source": "my_cell_density.nrrd",
-        "data_keys": ["my_cell_density"],
-        "voxel_size": 25
+        "data_keys": ["my_cell_density"]
       }
     }
   },

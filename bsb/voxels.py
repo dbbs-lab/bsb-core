@@ -674,6 +674,10 @@ class AllenStructureLoader(NrrdVoxelLoader, classmap_entry="allen"):
     )
 
     @config.property
+    def voxel_size(self):
+        return 25
+
+    @config.property
     def mask_only(self):
         return self.source is None and len(self.sources) == 0
 
