@@ -34,9 +34,18 @@ class TestCore(unittest.TestCase):
 
     def test_set_netw_config(self):
         netw = Scaffold()
-        netw.configuration = Configuration.default(regions=dict(x=dict()))
+        netw.configuration = Configuration.default(regions=dict(x=dict(children=[])))
         self.assertEqual(1, len(netw.regions), "setting cfg failed")
 
     def test_netw_props(self):
         netw = Scaffold()
         self.assertEqual(0, len(netw.morphologies.all()), "just checking morph prop")
+
+    def test_resize(self):
+        cfg = Configuration.default()
+        cfg.partitions.add("layer", thickness=100)
+        cfg.regions.add("region", children=["layer"])
+        netw = Scaffold(cfg)
+        netw.resize(x=500, y=500, z=500)
+        self.assertEqual(500, netw.network.x, "resize didnt update network node")
+        self.assertEqual(500, netw.partitions.layer.data.width, "didnt resize layer")

@@ -10,7 +10,7 @@ simulation volume. They are defined in the configuration under ``connectivity``:
   {
     "connectivity": {
       "cell_A_to_cell_B": {
-        "cls": "bsb.connectivity.VoxelIntersection",
+        "strategy": "bsb.connectivity.VoxelIntersection",
         "presynaptic": {
           "cell_types": ["cell_A"]
         },
@@ -21,9 +21,9 @@ simulation volume. They are defined in the configuration under ``connectivity``:
     }
   }
 
-The :guilabel:`cls` specifies which :class:`~.connectivity.strategy.ConnectionStrategy` to
-load. The :guilabel:`pre` and :guilabel:`post` specify the two :class:`hemitypes
-<.connectivity.strategy.HemitypeNode>`.
+The :guilabel:`strategy` specifies which
+:class:`~.connectivity.strategy.ConnectionStrategy` to load. The :guilabel:`pre` and
+:guilabel:`post` specify the two :class:`hemitypes <.connectivity.strategy.HemitypeNode>`.
 
 Creating your own
 =================

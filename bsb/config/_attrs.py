@@ -310,6 +310,11 @@ def _strict_root(obj):
     return root if getattr(root, "_config_isroot", False) else None
 
 
+def _booted_root(obj):
+    root = _strict_root(obj)
+    return root if root and root._config_isfinished and root._config_isbooted else None
+
+
 def _is_booted(obj):
     return obj and obj._config_isbooted
 
@@ -675,7 +680,7 @@ class cfgdict(builtins.dict):
         return self._config_parent.get_node_name() + "." + self._config_attr_name
 
 
-class cfgdictcopy(cfgdict):
+class cfgdictcopy(builtins.dict):
     def __init__(self, other):
         super().__init__(other)
         self._config_type = other._config_type
@@ -720,12 +725,20 @@ class ConfigurationDictAttribute(ConfigurationAttribute):
 
 class ConfigurationReferenceAttribute(ConfigurationAttribute):
     def __init__(
-        self, reference, key=None, ref_type=None, populate=None, pop_unique=True, **kwargs
+        self,
+        reference,
+        key=None,
+        ref_type=None,
+        populate=None,
+        backref=None,
+        pop_unique=True,
+        **kwargs,
     ):
         self.ref_lambda = reference
         self.ref_key = key
         self.ref_type = ref_type
         self.populate = populate
+        self.backref = backref
         self.pop_unique = pop_unique
         # No need to cast to any types: the reference we fetch will already have been cast
         if "type" in kwargs:  # pragma: nocover
@@ -795,26 +808,31 @@ class ConfigurationReferenceAttribute(ConfigurationAttribute):
         value = remote[key]
         if self.populate:
             self.populate_reference(instance, value)
+        if self.backref:
+            self.back_reference(instance, value)
+
         return value
 
     def populate_reference(self, instance, reference):
         # Remote descriptors can ask to handle populating itself by implementing a
         # __populate__ method. Here we check if the method exists and if so defer to it.
-        if hasattr(reference.__class__, self.populate):
-            pop_attr = getattr(reference.__class__, self.populate)
-            if hasattr(pop_attr, "__populate__"):
-                return pop_attr.__populate__(
-                    reference, instance, unique_list=self.pop_unique
-                )
-
-        if (
-            hasattr(reference, self.populate)
-            and (population := getattr(reference, self.populate)) is not None
+        if (pop_attr := getattr(reference.__class__, self.populate, None)) and (
+            pop_func := getattr(pop_attr, "__populate__", None)
         ):
+            pop_func(reference, instance, unique_list=self.pop_unique)
+        elif (population := getattr(reference, self.populate, None)) is not None:
             if not self.pop_unique or instance not in population:
                 population.append(instance)
         else:
             setattr(reference, self.populate, [instance])
+
+    def back_reference(self, instance, reference):
+        if (ref_attr := getattr(reference.__class__, self.backref, None)) and (
+            ref_func := getattr(ref_attr, "__backref__", None)
+        ):
+            ref_func(reference, instance)
+        else:
+            setattr(reference, self.backref, instance)
 
     def tree(self, instance):
         val = getattr(instance, self.get_ref_key(), None)

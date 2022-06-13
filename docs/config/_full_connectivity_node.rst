@@ -3,7 +3,7 @@
   {
     "connectivity": {
       "my_conn_block": {
-        "cls": "bsb.connectivity.VoxelIntersection",
+        "strategy": "bsb.connectivity.VoxelIntersection",
         "presynaptic": {
           "cell_types": ["A", "B"]
         },

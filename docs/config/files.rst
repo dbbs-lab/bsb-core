@@ -38,7 +38,7 @@ available to the configuration:
   {
     "connectivity": {
       "A_to_B": {
-        "cls": "connectome.MySpecialConnection",
+        "strategy": "connectome.MySpecialConnection",
         "value1": 15,
         "thingy2": [4, 13]
       }

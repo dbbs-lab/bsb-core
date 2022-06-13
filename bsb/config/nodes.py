@@ -30,6 +30,9 @@ class NetworkNode:
     x = attr(type=float, required=True)
     y = attr(type=float, required=True)
     z = attr(type=float, required=True)
+    origin = attr(
+        type=types.list(type=float, size=3), default=lambda: [0, 0, 0], call_default=True
+    )
     chunk_size = attr(
         type=types.or_(
             types.list(float),

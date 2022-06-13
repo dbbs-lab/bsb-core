@@ -6,15 +6,17 @@
   },
   "network": {
     "x": 150.0,
-    "y": 150.0,
+    "y": 600.0,
     "z": 150.0
   },
   "regions": {
-    "test": {}
+    "test_region": {
+      "children": ["test_layer"]
+    }
   },
   "partitions": {
     "test_layer": {
-      "region": "test",
+      "type": "layer",
       "thickness": 600
     }
   },
@@ -32,7 +34,7 @@
   },
   "placement": {
     "cell_placement": {
-      "cls": "bsb.placement.ParticlePlacement",
+      "strategy": "bsb.placement.ParticlePlacement",
       "partitions": ["test_layer"],
       "cell_types": ["test_cell"]
     }

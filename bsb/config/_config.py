@@ -14,10 +14,8 @@ from ..exceptions import *
 from .._util import merge_dicts
 import os, builtins
 from ..topology import (
-    get_root_regions,
     get_partitions,
     create_topology,
-    Boundary,
     Region,
     Partition,
 )
@@ -60,15 +58,16 @@ class Configuration:
     def _bootstrap(self, scaffold):
         # Initialise the topology from the defined regions
         regions = builtins.list(self.regions.values())
-        scaffold.topology = topology = create_topology(regions)
+        # Arrange the topology based on network boundaries
+        start = self.network.origin.copy()
+        net = self.network
+        end = [start[0] + net.x, start[1] + net.y, start[2] + net.z]
+        scaffold.topology = topology = create_topology(regions, start, end)
         # If there are any partitions not part of the topology, raise an error
         if unmanaged := set(self.partitions.values()) - get_partitions([topology]):
             p = "', '".join(p.name for p in unmanaged)
             raise UnmanagedPartitionError(f"Please make '{p}' part of a Region.")
-        # Do an initial arrangement of the topology based on network boundaries
-        topology.arrange(
-            Boundary([0.0, 0.0, 0.0], [self.network.x, self.network.y, self.network.z])
-        )
+        # Activate the scaffold property of each config node
         _boot_nodes(self, scaffold)
         self._config_isbooted = True
 

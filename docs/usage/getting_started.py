@@ -7,9 +7,9 @@ import bsb.options
 bsb.options.verbosity = 3
 config = from_json("network_configuration.json")
 
-config.partitions.add("top_layer", region="brain_region", thickness=100, stack_index=1)
+config.partitions.add("top_layer", thickness=100, stack_index=1)
 config.regions["brain_region"] = Stack(
-    partitions=[
+    children=[
         "base_layer",
         "top_layer",
     ]
@@ -17,13 +17,13 @@ config.regions["brain_region"] = Stack(
 config.cell_types.add("top_type", spatial=dict(radius=7, count=10))
 config.placement.add(
     "all_placement",
-    cls="bsb.placement.ParticlePlacement",
+    strategy="bsb.placement.ParticlePlacement",
     cell_types=["base_type", "top_type"],
     partitions=["base_layer"],
 )
 config.connectivity.add(
     "A_to_B",
-    cls="bsb.connectivity.AllToAll",
+    strategy="bsb.connectivity.AllToAll",
     presynaptic=dict(cell_types=["base_type"]),
     postsynaptic=dict(cell_types=["top_type"]),
 )

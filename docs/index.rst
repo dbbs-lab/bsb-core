@@ -129,3 +129,4 @@ and explicit code understandable and reusable by your peers.
   dev/documentation
   dev/plugins
   dev/hooks
+  dev/reference

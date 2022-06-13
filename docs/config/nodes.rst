@@ -54,7 +54,7 @@ And in the configuration:
 .. code-block:: json
 
   {
-    "cls": "bsb.placement.LayeredRandomWalk"
+    "strategy": "bsb.placement.LayeredRandomWalk"
   }
 
 This would import the ``bsb.placement`` module and use its ``LayeredRandomWalk`` class to

@@ -55,19 +55,19 @@
   },
   "placement": {
     "granular_layer_placement": {
-      "cls": "bsb.placement.FixedPositions",
+      "strategy": "bsb.placement.FixedPositions",
       "partitions": ["test_layer"],
       "cell_types": ["golgi_cell"],
       "positions": [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]]
     },
     "purkinje_layer_placement": {
-      "cls": "bsb.placement.FixedPositions",
+      "strategy": "bsb.placement.FixedPositions",
       "partitions": ["test_layer"],
       "cell_types": ["purkinje_cell"],
       "positions": [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0]]
     },
     "molecular_layer_placement": {
-      "cls": "bsb.placement.FixedPositions",
+      "strategy": "bsb.placement.FixedPositions",
       "partitions": ["test_layer"],
       "cell_types": ["stellate_cell"],
       "positions": [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0]]
