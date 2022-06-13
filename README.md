@@ -42,17 +42,10 @@ simulate your models.
 
 ### Creating a project
 
-You can create boilerplate projects using:
+You can create a quickstart project using:
 
 ```
-bsb new
-```
-
-It will ask you some information about the project, like a name and configuration template
-and set up the most suited directory structure and key files for you. Afterwards, `cd`
-into your project folder:
-
-```
+bsb new my_model --quickstart
 cd my_model
 ```
 
@@ -65,7 +58,7 @@ and connections:
 bsb compile -p
 ```
 
-This should create a network file and plot the network.
+This creates a network file and plots the network.
 
 ### Simulating a network
 
