@@ -820,7 +820,7 @@ class ConfigurationReferenceAttribute(ConfigurationAttribute):
             pop_func := getattr(pop_attr, "__populate__", None)
         ):
             pop_func(reference, instance, unique_list=self.pop_unique)
-        elif population := getattr(reference, self.populate, None) is not None:
+        elif (population := getattr(reference, self.populate, None)) is not None:
             if not self.pop_unique or instance not in population:
                 population.append(instance)
         else:
