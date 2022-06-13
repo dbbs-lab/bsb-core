@@ -94,6 +94,7 @@ class RhomboidData(PartitionData):
 
     @x.setter
     def x(self, value):
+        self.mdc[0] += value - self.ldc[0]
         self.ldc[0] = value
 
     @property
@@ -102,6 +103,7 @@ class RhomboidData(PartitionData):
 
     @y.setter
     def y(self, value):
+        self.mdc[1] += value - self.ldc[1]
         self.ldc[1] = value
 
     @property
@@ -110,6 +112,7 @@ class RhomboidData(PartitionData):
 
     @z.setter
     def z(self, value):
+        self.mdc[2] += value - self.ldc[2]
         self.ldc[2] = value
 
     @property
