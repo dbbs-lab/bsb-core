@@ -48,7 +48,7 @@ class Partition(abc.ABC):
         return self._data
 
     @abc.abstractmethod
-    def volume(self, chunk=None):
+    def volume(self, chunk=None):  # pragma: nocover
         """
         Calculate the volume of the partition in μm^3.
 
@@ -60,7 +60,7 @@ class Partition(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def surface(self, chunk=None):
+    def surface(self, chunk=None):  # pragma: nocover
         """
         Calculate the surface of the partition in μm^2.
 
@@ -72,7 +72,7 @@ class Partition(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def to_chunks(self, chunk_size):
+    def to_chunks(self, chunk_size):  # pragma: nocover
         """
         Calculate all the chunks this partition occupies when cut into ``chunk_sized``
         pieces.
@@ -85,7 +85,7 @@ class Partition(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def chunk_to_voxels(self, chunk):
+    def chunk_to_voxels(self, chunk):  # pragma: nocover
         """
         Voxelize the partition's occupation in this chunk. Required to fill the partition
         with cells by the placement module.
@@ -99,7 +99,7 @@ class Partition(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def rotate(self, rotation):
+    def rotate(self, rotation):  # pragma: nocover
         """
         Rotate the partition by the given rotation object.
 
@@ -110,7 +110,7 @@ class Partition(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def translate(self, offset):
+    def translate(self, offset):  # pragma: nocover
         """
         Translate the partition by the given offset.
 
@@ -121,7 +121,7 @@ class Partition(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def scale(self, factors):
+    def scale(self, factors):  # pragma: nocover
         """
         Scale up/down the partition according to the given factors.
 
@@ -132,7 +132,7 @@ class Partition(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def get_layout(self, hint):
+    def get_layout(self, hint):  # pragma: nocover
         """
         Given a Layout as hint to begin from, create a Layout object that describes how
         this partition would like to be laid out.

@@ -44,15 +44,15 @@ class Region(abc.ABC):
         layout.accept()
 
     @abc.abstractmethod
-    def rotate(self, rotation):
+    def rotate(self, rotation):  # pragma: nocover
         pass
 
     @abc.abstractmethod
-    def translate(self, offset):
+    def translate(self, offset):  # pragma: nocover
         pass
 
     @abc.abstractmethod
-    def scale(self, factors):
+    def scale(self, factors):  # pragma: nocover
         pass
 
 
