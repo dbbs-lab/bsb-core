@@ -95,9 +95,6 @@ class Stack(Region, classmap_entry="stack"):
         mdc[axis_idx] = ldc[axis_idx] + stack_size
         return layout
 
-    def do_layout(self, hint):
-        layout = self.get_layout(hint)
-
     def rotate(self, rotation):
         for child in self.children:
             child.rotate(rotation)
