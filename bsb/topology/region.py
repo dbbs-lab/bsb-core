@@ -85,15 +85,14 @@ class Stack(Region, classmap_entry="stack"):
                 warn(f"Skipped layout arrangement of {child._owner.name} in {self.name}")
                 continue
             translation = (
-                hint.data.ldc[axis_idx] + stack_size - child.data.ldc
+                layout.data.ldc[axis_idx] + stack_size - child.data.ldc
             ) * trans_eye
             if not np.allclose(0, translation):
                 child.propose_translate(translation)
             stack_size += child.data.dimensions[axis_idx]
-        ldc = hint.data.ldc.copy()
-        mdc = hint.data.mdc
+        ldc = layout.data.ldc
+        mdc = layout.data.mdc
         mdc[axis_idx] = ldc[axis_idx] + stack_size
-        layout._data = RhomboidData(ldc, mdc)
         return layout
 
     def do_layout(self, hint):
