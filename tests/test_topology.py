@@ -11,7 +11,7 @@ def single_layer():
 
 class TestCreateTopology(unittest.TestCase):
     def test_single(self):
-        r = topology.Region(children=[])
+        r = topology.Region(name="R", children=[])
         t = topology.create_topology([r], np.array([0, 0, 0]), np.array([100, 100, 100]))
         self.assertEqual(r, t, "Topology with 1 root region should be the region itself")
 
@@ -39,15 +39,15 @@ class TestCreateTopology(unittest.TestCase):
 
 class TestTopology(unittest.TestCase):
     def test_stack(self):
-        c = topology.Layer(thickness=150, stack_index=0)
-        c2 = topology.Layer(thickness=150, stack_index=1)
-        r = topology.Stack(children=[c, c2])
+        c = topology.Layer(name="c", thickness=150, stack_index=0)
+        c2 = topology.Layer(name="c2", thickness=150, stack_index=1)
+        r = topology.Stack(name="mystack", children=[c, c2])
         topology.create_topology([r], [0, 0, 0], [100, 100, 100])
-        self.assertEqual(0, c.boundaries.y)
-        self.assertEqual(150, c2.boundaries.y)
-        self.assertEqual(100, c.boundaries.width)
-        self.assertEqual(100, c2.boundaries.width)
-        self.assertEqual(300, r.boundaries.height)
+        self.assertEqual(0, c.data.y)
+        self.assertEqual(150, c2.data.height)
+        self.assertEqual(100, c.data.width)
+        self.assertEqual(100, c2.data.width)
+        self.assertEqual(300, r.data.height)
 
     def test_partition_chunking(self):
         r, l = single_layer()
@@ -55,10 +55,10 @@ class TestTopology(unittest.TestCase):
         # Test 100x150x100 layer producing 2 100x100x100 chunks on top of eachother
         self.assertEqual([[0, 0, 0], [0, 1, 0]], l.to_chunks(cs).tolist())
         # Test translation by whole chunk
-        l.boundaries.x += cs[0]
+        l.data.x += cs[0]
         self.assertEqual([[1, 0, 0], [1, 1, 0]], l.to_chunks(cs).tolist())
         # Translate less than a chunk so that we overflow into an extra layer of x chunks
-        l.boundaries.x += 1
+        l.data.x += 1
         self.assertEqual(
             [[1, 0, 0], [1, 1, 0], [2, 0, 0], [2, 1, 0]], l.to_chunks(cs).tolist()
         )
