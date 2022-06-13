@@ -242,8 +242,7 @@ converted into a data column on the voxelset:
               "sources": [
                 "data/allen_gene_expression_25.nrrd"
               ],
-              "keys": ["expression"],
-              "voxel_size": 25
+              "keys": ["expression"]
             }
           }
         }
@@ -263,7 +262,6 @@ converted into a data column on the voxelset:
             "data/allen_gene_expression_25.nrrd",
           ],
           keys=["expression"],
-          voxel_size=25,
         )
         partition = Voxels(voxels=loader)
         print("Gene expression values per voxel:", partition.voxelset.expression)

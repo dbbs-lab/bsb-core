@@ -954,12 +954,12 @@ class ConfigurationProperty(ConfigurationAttribute):
         return self.fget(instance)
 
     def __set__(self, instance, value):
-        try:
-            f = self.fset
-        except:
-            raise AttributeError("Can't set attribute") from None
+        if self.fset is None:
+            e = AttributeError(f"Can't set attribute '{self.attr_name}'")
+            e.node = self
+            raise e
         else:
-            return f(instance, value)
+            return self.fset(instance, value)
 
 
 def _collect_kv(n, d, k, v):
