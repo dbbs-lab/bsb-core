@@ -31,7 +31,7 @@ class Region(abc.ABC):
 
     def get_layout(self, hint):
         layouts = [dep.get_layout(hint) for dep in self.get_dependencies()]
-        return Layout(None, owner=self, children=layouts)
+        return Layout(hint.data.copy(), owner=self, children=layouts)
 
     def do_layout(self, hint):
         layout = self.get_layout(hint)
