@@ -566,6 +566,8 @@ class ConfigurationListAttribute(ConfigurationAttribute):
         _cfglist._config_parent = _parent
         _cfglist._config_attr = self
         _cfglist._config_type = self.child_type
+        if isinstance(value, builtins.dict):
+            raise CastError(f"Dictionary `{value}` given where list is expected.")
         _cfglist.extend(value or builtins.list())
         if self.size is not None and len(_cfglist) != self.size:
             raise CastError(
