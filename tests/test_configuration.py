@@ -222,6 +222,14 @@ class TestConfigList(unittest.TestCase):
         with self.assertRaises(RequirementError):
             Test(test_conf4, TestRoot())
 
+    def test_catch_dict(self):
+        @config.node
+        class TestNormal:
+            l = config.list(type=int, size=3)
+
+        with self.assertRaises(CastError, msg="Regression of #457"):
+            TestNormal(l={5: "hey", 6: "boo"})
+
 
 class TestConfigRef(unittest.TestCase):
     def test_referencing(self):
