@@ -15,7 +15,14 @@ class ProjectNewCommand(BaseCommand, name="new"):
         parser.add_argument(
             "path", nargs="?", default=".", help="Location of the project"
         )
-        parser.add_argument("--quickstart", action="store_true")
+        parser.add_argument(
+            "--quickstart", action="store_true", help="Start an example project"
+        )
+        parser.add_argument(
+            "--exists",
+            action="store_true",
+            help="Indicates whether the folder structure already exists.",
+        )
 
     def handler(self, context):
         name = (
@@ -25,13 +32,13 @@ class ProjectNewCommand(BaseCommand, name="new"):
         )
         root = pathlib.Path(context.arguments.path) / name
         try:
-            root.mkdir(exist_ok=False)
+            root.mkdir(exist_ok=context.arguments.exists)
         except FileExistsError:
             return report(
                 f"Could not create '{root.absolute()}', directory exists.", level=0
             )
 
-        (root / name).mkdir()
+        (root / name).mkdir(exist_ok=context.arguments.exists)
         if context.arguments.quickstart:
             template = "starting_example.json"
             output = "network_configuration.json"
@@ -57,11 +64,17 @@ class ProjectNewCommand(BaseCommand, name="new"):
                 },
                 f,
             )
-        with open(root / name / "__init__.py", "w") as f:
-            f.write("\n")
-        with open(root / name / "placement.py", "w") as f:
-            f.write("from bsb.placement import PlacementStrategy\n")
-        with open(root / name / "connectome.py", "w") as f:
-            f.write("from bsb.connectivity import ConnectionStrategy\n")
+        init_path = root / name / "__init__.py"
+        place_path = root / name / "placement.py"
+        conn_path = root / name / "connectome.py"
+        if not init_path.exists():
+            with open(init_path, "w") as f:
+                f.write("\n")
+        if not place_path.exists():
+            with open(place_path, "w") as f:
+                f.write("from bsb.placement import PlacementStrategy\n")
+        if not conn_path.exists():
+            with open(conn_path, "w") as f:
+                f.write("from bsb.connectivity import ConnectionStrategy\n")
 
         report(f"Created '{name}' project structure.", level=1)
