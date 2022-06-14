@@ -17,13 +17,15 @@ Create a project
 
 .. code-block:: bash
 
-  bsb [OPTIONS] new <project-name> <parent-folder>
+  bsb [OPTIONS] new <project-name> <parent-folder> [--quickstart] [--exists]
 
 Creates a new project directory at ``folder``. You will be prompted to fill in some
 project settings.
 
 * ``project-name``: Name of the project, and of the directory that will be created for it.
 * ``parent-folder``: Filesystem location where the project folder will be created.
+* ``quickstart``: Generates an exemplary project with basic config that can be compiled.
+* ``exists``: With this flag, it is not an error for the ``parent-folder`` to exist.
 
 .. _bsb_make_config:
 
