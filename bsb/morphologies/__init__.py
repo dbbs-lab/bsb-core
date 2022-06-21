@@ -17,6 +17,7 @@ Morphology module
 
 import abc
 import pickle
+from typing_extensions import Self
 import h5py
 import math
 import inspect
@@ -246,6 +247,14 @@ class SubTree:
         if not len(f):
             return np.zeros(3), np.zeros(3)
         return np.min(f, axis=0), np.max(f, axis=0)
+    
+    @property
+    def branch_adjacency(self):
+        """
+        Return a dictonary containing as items the children of the branch indexed by the key.
+        """
+        idmap = {b: n for n, b in enumerate(self.branches)}
+        return {n: list(map(idmap.get, b.children)) for n, b in enumerate(self.branches)}
 
     def subtree(self, *labels):
         if not labels:
@@ -722,6 +731,72 @@ class Branch:
         Return the spatial coordinates of the points on this branch.
         """
         return self._points
+    
+    @property
+    def start(self):
+        """
+        Return the spatial coordinates of the starting point of this branch.
+        """
+        if len(self._points)>0:
+            return self._points[0]
+    
+    @property
+    def end(self):
+        """
+        Return the spatial coordinates of the terminal point of this branch.
+        """
+        if len(self._points)>0:
+            return self._points[-1]
+    
+    @property
+    def versor(self):
+        """
+        Return the normalized verson of the axis connecting the start and terminal points.
+        """
+        if len(self._points)>0:
+            return (self.end - self.start) / np.linalg.norm(self.end - self.start)
+    
+    @property
+    def euclidean_dist(self):
+        """
+        Return the Euclidean distance from the start to the terminal point of this branch.
+        """
+        if len(self._points)>0:
+            return np.sqrt(np.sum((self.end-self.start)**2))
+    
+    @property
+    def path_dist(self):
+        """
+        Return the path distance from the start to the terminal point of this branch,
+        computed as the sum of Euclidean segments between consecutive branch points.
+        """
+        if len(self._points)>0:
+            segments = np.diff(self.points, axis=0)
+            return np.sum(np.sqrt(np.sum(segments**2, axis=1)))
+    
+    @property
+    def max_displacement(self):
+        """
+        Return the max displacement of the branch points from the axis connecting the start and terminal points.
+        """
+        if len(self._points)>0:
+            displacements = np.linalg.norm(np.cross(self.versor, (self.points - self.start)),axis=1)
+            return np.max(displacements)
+
+    @property
+    def fractal_dim(self):
+        """
+        Return the fractal dimension of this branch, computed as the line fitting the 
+        log-log plot of path vs euclidean distances of its points.
+        """
+        if len(self.points) <= 2:
+            return 1.
+        euclidean = np.sqrt(np.sum((self.points-self.start)**2, axis=1))
+        segments = np.diff(self.points, axis=0)
+        path = np.cumsum(np.sqrt(np.sum(segments**2, axis=1)))
+        log_e = np.log(euclidean[1:])
+        log_p = np.log(path)
+        return np.corrcoef(log_e, log_p)[0][1] * (np.std(log_p) / np.std(log_e))
 
     @property
     def radii(self):
