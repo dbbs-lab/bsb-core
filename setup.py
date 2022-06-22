@@ -10,6 +10,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 requires = [
+    "bsb-hdf5~=0.1",
     "h5py~=3.0",
     "numpy~=1.19",
     "scipy~=1.5",
@@ -61,7 +62,6 @@ setuptools.setup(
         ],
         "bsb.config.parsers": ["json = bsb.config.parsers.json"],
         "bsb.config.templates": ["bsb_templates = bsb.config.templates"],
-        "bsb.engines": ["hdf5 = bsb.storage.engines.hdf5"],
         "bsb.options": [
             "verbosity = bsb._options:verbosity",
             "sudo = bsb._options:sudo",
