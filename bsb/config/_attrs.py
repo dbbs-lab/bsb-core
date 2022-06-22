@@ -601,7 +601,7 @@ class cfgdict(builtins.dict):
             value = self._config_type(value, _parent=self, _key=key)
         except (RequirementError, CastError) as e:
             if not (hasattr(e, "node") and e.node):
-                e.node, e.attr = _cfgdict, key
+                e.node, e.attr = self, key
             raise
         except Exception as e:
             import traceback
