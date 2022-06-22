@@ -92,6 +92,7 @@ _t(
             CircularMorphologyError=_e("morphology", "component").set(list_details=True),
             CompartmentError=_e(),
             EmptySelectionError=_e("selectors"),
+            EmptyBranchError=_e(),
         ),
         OptionError=_e(
             ReadOnlyOptionError=_e("option", "tag"),
