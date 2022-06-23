@@ -27,6 +27,7 @@ import inspect
 import morphio
 import numpy as np
 from collections import deque
+from pathlib import Path
 from scipy.spatial.transform import Rotation
 from ..voxels import VoxelSet
 from ..exceptions import *
@@ -602,8 +603,8 @@ class Morphology(SubTree):
         :returns: The parsed morphology, with the SWC tags as a property.
         :rtype: bsb.morphologies.Morphology
         """
-        if isinstance(file, str):
-            with open(file, "r") as f:
+        if isinstance(file, str) or isinstance(file, Path):
+            with open(str(file), "r") as f:
                 return cls.from_swc(f, branch_class)
         if branch_class is None:
             branch_class = Branch
@@ -737,6 +738,13 @@ class Branch:
         that is associated to a set of labels. See :ref:`morphology_labels` for more info.
         """
         return self._labels
+
+    @property
+    def labelsets(self):
+        """
+        Return the sets of labels associated to each numerical label.
+        """
+        return self._labels.labels
 
     @property
     def is_root(self):
@@ -991,24 +999,34 @@ class _Labels(np.ndarray):
 
     def label(self, labels, points):
         _transitions = {}
+        # A counter that skips existing values.
         counter = (c for c in itertools.count() if c not in self.labels)
 
+        # This local function looks up the new id that a point should transition
+        # to when `labels` are added to the labels it already has.
         def transition(point):
             nonlocal _transitions
+            # Check if we already know the transition of this value.
             if point in _transitions:
                 return _transitions[point]
             else:
+                # First time making this transition. Join the existing and new labels
                 trans_labels = self.labels[point].copy()
                 trans_labels.update(labels)
+                # Check if this new combination of labels already is assigned an id.
                 for k, v in self.labels.items():
                     if trans_labels == v:
+                        # Transition labels already exist, return it
                         return k
                 else:
+                    # Transition labels are a new combination, store them under a new id.
                     transition = next(counter)
                     self.labels[transition] = trans_labels
+                    # Cache the result
                     _transitions[point] = transition
                     return transition
 
+        # Replace the label values with the transition values
         self[points] = np.vectorize(transition)(self[points])
 
     def contains(self, *labels):
@@ -1021,6 +1039,9 @@ class _Labels(np.ndarray):
     def walk(self):
         for x in self:
             yield self.labels[x].copy()
+
+    def of(self, label):
+        return self.labels[label].copy()
 
     @classmethod
     def none(cls, len):
