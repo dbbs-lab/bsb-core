@@ -42,7 +42,7 @@ Regions
 .. include:: _full_region_node.rst
 
 * :guilabel:`type`:
-    Type of the region, determines what kind of structure it imposes on its children.
+  Type of the region, determines what kind of structure it imposes on its children.
 
 * :guilabel:`offset`: Offset of this region to its parent in the topology.
 

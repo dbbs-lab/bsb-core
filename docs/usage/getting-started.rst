@@ -130,12 +130,18 @@ Take another look at your network:
 
 .. code-block:: bash
 
-  bsb compile -v 3 -p
+  bsb compile -v 3 -p --clear
 
 .. note::
 
 	We're using the short forms ``-v`` and ``-p`` of the CLI options ``--verbosity`` and
 	``--plot``, respectively. You can use ``bsb --help`` to inspect the CLI options.
+
+.. warning::
+
+  We pass the ``--clear`` flag to indicate that existing data may be overwritten. See
+  :ref:`storage_control` for more flags to deal with existing data.
+
 
 Connectivity
 ------------
