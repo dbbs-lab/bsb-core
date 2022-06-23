@@ -90,10 +90,11 @@ with a virtual environment activated.
 .. code-block:: bash
 
   sudo apt-get update && apt-get install -y openmpi-bin libopenmpi-dev
-  git clone git@github.com:dbbs-lab/nest-simulator
+  git clone https://github.com/dbbs-lab/nest-simulator
   cd nest-simulator
   mkdir build
   cd build
+  pip install cmake cython
   cmake .. \
     -Dwith-mpi=ON \
     -Dwith-python=3 \
