@@ -48,6 +48,7 @@ The scaffold framework can be installed using ``pip``:
 
 .. code-block:: bash
 
+  sudo apt-get install -y libopenmpi-dev openmpi-bin
   pip install "bsb>=4.0.0a0"
 
 You can verify that the installation works with:
