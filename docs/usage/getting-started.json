@@ -11,19 +11,18 @@
   },
   "regions": {
     "brain_region": {
-      "type": "stack"
+      "type": "stack",
+      "children": ["base_layer", "top_layer"]
     }
   },
   "partitions": {
     "base_layer": {
       "type": "layer",
-      "region": "brain_region",
       "thickness": 100,
       "stack_index": 0
     },
     "top_layer": {
       "type": "layer",
-      "region": "brain_region",
       "thickness": 100,
       "stack_index": 1
     }

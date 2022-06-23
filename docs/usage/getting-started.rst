@@ -74,7 +74,7 @@ To get started, we'll change the ``brain_region`` into a ``stack``, and add a
 
   .. literalinclude:: getting-started.json
     :language: json
-    :lines: 12-30
+    :lines: 12-29
 
   .. literalinclude:: getting_started.py
     :language: python
@@ -97,7 +97,7 @@ created for them. In the simplest case you define a soma :guilabel:`radius` and
 
   .. literalinclude:: getting-started.json
     :language: json
-    :lines: 31-44
+    :lines: 30-43
 
   .. literalinclude:: getting_started.py
     :language: python
@@ -111,7 +111,7 @@ Placement
 
   .. literalinclude:: getting-started.json
     :language: json
-    :lines: 45-56
+    :lines: 44-55
 
   .. literalinclude:: getting_started.py
     :language: python
@@ -144,7 +144,7 @@ Connectivity
 
   .. literalinclude:: getting-started.json
     :language: json
-    :lines: 57-67
+    :lines: 56-66
 
   .. literalinclude:: getting_started.py
     :language: python
