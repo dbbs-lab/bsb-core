@@ -7,7 +7,6 @@ Subpackages
 .. toctree::
    :maxdepth: 4
 
-   bsb.storage.engines.hdf5
    bsb.storage.engines.in_memory
 
 Module contents
