@@ -2,7 +2,7 @@ import unittest, os, sys, numpy as np, h5py, json, string, random
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
-from bsb.placement.indicator import NameSelector
+from bsb.morphologies.selector import NameSelector, NeuroMorphoSelector
 from bsb.core import Scaffold
 from bsb.cell_types import CellType
 from bsb.config import from_json, Configuration
@@ -72,3 +72,21 @@ class TestSelectors(unittest.TestCase):
         ct.spatial.morphologies[0].names = ["B"]
         with self.assertRaises(MissingMorphologyError):
             self.assertEqual(0, len(ct.get_morphologies()), "should select 0 morpho")
+
+    def test_nm_selector(self):
+        ct = CellType(
+            spatial=dict(
+                morphologies=[
+                    {
+                        "select": "from_neuromorpho",
+                        "names": ["H17-03-013-11-08-04_692297214_m"],
+                    }
+                ]
+            )
+        )
+        cfg = Configuration.default(cell_types={"ct": ct})
+        s = Scaffold(cfg)
+        self.assertIn("H17-03-013-11-08-04_692297214_m", s.morphologies, "missing NM")
+        with self.assertRaises(SelectorError, msg="doesnt exist, should error"):
+            # Reinject to trigger `boot`
+            ct.spatial.morphologies[0] = {"select": "from_neuromorpho", "names": ["H1_m"]}
