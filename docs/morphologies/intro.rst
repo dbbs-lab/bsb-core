@@ -309,7 +309,7 @@ morphologies if it is impossible to determine the outcome from the metadata.
       "spatial": {
         "morphologies": [
           {
-            "selector": "by_size",
+            "select": "by_size",
             "min_size": 35
           }
         ]

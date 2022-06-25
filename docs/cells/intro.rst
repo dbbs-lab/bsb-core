@@ -53,7 +53,7 @@ If the cell type is represented by morphologies, you can list multiple :class:`s
           "density": 3e-9,
           "morphologies": [
             {
-              "selector": "by_name",
+              "select": "by_name",
               "names": ["cells_A_*", "cell_B_2"]
             }
           ]

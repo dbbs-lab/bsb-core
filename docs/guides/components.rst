@@ -78,7 +78,7 @@ you can now access:
 .. code-block:: json
 
   {
-    "selector": "select.MySizeSelector",
+    "select": "select.MySizeSelector",
     "min_size": 30,
     "max_size": 50
   }
