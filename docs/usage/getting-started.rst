@@ -74,7 +74,7 @@ To get started, we'll change the ``brain_region`` into a ``stack``, and add a
 
   .. literalinclude:: getting-started.json
     :language: json
-    :lines: 7-25
+    :lines: 12-29
 
   .. literalinclude:: getting_started.py
     :language: python
@@ -97,7 +97,7 @@ created for them. In the simplest case you define a soma :guilabel:`radius` and
 
   .. literalinclude:: getting-started.json
     :language: json
-    :lines: 26-39
+    :lines: 30-43
 
   .. literalinclude:: getting_started.py
     :language: python
@@ -111,7 +111,7 @@ Placement
 
   .. literalinclude:: getting-started.json
     :language: json
-    :lines: 40-51
+    :lines: 44-55
 
   .. literalinclude:: getting_started.py
     :language: python
@@ -130,12 +130,18 @@ Take another look at your network:
 
 .. code-block:: bash
 
-  bsb compile -v 3 -p
+  bsb compile -v 3 -p --clear
 
 .. note::
 
 	We're using the short forms ``-v`` and ``-p`` of the CLI options ``--verbosity`` and
 	``--plot``, respectively. You can use ``bsb --help`` to inspect the CLI options.
+
+.. warning::
+
+  We pass the ``--clear`` flag to indicate that existing data may be overwritten. See
+  :ref:`storage_control` for more flags to deal with existing data.
+
 
 Connectivity
 ------------
@@ -144,7 +150,7 @@ Connectivity
 
   .. literalinclude:: getting-started.json
     :language: json
-    :lines: 52-62
+    :lines: 56-66
 
   .. literalinclude:: getting_started.py
     :language: python

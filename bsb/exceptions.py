@@ -42,6 +42,7 @@ _t(
             PlacementError=_e(
                 "cell_type", PlacementRelationError=_e("cell_type", "relation")
             ),
+            DistributorError=_e("property", "strategy"),
             RedoError=_e(),
         ),
         GatewayError=_e(
