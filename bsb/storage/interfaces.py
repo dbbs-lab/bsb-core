@@ -434,6 +434,9 @@ class MorphologyRepository(Interface, engine_key="morphologies"):
         """
         pass
 
+    def __contains__(self, item):
+        return self.has(item)
+
     @abc.abstractmethod
     def preload(self, name):
         """
