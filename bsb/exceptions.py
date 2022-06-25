@@ -99,6 +99,7 @@ _t(
             ChunkError=_e(),
             ContinuityError=_e(),
         ),
+        SelectorError=_e(),
         TreeError=_e(),
         VoxelSetError=_e(
             EmptyVoxelSetError=_e(),
