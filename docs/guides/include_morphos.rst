@@ -8,7 +8,7 @@ This guide is a continuation of the |:books:| :doc:`Getting Started guide
 
 We've constructed a stacked double layer topology, and we have 2 cell types. We then
 connected them in an all-to-all fashion. A logical next step would be to assign
-:doc:`morphologies </morphologies/intro.rst>` to our cells, and connect them based on
+:doc:`morphologies </morphologies/intro>` to our cells, and connect them based on
 intersection!
 
 A new model never contains any morphologies, and needs to fetch them from somewhere.
