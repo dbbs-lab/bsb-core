@@ -170,7 +170,7 @@ cells and connections in place, you're ready to move to the :ref:`simulations` s
     :gutter: 1
 
     .. grid-item-card:: :octicon:`flame;1em;sd-text-warning` Continue getting started
-	    :link: getting-started-morpho
+	    :link: include_morphos
 	    :link-type: ref
 
 	    Follow the rest of the guides and learn how to include morphologies.
