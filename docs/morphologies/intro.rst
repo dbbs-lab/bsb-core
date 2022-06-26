@@ -275,9 +275,9 @@ Morphology selectors
 --------------------
 
 The most common way of telling the framework which morphologies to use is through
-:class:`MorphologySelectors <.placement.indicator.MorphologySelector>`. A selector should
-implement :meth:`~.placement.indicator.MorphologySelector.validate` and
-:meth:`~.placement.indicator.MorphologySelector.pick` methods.
+:class:`MorphologySelectors <.morphologies.selector.MorphologySelector>`. A selector
+should implement :meth:`~.morphologies.selector.MorphologySelector.validate` and
+:meth:`~.morphologies.selector.MorphologySelector.pick` methods.
 
 ``validate`` can be used to assert that all the required morphologies are present, while
 ``pick`` needs to return ``True``/``False`` to include a morphology or not. Both methods

@@ -87,6 +87,31 @@ class TestSelectors(unittest.TestCase):
         cfg = Configuration.default(cell_types={"ct": ct})
         s = Scaffold(cfg)
         self.assertIn("H17-03-013-11-08-04_692297214_m", s.morphologies, "missing NM")
+
+    def test_nm_selector_wrong_name(self):
+        ct = CellType(
+            spatial=dict(
+                morphologies=[
+                    {
+                        "select": "from_neuromorpho",
+                        "names": ["H17-03-013-11-08-04_692297214_m"],
+                    }
+                ]
+            )
+        )
+        cfg = Configuration.default(cell_types={"ct": ct})
+        s = Scaffold(cfg)
         with self.assertRaises(SelectorError, msg="doesnt exist, should error"):
-            # Reinject to trigger `boot`
-            ct.spatial.morphologies[0] = {"select": "from_neuromorpho", "names": ["H1_m"]}
+            from mpi4py.MPI import COMM_WORLD as w
+
+            err = None
+            try:
+                ct.spatial.morphologies[0] = {
+                    "select": "from_neuromorpho",
+                    "names": ["H17-03-092297214_m"],
+                }
+            except Exception as e:
+                err = e
+            err = w.bcast(err, root=0)
+            if err:
+                raise err

@@ -40,7 +40,7 @@ The :guilabel:`plotting` block allows you to specify formatting details.
 .. rubric:: Specifying morphologies
 
 If the cell type is represented by morphologies, you can list multiple :class:`selectors
-<.placement.indicator.MorphologySelector>` to fetch them from the
+<.morphologies.selector.MorphologySelector>` to fetch them from the
 :doc:`/morphologies/repository`.
 
 .. code-block:: json
