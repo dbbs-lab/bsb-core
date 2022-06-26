@@ -1194,6 +1194,11 @@ class TestListScripting(unittest.TestCase):
         item = self.list.pop()
         self.assertList(2)
 
+    def test_clear(self):
+        self.list[:] = [{"names": []}] * 3
+        item = self.list.clear()
+        self.assertList(0)
+
 
 class TestScripting(unittest.TestCase):
     def test_booted_root(self):
