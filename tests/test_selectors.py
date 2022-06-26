@@ -74,19 +74,22 @@ class TestSelectors(unittest.TestCase):
             self.assertEqual(0, len(ct.get_morphologies()), "should select 0 morpho")
 
     def test_nm_selector(self):
+        name = "H17-03-013-11-08-04_692297214_m"
         ct = CellType(
             spatial=dict(
                 morphologies=[
                     {
                         "select": "from_neuromorpho",
-                        "names": ["H17-03-013-11-08-04_692297214_m"],
+                        "names": [name],
                     }
                 ]
             )
         )
         cfg = Configuration.default(cell_types={"ct": ct})
         s = Scaffold(cfg)
-        self.assertIn("H17-03-013-11-08-04_692297214_m", s.morphologies, "missing NM")
+        self.assertIn(name, s.morphologies, "missing NM")
+        m = s.morphologies.select(*ct.spatial.morphologies)[0]
+        self.assertEqual(name, m.get_meta()["neuron_name"], "meta not stored")
 
     def test_nm_selector_wrong_name(self):
         ct = CellType(
