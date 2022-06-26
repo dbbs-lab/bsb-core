@@ -65,6 +65,7 @@ class NameSelector(MorphologySelector, classmap_entry="by_name"):
 @config.node
 class NeuroMorphoSelector(NameSelector, classmap_entry="from_neuromorpho"):
     _url = "https://neuromorpho.org/"
+    _meta = "api/neuron/select?q=neuron_name:"
     _name = "neuron_info.jsp?neuron_name="
     _files = "dableFiles/"
     _pat = re.compile(
@@ -119,6 +120,19 @@ class NeuroMorphoSelector(NameSelector, classmap_entry="from_neuromorpho"):
                         ", ".join(f"'{n}'" for n in missing)
                         + " are not valid NeuroMorpho names."
                     )
+                res = requests.get(cls._url + cls._meta + ",".join(names), verify=False)
+                if res.status_code != 200:
+                    raise SelectorError("NeuroMorpho API error: " + res.message)
+                metas = {n: None for n in names}
+                for meta in res.json()["_embedded"]["neuronResources"]:
+                    del meta["_links"]
+                    metas[meta["neuron_name"]] = meta
+                missing = [name for name, meta in metas.items() if meta is None]
+                if missing:
+                    raise SelectorError(
+                        ", ".join(f"'{n}'" for n in missing)
+                        + " are not valid NeuroMorpho names."
+                    )
                 req = lambda n: requests.get(
                     cls._url + cls._files + filenames[n], verify=False
                 )
@@ -133,9 +147,9 @@ class NeuroMorphoSelector(NameSelector, classmap_entry="from_neuromorpho"):
                         with open(path, "w") as f:
                             f.write(data.text)
                         try:
-                            morphos[name] = Morphology.from_swc(path)
+                            morphos[name] = Morphology.from_swc(path, meta=metas[name])
                         except:
-                            morphos[name] = Morphology.from_file(path)
+                            morphos[name] = Morphology.from_file(path, meta=metas[name])
                 missing = [name for name, m in morphos.items() if m is None]
                 if missing:  # pragma: nocover
                     raise SelectorError(
