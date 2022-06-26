@@ -1,0 +1,84 @@
+{
+  "name": "Starting example",
+  "storage": {
+    "engine": "hdf5",
+    "root": "network.hdf5"
+  },
+  "network": {
+    "x": 400.0,
+    "y": 600.0,
+    "z": 400.0
+  },
+  "regions": {
+    "brain_region": {
+      "type": "stack",
+      "children": ["base_layer", "top_layer"]
+    }
+  },
+  "partitions": {
+    "base_layer": {
+      "type": "layer",
+      "thickness": 100,
+      "stack_index": 0
+    },
+    "top_layer": {
+      "type": "layer",
+      "thickness": 100,
+      "stack_index": 1
+    }
+  },
+  "cell_types": {
+    "base_type": {
+      "spatial": {
+        "radius": 2,
+        "density": 1e-3,
+        "morphologies": [
+          {
+            "names": [
+              "my_neuron"
+            ]
+          }
+        ]
+      }
+    },
+    "top_type": {
+      "spatial": {
+        "radius": 7,
+        "count": 10,
+        "morphologies": [
+          {
+            "select": "from_neuromorpho",
+            "names": [
+              "cell005_GroundTruth",
+              "DD13-10-c8-3",
+              "10_666-GM9-He-Ctl-Chow-BNL16A-CA1Finished2e"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "placement": {
+    "base_placement": {
+      "strategy": "bsb.placement.ParticlePlacement",
+      "cell_types": ["base_type"],
+      "partitions": ["base_layer"]
+    },
+    "top_placement": {
+      "strategy": "bsb.placement.ParticlePlacement",
+      "cell_types": ["top_type"],
+      "partitions": ["top_layer"]
+    }
+  },
+  "connectivity": {
+    "A_to_B": {
+      "strategy": "bsb.connectivity.VoxelIntersection",
+      "presynaptic": {
+        "cell_types": ["base_type"]
+      },
+      "postsynaptic": {
+          "cell_types": ["top_type"]
+      }
+    }
+  }
+}
