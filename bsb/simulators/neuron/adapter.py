@@ -537,11 +537,11 @@ class NeuronAdapter(SimulatorAdapter):
                 instance.cell_model = cell_model
                 if cell_model.record_soma:
                     self.register_cell_recorder(instance, instance.record_soma())
-                if cell_model.record_spikes:
-                    spike_nc = self.h.NetCon(instance.soma[0], None)
-                    spike_nc.threshold = -20
-                    spike_recorder = spike_nc.record()
-                    self.register_spike_recorder(instance, spike_recorder)
+                # if cell_model.record_spikes:
+                #     spike_nc = self.h.NetCon(instance.soma[0], None)
+                #     spike_nc.threshold = -20
+                #     spike_recorder = spike_nc.record()
+                #     self.register_spike_recorder(instance, spike_recorder)
                 cell_model.instances.append(instance)
                 self.cells[cell_id] = instance
         report(
