@@ -275,14 +275,33 @@ Morphology selectors
 --------------------
 
 The most common way of telling the framework which morphologies to use is through
-:class:`MorphologySelectors <.morphologies.selector.MorphologySelector>`. A selector
-should implement :meth:`~.morphologies.selector.MorphologySelector.validate` and
+:class:`MorphologySelectors <.morphologies.selector.MorphologySelector>`. Currently you
+can select morphologies ``by_name`` or ``from_neuromorpho``:
+
+.. tab-set-code::
+
+  .. code-block:: json
+
+    "morphologies": [
+      {
+        "select": "by_name",
+        "names": ["my_morpho_1", "all_other_*"]
+      },
+      {
+        "select": "from_neuromorpho",
+        "names": ["H17-03-013-11-08-04_692297214_m", "cell010_GroundTruth"]
+      }
+    ]
+
+If you want to make your own selector, you should implement
+:meth:`~.morphologies.selector.MorphologySelector.validate` and
 :meth:`~.morphologies.selector.MorphologySelector.pick` methods.
 
 ``validate`` can be used to assert that all the required morphologies are present, while
 ``pick`` needs to return ``True``/``False`` to include a morphology or not. Both methods
-are handed :class:`~.storage.interfaces.StoredMorphology` objects, only ``load``
-morphologies if it is impossible to determine the outcome from the metadata.
+are handed :class:`~.storage.interfaces.StoredMorphology` objects, only
+:meth:`~.storage.interfaces.StoredMorphology.load` morphologies if it is impossible to
+determine the outcome from the metadata.
 
 .. code-block:: python
 
