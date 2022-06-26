@@ -170,11 +170,10 @@ cells and connections in place, you're ready to move to the :ref:`simulations` s
     :gutter: 1
 
     .. grid-item-card:: :octicon:`flame;1em;sd-text-warning` Continue getting started
-	    :link: all-guides
+	    :link: getting-started-morpho
 	    :link-type: ref
 
-	    Follow the rest of the guides for basics on as ``CellTypes``, ``Placement`` blocks,
-	    ``Connectivity`` blocks and ``Simulations``.
+	    Follow the rest of the guides and learn how to include morphologies.
 
     .. grid-item-card:: :octicon:`tools;1em;sd-text-warning` Components
 	    :link: components
