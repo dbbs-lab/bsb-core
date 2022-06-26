@@ -56,7 +56,6 @@ and explicit code understandable and reusable by your peers.
    usage/installation
    usage/top-level-guide
    usage/getting-started
-   usage/getting-started-morpho
    usage/projects
    guides/toc
    examples/toc
