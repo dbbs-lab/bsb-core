@@ -66,11 +66,7 @@ class NameSelector(MorphologySelector, classmap_entry="by_name"):
 class NeuroMorphoSelector(NameSelector, classmap_entry="from_neuromorpho"):
     _url = "https://neuromorpho.org/"
     _meta = "api/neuron/select?q=neuron_name:"
-    _name = "neuron_info.jsp?neuron_name="
     _files = "dableFiles/"
-    _pat = re.compile(
-        r"<a href=dableFiles/(.*)>Morphology File \(Standardized\)</a>", re.MULTILINE
-    )
 
     def __boot__(self):
         if self.scaffold.is_mpi_master:
@@ -84,6 +80,10 @@ class NeuroMorphoSelector(NameSelector, classmap_entry="from_neuromorpho"):
                 self.scaffold.morphologies.save(name, morpho, overwrite=True)
         if hasattr(self.scaffold, "MPI"):
             self.scaffold.MPI.COMM_WORLD.Barrier()
+
+    @classmethod
+    def _swc_url(cls, archive, name):
+        return f"{cls._url}{cls._files}{urllib.parse.quote(archive.lower())}/CNG%20version/{name}.CNG.swc"
 
     @classmethod
     def _scrape_nm(cls, names):
@@ -101,27 +101,10 @@ class NeuroMorphoSelector(NameSelector, classmap_entry="from_neuromorpho"):
             warnings.simplefilter("ignore")
             with ThreadPoolExecutor() as executor:
                 # Certificate issues with neuromorpho --> verify=False
-                req = lambda n: requests.get(cls._url + cls._name + n, verify=False)
-                sub = lambda n: (executor.submit(req, n), n)
-                futures = dict(map(sub, names))
-                filenames = {}
-                for future in concurrent.futures.as_completed(futures.keys()):
-                    name = futures[future]
-                    data = future.result()
-                    try:
-                        file = cls._pat.search(data.text)[1]
-                    except:
-                        filenames[name] = None
-                    else:
-                        filenames[name] = file
-                missing = [name for name, file in filenames.items() if file is None]
-                if missing:
-                    raise SelectorError(
-                        ", ".join(f"'{n}'" for n in missing)
-                        + " are not valid NeuroMorpho names."
-                    )
                 res = requests.get(cls._url + cls._meta + ",".join(names), verify=False)
-                if res.status_code != 200:
+                if res.status_code == 404:
+                    raise SelectorError(f"'{names[0]}' is not a valid NeuroMorpho name.")
+                elif res.status_code != 200:
                     raise SelectorError("NeuroMorpho API error: " + res.message)
                 metas = {n: None for n in names}
                 for meta in res.json()["_embedded"]["neuronResources"]:
@@ -133,23 +116,18 @@ class NeuroMorphoSelector(NameSelector, classmap_entry="from_neuromorpho"):
                         ", ".join(f"'{n}'" for n in missing)
                         + " are not valid NeuroMorpho names."
                     )
-                req = lambda n: requests.get(
-                    cls._url + cls._files + filenames[n], verify=False
-                )
+                swc_urls = {n: cls._swc_url(metas[n]["archive"], n) for n in names}
+                req = lambda n: requests.get(swc_urls[n], verify=False)
+                sub = lambda n: (executor.submit(req, n), n)
                 futures = dict(map(sub, names))
                 morphos = {n: None for n in names}
                 with tempfile.TemporaryDirectory() as tempdir:
                     for future in concurrent.futures.as_completed(futures.keys()):
                         name = futures[future]
-                        data = future.result()
-                        fname = urllib.parse.unquote(filenames[name]).split("/")[-1]
-                        path = tempdir + f"/{fname}"
+                        path = tempdir + f"/{name}.swc"
                         with open(path, "w") as f:
-                            f.write(data.text)
-                        try:
-                            morphos[name] = Morphology.from_swc(path, meta=metas[name])
-                        except:
-                            morphos[name] = Morphology.from_file(path, meta=metas[name])
+                            f.write(future.result().text)
+                        morphos[name] = Morphology.from_swc(path, meta=metas[name])
                 missing = [name for name, m in morphos.items() if m is None]
                 if missing:  # pragma: nocover
                     raise SelectorError(

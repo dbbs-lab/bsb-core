@@ -111,9 +111,23 @@ class TestSelectors(unittest.TestCase):
             try:
                 ct.spatial.morphologies[0] = {
                     "select": "from_neuromorpho",
-                    "names": ["H17-03-092297214_m"],
+                    "names": ["H17-03-013-11-08-04_692297214_m", "H17-03-092297214_m"],
                 }
             except Exception as e:
+                err = e
+            err = w.bcast(err, root=0)
+            if err:
+                raise err
+        with self.assertRaises(SelectorError, msg="doesnt exist, should error"):
+            from mpi4py.MPI import COMM_WORLD as w
+
+            err = None
+            try:
+                ct.spatial.morphologies[0] = {
+                    "select": "from_neuromorpho",
+                    "names": ["H17-03-092297214_m"],
+                }
+            except SelectorError as e:
                 err = e
             err = w.bcast(err, root=0)
             if err:
