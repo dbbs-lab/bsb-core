@@ -1,4 +1,4 @@
-sphinx==4.3.0
+sphinx==5.0.2
 colour==0.1.5
 errr==1.0.0
 rtree==0.9.7
