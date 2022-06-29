@@ -29,4 +29,4 @@ class TestMorphologyDistributor(unittest.TestCase):
         )
         netw = Scaffold(cfg)
         with self.assertRaisesRegex(DistributorError, "NameSelector"):
-            netw.compile()
+            netw.compile(append=True)
