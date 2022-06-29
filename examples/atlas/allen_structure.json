@@ -17,9 +17,9 @@
       "type": "voxels",
       "voxels": {
         "type": "allen",
-        "struct_name": "DEC",
         "source": "my_cell_density.nrrd",
-        "data_keys": ["my_cell_density"]
+        "data_keys": ["my_cell_density"],
+        "struct_name": "DEC"
       }
     }
   },
@@ -27,8 +27,8 @@
     "my_cell": {
       "spatial": {
         "radius": 2.5,
-        "density": 0.003,
-        "density_key": "my_cell_density"
+        "density_key": "my_cell_density",
+        "density": 0.003
       }
     }
   },

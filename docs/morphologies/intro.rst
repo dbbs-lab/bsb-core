@@ -2,59 +2,28 @@
 Morphologies
 ############
 
-Morphologies are the 3D representation of a cell. In the BSB they consist of branches,
-pieces of cables, consisting of points with spatial coordinates and a radius. On top of
-that each point can also be given labels, and properties.
+Morphologies are the 3D representation of a cell. A morphology consists of head-to-tail
+connected branches, and branches consist of a series of points with radii. Points can be
+labelled and user-defined properties with one value per point can be declared on the
+morphology.
 
-A morphology can be summed up as::
+.. figure:: /images/morphology.png
+  :figwidth: 350px
+  :align: center
 
-  m = Morphology(roots)
-  m.roots == <all roots>
-  m.branches == <all branches, depth first starting from the roots>
 
-The ``branches`` attribute is the result of a depth-first iteration of the roots list. Any
-kind of iteration over roots or branches will always follow this same depth-first order,
-and this order is implicitly used as the branch id as well.
+1. The root branch, shaped like a soma because of its radii.
+2. A child branch of the root branch.
+3. Another child branch of the root branch.
 
 Morphologies can be stored in :class:`MorphologyRepositories
 <.storage.interfaces.MorphologyRepository>`.
 
-Constructing morphologies
-=========================
-
-Although morphologies are usually imported from files into storage, it can be useful to
-know how to create them for debugging, testing and validating. First create your branches,
-then attach them together and provide the roots to the Morphology constructor:
-
-.. code-block:: python
-
-  from bsb.morphologies import Branch, Morphology
-  import numpy as np
-
-  # XYZ, radius,
-  root = Branch(
-    np.array([
-      [0, 1, 2],
-      [0, 1, 2],
-      [0, 1, 2],
-    ]),
-    np.array([1, 1, 1]),
-  )
-  child_branch = Branch(
-    np.array([
-      [2, 3, 4],
-      [2, 3, 4],
-      [2, 3, 4],
-    ]),
-    np.array([1, 1, 1]),
-  )
-  root.attach_child(child_branch)
-  m = Morphology([root])
 
 Importing
 ---------
 
-More commonly you will import morphologies from SWC or ASC files:
+ASC or SWC files can be imported into a morphology repository:
 
 .. literalinclude:: ../../examples/morphologies/import.py
   :lines: 2-5
@@ -68,6 +37,38 @@ morphologies:
 .. literalinclude:: ../../examples/morphologies/import.py
   :lines: 8-11
   :language: python
+
+Constructing morphologies
+-------------------------
+
+Create your branches, attach them in a parent-child relationship, and provide the roots to
+the :class:`~.morphologies.Morphology` constructor:
+
+.. code-block:: python
+
+  from bsb.morphologies import Branch, Morphology
+  import numpy as np
+
+  root = Branch(
+    # XYZ
+    np.array([
+      [0, 1, 2],
+      [0, 1, 2],
+      [0, 1, 2],
+    ]),
+    # radius
+    np.array([1, 1, 1]),
+  )
+  child_branch = Branch(
+    np.array([
+      [2, 3, 4],
+      [2, 3, 4],
+      [2, 3, 4],
+    ]),
+    np.array([1, 1, 1]),
+  )
+  root.attach_child(child_branch)
+  m = Morphology([root])
 
 Basic use
 ---------
@@ -166,8 +167,12 @@ Translation
 Centering
 ---------
 
-Subtrees may center themselves by offsetting the geometric mean of the origins of each
-root.
+Subtrees may center themselves so that the point ``(0, 0, 0)`` becomes the geometric mean
+of the roots.
+
+.. figure:: /images/m_trans/center.png
+  :figwidth: 350px
+  :align: center
 
 Rotation
 --------
@@ -237,16 +242,24 @@ Subtree gaps between parent and child branches can be closed:
 
 	The gaps between any subtree branch and its parent will be closed, even if the parent is
 	not part of the subtree. This means that gaps of roots of a subtree may be closed as
-	well.
+	well. Gaps _between_ roots are never collapsed.
 
-.. note::
+.. seealso::
 
-	Gaps between roots are not collapsed.
+	 `Collapsing`_
 
 Collapsing
 ----------
 
 Collapse the roots of a subtree onto a single point, by default the origin.
+
+.. figure:: /images/m_trans/collapse.png
+  :figwidth: 350px
+  :align: center
+
+.. code-block:: python
+
+  roots.collapse()
 
 .. rubric:: Call chaining
 
@@ -256,14 +269,12 @@ Calls to any of the above functions can be chained together:
 
   dendrites.close_gaps().center().rotate(r)
 
-Morphology classes in the framework
-===================================
-
-The framework deals quite a bit with morphologies, here are some interesting classes for
-once you dig deeper into morphologies.
+Advanced features
+-----------------
 
 Morphology preloading
----------------------
+=====================
+
 Reading the morphology data from the repository takes time. Usually morphologies are
 passed around in the framework as :class:`StoredMorphologies
 <.storage.interfaces.StoredMorphology>`. These objects have a
@@ -272,17 +283,36 @@ passed around in the framework as :class:`StoredMorphologies
 :meth:`~.storage.interfaces.StoredMorphology.get_meta` method to return the metadata.
 
 Morphology selectors
---------------------
+====================
 
 The most common way of telling the framework which morphologies to use is through
-:class:`MorphologySelectors <.placement.indicator.MorphologySelector>`. A selector should
-implement :meth:`~.placement.indicator.MorphologySelector.validate` and
-:meth:`~.placement.indicator.MorphologySelector.pick` methods.
+:class:`MorphologySelectors <.morphologies.selector.MorphologySelector>`. Currently you
+can select morphologies ``by_name`` or ``from_neuromorpho``:
 
-``validate`` can be used to assert that all the required morphologies are present, while
-``pick`` needs to return ``True``/``False`` to include a morphology or not. Both methods
-are handed :class:`~.storage.interfaces.StoredMorphology` objects, only ``load``
-morphologies if it is impossible to determine the outcome from the metadata.
+.. tab-set-code::
+
+  .. code-block:: json
+
+    "morphologies": [
+      {
+        "select": "by_name",
+        "names": ["my_morpho_1", "all_other_*"]
+      },
+      {
+        "select": "from_neuromorpho",
+        "names": ["H17-03-013-11-08-04_692297214_m", "cell010_GroundTruth"]
+      }
+    ]
+
+If you want to make your own selector, you should implement the
+:meth:`~.morphologies.selector.MorphologySelector.validate` and
+:meth:`~.morphologies.selector.MorphologySelector.pick` methods.
+
+``validate`` can be used to assert that all the required morphologies and metadata are
+present, while ``pick`` needs to return ``True``/``False`` to include a morphology in the
+selection. Both methods are handed :class:`~.storage.interfaces.StoredMorphology` objects.
+Only :meth:`~.storage.interfaces.StoredMorphology.load` morphologies if it is impossible
+to determine the outcome from the metadata alone.
 
 .. code-block:: python
 
@@ -309,7 +339,7 @@ morphologies if it is impossible to determine the outcome from the metadata.
       "spatial": {
         "morphologies": [
           {
-            "selector": "by_size",
+            "select": "by_size",
             "min_size": 35
           }
         ]
@@ -318,7 +348,7 @@ morphologies if it is impossible to determine the outcome from the metadata.
   }
 
 Morphology metadata
--------------------
+===================
 
 Currently unspecified, up to the Storage and MorphologyRepository support to return a
 dictionary of available metadata from
@@ -326,7 +356,7 @@ dictionary of available metadata from
 
 
 Morphology distributors
------------------------
+=======================
 
 A :class:`~.placement.strategy.MorphologyDistributor` is a special type of
 :class:`~.placement.strategy.Distributor` that is usually called after positions have been
@@ -344,7 +374,7 @@ a :class:`~.morphologies.RotationSet`.
 
 
 MorphologySets
---------------
+==============
 
 :class:`MorphologySets <.morphologies.MorphologySet>` are the result of
 :class:`distributors <.placement.strategy.MorphologyDistributor>` assigning morphologies

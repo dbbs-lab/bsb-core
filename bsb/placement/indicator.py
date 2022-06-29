@@ -1,59 +1,10 @@
 from ..exceptions import *
 from .. import config
 from ..config import refs, types
+from ..morphologies.selector import MorphologySelector
 import numpy as np
 import abc
 import re
-
-
-@config.dynamic(
-    attr_name="selector",
-    auto_classmap=True,
-    required=False,
-    default="by_name",
-)
-class MorphologySelector(abc.ABC):
-    @abc.abstractmethod
-    def validate(self, all_morphos):
-        pass
-
-    @abc.abstractmethod
-    def pick(self, morphology):
-        pass
-
-
-@config.node
-class NameSelector(MorphologySelector, classmap_entry="by_name"):
-    names = config.list(type=str, required=True)
-
-    def _cache_patterns(self):
-        self._pnames = {n: n.replace("*", r".*").replace("|", "\\|") for n in self.names}
-        self._patterns = {n: re.compile(f"^{pat}$") for n, pat in self._pnames.items()}
-        self._empty = not self.names
-        self._match = re.compile(f"^({'|'.join(self._pnames.values())})$")
-
-    def validate(self, all_morphos):
-        self._cache_patterns()
-        repo_names = {m.get_meta()["name"] for m in all_morphos}
-        missing = [
-            n
-            for n, pat in self._patterns.items()
-            if not any(pat.match(rn) for rn in repo_names)
-        ]
-        if missing:
-            err = "Morphology repository misses the following morphologies"
-            if self._config_parent is not None:
-                node = self._config_parent._config_parent
-                err += f" required by {node.get_node_name()}"
-            err += f": {', '.join(missing)}"
-            raise MissingMorphologyError(err)
-
-    def pick(self, morphology):
-        self._cache_patterns()
-        return (
-            not self._empty
-            and self._match.match(morphology.get_meta()["name"]) is not None
-        )
 
 
 @config.node

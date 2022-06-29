@@ -12,11 +12,11 @@
           },
           "morphologies": [
             {
-              "selector": "by_name",
+              "select": "by_name",
               "names": ["short_*"]
             },
             {
-              "selector": "by_name",
+              "select": "by_name",
               "names": ["long_*"]
             }
           ]
