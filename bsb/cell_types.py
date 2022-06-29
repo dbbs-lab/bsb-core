@@ -8,6 +8,7 @@ from .placement import PlacementStrategy
 from .placement.indicator import PlacementIndications
 from ._util import SortableByAfter
 from .exceptions import *
+from ._util import obj_str_insert
 import abc
 
 
@@ -66,6 +67,18 @@ class CellType:
     def __boot__(self):
         storage = self.scaffold.storage
         storage._PlacementSet.require(storage._engine, self)
+    
+    @obj_str_insert
+    def __repr__(self):
+        cells_placed = len(self.get_placement_set())
+        placements = len(self.get_placement())
+        return f"'{self.name}', {cells_placed} cells, {placements} placement strategies"
+    
+    def get_placement(self):
+        """
+        Get the placement components this cell type is a part of.
+        """
+        return self.scaffold.get_placement_of(self)
 
     def get_placement_set(self, chunks=None):
         """

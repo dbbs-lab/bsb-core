@@ -21,7 +21,7 @@ def merge_dicts(a, b):
 def obj_str_insert(__str__):
     @functools.wraps(__str__)
     def wrapper(self):
-        obj_str = object.__str__(self)
+        obj_str = object.__repr__(self)
         return obj_str.replace("at 0x", __str__(self) + " at 0x")
 
     return wrapper
