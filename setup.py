@@ -78,7 +78,7 @@ setuptools.setup(
     },
     extras_require={
         "dev": [
-            "sphinx",
+            "sphinx~=5.0",
             "furo",
             "pre-commit",
             "black==22.3.0",
