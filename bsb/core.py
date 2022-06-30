@@ -467,6 +467,11 @@ class Scaffold:
         return self.storage.get_placement_set(type, chunks=chunks)
 
     def get_placement_sets(self):
+        """
+        Return all of the placement sets present in the network.
+
+        :rtype: List[~bsb.storage.interfaces.PlacementSet]
+        """
         return [cell_type.get_placement_set() for cell_type in self.cell_types.values()]
 
     def get_connectivity(
