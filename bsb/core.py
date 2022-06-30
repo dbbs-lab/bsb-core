@@ -466,6 +466,9 @@ class Scaffold:
             type = self.cell_types[type]
         return self.storage.get_placement_set(type, chunks=chunks)
 
+    def get_placement_sets(self):
+        return [cell_type.get_placement_set() for cell_type in self.cell_types.values()]
+
     def get_connectivity(
         self, anywhere=None, presynaptic=None, postsynaptic=None, skip=None, only=None
     ):
