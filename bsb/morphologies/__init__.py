@@ -666,7 +666,7 @@ class Branch:
         if labels is None:
             labels = _Labels.none(len(points))
         elif not isinstance(labels, _Labels):
-            labels = _Labels.from_seq(len(points), labels)
+            labels = _Labels.from_labelset(len(points), labels)
         self._labels = labels
         if properties is None:
             properties = {}
@@ -1037,18 +1037,30 @@ class _Labels(np.ndarray):
         return np.isin(self, has_any)
 
     def walk(self):
+        """
+        Iterate over the branch, yielding the labels of each point.
+        """
         for x in self:
             yield self.labels[x].copy()
 
-    def of(self, label):
+    def expand(self, label):
+        """
+        Translate a label value into its corresponding labelset.
+        """
         return self.labels[label].copy()
 
     @classmethod
     def none(cls, len):
+        """
+        Create _Labels without any labelsets.
+        """
         return cls(len, buffer=np.zeros(len, dtype=int))
 
     @classmethod
-    def from_seq(cls, len, seq):
+    def from_labelset(cls, len, labelset):
+        """
+        Create _Labels with all points labelled to the given labelset.
+        """
         return cls(len, buffer=np.ones(len), labels={0: _lset(), 1: _lset(seq)})
 
     @classmethod
