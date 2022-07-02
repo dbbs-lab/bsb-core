@@ -132,7 +132,7 @@ that use morphologies, such as
 .. note::
 
   If there's multiple morphologies per cell type, they'll be assigned randomly, unless you
-  specify a :class:`~.placement.strategy.MorphologyDistributor`.
+  specify a :class:`~.placement.distributor.MorphologyDistributor`.
 
 
 Recap

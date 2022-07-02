@@ -199,7 +199,7 @@ cells and connections in place, you're ready to move to the :ref:`simulations` s
 
 	    Learn to package your code for others to use!
 
-    .. grid-item-card:: :octicon:`octoface;1em;sd-text-warning` Contributing
+    .. grid-item-card:: :octicon:`mark-github;1em;sd-text-warning` Contributing
 	    :link: https://github.com/dbbs-lab/bsb
 
 	    Help out the project by contributing code.
