@@ -8,7 +8,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
 from bsb.morphologies import Morphology, Branch, _Labels
 from bsb.storage import Storage
 from bsb.exceptions import *
-from test_setup import get_morphology, NumpyTestCase
+from test_setup import get_morphology
+from bsb.unittest import NumpyTestCase
 from scipy.spatial.transform import Rotation
 
 

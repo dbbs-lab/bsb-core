@@ -9,9 +9,10 @@ from bsb.exceptions import *
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
 import test_setup
+import bsb.unittest
 
 
-class TestVoxelSet(test_setup.NumpyTestCase, unittest.TestCase):
+class TestVoxelSet(bsb.unittest.NumpyTestCase, unittest.TestCase):
     def setUp(self):
         vs = VoxelSet
         self.regulars = [
