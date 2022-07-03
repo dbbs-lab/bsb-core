@@ -138,6 +138,7 @@ class TestPlacementSet(RandomStorageFixture):
         if not MPI.Get_rank():
             ps = storage._PlacementSet.create(storage._engine, cfg.cell_types.test_cell)
             MPI.Barrier()
+            time.sleep(0.1)
         else:
             MPI.Barrier()
             ps = storage._PlacementSet(storage._engine, cfg.cell_types.test_cell)
