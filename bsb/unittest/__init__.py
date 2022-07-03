@@ -2,6 +2,8 @@ from .parallel import *
 from ..storage import Storage
 import numpy as _np
 
+_storagecount = 0
+
 
 class RandomStorageFixture:
     def __init_subclass__(cls, **kwargs):
@@ -16,8 +18,10 @@ class RandomStorageFixture:
                 s.remove()
 
     def random_storage(self, root_factory=None, engine="hdf5"):
+        global _storagecount
         if root_factory is None:
-            rstr = f"random_storage_{len(self.__class__._open_storages)}.hdf5"
+            rstr = f"random_storage_{_storagecount}.hdf5"
+            _storagecount += 1
         else:
             rstr = root_factory()
         s = Storage(engine, rstr)
