@@ -55,12 +55,12 @@ def timeout(timeout, abort=False):
         def guarded_f(*args, **kwargs):
             response = f"{f.__name__}____start"
             buff = MPI.allgather(response)
-            if any(b != response):
+            if any(b != response for b in buff):
                 raise TimeoutError(f"Start token desynchronization: {buff}")
             f(*args, **kwargs)
             response = f"{f.__name__}____end"
             buff = MPI.allgather(response)
-            if any(b != response):
+            if any(b != response for b in buff):
                 raise TimeoutError(f"End token desynchronization: {buff}")
 
         def timed_f(*args, **kwargs):
