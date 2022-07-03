@@ -43,11 +43,55 @@ def get_engines():
     """
     Get a dictionary of all available storage engines.
     """
-    return plugins.discover("engines")
+    engines = plugins.discover("engines")
+    for engine_name, engine_module in engines.items():
+        register_engine(engine_name, engine_module)
+    return engines
 
 
-_available_engines = get_engines()
-_engines = {}
+def create_engine(name, root):
+    global _engines
+    if name not in _available_engines:
+        raise UnknownStorageEngineError(f"The storage engine '{name}' was not found.")
+    engine = _engines[name]
+    if callable(engine):
+        # Initializer function found, call it to load the engine.
+        _engines[name] = engine = engine()
+    # Create an engine from the engine's Engine interface.
+    return engine["Engine"](root)
+
+
+def init_engines():
+    global _engines
+    for engine_name, engine in _engines.items():
+        if callable(engine):
+            _engines[engine_name] = engine()
+
+
+def register_engine(engine_name, engine_module):
+    def init_engine():
+        # Create engine without any supported interfaces
+        engine_support = {
+            interface_name: NotSupported(engine_name, interface_name)
+            for interface_name in _storage_interfaces.keys()
+        }
+        # Search for interface support
+        for interface_name, interface in _storage_interfaces.items():
+            for module_item in engine_module.__dict__.values():
+                # Look through module items for child class of interface
+                if (
+                    isclass(module_item)
+                    and module_item is not interface
+                    and issubclass(module_item, interface)
+                ):
+                    engine_support[interface_name] = module_item
+                    break
+
+        return engine_support
+
+    # Set the initializer as a stub for the engine. When the engine is first used, the
+    # initializer is called.
+    _engines[engine_name] = init_engine
 
 
 class NotSupported:
@@ -78,32 +122,8 @@ class NotSupported:
         self._unsupported_err()
 
 
-# Go through all available engines to determine which Interfaces are provided and therefor
-# which features are supported.
-for engine_name, engine_module in _available_engines.items():
-    # Construct the default support dictionary where none of the features are supported
-    engine_support = {
-        interface_name: NotSupported(engine_name, interface_name)
-        for interface_name in _storage_interfaces.keys()
-    }
-    # Set this engine's support to the default no support dictionary
-    _engines[engine_name] = engine_support
-    # Iterate over each interface that we'd like to find support for.
-    for interface_name, interface in _storage_interfaces.items():
-        # Iterate over all elements in the engine_module to find elements that provide
-        # support for this feature
-        for module_item in engine_module.__dict__.values():
-            # Is it a class, not the interface itself, and a subclass of the interface?
-            if (
-                isclass(module_item)
-                and module_item is not interface
-                and issubclass(module_item, interface)
-            ):
-                # Then it is an implementation of the feature described by the interface.
-                # Add it to the support dictionary.
-                engine_support[interface_name] = module_item
-                # Don't look any further through the module for this feature.
-                break
+_engines = {}
+_available_engines = get_engines()
 
 
 def _on_master(f):
@@ -142,13 +162,7 @@ class Storage:
         :type comm: mpi4py.MPI.Comm
         :param master: Rank of the MPI process that executes single-node tasks.
         """
-        if engine not in _available_engines:
-            raise UnknownStorageEngineError(
-                "The storage engine '{}' was not found.".format(engine)
-            )
-        # All engines should provide an Engine interface implementation, which we will use
-        # to shim basic functionalities, and to pass on to features we produce.
-        self._engine = _engines[engine]["Engine"](root)
+        self._engine = create_engine(engine, root)
         self._features = [
             fname for fname, supported in view_support()[engine].items() if supported
         ]
@@ -360,6 +374,7 @@ def view_support(engine=None):
     """
     Return which storage engines support which features.
     """
+    init_engines()
     if engine is None:
         return {
             # Loop over all enginges
