@@ -5,7 +5,9 @@ from . import RandomStorageFixture, MPI, timeout
 import time
 
 
-cfg = Configuration.default(cell_types=dict(a=dict(spatial=dict(radius=2, density=1e-3))))
+cfg = Configuration.default(
+    cell_types=dict(test_cell=dict(spatial=dict(radius=2, density=1e-3)))
+)
 
 
 class TestEngine(RandomStorageFixture):
