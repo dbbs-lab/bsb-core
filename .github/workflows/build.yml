@@ -43,5 +43,5 @@ jobs:
         bash <(curl -s https://codecov.io/bash)
     - name: Test default plugins
       run: |
-        git clone git@github.com:dbbs-lab/bsb-hdf5
+        git clone https://github.com/dbbs-lab/bsb-hdf5
         coverage run -p -m unittest discover bsb-hdf5/test
