@@ -1,6 +1,8 @@
 import unittest
 from ..config import Configuration
-from . import RandomStorageFixture, MPI
+from ..storage import Storage, Chunk
+from . import RandomStorageFixture, MPI, timeout
+import time
 
 
 cfg = Configuration.default(cell_types=dict(a=dict(spatial=dict(radius=2, density=1e-3))))
