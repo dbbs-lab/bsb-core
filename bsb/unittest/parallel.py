@@ -52,8 +52,19 @@ _threading.excepthook = _excepthook
 
 def timeout(timeout, abort=False):
     def decorator(f):
+        def guarded_f(*args, **kwargs):
+            response = f"{f.__name__}____start"
+            buff = MPI.allgather(response)
+            if any(b != response):
+                raise TimeoutError(f"Start token desynchronization: {buff}")
+            f(*args, **kwargs)
+            response = f"{f.__name__}____end"
+            buff = MPI.allgather(response)
+            if any(b != response):
+                raise TimeoutError(f"End token desynchronization: {buff}")
+
         def timed_f(*args, **kwargs):
-            thread = _threading.Thread(target=f, args=args, kwargs=kwargs)
+            thread = _threading.Thread(target=guarded_f, args=args, kwargs=kwargs)
             thread.start()
             thread.join(timeout=timeout)
             if thread.is_alive():
