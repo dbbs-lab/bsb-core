@@ -42,6 +42,7 @@ _t(
             PlacementError=_e(
                 "cell_type", PlacementRelationError=_e("cell_type", "relation")
             ),
+            DistributorError=_e("property", "strategy"),
             RedoError=_e(),
         ),
         GatewayError=_e(
@@ -49,9 +50,7 @@ _t(
         ),
         TopologyError=_e(
             UnmanagedPartitionError=_e(),
-            LayoutError=_e(
-                MissingBoundaryError=_e(),
-            ),
+            LayoutError=_e(),
         ),
         TypeHandlingError=_e(
             NoneReferenceError=_e(),
@@ -101,6 +100,7 @@ _t(
             ChunkError=_e(),
             ContinuityError=_e(),
         ),
+        SelectorError=_e(),
         TreeError=_e(),
         VoxelSetError=_e(
             EmptyVoxelSetError=_e(),

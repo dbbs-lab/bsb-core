@@ -74,13 +74,13 @@ To get started, we'll change the ``brain_region`` into a ``stack``, and add a
 
   .. literalinclude:: getting-started.json
     :language: json
-    :lines: 7-25
+    :lines: 12-29
 
   .. literalinclude:: getting_started.py
     :language: python
     :lines: 10-16
 
-The :guilabel:`cls` of the ``brain_region`` is ``stack``. This means it will place its
+The :guilabel:`type` of the ``brain_region`` is ``stack``. This means it will place its
 children stacked on top of each other. The :guilabel:`type` of ``base_layer`` is
 ``layer``. Layers specify their size in 1 dimension, and fill up the space in the other
 dimensions. See :doc:`/topology/intro` for more explanation on topology components.
@@ -97,7 +97,7 @@ created for them. In the simplest case you define a soma :guilabel:`radius` and
 
   .. literalinclude:: getting-started.json
     :language: json
-    :lines: 26-39
+    :lines: 30-43
 
   .. literalinclude:: getting_started.py
     :language: python
@@ -111,7 +111,7 @@ Placement
 
   .. literalinclude:: getting-started.json
     :language: json
-    :lines: 40-51
+    :lines: 44-55
 
   .. literalinclude:: getting_started.py
     :language: python
@@ -120,8 +120,8 @@ Placement
 
 The ``placement`` blocks use the cell type indications to place cell types into
 partitions. You can use other :class:`PlacementStrategies
-<.placement.strategy.PlacementStrategy>` by setting the :guilabel:`cls` attribute. The BSB
-offers some strategies out of the box, or you can implement your own. The
+<.placement.strategy.PlacementStrategy>` by setting the :guilabel:`strategy` attribute.
+The BSB offers some strategies out of the box, or you can implement your own. The
 :class:`~bsb.placement.particle.ParticlePlacement` considers the cells as spheres and
 bumps them around as repelling particles until there is no overlap between them. The data
 is stored in :class:`PlacementSets <.storage.interfaces.PlacementSet>` per cell type.
@@ -130,12 +130,18 @@ Take another look at your network:
 
 .. code-block:: bash
 
-  bsb compile -v 3 -p
+  bsb compile -v 3 -p --clear
 
 .. note::
 
 	We're using the short forms ``-v`` and ``-p`` of the CLI options ``--verbosity`` and
 	``--plot``, respectively. You can use ``bsb --help`` to inspect the CLI options.
+
+.. warning::
+
+  We pass the ``--clear`` flag to indicate that existing data may be overwritten. See
+  :ref:`storage_control` for more flags to deal with existing data.
+
 
 Connectivity
 ------------
@@ -144,7 +150,7 @@ Connectivity
 
   .. literalinclude:: getting-started.json
     :language: json
-    :lines: 52-62
+    :lines: 56-66
 
   .. literalinclude:: getting_started.py
     :language: python
@@ -164,11 +170,10 @@ cells and connections in place, you're ready to move to the :ref:`simulations` s
     :gutter: 1
 
     .. grid-item-card:: :octicon:`flame;1em;sd-text-warning` Continue getting started
-	    :link: all-guides
+	    :link: include_morphos
 	    :link-type: ref
 
-	    Follow the rest of the guides for basics on as ``CellTypes``, ``Placement`` blocks,
-	    ``Connectivity`` blocks and ``Simulations``.
+	    Follow the rest of the guides and learn how to include morphologies.
 
     .. grid-item-card:: :octicon:`tools;1em;sd-text-warning` Components
 	    :link: components
@@ -194,7 +199,7 @@ cells and connections in place, you're ready to move to the :ref:`simulations` s
 
 	    Learn to package your code for others to use!
 
-    .. grid-item-card:: :octicon:`octoface;1em;sd-text-warning` Contributing
+    .. grid-item-card:: :octicon:`mark-github;1em;sd-text-warning` Contributing
 	    :link: https://github.com/dbbs-lab/bsb
 
 	    Help out the project by contributing code.

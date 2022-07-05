@@ -27,6 +27,7 @@ import inspect
 import morphio
 import numpy as np
 from collections import deque
+from pathlib import Path
 from scipy.spatial.transform import Rotation
 from ..voxels import VoxelSet
 from ..exceptions import *
@@ -600,7 +601,7 @@ class Morphology(SubTree):
         return self.__class__(roots, shared_buffers=buffers, meta=self.meta.copy())
 
     @classmethod
-    def from_swc(cls, file, branch_class=None, tags=None):
+    def from_swc(cls, file, branch_class=None, tags=None, meta=None):
         """
         Create a Morphology from a file-like object.
 
@@ -610,27 +611,27 @@ class Morphology(SubTree):
         :returns: The parsed morphology, with the SWC tags as a property.
         :rtype: bsb.morphologies.Morphology
         """
-        if isinstance(file, str):
-            with open(file, "r") as f:
-                return cls.from_swc(f, branch_class)
+        if isinstance(file, str) or isinstance(file, Path):
+            with open(str(file), "r") as f:
+                return cls.from_swc(f, branch_class, meta=meta)
         if branch_class is None:
             branch_class = Branch
-        return _swc_to_morpho(cls, branch_class, file.read(), tags=tags)
+        return _swc_to_morpho(cls, branch_class, file.read(), tags=tags, meta=meta)
 
     @classmethod
-    def from_file(cls, path, branch_class=None):
+    def from_file(cls, path, branch_class=None, meta=None):
         """
         Create a Morphology from a file on the file system through MorphIO.
         """
         if branch_class is None:
             branch_class = Branch
-        return _import(cls, branch_class, path)
+        return _import(cls, branch_class, path, meta=meta)
 
     @classmethod
-    def from_arbor(cls, arb_m, centering=True, branch_class=None):
+    def from_arbor(cls, arb_m, centering=True, branch_class=None, meta=None):
         if branch_class is None:
             branch_class = Branch
-        return _import_arb(cls, arb_m, centering, branch_class)
+        return _import_arb(cls, arb_m, centering, branch_class, meta=meta)
 
 
 def _copy_api(cls, wrap=lambda self: self):
@@ -673,7 +674,7 @@ class Branch:
         if labels is None:
             labels = _Labels.none(len(points))
         elif not isinstance(labels, _Labels):
-            labels = _Labels.from_seq(len(points), labels)
+            labels = _Labels.from_labelset(len(points), labels)
         self._labels = labels
         if properties is None:
             properties = {}
@@ -843,6 +844,13 @@ class Branch:
         that is associated to a set of labels. See :ref:`morphology_labels` for more info.
         """
         return self._labels
+
+    @property
+    def labelsets(self):
+        """
+        Return the sets of labels associated to each numerical label.
+        """
+        return self._labels.labels
 
     @property
     def is_root(self):
@@ -1097,24 +1105,34 @@ class _Labels(np.ndarray):
 
     def label(self, labels, points):
         _transitions = {}
+        # A counter that skips existing values.
         counter = (c for c in itertools.count() if c not in self.labels)
 
+        # This local function looks up the new id that a point should transition
+        # to when `labels` are added to the labels it already has.
         def transition(point):
             nonlocal _transitions
+            # Check if we already know the transition of this value.
             if point in _transitions:
                 return _transitions[point]
             else:
+                # First time making this transition. Join the existing and new labels
                 trans_labels = self.labels[point].copy()
                 trans_labels.update(labels)
+                # Check if this new combination of labels already is assigned an id.
                 for k, v in self.labels.items():
                     if trans_labels == v:
+                        # Transition labels already exist, return it
                         return k
                 else:
+                    # Transition labels are a new combination, store them under a new id.
                     transition = next(counter)
                     self.labels[transition] = trans_labels
+                    # Cache the result
                     _transitions[point] = transition
                     return transition
 
+        # Replace the label values with the transition values
         self[points] = np.vectorize(transition)(self[points])
 
     def contains(self, *labels):
@@ -1125,15 +1143,30 @@ class _Labels(np.ndarray):
         return np.isin(self, has_any)
 
     def walk(self):
+        """
+        Iterate over the branch, yielding the labels of each point.
+        """
         for x in self:
             yield self.labels[x].copy()
 
+    def expand(self, label):
+        """
+        Translate a label value into its corresponding labelset.
+        """
+        return self.labels[label].copy()
+
     @classmethod
     def none(cls, len):
+        """
+        Create _Labels without any labelsets.
+        """
         return cls(len, buffer=np.zeros(len, dtype=int))
 
     @classmethod
-    def from_seq(cls, len, seq):
+    def from_labelset(cls, len, labelset):
+        """
+        Create _Labels with all points labelled to the given labelset.
+        """
         return cls(len, buffer=np.ones(len), labels={0: _lset(), 1: _lset(seq)})
 
     @classmethod
@@ -1206,7 +1239,7 @@ def _swc_branch_dfs(adjacency, branches, node):
             node = None
 
 
-def _swc_to_morpho(cls, branch_cls, content, tags=None):
+def _swc_to_morpho(cls, branch_cls, content, tags=None, meta=None):
     tag_map = {1: "soma", 2: "axon", 3: "dendrites"}
     if tags is not None:
         tag_map.update(tags)
@@ -1279,7 +1312,7 @@ def _swc_to_morpho(cls, branch_cls, content, tags=None):
         else:
             roots.append(branch)
     # Then save the shared data matrices on the morphology
-    morpho = cls(roots, shared_buffers=(points, radii, labels, {"tags": tags}))
+    morpho = cls(roots, shared_buffers=(points, radii, labels, {"tags": tags}), meta=meta)
     # And assert that this shared buffer mode succeeded
     assert morpho._check_shared(), "SWC import didn't result in shareable buffers."
     return morpho
@@ -1294,7 +1327,7 @@ class _MorphIoSomaWrapper:
         return getattr(self._o, attr)
 
 
-def _import(cls, branch_cls, file):
+def _import(cls, branch_cls, file, meta=None):
     morpho_io = morphio.Morphology(file)
     # We create shared buffers for the entire morphology, which optimize operations on the
     # entire morphology such as `.flatten`, subtree transformations and IO.  The branches
@@ -1337,12 +1370,12 @@ def _import(cls, branch_cls, file):
                 roots.append(branch)
             children = reversed([(branch, child) for child in section.children])
             section_stack.extend(children)
-    morpho = cls(roots, shared_buffers=(points, radii, labels, {"tags": tags}))
+    morpho = cls(roots, shared_buffers=(points, radii, labels, {"tags": tags}), meta=meta)
     assert morpho._check_shared(), "MorphIO import didn't result in shareable buffers."
     return morpho
 
 
-def _import_arb(cls, arb_m, centering, branch_class):
+def _import_arb(cls, arb_m, centering, branch_class, meta=None):
     import arbor
 
     decor = arbor.decor()
@@ -1386,7 +1419,7 @@ def _import_arb(cls, arb_m, centering, branch_class):
             parent = None
             cable_id = morpho_roots.pop()
 
-    morpho = cls(roots)
+    morpho = cls(roots, meta=meta)
     branches = morpho.branches
     branch_map = {branch._cable_id: branch for branch in branches}
     cc = arbor.cable_cell(arb_m, labels, decor)

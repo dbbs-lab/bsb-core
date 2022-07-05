@@ -189,7 +189,7 @@ class Scaffold:
         only the abstract topology tree, does not rescale, prune or otherwise
         alter already existing placement data.
         """
-        from .topology import Boundary
+        from .topology._layout import box_layout
 
         if x is not None:
             self.network.x = x
@@ -197,8 +197,8 @@ class Scaffold:
             self.network.y = y
         if z is not None:
             z = self.network.z
-        self.topology.arrange(
-            Boundary([0.0, 0.0, 0.0], [self.network.x, self.network.y, self.network.z])
+        self.topology.do_layout(
+            box_layout([0.0, 0.0, 0.0], [self.network.x, self.network.y, self.network.z])
         )
 
     def run_placement(self, strategies=None, DEBUG=True):
@@ -465,6 +465,14 @@ class Scaffold:
         if isinstance(type, str):
             type = self.cell_types[type]
         return self.storage.get_placement_set(type, chunks=chunks)
+
+    def get_placement_sets(self):
+        """
+        Return all of the placement sets present in the network.
+
+        :rtype: List[~bsb.storage.interfaces.PlacementSet]
+        """
+        return [cell_type.get_placement_set() for cell_type in self.cell_types.values()]
 
     def get_connectivity(
         self, anywhere=None, presynaptic=None, postsynaptic=None, skip=None, only=None

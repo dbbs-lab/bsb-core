@@ -10,13 +10,14 @@
     "z": 400.0
   },
   "regions": {
-    "brain_region": {}
+    "brain_region": {
+      "children": ["base_layer"]
+    }
   },
   "partitions": {
     "base_layer": {
       "type": "layer",
-      "thickness": 100,
-      "region": "brain_region"
+      "thickness": 100
     }
   },
   "cell_types": {
@@ -34,7 +35,7 @@
   },
   "placement": {
     "example_placement": {
-      "cls": "bsb.placement.ParticlePlacement",
+      "strategy": "bsb.placement.ParticlePlacement",
       "cell_types": ["base_type"],
       "partitions": ["base_layer"]
     }

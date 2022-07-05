@@ -11,6 +11,13 @@ bsb.placement.arrays module
    :members:
    :undoc-members:
 
+bsb.placement.distributor module
+--------------------------------
+
+.. automodule:: bsb.placement.distributor
+   :members:
+   :undoc-members:
+
 bsb.placement.indicator module
 ------------------------------
 

@@ -3,6 +3,7 @@ import unittest, os, sys, numpy as np, h5py, json
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
 from bsb.core import Scaffold
+from bsb.storage.interfaces import PlacementSet
 from bsb.config import Configuration
 from bsb import core
 from bsb.exceptions import *
@@ -34,9 +35,28 @@ class TestCore(unittest.TestCase):
 
     def test_set_netw_config(self):
         netw = Scaffold()
-        netw.configuration = Configuration.default(regions=dict(x=dict()))
+        netw.configuration = Configuration.default(regions=dict(x=dict(children=[])))
         self.assertEqual(1, len(netw.regions), "setting cfg failed")
 
     def test_netw_props(self):
         netw = Scaffold()
         self.assertEqual(0, len(netw.morphologies.all()), "just checking morph prop")
+
+    def test_resize(self):
+        cfg = Configuration.default()
+        cfg.partitions.add("layer", thickness=100)
+        cfg.regions.add("region", children=["layer"])
+        netw = Scaffold(cfg)
+        netw.resize(x=500, y=500, z=500)
+        self.assertEqual(500, netw.network.x, "resize didnt update network node")
+        self.assertEqual(500, netw.partitions.layer.data.width, "didnt resize layer")
+
+    def test_get_placement_sets(self):
+        cfg = Configuration.default(
+            cell_types=dict(my_type=dict(spatial=dict(radius=2, density=1)))
+        )
+        netw = Scaffold(cfg)
+        pslist = netw.get_placement_sets()
+        self.assertIsInstance(pslist, list, "should get list of PS")
+        self.assertEqual(1, len(pslist), "should have one PS per cell type")
+        self.assertIsInstance(pslist[0], PlacementSet, "elements should be PS")

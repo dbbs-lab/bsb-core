@@ -11,19 +11,18 @@
   },
   "regions": {
     "brain_region": {
-      "cls": "stack"
+      "type": "stack",
+      "children": ["base_layer", "top_layer"]
     }
   },
   "partitions": {
     "base_layer": {
       "type": "layer",
-      "region": "brain_region",
       "thickness": 100,
       "stack_index": 0
     },
     "top_layer": {
       "type": "layer",
-      "region": "brain_region",
       "thickness": 100,
       "stack_index": 1
     }
@@ -44,19 +43,19 @@
   },
   "placement": {
     "base_placement": {
-      "cls": "bsb.placement.ParticlePlacement",
+      "strategy": "bsb.placement.ParticlePlacement",
       "cell_types": ["base_type"],
       "partitions": ["base_layer"]
     },
     "top_placement": {
-      "cls": "bsb.placement.ParticlePlacement",
+      "strategy": "bsb.placement.ParticlePlacement",
       "cell_types": ["top_type"],
       "partitions": ["top_layer"]
     }
   },
   "connectivity": {
     "A_to_B": {
-      "cls": "bsb.connectivity.AllToAll",
+      "strategy": "bsb.connectivity.AllToAll",
       "presynaptic": {
         "cell_types": ["base_type"]
       },

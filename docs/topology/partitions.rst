@@ -29,7 +29,7 @@ default it will load all the nonzero values in a source file:
       {
         "partitions": {
           "my_voxel_partition": {
-            "region": "some_region",
+            "type": "voxels",
             "voxels": {
               "type": "nrrd",
               "source": "data/my_nrrd_data.nrrd",
@@ -78,7 +78,7 @@ structure, and other files contain cell population density values, gene expressi
       {
         "partitions": {
           "my_voxel_partition": {
-            "region": "some_region",
+            "type": "voxels",
             "voxels": {
               "type": "nrrd",
               "mask_value": 55,
@@ -121,7 +121,7 @@ appear in the :guilabel:`sources` attribute:
       {
         "partitions": {
           "my_voxel_partition": {
-            "region": "some_region",
+            "type": "voxels",
             "voxels": {
               "type": "nrrd",
               "mask_value": 55,
@@ -172,7 +172,7 @@ a name with each column. Data columns can then be indexed as strings:
       {
         "partitions": {
           "my_voxel_partition": {
-            "region": "some_region",
+            "type": "voxels",
             "voxels": {
               "type": "nrrd",
               "mask_value": 55,
@@ -212,6 +212,8 @@ a name with each column. Data columns can then be indexed as strings:
         print(vs.data[:, "type1", "type3"])
         partition = Voxels(voxels=loader)
 
+.. _allen-atlas-integration:
+
 Allen Atlas integration
 -----------------------
 
@@ -233,15 +235,14 @@ converted into a data column on the voxelset:
       {
         "partitions": {
           "my_voxel_partition": {
-            "region": "some_region",
+            "type": "voxels",
             "voxels": {
               "type": "allen",
               "struct_name": "VAL",
               "sources": [
                 "data/allen_gene_expression_25.nrrd"
               ],
-              "keys": ["expression"],
-              "voxel_size": 25
+              "keys": ["expression"]
             }
           }
         }
@@ -261,7 +262,6 @@ converted into a data column on the voxelset:
             "data/allen_gene_expression_25.nrrd",
           ],
           keys=["expression"],
-          voxel_size=25,
         )
         partition = Voxels(voxels=loader)
         print("Gene expression values per voxel:", partition.voxelset.expression)

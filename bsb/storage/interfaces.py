@@ -399,7 +399,7 @@ class MorphologyRepository(Interface, engine_key="morphologies"):
         Select stored morphologies.
 
         :param selectors: Any number of morphology selectors.
-        :type selectors: List[bsb.placement.indicator.MorphologySelector]
+        :type selectors: List[bsb.morphologies.selector.MorphologySelector]
         :returns: All stored morphologies that match at least one selector.
         :rtype: List[~bsb.storage.interfaces.StoredMorphology]
         """
@@ -433,6 +433,9 @@ class MorphologyRepository(Interface, engine_key="morphologies"):
         :rtype: bool
         """
         pass
+
+    def __contains__(self, item):
+        return self.has(item)
 
     @abc.abstractmethod
     def preload(self, name):

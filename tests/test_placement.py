@@ -34,21 +34,18 @@ class PlacementDud(PlacementStrategy):
 
 def single_layer_placement(offset=[0.0, 0.0, 0.0]):
     network = Scaffold()
-    network.regions["dud_region"] = reg = Region(
-        name="dud_region", offset=offset, partitions=[]
-    )
-    network.partitions["dud_layer"] = part = Partition(
-        name="dud_layer", thickness=120, region="dud_region"
-    )
+    network.partitions["dud_layer"] = part = Partition(name="dud_layer", thickness=120)
+    network.regions["dud_region"] = Region(name="dud_region", children=[part])
     dud_cell = CellType(name="dud", spatial={"count": 40, "radius": 2})
     network.cell_types["dud"] = dud_cell
     dud = PlacementDud(
         name="dud",
-        cls="PlacementDud",
+        strategy="PlacementDud",
         partitions=[part],
         cell_types=[dud_cell],
         overrides={"dud": {}},
     )
+    network.network.origin = offset
     network.placement["dud"] = dud
     network.configuration._bootstrap(network)
     return dud, network
@@ -220,7 +217,7 @@ class TestPlacementStrategies(unittest.TestCase):
         cfg.storage.root = "random_placement.hdf5"
         network = Scaffold(cfg)
         cfg.placement["test_placement"] = dict(
-            cls="bsb.placement.RandomPlacement",
+            strategy="bsb.placement.RandomPlacement",
             cell_types=["test_cell"],
             partitions=["test_layer"],
         )
@@ -235,11 +232,11 @@ class TestVoxelDensities(unittest.TestCase):
             cell_types=dict(
                 test_cell=CellType(spatial=dict(radius=2, density=2, density_key="inhib"))
             ),
-            regions=dict(test_region=dict()),
-            partitions=dict(test_part=dict(type="test", region="test_region")),
+            regions=dict(test_region=dict(children=["test_part"])),
+            partitions=dict(test_part=dict(type="test")),
             placement=dict(
                 voxel_density=dict(
-                    cls="bsb.placement.ParticlePlacement",
+                    strategy="bsb.placement.ParticlePlacement",
                     partitions=["test_part"],
                     cell_types=["test_cell"],
                 )
@@ -286,5 +283,8 @@ class VoxelParticleTest(Partition, classmap_entry="test"):
     def chunk_to_voxels(self, chunk):
         return self.vs
 
-    def layout(self, boundaries):
-        self.boundaries = boundaries
+    def get_layout(self, hint):
+        return hint.copy()
+
+    # Noop city bish, noop noop city bish
+    surface = volume = scale = translate = rotate = lambda self, smth: 5

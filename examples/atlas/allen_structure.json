@@ -1,0 +1,54 @@
+{
+  "name": "Using the Allen Atlas and a density file to place cells",
+  "storage": {
+    "engine": "hdf5",
+    "root": "allen_densities.hdf5"
+  },
+  "network": {
+    "x": 4000.0,
+    "y": 4000.0,
+    "z": 4000.0
+  },
+  "regions": {
+    "brain": {"children": ["declive"]}
+  },
+  "partitions": {
+    "declive": {
+      "type": "voxels",
+      "voxels": {
+        "type": "allen",
+        "source": "my_cell_density.nrrd",
+        "data_keys": ["my_cell_density"],
+        "struct_name": "DEC"
+      }
+    }
+  },
+  "cell_types": {
+    "my_cell": {
+      "spatial": {
+        "radius": 2.5,
+        "density_key": "my_cell_density",
+        "density": 0.003
+      }
+    }
+  },
+  "placement": {
+    "example_placement": {
+      "cls": "bsb.placement.RandomPlacement",
+      "cell_types": ["my_cell"],
+      "partitions": ["declive"]
+    }
+  },
+  "after_placement": {
+
+  },
+  "connectivity": {
+
+  },
+  "after_connectivity": {
+
+  },
+  "simulations": {
+
+  }
+}

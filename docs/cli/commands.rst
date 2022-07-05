@@ -17,13 +17,15 @@ Create a project
 
 .. code-block:: bash
 
-  bsb [OPTIONS] new <project-name> <parent-folder>
+  bsb [OPTIONS] new <project-name> <parent-folder> [--quickstart] [--exists]
 
 Creates a new project directory at ``folder``. You will be prompted to fill in some
 project settings.
 
 * ``project-name``: Name of the project, and of the directory that will be created for it.
 * ``parent-folder``: Filesystem location where the project folder will be created.
+* ``quickstart``: Generates an exemplary project with basic config that can be compiled.
+* ``exists``: With this flag, it is not an error for the ``parent-folder`` to exist.
 
 .. _bsb_make_config:
 
@@ -51,16 +53,50 @@ Compiling a network
 
 .. code-block:: bash
 
-  bsb [OPTIONS] compile [my-config.json] [-p] [-o file]
+  bsb [OPTIONS] compile [my-config.json] [COMPILE-FLAGS]
 
 Compiles a network architecture according to the configuration. If no configuration is
 specified, the project default is used.
 
 * ``my-config.json``: Path to the configuration file that should be compiled. If omitted
   the :ref:`project configuration <project_settings>` path is used.
-* ``-p``: Plot the created network.
+
+.. rubric:: Flags
+
+* ``-x``, ``-y``, ``-z``: Size hints of the network.
+
 * ``-o``, ``--output``: Output the result to a specific file. If omitted the value from
   the configuration, the project default, or a timestamped filename are used.
+
+* ``-p``, ``--plot``: Plot the created network.
+
+.. _storage_control:
+
+.. rubric:: Storage flags
+
+These flags decide what to do with existing data.
+
+* ``-w``, ``--clear``: Clear all data found in the storage object, and overwrite with new
+  data.
+
+* ``-a``, ``--append``: Append the new data to the existing data.
+
+* ``-r``, ``--redo``: Clear all data that is involved in the strategies that are being
+  executed, and replace it with the new data.
+
+.. rubric:: Phase flags
+
+These flags control which phases and strategies to execute or ignore.
+
+* ``--np``, ``--skip-placement``: Skip the placement phase.
+* ``--nap``, ``--skip-after-placement``: Skip the after-placement phase.
+* ``--nc``, ``--skip-connectivity``: Skip the connectivity phase.
+* ``--nac``, ``--skip-after-connectivity``: Skip the after-connectivity phase.
+* ``--skip``: Name of a strategy to skip. You may pass this flag multiple times, or give
+  a comma separated list of names.
+
+* ``--only``: Name of a strategy to run, skipping all other strategies. You may pass this
+  flag multiple times, or give a comma separated list of names.
 
 .. _bsb_simulate:
 

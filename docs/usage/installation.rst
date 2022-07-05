@@ -48,6 +48,7 @@ The scaffold framework can be installed using ``pip``:
 
 .. code-block:: bash
 
+  sudo apt-get update && sudo apt-get install -y libopenmpi-dev openmpi-bin
   pip install "bsb>=4.0.0a0"
 
 You can verify that the installation works with:
@@ -90,10 +91,11 @@ with a virtual environment activated.
 .. code-block:: bash
 
   sudo apt-get update && apt-get install -y openmpi-bin libopenmpi-dev
-  git clone git@github.com:dbbs-lab/nest-simulator
+  git clone https://github.com/dbbs-lab/nest-simulator
   cd nest-simulator
   mkdir build
   cd build
+  pip install cmake cython
   cmake .. \
     -Dwith-mpi=ON \
     -Dwith-python=3 \

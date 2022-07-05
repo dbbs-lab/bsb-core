@@ -1,5 +1,23 @@
 # 4.0.0 - Too much to list
 
+# 4.0.0a18
+
+### Breaking changes
+
+* Renamed `cls` of placement and connectivity strategies to `strategy`.
+* Renamed `cls` of region to `type`.
+
+### Features
+
+* Added layouts (#492).
+
+## 4.0.0a9 - 4.0.0a17
+
+* Added `RandomPlacement` strategy.
+* Added autolink for config, use it by default.
+* Fixed BSB under Jupyter notebook conditions.
+* `AllenStructureLoader` has a defined public API now, of classmethods, to lookup structs.
+
 ## 4.0.0a8
 
 * Improved storage interface documentation.

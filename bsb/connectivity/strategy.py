@@ -35,7 +35,7 @@ class ConnectionCollection:
         return self.placement[item]
 
 
-@config.dynamic
+@config.dynamic(attr_name="strategy", required=True)
 class ConnectionStrategy(abc.ABC, SortableByAfter):
     name = config.attr(key=True)
     presynaptic = config.attr(type=HemitypeNode, required=True)

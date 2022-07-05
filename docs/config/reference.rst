@@ -41,7 +41,9 @@ Regions
 
 .. include:: _full_region_node.rst
 
-* :guilabel:`cls`: Class of the region.
+* :guilabel:`type`:
+  Type of the region, determines what kind of structure it imposes on its children.
+
 * :guilabel:`offset`: Offset of this region to its parent in the topology.
 
 Partitions
@@ -108,7 +110,7 @@ Placement
 
 .. include:: _full_placement_node.rst
 
-* :guilabel:`cls`: Class name of the placement strategy algorithm to import.
+* :guilabel:`strategy`: Class name of the placement strategy algorithm to import.
 
 * :guilabel:`cell_types`:
   List of cell type references. This list is used to gather placement indications for the
@@ -140,7 +142,7 @@ Connectivity
 
 .. include:: _full_connectivity_node.rst
 
-* :guilabel:`cls`: Class name of the connectivity strategy algorithm to import.
+* :guilabel:`strategy`: Class name of the connectivity strategy algorithm to import.
 
 * :guilabel:`presynaptic`/:guilabel:`postsynaptic`:
   Hemitype node specificatiosn for the pre/post synaptic side of the synapse.

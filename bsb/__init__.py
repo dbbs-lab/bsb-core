@@ -1,4 +1,4 @@
-__version__ = "4.0.0a17"
+__version__ = "4.0.0a19"
 
 import functools
 
@@ -8,7 +8,8 @@ try:
 except AttributeError:
     functools.cache = functools.lru_cache
 
-    def _register(self, cls, method=None):
+    # Patch the 'register' method of `singledispatchmethod` pre python 3.10
+    def _register(self, cls, method=None):  # pragma: nocover
         if hasattr(cls, "__func__"):
             setattr(cls, "__annotations__", cls.__func__.__annotations__)
         return self.dispatcher.register(cls, func=method)
