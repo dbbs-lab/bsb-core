@@ -254,38 +254,3 @@ class TestVoxelDensities(unittest.TestCase):
         ps = network.get_placement_set("test_cell")
         self.assertGreater(len(ps), 90)
         self.assertLess(len(ps), 130)
-
-
-class VoxelParticleTest(Partition, classmap_entry="test"):
-    vs = VoxelSet(
-        [
-            [0, 0, 0],
-            [0, 0, 1],
-            [0, 1, 0],
-            [0, 1, 1],
-        ],
-        25,
-        data=VoxelData(
-            np.array(
-                [
-                    [0.005, 0.003],
-                    [0.001, 0.004],
-                    [0.0005, 0.0055],
-                    [0.0017, 0.0033],
-                ]
-            ),
-            keys=["inhib", "excit"],
-        ),
-    )
-
-    def to_chunks(self, chunk_size):
-        return [Chunk([0, 0, 0], chunk_size)]
-
-    def chunk_to_voxels(self, chunk):
-        return self.vs
-
-    def get_layout(self, hint):
-        return hint.copy()
-
-    # Noop city bish, noop noop city bish
-    surface = volume = scale = translate = rotate = lambda self, smth: 5
