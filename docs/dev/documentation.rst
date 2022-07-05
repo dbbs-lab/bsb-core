@@ -2,10 +2,20 @@
 Documentation
 #############
 
-To build the documentation run::
+Install the developer requirements of the BSB:
+
+.. code-block:: bash
+
+  pip install -e .[dev]
+
+Then from the ``docs`` directory run:
+
+.. code-block:: bash
 
   cd docs
   make html
+
+The output will be in the ``/docs/_build`` folder.
 
 Conventions
 ===========
