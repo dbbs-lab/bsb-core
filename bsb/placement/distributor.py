@@ -78,6 +78,18 @@ class RandomMorphologies(MorphologyDistributor, classmap_entry="random"):
         return MorphologySet(loaders, ids)
 
 
+class SurfaceAdherentSynthesisDistributor(MorphologyDistributor, classmap_entry="sas"):
+    def distribute(self, partitions, indicator, positions):
+        selectors = indicator.assert_indication("morphologies")
+        loaders = self.scaffold.storage.morphologies.select(*selectors)
+        for pos in positions:
+            # Synth a morphology from the available loaders, I guess?
+            pass
+            # Save the morpho
+        # Use the morphos to construct an MS
+        return MorphologySet(loaders, ids)
+
+
 @config.dynamic(attr_name="strategy", required=False, default="none", auto_classmap=True)
 class RotationDistributor(Distributor):
     """
