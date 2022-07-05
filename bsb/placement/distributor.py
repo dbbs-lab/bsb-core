@@ -67,7 +67,7 @@ class RandomMorphologies(MorphologyDistributor, classmap_entry="random"):
         returns a MorphologySet of randomly assigned morphologies
         """
         selectors = indicator.assert_indication("morphologies")
-        loaders = self.scaffold.storage.morphologies.select(*selectors)
+        loaders = self.scaffold.morphologies.select(*selectors)
         if not loaders:
             raise EmptySelectionError(
                 f"Given {len(selectors)} selectors: did not find any suitable morphologies",
@@ -81,11 +81,11 @@ class RandomMorphologies(MorphologyDistributor, classmap_entry="random"):
 class SurfaceAdherentSynthesisDistributor(MorphologyDistributor, classmap_entry="sas"):
     def distribute(self, partitions, indicator, positions):
         selectors = indicator.assert_indication("morphologies")
-        loaders = self.scaffold.storage.morphologies.select(*selectors)
+        loaders = self.scaffold.morphologies.select(*selectors)
         for pos in positions:
             # Synth a morphology from the available loaders, I guess?
-            pass
-            # Save the morpho
+            morpho = SurfaceAdherentSynthesis.synthesize(partitions, pos)
+            self.morphologies.save("new_synth", morpho)
         # Use the morphos to construct an MS
         return MorphologySet(loaders, ids)
 
