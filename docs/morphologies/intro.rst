@@ -8,6 +8,12 @@ labelled and user-defined properties with one value per point can be declared on
 morphology.
 
 .. figure:: /images/morphology.png
+  :figclass: only-light
+  :figwidth: 350px
+  :align: center
+
+.. figure:: /images/morphology_dark.png
+  :figclass: only-dark
   :figwidth: 350px
   :align: center
 
@@ -132,6 +138,12 @@ Creating subtrees
 Subtrees can be selected using label(s) on the morphology.
 
 .. figure:: /images/m_trans/tuft_select.png
+  :figclass: only-light
+  :figwidth: 350px
+  :align: center
+
+.. figure:: /images/m_trans/tuft_select_dark.png
+  :figclass: only-dark
   :figwidth: 350px
   :align: center
 
@@ -150,6 +162,12 @@ Selections will always include all the branches emanating (downtree) from the se
 well:
 
 .. figure:: /images/m_trans/emanating.png
+  :figclass: only-light
+  :figwidth: 350px
+  :align: center
+
+.. figure:: /images/m_trans/emanating_dark.png
+  :figclass: only-dark
   :figwidth: 350px
   :align: center
 
@@ -171,6 +189,12 @@ Subtrees may center themselves so that the point ``(0, 0, 0)`` becomes the geome
 of the roots.
 
 .. figure:: /images/m_trans/center.png
+  :figclass: only-light
+  :figwidth: 350px
+  :align: center
+
+.. figure:: /images/m_trans/center_dark.png
+  :figclass: only-dark
   :figwidth: 350px
   :align: center
 
@@ -181,6 +205,12 @@ Subtrees may be :meth:`rotated <.morphologies.SubTree.rotate>` around a singular
 giving a :class:`~scipy.spatial.transform.Rotation` (and a center, by default 0):
 
 .. figure:: /images/m_trans/rotate_tree.png
+  :figclass: only-light
+  :figwidth: 350px
+  :align: center
+
+.. figure:: /images/m_trans/rotate_tree_dark.png
+  :figclass: only-dark
   :figwidth: 350px
   :align: center
 
@@ -192,6 +222,12 @@ giving a :class:`~scipy.spatial.transform.Rotation` (and a center, by default 0)
   dendrites.rotate(r)
 
 .. figure:: /images/m_trans/rotate_dend.png
+  :figclass: only-light
+  :figwidth: 350px
+  :align: center
+
+.. figure:: /images/m_trans/rotate_dend_dark.png
+  :figclass: only-dark
   :figwidth: 350px
   :align: center
 
@@ -210,6 +246,12 @@ Subtrees may be :meth:`root-rotated <.morphologies.SubTree.root_rotate>` around 
 respective root in the tree:
 
 .. figure:: /images/m_trans/root_rotate_dend.png
+  :figclass: only-light
+  :figwidth: 350px
+  :align: center
+
+.. figure:: /images/m_trans/root_rotate_dend_dark.png
+  :figclass: only-dark
   :figwidth: 350px
   :align: center
 
@@ -218,6 +260,12 @@ respective root in the tree:
   dendrite.root_rotate(r)
 
 .. figure:: /images/m_trans/root_rotate_tree.png
+  :figclass: only-light
+  :figwidth: 350px
+  :align: center
+
+.. figure:: /images/m_trans/root_rotate_tree_dark.png
+  :figclass: only-dark
   :figwidth: 350px
   :align: center
 
@@ -231,6 +279,12 @@ Gap closing
 Subtree gaps between parent and child branches can be closed:
 
 .. figure:: /images/m_trans/close_gaps.png
+  :figclass: only-light
+  :figwidth: 350px
+  :align: center
+
+.. figure:: /images/m_trans/close_gaps_dark.png
+  :figclass: only-dark
   :figwidth: 350px
   :align: center
 
@@ -254,6 +308,12 @@ Collapsing
 Collapse the roots of a subtree onto a single point, by default the origin.
 
 .. figure:: /images/m_trans/collapse.png
+  :figclass: only-light
+  :figwidth: 350px
+  :align: center
+
+.. figure:: /images/m_trans/collapse_dark.png
+  :figclass: only-dark
   :figwidth: 350px
   :align: center
 
