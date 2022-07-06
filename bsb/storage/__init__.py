@@ -167,7 +167,6 @@ class Storage:
             fname for fname, supported in view_support()[engine].items() if supported
         ]
         self._engine._format = engine
-        self._root = root
         self._comm = comm or MPI.COMM_WORLD
         self._master = master
 
@@ -212,7 +211,7 @@ class Storage:
 
     @property
     def root(self):
-        return self._root
+        return self._engine.root
 
     @property
     def root_slug(self):
@@ -242,8 +241,10 @@ class Storage:
         """
         if self.is_master():
             self._engine.move(new_root)
-        self._comm.Barrier()
-        self._root = new_root
+            self._comm.Barrier()
+        else:
+            self._engine._root = new_root
+            self._comm.Barrier()
 
     @_on_master
     def remove(self):

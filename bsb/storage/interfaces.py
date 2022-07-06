@@ -23,7 +23,11 @@ class Interface(abc.ABC):
 
 class Engine(Interface):
     def __init__(self, root):
-        self.root = root
+        self._root = root
+
+    @property
+    def root(self):
+        return self._root
 
     @property
     def format(self):

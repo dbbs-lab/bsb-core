@@ -8,7 +8,7 @@ from bsb.cell_types import CellType
 from bsb.config import from_json, Configuration
 from bsb.morphologies.selector import NameSelector
 from bsb.placement.distributor import MorphologyDistributor
-from test_setup import skip_parallel
+from bsb.unittest import skip_parallel
 
 
 class TestMorphologyDistributor(unittest.TestCase):
