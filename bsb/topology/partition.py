@@ -281,15 +281,36 @@ class Voxels(Partition, classmap_entry="voxels"):
     def to_chunks(self, chunk_size):
         return self.voxelset.snap_to_grid(chunk_size, unique=True)
 
-    def chunk_to_voxels(self, chunk):
+    def _lookup(self, chunk):
         if not hasattr(self, "_map"):
             vs = self.voxelset.snap_to_grid(chunk.dimensions)
             map = {}
             for i, idx in enumerate(vs):
                 map.setdefault(idx.view(Chunk).id, []).append(i)
             self._map = {k: self.voxelset[v] for k, v in map.items()}
-        return self._map.get(chunk, VoxelSet.empty())
+        return self._map
 
-    def layout(self, boundaries):
-        self.boundaries = boundaries.copy()
-        self.boundaries.ldc, self.boundaries.mdc = self.voxelset.bounds
+    def chunk_to_voxels(self, chunk):
+        return self._lookup(chunk).get(chunk, VoxelSet.empty())
+
+    def get_layout(self, hint):
+        return Layout(RhomboidData(*self.voxelset.bounds), owner=self)
+
+    def rotate(self):
+        raise LayoutError("Axis-aligned voxelsets can't be rotated.")
+
+    def scale(self):
+        raise LayoutError("Voxelset scaling not supported.")
+
+    def surface(self):
+        raise LayoutError("Voxelset surface calculations not supported.")
+
+    def translate(self):
+        raise LayoutError("Voxelset translation not supported.")
+
+    def volume(self, chunk=None):
+        if chunk is not None:
+            vs = self.chunk_to_voxels(chunk)
+        else:
+            vs = self.voxelset
+        return vs.volume

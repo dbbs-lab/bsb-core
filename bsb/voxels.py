@@ -260,6 +260,10 @@ class VoxelSet:
         return self.get_size()
 
     @property
+    def volume(self):
+        return np.sum(np.product(self, axis=1))
+
+    @property
     def data(self):
         """
         The size of the voxels. When it is 0D or 1D it counts as the size for all voxels,
@@ -617,8 +621,8 @@ class NrrdVoxelLoader(VoxelLoader, classmap_entry="nrrd"):
             self._mask_src = self._src.copy()
 
     def _validate_source_compat(self):
-        mask_headers = {s: nrrd.read_header(s) for s in self._mask_src}
-        source_headers = {s: nrrd.read_header(s) for s in self._src}
+        mask_headers = {s: _safe_hread(s) for s in self._mask_src}
+        source_headers = {s: _safe_hread(s) for s in self._src}
         all_headers = mask_headers.copy()
         all_headers.update(source_headers)
         dim_probs = [(s, d) for s, h in all_headers.items() if (d := h["dimension"]) != 3]
@@ -888,3 +892,10 @@ def _is_broadcastable(shape1, shape2):
 
 def _squash_zero(arr):
     return np.where(np.isclose(arr, 0), np.finfo(float).max, arr)
+
+
+def _safe_hread(s):
+    try:
+        return nrrd.read_header(s)
+    except StopIteration:
+        raise IOError(f"Empty NRRD file '{s}' could not be read.") from None
