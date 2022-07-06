@@ -2,4 +2,6 @@
 BSB Packaging Guide
 ===================
 
-TODO
+.. todo::
+
+  Well, writing this guide |:grimacing:|
