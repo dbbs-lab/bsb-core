@@ -4,12 +4,8 @@ from .trees import BoxTree
 from .exceptions import *
 from .reporting import report
 import numpy as np
-import json
 import functools
 import itertools
-import collections
-import abc
-import requests
 
 
 class VoxelData(np.ndarray):

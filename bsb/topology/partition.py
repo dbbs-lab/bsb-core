@@ -13,6 +13,7 @@ from ..reporting import report, warn
 import numpy as np
 import collections
 import functools
+import requests
 import nrrd
 import json
 import abc
