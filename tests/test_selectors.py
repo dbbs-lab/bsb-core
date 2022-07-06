@@ -9,7 +9,7 @@ from bsb.config import from_json, Configuration
 from bsb.morphologies import Morphology, Branch
 from bsb.exceptions import *
 from bsb.storage.interfaces import StoredMorphology
-from test_setup import skip_parallel
+from bsb.unittest import skip_parallel
 
 
 def spoof(*names):
