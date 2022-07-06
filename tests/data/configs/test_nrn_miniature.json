@@ -11,13 +11,12 @@
   },
   "regions": {
     "cerebellar_cortex": {
-
+      "children": ["test_layer"]
     }
   },
   "partitions": {
     "test_layer": {
       "thickness": 600,
-      "region": "cerebellar_cortex",
       "z_index": 0
     }
   },
