@@ -5,8 +5,9 @@ import mpi4py
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
-from bsb.morphologies import Morphology, Branch, _Labels
+from bsb.morphologies import Morphology, Branch, _Labels, MorphologySet
 from bsb.storage import Storage
+from bsb.storage.interfaces import StoredMorphology
 from bsb.exceptions import *
 from test_setup import get_morphology
 from bsb.unittest import NumpyTestCase
@@ -414,3 +415,42 @@ class TestMorphologyLabels(NumpyTestCase, unittest.TestCase):
         self.assertEqual([b, b3, b4], m.subtree("ello").branches)
         self.assertEqual(len(b), len(b.get_points_labelled("ello")))
         self.assertEqual(1, len(b3.get_points_labelled("ello")))
+
+
+class TestMorphologySet(unittest.TestCase):
+    def _fake_loader(self, name):
+        return StoredMorphology(name, lambda: Morphology([Branch([], [])]), dict())
+
+    def setUp(self):
+        self.sets = [
+            MorphologySet([], []),
+            MorphologySet([self._fake_loader("ello")], [0, 0, 0]),
+        ]
+
+    def test_oob(self):
+        with self.assertRaises(IndexError):
+            MorphologySet([self._fake_loader("ello")], [0, 1, 0])
+
+    def test_hard_cache(self):
+        cached = self.sets[1].iter_morphologies(hard_cache=True)
+        d = None
+        self.assertTrue(
+            all((d := c if d is None else d) is d for c in cached),
+            "hard cache should be ident",
+        )
+        uncached = self.sets[1].iter_morphologies()
+        d = None
+        self.assertTrue(
+            all((d := c if d is None else d) is d for c in list(cached)[1:]),
+            "soft cache should not be ident",
+        )
+
+    def test_unique(self):
+        self.assertEqual(
+            1,
+            len([*self.sets[1].iter_morphologies(unique=True)]),
+            "only 1 morph in unique set",
+        )
+        self.assertEqual(
+            1, len([*self.sets[1].iter_meta(unique=True)]), "only 1 morph in unique set"
+        )
