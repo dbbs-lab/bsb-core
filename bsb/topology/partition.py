@@ -2,16 +2,20 @@
     Module for the Partition configuration nodes and its dependencies.
 """
 
-import functools
-import abc
 from ._layout import Layout, RhomboidData
 from .. import config
 from ..config import types
 from ..config.refs import region_ref
 from ..exceptions import *
-from ..voxels import VoxelSet, VoxelLoader
-from ..storage import Chunk
+from ..voxels import VoxelSet
+from ..storage import Chunk, _util as _storutil
+from ..reporting import report, warn
 import numpy as np
+import collections
+import functools
+import nrrd
+import json
+import abc
 
 
 def _size_requirements(section):
@@ -271,12 +275,14 @@ class Layer(Rhomboid, classmap_entry="layer"):
 
 
 @config.node
-class Voxels(Partition, classmap_entry="voxels"):
-    voxels = config.attr(type=VoxelLoader, required=True)
+class Voxels(Partition, abc.ABC, classmap_entry="voxels"):
+    @abc.abstractmethod
+    def get_voxelset(self):
+        pass
 
     @functools.cached_property
     def voxelset(self):
-        return self.voxels.get_voxelset()
+        return self.get_voxelset()
 
     def to_chunks(self, chunk_size):
         return self.voxelset.snap_to_grid(chunk_size, unique=True)
@@ -314,3 +320,295 @@ class Voxels(Partition, classmap_entry="voxels"):
         else:
             vs = self.voxelset
         return vs.volume
+
+
+@config.node
+class NrrdVoxels(Voxels, classmap_entry="nrrd"):
+    source = config.attr(
+        type=str, required=types.mut_excl("source", "sources", required=True)
+    )
+    sources = config.attr(
+        type=types.list(str), required=types.mut_excl("source", "sources", required=True)
+    )
+    mask_value = config.attr(type=int)
+    mask_source = config.attr(type=str)
+    mask_only = config.attr(type=bool, default=False)
+    voxel_size = config.attr(type=types.voxel_size(), required=True)
+    keys = config.attr(type=types.list(str))
+    sparse = config.attr(type=bool, default=True)
+    strict = config.attr(type=bool, default=True)
+
+    def get_mask(self):
+        mask_shape = self._validate()
+        mask = np.zeros(mask_shape, dtype=bool)
+        if self.sparse:
+            # Use integer (sparse) indexing
+            mask = [np.empty((0,), dtype=int) for i in range(3)]
+            for mask_src in self._mask_src:
+                mask_data, _ = nrrd.read(mask_src)
+                new_mask = np.nonzero(self._mask_cond(mask_data))
+                for i, mask_vector in enumerate(new_mask):
+                    mask[i] = np.concatenate((mask[i], mask_vector))
+            inter = np.unique(mask, axis=1)
+            mask = tuple(inter[i, :] for i in range(3))
+        else:
+            # Use boolean (dense) indexing
+            for mask_src in self._mask_src:
+                mask_data, _ = nrrd.read(mask_src)
+                mask = mask | self._mask_cond(mask_data)
+            mask = np.nonzero(mask)
+        return mask
+
+    def get_voxelset(self):
+        mask = self.get_mask()
+        if not self.mask_only:
+            voxel_data = np.empty((len(mask[0]), len(self._src)))
+            for i, source in enumerate(self._src):
+                data, _ = nrrd.read(source)
+                voxel_data[:, i] = data[mask]
+
+        return VoxelSet(
+            np.transpose(mask),
+            self.voxel_size,
+            data=voxel_data if not self.mask_only else None,
+            data_keys=self.keys,
+        )
+
+    def _validate(self):
+        self._validate_sources()
+        self._validate_source_compat()
+        self._validate_mask_condition()
+
+    def _validate_sources(self):
+        if self.source is not None:
+            self._src = [self.source]
+        else:
+            self._src = self.sources.copy()
+        if self.mask_source is not None:
+            self._mask_src = [self.mask_source]
+        else:
+            self._mask_src = self._src.copy()
+
+    def _validate_source_compat(self):
+        mask_headers = {s: _safe_hread(s) for s in self._mask_src}
+        source_headers = {s: _safe_hread(s) for s in self._src}
+        all_headers = mask_headers.copy()
+        all_headers.update(source_headers)
+        dim_probs = [(s, d) for s, h in all_headers.items() if (d := h["dimension"]) != 3]
+        if dim_probs:
+            summ = ", ".join(f"'{s}' has {d}" for s, d in dim_probs)
+            raise ConfigurationError(f"NRRD voxels must contain 3D arrays; {summ}")
+        mask_sizes = {s: [*h["sizes"]] for s, h in mask_headers.items()}
+        source_sizes = {s: [*h["sizes"]] for s, h in source_headers.items()}
+        all_sizes = mask_sizes.copy()
+        all_sizes.update(source_sizes)
+        mask_shape = np.maximum.reduce([*mask_sizes.values()])
+        if self.mask_only:
+            src_shape = mask_shape
+        else:
+            src_shape = np.minimum.reduce([*source_sizes.values()])
+        first = _repeat_first()
+        # Check for any size mismatch
+        if self.strict and any(size != first(size) for size in all_sizes.values()):
+            raise ConfigurationError(
+                f"NRRD file size mismatch in `{self.get_node_name()}`: {all_sizes}"
+            )
+        elif np.any(mask_shape > src_shape):
+            raise ConfigurationError(
+                f"NRRD mask too big; it may select OOB source voxels:"
+                + f" {mask_shape} > {src_shape}"
+            )
+        return mask_shape
+
+    def _validate_mask_condition(self):
+        if self.mask_value:
+            self._mask_cond = lambda data: data == self.mask_value
+        else:
+            self._mask_cond = lambda data: data != 0
+
+
+@config.node
+class AllenStructureVoxels(NrrdVoxels, classmap_entry="allen"):
+    struct_id = config.attr(
+        type=int, required=types.mut_excl("struct_id", "struct_name", required=True)
+    )
+    struct_name = config.attr(
+        type=types.str(strip=True, lower=True),
+        required=types.mut_excl("struct_id", "struct_name", required=True),
+    )
+    source = config.attr(
+        type=str, required=types.mut_excl("source", "sources", required=False)
+    )
+    sources = config.attr(
+        type=types.list(str),
+        required=types.mut_excl("source", "sources", required=False),
+        default=list,
+        call_default=True,
+    )
+
+    @config.property
+    def voxel_size(self):
+        return 25
+
+    @config.property
+    def mask_only(self):
+        return self.source is None and len(self.sources) == 0
+
+    @config.property
+    @functools.cache
+    def mask_source(self):
+        return self._dl_mask()
+
+    @classmethod
+    def _dl_mask(cls):
+        url = "http://download.alleninstitute.org/informatics-archive/current-release/mouse_ccf/annotation/ccf_2017/annotation_25.nrrd"
+        fname = "_annotations_25.nrrd.cache"
+        link = _storutil.cachelink(fname, binary=True)
+        if link.should_update():
+            with link.set() as f:
+                report("Downloading Allen Brain Atlas annotations", level=3)
+                content = requests.get(url).content
+                f.write(requests.get(url).content)
+        else:
+            report("Using cached Allen Brain Atlas annotations", level=4)
+        return str(link.path)
+
+    @classmethod
+    @functools.cache
+    def _dl_structure_ontology(cls):
+        url = "http://api.brain-map.org/api/v2/structure_graph_download/1.json"
+        fname = "_allen_ontology.cache"
+        link = _storutil.cachelink(fname)
+        if link.should_update():
+            report("Downloading Allen Brain Atlas structure ontology", level=3)
+            payload = requests.get(url).json()
+            if not payload.get("success", False):
+                raise AllenApiError(f"Could not fetch ontology from Allen API at '{url}'")
+            with link.set() as f:
+                json.dump(payload["msg"], f)
+        else:
+            report("Using cached Allen Brain Atlas ontology", level=4)
+        with link.get() as f:
+            return json.load(f)
+
+    @classmethod
+    def get_structure_mask_condition(cls, find):
+        """
+        Return a lambda that when applied to the mask data, returns a mask that delineates
+        the Allen structure.
+
+        :param find: Acronym or ID of the Allen structure.
+        :type find: Union[str, int]
+        :returns: Masking lambda
+        :rtype: Callable[numpy.ndarray]
+        """
+        mask = cls.get_structure_idset(find)
+        if len(mask) > 1:
+            return lambda data: np.isin(data, mask)
+        else:
+            mask0 = mask[0]
+            return lambda data: data == mask0
+
+    @classmethod
+    def get_structure_mask(cls, find):
+        mask_data, _ = nrrd.read(cls._dl_mask())
+        return cls.get_structure_mask_condition(find)(mask_data)
+
+    @classmethod
+    def get_structure_idset(cls, find):
+        """
+        Return the set of IDs that make up the requested Allen structure.
+
+        :param find: Acronym or ID of the Allen structure.
+        :type find: Union[str, int]
+        :returns: Set of IDs
+        :rtype: numpy.ndarray
+        """
+        struct = cls.find_structure(find)
+        values = set()
+
+        def flatmask(item):
+            values.add(item["id"])
+
+        cls._visit_structure([struct], flatmask)
+        return np.array([*values], dtype=int)
+
+    @classmethod
+    def find_structure(cls, id):
+        """
+        Find an Allen structure by name, acronym or ID.
+
+        :param id: Query for the name, acronym or ID of the Allen structure.
+        :type id: Union[str, int, float]
+        :returns: Allen structure node of the Allen ontology tree.
+        :rtype: dict
+        :raises: NodeNotFoundError
+        """
+        if isinstance(id, str):
+            treat = lambda s: s.strip().lower()
+            name = treat(id)
+            find = lambda x: treat(x["name"]) == name or treat(x["acronym"]) == name
+        elif isinstance(id, int) or isinstance(id, float):
+            id = int(id)
+            find = lambda x: x["id"] == id
+        else:
+            raise TypeError(f"Argument must be a string or a number. {type(id)} given.")
+        try:
+            return cls._find_structure(find)
+        except NodeNotFoundError:
+            raise NodeNotFoundError(f"Could not find structure '{id}'") from None
+
+    @classmethod
+    def _find_structure(cls, find):
+        result = None
+
+        def visitor(item):
+            nonlocal result
+            if find(item):
+                result = item
+                return True
+
+        tree = cls._dl_structure_ontology()
+        cls._visit_structure(tree, visitor)
+        if result is None:
+            raise NodeNotFoundError("Could not find a node that satisfies constraints.")
+        return result
+
+    @classmethod
+    def _visit_structure(cls, tree, visitor):
+        deck = collections.deque(tree)
+        while True:
+            try:
+                item = deck.popleft()
+            except IndexError:
+                break
+            if visitor(item):
+                break
+            deck.extend(item["children"])
+
+    def _validate_mask_condition(self):
+        # We override the `NrrdVoxelLoader`'s `_validate_mask_condition` and use this
+        # function as a hook to find and set the mask condition to select every voxel that
+        # has an id that is part of the structure.
+        id = self.struct_id if self.struct_id is not None else self.struct_name
+        self._mask_cond = self.get_structure_mask_condition(id)
+
+
+def _safe_hread(s):
+    try:
+        return nrrd.read_header(s)
+    except StopIteration:
+        raise IOError(f"Empty NRRD file '{s}' could not be read.") from None
+
+
+def _repeat_first():
+    _set = False
+    first = None
+
+    def repeater(val):
+        nonlocal _set, first
+        if not _set:
+            first, _set = val, True
+        return first
+
+    return repeater
