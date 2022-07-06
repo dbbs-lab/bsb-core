@@ -14,13 +14,10 @@
   },
   "partitions": {
     "declive": {
-      "type": "voxels",
-      "voxels": {
-        "type": "allen",
-        "source": "my_cell_density.nrrd",
-        "data_keys": ["my_cell_density"],
-        "struct_name": "DEC"
-      }
+      "type": "allen",
+      "source": "my_cell_density.nrrd",
+      "data_keys": ["my_cell_density"],
+      "struct_name": "DEC"
     }
   },
   "cell_types": {
