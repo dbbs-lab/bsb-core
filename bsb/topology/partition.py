@@ -428,7 +428,7 @@ class NrrdVoxels(Voxels, classmap_entry="nrrd"):
 
 
 @config.node
-class AllenStructureVoxels(NrrdVoxels, classmap_entry="allen"):
+class AllenStructure(NrrdVoxels, classmap_entry="allen"):
     struct_id = config.attr(
         type=int, required=types.mut_excl("struct_id", "struct_name", required=True)
     )
@@ -587,7 +587,7 @@ class AllenStructureVoxels(NrrdVoxels, classmap_entry="allen"):
             deck.extend(item["children"])
 
     def _validate_mask_condition(self):
-        # We override the `NrrdVoxelLoader`'s `_validate_mask_condition` and use this
+        # We override the `NrrdVoxels`' `_validate_mask_condition` and use this
         # function as a hook to find and set the mask condition to select every voxel that
         # has an id that is part of the structure.
         id = self.struct_id if self.struct_id is not None else self.struct_name

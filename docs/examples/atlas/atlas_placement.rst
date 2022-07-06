@@ -2,10 +2,10 @@ Atlas based placement
 =====================
 
 The BSB supports integration with cell atlases. All that's required is to implement a
-:class:`~bsb.voxels.VoxelLoader` so that the atlas data can be converted from the atlas
-raster format, into a framework object. The framework has :ref:`allen-atlas-integration`
-out of the box, and this example will use the :class:`~bsb.voxels.AllenStructureLoader` as
-voxel loader.
+:class:`~bsb.topology.partition.Voxels` partition so that the atlas data can be converted
+from the atlas raster format, into a framework object. The framework has
+:ref:`allen-atlas-integration` out of the box, and this example will use the
+:class:`~bsb.topology.partition.AllenStructure`.
 
 After loading shapes from the atlas, we will use a local data file to assign density
 values to each voxel, and place cells accordingly.
