@@ -8,6 +8,8 @@ Examples
   :caption: Basics
 
   networks/create
+  networks/load
+  networks/data
 
 .. toctree::
   :maxdepth: 2
