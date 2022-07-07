@@ -59,7 +59,7 @@ class Scaffold:
     :class:`~.storage.Storage`.
     """
 
-    def __init__(self, config=None, storage=None, clear=False):
+    def __init__(self, config=None, storage=None, clear=False, comm=None):
         """
         Bootstraps a network object.
 
@@ -76,7 +76,7 @@ class Scaffold:
         """
         self._configuration = None
         self._storage = None
-        self._initialise_MPI()
+        self._comm = comm or MPI
         self._bootstrap(config, storage, clear=clear)
 
     def __contains__(self, component):
