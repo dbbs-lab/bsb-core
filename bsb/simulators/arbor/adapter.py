@@ -11,7 +11,7 @@ from ... import config
 from ...config import types
 from ...reporting import report, warn
 from ...exceptions import *
-from mpi4py.MPI import COMM_WORLD as mpi
+from ...services import MPI
 import numpy as np
 import itertools as it
 import functools
@@ -357,16 +357,16 @@ class ArborSimulation(Simulation):
             self.threads = psutil.cpu_count(logical=False)
 
     def get_rank(self):
-        return mpi.Get_rank()
+        return MPI.Get_rank()
 
     def get_size(self):
-        return mpi.Get_size()
+        return MPI.Get_size()
 
     def broadcast(self, data, root=0):
-        return mpi.bcast(data, root)
+        return MPI.bcast(data, root)
 
     def barrier(self):
-        return mpi.Barrier()
+        return MPI.Barrier()
 
     def init_result(self):
         self.result = SimulationResult()
@@ -379,10 +379,14 @@ class ArborSimulation(Simulation):
                 str(e) + " The arbor adapter requires completely continuous GIDs."
             ) from None
         try:
-            context = arbor.context(arbor.proc_allocation(self.threads), mpi)
+            if hasattr(MPI, "_mocked"):
+                mpi = None
+            else:
+                mpi = MPI
+            context = arbor.context(arbor.proc_allocation(self.threads), comm=mpi)
         except TypeError:
-            if mpi.Get_size() > 1:
-                s = mpi.Get_size()
+            if MPI.Get_size() > 1:
+                s = MPI.Get_size()
                 warn(
                     f"Arbor does not seem to be built with MPI support, running duplicate simulations on {s} nodes."
                 )
@@ -417,7 +421,7 @@ class ArborSimulation(Simulation):
             device.prepare_samples(sim)
 
     def simulate(self, simulation):
-        if not mpi.Get_rank():
+        if not MPI.Get_rank():
             simulation.record(arbor.spike_recording.all)
         start = time.time()
         report("running simulation", level=1)

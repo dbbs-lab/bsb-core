@@ -1,6 +1,7 @@
 from ..exceptions import *
 from .. import config
 from ..config import refs, types
+from ..services import MPI
 import concurrent
 from concurrent.futures import ThreadPoolExecutor
 import requests
@@ -69,17 +70,15 @@ class NeuroMorphoSelector(NameSelector, classmap_entry="from_neuromorpho"):
     _files = "dableFiles/"
 
     def __boot__(self):
-        if self.scaffold.is_mpi_master:
+        if self.scaffold.is_main_process():
             try:
                 morphos = self._scrape_nm(self.names)
             except:
-                if hasattr(self.scaffold, "MPI"):
-                    self.scaffold.MPI.COMM_WORLD.Barrier()
+                MPI.Barrier()
                 raise
             for name, morpho in morphos.items():
                 self.scaffold.morphologies.save(name, morpho, overwrite=True)
-        if hasattr(self.scaffold, "MPI"):
-            self.scaffold.MPI.COMM_WORLD.Barrier()
+        MPI.Barrier()
 
     @classmethod
     def _swc_url(cls, archive, name):

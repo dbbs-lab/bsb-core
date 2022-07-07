@@ -17,5 +17,4 @@ except AttributeError:
     functools.singledispatchmethod.register = _register
 
 
-from ._mpi import *
 from .reporting import report, warn

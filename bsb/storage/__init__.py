@@ -17,8 +17,8 @@ from abc import abstractmethod, ABC
 from inspect import isclass
 from ..exceptions import *
 from .. import plugins
+from ..services import MPI
 from ._chunks import Chunk
-import mpi4py.MPI as MPI
 import numpy as np
 
 
@@ -126,19 +126,19 @@ _engines = {}
 _available_engines = get_engines()
 
 
-def _on_master(f):
+def _on_main(f):
     @functools.wraps(f)
-    def master_deco(self, *args, _bcast=True, **kwargs):
-        if self.is_master():
+    def main_deco(self, *args, _bcast=True, **kwargs):
+        if self.is_main_process():
             r = f(self, *args, **kwargs)
         else:
             r = None
         if _bcast:
-            return self._comm.bcast(r, root=self._master)
+            return self._comm.bcast(r, root=self._main)
         else:
             return r
 
-    return master_deco
+    return main_deco
 
 
 class Storage:
@@ -147,7 +147,7 @@ class Storage:
     underlying engine.
     """
 
-    def __init__(self, engine, root, comm=None, master=0, missing_ok=True):
+    def __init__(self, engine, root, comm=None, main=0, missing_ok=True):
         """
         Create a Storage provider based on a specific `engine` uniquely identified
         by the root object.
@@ -160,15 +160,15 @@ class Storage:
         :type root: object
         :param comm: MPI communicator that shares control over this Storage.
         :type comm: mpi4py.MPI.Comm
-        :param master: Rank of the MPI process that executes single-node tasks.
+        :param main: Rank of the MPI process that executes single-node tasks.
         """
         self._engine = create_engine(engine, root)
         self._features = [
             fname for fname, supported in view_support()[engine].items() if supported
         ]
         self._engine._format = engine
-        self._comm = comm or MPI.COMM_WORLD
-        self._master = master
+        self._comm = comm or MPI
+        self._main = main
 
         # Load the engine's interface onto the object, this allows the end user to create
         # features, but it is not advised. Usually the Storage object
@@ -198,8 +198,8 @@ class Storage:
     def preexisted(self):
         return self._preexisted
 
-    def is_master(self):
-        return self._comm.Get_rank() == self._master
+    def is_main_process(self):
+        return self._comm.Get_rank() == self._main
 
     @property
     def morphologies(self):
@@ -227,7 +227,7 @@ class Storage:
         """
         return self._engine.exists()
 
-    @_on_master
+    @_on_main
     def create(self):
         """
         Create the minimal requirements at the root for other features to function and
@@ -239,14 +239,14 @@ class Storage:
         """
         Move the storage to a new root.
         """
-        if self.is_master():
+        if self.is_main_process():
             self._engine.move(new_root)
             self._comm.Barrier()
         else:
             self._engine._root = new_root
             self._comm.Barrier()
 
-    @_on_master
+    @_on_main
     def remove(self):
         """
         Remove the storage and all data contained within. This is an irreversible
@@ -272,7 +272,7 @@ class Storage:
         """
         return self._engine.files.load_active_config()
 
-    @_on_master
+    @_on_main
     def store_active_config(self, config):
         """
         Store a configuration object in the storage.
@@ -338,7 +338,7 @@ class Storage:
             for tag in self._ConnectivitySet.get_tags(self._engine)
         ]
 
-    @_on_master
+    @_on_main
     def init(self, scaffold):
         """
         Initialize the storage to be ready for use by the specified scaffold.
@@ -346,12 +346,12 @@ class Storage:
         self.store_active_config(scaffold.configuration, _bcast=False)
         self.init_placement(scaffold, _bcast=False)
 
-    @_on_master
+    @_on_main
     def init_placement(self, scaffold):
         for cell_type in scaffold.get_cell_types():
             self._PlacementSet.require(self._engine, cell_type)
 
-    @_on_master
+    @_on_main
     def renew(self, scaffold):
         """
         Remove and recreate an empty storage container for a scaffold.
@@ -360,13 +360,13 @@ class Storage:
         self.create(_bcast=False)
         self.init(scaffold, _bcast=False)
 
-    @_on_master
+    @_on_main
     def clear_placement(self, scaffold=None):
         self._engine.clear_placement()
         if scaffold is not None:
             self.init_placement(scaffold, _bcast=False)
 
-    @_on_master
+    @_on_main
     def clear_connectivity(self):
         self._engine.clear_connectivity()
 

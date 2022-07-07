@@ -36,13 +36,13 @@ API and subject to sudden change in the future.
 
 """
 
-from mpi4py.MPI import COMM_WORLD
+from .services import MPI
 import time
 import concurrent.futures
 import threading
 
 
-_serial_execution = COMM_WORLD.Get_size() == 1
+_serial_execution = MPI.Get_size() == 1
 
 
 def dispatcher(pool_id, job_args):
@@ -194,9 +194,7 @@ class JobPool:
         return self.get_owner(self.id)
 
     def is_master(self):
-        import mpi4py.MPI
-
-        return mpi4py.MPI.COMM_WORLD.Get_rank() == 0
+        return MPI.Get_rank() == 0
 
     def _put(self, job):
         """
