@@ -2,9 +2,25 @@ import unittest as _unittest
 import inspect as _inspect
 import mpi4py as _mpi4py
 import threading as _threading
+import http.client as _http
 
 MPI = _mpi4py.MPI.COMM_WORLD
 _mpi_size = MPI.Get_size()
+
+
+def internet_connection():
+    conn = _http.HTTPSConnection("8.8.8.8", timeout=2)
+    try:
+        _http.request("HEAD", "/")
+        return True
+    except Exception:
+        return False
+    finally:
+        conn.close()
+
+
+def skip_nointernet(o):
+    return _unittest.skipIf(not internet_connection(), "Internet connection required.")(o)
 
 
 def skip_parallel(o):

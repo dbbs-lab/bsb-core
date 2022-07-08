@@ -9,7 +9,7 @@ from bsb.config import from_json, Configuration
 from bsb.morphologies import Morphology, Branch
 from bsb.exceptions import *
 from bsb.storage.interfaces import StoredMorphology
-from bsb.unittest import skip_parallel
+from bsb.unittest import skip_parallel, skip_nointernet
 
 
 def spoof(*names):
@@ -73,6 +73,7 @@ class TestSelectors(unittest.TestCase):
         with self.assertRaises(MissingMorphologyError):
             self.assertEqual(0, len(ct.get_morphologies()), "should select 0 morpho")
 
+    @skip_nointernet
     def test_nm_selector(self):
         name = "H17-03-013-11-08-04_692297214_m"
         ct = CellType(
@@ -91,6 +92,7 @@ class TestSelectors(unittest.TestCase):
         m = s.morphologies.select(*ct.spatial.morphologies)[0]
         self.assertEqual(name, m.get_meta()["neuron_name"], "meta not stored")
 
+    @skip_nointernet
     def test_nm_selector_wrong_name(self):
         ct = CellType(
             spatial=dict(
