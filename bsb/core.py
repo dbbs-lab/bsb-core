@@ -11,6 +11,7 @@ from .exceptions import *
 from .reporting import report, warn, get_report_file
 from .config._config import Configuration
 from ._pool import create_job_pool
+from .services import MPI
 
 
 _cfg_props = (
