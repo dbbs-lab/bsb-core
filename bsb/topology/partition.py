@@ -377,8 +377,9 @@ class NrrdVoxels(Voxels, classmap_entry="nrrd"):
 
     def _validate(self):
         self._validate_sources()
-        self._validate_source_compat()
+        shape = self._validate_source_compat()
         self._validate_mask_condition()
+        return shape
 
     def _validate_sources(self):
         if self.source is not None:
