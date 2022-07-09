@@ -253,9 +253,9 @@ class JobPool:
         order. In parallel execution this enqueues all jobs into the MPIPool unless they
         have dependencies that need to complete first.
 
-        :param master_event_loop: A function that is continuously calls while waiting for
-            the jobs to finish in parallel execution
-        :type master_event_loop: function
+        :param master_event_loop: A function that is continuously called while waiting for
+          the jobs to finish in parallel execution
+        :type master_event_loop: Callable
         """
         if self.parallel:
             # Create the MPI pool
