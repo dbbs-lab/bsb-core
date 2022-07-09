@@ -121,3 +121,6 @@ class FencedSignal(Exception):
 class MPILockProvider(MockProvider):
     def sync(self, comm=None, master=0):
         return MockedWindowController(comm, master)
+
+    def __call__(self, comm=None, master=None):
+        return MockedWindowController(comm, master)
