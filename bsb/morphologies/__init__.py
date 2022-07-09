@@ -740,11 +740,20 @@ class Branch:
         return self._points
 
     @property
-    def segments(self):
+    def point_vectors(self):
         """
         Return the individual vectors between consecutive points on this branch.
         """
         return np.diff(self.points, axis=0)
+
+    @property
+    def segments(self):
+        """
+        Return the start and end points of vectors between consecutive points on this branch.
+        """
+        return np.hstack(
+            (self.points[:-1], self.points[:-1] + self.point_vectors)
+        ).reshape(-1, 2, 3)
 
     @property
     def start(self):
@@ -803,7 +812,7 @@ class Branch:
         computed as the sum of Euclidean segments between consecutive branch points.
         """
         try:
-            return np.sum(np.sqrt(np.sum(self.segments**2, axis=1)))
+            return np.sum(np.sqrt(np.sum(self.point_vectors**2, axis=1)))
         except IndexError:
             raise EmptyBranchError("Empty branch has no path distance") from None
 
@@ -828,7 +837,7 @@ class Branch:
         """
         try:
             euclidean = np.sqrt(np.sum((self.points - self.start) ** 2, axis=1))
-            path = np.cumsum(np.sqrt(np.sum(self.segments**2, axis=1)))
+            path = np.cumsum(np.sqrt(np.sum(self.point_vectors**2, axis=1)))
             log_e = np.log(euclidean[1:])
             log_p = np.log(path)
             if len(self.points) <= 2:

@@ -454,3 +454,52 @@ class TestMorphologySet(unittest.TestCase):
         self.assertEqual(
             1, len([*self.sets[1].iter_meta(unique=True)]), "only 1 morph in unique set"
         )
+
+
+class TestMorphometry(NumpyTestCase, unittest.TestCase):
+    # TODO:
+    # check adjacency: create SWC of toy morphologies to test
+    # explicit segments/start/end tests;
+    # vector tests / versors tests (unit norm)
+    # max displacement
+    # explicit fractal dim
+    def setUp(self):
+        self.b0 = Branch([], [])
+        self.bzero1 = Branch([[0] * 3], [1])
+        self.bzero_r1 = Branch([[1] * 3], [0])
+        self.b1 = Branch([[1] * 3], [1])
+        self.bzero2 = Branch([[0] * 3] * 2, [1] * 2)
+        self.bzero_r2 = Branch([[0] * 3] * 2, [0] * 2)
+        self.b2 = Branch([[1] * 3, [2] * 3], [1] * 2)
+        self.bzero10 = Branch([[0] * 3] * 10, [1] * 10)
+        self.bzero_r10 = Branch([[1] * 3] * 10, [0] * 10)
+        self.b3 = Branch([[0, 0, 0], [3, 6 * np.sin(np.pi / 3), 0], [6, 0, 0]], [1] * 3)
+
+    def test_empty_branch(self):
+        for attr in ("euclidean_dist", "path_dist"):
+            with self.subTest(attr=attr):
+                with self.assertRaises(EmptyBranchError):
+                    getattr(self.b0, attr)
+
+    def test_zero_len(self):
+        for attr in ("euclidean_dist", "path_dist"):
+            with self.subTest(attr=attr):
+                self.assertEqual(getattr(self.b1, attr), 0)
+                self.assertEqual(getattr(self.bzero1, attr), 0)
+                self.assertEqual(getattr(self.bzero_r1, attr), 0)
+                self.assertEqual(getattr(self.bzero2, attr), 0)
+                self.assertEqual(getattr(self.bzero_r2, attr), 0)
+                self.assertEqual(getattr(self.bzero10, attr), 0)
+                self.assertEqual(getattr(self.bzero_r10, attr), 0)
+
+    def test_known_len(self):
+        print(f"Segments: {self.b3.segments}")
+        self.assertEqual(self.b3.path_dist, 12)
+        self.assertEqual(self.b3.euclidean_dist, 6)
+
+
+# TODO:
+# SWC SAVING TESTS:
+# empty morphology,
+# wrong filename,
+# identity check
