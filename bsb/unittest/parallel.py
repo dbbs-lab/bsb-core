@@ -1,10 +1,10 @@
 import unittest as _unittest
 import inspect as _inspect
-import mpi4py as _mpi4py
 import threading as _threading
 import http.client as _http
+from bsb.services import MPI
 
-MPI = _mpi4py.MPI.COMM_WORLD
+
 _mpi_size = MPI.Get_size()
 
 

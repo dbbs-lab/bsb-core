@@ -1,10 +1,10 @@
 import unittest, os, sys, numpy as np, h5py
 import json
 import itertools
-import mpi4py
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
+from bsb.services import MPI
 from bsb.morphologies import Morphology, Branch, _Labels, MorphologySet
 from bsb.storage import Storage
 from bsb.storage.interfaces import StoredMorphology
@@ -70,7 +70,7 @@ class TestRepositories(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        if mpi4py.MPI.COMM_WORLD.Get_rank() == 0:
+        if MPI.Get_rank() == 0:
             with h5py.File("test.h5", "w") as f:
                 g = f.create_group("morphologies")
                 g = g.create_group("M")
@@ -116,17 +116,17 @@ class TestRepositories(unittest.TestCase):
                 ds.attrs["labels"] = json.dumps({1: []})
                 ds.attrs["properties"] = []
                 g.create_dataset("graph", data=[[i + 1, -1] for i in range(4)] + [[5, 0]])
-        mpi4py.MPI.COMM_WORLD.Barrier()
+        MPI.Barrier()
 
     @classmethod
     def tearDownClass(cls):
         super().tearDownClass()
-        if mpi4py.MPI.COMM_WORLD.Get_rank() == 0:
+        if MPI.Get_rank() == 0:
             os.remove("test.h5")
             os.remove("test2.h5")
             os.remove("test4.h5")
             os.remove("test5.h5")
-        mpi4py.MPI.COMM_WORLD.Barrier()
+        MPI.Barrier()
 
     def test_empty_repository(self):
         pass

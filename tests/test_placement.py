@@ -1,8 +1,8 @@
 import unittest, os, sys, numpy as np, h5py
-from mpi4py import MPI
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
+from bsb.services import MPI
 from bsb.core import Scaffold
 from bsb.config import Configuration, from_json
 from bsb.cell_types import CellType
@@ -11,7 +11,7 @@ from bsb.voxels import VoxelSet, VoxelData
 from bsb.exceptions import *
 from bsb.storage import Chunk
 from bsb.placement import PlacementStrategy, RandomPlacement
-from bsb._pool import JobPool, FakeFuture, create_job_pool
+from bsb.services.pool import JobPool, FakeFuture, create_job_pool
 from test_setup import get_config
 from bsb.unittest import timeout
 from time import sleep
@@ -141,7 +141,7 @@ class SchedulerBaseTest:
         pool = JobPool(network, listeners=[spy])
         job = pool.queue(test_dud, (5, 0.1))
         pool.execute()
-        if not MPI.COMM_WORLD.Get_rank():
+        if not MPI.Get_rank():
             self.assertEqual(1, i, "Listeners not executed.")
 
     def test_placement_job(self):
@@ -155,7 +155,7 @@ class SchedulerBaseTest:
         pool.execute()
 
 
-@unittest.skipIf(MPI.COMM_WORLD.Get_size() < 2, "Skipped during serial testing.")
+@unittest.skipIf(MPI.Get_size() < 2, "Skipped during serial testing.")
 class TestParallelScheduler(unittest.TestCase, SchedulerBaseTest):
     @timeout(3)
     def test_double_pool(self):
@@ -177,7 +177,7 @@ class TestParallelScheduler(unittest.TestCase, SchedulerBaseTest):
             executed = True
 
         pool.execute(master_event_loop=spy_loop)
-        if MPI.COMM_WORLD.Get_rank():
+        if MPI.Get_rank():
             self.assertFalse(executed, "workers executed master loop")
         else:
             self.assertTrue(executed, "master loop skipped")
@@ -203,11 +203,11 @@ class TestParallelScheduler(unittest.TestCase, SchedulerBaseTest):
                 result = jobs[0]._future.running() and not jobs[1]._future.running()
 
         pool.execute(master_event_loop=spy_queue)
-        if not MPI.COMM_WORLD.Get_rank():
+        if not MPI.Get_rank():
             self.assertTrue(result, "A job with unfinished dependencies was scheduled.")
 
 
-@unittest.skipIf(MPI.COMM_WORLD.Get_size() > 1, "Skipped during parallel testing.")
+@unittest.skipIf(MPI.Get_size() > 1, "Skipped during parallel testing.")
 class TestSerialScheduler(unittest.TestCase, SchedulerBaseTest):
     pass
 
