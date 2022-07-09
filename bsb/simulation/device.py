@@ -1,4 +1,5 @@
 from .. import config
+from ..services import MPI
 from .component import SimulationComponent
 
 
@@ -41,17 +42,17 @@ class DeviceModel(SimulationComponent):
         raise ParallelIntegrityError(
             f"MPI process %rank% failed a checkpoint."
             + " `initialise_patterns` should always be called before `get_patterns` on all MPI processes.",
-            self.adapter.get_rank(),
+            MPI.Get_rank(),
         )
 
     def initialise_patterns(self):
-        if self.adapter.get_rank() == 0:
+        if MPI.Get_rank() == 0:
             # Have root 0 prepare the possibly random patterns.
             patterns = self.create_patterns()
         else:
             patterns = None
         # Broadcast to make sure all the nodes have the same patterns for each device.
-        self._patterns = self.scaffold.MPI.COMM_WORLD.bcast(patterns, root=0)
+        self._patterns = MPI.bcast(patterns, root=0)
 
 
 class Patternless:

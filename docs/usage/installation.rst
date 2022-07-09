@@ -30,8 +30,9 @@ Parallel support
 
 The BSB parallelizes the network reconstruction using MPI, and translates simulator
 instructions to the simulator backends with it as well, for effortless parallel
-simulation. To use MPI from Python the ``mpi4py`` package is required, which in turn needs
-a working MPI implementation installed in your environment.
+simulation. To use MPI from Python the `mpi4py
+<https://mpi4py.readthedocs.io/en/stable/>`_ package is required, which in turn needs a
+working MPI implementation installed in your environment.
 
 On your local machine you can install OpenMPI:
 

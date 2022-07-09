@@ -21,10 +21,7 @@ requires = [
     "rtree~=0.9",
     "psutil~=5.8",
     "pynrrd~=0.4",
-    "mpilock~=1.1",
     "morphio~=3.3",
-    "mpi4py",
-    "zwembad",
     "toml",
     "requests",
     "appdirs~=1.4",
@@ -89,6 +86,6 @@ setuptools.setup(
         ],
         "arbor": ["arbor~=0.6"],
         "neuron": ["dbbs_models~=2.0.0", "nrn-patch~=3.0.1"],
-        "mpi": ["mpi4py", "zwembad", "mpilock"],
+        "mpi": ["mpi4py~=3.0", "zwembad", "mpilock~=1.1"],
     },
 )

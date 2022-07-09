@@ -9,7 +9,7 @@ from bsb.storage import Storage, Chunk
 from bsb.storage import _util
 from test_setup import get_config
 from bsb.unittest import timeout
-import mpi4py.MPI as MPI
+from bsb.services import MPI
 import pathlib
 
 
@@ -29,7 +29,7 @@ class TestUtil(unittest.TestCase):
         self.assertFalse(link.exists())
         link = _util.nolink()
         self.assertFalse(link.exists())
-        junk = f"__dsgss__dd{MPI.COMM_WORLD.Get_rank()}.txt"
+        junk = f"__dsgss__dd{MPI.Get_rank()}.txt"
         with open(junk, "w") as f:
             f.write("Your Highness?")
         link = _util.syslink(junk)

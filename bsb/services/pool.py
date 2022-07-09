@@ -36,13 +36,26 @@ API and subject to sudden change in the future.
 
 """
 
-from mpi4py.MPI import COMM_WORLD
+from ._provider import MockProvider, ErrorProvider
+from . import MPI
 import time
 import concurrent.futures
 import threading
 
 
-_serial_execution = COMM_WORLD.Get_size() == 1
+class _MissingMPIPoolExecutor(ErrorProvider):
+    pass
+
+
+class _MPIPoolProvider(MockProvider):
+    @property
+    def MPIPoolExecutor(self):
+        return _MissingMPIPoolExecutor(
+            "This is not a public interface. Use `.services.JobPool` instead."
+        )
+
+
+_MPIPool = _MPIPoolProvider("zwembad")
 
 
 def dispatcher(pool_id, job_args):
@@ -185,6 +198,10 @@ class JobPool:
         JobPool._next_pool_id += 1
         JobPool._pool_owners[self.id] = scaffold
 
+    @property
+    def parallel(self):
+        return MPI.Get_size() > 1
+
     @classmethod
     def get_owner(cls, id):
         return cls._pool_owners[id]
@@ -194,9 +211,7 @@ class JobPool:
         return self.get_owner(self.id)
 
     def is_master(self):
-        import mpi4py.MPI
-
-        return mpi4py.MPI.COMM_WORLD.Get_rank() == 0
+        return MPI.Get_rank() == 0
 
     def _put(self, job):
         """
@@ -238,29 +253,13 @@ class JobPool:
         order. In parallel execution this enqueues all jobs into the MPIPool unless they
         have dependencies that need to complete first.
 
-        :param master_event_loop: A function that is continuously calls while waiting for
-            the jobs to finish in parallel execution
-        :type master_event_loop: function
+        :param master_event_loop: A function that is continuously called while waiting for
+          the jobs to finish in parallel execution
+        :type master_event_loop: Callable
         """
-        # This is implemented under the assumption that jobs are submitted to the pool
-        # in dependency-first order; which should always be the case unless someone
-        # submits jobs first and then starts adding things to the jobs' `._deps`
-        # attribute. Which isn't expected to work.
-        if _serial_execution:
-            # Just run each job serially
-            for job in self._queue:
-                # Execute the static handler
-                job.execute(self.owner, job.f, job._args, job._kwargs)
-                # Trigger job completion manually as there is no async future object
-                # like in parallel execution.
-                job._completion(None)
-            # Clear the queue after all jobs have been done
-            self._queue = []
-        else:
-            from zwembad import MPIPoolExecutor
-
+        if self.parallel:
             # Create the MPI pool
-            pool = MPIPoolExecutor()
+            pool = _MPIPool.MPIPoolExecutor()
 
             if pool.is_worker():
                 # The workers will return out of the pool constructor when they receive
@@ -285,6 +284,16 @@ class JobPool:
                     # has completed.
                     concurrent.futures.wait(open_jobs)
             pool.shutdown()
+        else:
+            # Just run each job serially
+            for job in self._queue:
+                # Execute the static handler
+                job.execute(self.owner, job.f, job._args, job._kwargs)
+                # Trigger job completion manually as there is no async future object
+                # like in parallel execution.
+                job._completion(None)
+            # Clear the queue after all jobs have been done
+            self._queue = []
 
 
 def create_job_pool(scaffold):
