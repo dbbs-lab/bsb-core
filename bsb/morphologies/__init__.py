@@ -582,6 +582,14 @@ class Morphology(SubTree):
     def meta(self):
         return self._meta
 
+    @property
+    def labelsets(self):
+        """
+        Return the sets of labels associated to each numerical label.
+        """
+        self.optimize()
+        return self._shared._labels.labels
+
     def copy(self):
         self.optimize(force=False)
         buffers = self._shared.copy()
