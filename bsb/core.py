@@ -10,7 +10,7 @@ from .storage import Chunk, Storage, _util as _storutil
 from .exceptions import *
 from .reporting import report, warn, get_report_file
 from .config._config import Configuration
-from ._pool import create_job_pool
+from .services.pool import create_job_pool
 from .services import MPI
 
 
