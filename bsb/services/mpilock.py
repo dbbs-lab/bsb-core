@@ -5,9 +5,9 @@ import numpy as np
 
 class MockedWindowController:
     def __init__(self, comm=None, master=0):
-        if comm is None:
-            from . import MPI
+        from . import MPI
 
+        if comm is None:
             comm = MPI
         self._comm = comm
         self._size = comm.Get_size()
