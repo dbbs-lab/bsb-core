@@ -1,4 +1,5 @@
 from ._provider import MockProvider
+from ..exceptions import DependencyError
 import functools
 import os
 import warnings
@@ -29,8 +30,8 @@ class MPIProvider(MockProvider):
     @functools.cache
     def COMM_WORLD(self):
         if any("mpi" in key.lower() for key in os.environ):
-            warnings.warn(
-                "MPI execution detected without `mpi4py`."
-                + " Output useless, errors likely to occur, please install `mpi4py`."
+            raise DependencyError(
+                "MPI execution detected without MPI dependencies."
+                + " Please install with `pip install bsb[mpi]` to use MPI."
             )
         return MockCommunicator()
