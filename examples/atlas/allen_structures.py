@@ -1,4 +1,4 @@
-from bsb.voxels import AllenStructureLoader
+from bsb.topology import AllenStructure
 import numpy as np
 import nrrd
 
@@ -6,13 +6,13 @@ import nrrd
 struct = "DEC"
 print("Structure acronym:", struct)
 # Retrieve the raw Allen information on a structure:
-node = AllenStructureLoader.find_structure(struct)
+node = AllenStructure.find_structure(struct)
 print("Allen node:", node)
 # Get all of the IDs that are part of this structure:
-ids = AllenStructureLoader.get_structure_idset(struct)
+ids = AllenStructure.get_structure_idset(struct)
 print("Structure IDs:", ids)
 # Get the boolean mask of the structure. 1's are part of the structure, 0s aren't.
-mask = AllenStructureLoader.get_structure_mask(struct)
+mask = AllenStructure.get_structure_mask(struct)
 print("The structure contains", np.sum(mask), "voxels")
 # You can use this to mask other images of the brain, such as a fictitious density file:
 brain_image, _ = nrrd.read("densities.nrrd")

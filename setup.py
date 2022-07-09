@@ -10,7 +10,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 requires = [
-    "bsb-hdf5==0.1.1",
+    "bsb-hdf5==0.1.2",
     "h5py~=3.0",
     "numpy~=1.19",
     "scipy~=1.5",
@@ -81,10 +81,11 @@ setuptools.setup(
             "sphinx~=5.0",
             "furo",
             "pre-commit",
-            "black==22.3.0",
-            "nrn-subprocess==1.3.4",
+            "black~=22.3.0",
+            "nrn-subprocess~=1.3.4",
             "sphinxemoji",
-            "sphinx_design",
+            "sphinx_design~=0.2",
+            "sphinx-copybutton~=0.5",
         ],
         "arbor": ["arbor~=0.6"],
         "neuron": ["dbbs_models~=2.0.0", "nrn-patch~=3.0.1"],

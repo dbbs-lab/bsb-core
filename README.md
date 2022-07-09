@@ -5,10 +5,15 @@
 
 <h3>:closed_book: Read the documentation on https://bsb.readthedocs.io/en/latest</h3>
 
-# BSB: A scaffold modelling framework
-This package is intended to facilitate spatially, topologically and morphologically
-detailed simulations of brain regions developed by the Department of Brain and
-Behavioral Sciences at the University of Pavia.
+# BSB: A component framework for neural modelling
+
+Developed by the Department of Brain and Behavioral Sciences at the University of Pavia,
+the BSB is a component framework for neural modelling, which focusses on component
+declarations to piece together a model. The component declarations can be made in any
+supported configuration language, or using the library functions in Python. It offers
+parallel reconstruction and simulation of any network topology, placement and/or
+connectivity strategy.
+
 
 ## Installation
 
@@ -58,7 +63,7 @@ and connections:
 bsb compile -p
 ```
 
-This creates a network file and plots the network.
+This creates a [network file](bsb.readthedocs.io/guides/networks.html) and plots the network.
 
 ### Simulating a network
 

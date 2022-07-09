@@ -1,4 +1,5 @@
 from bsb import topology
+from bsb.config import Configuration
 import unittest, numpy as np
 
 
@@ -61,4 +62,18 @@ class TestTopology(unittest.TestCase):
         l.data.x += 1
         self.assertEqual(
             [[1, 0, 0], [1, 1, 0], [2, 0, 0], [2, 1, 0]], l.to_chunks(cs).tolist()
+        )
+
+
+class TestAllenVoxels(unittest.TestCase):
+    def test_val(self):
+        cfg = Configuration.default(
+            region=dict(br=dict(children=["a"])),
+            partitions=dict(a=dict(type="allen", struct_name="VAL")),
+        )
+        vs = cfg.partitions.a.voxelset
+        self.assertEqual(52314, len(vs), "VAL is that many voxels")
+        self.assertTrue(
+            np.allclose([(5975, 3550, 3950), (7125, 5100, 7475)], vs.bounds),
+            "VAL has those bounds",
         )
