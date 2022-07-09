@@ -4,6 +4,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
 from bsb.morphologies.selector import NameSelector, NeuroMorphoSelector
 from bsb.core import Scaffold
+from bsb.services import MPI
 from bsb.cell_types import CellType
 from bsb.config import from_json, Configuration
 from bsb.morphologies import Morphology, Branch
@@ -107,8 +108,6 @@ class TestSelectors(unittest.TestCase):
         cfg = Configuration.default(cell_types={"ct": ct})
         s = Scaffold(cfg)
         with self.assertRaises(SelectorError, msg="doesnt exist, should error"):
-            from mpi4py.MPI import COMM_WORLD as w
-
             err = None
             try:
                 ct.spatial.morphologies[0] = {
@@ -117,12 +116,10 @@ class TestSelectors(unittest.TestCase):
                 }
             except Exception as e:
                 err = e
-            err = w.bcast(err, root=0)
+            err = MPI.bcast(err, root=0)
             if err:
                 raise err
         with self.assertRaises(SelectorError, msg="doesnt exist, should error"):
-            from mpi4py.MPI import COMM_WORLD as w
-
             err = None
             try:
                 ct.spatial.morphologies[0] = {
@@ -131,6 +128,6 @@ class TestSelectors(unittest.TestCase):
                 }
             except SelectorError as e:
                 err = e
-            err = w.bcast(err, root=0)
+            err = MPI.bcast(err, root=0)
             if err:
                 raise err

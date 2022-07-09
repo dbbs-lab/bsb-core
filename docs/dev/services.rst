@@ -9,9 +9,9 @@ always import and use the service (if a mock is provided).
 MPI
 ===
 
-The MPI service provided by :class:`bsb.services.MPI` is the ``COMM_WORLD``
-:class:`mpi4py.Communicator` if ``mpi4py`` is available, otherwise it is an emulator that
-emulates single node parallel execution.
+The MPI service provided by :attr:`bsb.services.MPI` is the ``COMM_WORLD``
+:class:`mpi4py.MPI.Comm` if ``mpi4py`` is available, otherwise it is an emulator that
+emulates a single node parallel context.
 
 .. error::
 
