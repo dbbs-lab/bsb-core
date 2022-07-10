@@ -32,7 +32,6 @@ class TestStorage(RandomStorageFixture):
         s = self.random_storage()
         s.create()
         s.init(_ScaffoldDummy(cfg))
-        MPI.Barrier()
         # Test that `init` created the placement sets for each cell type
         for cell_type in cfg.cell_types.values():
             with self.subTest(type=cell_type.name):
@@ -47,7 +46,6 @@ class TestStorage(RandomStorageFixture):
         # create or remove data by relying on `renew` or `init` in its constructor.
         s = self.random_storage()
         s.create()
-        time.sleep(0.1)
         self.assertTrue(s.exists())
         ps = s._PlacementSet.require(s._engine, cfg.cell_types.test_cell)
         self.assertEqual(
@@ -66,7 +64,6 @@ class TestStorage(RandomStorageFixture):
         # Spoof a scaffold here, `renew` only requires an object with a
         # `.get_cell_types()` method for its `storage.init` call.
         s.renew(_ScaffoldDummy(cfg))
-        time.sleep(0.1)
         ps = s._PlacementSet.require(s._engine, cfg.cell_types.test_cell)
         self.assertEqual(
             0,
@@ -77,29 +74,20 @@ class TestStorage(RandomStorageFixture):
     @timeout(10)
     def test_move(self):
         s = self.random_storage()
-        old_s = Storage(self._engine, s.root)
-        s.create()
-        self.assertTrue(s.exists())
-        if self._rootf:
-            new_root = self._rootf()
-        else:
-            new_root = f"2x2{s.root}"
-        s.move(new_root)
-        self.assertFalse(old_s.exists())
-        self.assertTrue(s.exists())
-        s.move(old_s.root)
-        self.assertTrue(s.exists())
-        self.assertTrue(old_s.exists())
+        for _ in range(100):
+            os = Storage(self._engine, s.root)
+            s.move(s.root[:-5] + "e" + s.root[-5:])
+            self.assertTrue(s.exists(), f"{MPI.Get_rank()} can't find moved storage yet.")
+            self.assertFalse(os.exists(), f"{MPI.Get_rank()} still finds old storage.")
 
     @timeout(10)
     def test_remove_create(self):
-        s = self.random_storage()
-        s.remove()
-        time.sleep(0.1)
-        self.assertFalse(s.exists())
-        s.create()
-        time.sleep(0.1)
-        self.assertTrue(s.exists())
+        for _ in range(100):
+            s = self.random_storage()
+            s.remove()
+            self.assertFalse(s.exists(), f"{MPI.Get_rank()} still finds removed storage.")
+            s.create()
+            self.assertTrue(s.exists(), f"{MPI.Get_rank()} can't find new storage yet.")
 
     def test_eq(self):
         s = self.random_storage()

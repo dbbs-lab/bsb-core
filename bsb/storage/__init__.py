@@ -322,12 +322,12 @@ class Storage:
         """
         Initialize the storage to be ready for use by the specified scaffold.
         """
-        self._engine.store_active_config(scaffold.configuration)
+        self._engine.files.store_active_config(scaffold.configuration)
         self.init_placement(scaffold)
 
     def init_placement(self, scaffold):
         for cell_type in scaffold.get_cell_types():
-            self._engine.require_placement_set(self._engine, cell_type)
+            self._engine.require_placement_set(cell_type)
 
     def renew(self, scaffold):
         """
