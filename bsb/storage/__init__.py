@@ -75,6 +75,7 @@ def register_engine(engine_name, engine_module):
             interface_name: NotSupported(engine_name, interface_name)
             for interface_name in _storage_interfaces.keys()
         }
+        engine_support["StorageNode"] = engine_module.StorageNode
         # Search for interface support
         for interface_name, interface in _storage_interfaces.items():
             for module_item in engine_module.__dict__.values():
@@ -159,6 +160,8 @@ class Storage:
         # features, but it is not advised. Usually the Storage object
         # itself provides factory methods that should be used instead.
         for name, interface in _engines[engine].items():
+            if name == "StorageNode":
+                continue
             self.__dict__["_" + name] = interface
             # Interfaces can define an autobinding key so that singletons are available
             # on the engine under that key.
@@ -341,6 +344,11 @@ class Storage:
 
     def clear_connectivity(self):
         self._engine.clear_connectivity()
+
+
+def get_engine_node(engine):
+    init_engines()
+    return _engines[engine]["StorageNode"]
 
 
 def view_support(engine=None):
