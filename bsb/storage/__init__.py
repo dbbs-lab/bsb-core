@@ -290,7 +290,7 @@ class Storage:
         Get a placement set.
 
         :param cell_type: Connection cell_type
-        :type cell_type: .cell_types.CellType
+        :type cell_type: ~bsb.cell_types.CellType
         :returns: ~bsb.storage.interfaces.PlacementSet
         """
         return self._PlacementSet.require(self._engine, cell_type)
