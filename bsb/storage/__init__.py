@@ -126,21 +126,6 @@ _engines = {}
 _available_engines = get_engines()
 
 
-def _on_main(f):
-    @functools.wraps(f)
-    def main_deco(self, *args, _bcast=True, **kwargs):
-        if self.is_main_process():
-            r = f(self, *args, **kwargs)
-        else:
-            r = None
-        if _bcast:
-            return self._comm.bcast(r, root=self._main)
-        else:
-            return r
-
-    return main_deco
-
-
 class Storage:
     """
     Factory class that produces all of the features and shims the functionality of the
@@ -227,7 +212,6 @@ class Storage:
         """
         return self._engine.exists()
 
-    @_on_main
     def create(self):
         """
         Create the minimal requirements at the root for other features to function and
@@ -239,14 +223,8 @@ class Storage:
         """
         Move the storage to a new root.
         """
-        if self.is_main_process():
-            self._engine.move(new_root)
-            self._comm.Barrier()
-        else:
-            self._engine._root = new_root
-            self._comm.Barrier()
+        self._engine.move(new_root)
 
-    @_on_main
     def remove(self):
         """
         Remove the storage and all data contained within. This is an irreversible
@@ -272,7 +250,6 @@ class Storage:
         """
         return self._engine.files.load_active_config()
 
-    @_on_main
     def store_active_config(self, config):
         """
         Store a configuration object in the storage.
@@ -338,35 +315,30 @@ class Storage:
             for tag in self._ConnectivitySet.get_tags(self._engine)
         ]
 
-    @_on_main
     def init(self, scaffold):
         """
         Initialize the storage to be ready for use by the specified scaffold.
         """
-        self.store_active_config(scaffold.configuration, _bcast=False)
-        self.init_placement(scaffold, _bcast=False)
+        self._engine.store_active_config(scaffold.configuration)
+        self.init_placement(scaffold)
 
-    @_on_main
     def init_placement(self, scaffold):
         for cell_type in scaffold.get_cell_types():
-            self._PlacementSet.require(self._engine, cell_type)
+            self._engine.require_placement_set(self._engine, cell_type)
 
-    @_on_main
     def renew(self, scaffold):
         """
         Remove and recreate an empty storage container for a scaffold.
         """
-        self.remove(_bcast=False)
-        self.create(_bcast=False)
-        self.init(scaffold, _bcast=False)
+        self.remove()
+        self.create()
+        self.init(scaffold)
 
-    @_on_main
     def clear_placement(self, scaffold=None):
         self._engine.clear_placement()
         if scaffold is not None:
-            self.init_placement(scaffold, _bcast=False)
+            self.init_placement(scaffold)
 
-    @_on_main
     def clear_connectivity(self):
         self._engine.clear_connectivity()
 
