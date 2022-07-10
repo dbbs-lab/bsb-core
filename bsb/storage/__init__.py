@@ -285,6 +285,16 @@ class Storage:
             ps.set_chunks(chunks)
         return ps
 
+    def require_placement_set(self, cell_type):
+        """
+        Get a placement set.
+
+        :param cell_type: Connection cell_type
+        :type cell_type: .cell_types.CellType
+        :returns: ~bsb.storage.interfaces.PlacementSet
+        """
+        return self._PlacementSet.require(self._engine, cell_type)
+
     def get_connectivity_set(self, tag):
         """
         Get a connection set.
@@ -322,12 +332,12 @@ class Storage:
         """
         Initialize the storage to be ready for use by the specified scaffold.
         """
-        self._engine.files.store_active_config(scaffold.configuration)
+        self._engine.store_active_config(scaffold.configuration)
         self.init_placement(scaffold)
 
     def init_placement(self, scaffold):
         for cell_type in scaffold.get_cell_types():
-            self._engine.require_placement_set(cell_type)
+            self.require_placement_set(cell_type)
 
     def renew(self, scaffold):
         """
