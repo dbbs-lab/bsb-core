@@ -1,8 +1,6 @@
 from .parallel import *
-from ..storage import Storage
+from ..storage import Storage, get_engine_node
 import numpy as _np
-
-_storagecount = 0
 
 
 class RandomStorageFixture:
@@ -13,17 +11,15 @@ class RandomStorageFixture:
     @classmethod
     def tearDownClass(cls):
         super().tearDownClass()
-        if not MPI.Get_rank():
-            for s in cls._open_storages:
-                s.remove()
+        for s in cls._open_storages:
+            s.remove()
 
     def random_storage(self, root_factory=None, engine="hdf5"):
-        global _storagecount
-        if root_factory is None:
-            rstr = f"random_storage_{_storagecount}.hdf5"
-            _storagecount += 1
-        else:
+        if root_factory is not None:
             rstr = root_factory()
+        else:
+            # Get the engine's storage node default value, assuming it is random
+            rstr = get_engine_node(engine)(engine=engine).root
         s = Storage(engine, rstr)
         self.__class__._open_storages.append(s)
         return s
