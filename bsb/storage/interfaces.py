@@ -26,7 +26,7 @@ class Engine(Interface):
     Engines perform the transactions that come from the storage object, and read/write
     data in a specific format. They can perform collective or individual actions.
 
-    .. warn::
+    .. warning::
 
       Collective actions can only be performed from all nodes, or deadlocks occur. This
       means in particular that they may not be called from component code.
