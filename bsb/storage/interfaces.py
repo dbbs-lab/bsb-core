@@ -65,6 +65,10 @@ class Engine(Interface):
         pass
 
     @abc.abstractmethod
+    def require_placement_set(self, ct):
+        pass
+
+    @abc.abstractmethod
     def clear_placement(self):
         pass
 
