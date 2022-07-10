@@ -22,12 +22,20 @@ class Interface(abc.ABC):
 
 
 class Engine(Interface):
-    def __init__(self, root):
-        self._root = root
+    def __init__(self, root, comm):
+        self._root = comm.bcast(root, root=0)
+        self._comm = comm
 
     @property
     def root(self):
         return self._root
+
+    @property
+    def comm(self):
+        return self._comm
+
+    def set_comm(self, comm):
+        self._comm = comm
 
     @property
     def format(self):
