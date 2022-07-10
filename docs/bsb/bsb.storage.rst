@@ -4,11 +4,6 @@ bsb.storage package
 Subpackages
 -----------
 
-.. toctree::
-   :maxdepth: 4
-
-   bsb.storage.engines
-
 Submodules
 ----------
 
