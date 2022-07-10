@@ -49,7 +49,7 @@ def get_engines():
     return engines
 
 
-def create_engine(name, root):
+def create_engine(name, root, comm):
     global _engines
     if name not in _available_engines:
         raise UnknownStorageEngineError(f"The storage engine '{name}' was not found.")
@@ -58,7 +58,7 @@ def create_engine(name, root):
         # Initializer function found, call it to load the engine.
         _engines[name] = engine = engine()
     # Create an engine from the engine's Engine interface.
-    return engine["Engine"](root)
+    return engine["Engine"](root, comm)
 
 
 def init_engines():
@@ -162,12 +162,12 @@ class Storage:
         :type comm: mpi4py.MPI.Comm
         :param main: Rank of the MPI process that executes single-node tasks.
         """
-        self._engine = create_engine(engine, root)
+        self._comm = comm or MPI
+        self._engine = create_engine(engine, root, self._comm)
         self._features = [
             fname for fname, supported in view_support()[engine].items() if supported
         ]
         self._engine._format = engine
-        self._comm = comm or MPI
         self._main = main
 
         # Load the engine's interface onto the object, this allows the end user to create
