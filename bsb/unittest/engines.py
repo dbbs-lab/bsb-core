@@ -53,11 +53,9 @@ class TestStorage(RandomStorageFixture):
             len(ps.load_positions()),
             "Data not empty",
         )
-        with ps._engine._master_write() as fence:
-            fence.guard()
-            ps.append_data(Chunk((0, 0, 0), (100, 100, 100)), [0])
+        ps.append_data(Chunk((0, 0, 0), (100, 100, 100)), [0])
         self.assertEqual(
-            1,
+            MPI.Get_size(),
             len(ps.load_positions()),
             "Failure to setup `storage.renew()` test due to chunk reading error.",
         )
