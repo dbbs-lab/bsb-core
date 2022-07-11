@@ -7,8 +7,7 @@ from bsb.config import from_json
 from bsb.exceptions import *
 from bsb.storage import Storage, Chunk
 from bsb.storage import _util
-from test_setup import get_config
-from bsb.unittest import timeout
+from bsb.unittest import get_config, timeout
 from bsb.services import MPI
 import pathlib
 

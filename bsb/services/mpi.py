@@ -15,6 +15,10 @@ class MockCommunicator:
     def Barrier(self):
         pass
 
+    def Abort(self):
+        print("MPI Abort called on MockCommunicator", flush=True)
+        exit(1)
+
     def bcast(self, obj, root=0):
         return obj
 

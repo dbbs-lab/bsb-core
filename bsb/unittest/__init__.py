@@ -1,6 +1,8 @@
 from .parallel import *
 from ..storage import Storage, get_engine_node
 import numpy as _np
+import glob
+import os
 
 
 class RandomStorageFixture:
@@ -42,3 +44,43 @@ class NumpyTestCase:
         return self.assertTrue(
             _np.all(a, **kwargs), f"{msg}. Only {_np.sum(nans)} out of {all} True"
         )
+
+
+def get_data(*paths):
+    return os.path.abspath(
+        os.path.join(
+            os.path.dirname(__file__),
+            "data",
+            *paths,
+        )
+    )
+
+
+def get_config(file):
+    return os.path.abspath(
+        os.path.join(
+            os.path.dirname(__file__),
+            "data",
+            "configs",
+            file + (".json" if not file.endswith(".json") else ""),
+        )
+    )
+
+
+def get_morphology(file):
+    return os.path.abspath(
+        os.path.join(
+            os.path.dirname(__file__),
+            "data",
+            "morphologies",
+            file,
+        )
+    )
+
+
+def get_all_morphologies(suffix=""):
+    yield from glob.glob(
+        os.path.abspath(
+            os.path.join(os.path.dirname(__file__), "data", "morphologies", "*" + suffix)
+        )
+    )
