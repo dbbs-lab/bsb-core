@@ -46,6 +46,16 @@ class NumpyTestCase:
         )
 
 
+def get_data(*paths):
+    return os.path.abspath(
+        os.path.join(
+            os.path.dirname(__file__),
+            "data",
+            *paths,
+        )
+    )
+
+
 def get_config(file):
     return os.path.abspath(
         os.path.join(
