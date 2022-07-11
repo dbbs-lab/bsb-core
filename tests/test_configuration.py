@@ -7,8 +7,8 @@ from bsb import config
 from bsb.config import from_json, Configuration, _attrs
 from bsb.config import types
 from bsb.exceptions import *
-from test_setup import get_config
 from bsb.topology.region import RegionGroup
+from bsb.unittest import get_config
 
 
 def relative_to_tests_folder(path):
