@@ -13,11 +13,6 @@ from scipy.spatial.transform import Rotation
 
 class TestIO(NumpyTestCase, unittest.TestCase):
     def test_swc_2comp(self):
-        print("FUCK CI PATHS -------", flush=True)
-        print("FUCK CI PATHS", get_data(), flush=True)
-        print("FUCK CI PATHS", os.path.abspath(get_data()), flush=True)
-        print("FUCK CI PATHS", os.listdir(get_data()), flush=True)
-        print("FUCK CI PATHS", os.listdir(get_data("morphologies")), flush=True)
         m = Morphology.from_swc(get_morphology("2comp.swc"))
         self.assertEqual(2, len(m), "Expected 2 points on the morphology")
         self.assertEqual(1, len(m.roots), "Expected 1 root on the morphology")
