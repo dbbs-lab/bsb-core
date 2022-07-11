@@ -34,7 +34,14 @@ setuptools.setup(
     author_email="robingilbert.deschepper@unipv.it",
     description="A package for modelling morphologically detailed neuronal microcircuits.",
     include_package_data=True,
-    package_data={"bsb": ["config/templates/*.json"]},
+    package_data={
+        "bsb": [
+            "config/templates/*.json",
+            "unittest/data/configs/*",
+            "unittest/data/morphologies/*",
+            "unittest/data/parser_tests/*",
+        ]
+    },
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/dbbs-lab/bsb",
