@@ -48,7 +48,7 @@ class MockedWindowController:
             rank = self._master
         fence = Fence(self._rank == rank)
         if self._rank == rank:
-            return _NoopLock()
+            return _NoopLock(handle=handle, fence=fence)
         elif handle:
             return _NoHandle()
         else:
