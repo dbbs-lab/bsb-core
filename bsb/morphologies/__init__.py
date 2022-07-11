@@ -726,10 +726,6 @@ class Branch:
 
     def __eq__(self, other):
         if isinstance(other, Branch):
-            print("eq recap")
-            print("shape", self.points.shape == other.points.shape)
-            print("points", np.allclose(self.points, other.points))
-            print("labels", self.labels == other.labels)
             return (
                 self.points.shape == other.points.shape
                 and np.allclose(self.points, other.points)
@@ -868,12 +864,11 @@ class Branch:
         :param branch: Child branch
         :type branch: :class:`Branch <.morphologies.Branch>`
         """
+        if branch._parent is not self:
+            raise ValueError(f"Can't detach {branch} from {self}, not a child branch.")
         self._on_mutate()
-        try:
-            self._children.remove(branch)
-            branch._parent = None
-        except ValueError:
-            raise ValueError("Branch could not be detached, it is not a child branch.")
+        self._children = [b for b in self._children if b is not branch]
+        branch._parent = None
 
     def walk(self):
         """
@@ -1034,7 +1029,6 @@ class _Labels(np.ndarray):
             self.labels = getattr(obj, "labels", {0: _lset()})
 
     def __eq__(self, other):
-        print(self.labels, other.labels, *_Labels._merged_translate((self, other)))
         return np.allclose(*_Labels._merged_translate((self, other)))
 
     def copy(self, *args, **kwargs):
@@ -1150,7 +1144,7 @@ class _Labels(np.ndarray):
             else:
                 # Lookup each labelset, if found, map to new value, otherwise, map to
                 # original value.
-                arrmap = {k: lset_map.get(lset, og) for og, lset in arr.labels.items()}
+                arrmap = {og: lset_map.get(lset, og) for og, lset in arr.labels.items()}
                 block = np.vectorize(arrmap.get)(arr)
             yield block
 
