@@ -6,21 +6,18 @@ from bsb.core import Scaffold, from_hdf5
 from bsb.config import from_json
 from bsb.exceptions import *
 from bsb.services import MPI as mpi
-import unittest, numpy as np, h5py, importlib, nrnsub, test_setup
+from bsb.unittest import get_config
+import unittest, numpy as np, h5py, importlib
 
 
-def relative_to_tests_folder(path):
-    return os.path.abspath(os.path.join(os.path.dirname(__file__), path))
-
-
-config = relative_to_tests_folder("../bsb/configurations/mouse_cerebellum_cortex.json")
-miniature_config = relative_to_tests_folder("configs/test_nrn_miniature.json")
-mf_grc_config = relative_to_tests_folder("configs/test_nrn_mf_granule.json")
-mf_gol_config = relative_to_tests_folder("configs/test_nrn_mf_golgi.json")
-aa_goc_config = relative_to_tests_folder("configs/test_nrn_aa_goc.json")
-aa_pc_config = relative_to_tests_folder("configs/test_nrn_aa_pc.json")
-grc_sc_config = relative_to_tests_folder("configs/test_nrn_grc_sc.json")
-sc_pc_config = relative_to_tests_folder("configs/test_nrn_sc_pc.json")
+config = get_config("legacy_mouse_cerebellum_cortex.json")
+miniature_config = get_config("test_nrn_miniature.json")
+mf_grc_config = get_config("test_nrn_mf_granule.json")
+mf_gol_config = get_config("test_nrn_mf_golgi.json")
+aa_goc_config = get_config("test_nrn_aa_goc.json")
+aa_pc_config = get_config("test_nrn_aa_pc.json")
+grc_sc_config = get_config("test_nrn_grc_sc.json")
+sc_pc_config = get_config("test_nrn_sc_pc.json")
 
 
 def neuron_installed():

@@ -7,12 +7,8 @@ from bsb.voxels import VoxelSet, VoxelData
 from bsb.storage import Chunk
 from bsb.morphologies import Branch, Morphology
 from bsb.exceptions import *
-from itertools import count as _ico, chain as _ic
-
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
-import test_setup
 import bsb.unittest
+from itertools import count as _ico, chain as _ic
 
 
 class TestVoxelSet(bsb.unittest.NumpyTestCase, unittest.TestCase):

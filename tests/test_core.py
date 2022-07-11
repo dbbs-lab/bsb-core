@@ -7,7 +7,7 @@ from bsb.storage.interfaces import PlacementSet
 from bsb.config import Configuration
 from bsb import core
 from bsb.exceptions import *
-from test_setup import get_config
+from bsb.unittest import get_config
 
 
 class TestCore(unittest.TestCase):

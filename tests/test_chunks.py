@@ -6,8 +6,7 @@ from bsb.core import Scaffold
 from bsb.config import from_json
 from bsb.storage import Chunk
 from bsb.exceptions import *
-from test_setup import get_config
-from bsb.unittest import skip_parallel, timeout
+from bsb.unittest import get_config, skip_parallel, timeout
 
 
 class TestChunks(unittest.TestCase):
