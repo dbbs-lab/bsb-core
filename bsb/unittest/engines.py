@@ -1,7 +1,15 @@
 import unittest
 from ..config import Configuration
+from ..morphologies import Morphology
 from ..storage import Storage, Chunk
-from . import RandomStorageFixture, MPI, timeout
+from . import (
+    NumpyTestCase,
+    RandomStorageFixture,
+    MPI,
+    timeout,
+    single_process_test,
+    get_all_morphologies,
+)
 import time
 
 
@@ -132,3 +140,57 @@ class TestPlacementSet(RandomStorageFixture):
             ps = storage._PlacementSet(storage._engine, cfg.cell_types.test_cell)
         self.assertEqual("test_cell", ps.tag, "tag should be cell type name")
         self.assertEqual(0, len(ps), "new ps should be empty")
+
+
+class TestMorphologyRepository(NumpyTestCase, RandomStorageFixture):
+    def __init_subclass__(cls, root_factory=None, *, engine_name, **kwargs):
+        super().__init_subclass__(**kwargs)
+        cls._engine = engine_name
+        cls._rootf = root_factory
+
+    def setUp(self):
+        self.mr = self.random_storage().morphologies
+
+    @single_process_test
+    def test_swc_saveload_eq(self):
+        for path in get_all_morphologies(".swc"):
+            with self.subTest(morpho=path.split("/")[-1]):
+                m = Morphology.from_swc(path)
+                self.mr.save("X", m, overwrite=True)
+                lm = self.mr.load("X")
+                self.assertEqual(m, lm, "equality violated")
+            break
+
+    @single_process_test
+    def test_swc_saveload(self):
+        for path in get_all_morphologies(".swc"):
+            with self.subTest(morpho=path.split("/")[-1]):
+                m = Morphology.from_swc(path)
+                self.mr.save("X", m, overwrite=True)
+                lm = self.mr.load("X")
+                self.assertEqual(
+                    len(m.branches), len(lm.branches), "num branches changed"
+                )
+                self.assertEqual(
+                    m.points.shape,
+                    lm.points.shape,
+                    f"points shape changed: from {m.points.shape} to {lm.points.shape}",
+                )
+                self.assertClose(m.points, lm.points, f"points changed")
+                for i, (b1, b2) in enumerate(zip(m.branches, lm.branches)):
+                    self.assertEqual(
+                        b1.points.shape,
+                        b2.points.shape,
+                        f"branch {i} point shape changed",
+                    )
+                    self.assertClose(b1.points, b2.points, f"branch {i} points changed")
+
+    @single_process_test
+    def test_swc_ldc_mdc(self):
+        for path in get_all_morphologies(".swc"):
+            with self.subTest(morpho=path.split("/")[-1]):
+                m = Morphology.from_swc(path)
+                self.mr.save("pc", m, overwrite=True)
+                m = self.mr.load("pc")
+                self.assertIn("mdc", m.meta, "missing mdc in loaded morphology")
+                self.assertIn("ldc", m.meta, "missing ldc in loaded morphology")
