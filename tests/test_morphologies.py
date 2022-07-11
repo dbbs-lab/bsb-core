@@ -2,8 +2,6 @@ import unittest, os, sys, numpy as np, h5py
 import json
 import itertools
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
 from bsb.services import MPI
 from bsb.morphologies import Morphology, Branch, _Labels, MorphologySet
 from bsb.storage import Storage
