@@ -43,14 +43,6 @@ bsb.exceptions module
    :undoc-members:
    :show-inheritance:
 
-bsb.helpers module
-------------------
-
-.. automodule:: bsb.helpers
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 bsb.option module
 -----------------
 

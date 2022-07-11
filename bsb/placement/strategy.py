@@ -2,7 +2,7 @@ from .. import config
 from ..exceptions import *
 from ..reporting import report, warn
 from ..config import refs, types
-from ..helpers import SortableByAfter
+from .._util import SortableByAfter
 from ..morphologies import MorphologySet
 from ..storage import Chunk
 from .indicator import PlacementIndications, PlacementIndicator
