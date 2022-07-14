@@ -542,6 +542,15 @@ class Morphology(SubTree):
             for branch in self.branches:
                 branch._on_mutate = self._mutnotif
 
+    def __eq__(self, other):
+        return len(self.branches) == len(other.branches) and all(
+            b1.is_terminal == b2.is_terminal and (not b1.is_terminal or b1 == b2)
+            for b1, b2 in zip(self.branches, other.branches)
+        )
+
+    def __hash__(self):
+        return id(self)
+
     def _check_shared(self):
         if self._shared is None:
             return False
@@ -589,6 +598,14 @@ class Morphology(SubTree):
     @property
     def meta(self):
         return self._meta
+
+    @property
+    def labelsets(self):
+        """
+        Return the sets of labels associated to each numerical label.
+        """
+        self.optimize()
+        return self._shared._labels.labels
 
     def copy(self):
         self.optimize(force=False)
@@ -714,6 +731,19 @@ class Branch:
     def __bool__(self):
         # Without this, empty branches are False, and messes with parent checking.
         return True
+
+    def __eq__(self, other):
+        if isinstance(other, Branch):
+            return (
+                self.points.shape == other.points.shape
+                and np.allclose(self.points, other.points)
+                and self.labels == other.labels
+            )
+        else:
+            return np.allclose(self.points, other)
+
+    def __hash__(self):
+        return id(self)
 
     @property
     def parent(self):
@@ -949,12 +979,11 @@ class Branch:
         :param branch: Child branch
         :type branch: :class:`Branch <.morphologies.Branch>`
         """
+        if branch._parent is not self:
+            raise ValueError(f"Can't detach {branch} from {self}, not a child branch.")
         self._on_mutate()
-        try:
-            self._children.remove(branch)
-            branch._parent = None
-        except ValueError:
-            raise ValueError("Branch could not be detached, it is not a child branch.")
+        self._children = [b for b in self._children if b is not branch]
+        branch._parent = None
 
     def walk(self):
         """
@@ -1114,6 +1143,9 @@ class _Labels(np.ndarray):
         if obj is not None:
             self.labels = getattr(obj, "labels", {0: _lset()})
 
+    def __eq__(self, other):
+        return np.allclose(*_Labels._merged_translate((self, other)))
+
     def copy(self, *args, **kwargs):
         cp = super().copy(*args, **kwargs)
         cp.labels = {k: v.copy() for k, v in cp.labels.items()}
@@ -1185,45 +1217,63 @@ class _Labels(np.ndarray):
         """
         return cls(len, buffer=np.ones(len), labels={0: _lset(), 1: _lset(seq)})
 
-    @classmethod
-    def concatenate(cls, *label_arrs):
-        if not label_arrs:
-            return _Labels.none(0)
-        total = sum(len(l) for l in label_arrs)
-        collected = {}
-        concat = cls(total, labels=collected)
+    @staticmethod
+    def _get_merged_lookups(arrs):
+        if not arrs:
+            return {0: _lset()}
+        merged = {}
         new_labelsets = set()
-        to_map = {}
-        for label_arr in label_arrs:
-            for k, l in label_arr.labels.items():
-                if k not in collected:
+        to_map_arrs = {}
+        for arr in arrs:
+            for k, l in arr.labels.items():
+                if k not in merged:
                     # The label spot is available, so take it
-                    collected[k] = l
-                elif collected[k] != l:
+                    merged[k] = l
+                elif merged[k] != l:
                     # The labelset doesn't match, so this array will have to be mapped,
                     # and a new spot found for the conflicting labelset.
                     new_labelsets.add(l)
                     # np ndarray unhashable, for good reason, so use `id()` for quick hash
-                    to_map[id(label_arr)] = label_arr
+                    to_map_arrs[id(arr)] = arr
                 # else: this labelset matches with the superset's nothing to do
 
         # Collect new spots for new labelsets
-        counter = (c for c in itertools.count() if c not in collected)
-        lookup = {}
+        counter = (c for c in itertools.count() if c not in merged)
+        lset_map = {}
         for labelset in new_labelsets:
             key = next(counter)
-            collected[key] = labelset
-            lookup[labelset] = key
+            merged[key] = labelset
+            lset_map[labelset] = key
 
-        ptr = 0
-        for label_arr in label_arrs:
-            nptr = ptr + len(label_arr)
-            if id(label_arr) in to_map:
-                block = np.vectorize(
-                    {k: lookup.get(v, k) for k, v in label_arr.labels.items()}.get
-                )(label_arr)
+        return merged, to_map_arrs, lset_map
+
+    def _merged_translate(arrs, lookups=None):
+        if lookups is None:
+            merged, to_map_arrs, lset_map = _Labels._get_merged_lookups(arrs)
+        else:
+            merged, to_map_arrs, lset_map = lookups
+        for arr in arrs:
+            if id(arr) not in to_map_arrs:
+                # None of the label array's labelsets need to be mapped, good as is.
+                block = arr
             else:
-                block = label_arr
+                # Lookup each labelset, if found, map to new value, otherwise, map to
+                # original value.
+                arrmap = {og: lset_map.get(lset, og) for og, lset in arr.labels.items()}
+                block = np.vectorize(arrmap.get)(arr)
+            yield block
+
+    @classmethod
+    def concatenate(cls, *label_arrs):
+        if not label_arrs:
+            return _Labels.none(0)
+        lookups = _Labels._get_merged_lookups(label_arrs)
+        total = sum(len(l) for l in label_arrs)
+        concat = cls(total, labels=lookups[0])
+        ptr = 0
+        for block in _Labels._merged_translate(label_arrs, lookups):
+            nptr = ptr + len(block)
+            # Concatenate the translated block
             concat[ptr:nptr] = block
             ptr = nptr
         return concat

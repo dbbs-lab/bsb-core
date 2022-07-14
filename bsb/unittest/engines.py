@@ -1,7 +1,15 @@
 import unittest
 from ..config import Configuration
+from ..morphologies import Morphology
 from ..storage import Storage, Chunk
-from . import RandomStorageFixture, MPI, timeout
+from . import (
+    NumpyTestCase,
+    RandomStorageFixture,
+    MPI,
+    timeout,
+    single_process_test,
+    get_all_morphologies,
+)
 import time
 
 
@@ -32,7 +40,6 @@ class TestStorage(RandomStorageFixture):
         s = self.random_storage()
         s.create()
         s.init(_ScaffoldDummy(cfg))
-        MPI.Barrier()
         # Test that `init` created the placement sets for each cell type
         for cell_type in cfg.cell_types.values():
             with self.subTest(type=cell_type.name):
@@ -47,7 +54,6 @@ class TestStorage(RandomStorageFixture):
         # create or remove data by relying on `renew` or `init` in its constructor.
         s = self.random_storage()
         s.create()
-        time.sleep(0.1)
         self.assertTrue(s.exists())
         ps = s._PlacementSet.require(s._engine, cfg.cell_types.test_cell)
         self.assertEqual(
@@ -55,18 +61,15 @@ class TestStorage(RandomStorageFixture):
             len(ps.load_positions()),
             "Data not empty",
         )
-        with ps._engine._master_write() as fence:
-            fence.guard()
-            ps.append_data(Chunk((0, 0, 0), (100, 100, 100)), [0])
+        ps.append_data(Chunk((0, 0, 0), (100, 100, 100)), [0])
         self.assertEqual(
-            1,
+            MPI.Get_size(),
             len(ps.load_positions()),
             "Failure to setup `storage.renew()` test due to chunk reading error.",
         )
         # Spoof a scaffold here, `renew` only requires an object with a
         # `.get_cell_types()` method for its `storage.init` call.
         s.renew(_ScaffoldDummy(cfg))
-        time.sleep(0.1)
         ps = s._PlacementSet.require(s._engine, cfg.cell_types.test_cell)
         self.assertEqual(
             0,
@@ -77,29 +80,20 @@ class TestStorage(RandomStorageFixture):
     @timeout(10)
     def test_move(self):
         s = self.random_storage()
-        old_s = Storage(self._engine, s.root)
-        s.create()
-        self.assertTrue(s.exists())
-        if self._rootf:
-            new_root = self._rootf()
-        else:
-            new_root = f"2x2{s.root}"
-        s.move(new_root)
-        self.assertFalse(old_s.exists())
-        self.assertTrue(s.exists())
-        s.move(old_s.root)
-        self.assertTrue(s.exists())
-        self.assertTrue(old_s.exists())
+        for _ in range(100):
+            os = Storage(self._engine, s.root)
+            s.move(s.root[:-5] + "e" + s.root[-5:])
+            self.assertTrue(s.exists(), f"{MPI.Get_rank()} can't find moved storage yet.")
+            self.assertFalse(os.exists(), f"{MPI.Get_rank()} still finds old storage.")
 
     @timeout(10)
     def test_remove_create(self):
-        s = self.random_storage()
-        s.remove()
-        time.sleep(0.1)
-        self.assertFalse(s.exists())
-        s.create()
-        time.sleep(0.1)
-        self.assertTrue(s.exists())
+        for _ in range(100):
+            s = self.random_storage()
+            s.remove()
+            self.assertFalse(s.exists(), f"{MPI.Get_rank()} still finds removed storage.")
+            s.create()
+            self.assertTrue(s.exists(), f"{MPI.Get_rank()} can't find new storage yet.")
 
     def test_eq(self):
         s = self.random_storage()
@@ -144,3 +138,57 @@ class TestPlacementSet(RandomStorageFixture):
             ps = storage._PlacementSet(storage._engine, cfg.cell_types.test_cell)
         self.assertEqual("test_cell", ps.tag, "tag should be cell type name")
         self.assertEqual(0, len(ps), "new ps should be empty")
+
+
+class TestMorphologyRepository(NumpyTestCase, RandomStorageFixture):
+    def __init_subclass__(cls, root_factory=None, *, engine_name, **kwargs):
+        super().__init_subclass__(**kwargs)
+        cls._engine = engine_name
+        cls._rootf = root_factory
+
+    def setUp(self):
+        self.mr = self.random_storage().morphologies
+
+    @single_process_test
+    def test_swc_saveload_eq(self):
+        for path in get_all_morphologies(".swc"):
+            with self.subTest(morpho=path.split("/")[-1]):
+                m = Morphology.from_swc(path)
+                self.mr.save("X", m, overwrite=True)
+                lm = self.mr.load("X")
+                self.assertEqual(m, lm, "equality violated")
+            break
+
+    @single_process_test
+    def test_swc_saveload(self):
+        for path in get_all_morphologies(".swc"):
+            with self.subTest(morpho=path.split("/")[-1]):
+                m = Morphology.from_swc(path)
+                self.mr.save("X", m, overwrite=True)
+                lm = self.mr.load("X")
+                self.assertEqual(
+                    len(m.branches), len(lm.branches), "num branches changed"
+                )
+                self.assertEqual(
+                    m.points.shape,
+                    lm.points.shape,
+                    f"points shape changed: from {m.points.shape} to {lm.points.shape}",
+                )
+                self.assertClose(m.points, lm.points, f"points changed")
+                for i, (b1, b2) in enumerate(zip(m.branches, lm.branches)):
+                    self.assertEqual(
+                        b1.points.shape,
+                        b2.points.shape,
+                        f"branch {i} point shape changed",
+                    )
+                    self.assertClose(b1.points, b2.points, f"branch {i} points changed")
+
+    @single_process_test
+    def test_swc_ldc_mdc(self):
+        for path in get_all_morphologies(".swc"):
+            with self.subTest(morpho=path.split("/")[-1]):
+                m = Morphology.from_swc(path)
+                self.mr.save("pc", m, overwrite=True)
+                m = self.mr.load("pc")
+                self.assertIn("mdc", m.meta, "missing mdc in loaded morphology")
+                self.assertIn("ldc", m.meta, "missing ldc in loaded morphology")

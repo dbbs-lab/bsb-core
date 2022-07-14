@@ -6,7 +6,7 @@ from . import config
 from .config import types
 from .placement import PlacementStrategy
 from .placement.indicator import PlacementIndications
-from .helpers import SortableByAfter
+from ._util import SortableByAfter
 from .exceptions import *
 import abc
 

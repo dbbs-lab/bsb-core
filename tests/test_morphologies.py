@@ -1,16 +1,13 @@
 import unittest, os, sys, numpy as np, h5py
 import json
 import itertools
-import mpi4py
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
+from bsb.services import MPI
 from bsb.morphologies import Morphology, Branch, _Labels, MorphologySet
 from bsb.storage import Storage
 from bsb.storage.interfaces import StoredMorphology
 from bsb.exceptions import *
-from test_setup import get_morphology
-from bsb.unittest import NumpyTestCase
+from bsb.unittest import get_data, get_morphology, NumpyTestCase
 from scipy.spatial.transform import Rotation
 
 
@@ -64,158 +61,6 @@ class TestIO(NumpyTestCase, unittest.TestCase):
         for b in m.branches:
             self.assertTrue(l is b._labels.labels, "Labels should be shared")
             l = b._labels.labels
-
-
-class TestRepositories(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
-        if mpi4py.MPI.COMM_WORLD.Get_rank() == 0:
-            with h5py.File("test.h5", "w") as f:
-                g = f.create_group("morphologies")
-                g = g.create_group("M")
-                ds = g.create_dataset("data", data=np.empty((0, 5)))
-                ds.attrs["labels"] = json.dumps({0: []})
-                ds.attrs["properties"] = []
-                g.create_dataset("graph", data=[])
-            with h5py.File("test2.h5", "w") as f:
-                g = f.create_group("morphologies")
-                g = g.create_group("M")
-                ds = g.create_dataset("data", data=np.empty((0, 5)))
-                ds.attrs["labels"] = json.dumps({0: []})
-                ds.attrs["properties"] = []
-                g.create_dataset("graph", data=[[0, -1], [0, -1], [0, -1]])
-            with h5py.File("test3.h5", "w") as f:
-                g = f.create_group("morphologies")
-                g = g.create_group("M")
-                ds = g.create_dataset("data", data=np.ones((1, 5)))
-                ds.attrs["labels"] = json.dumps({1: []})
-                ds.attrs["properties"] = []
-                g.create_dataset("graph", data=[[0, -1]])
-            with h5py.File("test4.h5", "w") as f:
-                g = f.create_group("morphologies")
-                g = g.create_group("M")
-                data = np.ones((5, 5))
-                data[:, 0] = np.arange(5) * 2
-                data[:, 1] = np.arange(5) * 2
-                data[:, 2] = np.arange(5) * 2
-                data[:, 3] = np.arange(5) * 2
-                ds = g.create_dataset("data", data=data)
-                ds.attrs["labels"] = json.dumps({1: []})
-                ds.attrs["properties"] = []
-                g.create_dataset("graph", data=[[i + 1, -1] for i in range(5)])
-            with h5py.File("test5.h5", "w") as f:
-                g = f.create_group("morphologies")
-                g = g.create_group("M")
-                data = np.ones((5, 5))
-                data[:, 0] = np.arange(5) * 2
-                data[:, 1] = np.arange(5) * 2
-                data[:, 2] = np.arange(5) * 2
-                data[:, 3] = np.arange(5) * 2
-                ds = g.create_dataset("data", data=data)
-                ds.attrs["labels"] = json.dumps({1: []})
-                ds.attrs["properties"] = []
-                g.create_dataset("graph", data=[[i + 1, -1] for i in range(4)] + [[5, 0]])
-        mpi4py.MPI.COMM_WORLD.Barrier()
-
-    @classmethod
-    def tearDownClass(cls):
-        super().tearDownClass()
-        if mpi4py.MPI.COMM_WORLD.Get_rank() == 0:
-            os.remove("test.h5")
-            os.remove("test2.h5")
-            os.remove("test4.h5")
-            os.remove("test5.h5")
-        mpi4py.MPI.COMM_WORLD.Barrier()
-
-    def test_empty_repository(self):
-        pass
-
-    def test_empty(self):
-        mr = Storage("hdf5", "test.h5").morphologies
-        m = mr.load("M")
-        msg = "Empty morfo should not have root branches"
-        self.assertEqual(0, len(m.roots), msg)
-        msg = "Empty morfo should not have branches"
-        self.assertEqual(0, len(m.branches), msg)
-        msg = "Empty morfo should not have points"
-        self.assertEqual(0, len(m.flatten()), msg)
-        self.assertEqual(0, len(m), msg)
-        self.assertTrue(m._check_shared(), "Empty morpho not shared")
-
-    def test_empty_branches(self):
-        mr = Storage("hdf5", "test2.h5").morphologies
-        m = mr.load("M")
-        msg = "Empty unattached branches should still be root."
-        self.assertEqual(3, len(m.roots), msg)
-        self.assertEqual(3, len(m.branches), "Missing branch")
-        msg = "Empty morfo should not have points, even when it has empty branches"
-        self.assertEqual(0, len(m), msg)
-        self.assertEqual(0, len(m.flatten()), msg)
-        self.assertTrue(m._check_shared(), "Load should produce shared")
-
-    def test_single_branch_single_element(self):
-        mr = Storage("hdf5", "test3.h5").morphologies
-        m = mr.load("M")
-        msg = "Single point unattached branches should still be root."
-        self.assertEqual(1, len(m.roots), msg)
-        self.assertEqual(1, len(m.branches), "Missing branch")
-        msg = "Flatten of single point should produce 1 x 3 matrix."
-        self.assertEqual((1, 3), m.flatten().shape, msg)
-        msg = "should produce 1 element vector."
-        self.assertEqual((1,), m.flatten_radii().shape, msg)
-        self.assertEqual((1,), m.flatten_labels().shape, msg)
-        msg = "Flatten without properties should produce n x 0 matrix."
-        self.assertEqual({}, m.flatten_properties(), msg)
-
-    def test_multi_branch_single_element(self):
-        mr = Storage("hdf5", "test4.h5").morphologies
-        m = mr.load("M")
-        msg = "Single point unattached branches should still be root."
-        self.assertEqual(5, len(m.roots), msg)
-        self.assertEqual(5, len(m.branches), "Missing branch")
-        msg = (
-            "Flatten of single point branches should produce n-branch x n-vectors matrix."
-        )
-        matrix = m.flatten()
-        self.assertEqual((5, 3), matrix.shape, msg)
-        msg = "Flatten produced an incorrect matrix"
-        self.assertTrue(
-            np.array_equal(np.array([[i * 2] * 3 for i in range(5)]), matrix), msg
-        )
-
-    def test_multi_branch_single_element_depth_first(self):
-        mr = Storage("hdf5", "test5.h5").morphologies
-        m = mr.load("M")
-        msg = "1 out of 5 branches was attached, 4 roots expected."
-        self.assertEqual(4, len(m.roots), msg)
-        self.assertEqual(5, len(m.branches), "Missing branch")
-
-    def test_chain_empty_branches(self):
-        pass
-
-    def test_tree_empty_branches(self):
-        pass
-
-    def test_chain_branches(self):
-        pass
-
-    def test_chain_with_empty_branches(self):
-        pass
-
-    def test_tree_branches(self):
-        pass
-
-    def test_tree_with_empty_branches(self):
-        pass
-
-    def test_meta(self):
-        m = Morphology.from_swc(get_morphology("PurkinjeCell.swc"))
-        mr = Storage("hdf5", "test4.h5").morphologies
-        mr.save("pc", m, overwrite=True)
-        m = mr.load("pc")
-        self.assertIn("mdc", m.meta, "missing mdc in loaded morphology")
-        self.assertIn("ldc", m.meta, "missing ldc in loaded morphology")
 
 
 class TestMorphologies(NumpyTestCase, unittest.TestCase):

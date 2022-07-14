@@ -45,6 +45,7 @@ _t(
             DistributorError=_e("property", "strategy"),
             RedoError=_e(),
         ),
+        DependencyError=_e(),
         GatewayError=_e(
             AllenApiError=_e(),
         ),

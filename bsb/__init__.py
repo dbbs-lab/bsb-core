@@ -1,4 +1,4 @@
-__version__ = "4.0.0a23"
+__version__ = "4.0.0a26"
 
 import functools
 
@@ -17,5 +17,4 @@ except AttributeError:
     functools.singledispatchmethod.register = _register
 
 
-from ._mpi import *
 from .reporting import report, warn

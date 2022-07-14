@@ -4,6 +4,7 @@ from ..simulation import (
     CellModel,
     NeuronTargetting,
 )
+from ..services import MPI
 from ..reporting import report, warn
 from ..exceptions import *
 from .. import config
@@ -28,16 +29,8 @@ except:
         return property(cache(f))
 
 
-try:
-    import mpi4py
-    import mpi4py.MPI
-
-    _MPI_processes = mpi4py.MPI.COMM_WORLD.Get_size()
-    _MPI_rank = mpi4py.MPI.COMM_WORLD.Get_rank()
-except ImportError as e:
-    warn(f"Could not import `mpi4py.MPI`: {e}")
-    _MPI_processes = 1
-    _MPI_rank = 0
+_MPI_processes = MPI.Get_size()
+_MPI_rank = MPI.Get_rank()
 
 _LOCK_ATTRIBUTE = "_dbbs_scaffold_lock"
 _HOT_MODULE_ATTRIBUTE = "_dbbs_scaffold_hot_modules"
@@ -356,15 +349,6 @@ class NestSimulation(Simulation):
         self.is_prepared = True
         return self.nest
 
-    def get_rank(self):
-        return _MPI_rank
-
-    def get_size(self):
-        return _MPI_processes
-
-    def broadcast(self, data, root=0):
-        return mpi4py.MPI.COMM_WORLD.bcast(data, root)
-
     def in_full_control(self):
         if not self.has_lock or not self.read_lock():
             raise AdapterError(
@@ -438,9 +422,6 @@ class NestSimulation(Simulation):
         except AttributeError:
             pass
 
-    def get_rank(self):
-        return mpi4py.MPI.COMM_WORLD.Get_rank()
-
     def reset_kernel(self):
         self.nest.set_verbosity(self.verbosity)
         self.nest.ResetKernel()
@@ -472,11 +453,11 @@ class NestSimulation(Simulation):
         if not hasattr(self, "_master_seed"):
             if fixed_seed is None:
                 # Use time as random seed
-                if mpi4py.MPI.COMM_WORLD.rank == 0:
+                if not MPI.Get_rank():
                     fixed_seed = int(time.time())
                 else:
                     fixed_seed = None
-                self._master_seed = mpi4py.MPI.COMM_WORLD.bcast(fixed_seed, root=0)
+                self._master_seed = MPI.bcast(fixed_seed, root=0)
             else:
                 self._master_seed = fixed_seed
         return self._master_seed
@@ -548,13 +529,7 @@ class NestSimulation(Simulation):
     def collect_output(self, simulator):
         report("Collecting output...", level=2)
         tick = time.time()
-        try:
-            import mpi4py
-
-            rank = mpi4py.MPI.COMM_WORLD.rank
-        except Exception as e:
-            print(str(e))
-            rank = 0
+        rank = MPI.Get_rank()
 
         timestamp = str(time.time()).split(".")[0] + str(_randint())
         result_path = "results_" + self.name + "_" + timestamp + ".hdf5"
@@ -586,7 +561,7 @@ class NestSimulation(Simulation):
                                     path, "{} {}".format(data.dtype, data.shape)
                                 )
                             )
-        mpi4py.MPI.COMM_WORLD.bcast(result_path, root=0)
+        MPI.bcast(result_path, root=0)
         report(
             f"Output collected in '{result_path}'. "
             + f"{time.time() - tick:.2f}s elapsed.",
@@ -1095,11 +1070,11 @@ class SpikeDetectorProtocol(DeviceProtocol):
                 )
             )
         device_tag = str(_randint())
-        device_tag = mpi4py.MPI.COMM_WORLD.bcast(device_tag, root=0)
+        device_tag = MPI.bcast(device_tag, root=0)
         if not hasattr(self.device, "_orig_label"):
             self.device._orig_label = self.device.parameters["label"]
         self.device.parameters["label"] = self.device._orig_label + device_tag
-        if mpi4py.MPI.COMM_WORLD.rank == 0:
+        if not MPI.Get_rank():
             self.device.simulation.result.add(SpikeRecorder(self.device))
 
 

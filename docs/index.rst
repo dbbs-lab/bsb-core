@@ -117,6 +117,7 @@ and explicit code understandable and reusable by your peers.
 
   dev/installation
   dev/documentation
+  dev/services
   dev/plugins
   dev/hooks
   dev/reference
