@@ -479,6 +479,17 @@ class VoxelSet:
     def crop_chunk(self, chunk):
         return self.crop(chunk.ldc, chunk.mdc)
 
+    @classmethod
+    def fill(cls, positions, grid_size):
+        return cls(positions, 0, irregular=True).snap_to_grid(grid_size, unique=True)
+
+    def inside(self, positions):
+        mask = np.zeros(len(positions), dtype=bool)
+        ldc, mdc = self._box_bounds()
+        for voxel in zip(ldc, mdc):
+            mask |= np.all((positions > ldc) & (positions < mdc), axis=1)
+        return mask
+
     def unique(self):
         raise NotImplementedError("and another one")
 
