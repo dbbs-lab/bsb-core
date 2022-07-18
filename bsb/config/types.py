@@ -637,3 +637,22 @@ def mut_excl(*mutuals, required=True, max=1):
         return False
 
     return requirement
+
+
+class ndarray(TypeHandler):
+    """
+    Type validator numpy arrays.
+
+    :returns: Type validator function
+    :rtype: Callable
+    """
+
+    def __call__(self, value):
+        return np.array(value, copy=False)
+
+    @property
+    def __name__(self):
+        return "ndarray"
+
+    def __inv__(self, value):
+        return value.tolist()
