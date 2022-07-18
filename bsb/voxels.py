@@ -501,7 +501,7 @@ class VoxelSet:
     def _boxes_cache(self):
         return self._boxes()
 
-    def _boxes(self):
+    def _box_bounds(self):
         base = self.as_spatial_coords(copy=False)
         sizes = self.get_size(copy=False)
         shifted = base + sizes
@@ -512,7 +512,10 @@ class VoxelSet:
         else:
             ldc = base
             mdc = shifted
-        return np.column_stack((ldc, mdc))
+        return ldc, mdc
+
+    def _boxes(self):
+        return np.column_stack(self._box_bounds())
 
     @classmethod
     def from_morphology(cls, morphology, estimate_n, with_data=True):
