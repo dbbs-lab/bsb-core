@@ -318,6 +318,9 @@ class Scaffold:
         if not skip_after_connectivity:
             self.run_after_connectivity()
         report("Runtime: {}".format(time.time() - t), 2)
+        # After compilation we should flag the storage as having existed before so that
+        # the `clear`, `redo` and `append` flags take effect on a second `compile` pass.
+        self.storage._preexisted = True
 
     def run_simulation(self, simulation_name, quit=False):
         """
