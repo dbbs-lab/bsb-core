@@ -226,7 +226,6 @@ class Storage:
         """
         Move the storage to a new root.
         """
-        print(self.root, new_root)
         self._engine.copy(new_root)
 
     def move(self, new_root):
