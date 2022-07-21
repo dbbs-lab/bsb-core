@@ -244,7 +244,8 @@ class Scaffold:
         """
         Run after placement hooks.
         """
-        warn("After placement disabled")
+        if self.after_placement:
+            warn("After placement disabled")
         # pool = create_job_pool(self)
         # for hook in self.configuration.after_placement.values():
         #     pool.queue(hook.after_placement)
@@ -254,7 +255,8 @@ class Scaffold:
         """
         Run after placement hooks.
         """
-        warn("After connectivity disabled")
+        if self.after_connectivity:
+            warn("After connectivity disabled")
         # for hook in self.configuration.after_connectivity.values():
         #     hook.after_connectivity()
 
