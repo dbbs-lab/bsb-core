@@ -250,7 +250,7 @@ class PlacementSet(Interface):
         pass
 
     @abc.abstractstaticmethod
-    def exists(self, engine, cell_type):
+    def exists(engine, cell_type):
         """
         Check existence of a placement set.
 
