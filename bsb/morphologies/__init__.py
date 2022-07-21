@@ -49,6 +49,9 @@ class MorphologySet:
             raise IndexError(f"Index {check_max} out of range for {len(loaders)}.")
         self._cached = {}
 
+    def __contains__(self, value):
+        return value in [l.name for l in self._loaders]
+
     def __len__(self):
         return len(self._m_indices)
 
