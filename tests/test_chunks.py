@@ -52,3 +52,13 @@ class TestChunks(unittest.TestCase):
         self.assertEqual(
             pos.tolist(), pos2.tolist(), "PlacementSet loaded extraneous chunk data"
         )
+
+    def test_comp(self):
+        self.assertTrue(Chunk([0, 0, 0], None) == Chunk([0, 0, 0], None), "eq chunk fail")
+        self.assertFalse(Chunk([0, 0, 0], None) != Chunk([0, 0, 0], None), "ne chunkfail")
+        self.assertTrue(Chunk([0, 0, 1], None) > Chunk([0, 0, 0], None), "gt chunk fail")
+        self.assertTrue(Chunk([0, 1, 0], None) < Chunk([0, 0, 1], None), "lt chunk fail")
+        self.assertTrue(Chunk([0, 1, 1], None) >= Chunk([0, 1, 0], None), "ge chunk fail")
+        self.assertTrue(Chunk([0, 1, 1], None) >= Chunk([0, 1, 1], None), "ge chunk fail")
+        self.assertTrue(Chunk([0, 1, 1], None) <= Chunk([0, 1, 1], None), "le chunk fail")
+        self.assertTrue(Chunk([0, 1, 1], None) <= Chunk([0, 2, 1], None), "le chunk fail")
