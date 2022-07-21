@@ -23,6 +23,18 @@ class Chunk(np.ndarray):
         if obj is not None:
             self._size = getattr(obj, "_size", None)
 
+    def __ne__(self, other):
+        return self.id != other.id
+
+    def __eq__(self, other):
+        return self.id == other.id
+
+    def __gt__(self, other):
+        return self.id > other.id
+
+    def __lt__(self, other):
+        return self.id < other.id
+
     def __hash__(self):
         return int(self.id)
 
