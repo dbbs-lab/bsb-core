@@ -63,5 +63,6 @@ class BoxRTree(BoxTreeInterface):
             yield from all_
 
 
-# Cheapo provider
-BoxTree = BoxRTree
+# Cheapo provider. Needs to be a class definition so that the doc reference can be found.
+class BoxTree(BoxRTree):
+    pass
