@@ -23,6 +23,24 @@ class Chunk(np.ndarray):
         if obj is not None:
             self._size = getattr(obj, "_size", None)
 
+    def __ne__(self, other):
+        return self.id != other.id
+
+    def __eq__(self, other):
+        return self.id == other.id
+
+    def __gt__(self, other):
+        return self.id > other.id
+
+    def __lt__(self, other):
+        return self.id < other.id
+
+    def __ge__(self, other):
+        return self.id >= other.id
+
+    def __le__(self, other):
+        return self.id <= other.id
+
     def __hash__(self):
         return int(self.id)
 
@@ -53,16 +71,16 @@ class Chunk(np.ndarray):
 
     @property
     def box(self):
-        return np.concatenate((self.ldc, self.mdc))
+        return np.array(np.concatenate((self.ldc, self.mdc)), copy=False)
 
     @property
     def ldc(self):
-        return self._size * self
+        return np.array(self._size * self, copy=False)
 
     @property
     def mdc(self):
         # self._size * (self + 1) might overflow when this formula will not.
-        return self._size * self + self._size
+        return np.array(self._size * self + self._size, copy=False)
 
     @classmethod
     def from_id(cls, id, size):
