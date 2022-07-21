@@ -626,6 +626,12 @@ class StoredMorphology:
         self._loader = loader
         self._meta = meta
 
+    def __eq__(self, other):
+        return self.name == other.name
+
+    def __hash__(self):
+        return hash(self.name)
+
     def get_meta(self):
         return self._meta.copy()
 
