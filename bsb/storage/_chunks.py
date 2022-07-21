@@ -71,16 +71,16 @@ class Chunk(np.ndarray):
 
     @property
     def box(self):
-        return np.concatenate((self.ldc, self.mdc), dtype=float)
+        return np.array(np.concatenate((self.ldc, self.mdc)), copy=False)
 
     @property
     def ldc(self):
-        return (self._size * self).astype(float)
+        return np.array(self._size * self, copy=False)
 
     @property
     def mdc(self):
         # self._size * (self + 1) might overflow when this formula will not.
-        return (self._size * self + self._size).astype(float)
+        return np.array(self._size * self + self._size, copy=False)
 
     @classmethod
     def from_id(cls, id, size):
