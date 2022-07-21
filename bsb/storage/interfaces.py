@@ -94,6 +94,13 @@ class Engine(Interface):
         pass
 
     @abc.abstractmethod
+    def copy(self, new_root):
+        """
+        :guilabel:`collective` Must copy the storage object to the new root.
+        """
+        pass
+
+    @abc.abstractmethod
     def remove(self):
         """
         :guilabel:`collective` Must remove the storage object.
