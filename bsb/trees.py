@@ -57,12 +57,11 @@ class BoxRTree(BoxTreeInterface):
             seen = set()
             # Double for loop over results, skipping those that have been seen before.
             yield from (
-                seen.add(elem) or elem for a in all_ for elem in a if elem not in seen
+                seen.add(elem) or elem for arr in all_ for elem in arr if elem not in seen
             )
         else:
             yield from all_
 
 
 # Cheapo provider
-class BoxTree(BoxRTree):
-    pass
+BoxTree = BoxRTree
