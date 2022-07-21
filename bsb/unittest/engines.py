@@ -1,6 +1,9 @@
 import unittest
+from ..exceptions import *
+from ..core import Scaffold
+from ..cell_types import CellType
 from ..config import Configuration
-from ..morphologies import Morphology
+from ..morphologies import Morphology, MorphologySet
 from ..storage import Storage, Chunk
 from . import (
     NumpyTestCase,
@@ -9,8 +12,10 @@ from . import (
     timeout,
     single_process_test,
     get_all_morphologies,
+    get_morphology,
 )
 import time
+import numpy as np
 
 
 cfg = Configuration.default(
@@ -118,26 +123,208 @@ class TestEngine(RandomStorageFixture):
         self.network = self.random_storage(root_factory=self._rootf, engine=self._engine)
 
 
-class TestPlacementSet(RandomStorageFixture):
+class TestPlacementSet(RandomStorageFixture, NumpyTestCase):
     def __init_subclass__(cls, root_factory=None, *, engine_name, **kwargs):
         super().__init_subclass__(**kwargs)
         cls._engine = engine_name
         cls._rootf = root_factory
 
     def setUp(self):
-        self.network = self.random_storage(root_factory=self._rootf, engine=self._engine)
+        self.storage = self.random_storage(root_factory=self._rootf, engine=self._engine)
+        self.cfg = Configuration.default(
+            cell_types=dict(test_cell=dict(spatial=dict(radius=2, count=100))),
+            placement=dict(
+                ch4_c25=dict(
+                    strategy="bsb.placement.strategy.FixedPositions",
+                    partitions=[],
+                    cell_types=["test_cell"],
+                )
+            ),
+        )
+        self.chunk_size = cs = self.cfg.network.chunk_size
+        self.chunks = [
+            Chunk((0, 0, 0), cs),
+            Chunk((0, 0, 1), cs),
+            Chunk((1, 0, 0), cs),
+            Chunk((1, 0, 1), cs),
+        ]
+        self.cfg.placement.ch4_c25.positions = MPI.bcast(
+            np.vstack(
+                (
+                    np.random.random((25, 3)) * cs + [0, 0, 0],
+                    np.random.random((25, 3)) * cs + [0, 0, cs[2]],
+                    np.random.random((25, 3)) * cs + [cs[0], 0, 0],
+                    np.random.random((25, 3)) * cs + [cs[0], 0, cs[2]],
+                )
+            )
+        )
+        self.network = Scaffold(self.cfg, self.storage)
+
+    def test_init(self):
+        ct = self.network.cell_types.test_cell
+        ps = self.network.get_placement_set("test_cell")
+        self.assertEqual(ct, ps.cell_type, "cell type incorrect")
+        self.assertEqual(ct.name, ps.tag, "tag incorrect")
+        ct2 = CellType(name="boo", spatial=dict(radius=2, density=1e-3))
+        with self.assertRaises(
+            DatasetNotFoundError, msg="should raise `DatasetNotFoundError` for unknown PS"
+        ):
+            self.network.get_placement_set(ct2)
 
     def test_create(self):
-        storage = self.random_storage()
+        ct = CellType(name="hehe", spatial=dict(radius=2, density=1e-3))
         if not MPI.Get_rank():
-            ps = storage._PlacementSet.create(storage._engine, cfg.cell_types.test_cell)
+            ps = self.storage._PlacementSet.create(self.storage._engine, ct)
             MPI.Barrier()
             time.sleep(0.1)
         else:
             MPI.Barrier()
-            ps = storage._PlacementSet(storage._engine, cfg.cell_types.test_cell)
-        self.assertEqual("test_cell", ps.tag, "tag should be cell type name")
+            ps = self.storage._PlacementSet(self.storage._engine, ct)
+        self.assertEqual("hehe", ps.tag, "tag should be cell type name")
         self.assertEqual(0, len(ps), "new ps should be empty")
+        with self.assertRaises(
+            DatasetExistsError, msg="creating existing PS should error"
+        ):
+            ps = self.storage._PlacementSet.create(self.storage._engine, ct)
+
+    def test_exists(self):
+        ct = self.network.cell_types.test_cell
+        ct2 = CellType(name="hehe", spatial=dict(radius=2, density=1e-3))
+        ps = self.network.get_placement_set("test_cell")
+        exists = self.storage._PlacementSet.exists
+        engine = self.storage._engine
+        self.assertTrue(exists(engine, ct), "ps of in cfg ct should exist")
+        self.assertFalse(exists(engine, ct2), "ps of random ct should not exist")
+        if not MPI.Get_rank():
+            ps.remove()
+            time.sleep(0.1)
+            MPI.Barrier()
+        else:
+            MPI.Barrier()
+        self.assertFalse(exists(engine, ct), "removed ps should not exist")
+
+    @single_process_test
+    def test_require(self):
+        ct2 = CellType(name="hehe", spatial=dict(radius=2, density=1e-3))
+        # Test that we can create the PS
+        ps = self.storage.require_placement_set(ct2)
+        # Test that already created PS is not a problem
+        ps = self.storage.require_placement_set(ct2)
+
+    def test_clear(self):
+        self.network.compile()
+        ps = self.network.get_placement_set("test_cell")
+        self.assertEqual(100, len(ps), "expected 100 cells globally")
+        ps.clear(chunks=[Chunk([0, 0, 0], self.network.network.chunk_size)])
+        self.assertEqual(75, len(ps), "expected 75 cells after clearing 1 chunk")
+        ps.clear()
+        self.assertEqual(0, len(ps), "expected 0 cells after clearing all chunks")
+
+    def test_get_all_chunks(self):
+        self.network.compile()
+        ps = self.network.get_placement_set("test_cell")
+        self.assertEqual(
+            sorted(self.chunks), sorted(ps.get_all_chunks()), "populated chunks incorrect"
+        )
+
+    def test_load_positions(self):
+        self.network.compile()
+        ps = self.network.get_placement_set("test_cell")
+        arr = ps.load_positions()
+        self.assertIsInstance(arr, np.ndarray, "Should load pos as numpy arr")
+        self.assertEqual((100, 3), arr.shape, "Expected 100x3 position data")
+        self.assertEqual(float, arr.dtype, "Expected floats")
+
+    def test_load_no_morphologies(self):
+        self.network.compile()
+        ps = self.network.get_placement_set("test_cell")
+        ms = ps.load_morphologies()
+        # Define final behaviour in #552, for now, just confirm that no data sneaks in.
+        self.assertIsInstance(ms, MorphologySet, "missing data should still be MS")
+        self.assertEqual(0, len(ms), "there should not be morphology data")
+
+    def test_load_morphologies(self):
+        self.network.cell_types.test_cell.spatial.morphologies.append(
+            dict(names=["test_cell_A", "test_cell_B"])
+        )
+        mA = Morphology.from_swc(get_morphology("2branch.swc"))
+        mB = Morphology.from_swc(get_morphology("2comp.swc"))
+        self.network.morphologies.save("test_cell_A", mA)
+        self.network.morphologies.save("test_cell_B", mB)
+        for i in range(10):
+            ps = self.network.get_placement_set("test_cell")
+            ms = ps.load_morphologies()
+            self.network.compile(clear=True)
+            self.network.storage.copy("check_this.hdf5")
+            ps = self.network.get_placement_set("test_cell")
+            ms = ps.load_morphologies()
+            self.assertIsInstance(ms, MorphologySet, "Load morpho should return MS")
+            self.assertEqual(len(ps), len(ms), "morphos should match amount of pos")
+            if "test_cell_A" in ms and "test_cell_B" in ms:
+                break
+        else:
+            self.fail(
+                "It seems not all morphologies occur in random morphology distr."
+                + "\nShould find: 'test_cell_A', 'test_cell_B'"
+                + "\nFound: "
+                + ", ".join(
+                    f"'{m.meta['name']}'" for m in ms.iter_morphologies(unique=True)
+                )
+                + "\nAll data:\n["
+                + ", ".join(
+                    f"'{m.meta['name']}'" for m in ms.iter_morphologies(hard_cache=True)
+                )
+                + "]"
+            )
+
+    def test_load_no_rotations(self):
+        self.network.cell_types.test_cell.spatial.morphologies.append(
+            dict(names=["test_cell_A", "test_cell_B"])
+        )
+        mA = Morphology.from_swc(get_morphology("2branch.swc"))
+        mB = Morphology.from_swc(get_morphology("2comp.swc"))
+        self.network.morphologies.save("test_cell_A", mA)
+        self.network.morphologies.save("test_cell_B", mB)
+        self.network.compile(clear=True)
+        ps = self.network.get_placement_set("test_cell")
+        rot = ps.load_rotations()
+        self.assertTrue(
+            all(np.allclose(np.eye(3), r.as_matrix()) for r in rot),
+            "no rotations expected",
+        )
+        self.assertEqual(len(ps), len(rot), "expected equal amounts of rotations")
+
+    def test_load_rotations(self):
+        self.network.cell_types.test_cell.spatial.morphologies.append(
+            dict(names=["test_cell_A", "test_cell_B"])
+        )
+        self.network.placement.ch4_c25.distribute.rotations = dict(strategy="random")
+        mA = Morphology.from_swc(get_morphology("2branch.swc"))
+        mB = Morphology.from_swc(get_morphology("2comp.swc"))
+        self.network.morphologies.save("test_cell_A", mA)
+        self.network.morphologies.save("test_cell_B", mB)
+        self.network.compile(clear=True)
+        ps = self.network.get_placement_set("test_cell")
+        rot = ps.load_rotations()
+        self.assertTrue(
+            any(not np.allclose(np.eye(3), r.as_matrix()) for r in rot),
+            "rotations expected",
+        )
+        self.assertEqual(len(ps), len(rot), "expected equal amounts of rotations")
+
+    def test_4chunks_25cells(self):
+        self.network.compile()
+        ps = self.network.get_placement_set("test_cell")
+        self.assertEqual(100, len(ps), "expected 100 cells globally")
+        for chunk in self.chunks:
+            with self.subTest(chunk=chunk):
+                with ps.chunk_context(chunk):
+                    self.assertEqual(25, len(ps), "expected 25 cells per chunk")
+        pos = self.cfg.placement.ch4_c25.positions
+        pos_sort = pos[np.argsort(pos[:, 0])]
+        pspos = ps.load_positions()
+        pspos_sort = pspos[np.argsort(pspos[:, 0])]
+        self.assertClose(pos_sort, pspos_sort, "expected fixed positions")
 
 
 class TestMorphologyRepository(NumpyTestCase, RandomStorageFixture):
