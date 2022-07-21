@@ -255,7 +255,6 @@ class TestPlacementSet(RandomStorageFixture, NumpyTestCase):
             ps = self.network.get_placement_set("test_cell")
             ms = ps.load_morphologies()
             self.network.compile(clear=True)
-            self.network.storage.copy("check_this.hdf5")
             ps = self.network.get_placement_set("test_cell")
             ms = ps.load_morphologies()
             self.assertIsInstance(ms, MorphologySet, "Load morpho should return MS")
