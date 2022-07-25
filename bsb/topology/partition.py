@@ -40,6 +40,7 @@ class _prop(property):
 class Partition(abc.ABC):
     name = config.attr(key=True)
 
+    # Hmm uh ... why does `class _prop(property)` exist? Is this needed?
     @_prop
     def region(self):
         return self._region
@@ -303,16 +304,16 @@ class Voxels(Partition, abc.ABC, classmap_entry="voxels"):
     def get_layout(self, hint):
         return Layout(RhomboidData(*self.voxelset.bounds), owner=self)
 
-    def rotate(self):
+    def rotate(self, rotation):
         raise LayoutError("Axis-aligned voxelsets can't be rotated.")
 
-    def scale(self):
+    def scale(self, factor):
         raise LayoutError("Voxelset scaling not supported.")
 
     def surface(self):
         raise LayoutError("Voxelset surface calculations not supported.")
 
-    def translate(self):
+    def translate(self, offset):
         raise LayoutError("Voxelset translation not supported.")
 
     def volume(self, chunk=None):
