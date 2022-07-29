@@ -26,8 +26,9 @@ def _size_requirements(section):
         )
 
 
-class _prop(property):
-    pass
+class _backref_property(property):
+    def __backref__(self, instance, value):
+        setattr(instance, "_region", value)
 
 
 @config.dynamic(
@@ -40,11 +41,9 @@ class _prop(property):
 class Partition(abc.ABC):
     name = config.attr(key=True)
 
-    @_prop
+    @_backref_property
     def region(self):
         return self._region
-
-    region.__backref__ = lambda self, value: setattr(self, "_region", value)
 
     @property
     def data(self):
@@ -303,16 +302,16 @@ class Voxels(Partition, abc.ABC, classmap_entry="voxels"):
     def get_layout(self, hint):
         return Layout(RhomboidData(*self.voxelset.bounds), owner=self)
 
-    def rotate(self):
+    def rotate(self, rotation):
         raise LayoutError("Axis-aligned voxelsets can't be rotated.")
 
-    def scale(self):
+    def scale(self, factor):
         raise LayoutError("Voxelset scaling not supported.")
 
     def surface(self):
         raise LayoutError("Voxelset surface calculations not supported.")
 
-    def translate(self):
+    def translate(self, offset):
         raise LayoutError("Voxelset translation not supported.")
 
     def volume(self, chunk=None):

@@ -1,5 +1,6 @@
 from bsb import topology
 from bsb.config import Configuration
+from bsb.exceptions import *
 import unittest, numpy as np
 
 
@@ -71,9 +72,17 @@ class TestAllenVoxels(unittest.TestCase):
             region=dict(br=dict(children=["a"])),
             partitions=dict(a=dict(type="allen", struct_name="VAL")),
         )
-        vs = cfg.partitions.a.voxelset
+        part = cfg.partitions.a
+        vs = part.voxelset
         self.assertEqual(52314, len(vs), "VAL is that many voxels")
+        self.assertEqual(52314 * 25**3, part.volume(), "VAL occupies this much space")
         self.assertTrue(
             np.allclose([(5975, 3550, 3950), (7125, 5100, 7475)], vs.bounds),
             "VAL has those bounds",
         )
+        not_impl = "We don't support transforming voxel partitions yet. Contribute it!"
+        for t in ("translate", "scale", "rotate"):
+            with self.subTest(transform=t):
+                transform = getattr(part, t)
+                with self.assertRaises(LayoutError, msg=not_impl):
+                    transform(0)
