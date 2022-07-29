@@ -37,6 +37,9 @@ class TestStorage(RandomStorageFixture):
         cls._engine = engine_name
         cls._rootf = root_factory
 
+    def random_storage(self):
+        return super().random_storage(root_factory=self._rootf, engine=self._engine)
+
     @timeout(10)
     def test_init(self):
         # Use the init function to instantiate a storage container to its initial
@@ -348,7 +351,9 @@ class TestMorphologyRepository(NumpyTestCase, RandomStorageFixture):
         cls._rootf = root_factory
 
     def setUp(self):
-        self.mr = self.random_storage().morphologies
+        self.mr = self.random_storage(
+            root_factory=self._rootf, engine=self._engine
+        ).morphologies
 
     @single_process_test
     def test_swc_saveload_eq(self):
