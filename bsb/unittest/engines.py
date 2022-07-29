@@ -207,6 +207,7 @@ class TestPlacementSet(RandomStorageFixture, NumpyTestCase):
         engine = self.storage._engine
         self.assertTrue(exists(engine, ct), "ps of in cfg ct should exist")
         self.assertFalse(exists(engine, ct2), "ps of random ct should not exist")
+        MPI.Barrier()
         if not MPI.Get_rank():
             ps.remove()
             time.sleep(0.1)
@@ -228,8 +229,10 @@ class TestPlacementSet(RandomStorageFixture, NumpyTestCase):
         ps = self.network.get_placement_set("test_cell")
         self.assertEqual(100, len(ps), "expected 100 cells globally")
         ps.clear(chunks=[Chunk([0, 0, 0], self.network.network.chunk_size)])
+        MPI.Barrier()
         self.assertEqual(75, len(ps), "expected 75 cells after clearing 1 chunk")
         ps.clear()
+        MPI.Barrier()
         self.assertEqual(0, len(ps), "expected 0 cells after clearing all chunks")
 
     def test_get_all_chunks(self):
@@ -261,8 +264,8 @@ class TestPlacementSet(RandomStorageFixture, NumpyTestCase):
         )
         mA = Morphology.from_swc(get_morphology("2branch.swc"))
         mB = Morphology.from_swc(get_morphology("2comp.swc"))
-        self.network.morphologies.save("test_cell_A", mA)
-        self.network.morphologies.save("test_cell_B", mB)
+        self.network.morphologies.save("test_cell_A", mA, overwrite=True)
+        self.network.morphologies.save("test_cell_B", mB, overwrite=True)
         for i in range(10):
             ps = self.network.get_placement_set("test_cell")
             ms = ps.load_morphologies()
@@ -294,8 +297,8 @@ class TestPlacementSet(RandomStorageFixture, NumpyTestCase):
         )
         mA = Morphology.from_swc(get_morphology("2branch.swc"))
         mB = Morphology.from_swc(get_morphology("2comp.swc"))
-        self.network.morphologies.save("test_cell_A", mA)
-        self.network.morphologies.save("test_cell_B", mB)
+        self.network.morphologies.save("test_cell_A", mA, overwrite=True)
+        self.network.morphologies.save("test_cell_B", mB, overwrite=True)
         self.network.compile(clear=True)
         ps = self.network.get_placement_set("test_cell")
         rot = ps.load_rotations()
@@ -312,8 +315,8 @@ class TestPlacementSet(RandomStorageFixture, NumpyTestCase):
         self.network.placement.ch4_c25.distribute.rotations = dict(strategy="random")
         mA = Morphology.from_swc(get_morphology("2branch.swc"))
         mB = Morphology.from_swc(get_morphology("2comp.swc"))
-        self.network.morphologies.save("test_cell_A", mA)
-        self.network.morphologies.save("test_cell_B", mB)
+        self.network.morphologies.save("test_cell_A", mA, overwrite=True)
+        self.network.morphologies.save("test_cell_B", mB, overwrite=True)
         self.network.compile(clear=True)
         ps = self.network.get_placement_set("test_cell")
         rot = ps.load_rotations()
