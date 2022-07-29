@@ -256,7 +256,11 @@ class VoxelSet:
 
     @property
     def volume(self):
-        return np.sum(np.product(self, axis=1))
+        if self._single_size:
+            voxel_volume = np.abs(np.product(self.get_size(copy=False) * np.ones(3)))
+            return voxel_volume * len(self)
+        else:
+            return np.sum(np.abs(np.product(self.get_size_matrix(copy=False), axis=1)))
 
     @property
     def data(self):
