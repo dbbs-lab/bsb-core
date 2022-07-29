@@ -338,7 +338,7 @@ class Storage:
         """
         Initialize the storage to be ready for use by the specified scaffold.
         """
-        self._engine.store_active_config(scaffold.configuration)
+        self.store_active_config(scaffold.configuration)
         self.init_placement(scaffold)
 
     def init_placement(self, scaffold):
