@@ -237,12 +237,23 @@ class VoxelSet:
     def regular(self):
         """
         Whether the voxels are placed on a regular grid.
+
+        :rtype: bool
         """
         return self._regular
 
     @property
     def of_equal_size(self):
         return self._single_size or len(np.unique(self._sizes, axis=0)) < 2
+
+    @property
+    def equilateral(self):
+        """
+        Whether all sides of all voxels have the same lengths.
+
+        :rtype: bool
+        """
+        return np.unique(self.get_size(copy=False)).shape == (1,)
 
     @property
     def size(self):
