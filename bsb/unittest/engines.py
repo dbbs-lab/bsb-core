@@ -100,6 +100,18 @@ class TestStorage(RandomStorageFixture):
             s.create()
             self.assertTrue(s.exists(), f"{MPI.Get_rank()} can't find new storage yet.")
 
+    def test_active_config(self):
+        s = self.random_storage()
+        cfg_a = Configuration.default(regions=dict(a=dict(children=[])))
+        cfg_b = Configuration.default(regions=dict(b=dict(children=[])))
+        for _ in range(100):
+            s.store_active_config(cfg_a)
+            expected = s.load_active_config().regions.keys()
+            self.assertEqual(cfg_a.regions.keys(), expected, "stored cfg A missmatch")
+            s.store_active_config(cfg_b)
+            expected = s.load_active_config().regions.keys()
+            self.assertEqual(cfg_b.regions.keys(), expected, "stored cfg B missmatch")
+
     def test_eq(self):
         s = self.random_storage()
         s2 = self.random_storage()
