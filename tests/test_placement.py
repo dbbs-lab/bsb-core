@@ -51,7 +51,7 @@ def single_layer_placement(offset=[0.0, 0.0, 0.0]):
     return dud, network
 
 
-dud, network = single_layer_placement()
+_dud, _net = single_layer_placement()
 
 
 def _chunk(x, y, z):
@@ -60,15 +60,15 @@ def _chunk(x, y, z):
 
 class TestIndicators(unittest.TestCase):
     def test_cascade(self):
-        indicators = dud.get_indicators()
+        indicators = _dud.get_indicators()
         dud_ind = indicators["dud"]
         self.assertEqual(2, dud_ind.indication("radius"))
         self.assertEqual(40, dud_ind.indication("count"))
         self.assertEqual(2, dud_ind.get_radius())
-        dud.overrides.dud.radius = 4
+        _dud.overrides.dud.radius = 4
         self.assertEqual(4, dud_ind.indication("radius"))
-        dud.overrides.dud.radius = None
-        dud.cell_types[0].spatial.radius = None
+        _dud.overrides.dud.radius = None
+        _dud.cell_types[0].spatial.radius = None
         self.assertEqual(None, dud_ind.indication("radius"))
         self.assertRaises(IndicatorError, dud_ind.get_radius)
 
@@ -121,11 +121,11 @@ class TestIndicators(unittest.TestCase):
 class SchedulerBaseTest:
     @timeout(3)
     def test_create_pool(self):
-        pool = create_job_pool(network)
+        pool = create_job_pool(_net)
 
     @timeout(3)
     def test_single_job(self):
-        pool = JobPool(network)
+        pool = JobPool(_net)
         job = pool.queue(test_dud, (5, 0.1))
         pool.execute()
 
@@ -137,19 +137,19 @@ class SchedulerBaseTest:
             nonlocal i
             i += 1
 
-        pool = JobPool(network, listeners=[spy])
+        pool = JobPool(_net, listeners=[spy])
         job = pool.queue(test_dud, (5, 0.1))
         pool.execute()
         if not MPI.Get_rank():
             self.assertEqual(1, i, "Listeners not executed.")
 
     def test_placement_job(self):
-        pool = JobPool(network)
-        job = pool.queue_placement(dud, _chunk(0, 0, 0))
+        pool = JobPool(_net)
+        job = pool.queue_placement(_dud, _chunk(0, 0, 0))
         pool.execute()
 
     def test_chunked_job(self):
-        pool = JobPool(network)
+        pool = JobPool(_net)
         job = pool.queue_chunk(test_chunk, _chunk(0, 0, 0))
         pool.execute()
 
@@ -158,16 +158,16 @@ class SchedulerBaseTest:
 class TestParallelScheduler(unittest.TestCase, SchedulerBaseTest):
     @timeout(3)
     def test_double_pool(self):
-        pool = JobPool(network)
+        pool = JobPool(_net)
         job = pool.queue(test_dud, (5, 0.1))
         pool.execute()
-        pool = JobPool(network)
+        pool = JobPool(_net)
         job = pool.queue(test_dud, (5, 0.1))
         pool.execute()
 
     @timeout(3)
     def test_master_loop(self):
-        pool = JobPool(network)
+        pool = JobPool(_net)
         job = pool.queue(test_dud, (5, 0.1))
         executed = False
 
@@ -183,7 +183,7 @@ class TestParallelScheduler(unittest.TestCase, SchedulerBaseTest):
 
     @timeout(3)
     def test_fake_futures(self):
-        pool = JobPool(network)
+        pool = JobPool(_net)
         job = pool.queue(test_dud, (5, 0.1))
         self.assertIs(FakeFuture.done, job._future.done.__func__)
         self.assertFalse(job._future.done())
@@ -191,7 +191,7 @@ class TestParallelScheduler(unittest.TestCase, SchedulerBaseTest):
 
     @timeout(3)
     def test_dependencies(self):
-        pool = JobPool(network)
+        pool = JobPool(_net)
         job = pool.queue(test_dud, (5, 0.1))
         job2 = pool.queue(test_dud, (5, 0.1), deps=[job])
         result = None
@@ -254,6 +254,24 @@ class TestPlacementStrategies(RandomStorageFixture, NumpyTestCase, unittest.Test
         pspos = ps.load_positions()
         pspos_sort = pspos[np.argsort(pspos[:, 0])]
         self.assertClose(pos_sort, pspos_sort, "expected fixed positions")
+
+    def test_parallel_arrays(self):
+        storage = self.random_storage(engine="hdf5")
+        cfg = from_json(get_config("test_single.json"))
+        network = Scaffold(cfg, storage)
+        cfg.placement["test_placement"] = dict(
+            strategy="bsb.placement.ParallelArrayPlacement",
+            cell_types=["test_cell"],
+            partitions=["test_layer"],
+            spacing_x=50,
+            angle=0,
+        )
+        network.compile(clear=True)
+        ps = network.get_placement_set("test_cell")
+        self.assertEqual(39, len(ps), "fixed count parallel array placement broken")
+        pos = ps.load_positions()
+        self.assertAll(pos[:, 1] <= cfg.partitions.test_layer.data.mdc[1], "not in layer")
+        self.assertAll(pos[:, 1] >= cfg.partitions.test_layer.data.ldc[1], "not in layer")
 
 
 class TestVoxelDensities(unittest.TestCase):
