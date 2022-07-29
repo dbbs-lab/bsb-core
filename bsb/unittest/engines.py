@@ -69,7 +69,9 @@ class TestStorage(RandomStorageFixture):
             len(ps.load_positions()),
             "Data not empty",
         )
+        MPI.Barrier()
         ps.append_data(Chunk((0, 0, 0), (100, 100, 100)), [0])
+        MPI.Barrier()
         self.assertEqual(
             MPI.Get_size(),
             len(ps.load_positions()),
