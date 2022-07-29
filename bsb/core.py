@@ -8,9 +8,10 @@ from .placement import PlacementStrategy
 from .connectivity import ConnectionStrategy
 from .storage import Chunk, Storage, _util as _storutil
 from .exceptions import *
-from .reporting import report, warn, has_mpi_installed, get_report_file
+from .reporting import report, warn, get_report_file
 from .config._config import Configuration
-from ._pool import create_job_pool
+from .services.pool import create_job_pool
+from .services import MPI
 
 
 _cfg_props = (
@@ -59,7 +60,7 @@ class Scaffold:
     :class:`~.storage.Storage`.
     """
 
-    def __init__(self, config=None, storage=None, clear=False):
+    def __init__(self, config=None, storage=None, clear=False, comm=None):
         """
         Bootstraps a network object.
 
@@ -76,29 +77,17 @@ class Scaffold:
         """
         self._configuration = None
         self._storage = None
-        self._initialise_MPI()
+        self._comm = comm or MPI
         self._bootstrap(config, storage, clear=clear)
 
     def __contains__(self, component):
         return getattr(component, "scaffold", None) is self
 
-    def _initialise_MPI(self):
-        # Delegate initialization of MPI to the reporting module. Which is weird, bu
-        # required to make NEURON play nice. Check the results here and copy them over.
-        # `has_mpi_installed` is imported from the `.reporting` namespace.
-        if has_mpi_installed:
-            # Import mpi4py and its MPI submodule.
-            from mpi4py import MPI
+    def is_main_process(self):
+        return not MPI.Get_rank()
 
-            self.MPI = MPI
-            self.MPI_rank = MPI.COMM_WORLD.rank
-            self.has_mpi_installed = True
-            self.is_mpi_master = self.MPI_rank == 0
-            self.is_mpi_slave = self.MPI_rank != 0
-        else:
-            self.has_mpi_installed = False
-            self.is_mpi_master = True
-            self.is_mpi_slave = False
+    def is_worker_process(self):
+        return bool(MPI.Get_rank())
 
     def _bootstrap(self, config, storage, clear=False):
         if config is None:
@@ -256,7 +245,8 @@ class Scaffold:
         """
         Run after placement hooks.
         """
-        warn("After placement disabled")
+        if self.after_placement:
+            warn("After placement disabled")
         # pool = create_job_pool(self)
         # for hook in self.configuration.after_placement.values():
         #     pool.queue(hook.after_placement)
@@ -266,7 +256,8 @@ class Scaffold:
         """
         Run after placement hooks.
         """
-        warn("After connectivity disabled")
+        if self.after_connectivity:
+            warn("After connectivity disabled")
         # for hook in self.configuration.after_connectivity.values():
         #     hook.after_connectivity()
 
@@ -328,6 +319,9 @@ class Scaffold:
         if not skip_after_connectivity:
             self.run_after_connectivity()
         report("Runtime: {}".format(time.time() - t), 2)
+        # After compilation we should flag the storage as having existed before so that
+        # the `clear`, `redo` and `append` flags take effect on a second `compile` pass.
+        self.storage._preexisted = True
 
     def run_simulation(self, simulation_name, quit=False):
         """
@@ -466,6 +460,14 @@ class Scaffold:
         if isinstance(type, str):
             type = self.cell_types[type]
         return self.storage.get_placement_set(type, chunks=chunks)
+
+    def get_placement_sets(self):
+        """
+        Return all of the placement sets present in the network.
+
+        :rtype: List[~bsb.storage.interfaces.PlacementSet]
+        """
+        return [cell_type.get_placement_set() for cell_type in self.cell_types.values()]
 
     def get_connectivity(
         self, anywhere=None, presynaptic=None, postsynaptic=None, skip=None, only=None

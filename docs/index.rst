@@ -44,7 +44,7 @@ and explicit code understandable and reusable by your peers.
 
 	    Learn to package your code for others to use!
 
-    .. grid-item-card:: :octicon:`octoface;1em;sd-text-warning` Contributing
+    .. grid-item-card:: :octicon:`mark-github;1em;sd-text-warning` Contributing
 	    :link: https://github.com/dbbs-lab/bsb
 
 	    Help out the project by contributing code.
@@ -57,6 +57,8 @@ and explicit code understandable and reusable by your peers.
    usage/top-level-guide
    usage/getting-started
    usage/projects
+   guides/toc
+   examples/toc
 
 .. toctree::
    :maxdepth: 2
@@ -109,24 +111,13 @@ and explicit code understandable and reusable by your peers.
    genindex
    py-modindex
 
-.. _all-guides:
-
-.. toctree::
-  :maxdepth: 1
-  :caption: User Guides
-
-  guides/components
-  guides/connectivity
-  guides/connection-strategies
-  guides/packaging
-  examples/toc
-
 .. toctree::
   :maxdepth: 2
   :caption: Developer Guides:
 
   dev/installation
   dev/documentation
+  dev/services
   dev/plugins
   dev/hooks
   dev/reference

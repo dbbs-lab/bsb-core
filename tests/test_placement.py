@@ -1,8 +1,8 @@
 import unittest, os, sys, numpy as np, h5py
-from mpi4py import MPI
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
+from bsb.services import MPI
 from bsb.core import Scaffold
 from bsb.config import Configuration, from_json
 from bsb.cell_types import CellType
@@ -11,8 +11,8 @@ from bsb.voxels import VoxelSet, VoxelData
 from bsb.exceptions import *
 from bsb.storage import Chunk
 from bsb.placement import PlacementStrategy, RandomPlacement
-from bsb._pool import JobPool, FakeFuture, create_job_pool
-from test_setup import timeout, get_config, NumpyTestCase
+from bsb.services.pool import JobPool, FakeFuture, create_job_pool
+from bsb.unittest import get_config, timeout, RandomStorageFixture, NumpyTestCase
 from time import sleep
 
 
@@ -140,7 +140,7 @@ class SchedulerBaseTest:
         pool = JobPool(network, listeners=[spy])
         job = pool.queue(test_dud, (5, 0.1))
         pool.execute()
-        if not MPI.COMM_WORLD.Get_rank():
+        if not MPI.Get_rank():
             self.assertEqual(1, i, "Listeners not executed.")
 
     def test_placement_job(self):
@@ -154,7 +154,7 @@ class SchedulerBaseTest:
         pool.execute()
 
 
-@unittest.skipIf(MPI.COMM_WORLD.Get_size() < 2, "Skipped during serial testing.")
+@unittest.skipIf(MPI.Get_size() < 2, "Skipped during serial testing.")
 class TestParallelScheduler(unittest.TestCase, SchedulerBaseTest):
     @timeout(3)
     def test_double_pool(self):
@@ -176,7 +176,7 @@ class TestParallelScheduler(unittest.TestCase, SchedulerBaseTest):
             executed = True
 
         pool.execute(master_event_loop=spy_loop)
-        if MPI.COMM_WORLD.Get_rank():
+        if MPI.Get_rank():
             self.assertFalse(executed, "workers executed master loop")
         else:
             self.assertTrue(executed, "master loop skipped")
@@ -202,41 +202,20 @@ class TestParallelScheduler(unittest.TestCase, SchedulerBaseTest):
                 result = jobs[0]._future.running() and not jobs[1]._future.running()
 
         pool.execute(master_event_loop=spy_queue)
-        if not MPI.COMM_WORLD.Get_rank():
+        if not MPI.Get_rank():
             self.assertTrue(result, "A job with unfinished dependencies was scheduled.")
 
 
-@unittest.skipIf(MPI.COMM_WORLD.Get_size() > 1, "Skipped during parallel testing.")
+@unittest.skipIf(MPI.Get_size() > 1, "Skipped during parallel testing.")
 class TestSerialScheduler(unittest.TestCase, SchedulerBaseTest):
     pass
 
 
-class TestPlacementStrategies(NumpyTestCase, unittest.TestCase):
-    def test_fixed_positions(self):
-        super().setUpClass()
-        cfg = Configuration.default()
-        cfg.storage.root = "fixed_pos.hdf5"
-        cfg.regions.add("test_region")
-        cfg.partitions.add("test_part", region="test_region", thickness=100)
-        network = Scaffold(cfg)
-        t = network.cell_types.add("test", spatial=dict(radius=1, density=1e-3))
-        fixed_place = network.placement.add(
-            "test_place",
-            cls="bsb.placement.FixedPositions",
-            partitions=["test_part"],
-            cell_types=["test"],
-        )
-        fixed_place.positions = wanted = np.tile(np.arange(10).reshape(-1, 1), 3)
-        network.compile(clear=True)
-        wanted = fixed_place.positions
-        placed = t.get_placement_set().load_positions()
-        self.assertEqual(len(wanted), len(placed), "incorrect num of cells placed")
-        self.assertClose(wanted, placed, "fixed positions changed")
-
+class TestPlacementStrategies(RandomStorageFixture, NumpyTestCase, unittest.TestCase):
     def test_random_placement(self):
         cfg = from_json(get_config("test_single.json"))
-        cfg.storage.root = "random_placement.hdf5"
-        network = Scaffold(cfg)
+        storage = self.random_storage(engine="hdf5")
+        network = Scaffold(cfg, storage)
         cfg.placement["test_placement"] = dict(
             strategy="bsb.placement.RandomPlacement",
             cell_types=["test_cell"],
@@ -245,6 +224,36 @@ class TestPlacementStrategies(NumpyTestCase, unittest.TestCase):
         network.compile(clear=True)
         ps = network.get_placement_set("test_cell")
         self.assertEqual(40, len(ps), "fixed count random placement broken")
+
+    def test_fixed_pos(self):
+        storage = self.random_storage(engine="hdf5")
+        cfg = Configuration.default(
+            cell_types=dict(test_cell=dict(spatial=dict(radius=2, count=100))),
+            placement=dict(
+                ch4_c25=dict(
+                    strategy="bsb.placement.strategy.FixedPositions",
+                    partitions=[],
+                    cell_types=["test_cell"],
+                )
+            ),
+        )
+        cs = cfg.network.chunk_size
+        c4 = [
+            Chunk((0, 0, 0), cs),
+            Chunk((0, 0, 1), cs),
+            Chunk((1, 0, 0), cs),
+            Chunk((1, 0, 1), cs),
+        ]
+        cfg.placement.ch4_c25.positions = pos = MPI.bcast(
+            np.vstack((c * cs + np.random.random((25, 3)) * cs for c in c4))
+        )
+        network = Scaffold(cfg, storage)
+        network.compile()
+        ps = network.get_placement_set("test_cell")
+        pos_sort = pos[np.argsort(pos[:, 0])]
+        pspos = ps.load_positions()
+        pspos_sort = pspos[np.argsort(pspos[:, 0])]
+        self.assertClose(pos_sort, pspos_sort, "expected fixed positions")
 
 
 class TestVoxelDensities(unittest.TestCase):

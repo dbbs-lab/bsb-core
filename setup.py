@@ -10,6 +10,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 requires = [
+    "bsb-hdf5==0.2.4",
     "h5py~=3.0",
     "numpy~=1.19",
     "scipy~=1.5",
@@ -20,10 +21,7 @@ requires = [
     "rtree~=0.9",
     "psutil~=5.8",
     "pynrrd~=0.4",
-    "mpilock~=1.1",
     "morphio~=3.3",
-    "mpi4py",
-    "zwembad",
     "toml",
     "requests",
     "appdirs~=1.4",
@@ -36,7 +34,14 @@ setuptools.setup(
     author_email="robingilbert.deschepper@unipv.it",
     description="A package for modelling morphologically detailed neuronal microcircuits.",
     include_package_data=True,
-    package_data={"bsb": ["config/templates/*.json"]},
+    package_data={
+        "bsb": [
+            "config/templates/*.json",
+            "unittest/data/configs/*",
+            "unittest/data/morphologies/*",
+            "unittest/data/parser_tests/*",
+        ]
+    },
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/dbbs-lab/bsb",
@@ -61,7 +66,6 @@ setuptools.setup(
         ],
         "bsb.config.parsers": ["json = bsb.config.parsers.json"],
         "bsb.config.templates": ["bsb_templates = bsb.config.templates"],
-        "bsb.engines": ["hdf5 = bsb.storage.engines.hdf5"],
         "bsb.options": [
             "verbosity = bsb._options:verbosity",
             "sudo = bsb._options:sudo",
@@ -78,16 +82,17 @@ setuptools.setup(
     },
     extras_require={
         "dev": [
-            "sphinx",
+            "sphinx~=5.0",
             "furo",
             "pre-commit",
-            "black==22.3.0",
-            "nrn-subprocess==1.3.4",
+            "black~=22.3.0",
+            "nrn-subprocess~=1.3.4",
             "sphinxemoji",
-            "sphinx_design",
+            "sphinx_design~=0.2",
+            "sphinx-copybutton~=0.5",
         ],
         "arbor": ["arbor~=0.6"],
         "neuron": ["dbbs_models~=2.0.0", "nrn-patch~=3.0.1"],
-        "mpi": ["mpi4py", "zwembad", "mpilock"],
+        "mpi": ["mpi4py~=3.0", "zwembad", "mpilock~=1.1"],
     },
 )

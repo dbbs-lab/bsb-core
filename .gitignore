@@ -2,6 +2,7 @@ __pycache__/
 *.gdf
 *.pyc
 *.hdf5
+*.swc
 *.h5
 build/
 dist/
@@ -9,7 +10,6 @@ bsb-*/
 *.egg-info/
 pip-wheel-metadata/
 .python-version
-*.swc
 dev_env/
 test_env/
 nrnmech.dll

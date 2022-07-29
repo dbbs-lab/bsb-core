@@ -243,7 +243,10 @@ def _is_settable_attr(attr):
 
 
 def _bubble_up_exc(exc):
-    node = " in " + exc.node.get_node_name() if hasattr(exc, "node") and exc.node else ""
+    if hasattr(exc, "node") and exc.node is not None:
+        node = " in " + exc.node.get_node_name()
+    else:
+        node = ""
     attr = f".{exc.attr}" if hasattr(exc, "attr") and exc.attr else ""
     errr.wrap(type(exc), exc, append=node + attr)
 

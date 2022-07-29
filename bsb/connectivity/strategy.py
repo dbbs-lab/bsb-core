@@ -1,6 +1,6 @@
 from .. import config
 from ..config import refs, types
-from ..helpers import SortableByAfter
+from .._util import SortableByAfter
 from ..reporting import report, warn
 from ..exceptions import *
 import abc

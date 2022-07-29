@@ -1,132 +1,17 @@
-from ..exceptions import *
-import abc, itertools
+from .. import config
 from ..exceptions import *
 from ..reporting import report, warn
-from .. import config
 from ..config import refs, types
-from ..helpers import SortableByAfter
+from .._util import SortableByAfter
+from ..voxels import VoxelSet
 from ..morphologies import MorphologySet
 from ..storage import Chunk
 from .indicator import PlacementIndications, PlacementIndicator
+from .distributor import DistributorsNode
 import numpy as np
-import numpy as np, os
-
-
-@config.dynamic(attr_name="strategy", required=True)
-class Distributor(abc.ABC):
-    @abc.abstractmethod
-    def distribute(self, partitions, indicator, positions):
-        """
-        Is called to distribute cell properties.
-
-        :param partitions: The partitions the cells were placed in.
-        :type partitions: List[~bsb.topology.partition.Partition]
-        :param indicator: The indicator of the cell type whose properties are being
-          distributed.
-        :param positions: Positions of the cells.
-        :type positions: numpy.ndarray
-        :returns: An array with the property data
-        :rtype: numpy.ndarray
-        """
-        pass
-
-
-@config.dynamic(
-    attr_name="strategy", required=False, default="random", auto_classmap=True
-)
-class MorphologyDistributor(Distributor):
-    @abc.abstractmethod
-    def distribute(self, partitions, indicator, positions):
-        """
-        Is called to distribute cell morphologies and optionally rotations.
-
-        :param partitions: The partitions the morphologies need to be distributed in.
-        :type partitions: List[~bsb.topology.partition.Partition]
-        :param indicator: The indicator of the cell type whose morphologies are being
-          distributed.
-        :param positions: Placed positions under consideration
-        :type positions: numpy.ndarray
-        :returns: A MorphologySet with assigned morphologies, and optionally a RotationSet
-        :rtype: Union[~bsb.morphologies.MorphologySet, Tuple[~bsb.morphologies.MorphologySet, ~bsb.morphologies.RotationSet]]
-        """
-        pass
-
-
-class RandomMorphologies(MorphologyDistributor, classmap_entry="random"):
-    """
-    Distributes selected morphologies randomly without rotating them.
-
-    .. code-block:: json
-
-      { "placement": { "place_XY": {
-        "distribute": {
-            "morphologies": {"strategy": "random"}
-        }
-      }}}
-    """
-
-    def distribute(self, partitions, indicator, positions):
-        """
-        Uses the morphology selection indicators to select morphologies and
-        returns a MorphologySet of randomly assigned morphologies
-        """
-        selectors = indicator.assert_indication("morphologies")
-        loaders = self.scaffold.storage.morphologies.select(*selectors)
-        if not loaders:
-            raise EmptySelectionError(
-                "Given selectors did not find any suitable morphologies", selectors
-            )
-        else:
-            ids = np.random.default_rng().integers(len(loaders), size=len(positions))
-        return MorphologySet(loaders, ids)
-
-
-@config.dynamic(attr_name="strategy", required=False, default="none", auto_classmap=True)
-class RotationDistributor(Distributor):
-    """
-    Rotates everything by nothing!
-    """
-
-    @abc.abstractmethod
-    def distribute(self, partitions, indicator, positions):
-        pass
-
-
-class ExplicitNoRotations(RotationDistributor, classmap_entry="explicitly_none"):
-    def distribute(self, partitions, indicator, positions):
-        return np.zeros((len(positions), 3))
-
-
-# Sentinel mixin class to tag RotationDistributor as being overridable by morphology
-# distributor.
-class Implicit:
-    pass
-
-
-class ImplicitNoRotations(ExplicitNoRotations, Implicit, classmap_entry="none"):
-    pass
-
-
-@config.node
-class DistributorsNode:
-    morphologies = config.attr(
-        type=MorphologyDistributor, default=dict, call_default=True
-    )
-    rotations = config.attr(type=ImplicitNoRotations, default=dict, call_default=True)
-    properties = config.catch_all(type=Distributor)
-
-    def _curry(self, partitions, indicator, positions):
-        def curried(key):
-            return self(key, partitions, indicator, positions)
-
-        return curried
-
-    def __call__(self, key, partitions, indicator, positions):
-        if key in ("morphologies", "rotations"):
-            distributor = getattr(self, key)
-        else:
-            distributor = self.properties[key]
-        return distributor.distribute(partitions, indicator, positions)
+import itertools
+import abc
+import os
 
 
 @config.dynamic(attr_name="strategy", required=True)
@@ -160,9 +45,19 @@ class PlacementStrategy(abc.ABC, SortableByAfter):
         distr_ = self.distribute._curry(self.partitions, indicator, positions)
 
         if indicator.use_morphologies():
-            morphologies = distr_("morphologies")
-            # Strict type check for unpacking into morphologies and rotations
+            try:
+                morphologies = distr_("morphologies")
+            except EmptySelectionError as e:
+                selectors = ", ".join(f"{s}" for s in e.selectors)
+                raise DistributorError(
+                    "%property% distribution of `%strategy.name%` couldn't find any"
+                    + f" morphologies with the following selector(s): {selectors}",
+                    "Morphology",
+                    self,
+                ) from None
+            # Did the morphology distributor give multiple return values?
             if isinstance(morphologies, tuple):
+                # Yes, unpack them to morphologies and rotations.
                 try:
                     morphologies, rotations = morphologies
                 except TypeError:
@@ -170,11 +65,12 @@ class PlacementStrategy(abc.ABC, SortableByAfter):
                         "Morphology distributors may only return tuples when they are"
                         + " to be unpacked as (morphologies, rotations)"
                     ) from None
-                # Tagging your RotationDistributor with `Implicit` makes it overridable
-                # by the MorphologyDistributor.
+                # If a RotationDistributor is not `Implicit`, we override the
+                # MorphologyDistributor's rotations.
                 if not isinstance(self.distribute.rotations, Implicit):
                     rotations = distr_("rotations")
             else:
+                # No, distribute the rotations.
                 rotations = distr_("rotations")
         else:
             morphologies, rotations = None, None
@@ -240,24 +136,34 @@ class PlacementStrategy(abc.ABC, SortableByAfter):
 
 @config.node
 class FixedPositions(PlacementStrategy):
-    positions = config.attr(type=np.array)
+    positions = config.attr(type=types.ndarray())
 
     def place(self, chunk, indicators):
         if self.positions is None:
-            raise RuntimeError(
-                f"{self.name} requires the `positions` to be specified in the configuration, or before placement is scheduled."
+            raise ValueError(
+                f"Please set `.positions` on '{self.name}' before placement."
             )
         for indicator in indicators.values():
             ct = indicator.cell_type
-            chunk_positions = self.positions[
-                np.logical_and(
-                    self.positions >= chunk.ldc, self.positions < chunk.mdc
-                ).all(axis=1)
-            ]
-            self.place_cells(indicator, chunk_positions, chunk)
+            inside_chunk = VoxelSet([chunk], chunk.dimensions).inside(self.positions)
+            self.place_cells(indicator, self.positions[inside_chunk], chunk)
 
     def guess_cell_count(self):
+        if self.positions is None:
+            raise ValueError(f"Please set `.positions` on '{self.name}'.")
         return len(self.positions)
+
+    def queue(self, pool, chunk_size):
+        if self.positions is None:
+            raise ValueError(f"Please set `.positions` on '{self.name}'.")
+        # Reset jobs that we own
+        self._queued_jobs = []
+        # Get the queued jobs of all the strategies we depend on.
+        deps = set(itertools.chain(*(strat._queued_jobs for strat in self.get_after())))
+        for chunk in VoxelSet.fill(self.positions, chunk_size):
+            job = pool.queue_placement(self, Chunk(chunk, chunk_size), deps=deps)
+            self._queued_jobs.append(job)
+        report(f"Queued {len(self._queued_jobs)} jobs for {self.name}", level=2)
 
 
 class Entities(PlacementStrategy):

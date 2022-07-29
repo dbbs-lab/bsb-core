@@ -6,7 +6,7 @@ from . import config
 from .config import types
 
 
-@config.dynamic
+@config.dynamic(attr_name="strategy")
 class PostProcessingHook:
     def after_placement(self):
         raise NotImplementedError(

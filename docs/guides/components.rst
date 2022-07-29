@@ -4,6 +4,13 @@
 Writing components
 ==================
 
+.. todo::
+
+  * Write this skeleton out to a full guide.
+  * Start this out in a Getting Started style, where a toy problem is tackled.
+  * Then, for each possible component type, write an example that covers the interface and
+    common problems and important to know things.
+
 The architecture of the framework organizes your model into reusable components. It offers
 out of the box components for basic operations, but often you'll need to write your own.
 
@@ -78,7 +85,7 @@ you can now access:
 .. code-block:: json
 
   {
-    "selector": "select.MySizeSelector",
+    "select": "select.MySizeSelector",
     "min_size": 30,
     "max_size": 50
   }

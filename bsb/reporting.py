@@ -1,5 +1,9 @@
-import warnings, base64, io, sys, functools
-from ._mpi import *
+from .services import MPI
+import functools
+import warnings
+import base64
+import sys
+import io
 
 
 def warning_on_one_line(message, category, filename, lineno, file=None, line=None):
@@ -85,10 +89,9 @@ def report(*message, level=2, ongoing=False, token=None, nodes=None, all_nodes=F
     from . import options
 
     message = " ".join(map(str, message))
+    rank = MPI.Get_rank()
     if (
-        (is_mpi_master and nodes is None)
-        or all_nodes
-        or (nodes is not None and MPI_rank in nodes)
+        (not rank and nodes is None) or all_nodes or (nodes is not None and rank in nodes)
     ) and options.verbosity >= level:
         if _report_file:
             with open(_report_file, "a") as f:

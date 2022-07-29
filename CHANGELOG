@@ -1,5 +1,11 @@
 # 4.0.0 - Too much to list
 
+# 4.0.0a19
+
+* Removed the `voxels` property of the `Voxels` partition, instead the children ``nrrd``
+  and ``allen`` are now available directly as partitions.
+* Renamed the `AllenStructureLoader` to `AllenStructure`
+
 # 4.0.0a18
 
 ### Breaking changes

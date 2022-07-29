@@ -22,34 +22,89 @@ class Interface(abc.ABC):
 
 
 class Engine(Interface):
-    def __init__(self, root):
-        self.root = root
+    """
+    Engines perform the transactions that come from the storage object, and read/write
+    data in a specific format. They can perform collective or individual actions.
+
+    .. warning::
+
+      Collective actions can only be performed from all nodes, or deadlocks occur. This
+      means in particular that they may not be called from component code.
+
+    """
+
+    def __init__(self, root, comm):
+        self._root = comm.bcast(root, root=0)
+        self._comm = comm
+
+    @property
+    def root(self):
+        """
+        The unique identifier for the storage. Usually pathlike, but can be anything.
+        """
+        return self._root
+
+    @property
+    def comm(self):
+        """
+        The communicator in charge of collective operations.
+        """
+        return self._comm
+
+    def set_comm(self, comm):
+        """
+        Set a new communicator in charge of collective operations.
+        """
+        self._comm = comm
 
     @property
     def format(self):
-        # This attribute is set on the engine by the storage provider and correlates to
-        # the name of the engine plugin.
+        """
+        Name of the type of engine. Automatically set through the plugin system.
+        """
         return self._format
 
     @property
     @abc.abstractmethod
     def root_slug(self):
+        """
+        Must return a pathlike unique identifier for the root of the storage object.
+        """
         pass
 
     @abc.abstractmethod
     def exists(self):
+        """
+        Must check existence of the storage object.
+        """
         pass
 
     @abc.abstractmethod
     def create(self):
+        """
+        :guilabel:`collective` Must create the storage engine.
+        """
         pass
 
     @abc.abstractmethod
     def move(self, new_root):
+        """
+        :guilabel:`collective` Must move the storage object to the new root.
+        """
+        pass
+
+    @abc.abstractmethod
+    def copy(self, new_root):
+        """
+        :guilabel:`collective` Must copy the storage object to the new root.
+        """
         pass
 
     @abc.abstractmethod
     def remove(self):
+        """
+        :guilabel:`collective` Must remove the storage object.
+        """
         pass
 
     @abc.abstractmethod
@@ -202,7 +257,7 @@ class PlacementSet(Interface):
         pass
 
     @abc.abstractstaticmethod
-    def exists(self, engine, cell_type):
+    def exists(engine, cell_type):
         """
         Check existence of a placement set.
 
@@ -399,7 +454,7 @@ class MorphologyRepository(Interface, engine_key="morphologies"):
         Select stored morphologies.
 
         :param selectors: Any number of morphology selectors.
-        :type selectors: List[bsb.placement.indicator.MorphologySelector]
+        :type selectors: List[bsb.morphologies.selector.MorphologySelector]
         :returns: All stored morphologies that match at least one selector.
         :rtype: List[~bsb.storage.interfaces.StoredMorphology]
         """
@@ -433,6 +488,9 @@ class MorphologyRepository(Interface, engine_key="morphologies"):
         :rtype: bool
         """
         pass
+
+    def __contains__(self, item):
+        return self.has(item)
 
     @abc.abstractmethod
     def preload(self, name):
@@ -567,6 +625,12 @@ class StoredMorphology:
         self.name = name
         self._loader = loader
         self._meta = meta
+
+    def __eq__(self, other):
+        return self.name == other.name
+
+    def __hash__(self):
+        return hash(self.name)
 
     def get_meta(self):
         return self._meta.copy()

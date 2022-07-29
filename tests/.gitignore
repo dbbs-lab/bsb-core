@@ -1,3 +1,9 @@
-*.txt
-*.hdf5
+*
+!.gitignore
+!test_*
+!data
+!data/configs
+!data/configs/*
+!data/morphologies
+!data/morphologies/*
 *.pyc

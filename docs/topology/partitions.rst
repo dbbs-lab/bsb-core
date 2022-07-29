@@ -9,17 +9,16 @@ Voxels
 ======
 
 :class:`Voxel partitions <.topology.partition.Voxels>` are an irregular shape in space,
-described by a group of rhomboids, called a :class:`~.voxels.VoxelSet`. The voxel
-partition needs to be configured with a :class:`~.voxels.VoxelLoader` to load the voxelset
-from somewhere. Most brain atlases scan the brain in a 3D grid and publish their data in
-the same way, usually in the Nearly Raw Raster Data format, NRRD. In general, whenever you
-have a voxelized 3D image, a ``Voxels`` partition will help you define the shapes
-contained within.
+described by a group of rhomboids, called a :class:`~.voxels.VoxelSet`. Most brain atlases
+scan the brain in a 3D grid and publish their data in the same way, usually in the `Nearly
+Raw Raster Data format, NRRD <https://pynrrd.readthedocs.io/en/latest/user-guide.html>`_.
+In general, whenever you have a voxelized 3D image, a ``Voxels`` partition will help you
+define the shapes contained within.
 
 NRRD
 ----
 
-To load data from NRRD files use the :class:`~.voxels.NrrdVoxelLoader`. By
+To load data from NRRD files use the :class:`~.topology.partition.NrrdVoxels`. By
 default it will load all the nonzero values in a source file:
 
 .. tab-set-code::
@@ -29,38 +28,31 @@ default it will load all the nonzero values in a source file:
       {
         "partitions": {
           "my_voxel_partition": {
-            "type": "voxels",
-            "voxels": {
-              "type": "nrrd",
-              "source": "data/my_nrrd_data.nrrd",
-              "voxel_size": 25
-            }
+            "type": "nrrd",
+            "source": "data/my_nrrd_data.nrrd",
+            "voxel_size": 25
           }
         }
       }
 
     .. code-block:: python
 
-        from bsb.topology.partition import Voxels
-        from bsb.voxels import NrrdVoxelLoader
+        from bsb.topology.partition import NrrdVoxels
 
-        loader = NrrdVoxelLoader(source="data/my_nrrd_data.nrrd", voxel_size=25)
-        partition = Voxels(voxels=loader)
+        my_voxel_partition = NrrdVoxels(source="data/my_nrrd_data.nrrd", voxel_size=25)
 
-The loader has a :meth:`~.voxels.VoxelLoader.get_voxelset` method to access the loaded
-:class:`~.voxels.VoxelSet`. The nonzero values will be stored on the
-:class:`~.voxels.VoxelSet` as a *data column*. Data columns can be accessed through the
-:attr:`~.voxels.VoxelSet.data` property:
+The nonzero values from the ``data/my_nrrd_data.nrrd`` file will be included in the
+:class:`~.voxels.VoxelSet`, and their values will be stored on the voxelset as a *data
+column*. Data columns can be accessed through the :attr:`~.voxels.VoxelSet.data` property:
 
 .. code-block:: python
 
-    loader = NrrdVoxelLoader(source="data/my_nrrd_data.nrrd", voxel_size=25)
-    vs = loader.get_voxelset()
-    # Prints the information about the VoxelSet, like how many there are etc.
+    voxels = NrrdVoxels(source="data/my_nrrd_data.nrrd", voxel_size=25)
+    vs = voxels.get_voxelset()
+    # Prints the information about the VoxelSet, like how many voxels there are etc.
     print(vs)
-    # Prints an (Nx1) array with one nonzero value for each selected voxel.
-    print(vs.data.shape)
-    partition = Voxels(voxels=loader)
+    # Prints an (Nx1) array with one nonzero value for each voxel.
+    print(vs.data)
 
 .. rubric:: Using masks
 
@@ -78,34 +70,29 @@ structure, and other files contain cell population density values, gene expressi
       {
         "partitions": {
           "my_voxel_partition": {
-            "type": "voxels",
-            "voxels": {
-              "type": "nrrd",
-              "mask_value": 55,
-              "mask_source": "data/brain_structures.nrrd",
-              "source": "data/whole_brain_cell_densities.nrrd",
-              "voxel_size": 25
-            }
+            "type": "nrrd",
+            "mask_value": 55,
+            "mask_source": "data/brain_structures.nrrd",
+            "source": "data/whole_brain_cell_densities.nrrd",
+            "voxel_size": 25
           }
         }
       }
 
     .. code-block:: python
 
-        from bsb.topology.partition import Voxels
-        from bsb.voxels import NrrdVoxelLoader
+        from bsb.topology.partition import NrrdVoxels
 
-        loader = NrrdVoxelLoader(
+        partition = NrrdVoxels(
           mask_value=55,
           mask_source="data/brain_structures.nrrd",
           source="data/whole_brain_cell_densities.nrrd",
           voxel_size=25,
         )
-        vs = loader.get_voxelset()
+        vs = partition.get_voxelset()
         # This prints the density data of all voxels that were tagged with `55`
         # in the mask source file (your brain structure).
         print(vs.data)
-        partition = Voxels(voxels=loader)
 
 .. rubric:: Using multiple source files
 
@@ -121,28 +108,24 @@ appear in the :guilabel:`sources` attribute:
       {
         "partitions": {
           "my_voxel_partition": {
-            "type": "voxels",
-            "voxels": {
-              "type": "nrrd",
-              "mask_value": 55,
-              "mask_source": "data/brain_structures.nrrd",
-              "sources": [
-                "data/type1_data.nrrd",
-                "data/type2_data.nrrd",
-                "data/type3_data.nrrd",
-              ],
-              "voxel_size": 25
-            }
+            "type": "nrrd",
+            "mask_value": 55,
+            "mask_source": "data/brain_structures.nrrd",
+            "sources": [
+              "data/type1_data.nrrd",
+              "data/type2_data.nrrd",
+              "data/type3_data.nrrd",
+            ],
+            "voxel_size": 25
           }
         }
       }
 
     .. code-block:: python
 
-        from bsb.topology.partition import Voxels
-        from bsb.voxels import NrrdVoxelLoader
+        from bsb.topology.partition import NrrdVoxels
 
-        loader = NrrdVoxelLoader(
+        partition = NrrdVoxels(
           mask_value=55,
           mask_source="data/brain_structures.nrrd",
           sources=[
@@ -152,11 +135,10 @@ appear in the :guilabel:`sources` attribute:
           ],
           voxel_size=25,
         )
-        vs = loader.get_voxelset()
+        vs = partition.get_voxelset()
         # `data` will be an (Nx3) matrix that contains `type1` in `data[:, 0]`, `type2` in
         # `data[:, 1]` and `type3` in `data[:, 2]`.
         print(vs.data.shape)
-        partition = Voxels(voxels=loader)
 
 .. _data-columns:
 
@@ -172,29 +154,25 @@ a name with each column. Data columns can then be indexed as strings:
       {
         "partitions": {
           "my_voxel_partition": {
-            "type": "voxels",
-            "voxels": {
-              "type": "nrrd",
-              "mask_value": 55,
-              "mask_source": "data/brain_structures.nrrd",
-              "sources": [
-                "data/type1_data.nrrd",
-                "data/type2_data.nrrd",
-                "data/type3_data.nrrd",
-              ],
-              "keys": ["type1", "type2", "type3"],
-              "voxel_size": 25
-            }
+            "type": "nrrd",
+            "mask_value": 55,
+            "mask_source": "data/brain_structures.nrrd",
+            "sources": [
+              "data/type1_data.nrrd",
+              "data/type2_data.nrrd",
+              "data/type3_data.nrrd",
+            ],
+            "keys": ["type1", "type2", "type3"],
+            "voxel_size": 25
           }
         }
       }
 
     .. code-block:: python
 
-        from bsb.topology.partition import Voxels
-        from bsb.voxels import NrrdVoxelLoader
+        from bsb.topology.partition import NrrdVoxels
 
-        loader = NrrdVoxelLoader(
+        partition = NrrdVoxels(
           mask_value=55,
           mask_source="data/brain_structures.nrrd",
           sources=[
@@ -205,12 +183,11 @@ a name with each column. Data columns can then be indexed as strings:
           keys=["type1", "type2", "type3"],
           voxel_size=25,
         )
-        vs = loader.get_voxelset()
+        vs = partition.get_voxelset()
         # Access data columns as strings
         print(vs.data[:, "type1"])
         # Index multiple columns like this:
         print(vs.data[:, "type1", "type3"])
-        partition = Voxels(voxels=loader)
 
 .. _allen-atlas-integration:
 
@@ -219,14 +196,15 @@ Allen Atlas integration
 
 The `Allen Brain Atlas <https://mouse.brain-map.org/>`_ provides NRRD files and brain
 structure annotations; with the BSB these can be seamlessly integrated into your workflow
-using the :class:`~.voxels.AllenStructureLoader`. In Allen-speak, partitions are
-``Structures``, each structure has an id, name and acronym. The BSB accepts any of those
-identifiers and will load the Allen Atlas data and select the structure for you. You
-can then download any Allen Atlas image as a local NRRD file, and associate it to the
-structure, by specifying it as a source file (through :guilabel:`source` or :guilabel:`sources`).
-The Allen structure will be converted to a voxel mask, and the mask will be applied to your
-source files, thereby selecting the structure from the source files. Each source file will be
-converted into a data column on the voxelset:
+using the :class:`~.topology.partition.AllenStructure`. The Allen Atlas divides the brain
+into a hierarchical tree of ``Structures``: each structure has an id, name, and acronym.
+The BSB accepts any of these identifiers and will load the Allen Atlas data and select the
+structure for you. You can then download any Allen Atlas image as a local NRRD file, and
+associate it to the structure, by specifying it as a source file (through
+:guilabel:`source` or :guilabel:`sources`). The Allen structure will be converted to a
+voxel mask, and the mask will be applied to your source files, thereby selecting the
+structure from the source files. Each source file will be converted into a data column on
+the voxelset:
 
 .. tab-set-code::
 
@@ -235,25 +213,21 @@ converted into a data column on the voxelset:
       {
         "partitions": {
           "my_voxel_partition": {
-            "type": "voxels",
-            "voxels": {
-              "type": "allen",
-              "struct_name": "VAL",
-              "sources": [
-                "data/allen_gene_expression_25.nrrd"
-              ],
-              "keys": ["expression"]
-            }
+            "type": "allen",
+            "struct_name": "VAL",
+            "sources": [
+              "data/allen_gene_expression_25.nrrd"
+            ],
+            "keys": ["expression"]
           }
         }
       }
 
     .. code-block:: python
 
-        from bsb.topology.partition import Voxels
-        from bsb.voxels import AllenStructureLoader
+        from bsb.topology.partition import AllenStructure
 
-        loader = AllenStructureLoader(
+        partition = AllenStructure(
           # Loads the "ventroanterolateral thalamic nucleus" from the
           # ALlen Mouse Brain Atlas
           struct_name="VAL",
@@ -263,5 +237,4 @@ converted into a data column on the voxelset:
           ],
           keys=["expression"],
         )
-        partition = Voxels(voxels=loader)
         print("Gene expression values per voxel:", partition.voxelset.expression)

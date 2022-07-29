@@ -4,16 +4,6 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
 from bsb.core import Scaffold
 from bsb.config import Configuration
-from test_setup import get_test_network
-from bsb.topology import Partition
-
-
-def relative_to_tests_folder(path):
-    return os.path.join(os.path.dirname(__file__), path)
-
-
-_nest_available = importlib.util.find_spec("nest") is not None
-_using_morphologies = True
 
 
 class TestAllToAll(unittest.TestCase):

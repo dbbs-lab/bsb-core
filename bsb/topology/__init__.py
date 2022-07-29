@@ -3,7 +3,7 @@ Topology module
 """
 
 from .region import Region, RegionGroup, Stack
-from .partition import Partition, Layer, Voxels
+from .partition import Partition, Layer, AllenStructure, NrrdVoxels
 from ._layout import box_layout
 import numpy as np
 

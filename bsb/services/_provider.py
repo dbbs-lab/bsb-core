@@ -1,0 +1,24 @@
+from ..exceptions import *
+import importlib
+
+
+class ServiceProvider:
+    pass
+
+
+class ErrorProvider:
+    def __init__(self, message):
+        self._msg = message
+
+    def __getattr__(self, attr):
+        raise DependencyError(self._msg)
+
+
+class MockProvider:
+    def __new__(cls, module):
+        try:
+            instance = importlib.import_module(module)
+        except ImportError:
+            instance = super().__new__(cls)
+            instance._mocked = True
+        return instance

@@ -42,8 +42,10 @@ _t(
             PlacementError=_e(
                 "cell_type", PlacementRelationError=_e("cell_type", "relation")
             ),
+            DistributorError=_e("property", "strategy"),
             RedoError=_e(),
         ),
+        DependencyError=_e(),
         GatewayError=_e(
             AllenApiError=_e(),
         ),
@@ -98,14 +100,16 @@ _t(
             ChunkError=_e(),
             ContinuityError=_e(),
         ),
+        SelectorError=_e(),
         TreeError=_e(),
         VoxelSetError=_e(
             EmptyVoxelSetError=_e(),
         ),
-        ResourceError=_e(
+        StorageError=_e(
             DatasetNotFoundError=_e(
                 IntersectionDataNotFoundError=_e(),
             ),
+            DatasetExistsError=_e(),
             DataNotFoundError=_e(),
             AttributeMissingError=_e(),
             UnknownStorageEngineError=_e(),

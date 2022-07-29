@@ -7,8 +7,8 @@ from bsb import config
 from bsb.config import from_json, Configuration, _attrs
 from bsb.config import types
 from bsb.exceptions import *
-from test_setup import get_config
 from bsb.topology.region import RegionGroup
+from bsb.unittest import get_config
 
 
 def relative_to_tests_folder(path):
@@ -1193,6 +1193,11 @@ class TestListScripting(unittest.TestCase):
         self.list[:] = [{"names": []}] * 3
         item = self.list.pop()
         self.assertList(2)
+
+    def test_clear(self):
+        self.list[:] = [{"names": []}] * 3
+        item = self.list.clear()
+        self.assertList(0)
 
 
 class TestScripting(unittest.TestCase):

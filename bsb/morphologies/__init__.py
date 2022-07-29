@@ -27,6 +27,7 @@ import inspect
 import morphio
 import numpy as np
 from collections import deque
+from pathlib import Path
 from scipy.spatial.transform import Rotation
 from ..voxels import VoxelSet
 from ..exceptions import *
@@ -41,9 +42,15 @@ class MorphologySet:
     """
 
     def __init__(self, loaders, m_indices):
-        self._m_indices = m_indices
+        self._m_indices = np.array(m_indices, copy=False)
         self._loaders = loaders
+        check_max = np.max(m_indices, initial=-1)
+        if check_max >= len(loaders):
+            raise IndexError(f"Index {check_max} out of range for {len(loaders)}.")
         self._cached = {}
+
+    def __contains__(self, value):
+        return value in [l.name for l in self._loaders]
 
     def __len__(self):
         return len(self._m_indices)
@@ -111,19 +118,47 @@ class MorphologySet:
             yield from (self._loaders[idx].get_meta() for idx in self._m_indices)
 
     def _serialize_loaders(self):
-        return [loader.get_meta()["name"] for loader in self._loaders]
+        return [loader.name for loader in self._loaders]
 
     @classmethod
     def empty(cls):
         return cls([], np.empty(0, dtype=int))
 
     def merge(self, other):
-        merge_offset = len(self._loaders)
-        merged_loaders = self._loaders + other._loaders
-        merged_indices = np.concatenate(
-            (self._m_indices, other._m_indices + merge_offset)
-        )
+        merged_loaders = self._loaders.copy()
+        previous_set = set(merged_loaders)
+        if any(loader in previous_set for loader in other._loaders):
+            # There is overlap between the sets, and mapping is required
+            id_map = dict(
+                (i, merged_loaders.index(loader))
+                for i, loader in enumerate(other._loaders)
+                if loader in previous_set
+            )
+            if all(k == v for k, v in id_map.items()):
+                mapped_indices = other._m_indices
+            else:
+
+                def map_ids(id):
+                    mapped_id = id_map.get(id, None)
+                    if mapped_id is None:
+                        mapped_id = id_map[id] = len(merged_loaders)
+                        merged_loaders.append(other._loaders[id])
+                    return mapped_id
+
+                mapped_indices = np.vectorize(map_ids)(other._m_indices)
+            merged_indices = np.concatenate((self._m_indices, mapped_indices))
+        else:
+            # No overlap, we can just offset the new dataset
+            merge_offset = len(self._loaders)
+            merged_loaders = self._loaders + other._loaders
+            merged_indices = np.concatenate(
+                (self._m_indices, other._m_indices + merge_offset)
+            )
         return MorphologySet(merged_loaders, merged_indices)
+
+    @classmethod
+    def empty(cls):
+        return cls([], np.empty(0, int))
 
 
 class RotationSet:
@@ -526,6 +561,15 @@ class Morphology(SubTree):
             for branch in self.branches:
                 branch._on_mutate = self._mutnotif
 
+    def __eq__(self, other):
+        return len(self.branches) == len(other.branches) and all(
+            b1.is_terminal == b2.is_terminal and (not b1.is_terminal or b1 == b2)
+            for b1, b2 in zip(self.branches, other.branches)
+        )
+
+    def __hash__(self):
+        return id(self)
+
     def _check_shared(self):
         if self._shared is None:
             return False
@@ -574,6 +618,14 @@ class Morphology(SubTree):
     def meta(self):
         return self._meta
 
+    @property
+    def labelsets(self):
+        """
+        Return the sets of labels associated to each numerical label.
+        """
+        self.optimize()
+        return self._shared._labels.labels
+
     def copy(self):
         self.optimize(force=False)
         buffers = self._shared.copy()
@@ -592,7 +644,7 @@ class Morphology(SubTree):
         return self.__class__(roots, shared_buffers=buffers, meta=self.meta.copy())
 
     @classmethod
-    def from_swc(cls, file, branch_class=None, tags=None):
+    def from_swc(cls, file, branch_class=None, tags=None, meta=None):
         """
         Create a Morphology from a file-like object.
 
@@ -602,27 +654,27 @@ class Morphology(SubTree):
         :returns: The parsed morphology, with the SWC tags as a property.
         :rtype: bsb.morphologies.Morphology
         """
-        if isinstance(file, str):
-            with open(file, "r") as f:
-                return cls.from_swc(f, branch_class)
+        if isinstance(file, str) or isinstance(file, Path):
+            with open(str(file), "r") as f:
+                return cls.from_swc(f, branch_class, meta=meta)
         if branch_class is None:
             branch_class = Branch
-        return _swc_to_morpho(cls, branch_class, file.read(), tags=tags)
+        return _swc_to_morpho(cls, branch_class, file.read(), tags=tags, meta=meta)
 
     @classmethod
-    def from_file(cls, path, branch_class=None):
+    def from_file(cls, path, branch_class=None, meta=None):
         """
         Create a Morphology from a file on the file system through MorphIO.
         """
         if branch_class is None:
             branch_class = Branch
-        return _import(cls, branch_class, path)
+        return _import(cls, branch_class, path, meta=meta)
 
     @classmethod
-    def from_arbor(cls, arb_m, centering=True, branch_class=None):
+    def from_arbor(cls, arb_m, centering=True, branch_class=None, meta=None):
         if branch_class is None:
             branch_class = Branch
-        return _import_arb(cls, arb_m, centering, branch_class)
+        return _import_arb(cls, arb_m, centering, branch_class, meta=meta)
 
 
 def _copy_api(cls, wrap=lambda self: self):
@@ -665,7 +717,7 @@ class Branch:
         if labels is None:
             labels = _Labels.none(len(points))
         elif not isinstance(labels, _Labels):
-            labels = _Labels.from_seq(len(points), labels)
+            labels = _Labels.from_labelset(len(points), labels)
         self._labels = labels
         if properties is None:
             properties = {}
@@ -698,6 +750,19 @@ class Branch:
     def __bool__(self):
         # Without this, empty branches are False, and messes with parent checking.
         return True
+
+    def __eq__(self, other):
+        if isinstance(other, Branch):
+            return (
+                self.points.shape == other.points.shape
+                and np.allclose(self.points, other.points)
+                and self.labels == other.labels
+            )
+        else:
+            return np.allclose(self.points, other)
+
+    def __hash__(self):
+        return id(self)
 
     @property
     def parent(self):
@@ -737,6 +802,13 @@ class Branch:
         that is associated to a set of labels. See :ref:`morphology_labels` for more info.
         """
         return self._labels
+
+    @property
+    def labelsets(self):
+        """
+        Return the sets of labels associated to each numerical label.
+        """
+        return self._labels.labels
 
     @property
     def is_root(self):
@@ -819,12 +891,11 @@ class Branch:
         :param branch: Child branch
         :type branch: :class:`Branch <.morphologies.Branch>`
         """
+        if branch._parent is not self:
+            raise ValueError(f"Can't detach {branch} from {self}, not a child branch.")
         self._on_mutate()
-        try:
-            self._children.remove(branch)
-            branch._parent = None
-        except ValueError:
-            raise ValueError("Branch could not be detached, it is not a child branch.")
+        self._children = [b for b in self._children if b is not branch]
+        branch._parent = None
 
     def walk(self):
         """
@@ -984,6 +1055,9 @@ class _Labels(np.ndarray):
         if obj is not None:
             self.labels = getattr(obj, "labels", {0: _lset()})
 
+    def __eq__(self, other):
+        return np.allclose(*_Labels._merged_translate((self, other)))
+
     def copy(self, *args, **kwargs):
         cp = super().copy(*args, **kwargs)
         cp.labels = {k: v.copy() for k, v in cp.labels.items()}
@@ -991,24 +1065,34 @@ class _Labels(np.ndarray):
 
     def label(self, labels, points):
         _transitions = {}
+        # A counter that skips existing values.
         counter = (c for c in itertools.count() if c not in self.labels)
 
+        # This local function looks up the new id that a point should transition
+        # to when `labels` are added to the labels it already has.
         def transition(point):
             nonlocal _transitions
+            # Check if we already know the transition of this value.
             if point in _transitions:
                 return _transitions[point]
             else:
+                # First time making this transition. Join the existing and new labels
                 trans_labels = self.labels[point].copy()
                 trans_labels.update(labels)
+                # Check if this new combination of labels already is assigned an id.
                 for k, v in self.labels.items():
                     if trans_labels == v:
+                        # Transition labels already exist, return it
                         return k
                 else:
+                    # Transition labels are a new combination, store them under a new id.
                     transition = next(counter)
                     self.labels[transition] = trans_labels
+                    # Cache the result
                     _transitions[point] = transition
                     return transition
 
+        # Replace the label values with the transition values
         self[points] = np.vectorize(transition)(self[points])
 
     def contains(self, *labels):
@@ -1019,56 +1103,89 @@ class _Labels(np.ndarray):
         return np.isin(self, has_any)
 
     def walk(self):
+        """
+        Iterate over the branch, yielding the labels of each point.
+        """
         for x in self:
             yield self.labels[x].copy()
 
+    def expand(self, label):
+        """
+        Translate a label value into its corresponding labelset.
+        """
+        return self.labels[label].copy()
+
     @classmethod
     def none(cls, len):
+        """
+        Create _Labels without any labelsets.
+        """
         return cls(len, buffer=np.zeros(len, dtype=int))
 
     @classmethod
-    def from_seq(cls, len, seq):
+    def from_labelset(cls, len, labelset):
+        """
+        Create _Labels with all points labelled to the given labelset.
+        """
         return cls(len, buffer=np.ones(len), labels={0: _lset(), 1: _lset(seq)})
+
+    @staticmethod
+    def _get_merged_lookups(arrs):
+        if not arrs:
+            return {0: _lset()}
+        merged = {}
+        new_labelsets = set()
+        to_map_arrs = {}
+        for arr in arrs:
+            for k, l in arr.labels.items():
+                if k not in merged:
+                    # The label spot is available, so take it
+                    merged[k] = l
+                elif merged[k] != l:
+                    # The labelset doesn't match, so this array will have to be mapped,
+                    # and a new spot found for the conflicting labelset.
+                    new_labelsets.add(l)
+                    # np ndarray unhashable, for good reason, so use `id()` for quick hash
+                    to_map_arrs[id(arr)] = arr
+                # else: this labelset matches with the superset's nothing to do
+
+        # Collect new spots for new labelsets
+        counter = (c for c in itertools.count() if c not in merged)
+        lset_map = {}
+        for labelset in new_labelsets:
+            key = next(counter)
+            merged[key] = labelset
+            lset_map[labelset] = key
+
+        return merged, to_map_arrs, lset_map
+
+    def _merged_translate(arrs, lookups=None):
+        if lookups is None:
+            merged, to_map_arrs, lset_map = _Labels._get_merged_lookups(arrs)
+        else:
+            merged, to_map_arrs, lset_map = lookups
+        for arr in arrs:
+            if id(arr) not in to_map_arrs:
+                # None of the label array's labelsets need to be mapped, good as is.
+                block = arr
+            else:
+                # Lookup each labelset, if found, map to new value, otherwise, map to
+                # original value.
+                arrmap = {og: lset_map.get(lset, og) for og, lset in arr.labels.items()}
+                block = np.vectorize(arrmap.get)(arr)
+            yield block
 
     @classmethod
     def concatenate(cls, *label_arrs):
         if not label_arrs:
             return _Labels.none(0)
+        lookups = _Labels._get_merged_lookups(label_arrs)
         total = sum(len(l) for l in label_arrs)
-        collected = {}
-        concat = cls(total, labels=collected)
-        new_labelsets = set()
-        to_map = {}
-        for label_arr in label_arrs:
-            for k, l in label_arr.labels.items():
-                if k not in collected:
-                    # The label spot is available, so take it
-                    collected[k] = l
-                elif collected[k] != l:
-                    # The labelset doesn't match, so this array will have to be mapped,
-                    # and a new spot found for the conflicting labelset.
-                    new_labelsets.add(l)
-                    # np ndarray unhashable, for good reason, so use `id()` for quick hash
-                    to_map[id(label_arr)] = label_arr
-                # else: this labelset matches with the superset's nothing to do
-
-        # Collect new spots for new labelsets
-        counter = (c for c in itertools.count() if c not in collected)
-        lookup = {}
-        for labelset in new_labelsets:
-            key = next(counter)
-            collected[key] = labelset
-            lookup[labelset] = key
-
+        concat = cls(total, labels=lookups[0])
         ptr = 0
-        for label_arr in label_arrs:
-            nptr = ptr + len(label_arr)
-            if id(label_arr) in to_map:
-                block = np.vectorize(
-                    {k: lookup.get(v, k) for k, v in label_arr.labels.items()}.get
-                )(label_arr)
-            else:
-                block = label_arr
+        for block in _Labels._merged_translate(label_arrs, lookups):
+            nptr = ptr + len(block)
+            # Concatenate the translated block
             concat[ptr:nptr] = block
             ptr = nptr
         return concat
@@ -1100,7 +1217,7 @@ def _swc_branch_dfs(adjacency, branches, node):
             node = None
 
 
-def _swc_to_morpho(cls, branch_cls, content, tags=None):
+def _swc_to_morpho(cls, branch_cls, content, tags=None, meta=None):
     tag_map = {1: "soma", 2: "axon", 3: "dendrites"}
     if tags is not None:
         tag_map.update(tags)
@@ -1173,7 +1290,7 @@ def _swc_to_morpho(cls, branch_cls, content, tags=None):
         else:
             roots.append(branch)
     # Then save the shared data matrices on the morphology
-    morpho = cls(roots, shared_buffers=(points, radii, labels, {"tags": tags}))
+    morpho = cls(roots, shared_buffers=(points, radii, labels, {"tags": tags}), meta=meta)
     # And assert that this shared buffer mode succeeded
     assert morpho._check_shared(), "SWC import didn't result in shareable buffers."
     return morpho
@@ -1188,7 +1305,7 @@ class _MorphIoSomaWrapper:
         return getattr(self._o, attr)
 
 
-def _import(cls, branch_cls, file):
+def _import(cls, branch_cls, file, meta=None):
     morpho_io = morphio.Morphology(file)
     # We create shared buffers for the entire morphology, which optimize operations on the
     # entire morphology such as `.flatten`, subtree transformations and IO.  The branches
@@ -1231,12 +1348,12 @@ def _import(cls, branch_cls, file):
                 roots.append(branch)
             children = reversed([(branch, child) for child in section.children])
             section_stack.extend(children)
-    morpho = cls(roots, shared_buffers=(points, radii, labels, {"tags": tags}))
+    morpho = cls(roots, shared_buffers=(points, radii, labels, {"tags": tags}), meta=meta)
     assert morpho._check_shared(), "MorphIO import didn't result in shareable buffers."
     return morpho
 
 
-def _import_arb(cls, arb_m, centering, branch_class):
+def _import_arb(cls, arb_m, centering, branch_class, meta=None):
     import arbor
 
     decor = arbor.decor()
@@ -1280,7 +1397,7 @@ def _import_arb(cls, arb_m, centering, branch_class):
             parent = None
             cable_id = morpho_roots.pop()
 
-    morpho = cls(roots)
+    morpho = cls(roots, meta=meta)
     branches = morpho.branches
     branch_map = {branch._cable_id: branch for branch in branches}
     cc = arbor.cable_cell(arb_m, labels, decor)

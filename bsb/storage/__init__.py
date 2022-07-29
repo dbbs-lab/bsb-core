@@ -17,8 +17,8 @@ from abc import abstractmethod, ABC
 from inspect import isclass
 from ..exceptions import *
 from .. import plugins
+from ..services import MPI
 from ._chunks import Chunk
-import mpi4py.MPI as MPI
 import numpy as np
 
 
@@ -43,11 +43,56 @@ def get_engines():
     """
     Get a dictionary of all available storage engines.
     """
-    return plugins.discover("engines")
+    engines = plugins.discover("engines")
+    for engine_name, engine_module in engines.items():
+        register_engine(engine_name, engine_module)
+    return engines
 
 
-_available_engines = get_engines()
-_engines = {}
+def create_engine(name, root, comm):
+    global _engines
+    if name not in _available_engines:
+        raise UnknownStorageEngineError(f"The storage engine '{name}' was not found.")
+    engine = _engines[name]
+    if callable(engine):
+        # Initializer function found, call it to load the engine.
+        _engines[name] = engine = engine()
+    # Create an engine from the engine's Engine interface.
+    return engine["Engine"](root, comm)
+
+
+def init_engines():
+    global _engines
+    for engine_name, engine in _engines.items():
+        if callable(engine):
+            _engines[engine_name] = engine()
+
+
+def register_engine(engine_name, engine_module):
+    def init_engine():
+        # Create engine without any supported interfaces
+        engine_support = {
+            interface_name: NotSupported(engine_name, interface_name)
+            for interface_name in _storage_interfaces.keys()
+        }
+        engine_support["StorageNode"] = engine_module.StorageNode
+        # Search for interface support
+        for interface_name, interface in _storage_interfaces.items():
+            for module_item in engine_module.__dict__.values():
+                # Look through module items for child class of interface
+                if (
+                    isclass(module_item)
+                    and module_item is not interface
+                    and issubclass(module_item, interface)
+                ):
+                    engine_support[interface_name] = module_item
+                    break
+
+        return engine_support
+
+    # Set the initializer as a stub for the engine. When the engine is first used, the
+    # initializer is called.
+    _engines[engine_name] = init_engine
 
 
 class NotSupported:
@@ -78,47 +123,8 @@ class NotSupported:
         self._unsupported_err()
 
 
-# Go through all available engines to determine which Interfaces are provided and therefor
-# which features are supported.
-for engine_name, engine_module in _available_engines.items():
-    # Construct the default support dictionary where none of the features are supported
-    engine_support = {
-        interface_name: NotSupported(engine_name, interface_name)
-        for interface_name in _storage_interfaces.keys()
-    }
-    # Set this engine's support to the default no support dictionary
-    _engines[engine_name] = engine_support
-    # Iterate over each interface that we'd like to find support for.
-    for interface_name, interface in _storage_interfaces.items():
-        # Iterate over all elements in the engine_module to find elements that provide
-        # support for this feature
-        for module_item in engine_module.__dict__.values():
-            # Is it a class, not the interface itself, and a subclass of the interface?
-            if (
-                isclass(module_item)
-                and module_item is not interface
-                and issubclass(module_item, interface)
-            ):
-                # Then it is an implementation of the feature described by the interface.
-                # Add it to the support dictionary.
-                engine_support[interface_name] = module_item
-                # Don't look any further through the module for this feature.
-                break
-
-
-def _on_master(f):
-    @functools.wraps(f)
-    def master_deco(self, *args, _bcast=True, **kwargs):
-        if self.is_master():
-            r = f(self, *args, **kwargs)
-        else:
-            r = None
-        if _bcast:
-            return self._comm.bcast(r, root=self._master)
-        else:
-            return r
-
-    return master_deco
+_engines = {}
+_available_engines = get_engines()
 
 
 class Storage:
@@ -127,7 +133,7 @@ class Storage:
     underlying engine.
     """
 
-    def __init__(self, engine, root, comm=None, master=0, missing_ok=True):
+    def __init__(self, engine, root, comm=None, main=0, missing_ok=True):
         """
         Create a Storage provider based on a specific `engine` uniquely identified
         by the root object.
@@ -140,27 +146,22 @@ class Storage:
         :type root: object
         :param comm: MPI communicator that shares control over this Storage.
         :type comm: mpi4py.MPI.Comm
-        :param master: Rank of the MPI process that executes single-node tasks.
+        :param main: Rank of the MPI process that executes single-node tasks.
         """
-        if engine not in _available_engines:
-            raise UnknownStorageEngineError(
-                "The storage engine '{}' was not found.".format(engine)
-            )
-        # All engines should provide an Engine interface implementation, which we will use
-        # to shim basic functionalities, and to pass on to features we produce.
-        self._engine = _engines[engine]["Engine"](root)
+        self._comm = comm or MPI
+        self._engine = create_engine(engine, root, self._comm)
         self._features = [
             fname for fname, supported in view_support()[engine].items() if supported
         ]
         self._engine._format = engine
-        self._root = root
-        self._comm = comm or MPI.COMM_WORLD
-        self._master = master
+        self._main = main
 
         # Load the engine's interface onto the object, this allows the end user to create
         # features, but it is not advised. Usually the Storage object
         # itself provides factory methods that should be used instead.
         for name, interface in _engines[engine].items():
+            if name == "StorageNode":
+                continue
             self.__dict__["_" + name] = interface
             # Interfaces can define an autobinding key so that singletons are available
             # on the engine under that key.
@@ -185,8 +186,8 @@ class Storage:
     def preexisted(self):
         return self._preexisted
 
-    def is_master(self):
-        return self._comm.Get_rank() == self._master
+    def is_main_process(self):
+        return self._comm.Get_rank() == self._main
 
     @property
     def morphologies(self):
@@ -198,7 +199,7 @@ class Storage:
 
     @property
     def root(self):
-        return self._root
+        return self._engine.root
 
     @property
     def root_slug(self):
@@ -214,7 +215,6 @@ class Storage:
         """
         return self._engine.exists()
 
-    @_on_master
     def create(self):
         """
         Create the minimal requirements at the root for other features to function and
@@ -222,16 +222,18 @@ class Storage:
         """
         return self._engine.create()
 
+    def copy(self, new_root):
+        """
+        Move the storage to a new root.
+        """
+        self._engine.copy(new_root)
+
     def move(self, new_root):
         """
         Move the storage to a new root.
         """
-        if self.is_master():
-            self._engine.move(new_root)
-        self._comm.Barrier()
-        self._root = new_root
+        self._engine.move(new_root)
 
-    @_on_master
     def remove(self):
         """
         Remove the storage and all data contained within. This is an irreversible
@@ -257,7 +259,6 @@ class Storage:
         """
         return self._engine.files.load_active_config()
 
-    @_on_master
     def store_active_config(self, config):
         """
         Store a configuration object in the storage.
@@ -289,6 +290,16 @@ class Storage:
         if chunks is not None:
             ps.set_chunks(chunks)
         return ps
+
+    def require_placement_set(self, cell_type):
+        """
+        Get a placement set.
+
+        :param cell_type: Connection cell_type
+        :type cell_type: ~bsb.cell_types.CellType
+        :returns: ~bsb.storage.interfaces.PlacementSet
+        """
+        return self._PlacementSet.require(self._engine, cell_type)
 
     def get_connectivity_set(self, tag):
         """
@@ -323,43 +334,44 @@ class Storage:
             for tag in self._ConnectivitySet.get_tags(self._engine)
         ]
 
-    @_on_master
     def init(self, scaffold):
         """
         Initialize the storage to be ready for use by the specified scaffold.
         """
-        self.store_active_config(scaffold.configuration, _bcast=False)
-        self.init_placement(scaffold, _bcast=False)
+        self.store_active_config(scaffold.configuration)
+        self.init_placement(scaffold)
 
-    @_on_master
     def init_placement(self, scaffold):
         for cell_type in scaffold.get_cell_types():
-            self._PlacementSet.require(self._engine, cell_type)
+            self.require_placement_set(cell_type)
 
-    @_on_master
     def renew(self, scaffold):
         """
         Remove and recreate an empty storage container for a scaffold.
         """
-        self.remove(_bcast=False)
-        self.create(_bcast=False)
-        self.init(scaffold, _bcast=False)
+        self.remove()
+        self.create()
+        self.init(scaffold)
 
-    @_on_master
     def clear_placement(self, scaffold=None):
         self._engine.clear_placement()
         if scaffold is not None:
-            self.init_placement(scaffold, _bcast=False)
+            self.init_placement(scaffold)
 
-    @_on_master
     def clear_connectivity(self):
         self._engine.clear_connectivity()
+
+
+def get_engine_node(engine):
+    init_engines()
+    return _engines[engine]["StorageNode"]
 
 
 def view_support(engine=None):
     """
     Return which storage engines support which features.
     """
+    init_engines()
     if engine is None:
         return {
             # Loop over all enginges

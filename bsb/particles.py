@@ -1,7 +1,6 @@
 import numpy as np
 from sklearn.neighbors import KDTree
 from rtree import index
-from random import choice
 from .reporting import report
 
 try:

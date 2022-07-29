@@ -40,21 +40,8 @@ Example of a Python class for labeling neurons.
 
 .. code-block:: python
 
-  from bsb.helpers import ConfigurableClass
+  from bsb.postprocessing import PostProcessingHook
 
-  class PostProcessingHook(ConfigurableClass):
-      def validate(self):
-          pass
-
-      def after_placement(self):
-          raise NotImplementedError(
-              "`after_placement` hook not defined on " + self.__class__.__name__
-          )
-
-      def after_connectivity(self):
-          raise NotImplementedError(
-              "`after_connectivity` hook not defined on " + self.__class__.__name__
-          )
 
   class LabelCellA(PostProcessingHook):
       ''' Subdivide the cell_A population into 2 subpopulations '''
