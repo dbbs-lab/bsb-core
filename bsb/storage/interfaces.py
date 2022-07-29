@@ -94,6 +94,13 @@ class Engine(Interface):
         pass
 
     @abc.abstractmethod
+    def copy(self, new_root):
+        """
+        :guilabel:`collective` Must copy the storage object to the new root.
+        """
+        pass
+
+    @abc.abstractmethod
     def remove(self):
         """
         :guilabel:`collective` Must remove the storage object.
@@ -250,7 +257,7 @@ class PlacementSet(Interface):
         pass
 
     @abc.abstractstaticmethod
-    def exists(self, engine, cell_type):
+    def exists(engine, cell_type):
         """
         Check existence of a placement set.
 
@@ -618,6 +625,12 @@ class StoredMorphology:
         self.name = name
         self._loader = loader
         self._meta = meta
+
+    def __eq__(self, other):
+        return self.name == other.name
+
+    def __hash__(self):
+        return hash(self.name)
 
     def get_meta(self):
         return self._meta.copy()

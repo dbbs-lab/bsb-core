@@ -3,6 +3,7 @@ from ..exceptions import *
 from ..reporting import report, warn
 from ..config import refs, types
 from .._util import SortableByAfter
+from ..voxels import VoxelSet
 from ..morphologies import MorphologySet
 from ..storage import Chunk
 from .indicator import PlacementIndications, PlacementIndicator
@@ -135,15 +136,34 @@ class PlacementStrategy(abc.ABC, SortableByAfter):
 
 @config.node
 class FixedPositions(PlacementStrategy):
-    positions = config.attr(type=np.array)
+    positions = config.attr(type=types.ndarray())
 
     def place(self, chunk, indicators):
-        for indicator in indicators:
+        if self.positions is None:
+            raise ValueError(
+                f"Please set `.positions` on '{self.name}' before placement."
+            )
+        for indicator in indicators.values():
             ct = indicator.cell_type
-            self.place_cells(ct, indicator, self.positions, chunk)
+            inside_chunk = VoxelSet([chunk], chunk.dimensions).inside(self.positions)
+            self.place_cells(indicator, self.positions[inside_chunk], chunk)
 
     def guess_cell_count(self):
+        if self.positions is None:
+            raise ValueError(f"Please set `.positions` on '{self.name}'.")
         return len(self.positions)
+
+    def queue(self, pool, chunk_size):
+        if self.positions is None:
+            raise ValueError(f"Please set `.positions` on '{self.name}'.")
+        # Reset jobs that we own
+        self._queued_jobs = []
+        # Get the queued jobs of all the strategies we depend on.
+        deps = set(itertools.chain(*(strat._queued_jobs for strat in self.get_after())))
+        for chunk in VoxelSet.fill(self.positions, chunk_size):
+            job = pool.queue_placement(self, Chunk(chunk, chunk_size), deps=deps)
+            self._queued_jobs.append(job)
+        report(f"Queued {len(self._queued_jobs)} jobs for {self.name}", level=2)
 
 
 class Entities(PlacementStrategy):

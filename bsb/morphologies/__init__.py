@@ -49,6 +49,9 @@ class MorphologySet:
             raise IndexError(f"Index {check_max} out of range for {len(loaders)}.")
         self._cached = {}
 
+    def __contains__(self, value):
+        return value in [l.name for l in self._loaders]
+
     def __len__(self):
         return len(self._m_indices)
 
@@ -122,11 +125,35 @@ class MorphologySet:
         return cls([], np.empty(0, dtype=int))
 
     def merge(self, other):
-        merge_offset = len(self._loaders)
-        merged_loaders = self._loaders + other._loaders
-        merged_indices = np.concatenate(
-            (self._m_indices, other._m_indices + merge_offset)
-        )
+        merged_loaders = self._loaders.copy()
+        previous_set = set(merged_loaders)
+        if any(loader in previous_set for loader in other._loaders):
+            # There is overlap between the sets, and mapping is required
+            id_map = dict(
+                (i, merged_loaders.index(loader))
+                for i, loader in enumerate(other._loaders)
+                if loader in previous_set
+            )
+            if all(k == v for k, v in id_map.items()):
+                mapped_indices = other._m_indices
+            else:
+
+                def map_ids(id):
+                    mapped_id = id_map.get(id, None)
+                    if mapped_id is None:
+                        mapped_id = id_map[id] = len(merged_loaders)
+                        merged_loaders.append(other._loaders[id])
+                    return mapped_id
+
+                mapped_indices = np.vectorize(map_ids)(other._m_indices)
+            merged_indices = np.concatenate((self._m_indices, mapped_indices))
+        else:
+            # No overlap, we can just offset the new dataset
+            merge_offset = len(self._loaders)
+            merged_loaders = self._loaders + other._loaders
+            merged_indices = np.concatenate(
+                (self._m_indices, other._m_indices + merge_offset)
+            )
         return MorphologySet(merged_loaders, merged_indices)
 
     @classmethod

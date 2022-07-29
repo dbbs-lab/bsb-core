@@ -494,6 +494,17 @@ class VoxelSet:
     def crop_chunk(self, chunk):
         return self.crop(chunk.ldc, chunk.mdc)
 
+    @classmethod
+    def fill(cls, positions, grid_size):
+        return cls(positions, 0, irregular=True).snap_to_grid(grid_size, unique=True)
+
+    def inside(self, positions):
+        mask = np.zeros(len(positions), dtype=bool)
+        ldc, mdc = self._box_bounds()
+        for voxel in zip(ldc, mdc):
+            mask |= np.all((positions > ldc) & (positions < mdc), axis=1)
+        return mask
+
     def unique(self):
         raise NotImplementedError("and another one")
 
@@ -516,7 +527,7 @@ class VoxelSet:
     def _boxes_cache(self):
         return self._boxes()
 
-    def _boxes(self):
+    def _box_bounds(self):
         base = self.as_spatial_coords(copy=False)
         sizes = self.get_size(copy=False)
         shifted = base + sizes
@@ -527,7 +538,10 @@ class VoxelSet:
         else:
             ldc = base
             mdc = shifted
-        return np.column_stack((ldc, mdc))
+        return ldc, mdc
+
+    def _boxes(self):
+        return np.column_stack(self._box_bounds())
 
     @classmethod
     def from_morphology(cls, morphology, estimate_n, with_data=True):

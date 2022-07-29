@@ -12,7 +12,7 @@ from bsb.exceptions import *
 from bsb.storage import Chunk
 from bsb.placement import PlacementStrategy, RandomPlacement
 from bsb.services.pool import JobPool, FakeFuture, create_job_pool
-from bsb.unittest import get_config, timeout
+from bsb.unittest import get_config, timeout, RandomStorageFixture, NumpyTestCase
 from time import sleep
 
 
@@ -211,11 +211,11 @@ class TestSerialScheduler(unittest.TestCase, SchedulerBaseTest):
     pass
 
 
-class TestPlacementStrategies(unittest.TestCase):
+class TestPlacementStrategies(RandomStorageFixture, NumpyTestCase, unittest.TestCase):
     def test_random_placement(self):
         cfg = from_json(get_config("test_single.json"))
-        cfg.storage.root = "random_placement.hdf5"
-        network = Scaffold(cfg)
+        storage = self.random_storage(engine="hdf5")
+        network = Scaffold(cfg, storage)
         cfg.placement["test_placement"] = dict(
             strategy="bsb.placement.RandomPlacement",
             cell_types=["test_cell"],
@@ -224,6 +224,36 @@ class TestPlacementStrategies(unittest.TestCase):
         network.compile(clear=True)
         ps = network.get_placement_set("test_cell")
         self.assertEqual(40, len(ps), "fixed count random placement broken")
+
+    def test_fixed_pos(self):
+        storage = self.random_storage(engine="hdf5")
+        cfg = Configuration.default(
+            cell_types=dict(test_cell=dict(spatial=dict(radius=2, count=100))),
+            placement=dict(
+                ch4_c25=dict(
+                    strategy="bsb.placement.strategy.FixedPositions",
+                    partitions=[],
+                    cell_types=["test_cell"],
+                )
+            ),
+        )
+        cs = cfg.network.chunk_size
+        c4 = [
+            Chunk((0, 0, 0), cs),
+            Chunk((0, 0, 1), cs),
+            Chunk((1, 0, 0), cs),
+            Chunk((1, 0, 1), cs),
+        ]
+        cfg.placement.ch4_c25.positions = pos = MPI.bcast(
+            np.vstack((c * cs + np.random.random((25, 3)) * cs for c in c4))
+        )
+        network = Scaffold(cfg, storage)
+        network.compile()
+        ps = network.get_placement_set("test_cell")
+        pos_sort = pos[np.argsort(pos[:, 0])]
+        pspos = ps.load_positions()
+        pspos_sort = pspos[np.argsort(pspos[:, 0])]
+        self.assertClose(pos_sort, pspos_sort, "expected fixed positions")
 
 
 class TestVoxelDensities(unittest.TestCase):
