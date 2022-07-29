@@ -27,7 +27,7 @@ Morphologies can be stored in :class:`MorphologyRepositories
 
 
 Importing
----------
+=========
 
 ASC or SWC files can be imported into a morphology repository:
 
@@ -45,7 +45,7 @@ morphologies:
   :language: python
 
 Constructing morphologies
--------------------------
+=========================
 
 Create your branches, attach them in a parent-child relationship, and provide the roots to
 the :class:`~.morphologies.Morphology` constructor:
@@ -77,7 +77,7 @@ the :class:`~.morphologies.Morphology` constructor:
   m = Morphology([root])
 
 Basic use
----------
+=========
 
 Morphologies and branches contain spatial data in the ``points`` and ``radii`` attributes.
 Points can be individually labelled with arbitrary strings, and additional properties for
@@ -330,10 +330,10 @@ Calls to any of the above functions can be chained together:
   dendrites.close_gaps().center().rotate(r)
 
 Advanced features
------------------
+=================
 
 Morphology preloading
-=====================
+---------------------
 
 Reading the morphology data from the repository takes time. Usually morphologies are
 passed around in the framework as :class:`StoredMorphologies
@@ -343,7 +343,7 @@ passed around in the framework as :class:`StoredMorphologies
 :meth:`~.storage.interfaces.StoredMorphology.get_meta` method to return the metadata.
 
 Morphology selectors
-====================
+--------------------
 
 The most common way of telling the framework which morphologies to use is through
 :class:`MorphologySelectors <.morphologies.selector.MorphologySelector>`. Currently you
@@ -408,7 +408,7 @@ to determine the outcome from the metadata alone.
   }
 
 Morphology metadata
-===================
+-------------------
 
 Currently unspecified, up to the Storage and MorphologyRepository support to return a
 dictionary of available metadata from
@@ -416,7 +416,7 @@ dictionary of available metadata from
 
 
 Morphology distributors
-=======================
+-----------------------
 
 A :class:`~.placement.distributor.MorphologyDistributor` is a special type of
 :class:`~.placement.distributor.Distributor` that is called after positions have been
@@ -434,7 +434,7 @@ a :class:`~.morphologies.RotationSet`.
 
 
 MorphologySets
-==============
+--------------
 
 :class:`MorphologySets <.morphologies.MorphologySet>` are the result of
 :class:`distributors <.placement.distributor.MorphologyDistributor>` assigning morphologies
