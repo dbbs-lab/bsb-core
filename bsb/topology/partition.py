@@ -26,8 +26,9 @@ def _size_requirements(section):
         )
 
 
-class _prop(property):
-    pass
+class _backref_property(property):
+    def __backref__(self, instance, value):
+        setattr(instance, "_region", value)
 
 
 @config.dynamic(
@@ -40,12 +41,9 @@ class _prop(property):
 class Partition(abc.ABC):
     name = config.attr(key=True)
 
-    # Hmm uh ... why does `class _prop(property)` exist? Is this needed?
-    @_prop
+    @_backref_property
     def region(self):
         return self._region
-
-    region.__backref__ = lambda self, value: setattr(self, "_region", value)
 
     @property
     def data(self):
