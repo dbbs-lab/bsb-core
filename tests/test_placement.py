@@ -221,8 +221,8 @@ class TestPlacementStrategies(RandomStorageFixture, NumpyTestCase, unittest.Test
             cell_types=["test_cell"],
             partitions=["test_layer"],
         )
-        self.network.compile(clear=True)
-        ps = self.network.get_placement_set("test_cell")
+        network.compile(clear=True)
+        ps = network.get_placement_set("test_cell")
         self.assertEqual(40, len(ps), "fixed count random placement broken")
 
     def test_fixed_pos(self):
@@ -269,6 +269,9 @@ class TestPlacementStrategies(RandomStorageFixture, NumpyTestCase, unittest.Test
         network.compile(clear=True)
         ps = network.get_placement_set("test_cell")
         self.assertEqual(39, len(ps), "fixed count parallel array placement broken")
+        pos = ps.load_positions()
+        self.assertAll(pos[:, 1] <= cfg.partitions.test_layer.data.mdc[1], "not in layer")
+        self.assertAll(pos[:, 1] >= cfg.partitions.test_layer.data.ldc[1], "not in layer")
 
 
 class TestVoxelDensities(unittest.TestCase):
