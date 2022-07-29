@@ -506,6 +506,32 @@ class TestVoxelSet(bsb.unittest.NumpyTestCase, unittest.TestCase):
         p = VoxelSet.concatenate(vs1, vs2)
         self.assertEqual((6, 2), p._data.shape, "Labelled cols should go seperately")
 
+    def test_volume(self):
+        for subtype, results in {
+            "regulars": [2**3 * 3, 2**3 * 3, 2**2 * 3, 1 * 3],
+            "irregulars": [1 * 3, 1 * 3, 3.5 * 3, 3.5 * 3],
+            "unequals": [1 + 8 + 105, 1 + 8 + 105, 3],
+            "zero_sized": [0, 0, 0 + 8 + 105],
+            "dupes": [3, 0, 0 + 8 + 105],
+        }.items():
+            data = getattr(self, subtype)
+            with self.subTest(type=subtype):
+                self.assertEqual(results, [vs.volume for vs in data], "volume fail")
+        self.assertEqual(0, self.empty.volume, "empty voxelset nonzero volume")
+
+    def test_equilateral(self):
+        for subtype, results in {
+            "regulars": [True, True, False, True],
+            "irregulars": [True, True, False, False],
+            "unequals": [False, False, True],
+            "zero_sized": [True, True, False],
+            "dupes": [True, True, False],
+        }.items():
+            data = getattr(self, subtype)
+            with self.subTest(type=subtype):
+                self.assertEqual(results, [vs.equilateral for vs in data], "equi-cy fail")
+        self.assertFalse(self.empty.equilateral, "empty vs should not be equilateral")
+
 
 class TestVoxelData(unittest.TestCase):
     def test_ctor(self):
