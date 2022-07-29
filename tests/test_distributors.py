@@ -12,6 +12,7 @@ from bsb.unittest import skip_parallel
 
 
 class TestMorphologyDistributor(unittest.TestCase):
+    @skip_parallel("Errors during parallel jobs cause MPI_Abort, untestable scenario")
     def test_empty_selection(self):
         cfg = Configuration.default(
             regions=dict(reg=dict(children=["a"])),
