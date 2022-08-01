@@ -42,11 +42,8 @@ class MorphologySet:
     """
 
     def __init__(self, loaders, m_indices):
-        self._m_indices = np.array(m_indices, copy=False)
+        self._m_indices = m_indices
         self._loaders = loaders
-        check_max = np.max(m_indices, initial=-1)
-        if check_max >= len(loaders):
-            raise IndexError(f"Index {check_max} out of range for {len(loaders)}.")
         self._cached = {}
 
     def __contains__(self, value):
@@ -118,7 +115,7 @@ class MorphologySet:
             yield from (self._loaders[idx].get_meta() for idx in self._m_indices)
 
     def _serialize_loaders(self):
-        return [loader.name for loader in self._loaders]
+        return [loader.get_meta()["name"] for loader in self._loaders]
 
     @classmethod
     def empty(cls):
@@ -155,10 +152,6 @@ class MorphologySet:
                 (self._m_indices, other._m_indices + merge_offset)
             )
         return MorphologySet(merged_loaders, merged_indices)
-
-    @classmethod
-    def empty(cls):
-        return cls([], np.empty(0, int))
 
 
 class RotationSet:
@@ -569,15 +562,6 @@ class Morphology(SubTree):
             for branch in self.branches:
                 branch._on_mutate = self._mutnotif
 
-    def __eq__(self, other):
-        return len(self.branches) == len(other.branches) and all(
-            b1.is_terminal == b2.is_terminal and (not b1.is_terminal or b1 == b2)
-            for b1, b2 in zip(self.branches, other.branches)
-        )
-
-    def __hash__(self):
-        return id(self)
-
     def _check_shared(self):
         if self._shared is None:
             return False
@@ -625,14 +609,6 @@ class Morphology(SubTree):
     @property
     def meta(self):
         return self._meta
-
-    @property
-    def labelsets(self):
-        """
-        Return the sets of labels associated to each numerical label.
-        """
-        self.optimize()
-        return self._shared._labels.labels
 
     def copy(self):
         self.optimize(force=False)
@@ -683,6 +659,31 @@ class Morphology(SubTree):
         if branch_class is None:
             branch_class = Branch
         return _import_arb(cls, arb_m, centering, branch_class, meta=meta)
+
+    def to_swc(self, file, meta=None):
+        """
+        Create a SWC file from a Morphology.
+        :param file: path or file-like object to parse.
+        :param branch_class: Custom branch class
+        """
+        file_data = _morpho_to_swc(self)
+        if meta:
+            raise NotImplementedError(
+                "Can't store morpho header yet, require special handling in morphologies/__init__.py, todo"
+            )
+
+        if isinstance(file, str) or isinstance(file, Path):
+            np.savetxt(
+                file,
+                file_data,
+                fmt=f"%d %d %f %f %f %f %d",
+                delimiter="\t",
+                newline="\n",
+                header="",
+                footer="",
+                comments="# ",
+                encoding=None,
+            )
 
 
 def _copy_api(cls, wrap=lambda self: self):
@@ -758,19 +759,6 @@ class Branch:
     def __bool__(self):
         # Without this, empty branches are False, and messes with parent checking.
         return True
-
-    def __eq__(self, other):
-        if isinstance(other, Branch):
-            return (
-                self.points.shape == other.points.shape
-                and np.allclose(self.points, other.points)
-                and self.labels == other.labels
-            )
-        else:
-            return np.allclose(self.points, other)
-
-    def __hash__(self):
-        return id(self)
 
     @property
     def parent(self):
@@ -899,7 +887,7 @@ class Branch:
             log_p = np.log(path)
             if len(self.points) <= 2:
                 return 1.0
-            return np.corrcoef(log_e, log_p)[0][1] * (np.std(log_p) / np.std(log_e))
+            return np.polyfit(log_e, log_p, 1)[0]
         except IndexError:
             raise EmptyBranchError("Empty branch has no fractal dimension") from None
 
@@ -1006,11 +994,12 @@ class Branch:
         :param branch: Child branch
         :type branch: :class:`Branch <.morphologies.Branch>`
         """
-        if branch._parent is not self:
-            raise ValueError(f"Can't detach {branch} from {self}, not a child branch.")
         self._on_mutate()
-        self._children = [b for b in self._children if b is not branch]
-        branch._parent = None
+        try:
+            self._children.remove(branch)
+            branch._parent = None
+        except ValueError:
+            raise ValueError("Branch could not be detached, it is not a child branch.")
 
     def walk(self):
         """
@@ -1170,9 +1159,6 @@ class _Labels(np.ndarray):
         if obj is not None:
             self.labels = getattr(obj, "labels", {0: _lset()})
 
-    def __eq__(self, other):
-        return np.allclose(*_Labels._merged_translate((self, other)))
-
     def copy(self, *args, **kwargs):
         cp = super().copy(*args, **kwargs)
         cp.labels = {k: v.copy() for k, v in cp.labels.items()}
@@ -1244,63 +1230,45 @@ class _Labels(np.ndarray):
         """
         return cls(len, buffer=np.ones(len), labels={0: _lset(), 1: _lset(seq)})
 
-    @staticmethod
-    def _get_merged_lookups(arrs):
-        if not arrs:
-            return {0: _lset()}
-        merged = {}
-        new_labelsets = set()
-        to_map_arrs = {}
-        for arr in arrs:
-            for k, l in arr.labels.items():
-                if k not in merged:
-                    # The label spot is available, so take it
-                    merged[k] = l
-                elif merged[k] != l:
-                    # The labelset doesn't match, so this array will have to be mapped,
-                    # and a new spot found for the conflicting labelset.
-                    new_labelsets.add(l)
-                    # np ndarray unhashable, for good reason, so use `id()` for quick hash
-                    to_map_arrs[id(arr)] = arr
-                # else: this labelset matches with the superset's nothing to do
-
-        # Collect new spots for new labelsets
-        counter = (c for c in itertools.count() if c not in merged)
-        lset_map = {}
-        for labelset in new_labelsets:
-            key = next(counter)
-            merged[key] = labelset
-            lset_map[labelset] = key
-
-        return merged, to_map_arrs, lset_map
-
-    def _merged_translate(arrs, lookups=None):
-        if lookups is None:
-            merged, to_map_arrs, lset_map = _Labels._get_merged_lookups(arrs)
-        else:
-            merged, to_map_arrs, lset_map = lookups
-        for arr in arrs:
-            if id(arr) not in to_map_arrs:
-                # None of the label array's labelsets need to be mapped, good as is.
-                block = arr
-            else:
-                # Lookup each labelset, if found, map to new value, otherwise, map to
-                # original value.
-                arrmap = {og: lset_map.get(lset, og) for og, lset in arr.labels.items()}
-                block = np.vectorize(arrmap.get)(arr)
-            yield block
-
     @classmethod
     def concatenate(cls, *label_arrs):
         if not label_arrs:
             return _Labels.none(0)
-        lookups = _Labels._get_merged_lookups(label_arrs)
         total = sum(len(l) for l in label_arrs)
-        concat = cls(total, labels=lookups[0])
+        collected = {}
+        concat = cls(total, labels=collected)
+        new_labelsets = set()
+        to_map = {}
+        for label_arr in label_arrs:
+            for k, l in label_arr.labels.items():
+                if k not in collected:
+                    # The label spot is available, so take it
+                    collected[k] = l
+                elif collected[k] != l:
+                    # The labelset doesn't match, so this array will have to be mapped,
+                    # and a new spot found for the conflicting labelset.
+                    new_labelsets.add(l)
+                    # np ndarray unhashable, for good reason, so use `id()` for quick hash
+                    to_map[id(label_arr)] = label_arr
+                # else: this labelset matches with the superset's nothing to do
+
+        # Collect new spots for new labelsets
+        counter = (c for c in itertools.count() if c not in collected)
+        lookup = {}
+        for labelset in new_labelsets:
+            key = next(counter)
+            collected[key] = labelset
+            lookup[labelset] = key
+
         ptr = 0
-        for block in _Labels._merged_translate(label_arrs, lookups):
-            nptr = ptr + len(block)
-            # Concatenate the translated block
+        for label_arr in label_arrs:
+            nptr = ptr + len(label_arr)
+            if id(label_arr) in to_map:
+                block = np.vectorize(
+                    {k: lookup.get(v, k) for k, v in label_arr.labels.items()}.get
+                )(label_arr)
+            else:
+                block = label_arr
             concat[ptr:nptr] = block
             ptr = nptr
         return concat
@@ -1409,6 +1377,40 @@ def _swc_to_morpho(cls, branch_cls, content, tags=None, meta=None):
     # And assert that this shared buffer mode succeeded
     assert morpho._check_shared(), "SWC import didn't result in shareable buffers."
     return morpho
+
+
+def _morpho_to_swc(morpho):
+    # Initialize an empty data array
+    data = np.empty((len(morpho.points), 7), dtype=object)
+    bmap = {}
+    nid = 0
+    # Iterate over the morphology branches
+    for b in morpho.branches:
+        ids = (
+            np.arange(nid, nid + len(b) - 1)
+            if len(b) > 1
+            else np.arange(nid, nid + len(b))
+        )
+        if len(b.labelsets.keys()) > 4:
+            # Standard labels are 0,1,2,3
+            raise NotImplementedError(
+                "Can't store custom labelled nodes yet, require special handling in morphologies/__init__.py, todo"
+            )
+        samples = ids + 1
+        data[ids, 0] = samples
+        data[ids, 1] = b.labels[1:] if len(b) > 1 else b.labels
+        data[ids, 2:5] = b.points[1:] if len(b) > 1 else b.points
+        try:
+            data[ids, 5] = b.radii[1:] if len(b) > 1 else b.radii
+        except Exception as e:
+            print(e)
+            raise MorphologyDataError("SWC files cannot store multi-dimensional radii")
+        nid += len(b) - 1 if len(b) > 1 else len(b)
+        bmap[b] = ids[-1]
+        data[ids, 6] = ids
+        data[ids[0], 6] = -1 if b.parent is None else bmap[b.parent] + 1
+
+    return data[data != np.array(None)].reshape(-1, 7)
 
 
 # Wrapper to append our own attributes to morphio somas and treat it like any other branch
