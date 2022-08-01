@@ -320,7 +320,14 @@ class TestMorphometry(NumpyTestCase, unittest.TestCase):
         self.branches = m.branches
 
     def test_empty_branch(self):
-        for attr in ("euclidean_dist", "path_dist"):
+        for attr in (
+            "euclidean_dist",
+            "path_dist",
+            "vector",
+            "versor",
+            "start",
+            "max_displacement",
+        ):
             with self.subTest(attr=attr):
                 with self.assertRaises(EmptyBranchError):
                     getattr(self.b0, attr)
