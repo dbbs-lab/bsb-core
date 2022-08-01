@@ -337,8 +337,8 @@ class TestMorphometry(NumpyTestCase, unittest.TestCase):
 
     def test_known_len(self):
         print(f"Segments: {self.b3.segments}")
-        self.assertEqual(self.b3.path_dist, 12)
-        self.assertEqual(self.b3.euclidean_dist, 6)
+        self.assertClose(self.b3.path_dist, 12)
+        self.assertClose(self.b3.euclidean_dist, 6)
 
     def test_adjacency(self):
         self.assertEqual(len(self.branches[0].children), 2)
