@@ -1,14 +1,25 @@
 from .parallel import *
-from ..storage import Storage, get_engine_node
+from ..storage import (
+    Storage as _Storage,
+    get_engine_node as _get_engine_node,
+    Chunk as _Chunk,
+)
+from ..config import Configuration as _Configuration
 import numpy as _np
-import glob
-import os
+import glob as _glob
+import os as _os
 
 
 class RandomStorageFixture:
-    def __init_subclass__(cls, **kwargs):
+    def __init_subclass__(cls, root_factory=None, *, engine_name, **kwargs):
         super().__init_subclass__(**kwargs)
+        cls._engine = engine_name
+        cls._rootf = root_factory
         cls._open_storages = []
+
+    def setUp(self):
+        super().setUp()
+        self.storage = self.random_storage()
 
     @classmethod
     def tearDownClass(cls):
@@ -16,15 +27,48 @@ class RandomStorageFixture:
         for s in cls._open_storages:
             s.remove()
 
-    def random_storage(self, root_factory=None, engine="hdf5"):
-        if root_factory is not None:
-            rstr = root_factory()
+    @classmethod
+    def random_storage(cls):
+        if cls._rootf is not None:
+            rstr = cls._rootf()
         else:
             # Get the engine's storage node default value, assuming it is random
-            rstr = get_engine_node(engine)(engine=engine).root
-        s = Storage(engine, rstr)
-        self.__class__._open_storages.append(s)
+            rstr = _get_engine_node(cls._engine)(engine=cls._engine).root
+        s = _Storage(cls._engine, rstr)
+        cls._open_storages.append(s)
         return s
+
+
+class FixedPosConfigFixture:
+    def setUp(self):
+        super().setUp()
+        self.cfg = _Configuration.default(
+            cell_types=dict(test_cell=dict(spatial=dict(radius=2, count=100))),
+            placement=dict(
+                ch4_c25=dict(
+                    strategy="bsb.placement.strategy.FixedPositions",
+                    partitions=[],
+                    cell_types=["test_cell"],
+                )
+            ),
+        )
+        self.chunk_size = cs = self.cfg.network.chunk_size
+        self.chunks = [
+            _Chunk((0, 0, 0), cs),
+            _Chunk((0, 0, 1), cs),
+            _Chunk((1, 0, 0), cs),
+            _Chunk((1, 0, 1), cs),
+        ]
+        self.cfg.placement.ch4_c25.positions = MPI.bcast(
+            _np.vstack(
+                (
+                    _np.random.random((25, 3)) * cs + [0, 0, 0],
+                    _np.random.random((25, 3)) * cs + [0, 0, cs[2]],
+                    _np.random.random((25, 3)) * cs + [cs[0], 0, 0],
+                    _np.random.random((25, 3)) * cs + [cs[0], 0, cs[2]],
+                )
+            )
+        )
 
 
 class NumpyTestCase:
@@ -47,9 +91,9 @@ class NumpyTestCase:
 
 
 def get_data(*paths):
-    return os.path.abspath(
-        os.path.join(
-            os.path.dirname(__file__),
+    return _os.path.abspath(
+        _os.path.join(
+            _os.path.dirname(__file__),
             "data",
             *paths,
         )
@@ -57,9 +101,9 @@ def get_data(*paths):
 
 
 def get_config(file):
-    return os.path.abspath(
-        os.path.join(
-            os.path.dirname(__file__),
+    return _os.path.abspath(
+        _os.path.join(
+            _os.path.dirname(__file__),
             "data",
             "configs",
             file + (".json" if not file.endswith(".json") else ""),
@@ -68,9 +112,9 @@ def get_config(file):
 
 
 def get_morphology(file):
-    return os.path.abspath(
-        os.path.join(
-            os.path.dirname(__file__),
+    return _os.path.abspath(
+        _os.path.join(
+            _os.path.dirname(__file__),
             "data",
             "morphologies",
             file,
@@ -79,8 +123,10 @@ def get_morphology(file):
 
 
 def get_all_morphologies(suffix=""):
-    yield from glob.glob(
-        os.path.abspath(
-            os.path.join(os.path.dirname(__file__), "data", "morphologies", "*" + suffix)
+    yield from _glob.glob(
+        _os.path.abspath(
+            _os.path.join(
+                _os.path.dirname(__file__), "data", "morphologies", "*" + suffix
+            )
         )
     )
