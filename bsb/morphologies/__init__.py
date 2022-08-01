@@ -1460,8 +1460,9 @@ def _morpho_to_swc(morpho):
         try:
             data[ids, 5] = b.radii[1:] if len(b) > 1 else b.radii
         except Exception as e:
-            print(e)
-            raise MorphologyDataError("SWC files cannot store multi-dimensional radii")
+            raise MorphologyDataError(
+                f"Couldn't convert morphology radii to SWC: {e}. Note that SWC files cannot store multi-dimensional radii"
+            )
         nid += len(b) - 1 if len(b) > 1 else len(b)
         bmap[b] = ids[-1]
         data[ids, 6] = ids
