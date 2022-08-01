@@ -21,14 +21,15 @@ class ParallelArrayPlacement(PlacementStrategy):
             cell_type = indicator.cell_type
             radius = indicator.get_radius()
             for prt in self.partitions:
-                dims = prt.boundaries
+                width, height, depth = prt.data.mdc - prt.data.ldc
+                ldc = prt.data.ldc
                 # Extension of a single array in the X dimension
                 spacing_x = self.spacing_x
                 # Add a random shift to the starting points of the arrays for variation.
                 x_shift = np.random.rand() * spacing_x
                 # Place purkinje cells equally spaced over the entire length of the X axis kept apart by their dendritic trees.
                 # They are placed in straight lines, tilted by a certain angle by adding a shifting value.
-                x_pos = np.arange(start=0.0, stop=dims.width, step=spacing_x) + x_shift
+                x_pos = np.arange(start=0.0, stop=width, step=spacing_x) + x_shift
                 if x_pos.shape[0] == 0:
                     # When the spacing_x of is larger than the simulation volume,
                     # place a single row on a random position along the x axis
@@ -36,9 +37,9 @@ class ParallelArrayPlacement(PlacementStrategy):
                 # Amount of parallel arrays of cells
                 n_arrays = x_pos.shape[0]
                 # Number of cells
-                n = indicator.guess(chunk)
+                n = np.sum(indicator.guess(chunk))
                 # Add extra cells to fill the lattice error volume which will be pruned
-                n += int((n_arrays * spacing_x % dims.width) / dims.width * n)
+                n += int((n_arrays * spacing_x % width) / width * n)
                 # cells to distribute along the rows
                 cells_per_row = round(n / n_arrays)
                 # The rounded amount of cells that will be placed
@@ -46,7 +47,7 @@ class ParallelArrayPlacement(PlacementStrategy):
                 # Calculate the position of the cells along the z-axis.
                 z_pos, z_axis_distance = np.linspace(
                     start=0.0,
-                    stop=dims.depth - radius,
+                    stop=depth - radius,
                     num=cells_per_row,
                     retstep=True,
                     endpoint=False,
@@ -67,17 +68,15 @@ class ParallelArrayPlacement(PlacementStrategy):
                     # Apply shift and offset
                     x = x_pos + angleShift
                     # Place the cells in a bounded lattice with a little modulus magic
-                    x = dims.ldc[0] + x % bounded_x + radius
+                    x = ldc[0] + x % bounded_x + radius
                     # Place them at a uniformly random height throughout the partition.
-                    y = dims.ldc[1] + np.random.uniform(
-                        radius, dims.height - radius, x.shape[0]
-                    )
+                    y = ldc[1] + np.random.uniform(radius, height - radius, x.shape[0])
                     # Place the cells in their z-position with jitter
-                    z = dims.ldc[2] + z_pos[i] + ϵ * (np.random.rand(x.shape[0]) - 0.5)
+                    z = ldc[2] + z_pos[i] + ϵ * (np.random.rand(x.shape[0]) - 0.5)
                     # Store this stack's cells
                     cells[(i * len(x)) : ((i + 1) * len(x)), 0] = x
                     cells[(i * len(x)) : ((i + 1) * len(x)), 1] = y
                     cells[(i * len(x)) : ((i + 1) * len(x)), 2] = z
                 # Place all the cells in 1 batch (more efficient)
-                positions = cells[cells[:, 0] < dims.width - radius]
+                positions = cells[cells[:, 0] < width - radius]
                 self.place_cells(indicator, positions, chunk=chunk)

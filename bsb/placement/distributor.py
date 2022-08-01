@@ -104,12 +104,17 @@ class ImplicitNoRotations(ExplicitNoRotations, Implicit, classmap_entry="none"):
     pass
 
 
+class RandomRotations(RotationDistributor, classmap_entry="random"):
+    def distribute(self, partitions, indicator, positions):
+        return np.random.rand(len(positions), 3) * 360
+
+
 @config.node
 class DistributorsNode:
     morphologies = config.attr(
         type=MorphologyDistributor, default=dict, call_default=True
     )
-    rotations = config.attr(type=ImplicitNoRotations, default=dict, call_default=True)
+    rotations = config.attr(type=RotationDistributor, default=dict, call_default=True)
     properties = config.catch_all(type=Distributor)
 
     def _curry(self, partitions, indicator, positions):

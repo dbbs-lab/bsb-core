@@ -244,7 +244,8 @@ class Scaffold:
         """
         Run after placement hooks.
         """
-        warn("After placement disabled")
+        if self.after_placement:
+            warn("After placement disabled")
         # pool = create_job_pool(self)
         # for hook in self.configuration.after_placement.values():
         #     pool.queue(hook.after_placement)
@@ -254,7 +255,8 @@ class Scaffold:
         """
         Run after placement hooks.
         """
-        warn("After connectivity disabled")
+        if self.after_connectivity:
+            warn("After connectivity disabled")
         # for hook in self.configuration.after_connectivity.values():
         #     hook.after_connectivity()
 
@@ -316,6 +318,9 @@ class Scaffold:
         if not skip_after_connectivity:
             self.run_after_connectivity()
         report("Runtime: {}".format(time.time() - t), 2)
+        # After compilation we should flag the storage as having existed before so that
+        # the `clear`, `redo` and `append` flags take effect on a second `compile` pass.
+        self.storage._preexisted = True
 
     def run_simulation(self, simulation_name, quit=False):
         """

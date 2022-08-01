@@ -106,10 +106,11 @@ _t(
         VoxelSetError=_e(
             EmptyVoxelSetError=_e(),
         ),
-        ResourceError=_e(
+        StorageError=_e(
             DatasetNotFoundError=_e(
                 IntersectionDataNotFoundError=_e(),
             ),
+            DatasetExistsError=_e(),
             DataNotFoundError=_e(),
             AttributeMissingError=_e(),
             UnknownStorageEngineError=_e(),

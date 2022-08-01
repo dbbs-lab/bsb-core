@@ -115,10 +115,11 @@ class Job:
     def _dep_completed(self, dep):
         # Earlier we registered this callback on the completion of our dependencies.
         # When a dep completes we end up here and we discard it as a dependency as it has
-        # finished. When all our dependencies have been discarded we can queue ourselves.
+        # finished.
         self._deps.discard(dep)
-        # Serial execution is based on enqueue order only, no async deps.
-        if not _serial_execution and not self._deps:
+        # When all our dependencies have been discarded we can queue ourselves. Unless the
+        # pool is serial, then the pool itself just runs all jobs in order.
+        if not self._deps and MPI.Get_size() > 1:
             self._enqueue(self._pool)
 
     def _enqueue(self, pool):
