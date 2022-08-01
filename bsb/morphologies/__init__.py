@@ -691,7 +691,7 @@ class Morphology(SubTree):
         :param branch_class: Custom branch class
         """
         file_data = _morpho_to_swc(self)
-        if meta:
+        if meta:  # pragma: nocover
             raise NotImplementedError(
                 "Can't store morpho header yet, require special handling in morphologies/__init__.py, todo"
             )
@@ -917,16 +917,16 @@ class Branch:
         Return the fractal dimension of this branch, computed as the coefficient
         of the line fitting the log-log plot of path vs euclidean distances of its points.
         """
-        try:
+        if len(self.points) == 0:
+            raise EmptyBranchError("Empty branch has no fractal dimension") from None
+        else:
             euclidean = np.sqrt(np.sum((self.points - self.start) ** 2, axis=1))
             path = np.cumsum(np.sqrt(np.sum(self.point_vectors**2, axis=1)))
             log_e = np.log(euclidean[1:])
             log_p = np.log(path)
             if len(self.points) <= 2:
                 return 1.0
-            return np.corrcoef(log_e, log_p)[0][1] * (np.std(log_p) / np.std(log_e))
-        except IndexError:
-            raise EmptyBranchError("Empty branch has no fractal dimension") from None
+            return np.polyfit(log_e, log_p, 1)[0]
 
     @property
     def radii(self):
@@ -1448,7 +1448,7 @@ def _morpho_to_swc(morpho):
             if len(b) > 1
             else np.arange(nid, nid + len(b))
         )
-        if len(b.labelsets.keys()) > 4:
+        if len(b.labelsets.keys()) > 4:  # pragma: nocover
             # Standard labels are 0,1,2,3
             raise NotImplementedError(
                 "Can't store custom labelled nodes yet, require special handling in morphologies/__init__.py, todo"
