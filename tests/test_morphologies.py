@@ -316,6 +316,7 @@ class TestMorphometry(NumpyTestCase, unittest.TestCase):
         self.b3 = Branch([[0, 0, 0], [3, 6 * np.sin(np.pi / 3), 0], [6, 0, 0]], [1] * 3)
         # Meaningful toy morphology
         m = Morphology.from_swc(get_morphology("test_morphometry.swc"))
+        self.adjacency = m.branch_adjacency
         self.branches = m.branches
 
     def test_empty_branch(self):
@@ -341,8 +342,10 @@ class TestMorphometry(NumpyTestCase, unittest.TestCase):
         self.assertClose(self.b3.euclidean_dist, 6)
 
     def test_adjacency(self):
+        known_adj = {0: [1, 2], 1: [], 2: [3, 4, 5], 3: [], 4: [], 5: []}
         self.assertEqual(len(self.branches[0].children), 2)
         self.assertEqual(len(self.branches[2].children), 3)
+        self.assertDictEqual(known_adj, self.adjacency)
 
     def test_start_end(self):
         self.assertClose(self.branches[0].start, [0.0, 1.0, 0.0])
