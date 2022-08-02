@@ -299,3 +299,169 @@ class TestMorphologySet(unittest.TestCase):
         self.assertEqual(
             1, len([*self.sets[1].iter_meta(unique=True)]), "only 1 morph in unique set"
         )
+
+
+class TestMorphometry(NumpyTestCase, unittest.TestCase):
+    def setUp(self):
+        # Toy branches
+        self.b0 = Branch([], [])
+        self.bzero1 = Branch([[0] * 3], [1])
+        self.bzero_r1 = Branch([[1] * 3], [0])
+        self.b1 = Branch([[1] * 3], [1])
+        self.bzero2 = Branch([[0] * 3] * 2, [1] * 2)
+        self.bzero_r2 = Branch([[0] * 3] * 2, [0] * 2)
+        self.b2 = Branch([[1] * 3, [2] * 3], [1] * 2)
+        self.bzero10 = Branch([[0] * 3] * 10, [1] * 10)
+        self.bzero_r10 = Branch([[1] * 3] * 10, [0] * 10)
+        self.b3 = Branch([[0, 0, 0], [3, 6 * np.sin(np.pi / 3), 0], [6, 0, 0]], [1] * 3)
+        # Meaningful toy morphology
+        m = Morphology.from_swc(get_morphology("test_morphometry.swc"))
+        self.adjacency = m.branch_adjacency
+        self.branches = m.branches
+
+    def test_empty_branch(self):
+        for attr in (
+            "euclidean_dist",
+            "path_dist",
+            "vector",
+            "versor",
+            "start",
+            "max_displacement",
+        ):
+            with self.subTest(attr=attr):
+                with self.assertRaises(EmptyBranchError):
+                    getattr(self.b0, attr)
+
+    def test_zero_len(self):
+        for attr in ("euclidean_dist", "path_dist"):
+            with self.subTest(attr=attr):
+                self.assertEqual(getattr(self.b1, attr), 0)
+                self.assertEqual(getattr(self.bzero1, attr), 0)
+                self.assertEqual(getattr(self.bzero_r1, attr), 0)
+                self.assertEqual(getattr(self.bzero2, attr), 0)
+                self.assertEqual(getattr(self.bzero_r2, attr), 0)
+                self.assertEqual(getattr(self.bzero10, attr), 0)
+                self.assertEqual(getattr(self.bzero_r10, attr), 0)
+
+    def test_known_len(self):
+        print(f"Segments: {self.b3.segments}")
+        self.assertClose(self.b3.path_dist, 12)
+        self.assertClose(self.b3.euclidean_dist, 6)
+
+    def test_adjacency(self):
+        known_adj = {0: [1, 2], 1: [], 2: [3, 4, 5], 3: [], 4: [], 5: []}
+        self.assertEqual(len(self.branches[0].children), 2)
+        self.assertEqual(len(self.branches[2].children), 3)
+        self.assertDictEqual(known_adj, self.adjacency)
+
+    def test_start_end(self):
+        self.assertClose(self.branches[0].start, [0.0, 1.0, 0.0])
+        self.assertClose(self.branches[0].end, [0.0, 1.0, 0.0])
+        self.assertClose(self.branches[1].start, [0.0, 1.0, 0.0])
+        self.assertClose(self.branches[1].end, [-5.0, np.exp(5), 0.0])
+        self.assertClose(self.branches[2].start, [0.0, 1.0, 0.0])
+        self.assertClose(self.branches[2].end, [0.0, 11.0, 0.0])
+        self.assertClose(self.branches[3].start, [0.0, 11.0, 0.0])
+        self.assertClose(
+            self.branches[3].end,
+            [0.0 + 10 * np.cos(np.pi / 2), 11.0 + 10 * np.sin(np.pi / 2), 0.0],
+        )
+        self.assertClose(self.branches[4].start, [0.0, 11.0, 0.0])
+        self.assertClose(
+            self.branches[4].end,
+            [0.0 + 10 * np.cos(np.pi / 3), 11.0 + 10 * np.sin(np.pi / 3), 0.0],
+        )
+        self.assertClose(self.branches[5].start, [0.0, 11.0, 0.0])
+        self.assertClose(
+            self.branches[5].end,
+            [
+                0.0 + 10 * np.cos((2 / 3) * np.pi),
+                11.0 + 10 * np.sin((2 / 3) * np.pi),
+                0.0,
+            ],
+        )
+
+    def test_vectors(self):
+        self.assertClose(self.branches[2].versor, [0.0, 1.0, 0.0])
+        self.assertClose(self.branches[2].vector, [0.0, 10.0, 0.0])
+        self.assertClose(self.branches[3].versor, [0, 1.0, 0.0])
+        self.assertClose(self.branches[3].vector, [0, 10.0, 0.0])
+        self.assertClose(
+            self.branches[4].versor, [np.cos(np.pi / 3), np.sin(np.pi / 3), 0.0]
+        )
+        self.assertClose(
+            self.branches[5].versor,
+            [np.cos((2 / 3) * np.pi), np.sin((2 / 3) * np.pi), 0.0],
+        )
+
+        pass
+
+    def test_displacement(self):
+        self.assertClose(self.branches[2].max_displacement, 5.0)
+        for b in self.branches[3:]:
+            self.assertClose(b.max_displacement, 0, atol=1e-06)
+
+    def test_fractal_dim(self):
+        for b in self.branches[3:]:
+            self.assertClose(b.fractal_dim, 1.0)
+
+
+class TestSwcFiles(NumpyTestCase, unittest.TestCase):
+    # Helper functions to create a toy morphology
+    def generate_semicircle(self, center_x, center_y, radius, stepsize=0.01):
+        x = np.arange(center_x, center_x + radius + stepsize, stepsize)
+        y = np.sqrt(radius**2 - x**2)
+
+        x = np.concatenate([x, x[::-1]])
+        y = np.concatenate([y, -y[::-1]])
+        z = np.zeros(y.shape)
+
+        return x, y + center_y, z
+
+    def generate_exponential(self, center_x, center_y, len=10, stepsize=0.1):
+        x = np.arange(center_x, center_x + len + stepsize, stepsize)
+        y = np.exp(x)
+        z = np.zeros(y.shape)
+
+        return -x, y + center_y, z
+
+    def generate_radius(
+        self, origin_x, origin_y, len=10, angle=(np.pi / 2), stepsize=0.1
+    ):
+        l = np.arange(0, len + stepsize, stepsize)
+        x = l * np.cos(angle) + origin_x
+        y = l * np.sin(angle) + origin_y
+        z = np.zeros(y.shape)
+
+        return x, y, z
+
+    def setUp(self):
+        # Creating the branches
+        x_s, y_s, z_s = self.generate_semicircle(0, 6, 5, 0.01)
+        x_e, y_e, z_e = self.generate_exponential(0, 0, 5, 0.01)
+        x_ri, y_ri, z_ri = self.generate_radius(0, 11, len=10)
+        x_rii, y_rii, z_rii = self.generate_radius(0, 11, angle=np.pi / 3, len=10)
+        x_riii, y_riii, z_riii = self.generate_radius(
+            0, 11, angle=(2 / 3) * np.pi, len=10
+        )
+
+        root = Branch(np.array([0.0, 1.0, 0.0]).reshape(1, 3), radii=1)
+        exp_child = Branch(np.vstack((x_e, y_e, z_e)).T, radii=[1] * len(x_e))
+        semi_child = Branch(np.vstack((x_s, y_s[::-1], z_s)).T, radii=[1] * len(x_s))
+        ri_child = Branch(np.vstack((x_ri, y_ri, z_ri)).T, radii=[1] * len(x_ri))
+        rii_child = Branch(np.vstack((x_rii, y_rii, z_rii)).T, radii=[1] * len(x_rii))
+        riii_child = Branch(
+            np.vstack((x_riii, y_riii, z_riii)).T, radii=[1] * len(x_riii)
+        )
+        semi_child.attach_child(ri_child)
+        semi_child.attach_child(rii_child)
+        semi_child.attach_child(riii_child)
+        root.attach_child(exp_child)
+        root.attach_child(semi_child)
+
+        self.m = Morphology([root])
+        self.m.to_swc(get_morphology("test_morphometry.swc"))
+
+    def test_identity(self):
+        m = Morphology.from_swc(get_morphology("test_morphometry.swc"))
+        self.assertClose(m.points, self.m.points)

@@ -282,6 +282,14 @@ class SubTree:
             return np.zeros(3), np.zeros(3)
         return np.min(f, axis=0), np.max(f, axis=0)
 
+    @property
+    def branch_adjacency(self):
+        """
+        Return a dictonary containing as items the children of the branch indexed by the key.
+        """
+        idmap = {b: n for n, b in enumerate(self.branches)}
+        return {n: list(map(idmap.get, b.children)) for n, b in enumerate(self.branches)}
+
     def subtree(self, *labels):
         if not labels:
             labels = None
@@ -676,6 +684,31 @@ class Morphology(SubTree):
             branch_class = Branch
         return _import_arb(cls, arb_m, centering, branch_class, meta=meta)
 
+    def to_swc(self, file, meta=None):
+        """
+        Create a SWC file from a Morphology.
+        :param file: path or file-like object to parse.
+        :param branch_class: Custom branch class
+        """
+        file_data = _morpho_to_swc(self)
+        if meta:  # pragma: nocover
+            raise NotImplementedError(
+                "Can't store morpho header yet, require special handling in morphologies/__init__.py, todo"
+            )
+
+        if isinstance(file, str) or isinstance(file, Path):
+            np.savetxt(
+                file,
+                file_data,
+                fmt=f"%d %d %f %f %f %f %d",
+                delimiter="\t",
+                newline="\n",
+                header="",
+                footer="",
+                comments="# ",
+                encoding=None,
+            )
+
 
 def _copy_api(cls, wrap=lambda self: self):
     # Wraps functions so they are called with `self` wrapped in `wrap`
@@ -787,6 +820,113 @@ class Branch:
         Return the spatial coordinates of the points on this branch.
         """
         return self._points
+
+    @property
+    def point_vectors(self):
+        """
+        Return the individual vectors between consecutive points on this branch.
+        """
+        return np.diff(self.points, axis=0)
+
+    @property
+    def segments(self):
+        """
+        Return the start and end points of vectors between consecutive points on this branch.
+        """
+        return np.hstack(
+            (self.points[:-1], self.points[:-1] + self.point_vectors)
+        ).reshape(-1, 2, 3)
+
+    @property
+    def start(self):
+        """
+        Return the spatial coordinates of the starting point of this branch.
+        """
+        try:
+            return self._points[0]
+        except IndexError:
+            raise EmptyBranchError("Empty branch has no starting point") from None
+
+    @property
+    def end(self):
+        """
+        Return the spatial coordinates of the terminal point of this branch.
+        """
+        try:
+            return self._points[-1]
+        except IndexError:
+            raise EmptyBranchError("Empty branch has no ending point") from None
+
+    @property
+    def vector(self):
+        """
+        Return the vector of the axis connecting the start and terminal points.
+        """
+        try:
+            return self.end - self.start
+        except IndexError:
+            raise EmptyBranchError("Empty branch has no vector") from None
+
+    @property
+    def versor(self):
+        """
+        Return the normalized vector of the axis connecting the start and terminal points.
+        """
+        try:
+            return (self.end - self.start) / np.linalg.norm(self.end - self.start)
+        except IndexError:
+            raise EmptyBranchError("Empty branch has no versor") from None
+
+    @property
+    def euclidean_dist(self):
+        """
+        Return the Euclidean distance from the start to the terminal point of this branch.
+        """
+        try:
+            return np.sqrt(np.sum((self.end - self.start) ** 2))
+        except IndexError:
+            raise EmptyBranchError("Empty branch has no Euclidean distance") from None
+
+    @property
+    def path_dist(self):
+        """
+        Return the path distance from the start to the terminal point of this branch,
+        computed as the sum of Euclidean segments between consecutive branch points.
+        """
+        try:
+            return np.sum(np.sqrt(np.sum(self.point_vectors**2, axis=1)))
+        except IndexError:
+            raise EmptyBranchError("Empty branch has no path distance") from None
+
+    @property
+    def max_displacement(self):
+        """
+        Return the max displacement of the branch points from its axis vector.
+        """
+        try:
+            displacements = np.linalg.norm(
+                np.cross(self.versor, (self.points - self.start)), axis=1
+            )
+            return np.max(displacements)
+        except IndexError:
+            raise EmptyBranchError("Empty branch has no displaced points") from None
+
+    @property
+    def fractal_dim(self):
+        """
+        Return the fractal dimension of this branch, computed as the coefficient
+        of the line fitting the log-log plot of path vs euclidean distances of its points.
+        """
+        if len(self.points) == 0:
+            raise EmptyBranchError("Empty branch has no fractal dimension") from None
+        else:
+            euclidean = np.sqrt(np.sum((self.points - self.start) ** 2, axis=1))
+            path = np.cumsum(np.sqrt(np.sum(self.point_vectors**2, axis=1)))
+            log_e = np.log(euclidean[1:])
+            log_p = np.log(path)
+            if len(self.points) <= 2:
+                return 1.0
+            return np.polyfit(log_e, log_p, 1)[0]
 
     @property
     def radii(self):
@@ -1294,6 +1434,41 @@ def _swc_to_morpho(cls, branch_cls, content, tags=None, meta=None):
     # And assert that this shared buffer mode succeeded
     assert morpho._check_shared(), "SWC import didn't result in shareable buffers."
     return morpho
+
+
+def _morpho_to_swc(morpho):
+    # Initialize an empty data array
+    data = np.empty((len(morpho.points), 7), dtype=object)
+    bmap = {}
+    nid = 0
+    # Iterate over the morphology branches
+    for b in morpho.branches:
+        ids = (
+            np.arange(nid, nid + len(b) - 1)
+            if len(b) > 1
+            else np.arange(nid, nid + len(b))
+        )
+        if len(b.labelsets.keys()) > 4:  # pragma: nocover
+            # Standard labels are 0,1,2,3
+            raise NotImplementedError(
+                "Can't store custom labelled nodes yet, require special handling in morphologies/__init__.py, todo"
+            )
+        samples = ids + 1
+        data[ids, 0] = samples
+        data[ids, 1] = b.labels[1:] if len(b) > 1 else b.labels
+        data[ids, 2:5] = b.points[1:] if len(b) > 1 else b.points
+        try:
+            data[ids, 5] = b.radii[1:] if len(b) > 1 else b.radii
+        except Exception as e:
+            raise MorphologyDataError(
+                f"Couldn't convert morphology radii to SWC: {e}. Note that SWC files cannot store multi-dimensional radii"
+            )
+        nid += len(b) - 1 if len(b) > 1 else len(b)
+        bmap[b] = ids[-1]
+        data[ids, 6] = ids
+        data[ids[0], 6] = -1 if b.parent is None else bmap[b.parent] + 1
+
+    return data[data != np.array(None)].reshape(-1, 7)
 
 
 # Wrapper to append our own attributes to morphio somas and treat it like any other branch
