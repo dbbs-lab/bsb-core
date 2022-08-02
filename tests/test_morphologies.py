@@ -460,7 +460,6 @@ class TestSwcFiles(NumpyTestCase, unittest.TestCase):
         root.attach_child(semi_child)
 
         self.m = Morphology([root])
-        self.m.to_swc(get_morphology("test_morphometry.swc"))
 
     def test_identity(self):
         m = Morphology.from_swc(get_morphology("test_morphometry.swc"))
