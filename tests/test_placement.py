@@ -211,11 +211,12 @@ class TestSerialScheduler(unittest.TestCase, SchedulerBaseTest):
     pass
 
 
-class TestPlacementStrategies(RandomStorageFixture, NumpyTestCase, unittest.TestCase):
+class TestPlacementStrategies(
+    RandomStorageFixture, NumpyTestCase, unittest.TestCase, engine_name="hdf5"
+):
     def test_random_placement(self):
         cfg = from_json(get_config_path("test_single.json"))
-        storage = self.random_storage(engine="hdf5")
-        network = Scaffold(cfg, storage)
+        network = Scaffold(cfg, self.storage)
         cfg.placement["test_placement"] = dict(
             strategy="bsb.placement.RandomPlacement",
             cell_types=["test_cell"],
@@ -226,7 +227,6 @@ class TestPlacementStrategies(RandomStorageFixture, NumpyTestCase, unittest.Test
         self.assertEqual(40, len(ps), "fixed count random placement broken")
 
     def test_fixed_pos(self):
-        storage = self.random_storage(engine="hdf5")
         cfg = Configuration.default(
             cell_types=dict(test_cell=dict(spatial=dict(radius=2, count=100))),
             placement=dict(
@@ -247,7 +247,7 @@ class TestPlacementStrategies(RandomStorageFixture, NumpyTestCase, unittest.Test
         cfg.placement.ch4_c25.positions = pos = MPI.bcast(
             np.vstack((c * cs + np.random.random((25, 3)) * cs for c in c4))
         )
-        network = Scaffold(cfg, storage)
+        network = Scaffold(cfg, self.storage)
         network.compile()
         ps = network.get_placement_set("test_cell")
         pos_sort = pos[np.argsort(pos[:, 0])]
@@ -256,9 +256,8 @@ class TestPlacementStrategies(RandomStorageFixture, NumpyTestCase, unittest.Test
         self.assertClose(pos_sort, pspos_sort, "expected fixed positions")
 
     def test_parallel_arrays(self):
-        storage = self.random_storage(engine="hdf5")
         cfg = from_json(get_config_path("test_single.json"))
-        network = Scaffold(cfg, storage)
+        network = Scaffold(cfg, self.storage)
         cfg.placement["test_placement"] = dict(
             strategy="bsb.placement.ParallelArrayPlacement",
             cell_types=["test_cell"],

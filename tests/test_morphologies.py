@@ -7,7 +7,7 @@ from bsb.morphologies import Morphology, Branch, _Labels, MorphologySet
 from bsb.storage import Storage
 from bsb.storage.interfaces import StoredMorphology
 from bsb.exceptions import *
-from bsb.unittest import get_data, get_morphology_path, NumpyTestCase
+from bsb.unittest import get_morphology_path, NumpyTestCase
 from scipy.spatial.transform import Rotation
 
 
