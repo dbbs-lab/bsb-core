@@ -7,14 +7,14 @@ from bsb.config import from_json
 from bsb.exceptions import *
 from bsb.storage import Storage, Chunk
 from bsb.storage import _util
-from bsb.unittest import get_config, timeout
+from bsb.unittest import get_config_path, timeout
 from bsb.services import MPI
 import pathlib
 
 
 class TestUtil(unittest.TestCase):
     def test_links(self):
-        cfg = from_json(get_config("test_single"))
+        cfg = from_json(get_config_path("test_single"))
         netw = Scaffold(cfg)
         # Needs more tests, these tests basically only test instantiation
         link = _util.link(netw.files, pathlib.Path.cwd(), "sys", "hellooo", "always")

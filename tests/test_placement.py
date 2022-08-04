@@ -12,7 +12,7 @@ from bsb.exceptions import *
 from bsb.storage import Chunk
 from bsb.placement import PlacementStrategy, RandomPlacement
 from bsb.services.pool import JobPool, FakeFuture, create_job_pool
-from bsb.unittest import get_config, timeout, RandomStorageFixture, NumpyTestCase
+from bsb.unittest import get_config_path, timeout, RandomStorageFixture, NumpyTestCase
 from time import sleep
 
 
@@ -213,7 +213,7 @@ class TestSerialScheduler(unittest.TestCase, SchedulerBaseTest):
 
 class TestPlacementStrategies(RandomStorageFixture, NumpyTestCase, unittest.TestCase):
     def test_random_placement(self):
-        cfg = from_json(get_config("test_single.json"))
+        cfg = from_json(get_config_path("test_single.json"))
         storage = self.random_storage(engine="hdf5")
         network = Scaffold(cfg, storage)
         cfg.placement["test_placement"] = dict(
@@ -257,7 +257,7 @@ class TestPlacementStrategies(RandomStorageFixture, NumpyTestCase, unittest.Test
 
     def test_parallel_arrays(self):
         storage = self.random_storage(engine="hdf5")
-        cfg = from_json(get_config("test_single.json"))
+        cfg = from_json(get_config_path("test_single.json"))
         network = Scaffold(cfg, storage)
         cfg.placement["test_placement"] = dict(
             strategy="bsb.placement.ParallelArrayPlacement",

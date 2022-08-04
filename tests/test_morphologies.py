@@ -7,13 +7,13 @@ from bsb.morphologies import Morphology, Branch, _Labels, MorphologySet
 from bsb.storage import Storage
 from bsb.storage.interfaces import StoredMorphology
 from bsb.exceptions import *
-from bsb.unittest import get_data, get_morphology, NumpyTestCase
+from bsb.unittest import get_data, get_morphology_path, NumpyTestCase
 from scipy.spatial.transform import Rotation
 
 
 class TestIO(NumpyTestCase, unittest.TestCase):
     def test_swc_2comp(self):
-        m = Morphology.from_swc(get_morphology("2comp.swc"))
+        m = Morphology.from_swc(get_morphology_path("2comp.swc"))
         self.assertEqual(2, len(m), "Expected 2 points on the morphology")
         self.assertEqual(1, len(m.roots), "Expected 1 root on the morphology")
         self.assertClose([1, 1], m.tags, "tags should be all soma")
@@ -21,12 +21,12 @@ class TestIO(NumpyTestCase, unittest.TestCase):
         self.assertEqual({0: set(), 1: {"soma"}}, m.labels.labels, "incorrect labelsets")
 
     def test_swc_2root(self):
-        m = Morphology.from_swc(get_morphology("2root.swc"))
+        m = Morphology.from_swc(get_morphology_path("2root.swc"))
         self.assertEqual(2, len(m), "Expected 2 points on the morphology")
         self.assertEqual(2, len(m.roots), "Expected 2 roots on the morphology")
 
     def test_swc_branch_filling(self):
-        m = Morphology.from_swc(get_morphology("3branch.swc"))
+        m = Morphology.from_swc(get_morphology_path("3branch.swc"))
         # SWC specifies child-parent edges, when translating that to branches, at branch
         # points some points need to be duplicated: there's 4 samples (SWC) and 2 child
         # branches -> 2 extra points == 6 points
@@ -36,7 +36,7 @@ class TestIO(NumpyTestCase, unittest.TestCase):
 
     def test_known(self):
         # TODO: Check the morphos visually with glover
-        m = Morphology.from_swc(get_morphology("PurkinjeCell.swc"))
+        m = Morphology.from_swc(get_morphology_path("PurkinjeCell.swc"))
         self.assertEqual(3834, len(m), "Amount of point on purkinje changed")
         self.assertEqual(459, len(m.branches), "Amount of branches on purkinje changed")
         self.assertEqual(
@@ -44,7 +44,7 @@ class TestIO(NumpyTestCase, unittest.TestCase):
             np.mean(m.points),
             "value of the universe, life and everything changed.",
         )
-        m = Morphology.from_file(get_morphology("GolgiCell.asc"))
+        m = Morphology.from_file(get_morphology_path("GolgiCell.asc"))
         self.assertEqual(5105, len(m), "Amount of point on purkinje changed")
         self.assertEqual(227, len(m.branches), "Amount of branches on purkinje changed")
         self.assertEqual(
@@ -54,8 +54,8 @@ class TestIO(NumpyTestCase, unittest.TestCase):
         )
 
     def test_shared_labels(self):
-        m = Morphology.from_swc(get_morphology("PurkinjeCell.swc"))
-        m2 = Morphology.from_swc(get_morphology("PurkinjeCell.swc"))
+        m = Morphology.from_swc(get_morphology_path("PurkinjeCell.swc"))
+        m2 = Morphology.from_swc(get_morphology_path("PurkinjeCell.swc"))
         l = m._shared._labels.labels
         self.assertIsNot(l, m2._shared._labels.label, "reload shares state")
         for b in m.branches:

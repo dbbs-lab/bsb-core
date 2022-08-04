@@ -8,7 +8,6 @@ from bsb.config import from_json, Configuration
 from bsb.config.refs import Reference
 from bsb.config import types
 from bsb.exceptions import *
-from bsb.unittest import get_config
 from bsb.topology import Region, Partition
 
 

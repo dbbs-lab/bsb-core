@@ -12,8 +12,8 @@ from . import (
     MPI,
     timeout,
     single_process_test,
-    get_all_morphologies,
-    get_morphology,
+    get_all_morphology_paths,
+    get_morphology_path,
 )
 import time
 import numpy as np
@@ -226,8 +226,8 @@ class TestPlacementSet(
         self.network.cell_types.test_cell.spatial.morphologies.append(
             dict(names=["test_cell_A", "test_cell_B"])
         )
-        mA = Morphology.from_swc(get_morphology("2branch.swc"))
-        mB = Morphology.from_swc(get_morphology("2comp.swc"))
+        mA = Morphology.from_swc(get_morphology_path("2branch.swc"))
+        mB = Morphology.from_swc(get_morphology_path("2comp.swc"))
         self.network.morphologies.save("test_cell_A", mA, overwrite=True)
         self.network.morphologies.save("test_cell_B", mB, overwrite=True)
         for i in range(10):
@@ -259,8 +259,8 @@ class TestPlacementSet(
         self.network.cell_types.test_cell.spatial.morphologies.append(
             dict(names=["test_cell_A", "test_cell_B"])
         )
-        mA = Morphology.from_swc(get_morphology("2branch.swc"))
-        mB = Morphology.from_swc(get_morphology("2comp.swc"))
+        mA = Morphology.from_swc(get_morphology_path("2branch.swc"))
+        mB = Morphology.from_swc(get_morphology_path("2comp.swc"))
         self.network.morphologies.save("test_cell_A", mA, overwrite=True)
         self.network.morphologies.save("test_cell_B", mB, overwrite=True)
         self.network.compile(clear=True)
@@ -277,8 +277,8 @@ class TestPlacementSet(
             dict(names=["test_cell_A", "test_cell_B"])
         )
         self.network.placement.ch4_c25.distribute.rotations = dict(strategy="random")
-        mA = Morphology.from_swc(get_morphology("2branch.swc"))
-        mB = Morphology.from_swc(get_morphology("2comp.swc"))
+        mA = Morphology.from_swc(get_morphology_path("2branch.swc"))
+        mB = Morphology.from_swc(get_morphology_path("2comp.swc"))
         self.network.morphologies.save("test_cell_A", mA, overwrite=True)
         self.network.morphologies.save("test_cell_B", mB, overwrite=True)
         self.network.compile(clear=True)
@@ -312,7 +312,7 @@ class TestMorphologyRepository(NumpyTestCase, RandomStorageFixture, engine_name=
 
     @single_process_test
     def test_swc_saveload_eq(self):
-        for path in get_all_morphologies(".swc"):
+        for path in get_all_morphology_paths(".swc"):
             with self.subTest(morpho=path.split("/")[-1]):
                 m = Morphology.from_swc(path)
                 self.mr.save("X", m, overwrite=True)
@@ -322,7 +322,7 @@ class TestMorphologyRepository(NumpyTestCase, RandomStorageFixture, engine_name=
 
     @single_process_test
     def test_swc_saveload(self):
-        for path in get_all_morphologies(".swc"):
+        for path in get_all_morphology_paths(".swc"):
             with self.subTest(morpho=path.split("/")[-1]):
                 m = Morphology.from_swc(path)
                 self.mr.save("X", m, overwrite=True)
@@ -346,7 +346,7 @@ class TestMorphologyRepository(NumpyTestCase, RandomStorageFixture, engine_name=
 
     @single_process_test
     def test_swc_ldc_mdc(self):
-        for path in get_all_morphologies(".swc"):
+        for path in get_all_morphology_paths(".swc"):
             with self.subTest(morpho=path.split("/")[-1]):
                 m = Morphology.from_swc(path)
                 self.mr.save("pc", m, overwrite=True)

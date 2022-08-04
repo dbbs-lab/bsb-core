@@ -90,7 +90,7 @@ class NumpyTestCase:
         )
 
 
-def get_data(*paths):
+def get_data_path(*paths):
     return _os.path.abspath(
         _os.path.join(
             _os.path.dirname(__file__),
@@ -100,33 +100,15 @@ def get_data(*paths):
     )
 
 
-def get_config(file):
-    return _os.path.abspath(
-        _os.path.join(
-            _os.path.dirname(__file__),
-            "data",
-            "configs",
-            file + (".json" if not file.endswith(".json") else ""),
-        )
+def get_config_path(file):
+    return get_data_path(
+        "configs", file + (".json" if not file.endswith(".json") else "")
     )
 
 
-def get_morphology(file):
-    return _os.path.abspath(
-        _os.path.join(
-            _os.path.dirname(__file__),
-            "data",
-            "morphologies",
-            file,
-        )
-    )
+def get_morphology_path(file):
+    return get_data_path("morphologies", file)
 
 
-def get_all_morphologies(suffix=""):
-    yield from _glob.glob(
-        _os.path.abspath(
-            _os.path.join(
-                _os.path.dirname(__file__), "data", "morphologies", "*" + suffix
-            )
-        )
-    )
+def get_all_morphology_paths(suffix=""):
+    yield from _glob.glob(get_data_path("morphologies", "*" + suffix))

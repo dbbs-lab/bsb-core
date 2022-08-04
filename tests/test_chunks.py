@@ -6,7 +6,7 @@ from bsb.core import Scaffold
 from bsb.config import from_json
 from bsb.storage import Chunk
 from bsb.exceptions import *
-from bsb.unittest import get_config, skip_parallel, timeout
+from bsb.unittest import get_config_path, skip_parallel, timeout
 
 
 class TestChunks(unittest.TestCase):
@@ -34,7 +34,7 @@ class TestChunks(unittest.TestCase):
     # basic chunk properties. For example uses `.place` directly.
     def test_single_chunk(self):
         # Test that specifying a single chunk only reads the data from that chunk
-        cfg = from_json(get_config("test_single"))
+        cfg = from_json(get_config_path("test_single"))
         self.network = network = Scaffold(cfg, clear=True)
         self.ps = ps = network.get_placement_set("test_cell")
         ps.load_chunk(Chunk((0, 0, 0), (100, 100, 100)))
