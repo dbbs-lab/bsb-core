@@ -6,18 +6,18 @@ from bsb.core import Scaffold, from_hdf5
 from bsb.config import from_json
 from bsb.exceptions import *
 from bsb.services import MPI as mpi
-from bsb.unittest import get_config
+from bsb.unittest import get_config_path
 import unittest, numpy as np, h5py, importlib
 
 
-config = get_config("legacy_mouse_cerebellum_cortex.json")
-miniature_config = get_config("test_nrn_miniature.json")
-mf_grc_config = get_config("test_nrn_mf_granule.json")
-mf_gol_config = get_config("test_nrn_mf_golgi.json")
-aa_goc_config = get_config("test_nrn_aa_goc.json")
-aa_pc_config = get_config("test_nrn_aa_pc.json")
-grc_sc_config = get_config("test_nrn_grc_sc.json")
-sc_pc_config = get_config("test_nrn_sc_pc.json")
+config = get_config_path("legacy_mouse_cerebellum_cortex.json")
+miniature_config = get_config_path("test_nrn_miniature.json")
+mf_grc_config = get_config_path("test_nrn_mf_granule.json")
+mf_gol_config = get_config_path("test_nrn_mf_golgi.json")
+aa_goc_config = get_config_path("test_nrn_aa_goc.json")
+aa_pc_config = get_config_path("test_nrn_aa_pc.json")
+grc_sc_config = get_config_path("test_nrn_grc_sc.json")
+sc_pc_config = get_config_path("test_nrn_sc_pc.json")
 
 
 def neuron_installed():

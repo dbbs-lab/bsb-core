@@ -7,12 +7,13 @@ from ..morphologies import Morphology, MorphologySet
 from ..storage import Storage, Chunk
 from . import (
     NumpyTestCase,
+    FixedPosConfigFixture,
     RandomStorageFixture,
     MPI,
     timeout,
     single_process_test,
-    get_all_morphologies,
-    get_morphology,
+    get_all_morphology_paths,
+    get_morphology_path,
 )
 import time
 import numpy as np
@@ -31,21 +32,13 @@ class _ScaffoldDummy:
         return list(self.cfg.cell_types.values())
 
 
-class TestStorage(RandomStorageFixture):
-    def __init_subclass__(cls, root_factory=None, *, engine_name, **kwargs):
-        super().__init_subclass__(**kwargs)
-        cls._engine = engine_name
-        cls._rootf = root_factory
-
-    def random_storage(self):
-        return super().random_storage(root_factory=self._rootf, engine=self._engine)
-
+class TestStorage(RandomStorageFixture, engine_name=None):
     @timeout(10)
     def test_init(self):
         # Use the init function to instantiate a storage container to its initial
         # empty state. This test avoids the `Scaffold` object as instantiating it might
         # create or remove data by relying on `renew` or `init` in its constructor.
-        s = self.random_storage()
+        s = self.storage
         s.create()
         s.init(_ScaffoldDummy(cfg))
         # Test that `init` created the placement sets for each cell type
@@ -60,7 +53,7 @@ class TestStorage(RandomStorageFixture):
         # Use the renew mechanism to reinstantiate a storage container to its initial
         # empty state. This test avoids the `Scaffold` object as instantiating it might
         # create or remove data by relying on `renew` or `init` in its constructor.
-        s = self.random_storage()
+        s = self.storage
         s.create()
         self.assertTrue(s.exists())
         ps = s._PlacementSet.require(s._engine, cfg.cell_types.test_cell)
@@ -89,7 +82,7 @@ class TestStorage(RandomStorageFixture):
 
     @timeout(10)
     def test_move(self):
-        s = self.random_storage()
+        s = self.storage
         for _ in range(100):
             os = Storage(self._engine, s.root)
             s.move(s.root[:-5] + "e" + s.root[-5:])
@@ -99,14 +92,14 @@ class TestStorage(RandomStorageFixture):
     @timeout(10)
     def test_remove_create(self):
         for _ in range(100):
-            s = self.random_storage()
+            s = self.storage
             s.remove()
             self.assertFalse(s.exists(), f"{MPI.Get_rank()} still finds removed storage.")
             s.create()
             self.assertTrue(s.exists(), f"{MPI.Get_rank()} can't find new storage yet.")
 
     def test_active_config(self):
-        s = self.random_storage()
+        s = self.storage
         cfg_a = Configuration.default(regions=dict(a=dict(children=[])))
         cfg_b = Configuration.default(regions=dict(b=dict(children=[])))
         for _ in range(100):
@@ -118,7 +111,7 @@ class TestStorage(RandomStorageFixture):
             self.assertEqual(cfg_b.regions.keys(), expected, "stored cfg B missmatch")
 
     def test_eq(self):
-        s = self.random_storage()
+        s = self.storage
         s2 = self.random_storage()
         self.assertEqual(s, s, "Same storage should be equal")
         self.assertNotEqual(s, s2, "Diff storages should be unequal")
@@ -130,51 +123,17 @@ class TestStorage(RandomStorageFixture):
         self.assertNotEqual(s.morphologies, "hello", "weird comp should be unequal")
 
 
-class TestEngine(RandomStorageFixture):
-    def __init_subclass__(cls, root_factory=None, *, engine_name, **kwargs):
-        super().__init_subclass__(**kwargs)
-        cls._engine = engine_name
-        cls._rootf = root_factory
-
+class TestEngine(RandomStorageFixture, engine_name=None):
     def setUp(self):
-        self.network = self.random_storage(root_factory=self._rootf, engine=self._engine)
+        super().setUp()
+        self.network = Scaffold(storage=self.storage)
 
 
-class TestPlacementSet(RandomStorageFixture, NumpyTestCase):
-    def __init_subclass__(cls, root_factory=None, *, engine_name, **kwargs):
-        super().__init_subclass__(**kwargs)
-        cls._engine = engine_name
-        cls._rootf = root_factory
-
+class TestPlacementSet(
+    FixedPosConfigFixture, RandomStorageFixture, NumpyTestCase, engine_name=None
+):
     def setUp(self):
-        self.storage = self.random_storage(root_factory=self._rootf, engine=self._engine)
-        self.cfg = Configuration.default(
-            cell_types=dict(test_cell=dict(spatial=dict(radius=2, count=100))),
-            placement=dict(
-                ch4_c25=dict(
-                    strategy="bsb.placement.strategy.FixedPositions",
-                    partitions=[],
-                    cell_types=["test_cell"],
-                )
-            ),
-        )
-        self.chunk_size = cs = self.cfg.network.chunk_size
-        self.chunks = [
-            Chunk((0, 0, 0), cs),
-            Chunk((0, 0, 1), cs),
-            Chunk((1, 0, 0), cs),
-            Chunk((1, 0, 1), cs),
-        ]
-        self.cfg.placement.ch4_c25.positions = MPI.bcast(
-            np.vstack(
-                (
-                    np.random.random((25, 3)) * cs + [0, 0, 0],
-                    np.random.random((25, 3)) * cs + [0, 0, cs[2]],
-                    np.random.random((25, 3)) * cs + [cs[0], 0, 0],
-                    np.random.random((25, 3)) * cs + [cs[0], 0, cs[2]],
-                )
-            )
-        )
+        super().setUp()
         self.network = Scaffold(self.cfg, self.storage)
 
     def test_init(self):
@@ -267,8 +226,8 @@ class TestPlacementSet(RandomStorageFixture, NumpyTestCase):
         self.network.cell_types.test_cell.spatial.morphologies.append(
             dict(names=["test_cell_A", "test_cell_B"])
         )
-        mA = Morphology.from_swc(get_morphology("2branch.swc"))
-        mB = Morphology.from_swc(get_morphology("2comp.swc"))
+        mA = Morphology.from_swc(get_morphology_path("2branch.swc"))
+        mB = Morphology.from_swc(get_morphology_path("2comp.swc"))
         self.network.morphologies.save("test_cell_A", mA, overwrite=True)
         self.network.morphologies.save("test_cell_B", mB, overwrite=True)
         for i in range(10):
@@ -300,8 +259,8 @@ class TestPlacementSet(RandomStorageFixture, NumpyTestCase):
         self.network.cell_types.test_cell.spatial.morphologies.append(
             dict(names=["test_cell_A", "test_cell_B"])
         )
-        mA = Morphology.from_swc(get_morphology("2branch.swc"))
-        mB = Morphology.from_swc(get_morphology("2comp.swc"))
+        mA = Morphology.from_swc(get_morphology_path("2branch.swc"))
+        mB = Morphology.from_swc(get_morphology_path("2comp.swc"))
         self.network.morphologies.save("test_cell_A", mA, overwrite=True)
         self.network.morphologies.save("test_cell_B", mB, overwrite=True)
         self.network.compile(clear=True)
@@ -318,8 +277,8 @@ class TestPlacementSet(RandomStorageFixture, NumpyTestCase):
             dict(names=["test_cell_A", "test_cell_B"])
         )
         self.network.placement.ch4_c25.distribute.rotations = dict(strategy="random")
-        mA = Morphology.from_swc(get_morphology("2branch.swc"))
-        mB = Morphology.from_swc(get_morphology("2comp.swc"))
+        mA = Morphology.from_swc(get_morphology_path("2branch.swc"))
+        mB = Morphology.from_swc(get_morphology_path("2comp.swc"))
         self.network.morphologies.save("test_cell_A", mA, overwrite=True)
         self.network.morphologies.save("test_cell_B", mB, overwrite=True)
         self.network.compile(clear=True)
@@ -346,20 +305,14 @@ class TestPlacementSet(RandomStorageFixture, NumpyTestCase):
         self.assertClose(pos_sort, pspos_sort, "expected fixed positions")
 
 
-class TestMorphologyRepository(NumpyTestCase, RandomStorageFixture):
-    def __init_subclass__(cls, root_factory=None, *, engine_name, **kwargs):
-        super().__init_subclass__(**kwargs)
-        cls._engine = engine_name
-        cls._rootf = root_factory
-
+class TestMorphologyRepository(NumpyTestCase, RandomStorageFixture, engine_name=None):
     def setUp(self):
-        self.mr = self.random_storage(
-            root_factory=self._rootf, engine=self._engine
-        ).morphologies
+        super().setUp()
+        self.mr = self.storage.morphologies
 
     @single_process_test
     def test_swc_saveload_eq(self):
-        for path in get_all_morphologies(".swc"):
+        for path in get_all_morphology_paths(".swc"):
             with self.subTest(morpho=path.split("/")[-1]):
                 m = Morphology.from_swc(path)
                 self.mr.save("X", m, overwrite=True)
@@ -369,7 +322,7 @@ class TestMorphologyRepository(NumpyTestCase, RandomStorageFixture):
 
     @single_process_test
     def test_swc_saveload(self):
-        for path in get_all_morphologies(".swc"):
+        for path in get_all_morphology_paths(".swc"):
             with self.subTest(morpho=path.split("/")[-1]):
                 m = Morphology.from_swc(path)
                 self.mr.save("X", m, overwrite=True)
@@ -393,7 +346,7 @@ class TestMorphologyRepository(NumpyTestCase, RandomStorageFixture):
 
     @single_process_test
     def test_swc_ldc_mdc(self):
-        for path in get_all_morphologies(".swc"):
+        for path in get_all_morphology_paths(".swc"):
             with self.subTest(morpho=path.split("/")[-1]):
                 m = Morphology.from_swc(path)
                 self.mr.save("pc", m, overwrite=True)

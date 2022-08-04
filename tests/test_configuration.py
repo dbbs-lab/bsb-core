@@ -8,15 +8,10 @@ from bsb.config import from_json, Configuration, _attrs
 from bsb.config import types
 from bsb.exceptions import *
 from bsb.topology.region import RegionGroup
-from bsb.unittest import get_config
+from bsb.unittest import get_config_path
 
-
-def relative_to_tests_folder(path):
-    return os.path.join(os.path.dirname(__file__), path)
-
-
-minimal_config = get_config("test_minimal.json")
-full_config = get_config("test_full_v4.json")
+minimal_config = get_config_path("test_minimal.json")
+full_config = get_config_path("test_full_v4.json")
 
 
 @config.root
