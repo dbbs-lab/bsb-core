@@ -24,6 +24,9 @@ class ConnectionCollection:
         self.cell_types = cell_types
         self.roi = roi
 
+    def __iter__(self):
+        return iter(self.cell_types)
+
     @property
     def placement(self):
         return {ct: ct.get_placement_set(self.roi) for ct in self.cell_types}
@@ -72,7 +75,7 @@ class ConnectionStrategy(abc.ABC, SortableByAfter):
         cs = self.scaffold.require_connectivity_set(
             pre_set.cell_type, post_set.cell_type, tag
         )
-        cs.muxed_append(pre_set, post_set, src_locs, dest_locs)
+        cs.connect(pre_set, post_set, src_locs, dest_locs)
 
     @abc.abstractmethod
     def get_region_of_interest(self, chunk):

@@ -502,7 +502,7 @@ class VoxelSet:
         mask = np.zeros(len(positions), dtype=bool)
         ldc, mdc = self._box_bounds()
         for voxel in zip(ldc, mdc):
-            mask |= np.all((positions > ldc) & (positions < mdc), axis=1)
+            mask |= np.all((positions >= ldc) & (positions < mdc), axis=1)
         return mask
 
     def unique(self):

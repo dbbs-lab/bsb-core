@@ -48,22 +48,21 @@ class AllToAll(ConnectionStrategy):
 
     @functools.cache
     def _get_all_pre_chunks(self):
-        all_ps = self.presynaptic.placement.values()
+        all_ps = (ct.get_placement_set() for ct in self.presynaptic.cell_types)
         chunks = set(_gutil.ichain(ps.get_all_chunks() for ps in all_ps))
         return list(chunks)
 
-    def connect(self):
-        from_type = self.presynaptic.type
-        to_type = self.postsynaptic.type
-        from_cells = self.from_cells[from_type.name]
-        to_cells = self.to_cells[to_type.name]
-        l = len(to_cells)
-        connections = np.empty([len(from_cells) * l, 2])
-        to_cell_ids = to_cells[:, 0]
-        for i, from_cell in enumerate(from_cells[:, 0]):
-            connections[range(i * l, (i + 1) * l), 0] = from_cell
-            connections[range(i * l, (i + 1) * l), 1] = to_cell_ids
-        self.scaffold.connect_cells(self, connections)
+    def connect(self, pre, post):
+        for from_ps in pre.placement.values():
+            fl = len(from_ps)
+            for to_ps in post.placement.values():
+                l = len(to_ps)
+                ml = fl * l
+                src_locs = np.full((ml, 3), -1)
+                dest_locs = np.full((ml, 3), -1)
+                src_locs[:, 0] = np.repeat(np.arange(fl), l)
+                dest_locs[:, 0] = np.tile(np.arange(l), fl)
+                self.connect_cells(from_ps, to_ps, src_locs, dest_locs)
 
 
 class ExternalConnections(ConnectionStrategy):
