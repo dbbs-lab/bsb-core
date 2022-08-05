@@ -315,7 +315,7 @@ class TestMorphometry(NumpyTestCase, unittest.TestCase):
         self.bzero_r10 = Branch([[1] * 3] * 10, [0] * 10)
         self.b3 = Branch([[0, 0, 0], [3, 6 * np.sin(np.pi / 3), 0], [6, 0, 0]], [1] * 3)
         # Meaningful toy morphology
-        m = Morphology.from_swc(get_morphology("test_morphometry.swc"))
+        m = Morphology.from_swc(get_morphology_path("test_morphometry.swc"))
         self.adjacency = m.branch_adjacency
         self.branches = m.branches
 
@@ -462,5 +462,5 @@ class TestSwcFiles(NumpyTestCase, unittest.TestCase):
         self.m = Morphology([root])
 
     def test_identity(self):
-        m = Morphology.from_swc(get_morphology("test_morphometry.swc"))
+        m = Morphology.from_swc(get_morphology_path("test_morphometry.swc"))
         self.assertClose(m.points, self.m.points)
