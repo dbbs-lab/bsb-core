@@ -1,35 +1,70 @@
-import unittest, os, sys, numpy as np, h5py, importlib
-
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
 from bsb.core import Scaffold
-from bsb.config import Configuration
+from bsb.unittest import (
+    NumpyTestCase,
+    FixedPosConfigFixture,
+    RandomStorageFixture,
+)
+import unittest
+import numpy as np
 
 
-class TestAllToAll(unittest.TestCase):
+class TestAllToAll(
+    FixedPosConfigFixture,
+    RandomStorageFixture,
+    NumpyTestCase,
+    unittest.TestCase,
+    engine_name="hdf5",
+):
     def setUp(self):
-        super().setUpClass()
-        cfg = Configuration.default()
-        cfg.storage.root = "all_to_all.hdf5"
-        cfg.regions.add("test_region")
-        cfg.partitions.add("test_part", region="test_region", thickness=100)
-        self.network = Scaffold(cfg)
-
-    def test_one_type(self):
-        t = self.network.cell_types.add("test", spatial=dict(radius=1, density=1e-3))
-        fixed_place = self.network.placement.add(
-            "test_place",
-            cls="bsb.placement.FixedPositions",
-            partitions=["test_part"],
-            cell_types=["test"],
+        super().setUp()
+        self.cfg.connectivity.add(
+            "all_to_all",
+            dict(
+                strategy="bsb.connectivity.AllToAll",
+                presynaptic=dict(cell_types=["test_cell"]),
+                postsynaptic=dict(cell_types=["test_cell"]),
+            ),
         )
-        fixed_place.positions = np.tile(np.arange(10).reshape(-1, 1), 3)
-
-        # Adding the conn strat, changes the placement data?
-
-        # all_to_all = self.network.connectivity.add("test_all", cls="bsb.connectivity.AllToAll", presynaptic=dict(cell_types=["test"]), postsynaptic=dict(cell_types=["test"]))
+        self.network = Scaffold(self.cfg, self.storage)
         self.network.compile(clear=True)
-        wanted = len(fixed_place.positions)
-        print(t.get_placement_set().load_positions())
-        placed = len(t.get_placement_set())
-        self.assertEqual(wanted, placed, "incorrect num of cells placed")
+
+    def test_per_block(self):
+        # Test that connections can be stored over chunked layout and can be loaded again.
+        cs = self.network.get_connectivity_set("test_cell_to_test_cell")
+        for lchunk, g_itr in cs.nested_iter_connections(direction="out"):
+            for gchunk, conns in g_itr:
+                ids = conns[0][:, 0]
+                self.assertEqual((625,), ids.shape, "625 local_locs per block expected")
+                u, c = np.unique(ids, return_counts=True)
+                self.assertEqual(25, len(u), "expected exactly 25 local cells")
+                self.assertClose(np.arange(0, 25), np.sort(u))
+                self.assertClose(25, c)
+                ids = conns[1][:, 0]
+                self.assertEqual((625,), ids.shape, "625 global_locs per block expected")
+                u, c = np.unique(ids, return_counts=True)
+                self.assertEqual(25, len(u), "expected exactly 25 global cells")
+                self.assertClose(np.arange(0, 25), np.sort(u))
+                self.assertClose(25, c)
+        self.assertEqual(
+            100 * 100, len(self.network.get_connectivity_set("test_cell_to_test_cell"))
+        )
+
+    def test_per_local(self):
+        cs = self.network.get_connectivity_set("test_cell_to_test_cell")
+        for lchunk in cs.get_local_chunks(direction="out"):
+            local_locs, gchunk_ids, global_locs = cs.load_local_connections("out", lchunk)
+            ids = local_locs[:, 0]
+            self.assertEqual((2500,), ids.shape, "2500 conns per chunk expected")
+            u, c = np.unique(ids, return_counts=True)
+            self.assertEqual(25, len(u), "expected exactly 25 local cells")
+            self.assertClose(np.arange(0, 25), np.sort(u))
+            self.assertClose(100, c, "expected 100 global targets per local cell")
+            ids = global_locs[:, 0]
+            self.assertEqual((2500,), ids.shape, "2500 conns per chunk expected")
+            u, c = np.unique(ids, return_counts=True)
+            self.assertEqual(25, len(u), "expected exactly 25 global cells")
+            self.assertClose(np.arange(0, 25), np.sort(u))
+            self.assertClose(100, c, "expected 25 local sources per global cell")
+        self.assertEqual(
+            100 * 100, len(self.network.get_connectivity_set("test_cell_to_test_cell"))
+        )
