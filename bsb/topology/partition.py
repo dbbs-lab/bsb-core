@@ -308,11 +308,11 @@ class Voxels(Partition, abc.ABC, classmap_entry="voxels"):
     def scale(self, factor):
         raise LayoutError("Voxelset scaling not supported.")
 
-    def surface(self):
-        raise LayoutError("Voxelset surface calculations not supported.")
-
     def translate(self, offset):
         raise LayoutError("Voxelset translation not supported.")
+
+    def surface(self, chunk=None):
+        raise LayoutError("Voxelset surface calculations not supported.")
 
     def volume(self, chunk=None):
         if chunk is not None:
