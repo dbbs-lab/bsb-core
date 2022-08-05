@@ -586,23 +586,41 @@ class MorphologyRepository(Interface, engine_key="morphologies"):
 
 
 class ConnectivitySet(Interface):
+    """
+    Stores the connections between 2 types of cell as ``local`` and ``global`` locations.
+    A location is a cell id, referring to the n-th cell in the chunk, a branch id, and a
+    point id, to specify the location on the morphology. Local locations refer to cells on
+    this chunk, while global locations can come from any chunk and is associated to a
+    certain chunk id as well.
+
+    Locations are either placement-context or chunk dependent: You may form connections
+    between the n-th cells of a placement set (using
+    :meth:`~.storage.interfaces.ConnectivitySet.connect`), or of the n-th cells of 2
+    chunks (using :meth:`~.storage.interfaces.ConnectivitySet.chunk_connect`).
+
+    A cell has both incoming and outgoing connections; when speaking of incoming
+    connections, the local locations are the postsynaptic cells, and when speaking of
+    outgoing connections they are the presynaptic cells. Vice versa for the global
+    connections.
+    """
+
     @abc.abstractclassmethod
     def create(cls, engine, tag):
         """
-        Override with a method to create the placement set.
+        Must create the placement set.
         """
         pass
 
     @abc.abstractstaticmethod
     def exists(self, engine, tag):
         """
-        Override with a method to check existence of the placement set
+        Must check the existence of the placement set
         """
         pass
 
     def require(self, engine, tag):
         """
-        Can be overridden with a method to make sure the placement set exists. The default
+        Must make sure the connectivity set exists. The default
         implementation uses the class's ``exists`` and ``create`` methods.
         """
         if not self.exists(engine, tag):
@@ -611,44 +629,96 @@ class ConnectivitySet(Interface):
     @abc.abstractmethod
     def clear(self, chunks=None):
         """
-        Override with a method to clear (some chunks of) the placement set
+        Must clear (some chunks of) the placement set
         """
         pass
 
     @abc.abstractclassmethod
     def get_tags(cls, engine):
+        """
+        Must return the tags of all existing connectivity sets.
+        """
         pass
 
     @abc.abstractmethod
     def connect(self, pre_set, post_set, src_locs, dest_locs):
+        """
+        Must connect the ``src_locs`` to the ``dest_locs``, interpreting the cell ids
+        (first column of the locs) as the cell rank in the placement set.
+        """
         pass
 
     @abc.abstractmethod
     def chunk_connect(self, src_chunk, dst_chunk, src_locs, dst_locs):
+        """
+        Must connect the ``src_locs`` to the ``dest_locs``, interpreting the cell ids
+        (first column of the locs) as the cell rank in the chunk.
+        """
         pass
 
     @abc.abstractmethod
     def get_local_chunks(self, direction):
+        """
+        Must list all the local chunks that contain data in the given ``direction``
+        (``"inc"`` or ``"out"``).
+        """
         pass
 
     @abc.abstractmethod
     def get_global_chunks(self, direction, local_):
+        """
+        Must list all the global chunks that contain data coming from a ``local`` chunk
+        in the given ``direction``
+        """
         pass
 
     @abc.abstractmethod
     def nested_iter_connections(self, direction=None, local_=None, global_=None):
+        """
+        Must iterate over the connectivity data, leaving room for the end-user to set up
+        nested for loops:
+
+        .. code-block:: python
+
+          for dir, itr in self.nested_iter_connections():
+              for lchunk, itr in itr:
+                  for gchunk, data in itr:
+                      print("Nested {dir} block between {lchunk} and {gchunk}")
+
+        If a keyword argument is given, that axis is not iterated over, and the amount of
+        nested loops is reduced.
+        """
         pass
 
     @abc.abstractmethod
     def flat_iter_connections(self, direction=None, local_=None, global_=None):
+        """
+        Must iterate over the connectivity data, yielding the direction, local chunk,
+        global chunk, and data:
+
+        .. code-block:: python
+
+          for dir, lchunk, gchunk, data in self.flat_iter_connections():
+              print("Flat {dir} block between {lchunk} and {gchunk}")
+
+        If a keyword argument is given, that axis is not iterated over, and the value is
+        fixed in each iteration.
+        """
         pass
 
     @abc.abstractmethod
     def load_connections(self, direction, local_, global_):
+        """
+        Must load the connections of given ``direction`` between ``local_`` and
+        ``global_``.
+        """
         pass
 
     @abc.abstractmethod
     def load_local_connections(self, direction, local_):
+        """
+        Must load all the connections of given ``direction`` in ``local_``.
+        """
         pass
 
 
