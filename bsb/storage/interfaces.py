@@ -619,6 +619,38 @@ class ConnectivitySet(Interface):
     def get_tags(cls, engine):
         pass
 
+    @abc.abstractmethod
+    def connect(self, pre_set, post_set, src_locs, dest_locs):
+        pass
+
+    @abc.abstractmethod
+    def chunk_connect(self, src_chunk, dst_chunk, src_locs, dst_locs):
+        pass
+
+    @abc.abstractmethod
+    def get_local_chunks(self, direction):
+        pass
+
+    @abc.abstractmethod
+    def get_global_chunks(self, direction, local_):
+        pass
+
+    @abc.abstractmethod
+    def nested_iter_connections(self, direction=None, local_=None, global_=None):
+        pass
+
+    @abc.abstractmethod
+    def flat_iter_connections(self, direction=None, local_=None, global_=None):
+        pass
+
+    @abc.abstractmethod
+    def load_connections(self, direction, local_, global_):
+        pass
+
+    @abc.abstractmethod
+    def load_local_connections(self, direction, local_):
+        pass
+
 
 class StoredMorphology:
     def __init__(self, name, loader, meta):
