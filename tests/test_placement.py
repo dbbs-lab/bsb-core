@@ -245,7 +245,7 @@ class TestPlacementStrategies(
             Chunk((1, 0, 1), cs),
         ]
         cfg.placement.ch4_c25.positions = pos = MPI.bcast(
-            np.vstack((c * cs + np.random.random((25, 3)) * cs for c in c4))
+            np.vstack(tuple(c * cs + np.random.random((25, 3)) * cs for c in c4))
         )
         network = Scaffold(cfg, self.storage)
         network.compile()
