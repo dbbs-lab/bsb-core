@@ -36,18 +36,18 @@ API and subject to sudden change in the future.
 
 """
 
-from ._provider import MockProvider, ErrorProvider
+from ._util import MockModule, ErrorModule
 from . import MPI
 import time
 import concurrent.futures
 import threading
 
 
-class _MissingMPIPoolExecutor(ErrorProvider):
+class _MissingMPIPoolExecutor(ErrorModule):
     pass
 
 
-class _MPIPoolProvider(MockProvider):
+class _MPIPoolModule(MockModule):
     @property
     def MPIPoolExecutor(self):
         return _MissingMPIPoolExecutor(
@@ -55,7 +55,7 @@ class _MPIPoolProvider(MockProvider):
         )
 
 
-_MPIPool = _MPIPoolProvider("zwembad")
+_MPIPool = _MPIPoolModule("zwembad")
 
 
 def dispatcher(pool_id, job_args):
@@ -119,7 +119,7 @@ class Job:
         self._deps.discard(dep)
         # When all our dependencies have been discarded we can queue ourselves. Unless the
         # pool is serial, then the pool itself just runs all jobs in order.
-        if not self._deps and MPI.Get_size() > 1:
+        if not self._deps and MPI.get_size() > 1:
             self._enqueue(self._pool)
 
     def _enqueue(self, pool):
@@ -201,7 +201,7 @@ class JobPool:
 
     @property
     def parallel(self):
-        return MPI.Get_size() > 1
+        return MPI.get_size() > 1
 
     @classmethod
     def get_owner(cls, id):
@@ -212,7 +212,7 @@ class JobPool:
         return self.get_owner(self.id)
 
     def is_master(self):
-        return MPI.Get_rank() == 0
+        return MPI.get_rank() == 0
 
     def _put(self, job):
         """

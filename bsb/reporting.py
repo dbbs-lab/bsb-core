@@ -89,7 +89,7 @@ def report(*message, level=2, ongoing=False, token=None, nodes=None, all_nodes=F
     from . import options
 
     message = " ".join(map(str, message))
-    rank = MPI.Get_rank()
+    rank = MPI.get_rank()
     if (
         (not rank and nodes is None) or all_nodes or (nodes is not None and rank in nodes)
     ) and options.verbosity >= level:

@@ -5,7 +5,7 @@ import http.client as _http
 from bsb.services import MPI
 
 
-_mpi_size = MPI.Get_size()
+_mpi_size = MPI.get_size()
 
 
 def internet_connection():
@@ -33,7 +33,7 @@ def single_process_test(o):
     elif callable(o):
 
         def wrapper(*args, **kwargs):
-            if MPI.Get_rank() == 0:
+            if MPI.get_rank() == 0:
                 o(*args, **kwargs)
             else:
                 return
@@ -76,7 +76,7 @@ def timeout(timeout, abort=False):
                 if thread.is_alive():
                     err = TimeoutError(
                         1,
-                        f"{f.__name__} timed out on rank {MPI.Get_rank()}",
+                        f"{f.__name__} timed out on rank {MPI.get_rank()}",
                         args,
                         kwargs,
                     )
@@ -94,7 +94,7 @@ def timeout(timeout, abort=False):
                     file=sys.stderr,
                     flush=True,
                 )
-                MPI.Abort(1)
+                MPI.abort(1)
 
         return timed_f
 

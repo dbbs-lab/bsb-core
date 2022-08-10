@@ -140,7 +140,7 @@ class SchedulerBaseTest:
         pool = JobPool(_net, listeners=[spy])
         job = pool.queue(test_dud, (5, 0.1))
         pool.execute()
-        if not MPI.Get_rank():
+        if not MPI.get_rank():
             self.assertEqual(1, i, "Listeners not executed.")
 
     def test_placement_job(self):
@@ -154,7 +154,7 @@ class SchedulerBaseTest:
         pool.execute()
 
 
-@unittest.skipIf(MPI.Get_size() < 2, "Skipped during serial testing.")
+@unittest.skipIf(MPI.get_size() < 2, "Skipped during serial testing.")
 class TestParallelScheduler(unittest.TestCase, SchedulerBaseTest):
     @timeout(3)
     def test_double_pool(self):
@@ -176,7 +176,7 @@ class TestParallelScheduler(unittest.TestCase, SchedulerBaseTest):
             executed = True
 
         pool.execute(master_event_loop=spy_loop)
-        if MPI.Get_rank():
+        if MPI.get_rank():
             self.assertFalse(executed, "workers executed master loop")
         else:
             self.assertTrue(executed, "master loop skipped")
@@ -202,11 +202,11 @@ class TestParallelScheduler(unittest.TestCase, SchedulerBaseTest):
                 result = jobs[0]._future.running() and not jobs[1]._future.running()
 
         pool.execute(master_event_loop=spy_queue)
-        if not MPI.Get_rank():
+        if not MPI.get_rank():
             self.assertTrue(result, "A job with unfinished dependencies was scheduled.")
 
 
-@unittest.skipIf(MPI.Get_size() > 1, "Skipped during parallel testing.")
+@unittest.skipIf(MPI.get_size() > 1, "Skipped during parallel testing.")
 class TestSerialScheduler(unittest.TestCase, SchedulerBaseTest):
     pass
 

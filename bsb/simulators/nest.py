@@ -29,8 +29,8 @@ except:
         return property(cache(f))
 
 
-_MPI_processes = MPI.Get_size()
-_MPI_rank = MPI.Get_rank()
+_MPI_processes = MPI.get_size()
+_MPI_rank = MPI.get_rank()
 
 _LOCK_ATTRIBUTE = "_dbbs_scaffold_lock"
 _HOT_MODULE_ATTRIBUTE = "_dbbs_scaffold_hot_modules"
@@ -453,7 +453,7 @@ class NestSimulation(Simulation):
         if not hasattr(self, "_master_seed"):
             if fixed_seed is None:
                 # Use time as random seed
-                if not MPI.Get_rank():
+                if not MPI.get_rank():
                     fixed_seed = int(time.time())
                 else:
                     fixed_seed = None
@@ -529,7 +529,7 @@ class NestSimulation(Simulation):
     def collect_output(self, simulator):
         report("Collecting output...", level=2)
         tick = time.time()
-        rank = MPI.Get_rank()
+        rank = MPI.get_rank()
 
         timestamp = str(time.time()).split(".")[0] + str(_randint())
         result_path = "results_" + self.name + "_" + timestamp + ".hdf5"
@@ -1074,7 +1074,7 @@ class SpikeDetectorProtocol(DeviceProtocol):
         if not hasattr(self.device, "_orig_label"):
             self.device._orig_label = self.device.parameters["label"]
         self.device.parameters["label"] = self.device._orig_label + device_tag
-        if not MPI.Get_rank():
+        if not MPI.get_rank():
             self.device.simulation.result.add(SpikeRecorder(self.device))
 
 

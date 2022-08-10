@@ -62,11 +62,11 @@ class TestStorage(RandomStorageFixture, engine_name=None):
             len(ps.load_positions()),
             "Data not empty",
         )
-        MPI.Barrier()
+        MPI.barrier()
         ps.append_data(Chunk((0, 0, 0), (100, 100, 100)), [0])
-        MPI.Barrier()
+        MPI.barrier()
         self.assertEqual(
-            MPI.Get_size(),
+            MPI.get_size(),
             len(ps.load_positions()),
             "Failure to setup `storage.renew()` test due to chunk reading error.",
         )
@@ -86,17 +86,17 @@ class TestStorage(RandomStorageFixture, engine_name=None):
         for _ in range(100):
             os = Storage(self._engine, s.root)
             s.move(s.root[:-5] + "e" + s.root[-5:])
-            self.assertTrue(s.exists(), f"{MPI.Get_rank()} can't find moved storage yet.")
-            self.assertFalse(os.exists(), f"{MPI.Get_rank()} still finds old storage.")
+            self.assertTrue(s.exists(), f"{MPI.get_rank()} can't find moved storage yet.")
+            self.assertFalse(os.exists(), f"{MPI.get_rank()} still finds old storage.")
 
     @timeout(10)
     def test_remove_create(self):
         for _ in range(100):
             s = self.storage
             s.remove()
-            self.assertFalse(s.exists(), f"{MPI.Get_rank()} still finds removed storage.")
+            self.assertFalse(s.exists(), f"{MPI.get_rank()} still finds removed storage.")
             s.create()
-            self.assertTrue(s.exists(), f"{MPI.Get_rank()} can't find new storage yet.")
+            self.assertTrue(s.exists(), f"{MPI.get_rank()} can't find new storage yet.")
 
     def test_active_config(self):
         s = self.storage
@@ -149,12 +149,12 @@ class TestPlacementSet(
 
     def test_create(self):
         ct = CellType(name="hehe", spatial=dict(radius=2, density=1e-3))
-        if not MPI.Get_rank():
+        if not MPI.get_rank():
             ps = self.storage._PlacementSet.create(self.storage._engine, ct)
-            MPI.Barrier()
+            MPI.barrier()
             time.sleep(0.1)
         else:
-            MPI.Barrier()
+            MPI.barrier()
             ps = self.storage._PlacementSet(self.storage._engine, ct)
         self.assertEqual("hehe", ps.tag, "tag should be cell type name")
         self.assertEqual(0, len(ps), "new ps should be empty")
@@ -171,13 +171,13 @@ class TestPlacementSet(
         engine = self.storage._engine
         self.assertTrue(exists(engine, ct), "ps of in cfg ct should exist")
         self.assertFalse(exists(engine, ct2), "ps of random ct should not exist")
-        MPI.Barrier()
-        if not MPI.Get_rank():
+        MPI.barrier()
+        if not MPI.get_rank():
             ps.remove()
             time.sleep(0.1)
-            MPI.Barrier()
+            MPI.barrier()
         else:
-            MPI.Barrier()
+            MPI.barrier()
         self.assertFalse(exists(engine, ct), "removed ps should not exist")
 
     @single_process_test
@@ -193,10 +193,10 @@ class TestPlacementSet(
         ps = self.network.get_placement_set("test_cell")
         self.assertEqual(100, len(ps), "expected 100 cells globally")
         ps.clear(chunks=[Chunk([0, 0, 0], self.network.network.chunk_size)])
-        MPI.Barrier()
+        MPI.barrier()
         self.assertEqual(75, len(ps), "expected 75 cells after clearing 1 chunk")
         ps.clear()
-        MPI.Barrier()
+        MPI.barrier()
         self.assertEqual(0, len(ps), "expected 0 cells after clearing all chunks")
 
     def test_get_all_chunks(self):

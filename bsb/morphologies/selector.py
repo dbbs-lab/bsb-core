@@ -74,11 +74,11 @@ class NeuroMorphoSelector(NameSelector, classmap_entry="from_neuromorpho"):
             try:
                 morphos = self._scrape_nm(self.names)
             except:
-                MPI.Barrier()
+                MPI.barrier()
                 raise
             for name, morpho in morphos.items():
                 self.scaffold.morphologies.save(name, morpho, overwrite=True)
-        MPI.Barrier()
+        MPI.barrier()
 
     @classmethod
     def _swc_url(cls, archive, name):

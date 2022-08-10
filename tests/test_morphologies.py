@@ -344,7 +344,6 @@ class TestMorphometry(NumpyTestCase, unittest.TestCase):
                 self.assertEqual(getattr(self.bzero_r10, attr), 0)
 
     def test_known_len(self):
-        print(f"Segments: {self.b3.segments}")
         self.assertClose(self.b3.path_dist, 12)
         self.assertClose(self.b3.euclidean_dist, 6)
 

@@ -357,16 +357,16 @@ class ArborSimulation(Simulation):
             self.threads = psutil.cpu_count(logical=False)
 
     def get_rank(self):
-        return MPI.Get_rank()
+        return MPI.get_rank()
 
     def get_size(self):
-        return MPI.Get_size()
+        return MPI.get_size()
 
     def broadcast(self, data, root=0):
         return MPI.bcast(data, root)
 
     def barrier(self):
-        return MPI.Barrier()
+        return MPI.barrier()
 
     def init_result(self):
         self.result = SimulationResult()
@@ -385,8 +385,8 @@ class ArborSimulation(Simulation):
                 mpi = MPI
             context = arbor.context(arbor.proc_allocation(self.threads), comm=mpi)
         except TypeError:
-            if MPI.Get_size() > 1:
-                s = MPI.Get_size()
+            if MPI.get_size() > 1:
+                s = MPI.get_size()
                 warn(
                     f"Arbor does not seem to be built with MPI support, running duplicate simulations on {s} nodes."
                 )
@@ -421,7 +421,7 @@ class ArborSimulation(Simulation):
             device.prepare_samples(sim)
 
     def simulate(self, simulation):
-        if not MPI.Get_rank():
+        if not MPI.get_rank():
             simulation.record(arbor.spike_recording.all)
         start = time.time()
         report("running simulation", level=1)

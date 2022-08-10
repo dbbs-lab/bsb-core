@@ -187,7 +187,7 @@ class Storage:
         return self._preexisted
 
     def is_main_process(self):
-        return self._comm.Get_rank() == self._main
+        return self._comm.get_rank() == self._main
 
     @property
     def morphologies(self):

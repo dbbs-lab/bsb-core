@@ -3,15 +3,15 @@ Service module. Register or access interfaces that may be provided, mocked or mi
 should always behave neatly on import.
 """
 
-from ._provider import ErrorProvider as _ErrorProvider
-from .mpi import MPIProvider as _MPIProvider
-from .mpilock import MPILockProvider as _MPILockProvider
+from ._util import ErrorModule as _ErrorModule
+from .mpi import MPIService as _MPIService
+from .mpilock import MPILockModule as _MPILockModule
 
-MPI = _MPIProvider("mpi4py.MPI").COMM_WORLD
+MPI = _MPIService()
 """
 MPI service
 """
-MPILock = _MPILockProvider("mpilock")
+MPILock = _MPILockModule("mpilock")
 """
 MPILock service
 """
@@ -26,7 +26,7 @@ JobPool service
 
 
 def __getattr__(attr):
-    return _ErrorProvider(f"{attr} is not a registered service.")
+    return _ErrorModule(f"{attr} is not a registered service.")
 
 
 def register_service(attr, provider):

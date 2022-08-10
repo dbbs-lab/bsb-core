@@ -29,8 +29,8 @@ class TestMiniature(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        if mpi.Get_rank():
-            mpi.Barrier()
+        if mpi.get_rank():
+            mpi.barrier()
             network = from_hdf5("nrn_miniature.hdf5")
         else:
             config = from_json(miniature_config)
@@ -61,7 +61,7 @@ class TestMiniature(unittest.TestCase):
             comp = np.array([[pre_comp_id, post_comp_id]])
             network.connect_cells(sc_pc, c, None, m, comp, None, mmap)
             network.compile_output()
-            mpi.Barrier()
+            mpi.barrier()
         network.run_simulation("test")
         from glob import glob
 

@@ -2,11 +2,7 @@ from ..exceptions import *
 import importlib
 
 
-class ServiceProvider:
-    pass
-
-
-class ErrorProvider:
+class ErrorModule:
     def __init__(self, message):
         self._msg = message
 
@@ -14,7 +10,7 @@ class ErrorProvider:
         raise DependencyError(self._msg)
 
 
-class MockProvider:
+class MockModule:
     def __new__(cls, module):
         try:
             instance = importlib.import_module(module)

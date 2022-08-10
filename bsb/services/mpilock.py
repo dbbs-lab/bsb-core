@@ -1,5 +1,5 @@
 # TODO: check for parallel support in the hdf5 provider, if it has it, provide noop
-from ._provider import MockProvider
+from ._util import MockModule
 import numpy as np
 
 
@@ -10,8 +10,8 @@ class MockedWindowController:
         if comm is None:
             comm = MPI
         self._comm = comm
-        self._size = comm.Get_size()
-        self._rank = comm.Get_rank()
+        self._size = comm.get_size()
+        self._rank = comm.get_rank()
         self._master = master
         self._mocked = True
         self._closed = False
@@ -118,7 +118,7 @@ class FencedSignal(Exception):
     pass
 
 
-class MPILockProvider(MockProvider):
+class MPILockModule(MockModule):
     def sync(self, comm=None, master=0):
         return MockedWindowController(comm, master)
 

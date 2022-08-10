@@ -84,10 +84,10 @@ class Scaffold:
         return getattr(component, "scaffold", None) is self
 
     def is_main_process(self):
-        return not MPI.Get_rank()
+        return not MPI.get_rank()
 
     def is_worker_process(self):
-        return bool(MPI.Get_rank())
+        return bool(MPI.get_rank())
 
     def _bootstrap(self, config, storage, clear=False):
         if config is None:
