@@ -1,16 +1,23 @@
 # 4.0.0 - Too much to list
 
-# 40.0.0a30
+## 40.0.0a32
+
+### Breaking changes
+
+* Bumped to `bsb-hdf5~=0.3.1`, to fix #579.
+* Renamed `MPI.*` functions to lowercase.
+
+## 40.0.0a30
 
 * BSB now requires bsb-hdf5 v 0.2.5
 
-# 4.0.0a19
+## 4.0.0a19
 
 * Removed the `voxels` property of the `Voxels` partition, instead the children ``nrrd``
   and ``allen`` are now available directly as partitions.
 * Renamed the `AllenStructureLoader` to `AllenStructure`
 
-# 4.0.0a18
+## 4.0.0a18
 
 ### Breaking changes
 
