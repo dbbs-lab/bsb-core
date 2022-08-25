@@ -56,10 +56,11 @@ class Chunk(np.ndarray):
         self._size = state[-1]
 
     def __eq__(self, other):
-        if isinstance(other, int) or len(other.shape) == 0:
+        if isinstance(other, int):
             return self.id == other
         else:
-            return self.id == other.view(Chunk).id
+            other = np.array(other, copy=False).view(Chunk)
+            return (len(other.shape) == 0 and self.id == other) or self.id == other.id
 
     @property
     def dimensions(self):
