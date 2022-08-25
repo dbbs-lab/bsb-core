@@ -6,7 +6,6 @@ from .connectivity import ConnectionStrategy
 from .storage import Chunk, Storage, _util as _storutil
 from .exceptions import (
     InputError,
-    SimulationNotFoundError,
     NodeNotFoundError,
     RedoError,
     ScaffoldError,
@@ -119,7 +118,7 @@ class Scaffold:
         # Give the scaffold access to the unitialized storage object (for use during
         # config bootstrapping).
         self._storage = storage
-        # First, the scaffold is passed to each config node, and their boot methods called.
+        # First, the scaffold is passed to each config node, and their boot methods called
         self._configuration._bootstrap(self)
         # Then, `storage` is initted for the scaffold, and `config` is stored (happens
         # inside the `storage` property).
@@ -348,18 +347,16 @@ class Scaffold:
             simulator.quit()
         return result_path
 
-    def get_simulation(self, simulation_name):
+    def get_simulation(self, sim_name):
         """
         Retrieve the default single-instance adapter for a simulation.
         """
-        if simulation_name not in self.configuration.simulations:
-            raise SimulationNotFoundError(
-                "Unknown simulation '{}', choose from: {}".format(
-                    simulation_name, ", ".join(self.configuration.simulations.keys())
-                )
+        if sim_name not in self.simulations:
+            simstr = ", ".join(f"'{s}'" for s in self.simulations.keys())
+            raise NodeNotFoundError(
+                f"Unknown simulation '{sim_name}', choose from: {simstr}"
             )
-        simulation = self.configuration.simulations[simulation_name]
-        return simulation
+        return self.configuration.simulations[sim_name]
 
     def prepare_simulation(self, simulation_name):
         """
@@ -539,9 +536,7 @@ class Scaffold:
         scaffold data into simulator data.
         """
         if simulation_name not in self.configuration.simulations:
-            raise SimulationNotFoundError(
-                "Unknown simulation '{}'".format(simulation_name)
-            )
+            raise NodeNotFoundError("Unknown simulation '{}'".format(simulation_name))
         simulations = self.configuration._parsed_config["simulations"]
         simulation_config = simulations[simulation_name]
         adapter = self.configuration.init_simulation(
