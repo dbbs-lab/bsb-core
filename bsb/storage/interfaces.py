@@ -1,12 +1,8 @@
 import abc
-import types
 import functools
-from contextlib import contextmanager
 import numpy as np
-from ..morphologies import Morphology, Branch
+from ..morphologies import Morphology
 from ..trees import BoxTree
-from rtree import index as rtree
-from scipy.spatial.transform import Rotation
 
 
 class Interface(abc.ABC):
@@ -683,7 +679,7 @@ class ConnectivitySet(Interface):
           for dir, itr in self.nested_iter_connections():
               for lchunk, itr in itr:
                   for gchunk, data in itr:
-                      print("Nested {dir} block between {lchunk} and {gchunk}")
+                      print(f"Nested {dir} block between {lchunk} and {gchunk}")
 
         If a keyword argument is given, that axis is not iterated over, and the amount of
         nested loops is reduced.
@@ -699,7 +695,7 @@ class ConnectivitySet(Interface):
         .. code-block:: python
 
           for dir, lchunk, gchunk, data in self.flat_iter_connections():
-              print("Flat {dir} block between {lchunk} and {gchunk}")
+              print(f"Flat {dir} block between {lchunk} and {gchunk}")
 
         If a keyword argument is given, that axis is not iterated over, and the value is
         fixed in each iteration.
