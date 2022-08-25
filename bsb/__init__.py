@@ -1,7 +1,6 @@
-__version__ = "4.0.0a34"
+__version__ = "4.0.0a35"
 
 import functools
-from . import reporting
 
 # Patch functools on 3.8
 try:
@@ -16,6 +15,9 @@ except AttributeError:
         return self.dispatcher.register(cls, func=method)
 
     functools.singledispatchmethod.register = _register
+
+
+from . import reporting
 
 
 reporting.setup_reporting()
