@@ -1,4 +1,4 @@
-__version__ = "4.0.0a33"
+__version__ = "4.0.0a34"
 
 import functools
 from . import reporting
