@@ -6,14 +6,16 @@ import sys
 import io
 
 
+_preamble = chr(240) + chr(80) + chr(85) + chr(248) + chr(228)
+_preamble_bar = chr(191) * 3
+_report_file = None
+
+
 def warning_on_one_line(message, category, filename, lineno, file=None, line=None):
     return "%s:%s: %s: %s\n" % (filename, lineno, category.__name__, message)
 
 
-warnings.formatwarning = warning_on_one_line
-
-
-def wrap_writer(stream, writer):
+def wrap_autoflush_stream(stream, writer):
     @functools.wraps(writer)
     def wrapped(self, *args, **kwargs):
         writer(*args, **kwargs)
@@ -35,27 +37,6 @@ def in_notebook():
     return True
 
 
-# Don't touch stdout if we're in IPython
-if not in_notebook():
-    try:
-        stdout = open(sys.stdout.fileno(), "wb", 0)
-        sys.stdout = io.TextIOWrapper(stdout, write_through=True)
-    except io.UnsupportedOperation:  # pragma: nocover
-        try:
-            writers = ["write", "writelines"]
-            for w in writers:
-                writer = getattr(sys.stdout, w)
-                wrapped = wrap_writer(sys.stdout, writer)
-                setattr(sys.stdout, w, wrapped)
-        except:
-            warnings.warn(
-                "Unable to create unbuffered wrapper around `sys.stdout`"
-                + f" ({sys.stdout.__class__.__name__})."
-            )
-
-_report_file = None
-
-
 def set_report_file(v):
     """
     Set a file to which the scaffold package should report instead of stdout.
@@ -69,10 +50,6 @@ def get_report_file():
     Return the report file of the scaffold package.
     """
     return _report_file
-
-
-preamble = chr(240) + chr(80) + chr(85) + chr(248) + chr(228)
-preamble_bar = chr(191) * 3
 
 
 def report(*message, level=2, ongoing=False, token=None, nodes=None, all_nodes=False):
@@ -121,4 +98,27 @@ def warn(message, category=None, stacklevel=2):
 def _encode(header, message):
     header = base64.b64encode(bytes(header, "UTF-8")).decode("UTF-8")
     message = base64.b64encode(bytes(message, "UTF-8")).decode("UTF-8")
-    return preamble + header + preamble_bar + message + preamble
+    return _preamble + header + _preamble_bar + message + _preamble
+
+
+def setup_reporting():
+    warnings.formatwarning = warning_on_one_line
+    # Don't touch stdout if we're in IPython
+    if in_notebook():
+        return
+    # Otherwise, tinker with stdout so that we autoflush after each write, better for MPI.
+    try:
+        stdout = open(sys.stdout.fileno(), "wb", 0)
+        sys.stdout = io.TextIOWrapper(stdout, write_through=True)
+    except io.UnsupportedOperation:  # pragma: nocover
+        try:
+            func_names = ["write", "writelines"]
+            for func_name in func_names:
+                method = getattr(sys.stdout, func_name)
+                wrapped = wrap_autoflush_stream(sys.stdout, method)
+                setattr(sys.stdout, func_name, wrapped)
+        except Exception:
+            warnings.warn(
+                "Unable to create unbuffered wrapper around `sys.stdout`"
+                + f" ({sys.stdout.__class__.__name__})."
+            )
