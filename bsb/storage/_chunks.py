@@ -1,5 +1,5 @@
 import numpy as np
-from ..exceptions import *
+from ..exceptions import ChunkError
 
 _iinfo = np.iinfo(np.int16)
 
@@ -27,7 +27,11 @@ class Chunk(np.ndarray):
         return self.id != other.id
 
     def __eq__(self, other):
-        return self.id == other.id
+        if isinstance(other, int):
+            return self.id == other
+        else:
+            other = np.array(other, copy=False).view(Chunk)
+            return (len(other.shape) == 0 and self.id == other) or self.id == other.id
 
     def __gt__(self, other):
         return self.id > other.id
@@ -54,12 +58,6 @@ class Chunk(np.ndarray):
         # Unpickle ourselves, grabbing the state we appended for `_size`
         super().__setstate__(state[:-1])
         self._size = state[-1]
-
-    def __eq__(self, other):
-        if isinstance(other, int) or len(other.shape) == 0:
-            return self.id == other
-        else:
-            return self.id == other.view(Chunk).id
 
     @property
     def dimensions(self):

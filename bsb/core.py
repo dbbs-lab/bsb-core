@@ -1,13 +1,15 @@
-from .plotting import plot_network
-import numpy as np
 import time
 import os
 import itertools
-from warnings import warn as std_warn
 from .placement import PlacementStrategy
 from .connectivity import ConnectionStrategy
 from .storage import Chunk, Storage, _util as _storutil
-from .exceptions import *
+from .exceptions import (
+    InputError,
+    NodeNotFoundError,
+    RedoError,
+    ScaffoldError,
+)
 from .reporting import report, warn, get_report_file
 from .config._config import Configuration
 from .services.pool import create_job_pool
@@ -103,7 +105,7 @@ class Scaffold:
                 config = Configuration.default()
         if not storage:
             # No storage given, create one.
-            report(f"Creating storage from config.", level=4)
+            report("Creating storage from config.", level=4)
             storage = Storage(config.storage.engine, config.storage.root)
         if clear:
             # Storage given, but asked to clear it before use.
@@ -116,7 +118,7 @@ class Scaffold:
         # Give the scaffold access to the unitialized storage object (for use during
         # config bootstrapping).
         self._storage = storage
-        # First, the scaffold is passed to each config node, and their boot methods called.
+        # First, the scaffold is passed to each config node, and their boot methods called
         self._configuration._bootstrap(self)
         # Then, `storage` is initted for the scaffold, and `config` is stored (happens
         # inside the `storage` property).
@@ -205,7 +207,7 @@ class Scaffold:
             loop = self._progress_terminal_loop(pool, debug=DEBUG)
             try:
                 pool.execute(loop)
-            except:
+            except Exception:
                 self._stop_progress_loop(loop, debug=DEBUG)
                 raise
             finally:
@@ -227,7 +229,7 @@ class Scaffold:
             loop = self._progress_terminal_loop(pool, debug=DEBUG)
             try:
                 pool.execute(loop)
-            except:
+            except Exception:
                 self._stop_progress_loop(loop, debug=DEBUG)
                 raise
             finally:
@@ -345,18 +347,16 @@ class Scaffold:
             simulator.quit()
         return result_path
 
-    def get_simulation(self, simulation_name):
+    def get_simulation(self, sim_name):
         """
         Retrieve the default single-instance adapter for a simulation.
         """
-        if simulation_name not in self.configuration.simulations:
-            raise SimulationNotFoundError(
-                "Unknown simulation '{}', choose from: {}".format(
-                    simulation_name, ", ".join(self.configuration.simulations.keys())
-                )
+        if sim_name not in self.simulations:
+            simstr = ", ".join(f"'{s}'" for s in self.simulations.keys())
+            raise NodeNotFoundError(
+                f"Unknown simulation '{sim_name}', choose from: {simstr}"
             )
-        simulation = self.configuration.simulations[simulation_name]
-        return simulation
+        return self.configuration.simulations[sim_name]
 
     def prepare_simulation(self, simulation_name):
         """
@@ -391,9 +391,6 @@ class Scaffold:
         """
         if chunk is None:
             chunk = Chunk([0, 0, 0], self.network.chunk_size)
-        cell_count = positions.shape[0]
-        if cell_count == 0:
-            return
         self.get_placement_set(cell_type).append_data(
             chunk,
             positions=positions,
@@ -509,7 +506,7 @@ class Scaffold:
         if tag is None:
             try:
                 tag = f"{pre.name}_to_{post.name}"
-            except:
+            except Exception:
                 raise ValueError("Supply either `tag` or a valid pre and post cell type.")
         cs = self.storage.get_connectivity_set(tag)
         if pre and pre.name != cs._pre_name:
@@ -539,9 +536,7 @@ class Scaffold:
         scaffold data into simulator data.
         """
         if simulation_name not in self.configuration.simulations:
-            raise SimulationNotFoundError(
-                "Unknown simulation '{}'".format(simulation_name)
-            )
+            raise NodeNotFoundError("Unknown simulation '{}'".format(simulation_name))
         simulations = self.configuration._parsed_config["simulations"]
         simulation_config = simulations[simulation_name]
         adapter = self.configuration.init_simulation(
@@ -586,9 +581,15 @@ class Scaffold:
             return self.storage._Label.list()
         if pattern.endswith("*"):
             p = pattern[:-1]
-            finder = lambda l: l.startswith(p)
+
+            def finder(label):
+                return label.startswith(p)
+
         else:
-            finder = lambda l: l == pattern
+
+            def finder(label):
+                return label == pattern
+
         return list(filter(finder, self.storage._Label.list()))
 
     def merge(self, other, label=None):
@@ -693,7 +694,7 @@ class Scaffold:
             # Grow the placement chain
             p_contrib.update(contrib)
         report(
-            f"Redo-affected placement: " + " ".join(ps.name for ps in p_contrib), level=2
+            "Redo-affected placement: " + " ".join(ps.name for ps in p_contrib), level=2
         )
 
         c_contrib = set(c_strats)
@@ -705,19 +706,20 @@ class Scaffold:
                 break
             c_contrib.update(contrib)
         report(
-            f"Redo-affected connectivity: " + " ".join(cs.name for cs in c_contrib),
+            "Redo-affected connectivity: " + " ".join(cs.name for cs in c_contrib),
             level=2,
         )
         # Don't do greedy things without `force`
         if not force:
             # Error if we need to redo things the user asked to skip
             if skip is not None:
-                unskipped = [p.name for p in p_strats if p.name in skip]
+                unskipped = [p.name for p in p_contrib if p.name in skip]
                 if unskipped:
-                    skipstr = ", ".join(unskipped)
+                    chainstr = ", ".join(f"'{s.name}'" for s in (p_strats + c_strats))
+                    skipstr = ", ".join(f"'{s.name}'" for s in unskipped)
                     raise RedoError(
-                        f"Need to redo {unskipped}, but was asked to skip."
-                        + ". Omit from `skip` or use `force` (not recommended)."
+                        f"Can't skip {skipstr}. Redoing {chainstr} requires to redo them."
+                        + f" Omit {skipstr} from `skip` or use `force` (not recommended)."
                     )
             # Error if we need to redo things the user didn't ask for
             for label, chain, og in zip(
@@ -750,7 +752,7 @@ class Scaffold:
         elif link.type == "auto":
             try:
                 cfg = storage.load_active_config()
-            except Exception as e:
+            except Exception:
                 return None
             else:
                 path = cfg._meta.get("path", None)
@@ -782,7 +784,7 @@ class Scaffold:
             try:
                 mr = Storage("hdf5", link.path).morphologies
                 all = mr.all()
-            except:
+            except Exception:
                 raise ScaffoldError("Morphology repository link must be HDF5 repository.")
             else:
                 report(f"Pulling {len(all)} morphologies from linked {link}.", level=2)

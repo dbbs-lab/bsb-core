@@ -1,16 +1,22 @@
-import setuptools, sys, os
+import setuptools
+import os
 
-with open(os.path.join(os.path.dirname(__file__), "bsb", "__init__.py"), "r") as f:
+_findver = "__version__ = "
+_rootpath = os.path.join(os.path.dirname(__file__), "bsb", "__init__.py")
+with open(_rootpath, "r") as f:
     for line in f:
         if "__version__ = " in line:
-            exec(line.strip())
+            f = line.find(_findver)
+            __version__ = eval(line[line.find(_findver) + len(_findver) :])
             break
+    else:
+        raise Exception(f"No `__version__` found in '{_rootpath}'.")
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
 requires = [
-    "bsb-hdf5~=0.3.1",
+    "bsb-hdf5~=0.3.3",
     "h5py~=3.0",
     "numpy~=1.19",
     "scipy~=1.5",
@@ -30,9 +36,11 @@ requires = [
 setuptools.setup(
     name="bsb",
     version=__version__,
-    author="Robin De Schepper, Alice Geminiani, Alberto Antonietti, Stefano Casali, Egidio D'Angelo, Claudia Casellato",
+    author="Robin De Schepper, Alice Geminiani, Alberto Antonietti, Stefano Casali,"
+    + " Egidio D'Angelo, Claudia Casellato",
     author_email="robingilbert.deschepper@unipv.it",
-    description="A package for modelling morphologically detailed neuronal microcircuits.",
+    description="A component framework for modelling morphologically detailed neuronal"
+    + " microcircuits",
     include_package_data=True,
     package_data={
         "bsb": [

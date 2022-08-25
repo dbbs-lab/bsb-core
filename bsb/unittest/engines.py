@@ -1,5 +1,4 @@
-import unittest
-from ..exceptions import *
+from ..exceptions import DatasetNotFoundError, DatasetExistsError
 from ..core import Scaffold
 from ..cell_types import CellType
 from ..config import Configuration
@@ -184,9 +183,9 @@ class TestPlacementSet(
     def test_require(self):
         ct2 = CellType(name="hehe", spatial=dict(radius=2, density=1e-3))
         # Test that we can create the PS
-        ps = self.storage.require_placement_set(ct2)
+        self.storage.require_placement_set(ct2)
         # Test that already created PS is not a problem
-        ps = self.storage.require_placement_set(ct2)
+        self.storage.require_placement_set(ct2)
 
     def test_clear(self):
         self.network.compile()
@@ -293,16 +292,71 @@ class TestPlacementSet(
     def test_4chunks_25cells(self):
         self.network.compile()
         ps = self.network.get_placement_set("test_cell")
-        self.assertEqual(100, len(ps), "expected 100 cells globally")
+        self.assertEqual(
+            100,
+            len(ps),
+            f"Network was compiled with 100 FixedPositions, but {len(ps)} were placed.",
+        )
         for chunk in self.chunks:
             with self.subTest(chunk=chunk):
                 with ps.chunk_context(chunk):
-                    self.assertEqual(25, len(ps), "expected 25 cells per chunk")
+                    self.assertEqual(
+                        25,
+                        len(ps),
+                        "Network was compiled with 25 FixedPositions per chunk,"
+                        + f" but {len(ps)} were placed in chunk {chunk}.",
+                    )
         pos = self.cfg.placement.ch4_c25.positions
         pos_sort = pos[np.argsort(pos[:, 0])]
         pspos = ps.load_positions()
         pspos_sort = pspos[np.argsort(pspos[:, 0])]
-        self.assertClose(pos_sort, pspos_sort, "expected fixed positions")
+        self.assertClose(
+            pos_sort,
+            pspos_sort,
+            "Network was compiled with FixedPositions,"
+            + " but different positions were found.",
+        )
+
+    @single_process_test
+    def test_chunk_size(self):
+        ps = self.network.get_placement_set("test_cell")
+        ps.append_data([0, 0, 0], [])
+        chunks = ps.get_all_chunks()
+        self.assertAll(
+            np.isnan([c.dimensions for c in chunks]),
+            "Wrote undefined chunk size to PS, so the loaded chunk size should be nan."
+            + f" Instead `{chunks[0].dimensions}` was found.",
+        )
+        ps.append_data(Chunk([0, 0, 1], [20, 20, 20]), [])
+        chunks = ps.get_all_chunks()
+        self.assertClose(
+            20,
+            np.array([c.dimensions for c in chunks]),
+            "Wrote chunk size `20` to PS with undefined chunk size, so the chunk size"
+            + " should be set to the new value."
+            + f" Instead `{chunks[0].dimensions}` was found.",
+        )
+
+    @single_process_test
+    def test_list_input(self):
+        ps = self.network.get_placement_set("test_cell")
+        try:
+            ps.append_data([0, 0, 0], [])
+        except Exception:
+            self.fail(
+                "PlacementSet failed to append `list` typed data. PlacementSets should"
+                + " allow this short form to work: `.append_data([0, 0, 0], [])`"
+            )
+        try:
+            ps.append_data([0, 0, 0], [[1, 1, 1]])
+        except Exception:
+            self.fail(
+                "PlacementSet failed to append `list` typed data. PlacementSets should"
+                + " allow this short form to work: `.append_data([0, 0, 0], [[1,1,1]])`"
+            )
+        self.assertEqual(
+            1, len(ps), f"PlacementSet placement {len(ps)} after 1 list type input"
+        )
 
 
 class TestMorphologyRepository(NumpyTestCase, RandomStorageFixture, engine_name=None):
@@ -335,7 +389,7 @@ class TestMorphologyRepository(NumpyTestCase, RandomStorageFixture, engine_name=
                     lm.points.shape,
                     f"points shape changed: from {m.points.shape} to {lm.points.shape}",
                 )
-                self.assertClose(m.points, lm.points, f"points changed")
+                self.assertClose(m.points, lm.points, "points changed")
                 for i, (b1, b2) in enumerate(zip(m.branches, lm.branches)):
                     self.assertEqual(
                         b1.points.shape,
@@ -370,6 +424,18 @@ class TestConnectivitySet(
         )
         self.network = Scaffold(self.cfg, self.storage)
         self.network.compile(clear=True)
+
+    def test_require(self):
+        ct = self.network.cell_types.add(
+            "new_cell", dict(spatial=dict(radius=2, density=1e-3))
+        )
+        self.network.require_connectivity_set(
+            ct, self.network.cell_types.test_cell, "test"
+        )
+        self.assertTrue(
+            self.storage._ConnectivitySet.exists(self.storage._engine, "test"),
+            "must exist after require",
+        )
 
     def test_io(self):
         # Test that connections can be stored over chunked layout and can be loaded again.
@@ -411,6 +477,40 @@ class TestConnectivitySet(
             self.assertClose(100, c, "expected 25 local sources per global cell")
         self.assertEqual(
             100 * 100, len(self.network.get_connectivity_set("test_cell_to_test_cell"))
+        )
+
+    @single_process_test
+    def test_connect_connect(self):
+        ct = self.network.cell_types.add(
+            "new_cell", dict(spatial=dict(radius=2, density=1e-3))
+        )
+        self.network.place_cells(ct, [[0, 0, 0], [1, 1, 1], [2, 2, 2]], chunk=[0, 0, 0])
+        self.network.place_cells(ct, [[3, 3, 3], [4, 4, 4]], chunk=[0, 0, 1])
+        ps0 = self.network.get_placement_set(ct, [[0, 0, 0]])
+        ps1 = self.network.get_placement_set(ct, [[0, 0, 1]])
+        self.network.get_placement_set(ct)
+        cs = self.network.require_connectivity_set(ct, ct, "test")
+        cs.connect(ps0, ps1, [], [])
+        self.assertEqual(
+            0,
+            len(cs),
+            "After connecting empty data, the ConnectivitySet should remain empty.",
+        )
+        cs.connect(ps0, ps1, [[1, -1, -1]], [[1, -1, -1]])
+        self.assertEqual(
+            1, len(cs), "After making 1 connection, the ConnectivitySet should be len 1."
+        )
+        data = [*cs.flat_iter_connections("out")]
+        self.assertEqual(
+            1,
+            len(data),
+            "Wrote 1 connection to set, flat iterator should yield only 1 blockset.",
+        )
+        self.assertEqual(
+            [0, 0, 0],
+            data[0][1],
+            "Instructed to connect cell 1 of chunk 0 to cell 1 of chunk 1."
+            + f" Outgoing chunk should be 0, `{data[0][1]}` found",
         )
 
     def test_order(self):
