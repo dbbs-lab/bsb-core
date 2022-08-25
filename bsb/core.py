@@ -391,9 +391,6 @@ class Scaffold:
         """
         if chunk is None:
             chunk = Chunk([0, 0, 0], self.network.chunk_size)
-        cell_count = positions.shape[0]
-        if cell_count == 0:
-            return
         self.get_placement_set(cell_type).append_data(
             chunk,
             positions=positions,
