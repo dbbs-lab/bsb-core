@@ -717,6 +717,16 @@ class ConnectivitySet(Interface):
         """
         pass
 
+    @property
+    def incoming(self):
+        # Trim the inc direction tag from the flat iterator
+        yield from (data[1:] for data in self.flat_iter_connections("inc"))
+
+    @property
+    def outgoing(self):
+        # Trim the inc direction tag from the flat iterator
+        yield from (data[1:] for data in self.flat_iter_connections("out"))
+
 
 class StoredMorphology:
     def __init__(self, name, loader, meta):
