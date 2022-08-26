@@ -203,12 +203,12 @@
       "strategy": "bsb.connectivity.AllToAll",
       "presynaptic": {
         "cell_types": ["io_cell"],
-        "compartments": ["axon"],
+        "subcell_targets": ["axon"],
         "labels": ["microzone-*"]
       },
       "postsynaptic": {
         "cell_types": ["dcn_cell"],
-        "compartments": ["dendrites"],
+        "subcell_targets": ["dendrites"],
         "labels": ["microzone-*"]
       }
     }

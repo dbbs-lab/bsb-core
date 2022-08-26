@@ -1,8 +1,7 @@
 from .. import config
 from ..config import refs, types
 from .._util import SortableByAfter
-from ..reporting import report, warn
-from ..exceptions import *
+from ..reporting import report
 import abc
 from itertools import chain
 
@@ -12,24 +11,23 @@ def _targetting_req(section):
 
 
 @config.node
-class HemitypeNode:
+class Hemitype:
     cell_types = config.reflist(refs.cell_type_ref, required=_targetting_req)
-    compartments = config.attr(type=types.list())
     labels = config.attr(type=types.list())
+    subcell_targets = config.attr(type=types.list())
 
 
-class ConnectionCollection:
-    def __init__(self, scaffold, cell_types, roi):
-        self.scaffold = scaffold
-        self.cell_types = cell_types
+class HemitypeCollection:
+    def __init__(self, hemitype, roi):
+        self.hemitype = hemitype
         self.roi = roi
 
     def __iter__(self):
-        return iter(self.cell_types)
+        return iter(self.hemitype.cell_types)
 
     @property
     def placement(self):
-        return {ct: ct.get_placement_set(self.roi) for ct in self.cell_types}
+        return {ct: ct.get_placement_set(self.roi) for ct in self.hemitype.cell_types}
 
     def __getattr__(self, attr):
         return self.placement[attr]
@@ -41,8 +39,8 @@ class ConnectionCollection:
 @config.dynamic(attr_name="strategy", required=True)
 class ConnectionStrategy(abc.ABC, SortableByAfter):
     name = config.attr(key=True)
-    presynaptic = config.attr(type=HemitypeNode, required=True)
-    postsynaptic = config.attr(type=HemitypeNode, required=True)
+    presynaptic = config.attr(type=Hemitype, required=True)
+    postsynaptic = config.attr(type=Hemitype, required=True)
     after = config.reflist(refs.connectivity_ref)
 
     def __boot__(self):
@@ -67,8 +65,8 @@ class ConnectionStrategy(abc.ABC, SortableByAfter):
         pass
 
     def _get_connect_args_from_job(self, chunk, roi):
-        pre = ConnectionCollection(self.scaffold, self.presynaptic.cell_types, roi)
-        post = ConnectionCollection(self.scaffold, self.postsynaptic.cell_types, [chunk])
+        pre = HemitypeCollection(self.presynaptic, roi)
+        post = HemitypeCollection(self.postsynaptic, [chunk])
         return pre, post
 
     def connect_cells(self, pre_set, post_set, src_locs, dest_locs, tag=None):

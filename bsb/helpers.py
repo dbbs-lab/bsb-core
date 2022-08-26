@@ -1,8 +1,8 @@
-import abc, numpy as np, os, sys, collections
+import abc
+import os
+import sys
 from contextlib import contextmanager
-from inspect import isclass
-import inspect, site
-from .exceptions import *
+from .exceptions import OrderError
 
 
 @contextmanager
@@ -34,7 +34,7 @@ def listify_input(value):
         return [str]
     try:
         return list(value)
-    except:
+    except Exception:
         return [value]
 
 
@@ -147,7 +147,7 @@ class SortableByAfter:
                     if not c.is_after_satisfied(sorting_objects)
                 )
                 raise OrderError(
-                    f"Couldn't resolve order, probably a circular dependency including: {circulars}"
+                    f"Couldn't resolve order, circular dependency including: {circulars}"
                 )
         # Return the sorted array.
         return sorting_objects

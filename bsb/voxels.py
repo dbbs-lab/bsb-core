@@ -1,8 +1,5 @@
-from . import config
-from .config import types
 from .trees import BoxTree
-from .exceptions import *
-from .reporting import report
+from .exceptions import EmptyVoxelSetError
 import numpy as np
 import functools
 import itertools
@@ -170,7 +167,7 @@ class VoxelSet:
             data = self._data[index]
             index, _, _ = self._data._split_index(index)
         else:
-            data, keys = None, None
+            data, _ = None, None
         if isinstance(index, tuple) and len(index) > 1:
             raise IndexError("Too many indices for VoxelSet, maximum 1.")
         voxels = self.get_raw(copy=False)[index]
@@ -382,14 +379,14 @@ class VoxelSet:
             ln = [len(s) for s in sets]
             data = np.empty((sum(ln), md), dtype=object)
             ptr = 0
-            for l, fill in zip(ln, fillers):
+            for len_, fill in zip(ln, fillers):
                 if fill is not None:
                     if not fill.keys:
                         cols = slice(None, fill.shape[1])
                     else:
                         cols = [keys.index(key) for key in fill.keys]
-                    data[ptr : (ptr + l), cols] = fill
-                    ptr += l
+                    data[ptr : (ptr + len_), cols] = fill
+                    ptr += len_
         else:
             data = None
             keys = None
@@ -486,7 +483,6 @@ class VoxelSet:
         self._size = size
 
     def crop(self, ldc, mdc):
-        data = self._data
         coords = self.as_spatial_coords(copy=False)
         inside = np.all(np.logical_and(ldc <= coords, coords < mdc), axis=1)
         return self[inside]

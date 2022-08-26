@@ -57,8 +57,8 @@
   "connectivity": {
     "connection": {
       "class": "bsb.connectivity.AllToAll",
-      "from_cell_types": [{"type": "from_cell", "compartments": ["axon"]}],
-      "to_cell_types": [{"type": "to_cell", "compartments": ["dendrites"]}]
+      "from_cell_types": [{"type": "from_cell", "subcell_targets": ["axon"]}],
+      "to_cell_types": [{"type": "to_cell", "subcell_targets": ["dendrites"]}]
     }
   },
   "simulations": {

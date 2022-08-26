@@ -3,7 +3,8 @@
     all the  public callable objects of this module are bound to the instance.
 """
 
-import bpy as _bpy, numpy as _np
+import bpy as _bpy
+import numpy as _np
 from .. import blender as _main
 
 
@@ -255,12 +256,12 @@ def _pulsar_material_swap(cells):
 
 
 def _pulsar_signal_processors(sw):
-    def cap(l, offset=0):
+    def cap(len_, offset=0):
         # Create the intensity sequence to animate a single spike:
         # [0, 1, 2, ... sw ..., 2, 1, 0]
         # where l is the required length of the sequence and offset the offset at the
         # start of the sequence.
-        seq = [sw - abs(sw - j) for j in range(l + offset)]
+        seq = [sw - abs(sw - j) for j in range(len_ + offset)]
         if offset:
             return seq[offset:]
         return seq

@@ -1,7 +1,7 @@
-import sys, types, math
+import math
 
 try:
-    import bpy, bpy_types, bmesh
+    import bpy
 except ImportError:
     raise ImportError(
         "The blender module can only be used from inside the Blender environment."
@@ -34,7 +34,6 @@ def create_population(name, material, cells, parent=None, scene=None, radius=3.0
     """
     if scene is None:
         scene = bpy.context.scene
-    objects = []
     collection = create_collection(name, parent=parent)
     mesh = _create_ico_mesh(name, radius)
     mesh.materials.append(material)
