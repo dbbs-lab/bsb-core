@@ -1,10 +1,16 @@
-from ..exceptions import *
-from .. import exceptions
+from ..exceptions import (
+    CastError,
+    RequirementError,
+    ConfigurationWarning,
+    DynamicClassInheritanceError,
+    UnfitClassCastError,
+    DynamicClassError,
+    UnresolvedClassCastError,
+    PluginError,
+    DynamicClassNotFoundError,
+)
 from ..reporting import warn
 from ._hooks import overrides
-from functools import wraps
-import re
-import itertools
 import warnings
 import errr
 import importlib
@@ -165,12 +171,10 @@ def _set_pk(obj, parent, key):
 def compile_postnew(cls, root=False):
     def __post_new__(self, _parent=None, _key=None, **kwargs):
         attrs = _get_class_config_attrs(self.__class__)
-        keys = list(kwargs.keys())
         self._config_attr_order = list(kwargs.keys())
         catch_attrs = [a for a in attrs.values() if hasattr(a, "__catch__")]
         leftovers = kwargs.copy()
         values = {}
-        missing_requirements = {}
         for attr in attrs.values():
             name = attr.attr_name
             value = values[name] = leftovers.pop(name, None)
@@ -179,9 +183,9 @@ def compile_postnew(cls, root=False):
                     raise RequirementError(f"Missing required attribute '{name}'")
             except RequirementError as e:
                 if name == getattr(self.__class__, "_config_dynamic_attr", None):
-                    # If the dynamic attribute errors in `__post_new__` the constructor of a
-                    # non dynamic child class was called, and the dynamic attribute is no
-                    # longer required, so silence the error and continue.
+                    # If the dynamic attribute errors in `__post_new__` the constructor of
+                    # a non dynamic child class was called, and the dynamic attribute is
+                    # no longer required, so silence the error and continue.
                     pass
                 else:
                     # Catch both our own and possible `attr.required` RequirementErrors
@@ -210,7 +214,7 @@ def compile_postnew(cls, root=False):
                 warn(warning, ConfigurationWarning)
                 try:
                     setattr(self, key, value)
-                except AttributeError as e:
+                except AttributeError:
                     raise AttributeError(
                         f"Unknown configuration attribute key '{key}' conflicts with"
                         + f" readonly class attribute on `{self.__class__.__module__}"
@@ -229,7 +233,7 @@ def wrap_root_postnew(post_new):
                 try:
                     post_new(self, *args, _parent=None, _key=None, **kwargs)
                 except (CastError, RequirementError) as e:
-                    _bubble_up_exc(e)
+                    _bubble_up_exc(e, self._meta)
                 self._config_isfinished = True
                 _resolve_references(self)
         finally:
@@ -242,7 +246,7 @@ def _is_settable_attr(attr):
     return not hasattr(attr, "fget") or attr.fset
 
 
-def _bubble_up_exc(exc):
+def _bubble_up_exc(exc, meta):
     if hasattr(exc, "node") and exc.node is not None:
         node = " in " + exc.node.get_node_name()
     else:
@@ -314,7 +318,7 @@ def _try_catch_attrs(node, catchers, key, value):
 def _try_catch(catch, node, key, value):
     try:
         return catch(node, key, value)
-    except:
+    except Exception:
         raise UncaughtAttributeError()
 
 
@@ -393,8 +397,10 @@ def _load_class(cfg_classname, module_path, interface=None, classmap=None):
             class_ref = _search_module_path(class_name, module_path, cfg_classname)
         else:
             class_ref = _get_module_class(class_name, module_name, cfg_classname)
-    qualname = lambda cls: cls.__module__ + "." + cls.__name__
-    full_class_name = qualname(class_ref)
+
+    def qualname(cls):
+        return cls.__module__ + "." + cls.__name__
+
     if interface and not issubclass(class_ref, interface):
         raise DynamicClassInheritanceError(
             "Dynamic class '{}' must derive from {}".format(
@@ -421,7 +427,7 @@ def _get_module_class(class_name, module_name, cfg_classname):
         tmp.remove(os.getcwd())
         sys.path = list(reversed(tmp))
     module_dict = module_ref.__dict__
-    if not class_name in module_dict:
+    if class_name not in module_dict:
         raise DynamicClassNotFoundError("Class not found: " + cfg_classname)
     return module_dict[class_name]
 
