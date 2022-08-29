@@ -709,6 +709,14 @@ class Morphology(SubTree):
                 encoding=None,
             )
 
+    def to_data_array(self):
+        """
+        Create a SWC-like numpy array from a Morphology.
+        :returns: a numpy array with columns storing the standard SWC attributes
+        """
+        data = _morpho_to_swc(self)
+        return data
+
 
 def _copy_api(cls, wrap=lambda self: self):
     # Wraps functions so they are called with `self` wrapped in `wrap`
