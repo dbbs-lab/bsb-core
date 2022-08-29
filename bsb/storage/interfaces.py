@@ -386,6 +386,26 @@ class PlacementSet(Interface):
         """
         pass
 
+    @abc.abstractmethod
+    def set_chunks(self, chunks):
+        """
+        Should limit the scope of the placement set to the given chunks.
+
+        :param chunks: List of chunks
+        :type chunks: list[.storage.Chunks]
+        """
+        pass
+
+    @abc.abstractmethod
+    def set_labels(self, labels):
+        """
+        Should limit the scope of the placement set to the given labels.
+
+        :param labels: List of labels
+        :type labels: list[str]
+        """
+        pass
+
     def load_boxes(self, morpho_cache=None):
         """
         Load the cells as axis aligned bounding box rhomboids matching the extension,

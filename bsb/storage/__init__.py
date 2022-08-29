@@ -12,14 +12,11 @@
     end goal of this module.
 """
 
-import os, functools
-from abc import abstractmethod, ABC
 from inspect import isclass
-from ..exceptions import *
+from ..exceptions import UnknownStorageEngineError
 from .. import plugins
 from ..services import MPI
 from ._chunks import Chunk
-import numpy as np
 
 
 # Pretend `Chunk` is defined here, for UX. It's only defined in `_chunks` to avoid
@@ -97,8 +94,8 @@ def register_engine(engine_name, engine_module):
 
 class NotSupported:
     """
-    Utility class that throws a ``NotSupported`` error when it is used. This is the default
-    "implementation" of every storage feature that isn't provided by an engine.
+    Utility class that throws a ``NotSupported`` error when it is used. This is the
+    default "implementation" of every storage feature that isn't provided by an engine.
     """
 
     _iface_engine_key = None
@@ -276,7 +273,7 @@ class Storage:
                 )
             )
 
-    def get_placement_set(self, type, chunks=None):
+    def get_placement_set(self, type, chunks=None, labels=None):
         """
         Return a PlacementSet for the given type.
 
@@ -284,11 +281,15 @@ class Storage:
         :type type: ~bsb.cell_types.CellType
         :param chunks: Optionally load a specific list of chunks.
         :type chunks: list[tuple[float, float, float]]
+        :param labels: Labels to filter the placement set by.
+        :type labels: list[str]
         :returns: ~bsb.storage.interfaces.PlacementSet
         """
         ps = self._PlacementSet(self._engine, type)
         if chunks is not None:
             ps.set_chunks(chunks)
+        if chunks is not None:
+            ps.set_labels(labels)
         return ps
 
     def require_placement_set(self, cell_type):

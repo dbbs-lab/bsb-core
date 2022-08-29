@@ -445,18 +445,20 @@ class Scaffold:
         """
         return self.get_placement(cell_types=cell_types)
 
-    def get_placement_set(self, type, chunks=None):
+    def get_placement_set(self, type, chunks=None, labels=None):
         """
         Return a cell type's placement set from the output formatter.
 
         :param tag: Unique identifier of the placement set in the storage
         :type tag: str
         :returns: A placement set
+        :param labels: Labels to filter the placement set by.
+        :type labels: list[str]
         :rtype: :class:`~.storage.interfaces.PlacementSet`
         """
         if isinstance(type, str):
             type = self.cell_types[type]
-        return self.storage.get_placement_set(type, chunks=chunks)
+        return self.storage.get_placement_set(type, chunks=chunks, labels=labels)
 
     def get_placement_sets(self):
         """
@@ -593,7 +595,7 @@ class Scaffold:
         return list(filter(finder, self.storage._Label.list()))
 
     def merge(self, other, label=None):
-        raise NotImplementedError("Revisit: merge PS & CT, done?")
+        raise NotImplementedError("Revisit: merge CT, PS & CS, done?")
 
     def _sanitize_ct(self, seq_str_or_none):
         if seq_str_or_none is None:
