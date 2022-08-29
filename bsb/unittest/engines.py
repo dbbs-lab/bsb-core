@@ -358,6 +358,11 @@ class TestPlacementSet(
             1, len(ps), f"PlacementSet placement {len(ps)} after 1 list type input"
         )
 
+    def test_label(self):
+        self.network.compile()
+        ps = self.network.get_placement_set("test_cell")
+        ps.label([33, 12, 0, 3, 77], ["label1", "label2"])
+
 
 class TestMorphologyRepository(NumpyTestCase, RandomStorageFixture, engine_name=None):
     def setUp(self):

@@ -287,9 +287,9 @@ class Storage:
         """
         ps = self._PlacementSet(self._engine, type)
         if chunks is not None:
-            ps.set_chunks(chunks)
+            ps.set_chunk_filter(chunks)
         if chunks is not None:
-            ps.set_labels(labels)
+            ps.set_label_filter(labels)
         return ps
 
     def require_placement_set(self, cell_type):

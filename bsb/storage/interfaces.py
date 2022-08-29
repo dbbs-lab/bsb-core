@@ -387,7 +387,7 @@ class PlacementSet(Interface):
         pass
 
     @abc.abstractmethod
-    def set_chunks(self, chunks):
+    def set_chunk_filter(self, chunks):
         """
         Should limit the scope of the placement set to the given chunks.
 
@@ -397,10 +397,22 @@ class PlacementSet(Interface):
         pass
 
     @abc.abstractmethod
-    def set_labels(self, labels):
+    def set_label_filter(self, labels):
         """
         Should limit the scope of the placement set to the given labels.
 
+        :param labels: List of labels
+        :type labels: list[str]
+        """
+        pass
+
+    @abc.abstractmethod
+    def label(self, cells, labels):
+        """
+        Should label the cells with given labels.
+
+        :param cells: Array of cells in this set to label.
+        :type cells: numpy.ndarray
         :param labels: List of labels
         :type labels: list[str]
         """
