@@ -4,8 +4,9 @@ categories.
 """
 
 
-import pkg_resources, errr
-from .exceptions import *
+import pkg_resources
+import errr
+from .exceptions import PluginError
 import types
 
 
