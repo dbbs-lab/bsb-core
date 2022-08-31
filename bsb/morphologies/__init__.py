@@ -709,7 +709,7 @@ class Morphology(SubTree):
                 encoding=None,
             )
 
-    def to_data_array(self):
+    def to_graph_array(self):
         """
         Create a SWC-like numpy array from a Morphology.
         :returns: a numpy array with columns storing the standard SWC attributes
