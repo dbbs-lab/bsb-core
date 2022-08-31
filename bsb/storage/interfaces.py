@@ -392,7 +392,7 @@ class PlacementSet(Interface):
         Should limit the scope of the placement set to the given chunks.
 
         :param chunks: List of chunks
-        :type chunks: list[.storage.Chunks]
+        :type chunks: list[bsb.storage.Chunk]
         """
         pass
 
@@ -410,6 +410,30 @@ class PlacementSet(Interface):
     def label(self, cells, labels):
         """
         Should label the cells with given labels.
+
+        :param cells: Array of cells in this set to label.
+        :type cells: numpy.ndarray
+        :param labels: List of labels
+        :type labels: list[str]
+        """
+        pass
+
+    @abc.abstractmethod
+    def labelled(self, labels):
+        """
+        Should return the cells labelled with given labels.
+
+        :param cells: Array of cells in this set to label.
+        :type cells: numpy.ndarray
+        :param labels: List of labels
+        :type labels: list[str]
+        """
+        pass
+
+    @abc.abstractmethod
+    def label_mask(self, labels):
+        """
+        Should return a mask that fits the placement set for the cells with given labels.
 
         :param cells: Array of cells in this set to label.
         :type cells: numpy.ndarray

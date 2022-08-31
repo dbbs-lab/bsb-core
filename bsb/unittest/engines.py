@@ -362,6 +362,7 @@ class TestPlacementSet(
         self.network.compile()
         ps = self.network.get_placement_set("test_cell")
         ps.label([33, 12, 0, 3, 77], ["label1", "label2"])
+        ps.labelled(["label1"])
 
 
 class TestMorphologyRepository(NumpyTestCase, RandomStorageFixture, engine_name=None):
