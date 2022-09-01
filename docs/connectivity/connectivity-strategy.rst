@@ -29,7 +29,13 @@ The prototype of a custom connection strategy is the following:
 
 .. code-block:: python
 
+  #We import the base class ConnectionStrategy
   from bsb.strategy import ConnectionStrategy
+  #We import config to read the variables from the configuration file
+  from bsb import config
+  #We import numpy because we shall use it to perform the math operations 
+  #need to select the cells to connect.
+  import numpy as np
 
   class ConnectomeGolgiGranule(ConnectionStrategy):
     
@@ -43,35 +49,41 @@ The prototype of a custom connection strategy is the following:
       #in two matrices to be passed to the connect connect_cells method,
       #to be called at the end.  
 
-WRITE WHY IT'S THIS WAY
+.. note::
+  Due to performance and memory reasons, the connections are not formed processing the whole simulation volume at once, since it would require a lot of memory, time and computational power. Instead, the volume is divided in chunks, which may be processed in parallel to further speed up the creation of the connectome, and the connections are formed on a chunk by chunk basis. This step is handles by the :meth:`~.bsb.connectivity.strategy.ConnectionStrategy.queue` method of the base class :class:`~bsb.connectivity.strategy.ConnectionStrategy` : The user writing a custom connection strategy does not need to care about the subdivision in chucks, since it is handled automatically by the framework. 
 
 get_region_of_interest
 =========================
 
-TO WRITE
+Arguments: a chunck containing the postsynaptic cells.
+The goal of this method is to find all the chuncks in the simulation volume containing all the possibile the presynaptic cells of the all the postsynaptic cells in the chunk given as argument.
 
 connect
 =========================
-Arguments: pre and post are ConnectionCollections relative to the region of interest.
+
+Arguments: ``pre`` and ``post`` are ConnectionCollections relative to the region of interest.
+
+.. note::
+  The user does not need to call :meth:`~.bsb.connectivity.strategy.ConnectionStrategy.get_region_of_interest` inside the connect method, since it's automatically called in the :meth:`~.bsb.connectivity.strategy.ConnectionStrategy.queue` method of the base class :class:`~bsb.connectivity.strategy.ConnectionStrategy`.
 
 The connection between two types of cells is made calling the connect_cells method.
 connect_cells needs four arguments: 
-* pre_set : A numpy array containing the positions of the presynaptic cells.
-* post_set : A numpy array containing the positions of the postsynaptic cells.
-* src_locs : A nx3 matrix, with n the number of connections, containing information about where the connection starts.
+* ``pre_set`` : A numpy array containing the positions of the presynaptic cells.
+* ``post_set`` : A numpy array containing the positions of the postsynaptic cells.
+* ``src_locs`` : A nx3 matrix, with n the number of connections, containing information about where the connection starts.
 Each row of the matrix contains three integers (a,b,c), with a the index of the presynaptic cell, b the index of the branch on which a connection is made 
 and c the index (relative to a branch) of the point at which the connection starts.  
-* dest_locs: A nx3 matrix,with n the number of connections, containing information about where the connection ends.
+* ``dest_locs`` : A nx3 matrix,with n the number of connections, containing information about where the connection ends.
 Each row of the matrix contains three integers (a,b,c), with a the index of the postsynaptic cell, b the index of the branch on which a connection is made 
 and c the index (relative to a branch) of the point at which the connection ends. 
-The k-th row of src_locs describe the beginning of the k-th connection on the presynaptic cell, while the k-th row of dest_locs stores the info about the end of the k-th connection on the postsynaptic cell 
+The k-th row of src_locs describes the beginning of the k-th connection on the presynaptic cell, while the k-th row of dest_locs stores the info about the end of the k-th connection on the postsynaptic cell. 
 There is also an optional argument: 
-* tag : a string describing the connection. 
+* ``tag`` : a tag describing the connection. 
 
-For example, if src_locs and and dest_locs are the following matrices:
+For example, if ``src_locs`` and ``dest_locs`` are the following matrices:
 
 .. list-table:: src_locs
-   :widths: 50 50 50
+   :widths: 75 75 75
    :header-rows: 1
 
    * - Index of the cell in pre_pos array
@@ -80,10 +92,13 @@ For example, if src_locs and and dest_locs are the following matrices:
    * - 2
      - 0
      - 6
+   * - 10
+     - 0
+     - 2
    
 
 .. list-table:: dest_locs
-   :widths: 50 50 50
+   :widths: 75 75 75
    :header-rows: 1
 
    * - Index of the cell in post_pos array
@@ -92,18 +107,25 @@ For example, if src_locs and and dest_locs are the following matrices:
    * - 5
      - 1
      - 3
+   * - 7
+     - 1
+     - 4
 
+then two connections are formed:
 
-then a connection is formed between the presynaptic cell whose index in pre_pos is two and the postsynaptic cell whose index in post_pos is 5.
-Furthermore, the connection begins at the point with id 6 on the branch whose id is 0 on the presynaptic cell and ends on the points with id 3 on the branch whose id is 0 on the postsynaptic cell. If the exact location of a synaptic connection is not needed, then in both src_locs and dest_locs the indices of the branches and of the point on the branch can be set to -1.
+* The first connection is formed between the presynaptic cell whose index in pre_pos is 2 and the postsynaptic cell whose index in post_pos is 10.
+Furthermore, the connection begins at the point with id 6 on the branch whose id is 0 on the presynaptic cell and ends on the points with id 3 on the branch whose id is 1 on the postsynaptic cell. 
+* The second connection is formed between the presynaptic cell whose index in pre_pos is 10 and the postsynaptic cell whose index in post_pos is 7.
+Furthermore, the connection begins at the point with id 3 on the branch whose id is 0 on the presynaptic cell and ends on the points with id 4 on the branch whose id is 1 on the postsynaptic cell. 
 
-NOTE: the user does not need to call get_region_of_interest inside the connect method, since it's automatically called in the queue method of the base class :class:`~bsb.connectivity.strategy.ConnectionStrategy`.
+.. note::
+  If the exact location of a synaptic connection is not needed, then in both src_locs and dest_locs the indices of the branches and of the point on the branch can be set to -1.
 
 
 Use case 1 : Connect point-like cells 
 ========================================
 Suppose we want to connect Golgi cells and granule cells, without storing information about the exact positions of the synapses (we may want to consider cells as point-like objects, as in NEST).
-We want to write a class called ConnectomeGolgiGranule that connects a Golgi cell to a granule cell if their distance is less than 50 micrometers, see the configuration block above. 
+We want to write a class called ConnectomeGolgiGranule that connects a Golgi cell to a granule cell if their distance is less than 100 micrometers, see the configuration block above. 
 
 First we define the class ConnectomeGolgiGlomerulus and we read the radius and the divergence target.
 
