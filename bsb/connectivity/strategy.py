@@ -1,7 +1,7 @@
 from .. import config
 from ..config import refs, types
 from .._util import SortableByAfter
-from ..core.reporting import report
+from ..reporting import report
 import abc
 from itertools import chain
 

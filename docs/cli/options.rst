@@ -157,7 +157,7 @@ inherits from :class:`~.option.BsbOption`:
 .. code-block:: python
 
   from bsb.options import BsbOption
-  from bsb.core.reporting import report
+  from bsb.reporting import report
 
   class GreetingsOption(
     BsbOption,

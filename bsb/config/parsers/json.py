@@ -5,7 +5,7 @@ references.
 
 import json, os
 from ...exceptions import *
-from ...core.reporting import warn
+from ...reporting import warn
 from ._parser import Parser
 
 

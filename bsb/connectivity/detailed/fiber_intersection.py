@@ -7,7 +7,7 @@ from ...config import types
 from ...exceptions import *
 from ...morphologies import Morphology, Branch
 from ...plotting import plot_fiber_morphology
-from ...core.reporting import report, warn
+from ...reporting import report, warn
 import abc
 
 # Import rtree

@@ -1,4 +1,4 @@
-from .core.reporting import report, warn
+from .reporting import report, warn
 from scipy.stats import truncnorm
 import numpy as np
 from .exceptions import *

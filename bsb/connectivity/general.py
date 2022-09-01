@@ -5,7 +5,7 @@ from .strategy import ConnectionStrategy
 from ..exceptions import SourceQualityError
 from .. import config, _util as _gutil
 from ..config import types
-from ..core.reporting import warn
+from ..reporting import warn
 
 
 @config.node

@@ -1,6 +1,6 @@
 import abc, random, types
 import numpy as np
-from ..core.reporting import report
+from ..reporting import report
 from ..exceptions import *
 from time import time
 import itertools

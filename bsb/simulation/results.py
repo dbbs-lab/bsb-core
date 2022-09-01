@@ -1,4 +1,4 @@
-from ..core.reporting import warn
+from ..reporting import warn
 import traceback
 
 

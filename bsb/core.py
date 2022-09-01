@@ -1,19 +1,20 @@
 import time
 import os
 import itertools
-from ..placement import PlacementStrategy
-from ..connectivity import ConnectionStrategy
-from ..storage import Chunk, Storage, _util as _storutil
-from ..exceptions import (
+from .placement import PlacementStrategy
+from .connectivity import ConnectionStrategy
+from .storage import Chunk, Storage, _util as _storutil
+from .exceptions import (
     InputError,
     NodeNotFoundError,
     RedoError,
     ScaffoldError,
 )
 from .reporting import report, warn, get_report_file
-from ..config._config import Configuration
-from ..services.pool import create_job_pool
-from ..services import MPI
+from .config._config import Configuration
+from .services.pool import create_job_pool
+from .services import MPI
+
 
 _cfg_props = (
     "network",
@@ -37,6 +38,19 @@ def _config_property(name):
 
     prop = property(fget)
     return prop.setter(fset)
+
+
+def from_hdf5(file, missing_ok=False):
+    """
+    Generate a :class:`.core.Scaffold` from an HDF5 file.
+
+    :param file: Path to the HDF5 file.
+    :returns: A scaffold object
+    :rtype: :class:`Scaffold`
+    """
+
+    storage = Storage("hdf5", file, missing_ok=missing_ok)
+    return storage.load()
 
 
 class Scaffold:
@@ -167,7 +181,7 @@ class Scaffold:
         only the abstract topology tree, does not rescale, prune or otherwise
         alter already existing placement data.
         """
-        from ..topology._layout import box_layout
+        from .topology._layout import box_layout
 
         if x is not None:
             self.network.x = x

@@ -1,6 +1,6 @@
 from . import BaseCommand
 from ...option import BsbOption
-from ...core.reporting import report
+from ...reporting import report
 from ... import config
 import pathlib
 import toml

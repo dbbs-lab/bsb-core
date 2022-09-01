@@ -9,7 +9,7 @@ BSB.
 import abc
 import argparse
 from ...exceptions import *
-from ...core.reporting import report
+from ...reporting import report
 
 
 class BaseParser(argparse.ArgumentParser):

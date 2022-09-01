@@ -2,7 +2,7 @@ from .... import config
 from ..adapter import NeuronDevice
 from ....simulation.results import SimulationRecorder, PresetPathMixin, PresetMetaMixin
 from ....exceptions import *
-from ....core.reporting import report, warn
+from ....reporting import report, warn
 import numpy as np
 
 

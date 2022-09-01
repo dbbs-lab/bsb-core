@@ -1,6 +1,6 @@
 from .. import config
 from ..exceptions import *
-from ..core.reporting import report, warn
+from ..reporting import report, warn
 from ..config import refs, types
 from ..morphologies import MorphologySet
 import numpy as np
