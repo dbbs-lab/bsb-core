@@ -419,7 +419,7 @@ class PlacementSet(Interface):
         pass
 
     @abc.abstractmethod
-    def labelled(self, labels):
+    def get_labelled(self, labels):
         """
         Should return the cells labelled with given labels.
 
@@ -431,7 +431,7 @@ class PlacementSet(Interface):
         pass
 
     @abc.abstractmethod
-    def label_mask(self, labels):
+    def get_label_mask(self, labels):
         """
         Should return a mask that fits the placement set for the cells with given labels.
 

@@ -361,8 +361,13 @@ class TestPlacementSet(
     def test_label(self):
         self.network.compile()
         ps = self.network.get_placement_set("test_cell")
-        ps.label([33, 12, 0, 3, 77], ["label1", "label2"])
-        ps.labelled(["label1"])
+        cells_to_label = [33, 12, 0, 3, 77]
+        ps.label(cells_to_label, ["label1", "label2"])
+        self.assertClose(
+            np.sort(cells_to_label),
+            ps.get_labelled(["label1"]),
+            "Labels should be sort-order match to input",
+        )
 
 
 class TestMorphologyRepository(NumpyTestCase, RandomStorageFixture, engine_name=None):
