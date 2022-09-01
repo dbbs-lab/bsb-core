@@ -55,8 +55,8 @@ The prototype of a custom connection strategy is the following:
 get_region_of_interest
 =========================
 
-Arguments: a chunck containing the postsynaptic cells.
-The goal of this method is to find all the chuncks in the simulation volume containing all the possibile the presynaptic cells of the all the postsynaptic cells in the chunk given as argument.
+Arguments: a chunk containing the postsynaptic cells.
+The goal of this method is to find all the chunks in the simulation volume containing all the possibile the presynaptic cells of the all the postsynaptic cells in the chunk given as argument.
 
 connect
 =========================
