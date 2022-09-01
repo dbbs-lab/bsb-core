@@ -1,7 +1,7 @@
 from ..adapter import ArborDevice
 from ....simulation.results import SimulationRecorder, PresetPathMixin, PresetMetaMixin
 from ....exceptions import *
-from ....reporting import report, warn
+from ....core.reporting import report, warn
 import numpy as np
 
 

@@ -7,7 +7,7 @@ from ....simulation.results import (
 )
 from ....simulation.device import Patternless
 from ....exceptions import *
-from ....reporting import report, warn
+from ....core.reporting import report, warn
 import numpy as np
 
 

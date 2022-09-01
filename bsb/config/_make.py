@@ -9,7 +9,7 @@ from ..exceptions import (
     PluginError,
     DynamicClassNotFoundError,
 )
-from ..reporting import warn
+from ..core.reporting import warn
 from ._hooks import overrides
 import warnings
 import errr

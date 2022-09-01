@@ -5,7 +5,7 @@ from ..simulation import (
     NeuronTargetting,
 )
 from ..services import MPI
-from ..reporting import report, warn
+from ..core.reporting import report, warn
 from ..exceptions import *
 from .. import config
 from ..config import types, nodes as config_nodes

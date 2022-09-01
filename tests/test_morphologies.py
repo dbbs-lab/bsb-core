@@ -3,7 +3,7 @@ import json
 import itertools
 
 from bsb.services import MPI
-from bsb.morphologies import Morphology, Branch, _Labels, MorphologySet
+from bsb.morphologies import Morphology, Branch, EncodedLabels, MorphologySet
 from bsb.storage import Storage
 from bsb.storage.interfaces import StoredMorphology
 from bsb.exceptions import *
@@ -69,7 +69,7 @@ class TestMorphologies(NumpyTestCase, unittest.TestCase):
         super().setUpClass()
 
     def _branch(self, len):
-        return Branch(np.ones((len, 3)), np.ones(len), _Labels.none(len), {})
+        return Branch(np.ones((len, 3)), np.ones(len), EncodedLabels.none(len), {})
 
     def test_branch_attachment(self):
         branch_A = self._branch(5)
@@ -179,7 +179,7 @@ class TestMorphologies(NumpyTestCase, unittest.TestCase):
 
 class TestMorphologyLabels(NumpyTestCase, unittest.TestCase):
     def test_labels(self):
-        a = _Labels.none(10)
+        a = EncodedLabels.none(10)
         self.assertEqual({0: set()}, a.labels, "none labels should be empty")
         self.assertClose(0, a, "none labels should zero")
         a.label(["ello"], [1, 2])
@@ -238,7 +238,7 @@ class TestMorphologyLabels(NumpyTestCase, unittest.TestCase):
         self.assertClose(1, b._labels, "should all be labelled to 1")
         self.assertClose(1, b2._labels, "should all be labelled to 1")
         self.assertNotEqual(b._labels.labels, b2._labels.labels, "should have diff def")
-        concat = _Labels.concatenate(b._labels, b2._labels)
+        concat = EncodedLabels.concatenate(b._labels, b2._labels)
         self.assertClose([1] * 10 + [2] * 10, concat)
         self.assertEqual({0: set(), 1: {"ello"}, 2: {"not ello"}}, concat.labels)
 

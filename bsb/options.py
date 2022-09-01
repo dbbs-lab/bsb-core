@@ -31,7 +31,7 @@ import sys, types
 from .exceptions import OptionError, ReadOnlyOptionError
 from .plugins import discover
 from . import option as _bsboptmod
-from .reporting import report
+from .core.reporting import report
 
 
 _options = {}

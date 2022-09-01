@@ -1,7 +1,7 @@
 from ..adapter import NeuronDevice
 from ....simulation.device import Patternless
 from ....simulation.results import SimulationRecorder, PresetPathMixin, PresetMetaMixin
-from ....reporting import report, warn
+from ....core.reporting import report, warn
 from arborize import get_section_synapses
 import numpy as np
 import itertools

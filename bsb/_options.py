@@ -4,7 +4,7 @@ registered using plugin registration. See `setup.py` for the setuptools metadata
 """
 
 from .option import BsbOption
-from .reporting import report
+from .core.reporting import report
 
 
 class VerbosityOption(

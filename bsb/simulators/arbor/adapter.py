@@ -9,7 +9,7 @@ from ...simulation import (
 from ...simulation.targetting import NeuronTargetting
 from ... import config
 from ...config import types
-from ...reporting import report, warn
+from ...core.reporting import report, warn
 from ...exceptions import *
 from ...services import MPI
 import numpy as np

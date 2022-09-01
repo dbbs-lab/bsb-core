@@ -17,7 +17,7 @@ except AttributeError:
     functools.singledispatchmethod.register = _register
 
 
-from . import reporting
+from .core import reporting
 
 
 reporting.setup_reporting()

@@ -6,7 +6,7 @@ from ._layout import Layout, RhomboidData
 from .. import config
 from ..config import types, refs
 from ..exceptions import *
-from ..reporting import warn
+from ..core.reporting import warn
 import numpy as np
 import abc
 

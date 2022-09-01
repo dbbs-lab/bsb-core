@@ -8,7 +8,7 @@ from ...simulation import (
 )
 from ... import config
 from ...config import types
-from ...reporting import report, warn
+from ...core.reporting import report, warn
 from ...exceptions import *
 import random, os, sys
 import numpy as np

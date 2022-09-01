@@ -3,7 +3,7 @@ from plotly.subplots import make_subplots
 import numpy as np, math, functools
 from contextlib import contextmanager
 import random, types
-from .reporting import warn
+from .core.reporting import warn
 
 
 class CellTrace:

@@ -1,4 +1,4 @@
-from .services import MPI
+from ..services import MPI
 import functools
 import warnings
 import base64
@@ -63,7 +63,7 @@ def report(*message, level=2, ongoing=False, token=None, nodes=None, all_nodes=F
     :param ongoing: The message is part of an ongoing progress report.
     :type ongoing: bool
     """
-    from . import options
+    from .. import options
 
     message = " ".join(map(str, message))
     rank = MPI.get_rank()
@@ -85,7 +85,7 @@ def warn(message, category=None, stacklevel=2):
     :type message: str
     :param category: The class of the warning.
     """
-    from . import options
+    from .. import options
 
     if options.verbosity > 0:
         if _report_file:

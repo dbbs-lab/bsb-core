@@ -1,7 +1,7 @@
 from .strategy import PlacementStrategy
 import math, numpy as np
 from ..exceptions import *
-from ..reporting import report, warn
+from ..core.reporting import report, warn
 from .. import config
 from ..config import types, refs
 from itertools import chain

@@ -9,7 +9,7 @@ from ..config.refs import region_ref
 from ..exceptions import *
 from ..voxels import VoxelSet
 from ..storage import Chunk, _util as _storutil
-from ..reporting import report, warn
+from ..core.reporting import report, warn
 import numpy as np
 import collections
 import functools
