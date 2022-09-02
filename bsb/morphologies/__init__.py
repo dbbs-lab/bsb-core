@@ -291,9 +291,7 @@ class SubTree:
         idmap = {b: n for n, b in enumerate(self.branches)}
         return {n: list(map(idmap.get, b.children)) for n, b in enumerate(self.branches)}
 
-    def subtree(self, *labels):
-        if not labels:
-            labels = None
+    def subtree(self, labels=None):
         return SubTree(self.get_branches(labels))
 
     def get_branches(self, labels=None):
@@ -311,7 +309,7 @@ class SubTree:
         if labels is None:
             return [*all_branch]
         else:
-            return [b for b in all_branch if b.contains_label(*labels)]
+            return [b for b in all_branch if b.contains_label(labels)]
 
     def flatten(self):
         """
@@ -376,25 +374,32 @@ class SubTree:
                 ptr = nptr
             return props
 
-    def label(self, *labels):
+    def label(self, labels, points=None):
         """
         Add labels to the morphology or subtree.
 
-        :param labels: Label(s) for the branch. The first argument may also be a boolean
-          or integer mask to select the points to label.
-        :type labels: str
+        :param labels: Labels to add to the subtree.
+        :type labels: list[str]
+        :param points: Optional boolean or integer mask for the points to be labelled.
+        :type points: numpy.ndarray
         """
-        if labels:
-            if self._is_shared:
-                if not isinstance(labels[0], str):
-                    points = labels[0]
-                    labels = labels[1:]
-                else:
-                    points = np.ones(len(self), dtype=bool)
-                self._labels.label(labels, points)
+        if points is None:
+            points = np.ones(len(self), dtype=bool)
+        if self._is_shared:
+            self._labels.label(labels, points)
+        else:
+            if len(points) == len(self) and points.dtype == bool:
+                ctr = 0
+                for b in self.branches:
+                    b.label(labels, points[ctr : ctr + len(b)])
+                    ctr += len(b)
             else:
                 for b in self.branches:
-                    b.label(*labels)
+                    mux = points < len(b)
+                    b.label(labels, mux)
+                    points = points[~mux]
+                    ctr += len(b)
+
         return self
 
     def rotate(self, rot, center=None):
@@ -984,7 +989,7 @@ class Branch:
         props = {k: v.copy() for k, v in self._properties}
         return cls(self._points.copy(), self._radii.copy(), self._labels.copy(), props)
 
-    def label(self, *labels):
+    def label(self, labels):
         """
         Add labels to the branch.
 
@@ -1051,7 +1056,7 @@ class Branch:
             *self.properties.values(),
         )
 
-    def contains_label(self, *labels):
+    def contains_labels(self, labels):
         """
         Check if this branch contains any points labelled with any of the given labels.
 
@@ -1059,7 +1064,7 @@ class Branch:
         :type labels: List[str]
         :rtype: bool
         """
-        return self.labels.contains(*labels)
+        return self.labels.contains(labels)
 
     def get_points_labelled(self, label):
         """
@@ -1070,7 +1075,7 @@ class Branch:
         :returns: All points with the label.
         :rtype: List[numpy.ndarray]
         """
-        return self.points[self.labels.get_mask(label)]
+        return self.points[self.labels.get_mask([label])]
 
     def introduce_point(self, index, *args, labels=None):
         """
@@ -1426,7 +1431,7 @@ def _import_arb(cls, arb_m, centering, branch_class, meta=None):
             cable_id = cable.branch
             branch = branch_map[cable_id]
             if cable.dist == 1 and cable.prox == 0:
-                branch.label(label)
+                branch.label([label])
             else:
                 prox_index = branch.get_arc_point(cable.prox, eps=1e-7)
                 if prox_index is None:
@@ -1439,7 +1444,7 @@ def _import_arb(cls, arb_m, centering, branch_class, meta=None):
                     + [True] * (dist_index - prox_index + 1)
                     + [False] * (len(branch) - dist_index - 1)
                 )
-                branch.label(mask, label)
+                branch.label([label], mask)
 
     morpho.optimize()
     return morpho

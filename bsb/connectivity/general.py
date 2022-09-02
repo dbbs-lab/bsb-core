@@ -39,6 +39,7 @@ class AllToAll(ConnectionStrategy):
 
     def connect(self, pre, post):
         for from_ps in pre.placement.values():
+            print(from_ps, from_ps._labels, len(from_ps))
             fl = len(from_ps)
             for to_ps in post.placement.values():
                 len_ = len(to_ps)

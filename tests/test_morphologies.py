@@ -111,21 +111,21 @@ class TestMorphologies(NumpyTestCase, unittest.TestCase):
         b1 = self._branch(3)
         b1.set_properties(smth=np.ones(len(b1)))
         b2 = self._branch(3)
-        b2.label("oy")
+        b2.label(["oy"])
         b2.translate([100, 100, 100])
         b2.set_properties(other=np.zeros(len(b2)), smth=np.ones(len(b2)))
         b3 = self._branch(3)
         b3.translate([200, 200, 200])
-        b3.label("vey")
+        b3.label(["vey"])
         b3.set_properties(other=np.ones(len(b3)))
         b4 = self._branch(3)
-        b4.label("oy", "vey")
+        b4.label(["oy", "vey"])
         b5 = self._branch(3)
-        b5.label("oy")
+        b5.label(["oy"])
         b5.translate([100, 100, 100])
         b6 = self._branch(3)
         b6.translate([200, 200, 200])
-        b6.label("vey", "oy")
+        b6.label(["vey", "oy"])
         m = Morphology([b1, b2, b3, b4, b5, b6])
         m.optimize()
         self.assertTrue(m._is_shared, "Should be shared after opt")
@@ -209,22 +209,22 @@ class TestMorphologyLabels(NumpyTestCase, unittest.TestCase):
         a = b._labels
         self.assertEqual({0: set()}, a.labels, "none labels should be empty")
         self.assertClose(0, a, "none labels should zero")
-        b.label("ello")
+        b.label(["ello"])
         self.assertClose(1, a, "full labelling failed")
-        b.label("so long", "goodbye", "sayonara")
+        b.label(["so long", "goodbye", "sayonara"])
         self.assertClose(2, a, "multifull labelling failed")
         self.assertEqual(
             {0: set(), 1: {"ello"}, 2: {"ello", "so long", "goodbye", "sayonara"}},
             a.labels,
         )
-        b.label([1, 3], "wow")
+        b.label("wow", [1, 3])
         self.assertClose([2, 3, 2, 3, 2, 2, 2, 2, 2, 2], a, "specific point label failed")
 
     def test_copy_labels(self):
         b = Branch([[0] * 3] * 10, [1] * 10)
-        b.label("ello")
-        b.label("so long", "goodbye", "sayonara")
-        b.label([1, 3], "wow")
+        b.label(["ello"])
+        b.label(["so long", "goodbye", "sayonara"])
+        b.label(["wow"], [1, 3])
         b2 = b.copy()
         self.assertEqual(len(b), len(b2), "copy changed n points")
         self.assertEqual(b._labels.labels, b2._labels.labels, "copy changed labelset")
@@ -232,9 +232,9 @@ class TestMorphologyLabels(NumpyTestCase, unittest.TestCase):
 
     def test_concat(self):
         b = Branch([[0] * 3] * 10, [1] * 10)
-        b.label("ello")
+        b.label(["ello"])
         b2 = Branch([[0] * 3] * 10, [1] * 10)
-        b2.label("not ello")
+        b2.label(["not ello"])
         # Both branches have a different definition for `1`, so concat should map them.
         self.assertClose(1, b._labels, "should all be labelled to 1")
         self.assertClose(1, b2._labels, "should all be labelled to 1")
@@ -246,7 +246,7 @@ class TestMorphologyLabels(NumpyTestCase, unittest.TestCase):
     def test_select(self):
         b = Branch([[0] * 3] * 10, [1] * 10)
         b.name = "B1"
-        b.label("ello")
+        b.label(["ello"])
         b2 = Branch([[0] * 3] * 10, [1] * 10)
         b2.name = "B2"
         b3 = Branch([[0] * 3] * 10, [1] * 10)
@@ -254,13 +254,13 @@ class TestMorphologyLabels(NumpyTestCase, unittest.TestCase):
         b4 = Branch([[0] * 3] * 10, [1] * 10)
         b4.name = "B4"
         b3.attach_child(b4)
-        b3.label([1], "ello")
+        b3.label(["ello"], [1])
         self.assertTrue(b3.contains_label("ello"))
         m = Morphology([b, b2, b3])
-        bs = m.subtree("ello").branches
-        self.assertEqual([b, b3, b4], m.subtree("ello").branches)
-        self.assertEqual(len(b), len(b.get_points_labelled("ello")))
-        self.assertEqual(1, len(b3.get_points_labelled("ello")))
+        bs = m.subtree(["ello"]).branches
+        self.assertEqual([b, b3, b4], m.subtree(["ello"]).branches)
+        self.assertEqual(len(b), len(b.get_points_labelled(["ello"])))
+        self.assertEqual(1, len(b3.get_points_labelled(["ello"])))
 
 
 class TestMorphologySet(unittest.TestCase):

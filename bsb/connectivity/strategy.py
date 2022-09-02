@@ -6,13 +6,9 @@ import abc
 from itertools import chain
 
 
-def _targetting_req(section):
-    return "labels" not in section
-
-
 @config.node
 class Hemitype:
-    cell_types = config.reflist(refs.cell_type_ref, required=_targetting_req)
+    cell_types = config.reflist(refs.cell_type_ref, required=True)
     labels = config.attr(type=types.list())
     subcell_targets = config.attr(type=types.list())
 
@@ -28,7 +24,8 @@ class HemitypeCollection:
     @property
     def placement(self):
         return {
-            ct: ct.get_placement_set(self.roi, labels=self.hemitype.labels)
+            ct: print("hemi-info:", len(self.roi), self.hemitype.labels)
+            or ct.get_placement_set(self.roi, labels=self.hemitype.labels)
             for ct in self.hemitype.cell_types
         }
 

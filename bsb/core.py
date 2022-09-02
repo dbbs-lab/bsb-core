@@ -550,50 +550,6 @@ class Scaffold:
         self._initialise_simulation(adapter)
         return adapter
 
-    def label_cells(self, ids, label):
-        """
-        Store labels for the given cells. Labels can be used to identify subsets of cells.
-
-        :param ids: global identifiers of the cells that need to be labelled.
-        :type ids: Iterable
-        """
-        raise NotImplementedError("Label interface is RIP, revisit")
-        self.storage.Label(label).label(ids)
-
-    def get_labels(self, pattern=None):
-        """
-        Retrieve the set of labels that match a label pattern. Currently only exact
-        matches or strings ending in a wildcard are supported:
-
-        .. code-block:: python
-
-            # Will return only ["label-53"] if it is known to the scaffold.
-            labels = scaffold.get_labels("label-53")
-            # Might return multiple labels such as ["label-53", "label-01", ...]
-            labels = scaffold.get_labels("label-*")
-
-        :param pattern: An exact match or pattern ending in a wildcard (*) character.
-        :type pattern: str
-
-        :returns: All labels matching the pattern
-        :rtype: list
-        """
-        raise NotImplementedError("Label interface is RIP, revisit")
-        if pattern is None:
-            return self.storage._Label.list()
-        if pattern.endswith("*"):
-            p = pattern[:-1]
-
-            def finder(label):
-                return label.startswith(p)
-
-        else:
-
-            def finder(label):
-                return label == pattern
-
-        return list(filter(finder, self.storage._Label.list()))
-
     def merge(self, other, label=None):
         raise NotImplementedError("Revisit: merge CT, PS & CS, done?")
 

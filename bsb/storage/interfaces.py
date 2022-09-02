@@ -759,27 +759,61 @@ class ConnectivitySet(Interface):
         pass
 
     @abc.abstractmethod
-    def load_connections(self, direction, local_, global_):
+    def load_block_connections(self, direction, local_, global_):
         """
-        Must load the connections of given ``direction`` between ``local_`` and
+        Must load the connections from ``direction`` perspective between ``local_`` and
         ``global_``.
+        :returns: The local and global connections locations
+        :rtype: Tuple[numpy.ndarray, numpy.ndarray]
         """
         pass
 
     @abc.abstractmethod
     def load_local_connections(self, direction, local_):
         """
-        Must load all the connections of given ``direction`` in ``local_``.
+        Must load all the connections from ``direction`` perspective in ``local_``.
+
+        :returns: The local connection locations, a vector of the global connection chunks
+          (1 chunk id per connection), and the global connections locations. To identify a
+          cell in the global connections, use the corresponding chunk id from the second
+          return value.
+        :rtype: Tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray]
+        """
+        pass
+
+    @abc.abstractmethod
+    def load_connections(self, direction):
+        """
+        Must load all the connections from ``direction`` perspective.
+
+        .. tip ::
+
+            With big models, out of memory errors may occur. In which case it's better to
+            use the :meth:`~.storage.interfaces.ConnectivitySet.incoming` or
+            :meth:`~.storage.interfaces.ConnectivitySet.outgoing` block iterators, which
+            yield the connections block by block.
+
+        :returns: A vector of the local connection chunks (1 chunk id per connection),
+          the local connection locations, a vector of the global connection chunks, and
+          the global connections locations. To identify cells, match their location with
+          their chunk id.
+        :rtype: Tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray, numpy.ndarray]
         """
         pass
 
     @property
     def incoming(self):
+        """
+        Iterator over all the connection blocks, from the incoming perspective.
+        """
         # Trim the inc direction tag from the flat iterator
         yield from (data[1:] for data in self.flat_iter_connections("inc"))
 
     @property
     def outgoing(self):
+        """
+        Iterator over all the connection blocks, from the outgoing perspective.
+        """
         # Trim the inc direction tag from the flat iterator
         yield from (data[1:] for data in self.flat_iter_connections("out"))
 

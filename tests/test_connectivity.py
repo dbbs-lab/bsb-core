@@ -68,3 +68,34 @@ class TestAllToAll(
         self.assertEqual(
             100 * 100, len(self.network.get_connectivity_set("test_cell_to_test_cell"))
         )
+
+
+class TestConnWithLabels(
+    FixedPosConfigFixture,
+    RandomStorageFixture,
+    NumpyTestCase,
+    unittest.TestCase,
+    engine_name="hdf5",
+):
+    def setUp(self):
+        super().setUp()
+        self.cfg.connectivity.add(
+            "all_to_all",
+            dict(
+                strategy="bsb.connectivity.AllToAll",
+                presynaptic=dict(cell_types=["test_cell"]),
+                postsynaptic=dict(cell_types=["test_cell"]),
+            ),
+        )
+        self.network = Scaffold(self.cfg, self.storage)
+        self.network.get_placement_set("test_cell").label([3, 60, 99], ["from_X"])
+        self.network.get_placement_set("test_cell").label([7, 19], ["from_Y"])
+        self.network.get_placement_set("test_cell").label([7, 19], ["from_F"])
+        self.network.get_placement_set("test_cell").label([24], ["Z"])
+
+    def test_from_label(self):
+        self.network.connectivity.all_to_all.presynaptic.labels = ["from_X"]
+        self.network.compile()
+        cs = self.network.get_connectivity_set("test_cell_to_test_cell")
+        allcon = cs.load_connections("inc")[0]
+        self.assertEqual(300, len(allcon), "should have 3 x 100 cells with from_X label")

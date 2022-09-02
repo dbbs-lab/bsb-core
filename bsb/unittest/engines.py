@@ -2,7 +2,7 @@ from ..exceptions import DatasetNotFoundError, DatasetExistsError
 from ..core import Scaffold
 from ..cell_types import CellType
 from ..config import Configuration
-from ..morphologies import Morphology, MorphologySet
+from ..morphologies import Morphology, MorphologySet, Branch
 from ..storage import Storage, Chunk
 from . import (
     NumpyTestCase,
@@ -368,6 +368,32 @@ class TestPlacementSet(
             ps.get_labelled(["label1"]),
             "Labels should be sort-order match to input",
         )
+
+    def test_label_filter(self):
+        mA = Morphology.from_swc(get_morphology_path("2comp.swc"))
+        self.network.morphologies.save("testA", mA)
+        self.network.cell_types.test_cell.spatial.morphologies = [{"names": ["testA"]}]
+        self.network.compile()
+        ps = self.network.get_placement_set("test_cell")
+        cells_to_label = [3, 2, 0, 9, 55]
+        ps.label(cells_to_label, ["label1"])
+        cells_to_label = [4, 76, 15, 99, 33]
+        ps.label(cells_to_label, ["label2"])
+        cells_to_label = [4, 76, 15, 9, 55]
+        ps.label(cells_to_label, ["label3"])
+        ps.set_label_filter(["label1"])
+        self.assertEqual(5, len(ps), "len should match n labelled cells")
+        ps.set_label_filter(["label2"])
+        self.assertEqual(5, len(ps), "len should match n labelled cells")
+        ps.set_label_filter(["label2", "label2"])
+        self.assertEqual(5, len(ps), "double counting")
+        ps.set_label_filter(["label1", "label2"])
+        self.assertEqual(10, len(ps), "len should match sum n labelled cells")
+        ps.set_label_filter(["label3", "label2"])
+        self.assertEqual(7, len(ps), "overlapping labels, incorrectly counted")
+        self.assertEqual(7, len(ps.load_positions()), "pos not filtered")
+        self.assertEqual(7, len(ps.load_morphologies()), "morpho not filtered")
+        self.assertEqual(7, len(ps.load_morphologies()), "rot not filtered")
 
 
 class TestMorphologyRepository(NumpyTestCase, RandomStorageFixture, engine_name=None):

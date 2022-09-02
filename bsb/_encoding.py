@@ -81,10 +81,10 @@ class EncodedLabels(np.ndarray):
         # Replace the label values with the transition values
         self[points] = np.vectorize(transition)(self[points])
 
-    def contains(self, *labels):
-        return np.any(self.get_mask(*labels))
+    def contains(self, labels):
+        return np.any(self.get_mask(labels))
 
-    def get_mask(self, *labels):
+    def get_mask(self, labels):
         has_any = [k for k, v in self.labels.items() if any(l in v for l in labels)]
         return np.isin(self, has_any)
 
