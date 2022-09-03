@@ -114,7 +114,7 @@ For example, if ``src_locs`` and ``dest_locs`` are the following matrices:
 then two connections are formed:
 
 * The first connection is formed between the presynaptic cell whose index in pre_pos is 2 and the postsynaptic cell whose index in post_pos is 10.
-Furthermore, the connection begins at the point with id 6 on the branch whose id is 0 on the presynaptic cell and ends on the points with id 3 on the branch whose id is 1 on the postsynaptic cell. 
+Furthermore, the connection begins at the point with id 6 on the branch whose id is 0 on the presynaptic cell and ends on the points with id 3 on the branch whose id is 1 on the postsynaptic cell.
 * The second connection is formed between the presynaptic cell whose index in pre_pos is 10 and the postsynaptic cell whose index in post_pos is 7.
 Furthermore, the connection begins at the point with id 3 on the branch whose id is 0 on the presynaptic cell and ends on the points with id 4 on the branch whose id is 1 on the postsynaptic cell. 
 
@@ -226,9 +226,20 @@ Finally we are ready to call the connect method.
 Use case 2 : Detailed connections 
 =================================
 
-If we have a detailed morphology of the pre and post synaptic cells we can specify where to form the connection. Suppose we want to connect Golgi cells and granule cells.
+If we have a detailed morphology of the pre and post synaptic cells we can specify where to form the connection. Suppose we want to connect Golgi cells to glomeruli specifying the position of the connection on the Golgi cell axon. In this example we form a connection on the closest point to a glomerulus.
 
 .. code-block:: python
+
+    def connect(self, pre, post):
+      #We extract information about the pre and post synaptic cells
+      pre_type = pre.cell_types[0]
+      post_type = post.cell_types[0]
+      for pre_ct, pre_ps in pre.placement.items():
+          for post_ct, post_ps in post.placement.items():
+              #We select the cells to connect and we connect them.
+              #Here pre_ps contains only the positions of the presynaptic cells in the region of interest
+              #and post_ps contains only the positions of the postsynaptic cells in the chunk currently being processed.
+              self._connect_type(pre_ct, pre_ps, post_ct, post_ps)
   
       def _connect_type(self, pre_ct, pre_ps, post_ct, post_ps):
         #We store the positions of the pre and post synaptic cells.
@@ -243,6 +254,18 @@ If we have a detailed morphology of the pre and post synaptic cells we can speci
         pre_locs = np.full((n_conn, 3), -1, dtype=int)
         post_locs = np.full((n_conn, 3), -1, dtype=int)
         ptr = 0
+        
+        #We get all the branches of the Golgi cell axon
+        axon_branches = pre_ct.get_morphologies()[0].load().get_branches(labels=["axon"])
+        #Get the id of the branches
+        branches_id = []
+        for ax in axon_branches:
+          for i,b in enumerate(pre_ct.get_morphologies()[0].load().branches):
+            if (ax==b):
+              branches_id.append(i)
+        
+      	GET THE ID OF THE POINTS
+      
         #We select the cells to connect according to our connection rule.
         for i, golgi in enumerate(golgi_pos):
           #We compute the distance between the current Golgi cell and all the granule cells
@@ -253,6 +276,8 @@ If we have a detailed morphology of the pre and post synaptic cells we can speci
                   )
 
           TO BE WRITTEN
+          
+          
 
         #Now we connect the cells according to the information stored in src_locs and dest_locs.
         connect_cells(pre_set, post_set, src_locs, dest_locs)
