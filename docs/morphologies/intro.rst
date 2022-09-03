@@ -116,6 +116,82 @@ cell later on in simulation.
 
 .. literalinclude:: ../../examples/morphologies/labels.py
 
+The morphology of a cell is stored in a hdf5 file as in the following matrix:
+
+.. list-table:: Title
+   :widths: 25 25 25 25 25 25
+   :header-rows: 1
+
+   * - X
+     - Y
+     - Z
+     - Radius
+     - Parent id
+     - Tag
+   * - 0.1
+     - 0.5
+     - -0.12
+     - 1
+     - 0
+     - 0
+
+The role of the tag column is similar to that of the SWC file format: It is a numerical label describing parts of the morphology, e.g. it can tells us if a point is part of the axon. In the standard SWC format the values values 1-4 stand for soma, axon, basal dendrite, and apical dendrite respectively. In BSB the user is free to follow the same convention or to assign a custom corresponence between labels and numerical labels. If we have a morphology in hdf5 format, to know which set of labels is associated to each numerical label we can use the ``labelsets`` property. Accessing to the ``labelsets`` property yields a Python dictionary whose keys are the numerical labels and whose values are the string labels. 
+
+.. code-block:: python
+  
+  from bsb.core import from_hdf5
+  
+  #Load the morphology
+  purkinje_morpho = network.morphologies.load("purkinje_cell")
+  print(purkinje_morpho.labelsets) 
+  {0: _lset(), 1: _lset({'soma'}), 2: _lset({'axon'}), 3: _lste({'dendrites'})}
+
+If we know the labels associated with a morphology, in order to get all the branches with the same label (e.g. all the branches of a dendridic tree or of an axon) we can use the ``get_branches`` method.
+
+.. code-block:: python
+  
+  from bsb.core import from_hdf5
+  
+  #Load the morphology
+  network = from_hdf5("network.hdf5")
+  purkinje_morpho = network.morphologies.load("purkinje_cell")
+  #We get all the branched of the dendritic tree
+  dendritic_tree = purkinje_morpho.get_branches(labels=["dendrites"])
+
+.. note::
+  
+  The argument ``labels`` is a list of lables, even in the case of a single label, which has to be passed to the function get_branches as a list containing only one element.
+
+Since different branches can be part of the same neurite (think for example of an axon branching in two part, as the two parallel fibers originating from the same ascending axon of a granule cell in the cerebellum) points on different branches can share the same labels. It can also be useful to assign different labels to the same point: For example a point on the dendritic tree of a Golgi cell can be labelled as ``dendrites``, but it can be useful the distinguish between ``basal`` and ``apical``. Suppose we have the morphology of a Golgi cell in a hdf5 file in which basal and apical dendrites are both labelled as "dendrites", then we can distinguish the two type of dendrites and label them accordingly.
+
+.. code-block:: python
+  
+  from bsb.core import from_hdf5
+  
+  #Load the morphology
+  network = from_hdf5("network.hdf5")
+  golgi_morpho = network.morphologies.load("golgi_cell")
+  
+  #We distinguish apical dendrites from basal ones on a geometrical basis 
+  apical_dend = ...
+  basal_dend = ...
+  
+  #We set the labels
+  apical_dend.labels("dendrites","apical")
+  basal_dend.labels("dendrites","basal")
+
+Now we can access to apical and basal dendrites branches separately.
+
+.. code-block:: python
+
+  #We can get the branches of apical dendrites...
+  apical_dend = golgi_morpho.get_branches(labels=["apical"])
+  # ... basal dendrites ...
+  basal_dend = golgi_morpho.get_branches(labels=["basal"])
+  #or the branches from all the dendritic tree
+  all_dend = golgi_morpho.get_branches(labels=["dendrites"])
+
+
 .. rubric:: Properties
 
 Branches and morphologies can be given additional properties. The basic properties are
