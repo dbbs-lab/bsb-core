@@ -782,7 +782,7 @@ class ConnectivitySet(Interface):
         pass
 
     @abc.abstractmethod
-    def load_connections(self, direction):
+    def load_connections(self, direction="out"):
         """
         Must load all the connections from ``direction`` perspective.
 
@@ -806,16 +806,66 @@ class ConnectivitySet(Interface):
         """
         Iterator over all the connection blocks, from the incoming perspective.
         """
-        # Trim the inc direction tag from the flat iterator
-        yield from (data[1:] for data in self.flat_iter_connections("inc"))
+        return _CSIterator(self, "inc")
 
     @property
     def outgoing(self):
         """
         Iterator over all the connection blocks, from the outgoing perspective.
         """
-        # Trim the inc direction tag from the flat iterator
-        yield from (data[1:] for data in self.flat_iter_connections("out"))
+        return _CSIterator(self, "out")
+
+    def from_(self, chunks):
+        return self.outgoing.from_(chunks)
+
+    def to(self, chunks):
+        return self.outgoing.to(chunks)
+
+
+class _CSIterator:
+    def __init__(self, cs, dir):
+        self.cs = cs
+        self.dir = dir
+        self.lchunks = None
+        self.gchunks = None
+
+    def __iter__(self):
+        yield from self.cs.flat_iter_connections(self.dir, self.lchunks, self.gchunks)
+
+    def to(self, chunks):
+        if self.dir == "inc":
+            self.lchunks = chunks
+        else:
+            self.gchunks = chunks
+        return self
+
+    def from_(self, chunks):
+        if self.dir == "out":
+            self.lchunks = chunks
+        else:
+            self.gchunks = chunks
+        return self
+
+    def all(self):
+        lchunks = []
+        gchunks = []
+        locals_ = []
+        globals_ = []
+        for dir, lchunk, gchunk, data in self:
+            lchunks.append(lchunk)
+            gchunks.append(gchunk)
+            locals_.append(data[0])
+            globals_.append(data[1])
+        lens = [len(l) for l in locals_]
+        lcol = np.repeat([c.id for c in lchunks], lens)
+        gcol = np.repeat([c.id for c in gchunks], lens)
+        lloc = np.empty((sum(lens), 3), dtype=int)
+        gloc = np.empty((sum(lens), 3), dtype=int)
+        ptr = 0
+        for len_, local_, global_ in zip(lens, locals_, globals_):
+            lloc[ptr : ptr + len_] = local_
+            gloc[ptr : ptr + len_] = global_
+        return lcol, lloc, gcol, gloc
 
 
 class StoredMorphology:

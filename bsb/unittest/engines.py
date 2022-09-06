@@ -550,5 +550,143 @@ class TestConnectivitySet(
             + f" Outgoing chunk should be 0, `{data[0][1]}` found",
         )
 
-    def test_order(self):
-        pass
+    def setUp(self):
+        super().setUp()
+        self.cfg.connectivity.add(
+            "all_to_all",
+            dict(
+                strategy="bsb.connectivity.AllToAll",
+                presynaptic=dict(cell_types=["test_cell"]),
+                postsynaptic=dict(cell_types=["test_cell"]),
+            ),
+        )
+        self.network = Scaffold(self.cfg, self.storage)
+        self.network.compile(clear=True)
+
+    def test_load_all(self):
+        cs = self.network.get_connectivity_set("test_cell_to_test_cell")
+        data = cs.load_connections()
+        try:
+            lcol, lloc, gcol, gloc = data
+        except (ValueError, TypeError):
+            self.fail("`load_connections` did not return 4 args")
+        self.assertEqual(10000, len(lcol), "expected full 10k local chunk ids")
+        self.assertEqual(10000, len(lloc), "expected full 10k local locs")
+        self.assertEqual(10000, len(gcol), "expected full 10k global chunk ids")
+        self.assertEqual(10000, len(gloc), "expected full 10k global locs")
+
+    def test_load_local(self):
+        cs = self.network.get_connectivity_set("test_cell_to_test_cell")
+        chunks = cs.get_local_chunks("inc")
+        data = cs.load_local_connections("inc", chunks[0])
+        try:
+            lloc, gcol, gloc = data
+        except (ValueError, TypeError):
+            self.fail("`load_local_connections` did not return 3 args")
+        self.assertEqual(2500, len(lloc), "expected full 10k local locs")
+        self.assertEqual(2500, len(gcol), "expected full 10k global chunk ids")
+        self.assertEqual(2500, len(gloc), "expected full 10k global locs")
+        self.assertEqual(4, len(np.unique(gcol)), "Expected data from 4 global chunks")
+        self.assertEqual(25, len(np.unique(lloc, axis=0)), "Expected 25 locals")
+        unique_globals = len(np.unique(np.hstack((gcol.reshape(-1, 1), gloc)), axis=0))
+        self.assertEqual(100, unique_globals, "Expected 100 globals")
+
+    def test_flat_iter(self):
+        cs = self.network.get_connectivity_set("test_cell_to_test_cell")
+        itr = cs.flat_iter_connections()
+        self.assertTrue(hasattr(itr, "__next__"), "expected iterator")
+        spies = defaultdict(lambda: defaultdict(int))
+        spies["blocks"] = 0
+        spies["block_data"] = []
+        while True:
+            try:
+                data = next(itr)
+            except StopIteration:
+                break
+            except TypeError:
+                self.fail("`flat_iter_connections` should be iterable")
+            try:
+                dir, lchunk, gchunk, block = data
+            except TypeError:
+                self.fail("`flat_iter_connections` return value should be unpackable")
+            except ValueError:
+                self.fail("`flat_iter_connections` should return 4 values")
+            spies["blocks"] += 1
+            spies["dirs"][dir] += 1
+            spies["lchunks"][lchunk] += 1
+            spies["gchunks"][gchunk] += 1
+            spies["block_data"].append(block)
+        self.assertEqual(4 * 4 * 2, spies["blocks"], "expected 4x4 chunks, per direction")
+        self.assertEqual(16, spies["dirs"]["inc"], "expected 16 inc, 16 out blocks")
+        self.assertEqual(16, spies["dirs"]["out"], "expected 16 inc, 16 out blocks")
+        local_counts = dict(spies["lchunks"].items())
+        self.assertClose(
+            4 * 2,
+            list(local_counts.values()),
+            f"expected each local chunk to occur 4x2 times: {local_counts}",
+        )
+        global_counts = dict(spies["gchunks"].items())
+        self.assertClose(
+            4 * 2,
+            list(global_counts.values()),
+            f"expected each global chunk to occur 4x2 times: {global_counts}",
+        )
+        self.assertEqual(2, len(spies["dirs"]), "expected only inc and out blocks")
+        self.assertClose(
+            2,
+            [len(block) for block in spies["block_data"]],
+            "expected each block to consist of local and global data",
+        )
+        self.assertClose(
+            625,
+            [len(block[0]) for block in spies["block_data"]],
+            "expected each block to have 625 local locs",
+        )
+        self.assertClose(
+            625,
+            [len(block[1]) for block in spies["block_data"]],
+            "expected each block to have 625 global locs",
+        )
+
+    def test_nested_iter(self):
+        cs = self.network.get_connectivity_set("test_cell_to_test_cell")
+        try:
+            iter(cs.nested_iter_connections())
+        except TypeError:
+            self.fail("expected iteratable")
+        spies = defaultdict(lambda: defaultdict(int))
+        dirs = iter(["inc", "out"])
+        for dir, local_itr in cs.nested_iter_connections():
+            self.assertEqual(next(dirs), dir, "expected `inc` then `out` as direction")
+            lchunks = []
+            for lchunk, global_itr in local_itr:
+                lchunks.append(lchunk)
+                gchunks = []
+                for gchunk, data in global_itr:
+                    gchunks.append(gchunk)
+                    try:
+                        locals_, globals_ = data
+                    except TypeError:
+                        self.fail(
+                            "`nested_iter_connections` return value should be unpackable"
+                        )
+                    except ValueError:
+                        self.fail("`nested_iter_connections` should return 2 data values")
+                    self.assertClose(625, len(locals_), "expected 625 local locs")
+                    self.assertClose(625, len(globals_), "expected 625 global locs")
+                self.assertEqual(4, len(gchunks), "expected 4 global chunks")
+                self.assertEqual(
+                    len(gchunks),
+                    len(np.unique(gchunks, axis=0)),
+                    "each local iter should go to each global chunk exactly once",
+                )
+            self.assertEqual(4, len(lchunks), "expected 4 local chunks")
+            self.assertEqual(
+                len(lchunks),
+                len(np.unique(lchunks, axis=0)),
+                "each dir iter should go to each local chunk exactly once",
+            )
+
+        self.assertEqual(4 * 4 * 2, spies["blocks"], "expected 4x4 chunks, per direction")
+        self.assertEqual(16, spies["dirs"]["inc"], "expected 16 inc, 16 out blocks")
+        self.assertEqual(16, spies["dirs"]["out"], "expected 16 inc, 16 out blocks")
