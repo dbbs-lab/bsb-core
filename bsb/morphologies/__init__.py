@@ -309,7 +309,7 @@ class SubTree:
         if labels is None:
             return [*all_branch]
         else:
-            return [b for b in all_branch if b.contains_label(labels)]
+            return [b for b in all_branch if b.contains_labels(labels)]
 
     def flatten(self):
         """
@@ -989,21 +989,15 @@ class Branch:
         props = {k: v.copy() for k, v in self._properties}
         return cls(self._points.copy(), self._radii.copy(), self._labels.copy(), props)
 
-    def label(self, labels):
+    def label(self, labels, points=None):
         """
         Add labels to the branch.
 
-        :param labels: Label(s) for the branch. The first argument may also be a boolean
-          or integer mask to select the points to label.
+        :param labels: Label(s) for the branch
         :type labels: str
+        :param points: An integer or boolean mask to select the points to label.
         """
-        points = None
-        if not labels:
-            return
-        elif not isinstance(labels[0], str):
-            points = labels[0]
-            labels = labels[1:]
-        else:
+        if points is None:
             points = np.ones(len(self), dtype=bool)
         self._labels.label(labels, points)
 
@@ -1066,7 +1060,7 @@ class Branch:
         """
         return self.labels.contains(labels)
 
-    def get_points_labelled(self, label):
+    def get_points_labelled(self, labels):
         """
         Filter out all points with a certain label
 
@@ -1075,7 +1069,7 @@ class Branch:
         :returns: All points with the label.
         :rtype: List[numpy.ndarray]
         """
-        return self.points[self.labels.get_mask([label])]
+        return self.points[self.labels.get_mask(labels)]
 
     def introduce_point(self, index, *args, labels=None):
         """

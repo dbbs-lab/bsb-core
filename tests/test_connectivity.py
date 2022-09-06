@@ -88,14 +88,16 @@ class TestConnWithLabels(
             ),
         )
         self.network = Scaffold(self.cfg, self.storage)
-        self.network.get_placement_set("test_cell").label([3, 60, 99], ["from_X"])
-        self.network.get_placement_set("test_cell").label([7, 19], ["from_Y"])
-        self.network.get_placement_set("test_cell").label([7, 19], ["from_F"])
-        self.network.get_placement_set("test_cell").label([24], ["Z"])
+        self.network.compile(skip_connectivity=True)
+        ps = self.network.get_placement_set("test_cell")
+        ps.label(["from_X"], [3, 60, 99])
+        self.network.get_placement_set("test_cell").label(["from_Y"], [7, 19])
+        self.network.get_placement_set("test_cell").label(["from_F"], [7, 19])
+        self.network.get_placement_set("test_cell").label(["Z"], [24])
 
     def test_from_label(self):
         self.network.connectivity.all_to_all.presynaptic.labels = ["from_X"]
-        self.network.compile()
+        self.network.compile(append=True, skip_placement=True)
         cs = self.network.get_connectivity_set("test_cell_to_test_cell")
         allcon = cs.load_connections("inc")[0]
         self.assertEqual(300, len(allcon), "should have 3 x 100 cells with from_X label")

@@ -362,7 +362,7 @@ class TestPlacementSet(
         self.network.compile()
         ps = self.network.get_placement_set("test_cell")
         cells_to_label = [33, 12, 0, 3, 77]
-        ps.label(cells_to_label, ["label1", "label2"])
+        ps.label(["label1", "label2"], cells_to_label)
         self.assertClose(
             np.sort(cells_to_label),
             ps.get_labelled(["label1"]),
@@ -376,11 +376,11 @@ class TestPlacementSet(
         self.network.compile()
         ps = self.network.get_placement_set("test_cell")
         cells_to_label = [3, 2, 0, 9, 55]
-        ps.label(cells_to_label, ["label1"])
+        ps.label(["label1"], cells_to_label)
         cells_to_label = [4, 76, 15, 99, 33]
-        ps.label(cells_to_label, ["label2"])
+        ps.label(["label2"], cells_to_label)
         cells_to_label = [4, 76, 15, 9, 55]
-        ps.label(cells_to_label, ["label3"])
+        ps.label(["label3"], cells_to_label)
         ps.set_label_filter(["label1"])
         self.assertEqual(5, len(ps), "len should match n labelled cells")
         ps.set_label_filter(["label2"])

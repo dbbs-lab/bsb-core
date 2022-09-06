@@ -407,7 +407,7 @@ class PlacementSet(Interface):
         pass
 
     @abc.abstractmethod
-    def label(self, cells, labels):
+    def label(self, labels, cells):
         """
         Should label the cells with given labels.
 
