@@ -408,6 +408,20 @@ class PlacementSet(Interface):
         pass
 
     @abc.abstractmethod
+    def set_subcell_label_filter(self, subcell_labels):
+        """
+        Should limit the scope of the placement set to the given subcellular labels. The
+        morphologies returned by
+        :meth:`~.storage.interfaces.PlacementSet.load_morphologies` should return a
+        filtered form of themselves if :meth:`~.morphologies.Morphology.as_filtered` is
+        called on them.
+
+        :param subcell_labels: List of labels
+        :type subcell_labels: list[str]
+        """
+        pass
+
+    @abc.abstractmethod
     def label(self, labels, cells):
         """
         Should label the cells with given labels.
