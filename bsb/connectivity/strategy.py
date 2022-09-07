@@ -10,7 +10,7 @@ from itertools import chain
 class Hemitype:
     cell_types = config.reflist(refs.cell_type_ref, required=True)
     labels = config.attr(type=types.list())
-    subcell_targets = config.attr(type=types.list())
+    subcell_labels = config.attr(type=types.list())
 
 
 class HemitypeCollection:

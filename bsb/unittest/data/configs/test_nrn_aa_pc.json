@@ -59,8 +59,8 @@
   "connectivity": {
     "granule_to_purkinje": {
       "class": "bsb.connectivity.ConnectomeGlomerulusGranule",
-      "from_cell_types": [{"type": "granule_cell", "subcell_targets": ["ascending_axon"]}],
-      "to_cell_types": [{"type": "purkinje_cell", "subcell_targets": ["apical_dendrites"]}],
+      "from_cell_types": [{"type": "granule_cell", "subcell_labels": ["ascending_axon"]}],
+      "to_cell_types": [{"type": "purkinje_cell", "subcell_labels": ["apical_dendrites"]}],
       "divergence": 50,
       "convergence": 4
     }

@@ -72,8 +72,8 @@
   "connectivity": {
     "golgi_cell_to_granule_cell": {
       "class": "bsb.connectivity.Convergence",
-      "from_cell_types": [{"type": "golgi_cell", "subcell_targets": ["soma"]}],
-      "to_cell_types": [{"type": "granule_cell", "subcell_targets": ["soma"]}],
+      "from_cell_types": [{"type": "golgi_cell", "subcell_labels": ["soma"]}],
+      "to_cell_types": [{"type": "granule_cell", "subcell_labels": ["soma"]}],
       "divergence": 2,
       "convergence": 4
     }
