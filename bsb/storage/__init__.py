@@ -289,6 +289,7 @@ class Storage:
         if chunks is not None:
             ps.set_chunk_filter(chunks)
         ps.set_label_filter(labels)
+        ps.set_label_filter(subcell_labels)
         return ps
 
     def require_placement_set(self, cell_type):
