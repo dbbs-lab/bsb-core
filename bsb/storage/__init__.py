@@ -273,7 +273,7 @@ class Storage:
                 )
             )
 
-    def get_placement_set(self, type, chunks=None, labels=None):
+    def get_placement_set(self, type, chunks=None, labels=None, subcell_labels=None):
         """
         Return a PlacementSet for the given type.
 

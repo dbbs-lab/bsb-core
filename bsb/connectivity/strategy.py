@@ -24,7 +24,11 @@ class HemitypeCollection:
     @property
     def placement(self):
         return {
-            ct: ct.get_placement_set(self.roi, labels=self.hemitype.labels)
+            ct: ct.get_placement_set(
+                self.roi,
+                labels=self.hemitype.labels,
+                subcell_labels=self.hemitype.subcell_labels,
+            )
             for ct in self.hemitype.cell_types
         }
 

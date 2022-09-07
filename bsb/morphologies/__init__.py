@@ -564,6 +564,7 @@ class Morphology(SubTree):
         if len(self.roots) < len(roots):
             warn("None-root branches given as morphology input.", MorphologyWarning)
         self._meta = meta if meta is not None else {}
+        self._filter = None
         if shared_buffers is None:
             self._shared = None
             self._is_shared = False
@@ -640,6 +641,9 @@ class Morphology(SubTree):
         """
         self.optimize()
         return self._shared._labels.labels
+
+    def set_label_filter(self, labels):
+        self._filter = labels
 
     def copy(self):
         self.optimize(force=False)
