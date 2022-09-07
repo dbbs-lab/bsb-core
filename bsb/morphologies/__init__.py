@@ -42,13 +42,14 @@ class MorphologySet:
     <.storage.interfaces.StoredMorphology>` to cells
     """
 
-    def __init__(self, loaders, m_indices):
+    def __init__(self, loaders, m_indices, labels=None):
         self._m_indices = np.array(m_indices, copy=False)
         self._loaders = loaders
         check_max = np.max(m_indices, initial=-1)
         if check_max >= len(loaders):
             raise IndexError(f"Index {check_max} out of range for {len(loaders)}.")
         self._cached = {}
+        self._labels = labels
 
     def __contains__(self, value):
         return value in [l.name for l in self._loaders]
