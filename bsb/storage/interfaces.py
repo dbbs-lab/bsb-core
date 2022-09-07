@@ -639,6 +639,12 @@ class MorphologyRepository(Interface, engine_key="morphologies"):
         self.save(name, morpho, overwrite=overwrite)
         return morpho
 
+    def list(self):
+        """
+        List all the names of the morphologies in the repository.
+        """
+        return [l.name for l in self.all()]
+
 
 class ConnectivitySet(Interface):
     """
