@@ -38,6 +38,9 @@ class VoxelIntersection(Intersectional, ConnectionStrategy):
                     pre.placement.values(), post.placement.values()
                 )
             }
+            print("loaded cache", cache)
+        else:
+            print("no cache")
         if self.favor_cache == "pre":
             targets = pre
             candidates = post
@@ -56,6 +59,7 @@ class VoxelIntersection(Intersectional, ConnectionStrategy):
             else:
                 target_mset = target_set.load_morphologies()
                 cand_mset = cand_set.load_morphologies()
+            print("candidates:", len(cand_set), "targets:", len(target_set))
             self._match_voxel_intersection(
                 match_itr, target_set, cand_set, target_mset, cand_mset
             )
@@ -103,6 +107,7 @@ class VoxelIntersection(Intersectional, ConnectionStrategy):
                     )
                     data_acc.append(locations)
 
+        print("Checked", len(data_acc), "pairs")
         # Preallocating and filling is faster than `np.concatenate` :shrugs:
         acc_idx = np.cumsum([len(a[0]) for a in data_acc])
         tlocs = np.empty((acc_idx[-1], 3))
