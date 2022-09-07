@@ -125,6 +125,7 @@ _t(
         ),
         OrderError=_e(),
         ClassError=_e(),
+        TestError=_e(FixtureError=_e()),
     ),
 )
 

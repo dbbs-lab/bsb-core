@@ -1,13 +1,26 @@
 from .parallel import *
+from ..core import Scaffold as _Scaffold
 from ..storage import (
     Storage as _Storage,
     get_engine_node as _get_engine_node,
     Chunk as _Chunk,
 )
 from ..config import Configuration as _Configuration
+from ..exceptions import FixtureError
 import numpy as _np
 import glob as _glob
 import os as _os
+
+
+class NetworkFixture:
+    def setUp(self):
+        super().setUp()
+        kwargs = {}
+        if hasattr(self, "cfg"):
+            kwargs["config"] = self.cfg
+        if hasattr(self, "storage"):
+            kwargs["storage"] = self.storage
+        self.network = _Scaffold(**kwargs)
 
 
 class RandomStorageFixture:
@@ -71,6 +84,29 @@ class FixedPosConfigFixture:
                 )
             )
         )
+
+
+class MorphologiesFixture:
+    def __init_subclass__(cls, morpho_filters=None, morpho_suffix="swc", **kwargs):
+        super().__init_subclass__(**kwargs)
+        cls._morpho_suffix = morpho_suffix
+        cls._morpho_filters = morpho_filters
+
+    def setUp(self):
+        super().setUp()
+        if not hasattr(self, "network"):
+            raise FixtureError(
+                f"{self.__class__.__name__} uses MorphologiesFixture, which requires a network fixture."
+            )
+        for mpath in get_all_morphology_paths(self._morpho_suffix):
+            if self._morpho_filters and all(
+                mpath.find(filter) == -1 for filter in self._morpho_filters
+            ):
+                continue
+            if mpath.endswith("swc"):
+                self.network.morphologies.import_swc(mpath)
+            else:
+                self.network.morphologies.import_file(mpath)
 
 
 class NumpyTestCase:

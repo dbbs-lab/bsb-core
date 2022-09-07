@@ -3,6 +3,8 @@ from bsb.unittest import (
     NumpyTestCase,
     FixedPosConfigFixture,
     RandomStorageFixture,
+    MorphologiesFixture,
+    NetworkFixture,
 )
 import unittest
 import numpy as np
@@ -334,3 +336,38 @@ class TestConnWithLabels(
         self.assertEqual(
             (3 + 2) * 5, len(allcon), "should have 3 x 100 cells with from_X label"
         )
+
+
+class TestConnWithSubCellLabels(
+    MorphologiesFixture,
+    NetworkFixture,
+    FixedPosConfigFixture,
+    RandomStorageFixture,
+    NumpyTestCase,
+    unittest.TestCase,
+    engine_name="hdf5",
+    morpho_filters=["PurkinjeCell", "StellateCell"],
+    debug=True,
+):
+    def setUp(self):
+        super().setUp()
+        self.network.connectivity.add(
+            "self_intersect",
+            dict(
+                strategy="bsb.connectivity.VoxelIntersection",
+                presynaptic=dict(cell_types=["test_cell"], subcell_labels=["axon"]),
+                postsynaptic=dict(cell_types=["test_cell"], subcell_labels=["dendrites"]),
+            ),
+        )
+        print("all morpho", self.network.morphologies.list())
+        self.network.cell_types.test_cell.spatial.morphologies = [
+            {"names": self.network.morphologies.list()}
+        ]
+        self.network.compile(skip_connectivity=True)
+        print("HELLO?", len(self.network.get_placement_set("test_cell", labels=None)))
+
+    def test_subcell_labels(self):
+        self.network.compile(append=True, skip_placement=True)
+        cs = self.network.get_connectivity_set("test_cell_to_test_cell")
+        allcon = cs.load_connections()[0]
+        self.assertEqual(300, len(allcon), "should have 3 x 100 cells with from_X label")
