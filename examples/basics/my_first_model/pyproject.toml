@@ -1,0 +1,6 @@
+[tools.bsb]
+config = "network_configuration.json"
+
+[tools.bsb.links]
+config = "auto"
+morpho = [ "sys", "morphologies.hdf5", "newer",]

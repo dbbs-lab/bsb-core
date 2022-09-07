@@ -1,0 +1,159 @@
+{
+  "name": "net configuration using bsb v4.0",
+  "storage": {
+    "engine": "hdf5",
+    "root": "network.hdf5"
+  },
+  "network": {
+    "x": 0.0,
+    "y": 0.0,
+    "z": 0.0,
+    "chunk_size": [50, 50, 50]
+  },
+  "partitions": {
+      "V1": {
+        "type": "allen",
+        "struct_name": "VISp",
+        "sources": ["annotation_25.nrrd"],
+        "keys": ["density"],
+        "voxel_size": 25
+      }
+  },
+  "regions": {
+    "V1": {
+      "type": "stack",
+      "children": ["VISp1", "VISp2/3", "VISp4", "VISp5", "VISp6a", "VISp6b"]
+    }
+  },
+  "cell_types": {
+    "cellA": {
+      "spatial": {
+        "radius": 2.5,
+        "density": 3.9e-3,
+        "morphologies": [
+          {
+            "names": ["cellA"]
+          }
+        ]
+      },
+      "plotting": {
+        "display_name": "cell A",
+        "color": "#e81005",
+        "opacity": 0.3
+      }
+    },
+    "fibers": {
+      "entity": true,
+      "spatial": {
+        "relative_to": "glomerulus",
+        "count_ratio": 0.05
+      }
+    },
+    "glomerulus": {
+      "relay": true,
+      "spatial": {
+        "radius": 1.5,
+        "density": 3e-4
+      },
+      "plotting": {
+        "display_name": "Glomerulus",
+        "color": "#6F6F70"
+      }
+    },
+    "cellB": {
+      "spatial": {
+        "radius": 7.5,
+        "planar_density": 0.0017,
+        "morphologies": [
+          {
+            "names": ["cellB"]
+          }
+        ]
+      },
+      "plotting": {
+        "display_name": "cell B",
+        "color": "#068f0d"
+      }
+    },
+    "cellC": {
+      "spatial": {
+        "radius": 8.0,
+        "density": 9e-6,
+        "geometry": {
+          "axon_radius": 160
+        },
+        "morphologies": [
+          {
+            "names": ["cellC"]
+          }
+        ]
+      },
+      "plotting": {
+        "display_name": "cell C",
+        "color": "#1009e3"
+      }
+    },
+    "interneuronA": {
+      "spatial": {
+        "radius": 4.0,
+        "density": 0.5e-4,
+        "morphologies": [
+          {
+            "names": ["interneuronA"]
+          }
+        ]
+      },
+      "plotting": {
+        "display_name": "interneuron A",
+        "color": "#f5bb1d"
+      }
+    },
+    "interneuronB": {
+      "spatial": {
+        "radius": 6.0,
+        "density": 0.5e-4,
+        "morphologies": [
+          {
+            "names": ["interneuronB"]
+          }
+        ]
+      },
+      "plotting": {
+        "display_name": "interneuron B",
+        "color": "#f5830a"
+      }
+    }
+  },
+  "placement": {
+    "layer1_innervation": {
+      "strategy": "bsb.placement.Entities",
+      "partitions": ["layer1"],
+      "cell_types": ["fibers"]
+    },
+    "layer1_placement": {
+      "strategy": "bsb.placement.ParticlePlacement",
+      "partitions": ["layer1"],
+      "cell_types": ["cellA", "cellC", "glomerulus"]
+    },
+    "layer2_placement": {
+      "strategy": "bsb.placement.ParallelArrayPlacement",
+      "partitions": ["layer2"],
+      "cell_types": ["cellB"],
+      "spacing_x": 130.0,
+      "angle": 70.0
+    },
+    "layer3_placement": {
+      "strategy": "bsb.placement.ParticlePlacement",
+      "partitions": ["layer3_below", "layer3_top"],
+      "cell_types": ["interneuronA", "interneuronB"],
+      "restrict": {
+        "interneuronB": ["layer3_below"],
+        "interneuronA": ["layer3_top"]
+      }
+    }
+  },
+
+  "connectivity": {  },
+  "after_placement": { },
+  "simulations": { }
+}
