@@ -1,4 +1,5 @@
 import abc
+from pathlib import Path
 import functools
 import numpy as np
 from ..morphologies import Morphology
@@ -580,7 +581,7 @@ class MorphologyRepository(Interface, engine_key="morphologies"):
         """
         pass
 
-    def import_swc(self, file, name, overwrite=False):
+    def import_swc(self, file, name=None, overwrite=False):
         """
         Import and store .swc file contents as a morphology in the repository.
 
@@ -593,13 +594,14 @@ class MorphologyRepository(Interface, engine_key="morphologies"):
         :returns: The stored morphology
         :rtype: ~bsb.storage.interfaces.StoredMorphology
         """
+        name = name if name is not None else Path(file).stem
         morpho = Morphology.from_swc(file)
 
         return self.save(name, morpho, overwrite=overwrite)
 
-    def import_asc(self, file, name, overwrite=False):
+    def import_file(self, file, name=None, overwrite=False):
         """
-        Import and store .asc file contents as a morphology in the repository.
+        Import and store file contents as a morphology in the repository.
 
         :param file: file-like object or path to the file.
         :param name: Key to store the morphology under.
@@ -610,6 +612,7 @@ class MorphologyRepository(Interface, engine_key="morphologies"):
         :returns: The stored morphology
         :rtype: ~bsb.storage.interfaces.StoredMorphology
         """
+        name = name if name is not None else Path(file).stem
         morpho = Morphology.from_file(file)
 
         return self.save(name, morpho, overwrite=overwrite)
