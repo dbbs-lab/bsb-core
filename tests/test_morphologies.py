@@ -464,3 +464,97 @@ class TestSwcFiles(NumpyTestCase, unittest.TestCase):
     def test_identity(self):
         m = Morphology.from_swc(get_morphology_path("test_morphometry.swc"))
         self.assertClose(m.points, self.m.points)
+
+
+class TestMorphologyFiltering(NumpyTestCase, unittest.TestCase):
+    def test_filter_none(self):
+        m = Morphology([Branch(np.ones((5, 3)), np.ones(5))])
+        m.label(["test_all"])
+        m2 = m.as_filtered()
+        self.assertIsNot(m, m2, "filtering without labels should return copy")
+        self.assertEqual(len(m), len(m2), "filtering without labels should return all")
+
+    def test_filter_all(self):
+        m = Morphology([Branch(np.ones((5, 3)), np.ones(5))])
+        m.label(["test_all"])
+        m2 = m.set_label_filter(["test_all"]).as_filtered()
+        self.assertIsNot(m, m2, "filtering should return copy")
+        self.assertEqual(len(m), len(m2), "filtering all should return all")
+        self.assertEqual(len(m.branches), len(m2.branches), "n branches change")
+        self.assertEqual(1, len(m2.branches), "just 1 branch")
+
+    def test_filter_split(self):
+        m = Morphology([Branch(np.ones((5, 3)), np.ones(5))])
+        split_one = np.ones(5, dtype=bool)
+        split_one[2] = 0
+        m.label(["test_all"], split_one)
+        m2 = m.set_label_filter(["test_all"]).as_filtered()
+        self.assertIsNot(m, m2, "filtering should return copy")
+        self.assertEqual(4, len(m2), "filtering should return 4 filtered points")
+        self.assertEqual(2, len(m2.branches), "expected split in the middle")
+        self.assertEqual(2, len(m2.branches[0]), "expected 2 point branch")
+        self.assertEqual(2, len(m2.branches[1]), "expected 2 point branch")
+
+    def test_filter_trim_start(self):
+        m = Morphology([Branch(np.ones((5, 3)), np.ones(5))])
+        split_one = np.ones(5, dtype=bool)
+        split_one[0] = 0
+        m.label(["test_all"], split_one)
+        m2 = m.set_label_filter(["test_all"]).as_filtered()
+        self.assertIsNot(m, m2, "filtering should return copy")
+        self.assertEqual(4, len(m2), "filtering should return 4 filtered points")
+        self.assertEqual(1, len(m2.branches), "expected trim of the start")
+        self.assertEqual(4, len(m2.branches[0]), "expected 4 point branch")
+
+    def test_filter_trim_end(self):
+        m = Morphology([Branch(np.ones((5, 3)), np.ones(5))])
+        split_one = np.ones(5, dtype=bool)
+        split_one[4] = 0
+        m.label(["test_all"], split_one)
+        m2 = m.set_label_filter(["test_all"]).as_filtered()
+        self.assertIsNot(m, m2, "filtering should return copy")
+        self.assertEqual(4, len(m2), "filtering should return 4 filtered points")
+        self.assertEqual(1, len(m2.branches), "expected trim of the end")
+        self.assertEqual(4, len(m2.branches[0]), "expected 4 point branch")
+
+    def test_filter_drop_branch(self):
+        b = Branch(np.ones((5, 3)), np.ones(5))
+        m = Morphology([b])
+        m.label(["test_all"])
+        b.attach_child(Branch(np.ones((5, 3)), np.ones(5)))
+        m2 = m.set_label_filter(["test_all"]).as_filtered()
+        self.assertIsNot(m, m2, "filtering should return copy")
+        self.assertEqual(5, len(m2), "filtering should return 5 filtered points")
+        self.assertEqual(1, len(m2.branches), "expected dropped child")
+        self.assertEqual(5, len(m2.branches[0]), "expected 5 point branch")
+
+    def test_filter_skip_dropped(self):
+        b = Branch(np.ones((5, 3)), np.ones(5))
+        m = Morphology([b])
+        m.label(["test_all"])
+        c = Branch(np.ones((5, 3)), np.ones(5))
+        b.attach_child(c)
+        d = Branch(np.ones((5, 3)), np.ones(5))
+        d.label(["test_all"])
+        c.attach_child(d)
+        m2 = m.set_label_filter(["test_all"]).as_filtered()
+        self.assertIsNot(m, m2, "filtering should return copy")
+        self.assertEqual(10, len(m2), "filtering should return 10 filtered points")
+        self.assertEqual(2, len(m2.branches), "expected dropped middle branch")
+        self.assertEqual(m2.branches[0], m2.branches[1].parent, "should be connected")
+
+    def test_filter_multiroot(self):
+        b = Branch(np.ones((5, 3)), np.ones(5))
+        m = Morphology([b])
+        c = Branch(np.ones((5, 3)), np.ones(5))
+        c.label(["test_all"])
+        d = Branch(np.ones((5, 3)), np.ones(5))
+        d.label(["test_all"])
+        b.attach_child(c)
+        b.attach_child(d)
+        m2 = m.set_label_filter(["test_all"]).as_filtered()
+        self.assertIsNot(m, m2, "filtering should return copy")
+        self.assertEqual(10, len(m2), "filtering should return 10 filtered points")
+        self.assertEqual(2, len(m2.branches), "expected dropped root branch")
+        self.assertTrue(m2.branches[0].is_root, "should be root, root parent is gone")
+        self.assertTrue(m2.branches[1].is_root, "should be root, root parent is gone")

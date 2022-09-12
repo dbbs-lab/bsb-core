@@ -66,23 +66,31 @@ class MorphologySet:
     def get(self, index, cache=True, hard_cache=False):
         data = self._m_indices[index]
         if data.ndim:
-            if hard_cache:
-                return np.array([self._loaders[idx].cached_load() for idx in data])
-            elif cache:
-                res = []
-                for idx in data:
-                    if idx not in self._cached:
-                        self._cached[idx] = self._loaders[idx].load()
-                    res.append(self._cached[idx].copy())
-            else:
-                res = np.array([self._loaders[idx].load() for idx in data])
-            return res
+            return self._get_many(data, cache, hard_cache)
         elif cache:
-            if hard_cache:
-                return self._loaders[data].cached_load()
-            elif data not in self._cached:
-                self._cached[data] = self._loaders[data].load()
-            return self._cached[data].copy()
+            return self._get_one(data, cache, hard_cache)
+
+    def _get_one(self, data, cache, hard_cache):
+        if hard_cache:
+            return self._loaders[data].cached_load(self._labels)
+        elif data not in self._cached:
+            self._cached[data] = (
+                self._loaders[data].load().set_label_filter(self._labels).as_filtered()
+            )
+        return self._cached[data].copy()
+
+    def _get_many(self, data, cache, hard_cache):
+        if hard_cache:
+            return np.array([self._loaders[idx].cached_load() for idx in data])
+        elif cache:
+            res = []
+            for idx in data:
+                if idx not in self._cached:
+                    self._cached[idx] = self._loaders[idx].load()
+                res.append(self._cached[idx].copy())
+        else:
+            res = np.array([self._loaders[idx].load() for idx in data])
+        return res
 
     def clear_soft_cache(self):
         self._cached = {}
@@ -394,12 +402,16 @@ class SubTree:
                 for b in self.branches:
                     b.label(labels, points[ctr : ctr + len(b)])
                     ctr += len(b)
-            else:
+            elif np.can_cast(points.dtype, int):
+                points = np.array(points, copy=False, dtype=int)
                 for b in self.branches:
                     mux = points < len(b)
-                    b.label(labels, mux)
+                    b.label(labels, points[mux])
                     points = points[~mux]
-                    ctr += len(b)
+            else:
+                raise ValueError(
+                    f"Label indices must be a boolean or integer mask. {points.dtype} given."
+                )
 
         return self
 
@@ -643,15 +655,28 @@ class Morphology(SubTree):
         return self._shared._labels.labels
 
     def set_label_filter(self, labels):
+        """
+        Set a label filter, so that `as_filtered` returns copies filtered by these labels.
+        """
         self._filter = labels
+        return self
 
     def copy(self):
+        """
+        Copy the morphology.
+        """
+        # Make sure to optimize so that we use 1 shared buffer.
         self.optimize(force=False)
+        # Copy that buffer into a new one
         buffers = self._shared.copy()
         roots = []
         branch_copy_map = {}
         bid = itertools.count()
         ptr = 0
+        # For each branch, create a copy, and assign a piece of the copied buffer to it.
+        # Also attach it to its intended parent. Since we iterate DFS, each parent occurs
+        # before their children, so we can always find it in `branch_copy_map` from a
+        # previous iteration.
         for branch in self.branches:
             nptr = ptr + len(branch)
             nbranch = Branch(*buffers.get_shared(ptr, nptr))
@@ -660,7 +685,68 @@ class Morphology(SubTree):
                 branch_copy_map[branch.parent].attach_child(nbranch)
             else:
                 roots.append(nbranch)
+            ptr = nptr
+        # Construct the morphology
         return self.__class__(roots, shared_buffers=buffers, meta=self.meta.copy())
+
+    def as_filtered(self, labels=None):
+        """
+        Return a filtered copy of the morphology that includes only points that match the
+        current label filter, or the specified labels.
+        """
+        filter = labels if labels is not None else self._filter
+        if filter is None:
+            return self.copy()
+        self.optimize(force=False)
+        buffers = self._shared.copy()
+        roots = []
+        branch_copy_map = {None: None}
+        bid = itertools.count()
+        ptr = 0
+        # Iterate over each branch, and turn it into 0 or more branches.
+        for og_id, branch in enumerate(self.branches):
+            # Using the filter mask, figure out where to split the branch into pieces.
+            # Parts, or the entire branch, may be excluded if there are no labelled points
+            filtered = branch.get_label_mask(filter)
+            # Each boolean in filtered represents a point, either included or excluded.
+            # Every subbranch begins where a point is excluded and the next point is
+            # included, and ends where a point is included, and the next point is excluded
+            starts = (np.nonzero(filtered[1:] & ~filtered[:-1])[0] + 1).tolist()
+            ends = (np.nonzero(filtered[:-1] & ~filtered[1:])[0] + 1).tolist()
+            # Treat the boundary.
+            if filtered[0]:
+                starts.insert(0, 0)
+            if filtered[-1]:
+                ends.append(len(filtered))
+            prev = None
+            nbranch = None
+            # Make all the sub branches. Connect the first to the parent, and store the
+            # last in the map, for children to be connected to.
+            for start, end in zip(starts, ends):
+                nbranch = Branch(*buffers.get_shared(ptr + start, ptr + end))
+                # Store where this branch came from, for loc mapping.
+                nbranch._copied_from_branch = og_id
+                # Store where the points map to
+                nbranch._copied_from_points = (start, end)
+                if not prev:
+                    if branch.is_root or branch_copy_map[branch.parent] is None:
+                        roots.append(nbranch)
+                    else:
+                        branch_copy_map[branch.parent].attach_child(nbranch)
+                else:
+                    prev.attach_child(nbranch)
+                prev = nbranch
+            ptr = ptr + len(branch)
+            if nbranch is None:
+                # If an entire branch is unlabelled, skip it, and map our children's
+                # parent to their grandparent, since we, the parent, don't exist.
+                branch_copy_map[branch] = branch_copy_map[branch.parent]
+            else:
+                # Did we create some branches? Use the last iteration value as parent for
+                # our children.
+                branch_copy_map[branch] = nbranch
+        # Construct and return the morphology
+        return self.__class__(roots, meta=self.meta.copy())
 
     @classmethod
     def from_swc(cls, file, branch_class=None, tags=None, meta=None):
@@ -1074,7 +1160,18 @@ class Branch:
         :returns: All points with the label.
         :rtype: List[numpy.ndarray]
         """
-        return self.points[self.labels.get_mask(labels)]
+        return self.points[self.get_label_mask(labels)]
+
+    def get_label_mask(self, labels):
+        """
+        Return a mask for the specified labels
+
+        :param label: The label to check for.
+        :type label: str
+        :returns: A boolean mask that selects out the points that match the label.
+        :rtype: List[numpy.ndarray]
+        """
+        return self.labels.get_mask(labels)
 
     def introduce_point(self, index, *args, labels=None):
         """
