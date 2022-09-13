@@ -4,6 +4,7 @@ import functools
 import numpy as np
 from ..morphologies import Morphology
 from ..trees import BoxTree
+from .._util import obj_str_insert
 
 
 class Interface(abc.ABC):
@@ -218,6 +219,16 @@ class PlacementSet(Interface):
         self._engine = engine
         self._type = cell_type
         self._tag = cell_type.name
+
+    @obj_str_insert
+    def __repr__(self):
+        cell_type = self.cell_type
+        ms = self.load_morphologies()
+        if not len(ms):
+            mstr = "without morphologies"
+        else:
+            mstr = f"with {len(ms._loaders)} morphologies"
+        return f"cell type: '{cell_type.name}', {len(self)} cells, {mstr}"
 
     @property
     def cell_type(self):
@@ -685,6 +696,14 @@ class ConnectivitySet(Interface):
         Must create the placement set.
         """
         pass
+
+    @obj_str_insert
+    def __repr__(self):
+        if not len(self):
+            cstr = "without connections"
+        else:
+            cstr = f"with {len(self)} connections"
+        return f"'{self.tag}' {cstr}"
 
     @abc.abstractstaticmethod
     def exists(self, engine, tag):

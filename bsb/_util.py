@@ -5,6 +5,7 @@ import sys as _sys
 import contextlib as _ctxlib
 import numpy as _np
 from .exceptions import OrderError as _OrderError
+import functools
 
 ichain = _it.chain.from_iterable
 
@@ -16,6 +17,15 @@ def merge_dicts(a, b):
         else:
             a[key] = b[key]
     return a
+
+
+def obj_str_insert(__str__):
+    @functools.wraps(__str__)
+    def wrapper(self):
+        obj_str = object.__repr__(self)
+        return obj_str.replace("at 0x", __str__(self) + " at 0x")
+
+    return wrapper
 
 
 @_ctxlib.contextmanager

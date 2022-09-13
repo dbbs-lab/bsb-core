@@ -14,7 +14,7 @@ from .reporting import report, warn, get_report_file
 from .config._config import Configuration
 from .services.pool import create_job_pool
 from .services import MPI
-
+from ._util import obj_str_insert
 
 _cfg_props = (
     "network",
@@ -84,6 +84,13 @@ class Scaffold:
 
     def __contains__(self, component):
         return getattr(component, "scaffold", None) is self
+
+    @obj_str_insert
+    def __repr__(self):
+        filename = os.path.abspath(self.storage.root)
+        cells_placed = len(self.cell_types)
+        connection_types = len(self.connectivity)
+        return f"'{filename}' with {cells_placed} cell types, and {connection_types} connection_types"
 
     def is_main_process(self):
         return not MPI.get_rank()
