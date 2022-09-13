@@ -52,9 +52,10 @@ class ConnectionStrategy(abc.ABC, SortableByAfter):
     def __repr__(self):
         config_name = self.name
         strategy_name = self.strategy
-        pre = self.presynaptic.cell_types
-        post = self.postsynaptic.cell_types
-        return f"{config_name} ConnectionStrategy, {strategy_name} strategy, with presynaptic cell {pre} and with postsynaptic cell {post}"
+        pre = [ct.name for ct in self.presynaptic.cell_types]
+        post = [ct.name for ct in self.postsynaptic.cell_types]
+        return f"'{config_name}',"
+        f" connecting {pre} to {post}"
 
     @classmethod
     def get_ordered(cls, objects):

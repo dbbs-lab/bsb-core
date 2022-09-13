@@ -620,12 +620,11 @@ class ConnectivitySet(Interface):
 
     @obj_str_insert
     def __repr__(self):
-        cs = self.load_connections()
-        if not len(cs):
+        if not len(self):
             cstr = "without connections"
         else:
-            cstr = f"with {len(cs._loaders)} connections"
-        return f"{cstr}"
+            cstr = f"with {len(self)} connections"
+        return f"'{self.tag}' {cstr}"
 
     @abc.abstractstaticmethod
     def exists(self, engine, tag):

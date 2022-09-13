@@ -36,9 +36,12 @@ class PlacementStrategy(abc.ABC, SortableByAfter):
     def __repr__(self):
         config_name = self.name
         strategy_name = self.strategy
-        partition_name = [p.name for p in self.partitions]
-        ct_name = [ct.name for ct in self.cell_types]
-        return f"{config_name} PlacementStrategy, {strategy_name} strategy, {partition_name} partition, {ct_name} cell type"
+        part_str = ""
+        if len(self.partitions):
+            partition_names = [p.name for p in self.partitions]
+            part_str = f" into {partitions}"
+        ct_names = [ct.name for ct in self.cell_types]
+        return f"'{config_name}', placing {ct_names}{part_str}"
 
     @abc.abstractmethod
     def place(self, chunk, indicators):
