@@ -109,9 +109,12 @@ class VoxelIntersection(Intersectional, ConnectionStrategy):
 
         print("Checked", len(data_acc), "pairs")
         # Preallocating and filling is faster than `np.concatenate` :shrugs:
-        acc_idx = np.cumsum([len(a[0]) for a in data_acc])
-        tlocs = np.empty((acc_idx[-1], 3))
-        clocs = np.empty((acc_idx[-1], 3))
+        acc_idx = np.cumsum(
+            [len(a[0]) for a in data_acc],
+        )
+        # The inline if guards against the case where there's no overlap
+        tlocs = np.empty((acc_idx[-1] if len(acc_idx) else 0, 3))
+        clocs = np.empty((acc_idx[-1] if len(acc_idx) else 0, 3))
         for (s, e), (tblock, cblock) in zip(_pairs_with_zero(acc_idx), data_acc):
             tlocs[s:e] = tblock
             clocs[s:e] = cblock
@@ -141,5 +144,9 @@ class VoxelIntersection(Intersectional, ConnectionStrategy):
 
 def _pairs_with_zero(iterable):
     a, b = itertools.tee(iterable)
-    yield 0, next(b)
-    yield from zip(a, b)
+    try:
+        yield 0, next(b)
+    except StopIteration:
+        pass
+    else:
+        yield from zip(a, b)
