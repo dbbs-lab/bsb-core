@@ -355,19 +355,54 @@ class TestConnWithSubCellLabels(
             "self_intersect",
             dict(
                 strategy="bsb.connectivity.VoxelIntersection",
-                presynaptic=dict(cell_types=["test_cell"], subcell_labels=["axon"]),
-                postsynaptic=dict(cell_types=["test_cell"], subcell_labels=["dendrites"]),
+                presynaptic=dict(cell_types=["test_cell"], subcell_labels=["tag_21"]),
+                postsynaptic=dict(
+                    cell_types=["test_cell"],
+                    subcell_labels=["tag_16", "tag_17", "tag_18"],
+                ),
             ),
         )
-        print("all morpho", self.network.morphologies.list())
         self.network.cell_types.test_cell.spatial.morphologies = [
             {"names": self.network.morphologies.list()}
         ]
         self.network.compile(skip_connectivity=True)
-        print("HELLO?", len(self.network.get_placement_set("test_cell", labels=None)))
 
     def test_subcell_labels(self):
+        f = self.network.connectivity.self_intersect.connect
+
+        def connect_spy(strat, pre, post):
+            tc, pre_set = [*pre.placement.items()][0]
+            tc, post_set = [*post.placement.items()][0]
+            print("what", pre_set._subcell_labels)
+            print("what2", post_set._subcell_labels)
+            self.assertEqual(
+                ["tag_21"],
+                pre_set._subcell_labels,
+                "expected subcell filters",
+            )
+            ms = pre_set.load_morphologies()
+            m = ms.get(0)
+            self.assertEqual(
+                len(m),
+                len(m.set_label_filter(["tag_21"]).as_filtered()),
+                "expected morphology to be filtered already",
+            )
+
+            self.assertEqual(
+                ["tag_16", "tag_17", "tag_18"],
+                post_set._subcell_labels,
+                "expected subcell filters",
+            )
+            ms = post_set.load_morphologies()
+            m = ms.get(0)
+            self.assertEqual(
+                len(m),
+                len(m.set_label_filter(["tag_16", "tag_17", "tag_18"]).as_filtered()),
+                "expected morphology to be filtered already",
+            )
+            return f(pre, post)
+
+        conn = self.network.connectivity.self_intersect
+        conn.connect = connect_spy.__get__(conn)
         self.network.compile(append=True, skip_placement=True)
         cs = self.network.get_connectivity_set("test_cell_to_test_cell")
-        allcon = cs.load_connections()[0]
-        self.assertEqual(300, len(allcon), "should have 3 x 100 cells with from_X label")

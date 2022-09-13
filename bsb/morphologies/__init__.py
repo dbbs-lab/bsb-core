@@ -73,7 +73,8 @@ class MorphologySet:
     def _get_one(self, data, cache, hard_cache):
         if hard_cache:
             return self._loaders[data].cached_load(self._labels)
-        elif data not in self._cached:
+
+        if data not in self._cached:
             self._cached[data] = (
                 self._loaders[data].load().set_label_filter(self._labels).as_filtered()
             )
@@ -169,6 +170,53 @@ class MorphologySet:
     @classmethod
     def empty(cls):
         return cls([], np.empty(0, int))
+
+    def _mapback(self, locs):
+        if self._labels is None:
+            raise RuntimeError("Mapback requested on unfiltered morphology set.")
+        locs = locs.copy()
+        for i, loader in enumerate(self._loaders):
+            rows = locs[:, 0] == i
+            print("mapping back", loader.name)
+            if np.any(rows):
+                morpho = loader.load()
+                print(self._labels)
+                filtered = morpho.set_label_filter(self._labels).as_filtered()
+                # Using np.vectorize is Python speed O(n), worst case in numpy is C speed
+                # O(n^2) (that is if every point is on another branch), not sure.
+                branchmap = np.vectorize(
+                    {
+                        bid: b._copied_from_branch
+                        for bid, b in enumerate(filtered.branches)
+                    }.get
+                )
+                pointmap = np.vectorize(
+                    {
+                        bid: b._copied_points_offset
+                        for bid, b in enumerate(filtered.branches)
+                    }.get
+                )
+                print(
+                    "branchmap",
+                    {
+                        bid: b._copied_from_branch
+                        for bid, b in enumerate(filtered.branches)
+                    },
+                )
+                print("branchmapped", locs[rows, 1], branchmap(locs[rows, 1]))
+                print(
+                    "pointmap",
+                    {
+                        bid: b._copied_points_offset
+                        for bid, b in enumerate(filtered.branches)
+                    },
+                )
+                print(locs[rows, 1])
+                print("pointmapped", pointmap(locs[rows, 1]))
+                # Map points first, then branches, since points depend on unmapped branch.
+                locs[rows, 2] = locs[rows, 2] + pointmap(locs[rows, 1])
+                locs[rows, 1] = branchmap(locs[rows, 1])
+        return locs
 
 
 class RotationSet:
@@ -727,7 +775,7 @@ class Morphology(SubTree):
                 # Store where this branch came from, for loc mapping.
                 nbranch._copied_from_branch = og_id
                 # Store where the points map to
-                nbranch._copied_from_points = (start, end)
+                nbranch._copied_points_offset = ptr + start
                 if not prev:
                     if branch.is_root or branch_copy_map[branch.parent] is None:
                         roots.append(nbranch)

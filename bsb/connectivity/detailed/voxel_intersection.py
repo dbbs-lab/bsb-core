@@ -7,6 +7,7 @@ from .shared import Intersectional
 from ...exceptions import *
 from ... import config
 from ...config import types
+from ..._util import ichain
 
 _rng = default_rng()
 
@@ -31,35 +32,29 @@ class VoxelIntersection(Intersectional, ConnectionStrategy):
     favor_cache = config.attr(type=types.in_(["pre", "post"]), default="post")
 
     def connect(self, pre, post):
-        if self.cache:
-            cache = {
-                set_.tag: set_.load_morphologies()
-                for set_ in itertools.chain(
-                    pre.placement.values(), post.placement.values()
-                )
-            }
-            print("loaded cache", cache)
-        else:
-            print("no cache")
-        if self.favor_cache == "pre":
-            targets = pre
-            candidates = post
-            self._n_tvoxels = self.voxels_pre
-            self._n_cvoxels = self.voxels_post
-        else:
+        if self.favor_cache == "post":
             targets = post
             candidates = pre
             self._n_tvoxels = self.voxels_post
             self._n_cvoxels = self.voxels_pre
+        else:
+            targets = pre
+            candidates = post
+            self._n_tvoxels = self.voxels_pre
+            self._n_cvoxels = self.voxels_post
         combo_itr = self.candidate_intersection(targets, candidates)
+        mset_cache = {}
         for target_set, cand_set, match_itr in combo_itr:
             if self.cache:
-                target_mset = cache[target_set.tag]
-                cand_mset = cache[cand_set.tag]
+                if id(target_set) not in mset_cache:
+                    mset_cache[id(target_set)] = target_set.load_morphologies()
+                if id(cand_set) not in mset_cache:
+                    mset_cache[id(cand_set)] = cand_set.load_morphologies()
+                target_mset = mset_cache[id(target_set)]
+                cand_mset = mset_cache[id(cand_set)]
             else:
                 target_mset = target_set.load_morphologies()
                 cand_mset = cand_set.load_morphologies()
-            print("candidates:", len(cand_set), "targets:", len(target_set))
             self._match_voxel_intersection(
                 match_itr, target_set, cand_set, target_mset, cand_mset
             )
@@ -86,6 +81,7 @@ class VoxelIntersection(Intersectional, ConnectionStrategy):
             for cand in candidates:
                 cpos = positions[cand]
                 crot = rotations[cand]
+                # Don't hard cache, as we mutate the instance we get.
                 morpho = cmset.get(cand, cache=self.cache, hard_cache=False)
                 # Transform candidate, keep target unrotated and untranslated at origin:
                 # 1) Rotate self by own rotation
@@ -107,7 +103,6 @@ class VoxelIntersection(Intersectional, ConnectionStrategy):
                     )
                     data_acc.append(locations)
 
-        print("Checked", len(data_acc), "pairs")
         # Preallocating and filling is faster than `np.concatenate` :shrugs:
         acc_idx = np.cumsum(
             [len(a[0]) for a in data_acc],
@@ -135,8 +130,8 @@ class VoxelIntersection(Intersectional, ConnectionStrategy):
         clocs = []
         for i in _rng.integers(len(overlap), size=n):
             cv, tvs = overlap[i]
-            cpool = cvoxels.get_data(cv)
-            tpool = np.concatenate([tvoxels.get_data(tv) for tv in tvs])
+            cpool = cvoxels.get_data(cv)[0]
+            tpool = [*ichain(tvoxels.get_data(tvs).reshape(-1))]
             tlocs.append((tid, *random.choice(tpool)))
             clocs.append((cid, *random.choice(cpool)))
         return tlocs, clocs

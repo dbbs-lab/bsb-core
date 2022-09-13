@@ -514,6 +514,29 @@ class PlacementSet(Interface):
         """
         return BoxTree(list(self.load_boxes(morpho_cache=morpho_cache)))
 
+    def _requires_morpho_mapping(self):
+        return self._subcell_labels is not None
+
+    def _morpho_backmap(self, locs):
+        locs = locs.copy()
+        cols = locs[:, 1:]
+        ign_b = cols[:, 0] == -1
+        ign_p = cols[:, 1] == -1
+        semi = ign_b != ign_p
+        if np.any(semi):
+            raise ValueError(
+                f"Invalid data at {np.nonzero(semi)[0]}. -1 needs to occur in "
+                "either none or both columns to make point neuron connections."
+            )
+        to_map = ~ign_b
+        if np.any(locs[to_map, 1:] < 0):
+            raise ValueError(
+                f"Invalid data at {np.nonzero(locs[to_map, 1:] < 0)[0]}, "
+                "negative values are not valid morphology locations."
+            )
+        locs[to_map] = self.load_morphologies()._mapback(locs[to_map])
+        return locs
+
 
 class MorphologyRepository(Interface, engine_key="morphologies"):
     @abc.abstractmethod

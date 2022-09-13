@@ -1,5 +1,6 @@
 import numpy as np
 import itertools
+from ._util import obj_str_insert
 
 
 class _lset(set):
@@ -19,8 +20,8 @@ class EncodedLabels(np.ndarray):
         array.labels = {int(k): _lset(v) for k, v in labels.items()}
         return array
 
+    @obj_str_insert
     def __repr__(self):
-        obj_str = object.__repr__(self)
         cumlen = np.cumsum([len(str(ls)) for ls in self.labels])
         labellist = ", ".join(
             f"{sum(self == k)} labelled {list(ls)}"
@@ -28,9 +29,9 @@ class EncodedLabels(np.ndarray):
             else f"{sum(self == k)} unlabelled"
             for k, ls in self.labels.items()
         )
-        return obj_str.replace(
-            "at 0x", f"with {len(self)} elements, of which {labellist}" + " at 0x"
-        )
+        return f"with {len(self)} elements, of which {labellist}"
+
+    __str__ = __repr__
 
     def __array_finalize__(self, array):
         if array is not None:
