@@ -712,12 +712,13 @@ class Morphology(SubTree):
     def to_graph_array(self):
         """
         Create a SWC-like numpy array from a Morphology.
+
+        .. warning::
+        
+            Custom SWC tags (above 3) won't work and throw an error
+        
         :returns: a numpy array with columns storing the standard SWC attributes
         :rtype: numpy.ndarray
-
-        -- warning::
-            Custom SWC labels don't work and throw an error
-
         """
         data = _morpho_to_swc(self)
         return data
