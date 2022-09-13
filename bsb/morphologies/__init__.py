@@ -841,8 +841,9 @@ class Branch:
     """
 
     def __init__(self, points, radii, labels=None, properties=None):
-        self._points = points if isinstance(points, np.ndarray) else np.array(points)
-        self._radii = radii if isinstance(radii, np.ndarray) else np.array(radii)
+        self._points = _gutil.sanitize_ndarray(points, (-1, 3), float)
+        self._radii = _gutil.sanitize_ndarray(radii, (-1,), float)
+        _gutil.assert_samelen(self._points, self._radii)
         self._children = []
         if labels is None:
             labels = EncodedLabels.none(len(points))

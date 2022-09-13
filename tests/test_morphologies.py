@@ -282,7 +282,7 @@ class TestMorphologySet(unittest.TestCase):
         d = None
         self.assertTrue(
             all((d := c if d is None else d) is d for c in cached),
-            "hard cache should be ident",
+            "hard cache should return identical objects",
         )
         uncached = self.sets[1].iter_morphologies()
         d = None
