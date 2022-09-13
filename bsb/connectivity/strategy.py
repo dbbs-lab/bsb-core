@@ -54,7 +54,7 @@ class ConnectionStrategy(abc.ABC, SortableByAfter):
         strategy_name = self.strategy
         pre = self.presynaptic.cell_types
         post = self.postsynaptic.cell_types
-        return f'{config_name} ConnectionStrategy, {strategy_name} strategy, with presynaptic cell {pre} and with postsynaptic cell {post}'
+        return f"{config_name} ConnectionStrategy, {strategy_name} strategy, with presynaptic cell {pre} and with postsynaptic cell {post}"
 
     @classmethod
     def get_ordered(cls, objects):

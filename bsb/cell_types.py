@@ -67,13 +67,13 @@ class CellType:
     def __boot__(self):
         storage = self.scaffold.storage
         storage._PlacementSet.require(storage._engine, self)
-    
+
     @obj_str_insert
     def __repr__(self):
         cells_placed = len(self.get_placement_set())
         placements = len(self.get_placement())
         return f"'{self.name}', {cells_placed} cells, {placements} placement strategies"
-    
+
     def get_placement(self):
         """
         Get the placement components this cell type is a part of.

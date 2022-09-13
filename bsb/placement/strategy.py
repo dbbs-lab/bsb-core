@@ -38,7 +38,7 @@ class PlacementStrategy(abc.ABC, SortableByAfter):
         strategy_name = self.strategy
         partition_name = [p.name for p in self.partitions]
         ct_name = [ct.name for ct in self.cell_types]
-        return f'{config_name} PlacementStrategy, {strategy_name} strategy, {partition_name} partition, {ct_name} cell type'
+        return f"{config_name} PlacementStrategy, {strategy_name} strategy, {partition_name} partition, {ct_name} cell type"
 
     @abc.abstractmethod
     def place(self, chunk, indicators):
