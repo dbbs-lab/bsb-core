@@ -68,8 +68,8 @@ class ConnectionStrategy(abc.ABC, SortableByAfter):
         pass
 
     def _get_connect_args_from_job(self, chunk, roi):
-        pre = HemitypeCollection(self.presynaptic, roi)
-        post = HemitypeCollection(self.postsynaptic, [chunk])
+        pre = HemitypeCollection(self.presynaptic, [chunk])
+        post = HemitypeCollection(self.postsynaptic, roi)
         return pre, post
 
     def connect_cells(self, pre_set, post_set, src_locs, dest_locs, tag=None):
@@ -99,15 +99,7 @@ class ConnectionStrategy(abc.ABC, SortableByAfter):
                 ct.get_placement_set().get_all_chunks() for ct in pre_types
             )
         )
-        # For determining the ROI, it's more logical and often easier to determine where
-        # axons can go, then where they can come from, so we let them do that, and flip
-        # the results around to get our single-post-chunk, multi-pre-chunk ROI. We store
-        # "connections arriving on", not "connections going to" for each cell.
-        rois = {}
-        for chunk in from_chunks:
-            for to_chunk in self.get_region_of_interest(chunk):
-                rois.setdefault(to_chunk, []).append(chunk)
-
+        rois = {chunk: self.get_region_of_interest(chunk) for chunk in from_chunks}
         for chunk, roi in rois.items():
             job = pool.queue_connectivity(self, chunk, roi, deps=deps)
             self._queued_jobs.append(job)
