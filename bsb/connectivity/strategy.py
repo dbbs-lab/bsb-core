@@ -1,6 +1,6 @@
 from .. import config
 from ..config import refs, types
-from .._util import SortableByAfter
+from .._util import SortableByAfter, obj_str_insert
 from ..reporting import report, warn
 from ..exceptions import *
 import abc
@@ -47,6 +47,15 @@ class ConnectionStrategy(abc.ABC, SortableByAfter):
 
     def __boot__(self):
         self._queued_jobs = []
+
+    @obj_str_insert
+    def __repr__(self):
+        config_name = self.name
+        strategy_name = self.strategy
+        pre = [ct.name for ct in self.presynaptic.cell_types]
+        post = [ct.name for ct in self.postsynaptic.cell_types]
+        return f"'{config_name}',"
+        f" connecting {pre} to {post}"
 
     @classmethod
     def get_ordered(cls, objects):
