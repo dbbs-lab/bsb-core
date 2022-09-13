@@ -51,10 +51,10 @@ class ConnectionStrategy(abc.ABC, SortableByAfter):
     @obj_str_insert
     def __repr__(self):
         config_name = self.name
-        strategy_name = self.__class__.__name__
+        strategy_name = self.strategy
         pre = self.presynaptic.cell_types
         post = self.postsynaptic.cell_types
-        return f'{config_name} configuration node, {strategy_name} strategy, with presynaptic cell {pre} and with postsynaptic cell {post}'
+        return f'{config_name} ConnectionStrategy, {strategy_name} strategy, with presynaptic cell {pre} and with postsynaptic cell {post}'
 
     @classmethod
     def get_ordered(cls, objects):

@@ -35,10 +35,10 @@ class PlacementStrategy(abc.ABC, SortableByAfter):
     @obj_str_insert
     def __repr__(self):
         config_name = self.name
-        strategy_name = self.__class__.__name__
+        strategy_name = self.strategy
         partition_name = [p.name for p in self.partitions]
         ct_name = [ct.name for ct in self.cell_types]
-        return f'{config_name} configuration node, {strategy_name} strategy, {partition_name} partition, {ct_name} cell type'
+        return f'{config_name} PlacementStrategy, {strategy_name} strategy, {partition_name} partition, {ct_name} cell type'
 
     @abc.abstractmethod
     def place(self, chunk, indicators):
