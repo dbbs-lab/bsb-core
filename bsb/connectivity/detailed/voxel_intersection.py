@@ -28,7 +28,7 @@ class VoxelIntersection(Intersectional, ConnectionStrategy):
     voxels_pre = config.attr(type=int, default=50)
     voxels_post = config.attr(type=int, default=50)
     cache = config.attr(type=bool, default=True)
-    favor_cache = config.attr(type=types.in_(["pre", "post"]), default="pre")
+    favor_cache = config.attr(type=types.in_(["pre", "post"]), default="post")
 
     def connect(self, pre, post):
         if self.cache:
