@@ -991,10 +991,7 @@ class Branch:
         Return the path distance from the start to the terminal point of this branch,
         computed as the sum of Euclidean segments between consecutive branch points.
         """
-        try:
-            return np.sum(np.sqrt(np.sum(self.point_vectors**2, axis=1)))
-        except IndexError:
-            raise EmptyBranchError("Empty branch has no path distance") from None
+        return np.sum(np.sqrt(np.sum(self.point_vectors**2, axis=1)))
 
     @property
     def max_displacement(self):

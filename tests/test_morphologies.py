@@ -323,7 +323,6 @@ class TestMorphometry(NumpyTestCase, unittest.TestCase):
     def test_empty_branch(self):
         for attr in (
             "euclidean_dist",
-            "path_dist",
             "vector",
             "versor",
             "start",
