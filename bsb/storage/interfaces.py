@@ -951,6 +951,11 @@ class StoredMorphology:
     def load(self):
         return self._loader()
 
-    @functools.cache
     def cached_load(self, labels=None):
+        if labels is not None:
+            labels = tuple(labels)
+        return self._cached_load(labels)
+
+    @functools.cache
+    def _cached_load(self, labels):
         return self.load().set_label_filter(labels).as_filtered()
