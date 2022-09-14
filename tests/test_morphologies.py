@@ -263,9 +263,21 @@ class TestMorphologyLabels(NumpyTestCase, unittest.TestCase):
         self.assertEqual(1, len(b3.get_points_labelled(["ello"])))
 
 
-class TestMorphologySet(unittest.TestCase):
+class TestMorphologySet(NumpyTestCase, unittest.TestCase):
     def _fake_loader(self, name):
         return StoredMorphology(name, lambda: Morphology([Branch([], [])]), dict())
+
+    def _label_loader(self, name):
+        def m():
+            mo = Morphology(
+                [Branch([[0, 0, 0], [1, 1, 1], [2, 2, 2], [3, 3, 3]], [1] * 4)]
+            )
+            mo.label(["A"], [0, 1])
+            mo.label(["B"], [1, 2])
+            mo.label(["C"], [2, 3])
+            return mo
+
+        return StoredMorphology(name, m, dict())
 
     def setUp(self):
         self.sets = [
@@ -300,6 +312,44 @@ class TestMorphologySet(unittest.TestCase):
         self.assertEqual(
             1, len([*self.sets[1].iter_meta(unique=True)]), "only 1 morph in unique set"
         )
+
+    def test_filtered_get(self):
+        ms = MorphologySet([self._label_loader("ello")], [0, 0, 0])
+        ms.set_label_filter(["A"])
+        m = ms.get(0, cache=False)
+        self.assertEqual(2, len(m), "expected filtered morpho")
+        self.assertClose([[0, 0, 0], [1, 1, 1]], m.points, "expected A labelled points")
+        ms.set_label_filter(["B"])
+        m = ms.get(0, cache=False)
+        self.assertEqual(2, len(m), "expected filtered morpho")
+        self.assertClose([[1, 1, 1], [2, 2, 2]], m.points, "expected B labelled points")
+
+    def test_softcache_filtered_get(self):
+        ms = MorphologySet([self._label_loader("ello")], [0, 0, 0])
+        ms.set_label_filter(["A"])
+        m = ms.get(0, cache=True)
+        self.assertEqual(2, len(m), "expected filtered morpho")
+        self.assertClose([[0, 0, 0], [1, 1, 1]], m.points, "expected A labelled points")
+        ms.set_label_filter(["B"])
+        m = ms.get(0, cache=True)
+        self.assertEqual(2, len(m), "expected filtered morpho")
+        self.assertClose([[1, 1, 1], [2, 2, 2]], m.points, "expected B labelled points")
+
+    def test_hardcache_filtered_get(self):
+        ms = MorphologySet([self._label_loader("ello")], [0, 0, 0])
+        ms.set_label_filter(["A"])
+        m1 = ms.get(0, hard_cache=True)
+        self.assertEqual(2, len(m1), "expected filtered morpho")
+        self.assertClose([[0, 0, 0], [1, 1, 1]], m1.points, "expected A labelled points")
+        m2 = ms.get(0, hard_cache=True)
+        self.assertEqual(2, len(m2), "expected filtered morpho")
+        self.assertClose([[0, 0, 0], [1, 1, 1]], m2.points, "expected A labelled points")
+        self.assertEqual(m1, m2, "expected identical morphos")
+        ms.set_label_filter(["B"])
+        m = ms.get(0, hard_cache=True)
+        self.assertNotEqual(m1, m, "expected invalidated hard cache")
+        self.assertEqual(2, len(m), "expected filtered morpho")
+        self.assertClose([[1, 1, 1], [2, 2, 2]], m.points, "expected B labelled points")
 
 
 class TestMorphometry(NumpyTestCase, unittest.TestCase):

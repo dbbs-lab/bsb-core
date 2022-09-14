@@ -51,6 +51,16 @@ class MorphologySet:
         self._cached = {}
         self._labels = labels
 
+    def set_label_filter(self, labels):
+        self._cached = {}
+        for l in self._loaders:
+            l._cached_load.cache_clear()
+        self._labels = labels
+
+    @_gutil.obj_str_insert
+    def __repr__(self):
+        return f"{len(self)} cells, {len(self._loaders)} morphologies"
+
     def __contains__(self, value):
         return value in [l.name for l in self._loaders]
 
@@ -67,18 +77,21 @@ class MorphologySet:
         data = self._m_indices[index]
         if data.ndim:
             return self._get_many(data, cache, hard_cache)
-        elif cache:
+        else:
             return self._get_one(data, cache, hard_cache)
 
-    def _get_one(self, data, cache, hard_cache):
-        if hard_cache:
-            return self._loaders[data].cached_load(self._labels)
+    def _get_one(self, idx, cache, hard_cache):
+        if cache:
+            if hard_cache:
+                return self._loaders[idx].cached_load(self._labels)
 
-        if data not in self._cached:
-            self._cached[data] = (
-                self._loaders[data].load().set_label_filter(self._labels).as_filtered()
-            )
-        return self._cached[data].copy()
+            if idx not in self._cached:
+                self._cached[idx] = (
+                    self._loaders[idx].load().set_label_filter(self._labels).as_filtered()
+                )
+            return self._cached[idx].copy()
+        else:
+            return self._loaders[idx].load().set_label_filter(self._labels).as_filtered()
 
     def _get_many(self, data, cache, hard_cache):
         if hard_cache:
@@ -106,20 +119,30 @@ class MorphologySet:
         :param hard_cache: Use :ref:`hard-caching` (1 copy stored on the loader, always
           same copy returned from that loader forever).
         """
+        if hard_cache:
+
+            def _load(loader):
+                return loader.cached_load(self._labels)
+
+        elif self._labels is not None:
+
+            def _load(loader):
+                return loader.load().set_label_filter(self._labels).as_filtered()
+
+        else:
+
+            def _load(loader):
+                return loader.load()
+
         if unique:
-            if hard_cache:
-                yield from (l.cached_load() for l in self._loaders)
-            else:
-                yield from (l.load() for l in self._loaders)
-        elif not cache:
-            yield from (self._loaders[idx].load() for idx in self._m_indices)
-        elif hard_cache:
-            yield from (self._loaders[idx].cached_load() for idx in self._m_indices)
+            yield from map(_load, self._loaders)
+        elif not cache or hard_cache:
+            yield from map(_load, (self._loaders[idx] for idx in self._m_indices))
         else:
             _cached = {}
             for idx in self._m_indices:
                 if idx not in _cached:
-                    _cached[idx] = self._loaders[idx].load()
+                    _cached[idx] = _load(self._loaders[idx])
                 yield _cached[idx].copy()
 
     def iter_meta(self, unique=False):
@@ -442,6 +465,7 @@ class SubTree:
         """
         if points is None:
             points = np.ones(len(self), dtype=bool)
+        points = np.array(points, copy=False)
         if self._is_shared:
             self._labels.label(labels, points)
         else:
@@ -636,6 +660,10 @@ class Morphology(SubTree):
             self._is_shared = self._check_shared()
             for branch in self.branches:
                 branch._on_mutate = self._mutnotif
+
+    @_gutil.obj_str_insert
+    def __repr__(self):
+        return f"{len(self.roots)} roots, {len(self)} points, from {self.bounds[0]} to {self.bounds[1]}"
 
     def __eq__(self, other):
         return len(self.branches) == len(other.branches) and all(
