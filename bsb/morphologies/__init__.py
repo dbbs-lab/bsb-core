@@ -714,9 +714,9 @@ class Morphology(SubTree):
         Create a SWC-like numpy array from a Morphology.
 
         .. warning::
-        
+
             Custom SWC tags (above 3) won't work and throw an error
-        
+
         :returns: a numpy array with columns storing the standard SWC attributes
         :rtype: numpy.ndarray
         """
