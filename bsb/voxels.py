@@ -206,8 +206,7 @@ class VoxelSet:
                 insert += "without data "
         return obj.replace("at 0x", insert + "at 0x")
 
-    def __repr__(self):
-        return self.__str__()
+    __repr__ = __str__
 
     def __bool__(self):
         return not self.is_empty
