@@ -27,11 +27,9 @@ class Chunk(np.ndarray):
         return self.id != other.id
 
     def __eq__(self, other):
-        if isinstance(other, int):
-            return self.id == other
-        else:
-            other = np.array(other, copy=False).view(Chunk)
-            return (len(other.shape) == 0 and self.id == other) or self.id == other.id
+        self_id = np.array(self, copy=False).view(Chunk)._safe_id()
+        other_id = np.array(other, copy=False).view(Chunk)._safe_id()
+        return self_id == other_id
 
     def __gt__(self, other):
         return self.id > other.id
@@ -58,6 +56,9 @@ class Chunk(np.ndarray):
         # Unpickle ourselves, grabbing the state we appended for `_size`
         super().__setstate__(state[:-1])
         self._size = state[-1]
+    
+    def _safe_id(self):
+        return int(self) if self.shape == () else self.id
 
     @property
     def dimensions(self):
