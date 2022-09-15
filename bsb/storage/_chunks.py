@@ -56,7 +56,7 @@ class Chunk(np.ndarray):
         # Unpickle ourselves, grabbing the state we appended for `_size`
         super().__setstate__(state[:-1])
         self._size = state[-1]
-    
+
     def _safe_id(self):
         return int(self) if self.shape == () else self.id
 
