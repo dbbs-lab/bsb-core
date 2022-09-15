@@ -201,7 +201,7 @@ class VoxelSet:
                 if self._data.keys:
                     insert += f"with keyed data ({', '.join(self._data.keys)}) "
                 else:
-                    insert += f"with {self._data.shape[1]} data columns "
+                    insert += f"with {self._data.shape[-1]} data columns "
             else:
                 insert += "without data "
         return obj.replace("at 0x", insert + "at 0x")
