@@ -108,7 +108,11 @@ class ConnectionStrategy(abc.ABC, SortableByAfter):
                 ct.get_placement_set().get_all_chunks() for ct in pre_types
             )
         )
-        rois = {chunk: self.get_region_of_interest(chunk) for chunk in from_chunks}
+        rois = {
+            chunk: roi
+            for chunk in from_chunks
+            if (roi := self.get_region_of_interest(chunk))
+        }
         for chunk, roi in rois.items():
             job = pool.queue_connectivity(self, chunk, roi, deps=deps)
             self._queued_jobs.append(job)
