@@ -292,7 +292,7 @@ class Voxels(Partition, abc.ABC, classmap_entry="voxels"):
             vs = self.voxelset.snap_to_grid(chunk.dimensions)
             map = {}
             for i, idx in enumerate(vs):
-                map.setdefault(idx.view(Chunk).id, []).append(i)
+                map.setdefault(idx.view(Chunk), []).append(i)
             self._map = {k: self.voxelset[v] for k, v in map.items()}
         return self._map
 
