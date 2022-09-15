@@ -59,14 +59,6 @@ bsb.options module
    :undoc-members:
    :show-inheritance:
 
-bsb.particles module
---------------------
-
-.. automodule:: bsb.particles
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 bsb.plugins module
 ------------------
 
