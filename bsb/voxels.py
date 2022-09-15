@@ -556,8 +556,14 @@ class VoxelSet:
                 for point, point_vc in enumerate(point_vcs):
                     voxel_reduce.setdefault(tuple(point_vc), []).append((branch, point))
             voxels = np.array(tuple(voxel_reduce.keys()))
-            data = np.array(list(voxel_reduce.values()), dtype=object)
-            return cls(voxels, voxel_size, data=data)
+            # Transfer the voxel data into an object array
+            voxel_data_data = tuple(voxel_reduce.values())
+            # We need a bit of a workaround so that numpy doesn't make a regular from the
+            # `voxel_data_data` list of lists, when it has a matrix shape.
+            voxel_data = np.empty(len(voxel_data_data), dtype=object)
+            for i in range(len(voxel_data_data)):
+                voxel_data[i] = voxel_data_data[i]
+            return cls(voxels, voxel_size, data=voxel_data)
         else:
             voxels = np.unique(np.concatenate(branch_vcs), axis=0)
             return cls(voxels, voxel_size)
