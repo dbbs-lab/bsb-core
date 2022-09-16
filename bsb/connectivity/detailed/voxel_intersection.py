@@ -4,7 +4,6 @@ import itertools
 import random
 from ..strategy import ConnectionStrategy
 from .shared import Intersectional
-from ...exceptions import *
 from ... import config
 from ...config import types
 from ..._util import ichain
@@ -15,13 +14,7 @@ _rng = default_rng()
 @config.node
 class VoxelIntersection(Intersectional, ConnectionStrategy):
     """
-    This strategy voxelizes morphologies into collections of cubes, thereby reducing
-    the spatial specificity of the provided traced morphologies by grouping multiple
-    compartments into larger cubic voxels. Intersections are found not between the
-    seperate compartments but between the voxels and random compartments of matching
-    voxels are connected to eachother. This means that the connections that are made
-    are less specific to the exact morphology and can be very useful when only 1 or a
-    few morphologies are available to represent each cell type.
+    This strategy finds overlap between voxelized morphologies.
     """
 
     affinity = config.attr(type=types.fraction(), default=1)

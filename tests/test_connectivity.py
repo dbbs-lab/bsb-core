@@ -1,4 +1,5 @@
 from bsb.core import Scaffold
+from bsb.services import MPI
 from bsb.config import Configuration
 from bsb.morphologies import Morphology, Branch
 from bsb.unittest import (
@@ -246,7 +247,8 @@ class TestConnectivitySet(
         self.assertClose(
             dircount * gcount,
             list(local_counts.values()),
-            f"expected each local chunk to occur {dircount} x {gcount} times: {local_counts}",
+            "expected each local chunk to occur"
+            f" {dircount} x {gcount} times: {local_counts}",
         )
         global_counts = dict(spies["gchunks"].items())
         self.assertEqual(
@@ -255,7 +257,8 @@ class TestConnectivitySet(
         self.assertClose(
             dircount * lcount,
             list(global_counts.values()),
-            f"expected each global chunk to occur {dircount} x {lcount} times: {global_counts}",
+            "expected each global chunk to occur"
+            f" {dircount} x {lcount} times: {global_counts}",
         )
         self.assertClose(
             2,

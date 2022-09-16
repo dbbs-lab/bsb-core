@@ -2,7 +2,7 @@ from ..exceptions import DatasetNotFoundError, DatasetExistsError
 from ..core import Scaffold
 from ..cell_types import CellType
 from ..config import Configuration
-from ..morphologies import Morphology, MorphologySet, Branch
+from ..morphologies import Morphology, MorphologySet
 from ..storage import Storage, Chunk
 from . import (
     NumpyTestCase,
@@ -551,19 +551,6 @@ class TestConnectivitySet(
             + f" Outgoing chunk should be 0, `{data[0][1]}` found",
         )
 
-    def setUp(self):
-        super().setUp()
-        self.cfg.connectivity.add(
-            "all_to_all",
-            dict(
-                strategy="bsb.connectivity.AllToAll",
-                presynaptic=dict(cell_types=["test_cell"]),
-                postsynaptic=dict(cell_types=["test_cell"]),
-            ),
-        )
-        self.network = Scaffold(self.cfg, self.storage)
-        self.network.compile(clear=True)
-
     def test_load_all(self):
         cs = self.network.get_connectivity_set("test_cell_to_test_cell")
         data = cs.load_connections()
@@ -682,7 +669,8 @@ class TestConnectivitySet(
         self.assertClose(
             dircount * gcount,
             list(local_counts.values()),
-            f"expected each local chunk to occur {dircount} x {gcount} times: {local_counts}",
+            "expected each local chunk to occur"
+            f" {dircount} x {gcount} times: {local_counts}",
         )
         global_counts = dict(spies["gchunks"].items())
         self.assertEqual(
@@ -691,7 +679,8 @@ class TestConnectivitySet(
         self.assertClose(
             dircount * lcount,
             list(global_counts.values()),
-            f"expected each global chunk to occur {dircount} x {lcount} times: {global_counts}",
+            "expected each global chunk to occur"
+            f" {dircount} x {lcount} times: {global_counts}",
         )
         self.assertClose(
             2,

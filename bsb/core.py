@@ -87,10 +87,10 @@ class Scaffold:
 
     @obj_str_insert
     def __repr__(self):
-        filename = os.path.abspath(self.storage.root)
+        file = os.path.abspath(self.storage.root)
         cells_placed = len(self.cell_types)
-        connection_types = len(self.connectivity)
-        return f"'{filename}' with {cells_placed} cell types, and {connection_types} connection_types"
+        n_types = len(self.connectivity)
+        return f"'{file}' with {cells_placed} cell types, and {n_types} connection_types"
 
     def is_main_process(self):
         return not MPI.get_rank()
