@@ -115,8 +115,9 @@ def compile_isc(node_cls, dynamic_config):
 
     def __init_subclass__(cls, classmap_entry=None, **kwargs):
         super(node_cls, cls).__init_subclass__(**kwargs)
-        if classmap_entry is not None:
-            node_cls._config_dynamic_classmap[classmap_entry] = cls
+        if classmap_entry is None:
+            classmap_entry = _snake_class(cls)
+        node_cls._config_dynamic_classmap[classmap_entry] = cls
         f(**kwargs)
 
     return classmethod(__init_subclass__)
