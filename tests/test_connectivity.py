@@ -1,4 +1,6 @@
 from bsb.core import Scaffold
+from bsb.config import Configuration
+from bsb.morphologies import Morphology, Branch
 from bsb.unittest import (
     NumpyTestCase,
     FixedPosConfigFixture,
@@ -373,8 +375,6 @@ class TestConnWithSubCellLabels(
         def connect_spy(strat, pre, post):
             tc, pre_set = [*pre.placement.items()][0]
             tc, post_set = [*post.placement.items()][0]
-            print("what", pre_set._subcell_labels)
-            print("what2", post_set._subcell_labels)
             self.assertEqual(
                 ["tag_21"],
                 pre_set._subcell_labels,
@@ -404,5 +404,155 @@ class TestConnWithSubCellLabels(
 
         conn = self.network.connectivity.self_intersect
         conn.connect = connect_spy.__get__(conn)
-        self.network.compile(append=True, skip_placement=True)
+        try:
+            self.network.compile(append=True, skip_placement=True)
+        except Exception as e:
+            self.fail(f"Unexpected error: {e}")
         cs = self.network.get_connectivity_set("test_cell_to_test_cell")
+        _, sloc, _, dloc = cs.load_connections()
+        self.assertAll(sloc > -1, "expected only true conn")
+        self.assertAll(dloc > -1, "expected only true conn")
+        self.assertLess(100, len(cs), "Expected more connections")
+
+
+class TestVoxelIntersection(
+    NetworkFixture,
+    RandomStorageFixture,
+    NumpyTestCase,
+    unittest.TestCase,
+    engine_name="hdf5",
+):
+    def setUp(self):
+        self.cfg = Configuration.default(
+            cell_types=dict(
+                test_cell_A=dict(
+                    spatial=dict(radius=1, density=1, morphologies=[dict(names=["A"])])
+                ),
+                test_cell_B=dict(
+                    spatial=dict(radius=1, density=1, morphologies=[dict(names=["B"])])
+                ),
+            ),
+            placement=dict(
+                fixed_pos_A=dict(
+                    strategy="bsb.placement.FixedPositions",
+                    cell_types=["test_cell_A"],
+                    partitions=[],
+                    positions=[[0, 0, 0], [0, 0, 100], [50, 0, 0], [0, -100, 0]],
+                ),
+                fixed_pos_B=dict(
+                    strategy="bsb.placement.FixedPositions",
+                    cell_types=["test_cell_B"],
+                    partitions=[],
+                    positions=[[95, 0, 0]],
+                ),
+            ),
+        )
+        super().setUp()
+        self.network.connectivity.add(
+            "intersect",
+            dict(
+                strategy="bsb.connectivity.VoxelIntersection",
+                presynaptic=dict(
+                    cell_types=["test_cell_A"],
+                ),
+                postsynaptic=dict(
+                    cell_types=["test_cell_B"],
+                ),
+            ),
+        )
+        if MPI.get_rank():
+            MPI.barrier()
+        else:
+            mA = Morphology(
+                [
+                    Branch(
+                        [
+                            [0, 0, 0],
+                            [0, 25, 25],
+                            [25, 0, 0],
+                            [50, 0, 0],
+                        ],
+                        [1] * 4,
+                    )
+                ]
+            )
+            mA.label(["tip"], [3])
+            self.network.morphologies.save("A", mA)
+            mB = Morphology(
+                [
+                    Branch(
+                        [
+                            [0, 0, 0],
+                            [0, 25, 25],
+                            [-25, 0, 0],
+                            [-50, 0, 0],
+                        ],
+                        [1] * 4,
+                    )
+                ]
+            )
+            mB.label(["top"], [3])
+            self.network.morphologies.save("B", mB)
+            mC = Morphology(
+                [
+                    Branch(
+                        [
+                            [0, 0, 0],
+                            [0, 25, 25],
+                            [25, 0, 0],
+                            [50, 0, 0],
+                        ],
+                        [1] * 4,
+                    )
+                ]
+            )
+            self.network.morphologies.save("C", mC)
+            MPI.barrier()
+
+    def test_single_voxel(self):
+        # Tests whethervoxel intersection works using a few fixed positions and outcomes.
+        self.network.compile()
+        cs = self.network.get_connectivity_set("test_cell_A_to_test_cell_B")
+        pre_chunks, pre_locs, post_chunks, post_locs = cs.load_connections()
+        self.assertClose(0, pre_chunks, "expected only conns in base chunk")
+        self.assertClose(0, post_chunks, "expected only conns in base chunk")
+        self.assertEqual(2, len(pre_locs), "expected 2 connections")
+        if not (pre_locs[0].tolist() == [0, 0, 3] and post_locs[0].tolist() == [0, 0, 3]):
+            self.fail("expected touching morphologies at their tips in (0,3), (0,3)")
+        if not (
+            (pre_locs[1].tolist() == [1, 0, 0] and post_locs[1].tolist() == [0, 0, 3])
+            or (pre_locs[1].tolist() == [1, 0, 2] and post_locs[1].tolist() == [0, 0, 2])
+            or (pre_locs[1].tolist() == [1, 0, 3] and post_locs[1].tolist() == [0, 0, 0])
+        ):
+            self.fail("expected specific overlap")
+
+    def test_single_voxel_labelled(self):
+        # Tests whether a morpho with labels is mapped back to the original points
+        self.network.connectivity.intersect.presynaptic.subcell_labels = ["tip"]
+        self.network.connectivity.intersect.postsynaptic.subcell_labels = ["top"]
+        self.network.compile()
+        cs = self.network.get_connectivity_set("test_cell_A_to_test_cell_B")
+        pre_chunks, pre_locs, post_chunks, post_locs = cs.load_connections()
+        self.assertClose(0, pre_chunks, "expected only conns in base chunk")
+        self.assertClose(0, post_chunks, "expected only conns in base chunk")
+        self.assertEqual(1, len(pre_locs), "expected 1 connection")
+        if not (pre_locs[0].tolist() == [0, 0, 3] and post_locs[0].tolist() == [0, 0, 3]):
+            self.fail("expected touching morphologies at their tips in (0,3), (0,3)")
+
+    def test_single_voxel_label404(self):
+        # Tests whether a morpho without labels is properly excluded
+        self.network.cell_types.test_cell_A.spatial.morphologies[0].names.append("C")
+        self.network.placement.fixed_pos_A.positions = [[0, 0, 0]] * 2
+        self.network.placement.fixed_pos_A.distribute = dict(
+            morphologies=dict(strategy="roundrobin")
+        )
+        self.network.connectivity.intersect.presynaptic.subcell_labels = ["tip"]
+        self.network.connectivity.intersect.postsynaptic.subcell_labels = ["top"]
+        self.network.compile()
+        cs = self.network.get_connectivity_set("test_cell_A_to_test_cell_B")
+        pre_chunks, pre_locs, post_chunks, post_locs = cs.load_connections()
+        self.assertClose(0, pre_chunks, "expected only conns in base chunk")
+        self.assertClose(0, post_chunks, "expected only conns in base chunk")
+        self.assertEqual(1, len(pre_locs), "expected 1 connection")
+        if not (pre_locs[0].tolist() == [0, 0, 3] and post_locs[0].tolist() == [0, 0, 3]):
+            self.fail("expected touching morphologies at their tips in (0,3), (0,3)")
