@@ -64,8 +64,8 @@ class MorphologySet:
     def __iter__(self):
         return self.iter_morphologies()
 
-    def get_indices(self):
-        return self._m_indices
+    def get_indices(self, copy=True):
+        return self._m_indices.copy() if copy else self._m_indices
 
     def get(self, index, cache=True, hard_cache=False):
         data = self._m_indices[index]
