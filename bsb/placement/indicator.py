@@ -1,10 +1,8 @@
-from ..exceptions import *
+from ..exceptions import IndicatorError, PlacementRelationError, PlacementError
 from .. import config
 from ..config import refs, types
 from ..morphologies.selector import MorphologySelector
 import numpy as np
-import abc
-import re
 
 
 @config.node
@@ -54,7 +52,8 @@ class PlacementIndicator:
         ind = self.indication(attr)
         if ind is None:
             raise IndicatorError(
-                f"No configuration indicators found for the {attr} of '{self._cell_type.name}' in '{self._strat.name}'"
+                f"No configuration indicators found for the {attr}"
+                f" of '{self._cell_type.name}' in '{self._strat.name}'"
             )
         return ind
 
@@ -116,9 +115,18 @@ class PlacementIndicator:
             else:
                 raise RuntimeError(
                     f"No voxel density data column '{density_key}' found in any of the"
-                    " following partitions:"
+                    " following partitions:\n"
                     + "\n".join(
-                        f"* {p.name}: {', '.join(p.voxelset.data_keys)}"
+                        f"* {p.name}: "
+                        + (
+                            fstr
+                            if (
+                                fstr := ", ".join(
+                                    f"'{col}'" for col in p.voxelset.data_keys
+                                )
+                            )
+                            else "no data"
+                        )
                         for p in self._strat.partitions
                         if hasattr(p, "voxelset")
                     )

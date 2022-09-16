@@ -30,7 +30,7 @@ class parsed_node:
         return carry
 
     def __str__(self):
-        return f"<parsed json config '{self}' at '{self.location()}'>"
+        return f"<parsed json config '{super().__str__()}' at '{self.location()}'>"
 
     def __repr__(self):
         return super().__str__()
