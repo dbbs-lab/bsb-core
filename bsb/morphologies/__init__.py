@@ -199,11 +199,9 @@ class MorphologySet:
             raise RuntimeError("Mapback requested on unfiltered morphology set.")
         locs = locs.copy()
         for i, loader in enumerate(self._loaders):
-            rows = locs[:, 0] == i
-            print("mapping back", loader.name)
+            rows = self._m_indices[locs[:, 0]] == i
             if np.any(rows):
                 morpho = loader.load()
-                print(self._labels)
                 filtered = morpho.set_label_filter(self._labels).as_filtered()
                 # Using np.vectorize is Python speed O(n), worst case in numpy is C speed
                 # O(n^2) (that is if every point is on another branch), not sure.
@@ -219,23 +217,6 @@ class MorphologySet:
                         for bid, b in enumerate(filtered.branches)
                     }.get
                 )
-                print(
-                    "branchmap",
-                    {
-                        bid: b._copied_from_branch
-                        for bid, b in enumerate(filtered.branches)
-                    },
-                )
-                print("branchmapped", locs[rows, 1], branchmap(locs[rows, 1]))
-                print(
-                    "pointmap",
-                    {
-                        bid: b._copied_points_offset
-                        for bid, b in enumerate(filtered.branches)
-                    },
-                )
-                print(locs[rows, 1])
-                print("pointmapped", pointmap(locs[rows, 1]))
                 # Map points first, then branches, since points depend on unmapped branch.
                 locs[rows, 2] = locs[rows, 2] + pointmap(locs[rows, 1])
                 locs[rows, 1] = branchmap(locs[rows, 1])
