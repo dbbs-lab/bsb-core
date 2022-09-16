@@ -117,7 +117,7 @@ def compile_isc(node_cls, dynamic_config):
     def __init_subclass__(cls, classmap_entry=None, **kwargs):
         super(node_cls, cls).__init_subclass__(**kwargs)
         if classmap_entry is None:
-            classmap_entry = _snake_class(cls)
+            classmap_entry = _snake_case(cls.__name__)
         node_cls._config_dynamic_classmap[classmap_entry] = cls
         f(**kwargs)
 
@@ -129,9 +129,6 @@ def _snake_case(s):
         sub('([A-Z]+)', r' \1',
         s.replace('-', ' '))).split()
     ).lower()
-
-def _snake_class(cls):
-    return _snake_case(cls.__name__)
 
 
 def _node_determinant(cls, kwargs):
