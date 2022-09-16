@@ -15,15 +15,9 @@ Morphology module
 # In the simulation step, these (possibly dynamically modified) morphologies are passed
 # to the cell model instantiators.
 
-import abc
-import pickle
-import h5py
-import math
 import inspect
 import itertools
 import functools
-import operator
-import inspect
 import morphio
 import numpy as np
 from collections import deque
@@ -31,9 +25,9 @@ from pathlib import Path
 from scipy.spatial.transform import Rotation
 from .._encoding import EncodedLabels
 from ..voxels import VoxelSet
-from ..exceptions import *
-from ..reporting import report, warn
-from .. import config, _util as _gutil
+from ..exceptions import MorphologyDataError, EmptyBranchError, MorphologyWarning
+from ..reporting import warn
+from .. import _util as _gutil
 
 
 class MorphologySet:
@@ -53,8 +47,8 @@ class MorphologySet:
 
     def set_label_filter(self, labels):
         self._cached = {}
-        for l in self._loaders:
-            l._cached_load.cache_clear()
+        for loader in self._loaders:
+            loader._cached_load.cache_clear()
         self._labels = labels
 
     @_gutil.obj_str_insert
@@ -62,7 +56,7 @@ class MorphologySet:
         return f"{len(self)} cells, {len(self._loaders)} morphologies"
 
     def __contains__(self, value):
-        return value in [l.name for l in self._loaders]
+        return value in [loader.name for loader in self._loaders]
 
     def __len__(self):
         return len(self._m_indices)
@@ -147,7 +141,7 @@ class MorphologySet:
 
     def iter_meta(self, unique=False):
         if unique:
-            yield from (l.get_meta() for l in self._loaders)
+            yield from (loader.get_meta() for loader in self._loaders)
         else:
             yield from (self._loaders[idx].get_meta() for idx in self._m_indices)
 
@@ -189,10 +183,6 @@ class MorphologySet:
                 (self._m_indices, other._m_indices + merge_offset)
             )
         return MorphologySet(merged_loaders, merged_indices)
-
-    @classmethod
-    def empty(cls):
-        return cls([], np.empty(0, int))
 
     def _mapback(self, locs):
         if self._labels is None:
@@ -347,7 +337,7 @@ class SubTree:
     @property
     def branch_adjacency(self):
         """
-        Return a dictonary containing as items the children of the branch indexed by the key.
+        Return a dictonary containing mapping the id of the branch to its children.
         """
         idmap = {b: n for n, b in enumerate(self.branches)}
         return {n: list(map(idmap.get, b.children)) for n, b in enumerate(self.branches)}
@@ -463,7 +453,8 @@ class SubTree:
                     points = points[~mux]
             else:
                 raise ValueError(
-                    f"Label indices must be a boolean or integer mask. {points.dtype} given."
+                    "Label indices must be a boolean or integer mask."
+                    f" {points.dtype} given."
                 )
 
         return self
@@ -545,27 +536,23 @@ class SubTree:
             root.translate(on - root.points[0])
         return self
 
-    def voxelize(self, N, labels=None):
+    def voxelize(self, N):
         """
         Turn the morphology or subtree into an approximating set of axis-aligned cuboids.
 
         :rtype: bsb.voxels.VoxelSet
         """
-        if labels is not None:
-            raise NotImplementedError(
-                "Can't voxelize labelled parts yet, require Selection API in morphologies.py, todo"
-            )
         return VoxelSet.from_morphology(self, N)
 
     @functools.cache
-    def cached_voxelize(self, N, labels=None):
+    def cached_voxelize(self, N):
         """
         Turn the morphology or subtree into an approximating set of axis-aligned cuboids
         and cache the result.
 
         :rtype: bsb.voxels.VoxelSet
         """
-        return self.voxelize(N, labels=labels)
+        return self.voxelize(N)
 
 
 class _SharedBuffers:
@@ -644,7 +631,10 @@ class Morphology(SubTree):
 
     @_gutil.obj_str_insert
     def __repr__(self):
-        return f"{len(self.roots)} roots, {len(self)} points, from {self.bounds[0]} to {self.bounds[1]}"
+        return (
+            f"{len(self.roots)} roots, {len(self)} points,"
+            f" from {self.bounds[0]} to {self.bounds[1]}"
+        )
 
     def __eq__(self, other):
         return len(self.branches) == len(other.branches) and all(
@@ -728,7 +718,6 @@ class Morphology(SubTree):
         buffers = self._shared.copy()
         roots = []
         branch_copy_map = {}
-        bid = itertools.count()
         ptr = 0
         # For each branch, create a copy, and assign a piece of the copied buffer to it.
         # Also attach it to its intended parent. Since we iterate DFS, each parent occurs
@@ -758,7 +747,6 @@ class Morphology(SubTree):
         buffers = self._shared.copy()
         roots = []
         branch_copy_map = {None: None}
-        bid = itertools.count()
         ptr = 0
         # Iterate over each branch, and turn it into 0 or more branches.
         for og_id, branch in enumerate(self.branches):
@@ -847,14 +835,15 @@ class Morphology(SubTree):
         file_data = _morpho_to_swc(self)
         if meta:  # pragma: nocover
             raise NotImplementedError(
-                "Can't store morpho header yet, require special handling in morphologies/__init__.py, todo"
+                "Can't store morpho header yet,"
+                " requires special handling in morphologies/__init__.py, todo"
             )
 
         if isinstance(file, str) or isinstance(file, Path):
             np.savetxt(
                 file,
                 file_data,
-                fmt=f"%d %d %f %f %f %f %d",
+                fmt="%d %d %f %f %f %f %d",
                 delimiter="\t",
                 newline="\n",
                 header="",
@@ -986,7 +975,8 @@ class Branch:
     @property
     def segments(self):
         """
-        Return the start and end points of vectors between consecutive points on this branch.
+        Return the start and end points of vectors between consecutive points on this
+        branch.
         """
         return np.hstack(
             (self.points[:-1], self.points[:-1] + self.point_vectors)
@@ -1449,7 +1439,8 @@ def _morpho_to_swc(morpho):
         if len(b.labelsets.keys()) > 4:  # pragma: nocover
             # Standard labels are 0,1,2,3
             raise NotImplementedError(
-                "Can't store custom labelled nodes yet, require special handling in morphologies/__init__.py, todo"
+                "Can't store custom labelled nodes yet,"
+                " requires special handling in morphologies/__init__.py, todo"
             )
         samples = ids + 1
         data[ids, 0] = samples
@@ -1459,7 +1450,8 @@ def _morpho_to_swc(morpho):
             data[ids, 5] = b.radii[1:] if len(b) > 1 else b.radii
         except Exception as e:
             raise MorphologyDataError(
-                f"Couldn't convert morphology radii to SWC: {e}. Note that SWC files cannot store multi-dimensional radii"
+                f"Couldn't convert morphology radii to SWC: {e}."
+                " Note that SWC files cannot store multi-dimensional radii"
             )
         nid += len(b) - 1 if len(b) > 1 else len(b)
         bmap[b] = ids[-1]
@@ -1494,9 +1486,8 @@ def _import(cls, branch_cls, file, meta=None):
     section_stack = deque([(None, soma)])
     branch = None
     roots = []
-    counter = itertools.count(1)
     ptr = 0
-    while i := next(counter):
+    while True:
         try:
             parent, section = section_stack.pop()
         except IndexError:
