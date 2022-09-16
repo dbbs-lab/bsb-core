@@ -8,6 +8,7 @@ from bsb.unittest import (
     RandomStorageFixture,
     MorphologiesFixture,
     NetworkFixture,
+    skip_parallel,
 )
 import unittest
 import numpy as np
@@ -372,6 +373,7 @@ class TestConnWithSubCellLabels(
         ]
         self.network.compile(skip_connectivity=True)
 
+    @skip_parallel
     def test_subcell_labels(self):
         f = self.network.connectivity.self_intersect.connect
 
