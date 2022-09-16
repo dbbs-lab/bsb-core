@@ -87,6 +87,13 @@ class EncodedLabels(np.ndarray):
     def contains(self, labels):
         return np.any(self.get_mask(labels))
 
+    def index_of(self, labels):
+        for i, lset in self.labels.items():
+            if lset == labels:
+                return i
+        else:
+            raise IndexError(f"Labelset {labels} does not exist")
+
     def get_mask(self, labels):
         has_any = [k for k, v in self.labels.items() if any(lbl in v for lbl in labels)]
         return np.isin(self, has_any)
