@@ -1517,7 +1517,7 @@ def _import(cls, branch_cls, file, meta=None):
     return morpho
 
 
-def _import_arb(cls, arb_m, centering, branch_class, meta=None):
+def _import_arb(cls, arb_m, centering, branch_class, labels=None, meta=None):
     import arbor
 
     decor = arbor.decor()
@@ -1564,6 +1564,7 @@ def _import_arb(cls, arb_m, centering, branch_class, meta=None):
     morpho = cls(roots, meta=meta)
     branches = morpho.branches
     branch_map = {branch._cable_id: branch for branch in branches}
+    labels = labels if labels is not None else arbor.label_dict()
     cc = arbor.cable_cell(arb_m, labels, decor)
     for label in labels:
         if "excl:" in label or label == "all":
