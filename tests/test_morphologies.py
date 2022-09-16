@@ -272,6 +272,10 @@ class TestMorphologySet(unittest.TestCase):
             MorphologySet([self._fake_loader("ello")], [0, 0, 0]),
         ]
 
+    def test_names(self):
+        self.assertEqual([], self.sets[0].names, "expected empty names list")
+        self.assertEqual(["ello"], self.sets[1].names, "expected matching names list")
+
     def test_oob(self):
         with self.assertRaises(IndexError):
             MorphologySet([self._fake_loader("ello")], [0, 1, 0])
