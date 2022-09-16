@@ -123,8 +123,6 @@ class VoxelIntersection(Intersectional, ConnectionStrategy):
         self.connect_cells(src_set, dest_set, src_locs, dest_locs)
 
     def _pick_locations(self, tid, cid, tvoxels, cvoxels, overlap):
-        # TODO: There's probably some probabilistic bias here in favor of voxels with less
-        # locs inside of them to be picked more often.
         n = int(self.contacts.draw(1))
         tlocs = []
         clocs = []
@@ -132,8 +130,8 @@ class VoxelIntersection(Intersectional, ConnectionStrategy):
             cv, tvs = overlap[i]
             cpool = cvoxels.get_data(cv)[0]
             tpool = [*ichain(tvoxels.get_data(tvs).reshape(-1))]
-            tlocs.append((tid, *random.choice(tpool)))
-            clocs.append((cid, *random.choice(cpool)))
+            tlocs.extend((tid, *t) for t in random.choices(tpool, k=n))
+            clocs.extend((cid, *c) for c in random.choices(cpool, k=n))
         return tlocs, clocs
 
 
