@@ -3,6 +3,7 @@ from .. import exceptions
 from ..reporting import warn
 from ._hooks import overrides
 from functools import wraps
+from re import sub
 import re
 import itertools
 import warnings
@@ -121,6 +122,16 @@ def compile_isc(node_cls, dynamic_config):
         f(**kwargs)
 
     return classmethod(__init_subclass__)
+
+def _snake_case(s):
+    return '_'.join(
+        sub('([A-Z][a-z]+)', r' \1',
+        sub('([A-Z]+)', r' \1',
+        s.replace('-', ' '))).split()
+    ).lower()
+
+def _snake_class(cls):
+    return _snake_case(cls.__name__)
 
 
 def _node_determinant(cls, kwargs):
