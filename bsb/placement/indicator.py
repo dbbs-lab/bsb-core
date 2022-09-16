@@ -114,7 +114,20 @@ class PlacementIndicator:
             elif density_key in voxels.data_keys:
                 estimate = self._estim_for_voxels(voxels, density_key)
             else:
-                raise RuntimeError(f"No voxel density data '{density_key}' found.")
+                raise RuntimeError(
+                    f"No voxel density data column '{density_key}' found in any of the"
+                    " following partitions:"
+                    + "\n".join(
+                        f"* {p.name}: {', '.join(p.voxelset.data_keys)}"
+                        for p in self._strat.partitions
+                        if hasattr(p, "voxelset")
+                    )
+                    + "\n".join(
+                        f"* {p.name} contains no voxelsets"
+                        for p in self._strat.partitions
+                        if not hasattr(p, "voxelset")
+                    )
+                )
         try:
             estimate = np.array(estimate)
         except NameError:
