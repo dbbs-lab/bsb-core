@@ -17,7 +17,10 @@ class TestCore(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        os.unlink("ehehehehehehe2")
+        try:
+            os.unlink("ehehehehehehe2")
+        except Exception:
+            pass
 
     @unittest.expectedFailure
     def test_from_hdf5_missing(self):
