@@ -1,11 +1,8 @@
 from .. import config
-from ..exceptions import *
-from ..reporting import report, warn
-from ..config import refs, types
+from ..exceptions import EmptySelectionError
 from ..morphologies import MorphologySet
 import numpy as np
 import abc
-import os
 
 
 @config.dynamic(attr_name="strategy", required=True)
@@ -43,7 +40,8 @@ class MorphologyDistributor(Distributor):
         :param positions: Placed positions under consideration
         :type positions: numpy.ndarray
         :returns: A MorphologySet with assigned morphologies, and optionally a RotationSet
-        :rtype: Union[~bsb.morphologies.MorphologySet, Tuple[~bsb.morphologies.MorphologySet, ~bsb.morphologies.RotationSet]]
+        :rtype: Union[~bsb.morphologies.MorphologySet, Tuple[
+          ~bsb.morphologies.MorphologySet, ~bsb.morphologies.RotationSet]]
         """
         pass
 
@@ -66,12 +64,12 @@ class RandomMorphologies(MorphologyDistributor, classmap_entry="random"):
         Uses the morphology selection indicators to select morphologies and
         returns a MorphologySet of randomly assigned morphologies
         """
-        selectors = indicator.assert_indication("morphologies")
-        loaders = self.scaffold.storage.morphologies.select(*selectors)
+        sel = indicator.assert_indication("morphologies")
+        loaders = self.scaffold.storage.morphologies.select(*sel)
         if not loaders:
             raise EmptySelectionError(
-                f"Given {len(selectors)} selectors: did not find any suitable morphologies",
-                selectors,
+                f"Given {len(sel)} selectors: did not find any suitable morphologies",
+                sel,
             )
         else:
             ids = np.random.default_rng().integers(len(loaders), size=len(positions))
@@ -93,12 +91,12 @@ class RoundRobinMorphologies(MorphologyDistributor, classmap_entry="roundrobin")
     """
 
     def distribute(self, partitions, indicator, positions):
-        selectors = indicator.assert_indication("morphologies")
-        loaders = self.scaffold.storage.morphologies.select(*selectors)
+        sel = indicator.assert_indication("morphologies")
+        loaders = self.scaffold.storage.morphologies.select(*sel)
         if not loaders:
             raise EmptySelectionError(
-                f"Given {len(selectors)} selectors: did not find any suitable morphologies",
-                selectors,
+                f"Given {len(sel)} selectors: did not find any suitable morphologies",
+                sel,
             )
         else:
             ll = len(loaders)
