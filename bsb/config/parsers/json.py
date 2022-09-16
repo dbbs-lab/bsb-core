@@ -3,8 +3,9 @@ JSON parsing module. Built on top of the Python ``json`` module. Adds JSON impor
 references.
 """
 
-import json, os
-from ...exceptions import *
+import json
+import os
+from ...exceptions import JsonImportError, ConfigurationWarning, JsonReferenceError
 from ...reporting import warn
 from ._parser import Parser
 
@@ -29,7 +30,7 @@ class parsed_node:
         return carry
 
     def __str__(self):
-        return "<parsed config '{}'>".format(self.location())
+        return f"<parsed json config '{self}' at '{self.location()}'>"
 
     def __repr__(self):
         return super().__str__()
@@ -123,7 +124,9 @@ class json_imp(json_ref):
                         imported.merge(self.node[key])
                     else:
                         warn(
-                            f"Importkey '{key}' of {self} is ignored because the parent already contains a key '{key}' with value '{self.node[key]}'.",
+                            f"Importkey '{key}' of {self} is ignored because the parent"
+                            f" already contains a key '{key}'"
+                            f" with value '{self.node[key]}'.",
                             ConfigurationWarning,
                             stacklevel=3,
                         )
