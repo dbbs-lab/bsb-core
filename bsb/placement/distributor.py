@@ -78,6 +78,35 @@ class RandomMorphologies(MorphologyDistributor, classmap_entry="random"):
         return MorphologySet(loaders, ids)
 
 
+class RoundRobinMorphologies(MorphologyDistributor, classmap_entry="roundrobin"):
+    """
+    Distributes selected morphologies round robin, values are looped and assigned one by
+    one in order.
+
+    .. code-block:: json
+
+      { "placement": { "place_XY": {
+        "distribute": {
+            "morphologies": {"strategy": "roundrobin"}
+        }
+      }}}
+    """
+
+    def distribute(self, partitions, indicator, positions):
+        selectors = indicator.assert_indication("morphologies")
+        loaders = self.scaffold.storage.morphologies.select(*selectors)
+        if not loaders:
+            raise EmptySelectionError(
+                f"Given {len(selectors)} selectors: did not find any suitable morphologies",
+                selectors,
+            )
+        else:
+            ll = len(loaders)
+            lp = len(positions)
+            ids = np.tile(np.arange(ll), lp // ll + 1)[:lp]
+        return MorphologySet(loaders, ids)
+
+
 @config.dynamic(attr_name="strategy", required=False, default="none", auto_classmap=True)
 class RotationDistributor(Distributor):
     """
