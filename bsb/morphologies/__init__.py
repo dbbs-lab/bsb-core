@@ -772,7 +772,7 @@ class Morphology(SubTree):
                 # Store where this branch came from, for loc mapping.
                 nbranch._copied_from_branch = og_id
                 # Store where the points map to
-                nbranch._copied_points_offset = ptr + start
+                nbranch._copied_points_offset = start
                 if not prev:
                     if branch.is_root or branch_copy_map[branch.parent] is None:
                         roots.append(nbranch)
