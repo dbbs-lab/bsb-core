@@ -57,7 +57,7 @@ class MorphologySet:
 
     def __iter__(self):
         return self.iter_morphologies()
-    
+
     @property
     def names(self):
         return [l.name for l in self._loaders]
