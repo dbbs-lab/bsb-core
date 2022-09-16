@@ -98,15 +98,19 @@ class MorphologiesFixture:
             raise FixtureError(
                 f"{self.__class__.__name__} uses MorphologiesFixture, which requires a network fixture."
             )
-        for mpath in get_all_morphology_paths(self._morpho_suffix):
-            if self._morpho_filters and all(
-                mpath.find(filter) == -1 for filter in self._morpho_filters
-            ):
-                continue
-            if mpath.endswith("swc"):
-                self.network.morphologies.import_swc(mpath)
-            else:
-                self.network.morphologies.import_file(mpath)
+        if MPI.get_rank():
+            MPI.barrier()
+        else:
+            for mpath in get_all_morphology_paths(self._morpho_suffix):
+                if self._morpho_filters and all(
+                    mpath.find(filter) == -1 for filter in self._morpho_filters
+                ):
+                    continue
+                if mpath.endswith("swc"):
+                    self.network.morphologies.import_swc(mpath)
+                else:
+                    self.network.morphologies.import_file(mpath)
+            MPI.barrier()
 
 
 class NumpyTestCase:
