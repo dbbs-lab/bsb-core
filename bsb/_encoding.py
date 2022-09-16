@@ -5,7 +5,10 @@ from ._util import obj_str_insert
 
 class _lset(set):
     def __hash__(self):
-        return int.from_bytes(":|\!#è".join(sorted(self)).encode(), "little")
+        return int.from_bytes(":|\\!#è".join(sorted(self)).encode(), "little")
+
+    def __eq__(self, other):
+        return hash(self) == hash(_lset(other))
 
     def copy(self):
         return self.__class__(self)
@@ -22,7 +25,6 @@ class EncodedLabels(np.ndarray):
 
     @obj_str_insert
     def __repr__(self):
-        cumlen = np.cumsum([len(str(ls)) for ls in self.labels])
         labellist = ", ".join(
             f"{sum(self == k)} labelled {list(ls)}"
             if len(ls)
@@ -86,7 +88,7 @@ class EncodedLabels(np.ndarray):
         return np.any(self.get_mask(labels))
 
     def get_mask(self, labels):
-        has_any = [k for k, v in self.labels.items() if any(l in v for l in labels)]
+        has_any = [k for k, v in self.labels.items() if any(lbl in v for lbl in labels)]
         return np.isin(self, has_any)
 
     def walk(self):
@@ -115,6 +117,21 @@ class EncodedLabels(np.ndarray):
         Create EncodedLabels with all points labelled to the given labelset.
         """
         return cls(len, buffer=np.ones(len), labels={0: _lset(), 1: _lset(labelset)})
+
+    @classmethod
+    def concatenate(cls, *label_arrs):
+        if not label_arrs:
+            return EncodedLabels.none(0)
+        lookups = EncodedLabels._get_merged_lookups(label_arrs)
+        total = sum(len(len_) for len_ in label_arrs)
+        concat = cls(total, labels=lookups[0])
+        ptr = 0
+        for block in EncodedLabels._merged_translate(label_arrs, lookups):
+            nptr = ptr + len(block)
+            # Concatenate the translated block
+            concat[ptr:nptr] = block
+            ptr = nptr
+        return concat
 
     @staticmethod
     def _get_merged_lookups(arrs):
@@ -161,18 +178,3 @@ class EncodedLabels(np.ndarray):
                 arrmap = {og: lset_map.get(lset, og) for og, lset in arr.labels.items()}
                 block = np.vectorize(arrmap.get)(arr)
             yield block
-
-    @classmethod
-    def concatenate(cls, *label_arrs):
-        if not label_arrs:
-            return EncodedLabels.none(0)
-        lookups = EncodedLabels._get_merged_lookups(label_arrs)
-        total = sum(len(l) for l in label_arrs)
-        concat = cls(total, labels=lookups[0])
-        ptr = 0
-        for block in EncodedLabels._merged_translate(label_arrs, lookups):
-            nptr = ptr + len(block)
-            # Concatenate the translated block
-            concat[ptr:nptr] = block
-            ptr = nptr
-        return concat
