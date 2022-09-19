@@ -856,7 +856,7 @@ class Branch:
 
         .. warning::
 
-           Constructing a kd-tree is only worth it for repeated querying.
+           Constructing a kd-tree takes time and should only be used for repeated querying.
 
         """
         return cKDTree(self._points)
@@ -1074,19 +1074,19 @@ class Branch:
         diff = np.sqrt(np.sum((self._points - coord) ** 2, axis=1))
         return np.argmin(diff)
 
-    def insert_branch(self, branch, coord):
+    def insert_branch(self, branch, index):
         """
-        Insert a new branch on the closest current branch point to a desired coordinate.
+        Insert a new branch, by splitting this branch and inserting ``branch`` as a child branch at the cutpoint.
 
         :param branch: Branch to be attached
         :type branch: :class:`Branch <.morphologies.Branch>`
-        :param point: Coordinates to insert the new branch at or index of the corresponding branch point
+        :param index: Index of the cutpoint; if coordinates are given, the closest point to that coordinate is used
         :type: Union[:class:`numpy.ndarray`, int]
         """
-        if isinstance(coord, int):
-            index = coord
-        else:
-            index = self.find_closest_point(coord)
+        index = np.array(index, copy=False)
+        if index.ndim != 0:
+            index = self.find_closest_point(index)
+
         if index == len(self.points) - 1:
             self.attach_child(branch)
         else:
@@ -1094,7 +1094,7 @@ class Branch:
                 self._points.copy()[: index + 1],
                 self._radii.copy()[: index + 1],
                 self._labels.copy()[: index + 1],
-                {k: v.copy()[:index] for k, v in self._properties},
+                {k: v.copy()[: index + 1] for k, v in self._properties},
             )
             self.parent.attach_child(first_segment)
             self.parent.detach_child(self)
