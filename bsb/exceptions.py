@@ -84,6 +84,7 @@ _t(
             CompartmentError=_e(),
             EmptySelectionError=_e("selectors"),
             EmptyBranchError=_e(),
+            BranchIndexError=_e(),
         ),
         OptionError=_e(
             ReadOnlyOptionError=_e("option", "tag"),
