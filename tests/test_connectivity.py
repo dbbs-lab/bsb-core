@@ -353,7 +353,6 @@ class TestConnWithSubCellLabels(
     unittest.TestCase,
     engine_name="hdf5",
     morpho_filters=["PurkinjeCell", "StellateCell"],
-    debug=True,
 ):
     def setUp(self):
         super().setUp()
@@ -361,10 +360,10 @@ class TestConnWithSubCellLabels(
             "self_intersect",
             dict(
                 strategy="bsb.connectivity.VoxelIntersection",
-                presynaptic=dict(cell_types=["test_cell"], subcell_labels=["tag_21"]),
+                presynaptic=dict(cell_types=["test_cell"], morphology_labels=["tag_21"]),
                 postsynaptic=dict(
                     cell_types=["test_cell"],
-                    subcell_labels=["tag_16", "tag_17", "tag_18"],
+                    morphology_labels=["tag_16", "tag_17", "tag_18"],
                 ),
             ),
         )
@@ -374,7 +373,7 @@ class TestConnWithSubCellLabels(
         self.network.compile(skip_connectivity=True)
 
     @skip_parallel
-    def test_subcell_labels(self):
+    def test_morphology_labels(self):
         f = self.network.connectivity.self_intersect.connect
 
         def connect_spy(strat, pre, post):
@@ -382,7 +381,7 @@ class TestConnWithSubCellLabels(
             tc, post_set = [*post.placement.items()][0]
             self.assertEqual(
                 ["tag_21"],
-                pre_set._subcell_labels,
+                pre_set._morphology_labels,
                 "expected subcell filters",
             )
             ms = pre_set.load_morphologies()
@@ -395,7 +394,7 @@ class TestConnWithSubCellLabels(
 
             self.assertEqual(
                 ["tag_16", "tag_17", "tag_18"],
-                post_set._subcell_labels,
+                post_set._morphology_labels,
                 "expected subcell filters",
             )
             ms = post_set.load_morphologies()
@@ -412,6 +411,7 @@ class TestConnWithSubCellLabels(
         try:
             self.network.compile(append=True, skip_placement=True)
         except Exception as e:
+            raise
             self.fail(f"Unexpected error: {e}")
         cs = self.network.get_connectivity_set("test_cell_to_test_cell")
         _, sloc, _, dloc = cs.load_connections()
@@ -552,8 +552,8 @@ class TestVoxelIntersection(
 
     def test_single_voxel_labelled(self):
         # Tests whether a morpho with labels is mapped back to the original points
-        self.network.connectivity.intersect.presynaptic.subcell_labels = ["tip"]
-        self.network.connectivity.intersect.postsynaptic.subcell_labels = ["top"]
+        self.network.connectivity.intersect.presynaptic.morphology_labels = ["tip"]
+        self.network.connectivity.intersect.postsynaptic.morphology_labels = ["top"]
         self.network.compile()
         cs = self.network.get_connectivity_set("test_cell_A_to_test_cell_B")
         pre_chunks, pre_locs, post_chunks, post_locs = cs.load_connections()
@@ -570,8 +570,8 @@ class TestVoxelIntersection(
         self.network.placement.fixed_pos_A.distribute = dict(
             morphologies=dict(strategy="roundrobin")
         )
-        self.network.connectivity.intersect.presynaptic.subcell_labels = ["tip"]
-        self.network.connectivity.intersect.postsynaptic.subcell_labels = ["top"]
+        self.network.connectivity.intersect.presynaptic.morphology_labels = ["tip"]
+        self.network.connectivity.intersect.postsynaptic.morphology_labels = ["top"]
         self.network.compile()
         cs = self.network.get_connectivity_set("test_cell_A_to_test_cell_B")
         pre_chunks, pre_locs, post_chunks, post_locs = cs.load_connections()

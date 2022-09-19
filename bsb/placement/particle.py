@@ -30,7 +30,6 @@ class _VoxelBasedParticleSystem:
             }
             for name, indicator in indicators.items()
         ]
-        print("FILLING", particles)
         # Create and fill the particle system.
         system = ParticleSystem(track_displaced=True, scaffold=self.scaffold)
         system.fill(voxels, particles)
@@ -197,7 +196,6 @@ class ParticleSystem:
         self.scaffold = scaffold
 
     def fill(self, voxels, particles):
-        print("ARRIVO IN FILL", voxels, particles)
         # Amount of spatial dimensions
         self.dimensions = voxels.get_raw(copy=False).shape[1]
         # Extend list of particle types in the system

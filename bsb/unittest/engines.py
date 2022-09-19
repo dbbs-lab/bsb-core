@@ -371,8 +371,12 @@ class TestPlacementSet(
         )
 
     def test_label_filter(self):
-        mA = Morphology.from_swc(get_morphology_path("2comp.swc"))
-        self.network.morphologies.save("testA", mA)
+        if MPI.get_rank():
+            MPI.barrier()
+        else:
+            mA = Morphology.from_swc(get_morphology_path("2comp.swc"))
+            self.network.morphologies.save("testA", mA)
+            MPI.barrier()
         self.network.cell_types.test_cell.spatial.morphologies = [{"names": ["testA"]}]
         self.network.compile()
         ps = self.network.get_placement_set("test_cell")

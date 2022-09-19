@@ -419,7 +419,7 @@ class PlacementSet(Interface):
         pass
 
     @abc.abstractmethod
-    def set_subcell_label_filter(self, morphology_labels):
+    def set_morphology_label_filter(self, morphology_labels):
         """
         Should limit the scope of the placement set to the given subcellular labels. The
         morphologies returned by
