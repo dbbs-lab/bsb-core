@@ -22,15 +22,16 @@ class VoxelIntersection(Intersectional, ConnectionStrategy):
     voxels_pre = config.attr(type=int, default=50)
     voxels_post = config.attr(type=int, default=50)
     cache = config.attr(type=bool, default=True)
-    favor_cache = config.attr(type=types.in_(["pre", "post"]), default="post")
+    favor_cache = config.attr(type=types.in_(["pre", "post"]), default="pre")
 
     def connect(self, pre, post):
-        if self.favor_cache == "post":
-            targets = post
-            candidates = pre
-            self._n_tvoxels = self.voxels_post
-            self._n_cvoxels = self.voxels_pre
-        else:
+        # Note on the caching terms: `targets` are the population that will be cached the
+        # strongest; their voxelized tree will remain in place, while the candidates are
+        # rotated and translated to overlap the target tree.
+        # The choice to make something cached harder is if they have less different
+        # morphologies, and good choices for candidates are the population with more
+        # numerous and smaller morphologies.
+        if self.favor_cache == "pre":
             targets = pre
             candidates = post
             self._n_tvoxels = self.voxels_pre
