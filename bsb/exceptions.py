@@ -33,15 +33,6 @@ _t(
             UnknownConfigAttrError=_e("attributes"),
         ),
         CompilationError=_e(
-            ConnectivityError=_e(
-                "connection_strategy",
-                FiberTransformError=_e(
-                    QuiverFieldError=_e(),
-                ),
-            ),
-            PlacementError=_e(
-                "cell_type", PlacementRelationError=_e("cell_type", "relation")
-            ),
             DistributorError=_e("property", "strategy"),
             RedoError=_e(),
         ),
@@ -100,6 +91,7 @@ _t(
         PlacementError=_e(
             ChunkError=_e(),
             ContinuityError=_e(),
+            PackingError=_e(),
         ),
         SelectorError=_e(),
         TreeError=_e(),
@@ -146,6 +138,10 @@ class UserUserDeprecationWarning(ScaffoldWarning):
 
 
 class PlacementWarning(ScaffoldWarning):
+    pass
+
+
+class PackingWarning(PlacementWarning):
     pass
 
 
