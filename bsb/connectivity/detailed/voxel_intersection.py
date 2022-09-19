@@ -36,6 +36,11 @@ class VoxelIntersection(Intersectional, ConnectionStrategy):
             candidates = post
             self._n_tvoxels = self.voxels_pre
             self._n_cvoxels = self.voxels_post
+        else:
+            targets = post
+            candidates = pre
+            self._n_tvoxels = self.voxels_post
+            self._n_cvoxels = self.voxels_pre
         combo_itr = self.candidate_intersection(targets, candidates)
         mset_cache = {}
         for target_set, cand_set, match_itr in combo_itr:
@@ -102,8 +107,8 @@ class VoxelIntersection(Intersectional, ConnectionStrategy):
             [len(a[0]) for a in data_acc],
         )
         # The inline if guards against the case where there's no overlap
-        tlocs = np.empty((acc_idx[-1] if len(acc_idx) else 0, 3))
-        clocs = np.empty((acc_idx[-1] if len(acc_idx) else 0, 3))
+        tlocs = np.empty((acc_idx[-1] if len(acc_idx) else 0, 3), dtype=int)
+        clocs = np.empty((acc_idx[-1] if len(acc_idx) else 0, 3), dtype=int)
         for (s, e), (tblock, cblock) in zip(_pairs_with_zero(acc_idx), data_acc):
             tlocs[s:e] = tblock
             clocs[s:e] = cblock
@@ -114,6 +119,7 @@ class VoxelIntersection(Intersectional, ConnectionStrategy):
         else:
             src_set, dest_set = cset, tset
             src_locs, dest_locs = clocs, tlocs
+
         self.connect_cells(src_set, dest_set, src_locs, dest_locs)
 
     def _pick_locations(self, tid, cid, tvoxels, cvoxels, overlap):

@@ -418,6 +418,25 @@ class TestConnWithSubCellLabels(
         self.assertAll(sloc > -1, "expected only true conn")
         self.assertAll(dloc > -1, "expected only true conn")
         self.assertLess(100, len(cs), "Expected more connections")
+        for dir, schunk, gchunk, (sloc, gloc) in cs.flat_iter_connections("out"):
+            ps = self.network.get_placement_set("test_cell", chunks=[schunk])
+            mset = ps.load_morphologies()
+            mids = mset.get_indices(copy=False)[sloc[:, 0]]
+            morphos = [*mset.iter_morphologies(unique=True, hard_cache=True)]
+            PC = [i for i, m in enumerate(morphos) if m.meta["name"] == "PurkinjeCell"][0]
+            self.assertClose(
+                [PC],
+                np.unique(mids),
+                f"expected only PC, stellate found in {schunk} without tag_21",
+            )
+        for mid, (b, p) in zip(mids, sloc[:, 1:]):
+            m = morphos[mid]
+            labels = m.branches[b].labels
+            self.assertEqual(
+                labels.index_of(["tag_21"]),
+                labels[p],
+                "expected points labelled `tag_21` only",
+            )
 
 
 class TestVoxelIntersection(
