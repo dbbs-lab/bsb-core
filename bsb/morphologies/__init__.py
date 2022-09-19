@@ -632,7 +632,7 @@ class Morphology(SubTree):
         return self._meta
 
     @property
-    def adjacency_matrix(self):
+    def adjacency_dictionary(self):
         """
         Return a dictonary associating to each key (branch index) a list of adjacent branch indices
         """
