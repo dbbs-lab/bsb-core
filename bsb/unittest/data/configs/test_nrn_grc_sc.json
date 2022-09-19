@@ -59,8 +59,8 @@
   "connectivity": {
     "granule_to_stellate": {
       "class": "bsb.connectivity.ConnectomeGlomerulusGranule",
-      "from_cell_types": [{"type": "granule_cell", "subcell_labels": ["ascending_axon"]}],
-      "to_cell_types": [{"type": "stellate_cell", "subcell_labels": ["basal_dendrites"]}],
+      "from_cell_types": [{"type": "granule_cell", "morphology_labels": ["ascending_axon"]}],
+      "to_cell_types": [{"type": "stellate_cell", "morphology_labels": ["basal_dendrites"]}],
       "divergence": 50,
       "convergence": 4
     }

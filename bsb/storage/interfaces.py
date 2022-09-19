@@ -419,7 +419,7 @@ class PlacementSet(Interface):
         pass
 
     @abc.abstractmethod
-    def set_subcell_label_filter(self, subcell_labels):
+    def set_subcell_label_filter(self, morphology_labels):
         """
         Should limit the scope of the placement set to the given subcellular labels. The
         morphologies returned by
@@ -427,8 +427,8 @@ class PlacementSet(Interface):
         filtered form of themselves if :meth:`~.morphologies.Morphology.as_filtered` is
         called on them.
 
-        :param subcell_labels: List of labels
-        :type subcell_labels: list[str]
+        :param morphology_labels: List of labels
+        :type morphology_labels: list[str]
         """
         pass
 
@@ -515,7 +515,7 @@ class PlacementSet(Interface):
         return BoxTree(list(self.load_boxes(morpho_cache=morpho_cache)))
 
     def _requires_morpho_mapping(self):
-        return self._subcell_labels is not None
+        return self._morphology_labels is not None
 
     def _morpho_backmap(self, locs):
         locs = locs.copy()

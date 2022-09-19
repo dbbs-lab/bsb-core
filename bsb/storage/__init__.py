@@ -273,7 +273,7 @@ class Storage:
                 )
             )
 
-    def get_placement_set(self, type, chunks=None, labels=None, subcell_labels=None):
+    def get_placement_set(self, type, chunks=None, labels=None, morphology_labels=None):
         """
         Return a PlacementSet for the given type.
 
@@ -289,7 +289,7 @@ class Storage:
         if chunks is not None:
             ps.set_chunk_filter(chunks)
         ps.set_label_filter(labels)
-        ps.set_subcell_label_filter(subcell_labels)
+        ps.set_subcell_label_filter(morphology_labels)
         return ps
 
     def require_placement_set(self, cell_type):

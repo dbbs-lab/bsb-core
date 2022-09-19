@@ -10,7 +10,7 @@ from itertools import chain
 class Hemitype:
     cell_types = config.reflist(refs.cell_type_ref, required=True)
     labels = config.attr(type=types.list())
-    subcell_labels = config.attr(type=types.list())
+    morphology_labels = config.attr(type=types.list())
 
 
 class HemitypeCollection:
@@ -27,7 +27,7 @@ class HemitypeCollection:
             ct: ct.get_placement_set(
                 self.roi,
                 labels=self.hemitype.labels,
-                subcell_labels=self.hemitype.subcell_labels,
+                morphology_labels=self.hemitype.morphology_labels,
             )
             for ct in self.hemitype.cell_types
         }

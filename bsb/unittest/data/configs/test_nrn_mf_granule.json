@@ -70,13 +70,13 @@
   "connectivity": {
     "mossy_to_glomerulus": {
       "class": "bsb.connectivity.ConnectomeMossyGlomerulus",
-      "from_cell_types": [{"type": "mossy_fibers", "subcell_labels": ["soma"]}],
-      "to_cell_types": [{"type": "glomerulus", "subcell_labels": ["soma"]}]
+      "from_cell_types": [{"type": "mossy_fibers", "morphology_labels": ["soma"]}],
+      "to_cell_types": [{"type": "glomerulus", "morphology_labels": ["soma"]}]
     },
     "glomerulus_to_granule": {
       "class": "bsb.connectivity.ConnectomeGlomerulusGranule",
-      "from_cell_types": [{"type": "glomerulus", "subcell_labels": ["soma"]}],
-      "to_cell_types": [{"type": "granule_cell", "subcell_labels": ["dendrites"]}],
+      "from_cell_types": [{"type": "glomerulus", "morphology_labels": ["soma"]}],
+      "to_cell_types": [{"type": "granule_cell", "morphology_labels": ["dendrites"]}],
       "divergence": 50,
       "convergence": 4
     }

@@ -452,7 +452,7 @@ class Scaffold:
         """
         return self.get_placement(cell_types=cell_types)
 
-    def get_placement_set(self, type, chunks=None, labels=None, subcell_labels=None):
+    def get_placement_set(self, type, chunks=None, labels=None, morphology_labels=None):
         """
         Return a cell type's placement set from the output formatter.
 
@@ -461,14 +461,14 @@ class Scaffold:
         :returns: A placement set
         :param labels: Labels to filter the placement set by.
         :type labels: list[str]
-        :param subcell_labels: Subcellular labels to apply to the morphologies.
-        :type subcell_labels: list[str]
+        :param morphology_labels: Subcellular labels to apply to the morphologies.
+        :type morphology_labels: list[str]
         :rtype: :class:`~.storage.interfaces.PlacementSet`
         """
         if isinstance(type, str):
             type = self.cell_types[type]
         return self.storage.get_placement_set(
-            type, chunks=chunks, labels=labels, subcell_labels=subcell_labels
+            type, chunks=chunks, labels=labels, morphology_labels=morphology_labels
         )
 
     def get_placement_sets(self):

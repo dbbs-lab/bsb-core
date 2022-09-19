@@ -56,8 +56,8 @@
   "connectivity": {
     "from_cell_to_cell": {
       "class": "bsb.connectivity.Convergence",
-      "from_cell_types": [{"type": "from_cell", "subcell_labels": ["soma"]}],
-      "to_cell_types": [{"type": "to_cell", "subcell_labels": ["soma"]}],
+      "from_cell_types": [{"type": "from_cell", "morphology_labels": ["soma"]}],
+      "to_cell_types": [{"type": "to_cell", "morphology_labels": ["soma"]}],
       "divergence": 2,
       "convergence": 4
     }
