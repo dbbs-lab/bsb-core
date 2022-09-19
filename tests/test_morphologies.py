@@ -507,6 +507,16 @@ class TestBranchInsertion(NumpyTestCase, unittest.TestCase):
         for c in self.m.branches[1].children:
             self.assertClose(insertion_pt, c.start)
 
+    def test_insertion_indices(self):
+        target = {0: [1, 2], 1: [], 2: []}
+        b = self.m.branches[1]
+        self.assertRaises(BranchIndexError, b.insert_branch, self.b2, -5)
+        self.assertRaises(BranchIndexError, b.insert_branch, self.b2, -1)
+        self.m.branches[1].insert_branch(self.b2, 0)
+        self.assertEqual(self.m.adjacency_dictionary, target)
+        self.assertRaises(BranchIndexError, b.insert_branch, self.b2, len(b))
+        self.assertRaises(BranchIndexError, b.insert_branch, self.b2, len(b) + 1)
+
     def test_hierarchy(self):
         target = {
             0: [1],
@@ -515,10 +525,14 @@ class TestBranchInsertion(NumpyTestCase, unittest.TestCase):
             3: [],
             4: [5, 6],
             5: [],
-            6: [7, 8],
+            6: [7, 8, 9],
             7: [],
             8: [],
+            9: [],
         }
+        x0 = np.arange(4.0, dtype=float) + 3.0
+        y0, z = np.zeros(len(x0), dtype=float), np.zeros(len(x0), dtype=float)
+        b0 = Branch(((np.vstack((x0, y0, z)).T)).reshape(len(x0), 3), radii=[1] * len(x0))
         first_insertion_pt = np.array([2.0, 0.0, 0.0])
         self.m.branches[1].insert_branch(self.b2, first_insertion_pt)
         x = np.arange(start=3.0, stop=6.0, dtype=float)
@@ -544,9 +558,9 @@ class TestBranchInsertion(NumpyTestCase, unittest.TestCase):
             ((np.vstack((x6, y6, z6)).T)).reshape(len(x6), 3), radii=[1] * len(x6)
         )
         b5.attach_child(b6)
+        b4.insert_branch(b0, third_insertion_pt)
         self.m.branches[1].insert_branch(b5, third_insertion_pt)
         self.m.close_gaps()
         for c in self.m.branches[3].children:
             self.assertClose(second_insertion_pt, c.start)
-
         self.assertEqual(self.m.adjacency_dictionary, target)
