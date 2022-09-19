@@ -29,6 +29,7 @@ import numpy as np
 from collections import deque
 from pathlib import Path
 from scipy.spatial.transform import Rotation
+from scipy.spatial import cKDTree
 from ..voxels import VoxelSet
 from ..exceptions import *
 from ..reporting import report, warn
@@ -631,6 +632,15 @@ class Morphology(SubTree):
         return self._meta
 
     @property
+    def adjacency_matrix(self):
+        """
+        Return a dictonary associating to each key (branch index) a list of adjacent branch indices
+        """
+        branches = self.branches
+        idmap = {b: n for n, b in enumerate(branches)}
+        return {n: list(map(idmap.get, b.children)) for n, b in enumerate(branches)}
+
+    @property
     def labelsets(self):
         """
         Return the sets of labels associated to each numerical label.
@@ -840,6 +850,18 @@ class Branch:
         return self._points
 
     @property
+    def kd_tree(self):
+        """
+        Return a `scipy.spatial.cKDTree` of this branch points for fast spatial queries.
+
+        .. warning::
+
+           Constructing a kd-tree is only worth it for repeated querying.
+
+        """
+        return cKDTree(self._points)
+
+    @property
     def point_vectors(self):
         """
         Return the individual vectors between consecutive points on this branch.
@@ -1041,6 +1063,52 @@ class Branch:
             branch._parent.detach_child(branch)
         self._children.append(branch)
         branch._parent = self
+
+    def find_closest_point(self, coord):
+        """
+        Return the index of the closest on this branch to a desired coordinate.
+
+        :param coord: The coordinate to find the nearest point to
+        :type: :class:`numpy.ndarray`
+        """
+        diff = np.sqrt(np.sum((self._points - coord) ** 2, axis=1))
+        return np.argmin(diff)
+
+    def insert_branch(self, branch, coord):
+        """
+        Insert a new branch on the closest current branch point to a desired coordinate.
+
+        :param branch: Branch to be attached
+        :type branch: :class:`Branch <.morphologies.Branch>`
+        :param point: Coordinates to insert the new branch at or index of the corresponding branch point
+        :type: Union[:class:`numpy.ndarray`, int]
+        """
+        if isinstance(coord, int):
+            index = coord
+        else:
+            index = self.find_closest_point(coord)
+        if index == len(self.points) - 1:
+            self.attach_child(branch)
+        else:
+            first_segment = Branch(
+                self._points.copy()[: index + 1],
+                self._radii.copy()[: index + 1],
+                self._labels.copy()[: index + 1],
+                {k: v.copy()[:index] for k, v in self._properties},
+            )
+            self.parent.attach_child(first_segment)
+            self.parent.detach_child(self)
+            first_segment.attach_child(branch)
+            second_segment = Branch(
+                self._points.copy()[index:],
+                self._radii.copy()[index:],
+                self._labels.copy()[index:],
+                {k: v.copy()[index:] for k, v in self._properties},
+            )
+            for b in self.children:
+                self.detach_child(b)
+                second_segment.attach_child(b)
+            first_segment.attach_child(second_segment)
 
     def detach_child(self, branch):
         """
