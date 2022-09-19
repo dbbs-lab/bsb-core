@@ -1087,8 +1087,15 @@ class Branch:
         if index.ndim != 0:
             index = self.find_closest_point(index)
 
+        if index < 0 or index >= len(self):
+            raise IndexError(
+                f"Cannot insert branch at cutpoint: index {index} is out of range ({len(self)})"
+            )
+
         if index == len(self.points) - 1:
             self.attach_child(branch)
+        elif index == 0:
+            self.parent.attach_child(branch)
         else:
             first_segment = Branch(
                 self._points.copy()[: index + 1],
