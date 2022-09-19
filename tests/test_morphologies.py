@@ -510,12 +510,12 @@ class TestBranchInsertion(NumpyTestCase, unittest.TestCase):
     def test_insertion_indices(self):
         target = {0: [1, 2], 1: [], 2: []}
         b = self.m.branches[1]
-        self.assertRaises(BranchIndexError, b.insert_branch, self.b2, -5)
-        self.assertRaises(BranchIndexError, b.insert_branch, self.b2, -1)
+        self.assertRaises(IndexError, b.insert_branch, self.b2, -5)
+        self.assertRaises(IndexError, b.insert_branch, self.b2, -1)
         self.m.branches[1].insert_branch(self.b2, 0)
         self.assertEqual(self.m.adjacency_dictionary, target)
-        self.assertRaises(BranchIndexError, b.insert_branch, self.b2, len(b))
-        self.assertRaises(BranchIndexError, b.insert_branch, self.b2, len(b) + 1)
+        self.assertRaises(IndexError, b.insert_branch, self.b2, len(b))
+        self.assertRaises(IndexError, b.insert_branch, self.b2, len(b) + 1)
 
     def test_hierarchy(self):
         target = {
