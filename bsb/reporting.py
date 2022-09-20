@@ -1,4 +1,5 @@
 from .services import MPI
+from . import exceptions as _exc
 import functools
 import warnings
 import base64
@@ -9,6 +10,11 @@ import io
 _preamble = chr(240) + chr(80) + chr(85) + chr(248) + chr(228)
 _preamble_bar = chr(191) * 3
 _report_file = None
+
+
+for e in _exc.__dict__.values():
+    if isinstance(e, type) and issubclass(e, Warning):
+        warnings.simplefilter("always", e)
 
 
 def warning_on_one_line(message, category, filename, lineno, file=None, line=None):
