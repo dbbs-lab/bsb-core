@@ -11,6 +11,10 @@ from ..exceptions import (
 )
 from ..reporting import warn
 from ._hooks import overrides
+from functools import wraps
+from re import sub
+import re
+import itertools
 import warnings
 import errr
 import importlib
@@ -119,13 +123,21 @@ def compile_isc(node_cls, dynamic_config):
     else:
         f = dud
 
-    def __init_subclass__(cls, classmap_entry=None, **kwargs):
+    def __init_subclass__(cls, classmap_entry=MISSING, **kwargs):
         super(node_cls, cls).__init_subclass__(**kwargs)
+        if classmap_entry is MISSING:
+            classmap_entry = _snake_case(cls.__name__)
         if classmap_entry is not None:
             node_cls._config_dynamic_classmap[classmap_entry] = cls
         f(**kwargs)
 
     return classmethod(__init_subclass__)
+
+
+def _snake_case(s):
+    return "_".join(
+        sub("([A-Z][a-z]+)", r" \1", sub("([A-Z]+)", r" \1", s.replace("-", " "))).split()
+    ).lower()
 
 
 def _node_determinant(cls, kwargs):
@@ -557,3 +569,6 @@ def _get_walkable_iterator(node):
         for i, value in enumerate(node):
             walkiter[i] = WalkIterDescriptor(i, value)
         return walkiter
+
+
+MISSING = object()

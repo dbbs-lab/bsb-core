@@ -30,7 +30,9 @@ class TestJsonBasics(unittest.TestCase):
             tree["nest me hard"]["oh yea"],
             "Incorrectly parsed nested JSON",
         )
-        self.assertEqual("<parsed config '/list'>", str(tree["list"]))
+        self.assertEqual(
+            "<parsed json config '[1, 2, 3, 'waddup']' at '/list'>", str(tree["list"])
+        )
 
 
 class TestJsonRef(unittest.TestCase):
