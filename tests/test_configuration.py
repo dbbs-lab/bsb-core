@@ -615,7 +615,7 @@ class AutoClassmapChildC(DirtyAutoClassmap, classmap_entry="c"):
     pass
 
 
-class AutoClassmapChildD(DirtyAutoClassmap):
+class AutoClassmapChildD(DirtyAutoClassmap, classmap_entry=None):
     pass
 
 
