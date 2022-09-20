@@ -90,6 +90,7 @@ _t(
         ),
         PlacementError=_e(
             ChunkError=_e(),
+            PlacementRelationError=_e(),
             ContinuityError=_e(),
             PackingError=_e(),
         ),
