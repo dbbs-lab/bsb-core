@@ -596,11 +596,17 @@ class AutoClassmapChildB(CleanAutoClassmap, classmap_entry="b"):
     pass
 
 
-class UntitledAutoClassmapChildC(CleanAutoClassmap):
+class UnregisteredAutoClassmapChildC(CleanAutoClassmap, classmap_entry=None):
     pass
 
 
-@config.dynamic(auto_classmap=True, classmap={"d": "AutoClassmapChildD"})
+class SnakeChild(CleanAutoClassmap):
+    pass
+
+
+@config.dynamic(
+    auto_classmap=True, classmap={"d": "AutoClassmapChildD"}, classmap_entry=None
+)
 class DirtyAutoClassmap:
     pass
 
@@ -620,7 +626,7 @@ class TestAutoClassmap(unittest.TestCase):
                 "a": AutoClassmapChildA,
                 "b": AutoClassmapChildB,
                 # Test snake casing, see #880
-                "untitled_auto_classmap_child_c": UntitledAutoClassmapChildC,
+                "snake_child": SnakeChild,
             },
             CleanAutoClassmap._config_dynamic_classmap,
             "Automatic classmap incorrect",
