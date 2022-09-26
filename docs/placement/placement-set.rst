@@ -34,7 +34,7 @@ Identifiers
 ===========
 
 Cells have no global identifiers, instead you use the indices of their data, i.e. the
-n-th position belongs to cell n, and so will the n-th rotation.
+n-th position belongs to cell n, and so will the n-th morphology and rotation.
 
 Positions
 =========
