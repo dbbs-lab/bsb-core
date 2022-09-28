@@ -80,14 +80,14 @@ class CellType:
         """
         return self.scaffold.get_placement_of(self)
 
-    def get_placement_set(self, chunks=None):
+    def get_placement_set(self, *args, **kwargs):
         """
         Retrieve this cell type's placement data
 
         :param chunks: When given, restricts the placement data to these chunks.
         :type chunks: List[bsb.storage.Chunk]
         """
-        return self.scaffold.get_placement_set(self.name, chunks=chunks)
+        return self.scaffold.get_placement_set(self, *args, **kwargs)
 
     def get_morphologies(self):
         """

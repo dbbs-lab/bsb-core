@@ -151,9 +151,7 @@ class PlacementJob(ChunkedJob):
 
     def __init__(self, pool, strategy, chunk, deps=None):
         args = (strategy.name, chunk)
-        super(ChunkedJob, self).__init__(
-            pool, strategy.place.__func__, args, {}, deps=deps
-        )
+        Job.__init__(self, pool, strategy.place.__func__, args, {}, deps=deps)
         self._cname = strategy.__class__.__name__
         self._name = strategy.name
         self._c = chunk
@@ -173,9 +171,7 @@ class ConnectivityJob(ChunkedJob):
 
     def __init__(self, pool, strategy, chunk, roi, deps=None):
         args = (strategy.name, chunk, roi)
-        super(ChunkedJob, self).__init__(
-            pool, strategy.connect.__func__, args, {}, deps=deps
-        )
+        Job.__init__(self, pool, strategy.connect.__func__, args, {}, deps=deps)
         self._cname = strategy.__class__.__name__
         self._name = strategy.name
         self._c = chunk

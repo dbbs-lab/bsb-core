@@ -1,12 +1,9 @@
-import unittest, os, sys, numpy as np, h5py, json
-
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
+import unittest
+import os
 from bsb.core import Scaffold
 from bsb.storage.interfaces import PlacementSet
 from bsb.config import Configuration
 from bsb import core
-from bsb.exceptions import *
 
 
 class TestCore(unittest.TestCase):
@@ -14,15 +11,21 @@ class TestCore(unittest.TestCase):
         # Use the `from_hdf5` function to load a network.
         netw = Scaffold()
         netw.compile(clear=True)
-        netw2 = core.from_hdf5(netw.storage.root)
+        core.from_hdf5(netw.storage.root)
         with self.assertRaises(FileNotFoundError):
             core.from_hdf5("ehehehehehehe")
+
+    @classmethod
+    def tearDownClass(cls):
+        try:
+            os.unlink("ehehehehehehe2")
+        except Exception:
+            pass
 
     @unittest.expectedFailure
     def test_from_hdf5_missing(self):
         # Missing OK leads to network without active config, should probably load default?
-        #
-        netw = core.from_hdf5("ehehehehehehe2", missing_ok=True)
+        core.from_hdf5("ehehehehehehe2", missing_ok=True)
 
     def test_set_netw_root_nodes(self):
         netw = Scaffold()

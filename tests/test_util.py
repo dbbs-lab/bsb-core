@@ -28,8 +28,10 @@ class TestNetworkUtil(
             "all_to_all",
             dict(
                 strategy="bsb.connectivity.AllToAll",
-                presynaptic=dict(cell_types=["test_cell"], subcell_labels=["axon"]),
-                postsynaptic=dict(cell_types=["test_cell"], subcell_labels=["dendrites"]),
+                presynaptic=dict(cell_types=["test_cell"], morphology_labels=["axon"]),
+                postsynaptic=dict(
+                    cell_types=["test_cell"], morphology_labels=["dendrites"]
+                ),
             ),
         )
         self.network.compile()

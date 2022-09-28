@@ -1,18 +1,18 @@
-import unittest, os, sys, numpy as np, h5py, json, string, random
-
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
+import unittest
+import os
 from bsb.core import Scaffold
 from bsb.config import from_json
-from bsb.exceptions import *
-from bsb.storage import Storage, Chunk
 from bsb.storage import _util
-from bsb.unittest import get_config_path, timeout
+from bsb.unittest import get_config_path
 from bsb.services import MPI
 import pathlib
 
 
 class TestUtil(unittest.TestCase):
+    @classmethod
+    def tearDownClass(cls):
+        os.unlink(f"__dsgss__dd{MPI.get_rank()}.txt")
+
     def test_links(self):
         cfg = from_json(get_config_path("test_single"))
         netw = Scaffold(cfg)

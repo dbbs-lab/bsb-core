@@ -1,13 +1,18 @@
-import os, sys
+import os
+import sys
 
 # Fetch the `__version__`
 bsb_folder = os.path.join(os.path.dirname(__file__), "..", "bsb")
 bsb_init_file = os.path.join(bsb_folder, "__init__.py")
+_findver = "__version__ = "
 with open(bsb_init_file, "r") as f:
     for line in f:
         if "__version__ = " in line:
-            exec(line.strip())
+            f = line.find(_findver)
+            __version__ = eval(line[line.find(_findver) + len(_findver) :])
             break
+    else:
+        raise Exception(f"No `__version__` found in '{bsb_init_file}'.")
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 # -- Project information -----------------------------------------------------
@@ -36,6 +41,7 @@ extensions = [
     "sphinxemoji.sphinxemoji",
     "sphinx_design",
     "sphinx_copybutton",
+    "bsbdocs",
 ]
 
 autodoc_mock_imports = [

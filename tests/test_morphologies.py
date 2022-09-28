@@ -3,7 +3,8 @@ import json
 import itertools
 
 from bsb.services import MPI
-from bsb.morphologies import Morphology, Branch, _Labels, MorphologySet
+from bsb.morphologies import Morphology, Branch, MorphologySet
+from bsb._encoding import EncodedLabels
 from bsb.storage import Storage
 from bsb.storage.interfaces import StoredMorphology
 from bsb.exceptions import *
@@ -69,7 +70,7 @@ class TestMorphologies(NumpyTestCase, unittest.TestCase):
         super().setUpClass()
 
     def _branch(self, len):
-        return Branch(np.ones((len, 3)), np.ones(len), _Labels.none(len), {})
+        return Branch(np.ones((len, 3)), np.ones(len), EncodedLabels.none(len), {})
 
     def test_branch_attachment(self):
         branch_A = self._branch(5)
@@ -110,21 +111,21 @@ class TestMorphologies(NumpyTestCase, unittest.TestCase):
         b1 = self._branch(3)
         b1.set_properties(smth=np.ones(len(b1)))
         b2 = self._branch(3)
-        b2.label("oy")
+        b2.label(["oy"])
         b2.translate([100, 100, 100])
         b2.set_properties(other=np.zeros(len(b2)), smth=np.ones(len(b2)))
         b3 = self._branch(3)
         b3.translate([200, 200, 200])
-        b3.label("vey")
+        b3.label(["vey"])
         b3.set_properties(other=np.ones(len(b3)))
         b4 = self._branch(3)
-        b4.label("oy", "vey")
+        b4.label(["oy", "vey"])
         b5 = self._branch(3)
-        b5.label("oy")
+        b5.label(["oy"])
         b5.translate([100, 100, 100])
         b6 = self._branch(3)
         b6.translate([200, 200, 200])
-        b6.label("vey", "oy")
+        b6.label(["vey", "oy"])
         m = Morphology([b1, b2, b3, b4, b5, b6])
         m.optimize()
         self.assertTrue(m._is_shared, "Should be shared after opt")
@@ -179,7 +180,7 @@ class TestMorphologies(NumpyTestCase, unittest.TestCase):
 
 class TestMorphologyLabels(NumpyTestCase, unittest.TestCase):
     def test_labels(self):
-        a = _Labels.none(10)
+        a = EncodedLabels.none(10)
         self.assertEqual({0: set()}, a.labels, "none labels should be empty")
         self.assertClose(0, a, "none labels should zero")
         a.label(["ello"], [1, 2])
@@ -208,22 +209,22 @@ class TestMorphologyLabels(NumpyTestCase, unittest.TestCase):
         a = b._labels
         self.assertEqual({0: set()}, a.labels, "none labels should be empty")
         self.assertClose(0, a, "none labels should zero")
-        b.label("ello")
+        b.label(["ello"])
         self.assertClose(1, a, "full labelling failed")
-        b.label("so long", "goodbye", "sayonara")
+        b.label(["so long", "goodbye", "sayonara"])
         self.assertClose(2, a, "multifull labelling failed")
         self.assertEqual(
             {0: set(), 1: {"ello"}, 2: {"ello", "so long", "goodbye", "sayonara"}},
             a.labels,
         )
-        b.label([1, 3], "wow")
+        b.label("wow", [1, 3])
         self.assertClose([2, 3, 2, 3, 2, 2, 2, 2, 2, 2], a, "specific point label failed")
 
     def test_copy_labels(self):
         b = Branch([[0] * 3] * 10, [1] * 10)
-        b.label("ello")
-        b.label("so long", "goodbye", "sayonara")
-        b.label([1, 3], "wow")
+        b.label(["ello"])
+        b.label(["so long", "goodbye", "sayonara"])
+        b.label(["wow"], [1, 3])
         b2 = b.copy()
         self.assertEqual(len(b), len(b2), "copy changed n points")
         self.assertEqual(b._labels.labels, b2._labels.labels, "copy changed labelset")
@@ -231,21 +232,21 @@ class TestMorphologyLabels(NumpyTestCase, unittest.TestCase):
 
     def test_concat(self):
         b = Branch([[0] * 3] * 10, [1] * 10)
-        b.label("ello")
+        b.label(["ello"])
         b2 = Branch([[0] * 3] * 10, [1] * 10)
-        b2.label("not ello")
+        b2.label(["not ello"])
         # Both branches have a different definition for `1`, so concat should map them.
         self.assertClose(1, b._labels, "should all be labelled to 1")
         self.assertClose(1, b2._labels, "should all be labelled to 1")
         self.assertNotEqual(b._labels.labels, b2._labels.labels, "should have diff def")
-        concat = _Labels.concatenate(b._labels, b2._labels)
+        concat = EncodedLabels.concatenate(b._labels, b2._labels)
         self.assertClose([1] * 10 + [2] * 10, concat)
         self.assertEqual({0: set(), 1: {"ello"}, 2: {"not ello"}}, concat.labels)
 
     def test_select(self):
         b = Branch([[0] * 3] * 10, [1] * 10)
         b.name = "B1"
-        b.label("ello")
+        b.label(["ello"])
         b2 = Branch([[0] * 3] * 10, [1] * 10)
         b2.name = "B2"
         b3 = Branch([[0] * 3] * 10, [1] * 10)
@@ -253,18 +254,30 @@ class TestMorphologyLabels(NumpyTestCase, unittest.TestCase):
         b4 = Branch([[0] * 3] * 10, [1] * 10)
         b4.name = "B4"
         b3.attach_child(b4)
-        b3.label([1], "ello")
-        self.assertTrue(b3.contains_label("ello"))
+        b3.label(["ello"], [1])
+        self.assertTrue(b3.contains_labels(["ello"]))
         m = Morphology([b, b2, b3])
-        bs = m.subtree("ello").branches
-        self.assertEqual([b, b3, b4], m.subtree("ello").branches)
-        self.assertEqual(len(b), len(b.get_points_labelled("ello")))
-        self.assertEqual(1, len(b3.get_points_labelled("ello")))
+        bs = m.subtree(["ello"]).branches
+        self.assertEqual([b, b3, b4], m.subtree(["ello"]).branches)
+        self.assertEqual(len(b), len(b.get_points_labelled(["ello"])))
+        self.assertEqual(1, len(b3.get_points_labelled(["ello"])))
 
 
-class TestMorphologySet(unittest.TestCase):
+class TestMorphologySet(NumpyTestCase, unittest.TestCase):
     def _fake_loader(self, name):
         return StoredMorphology(name, lambda: Morphology([Branch([], [])]), dict())
+
+    def _label_loader(self, name):
+        def m():
+            mo = Morphology(
+                [Branch([[0, 0, 0], [1, 1, 1], [2, 2, 2], [3, 3, 3]], [1] * 4)]
+            )
+            mo.label(["A"], [0, 1])
+            mo.label(["B"], [1, 2])
+            mo.label(["C"], [2, 3])
+            return mo
+
+        return StoredMorphology(name, m, dict())
 
     def setUp(self):
         self.sets = [
@@ -285,7 +298,7 @@ class TestMorphologySet(unittest.TestCase):
         d = None
         self.assertTrue(
             all((d := c if d is None else d) is d for c in cached),
-            "hard cache should be ident",
+            "hard cache should return identical objects",
         )
         uncached = self.sets[1].iter_morphologies()
         d = None
@@ -303,6 +316,44 @@ class TestMorphologySet(unittest.TestCase):
         self.assertEqual(
             1, len([*self.sets[1].iter_meta(unique=True)]), "only 1 morph in unique set"
         )
+
+    def test_filtered_get(self):
+        ms = MorphologySet([self._label_loader("ello")], [0, 0, 0])
+        ms.set_label_filter(["A"])
+        m = ms.get(0, cache=False)
+        self.assertEqual(2, len(m), "expected filtered morpho")
+        self.assertClose([[0, 0, 0], [1, 1, 1]], m.points, "expected A labelled points")
+        ms.set_label_filter(["B"])
+        m = ms.get(0, cache=False)
+        self.assertEqual(2, len(m), "expected filtered morpho")
+        self.assertClose([[1, 1, 1], [2, 2, 2]], m.points, "expected B labelled points")
+
+    def test_softcache_filtered_get(self):
+        ms = MorphologySet([self._label_loader("ello")], [0, 0, 0])
+        ms.set_label_filter(["A"])
+        m = ms.get(0, cache=True)
+        self.assertEqual(2, len(m), "expected filtered morpho")
+        self.assertClose([[0, 0, 0], [1, 1, 1]], m.points, "expected A labelled points")
+        ms.set_label_filter(["B"])
+        m = ms.get(0, cache=True)
+        self.assertEqual(2, len(m), "expected filtered morpho")
+        self.assertClose([[1, 1, 1], [2, 2, 2]], m.points, "expected B labelled points")
+
+    def test_hardcache_filtered_get(self):
+        ms = MorphologySet([self._label_loader("ello")], [0, 0, 0])
+        ms.set_label_filter(["A"])
+        m1 = ms.get(0, hard_cache=True)
+        self.assertEqual(2, len(m1), "expected filtered morpho")
+        self.assertClose([[0, 0, 0], [1, 1, 1]], m1.points, "expected A labelled points")
+        m2 = ms.get(0, hard_cache=True)
+        self.assertEqual(2, len(m2), "expected filtered morpho")
+        self.assertClose([[0, 0, 0], [1, 1, 1]], m2.points, "expected A labelled points")
+        self.assertEqual(m1, m2, "expected identical morphos")
+        ms.set_label_filter(["B"])
+        m = ms.get(0, hard_cache=True)
+        self.assertNotEqual(m1, m, "expected invalidated hard cache")
+        self.assertEqual(2, len(m), "expected filtered morpho")
+        self.assertClose([[1, 1, 1], [2, 2, 2]], m.points, "expected B labelled points")
 
 
 class TestMorphometry(NumpyTestCase, unittest.TestCase):
@@ -326,7 +377,6 @@ class TestMorphometry(NumpyTestCase, unittest.TestCase):
     def test_empty_branch(self):
         for attr in (
             "euclidean_dist",
-            "path_dist",
             "vector",
             "versor",
             "start",
@@ -467,3 +517,97 @@ class TestSwcFiles(NumpyTestCase, unittest.TestCase):
     def test_identity(self):
         m = Morphology.from_swc(get_morphology_path("test_morphometry.swc"))
         self.assertClose(m.points, self.m.points)
+
+
+class TestMorphologyFiltering(NumpyTestCase, unittest.TestCase):
+    def test_filter_none(self):
+        m = Morphology([Branch(np.ones((5, 3)), np.ones(5))])
+        m.label(["test_all"])
+        m2 = m.as_filtered()
+        self.assertIsNot(m, m2, "filtering without labels should return copy")
+        self.assertEqual(len(m), len(m2), "filtering without labels should return all")
+
+    def test_filter_all(self):
+        m = Morphology([Branch(np.ones((5, 3)), np.ones(5))])
+        m.label(["test_all"])
+        m2 = m.set_label_filter(["test_all"]).as_filtered()
+        self.assertIsNot(m, m2, "filtering should return copy")
+        self.assertEqual(len(m), len(m2), "filtering all should return all")
+        self.assertEqual(len(m.branches), len(m2.branches), "n branches change")
+        self.assertEqual(1, len(m2.branches), "just 1 branch")
+
+    def test_filter_split(self):
+        m = Morphology([Branch(np.ones((5, 3)), np.ones(5))])
+        split_one = np.ones(5, dtype=bool)
+        split_one[2] = 0
+        m.label(["test_all"], split_one)
+        m2 = m.set_label_filter(["test_all"]).as_filtered()
+        self.assertIsNot(m, m2, "filtering should return copy")
+        self.assertEqual(4, len(m2), "filtering should return 4 filtered points")
+        self.assertEqual(2, len(m2.branches), "expected split in the middle")
+        self.assertEqual(2, len(m2.branches[0]), "expected 2 point branch")
+        self.assertEqual(2, len(m2.branches[1]), "expected 2 point branch")
+
+    def test_filter_trim_start(self):
+        m = Morphology([Branch(np.ones((5, 3)), np.ones(5))])
+        split_one = np.ones(5, dtype=bool)
+        split_one[0] = 0
+        m.label(["test_all"], split_one)
+        m2 = m.set_label_filter(["test_all"]).as_filtered()
+        self.assertIsNot(m, m2, "filtering should return copy")
+        self.assertEqual(4, len(m2), "filtering should return 4 filtered points")
+        self.assertEqual(1, len(m2.branches), "expected trim of the start")
+        self.assertEqual(4, len(m2.branches[0]), "expected 4 point branch")
+
+    def test_filter_trim_end(self):
+        m = Morphology([Branch(np.ones((5, 3)), np.ones(5))])
+        split_one = np.ones(5, dtype=bool)
+        split_one[4] = 0
+        m.label(["test_all"], split_one)
+        m2 = m.set_label_filter(["test_all"]).as_filtered()
+        self.assertIsNot(m, m2, "filtering should return copy")
+        self.assertEqual(4, len(m2), "filtering should return 4 filtered points")
+        self.assertEqual(1, len(m2.branches), "expected trim of the end")
+        self.assertEqual(4, len(m2.branches[0]), "expected 4 point branch")
+
+    def test_filter_drop_branch(self):
+        b = Branch(np.ones((5, 3)), np.ones(5))
+        m = Morphology([b])
+        m.label(["test_all"])
+        b.attach_child(Branch(np.ones((5, 3)), np.ones(5)))
+        m2 = m.set_label_filter(["test_all"]).as_filtered()
+        self.assertIsNot(m, m2, "filtering should return copy")
+        self.assertEqual(5, len(m2), "filtering should return 5 filtered points")
+        self.assertEqual(1, len(m2.branches), "expected dropped child")
+        self.assertEqual(5, len(m2.branches[0]), "expected 5 point branch")
+
+    def test_filter_skip_dropped(self):
+        b = Branch(np.ones((5, 3)), np.ones(5))
+        m = Morphology([b])
+        m.label(["test_all"])
+        c = Branch(np.ones((5, 3)), np.ones(5))
+        b.attach_child(c)
+        d = Branch(np.ones((5, 3)), np.ones(5))
+        d.label(["test_all"])
+        c.attach_child(d)
+        m2 = m.set_label_filter(["test_all"]).as_filtered()
+        self.assertIsNot(m, m2, "filtering should return copy")
+        self.assertEqual(10, len(m2), "filtering should return 10 filtered points")
+        self.assertEqual(2, len(m2.branches), "expected dropped middle branch")
+        self.assertEqual(m2.branches[0], m2.branches[1].parent, "should be connected")
+
+    def test_filter_multiroot(self):
+        b = Branch(np.ones((5, 3)), np.ones(5))
+        m = Morphology([b])
+        c = Branch(np.ones((5, 3)), np.ones(5))
+        c.label(["test_all"])
+        d = Branch(np.ones((5, 3)), np.ones(5))
+        d.label(["test_all"])
+        b.attach_child(c)
+        b.attach_child(d)
+        m2 = m.set_label_filter(["test_all"]).as_filtered()
+        self.assertIsNot(m, m2, "filtering should return copy")
+        self.assertEqual(10, len(m2), "filtering should return 10 filtered points")
+        self.assertEqual(2, len(m2.branches), "expected dropped root branch")
+        self.assertTrue(m2.branches[0].is_root, "should be root, root parent is gone")
+        self.assertTrue(m2.branches[1].is_root, "should be root, root parent is gone")
