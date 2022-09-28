@@ -37,7 +37,7 @@ class MorphologySet:
     """
 
     def __init__(self, loaders, m_indices, labels=None):
-        self._m_indices = np.array(m_indices, copy=False)
+        self._m_indices = np.array(m_indices, copy=False, dtype=int)
         self._loaders = loaders
         check_max = np.max(m_indices, initial=-1)
         if check_max >= len(loaders):
