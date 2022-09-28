@@ -126,3 +126,16 @@ class CellType:
         for conn_set in self.scaffold.get_connectivity_sets():
             if self is conn_set.presynaptic or self is conn_set.postsynaptic:
                 conn_set.clear()
+
+    # This property was mostly added so that accidental assignment to `ct.morphologies`
+    # instead of `ct.spatial.morphologies` raises an error.
+    @property
+    def morphologies(self):
+        return self.get_morphologies()
+
+    @morphologies.setter
+    def morphologies(self, value):
+        raise AttributeError(
+            "`cell_type.morphologies` is a readonly attribute. Did you mean"
+            " `cell_type.spatial.morphologies`?"
+        )
