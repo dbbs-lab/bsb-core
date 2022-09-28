@@ -218,20 +218,17 @@ class DistributorsNode:
 
         if hasattr(self.morphologies, "generate"):
             prefix = self._config_parent.name
-            generated = []
+            generated = {}
+            indices = []
             # Get all the unique morphology objects from the return value and map to them
-            indices = [
-                generated.index(id(m))
-                if id(m) in generated
-                else generated.append(id(m)) or (len(generated) - 1)
-                for m in morphologies
-            ]
+            for m in morphologies:
+                idx = generated.setdefault(m, len(generated))
+                indices.append(idx)
             mr = self.scaffold.morphologies
             uid = uuid.uuid4()
             loaders = []
-            for i, gen_morpho in enumerate(generated):
+            for gen_morpho, i in generated.items():
                 name = f"{prefix}-{uid}-{i}"
-                print("generated morpho", gen_morpho)
                 loaders.append(mr.save(name, gen_morpho))
             morphologies = MorphologySet(loaders, indices)
         if not isinstance(morphologies, MorphologySet) and morphologies is not None:
