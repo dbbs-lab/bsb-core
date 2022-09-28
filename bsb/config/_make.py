@@ -35,6 +35,7 @@ def make_metaclass(cls):
     # and keep the object reference that the user gives them
     class ConfigArgRewrite:
         def __call__(meta_subject, *args, _parent=None, _key=None, **kwargs):
+            has_own_init = overrides(meta_subject, "__init__", mro=True)
             # Rewrite the arguments
             primer = args[0] if args else None
             if isinstance(primer, meta_subject):
@@ -45,6 +46,12 @@ def make_metaclass(cls):
                 primed = primer.copy()
                 primed.update(kwargs)
                 kwargs = primed
+            elif primer is not None and not has_own_init:
+                # If we're dealing with a typical config node, the primer should be a dict
+                # or already precast node. If it is not, we consider it invalid input,
+                # unless the user has specified its own `__init__` function and will deal
+                # with the input arguments there.
+                raise CastError(f"Unexpected positional argument '{primer}'")
             # Call the base class's new with internal arguments
             instance = meta_subject.__new__(
                 meta_subject, _parent=_parent, _key=_key, **kwargs
