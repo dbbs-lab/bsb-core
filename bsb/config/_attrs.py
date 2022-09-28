@@ -243,8 +243,8 @@ def slot(**kwargs):
 
 def property(val=None, /, **kwargs):
     """
-    Provide a value for a parent class' attribute. Can be a value or a callable, a
-    property object will be created from it either way.
+    Create a configuration property attribute. You may provide a value or a callable. Call
+    `setter` on the return value as you would with a regular property.
     """
 
     def decorator(val):
@@ -255,6 +255,27 @@ def property(val=None, /, **kwargs):
         return decorator
     else:
         return decorator(val)
+
+
+def provide(value):
+    """
+    Provide a value for a parent class' attribute. Can be a value or a callable, a
+    readonly configuration property will be created from it either way.
+    """
+    prop = property(value)
+
+    def provided(self, instance, value):
+        raise AttributeError(f"Can't set attribute, class provides the value '{value}'.")
+
+    # Create a callable object that invokes `provided` when called, and whose `bool()`
+    # returns `False`. Later in `_is_settable_attr`, we use this to trick the short
+    # circuiting logic, so that this setter doesn't make the internal logic set and error
+    # out on this attr.
+    prop.setter(
+        type("provision", (), {"__call__": provided, "__bool__": lambda s: False})()
+    )
+
+    return prop
 
 
 def list(**kwargs):
