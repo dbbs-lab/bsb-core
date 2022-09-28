@@ -16,7 +16,12 @@ from ._make import (
     _resolve_references,
 )
 from .types import _wrap_reserved
-from ..exceptions import RequirementError, NoReferenceAttributeSignal, CastError
+from ..exceptions import (
+    RequirementError,
+    NoReferenceAttributeSignal,
+    CastError,
+    CfgReferenceError,
+)
 import builtins
 
 
@@ -791,7 +796,7 @@ class ConfigurationReferenceAttribute(ConfigurationAttribute):
             setattr(instance, self.get_ref_key(), value)
             if self.should_resolve_on_set(instance):
                 if hasattr(instance, "_config_root"):  # pragma: nocover
-                    raise ReferenceError(
+                    raise CfgReferenceError(
                         "Can't autoresolve references without a config root."
                     )
                 _setattr(
@@ -834,7 +839,7 @@ class ConfigurationReferenceAttribute(ConfigurationAttribute):
 
     def resolve_reference(self, instance, remote, key):
         if key not in remote:
-            raise ReferenceError(
+            raise CfgReferenceError(
                 "Reference '{}' of {} does not exist in {}".format(
                     key,
                     self.get_node_name(instance),
@@ -886,7 +891,7 @@ class ConfigurationReferenceListAttribute(ConfigurationReferenceAttribute):
         try:
             remote_keys = builtins.list(iter(value))
         except TypeError:
-            raise ReferenceError(
+            raise CfgReferenceError(
                 "Reference list '{}' of {} is not iterable.".format(
                     value, self.get_node_name(instance)
                 )

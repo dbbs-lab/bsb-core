@@ -1,12 +1,22 @@
-import unittest, os, sys, numpy as np, h5py, json
-
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
+import unittest
+import sys
+import numpy as np
+import json
 from bsb.core import Scaffold
 from bsb import config
 from bsb.config import from_json, Configuration, _attrs
 from bsb.config import types
-from bsb.exceptions import *
+from bsb.exceptions import (
+    CfgReferenceError,
+    RequirementError,
+    ConfigurationWarning,
+    CastError,
+    UnfitClassCastError,
+    DynamicClassInheritanceError,
+    UnresolvedClassCastError,
+    DynamicClassNotFoundError,
+    ClassMapMissingError,
+)
 from bsb.topology.region import RegionGroup
 from bsb.unittest import get_config_path
 
