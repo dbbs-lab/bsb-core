@@ -615,10 +615,8 @@ class Morphology(SubTree):
     coordinate or other associated data of a point on the branch.
     """
 
-    def __init__(self, roots, meta=None, shared_buffers=None):
-        super().__init__(roots, sanitize=False)
-        if len(self.roots) < len(roots):
-            warn("None-root branches given as morphology input.", MorphologyWarning)
+    def __init__(self, roots, meta=None, shared_buffers=None, sanitize=False):
+        super().__init__(roots, sanitize=sanitize)
         self._meta = meta if meta is not None else {}
         self._filter = None
         if shared_buffers is None:
