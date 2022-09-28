@@ -712,6 +712,10 @@ class Morphology(SubTree):
         self._filter = labels
         return self
 
+    @classmethod
+    def empty(cls):
+        return cls([])
+
     def copy(self):
         """
         Copy the morphology.
