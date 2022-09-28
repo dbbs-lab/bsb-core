@@ -11,10 +11,7 @@ from ..exceptions import (
 )
 from ..reporting import warn
 from ._hooks import overrides
-from functools import wraps
 from re import sub
-import re
-import itertools
 import warnings
 import errr
 import importlib
@@ -273,9 +270,9 @@ def _bubble_up_warnings(log):
         if hasattr(m, "node"):
             # Unpack the inner Warning that was passed instead of the warning msg
             attr = f".{m.attr.attr_name}" if hasattr(m, "attr") else ""
-            warn(str(m) + " in " + m.node.get_node_name() + attr, type(m))
+            warn(str(m) + " in " + m.node.get_node_name() + attr, type(m), stacklevel=4)
         else:
-            warn(str(m), w.category)
+            warn(str(m), w.category, stacklevel=4)
 
 
 def _get_class_config_attrs(cls):
