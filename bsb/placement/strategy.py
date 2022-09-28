@@ -35,11 +35,12 @@ class PlacementStrategy(abc.ABC, SortableByAfter):
     @obj_str_insert
     def __repr__(self):
         config_name = self.name
-        strategy_name = self.strategy
+        if not hasattr(self, "scaffold"):
+            return f"'{config_name}'"
         part_str = ""
         if len(self.partitions):
             partition_names = [p.name for p in self.partitions]
-            part_str = f" into {partitions}"
+            part_str = f" into {partition_names}"
         ct_names = [ct.name for ct in self.cell_types]
         return f"'{config_name}', placing {ct_names}{part_str}"
 

@@ -223,7 +223,10 @@ class PlacementSet(Interface):
     @obj_str_insert
     def __repr__(self):
         cell_type = self.cell_type
-        ms = self.load_morphologies()
+        try:
+            ms = self.load_morphologies()
+        except Exception:
+            return f"cell type: '{cell_type.name}'"
         if not len(ms):
             mstr = "without morphologies"
         else:
