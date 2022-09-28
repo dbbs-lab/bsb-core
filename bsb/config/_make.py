@@ -335,6 +335,8 @@ def _try_catch(catch, node, key, value):
 
 
 def _get_dynamic_class(node_cls, kwargs):
+    if node_cls is not node_cls._config_dynamic_root:
+        return node_cls
     attr_name = node_cls._config_dynamic_attr
     dynamic_attr = getattr(node_cls, attr_name)
     if attr_name in kwargs:
