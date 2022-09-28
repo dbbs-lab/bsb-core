@@ -1,10 +1,14 @@
 from .. import config
-from ..exceptions import *
+from ..exceptions import (
+    MissingSourceError,
+    SourceQualityError,
+    EmptySelectionError,
+    DistributorError,
+)
 from ..reporting import report, warn
 from ..config import refs, types
 from .._util import SortableByAfter, obj_str_insert
 from ..voxels import VoxelSet
-from ..morphologies import MorphologySet
 from ..storage import Chunk
 from .indicator import PlacementIndications, PlacementIndicator
 from .distributor import DistributorsNode
@@ -54,11 +58,11 @@ class PlacementStrategy(abc.ABC, SortableByAfter):
         pass
 
     def place_cells(self, indicator, positions, chunk):
-        distr_ = self.distribute._curry(self.partitions, indicator, positions)
-
-        if indicator.use_morphologies():
+        if self.distribute._has_mdistr() or indicator.use_morphologies():
             try:
-                morphologies = distr_("morphologies")
+                morphologies, rotations = self.distribute._specials(
+                    self.partitions, indicator, positions
+                )
             except EmptySelectionError as e:
                 selectors = ", ".join(f"{s}" for s in e.selectors)
                 raise DistributorError(
@@ -67,27 +71,11 @@ class PlacementStrategy(abc.ABC, SortableByAfter):
                     "Morphology",
                     self,
                 ) from None
-            # Did the morphology distributor give multiple return values?
-            if isinstance(morphologies, tuple):
-                # Yes, unpack them to morphologies and rotations.
-                try:
-                    morphologies, rotations = morphologies
-                except TypeError:
-                    raise ValueError(
-                        "Morphology distributors may only return tuples when they are"
-                        + " to be unpacked as (morphologies, rotations)"
-                    ) from None
-                # If a RotationDistributor is not `Implicit`, we override the
-                # MorphologyDistributor's rotations.
-                if not isinstance(self.distribute.rotations, Implicit):
-                    rotations = distr_("rotations")
-            else:
-                # No, distribute the rotations.
-                rotations = distr_("rotations")
         else:
             morphologies, rotations = None, None
 
-        additional = {prop: curry(prop) for prop in self.distribute.properties.keys()}
+        distr = self.distribute._curry(self.partitions, indicator, positions)
+        additional = {prop: distr(prop) for prop in self.distribute.properties.keys()}
         self.scaffold.place_cells(
             indicator.cell_type,
             positions=positions,
@@ -156,7 +144,6 @@ class FixedPositions(PlacementStrategy):
                 f"Please set `.positions` on '{self.name}' before placement."
             )
         for indicator in indicators.values():
-            ct = indicator.cell_type
             inside_chunk = VoxelSet([chunk], chunk.dimensions).inside(self.positions)
             self.place_cells(indicator, self.positions[inside_chunk], chunk)
 
