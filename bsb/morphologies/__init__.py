@@ -66,7 +66,7 @@ class MorphologySet:
 
     @property
     def names(self):
-        return [l.name for l in self._loaders]
+        return [loader.name for loader in self._loaders]
 
     def get_indices(self, copy=True):
         return self._m_indices.copy() if copy else self._m_indices
