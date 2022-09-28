@@ -126,18 +126,27 @@ class DynamicNodeConfiguration:
 
 
 def _dynamic(node_cls, class_attr, attr_name, config):
+    # Set the dynamic attribute
     setattr(node_cls, attr_name, class_attr)
     node_cls._config_dynamic_attr = attr_name
+    # Other than that compile the dynamic class like a regular node class
+    node_cls = node(node_cls, dynamic=config)
     if config.auto_classmap or config.classmap:
         node_cls._config_dynamic_classmap = config.classmap or {}
+    # This adds the parent class to its own classmap, which for subclasses happens in init
+    # subclass
     if config.entry is not None:
         if not hasattr(node_cls, "_config_dynamic_classmap"):
             raise ValueError(
                 f"Calling `@config.dynamic` with `entry='{config.entry}'`"
-                + f" requires `classmap` or `auto_classmap` to be set as well on '{node_cls.__name__}'."
+                + " requires `classmap` or `auto_classmap` to be set as well"
+                + f" on '{node_cls.__name__}'."
             )
         node_cls._config_dynamic_classmap[config.entry] = node_cls
-    return node(node_cls, dynamic=config)
+    # Mark the class as its own dynamic root, (grand)child classes will all need to
+    # inherit from this as an interface contract.
+    node_cls._config_dynamic_root = node_cls
+    return node_cls
 
 
 def pluggable(key, plugin_name=None):

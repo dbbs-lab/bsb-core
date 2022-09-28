@@ -347,9 +347,10 @@ def _get_dynamic_class(node_cls, kwargs):
         loaded_cls_name = dynamic_attr.default
     module_path = ["__main__", node_cls.__module__]
     classmap = getattr(node_cls, "_config_dynamic_classmap", None)
+    interface = getattr(node_cls, "_config_dynamic_root")
     try:
         dynamic_cls = _load_class(
-            loaded_cls_name, module_path, interface=node_cls, classmap=classmap
+            loaded_cls_name, module_path, interface=interface, classmap=classmap
         )
     except DynamicClassInheritanceError:
         mapped_class_msg = _get_mapped_class_msg(loaded_cls_name, classmap)
