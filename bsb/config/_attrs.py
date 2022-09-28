@@ -341,7 +341,7 @@ def _unset_nodes(top_node):
     for node in walk_nodes(top_node):
         try:
             del node.scaffold
-        except:
+        except Exception:
             pass
         node._config_parent = None
         node._config_key = None
@@ -528,14 +528,20 @@ class cfglist(builtins.list):
             item = self._config_type(item, _parent=self, _key=index)
             try:
                 item._config_index = index
-            except:
+            except Exception:
                 pass
             return item
         except (RequirementError, CastError) as e:
+            e.args = (
+                f"Couldn't cast element {index} from '{item}'"
+                + f" into a {self._config_type.__name__}. "
+                + e.msg,
+                *e.args,
+            )
             if not e.node:
                 e.node, e.attr = self, index
             raise
-        except:
+        except Exception:
             raise CastError(
                 f"Couldn't cast element {index} from '{item}'"
                 + f" into a {self._config_type.__name__}"
@@ -610,7 +616,7 @@ class cfgdict(builtins.dict):
             if not (hasattr(e, "node") and e.node):
                 e.node, e.attr = self, key
             raise
-        except Exception as e:
+        except Exception:
             import traceback
 
             raise CastError(
@@ -938,12 +944,10 @@ class ConfigurationReferenceListAttribute(ConfigurationReferenceAttribute):
 class ConfigurationAttributeSlot(ConfigurationAttribute):
     def __set__(self, instance, value):  # pragma: nocover
         raise NotImplementedError(
-            "Configuration slot '{}' of {} is empty. The {} plugin provided by '{}' should fill the slot with a configuration attribute.".format(
-                self.attr_name,
-                instance.get_node_name(),
-                instance.__class__._bsb_entry_point.module_name,
-                instance.__class__._bsb_entry_point.dist,
-            )
+            f"Configuration slot '{self.attr_name}' of {instance.get_node_name()} is"
+            f" empty. The {instance.__class__._bsb_entry_point.module_name} plugin"
+            f" provided by '{instance.__class__._bsb_entry_point.dist}' should fill the"
+            " slot with a configuration attribute."
         )
 
 
