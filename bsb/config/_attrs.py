@@ -419,6 +419,13 @@ class ConfigurationAttribute:
         try:
             value = self.type(value, _parent=instance, _key=self.attr_name)
             self.flag_dirty(instance)
+        except ValueError:
+            # This value error should only arise when users are manually setting
+            # attributes in an already bootstrapped config tree.
+            raise CastError(
+                f"'{value}' is not convertible to {self.type.__name__},"
+                f" for attribute '{self.attr_name}' of {instance}."
+            ) from None
         except (RequirementError, CastError) as e:
             if not hasattr(e, "node") or not e.node:
                 e.node, e.attr = instance, self.attr_name

@@ -51,7 +51,7 @@ def make_metaclass(cls):
                 # or already precast node. If it is not, we consider it invalid input,
                 # unless the user has specified its own `__init__` function and will deal
                 # with the input arguments there.
-                raise CastError(f"Unexpected positional argument '{primer}'")
+                raise ValueError(f"Unexpected positional argument '{primer}'")
             # Call the base class's new with internal arguments
             instance = meta_subject.__new__(
                 meta_subject, _parent=_parent, _key=_key, **kwargs
