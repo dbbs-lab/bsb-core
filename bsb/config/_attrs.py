@@ -15,11 +15,9 @@ from ._make import (
     walk_nodes,
     _resolve_references,
 )
-from .types import TypeHandler, _wrap_reserved
-from ..exceptions import *
-import abc
+from .types import _wrap_reserved
+from ..exceptions import RequirementError, NoReferenceAttributeSignal, CastError
 import builtins
-import itertools
 
 
 def root(root_cls):
