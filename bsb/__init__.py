@@ -1,4 +1,4 @@
-__version__ = "4.0.0a41"
+__version__ = "4.0.0a42"
 
 import functools
 

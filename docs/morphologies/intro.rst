@@ -433,6 +433,15 @@ a :class:`~.morphologies.RotationSet`.
 	block.
 
 
+Morphology generators
+~~~~~~~~~~~~~~~~~~~~~
+
+Continuing on the morphology distributor, one can also make a specialized generator. The
+generator takes the same arguments as a distributor, but returns a list of Morphology
+objects, and the morphology indices to make use of them. It can also return rotations
+as a 3rd return value.
+
+
 MorphologySets
 --------------
 
