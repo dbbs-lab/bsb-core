@@ -930,7 +930,9 @@ class _CSIterator:
         for len_, local_, global_ in zip(lens, locals_, globals_):
             lloc[ptr : ptr + len_] = local_
             gloc[ptr : ptr + len_] = global_
-        return lcol, lloc, gcol, gloc
+            ptr += len_
+        result = lcol, lloc, gcol, gloc
+        yield result
 
 
 class StoredMorphology:
