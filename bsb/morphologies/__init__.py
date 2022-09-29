@@ -58,6 +58,18 @@ class MorphologySet:
     def __contains__(self, value):
         return value in [loader.name for loader in self._loaders]
 
+    def count_morphologies(self):
+        return len(self._loaders)
+
+    def count_unique(self):
+        uniques = []
+        count = 0
+        for m in (m.load() for m in self._loaders):
+            if not any(f == m for f in uniques):
+                uniques.append(m)
+                count += 1
+        return count
+
     def __len__(self):
         return len(self._m_indices)
 

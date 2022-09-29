@@ -350,6 +350,12 @@ class PlacementSet(Interface):
         """
         pass
 
+    def count_morphologies(self):
+        """
+        Must return the number of different morphologies used in the set.
+        """
+        return self.load_morphologies(allow_empty=True).count_morphologies()
+
     @abc.abstractmethod
     def __iter__(self):
         pass
@@ -485,6 +491,7 @@ class PlacementSet(Interface):
         :returns: An iterator with 6 coordinates per cell: 3 min and 3 max coords, the
           bounding box of that cell's translated and rotated morphology.
         :rtype: Iterator[Tuple[float, float, float, float, float, float]]
+        :raises: DatasetNotFoundError if no morphologies are found.
         """
         if morpho_cache is None:
             mset = self.load_morphologies()
@@ -518,7 +525,7 @@ class PlacementSet(Interface):
         return BoxTree(list(self.load_boxes(morpho_cache=morpho_cache)))
 
     def _requires_morpho_mapping(self):
-        return self._morphology_labels is not None
+        return self._morphology_labels is not None and self.count_morphologies()
 
     def _morpho_backmap(self, locs):
         locs = locs.copy()
