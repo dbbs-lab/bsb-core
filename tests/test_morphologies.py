@@ -64,19 +64,20 @@ class TestIO(NumpyTestCase, unittest.TestCase):
             l = b._labels.labels
 
 
+def _branch(len=3):
+    return Branch(np.ones((len, 3)), np.ones(len), EncodedLabels.none(len), {})
+
+
 class TestMorphologies(NumpyTestCase, unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
 
-    def _branch(self, len):
-        return Branch(np.ones((len, 3)), np.ones(len), EncodedLabels.none(len), {})
-
     def test_branch_attachment(self):
-        branch_A = self._branch(5)
-        branch_B = self._branch(5)
-        branch_C = self._branch(5)
-        branch_D = self._branch(5)
+        branch_A = _branch(5)
+        branch_B = _branch(5)
+        branch_C = _branch(5)
+        branch_D = _branch(5)
         branch_A.attach_child(branch_B)
         branch_A.attach_child(branch_C)
         branch_B.attach_child(branch_D)
@@ -108,22 +109,22 @@ class TestMorphologies(NumpyTestCase, unittest.TestCase):
         self.assertFalse(branch.is_terminal)
 
     def test_optimize(self):
-        b1 = self._branch(3)
+        b1 = _branch(3)
         b1.set_properties(smth=np.ones(len(b1)))
-        b2 = self._branch(3)
+        b2 = _branch(3)
         b2.label(["oy"])
         b2.translate([100, 100, 100])
         b2.set_properties(other=np.zeros(len(b2)), smth=np.ones(len(b2)))
-        b3 = self._branch(3)
+        b3 = _branch(3)
         b3.translate([200, 200, 200])
         b3.label(["vey"])
         b3.set_properties(other=np.ones(len(b3)))
-        b4 = self._branch(3)
+        b4 = _branch(3)
         b4.label(["oy", "vey"])
-        b5 = self._branch(3)
+        b5 = _branch(3)
         b5.label(["oy"])
         b5.translate([100, 100, 100])
-        b6 = self._branch(3)
+        b6 = _branch(3)
         b6.translate([200, 200, 200])
         b6.label(["vey", "oy"])
         m = Morphology([b1, b2, b3, b4, b5, b6])
@@ -261,6 +262,25 @@ class TestMorphologyLabels(NumpyTestCase, unittest.TestCase):
         self.assertEqual([b, b3, b4], m.subtree(["ello"]).branches)
         self.assertEqual(len(b), len(b.get_points_labelled(["ello"])))
         self.assertEqual(1, len(b3.get_points_labelled(["ello"])))
+
+    def test_list_labels(self):
+        b = _branch(10)
+        b.label(["B", "A"], [0, 1, 2])
+        m = Morphology([b])
+        self.assertEqual(
+            {0: [], 1: ["B", "A"]}, m.labelsets, "expected no and double labelset"
+        )
+        self.assertEqual(["A", "B"], m.list_labels(), "expected sorted list of labels")
+        maskA = m.get_label_mask(["A"])
+        self.assertEqual(3, np.sum(maskA), "expected 3 hits for A")
+
+    def test_mlabel(self):
+        b = _branch(10)
+        m = Morphology([b])
+        m.optimize()
+        self.assertEqual(0, np.sum(m.get_label_mask(["A"])[:3]), "expected first 0 lbled")
+        m.label(["B", "A"], [0, 1, 2])
+        self.assertEqual(3, np.sum(m.get_label_mask(["A"])[:3]), "then first 3 lbled")
 
 
 class TestMorphologySet(NumpyTestCase, unittest.TestCase):
