@@ -33,7 +33,7 @@ class TestMorphologyDistributor(unittest.TestCase):
             regions=dict(reg=dict(children=["a"])),
             partitions=dict(a=dict(thickness=100)),
             cell_types=dict(
-                a=dict(spatial=dict(radius=2, density=1e-3, morphologies=[{"names": []}]))
+                a=dict(spatial=dict(radius=2, density=1e-4, morphologies=[{"names": []}]))
             ),
             placement=dict(
                 a=dict(
@@ -68,6 +68,26 @@ class TestMorphologyDistributor(unittest.TestCase):
         with self.assertRaises(DatasetNotFoundError, msg="shouldnt have morphos"):
             ps.load_morphologies()
 
-    def test_generators(self):
+    def test_same_generators(self):
         self.netw.placement.a.distribute.morphologies = SameEmptyGenerator()
         self.netw.compile()
+        ps = self.netw.get_placement_set("a")
+        ms = ps.load_morphologies()
+        morphologies = list(ms.iter_morphologies(unique=True))
+        self.assertEqual(len(ps), len(ms), "equal data")
+        self.assertEqual(
+            len(ps.get_loaded_chunks()),
+            len(morphologies),
+            "expected each chunk to generate 1 unique empty morphology",
+        )
+
+    def test_many_generators(self):
+        self.netw.placement.a.distribute.morphologies = ManyEmptyGenerator()
+        self.netw.compile()
+        ps = self.netw.get_placement_set("a")
+        ms = ps.load_morphologies()
+        morphologies = list(ms.iter_morphologies(unique=True))
+        self.assertEqual(len(ps), len(ms), "equal data")
+        self.assertEqual(
+            len(ps), len(morphologies), "expected 1 unique morphology per cell"
+        )

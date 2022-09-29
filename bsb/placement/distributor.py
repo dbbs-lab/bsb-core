@@ -215,7 +215,6 @@ class DistributorsNode:
             # If a RotationDistributor is not explicitly marked as `Implicit`, it
             # overrides the MorphologyDistributor's implicit rotations.
             rotations = distr("rotations")
-
         if hasattr(self.morphologies, "generate"):
             prefix = self._config_parent.name
             generated = {}
@@ -229,7 +228,8 @@ class DistributorsNode:
             loaders = []
             for gen_morpho, i in generated.items():
                 name = f"{prefix}-{uid}-{i}"
-                loaders.append(mr.save(name, gen_morpho))
+                saved = mr.save(name, gen_morpho)
+                loaders.append(saved)
             morphologies = MorphologySet(loaders, indices)
         if not isinstance(morphologies, MorphologySet) and morphologies is not None:
             morphologies = MorphologySet(loaders, morphologies)
