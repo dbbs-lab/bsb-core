@@ -7,12 +7,13 @@ from dataclasses import dataclass
 import numpy as np
 import abc
 import uuid
+from typing import List
 
 
 @dataclass
 class DistributionContext:
     indicator: PlacementIndications
-    partitions: list[Partition]
+    partitions: List[Partition]
 
 
 @config.dynamic(attr_name="strategy", required=True)
