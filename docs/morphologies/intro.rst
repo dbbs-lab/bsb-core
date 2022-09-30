@@ -447,7 +447,7 @@ a :class:`~.morphologies.RotationSet`.
 Distributor configuration
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Each ::guilabel:`placement` block may contain a
+Each :guilabel:`placement` block may contain a
 :class:`~.placement.distributor.DistributorsNode`, which can specify the morphology and/or
 rotation distributors, and any other property distributor:
 
@@ -481,22 +481,48 @@ Distributor interface
 
 The generic interface has a single function: ``distribute(positions, context)``. The
 ``context`` contains ``.partitions`` and ``.indicator`` for additional placement context.
-The distributor must return a dataset of (Nx1) floats to be stored as additional data on
-the cell type.
+The distributor must return a dataset of N floats, where N is the number of ``positions``
+you've been given, so that it can be stored as an additional property on the cell type.
 
 The morphology distributors have a slightly different interface, and receive an additional
 ``morphologies`` argument: ``distribute(positions, morphologies, context)``. The
-morphologies are a list of :class:`~.storage.interface.StoredMorphology`, that the user
-has configured to use for the cell type under consideration. These morphologies can be
-considered the  *templates* for distribution. The morphology distributor is supposed to
-return an array of N integers, where each integer refers to an index in the list of
-morphologies. e.g.: there are 3 morphologies and 10 cells; the distributor assign the 2nd
-morphology to all cells except the last: ``[1, 1, 1, 1, 1, 1, 1, 1, 1, 0]``, the last cell
-is assigned the first morphology.
+morphologies are a list of :class:`~.storage.interfaces.StoredMorphology`, that the user
+has configured to use for the cell type under consideration and that the distributor
+should consider the input, or template morphologies for the operation.
 
-Morphology distributors are also allowed to return their own
-:class:`~.morphologies.MorphologySet`. Doing so allows you to assign cells to completely
-different morphologies than those handed to you.
+The morphology distributor is supposed to return an array of N integers, where each
+integer refers to an index in the list of morphologies. e.g.: if there are 3 morphologies,
+putting a ``0`` on the n-th index means that cell N will be assigned morphology ``0``
+(which is the first morphology in the list). ``1`` and ``2`` refer to the 2nd and 3rd
+morphology, and returning any other values would be an error.
+
+If you need to break out of the morphologies that were handed to you, morphology
+distributors are also allowed to return their own :class:`~.morphologies.MorphologySet`.
+Since you're free to pass any list of morphology loaders to create a morphology set, you
+can put and assign any morphology you like.
+
+.. tip::
+
+  :class:`MorphologySets <.morphologies.MorphologySet>` work on
+  :class:`StoredMorphologies <.storage.interfaces.StoredMorphology>`! This means that it
+  is your job to save the morphologies into your network first, and to use the returned
+  values of the save operation as input to the morphology set:
+
+  .. code-block:: python
+
+    def distribute(self, positions, morphologies, context):
+      # We're ignoring what is given, and make our own morphologies
+      morphologies = [Morphology(...) for p in positions]
+      # If we pass the `morphologies` to the `MorphologySet`, we create an error.
+      # So we save the morphologies, and use the stored morphologies instead.
+      loaders = [
+        self.scaffold.morphologies.save(f"morpho_{i}", m)
+        for i, m in enumerate(morphologies)
+      ]
+      return MorphologySet(loaders, np.arange(len(loaders)))
+
+  This is cumbersome, so if you plan on generating new morphologies, use a `morphology
+  generator`_ instead.
 
 Finally, each morphology distributor is allowed to return an additional argument to assign
 rotations to each cell as well. The return value must be a
@@ -504,40 +530,15 @@ rotations to each cell as well. The return value must be a
 
 .. warning::
 
-	The rotations returned from a morphology distributor may be ignored and replaced by the
+  The rotations returned from a morphology distributor may be ignored and replaced by the
   values of the rotation distributor, if the user configures one.
 
 The following example creates a distributor that selects smaller morphologies the closer
 the position is to the top of the partition:
 
-.. code-block:: python
+.. literalinclude:: /../examples/distributors/space_aware_morphology_distributor.py
+  :language: python
 
-  from bsb.placement.distributor import MorphologyDistributor
-  import numpy as np
-  from scipy.stats.distributions import norm
-
-  class SmallerTopMorphologies(MorphologyDistributor, classmap_entry="small_top"):
-    def distribute(self, positions, morphologies, context):
-      # Get the maximum Y coordinate of all the partitions boundaries
-      top_of_layers = np.maximum([p.data.mdc[1] for p in context.partitions])
-      depths = top_of_layers - positions[:, 1]
-      # Get all the heights of the morphologies, by peeking into the morphology metadata
-      msizes = [
-        loader.get_meta()["mdc"][1] - loader.get_meta()["ldc"][1]
-        for loader in morphologies
-      ]
-      # Pick deeper positions for bigger morphologies.
-      weights = np.column_stack([norm(loc=size, scale=20).pdf(depths) for size in msizes])
-      # The columns are the morphology ids, so make an arr from 0 to n morphologies.
-      picker = np.arange(weights.shape[1])
-      # An array to store the picked weights
-      picked = np.empty(weights.shape[0], dtype=int)
-      rng = np.default_rng()
-      for i, p in enumerate(weights):
-        # Pick a value from 0 to n, based on the weights.
-        picked[i] = rng.choice(picker, p=p)
-      # Return the picked morphologies for each position.
-      return picked
 
 Then, after installing your distributor as a plugin, you can use ``small_top``:
 
@@ -564,6 +565,8 @@ Then, after installing your distributor as a plugin, you can use ``small_top``:
 
     network.placement.placement_A.distribute.morphologies = SmallerTopMorphologies()
 
+.. _morphology generator:
+
 Morphology generators
 ~~~~~~~~~~~~~~~~~~~~~
 
@@ -575,20 +578,8 @@ them. It can also return rotations as a 3rd return value.
 This example is a morphology generator that generates a simple stick that drops down to
 the origin for each position:
 
-.. code-block:: python
-
-  from bsb.placement.distributor import MorphologyGenerator
-  import numpy as np
-  from scipy.stats.distributions import norm
-
-  class TouchTheBottomMorphologies(MorphologyGenerator, classmap_entry="touchdown"):
-    def generate(self, positions, morphologies, context):
-      return [
-        Morphology([
-          Branch([pos, [pos[1], 0, pos[2]]], [1, 1])
-        ])
-        for pos in positions
-      ]
+.. literalinclude:: /../examples/distributors/morphology_generator.py
+  :language: python
 
 Then, after installing your generator as a plugin, you can use ``touchdown``:
 
