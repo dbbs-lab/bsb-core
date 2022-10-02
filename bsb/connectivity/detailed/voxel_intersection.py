@@ -100,7 +100,8 @@ class VoxelIntersection(Intersectional, ConnectionStrategy):
                     locations = self._pick_locations(
                         target, cand, tvoxels, cvoxels, overlap
                     )
-                    data_acc.append(locations)
+                    if locations != ([],[]):
+                        data_acc.append(locations)
 
         # Preallocating and filling is faster than `np.concatenate` :shrugs:
         acc_idx = np.cumsum(
