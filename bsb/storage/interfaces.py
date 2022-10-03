@@ -931,8 +931,7 @@ class _CSIterator:
             lloc[ptr : ptr + len_] = local_
             gloc[ptr : ptr + len_] = global_
             ptr += len_
-        result = lcol, lloc, gcol, gloc
-        yield result
+        return lcol, lloc, gcol, gloc
 
 
 class StoredMorphology:
