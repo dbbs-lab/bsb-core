@@ -126,14 +126,21 @@ class VoxelIntersection(Intersectional, ConnectionStrategy):
         n = int(self.contacts.draw(1))
         if n <= 0:
             return np.empty((0, 3), dtype=int), np.empty((0, 3), dtype=int)
+        cpool = cvoxels.get_data([c for c, _ in overlap])
+        tpool = [tvoxels.get_data(t) for _, t in overlap]
+        pool = np.column_stack(
+            (
+                np.repeat(cpool, [len(t) for t in tpool]),
+                np.array([*ichain(tpool)], dtype=object),
+            )
+        )
+        weights = [len(c) * len(t) for c, t in pool]
         tlocs = []
         clocs = []
-        for i in _rng.integers(len(overlap), size=n):
-            cv, tvs = overlap[i]
-            cpool = cvoxels.get_data(cv)[0]
-            tpool = [*ichain(tvoxels.get_data(tvs).reshape(-1))]
-            tlocs.extend((tid, *t) for t in random.choices(tpool, k=n))
-            clocs.extend((cid, *c) for c in random.choices(cpool, k=n))
+        for tpick, cpick in random.choices(pool, weights, k=n):
+            tlocs.append((tid, *random.choice(tpick)))
+            clocs.append((cid, *random.choice(cpick)))
+        print(tlocs, clocs)
         return tlocs, clocs
 
 
