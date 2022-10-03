@@ -4,6 +4,7 @@ from bsb.core import Scaffold
 from bsb.storage.interfaces import PlacementSet
 from bsb.config import Configuration
 from bsb import core
+from bsb.unittest import RandomStorageFixture
 
 
 class TestCore(unittest.TestCase):
@@ -62,3 +63,15 @@ class TestCore(unittest.TestCase):
         self.assertIsInstance(pslist, list, "should get list of PS")
         self.assertEqual(1, len(pslist), "should have one PS per cell type")
         self.assertIsInstance(pslist[0], PlacementSet, "elements should be PS")
+
+
+class TestProfiling(RandomStorageFixture, unittest.TestCase, engine_name="hdf5"):
+    def setUp(self):
+        super().setUp()
+        self.netw = Scaffold(Configuration.default(), storage=self.storage)
+
+    def test_profiling(self):
+        import bsb.options
+
+        bsb.options.profiling = True
+        self.netw.compile()

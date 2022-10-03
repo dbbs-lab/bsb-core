@@ -79,6 +79,7 @@ setuptools.setup(
             "sudo = bsb._options:sudo",
             "version = bsb._options:version",
             "config = bsb._options:config",
+            "profiling = bsb._options:profiling",
         ],
     },
     python_requires="~=3.8",

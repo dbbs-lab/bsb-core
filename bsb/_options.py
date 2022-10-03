@@ -86,6 +86,28 @@ class ConfigOption(
         return "network_configuration.json"
 
 
+class ProfilingOption(
+    BsbOption,
+    name="profiling",
+    cli=("pr", "profiling"),
+    project=("profiling",),
+    script=("profiling",),
+    env=("BSB_PROFILING",),
+):
+    """
+    Enables profiling.
+    """
+
+    def setter(self, value):
+        return bool(value)
+
+    def getter(self, value):
+        return bool(value)
+
+    def get_default(self):
+        return False
+
+
 def verbosity():
     return VerbosityOption
 
@@ -100,3 +122,7 @@ def sudo():
 
 def config():
     return ConfigOption
+
+
+def profiling():
+    return ProfilingOption
