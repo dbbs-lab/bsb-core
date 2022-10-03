@@ -137,10 +137,9 @@ class VoxelIntersection(Intersectional, ConnectionStrategy):
         weights = [len(c) * len(t) for c, t in pool]
         tlocs = []
         clocs = []
-        for tpick, cpick in random.choices(pool, weights, k=n):
-            tlocs.append((tid, *random.choice(tpick)))
+        for cpick, tpick in random.choices(pool, weights, k=n):
             clocs.append((cid, *random.choice(cpick)))
-        print(tlocs, clocs)
+            tlocs.append((tid, *random.choice(tpick)))
         return tlocs, clocs
 
 
