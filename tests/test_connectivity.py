@@ -520,13 +520,21 @@ class TestVoxelIntersection(
             mC = Morphology(
                 [
                     Branch(
-                        [
-                            [0, 0, 0],
-                            [0, 25, 25],
-                            [25, 0, 0],
-                            [50, 0, 0],
-                        ],
-                        [1] * 4,
+                        (
+                            b := [
+                                [0, 0, 0],
+                                [0, 25, 25],
+                                [25, 0, 0],
+                                [50, 0, 0],
+                                [75, 0, 0],
+                                [100, 0, 0],
+                                [125, 0, 0],
+                                [150, 0, 0],
+                                [175, 0, 0],
+                                [200, 0, 0],
+                            ]
+                        ),
+                        [1] * len(b),
                     )
                 ]
             )
@@ -580,3 +588,45 @@ class TestVoxelIntersection(
         self.assertEqual(1, len(pre_locs), "expected 1 connection")
         if not (pre_locs[0].tolist() == [0, 0, 3] and post_locs[0].tolist() == [0, 0, 3]):
             self.fail("expected touching morphologies at their tips in (0,3), (0,3)")
+
+    def test_contacts(self):
+        mB = Morphology(
+            [
+                Branch(
+                    [
+                        [0, 0, 0],
+                        [0, 0, 100],
+                        [0, 100, 100],
+                        [0, 100, 0],
+                        [0, 0, 0],
+                        [100, 0, 0],
+                        [200, 0, 0],
+                    ],
+                    [1] * 7,
+                )
+            ]
+        )
+        self.network.morphologies.save("B", mB, overwrite=True)
+        self.network.connectivity.intersect.contacts = 1
+        self.network.placement.fixed_pos_A.positions = [[0, 0, 0]]
+        self.network.placement.fixed_pos_B.positions = [[0, 0, 0]]
+        self.network.cell_types.test_cell_A.spatial.morphologies[0].names = ["C"]
+        self.network.compile()
+        conns = len(self.network.get_connectivity_set("test_cell_A_to_test_cell_B"))
+        self.assertGreater(conns, 0, "no connections formed")
+        self.network.connectivity.intersect.contacts = 2
+        self.network.compile(clear=True)
+        new_conns = len(self.network.get_connectivity_set("test_cell_A_to_test_cell_B"))
+        self.assertEqual(conns * 2, new_conns, "Expected double contacts")
+
+    def test_zero_contacts(self):
+        self.network.connectivity.intersect.contacts = 0
+        self.network.placement.fixed_pos_B.positions = [[100, 0, 0]]
+        self.network.cell_types.test_cell_A.spatial.morphologies[0].names = ["C"]
+        self.network.compile()
+        conns = len(self.network.get_connectivity_set("test_cell_A_to_test_cell_B"))
+        self.assertEqual(0, conns, "expected no contacts")
+        self.network.connectivity.intersect.contacts = -3
+        self.network.compile(clear=True)
+        conns = len(self.network.get_connectivity_set("test_cell_A_to_test_cell_B"))
+        self.assertEqual(0, conns, "expected no contacts")
