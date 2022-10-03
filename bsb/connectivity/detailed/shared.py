@@ -1,9 +1,9 @@
 from itertools import chain
-from functools import reduce, cache
+from functools import cache
 import numpy as np
 from ...storage import Chunk
 from ...reporting import warn
-from ...exceptions import *
+from ...exceptions import ConnectivityWarning
 
 
 class Intersectional:

@@ -302,14 +302,14 @@ class Scaffold:
                     + " what to do with existing data."
                 )
             if clear:
-                print("Clearing data")
+                report("Clearing data", level=2)
                 self.clear_placement()
                 self.clear_connectivity()
             elif redo:
                 # In order to properly redo things, we clear some placement and connection
                 # data, but since multiple placement/connection strategies can contribute
                 # to the same sets we might be wiping their data too, and they will need
-                # to be cleared and reran as well, might cause a large chain reaction.
+                # to be cleared and reran as well.
                 p_strats, c_strats = self._redo_chain(p_strats, c_strats, skip, force)
             # else:
             #   append mode is luckily simpler, just don't clear anything :)
