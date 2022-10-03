@@ -442,7 +442,7 @@ class SubTree:
             points = np.ones(len(self), dtype=bool)
         points = np.array(points, copy=False)
         if self._is_shared:
-            self._labels.label(labels, points)
+            self.labels.label(labels, points)
         else:
             if len(points) == len(self) and points.dtype == bool:
                 ctr = 0
@@ -705,12 +705,27 @@ class Morphology(SubTree):
         self.optimize()
         return self._shared._labels.labels
 
+    def list_labels(self):
+        """
+        Return a list of labels present on the morphology.
+        """
+        self.optimize()
+        return sorted(set(_gutil.ichain(self._shared._labels.labels.values())))
+
     def set_label_filter(self, labels):
         """
         Set a label filter, so that `as_filtered` returns copies filtered by these labels.
         """
         self._filter = labels
         return self
+
+    def get_label_mask(self, labels):
+        """
+        Get a mask corresponding to all the points labelled with 1 or more of the given
+        labels
+        """
+        self.optimize()
+        return self.labels.get_mask(labels)
 
     def copy(self):
         """
