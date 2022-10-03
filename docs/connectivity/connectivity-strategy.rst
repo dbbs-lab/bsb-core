@@ -24,7 +24,6 @@ In the case in which more than 40 cells meet the conditions, we take the 40 clos
         }
       }
 
-
 The prototype of a custom connection strategy is the following:
 
 .. code-block:: python
@@ -40,28 +39,40 @@ The prototype of a custom connection strategy is the following:
   class ConnectomeGolgiGranule(ConnectionStrategy):
     
     def get_region_of_interest(self, chunk):
-      #For a given chunk this method returns a list of chunks in which to look for presynaptic cells 
-
+      #For a given chunk this method returns a list of chunks in which to look for postsynaptic cells. 
 
     def connect(self, pre, post):
       #Here goes the code that selects the cells to connect
       #The information about the connections to be formed are stored
       #in two matrices to be passed to the connect connect_cells method,
-      #to be called at the end.  
+      #to be called at the end. 
 
 .. note::
   Due to performance and memory reasons, the connections are not formed processing the whole simulation volume at once, since it would require a lot of memory, time and computational power. Instead, the volume is divided in chunks, which may be processed in parallel to further speed up the creation of the connectome, and the connections are formed on a chunk by chunk basis. This step is handles by the :meth:`~.bsb.connectivity.strategy.ConnectionStrategy.queue` method of the base class :class:`~bsb.connectivity.strategy.ConnectionStrategy` : The user writing a custom connection strategy does not need to care about the subdivision in chucks, since it is handled automatically by the framework. 
 
-get_region_of_interest
-=========================
+.. note::
+  By default a single presyptic-chunk is associated with many post-synaptic chunks individuated by get_region_of_interest. Therefore, the argument post contains the data about the postsynaptic cells in the chunks inside the region of interest (ROI), while pre contains data about the presynaptic cells of a single chunk. 
+  However, when writing a custom connection strategy it may be useful to do the opposite, namely to associate a single post-synaptic chunk to many pre-synaptic chunks, an example being the connection between mossy fibers and glomeruli, for which we need to make sure that each glomerulus is associated to one and only one mossy fiber. 
+  This can be done overriding the function :meth:`~.bsb.connectivity.strategy.ConnectionStrategy._get_connect_args_from_job`, from which the arguments pre and post of the connect method connect come from. 
+  To do so, it is enough to add the following code to the prototype above.
+
+  .. code-block:: python
+  
+    def _get_connect_args_from_job(self, chunk, roi):
+          pre = HemitypeCollection(self.presynaptic, roi)
+          post = HemitypeCollection(self.postsynaptic, [chunk])
+          return pre, post
+
+get_region_of_interest method
+-----------------------------
 
 Arguments: a chunk containing the postsynaptic cells.
-The goal of this method is to find all the chunks in the simulation volume containing all the possibile the presynaptic cells of the all the postsynaptic cells in the chunk given as argument.
+The goal of this method is to find all the chunks in the simulation volume containing all the possibile the postsynaptic cells of the presynaptic cells in the chunk given as argument.
 
-connect
-=========================
+connect method
+--------------
 
-Arguments: ``pre`` and ``post`` are ConnectionCollections relative to the region of interest.
+Arguments: ``pre`` and ``post`` are ConnectionCollections. By default post contains the data about the postsynaptic cells in the region of interest individuated by  :meth:`~.bsb.connectivity.strategy.ConnectionStrategy.get_region_of_interest`.
 
 .. note::
   The user does not need to call :meth:`~.bsb.connectivity.strategy.ConnectionStrategy.get_region_of_interest` inside the connect method, since it's automatically called in the :meth:`~.bsb.connectivity.strategy.ConnectionStrategy.queue` method of the base class :class:`~bsb.connectivity.strategy.ConnectionStrategy`.
@@ -121,9 +132,8 @@ Furthermore, the connection begins at the point with id 3 on the branch whose id
 .. note::
   If the exact location of a synaptic connection is not needed, then in both src_locs and dest_locs the indices of the branches and of the point on the branch can be set to -1.
 
-
 Use case 1 : Connect point-like cells 
-========================================
+=====================================
 Suppose we want to connect Golgi cells and granule cells, without storing information about the exact positions of the synapses (we may want to consider cells as point-like objects, as in NEST).
 We want to write a class called ConnectomeGolgiGranule that connects a Golgi cell to a granule cell if their distance is less than 100 micrometers, see the configuration block above. 
 
@@ -162,7 +172,7 @@ Such cells are contained for sure in the chunks which are less than 50 micromete
                 selected_chunks.append(Chunk([c[0], c[1], c[2]], chunk.dimensions))
         return selected_chunks
     
-Finally we are ready to call the connect method. 
+Finally we are ready to write the connect method. 
 
 .. code-block:: python
 
@@ -223,10 +233,28 @@ Finally we are ready to call the connect method.
         #calling the connect_cells method.
         connect_cells(pre_set, post_set, src_locs, dest_locs)
 
-Use case 2 : Detailed connections 
-=================================
+Use case 2 : Connection between a detailed cell and a point-like cell. 
+======================================================================
 
-If we have a detailed morphology of the pre and post synaptic cells we can specify where to form the connection. Suppose we want to connect Golgi cells to glomeruli specifying the position of the connection on the Golgi cell axon. In this example we form a connection on the closest point to a glomerulus.
+If we have a detailed morphology of the pre or post synaptic cells we can specify where to form the connection. Suppose we want to connect Golgi cells to glomeruli specifying the position of the connection on the Golgi cell axon. In this example we form a connection on the closest point to a glomerulus.
+First, we need to specify the neurites where we want to form a synapse in the configuration file, using the "morphology_labels" tag. 
+
+.. code-block:: json
+  
+  "golgi_to_granule": {
+        "strategy": "cerebellum.connectome.golgi_granule.ConnectomeGolgiGranule",
+        "radius": 100,
+        "convergence": 40,
+        "presynaptic": {
+          "cell_types": ["glomerulus"]
+        },
+        "postsynaptic": {
+          "cell_types": ["golgi_cell"],
+          "morphology_labels" : ["basal_dendrites"]
+        }
+      }
+
+The :meth:`~.bsb.connectivity.strategy.ConnectionStrategy.get_region_of_interest` is analogous to the previous example, so we focus only on the :meth:`~.bsb.connectivity.strategy.ConnectionStrategy.connect` method.
 
 .. code-block:: python
 
@@ -250,47 +278,84 @@ If we have a detailed morphology of the pre and post synaptic cells we can speci
         n_conn = n_glomeruli * n_golgi
         # We define two arrays of length n_conn to store the connections to be made,
         # even if we will not use all the entries of arrays, for the sake of speed.
-        # We keep track of how many entries, namely how many connection, we need the variable ptr.
+        # We keep track of how many entries, namely how many connection, by means of the variable ptr.
         pre_locs = np.full((n_conn, 3), -1, dtype=int)
         post_locs = np.full((n_conn, 3), -1, dtype=int)
         ptr = 0
-        
-        #We get all the branches of the Golgi cell axon
-        axon_branches = pre_ct.get_morphologies()[0].load().get_branches(labels=["axon"])
-        #Get the id of the branches
-        branches_id = []
-        for ax in axon_branches:
-          for i,b in enumerate(pre_ct.get_morphologies()[0].load().branches):
-            if (ax==b):
-              branches_id.append(i)
-        
-      	GET THE ID OF THE POINTS
       
-        #We select the cells to connect according to our connection rule.
-        for i, golgi in enumerate(golgi_pos):
-          #We compute the distance between the current Golgi cell and all the granule cells
-          dist = np.sqrt(
-                      np.power(golgi[0] - glomeruli_pos[0], 2)
-                      + np.power(golgi[1] - glomeruli_pos[1], 2)
-                      + np.power(golgi[2] - glomeruli_pos[2], 2)
-                  )
+        #Cache morphologies and generate the morphologies iterator.
+        morpho_set = post_ps.load_morphologies()
+        golgi_morphos = morpho_set.iter_morphologies(cache=True, hard_cache=True)
+        
+        #Loop through all the Golgi cells
+        for i, golgi, morpho in zip(itertools.count(), golgi_pos, golgi_morphos):
+            
+            #We compute the distance between the current Golgi cell and all the glomeruli,
+            #then select the good ones.
+            dist = np.sqrt(
+                np.power(golgi[0] - glomeruli_pos[:, 0], 2)
+                + np.power(golgi[1] - glomeruli_pos[:, 1], 2)
+                + np.power(golgi[2] - glomeruli_pos[:, 2], 2)
+            )
+            
+            to_connect_bool = dist < self.radius
+            to_connect_idx = np.nonzero(to_connect_bool)[0]
+            connected_gloms = len(to_connect_idx)
+            
+            #We assign the indices of the Golgi cell and the granule cells to connect 
+            pre_locs[ptr : (ptr + connected_gloms), 0] = to_connect_idx
+            post_locs[ptr : (ptr + connected_gloms), 0] = i
+           
+            #Get the branches corresponding to basal dendrites.
+            #morpho contains only the branches tagged as specified 
+            #in the configuration file.
+            basal_dendrides_branches = morpho.get_branches()
+            
+            #Get the starting branch id of the denridic branches
+            first_dendride_id = morpho.branches.index(basal_dendrides_branches[0])
+            
+            #Find terminal points on branches
+            terminal_ids = np.full(len(basal_dendrides_branches), 0, dtype=int)
+            for i,b in enumerate(basal_dendrides_branches):
+                if b.is_terminal:
+                    terminal_ids[i] = 1
+            terminal_branches_ids = np.nonzero(terminal_ids)[0]
 
-          TO BE WRITTEN
-          
-          
+            #Keep only terminal branches
+            basal_dendrides_branches = np.take(basal_dendrides_branches, terminal_branches_ids, axis=0)
+            terminal_branches_ids = terminal_branches_ids + first_dendride_id
 
-        #Now we connect the cells according to the information stored in src_locs and dest_locs.
-        connect_cells(pre_set, post_set, src_locs, dest_locs)
+            #Find the point-on-branch ids of the tips
+            tips_coordinates = np.full((len(basal_dendrides_branches),3), 0, dtype=float)
+            for i,branch in enumerate(basal_dendrides_branches):
+                tips_coordinates[i] = branch.points[-1]
 
+            #Choose randomly the branch where the synapse is made
+            #favouring the branches closer to the glomerulus.
+            rolls = exp_dist.rvs(size=len(basal_dendrides_branches))
+            
+            # Compute the distance between terminal points of basal dendrites 
+            # and the soma of the avaiable glomeruli
+            for id_g,glom_p in enumerate(glomeruli_pos):
+                pts_dist = np.sqrt(np.power(tips_coordinates[:,0] + golgi[0] - glom_p[0], 2)
+                        + np.power(tips_coordinates[:,1] + golgi[1] - glom_p[1], 2)
+                        + np.power(tips_coordinates[:,2] + golgi[2] - glom_p[2], 2)
+                    )
 
-Use case 3 : Connections to basal and apical dendrites 
-======================================================
+                sorted_pts_ids = np.argsort(pts_dist)
+                # Pick the point in which we form a synapse according to a exponential distribution mapped
+                # through the distance indices: high chance to pick closeby points.
+                pt_idx = sorted_pts_ids[int(len(basal_dendrides_branches)*rolls[np.random.randint(0,len(rolls))])]
 
-Suppose now to consider a cell that can form connections with both the apical and the basal dendrites of the Golgi cells. It may be useful to distinguish the two type of connections using a tag.
+                #The id of the branch is the id of the terminal_branches plus the id of the first dendritic branch
+                post_locs[ptr+id_g,1] = terminal_branches_ids[pt_idx]
+                #We connect the tip of the branch
+                post_locs[ptr+id_g,2] = len(basal_dendrides_branches[pt_idx].points)-1
+            ptr += connected_gloms
 
-.. code-block:: python
+        #Now we connect the cells
+        self.connect_cells(pre_ps, post_ps, pre_locs[:ptr], post_locs[:ptr])
 
-TO BE WRITTEN
 
 
 
