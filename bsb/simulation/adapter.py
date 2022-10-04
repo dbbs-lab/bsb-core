@@ -17,7 +17,7 @@ class ProgressEvent:
         self.time = time
 
 
-@config.pluggable(key="simulator", plugin_name="simulator adapter")
+@config.pluggable(key="simulator", plugin_name="simulation backend")
 class Simulation:
     duration = config.attr(type=float, required=True)
     cell_models = config.slot(type=CellModel, required=True)
@@ -27,7 +27,7 @@ class Simulation:
     @classmethod
     def __plugins__(cls):
         if not hasattr(cls, "_plugins"):
-            cls._plugins = plugins.discover("adapters")
+            cls._plugins = plugins.discover("simulation_backends")
         return {name: plugin.Simulation for name, plugin in cls._plugins.items()}
 
     def __init__(self):
