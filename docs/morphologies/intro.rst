@@ -185,8 +185,8 @@ Translation
 Centering
 ---------
 
-Subtrees may center themselves so that the point ``(0, 0, 0)`` becomes the geometric mean
-of the roots.
+Subtrees may :meth:`~.morphologies.SubTree.center` themselves so that the point ``(0, 0,
+0)`` becomes the geometric mean of the roots.
 
 .. figure:: /images/m_trans/center.png
   :figclass: only-light
