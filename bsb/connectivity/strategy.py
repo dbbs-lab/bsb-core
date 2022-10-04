@@ -1,7 +1,7 @@
 from .. import config
 from ..config import refs, types
 from .._util import SortableByAfter, obj_str_insert
-from ..reporting import report
+from ..reporting import report, warn
 import abc
 from itertools import chain
 
@@ -112,10 +112,15 @@ class ConnectionStrategy(abc.ABC, SortableByAfter):
             for chunk in from_chunks
             if (roi := self.get_region_of_interest(chunk))
         }
+        if not rois:
+            warn(
+                f"No overlap found between {[pre.name for pre in pre_types]} and "
+                f"{[post.name for post in self.postsynaptic.cell_types]} "
+                f"in '{self.name}'."
+            )
         for chunk, roi in rois.items():
             job = pool.queue_connectivity(self, chunk, roi, deps=deps)
             self._queued_jobs.append(job)
-
         report(f"Queued {len(self._queued_jobs)} jobs for {self.name}", level=2)
 
     def get_cell_types(self):
