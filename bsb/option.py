@@ -85,7 +85,7 @@ class EnvOptionDescriptor(OptionDescriptor, slug="env"):
 
     def _parse(self, value):
         if self.flag:
-            if value.strip().upper() in ("ON", "TRUE", "1", "YES"):
+            if value is True or str(value).strip().upper() in ("ON", "TRUE", "1", "YES"):
                 return True
             else:
                 return False
@@ -263,19 +263,22 @@ class BsbOption:
 
         :returns: option value
         """
-        if prio is not None:
-            return getattr(self, prio)
+        try:
+            if prio is not None:
+                return getattr(self, prio)
 
-        cls = self.__class__
-        if cls.script.is_set(self):
-            return self.script
-        if cls.cli.is_set(self):
-            return self.cli
-        if cls.project.is_set(self):
-            return self.project
-        if cls.env.is_set(self):
-            return self.env
-        return self.get_default()
+            cls = self.__class__
+            if cls.script.is_set(self):
+                return self.script
+            if cls.cli.is_set(self):
+                return self.cli
+            if cls.project.is_set(self):
+                return self.project
+            if cls.env.is_set(self):
+                return self.env
+            return self.get_default()
+        except Exception as e:
+            print(e)
 
     def get_default(self):
         """

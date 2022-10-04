@@ -100,6 +100,7 @@ setuptools.setup(
             "sphinx_design~=0.2",
             "sphinx-copybutton~=0.5",
             "sphinxext-bsb~=0.0.2",
+            "snakeviz",
         ],
         "arbor": ["arbor~=0.6"],
         "neuron": ["dbbs_models~=2.0.0", "nrn-patch~=3.0.1"],

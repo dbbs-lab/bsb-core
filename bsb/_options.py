@@ -93,12 +93,19 @@ class ProfilingOption(
     project=("profiling",),
     script=("profiling",),
     env=("BSB_PROFILING",),
+    flag=True,
 ):
     """
     Enables profiling.
     """
 
     def setter(self, value):
+        from ._profiling import activate_session, get_active_session
+
+        if value:
+            activate_session()
+        else:
+            get_active_session().stop()
         return bool(value)
 
     def getter(self, value):
