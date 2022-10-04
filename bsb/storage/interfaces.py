@@ -223,7 +223,10 @@ class PlacementSet(Interface):
     @obj_str_insert
     def __repr__(self):
         cell_type = self.cell_type
-        ms = self.load_morphologies()
+        try:
+            ms = self.load_morphologies()
+        except Exception:
+            return f"cell type: '{cell_type.name}'"
         if not len(ms):
             mstr = "without morphologies"
         else:
@@ -346,6 +349,12 @@ class PlacementSet(Interface):
         :rtype: :class:`~.morphologies.MorphologySet`
         """
         pass
+
+    def count_morphologies(self):
+        """
+        Must return the number of different morphologies used in the set.
+        """
+        return self.load_morphologies(allow_empty=True).count_morphologies()
 
     @abc.abstractmethod
     def __iter__(self):
@@ -482,6 +491,7 @@ class PlacementSet(Interface):
         :returns: An iterator with 6 coordinates per cell: 3 min and 3 max coords, the
           bounding box of that cell's translated and rotated morphology.
         :rtype: Iterator[Tuple[float, float, float, float, float, float]]
+        :raises: DatasetNotFoundError if no morphologies are found.
         """
         if morpho_cache is None:
             mset = self.load_morphologies()
@@ -515,7 +525,7 @@ class PlacementSet(Interface):
         return BoxTree(list(self.load_boxes(morpho_cache=morpho_cache)))
 
     def _requires_morpho_mapping(self):
-        return self._morphology_labels is not None
+        return self._morphology_labels is not None and self.count_morphologies()
 
     def _morpho_backmap(self, locs):
         locs = locs.copy()
@@ -691,7 +701,7 @@ class MorphologyRepository(Interface, engine_key="morphologies"):
         """
         List all the names of the morphologies in the repository.
         """
-        return [l.name for l in self.all()]
+        return [loader.name for loader in self.all()]
 
 
 class ConnectivitySet(Interface):
@@ -921,7 +931,7 @@ class _CSIterator:
             gchunks.append(gchunk)
             locals_.append(data[0])
             globals_.append(data[1])
-        lens = [len(l) for l in locals_]
+        lens = [len(lcl) for lcl in locals_]
         lcol = np.repeat([c.id for c in lchunks], lens)
         gcol = np.repeat([c.id for c in gchunks], lens)
         lloc = np.empty((sum(lens), 3), dtype=int)
@@ -960,3 +970,10 @@ class StoredMorphology:
     @functools.cache
     def _cached_load(self, labels):
         return self.load().set_label_filter(labels).as_filtered()
+
+
+class GeneratedMorphology(StoredMorphology):
+    def __init__(self, name, generated, meta):
+        self.name = name
+        self._loader = lambda: generated
+        self._meta = meta

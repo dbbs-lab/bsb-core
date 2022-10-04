@@ -217,10 +217,8 @@ class TestPlacementSet(
     def test_load_no_morphologies(self):
         self.network.compile()
         ps = self.network.get_placement_set("test_cell")
-        ms = ps.load_morphologies()
-        # Define final behaviour in #552, for now, just confirm that no data sneaks in.
-        self.assertIsInstance(ms, MorphologySet, "missing data should still be MS")
-        self.assertEqual(0, len(ms), "there should not be morphology data")
+        with self.assertRaises(DatasetNotFoundError, msg="missing morphos should raise"):
+            ps.load_morphologies()
 
     def test_load_morphologies(self):
         self.network.cell_types.test_cell.spatial.morphologies.append(
@@ -232,7 +230,8 @@ class TestPlacementSet(
         self.network.morphologies.save("test_cell_B", mB, overwrite=True)
         for i in range(10):
             ps = self.network.get_placement_set("test_cell")
-            ms = ps.load_morphologies()
+            with self.assertRaises(DatasetNotFoundError, msg="no morphos yet -> raise"):
+                ps.load_morphologies()
             self.network.compile(clear=True)
             ps = self.network.get_placement_set("test_cell")
             ms = ps.load_morphologies()

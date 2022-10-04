@@ -11,10 +11,7 @@ from ..exceptions import (
 )
 from ..reporting import warn
 from ._hooks import overrides
-from functools import wraps
 from re import sub
-import re
-import itertools
 import warnings
 import errr
 import importlib
@@ -38,6 +35,7 @@ def make_metaclass(cls):
     # and keep the object reference that the user gives them
     class ConfigArgRewrite:
         def __call__(meta_subject, *args, _parent=None, _key=None, **kwargs):
+            has_own_init = overrides(meta_subject, "__init__", mro=True)
             # Rewrite the arguments
             primer = args[0] if args else None
             if isinstance(primer, meta_subject):
@@ -48,6 +46,12 @@ def make_metaclass(cls):
                 primed = primer.copy()
                 primed.update(kwargs)
                 kwargs = primed
+            elif primer is not None and not has_own_init:
+                # If we're dealing with a typical config node, the primer should be a dict
+                # or already precast node. If it is not, we consider it invalid input,
+                # unless the user has specified its own `__init__` function and will deal
+                # with the input arguments there.
+                raise ValueError(f"Unexpected positional argument '{primer}'")
             # Call the base class's new with internal arguments
             instance = meta_subject.__new__(
                 meta_subject, _parent=_parent, _key=_key, **kwargs
@@ -194,16 +198,10 @@ def compile_postnew(cls, root=False):
                 if value is None and attr.required(kwargs):
                     raise RequirementError(f"Missing required attribute '{name}'")
             except RequirementError as e:
-                if name == getattr(self.__class__, "_config_dynamic_attr", None):
-                    # If the dynamic attribute errors in `__post_new__` the constructor of
-                    # a non dynamic child class was called, and the dynamic attribute is
-                    # no longer required, so silence the error and continue.
-                    pass
-                else:
-                    # Catch both our own and possible `attr.required` RequirementErrors
-                    # and set the node detail before passing it on
-                    e.node = self
-                    raise
+                # Catch both our own and possible `attr.required` RequirementErrors
+                # and set the node detail before passing it on
+                e.node = self
+                raise
         for attr in attrs.values():
             name = attr.attr_name
             if attr.key and attr.attr_name not in kwargs:
@@ -273,9 +271,9 @@ def _bubble_up_warnings(log):
         if hasattr(m, "node"):
             # Unpack the inner Warning that was passed instead of the warning msg
             attr = f".{m.attr.attr_name}" if hasattr(m, "attr") else ""
-            warn(str(m) + " in " + m.node.get_node_name() + attr, type(m))
+            warn(str(m) + " in " + m.node.get_node_name() + attr, type(m), stacklevel=4)
         else:
-            warn(str(m), w.category)
+            warn(str(m), w.category, stacklevel=4)
 
 
 def _get_class_config_attrs(cls):
@@ -296,7 +294,7 @@ def _get_node_name(self):
         name = "." + str(self._config_key)
     if hasattr(self, "_config_index"):
         if self._config_index is None:
-            name = "{removed}"
+            return "{removed}"
         else:
             name = "[" + str(self._config_index) + "]"
     return self._config_parent.get_node_name() + name
@@ -335,6 +333,8 @@ def _try_catch(catch, node, key, value):
 
 
 def _get_dynamic_class(node_cls, kwargs):
+    if node_cls is not node_cls._config_dynamic_root:
+        return node_cls
     attr_name = node_cls._config_dynamic_attr
     dynamic_attr = getattr(node_cls, attr_name)
     if attr_name in kwargs:
@@ -347,9 +347,10 @@ def _get_dynamic_class(node_cls, kwargs):
         loaded_cls_name = dynamic_attr.default
     module_path = ["__main__", node_cls.__module__]
     classmap = getattr(node_cls, "_config_dynamic_classmap", None)
+    interface = getattr(node_cls, "_config_dynamic_root")
     try:
         dynamic_cls = _load_class(
-            loaded_cls_name, module_path, interface=node_cls, classmap=classmap
+            loaded_cls_name, module_path, interface=interface, classmap=classmap
         )
     except DynamicClassInheritanceError:
         mapped_class_msg = _get_mapped_class_msg(loaded_cls_name, classmap)

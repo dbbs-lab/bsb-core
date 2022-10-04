@@ -1,25 +1,39 @@
-import unittest, os, sys, numpy as np, h5py, json, string, random
-
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
-from bsb.exceptions import *
+import unittest
+from bsb.exceptions import DistributorError, DatasetNotFoundError, EmptySelectionError
 from bsb.core import Scaffold
-from bsb.cell_types import CellType
-from bsb.config import from_json, Configuration
-from bsb.morphologies.selector import NameSelector
-from bsb.placement.distributor import MorphologyDistributor
+from bsb.config import Configuration
 from bsb.unittest import skip_parallel
+from bsb.placement.distributor import MorphologyDistributor, MorphologyGenerator
+from bsb.morphologies import Morphology
+
+
+class OneNoneDistributor(MorphologyDistributor):
+    def distribute(self, *args):
+        return None
+
+
+class TupleNoneDistributor(MorphologyDistributor):
+    def distribute(self, *args):
+        return None, None
+
+
+class SameEmptyGenerator(MorphologyGenerator):
+    def generate(self, pos, loaders, context):
+        return [Morphology.empty()] * len(pos)
+
+
+class ManyEmptyGenerator(MorphologyGenerator):
+    def generate(self, pos, loaders, context):
+        return [Morphology.empty() for _ in range(len(pos))]
 
 
 class TestMorphologyDistributor(unittest.TestCase):
-    @skip_parallel
-    # Errors during parallel jobs cause MPI_Abort, untestable scenario.
-    def test_empty_selection(self):
-        cfg = Configuration.default(
+    def setUp(self):
+        self.cfg = Configuration.default(
             regions=dict(reg=dict(children=["a"])),
             partitions=dict(a=dict(thickness=100)),
             cell_types=dict(
-                a=dict(spatial=dict(radius=2, density=1e-3, morphologies=[{"names": []}]))
+                a=dict(spatial=dict(radius=2, density=1e-4, morphologies=[{"names": []}]))
             ),
             placement=dict(
                 a=dict(
@@ -29,6 +43,51 @@ class TestMorphologyDistributor(unittest.TestCase):
                 )
             ),
         )
-        netw = Scaffold(cfg)
+        self.netw = Scaffold(self.cfg)
+
+    @skip_parallel
+    # Errors during parallel jobs cause MPI_Abort, untestable scenario.
+    def test_empty_selection(self):
         with self.assertRaisesRegex(DistributorError, "NameSelector"):
-            netw.compile(append=True)
+            self.netw.compile(append=True)
+
+    @skip_parallel
+    # Errors during parallel jobs cause MPI_Abort, untestable scenario.
+    def test_none_returns(self):
+        self.netw.morphologies.save("bs", Morphology.empty(), overwrite=True)
+        self.netw.cell_types.a.spatial.morphologies = [{"names": ["*"]}]
+        self.netw.placement.a.distribute.morphologies = OneNoneDistributor()
+        self.netw.compile(append=True)
+        ps = self.netw.get_placement_set("a")
+        self.assertTrue(len(ps) > 0, "should've still placed cells")
+        with self.assertRaises(DatasetNotFoundError, msg="shouldnt have morphos"):
+            ps.load_morphologies()
+        self.netw.placement.a.distribute.morphologies = TupleNoneDistributor()
+        self.netw.compile(append=True)
+        self.assertTrue(len(ps) > 0, "should've still placed cells")
+        with self.assertRaises(DatasetNotFoundError, msg="shouldnt have morphos"):
+            ps.load_morphologies()
+
+    def test_same_generators(self):
+        self.netw.placement.a.distribute.morphologies = SameEmptyGenerator()
+        self.netw.compile()
+        ps = self.netw.get_placement_set("a")
+        ms = ps.load_morphologies()
+        morphologies = list(ms.iter_morphologies(unique=True))
+        self.assertEqual(len(ps), len(ms), "equal data")
+        self.assertEqual(
+            len(ps.get_loaded_chunks()),
+            len(morphologies),
+            "expected each chunk to generate 1 unique empty morphology",
+        )
+
+    def test_many_generators(self):
+        self.netw.placement.a.distribute.morphologies = ManyEmptyGenerator()
+        self.netw.compile()
+        ps = self.netw.get_placement_set("a")
+        ms = ps.load_morphologies()
+        morphologies = list(ms.iter_morphologies(unique=True))
+        self.assertEqual(len(ps), len(ms), "equal data")
+        self.assertEqual(
+            len(ps), len(morphologies), "expected 1 unique morphology per cell"
+        )

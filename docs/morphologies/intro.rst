@@ -374,6 +374,9 @@ selection. Both methods are handed :class:`~.storage.interfaces.StoredMorphology
 Only :meth:`~.storage.interfaces.StoredMorphology.load` morphologies if it is impossible
 to determine the outcome from the metadata alone.
 
+The following example creates a morphology selector selects morphologies based on the
+presence of a user defined metadata ``"size"``:
+
 .. code-block:: python
 
   from bsb.cell_types import MorphologySelector
@@ -392,20 +395,29 @@ to determine the outcome from the metadata alone.
       meta = morpho.get_meta()
       return meta["size"] > self.min_size and meta["size"] < self.max_size
 
-.. code-block:: json
+After installing your morphology selector as a plugin, you can use ``by_size`` as
+selector:
 
-  {
-    "cell_type_A": {
-      "spatial": {
-        "morphologies": [
-          {
-            "select": "by_size",
-            "min_size": 35
-          }
-        ]
+.. tab-set-code::
+
+  .. code-block:: json
+
+    {
+      "cell_type_A": {
+        "spatial": {
+          "morphologies": [
+            {
+              "select": "by_size",
+              "min_size": 35
+            }
+          ]
+        }
       }
     }
-  }
+
+  .. code-block:: python
+
+    network.cell_types.cell_type_A.spatial.morphologies = [MySizeSelector(min_size=35)]
 
 Morphology metadata
 -------------------
@@ -432,6 +444,167 @@ a :class:`~.morphologies.RotationSet`.
 	:class:`~.placement.distributor.RotationDistributor` is defined for the same placement
 	block.
 
+Distributor configuration
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Each :guilabel:`placement` block may contain a
+:class:`~.placement.distributor.DistributorsNode`, which can specify the morphology and/or
+rotation distributors, and any other property distributor:
+
+.. tab-set-code::
+
+  .. code-block:: json
+
+    {
+      "placement": {
+        "placement_A": {
+          "strategy": "bsb.placement.RandomPlacement",
+          "cell_types": ["cell_A"],
+          "partitions": ["layer_A"],
+          "distribute": {
+            "morphologies": {
+              "strategy": "roundrobin"
+            }
+          }
+        }
+      }
+    }
+
+  .. code-block:: python
+
+    from bsb.placement.distributor import RoundRobinMorphologies
+
+    network.placement.placement_A.distribute.morphologies = RoundRobinMorphologies()
+
+Distributor interface
+~~~~~~~~~~~~~~~~~~~~~
+
+The generic interface has a single function: ``distribute(positions, context)``. The
+``context`` contains ``.partitions`` and ``.indicator`` for additional placement context.
+The distributor must return a dataset of N floats, where N is the number of ``positions``
+you've been given, so that it can be stored as an additional property on the cell type.
+
+The morphology distributors have a slightly different interface, and receive an additional
+``morphologies`` argument: ``distribute(positions, morphologies, context)``. The
+morphologies are a list of :class:`~.storage.interfaces.StoredMorphology`, that the user
+has configured to use for the cell type under consideration and that the distributor
+should consider the input, or template morphologies for the operation.
+
+The morphology distributor is supposed to return an array of N integers, where each
+integer refers to an index in the list of morphologies. e.g.: if there are 3 morphologies,
+putting a ``0`` on the n-th index means that cell N will be assigned morphology ``0``
+(which is the first morphology in the list). ``1`` and ``2`` refer to the 2nd and 3rd
+morphology, and returning any other values would be an error.
+
+If you need to break out of the morphologies that were handed to you, morphology
+distributors are also allowed to return their own :class:`~.morphologies.MorphologySet`.
+Since you're free to pass any list of morphology loaders to create a morphology set, you
+can put and assign any morphology you like.
+
+.. tip::
+
+  :class:`MorphologySets <.morphologies.MorphologySet>` work on
+  :class:`StoredMorphologies <.storage.interfaces.StoredMorphology>`! This means that it
+  is your job to save the morphologies into your network first, and to use the returned
+  values of the save operation as input to the morphology set:
+
+  .. code-block:: python
+
+    def distribute(self, positions, morphologies, context):
+      # We're ignoring what is given, and make our own morphologies
+      morphologies = [Morphology(...) for p in positions]
+      # If we pass the `morphologies` to the `MorphologySet`, we create an error.
+      # So we save the morphologies, and use the stored morphologies instead.
+      loaders = [
+        self.scaffold.morphologies.save(f"morpho_{i}", m)
+        for i, m in enumerate(morphologies)
+      ]
+      return MorphologySet(loaders, np.arange(len(loaders)))
+
+  This is cumbersome, so if you plan on generating new morphologies, use a `morphology
+  generator`_ instead.
+
+Finally, each morphology distributor is allowed to return an additional argument to assign
+rotations to each cell as well. The return value must be a
+:class:`~.morphologies.RotationSet`.
+
+.. warning::
+
+  The rotations returned from a morphology distributor may be ignored and replaced by the
+  values of the rotation distributor, if the user configures one.
+
+The following example creates a distributor that selects smaller morphologies the closer
+the position is to the top of the partition:
+
+.. literalinclude:: /../examples/distributors/space_aware_morphology_distributor.py
+  :language: python
+
+
+Then, after installing your distributor as a plugin, you can use ``small_top``:
+
+.. tab-set-code::
+
+  .. code-block:: json
+
+    {
+      "placement": {
+        "placement_A": {
+          "strategy": "bsb.placement.RandomPlacement",
+          "cell_types": ["cell_A"],
+          "partitions": ["layer_A"],
+          "distribute": {
+            "morphologies": {
+              "strategy": "small_top"
+            }
+          }
+        }
+      }
+    }
+
+  .. code-block:: python
+
+    network.placement.placement_A.distribute.morphologies = SmallerTopMorphologies()
+
+.. _morphology generator:
+
+Morphology generators
+~~~~~~~~~~~~~~~~~~~~~
+
+Continuing on the morphology distributor, one can also make a specialized generator of
+morphologies. The generator takes the same arguments as a distributor, but returns a list
+of :class:`~.morphologies.Morphology` objects, and the morphology indices to make use of
+them. It can also return rotations as a 3rd return value.
+
+This example is a morphology generator that generates a simple stick that drops down to
+the origin for each position:
+
+.. literalinclude:: /../examples/distributors/morphology_generator.py
+  :language: python
+
+Then, after installing your generator as a plugin, you can use ``touchdown``:
+
+.. tab-set-code::
+
+  .. code-block:: json
+
+    {
+      "placement": {
+        "placement_A": {
+          "strategy": "bsb.placement.RandomPlacement",
+          "cell_types": ["cell_A"],
+          "partitions": ["layer_A"],
+          "distribute": {
+            "morphologies": {
+              "strategy": "touchdown"
+            }
+          }
+        }
+      }
+    }
+
+  .. code-block:: python
+
+    network.placement.placement_A.distribute.morphologies = TouchTheBottomMorphologies()
 
 MorphologySets
 --------------

@@ -51,6 +51,8 @@ class ConnectionStrategy(abc.ABC, SortableByAfter):
 
     @obj_str_insert
     def __repr__(self):
+        if not hasattr(self, "scaffold"):
+            return f"'{self.name}'"
         pre = [ct.name for ct in self.presynaptic.cell_types]
         post = [ct.name for ct in self.postsynaptic.cell_types]
         return f"'{self.name}', connecting {pre} to {post}"
