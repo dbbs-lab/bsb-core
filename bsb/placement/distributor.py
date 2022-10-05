@@ -1,5 +1,6 @@
 from .. import config
 from ..exceptions import EmptySelectionError
+from ..profiling import node_meter
 from ..morphologies import MorphologySet
 import numpy as np
 import abc
@@ -10,6 +11,7 @@ class Distributor(abc.ABC):
     def __init_subclass__(cls, **kwargs):
         super(cls, cls).__init_subclass__(**kwargs)
         # Decorate subclasses to measure performance
+        node_meter("distribute")(cls)
 
     @abc.abstractmethod
     def distribute(self, partitions, indicator, positions):
