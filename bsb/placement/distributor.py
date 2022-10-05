@@ -7,6 +7,10 @@ import abc
 
 @config.dynamic(attr_name="strategy", required=True)
 class Distributor(abc.ABC):
+    def __init_subclass__(cls, **kwargs):
+        super(cls, cls).__init_subclass__(**kwargs)
+        # Decorate subclasses to measure performance
+
     @abc.abstractmethod
     def distribute(self, partitions, indicator, positions):
         """
