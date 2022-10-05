@@ -37,7 +37,7 @@ class MorphologySet:
     """
 
     def __init__(self, loaders, m_indices, labels=None):
-        self._m_indices = np.array(m_indices, copy=False)
+        self._m_indices = np.array(m_indices, copy=False, dtype=int)
         self._loaders = loaders
         check_max = np.max(m_indices, initial=-1)
         if check_max >= len(loaders):
@@ -58,6 +58,18 @@ class MorphologySet:
     def __contains__(self, value):
         return value in [loader.name for loader in self._loaders]
 
+    def count_morphologies(self):
+        return len(self._loaders)
+
+    def count_unique(self):
+        uniques = []
+        count = 0
+        for m in (m.load() for m in self._loaders):
+            if not any(f == m for f in uniques):
+                uniques.append(m)
+                count += 1
+        return count
+
     def __len__(self):
         return len(self._m_indices)
 
@@ -66,7 +78,7 @@ class MorphologySet:
 
     @property
     def names(self):
-        return [l.name for l in self._loaders]
+        return [loader.name for loader in self._loaders]
 
     def get_indices(self, copy=True):
         return self._m_indices.copy() if copy else self._m_indices
@@ -615,10 +627,8 @@ class Morphology(SubTree):
     coordinate or other associated data of a point on the branch.
     """
 
-    def __init__(self, roots, meta=None, shared_buffers=None):
-        super().__init__(roots, sanitize=False)
-        if len(self.roots) < len(roots):
-            warn("None-root branches given as morphology input.", MorphologyWarning)
+    def __init__(self, roots, meta=None, shared_buffers=None, sanitize=False):
+        super().__init__(roots, sanitize=sanitize)
         self._meta = meta if meta is not None else {}
         self._filter = None
         if shared_buffers is None:
@@ -726,6 +736,10 @@ class Morphology(SubTree):
         """
         self.optimize()
         return self.labels.get_mask(labels)
+
+    @classmethod
+    def empty(cls):
+        return cls([])
 
     def copy(self):
         """

@@ -94,7 +94,8 @@ def timeout(timeout, abort=False):
                     file=sys.stderr,
                     flush=True,
                 )
-                MPI.abort(1)
+                if MPI.get_size() > 1:
+                    MPI.abort(1)
 
         return timed_f
 

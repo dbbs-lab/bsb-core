@@ -309,6 +309,27 @@ class TestMorphologySet(NumpyTestCase, unittest.TestCase):
         self.assertEqual([], self.sets[0].names, "expected empty names list")
         self.assertEqual(["ello"], self.sets[1].names, "expected matching names list")
 
+    def test_count(self):
+        self.assertEqual(0, self.sets[0].count_morphologies(), "expected no morphologies")
+        self.assertEqual(1, self.sets[1].count_morphologies(), "expected fake loader")
+
+    def test_count_unique(self):
+        self.assertEqual(0, self.sets[0].count_unique(), "expected no unique")
+        self.assertEqual(1, self.sets[1].count_unique(), "expected fake loader")
+        ms = MorphologySet([self._fake_loader("ello")] * 3, [0, 0, 0])
+        self.assertEqual(1, ms.count_unique(), "expected fake loader")
+        ms = MorphologySet(
+            [
+                self._fake_loader("ello"),
+                self._fake_loader("ello"),
+                StoredMorphology(
+                    "oh", lambda: Morphology([Branch([[0, 0, 0]], [0])]), dict()
+                ),
+            ],
+            [0, 0, 0],
+        )
+        self.assertEqual(2, ms.count_unique(), "expected 2 uniques")
+
     def test_oob(self):
         with self.assertRaises(IndexError):
             MorphologySet([self._fake_loader("ello")], [0, 1, 0])
