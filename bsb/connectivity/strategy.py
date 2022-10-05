@@ -1,7 +1,8 @@
 from .. import config
 from ..config import refs, types
-from .._util import SortableByAfter, obj_str_insert
+from ..profiling import node_meter
 from ..reporting import report, warn
+from .._util import SortableByAfter, obj_str_insert
 import abc
 from itertools import chain
 
@@ -49,6 +50,7 @@ class ConnectionStrategy(abc.ABC, SortableByAfter):
     def __init_subclass__(cls, **kwargs):
         super(cls, cls).__init_subclass__(**kwargs)
         # Decorate subclasses to measure performance
+        node_meter("connect")(cls)
 
     def __boot__(self):
         self._queued_jobs = []
