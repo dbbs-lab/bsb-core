@@ -1,14 +1,18 @@
 from .. import config
-from ..exceptions import *
+from ..exceptions import (
+    EmptySelectionError,
+    DistributorError,
+    MissingSourceError,
+    SourceQualityError,
+)
 from ..profiling import node_meter
 from ..reporting import report, warn
 from ..config import refs, types
 from .._util import SortableByAfter, obj_str_insert
 from ..voxels import VoxelSet
-from ..morphologies import MorphologySet
 from ..storage import Chunk
 from .indicator import PlacementIndications, PlacementIndicator
-from .distributor import DistributorsNode
+from .distributor import DistributorsNode, Implicit
 import numpy as np
 import itertools
 import abc
@@ -41,7 +45,6 @@ class PlacementStrategy(abc.ABC, SortableByAfter):
     @obj_str_insert
     def __repr__(self):
         config_name = self.name
-        strategy_name = self.strategy
         part_str = ""
         if len(self.partitions):
             partition_names = [p.name for p in self.partitions]
@@ -92,7 +95,7 @@ class PlacementStrategy(abc.ABC, SortableByAfter):
         else:
             morphologies, rotations = None, None
 
-        additional = {prop: curry(prop) for prop in self.distribute.properties.keys()}
+        additional = {prop: distr_(prop) for prop in self.distribute.properties.keys()}
         self.scaffold.place_cells(
             indicator.cell_type,
             positions=positions,
@@ -161,7 +164,6 @@ class FixedPositions(PlacementStrategy):
                 f"Please set `.positions` on '{self.name}' before placement."
             )
         for indicator in indicators.values():
-            ct = indicator.cell_type
             inside_chunk = VoxelSet([chunk], chunk.dimensions).inside(self.positions)
             self.place_cells(indicator, self.positions[inside_chunk], chunk)
 
