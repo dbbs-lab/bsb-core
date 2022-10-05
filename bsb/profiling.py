@@ -36,7 +36,7 @@ class Meter:
 
     @property
     def elapsed(self):
-        return sum(e - s for e, s in zip(self._starts, self._stops))
+        return sum(e - s for s, e in zip(self._starts, self._stops))
 
 
 class ProfilingSession:
