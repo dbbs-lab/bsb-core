@@ -117,12 +117,9 @@ def meter():
         def decorated(*args, **kwargs):
             if bsb.options.profiling:
                 session = get_active_session()
-                with session.meter(f.__name__, args=args, kwargs=kwargs):
+                with session.meter(f.__name__, args=str(args), kwargs=str(kwargs)):
                     r = f(*args, **kwargs)
-                try:
-                    session.flush()
-                except Exception:
-                    pass
+                session.flush()
                 return r
             else:
                 return f(*args, **kwargs)
