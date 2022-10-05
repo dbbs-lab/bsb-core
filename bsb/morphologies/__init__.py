@@ -551,6 +551,11 @@ class SubTree:
         for root in self.roots:
             root.translate(on - root.points[0])
         return self
+        
+    def simplify(self, epsilon):
+        for branch in self.branches:
+            branch.simplify(epsilon)
+
 
     def voxelize(self, N):
         """
@@ -825,6 +830,11 @@ class Morphology(SubTree):
                 branch_copy_map[branch] = nbranch
         # Construct and return the morphology
         return self.__class__(roots, meta=self.meta.copy())
+    
+    def simplify(self, *args, optimize=True, **kwargs):
+        super().simplify(*args, **kwargs)
+        if optimize:
+            self.optimize()
 
     @classmethod
     def from_swc(cls, file, branch_class=None, tags=None, meta=None):
@@ -1359,6 +1369,37 @@ class Branch:
             if a >= arc:
                 return i
         return len(self) - 1
+
+    def _line_dists(self, start, end):
+        if np.all(start == end):
+            return np.linalg.norm(self.points - start, axis=1)
+
+        vec = end - start
+        cross = np.cross(vec, start - self.points)
+        return np.divide(abs(cross), np.linalg.norm(vec))
+
+    
+    def simplify(self, epsilon, idx_start = 0, idx_end = -1):
+        if len(self.points) == 0:
+            return np.array([])
+        if epsilon < 0:
+            raise ValueError(f"Epsilon must be an int >= 0, actual epsilon: {epsilon}")
+            
+        start, end = self.points[idx_start], self.points[idx_end]
+        dists = self._line_dists(start, end)
+
+        index = np.argmax(dists)
+        dmax = dists[index]
+
+        if dmax > epsilon:
+            result1 = self.simplify(idx_start, index + 1, epsilon)
+            result2 = self.simplify(index, idx_end, epsilon)
+
+            reduced = np.vstack((result1[:-1], result2))
+        else:
+            reduced = np.array([idx_start, idx_end])
+
+        return reduced
 
     @functools.wraps(SubTree.cached_voxelize)
     @functools.cache
