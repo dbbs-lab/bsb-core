@@ -41,6 +41,7 @@ def _config_property(name):
     return prop.setter(fset)
 
 
+@meter()
 def from_hdf5(file, missing_ok=False):
     """
     Generate a :class:`.core.Scaffold` from an HDF5 file.
