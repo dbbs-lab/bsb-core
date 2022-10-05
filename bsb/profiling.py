@@ -8,6 +8,7 @@ import pickle
 import atexit
 import sys
 import traceback
+import functools
 import warnings
 
 
@@ -117,21 +118,31 @@ def activate_session(name=None):
     return session
 
 
-def meter():
-    def decorator(f):
-        def decorated(*args, **kwargs):
-            if bsb.options.profiling:
-                session = get_active_session()
-                with session.meter(f.__name__, args=str(args), kwargs=str(kwargs)):
-                    r = f(*args, **kwargs)
-                session.flush()
-                return r
+def meter(f=None, *, name_f=None):
+    def decorated(*args, **kwargs):
+        if bsb.options.profiling:
+            session = get_active_session()
+            if name_f:
+                name = name_f(f, args, kwargs)
             else:
-                return f(*args, **kwargs)
+                name = f.__name__
+            with session.meter(name, args=str(args), kwargs=str(kwargs)):
+                r = f(*args, **kwargs)
+            session.flush()
+            return r
+        else:
+            return f(*args, **kwargs)
 
-        return decorated
+    if f is None:
 
-    return decorator
+        def decorator(g):
+            nonlocal f
+            f = g
+            return functools.wraps(f)(decorated)
+
+        return decorator
+    else:
+        return functools.wraps(f)(decorated)
 
 
 def view_profile(fstem):
