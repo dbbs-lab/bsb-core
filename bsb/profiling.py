@@ -118,6 +118,20 @@ def activate_session(name=None):
     return session
 
 
+def node_meter(*methods):
+    def get_node_method_name(method, args, kwargs):
+        return f"{args[0].name}[{args[0].__class__.__name__}].{method.__name__}"
+
+    def decorator(node_cls):
+        for method_name in methods:
+            if method := getattr(node_cls, method_name, None):
+                setattr(node_cls, method_name, meter(method, name_f=get_node_method_name))
+
+        return node_cls
+
+    return decorator
+
+
 def meter(f=None, *, name_f=None):
     def decorated(*args, **kwargs):
         if bsb.options.profiling:
