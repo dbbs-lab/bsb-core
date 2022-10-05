@@ -100,7 +100,7 @@ class ProfilingOption(
     """
 
     def setter(self, value):
-        from ._profiling import activate_session, get_active_session
+        from .profiling import activate_session, get_active_session
 
         if value:
             activate_session()
