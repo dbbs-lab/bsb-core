@@ -51,6 +51,10 @@ class ProfilingSession:
     def set_name(self, name):
         self.name = name
 
+    @property
+    def meters(self):
+        return self._meters.copy()
+
     def start(self):
         if not self._started:
             self._started = True
