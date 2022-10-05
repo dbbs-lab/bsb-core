@@ -1,5 +1,6 @@
 from .. import config
 from ..exceptions import *
+from ..profiling import node_meter
 from ..reporting import report, warn
 from ..config import refs, types
 from .._util import SortableByAfter, obj_str_insert
