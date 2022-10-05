@@ -124,7 +124,9 @@ def activate_session(name=None):
 
 def node_meter(*methods):
     def get_node_method_name(method, args, kwargs):
-        return f"{args[0].name}[{args[0].__class__.__name__}].{method.__name__}"
+        return (
+            f"{args[0].get_node_name()}[{args[0].__class__.__name__}].{method.__name__}"
+        )
 
     def decorator(node_cls):
         for method_name in methods:
