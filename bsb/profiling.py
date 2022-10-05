@@ -8,6 +8,7 @@ import pickle
 import atexit
 import sys
 import traceback
+import warnings
 
 
 class Meter:
@@ -73,10 +74,14 @@ class ProfilingSession:
             uuid = uuid4()
             self._current_f = f"{self.name}_{MPI.get_rank()}_{uuid}"
         self.profile.dump_stats(f"{self._current_f}.prf")
-        del self.profile
-        with open(f"{self._current_f}.pkl", "wb") as f:
-            pickle.dump(self, f)
-        self.profile = profile
+        try:
+            del self.profile
+            with open(f"{self._current_f}.pkl", "wb") as f:
+                pickle.dump(self, f)
+        except Exception as e:
+            warnings.warn(f"Could not store profile: {e}")
+        finally:
+            self.profile = profile
 
     def view(self):
         try:
