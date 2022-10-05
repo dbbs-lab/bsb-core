@@ -7,6 +7,7 @@ from uuid import uuid4
 import pickle
 import atexit
 import sys
+import traceback
 
 
 class Meter:
@@ -24,7 +25,7 @@ class Meter:
 
     def __exit__(self, exc, exc_type, tb):
         self.stop()
-        self._exc = exc, exc_type, tb
+        self._exc = exc, exc_type, traceback.format_tb(tb)
 
     def stop(self):
         self._stops.append(time())
