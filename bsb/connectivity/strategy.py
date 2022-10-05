@@ -46,6 +46,10 @@ class ConnectionStrategy(abc.ABC, SortableByAfter):
     postsynaptic = config.attr(type=Hemitype, required=True)
     after = config.reflist(refs.connectivity_ref)
 
+    def __init_subclass__(cls, **kwargs):
+        super(cls, cls).__init_subclass__(**kwargs)
+        # Decorate subclasses to measure performance
+
     def __boot__(self):
         self._queued_jobs = []
 
