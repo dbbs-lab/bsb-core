@@ -32,6 +32,7 @@ class PlacementStrategy(abc.ABC, SortableByAfter):
     def __init_subclass__(cls, **kwargs):
         super(cls, cls).__init_subclass__(**kwargs)
         # Decorate subclasses to measure performance
+        node_meter("place")(cls)
 
     def __boot__(self):
         self._queued_jobs = []
