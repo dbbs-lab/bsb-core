@@ -72,6 +72,12 @@ class TestProfiling(RandomStorageFixture, unittest.TestCase, engine_name="hdf5")
 
     def test_profiling(self):
         import bsb.options
+        import bsb.profiling
 
         bsb.options.profiling = True
         self.netw.compile()
+
+        self.assertGreater(
+            len(bsb.profiling.get_active_session()._meters), 0, "missing meters"
+        )
+        bsb.options.profiling = False
