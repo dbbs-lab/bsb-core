@@ -122,6 +122,11 @@ class MorphologyGenerator(MorphologyDistributor, classmap_entry=None):
 
     may_be_empty = config.attr(type=bool, default=True)
 
+    def __init_subclass__(cls, **kwargs):
+        super(cls, cls).__init_subclass__(**kwargs)
+        # Decorate subclasses to measure performance
+        node_meter("generate")(cls)
+
     def distribute(self, positions, morphologies, context):
         pass
 
