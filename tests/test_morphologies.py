@@ -57,11 +57,11 @@ class TestIO(NumpyTestCase, unittest.TestCase):
     def test_shared_labels(self):
         m = Morphology.from_swc(get_morphology_path("PurkinjeCell.swc"))
         m2 = Morphology.from_swc(get_morphology_path("PurkinjeCell.swc"))
-        l = m._shared._labels.labels
-        self.assertIsNot(l, m2._shared._labels.label, "reload shares state")
+        lbl = m._shared._labels.labels
+        self.assertIsNot(lbl, m2._shared._labels.label, "reload shares state")
         for b in m.branches:
-            self.assertTrue(l is b._labels.labels, "Labels should be shared")
-            l = b._labels.labels
+            self.assertTrue(lbl is b._labels.labels, "Labels should be shared")
+            lbl = b._labels.labels
 
 
 def _branch(len=3):
@@ -281,6 +281,84 @@ class TestMorphologyLabels(NumpyTestCase, unittest.TestCase):
         self.assertEqual(0, np.sum(m.get_label_mask(["A"])[:3]), "expected first 0 lbled")
         m.label(["B", "A"], [0, 1, 2])
         self.assertEqual(3, np.sum(m.get_label_mask(["A"])[:3]), "then first 3 lbled")
+
+
+class TestPointSetters(NumpyTestCase, unittest.TestCase):
+    def setUp(self):
+        super().setUp()
+        self.m = Morphology(
+            [
+                Branch(
+                    [[i] * 3] * i,
+                    [1] * i,
+                    children=[Branch([[i] * 3] * i, [1] * i) for _ in range(i + 1)],
+                )
+                for i in range(5)
+            ]
+        )
+
+    def test_branch_same_points(self):
+        p = np.array(self.m.branches[5].points)
+        self.m.branches[5].points = p
+        self.assertClose(p, self.m.branches[5].points, "same points, so should be close")
+        p = np.array(self.m.branches[5].radii)
+        self.m.branches[5].radii = p
+        self.assertClose(p, self.m.branches[5].radii, "same points, so should be close")
+
+    def test_branch_doubleval_points(self):
+        p = np.array(self.m.branches[5].points)
+        self.m.branches[5].points *= 2
+        self.assertClose(p * 2, self.m.branches[5].points, "expected doubled")
+        p = np.array(self.m.branches[5].radii)
+        self.m.branches[5].radii *= 2
+        self.assertClose(p * 2, self.m.branches[5].radii, "expected doubled")
+
+    def test_branch_doublenum_points(self):
+        p = np.array(self.m.branches[5].points)
+        self.m.branches[5].points = np.tile(p, (2, 1))
+        self.assertEqual(len(p) * 2, len(self.m.branches[5].points), "expected doublenum")
+        p = np.array(self.m.branches[5].radii)
+        self.m.branches[5].radii = np.tile(p, (2, 1))
+        self.assertEqual(len(p) * 2, len(self.m.branches[5].radii), "expected doublenum")
+
+    def test_branch_invalid_points(self):
+        with self.assertRaises(ValueError):
+            # Numpy raises a clear ValueError
+            self.m.branches[5].points = [[1], [1, 2]]
+        with self.assertRaises(ValueError):
+            # Numpy raises a clear ValueError
+            self.m.branches[5].points = [[1, 2], [1, 2]]
+
+    def test_points(self):
+        with self.assertRaises(ValueError):
+            # Unoptimized morpho, branches should raise ValueError when given empty arr
+            self.m.points = []
+
+    def test_reassign_points(self):
+        len_pre = len(self.m.points)
+        self.m.points = np.array(self.m.points)
+        self.assertEqual(len_pre, len(self.m.points), "should've stayed same len")
+        self.m.optimize()
+        with self.assertRaises(ValueError):
+            # Numpy raises ValueError because data doesn't fit
+            self.m.points = []
+        # Test that it remains functional after error state
+        self.m.points = np.array(self.m.points)
+
+    def test_empty_radii(self):
+        self.m.radii = []
+        self.assertEqual(0, len(self.m.radii), "should've erased radii")
+
+    def test_reassign_radii(self):
+        len_pre = len(self.m.radii)
+        self.m.radii = np.array(self.m.radii)
+        self.assertEqual(len_pre, len(self.m.radii), "should've stayed same len")
+
+    def test_optimized(self):
+        self.m.optimize()
+        with self.assertRaises(ValueError):
+            # Numpy raises ValueError because data doesn't fit
+            self.m.radii = []
 
 
 class TestMorphologySet(NumpyTestCase, unittest.TestCase):
