@@ -331,9 +331,29 @@ class SubTree:
     def points(self):
         return self.flatten()
 
+    @points.setter
+    def points(self, value):
+        arr = np.array(value, copy=False, dtype=float)
+        if self._is_shared:
+            self.points[:] = arr
+        else:
+            ptr = 0
+            for b in self.branches:
+                b.points = arr[ptr : (ptr := ptr + len(b))]
+
     @property
     def radii(self):
         return self.flatten_radii()
+
+    @radii.setter
+    def radii(self, value):
+        arr = np.array(value, copy=False, dtype=float)
+        if self._is_shared:
+            self.radii[:] = arr
+        else:
+            ptr = 0
+            for b in self.branches:
+                b.radii = arr[ptr : (ptr := ptr + len(b))]
 
     @property
     def labels(self):
@@ -401,8 +421,8 @@ class SubTree:
             return self._shared._radii
         branches = self.get_branches()
         if not branches:
-            return np.empty((0, 3))
-        return np.vstack(tuple(b.radii for b in branches))
+            return np.empty(0)
+        return np.concatenate(tuple(b.radii for b in branches))
 
     def flatten_labels(self):
         """
@@ -949,7 +969,7 @@ class Branch:
     connected to a parent branch. Can be a terminal branch or have multiple children.
     """
 
-    def __init__(self, points, radii, labels=None, properties=None):
+    def __init__(self, points, radii, labels=None, properties=None, children=None):
         self._points = _gutil.sanitize_ndarray(points, (-1, 3), float)
         self._radii = _gutil.sanitize_ndarray(radii, (-1,), float)
         _gutil.assert_samelen(self._points, self._radii)
@@ -967,6 +987,9 @@ class Branch:
         }
         self._parent = None
         self._on_mutate = lambda: None
+        if children is not None:
+            for child in children:
+                self.attach_child(child)
 
     def set_properties(self, **kwargs):
         for prop, values in kwargs.items():
@@ -1027,6 +1050,16 @@ class Branch:
         Return the spatial coordinates of the points on this branch.
         """
         return self._points
+
+    @points.setter
+    def points(self, value):
+        arr = np.array(value, copy=False, dtype=float)
+        if arr.shape == self._points.shape:
+            self._points[:] = arr
+        elif arr.ndim != 2 or arr.shape[1] != 3:
+            raise ValueError(f"Point data must have (N, 3) shape, {arr.shape} given.")
+        else:
+            self._points = arr
 
     @property
     def point_vectors(self):
@@ -1139,6 +1172,14 @@ class Branch:
         Return the radii of the points on this branch.
         """
         return self._radii
+
+    @radii.setter
+    def radii(self, value):
+        arr = np.array(value, copy=False, dtype=float)
+        if arr.shape == self._radii.shape:
+            self._radii[:] = arr
+        else:
+            self._radii = arr.ravel()
 
     @property
     def labels(self):
