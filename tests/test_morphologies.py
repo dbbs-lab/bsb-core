@@ -178,6 +178,51 @@ class TestMorphologies(NumpyTestCase, unittest.TestCase):
         res = m.rotate(r).root_rotate(r).translate([0, 0, 0]).collapse().close_gaps()
         self.assertEqual(m, res, "chaining calls should return self")
 
+    
+    def test_simplification(self):
+        def branch_one():
+            return Branch(
+                np.array(
+                    [
+                        [0, 0, 0],
+                        [1, 1, 0],
+                        [0, 4, 0]
+                    ]
+                ),
+                np.array([0, 1, 2]),
+            )
+        
+        def branch_two():
+            return Branch(
+                np.empty(
+                    (0, 3)
+                ),
+                np.array([]),
+            )
+        
+        m = Morphology([branch_one()])
+        m.simplify(epsilon=10)
+        print(m.branches[0].points)
+        print(m.branches[0]._points)
+        #self.assertClose(m.branches[0].points, np.array([[0, 0, 0], [0, 4, 0]]), "It has failed base rdp")
+        
+        m_empty = Morphology([branch_two()])
+        m_empty.simplify(epsilon=1)
+        self.assertClose(m_empty.branches[0].points, np.empty((0, 3)), "It has failed rdp on empty branch")
+        
+        b1 = branch_one()
+        b1.attach_child(branch_two())
+        m_chained = Morphology([b1])
+        m_chained.simplify(epsilon=10)
+        self.assertClose(m_chained.branches[0].points, np.array([[0, 0, 0], [0, 4, 0]]), "It has failed rdp on concatenated branches")
+        self.assertClose(m_chained.branches[1].points, np.empty((0, 3)), "It has failed rdp on concatenated branches")
+
+        #test epsilon values
+        m_epsilon_0 = Morphology([branch_one()])
+        m_epsilon_0.simplify(epsilon=0)
+        self.assertClose(m_epsilon_0.branches[0].points, np.array([[0, 0, 0], [1, 1, 0], [0, 4, 0]]), "It has failed rdp with epsilon 0")
+        self.assertRaises(ValueError, m.simplify(epsilon=-1))
+
 
 class TestMorphologyLabels(NumpyTestCase, unittest.TestCase):
     def test_labels(self):

@@ -554,7 +554,13 @@ class SubTree:
         
     def simplify(self, epsilon):
         for branch in self.branches:
-            branch.simplify(epsilon)
+            reduced = np.unique(branch.simplify(epsilon))
+            if len(reduced) > 0:
+                print(branch.points.shape)
+                print(branch.points[reduced].shape)
+                branch.points = branch.points[reduced]
+                branch.radii = branch.radii[reduced]
+                print("H",self.points)
 
 
     def voxelize(self, N):
@@ -1375,31 +1381,33 @@ class Branch:
             return np.linalg.norm(self.points - start, axis=1)
 
         vec = end - start
-        cross = np.cross(vec, start - self.points)
-        return np.divide(abs(cross), np.linalg.norm(vec))
+        cross = np.cross(vec, start - self.points, axisb=0, axis=0)
+        return np.divide(np.linalg.norm(cross, axis = 0), np.linalg.norm(vec))
 
-    
+
     def simplify(self, epsilon, idx_start = 0, idx_end = -1):
         if len(self.points) == 0:
             return np.array([])
+        if idx_end == -1:
+            idx_end = len(self.points) - 1
         if epsilon < 0:
             raise ValueError(f"Epsilon must be an int >= 0, actual epsilon: {epsilon}")
-            
+
         start, end = self.points[idx_start], self.points[idx_end]
         dists = self._line_dists(start, end)
 
         index = np.argmax(dists)
         dmax = dists[index]
+        
+        if dmax > epsilon and idx_end - idx_start > 1:
+            result1 = self.simplify(epsilon, idx_start, index - 1)
+            result2 = self.simplify(epsilon, index, idx_end)
 
-        if dmax > epsilon:
-            result1 = self.simplify(idx_start, index + 1, epsilon)
-            result2 = self.simplify(index, idx_end, epsilon)
-
-            reduced = np.vstack((result1[:-1], result2))
+            reduced = np.vstack((result1, result2))
         else:
             reduced = np.array([idx_start, idx_end])
 
-        return reduced
+        return reduced.reshape(-1)
 
     @functools.wraps(SubTree.cached_voxelize)
     @functools.cache
