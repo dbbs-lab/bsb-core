@@ -576,11 +576,8 @@ class SubTree:
         for branch in self.branches:
             reduced = np.unique(branch.simplify(epsilon))
             if len(reduced) > 0:
-                print(branch.points.shape)
-                print(branch.points[reduced].shape)
                 branch.points = branch.points[reduced]
                 branch.radii = branch.radii[reduced]
-                print("H",self.points)
 
 
     def voxelize(self, N):
