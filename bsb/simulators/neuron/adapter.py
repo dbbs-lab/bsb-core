@@ -1,107 +1,16 @@
-from ...simulation import (
-    Simulation,
-    SimulationRecorder,
-    CellModel,
-    ConnectionModel,
-    DeviceModel,
-    NeuronTargetting,
-)
-from ... import config
-from ...config import types
+from bsb.simulation.adapter import SimulatorAdapter
+from bsb.simulation.results import SimulationResult, SimulationRecorder
 from ...reporting import report, warn
-from ...exceptions import *
-import random, os, sys
+from ...exceptions import (
+    TransmitterError,
+    IntersectionDataNotFoundError,
+)
+import random
+import os
 import numpy as np
 import traceback
 import errr
 import time
-
-
-@config.node
-class NeuronCell(CellModel):
-    model = config.attr(
-        type=types.class_(), required=lambda s: not ("relay" in s and s["relay"])
-    )
-    record_soma = config.attr(default=False)
-    record_spikes = config.attr(default=False)
-    entity = config.attr(default=False)
-
-    def boot(self):
-        super().boot()
-        self.instances = []
-
-    def __getitem__(self, i):
-        return self.instances[i]
-
-    def get_parameters(self):
-        # Get the default synapse parameters
-        params = self.parameters.copy()
-        return params
-
-
-_str_list = types.list(type=str)
-
-
-@config.node
-class NeuronConnection(ConnectionModel):
-    synapse = config.attr(
-        type=types.or_(types.dict(type=_str_list), _str_list), required=True
-    )
-    source = config.attr(type=str, default=None)
-
-    def resolve_synapses(self):
-        return self.synapses
-
-
-@config.dynamic(attr_name="device", type=types.in_classmap(), auto_classmap=True)
-class NeuronDevice(DeviceModel):
-    radius = config.attr(type=float)
-    origin = config.attr(type=types.list(type=float, size=3))
-    targetting = config.attr(type=NeuronTargetting, required=True)
-    io = config.attr(type=types.in_(["input", "output"]), required=True)
-
-    def create_patterns(self):
-        raise NotImplementedError(
-            "The "
-            + self.__class__.__name__
-            + " device does not implement any `create_patterns` function."
-        )
-
-    def get_pattern(self, target, cell=None, section=None, synapse=None):
-        raise NotImplementedError(
-            "The "
-            + self.__class__.__name__
-            + " device does not implement any `get_pattern` function."
-        )
-
-    def implement(self, target, location):
-        raise NotImplementedError(
-            "The "
-            + self.__class__.__name__
-            + " device does not implement any `implement` function."
-        )
-
-    def get_locations(self, target):
-        locations = []
-        if target in self.adapter.relay_scheme:
-            for cell_id, section_id, connection in self.adapter.relay_scheme[target]:
-                if cell_id not in self.adapter.node_cells:
-                    continue
-                cell = self.adapter.cells[cell_id]
-                section = cell.sections[section_id]
-                locations.append(TargetLocation(cell, section, connection))
-        elif target in self.adapter.node_cells:
-            try:
-                cell = self.adapter.cells[target]
-            except KeyError:
-                raise DeviceConnectionError(
-                    "Missing cell {} on node {} while trying to implement device '{}'. This can occur if the cell was placed in the network but not represented with a model in the simulation config.".format(
-                        target, self.adapter.get_rank(), self.name
-                    )
-                )
-            sections = self.target_section(cell)
-            locations.extend(TargetLocation(cell, section) for section in sections)
-        return locations
 
 
 class NeuronEntity:
@@ -120,20 +29,7 @@ class NeuronEntity:
         raise NotImplementedError("Entities do not have a soma to record.")
 
 
-@config.node
-class NeuronSimulation(Simulation):
-    """
-    Interface between the scaffold model and the NEURON simulator.
-    """
-
-    simulator_name = "neuron"
-    cell_models = config.dict(type=NeuronCell, required=True)
-    connection_models = config.dict(type=NeuronConnection, required=True)
-    devices = config.dict(type=NeuronDevice, required=True)
-    resolution = config.attr(type=float, default=1.0)
-    initial = config.attr(type=float, default=-65.0)
-    temperature = config.attr(type=float, required=True)
-
+class NeuronAdapter(SimulatorAdapter):
     def __init__(self):
         self.cells = {}
         self._next_gid = 0
@@ -639,10 +535,6 @@ class NeuronSimulation(Simulation):
         self.result.add(SpikeRecorder("soma_spikes", cell, recorder))
 
 
-class NeuronAdapter:
-    Simulation = NeuronSimulation
-
-
 class LocationRecorder(SimulationRecorder):
     def __init__(
         self, group, cell, recorder, time_recorder=None, section=None, x=None, meta=None
@@ -681,16 +573,6 @@ class LocationRecorder(SimulationRecorder):
 
     def get_meta(self):
         return self.meta
-
-
-class TargetLocation:
-    def __init__(self, cell, section, connection=None):
-        self.cell = cell
-        self.section = section
-        self.connection = connection
-
-    def get_synapses(self):
-        return self.connection and self.connection.synapses
 
 
 class SpikeRecorder(LocationRecorder):

@@ -1,4 +1,4 @@
-from ..adapter import NeuronDevice
+from ..device import NeuronDevice
 from ....simulation.device import Patternless
 from ....simulation.results import SimulationRecorder, PresetPathMixin, PresetMetaMixin
 from ....reporting import report, warn

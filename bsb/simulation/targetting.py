@@ -1,12 +1,12 @@
-import random, numpy as np
+import random
+import numpy as np
 from .. import config
 from ..config import types
-from ..exceptions import *
-from itertools import chain
+from ..exceptions import ConfigurationError
 
 
 @config.dynamic(attr_name="type", auto_classmap=True)
-class NeuronTargetting:
+class CellTargetting:
     def __boot__(self):
         self.device = self._config_parent
         self.simulation = self.device.simulation if self.device is not None else None
@@ -20,7 +20,7 @@ class NeuronTargetting:
 
 
 @config.node
-class CellTypeTargetting(NeuronTargetting, classmap_entry="cell_type"):
+class CellTypeTargetting(CellTargetting, classmap_entry="cell_type"):
     """
     Targetting mechanism (use ``"type": "cell_type"``) to target all identifiers of
     certain cell types.
@@ -37,7 +37,7 @@ class CellTypeTargetting(NeuronTargetting, classmap_entry="cell_type"):
 
 
 @config.node
-class RepresentativesTargetting(NeuronTargetting, classmap_entry="representatives"):
+class RepresentativesTargetting(CellTargetting, classmap_entry="representatives"):
     """
     Targetting mechanism (use ``"type": "representatives"``) to target all identifiers
     of certain cell types.
@@ -52,9 +52,6 @@ class RepresentativesTargetting(NeuronTargetting, classmap_entry="representative
             for cell_model in self.adapter.cell_models.values()
             if not cell_model.cell_type.relay and cell_model.name in filter_types
         ]
-        if hasattr(self, "cell_types"):
-            target_types = [t for t in target_types if t.name in self.cell_types]
-        target_ids = [t.get_placement_set().identifiers for t in target_types]
         representatives = [
             random.choice(type_ids) for type_ids in target_ids if len(target_ids) > 0
         ]
@@ -62,7 +59,7 @@ class RepresentativesTargetting(NeuronTargetting, classmap_entry="representative
 
 
 @config.node
-class ByIdTargetting(NeuronTargetting, classmap_entry="by_id"):
+class ByIdTargetting(CellTargetting, classmap_entry="by_id"):
     """
     Targetting mechanism (use ``"type": "by_id"``) to target all given identifiers.
     """
@@ -74,7 +71,7 @@ class ByIdTargetting(NeuronTargetting, classmap_entry="by_id"):
 
 
 @config.node
-class CylindricalTargetting(NeuronTargetting, classmap_entry="cylinder"):
+class CylindricalTargetting(CellTargetting, classmap_entry="cylinder"):
     """
     Targetting mechanism (use ``"type": "cylinder"``) to target all cells in a
     horizontal cylinder (xz circle expanded along y).
@@ -106,7 +103,7 @@ class CylindricalTargetting(NeuronTargetting, classmap_entry="cylinder"):
 
 
 @config.node
-class SphericalTargetting(NeuronTargetting, classmap_entry="sphere"):
+class SphericalTargetting(CellTargetting, classmap_entry="sphere"):
     """
     Targetting mechanism (use ``"type": "sphere"``) to target all cells in a sphere.
     """

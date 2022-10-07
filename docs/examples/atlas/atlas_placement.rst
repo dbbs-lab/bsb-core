@@ -49,7 +49,7 @@ other data. We can do this by specifying a :guilabel:`density_key`:
 
 .. literalinclude:: ../../../examples/atlas/allen_structure.json
   :language: json
-  :lines: 23-31
+  :lines: 23-27,29-31
   :emphasize-lines: 5
 
 That's it! If we compile the network, ``my_cell`` will be placed into ``declive`` with
