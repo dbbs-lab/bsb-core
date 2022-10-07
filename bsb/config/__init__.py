@@ -8,7 +8,6 @@ config.attr/dict/list/ref/reflist`` to populate your classes with powerful attri
 
 import os
 import sys
-import os
 import glob
 import itertools
 from shutil import copy2 as copy_file
@@ -35,7 +34,7 @@ from ._attrs import (
 from ._make import walk_node_attributes, walk_nodes
 from ._hooks import on, before, after, run_hook, has_hook
 from .. import plugins
-from ..exceptions import *
+from ..exceptions import ConfigTemplateNotFoundError, ParserError, PluginError
 
 
 _path = __path__
@@ -100,7 +99,7 @@ class ConfigurationModule:
 
         Configuration trees can be cast into Configuration objects.
         """
-        if not parser_name in self._parser_classes:
+        if parser_name not in self._parser_classes:
             raise PluginError("Configuration parser '{}' not found".format(parser_name))
         return self._parser_classes[parser_name]()
 
@@ -172,7 +171,10 @@ def _parser_method_docs(parser):
 
 def _try_parsers(content, classes, ext=None, path=None):  # pragma: nocover
     if ext is not None:
-        file_has_parser_ext = lambda kv: ext in getattr(kv[1], "data_extensions", ())
+
+        def file_has_parser_ext(kv):
+            ext in getattr(kv[1], "data_extensions", ())
+
         classes = builtins.dict(sorted(classes.items(), key=file_has_parser_ext))
     exc = {}
     for name, cls in classes.items():

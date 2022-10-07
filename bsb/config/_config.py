@@ -1,18 +1,14 @@
-from . import attr, list, dict, node, root, pluggable, on, after, before
+from . import attr, dict, root
 from ..cell_types import CellType
-from . import types
 from ._attrs import _boot_nodes
-from ._make import walk_nodes
-from ._hooks import run_hook, has_hook
 from .nodes import StorageNode, NetworkNode
-from ..storage import get_engines
 from ..placement import PlacementStrategy
 from ..connectivity import ConnectionStrategy
-from ..simulation import Simulation
+from ..simulation.simulation import Simulation
 from ..postprocessing import PostProcessingHook
-from ..exceptions import *
+from ..exceptions import UnmanagedPartitionError
 from .._util import merge_dicts
-import os, builtins
+import builtins
 from ..topology import (
     get_partitions,
     create_topology,
