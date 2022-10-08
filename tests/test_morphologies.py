@@ -202,7 +202,7 @@ class TestMorphologies(NumpyTestCase, unittest.TestCase):
         
         m = Morphology([branch_one()])
         m.simplify(epsilon=10)
-        #self.assertClose(m.branches[0].points, np.array([[0, 0, 0], [0, 4, 0]]), "It has failed base rdp")
+        self.assertClose(m.branches[0].points, np.array([[0, 0, 0], [0, 4, 0]]), "It has failed base rdp")
         
         m_empty = Morphology([branch_two()])
         m_empty.simplify(epsilon=1)
@@ -220,7 +220,7 @@ class TestMorphologies(NumpyTestCase, unittest.TestCase):
         m_epsilon_0.simplify(epsilon=0)
         self.assertClose(m_epsilon_0.branches[0].points, np.array([[0, 0, 0], [1, 1, 0], [0, 4, 0]]), "It has failed rdp with epsilon 0")
         with self.assertRaises(ValueError) as context:
-            m.simplify(epsilon=-1)
+            m_epsilon_0.simplify(epsilon=-1)
 
 
 class TestMorphologyLabels(NumpyTestCase, unittest.TestCase):

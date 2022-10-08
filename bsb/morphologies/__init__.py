@@ -572,10 +572,10 @@ class SubTree:
             root.translate(on - root.points[0])
         return self
         
-    def simplify(self, epsilon):
+    def simplify_branches(self, epsilon):
         for branch in self.branches:
-            reduced = np.unique(branch.simplify(epsilon))
-            if len(reduced) > 0:
+            if len(branch.points):
+                reduced = np.unique(branch.simplify(epsilon))
                 branch.points = branch.points[reduced]
                 branch.radii = branch.radii[reduced]
 
@@ -855,7 +855,7 @@ class Morphology(SubTree):
         return self.__class__(roots, meta=self.meta.copy())
     
     def simplify(self, *args, optimize=True, **kwargs):
-        super().simplify(*args, **kwargs)
+        super().simplify_branches(*args, **kwargs)
         if optimize:
             self.optimize()
 
@@ -1441,11 +1441,11 @@ class Branch:
             result1 = self.simplify(epsilon, idx_start, index - 1)
             result2 = self.simplify(epsilon, index, idx_end)
 
-            reduced = np.vstack((result1, result2))
+            reduced = np.concatenate((result1, result2))
         else:
             reduced = np.array([idx_start, idx_end])
 
-        return reduced.reshape(-1)
+        return reduced
 
     @functools.wraps(SubTree.cached_voxelize)
     @functools.cache
