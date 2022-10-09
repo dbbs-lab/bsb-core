@@ -574,10 +574,7 @@ class SubTree:
         
     def simplify_branches(self, epsilon):
         for branch in self.branches:
-            if len(branch.points):
-                reduced = np.unique(branch.simplify(epsilon))
-                branch.points = branch.points[reduced]
-                branch.radii = branch.radii[reduced]
+            branch.simplify(epsilon)
 
 
     def voxelize(self, N):
@@ -1419,33 +1416,49 @@ class Branch:
             return np.linalg.norm(self.points - start, axis=1)
 
         vec = end - start
-        cross = np.cross(vec, start - self.points, axisb=0, axis=0)
+        cross = np.cross(vec, start - self.points)
         return np.divide(np.linalg.norm(cross, axis = 0), np.linalg.norm(vec))
 
 
     def simplify(self, epsilon, idx_start = 0, idx_end = -1):
-        if len(self.points) == 0:
-            return np.array([])
+        if len(self.points) < 3:
+            return
         if idx_end == -1:
             idx_end = len(self.points) - 1
         if epsilon < 0:
             raise ValueError(f"Epsilon must be an int >= 0, actual epsilon: {epsilon}")
 
-        start, end = self.points[idx_start], self.points[idx_end]
-        dists = self._line_dists(start, end)
-
-        index = np.argmax(dists)
-        dmax = dists[index]
+        reduced = deque()
+        skipped = deque()
+        should_loop = True
         
-        if dmax > epsilon and idx_end - idx_start > 1:
-            result1 = self.simplify(epsilon, idx_start, index - 1)
-            result2 = self.simplify(epsilon, index, idx_end)
+        while len(skipped) > 0 or should_loop:
+            start = self.points[idx_start]
+            end = self.points[idx_end]
+            dists = self._line_dists(start, end)
+            index = np.argmax(dists)
+            dmax = dists[index]
+            
+            reduced.append(idx_start)
+            reduced.append(idx_end)
+            if dmax > epsilon and idx_end - idx_start > 1:
+                skipped.append([index, idx_end])
+                idx_end = index - 1
+                should_loop = False
+            elif len(skipped) > 0:
+                idx_pair = skipped.popleft()
+                idx_start = idx_pair[0]
+                idx_end = idx_pair[1]
+                should_loop = True
+            else:
+                reduced.append(idx_start)
+                reduced.append(idx_end)
+                should_loop = False
 
-            reduced = np.concatenate((result1, result2))
-        else:
-            reduced = np.array([idx_start, idx_end])
 
-        return reduced
+        reduced = np.unique(reduced)
+        self.points = self.points[reduced]
+        self.radii = self.radii[reduced]
 
     @functools.wraps(SubTree.cached_voxelize)
     @functools.cache
