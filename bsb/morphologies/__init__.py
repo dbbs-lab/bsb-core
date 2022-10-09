@@ -573,6 +573,10 @@ class SubTree:
         return self
         
     def simplify_branches(self, epsilon):
+        """
+        Apply Ramer–Douglas–Peucker algorithm to all points of all branches of the SubTree.
+        :param epsilon: Epsilon to be used in the algorithm.
+        """
         for branch in self.branches:
             branch.simplify(epsilon)
 
@@ -1421,6 +1425,12 @@ class Branch:
 
 
     def simplify(self, epsilon, idx_start = 0, idx_end = -1):
+        """
+        Apply Ramer–Douglas–Peucker algorithm to all points or a subset of points of the branch.
+        :param epsilon: Epsilon to be used in the algorithm.
+        :param idx_start = 0: Index of the first element of the subset of points to be reduced.
+        :param epsilon = -1: Index of the last element of the subset of points to be reduced.
+        """
         if len(self.points) < 3:
             return
         if idx_end == -1:
