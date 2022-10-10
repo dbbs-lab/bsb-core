@@ -7,6 +7,9 @@ class SimulatorAdapter:
         Simulate the given simulations.
         """
         self.prepare(*simulations)
+        for sim in simulations:
+            for hook in sim.post_preparation:
+                hook(self, simulations)
         self.run()
         return self.collect()
 

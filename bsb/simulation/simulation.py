@@ -4,26 +4,11 @@ import numpy as np
 from ..reporting import report
 from time import time
 import itertools
-from .. import plugins, config
+from .. import config
+from ._backends import get_simulation_nodes
 from .cell import CellModel
 from .connection import ConnectionModel
 from .device import DeviceModel
-import functools
-
-
-@functools.cache
-def get_backends():
-    return plugins.discover("simulation_backends")
-
-
-@functools.cache
-def get_simulation_nodes():
-    return {name: plugin.Simulation for name, plugin in get_backends().items()}
-
-
-@functools.cache
-def get_simulation_adapters():
-    return {name: plugin.Adapter() for name, plugin in get_backends().items()}
 
 
 class ProgressEvent:
@@ -42,7 +27,6 @@ class Simulation:
 
     @staticmethod
     def __plugins__():
-        print("checking pluggables", get_simulation_nodes())
         return get_simulation_nodes()
 
     @abc.abstractmethod

@@ -14,6 +14,7 @@ from .reporting import report, warn, get_report_file
 from .config._config import Configuration
 from .services.pool import create_job_pool
 from .services import MPI
+from .simulation import get_simulation_adapter
 from ._util import obj_str_insert
 
 _cfg_props = (
@@ -339,20 +340,9 @@ class Scaffold:
         :param simulation_name: Name of the simulation in the configuration.
         :type simulation_name: str
         """
-        t = time.time()
-        simulation, simulator = self.prepare_simulation(simulation_name)
-        # If we're reporting to a file, add a stream of progress event messages..
-        report_file = get_report_file()
-        if report_file:
-            listener = ReportListener(self, report_file)
-            simulation.add_progress_listener(listener)
-        simulation.simulate(simulator)
-        result_path = simulation.collect_output(simulator)
-        time_sim = time.time() - t
-        report("Simulation runtime: {}".format(time_sim), level=2)
-        if quit and hasattr(simulator, "quit"):
-            simulator.quit()
-        return result_path
+        simulation = self.get_simulation(simulation_name)
+        adapter = get_simulation_adapter(simulation.simulator)
+        adapter.simulate(simulation)
 
     def get_simulation(self, sim_name):
         """
@@ -364,14 +354,6 @@ class Scaffold:
                 f"Unknown simulation '{sim_name}', choose from: {simstr}"
             )
         return self.configuration.simulations[sim_name]
-
-    def prepare_simulation(self, simulation_name):
-        """
-        Retrieve and prepare the default single-instance adapter for a simulation.
-        """
-        simulation = self.get_simulation(simulation_name)
-        simulator = simulation.prepare()
-        return simulation, simulator
 
     def place_cells(
         self,
