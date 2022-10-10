@@ -1415,12 +1415,12 @@ class Branch:
                 return i
         return len(self) - 1
 
-    def _line_dists(self, start, end):
+    def _line_dists(self, start, end, points):
         if np.all(start == end):
-            return np.linalg.norm(self.points - start, axis=1)
+            return np.linalg.norm(points - start, axis=1)
 
         vec = end - start
-        cross = np.cross(vec, start - self.points)
+        cross = np.cross(vec, start - points)
         return np.divide(np.linalg.norm(cross, axis = 1), np.linalg.norm(vec))
 
 
@@ -1440,32 +1440,30 @@ class Branch:
 
         reduced = deque()
         skipped = deque()
-        should_loop = True
         
-        while len(skipped) > 0 or should_loop:
+        while True:
             start = self.points[idx_start]
             end = self.points[idx_end]
-            dists = self._line_dists(start, end)
-            index = np.argmax(dists)
-            dmax = dists[index]
+            dists = self._line_dists(start, end, self.points[idx_start:idx_end])
+            try:
+                index = np.argmax(dists)
+                dmax = dists[index]
+            except(ValueError):
+                dmax = 0
             
-            should_loop = False
+            reduced.append(idx_start)
+            reduced.append(idx_end)
             if dmax > epsilon and idx_end - idx_start > 1:
                 skipped.append([index, idx_end])
                 idx_end = index - 1
-                reduced.append(idx_start)
-                reduced.append(idx_end)
-            elif len(skipped) > 0:
-                idx_pair = skipped.popleft()
-                idx_start = idx_pair[0]
-                idx_end = idx_pair[1]
-                should_loop = True
             else:
-                reduced.append(idx_start)
-                reduced.append(idx_end)
+                try:
+                    idx_start, idx_end = skipped.popleft()
+                except(IndexError):
+                    break
 
 
-        reduced = np.unique(reduced)
+        reduced = np.sort(np.unique(reduced))
         self.points = self.points[reduced]
         self.radii = self.radii[reduced]
 
