@@ -186,10 +186,12 @@ class TestMorphologies(NumpyTestCase, unittest.TestCase):
                     [
                         [0, 0, 0],
                         [1, 1, 0],
-                        [0, 4, 0]
+                        [0, 4, 0],
+                        [0, 6, 0],
+                        [2, 4, 8]
                     ]
                 ),
-                np.array([0, 1, 2]),
+                np.array([0, 1, 2, 2, 1]),
             )
         
         def branch_two():
@@ -202,7 +204,7 @@ class TestMorphologies(NumpyTestCase, unittest.TestCase):
         
         m = Morphology([branch_one()])
         m.simplify(epsilon=10)
-        self.assertClose(m.branches[0].points, np.array([[0, 0, 0], [0, 4, 0]]), "It has failed base rdp")
+        self.assertClose(m.branches[0].points, np.array([[0, 0, 0], [2, 4, 8]]), "It has failed base rdp")
         
         m_empty = Morphology([branch_two()])
         m_empty.simplify(epsilon=1)
@@ -212,13 +214,13 @@ class TestMorphologies(NumpyTestCase, unittest.TestCase):
         b1.attach_child(branch_two())
         m_chained = Morphology([b1])
         m_chained.simplify(epsilon=10)
-        self.assertClose(m_chained.branches[0].points, np.array([[0, 0, 0], [0, 4, 0]]), "It has failed rdp on concatenated branches")
+        self.assertClose(m_chained.branches[0].points, np.array([[0, 0, 0], [2, 4, 8]]), "It has failed rdp on concatenated branches")
         self.assertClose(m_chained.branches[1].points, np.empty((0, 3)), "It has failed rdp on concatenated branches")
 
         #test epsilon values
         m_epsilon_0 = Morphology([branch_one()])
         m_epsilon_0.simplify(epsilon=0)
-        self.assertClose(m_epsilon_0.branches[0].points, np.array([[0, 0, 0], [1, 1, 0], [0, 4, 0]]), "It has failed rdp with epsilon 0")
+        self.assertClose(m_epsilon_0.branches[0].points, np.array([[0, 0, 0], [1, 1, 0], [0, 4, 0], [0, 6, 0], [2, 4, 8]]), "It has failed rdp with epsilon 0")
         with self.assertRaises(ValueError) as context:
             m_epsilon_0.simplify(epsilon=-1)
 
