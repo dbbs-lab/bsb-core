@@ -1421,7 +1421,7 @@ class Branch:
 
         vec = end - start
         cross = np.cross(vec, start - self.points)
-        return np.divide(np.linalg.norm(cross, axis = 0), np.linalg.norm(vec))
+        return np.divide(np.linalg.norm(cross, axis = 1), np.linalg.norm(vec))
 
 
     def simplify(self, epsilon, idx_start = 0, idx_end = -1):
@@ -1449,12 +1449,12 @@ class Branch:
             index = np.argmax(dists)
             dmax = dists[index]
             
-            reduced.append(idx_start)
-            reduced.append(idx_end)
+            should_loop = False
             if dmax > epsilon and idx_end - idx_start > 1:
                 skipped.append([index, idx_end])
                 idx_end = index - 1
-                should_loop = False
+                reduced.append(idx_start)
+                reduced.append(idx_end)
             elif len(skipped) > 0:
                 idx_pair = skipped.popleft()
                 idx_start = idx_pair[0]
@@ -1463,7 +1463,6 @@ class Branch:
             else:
                 reduced.append(idx_start)
                 reduced.append(idx_end)
-                should_loop = False
 
 
         reduced = np.unique(reduced)
