@@ -1,8 +1,5 @@
-from . import config
-from .config import types
 from .trees import BoxTree
-from .exceptions import *
-from .reporting import report
+from .exceptions import EmptyVoxelSetError
 import numpy as np
 import functools
 import itertools
@@ -170,7 +167,7 @@ class VoxelSet:
             data = self._data[index]
             index, _, _ = self._data._split_index(index)
         else:
-            data, keys = None, None
+            data, _ = None, None
         if isinstance(index, tuple) and len(index) > 1:
             raise IndexError("Too many indices for VoxelSet, maximum 1.")
         voxels = self.get_raw(copy=False)[index]
@@ -204,13 +201,12 @@ class VoxelSet:
                 if self._data.keys:
                     insert += f"with keyed data ({', '.join(self._data.keys)}) "
                 else:
-                    insert += f"with {self._data.shape[1]} data columns "
+                    insert += f"with {self._data.shape[-1]} data columns "
             else:
                 insert += "without data "
         return obj.replace("at 0x", insert + "at 0x")
 
-    def __repr__(self):
-        return self.__str__()
+    __repr__ = __str__
 
     def __bool__(self):
         return not self.is_empty
@@ -382,14 +378,14 @@ class VoxelSet:
             ln = [len(s) for s in sets]
             data = np.empty((sum(ln), md), dtype=object)
             ptr = 0
-            for l, fill in zip(ln, fillers):
+            for len_, fill in zip(ln, fillers):
                 if fill is not None:
                     if not fill.keys:
                         cols = slice(None, fill.shape[1])
                     else:
                         cols = [keys.index(key) for key in fill.keys]
-                    data[ptr : (ptr + l), cols] = fill
-                    ptr += l
+                    data[ptr : (ptr + len_), cols] = fill
+                    ptr += len_
         else:
             data = None
             keys = None
@@ -486,7 +482,6 @@ class VoxelSet:
         self._size = size
 
     def crop(self, ldc, mdc):
-        data = self._data
         coords = self.as_spatial_coords(copy=False)
         inside = np.all(np.logical_and(ldc <= coords, coords < mdc), axis=1)
         return self[inside]
@@ -561,8 +556,14 @@ class VoxelSet:
                 for point, point_vc in enumerate(point_vcs):
                     voxel_reduce.setdefault(tuple(point_vc), []).append((branch, point))
             voxels = np.array(tuple(voxel_reduce.keys()))
-            data = np.array(list(voxel_reduce.values()), dtype=object)
-            return cls(voxels, voxel_size, data=data)
+            # Transfer the voxel data into an object array
+            voxel_data_data = tuple(voxel_reduce.values())
+            # We need a bit of a workaround so that numpy doesn't make a regular from the
+            # `voxel_data_data` list of lists, when it has a matrix shape.
+            voxel_data = np.empty(len(voxel_data_data), dtype=object)
+            for i in range(len(voxel_data_data)):
+                voxel_data[i] = voxel_data_data[i]
+            return cls(voxels, voxel_size, data=voxel_data)
         else:
             voxels = np.unique(np.concatenate(branch_vcs), axis=0)
             return cls(voxels, voxel_size)

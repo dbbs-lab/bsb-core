@@ -15,11 +15,14 @@ from ._make import (
     walk_nodes,
     _resolve_references,
 )
-from .types import TypeHandler, _wrap_reserved
-from ..exceptions import *
-import abc
+from .types import _wrap_reserved
+from ..exceptions import (
+    RequirementError,
+    NoReferenceAttributeSignal,
+    CastError,
+    CfgReferenceError,
+)
 import builtins
-import itertools
 
 
 def root(root_cls):
@@ -128,18 +131,27 @@ class DynamicNodeConfiguration:
 
 
 def _dynamic(node_cls, class_attr, attr_name, config):
+    # Set the dynamic attribute
     setattr(node_cls, attr_name, class_attr)
     node_cls._config_dynamic_attr = attr_name
+    # Other than that compile the dynamic class like a regular node class
+    node_cls = node(node_cls, dynamic=config)
     if config.auto_classmap or config.classmap:
         node_cls._config_dynamic_classmap = config.classmap or {}
+    # This adds the parent class to its own classmap, which for subclasses happens in init
+    # subclass
     if config.entry is not None:
         if not hasattr(node_cls, "_config_dynamic_classmap"):
             raise ValueError(
                 f"Calling `@config.dynamic` with `entry='{config.entry}'`"
-                + f" requires `classmap` or `auto_classmap` to be set as well on '{node_cls.__name__}'."
+                + " requires `classmap` or `auto_classmap` to be set as well"
+                + f" on '{node_cls.__name__}'."
             )
         node_cls._config_dynamic_classmap[config.entry] = node_cls
-    return node(node_cls, dynamic=config)
+    # Mark the class as its own dynamic root, (grand)child classes will all need to
+    # inherit from this as an interface contract.
+    node_cls._config_dynamic_root = node_cls
+    return node_cls
 
 
 def pluggable(key, plugin_name=None):
@@ -236,8 +248,8 @@ def slot(**kwargs):
 
 def property(val=None, /, **kwargs):
     """
-    Provide a value for a parent class' attribute. Can be a value or a callable, a
-    property object will be created from it either way.
+    Create a configuration property attribute. You may provide a value or a callable. Call
+    `setter` on the return value as you would with a regular property.
     """
 
     def decorator(val):
@@ -248,6 +260,27 @@ def property(val=None, /, **kwargs):
         return decorator
     else:
         return decorator(val)
+
+
+def provide(value):
+    """
+    Provide a value for a parent class' attribute. Can be a value or a callable, a
+    readonly configuration property will be created from it either way.
+    """
+    prop = property(value)
+
+    def provided(self, instance, value):
+        raise AttributeError(f"Can't set attribute, class provides the value '{value}'.")
+
+    # Create a callable object that invokes `provided` when called, and whose `bool()`
+    # returns `False`. Later in `_is_settable_attr`, we use this to trick the short
+    # circuiting logic, so that this setter doesn't make the internal logic set and error
+    # out on this attr.
+    prop.setter(
+        type("provision", (), {"__call__": provided, "__bool__": lambda s: False})()
+    )
+
+    return prop
 
 
 def list(**kwargs):
@@ -334,7 +367,7 @@ def _unset_nodes(top_node):
     for node in walk_nodes(top_node):
         try:
             del node.scaffold
-        except:
+        except Exception:
             pass
         node._config_parent = None
         node._config_key = None
@@ -386,6 +419,13 @@ class ConfigurationAttribute:
         try:
             value = self.type(value, _parent=instance, _key=self.attr_name)
             self.flag_dirty(instance)
+        except ValueError:
+            # This value error should only arise when users are manually setting
+            # attributes in an already bootstrapped config tree.
+            raise CastError(
+                f"'{value}' is not convertible to {self.type.__name__},"
+                f" for attribute '{self.attr_name}' of {instance}."
+            ) from None
         except (RequirementError, CastError) as e:
             if not hasattr(e, "node") or not e.node:
                 e.node, e.attr = instance, self.attr_name
@@ -521,14 +561,20 @@ class cfglist(builtins.list):
             item = self._config_type(item, _parent=self, _key=index)
             try:
                 item._config_index = index
-            except:
+            except Exception:
                 pass
             return item
         except (RequirementError, CastError) as e:
+            e.args = (
+                f"Couldn't cast element {index} from '{item}'"
+                + f" into a {self._config_type.__name__}. "
+                + e.msg,
+                *e.args,
+            )
             if not e.node:
                 e.node, e.attr = self, index
             raise
-        except:
+        except Exception:
             raise CastError(
                 f"Couldn't cast element {index} from '{item}'"
                 + f" into a {self._config_type.__name__}"
@@ -603,7 +649,7 @@ class cfgdict(builtins.dict):
             if not (hasattr(e, "node") and e.node):
                 e.node, e.attr = self, key
             raise
-        except Exception as e:
+        except Exception:
             import traceback
 
             raise CastError(
@@ -757,7 +803,7 @@ class ConfigurationReferenceAttribute(ConfigurationAttribute):
             setattr(instance, self.get_ref_key(), value)
             if self.should_resolve_on_set(instance):
                 if hasattr(instance, "_config_root"):  # pragma: nocover
-                    raise ReferenceError(
+                    raise CfgReferenceError(
                         "Can't autoresolve references without a config root."
                     )
                 _setattr(
@@ -800,7 +846,7 @@ class ConfigurationReferenceAttribute(ConfigurationAttribute):
 
     def resolve_reference(self, instance, remote, key):
         if key not in remote:
-            raise ReferenceError(
+            raise CfgReferenceError(
                 "Reference '{}' of {} does not exist in {}".format(
                     key,
                     self.get_node_name(instance),
@@ -852,7 +898,7 @@ class ConfigurationReferenceListAttribute(ConfigurationReferenceAttribute):
         try:
             remote_keys = builtins.list(iter(value))
         except TypeError:
-            raise ReferenceError(
+            raise CfgReferenceError(
                 "Reference list '{}' of {} is not iterable.".format(
                     value, self.get_node_name(instance)
                 )
@@ -931,12 +977,10 @@ class ConfigurationReferenceListAttribute(ConfigurationReferenceAttribute):
 class ConfigurationAttributeSlot(ConfigurationAttribute):
     def __set__(self, instance, value):  # pragma: nocover
         raise NotImplementedError(
-            "Configuration slot '{}' of {} is empty. The {} plugin provided by '{}' should fill the slot with a configuration attribute.".format(
-                self.attr_name,
-                instance.get_node_name(),
-                instance.__class__._bsb_entry_point.module_name,
-                instance.__class__._bsb_entry_point.dist,
-            )
+            f"Configuration slot '{self.attr_name}' of {instance.get_node_name()} is"
+            f" empty. The {instance.__class__._bsb_entry_point.module_name} plugin"
+            f" provided by '{instance.__class__._bsb_entry_point.dist}' should fill the"
+            " slot with a configuration attribute."
         )
 
 

@@ -86,7 +86,7 @@ with a virtual environment activated.
   pip install cmake cython
   cmake .. \
     -Dwith-mpi=ON \
-    -Dwith-python=3 \
+    -Dwith-python=ON \
   make install -j8
 
 Confirm your installation with:

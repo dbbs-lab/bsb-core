@@ -16,7 +16,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 requires = [
-    "bsb-hdf5~=0.3.3",
+    "bsb-hdf5~=0.4.2",
     "h5py~=3.0",
     "numpy~=1.19",
     "scipy~=1.5",
@@ -98,6 +98,7 @@ setuptools.setup(
             "sphinxemoji",
             "sphinx_design~=0.2",
             "sphinx-copybutton~=0.5",
+            "sphinxext-bsb~=0.0.2",
         ],
         "arbor": ["arbor~=0.6"],
         "neuron": ["dbbs_models~=2.0.0", "nrn-patch~=3.0.1"],

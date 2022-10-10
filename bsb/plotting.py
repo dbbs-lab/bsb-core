@@ -148,7 +148,12 @@ def _morpho_figure(f):
             **kwargs,
         )
         if set_range:
-            rng = morphology.bounds
+            # Set the range to be the cube around the min and max of the
+            # morphology
+            rng = (
+                np.array([np.min(morphology.bounds[0])] * 3),
+                np.array([np.max(morphology.bounds[1])] * 3),
+            )
             set_scene_range(fig.layout.scene, rng)
             set_scene_aspect(fig.layout.scene, rng)
         if swapaxes:

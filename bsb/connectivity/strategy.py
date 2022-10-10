@@ -2,34 +2,35 @@ from .. import config
 from ..config import refs, types
 from .._util import SortableByAfter, obj_str_insert
 from ..reporting import report, warn
-from ..exceptions import *
 import abc
 from itertools import chain
 
 
-def _targetting_req(section):
-    return "labels" not in section
-
-
 @config.node
-class HemitypeNode:
-    cell_types = config.reflist(refs.cell_type_ref, required=_targetting_req)
-    compartments = config.attr(type=types.list())
+class Hemitype:
+    cell_types = config.reflist(refs.cell_type_ref, required=True)
     labels = config.attr(type=types.list())
+    morphology_labels = config.attr(type=types.list())
 
 
-class ConnectionCollection:
-    def __init__(self, scaffold, cell_types, roi):
-        self.scaffold = scaffold
-        self.cell_types = cell_types
+class HemitypeCollection:
+    def __init__(self, hemitype, roi):
+        self.hemitype = hemitype
         self.roi = roi
 
     def __iter__(self):
-        return iter(self.cell_types)
+        return iter(self.hemitype.cell_types)
 
     @property
     def placement(self):
-        return {ct: ct.get_placement_set(self.roi) for ct in self.cell_types}
+        return {
+            ct: ct.get_placement_set(
+                self.roi,
+                labels=self.hemitype.labels,
+                morphology_labels=self.hemitype.morphology_labels,
+            )
+            for ct in self.hemitype.cell_types
+        }
 
     def __getattr__(self, attr):
         return self.placement[attr]
@@ -41,8 +42,8 @@ class ConnectionCollection:
 @config.dynamic(attr_name="strategy", required=True)
 class ConnectionStrategy(abc.ABC, SortableByAfter):
     name = config.attr(key=True)
-    presynaptic = config.attr(type=HemitypeNode, required=True)
-    postsynaptic = config.attr(type=HemitypeNode, required=True)
+    presynaptic = config.attr(type=Hemitype, required=True)
+    postsynaptic = config.attr(type=Hemitype, required=True)
     after = config.reflist(refs.connectivity_ref)
 
     def __boot__(self):
@@ -50,12 +51,11 @@ class ConnectionStrategy(abc.ABC, SortableByAfter):
 
     @obj_str_insert
     def __repr__(self):
-        config_name = self.name
-        strategy_name = self.strategy
+        if not hasattr(self, "scaffold"):
+            return f"'{self.name}'"
         pre = [ct.name for ct in self.presynaptic.cell_types]
         post = [ct.name for ct in self.postsynaptic.cell_types]
-        return f"'{config_name}',"
-        f" connecting {pre} to {post}"
+        return f"'{self.name}', connecting {pre} to {post}"
 
     @classmethod
     def get_ordered(cls, objects):
@@ -76,8 +76,8 @@ class ConnectionStrategy(abc.ABC, SortableByAfter):
         pass
 
     def _get_connect_args_from_job(self, chunk, roi):
-        pre = ConnectionCollection(self.scaffold, self.presynaptic.cell_types, roi)
-        post = ConnectionCollection(self.scaffold, self.postsynaptic.cell_types, [chunk])
+        pre = HemitypeCollection(self.presynaptic, [chunk])
+        post = HemitypeCollection(self.postsynaptic, roi)
         return pre, post
 
     def connect_cells(self, pre_set, post_set, src_locs, dest_locs, tag=None):
@@ -107,15 +107,17 @@ class ConnectionStrategy(abc.ABC, SortableByAfter):
                 ct.get_placement_set().get_all_chunks() for ct in pre_types
             )
         )
-        # For determining the ROI, it's more logical and often easier to determine where
-        # axons can go, then where they can come from, so we let them do that, and flip
-        # the results around to get our single-post-chunk, multi-pre-chunk ROI. We store
-        # "connections arriving on", not "connections going to" for each cell.
-        rois = {}
-        for chunk in from_chunks:
-            for to_chunk in self.get_region_of_interest(chunk):
-                rois.setdefault(to_chunk, []).append(chunk)
-
+        rois = {
+            chunk: roi
+            for chunk in from_chunks
+            if (roi := self.get_region_of_interest(chunk))
+        }
+        if not rois:
+            warn(
+                f"No overlap found between {[pre.name for pre in pre_types]} and "
+                f"{[post.name for post in self.postsynaptic.cell_types]} "
+                f"in '{self.name}'."
+            )
         for chunk, roi in rois.items():
             job = pool.queue_connectivity(self, chunk, roi, deps=deps)
             self._queued_jobs.append(job)

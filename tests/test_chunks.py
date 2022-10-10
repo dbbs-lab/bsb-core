@@ -24,7 +24,7 @@ class TestChunks(unittest.TestCase):
         chunk0 = self.ps.load_positions()
         # Unloaded the chunks loaded by the other test. The desired behavior is then to
         # read all chunks.
-        self.ps.unload_chunk(Chunk((0, 0, 0), (100, 100, 100)))
+        self.ps.exclude_chunk(Chunk((0, 0, 0), None))
         chunk_all = self.ps.load_positions()
         self.assertGreater(len(chunk_all), len(chunk0))
 
@@ -37,7 +37,7 @@ class TestChunks(unittest.TestCase):
         cfg = from_json(get_config_path("test_single"))
         self.network = network = Scaffold(cfg, clear=True)
         self.ps = ps = network.get_placement_set("test_cell")
-        ps.load_chunk(Chunk((0, 0, 0), (100, 100, 100)))
+        ps.include_chunk(Chunk((0, 0, 0), None))
         pos = ps.load_positions()
         self.assertEqual(0, len(pos), "Cell pos found before cell placement. Cleared?")
         p = network.placement.test_placement
@@ -47,7 +47,7 @@ class TestChunks(unittest.TestCase):
         self.assertGreater(len(pos), 0, "No data loaded from chunk 000 after placement")
         # Force the addition of garbage data in another chunk, to be ignored by this
         # PlacementSet as it is set to load data only from chunk (0,0,0)
-        ps.append_data(Chunk((0, 0, 1), (100, 100, 100)), [0])
+        ps.append_data(Chunk((0, 0, 1), None), [0])
         pos2 = ps.load_positions()
         self.assertEqual(
             pos.tolist(), pos2.tolist(), "PlacementSet loaded extraneous chunk data"

@@ -87,10 +87,10 @@ class Scaffold:
 
     @obj_str_insert
     def __repr__(self):
-        filename = os.path.abspath(self.storage.root)
+        file = os.path.abspath(self.storage.root)
         cells_placed = len(self.cell_types)
-        connection_types = len(self.connectivity)
-        return f"'{filename}' with {cells_placed} cell types, and {connection_types} connection_types"
+        n_types = len(self.connectivity)
+        return f"'{file}' with {cells_placed} cell types, and {n_types} connection_types"
 
     def is_main_process(self):
         return not MPI.get_rank()
@@ -302,14 +302,14 @@ class Scaffold:
                     + " what to do with existing data."
                 )
             if clear:
-                print("Clearing data")
+                report("Clearing data", level=2)
                 self.clear_placement()
                 self.clear_connectivity()
             elif redo:
                 # In order to properly redo things, we clear some placement and connection
                 # data, but since multiple placement/connection strategies can contribute
                 # to the same sets we might be wiping their data too, and they will need
-                # to be cleared and reran as well, might cause a large chain reaction.
+                # to be cleared and reran as well.
                 p_strats, c_strats = self._redo_chain(p_strats, c_strats, skip, force)
             # else:
             #   append mode is luckily simpler, just don't clear anything :)
@@ -452,18 +452,24 @@ class Scaffold:
         """
         return self.get_placement(cell_types=cell_types)
 
-    def get_placement_set(self, type, chunks=None):
+    def get_placement_set(self, type, chunks=None, labels=None, morphology_labels=None):
         """
         Return a cell type's placement set from the output formatter.
 
         :param tag: Unique identifier of the placement set in the storage
         :type tag: str
         :returns: A placement set
+        :param labels: Labels to filter the placement set by.
+        :type labels: list[str]
+        :param morphology_labels: Subcellular labels to apply to the morphologies.
+        :type morphology_labels: list[str]
         :rtype: :class:`~.storage.interfaces.PlacementSet`
         """
         if isinstance(type, str):
             type = self.cell_types[type]
-        return self.storage.get_placement_set(type, chunks=chunks)
+        return self.storage.get_placement_set(
+            type, chunks=chunks, labels=labels, morphology_labels=morphology_labels
+        )
 
     def get_placement_sets(self):
         """
@@ -555,52 +561,8 @@ class Scaffold:
         self._initialise_simulation(adapter)
         return adapter
 
-    def label_cells(self, ids, label):
-        """
-        Store labels for the given cells. Labels can be used to identify subsets of cells.
-
-        :param ids: global identifiers of the cells that need to be labelled.
-        :type ids: Iterable
-        """
-        raise NotImplementedError("Label interface is RIP, revisit")
-        self.storage.Label(label).label(ids)
-
-    def get_labels(self, pattern=None):
-        """
-        Retrieve the set of labels that match a label pattern. Currently only exact
-        matches or strings ending in a wildcard are supported:
-
-        .. code-block:: python
-
-            # Will return only ["label-53"] if it is known to the scaffold.
-            labels = scaffold.get_labels("label-53")
-            # Might return multiple labels such as ["label-53", "label-01", ...]
-            labels = scaffold.get_labels("label-*")
-
-        :param pattern: An exact match or pattern ending in a wildcard (*) character.
-        :type pattern: str
-
-        :returns: All labels matching the pattern
-        :rtype: list
-        """
-        raise NotImplementedError("Label interface is RIP, revisit")
-        if pattern is None:
-            return self.storage._Label.list()
-        if pattern.endswith("*"):
-            p = pattern[:-1]
-
-            def finder(label):
-                return label.startswith(p)
-
-        else:
-
-            def finder(label):
-                return label == pattern
-
-        return list(filter(finder, self.storage._Label.list()))
-
     def merge(self, other, label=None):
-        raise NotImplementedError("Revisit: merge PS & CT, done?")
+        raise NotImplementedError("Revisit: merge CT, PS & CS, done?")
 
     def _sanitize_ct(self, seq_str_or_none):
         if seq_str_or_none is None:
@@ -782,7 +744,9 @@ class Scaffold:
             return None
 
     def _load_morpho_link(self):
-        link = self._get_link("morpho")
+        link = self._get_link("morpho", self.storage.root_slug)
+        if link is None:
+            link = self._get_link("morpho")
         if link is None:
             return
         if link.type != "sys":
@@ -798,13 +762,13 @@ class Scaffold:
                 for loader in all:
                     self.morphologies.save(loader.name, loader.load(), overwrite=True)
 
-    def _get_link(self, name, subcat=None):
+    def _get_link(self, name, supercat=None):
         import bsb.option
 
         path, content = bsb.option._pyproject_bsb()
         links = content.get("links", {})
-        if subcat is not None:
-            links = links.get(subcat, {})
+        if supercat is not None:
+            links = links.get(supercat, {})
         link = links.get(name, None)
         if link == "auto":
             # Send back a dummy object whose `type` attribute is "auto"

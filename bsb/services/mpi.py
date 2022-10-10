@@ -28,11 +28,11 @@ class MPIService:
             return self._comm.Barrier()
         pass
 
-    def abort(self):
+    def abort(self, errorcode=1):
         if self._comm:
-            return self._comm.Abort()
+            return self._comm.Abort(errorcode)
         print("MPI Abort called on MockCommunicator", flush=True)
-        exit(1)
+        exit(errorcode)
 
     def bcast(self, obj, root=0):
         if self._comm:

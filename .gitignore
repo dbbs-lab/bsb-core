@@ -21,3 +21,8 @@ htmlcov/
 *.io
 .vscode/
 bsb-*/
+
+
+# Merge note: NRRD & jupyter checkpoints
+*.nrrd
+.ipynb_checkpoints

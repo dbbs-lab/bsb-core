@@ -1,14 +1,8 @@
-import unittest, os, sys, numpy as np, h5py, json
-
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
-from bsb.core import Scaffold
+import unittest
+import os
 from bsb import config
-from bsb.config import from_json, Configuration
 from bsb.config.refs import Reference
-from bsb.config import types
-from bsb.exceptions import *
-from bsb.topology import Region, Partition
+from bsb.exceptions import CfgReferenceError
 
 
 def relative_to_tests_folder(path):
@@ -44,7 +38,7 @@ class Root430:
 
 class TestIssues(unittest.TestCase):
     def test_430(self):
-        with self.assertRaises(ReferenceError, msg="Regression of issue #430"):
+        with self.assertRaises(CfgReferenceError, msg="Regression of issue #430"):
             config = Root430(
                 examples=dict(), extensions=dict(x=dict(ex_mut=4, ref="missing"))
             )

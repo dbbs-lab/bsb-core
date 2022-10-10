@@ -3,6 +3,7 @@ import abc as _abc
 import os as _os
 import sys as _sys
 import contextlib as _ctxlib
+import numpy as _np
 from .exceptions import OrderError as _OrderError
 import functools
 
@@ -58,6 +59,22 @@ def listify_input(value):
         return list(value)
     except:
         return [value]
+
+
+def sanitize_ndarray(input, shape, dtype=None):
+    kwargs = {"copy": False}
+    if dtype is not None:
+        kwargs["dtype"] = dtype
+    arr = _np.array(input, **kwargs)
+    arr.shape = shape
+    return arr
+
+
+def assert_samelen(*args):
+    len_ = None
+    assert all(
+        (len_ := len(arg) if len_ is None else len(arg)) == len_ for arg in args
+    ), "Input arguments should be of same length."
 
 
 class SortableByAfter:

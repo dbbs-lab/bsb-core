@@ -68,7 +68,7 @@ class Satellite(PlacementStrategy):
             layer_max = layer.boundaries.mdc
             planet_cell_radius = after_cell_type.spatial.radius
             planet_cells = self.scaffold.get_placement_set(after_cell_type.name)
-            planet_cells.load_chunk(chunk)
+            planet_cells.include_chunk(chunk)
             # Exit the placement of satellites if no corresponding planet after cells were created before
             if len(planet_cells) == 0:
                 warn(

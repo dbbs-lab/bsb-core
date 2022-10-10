@@ -90,20 +90,20 @@
   "connectivity": {
     "mossy_to_glomerulus": {
       "class": "bsb.connectivity.ConnectomeMossyGlomerulus",
-      "from_cell_types": [{"type": "mossy_fibers", "compartments": ["soma"]}],
-      "to_cell_types": [{"type": "glomerulus", "compartments": ["soma"]}]
+      "from_cell_types": [{"type": "mossy_fibers", "morphology_labels": ["soma"]}],
+      "to_cell_types": [{"type": "glomerulus", "morphology_labels": ["soma"]}]
     },
     "glomerulus_to_golgi": {
       "class": "bsb.connectivity.ConnectomeGlomerulusGolgi",
-      "from_cell_types": [{"type": "glomerulus", "compartments": ["soma"]}],
-      "to_cell_types": [{"type": "golgi_cell", "compartments": ["dendrites"]}],
+      "from_cell_types": [{"type": "glomerulus", "morphology_labels": ["soma"]}],
+      "to_cell_types": [{"type": "golgi_cell", "morphology_labels": ["dendrites"]}],
       "divergence": 2,
       "convergence": 65
     },
     "golgi_to_granule": {
       "class": "bsb.connectivity.ConnectomeGolgiGranule",
-      "from_cell_types": [{"type": "golgi_cell", "compartments": ["axon"]}],
-      "to_cell_types": [{"type": "granule_cell", "compartments": ["dendrites"]}],
+      "from_cell_types": [{"type": "golgi_cell", "morphology_labels": ["axon"]}],
+      "to_cell_types": [{"type": "granule_cell", "morphology_labels": ["dendrites"]}],
       "divergence": 2,
       "convergence": 65
     }

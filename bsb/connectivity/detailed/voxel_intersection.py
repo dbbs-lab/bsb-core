@@ -4,9 +4,9 @@ import itertools
 import random
 from ..strategy import ConnectionStrategy
 from .shared import Intersectional
-from ...exceptions import *
 from ... import config
 from ...config import types
+from ..._util import ichain
 
 _rng = default_rng()
 
@@ -14,13 +14,7 @@ _rng = default_rng()
 @config.node
 class VoxelIntersection(Intersectional, ConnectionStrategy):
     """
-    This strategy voxelizes morphologies into collections of cubes, thereby reducing
-    the spatial specificity of the provided traced morphologies by grouping multiple
-    compartments into larger cubic voxels. Intersections are found not between the
-    seperate compartments but between the voxels and random compartments of matching
-    voxels are connected to eachother. This means that the connections that are made
-    are less specific to the exact morphology and can be very useful when only 1 or a
-    few morphologies are available to represent each cell type.
+    This strategy finds overlap between voxelized morphologies.
     """
 
     affinity = config.attr(type=types.fraction(), default=1)
@@ -31,13 +25,12 @@ class VoxelIntersection(Intersectional, ConnectionStrategy):
     favor_cache = config.attr(type=types.in_(["pre", "post"]), default="pre")
 
     def connect(self, pre, post):
-        if self.cache:
-            cache = {
-                set_.tag: set_.load_morphologies()
-                for set_ in itertools.chain(
-                    pre.placement.values(), post.placement.values()
-                )
-            }
+        # Note on the caching terms: `targets` are the population that will be cached the
+        # strongest; their voxelized tree will remain in place, while the candidates are
+        # rotated and translated to overlap the target tree.
+        # The choice to make something cached harder is if they have less different
+        # morphologies, and good choices for candidates are the population with more
+        # numerous and smaller morphologies.
         if self.favor_cache == "pre":
             targets = pre
             candidates = post
@@ -49,10 +42,15 @@ class VoxelIntersection(Intersectional, ConnectionStrategy):
             self._n_tvoxels = self.voxels_post
             self._n_cvoxels = self.voxels_pre
         combo_itr = self.candidate_intersection(targets, candidates)
+        mset_cache = {}
         for target_set, cand_set, match_itr in combo_itr:
             if self.cache:
-                target_mset = cache[target_set.tag]
-                cand_mset = cache[cand_set.tag]
+                if id(target_set) not in mset_cache:
+                    mset_cache[id(target_set)] = target_set.load_morphologies()
+                if id(cand_set) not in mset_cache:
+                    mset_cache[id(cand_set)] = cand_set.load_morphologies()
+                target_mset = mset_cache[id(target_set)]
+                cand_mset = mset_cache[id(cand_set)]
             else:
                 target_mset = target_set.load_morphologies()
                 cand_mset = cand_set.load_morphologies()
@@ -82,6 +80,7 @@ class VoxelIntersection(Intersectional, ConnectionStrategy):
             for cand in candidates:
                 cpos = positions[cand]
                 crot = rotations[cand]
+                # Don't hard cache, as we mutate the instance we get.
                 morpho = cmset.get(cand, cache=self.cache, hard_cache=False)
                 # Transform candidate, keep target unrotated and untranslated at origin:
                 # 1) Rotate self by own rotation
@@ -104,9 +103,12 @@ class VoxelIntersection(Intersectional, ConnectionStrategy):
                     data_acc.append(locations)
 
         # Preallocating and filling is faster than `np.concatenate` :shrugs:
-        acc_idx = np.cumsum([len(a[0]) for a in data_acc])
-        tlocs = np.empty((acc_idx[-1], 3))
-        clocs = np.empty((acc_idx[-1], 3))
+        acc_idx = np.cumsum(
+            [len(a[0]) for a in data_acc],
+        )
+        # The inline if guards against the case where there's no overlap
+        tlocs = np.empty((acc_idx[-1] if len(acc_idx) else 0, 3), dtype=int)
+        clocs = np.empty((acc_idx[-1] if len(acc_idx) else 0, 3), dtype=int)
         for (s, e), (tblock, cblock) in zip(_pairs_with_zero(acc_idx), data_acc):
             tlocs[s:e] = tblock
             clocs[s:e] = cblock
@@ -117,24 +119,35 @@ class VoxelIntersection(Intersectional, ConnectionStrategy):
         else:
             src_set, dest_set = cset, tset
             src_locs, dest_locs = clocs, tlocs
+
         self.connect_cells(src_set, dest_set, src_locs, dest_locs)
 
     def _pick_locations(self, tid, cid, tvoxels, cvoxels, overlap):
-        # TODO: There's probably some probabilistic bias here in favor of voxels with less
-        # locs inside of them to be picked more often.
         n = int(self.contacts.draw(1))
+        if n <= 0:
+            return np.empty((0, 3), dtype=int), np.empty((0, 3), dtype=int)
+        cpool = cvoxels.get_data([c for c, _ in overlap])
+        tpool = [tvoxels.get_data(t) for _, t in overlap]
+        pool = np.column_stack(
+            (
+                np.repeat(cpool, [len(t) for t in tpool]),
+                np.array([*ichain(tpool)], dtype=object),
+            )
+        )
+        weights = [len(c) * len(t) for c, t in pool]
         tlocs = []
         clocs = []
-        for i in _rng.integers(len(overlap), size=n):
-            cv, tvs = overlap[i]
-            cpool = cvoxels.get_data(cv)
-            tpool = np.concatenate([tvoxels.get_data(tv) for tv in tvs])
-            tlocs.append((tid, *random.choice(tpool)))
-            clocs.append((cid, *random.choice(cpool)))
+        for cpick, tpick in random.choices(pool, weights, k=n):
+            clocs.append((cid, *random.choice(cpick)))
+            tlocs.append((tid, *random.choice(tpick)))
         return tlocs, clocs
 
 
 def _pairs_with_zero(iterable):
     a, b = itertools.tee(iterable)
-    yield 0, next(b)
-    yield from zip(a, b)
+    try:
+        yield 0, next(b)
+    except StopIteration:
+        pass
+    else:
+        yield from zip(a, b)

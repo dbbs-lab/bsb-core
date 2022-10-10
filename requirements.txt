@@ -20,5 +20,6 @@ pynrrd==0.4.2
 toml==0.10.2
 morphio==3.3.2
 appdirs==1.4.4
+
 # Plugins
-bsb-hdf5==0.3.3
+bsb-hdf5==0.4.2
