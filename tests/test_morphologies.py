@@ -230,7 +230,7 @@ class TestMorphologies(NumpyTestCase, unittest.TestCase):
             np.array([[0, 0, 0], [1, 1, 0], [0, 4, 0], [0, 6, 0], [2, 4, 8]]),
             "It has failed rdp with epsilon 0",
         )
-        with self.assertRaises(ValueError) as context:
+        with self.assertRaises(ValueError, "It should throw a ValueError") as context:
             m_epsilon_0.simplify(epsilon=-1)
 
 
