@@ -1415,13 +1415,24 @@ class Branch:
                 return i
         return len(self) - 1
 
-    def _line_dists(self, start, end, points):
-        if np.all(start == end):
-            return np.linalg.norm(points - start, axis=1)
-
-        vec = end - start
-        cross = np.cross(vec, start - points)
-        return np.divide(np.linalg.norm(cross, axis = 1), np.linalg.norm(vec))
+    def get_axial_distance(self, idx_start = 0, idx_end = -1, return_max = False):
+        """
+        Return the displacements or its max value of a subset of branch points from its axis vector.
+        :param idx_start = 0: index of the first point of the subset.
+        :param idx_end = -1: index of the last point of the subset.
+        :param return_max = False: if True the function only returns the max value of displacements, otherwise the entire array.
+        """
+        try:
+            versor = (self.points[idx_end] - self.points[idx_start]) / np.linalg.norm(self.points[idx_end] - self.points[idx_start])
+            displacements = np.linalg.norm(
+                np.cross(versor, (self.points[idx_start:idx_end+1] - self.points[idx_start])), axis=1
+            )
+            if return_max:
+                return np.max(displacements)
+            else:
+                return displacements
+        except IndexError:
+            raise EmptyBranchError("Selected an empty subset of points") from None
 
 
     def simplify(self, epsilon, idx_start = 0, idx_end = -1):
@@ -1438,30 +1449,28 @@ class Branch:
         if epsilon < 0:
             raise ValueError(f"Epsilon must be an int >= 0, actual epsilon: {epsilon}")
 
-        reduced = deque()
+        reduced = []
         skipped = deque()
         
         while True:
-            start = self.points[idx_start]
-            end = self.points[idx_end]
-            dists = self._line_dists(start, end, self.points[idx_start:idx_end])
+            dists = self.get_axial_distance(idx_start, idx_end)
             try:
-                index = np.argmax(dists)
-                dmax = dists[index]
-            except(ValueError):
+                idx_max = np.argmax(dists)
+                dmax = dists[idx_max]
+                idx_max = idx_start + idx_max
+            except ValueError:
                 dmax = 0
-            
+
             reduced.append(idx_start)
             reduced.append(idx_end)
-            if dmax > epsilon and idx_end - idx_start > 1:
-                skipped.append([index, idx_end])
-                idx_end = index - 1
+            if dmax > epsilon and len(dists) > 2:
+                skipped.append((idx_max, idx_end))
+                idx_end = idx_max - 1
             else:
                 try:
-                    idx_start, idx_end = skipped.popleft()
-                except(IndexError):
+                    idx_start, idx_end = skipped.pop()
+                except IndexError:
                     break
-
 
         reduced = np.sort(np.unique(reduced))
         self.points = self.points[reduced]
