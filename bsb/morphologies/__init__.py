@@ -1055,7 +1055,7 @@ class Branch:
             self._points = arr
 
     @property
-    def kd_tree(self):
+    def _kd_tree(self):
         """
         Return a `scipy.spatial.cKDTree` of this branch points for fast spatial queries.
 
@@ -1281,12 +1281,11 @@ class Branch:
 
     def insert_branch(self, branch, index):
         """
-        Insert a new branch, by splitting this branch and inserting ``branch`` at a specific index.
-        Note that if the cutpoint does not belong to the branch, the closest existing point is used for insertion.
+        Split this branch and insert the given ``branch`` at the specified ``index``.
 
         :param branch: Branch to be attached
         :type branch: :class:`Branch <.morphologies.Branch>`
-        :param index: Index of the cutpoint; if coordinates are given, the closest point to that coordinate is used
+        :param index: Index or coordinates of the cutpoint; if coordinates are given, the closest point to the coordinates is used.
         :type: Union[:class:`numpy.ndarray`, int]
         """
         index = np.array(index, copy=False)
