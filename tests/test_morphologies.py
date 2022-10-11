@@ -180,12 +180,12 @@ class TestMorphologies(NumpyTestCase, unittest.TestCase):
 
     def test_adjacency(self):
         target = {0: [1], 1: [2, 5], 2: [3, 4], 3: [], 4: [], 5: []}
-        root = self._branch(1)
-        branch_A = self._branch(5)
-        branch_B = self._branch(5)
-        branch_C = self._branch(5)
-        branch_D = self._branch(5)
-        branch_E = self._branch(5)
+        root = _branch(1)
+        branch_A = _branch(5)
+        branch_B = _branch(5)
+        branch_C = _branch(5)
+        branch_D = _branch(5)
+        branch_E = _branch(5)
         branch_A.attach_child(branch_B)
         branch_B.attach_child(branch_C)
         branch_B.attach_child(branch_D)
@@ -675,9 +675,9 @@ class TestBranchInsertion(NumpyTestCase, unittest.TestCase):
         # self.m.close_gaps()
         for c in self.m.branches[1].children:
             self.assertClose(insertion_pt, c.start)
-        self.assertClose(self.m.branches[1].end == insertion_pt)
+        self.assertClose(self.m.branches[1].end, insertion_pt)
         for c in self.m.branches[1].children:
-            self.assertClose(insertion_pt == c.start)
+            self.assertClose(insertion_pt, c.start)
 
     def test_insertion_indices(self):
         target = {0: [1, 2], 1: [], 2: []}
