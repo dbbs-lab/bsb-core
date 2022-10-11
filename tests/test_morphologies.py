@@ -672,7 +672,7 @@ class TestBranchInsertion(NumpyTestCase, unittest.TestCase):
     def test_insertion_points(self):
         insertion_pt = np.array([2.0, 0.0, 0.0])
         self.m.branches[1].insert_branch(self.b2, insertion_pt)
-        #self.m.close_gaps()
+        # self.m.close_gaps()
         for c in self.m.branches[1].children:
             self.assertClose(insertion_pt, c.start)
         self.assertClose(self.m.branches[1].end == insertion_pt)
