@@ -571,7 +571,7 @@ class SubTree:
         for root in self.roots:
             root.translate(on - root.points[0])
         return self
-        
+
     def simplify_branches(self, epsilon):
         """
         Apply Ramer–Douglas–Peucker algorithm to all points of all branches of the SubTree.
@@ -579,7 +579,6 @@ class SubTree:
         """
         for branch in self.branches:
             branch.simplify(epsilon)
-
 
     def voxelize(self, N):
         """
@@ -854,7 +853,7 @@ class Morphology(SubTree):
                 branch_copy_map[branch] = nbranch
         # Construct and return the morphology
         return self.__class__(roots, meta=self.meta.copy())
-    
+
     def simplify(self, *args, optimize=True, **kwargs):
         super().simplify_branches(*args, **kwargs)
         if optimize:
@@ -1415,7 +1414,7 @@ class Branch:
                 return i
         return len(self) - 1
 
-    def get_axial_distance(self, idx_start = 0, idx_end = -1, return_max = False):
+    def get_axial_distance(self, idx_start=0, idx_end=-1, return_max=False):
         """
         Return the displacements or its max value of a subset of branch points from its axis vector.
         :param idx_start = 0: index of the first point of the subset.
@@ -1423,9 +1422,15 @@ class Branch:
         :param return_max = False: if True the function only returns the max value of displacements, otherwise the entire array.
         """
         try:
-            versor = (self.points[idx_end] - self.points[idx_start]) / np.linalg.norm(self.points[idx_end] - self.points[idx_start])
+            start = self.points[idx_start]
+            end = self.points[idx_end]
+            versor = (end - start) / np.linalg.norm(end - start)
             displacements = np.linalg.norm(
-                np.cross(versor, (self.points[idx_start:idx_end+1] - self.points[idx_start])), axis=1
+                np.cross(
+                    versor,
+                    (self.points[idx_start : idx_end + 1] - self.points[idx_start]),
+                ),
+                axis=1,
             )
             if return_max:
                 return np.max(displacements)
@@ -1434,8 +1439,7 @@ class Branch:
         except IndexError:
             raise EmptyBranchError("Selected an empty subset of points") from None
 
-
-    def simplify(self, epsilon, idx_start = 0, idx_end = -1):
+    def simplify(self, epsilon, idx_start=0, idx_end=-1):
         """
         Apply Ramer–Douglas–Peucker algorithm to all points or a subset of points of the branch.
         :param epsilon: Epsilon to be used in the algorithm.
@@ -1451,7 +1455,7 @@ class Branch:
 
         reduced = []
         skipped = deque()
-        
+
         while True:
             dists = self.get_axial_distance(idx_start, idx_end)
             try:
