@@ -1281,7 +1281,8 @@ class Branch:
 
     def insert_branch(self, branch, index):
         """
-        Insert a new branch, by splitting this branch and inserting ``branch`` as a child branch at the cutpoint.
+        Insert a new branch, by splitting this branch and inserting ``branch`` at a specific index.
+        Note that if the cutpoint does not belong to the branch, the closest existing point is used for insertion.
 
         :param branch: Branch to be attached
         :type branch: :class:`Branch <.morphologies.Branch>`
