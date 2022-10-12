@@ -753,7 +753,9 @@ class Scaffold:
             return None
 
     def _load_morpho_link(self):
-        link = self._get_link("morpho")
+        link = self._get_link("morpho", self.storage.root_slug)
+        if link is None:
+            link = self._get_link("morpho")
         if link is None:
             return
         if link.type != "sys":
@@ -769,13 +771,13 @@ class Scaffold:
                 for loader in all:
                     self.morphologies.save(loader.name, loader.load(), overwrite=True)
 
-    def _get_link(self, name, subcat=None):
+    def _get_link(self, name, supercat=None):
         import bsb.option
 
         path, content = bsb.option._pyproject_bsb()
         links = content.get("links", {})
-        if subcat is not None:
-            links = links.get(subcat, {})
+        if supercat is not None:
+            links = links.get(supercat, {})
         link = links.get(name, None)
         if link == "auto":
             # Send back a dummy object whose `type` attribute is "auto"
