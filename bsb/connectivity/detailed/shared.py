@@ -1,12 +1,16 @@
 from itertools import chain
 from functools import cache
 import numpy as np
+from ... import config
+from ...config import types
 from ...storage import Chunk
 from ...reporting import warn
 from ...exceptions import ConnectivityWarning
 
 
 class Intersectional:
+    affinity = config.attr(type=types.fraction(), default=1)
+
     def get_region_of_interest(self, chunk):
         post_ps = [ct.get_placement_set() for ct in self.postsynaptic.cell_types]
         lpre, upre = self._get_rect_ext(tuple(chunk.dimensions), True)
@@ -63,4 +67,16 @@ class Intersectional:
         for ctype, cset in candidate_coll.placement.items():
             box_tree = cset.load_box_tree()
             for ttype, tset, tboxes in target_cache:
-                yield (tset, cset, box_tree.query(tboxes))
+                yield (tset, cset, self._affinity_filter(box_tree.query(tboxes)))
+
+    def _affinity_filter(self, query):
+        if self.affinity == 1:
+            return query
+        else:
+            aff = self.affinity
+
+            def sizemod(q):
+                ln = len(q)
+                return int(np.floor(ln * aff) + np.random.rand() < (ln * aff) % 1)
+
+            yield from (np.random.choice(q, sizemod(q), replace=False) for q in query)
