@@ -47,6 +47,7 @@ class ProfilingSession:
         self._meters = []
         self.name = "bsb_profiling"
         self._current_f = None
+        self._flushcounter = 0
 
     def set_name(self, name):
         self.name = name
@@ -73,12 +74,14 @@ class ProfilingSession:
         self._meters.append(meter)
         return meter
 
-    def flush(self):
+    def flush(self, stats=True):
         profile = self.profile
         if self._current_f is None:
             uuid = uuid4()
             self._current_f = f"{self.name}_{MPI.get_rank()}_{uuid}"
-        self.profile.dump_stats(f"{self._current_f}.prf")
+        if stats:
+            self.profile.dump_stats(f"{self._current_f}_{self._flushcounter}.prf")
+            self._flushcounter += 1
         try:
             del self.profile
             with open(f"{self._current_f}.pkl", "wb") as f:
@@ -148,7 +151,7 @@ def meter(f=None, *, name_f=None):
                 name = f.__name__
             with session.meter(name, args=str(args), kwargs=str(kwargs)):
                 r = f(*args, **kwargs)
-            session.flush()
+            session.flush(stats=False)
             return r
         else:
             return f(*args, **kwargs)
