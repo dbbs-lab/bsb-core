@@ -88,7 +88,7 @@ class ConnectionStrategy(abc.ABC, SortableByAfter):
 
     def connect_cells(self, pre_set, post_set, src_locs, dest_locs, tag=None):
         cs = self.scaffold.require_connectivity_set(
-            pre_set.cell_type, post_set.cell_type, tag
+            pre_set.cell_type, post_set.cell_type, tag if tag is not None else self.name
         )
         cs.connect(pre_set, post_set, src_locs, dest_locs)
 
