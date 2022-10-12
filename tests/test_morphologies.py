@@ -178,6 +178,23 @@ class TestMorphologies(NumpyTestCase, unittest.TestCase):
         res = m.rotate(r).root_rotate(r).translate([0, 0, 0]).collapse().close_gaps()
         self.assertEqual(m, res, "chaining calls should return self")
 
+    def test_adjacency(self):
+        target = {0: [1], 1: [2, 5], 2: [3, 4], 3: [], 4: [], 5: []}
+        root = _branch(1)
+        branch_A = _branch(5)
+        branch_B = _branch(5)
+        branch_C = _branch(5)
+        branch_D = _branch(5)
+        branch_E = _branch(5)
+        branch_A.attach_child(branch_B)
+        branch_B.attach_child(branch_C)
+        branch_B.attach_child(branch_D)
+        branch_A.attach_child(branch_E)
+        root.attach_child(branch_A)
+        m = Morphology([root])
+
+        self.assertEqual(m.adjacency_dictionary, target)
+
 
 class TestMorphologyLabels(NumpyTestCase, unittest.TestCase):
     def test_labels(self):
@@ -636,6 +653,89 @@ class TestSwcFiles(NumpyTestCase, unittest.TestCase):
     def test_identity(self):
         m = Morphology.from_swc(get_morphology_path("test_morphometry.swc"))
         self.assertClose(m.points, self.m.points)
+
+
+class TestBranchInsertion(NumpyTestCase, unittest.TestCase):
+    def setUp(self):
+        root = Branch(np.array([0.0, 0.0, 0.0]).reshape(1, 3), radii=1)
+        x1 = np.arange(4.0, dtype=float)
+        y1, z = np.zeros(len(x1), dtype=float), np.zeros(len(x1), dtype=float)
+        b1 = Branch(((np.vstack((x1, y1, z)).T)).reshape(len(x1), 3), radii=[1] * len(x1))
+        x2 = np.ones(len(x1), dtype=float) * 2
+        y2 = np.arange(4.0, dtype=float)
+        self.b2 = Branch(
+            ((np.vstack((x2, y2, z)).T)).reshape(len(x1), 3), radii=[1] * len(x1)
+        )
+        root.attach_child(b1)
+        self.m = Morphology([root])
+
+    def test_insertion_points(self):
+        insertion_pt = np.array([2.0, 0.0, 0.0])
+        self.m.branches[1].insert_branch(self.b2, insertion_pt)
+        # self.m.close_gaps()
+        for c in self.m.branches[1].children:
+            self.assertClose(insertion_pt, c.start)
+        self.assertClose(self.m.branches[1].end, insertion_pt)
+        for c in self.m.branches[1].children:
+            self.assertClose(insertion_pt, c.start)
+
+    def test_insertion_indices(self):
+        target = {0: [1, 2], 1: [], 2: []}
+        b = self.m.branches[1]
+        self.assertRaises(IndexError, b.insert_branch, self.b2, -5)
+        self.assertRaises(IndexError, b.insert_branch, self.b2, -1)
+        self.m.branches[1].insert_branch(self.b2, 0)
+        self.assertEqual(self.m.adjacency_dictionary, target)
+        self.assertRaises(IndexError, b.insert_branch, self.b2, len(b))
+        self.assertRaises(IndexError, b.insert_branch, self.b2, len(b) + 1)
+
+    def test_hierarchy(self):
+        target = {
+            0: [1],
+            1: [2, 4],
+            2: [3],
+            3: [],
+            4: [5, 6],
+            5: [],
+            6: [7, 8, 9],
+            7: [],
+            8: [],
+            9: [],
+        }
+        x0 = np.arange(4.0, dtype=float) + 3.0
+        y0, z = np.zeros(len(x0), dtype=float), np.zeros(len(x0), dtype=float)
+        b0 = Branch(((np.vstack((x0, y0, z)).T)).reshape(len(x0), 3), radii=[1] * len(x0))
+        first_insertion_pt = np.array([2.0, 0.0, 0.0])
+        self.m.branches[1].insert_branch(self.b2, first_insertion_pt)
+        x = np.arange(start=3.0, stop=6.0, dtype=float)
+        y3 = np.arange(3.0, dtype=float)
+        y4 = -np.arange(3.0, dtype=float)
+        z = np.zeros(len(x), dtype=float)
+        b3 = Branch(((np.vstack((x, y3, z)).T)).reshape(len(x), 3), radii=[1] * len(x))
+        b4 = Branch(((np.vstack((x, y4, z)).T)).reshape(len(x), 3), radii=[1] * len(x))
+        second_insertion_pt = np.array([3.0, 0.0, 0.0])
+        self.m.branches[3].insert_branch(b3, second_insertion_pt)
+        self.m.branches[3].insert_branch(b4, second_insertion_pt)
+        third_insertion_pt = np.array([1.0, 0.0, 0.0])
+        y5 = -np.arange(3.0, dtype=float)
+        x5 = np.ones(len(y5), dtype=float)
+        z5 = np.zeros(len(y5), dtype=float)
+        x6 = -np.arange(3.0, dtype=float)
+        y6 = np.ones(len(x6), dtype=float) * 2
+        z6 = np.zeros(len(x6), dtype=float)
+        b5 = Branch(
+            ((np.vstack((x5, y5, z5)).T)).reshape(len(x5), 3), radii=[1] * len(x5)
+        )
+        b6 = Branch(
+            ((np.vstack((x6, y6, z6)).T)).reshape(len(x6), 3), radii=[1] * len(x6)
+        )
+        b5.attach_child(b6)
+        b4.insert_branch(b0, third_insertion_pt)
+        self.m.branches[1].insert_branch(b5, third_insertion_pt)
+        self.m.close_gaps()
+        for c in self.m.branches[3].children:
+            self.assertClose(second_insertion_pt, c.start)
+        self.assertEqual(self.m.adjacency_dictionary, target)
 
 
 class TestMorphologyFiltering(NumpyTestCase, unittest.TestCase):

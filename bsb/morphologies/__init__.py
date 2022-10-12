@@ -728,6 +728,15 @@ class Morphology(SubTree):
         return self._meta
 
     @property
+    def adjacency_dictionary(self):
+        """
+        Return a dictonary associating to each key (branch index) a list of adjacent branch indices
+        """
+        branches = self.branches
+        idmap = {b: n for n, b in enumerate(branches)}
+        return {n: list(map(idmap.get, b.children)) for n, b in enumerate(branches)}
+
+    @property
     def labelsets(self):
         """
         Return the sets of labels associated to each numerical label.
@@ -1046,6 +1055,18 @@ class Branch:
             self._points = arr
 
     @property
+    def _kd_tree(self):
+        """
+        Return a `scipy.spatial.cKDTree` of this branch points for fast spatial queries.
+
+        .. warning::
+
+           Constructing a kd-tree takes time and should only be used for repeated querying.
+
+        """
+        return cKDTree(self._points)
+
+    @property
     def point_vectors(self):
         """
         Return the individual vectors between consecutive points on this branch.
@@ -1247,6 +1268,59 @@ class Branch:
             branch._parent.detach_child(branch)
         self._children.append(branch)
         branch._parent = self
+
+    def find_closest_point(self, coord):
+        """
+        Return the index of the closest on this branch to a desired coordinate.
+
+        :param coord: The coordinate to find the nearest point to
+        :type: :class:`numpy.ndarray`
+        """
+        diff = np.sqrt(np.sum((self._points - coord) ** 2, axis=1))
+        return np.argmin(diff)
+
+    def insert_branch(self, branch, index):
+        """
+        Split this branch and insert the given ``branch`` at the specified ``index``.
+
+        :param branch: Branch to be attached
+        :type branch: :class:`Branch <.morphologies.Branch>`
+        :param index: Index or coordinates of the cutpoint; if coordinates are given, the closest point to the coordinates is used.
+        :type: Union[:class:`numpy.ndarray`, int]
+        """
+        index = np.array(index, copy=False)
+        if index.ndim != 0:
+            index = self.find_closest_point(index)
+
+        if index < 0 or index >= len(self):
+            raise IndexError(
+                f"Cannot insert branch at cutpoint: index {index} is out of range ({len(self)})"
+            )
+
+        if index == len(self.points) - 1:
+            self.attach_child(branch)
+        elif index == 0:
+            self.parent.attach_child(branch)
+        else:
+            first_segment = Branch(
+                self._points.copy()[: index + 1],
+                self._radii.copy()[: index + 1],
+                self._labels.copy()[: index + 1],
+                {k: v.copy()[: index + 1] for k, v in self._properties},
+            )
+            self.parent.attach_child(first_segment)
+            self.parent.detach_child(self)
+            first_segment.attach_child(branch)
+            second_segment = Branch(
+                self._points.copy()[index:],
+                self._radii.copy()[index:],
+                self._labels.copy()[index:],
+                {k: v.copy()[index:] for k, v in self._properties},
+            )
+            for b in self.children:
+                self.detach_child(b)
+                second_segment.attach_child(b)
+            first_segment.attach_child(second_segment)
 
     def detach_child(self, branch):
         """
