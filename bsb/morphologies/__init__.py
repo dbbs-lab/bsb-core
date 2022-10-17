@@ -1488,30 +1488,30 @@ class Branch:
                 return i
         return len(self) - 1
 
-    def get_axial_distance(self, idx_start=0, idx_end=-1, return_max=False):
+    def get_axial_distances(self, idx_start=0, idx_end=-1, return_max=False):
         """
         Return the displacements or its max value of a subset of branch points from its axis vector.
         :param idx_start = 0: index of the first point of the subset.
         :param idx_end = -1: index of the last point of the subset.
         :param return_max = False: if True the function only returns the max value of displacements, otherwise the entire array.
         """
-        try:
-            start = self.points[idx_start]
-            end = self.points[idx_end]
-            versor = (end - start) / np.linalg.norm(end - start)
-            displacements = np.linalg.norm(
-                np.cross(
-                    versor,
-                    (self.points[idx_start : idx_end + 1] - self.points[idx_start]),
-                ),
-                axis=1,
-            )
-            if return_max:
+        start = self.points[idx_start]
+        end = self.points[idx_end]
+        versor = (end - start) / np.linalg.norm(end - start)
+        displacements = np.linalg.norm(
+            np.cross(
+                versor,
+                (self.points[idx_start : idx_end + 1] - self.points[idx_start]),
+            ),
+            axis=1,
+        )
+        if return_max:
+            try:
                 return np.max(displacements)
-            else:
-                return displacements
-        except IndexError:
-            raise EmptyBranchError("Selected an empty subset of points") from None
+            except IndexError:
+                raise EmptyBranchError("Selected an empty subset of points") from None
+        else:
+            return displacements
 
     def simplify(self, epsilon, idx_start=0, idx_end=-1):
         """
@@ -1525,13 +1525,13 @@ class Branch:
         if idx_end == -1:
             idx_end = len(self.points) - 1
         if epsilon < 0:
-            raise ValueError(f"Epsilon must be an int >= 0, actual epsilon: {epsilon}")
+            raise ValueError(f"Epsilon must be >= 0")
 
         reduced = []
         skipped = deque()
 
         while True:
-            dists = self.get_axial_distance(idx_start, idx_end)
+            dists = self.get_axial_distances(idx_start, idx_end)
             try:
                 idx_max = np.argmax(dists)
                 dmax = dists[idx_max]
@@ -1550,6 +1550,8 @@ class Branch:
                 except IndexError:
                     break
 
+        # sorted because indexes are appended to reduced from the middle of the list (the first point with dist > epsilon)
+        # then all points with smaller index  until 0, then all points with bigger index
         reduced = np.sort(np.unique(reduced))
         self.points = self.points[reduced]
         self.radii = self.radii[reduced]
