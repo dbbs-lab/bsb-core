@@ -432,16 +432,28 @@ class deg_to_radian(TypeHandler):
         return v * 360 / (2 * math.pi)
 
 
-def distribution():
+class distribution(TypeHandler):
     """
-    Type validator that maps to a ``scipy.stats.distribution``.
-
-    :returns: Type validator function
-    :rtype: Callable
+    Type validator. Type casts the value or node to a distribution.
     """
-    from ._distributions import Distribution
 
-    return Distribution
+    def __call__(self, value):
+        from ._distributions import Distribution
+
+        if not isinstance(value, builtins.list) and not isinstance(value, builtins.dict):
+            value = {"distribution": "constant", "constant": value}
+
+        return Distribution(**value)
+
+    @property
+    def __name__(self):  # pragma: nocover
+        return "distribution"
+
+    def __inv__(self, value):
+        if value.distribution == "constant":
+            return value.parameters["constant"]
+        else:
+            return value.__tree__()
 
 
 class evaluation(TypeHandler):

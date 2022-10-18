@@ -19,9 +19,9 @@ class Distribution:
     distribution = config.attr(type=types.in_(_available_distributions), required=True)
     parameters = config.catch_all(type=types.any())
 
-    def __init__(self, constant=None, /, **kwargs):
-        if constant is not None:
-            self._distr = _ConstantDistribution(constant)
+    def __init__(self, **kwargs):
+        if self.distribution == "constant":
+            self._distr = _ConstantDistribution(self.parameters["constant"])
             return
 
         try:
@@ -38,10 +38,6 @@ class Distribution:
         if "_distr" not in self.__dict__:
             raise AttributeError("No underlying _distr found for distribution node.")
         return getattr(self._distr, attr)
-
-    @classmethod
-    def __const__(cls, value):
-        return dict(distribution="constant")
 
 
 class _ConstantDistribution:

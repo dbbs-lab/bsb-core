@@ -57,7 +57,7 @@ def make_metaclass(cls):
                 meta_subject, _parent=_parent, _key=_key, **kwargs
             )
             # Call the end user's __init__ with the rewritten arguments, if one is defined
-            if overrides(meta_subject, "__init__", mro=True):
+            if has_own_init:
                 sig = inspect.signature(instance.__init__)
                 try:
                     # Check whether the arguments match the signature. We use `sig.bind`
