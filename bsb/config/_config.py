@@ -1,20 +1,42 @@
-from . import attr, dict, root
+from . import attr, dict, root, node, types
 from ..cell_types import CellType
 from ._attrs import _boot_nodes
-from .nodes import StorageNode, NetworkNode
 from ..placement import PlacementStrategy
+from ..storage.interfaces import StorageNode
 from ..connectivity import ConnectionStrategy
 from ..simulation.simulation import Simulation
 from ..postprocessing import PostProcessingHook
 from ..exceptions import UnmanagedPartitionError
 from .._util import merge_dicts
-import builtins
 from ..topology import (
     get_partitions,
     create_topology,
     Region,
     Partition,
 )
+import builtins
+import numpy as np
+
+
+@node
+class NetworkNode:
+    x = attr(type=float, required=True)
+    y = attr(type=float, required=True)
+    z = attr(type=float, required=True)
+    origin = attr(
+        type=types.list(type=float, size=3), default=lambda: [0, 0, 0], call_default=True
+    )
+    chunk_size = attr(
+        type=types.or_(
+            types.list(float),
+            types.scalar_expand(float, expand=lambda s: np.ones(3) * s),
+        ),
+        default=lambda: [100.0, 100.0, 100.0],
+        call_default=True,
+    )
+
+    def boot(self):
+        self.chunk_size = np.array(self.chunk_size)
 
 
 @root

@@ -2,9 +2,24 @@ import abc
 from pathlib import Path
 import functools
 import numpy as np
+from .. import config, plugins
 from ..morphologies import Morphology
 from ..trees import BoxTree
 from .._util import obj_str_insert
+
+
+@config.pluggable(key="engine", plugin_name="storage engine")
+class StorageNode:
+    root = config.slot()
+
+    @classmethod
+    def __plugins__(cls):
+        if not hasattr(cls, "_plugins"):
+            cls._plugins = {
+                name: plugin.StorageNode
+                for name, plugin in plugins.discover("engines").items()
+            }
+        return cls._plugins
 
 
 class Interface(abc.ABC):
