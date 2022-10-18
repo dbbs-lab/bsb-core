@@ -432,45 +432,16 @@ class deg_to_radian(TypeHandler):
         return v * 360 / (2 * math.pi)
 
 
-class _ConstantDistribution:
-    def __init__(self, const):
-        self.const = const
-
-    def draw(self, n):
-        return np.ones(n) * self.const
-
-    def __tree__(self):
-        return self.const
-
-
-def constant_distr():
-    """
-    Type handler that turns a float into a distribution that always returns the float.
-    This can be used in places where a distribution is expected but the user might
-    want to use a single constant value instead.
-
-    :returns: Type validator function
-    :rtype: Callable
-    """
-
-    def type_handler(value):
-        return _ConstantDistribution(_float(value))
-
-    type_handler.__name__ = "constant distribution"
-    return type_handler
-
-
 def distribution():
     """
-    Type validator. Type casts a float to a constant distribution or a dict to a
-    :class:`Distribution <.config.nodes.Distribution>` node.
+    Type validator that maps to a ``scipy.stats.distribution``.
 
     :returns: Type validator function
     :rtype: Callable
     """
-    from .nodes import Distribution
+    from ._distributions import Distribution
 
-    return or_(constant_distr(), Distribution)
+    return Distribution
 
 
 class evaluation(TypeHandler):
