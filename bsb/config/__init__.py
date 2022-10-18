@@ -42,7 +42,7 @@ ConfigurationAttribute.__module__ = __name__
 
 
 class ConfigurationModule:
-    from . import types, refs, nodes
+    from . import types, refs
 
     def __init__(self, name):
         self.__name__ = name
@@ -74,7 +74,7 @@ class ConfigurationModule:
     _parser_classes = {}
 
     # The __path__ attribute needs to be retained to mark this module as a package with
-    # submodules (config.nodes, config.refs, config.parsers.json, ...)
+    # submodules (config.refs, config.parsers.json, ...)
     __path__ = _path
 
     # Load the Configuration class on demand, not on import, to avoid circular
