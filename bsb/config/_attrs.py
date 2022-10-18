@@ -15,7 +15,7 @@ from ._make import (
     walk_nodes,
     _resolve_references,
 )
-from .types import _wrap_reserved
+from ._compile import _wrap_reserved
 from ..exceptions import (
     RequirementError,
     NoReferenceAttributeSignal,
