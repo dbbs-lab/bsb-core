@@ -243,7 +243,7 @@ class RotationSet:
     def __getitem__(self, index):
         data = self._data[index]
         if data.ndim == 2:
-            return np.array([self._rot(d) for d in data])
+            return np.array([self._rot(d) for d in data], dtype=object)
         else:
             return self._rot(data)
 
