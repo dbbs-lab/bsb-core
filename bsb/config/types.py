@@ -437,13 +437,13 @@ class distribution(TypeHandler):
     Type validator. Type casts the value or node to a distribution.
     """
 
-    def __call__(self, value):
+    def __call__(self, value, _key=None, _parent=None):
         from ._distributions import Distribution
 
         if not isinstance(value, builtins.list) and not isinstance(value, builtins.dict):
             value = {"distribution": "constant", "constant": value}
 
-        return Distribution(**value)
+        return Distribution(**value, _key=_key, _parent=_parent)
 
     @property
     def __name__(self):  # pragma: nocover

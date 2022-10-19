@@ -861,7 +861,7 @@ class TestTypes(unittest.TestCase):
     def test_constant_distribution(self):
         @config.root
         class Test:
-            c = config.attr(type=types.constant_distr())
+            c = config.attr(type=types.distribution())
 
         a = Test({"c": 1})
         self.assertTrue(np.array_equal(np.ones(5), a.c.draw(5)))
@@ -879,7 +879,7 @@ class TestTypes(unittest.TestCase):
         self.assertEqual(type(equivalent), type(a.c._distr))
         self.assertEqual(equivalent.pdf(5.9), a.c.pdf(5.9))
 
-        with self.assertRaises(CastError):
+        with self.assertRaises(RequirementError):
             a = Test({"c": {"a": 3, "loc": 2, "scale": 2.5}})
 
         with self.assertRaises(CastError):
