@@ -1590,7 +1590,22 @@ def _morpho_to_swc(morpho):
     # Initialize an empty data array
     data = np.empty((len(morpho.points), 7), dtype=object)
     bmap = {}
+    swc_tags = {"soma": 1, "axon": 2, "dendrites": 3}
+    label_map = {}
     nid = 0
+    # Check if labels are equal to expected tags
+    label_names = [list(l) for l in morpho.labelsets.values()]
+    label_names = list(itertools.chain.from_iterable(label_names))
+    if label_names == list(swc_tags.keys()):
+        for k in swc_tags.keys():
+            mask = morpho.labels.get_mask(list([k]))
+            label_value = np.unique([*morpho.labels[mask]])[0]
+            label_map[label_value] = swc_tags[k]
+    else:
+        raise NotImplementedError(
+            "Can't store custom labelled nodes yet,"
+            " requires special handling in morphologies/__init__.py, todo"
+        )
     # Iterate over the morphology branches
     for b in morpho.branches:
         ids = (
@@ -1606,7 +1621,11 @@ def _morpho_to_swc(morpho):
             )
         samples = ids + 1
         data[ids, 0] = samples
-        data[ids, 1] = b.labels[1:] if len(b) > 1 else b.labels
+        data[ids, 1] = (
+            np.array(list(map(label_map.get, b.labels[1:])))
+            if len(b) > 1
+            else np.array(list(map(label_map.get, b.labels)))
+        )
         data[ids, 2:5] = b.points[1:] if len(b) > 1 else b.points
         try:
             data[ids, 5] = b.radii[1:] if len(b) > 1 else b.radii
