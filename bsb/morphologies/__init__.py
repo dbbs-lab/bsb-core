@@ -1596,7 +1596,7 @@ def _morpho_to_swc(morpho):
     # Check if labels are equal to expected tags
     label_names = [list(l) for l in morpho.labelsets.values()]
     label_names = list(itertools.chain.from_iterable(label_names))
-    if label_names == list(swc_tags.keys()):
+    if sorted(label_names) == sorted(list(swc_tags.keys())):
         for k in swc_tags.keys():
             mask = morpho.labels.get_mask(list([k]))
             label_value = np.unique([*morpho.labels[mask]])[0]
@@ -1622,6 +1622,8 @@ def _morpho_to_swc(morpho):
         samples = ids + 1
         data[ids, 0] = samples
         data[ids, 1] = (
+            # Retrieve the correct tag from the label map dictionary,
+            # based on the label value of the current branch
             np.array(list(map(label_map.get, b.labels[1:])))
             if len(b) > 1
             else np.array(list(map(label_map.get, b.labels)))
