@@ -1623,7 +1623,7 @@ def _morpho_to_swc(morpho):
         data[ids, 0] = samples
         data[ids, 1] = (
             # Retrieve the correct tag from the label map dictionary,
-            # based on the label value of the current branch
+            # based on the label values of the current branch
             np.array(list(map(label_map.get, b.labels[1:])))
             if len(b) > 1
             else np.array(list(map(label_map.get, b.labels)))
