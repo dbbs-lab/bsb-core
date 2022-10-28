@@ -3,7 +3,7 @@ import os
 import itertools
 from .placement import PlacementStrategy
 from .connectivity import ConnectionStrategy
-from .storage import Chunk, Storage, _util as _storutil, get_engines
+from .storage import Chunk, Storage, _util as _storutil, open_storage
 from .exceptions import (
     InputError,
     NodeNotFoundError,
@@ -49,19 +49,7 @@ def from_storage(root):
     :returns: A network scaffold
     :rtype: :class:`Scaffold`
     """
-    engines = get_engines()
-    for name, engine in engines.items():
-        if engine.recognizes(root):
-            return Storage(name, root, missing_ok=False).load()
-    else:
-        for name, engine in engines.items():
-            if engine.peek_exists(root):
-                raise IOError(
-                    f"Storage with root `{root}` is not recognized as "
-                    + ", ".join(f"'{n}'" for n in engines.keys())
-                )
-        else:
-            raise FileNotFoundError(f"Storage with root `{root}` does not exist.")
+    return open_storage(root).load()
 
 
 class Scaffold:

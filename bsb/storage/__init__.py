@@ -365,6 +365,22 @@ class Storage:
         self._engine.clear_connectivity()
 
 
+def open_storage(root):
+    engines = get_engines()
+    for name, engine in engines.items():
+        if engine.peek_exists(root) and engine.recognizes(root):
+            return Storage(name, root, missing_ok=False)
+    else:
+        for name, engine in engines.items():
+            if engine.peek_exists(root):
+                raise IOError(
+                    f"Storage `{root}` not recognized as any installed format: "
+                    + ", ".join(f"'{n}'" for n in engines.keys())
+                )
+        else:
+            raise FileNotFoundError(f"Storage `{root}` does not exist.")
+
+
 def get_engine_node(engine):
     init_engines()
     return _engines[engine]["StorageNode"]
