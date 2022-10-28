@@ -131,6 +131,9 @@ class ConfigurationModule:
         copy_file(files[0], output)
 
     def from_file(self, file):
+        if not hasattr(file, "read"):
+            with open(file, "r") as f:
+                return self.from_file(f)
         path = getattr(file, "name", None)
         if path is not None:
             path = os.path.abspath(path)
