@@ -94,6 +94,12 @@ _t(
             ContinuityError=_e(),
             PackingError=_e(),
         ),
+        SimulationError=_e(
+            ParameterError=_e(
+                "parameter",
+                ReificationError=_e(),
+            )
+        ),
         SelectorError=_e(),
         TreeError=_e(),
         VoxelSetError=_e(
