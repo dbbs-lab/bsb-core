@@ -22,11 +22,6 @@ class TestCore(unittest.TestCase):
         except Exception:
             pass
 
-    @unittest.expectedFailure
-    def test_from_storage_missing(self):
-        # Missing OK leads to network without active config, should probably load default?
-        core.from_storage("does_not_exist2", missing_ok=True)
-
     def test_set_netw_root_nodes(self):
         netw = Scaffold()
         # anti-pattern, but testing it anyway, resetting the storage configuration leads
