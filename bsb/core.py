@@ -53,6 +53,9 @@ def from_hdf5(file, missing_ok=False):
     return storage.load()
 
 
+from_storage = from_hdf5
+
+
 class Scaffold:
     """
 
