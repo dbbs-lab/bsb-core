@@ -65,8 +65,8 @@ class BaseCommand(BsbCommand, abstract=True):
         locals = locals.copy()
         locals.update(self.get_options())
         parser = parent.add_parser(self.name)
-        self.add_parser_options(parser, context, locals, level)
         self.add_parser_arguments(parser)
+        self.add_parser_options(parser, context, locals, level)
         parser.set_defaults(handler=self.execute_handler)
         self.add_subparsers(parser, context, self._subcommands, locals, level)
         return parser
