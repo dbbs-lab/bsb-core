@@ -191,9 +191,14 @@ class BsbReconfigure(BaseCommand, name="reconfigure"):
 class BsbSimulate(BaseCommand, name="simulate"):
     def handler(self, context):
         network = from_storage(context.arguments.network)
-        extra_sims = from_file(context.config).simulations
-        print(context.config, extra_sims)
-        network.run_simulation(context.argument.simulation)
+        config_option = context.options["config"]
+        sim_name = context.arguments.simulation
+        if config_option.is_set("cli"):
+            extra_simulations = from_file(context.config).simulations
+            for sim in extra_simulations.values():
+                if sim.name not in network.simulations or sim.name == sim_name:
+                    network.simulations[sim_name] = sim
+        network.run_simulation(context.arguments.simulation)
 
     def get_options(self):
         return {
@@ -203,7 +208,7 @@ class BsbSimulate(BaseCommand, name="simulate"):
 
     def add_parser_arguments(self, parser):
         parser.add_argument("network")
-        parser.add_argument("simulations", nargs="+")
+        parser.add_argument("simulation")
 
 
 class CacheCommand(BaseCommand, name="cache"):  # pragma: nocover

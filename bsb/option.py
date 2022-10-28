@@ -277,6 +277,12 @@ class BsbOption:
             return self.env
         return self.get_default()
 
+    def is_set(self, slug):
+        if descriptor := getattr(type(self), slug, None):
+            return descriptor.is_set(self)
+        else:
+            return False
+
     def get_default(self):
         """
         Override to specify the default value of the option.
