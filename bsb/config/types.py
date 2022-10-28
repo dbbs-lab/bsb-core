@@ -450,10 +450,10 @@ class distribution(TypeHandler):
         return "distribution"
 
     def __inv__(self, value):
-        if value.distribution == "constant":
-            return value.parameters["constant"]
+        if value["distribution"] == "constant":
+            return value["parameters"]["constant"]
         else:
-            return value.__tree__()
+            return value
 
 
 class evaluation(TypeHandler):
