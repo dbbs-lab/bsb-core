@@ -174,9 +174,11 @@ class NeuronAdapter(SimulatorAdapter):
         "duration": float,
         "resolution": float,
         "initial": float,
+        "coreneuron": bool,
+        "gpu": bool,
     }
 
-    defaults = {"initial": -65.0}
+    defaults = {"initial": -65.0, "coreneuron": False, "gpu": False}
 
     required = ["temperature", "duration", "resolution"]
 
@@ -185,6 +187,12 @@ class NeuronAdapter(SimulatorAdapter):
         self.cells = {}
         self._next_gid = 0
         self.transmitter_map = {}
+        try:
+            from patch import p
+
+            self.h = p
+        except:
+            pass
 
     def validate(self):
         pass
@@ -238,6 +246,13 @@ class NeuronAdapter(SimulatorAdapter):
         simulator.dt = self.resolution
         simulator.celsius = self.temperature
         simulator.tstop = self.duration
+        if self.coreneuron:
+            print(f"ENABLING CORENEURON !!! GPU: {self.gpu}")
+            simulator.CVode().cache_efficient(1)
+            from neuron import coreneuron
+
+            coreneuron.enable = True
+            coreneuron.gpu = self.gpu
 
         t = t0 = time()
         self.load_balance()
@@ -423,7 +438,8 @@ class NeuronAdapter(SimulatorAdapter):
                     cell.create_transmitter(cell.sections[section_id], gid)
                     tcount += 1
         except Exception as e:
-            errr.wrap(TransmitterError, e, prepend=f"[{cell_id}] ")
+            cell.create_transmitter(cell.soma[0], gid)
+            # errr.wrap(TransmitterError, e, prepend=f"[{cell_id}] ")
 
         report(
             f"Node {self.get_rank()} created {tcount} transmitters",
@@ -495,12 +511,7 @@ class NeuronAdapter(SimulatorAdapter):
                             )
                         ]
                         for synapse_type in synapse_types:
-                            try:
-                                cell.create_receiver(section, gid, synapse_type)
-                            except Exception as e:
-                                raise ScaffoldError(
-                                    "[" + connection_model.name + "] " + str(e)
-                                ) from None
+                            cell.create_receiver(section, gid, synapse_type)
 
     def create_neurons(self):
         for cell_model in self.cell_models.values():
@@ -526,11 +537,11 @@ class NeuronAdapter(SimulatorAdapter):
                 instance.cell_model = cell_model
                 if cell_model.record_soma:
                     self.register_cell_recorder(instance, instance.record_soma())
-                if cell_model.record_spikes:
-                    spike_nc = self.h.NetCon(instance.soma[0], None)
-                    spike_nc.threshold = -20
-                    spike_recorder = spike_nc.record()
-                    self.register_spike_recorder(instance, spike_recorder)
+                # if cell_model.record_spikes:
+                #     spike_nc = self.h.NetCon(instance.soma[0], None)
+                #     spike_nc.threshold = -20
+                #     spike_recorder = spike_nc.record()
+                #     self.register_spike_recorder(instance, spike_recorder)
                 cell_model.instances.append(instance)
                 self.cells[cell_id] = instance
         report(

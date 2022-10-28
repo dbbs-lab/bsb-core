@@ -25,7 +25,7 @@ try:
     import arbor
 
     _has_arbor = True
-except ImportError:
+except ImportError as e:
     _has_arbor = False
     import types
 
@@ -33,9 +33,10 @@ except ImportError:
     # all simulators, an optional dep. of the BSB.
     arbor = types.ModuleType("arbor")
     arbor.recipe = type("mock_recipe", (), dict())
+    _arb_err = e
 
     def get(*arg):
-        raise ImportError("Arbor not installed.")
+        raise ImportError(f"Arbor not installed: {_arb_err}")
 
     arbor.__getattr__ = get
 
@@ -64,6 +65,7 @@ class ArborCell(SimulationCell):
             self.model_class = get_configurable_class(self.model)
 
     def get_description(self, gid):
+        print("GID", gid, self.relay)
         if not self.relay:
             morphology, labels, decor = self.model_class.cable_cell_template()
             labels = self._add_labels(gid, labels, morphology)
@@ -93,15 +95,22 @@ class ArborCell(SimulationCell):
 
     def _add_labels(self, gid, labels, morphology):
         pwlin = arbor.place_pwlin(morphology)
+        root = pwlin.at(arbor.location(0, 0))
+        pwlin = arbor.place_pwlin(
+            morphology, arbor.isometry.translate(-root.x, -root.y, -root.z)
+        )
 
         def comp_label(comp):
             if comp.id == -1:
                 warn(f"Encountered nil compartment on {gid}")
                 return
             loc, d = pwlin.closest(*comp.start)
-            if d > 0.0001:
-                raise AdapterError(f"Couldn't find {comp.start}, on {self._str(gid)}")
+            if d > 10:
+                raise AdapterError(
+                    f"Couldn't find {comp.start}, on {self._str(gid)}, d = {d}"
+                )
             labels[f"comp_{comp.id}"] = str(loc)
+            print(f"Adding 'comp_{comp.id}' on {gid}: {loc}")
 
         comps_from = self.adapter._connections_from[gid]
         comps_on = (rcv.comp_on for rcv in self.adapter._connections_on[gid])
@@ -119,6 +128,11 @@ class ArborCell(SimulationCell):
     def _create_transmitters(self, gid, decor):
         done = set()
         for comp in self.adapter._connections_from[gid]:
+            if self.relay and comp.id != -1:
+                warn(
+                    f"Can only connect relays by default endpoint: {comp.id} in {self.name}"
+                )
+                comp.id = -1
             if comp.id in done:
                 continue
             else:
@@ -137,6 +151,13 @@ class ArborCell(SimulationCell):
 
     def _create_receivers(self, gid, decor):
         for rcv in self.adapter._connections_on[gid]:
+            if self.relay:
+                warn(f"Comp on {gid} {self.name}, is a relay")
+                if rcv.comp_on.id != -1:
+                    warn(
+                        f"Can only connect relays by default endpoint: {rcv.comp_on.id} in {self.name}"
+                    )
+                    rcv.comp_on.id = -1
             decor.place(
                 f'"comp_{rcv.comp_on.id}"',
                 rcv.synapse,
@@ -270,9 +291,8 @@ class ArborRecipe(arbor.recipe):
     def __init__(self, adapter):
         super().__init__()
         self._adapter = adapter
-        self._catalogue = self._get_catalogue()
         self._global_properties = arbor.neuron_cable_properties()
-        self._global_properties.set_property(Vm=-65, tempK=300, rL=35.4, cm=0.01)
+        self._global_properties.set_property(Vm=-65, tempK=305.15, rL=35.4, cm=0.01)
         self._global_properties.set_ion(ion="na", int_con=10, ext_con=140, rev_pot=50)
         self._global_properties.set_ion(ion="k", int_con=54.4, ext_con=2.5, rev_pot=-77)
         self._global_properties.set_ion(
@@ -281,7 +301,7 @@ class ArborRecipe(arbor.recipe):
         self._global_properties.set_ion(
             ion="h", valence=1, int_con=1.0, ext_con=1.0, rev_pot=-34
         )
-        self._global_properties.register(self._catalogue)
+        self._global_properties.catalogue = self._get_catalogue()
 
     def _get_catalogue(self):
         catalogue = arbor.default_catalogue()
@@ -321,7 +341,7 @@ class ArborRecipe(arbor.recipe):
         if self._is_relay(gid):
             return []
         return [
-            arbor.connection(rcv.from_(), rcv.on(), rcv.weight, rcv.delay)
+            arbor.connection(rcv.from_(), rcv.on(), rcv.weight, rcv.delay + 2)
             for rcv in self._adapter._connections_on[gid]
         ]
 
@@ -344,9 +364,6 @@ class ArborRecipe(arbor.recipe):
             probes.extend(device_probes)
         return probes
 
-    def _name_of(self, gid):
-        return self._adapter._lookup._lookup(gid)._type.name
-
 
 class ArborAdapter(SimulatorAdapter):
     simulator_name = "arbor"
@@ -360,15 +377,18 @@ class ArborAdapter(SimulatorAdapter):
     casts = {
         "duration": float,
         "resolution": float,
+        "gpu": bool,
     }
 
     required = ["duration"]
 
-    defaults = {"threads": 1, "profiling": True, "resolution": 0.025}
+    defaults = {"threads": 1, "gpu": False, "profiling": True, "resolution": 0.025}
 
     def validate(self):
         if self.threads == "all":
             self.threads = psutil.cpu_count(logical=False)
+        elif self.threads == "hyper":
+            self.threads = psutil.cpu_count(logical=True)
 
     def get_rank(self):
         return mpi.Get_rank()
@@ -386,21 +406,13 @@ class ArborAdapter(SimulatorAdapter):
         self.result = SimulationResult()
 
     def prepare(self):
+        context = self.get_context()
         try:
             self.scaffold.assert_continuity()
         except AssertionError as e:
             raise AssertionError(
                 str(e) + " The arbor adapter requires completely continuous GIDs."
             ) from None
-        try:
-            context = arbor.context(arbor.proc_allocation(self.threads), mpi)
-        except TypeError:
-            if mpi.Get_size() > 1:
-                s = mpi.Get_size()
-                warn(
-                    f"Arbor does not seem to be built with MPI support, running duplicate simulations on {s} nodes."
-                )
-            context = arbor.context(arbor.proc_allocation(self.threads))
         if self.profiling and arbor.config()["profiling"]:
             report("enabling profiler", level=2)
             arbor.profiler_initialize(context)
@@ -409,22 +421,72 @@ class ArborAdapter(SimulatorAdapter):
         report("preparing simulation", level=1)
         report("MPI processes:", context.ranks, level=2)
         report("Threads per process:", context.threads, level=2)
+        s = time.time()
         recipe = self.get_recipe()
+        report(
+            f"Recipe construction took {time.time() - s:.2f}s on node {self.get_rank()}",
+            level=2,
+        )
         # Gap junctions are required for domain decomposition
+        t = time.time()
         self._cache_gap_junctions()
+        report(
+            f"Gap junctions took {time.time() - t:.2f}s on node {self.get_rank()}",
+            level=2,
+        )
+        t = time.time()
         self.domain = arbor.partition_load_balance(recipe, context)
         self.gids = set(it.chain.from_iterable(g.gids for g in self.domain.groups))
+        report(
+            f"Load balancing took {time.time() - t:.2f}s on node {self.get_rank()}",
+            level=2,
+        )
         # Cache uses the domain decomposition to cache info per gid on this node. The
         # recipe functions use the cache, but luckily aren't called until
         # `arbor.simulation` and `simulation.run`.
+        t = time.time()
+        self._connections_on = {gid: ReceiverCollection() for gid in self.gids}
+        self._connections_from = {gid: [] for gid in self.gids}
         self._index_relays()
         self._cache_connections()
+        report(
+            f"Connections took {time.time() - t:.2f}s on node {self.get_rank()}", level=2
+        )
         self.prepare_devices()
         self._cache_devices()
+        t = time.time()
         simulation = arbor.simulation(recipe, self.domain, context)
+        report(
+            f"Simulation construction took {time.time() - t:.2f}s on node {self.get_rank()}",
+            level=2,
+        )
+        t = time.time()
         self.prepare_samples(simulation)
-        report("prepared simulation", level=1)
+        report(
+            f"Sampling prep took {time.time() - t:.2f}s on node {self.get_rank()}",
+            level=2,
+        )
+        report(
+            f"Prepared simulation in {time.time() - s:.2f}s on node {self.get_rank()}",
+            level=1,
+        )
         return simulation
+
+    def get_context(self):
+        if self.gpu:
+            alloc = arbor.proc_allocation(self.threads, gpu_id=0)
+        else:
+            alloc = arbor.proc_allocation(self.threads)
+        try:
+            context = arbor.context(alloc, arbor.mpi_comm())
+        except TypeError:
+            s = mpi.Get_size()
+            if s > 1:
+                warn(
+                    f"Arbor does not seem to be built with MPI support, running duplicate simulations on {s} nodes."
+                )
+            context = arbor.context(alloc)
+        return context
 
     def prepare_samples(self, sim):
         for device in self.devices.values():
@@ -451,20 +513,35 @@ class ArborAdapter(SimulatorAdapter):
         timestamp = self.broadcast(timestamp)
         result_path = "results_" + self.name + "_" + timestamp + ".hdf5"
         rank = self.get_rank()
+        t = time.time()
         for node in range(self.get_size()):
             self.barrier()
             if node == rank:
                 report("Node", rank, "is writing", level=2, all_nodes=True)
                 with h5py.File(result_path, "a") as f:
                     if rank == 0:
-                        spikes = simulation.spikes()
-                        spikes = np.column_stack(
-                            (
-                                np.fromiter((l[0][0] for l in spikes), dtype=int),
-                                np.fromiter((l[1] for l in spikes), dtype=int),
-                            )
+                        s = time.time()
+                        dedup = {}
+                        spikes = np.array(
+                            [
+                                print("spike datum", l) or [l[0][0], l[1]]
+                                for l in simulation.spikes()
+                                if l[0][1] == dedup.setdefault(l[0][0], l[0][1])
+                            ]
                         )
+                        del dedup
+                        spikes = np.unique(spikes, axis=0)
+                        spikes = np.where(np.isnan(spikes), 0, spikes)
+                        report(
+                            f"Spike processing took {time.time() - s:.2f}s on node {self.get_rank()}",
+                            level=2,
+                        )
+                        s = time.time()
                         f.create_dataset("all_spikes_dump", data=spikes)
+                        report(
+                            f"Spike writing took {time.time() - s:.2f}s on node {self.get_rank()}",
+                            level=2,
+                        )
                     f.attrs["configuration_string"] = self.scaffold.configuration._raw
                     for path, data, meta in self.result.safe_collect():
                         try:
@@ -492,6 +569,10 @@ class ArborAdapter(SimulatorAdapter):
                                     + f"\n\n{traceback.format_exc()}"
                                 )
             self.barrier()
+        report(
+            f"Output collection took {time.time() - t:.2f}s on node {self.get_rank()}",
+            level=2,
+        )
         return result_path
 
     def get_recipe(self):
@@ -510,11 +591,9 @@ class ArborAdapter(SimulatorAdapter):
                 continue
             for conn in conn_set.intersections:
                 conn.model = conn_model
-                self._gap_junctions_on.setdefault(conn.from_id, []).append(conn)
+                self._gap_junctions_on.setdefault(conn.to_id, []).append(conn)
 
     def _cache_connections(self):
-        self._connections_on = {gid: ReceiverCollection() for gid in self.gids}
-        self._connections_from = {gid: [] for gid in self.gids}
         for conn_set in self.scaffold.get_connectivity_sets():
             if conn_set.is_orphan() or not len(conn_set):
                 continue
@@ -535,12 +614,6 @@ class ArborAdapter(SimulatorAdapter):
                     self._connections_from[from_gid].append(comp_from)
                 if to_gid in self._connections_on:
                     self._connections_on[to_gid].append(
-                        conn_model.make_receiver(from_gid, comp_from, comp_on)
-                    )
-            for gid, relays in self._relays_on.items():
-                for (from_gid, comp_from, comp_on, conn_model) in relays:
-                    self._connections_from[from_gid].append(comp_from)
-                    self._connections_on[gid].append(
                         conn_model.make_receiver(from_gid, comp_from, comp_on)
                     )
 
@@ -653,22 +726,25 @@ class ArborAdapter(SimulatorAdapter):
 
         report("Relays resolved.")
 
-        # Filter out all relays to targets not on this node.
-        self._relays_on = {gid: [] for gid in self.gids}
+        # Turn terminal relays into connections.
         for relay, targets in terminal_relays.items():
             assert all(
                 isinstance(t, tuple) for t in terminal_relays[target]
             ), f"Terminal relay {lookup(target)} {target} contains non-terminal targets: {terminal_relays[target]}"
 
             for conn in targets:
-                to_id = int(conn[0])
+                to_id, comp_from, comp_on, conn_model = conn
+                if relay in self.gids:
+                    self._connections_from[relay].append(comp_from)
                 if to_id in self.gids:
-                    self._relays_on[to_id].append((relay, *conn[1:]))
+                    self._connections_on[to_id].append(
+                        conn_model.make_receiver(relay, comp_from, comp_on)
+                    )
         report(
             "Node",
             self.get_rank(),
             "needs to relay",
-            sum(bool(relays) for relays in self._relays_on.values()),
+            sum(bool(relays) for relays in terminal_relays.values()),
             "relays.",
             level=4,
         )
@@ -685,3 +761,6 @@ class ArborAdapter(SimulatorAdapter):
             targets = device.get_targets()
             for target in targets:
                 self._devices_on[target].append(device)
+
+    def _name_of(self, gid):
+        return self._lookup._lookup(gid)._type.name

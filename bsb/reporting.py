@@ -115,6 +115,14 @@ try:
         import nest
     except:
         pass
+    try:
+        from neuron import h
+    except:
+        pass
+    else:
+        h.nrnmpi_init()
+        print("NEURON initialised MPI")
+
     from mpi4py import MPI as _MPI
 
     MPI_rank = _MPI.COMM_WORLD.rank
