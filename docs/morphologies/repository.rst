@@ -20,7 +20,7 @@ Similarly, the built-in MR of a network is accessible as ``network.morphologies`
 
 .. code-block:: python
 
-  from bsb.core import from_hdf5
+  from bsb.core import from_storage
 
   network = from_hdf("my_existing_model.hdf5")
   mr = network.morphologies

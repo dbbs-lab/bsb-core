@@ -86,6 +86,23 @@ class Engine(Interface):
         pass
 
     @abc.abstractmethod
+    def recognizes(self, root):
+        """
+        Must return whether the given argument is recognized as a valid storage object.
+        """
+        pass
+
+    @classmethod
+    def peek_exists(cls, root):
+        """
+        Must peek at the existence of the given root, without instantiating anything.
+        """
+        try:
+            return Path(root).exists()
+        except Exception:
+            return False
+
+    @abc.abstractmethod
     def exists(self):
         """
         Must check existence of the storage object.

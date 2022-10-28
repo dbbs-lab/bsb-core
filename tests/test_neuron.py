@@ -2,7 +2,7 @@ import os, sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
-from bsb.core import Scaffold, from_hdf5
+from bsb.core import Scaffold, from_storage
 from bsb.config import from_json
 from bsb.exceptions import *
 from bsb.services import MPI as mpi
@@ -31,7 +31,7 @@ class TestMiniature(unittest.TestCase):
         super().setUpClass()
         if mpi.get_rank():
             mpi.barrier()
-            network = from_hdf5("nrn_miniature.hdf5")
+            network = from_storage("nrn_miniature.hdf5")
         else:
             config = from_json(miniature_config)
             network = Scaffold(config)
@@ -126,7 +126,7 @@ class NeuronTest(unittest.TestCase):
             morpho_map=morpho_map,
         )
         scaffold.compile_output()
-        scaffold = from_hdf5(scaffold.output_formatter.file)
+        scaffold = from_storage(scaffold.output_formatter.file)
         scaffold.run_simulation("test")
 
         from glob import glob
@@ -185,7 +185,7 @@ class NeuronTest(unittest.TestCase):
             morpho_map=morpho_map_grc,
         )
         scaffold.compile_output()
-        scaffold = from_hdf5(scaffold.output_formatter.file)
+        scaffold = from_storage(scaffold.output_formatter.file)
         scaffold.run_simulation("test")
 
         from glob import glob
@@ -237,7 +237,7 @@ class NeuronTest(unittest.TestCase):
         )
 
         scaffold.compile_output()
-        scaffold = from_hdf5(scaffold.output_formatter.file)
+        scaffold = from_storage(scaffold.output_formatter.file)
         scaffold.run_simulation("test")
 
         from glob import glob
@@ -289,7 +289,7 @@ class NeuronTest(unittest.TestCase):
         )
 
         scaffold.compile_output()
-        scaffold = from_hdf5(scaffold.output_formatter.file)
+        scaffold = from_storage(scaffold.output_formatter.file)
         scaffold.run_simulation("test")
 
         from glob import glob
@@ -339,7 +339,7 @@ class NeuronTest(unittest.TestCase):
         )
 
         scaffold.compile_output()
-        scaffold = from_hdf5(scaffold.output_formatter.file)
+        scaffold = from_storage(scaffold.output_formatter.file)
         scaffold.run_simulation("test")
 
         from glob import glob
@@ -388,7 +388,7 @@ class NeuronTest(unittest.TestCase):
         )
 
         scaffold.compile_output()
-        scaffold = from_hdf5(scaffold.output_formatter.file)
+        scaffold = from_storage(scaffold.output_formatter.file)
         scaffold.run_simulation("test")
 
         from glob import glob
@@ -438,7 +438,7 @@ class NeuronTest(unittest.TestCase):
         )
 
         scaffold.compile_output()
-        scaffold = from_hdf5(scaffold.output_formatter.file)
+        scaffold = from_storage(scaffold.output_formatter.file)
         scaffold.run_simulation("test")
 
         from glob import glob
@@ -467,7 +467,7 @@ class NeuronTest(unittest.TestCase):
         scaffold = Scaffold(config)
         scaffold.place_cell_types()
         scaffold.compile_output()
-        scaffold = from_hdf5(scaffold.output_formatter.file)
+        scaffold = from_storage(scaffold.output_formatter.file)
         scaffold.run_simulation("test")
 
         from glob import glob

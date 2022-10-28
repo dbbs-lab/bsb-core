@@ -36,7 +36,7 @@ _storage_interfaces = {
 }
 
 
-def get_engines():
+def discover_engines():
     """
     Get a dictionary of all available storage engines.
     """
@@ -44,6 +44,12 @@ def get_engines():
     for engine_name, engine_module in engines.items():
         register_engine(engine_name, engine_module)
     return engines
+
+
+def get_engines():
+    global _engines
+    init_engines()
+    return {name: module["Engine"] for name, module in _engines.items()}
 
 
 def create_engine(name, root, comm):
@@ -118,10 +124,6 @@ class NotSupported:
 
     def __getattr__(self, attr):
         self._unsupported_err()
-
-
-_engines = {}
-_available_engines = get_engines()
 
 
 class Storage:
@@ -393,3 +395,13 @@ def view_support(engine=None):
             feature_name: not isinstance(feature, NotSupported)
             for feature_name, feature in _engines[engine].items()
         }
+
+
+# Module setup:
+# * Discover the engine plugins with `discover_engines`
+# * Store engine initializers in `_engines` through `register_engine`
+# Any time something from `_engines` is used, it should be checked if it is callable. If
+# it is the engine plugin is not initialized yet and the function should be called and
+# replaced with its return value.
+_engines = {}
+_available_engines = discover_engines()

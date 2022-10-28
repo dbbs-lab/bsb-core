@@ -3,14 +3,14 @@ import os
 import itertools
 from .placement import PlacementStrategy
 from .connectivity import ConnectionStrategy
-from .storage import Chunk, Storage, _util as _storutil
+from .storage import Chunk, Storage, _util as _storutil, get_engines
 from .exceptions import (
     InputError,
     NodeNotFoundError,
     RedoError,
     ScaffoldError,
 )
-from .reporting import report, warn, get_report_file
+from .reporting import report, warn
 from .config._config import Configuration
 from .services.pool import create_job_pool
 from .services import MPI
@@ -41,17 +41,27 @@ def _config_property(name):
     return prop.setter(fset)
 
 
-def from_hdf5(file, missing_ok=False):
+def from_storage(root):
     """
-    Generate a :class:`.core.Scaffold` from an HDF5 file.
+    Load :class:`.core.Scaffold` from a storage object.
 
-    :param file: Path to the HDF5 file.
-    :returns: A scaffold object
+    :param root: Root (usually path) pointing to the storage object.
+    :returns: A network scaffold
     :rtype: :class:`Scaffold`
     """
-
-    storage = Storage("hdf5", file, missing_ok=missing_ok)
-    return storage.load()
+    engines = get_engines()
+    for name, engine in engines.items():
+        if engine.recognizes(root):
+            return Storage(name, root, missing_ok=False).load()
+    else:
+        for name, engine in engines.items():
+            if engine.peek_exists(root):
+                raise IOError(
+                    f"Storage with root `{root}` is not recognized as "
+                    + ", ".join(f"'{n}'" for n in engines.keys())
+                )
+        else:
+            raise FileNotFoundError(f"Storage with root `{root}` does not exist.")
 
 
 class Scaffold:

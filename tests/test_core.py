@@ -7,25 +7,25 @@ from bsb import core
 
 
 class TestCore(unittest.TestCase):
-    def test_from_hdf5(self):
-        # Use the `from_hdf5` function to load a network.
+    def test_from_storage(self):
+        # Use the `from_storage` function to load a network.
         netw = Scaffold()
         netw.compile(clear=True)
-        core.from_hdf5(netw.storage.root)
+        core.from_storage(netw.storage.root)
         with self.assertRaises(FileNotFoundError):
-            core.from_hdf5("ehehehehehehe")
+            core.from_storage("does_not_exist")
 
     @classmethod
     def tearDownClass(cls):
         try:
-            os.unlink("ehehehehehehe2")
+            os.unlink("does_not_exist2")
         except Exception:
             pass
 
     @unittest.expectedFailure
-    def test_from_hdf5_missing(self):
+    def test_from_storage_missing(self):
         # Missing OK leads to network without active config, should probably load default?
-        core.from_hdf5("ehehehehehehe2", missing_ok=True)
+        core.from_storage("does_not_exist2", missing_ok=True)
 
     def test_set_netw_root_nodes(self):
         netw = Scaffold()
