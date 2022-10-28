@@ -4,9 +4,10 @@ Contains builtin commands.
 
 from . import BaseCommand
 from ...option import BsbOption
-from ...exceptions import *
 from ..._options import ConfigOption
-from . import _projects
+from ...core import from_storage, Scaffold
+from ...storage import open_storage
+from ...config import from_file
 import itertools
 
 
@@ -127,11 +128,7 @@ class MakeConfigCommand(BaseCommand, name="make-config"):
 
 class BsbCompile(BaseCommand, name="compile"):
     def handler(self, context):
-        from ...config import from_json
-        from ...core import Scaffold
-
-        cfg = from_json(context.config)
-        # Bootstrap the scaffold and clear the storage if not in append mode
+        cfg = from_file(context.config)
         network = Scaffold(cfg)
         network.resize(context.x, context.y, context.z)
         network.compile(
@@ -175,9 +172,28 @@ class BsbCompile(BaseCommand, name="compile"):
         pass
 
 
+class BsbReconfigure(BaseCommand, name="reconfigure"):
+    def handler(self, context):
+        cfg = from_file(context.config)
+        # Bootstrap the scaffold and clear the storage if not in append mode
+        storage = open_storage(context.arguments.network)
+        storage.store_active_config(cfg)
+
+    def get_options(self):
+        return {
+            "config": ConfigOption(positional=True),
+        }
+
+    def add_parser_arguments(self, parser):
+        parser.add_argument("network")
+
+
 class BsbSimulate(BaseCommand, name="simulate"):
     def handler(self, context):
-        pass
+        network = from_storage(context.arguments.network)
+        extra_sims = from_file(context.config).simulations
+        print(context.config, extra_sims)
+        network.run_simulation(context.argument.simulation)
 
     def get_options(self):
         return {
@@ -186,7 +202,8 @@ class BsbSimulate(BaseCommand, name="simulate"):
         }
 
     def add_parser_arguments(self, parser):
-        pass
+        parser.add_argument("network")
+        parser.add_argument("simulations", nargs="+")
 
 
 class CacheCommand(BaseCommand, name="cache"):  # pragma: nocover
@@ -204,7 +221,7 @@ class CacheCommand(BaseCommand, name="cache"):  # pragma: nocover
             files = [*_cache_path.iterdir()]
             maxlen = 5
             try:
-                maxlen = max(maxlen, max(len(l.name) for l in files))
+                maxlen = max(maxlen, max(len(file.name) for file in files))
             except ValueError:
                 print("Cache is empty")
             else:
