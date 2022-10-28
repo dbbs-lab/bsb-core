@@ -1,6 +1,7 @@
 import random, numpy as np
-from ..exceptions import *
+from ..exceptions import ParallelIntegrityError, ConfigurationError
 from itertools import chain
+from scipy.spatial import cKDTree
 
 
 class TargetsNeurons:
@@ -24,13 +25,13 @@ class TargetsNeurons:
         Target all or certain cells in a spherical location.
         """
         # Compile a list of the cells and build a compound tree.
-        target_cells = np.empty((0, 3))
+        target_pos = np.empty((0, 3))
         id_map = np.empty(0)
         for t in self.cell_types:
             pos = self.scaffold.get_placement_set(t).positions
-            target_cells = np.vstack((target_cells, pos))
-            id_map = np.concatenate((id_map, cells[:, 0]))
-        tree = KDTree(target_cells)
+            target_pos = np.vstack((target_pos, pos))
+            id_map = np.concatenate((id_map, target_pos[:, 0]))
+        tree = cKDTree(target_pos)
         # Query the tree for all the targets
         target_ids = tree.query_radius([self.origin], self.radius)[0]
         return id_map[target_ids].astype(int).tolist()
@@ -40,13 +41,13 @@ class TargetsNeurons:
         Target all or certain cells within a cylinder of specified radius.
         """
         # Compile a list of the cells.
-        target_cells = np.empty((0, 3))
+        target_pos = np.empty((0, 3))
         id_map = np.empty(0)
         for t in self.cell_types:
             ps = self.scaffold.get_placement_set(t)
             # TODO: Cylinders in other planes than the XZ plane
             pos = ps.positions[:, [0, 2]]
-            target_cells = np.vstack((target_cells, pos))
+            target_pos = np.vstack((target_pos, pos))
             id_map = np.concatenate((id_map, ps.identifiers))
 
         if not hasattr(self, "origin"):
@@ -57,7 +58,7 @@ class TargetsNeurons:
             origin = np.array(self.origin)
         # Find cells falling into the cylinder volume
         in_range_mask = (
-            np.sum((target_positions[:, [0, 2]] - origin) ** 2, axis=1) < self.radius ** 2
+            np.sum((target_pos[:, [0, 2]] - origin) ** 2, axis=1) < self.radius**2
         )
         return id_map[in_range_mask].astype(int).tolist()
 
