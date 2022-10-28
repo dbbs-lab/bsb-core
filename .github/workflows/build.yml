@@ -44,5 +44,6 @@ jobs:
     - name: Test default plugins
       run: |
         git clone https://github.com/dbbs-lab/bsb-hdf5
+        pip install -e bsb-hdf5/
         coverage run -p -m unittest discover bsb-hdf5/test
         bash <(curl -s https://codecov.io/bash)
