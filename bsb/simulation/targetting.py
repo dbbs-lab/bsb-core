@@ -1,7 +1,7 @@
 import random, numpy as np
 from ..exceptions import ParallelIntegrityError, ConfigurationError
 from itertools import chain
-from scipy.spatial import cKDTree
+from sklearn.neighbors import KDTree
 
 
 class TargetsNeurons:
@@ -31,7 +31,7 @@ class TargetsNeurons:
             pos = self.scaffold.get_placement_set(t).positions
             target_pos = np.vstack((target_pos, pos))
             id_map = np.concatenate((id_map, target_pos[:, 0]))
-        tree = cKDTree(target_pos)
+        tree = KDTree(target_pos)
         # Query the tree for all the targets
         target_ids = tree.query_radius([self.origin], self.radius)[0]
         return id_map[target_ids].astype(int).tolist()
