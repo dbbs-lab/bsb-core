@@ -538,6 +538,7 @@ class NestAdapter(SimulatorAdapter):
             warn("Adapter has not been prepared", SimulationWarning)
         report("Simulating...", level=2)
         tick = time.time()
+        self.start_progress(self.duration)
         with simulator.RunManager():
             for oi, i in self.step_progress(self.duration, step=1):
                 simulator.Run(i - oi)
@@ -551,6 +552,7 @@ class NestAdapter(SimulatorAdapter):
             warn("Adapter has not been prepared", SimulationWarning)
         report("Simulating...", level=2)
         tick = time.time()
+        self.start_progress(self.duration)
         with simulator.RunManager():
             for oi, i in self.step_progress(self.duration, step=dt):
                 simulator.Run(i - oi)
