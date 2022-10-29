@@ -572,6 +572,14 @@ class SubTree:
             root.translate(on - root.points[0])
         return self
 
+    def simplify_branches(self, epsilon):
+        """
+        Apply Ramer–Douglas–Peucker algorithm to all points of all branches of the SubTree.
+        :param epsilon: Epsilon to be used in the algorithm.
+        """
+        for branch in self.branches:
+            branch.simplify(epsilon)
+
     def voxelize(self, N):
         """
         Turn the morphology or subtree into an approximating set of axis-aligned cuboids.
@@ -854,6 +862,11 @@ class Morphology(SubTree):
                 branch_copy_map[branch] = nbranch
         # Construct and return the morphology
         return self.__class__(roots, meta=self.meta.copy())
+
+    def simplify(self, *args, optimize=True, **kwargs):
+        super().simplify_branches(*args, **kwargs)
+        if optimize:
+            self.optimize()
 
     @classmethod
     def from_swc(cls, file, branch_class=None, tags=None, meta=None):
@@ -1474,6 +1487,74 @@ class Branch:
             if a >= arc:
                 return i
         return len(self) - 1
+
+    def get_axial_distances(self, idx_start=0, idx_end=-1, return_max=False):
+        """
+        Return the displacements or its max value of a subset of branch points from its axis vector.
+        :param idx_start = 0: index of the first point of the subset.
+        :param idx_end = -1: index of the last point of the subset.
+        :param return_max = False: if True the function only returns the max value of displacements, otherwise the entire array.
+        """
+        start = self.points[idx_start]
+        end = self.points[idx_end]
+        versor = (end - start) / np.linalg.norm(end - start)
+        displacements = np.linalg.norm(
+            np.cross(
+                versor,
+                (self.points[idx_start : idx_end + 1] - self.points[idx_start]),
+            ),
+            axis=1,
+        )
+        if return_max:
+            try:
+                return np.max(displacements)
+            except IndexError:
+                raise EmptyBranchError("Selected an empty subset of points") from None
+        else:
+            return displacements
+
+    def simplify(self, epsilon, idx_start=0, idx_end=-1):
+        """
+        Apply Ramer–Douglas–Peucker algorithm to all points or a subset of points of the branch.
+        :param epsilon: Epsilon to be used in the algorithm.
+        :param idx_start = 0: Index of the first element of the subset of points to be reduced.
+        :param epsilon = -1: Index of the last element of the subset of points to be reduced.
+        """
+        if len(self.points) < 3:
+            return
+        if idx_end == -1:
+            idx_end = len(self.points) - 1
+        if epsilon < 0:
+            raise ValueError(f"Epsilon must be >= 0")
+
+        reduced = []
+        skipped = deque()
+
+        while True:
+            dists = self.get_axial_distances(idx_start, idx_end)
+            try:
+                idx_max = np.argmax(dists)
+                dmax = dists[idx_max]
+                idx_max = idx_start + idx_max
+            except ValueError:
+                dmax = 0
+
+            reduced.append(idx_start)
+            reduced.append(idx_end)
+            if dmax > epsilon and len(dists) > 2:
+                skipped.append((idx_max, idx_end))
+                idx_end = idx_max - 1
+            else:
+                try:
+                    idx_start, idx_end = skipped.pop()
+                except IndexError:
+                    break
+
+        # sorted because indexes are appended to reduced from the middle of the list (the first point with dist > epsilon)
+        # then all points with smaller index  until 0, then all points with bigger index
+        reduced = np.sort(np.unique(reduced))
+        self.points = self.points[reduced]
+        self.radii = self.radii[reduced]
 
     @functools.wraps(SubTree.cached_voxelize)
     @functools.cache
