@@ -1594,13 +1594,14 @@ def _morpho_to_swc(morpho):
     label_map = {}
     nid = 0
     # Check if labels are equal to expected tags
-    label_names = [list(l) for l in morpho.labelsets.values()]
-    label_names = list(itertools.chain.from_iterable(label_names))
-    if sorted(label_names) == sorted(list(swc_tags.keys())):
-        for k in swc_tags.keys():
-            mask = morpho.labels.get_mask(list([k]))
-            label_value = np.unique([*morpho.labels[mask]])[0]
-            label_map[label_value] = swc_tags[k]
+    morpho_labels = morpho.list_labels()
+    swc_labels = list(swc_tags.keys())
+    # Populate the label_map dictionary
+    if sorted(morpho_labels) == sorted(swc_labels):
+        for label in swc_labels:
+            mask = morpho.get_label_mask([label])
+            label_value = np.unique(morpho.labels[mask])[0]
+            label_map[label_value] = swc_tags[label]
     else:
         raise NotImplementedError(
             "Can't store custom labelled nodes yet,"
@@ -1621,13 +1622,7 @@ def _morpho_to_swc(morpho):
             )
         samples = ids + 1
         data[ids, 0] = samples
-        data[ids, 1] = (
-            # Retrieve the correct tag from the label map dictionary,
-            # based on the label values of the current branch
-            np.array(list(map(label_map.get, b.labels[1:])))
-            if len(b) > 1
-            else np.array(list(map(label_map.get, b.labels)))
-        )
+        data[ids, 1] = np.array([*map(label_map.get, b.labels[: min(len(b), 1)])])
         data[ids, 2:5] = b.points[1:] if len(b) > 1 else b.points
         try:
             data[ids, 5] = b.radii[1:] if len(b) > 1 else b.radii
