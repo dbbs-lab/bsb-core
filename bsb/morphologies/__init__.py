@@ -1589,20 +1589,19 @@ def _swc_to_morpho(cls, branch_cls, content, tags=None, meta=None):
 def _morpho_to_swc(morpho):
     # Initialize an empty data array
     data = np.empty((len(morpho.points), 7), dtype=object)
-    bmap = {}
     swc_tags = {"soma": 1, "axon": 2, "dendrites": 3}
-    label_map = {}
+    bmap = {}
     nid = 0
-    # Check if labels are equal to expected tags
-    morpho_labels = morpho.list_labels()
-    swc_labels = list(swc_tags.keys())
-    # Populate the label_map dictionary
-    if sorted(morpho_labels) == sorted(swc_labels):
-        for label in swc_labels:
-            mask = morpho.get_label_mask([label])
-            label_value = np.unique(morpho.labels[mask])[0]
-            label_map[label_value] = swc_tags[label]
+    offset = 0
+    # Convert labels to tags
+    if not hasattr(morpho, "tags"):
+        tags = -np.ones(len(morpho.points), dtype=int)
+        for key in swc_tags.keys():
+            mask = morpho.get_label_mask([key])
+            tags[mask] = swc_tags[key]
     else:
+        tags = morpho.tags
+    if (tags == -1).any():
         raise NotImplementedError(
             "Can't store custom labelled nodes yet,"
             " requires special handling in morphologies/__init__.py, todo"
@@ -1614,24 +1613,19 @@ def _morpho_to_swc(morpho):
             if len(b) > 1
             else np.arange(nid, nid + len(b))
         )
-        if len(b.labelsets.keys()) > 4:  # pragma: nocover
-            # Standard labels are 0,1,2,3
-            raise NotImplementedError(
-                "Can't store custom labelled nodes yet,"
-                " requires special handling in morphologies/__init__.py, todo"
-            )
         samples = ids + 1
         data[ids, 0] = samples
-        data[ids, 1] = np.array([*map(label_map.get, b.labels[: min(len(b), 1)])])
-        data[ids, 2:5] = b.points[1:] if len(b) > 1 else b.points
+        data[ids, 1] = tags[ids + offset]
+        data[ids, 2:5] = morpho.points[ids + offset]
         try:
-            data[ids, 5] = b.radii[1:] if len(b) > 1 else b.radii
+            data[ids, 5] = morpho.radii[ids + offset]
         except Exception as e:
             raise MorphologyDataError(
                 f"Couldn't convert morphology radii to SWC: {e}."
                 " Note that SWC files cannot store multi-dimensional radii"
             )
         nid += len(b) - 1 if len(b) > 1 else len(b)
+        offset += 1
         bmap[b] = ids[-1]
         data[ids, 6] = ids
         data[ids[0], 6] = -1 if b.parent is None else bmap[b.parent] + 1
