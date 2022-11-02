@@ -1,3 +1,4 @@
+from bsb.services import MPI
 from bsb.simulation.adapter import SimulatorAdapter
 from bsb.simulation.results import SimulationResult, SimulationRecorder
 from ...reporting import report, warn
@@ -31,6 +32,7 @@ class NeuronEntity:
 
 class NeuronAdapter(SimulatorAdapter):
     def __init__(self):
+        super().__init__()
         self.cells = {}
         self._next_gid = 0
         self.transmitter_map = {}
@@ -49,18 +51,17 @@ class NeuronAdapter(SimulatorAdapter):
 
         return p.parallel.broadcast(data, root=root)
 
-    def prepare(self):
-        from patch import p as simulator
+    def prepare(self, simulation):
+        from patch import p as engine
         from time import time
 
         report("Preparing simulation", level=3)
 
-        self.validate_prepare()
-        self.h = simulator
+        self.engine = engine
 
-        simulator.dt = self.resolution
-        simulator.celsius = self.temperature
-        simulator.tstop = self.duration
+        engine.dt = self.resolution
+        engine.celsius = self.temperature
+        engine.tstop = self.duration
 
         t = t0 = time()
         self.load_balance()
@@ -148,16 +149,12 @@ class NeuronAdapter(SimulatorAdapter):
             )
 
     def load_balance(self):
-        rank = self.get_rank()
-        size = self.get_size()
-        self.cell_total = self.scaffold.get_cell_total()
-        # Do a lazy round robin for now.
-        self.node_cells = set(range(rank, self.cell_total, size))
+        chunk_stats = self.scaffold.storage.get_chunk_stats()
+        size = MPI.get_size()
+        rank = MPI.get_rank()
+        self.chunks = list(chunk_stats.keys())[rank::size]
 
     def simulate(self, simulator):
-        from plotly import graph_objects as go
-        from plotly.subplots import make_subplots
-
         pc = simulator.parallel
         self.pc = pc
         pc.barrier()
