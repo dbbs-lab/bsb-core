@@ -38,26 +38,6 @@ class NeuronAdapter(SimulatorAdapter):
     def validate(self):
         pass
 
-    def validate_prepare(self):
-        for connection_model in self.connection_models.values():
-            # Get the connectivity set associated with this connection model
-            connectivity_set = self.scaffold.get_connectivity_set(connection_model.name)
-            from_type = connectivity_set.connection_types[0].presynaptic.type
-            to_type = connectivity_set.connection_types[0].postsynaptic.type
-            from_cell_model = self.cell_models[from_type.name]
-            to_cell_model = self.cell_models[to_type.name]
-            if (
-                from_type.entity
-                or from_cell_model.relay
-                or to_type.entity
-                or to_cell_model.relay
-            ):
-                continue
-            if not connectivity_set.compartment_set.exists():
-                raise IntersectionDataNotFoundError(
-                    "No intersection data found for '{}'".format(connection_model.name)
-                )
-
     def get_rank(self):
         return self.h.parallel.id()
 
