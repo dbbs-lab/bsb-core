@@ -31,6 +31,7 @@ from ._attrs import (
     catch_all,
     ConfigurationAttribute,
 )
+from .._util import ichain
 from ._make import walk_node_attributes, walk_nodes
 from ._hooks import on, before, after, run_hook, has_hook
 from .. import plugins
@@ -188,9 +189,13 @@ def _try_parsers(content, classes, ext=None, path=None):  # pragma: nocover
         else:
             return (name, tree, meta)
     msges = [
-        (f"Can't parse with {n}:", traceback.format_exception(e)) for n, e in exc.items()
+        (
+            f"Can't parse contents with '{n}':\n",
+            "".join(traceback.format_exception(type(e), e, e.__traceback__)),
+        )
+        for n, e in exc.items()
     ]
-    raise ParserError("\n".join(msges))
+    raise ParserError("\n".join(ichain(msges)))
 
 
 def _from_parsed(self, parser_name, tree, meta, file=None):
