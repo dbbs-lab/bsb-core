@@ -8,7 +8,7 @@ _str_list = types.list(type=str)
 
 @config.node
 class NeuronConnection(ConnectionModel):
-    synapse = config.attr(
+    synapses = config.attr(
         type=types.or_(types.dict(type=_str_list), _str_list), required=True
     )
     source = config.attr(type=str, default=None)

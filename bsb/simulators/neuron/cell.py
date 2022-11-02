@@ -13,7 +13,6 @@ class NeuronCell(CellModel):
     entity = config.attr(default=False)
 
     def boot(self):
-        super().boot()
         self.instances = []
 
     def __getitem__(self, i):
