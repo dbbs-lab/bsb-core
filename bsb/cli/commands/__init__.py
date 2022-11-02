@@ -6,9 +6,8 @@ Inherit from :class:`BaseCommand` for regular CLI style commands, or from
 :class:`BsbCommand` if you want more freedom in what exactly constitutes a command to the
 BSB.
 """
-import abc
 import argparse
-from ...exceptions import *
+from ...exceptions import CommandError
 from ...reporting import report
 
 
