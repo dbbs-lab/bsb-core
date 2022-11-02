@@ -2,14 +2,13 @@ import abc
 
 
 class SimulatorAdapter:
-    def simulate(self, *simulations):
+    def simulate(self, simulation):
         """
-        Simulate the given simulations.
+        Simulate the given simulation.
         """
-        self.prepare(*simulations)
-        for sim in simulations:
-            for hook in sim.post_preparation:
-                hook(self, simulations)
+        self.prepare(simulation)
+        for hook in simulation.post_preparation:
+            hook(self)
         self.run()
         return self.collect()
 
