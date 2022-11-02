@@ -71,6 +71,18 @@ class ByIdTargetting(CellTargetting, classmap_entry="by_id"):
 
 
 @config.node
+class ByLabelTargetting(CellTargetting, classmap_entry="by_label"):
+    """
+    Targetting mechanism (use ``"type": "by_label"``) to target all given labels.
+    """
+
+    labels = config.attr(type=types.list(type=str), required=True)
+
+    def get_targets(self):
+        return []
+
+
+@config.node
 class CylindricalTargetting(CellTargetting, classmap_entry="cylinder"):
     """
     Targetting mechanism (use ``"type": "cylinder"``) to target all cells in a
