@@ -35,9 +35,6 @@ class NestDevice(DeviceModel):
             )
             self.parameters[stimulus_name] = self.stimulus.eval()
 
-    def __boot__(self):
-        self.protocol = get_device_protocol(self)
-
     def get_nest_targets(self):
         """
         Return the targets of the stimulation to pass into the nest.Connect call.
