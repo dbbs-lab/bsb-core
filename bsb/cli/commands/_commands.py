@@ -8,7 +8,9 @@ from ..._options import ConfigOption
 from ...core import from_storage, Scaffold
 from ...storage import open_storage
 from ...config import from_file
+from ...exceptions import NodeNotFoundError
 import itertools
+import errr
 
 
 class XScale(BsbOption, name="x", cli=("x",), env=("BSB_CONFIG_NETWORK_X",)):
@@ -195,10 +197,15 @@ class BsbSimulate(BaseCommand, name="simulate"):
         sim_name = context.arguments.simulation
         if config_option.is_set("cli"):
             extra_simulations = from_file(context.config).simulations
-            for sim in extra_simulations.values():
-                if sim.name not in network.simulations or sim.name == sim_name:
+            for name, sim in extra_simulations.items():
+                if name not in network.simulations and name == sim_name:
                     network.simulations[sim_name] = sim
-        network.run_simulation(context.arguments.simulation)
+        try:
+            network.run_simulation(sim_name)
+        except NodeNotFoundError as e:
+            append = ", " if len(network.simulations) else ""
+            append += ", ".join(f"'{name}'" for name in extra_simulations.keys())
+            errr.wrap(type(e), e, append=append)
 
     def get_options(self):
         return {
