@@ -58,10 +58,11 @@ class NeuronAdapter(SimulatorAdapter):
         report("Preparing simulation", level=3)
 
         self.engine = engine
+        self.network = simulation.scaffold
 
-        engine.dt = self.resolution
-        engine.celsius = self.temperature
-        engine.tstop = self.duration
+        engine.dt = simulation.resolution
+        engine.celsius = simulation.temperature
+        engine.tstop = simulation.duration
 
         t = t0 = time()
         self.load_balance()
