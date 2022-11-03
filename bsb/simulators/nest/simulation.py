@@ -22,3 +22,11 @@ class NestSimulation(Simulation):
     cell_models = config.dict(type=NestCell, required=True)
     connection_models = config.dict(type=NestConnection, required=True)
     devices = config.dict(type=NestDevice, required=True)
+
+    def boot(self, scaffold):
+        self.is_prepared = False
+        self.suffix = ""
+        self.multi = False
+        self.has_lock = False
+        self.global_identifier_map = {}
+        self.simulation_id = _randint()

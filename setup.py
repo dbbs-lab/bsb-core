@@ -31,6 +31,7 @@ requires = [
     "toml",
     "requests",
     "appdirs~=1.4",
+    "neo[nixio]",
 ]
 
 setuptools.setup(

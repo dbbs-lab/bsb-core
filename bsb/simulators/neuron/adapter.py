@@ -1,8 +1,9 @@
 from bsb.services import MPI
 from bsb.simulation.adapter import SimulatorAdapter
 from bsb.simulation.results import SimulationResult, SimulationRecorder
-from ...reporting import report, warn
-from ...exceptions import (
+from bsb.storage import Chunk
+from bsb.reporting import report, warn
+from bsb.exceptions import (
     TransmitterError,
     IntersectionDataNotFoundError,
 )
@@ -75,7 +76,7 @@ class NeuronAdapter(SimulatorAdapter):
             all_nodes=True,
         )
         t = time()
-        self.init_result()
+        self.result = SimulationResult(simulation)
         self.create_neurons()
         t = time() - t
         simulator.parallel.barrier()
@@ -138,22 +139,12 @@ class NeuronAdapter(SimulatorAdapter):
         report("Simulator preparation took", round(time() - t0, 2), "seconds")
         return simulator
 
-    def init_result(self):
-        self.result = SimulationResult()
-        if self.get_rank() == 0:
-            # Record the time
-            self.h.time
-            self.result.create_recorder(
-                lambda: tuple(["time"]),
-                lambda: np.array(self.h.time),
-                lambda: {"resolution": self.resolution, "duration": self.duration},
-            )
-
     def load_balance(self):
         chunk_stats = self.network.storage.get_chunk_stats()
         size = MPI.get_size()
         rank = MPI.get_rank()
-        self.chunks = list(chunk_stats.keys())[rank::size]
+        all_chunks = [Chunk.from_id(int(chunk), None) for chunk in chunk_stats.keys()]
+        self.chunks = all_chunks[rank::size]
 
     def run(self):
         pc = simulator.parallel

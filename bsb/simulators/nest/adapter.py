@@ -29,9 +29,6 @@ import time
 _MPI_processes = MPI.get_size()
 _MPI_rank = MPI.get_rank()
 
-_LOCK_ATTRIBUTE = "_dbbs_scaffold_lock"
-_HOT_MODULE_ATTRIBUTE = "_dbbs_scaffold_hot_modules"
-
 
 class NestAdapter(SimulatorAdapter):
     @property
@@ -39,20 +36,13 @@ class NestAdapter(SimulatorAdapter):
         report("Importing  NEST...", level=2)
         import nest
 
-        self._nest = nest
-        setattr(nest, _HOT_MODULE_ATTRIBUTE, set())
-        return self._nest
+        return nest
 
     def __init__(self, **kwargs):
-        self.result = SimulationResult()
-        self.is_prepared = False
-        self.suffix = ""
-        self.multi = False
-        self.has_lock = False
-        self.global_identifier_map = {}
-        self.simulation_id = _randint()
+        pass
 
     def prepare(self):
+        self.result = SimulationResult(self.simulation)
         if self.is_prepared:
             raise AdapterError(
                 "Attempting to prepare the same adapter twice. Please use `bsb.create_adapter` for multiple adapter instances of the same simulation."
