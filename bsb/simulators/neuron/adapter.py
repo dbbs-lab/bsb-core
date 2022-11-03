@@ -150,12 +150,12 @@ class NeuronAdapter(SimulatorAdapter):
             )
 
     def load_balance(self):
-        chunk_stats = self.scaffold.storage.get_chunk_stats()
+        chunk_stats = self.network.storage.get_chunk_stats()
         size = MPI.get_size()
         rank = MPI.get_rank()
         self.chunks = list(chunk_stats.keys())[rank::size]
 
-    def simulate(self, simulator):
+    def run(self):
         pc = simulator.parallel
         self.pc = pc
         pc.barrier()

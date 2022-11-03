@@ -66,7 +66,7 @@ class Engine(Interface):
 
     def set_comm(self, comm):
         """
-        Set a new communicator in charge of collective operations.
+        :guilabel:`collective` Set a new communicator in charge of collective operations.
         """
         self._comm = comm
 
@@ -139,10 +139,32 @@ class Engine(Interface):
 
     @abc.abstractmethod
     def clear_placement(self):
+        """
+        :guilabel:`collective` Must clear existing placement data.
+        """
         pass
 
     @abc.abstractmethod
     def clear_connectivity(self):
+        """
+        :guilabel:`collective` Must clear existing connectivity data.
+        """
+        pass
+
+    @abc.abstractmethod
+    def get_chunk_stats(self):
+        """
+        :guilabel:`readonly` Must return a dictionary with all chunk statistics.
+        """
+        pass
+
+    @abc.abstractmethod
+    def read_only(self):
+        """
+        Must return a context manager that enters the engine into readonly mode. In
+        readonly mode the engine does not perform any locking, write-operations or network
+        synchronization, and errors out if a write operation is attempted.
+        """
         pass
 
 

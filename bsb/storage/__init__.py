@@ -364,6 +364,12 @@ class Storage:
     def clear_connectivity(self):
         self._engine.clear_connectivity()
 
+    def read_only(self):
+        return self._engine.read_only()
+
+    def get_chunk_stats(self):
+        return self._engine.get_chunk_stats()
+
 
 def open_storage(root):
     engines = get_engines()
