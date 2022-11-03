@@ -572,6 +572,14 @@ class SubTree:
             root.translate(on - root.points[0])
         return self
 
+    def simplify_branches(self, epsilon):
+        """
+        Apply Ramer–Douglas–Peucker algorithm to all points of all branches of the SubTree.
+        :param epsilon: Epsilon to be used in the algorithm.
+        """
+        for branch in self.branches:
+            branch.simplify(epsilon)
+
     def voxelize(self, N):
         """
         Turn the morphology or subtree into an approximating set of axis-aligned cuboids.
@@ -728,6 +736,15 @@ class Morphology(SubTree):
         return self._meta
 
     @property
+    def adjacency_dictionary(self):
+        """
+        Return a dictonary associating to each key (branch index) a list of adjacent branch indices
+        """
+        branches = self.branches
+        idmap = {b: n for n, b in enumerate(branches)}
+        return {n: list(map(idmap.get, b.children)) for n, b in enumerate(branches)}
+
+    @property
     def labelsets(self):
         """
         Return the sets of labels associated to each numerical label.
@@ -845,6 +862,11 @@ class Morphology(SubTree):
                 branch_copy_map[branch] = nbranch
         # Construct and return the morphology
         return self.__class__(roots, meta=self.meta.copy())
+
+    def simplify(self, *args, optimize=True, **kwargs):
+        super().simplify_branches(*args, **kwargs)
+        if optimize:
+            self.optimize()
 
     @classmethod
     def from_swc(cls, file, branch_class=None, tags=None, meta=None):
@@ -1044,6 +1066,18 @@ class Branch:
             raise ValueError(f"Point data must have (N, 3) shape, {arr.shape} given.")
         else:
             self._points = arr
+
+    @property
+    def _kd_tree(self):
+        """
+        Return a `scipy.spatial.cKDTree` of this branch points for fast spatial queries.
+
+        .. warning::
+
+           Constructing a kd-tree takes time and should only be used for repeated querying.
+
+        """
+        return cKDTree(self._points)
 
     @property
     def point_vectors(self):
@@ -1248,6 +1282,59 @@ class Branch:
         self._children.append(branch)
         branch._parent = self
 
+    def find_closest_point(self, coord):
+        """
+        Return the index of the closest on this branch to a desired coordinate.
+
+        :param coord: The coordinate to find the nearest point to
+        :type: :class:`numpy.ndarray`
+        """
+        diff = np.sqrt(np.sum((self._points - coord) ** 2, axis=1))
+        return np.argmin(diff)
+
+    def insert_branch(self, branch, index):
+        """
+        Split this branch and insert the given ``branch`` at the specified ``index``.
+
+        :param branch: Branch to be attached
+        :type branch: :class:`Branch <.morphologies.Branch>`
+        :param index: Index or coordinates of the cutpoint; if coordinates are given, the closest point to the coordinates is used.
+        :type: Union[:class:`numpy.ndarray`, int]
+        """
+        index = np.array(index, copy=False)
+        if index.ndim != 0:
+            index = self.find_closest_point(index)
+
+        if index < 0 or index >= len(self):
+            raise IndexError(
+                f"Cannot insert branch at cutpoint: index {index} is out of range ({len(self)})"
+            )
+
+        if index == len(self.points) - 1:
+            self.attach_child(branch)
+        elif index == 0:
+            self.parent.attach_child(branch)
+        else:
+            first_segment = Branch(
+                self._points.copy()[: index + 1],
+                self._radii.copy()[: index + 1],
+                self._labels.copy()[: index + 1],
+                {k: v.copy()[: index + 1] for k, v in self._properties},
+            )
+            self.parent.attach_child(first_segment)
+            self.parent.detach_child(self)
+            first_segment.attach_child(branch)
+            second_segment = Branch(
+                self._points.copy()[index:],
+                self._radii.copy()[index:],
+                self._labels.copy()[index:],
+                {k: v.copy()[index:] for k, v in self._properties},
+            )
+            for b in self.children:
+                self.detach_child(b)
+                second_segment.attach_child(b)
+            first_segment.attach_child(second_segment)
+
     def detach_child(self, branch):
         """
         Remove a branch as a child from this branch.
@@ -1400,6 +1487,74 @@ class Branch:
             if a >= arc:
                 return i
         return len(self) - 1
+
+    def get_axial_distances(self, idx_start=0, idx_end=-1, return_max=False):
+        """
+        Return the displacements or its max value of a subset of branch points from its axis vector.
+        :param idx_start = 0: index of the first point of the subset.
+        :param idx_end = -1: index of the last point of the subset.
+        :param return_max = False: if True the function only returns the max value of displacements, otherwise the entire array.
+        """
+        start = self.points[idx_start]
+        end = self.points[idx_end]
+        versor = (end - start) / np.linalg.norm(end - start)
+        displacements = np.linalg.norm(
+            np.cross(
+                versor,
+                (self.points[idx_start : idx_end + 1] - self.points[idx_start]),
+            ),
+            axis=1,
+        )
+        if return_max:
+            try:
+                return np.max(displacements)
+            except IndexError:
+                raise EmptyBranchError("Selected an empty subset of points") from None
+        else:
+            return displacements
+
+    def simplify(self, epsilon, idx_start=0, idx_end=-1):
+        """
+        Apply Ramer–Douglas–Peucker algorithm to all points or a subset of points of the branch.
+        :param epsilon: Epsilon to be used in the algorithm.
+        :param idx_start = 0: Index of the first element of the subset of points to be reduced.
+        :param epsilon = -1: Index of the last element of the subset of points to be reduced.
+        """
+        if len(self.points) < 3:
+            return
+        if idx_end == -1:
+            idx_end = len(self.points) - 1
+        if epsilon < 0:
+            raise ValueError(f"Epsilon must be >= 0")
+
+        reduced = []
+        skipped = deque()
+
+        while True:
+            dists = self.get_axial_distances(idx_start, idx_end)
+            try:
+                idx_max = np.argmax(dists)
+                dmax = dists[idx_max]
+                idx_max = idx_start + idx_max
+            except ValueError:
+                dmax = 0
+
+            reduced.append(idx_start)
+            reduced.append(idx_end)
+            if dmax > epsilon and len(dists) > 2:
+                skipped.append((idx_max, idx_end))
+                idx_end = idx_max - 1
+            else:
+                try:
+                    idx_start, idx_end = skipped.pop()
+                except IndexError:
+                    break
+
+        # sorted because indexes are appended to reduced from the middle of the list (the first point with dist > epsilon)
+        # then all points with smaller index  until 0, then all points with bigger index
+        reduced = np.sort(np.unique(reduced))
+        self.points = self.points[reduced]
+        self.radii = self.radii[reduced]
 
     @functools.wraps(SubTree.cached_voxelize)
     @functools.cache
