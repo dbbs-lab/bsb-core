@@ -1214,6 +1214,14 @@ class Branch:
         """
         return self._labels.labels
 
+    def list_labels(self):
+        """
+        Return a list of labels present on the branch.
+        """
+        lookup = np.vectorize(self._labels.labels.get)
+        labels = np.unique(lookup(self._labels.raw))
+        return sorted(set(_gutil.ichain(labels)))
+
     @property
     def is_root(self):
         """

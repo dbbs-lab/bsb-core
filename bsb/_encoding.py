@@ -45,6 +45,10 @@ class EncodedLabels(np.ndarray):
         except Exception:
             return np.array(self, copy=False) == other
 
+    @property
+    def raw(self):
+        return np.array(self, copy=False)
+
     def copy(self, *args, **kwargs):
         cp = super().copy(*args, **kwargs)
         cp.labels = {k: v.copy() for k, v in cp.labels.items()}
