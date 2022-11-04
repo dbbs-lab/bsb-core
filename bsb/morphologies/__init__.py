@@ -1252,7 +1252,7 @@ class Branch:
         :rtype: bsb.morphologies.Branch
         """
         cls = branch_class or type(self)
-        props = {k: v.copy() for k, v in self._properties}
+        props = {k: v.copy() for k, v in self._properties.items()}
         return cls(self._points.copy(), self._radii.copy(), self._labels.copy(), props)
 
     def label(self, labels, points=None):
@@ -1327,7 +1327,7 @@ class Branch:
                 self._points.copy()[: index + 1],
                 self._radii.copy()[: index + 1],
                 self._labels.copy()[: index + 1],
-                {k: v.copy()[: index + 1] for k, v in self._properties},
+                {k: v.copy()[: index + 1] for k, v in self._properties.items()},
             )
             self.parent.attach_child(first_segment)
             self.parent.detach_child(self)
@@ -1336,7 +1336,7 @@ class Branch:
                 self._points.copy()[index:],
                 self._radii.copy()[index:],
                 self._labels.copy()[index:],
-                {k: v.copy()[index:] for k, v in self._properties},
+                {k: v.copy()[index:] for k, v in self._properties.items()},
             )
             for b in self.children:
                 self.detach_child(b)
