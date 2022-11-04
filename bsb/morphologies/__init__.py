@@ -1676,17 +1676,14 @@ def _morpho_to_swc(morpho):
     offset = 0
     # Convert labels to tags
     if not hasattr(morpho, "tags"):
-        tags = -np.ones(len(morpho.points), dtype=int)
+        tags = np.full(len(morpho.points), -1, dtype=int)
         for key in swc_tags.keys():
             mask = morpho.get_label_mask([key])
             tags[mask] = swc_tags[key]
     else:
         tags = morpho.tags
-    if (tags == -1).any():
-        raise NotImplementedError(
-            "Can't store custom labelled nodes yet,"
-            " requires special handling in morphologies/__init__.py, todo"
-        )
+    if np.any(tags == -1):
+        raise NotImplementedError("Can't store morphologies with custom SWC tags")
     # Iterate over the morphology branches
     for b in morpho.branches:
         ids = (
