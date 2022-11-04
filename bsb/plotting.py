@@ -214,11 +214,11 @@ def _plot_network(network, fig, cubic, swapaxes):
         if type.plotting:
             color = type.plotting.color
             opacity = type.plotting.opacity
-            name = type.plotting.display_name
+            name = type.plotting.display_name or type.name
         else:
             color = Color(pick_for=type).hex
             opacity = 1
-        name = name or type.name
+            name = type.name
         fig.add_trace(
             go.Scatter3d(
                 x=pos[:, 0],
