@@ -263,7 +263,7 @@ class TestMorphologies(NumpyTestCase, unittest.TestCase):
         )
         with self.assertRaises(ValueError, msg="It should throw a ValueError") as context:
             m_epsilon_0.simplify(epsilon=-1)
-            
+
     def test_adjacency(self):
         target = {0: [1], 1: [2, 5], 2: [3, 4], 3: [], 4: [], 5: []}
         root = _branch(1)
@@ -368,14 +368,25 @@ class TestMorphologyLabels(NumpyTestCase, unittest.TestCase):
 
     def test_list_labels(self):
         b = _branch(10)
+        c = _branch(10)
+        b.attach_child(c)
         b.label(["B", "A"], [0, 1, 2])
+        c.label(["B", "C", "D", "A"], [0, 1, 2, 5])
         m = Morphology([b])
         self.assertEqual(
-            {0: [], 1: ["B", "A"]}, m.labelsets, "expected no and double labelset"
+            {0: [], 1: ["B", "A"], 2: ["B", "C", "D", "A"]},
+            m.labelsets,
+            "expected no and double labelset",
         )
-        self.assertEqual(["A", "B"], m.list_labels(), "expected sorted list of labels")
+        self.assertEqual(
+            ["A", "B", "C", "D"], m.list_labels(), "expected sorted list of labels"
+        )
         maskA = m.get_label_mask(["A"])
-        self.assertEqual(3, np.sum(maskA), "expected 3 hits for A")
+        self.assertEqual(7, np.sum(maskA), "expected 3 hits for A")
+        self.assertEqual(["A", "B"], b.list_labels(), "expected sorted branch labels")
+        self.assertEqual(
+            ["A", "B", "C", "D"], c.list_labels(), "expected sorted branch labels"
+        )
 
     def test_mlabel(self):
         b = _branch(10)
