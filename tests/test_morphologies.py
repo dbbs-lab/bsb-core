@@ -1,4 +1,3 @@
-from calendar import c
 import unittest, os, sys, numpy as np, h5py
 import json
 import itertools
