@@ -1,4 +1,3 @@
-from calendar import c
 import unittest, os, sys, numpy as np, h5py
 import json
 import itertools
@@ -263,7 +262,7 @@ class TestMorphologies(NumpyTestCase, unittest.TestCase):
         )
         with self.assertRaises(ValueError, msg="It should throw a ValueError") as context:
             m_epsilon_0.simplify(epsilon=-1)
-            
+
     def test_adjacency(self):
         target = {0: [1], 1: [2, 5], 2: [3, 4], 3: [], 4: [], 5: []}
         root = _branch(1)
