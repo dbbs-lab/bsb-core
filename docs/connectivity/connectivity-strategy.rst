@@ -79,17 +79,17 @@ Arguments: ``pre`` and ``post`` are ConnectionCollections. By default post conta
 
 The connection between two types of cells is made calling the connect_cells method.
 connect_cells needs four arguments: 
-* ``pre_set`` : A numpy array containing the positions of the presynaptic cells.
-* ``post_set`` : A numpy array containing the positions of the postsynaptic cells.
-* ``src_locs`` : A nx3 matrix, with n the number of connections, containing information about where the connection starts.
+ * ``pre_set`` : A numpy array containing the positions of the presynaptic cells.
+ * ``post_set`` : A numpy array containing the positions of the postsynaptic cells.
+ * ``src_locs`` : A nx3 matrix, with n the number of connections, containing information about where the connection starts.
 Each row of the matrix contains three integers (a,b,c), with a the index of the presynaptic cell, b the index of the branch on which a connection is made 
 and c the index (relative to a branch) of the point at which the connection starts.  
-* ``dest_locs`` : A nx3 matrix,with n the number of connections, containing information about where the connection ends.
+  * ``dest_locs`` : A nx3 matrix,with n the number of connections, containing information about where the connection ends.
 Each row of the matrix contains three integers (a,b,c), with a the index of the postsynaptic cell, b the index of the branch on which a connection is made 
 and c the index (relative to a branch) of the point at which the connection ends. 
 The k-th row of src_locs describes the beginning of the k-th connection on the presynaptic cell, while the k-th row of dest_locs stores the info about the end of the k-th connection on the postsynaptic cell. 
 There is also an optional argument: 
-* ``tag`` : a tag describing the connection. 
+ * ``tag`` : a tag describing the connection. 
 
 For example, if ``src_locs`` and ``dest_locs`` are the following matrices:
 
@@ -355,7 +355,4 @@ The :meth:`~.bsb.connectivity.strategy.ConnectionStrategy.get_region_of_interest
 
         #Now we connect the cells
         self.connect_cells(pre_ps, post_ps, pre_locs[:ptr], post_locs[:ptr])
-
-
-
 

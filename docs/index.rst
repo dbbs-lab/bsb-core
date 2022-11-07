@@ -99,6 +99,12 @@ and explicit code understandable and reusable by your peers.
 
 .. toctree::
   :maxdepth: 2
+  :caption: Connectivity
+
+  connectivity/connectivity-toc
+
+.. toctree::
+  :maxdepth: 2
   :caption: Simulation
 
   simulation/simulation-toc
