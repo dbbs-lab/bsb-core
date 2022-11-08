@@ -307,7 +307,8 @@ class PlacementSet(Interface):
         """
         return self._tag
 
-    @abc.abstractclassmethod
+    @classmethod
+    @abc.abstractmethod
     def create(cls, engine, cell_type):
         """
         Create a placement set.
@@ -321,7 +322,8 @@ class PlacementSet(Interface):
         """
         pass
 
-    @abc.abstractstaticmethod
+    @staticmethod
+    @abc.abstractmethod
     def exists(engine, cell_type):
         """
         Check existence of a placement set.
@@ -395,10 +397,13 @@ class PlacementSet(Interface):
         pass
 
     @abc.abstractmethod
-    def load_morphologies(self):
+    def load_morphologies(self, allow_empty=False):
         """
-        Return a :class:`~.morphologies.MorphologySet` associated to the cells.
+        Return a :class:`~.morphologies.MorphologySet` associated to the cells. Raises an
+        error if there is no morphology data, unless `allow_empty=True`.
 
+        :param boolean allow_empty: Silence missing morphology data error, and return an
+          empty morphology set.
         :returns: Set of morphologies
         :rtype: :class:`~.morphologies.MorphologySet`
         """
@@ -441,6 +446,9 @@ class PlacementSet(Interface):
         :type rotations: ~bsb.morphologies.RotationSet
         :param morphologies: Cell morphologies
         :type morphologies: ~bsb.morphologies.MorphologySet
+        :param additional: Additional datasets with 1 value per cell, will be stored
+          under its key in the dictionary
+        :type additional: Dict[str, numpy.ndarray]
         :param count: Amount of entities to place. Excludes the use of any positional,
           rotational or morphological data.
         :type count: int
@@ -453,11 +461,11 @@ class PlacementSet(Interface):
         Append arbitrary user data to the placement set. The length of the data must match
         that of the placement set, and must be storable by the engine.
 
+        :param name:
         :param chunk: The chunk to store data in.
         :type chunk: ~bsb.storage.Chunk
         :param data: Arbitrary user data. You decide |:heart:|
         :type data: numpy.ndarray
-        :type count: int
         """
         pass
 
@@ -484,7 +492,7 @@ class PlacementSet(Interface):
     @abc.abstractmethod
     def set_morphology_label_filter(self, morphology_labels):
         """
-        Should limit the scope of the placement set to the given subcellular labels. The
+        Should limit the scope of the placement set to the given sub-cellular labels. The
         morphologies returned by
         :meth:`~.storage.interfaces.PlacementSet.load_morphologies` should return a
         filtered form of themselves if :meth:`~.morphologies.Morphology.as_filtered` is
@@ -777,7 +785,8 @@ class ConnectivitySet(Interface):
     connections.
     """
 
-    @abc.abstractclassmethod
+    @classmethod
+    @abc.abstractmethod
     def create(cls, engine, tag):
         """
         Must create the placement set.
@@ -786,14 +795,12 @@ class ConnectivitySet(Interface):
 
     @obj_str_insert
     def __repr__(self):
-        if not len(self):
-            cstr = "without connections"
-        else:
-            cstr = f"with {len(self)} connections"
+        cstr = f"with {len(self)} connections" if len(self) else "without connections"
         return f"'{self.tag}' {cstr}"
 
-    @abc.abstractstaticmethod
-    def exists(self, engine, tag):
+    @staticmethod
+    @abc.abstractmethod
+    def exists(engine, tag):
         """
         Must check the existence of the placement set
         """
@@ -814,10 +821,13 @@ class ConnectivitySet(Interface):
         """
         pass
 
-    @abc.abstractclassmethod
+    @classmethod
+    @abc.abstractmethod
     def get_tags(cls, engine):
         """
         Must return the tags of all existing connectivity sets.
+
+        :param engine: Storage engine to inspect.
         """
         pass
 
