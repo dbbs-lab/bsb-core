@@ -16,7 +16,7 @@ MPILock = _MPILockModule("mpilock")
 MPILock service
 """
 
-from .pool import JobPool as _JobPool
+from .pool import JobPool as _JobPool  # noqa
 
 
 JobPool = _JobPool

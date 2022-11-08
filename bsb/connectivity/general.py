@@ -1,39 +1,24 @@
+import os
 import numpy as np
 import functools
 from .strategy import ConnectionStrategy
+from ..exceptions import SourceQualityError
 from .. import config, _util as _gutil
-from ..exceptions import *
-from ..reporting import report, warn
+from ..config import types
+from ..reporting import warn
 
 
 @config.node
 class Convergence(ConnectionStrategy):
     """
-    Implementation of a general convergence connectivity between
-    two populations of cells (this does not work with entities)
+    Connect cells based on a convergence distribution, i.e. by connecting each source cell
+    to X target cells.
     """
 
-    convergence = config.attr(type=float, required=True)
-
-    def validate(self):
-        pass
+    convergence = config.attr(type=types.distribution(), required=True)
 
     def connect(self):
-        # Source and target neurons are extracted
-        from_type = self.presynaptic.type
-        to_type = self.postsynaptic.type
-        pre = self.from_cells[from_type.name]
-        post = self.to_cells[to_type.name]
-        convergence = self.convergence
-
-        pre_post = np.zeros((convergence * len(post), 2))
-        for i, neuron in enumerate(post):
-            connected_pre = np.random.choice(pre[:, 0], convergence, replace=False)
-            range_i = range(i * convergence, (i + 1) * convergence)
-            pre_post[range_i, 0] = connected_pre.astype(int)
-            pre_post[range_i, 1] = neuron[0]
-
-        self.scaffold.connect_cells(self, pre_post)
+        raise NotImplementedError("Needs to be restored, please open an issue.")
 
 
 class AllToAll(ConnectionStrategy):
@@ -44,11 +29,11 @@ class AllToAll(ConnectionStrategy):
     def get_region_of_interest(self, chunk):
         # All to all needs all pre chunks per post chunk.
         # Fingers crossed for out of memory errors.
-        return self._get_all_pre_chunks()
+        return self._get_all_post_chunks()
 
     @functools.cache
-    def _get_all_pre_chunks(self):
-        all_ps = (ct.get_placement_set() for ct in self.presynaptic.cell_types)
+    def _get_all_post_chunks(self):
+        all_ps = (ct.get_placement_set() for ct in self.postsynaptic.cell_types)
         chunks = set(_gutil.ichain(ps.get_all_chunks() for ps in all_ps))
         return list(chunks)
 
@@ -56,12 +41,12 @@ class AllToAll(ConnectionStrategy):
         for from_ps in pre.placement.values():
             fl = len(from_ps)
             for to_ps in post.placement.values():
-                l = len(to_ps)
-                ml = fl * l
+                len_ = len(to_ps)
+                ml = fl * len_
                 src_locs = np.full((ml, 3), -1)
                 dest_locs = np.full((ml, 3), -1)
-                src_locs[:, 0] = np.repeat(np.arange(fl), l)
-                dest_locs[:, 0] = np.tile(np.arange(l), fl)
+                src_locs[:, 0] = np.repeat(np.arange(fl), len_)
+                dest_locs[:, 0] = np.tile(np.arange(len_), fl)
                 self.connect_cells(from_ps, to_ps, src_locs, dest_locs)
 
 
@@ -110,7 +95,10 @@ class ExternalConnections(ConnectionStrategy):
             delimiter=self.delimiter,
         )
         if self.use_map:
-            emap_name = lambda t: t.placement.name + "_ext_map"
+
+            def emap_name(t):
+                return t.placement.name + "_ext_map"
+
             from_gid_map = self.scaffold.load_appendix(emap_name(from_type))
             to_gid_map = self.scaffold.load_appendix(emap_name(to_type))
             from_targets = self.scaffold.get_placement_set(from_type).identifiers

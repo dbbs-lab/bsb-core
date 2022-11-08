@@ -94,8 +94,26 @@ def timeout(timeout, abort=False):
                     file=sys.stderr,
                     flush=True,
                 )
-                MPI.abort(1)
+                if MPI.get_size() > 1:
+                    MPI.abort(1)
 
         return timed_f
 
     return decorator
+
+
+def on_main_only(f):
+    def main_wrapper(*args, **kwargs):
+        if MPI.get_rank():
+            MPI.barrier()
+        else:
+            r = f(*args, **kwargs)
+            MPI.barrier()
+            return r
+
+    return main_wrapper
+
+
+def serial_setup(cls):
+    cls.setUp = on_main_only(cls.setUp)
+    return cls

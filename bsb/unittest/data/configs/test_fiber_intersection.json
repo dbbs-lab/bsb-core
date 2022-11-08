@@ -65,27 +65,27 @@
   "connectivity": {
     "parallel_fiber_to_golgi": {
       "class": "bsb.connectivity.FiberIntersection",
-      "from_cell_types": [{"type": "granule_cell", "compartments": ["parallel_fiber"]}],
-      "to_cell_types": [{"type": "golgi_cell", "compartments": ["dendrites"]}],
+      "from_cell_types": [{"type": "granule_cell", "morphology_labels": ["parallel_fiber"]}],
+      "to_cell_types": [{"type": "golgi_cell", "morphology_labels": ["dendrites"]}],
       "resolution": 50.0
     },
     "parallel_fiber_to_golgi_HR": {
       "class": "bsb.connectivity.FiberIntersection",
-      "from_cell_types": [{"type": "granule_cell", "compartments": ["parallel_fiber"]}],
-      "to_cell_types": [{"type": "golgi_cell", "compartments": ["dendrites"]}],
+      "from_cell_types": [{"type": "granule_cell", "morphology_labels": ["parallel_fiber"]}],
+      "to_cell_types": [{"type": "golgi_cell", "morphology_labels": ["dendrites"]}],
       "resolution": 5.0
     },
     "parallel_fiber_to_golgi_affinity": {
       "class": "bsb.connectivity.FiberIntersection",
-      "from_cell_types": [{"type": "granule_cell", "compartments": ["parallel_fiber"]}],
-      "to_cell_types": [{"type": "golgi_cell", "compartments": ["dendrites"]}],
+      "from_cell_types": [{"type": "granule_cell", "morphology_labels": ["parallel_fiber"]}],
+      "to_cell_types": [{"type": "golgi_cell", "morphology_labels": ["dendrites"]}],
       "resolution": 50.0,
       "affinity": 0.5
     },
     "parallel_fiber_to_golgi_bended": {
       "class": "bsb.connectivity.FiberIntersection",
-      "from_cell_types": [{"type": "granule_cell", "compartments": ["parallel_fiber"]}],
-      "to_cell_types": [{"type": "golgi_cell", "compartments": ["dendrites"]}],
+      "from_cell_types": [{"type": "granule_cell", "morphology_labels": ["parallel_fiber"]}],
+      "to_cell_types": [{"type": "golgi_cell", "morphology_labels": ["dendrites"]}],
       "resolution": 50.0,
       "transform": {
         "class": "bsb.connectivity.QuiverTransform",

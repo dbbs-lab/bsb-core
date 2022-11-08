@@ -8,6 +8,7 @@ from .placement import PlacementStrategy
 from .placement.indicator import PlacementIndications
 from ._util import SortableByAfter
 from .exceptions import *
+from ._util import obj_str_insert
 import abc
 
 
@@ -67,14 +68,30 @@ class CellType:
         storage = self.scaffold.storage
         storage._PlacementSet.require(storage._engine, self)
 
-    def get_placement_set(self, chunks=None):
+    @obj_str_insert
+    def __repr__(self):
+        if hasattr(self, "scaffold"):
+            cells_placed = len(self.get_placement_set())
+            placements = len(self.get_placement())
+        else:
+            cells_placed = 0
+            placements = "?"
+        return f"'{self.name}', {cells_placed} cells, {placements} placement strategies"
+
+    def get_placement(self):
+        """
+        Get the placement components this cell type is a part of.
+        """
+        return self.scaffold.get_placement_of(self)
+
+    def get_placement_set(self, *args, **kwargs):
         """
         Retrieve this cell type's placement data
 
         :param chunks: When given, restricts the placement data to these chunks.
         :type chunks: List[bsb.storage.Chunk]
         """
-        return self.scaffold.get_placement_set(self.name, chunks=chunks)
+        return self.scaffold.get_placement_set(self, *args, **kwargs)
 
     def get_morphologies(self):
         """
@@ -109,3 +126,16 @@ class CellType:
         for conn_set in self.scaffold.get_connectivity_sets():
             if self is conn_set.presynaptic or self is conn_set.postsynaptic:
                 conn_set.clear()
+
+    # This property was mostly added so that accidental assignment to `ct.morphologies`
+    # instead of `ct.spatial.morphologies` raises an error.
+    @property
+    def morphologies(self):
+        return self.get_morphologies()
+
+    @morphologies.setter
+    def morphologies(self, value):
+        raise AttributeError(
+            "`cell_type.morphologies` is a readonly attribute. Did you mean"
+            " `cell_type.spatial.morphologies`?"
+        )

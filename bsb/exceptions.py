@@ -27,21 +27,12 @@ _t(
             CastConfigurationError=_e(),
             IndicatorError=_e(),
             RequirementError=_e("node", "attr"),
-            ReferenceError=_e(
+            CfgReferenceError=_e(
                 NoReferenceAttributeSignal=_e(),
             ),
             UnknownConfigAttrError=_e("attributes"),
         ),
         CompilationError=_e(
-            ConnectivityError=_e(
-                "connection_strategy",
-                FiberTransformError=_e(
-                    QuiverFieldError=_e(),
-                ),
-            ),
-            PlacementError=_e(
-                "cell_type", PlacementRelationError=_e("cell_type", "relation")
-            ),
             DistributorError=_e("property", "strategy"),
             RedoError=_e(),
         ),
@@ -99,7 +90,9 @@ _t(
         ),
         PlacementError=_e(
             ChunkError=_e(),
+            PlacementRelationError=_e(),
             ContinuityError=_e(),
+            PackingError=_e(),
         ),
         SelectorError=_e(),
         TreeError=_e(),
@@ -125,6 +118,7 @@ _t(
         ),
         OrderError=_e(),
         ClassError=_e(),
+        TestError=_e(FixtureError=_e()),
     ),
 )
 
@@ -145,6 +139,10 @@ class UserUserDeprecationWarning(ScaffoldWarning):
 
 
 class PlacementWarning(ScaffoldWarning):
+    pass
+
+
+class PackingWarning(PlacementWarning):
     pass
 
 

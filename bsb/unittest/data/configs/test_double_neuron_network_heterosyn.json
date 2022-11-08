@@ -71,15 +71,15 @@
   "connectivity": {
     "from_cell_to_cell": {
       "class": "bsb.connectivity.Convergence",
-      "from_cell_types": [{"type": "from_cell", "compartments": ["soma"]}],
-      "to_cell_types": [{"type": "to_cell", "compartments": ["soma"]}],
+      "from_cell_types": [{"type": "from_cell", "morphology_labels": ["soma"]}],
+      "to_cell_types": [{"type": "to_cell", "morphology_labels": ["soma"]}],
       "divergence": 2,
       "convergence": 4
     },
     "teaching_cell_to_cell": {
       "class": "bsb.connectivity.Convergence",
-      "from_cell_types": [{"type": "teaching_cell", "compartments": ["soma"]}],
-      "to_cell_types": [{"type": "to_cell", "compartments": ["soma"]}],
+      "from_cell_types": [{"type": "teaching_cell", "morphology_labels": ["soma"]}],
+      "to_cell_types": [{"type": "to_cell", "morphology_labels": ["soma"]}],
       "divergence": 1,
       "convergence": 1
     }

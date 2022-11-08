@@ -6,10 +6,25 @@
 The Brain Scaffold Builder
 ==========================
 
-The BSB is a framework for reconstructing and simulating multi-paradigm neuronal network
-models. It removes much of the repetitive work associated with writing the required code
-and lets you focus on the parts that matter. It helps write organized, well-parametrized
-and explicit code understandable and reusable by your peers.
+The BSB is a **black box component framework** for multiparadigm neural modelling: we
+provide structure, architecture and organization, and you provide the use-case specific
+parts of your model. In our framework, your model is described in a code-free
+configuration of **components** with parameters. The framework executes a (transparently
+parallelized) workflow, and calls upon your black box components (we don't know what
+you're going to put inside of them) to fulfill their role.
+
+For the framework to reliably use components, and make them work together in a complex
+workflow, it asks a fixed set of questions per component type: e.g. a connection component
+will be asked how to connect cells. These contracts of cooperation between you and the
+framework are called **interfaces**.
+
+This way, by *implementing our component interfaces* and using them from a central
+configuration, most models end up being code-free, well-parametrized, self-contained,
+human-readable, multi-scale models!
+
+(PS: If we missed any hyped-up hyphenated adjectives, let us know! |:heart:|)
+
+----
 
 .. grid:: 1 1 2 2
     :gutter: 1

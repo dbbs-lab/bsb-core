@@ -30,17 +30,10 @@ Using the scaffold object, you can inspect the data in the storage by using the
 ConnectivitySets with :meth:`scaffold.get_connectivity_set
 <.core.Scaffold.get_placement_set>`.
 
-The storage object provides access to an underlying engine that performs read and write
-operations in a certain data format. You can use the storage object to manipulate the data
-in your model, but usually it's better if the scaffold object is allowed to translate
-configuration directly into data, so that anyone can take a look at the config and know
-exactly what data is in storage, and how it got there!
-
 Ultimately this is the goal of the entire framework: To let you explicitly define every
-component that is a part of your model, and all its parameters, in such a way that a
-single CLI command, ``bsb compile``, can turn your configuration into a reconstructed
-biophysically detailed large scale neural network, with all its parameters explicitly
-presented to any reader in a human readable configuration file.
+component and parameter that is a part of your model, and all its parameters, in such a
+way that a single CLI command, ``bsb compile``, can turn your configuration into a
+reconstructed biophysically detailed large scale neural network.
 
 Workflow
 ========

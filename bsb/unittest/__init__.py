@@ -1,21 +1,35 @@
 from .parallel import *
+from ..core import Scaffold as _Scaffold
 from ..storage import (
     Storage as _Storage,
     get_engine_node as _get_engine_node,
     Chunk as _Chunk,
 )
 from ..config import Configuration as _Configuration
+from ..exceptions import FixtureError
 import numpy as _np
 import glob as _glob
 import os as _os
 
 
+class NetworkFixture:
+    def setUp(self):
+        super().setUp()
+        kwargs = {}
+        if hasattr(self, "cfg"):
+            kwargs["config"] = self.cfg
+        if hasattr(self, "storage"):
+            kwargs["storage"] = self.storage
+        self.network = _Scaffold(**kwargs)
+
+
 class RandomStorageFixture:
-    def __init_subclass__(cls, root_factory=None, *, engine_name, **kwargs):
+    def __init_subclass__(cls, root_factory=None, debug=False, *, engine_name, **kwargs):
         super().__init_subclass__(**kwargs)
         cls._engine = engine_name
         cls._rootf = root_factory
         cls._open_storages = []
+        cls._debug_storage = debug
 
     def setUp(self):
         super().setUp()
@@ -24,8 +38,9 @@ class RandomStorageFixture:
     @classmethod
     def tearDownClass(cls):
         super().tearDownClass()
-        for s in cls._open_storages:
-            s.remove()
+        if not cls._debug_storage:
+            for s in cls._open_storages:
+                s.remove()
 
     @classmethod
     def random_storage(cls):
@@ -71,22 +86,57 @@ class FixedPosConfigFixture:
         )
 
 
+class MorphologiesFixture:
+    def __init_subclass__(cls, morpho_filters=None, morpho_suffix="swc", **kwargs):
+        super().__init_subclass__(**kwargs)
+        cls._morpho_suffix = morpho_suffix
+        cls._morpho_filters = morpho_filters
+
+    def setUp(self):
+        super().setUp()
+        if not hasattr(self, "network"):
+            raise FixtureError(
+                f"{self.__class__.__name__} uses MorphologiesFixture, which requires a network fixture."
+            )
+        if MPI.get_rank():
+            MPI.barrier()
+        else:
+            for mpath in get_all_morphology_paths(self._morpho_suffix):
+                if self._morpho_filters and all(
+                    mpath.find(filter) == -1 for filter in self._morpho_filters
+                ):
+                    continue
+                if mpath.endswith("swc"):
+                    self.network.morphologies.import_swc(mpath)
+                else:
+                    self.network.morphologies.import_file(mpath)
+            MPI.barrier()
+
+
 class NumpyTestCase:
     def assertClose(self, a, b, msg="", /, **kwargs):
-        return self.assertTrue(_np.allclose(a, b, **kwargs), f"Expected {a}, got {b}")
+        if msg:
+            msg += ". "
+        return self.assertTrue(
+            _np.allclose(a, b, **kwargs), f"{msg}Expected {a}, got {b}"
+        )
 
     def assertAll(self, a, msg="", /, **kwargs):
         trues = _np.sum(a.astype(bool))
         all = _np.product(a.shape)
+        if msg:
+            msg += ". "
         return self.assertTrue(
-            _np.all(a, **kwargs), f"{msg}. Only {trues} out of {all} True"
+            _np.all(a, **kwargs), f"{msg}Only {trues} out of {all} True"
         )
 
     def assertNan(self, a, msg="", /, **kwargs):
+        if msg:
+            msg += ". "
         nans = _np.isnan(a)
         all = _np.product(a.shape)
         return self.assertTrue(
-            _np.all(a, **kwargs), f"{msg}. Only {_np.sum(nans)} out of {all} True"
+            _np.all(a, **kwargs), f"{msg}Only {_np.sum(nans)} out of {all} True"
         )
 
 

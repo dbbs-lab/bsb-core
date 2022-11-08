@@ -1,8 +1,10 @@
 import abc
+from pathlib import Path
 import functools
 import numpy as np
 from ..morphologies import Morphology
 from ..trees import BoxTree
+from .._util import obj_str_insert
 
 
 class Interface(abc.ABC):
@@ -218,6 +220,19 @@ class PlacementSet(Interface):
         self._type = cell_type
         self._tag = cell_type.name
 
+    @obj_str_insert
+    def __repr__(self):
+        cell_type = self.cell_type
+        try:
+            ms = self.load_morphologies()
+        except Exception:
+            return f"cell type: '{cell_type.name}'"
+        if not len(ms):
+            mstr = "without morphologies"
+        else:
+            mstr = f"with {len(ms._loaders)} morphologies"
+        return f"cell type: '{cell_type.name}', {len(self)} cells, {mstr}"
+
     @property
     def cell_type(self):
         """
@@ -335,6 +350,12 @@ class PlacementSet(Interface):
         """
         pass
 
+    def count_morphologies(self):
+        """
+        Must return the number of different morphologies used in the set.
+        """
+        return self.load_morphologies(allow_empty=True).count_morphologies()
+
     @abc.abstractmethod
     def __iter__(self):
         pass
@@ -386,6 +407,76 @@ class PlacementSet(Interface):
         """
         pass
 
+    @abc.abstractmethod
+    def set_chunk_filter(self, chunks):
+        """
+        Should limit the scope of the placement set to the given chunks.
+
+        :param chunks: List of chunks
+        :type chunks: list[bsb.storage.Chunk]
+        """
+        pass
+
+    @abc.abstractmethod
+    def set_label_filter(self, labels):
+        """
+        Should limit the scope of the placement set to the given labels.
+
+        :param labels: List of labels
+        :type labels: list[str]
+        """
+        pass
+
+    @abc.abstractmethod
+    def set_morphology_label_filter(self, morphology_labels):
+        """
+        Should limit the scope of the placement set to the given subcellular labels. The
+        morphologies returned by
+        :meth:`~.storage.interfaces.PlacementSet.load_morphologies` should return a
+        filtered form of themselves if :meth:`~.morphologies.Morphology.as_filtered` is
+        called on them.
+
+        :param morphology_labels: List of labels
+        :type morphology_labels: list[str]
+        """
+        pass
+
+    @abc.abstractmethod
+    def label(self, labels, cells):
+        """
+        Should label the cells with given labels.
+
+        :param cells: Array of cells in this set to label.
+        :type cells: numpy.ndarray
+        :param labels: List of labels
+        :type labels: list[str]
+        """
+        pass
+
+    @abc.abstractmethod
+    def get_labelled(self, labels):
+        """
+        Should return the cells labelled with given labels.
+
+        :param cells: Array of cells in this set to label.
+        :type cells: numpy.ndarray
+        :param labels: List of labels
+        :type labels: list[str]
+        """
+        pass
+
+    @abc.abstractmethod
+    def get_label_mask(self, labels):
+        """
+        Should return a mask that fits the placement set for the cells with given labels.
+
+        :param cells: Array of cells in this set to label.
+        :type cells: numpy.ndarray
+        :param labels: List of labels
+        :type labels: list[str]
+        """
+        pass
+
     def load_boxes(self, morpho_cache=None):
         """
         Load the cells as axis aligned bounding box rhomboids matching the extension,
@@ -400,6 +491,7 @@ class PlacementSet(Interface):
         :returns: An iterator with 6 coordinates per cell: 3 min and 3 max coords, the
           bounding box of that cell's translated and rotated morphology.
         :rtype: Iterator[Tuple[float, float, float, float, float, float]]
+        :raises: DatasetNotFoundError if no morphologies are found.
         """
         if morpho_cache is None:
             mset = self.load_morphologies()
@@ -431,6 +523,29 @@ class PlacementSet(Interface):
         :rtype: bsb.trees.BoxTree
         """
         return BoxTree(list(self.load_boxes(morpho_cache=morpho_cache)))
+
+    def _requires_morpho_mapping(self):
+        return self._morphology_labels is not None and self.count_morphologies()
+
+    def _morpho_backmap(self, locs):
+        locs = locs.copy()
+        cols = locs[:, 1:]
+        ign_b = cols[:, 0] == -1
+        ign_p = cols[:, 1] == -1
+        semi = ign_b != ign_p
+        if np.any(semi):
+            raise ValueError(
+                f"Invalid data at {np.nonzero(semi)[0]}. -1 needs to occur in "
+                "either none or both columns to make point neuron connections."
+            )
+        to_map = ~ign_b
+        if np.any(locs[to_map, 1:] < 0):
+            raise ValueError(
+                f"Invalid data at {np.nonzero(locs[to_map, 1:] < 0)[0]}, "
+                "negative values are not valid morphology locations."
+            )
+        locs[to_map] = self.load_morphologies()._mapback(locs[to_map])
+        return locs
 
 
 class MorphologyRepository(Interface, engine_key="morphologies"):
@@ -524,7 +639,7 @@ class MorphologyRepository(Interface, engine_key="morphologies"):
         """
         pass
 
-    def import_swc(self, file, name, overwrite=False):
+    def import_swc(self, file, name=None, overwrite=False):
         """
         Import and store .swc file contents as a morphology in the repository.
 
@@ -537,13 +652,14 @@ class MorphologyRepository(Interface, engine_key="morphologies"):
         :returns: The stored morphology
         :rtype: ~bsb.storage.interfaces.StoredMorphology
         """
+        name = name if name is not None else Path(file).stem
         morpho = Morphology.from_swc(file)
 
         return self.save(name, morpho, overwrite=overwrite)
 
-    def import_asc(self, file, name, overwrite=False):
+    def import_file(self, file, name=None, overwrite=False):
         """
-        Import and store .asc file contents as a morphology in the repository.
+        Import and store file contents as a morphology in the repository.
 
         :param file: file-like object or path to the file.
         :param name: Key to store the morphology under.
@@ -554,6 +670,7 @@ class MorphologyRepository(Interface, engine_key="morphologies"):
         :returns: The stored morphology
         :rtype: ~bsb.storage.interfaces.StoredMorphology
         """
+        name = name if name is not None else Path(file).stem
         morpho = Morphology.from_file(file)
 
         return self.save(name, morpho, overwrite=overwrite)
@@ -579,6 +696,12 @@ class MorphologyRepository(Interface, engine_key="morphologies"):
 
         self.save(name, morpho, overwrite=overwrite)
         return morpho
+
+    def list(self):
+        """
+        List all the names of the morphologies in the repository.
+        """
+        return [loader.name for loader in self.all()]
 
 
 class ConnectivitySet(Interface):
@@ -606,6 +729,14 @@ class ConnectivitySet(Interface):
         Must create the placement set.
         """
         pass
+
+    @obj_str_insert
+    def __repr__(self):
+        if not len(self):
+            cstr = "without connections"
+        else:
+            cstr = f"with {len(self)} connections"
+        return f"'{self.tag}' {cstr}"
 
     @abc.abstractstaticmethod
     def exists(self, engine, tag):
@@ -703,19 +834,114 @@ class ConnectivitySet(Interface):
         pass
 
     @abc.abstractmethod
-    def load_connections(self, direction, local_, global_):
+    def load_block_connections(self, direction, local_, global_):
         """
-        Must load the connections of given ``direction`` between ``local_`` and
+        Must load the connections from ``direction`` perspective between ``local_`` and
         ``global_``.
+        :returns: The local and global connections locations
+        :rtype: Tuple[numpy.ndarray, numpy.ndarray]
         """
         pass
 
     @abc.abstractmethod
     def load_local_connections(self, direction, local_):
         """
-        Must load all the connections of given ``direction`` in ``local_``.
+        Must load all the connections from ``direction`` perspective in ``local_``.
+
+        :returns: The local connection locations, a vector of the global connection chunks
+          (1 chunk id per connection), and the global connections locations. To identify a
+          cell in the global connections, use the corresponding chunk id from the second
+          return value.
+        :rtype: Tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray]
         """
         pass
+
+    @abc.abstractmethod
+    def load_connections(self, direction="out"):
+        """
+        Must load all the connections from ``direction`` perspective.
+
+        .. tip ::
+
+            With big models, out of memory errors may occur. In which case it's better to
+            use the :meth:`~.storage.interfaces.ConnectivitySet.incoming` or
+            :meth:`~.storage.interfaces.ConnectivitySet.outgoing` block iterators, which
+            yield the connections block by block.
+
+        :returns: A vector of the local connection chunks (1 chunk id per connection),
+          the local connection locations, a vector of the global connection chunks, and
+          the global connections locations. To identify cells, match their location with
+          their chunk id.
+        :rtype: Tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray, numpy.ndarray]
+        """
+        pass
+
+    @property
+    def incoming(self):
+        """
+        Iterator over all the connection blocks, from the incoming perspective.
+        """
+        return _CSIterator(self, "inc")
+
+    @property
+    def outgoing(self):
+        """
+        Iterator over all the connection blocks, from the outgoing perspective.
+        """
+        return _CSIterator(self, "out")
+
+    def from_(self, chunks):
+        return self.outgoing.from_(chunks)
+
+    def to(self, chunks):
+        return self.outgoing.to(chunks)
+
+
+class _CSIterator:
+    def __init__(self, cs, dir):
+        self.cs = cs
+        self.dir = dir
+        self.lchunks = None
+        self.gchunks = None
+
+    def __iter__(self):
+        yield from self.cs.flat_iter_connections(self.dir, self.lchunks, self.gchunks)
+
+    def to(self, chunks):
+        if self.dir == "inc":
+            self.lchunks = chunks
+        else:
+            self.gchunks = chunks
+        return self
+
+    def from_(self, chunks):
+        if self.dir == "out":
+            self.lchunks = chunks
+        else:
+            self.gchunks = chunks
+        return self
+
+    def all(self):
+        lchunks = []
+        gchunks = []
+        locals_ = []
+        globals_ = []
+        for dir, lchunk, gchunk, data in self:
+            lchunks.append(lchunk)
+            gchunks.append(gchunk)
+            locals_.append(data[0])
+            globals_.append(data[1])
+        lens = [len(lcl) for lcl in locals_]
+        lcol = np.repeat([c.id for c in lchunks], lens)
+        gcol = np.repeat([c.id for c in gchunks], lens)
+        lloc = np.empty((sum(lens), 3), dtype=int)
+        gloc = np.empty((sum(lens), 3), dtype=int)
+        ptr = 0
+        for len_, local_, global_ in zip(lens, locals_, globals_):
+            lloc[ptr : ptr + len_] = local_
+            gloc[ptr : ptr + len_] = global_
+            ptr += len_
+        return lcol, lloc, gcol, gloc
 
 
 class StoredMorphology:
@@ -736,6 +962,18 @@ class StoredMorphology:
     def load(self):
         return self._loader()
 
+    def cached_load(self, labels=None):
+        if labels is not None:
+            labels = tuple(labels)
+        return self._cached_load(labels)
+
     @functools.cache
-    def cached_load(self):
-        return self.load()
+    def _cached_load(self, labels):
+        return self.load().set_label_filter(labels).as_filtered()
+
+
+class GeneratedMorphology(StoredMorphology):
+    def __init__(self, name, generated, meta):
+        self.name = name
+        self._loader = lambda: generated
+        self._meta = meta

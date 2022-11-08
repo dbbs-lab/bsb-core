@@ -3,7 +3,9 @@ import abc as _abc
 import os as _os
 import sys as _sys
 import contextlib as _ctxlib
+import numpy as _np
 from .exceptions import OrderError as _OrderError
+import functools
 
 ichain = _it.chain.from_iterable
 
@@ -15,6 +17,15 @@ def merge_dicts(a, b):
         else:
             a[key] = b[key]
     return a
+
+
+def obj_str_insert(__str__):
+    @functools.wraps(__str__)
+    def wrapper(self):
+        obj_str = object.__repr__(self)
+        return obj_str.replace("at 0x", __str__(self) + " at 0x")
+
+    return wrapper
 
 
 @_ctxlib.contextmanager
@@ -48,6 +59,22 @@ def listify_input(value):
         return list(value)
     except:
         return [value]
+
+
+def sanitize_ndarray(input, shape, dtype=None):
+    kwargs = {"copy": False}
+    if dtype is not None:
+        kwargs["dtype"] = dtype
+    arr = _np.array(input, **kwargs)
+    arr.shape = shape
+    return arr
+
+
+def assert_samelen(*args):
+    len_ = None
+    assert all(
+        (len_ := len(arg) if len_ is None else len(arg)) == len_ for arg in args
+    ), "Input arguments should be of same length."
 
 
 class SortableByAfter:

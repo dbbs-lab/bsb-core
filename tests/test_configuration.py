@@ -1,12 +1,22 @@
-import unittest, os, sys, numpy as np, h5py, json
-
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
+import unittest
+import sys
+import numpy as np
+import json
 from bsb.core import Scaffold
 from bsb import config
 from bsb.config import from_json, Configuration, _attrs
 from bsb.config import types
-from bsb.exceptions import *
+from bsb.exceptions import (
+    CfgReferenceError,
+    RequirementError,
+    ConfigurationWarning,
+    CastError,
+    UnfitClassCastError,
+    DynamicClassInheritanceError,
+    UnresolvedClassCastError,
+    DynamicClassNotFoundError,
+    ClassMapMissingError,
+)
 from bsb.topology.region import RegionGroup
 from bsb.unittest import get_config_path
 
@@ -50,19 +60,19 @@ class TestConfiguration(unittest.TestCase):
 
     @unittest.expectedFailure
     def test_no_unknown_attributes(self):
-        with self.assertWarns(ConfigurationWarning) as warning:
-            config = from_json(minimal_config)
+        with self.assertWarns(ConfigurationWarning):
+            from_json(minimal_config)
 
     @unittest.expectedFailure
     def test_full_no_unknown_attributes(self):
-        with self.assertWarns(ConfigurationWarning) as warning:
-            config = from_json(full_config)
+        with self.assertWarns(ConfigurationWarning):
+            from_json(full_config)
 
     def test_unknown_attributes(self):
         data = as_json(minimal_config)
         data["shouldntexistasattr"] = 15
         with self.assertWarns(ConfigurationWarning) as warning:
-            config = from_json(data=data)
+            from_json(data=data)
 
         self.assertIn(
             """Unknown attribute: 'shouldntexistasattr'""", str(warning.warning)
@@ -95,8 +105,8 @@ class TestConfigAttrs(unittest.TestCase):
             pass
 
         self.assertTrue(hasattr(Test, "_config_attrs"))
-        t = Test()
-        t2 = Test({}, _parent=TestRoot())
+        Test()
+        Test({}, _parent=TestRoot())
 
     def test_attr(self):
         @config.node
@@ -104,7 +114,7 @@ class TestConfigAttrs(unittest.TestCase):
             str = config.attr()
             i = config.attr(type=int)
 
-        t = Test()
+        Test()
         t2 = Test({}, _parent=TestRoot())
         node_name = Test.str.get_node_name(t2)
         self.assertTrue(node_name.endswith(".str"), "str attribute misnomer")
@@ -119,7 +129,7 @@ class TestConfigAttrs(unittest.TestCase):
         class Child(Test):
             pass
 
-        c = Child({"name": "Hello"}, _parent=TestRoot())
+        Child({"name": "Hello"}, _parent=TestRoot())
         with self.assertRaises(RequirementError):
             Child({}, _parent=TestRoot())
 
@@ -158,22 +168,24 @@ class TestConfigDict(unittest.TestCase):
 
         @config.node
         class Test:
-            l = config.dict(type=Child, required=True)
+            dictattr = config.dict(type=Child, required=True)
 
-        conf = {"l": {"e": {"name": "hi"}, "ss": {"name": "other"}}}
+        conf = {"dictattr": {"e": {"name": "hi"}, "ss": {"name": "other"}}}
         t = Test(conf, _parent=TestRoot())
-        self.assertTrue(t.l.get_node_name().endswith(".l"), "Dict node name incorrect")
-        self.assertEqual(len(t.l), 2, "Dict length incorrect")
-        self.assertEqual(t.l.e, t.l["e"], "Dict access incorrect")
-        self.assertEqual(type(t.l.e), Child, "Dict child class incorrect")
-        self.assertEqual(t.l.e._config_key, "e", "Child key key incorrectly set")
-        conf2 = {"l": {"e": {}, "ss": {"name": "other"}}}
+        self.assertTrue(
+            t.dictattr.get_node_name().endswith(".dictattr"), "Dict node name incorrect"
+        )
+        self.assertEqual(len(t.dictattr), 2, "Dict length incorrect")
+        self.assertEqual(t.dictattr.e, t.dictattr["e"], "Dict access incorrect")
+        self.assertEqual(type(t.dictattr.e), Child, "Dict child class incorrect")
+        self.assertEqual(t.dictattr.e._config_key, "e", "Child key key incorrectly set")
+        conf2 = {"dictattr": {"e": {}, "ss": {"name": "other"}}}
         with self.assertRaises(RequirementError):
             Test(conf2, _parent=TestRoot())
 
         @config.node
         class TestSimple:
-            l = config.dict(type=int)
+            dictattr = config.dict(type=int)
 
         with self.assertRaises(CastError):
             TestSimple(conf2, _parent=TestRoot())
@@ -188,42 +200,45 @@ class TestConfigList(unittest.TestCase):
 
         @config.node
         class Test:
-            l = config.list(type=Child, required=True)
+            listattr = config.list(type=Child, required=True)
 
         @config.node
         class TestSize:
-            l = config.list(type=Child, required=True, size=3)
+            listattr = config.list(type=Child, required=True, size=3)
 
         @config.node
         class TestNormal:
-            l = config.list(type=int, size=3)
+            listattr = config.list(type=int, size=3)
 
-        test_conf = {"l": [{"name": "hi"}, {"name": "other"}]}
+        test_conf = {"listattr": [{"name": "hi"}, {"name": "other"}]}
         t = Test(test_conf, _parent=TestRoot())
-        self.assertEqual(len(t.l), 2, "List length incorrect")
-        self.assertEqual(type(t.l[0]), Child, "List item class incorrect")
-        self.assertEqual(t.l[1]._config_index, 1, "Child index key incorrectly set")
-        self.assertTrue(t.l.get_node_name().endswith(".l"), "Dict node name incorrect")
+        self.assertEqual(len(t.listattr), 2, "List length incorrect")
+        self.assertEqual(type(t.listattr[0]), Child, "List item class incorrect")
+        self.assertEqual(
+            t.listattr[1]._config_index, 1, "Child index key incorrectly set"
+        )
+        self.assertTrue(
+            t.listattr.get_node_name().endswith(".listattr"), "Dict node name incorrect"
+        )
         with self.assertRaises(CastError):
             TestSize(test_conf, _parent=TestRoot())
 
-        test_conf2 = {"l": [{"name": "hi"}, {}, {"name": "hi"}]}
-        int_test = TestNormal({"l": [1, 2, 3]}, _parent=TestRoot())
-        self.assertEqual(int_test.l[2], 3)
-        test_conf3 = {"l": [1, {}, 3]}
+        int_test = TestNormal({"listattr": [1, 2, 3]}, _parent=TestRoot())
+        self.assertEqual(int_test.listattr[2], 3)
+        test_conf3 = {"listattr": [1, {}, 3]}
         with self.assertRaises(CastError):
             TestNormal(test_conf3, _parent=TestRoot())
-        test_conf4 = {"l": [{"name": "hi"}, {}]}
+        test_conf4 = {"listattr": [{"name": "hi"}, {}]}
         with self.assertRaises(RequirementError):
             Test(test_conf4, TestRoot())
 
     def test_catch_dict(self):
         @config.node
         class TestNormal:
-            l = config.list(type=int, size=3)
+            listattr = config.list(type=int, size=3)
 
         with self.assertRaises(CastError, msg="Regression of #457"):
-            TestNormal(l={5: "hey", 6: "boo"})
+            TestNormal(listattr={5: "hey", 6: "boo"})
 
 
 class TestConfigRef(unittest.TestCase):
@@ -242,7 +257,7 @@ class TestConfigRef(unittest.TestCase):
         self.assertEqual(r.test.name_ref, "Johnny")
         self.assertEqual(r.test.name_ref_reference, "name")
 
-        with self.assertRaises(ReferenceError):
+        with self.assertRaises(CfgReferenceError):
             Resolver({"test": {"name": "Johnny", "name_ref": "nname"}})
 
 
@@ -268,7 +283,7 @@ class TestConfigRefList(unittest.TestCase):
 
     def test_non_iterable(self):
         root = BootRoot({})
-        with self.assertRaises(ReferenceError):
+        with self.assertRaises(CfgReferenceError):
             root.empty_list = 5
 
 
@@ -507,7 +522,8 @@ class TestDynamic(unittest.TestCase):
                 DynamicBaseDefault({"name": "ello"}, _parent=TestRoot()),
                 DynamicBaseDefault,
             ),
-            "Dynamic cast with default 'DynamicBaseDefault' should produce instance of type 'DynamicBaseDefault'",
+            "Dynamic cast with default 'DynamicBaseDefault' should produce instance"
+            " of type 'DynamicBaseDefault'",
         )
 
     def test_dynamic_inheritance(self):
@@ -522,7 +538,7 @@ class TestDynamic(unittest.TestCase):
                 [],
                 interface=DynamicBase,
             )
-        # TODO: Test that the error message shows the mapped class name if a classmap exists
+        # TODO: Test error message shows the mapped class name if a classmap exists
 
     def test_dynamic_missing(self):
         # Test that non existing classes raise the UnresolvedClassCastError.
@@ -578,7 +594,7 @@ class TestClassmaps(unittest.TestCase):
 
     def test_missing_classmap_class(self):
         with self.assertRaisesRegex(
-            UnresolvedClassCastError, "'d' \(mapped to 'ClassmapChildD'\)"
+            UnresolvedClassCastError, "'d' \\(mapped to 'ClassmapChildD'\\)"
         ):
             ClassmapParent({"cls": "d"}, _parent=TestRoot())
 
@@ -596,11 +612,17 @@ class AutoClassmapChildB(CleanAutoClassmap, classmap_entry="b"):
     pass
 
 
-class UnregisteredAutoClassmapChildC(CleanAutoClassmap):
+class UnregisteredAutoClassmapChildC(CleanAutoClassmap, classmap_entry=None):
     pass
 
 
-@config.dynamic(auto_classmap=True, classmap={"d": "AutoClassmapChildD"})
+class SnakeChild(CleanAutoClassmap):
+    pass
+
+
+@config.dynamic(
+    auto_classmap=True, classmap={"d": "AutoClassmapChildD"}, classmap_entry=None
+)
 class DirtyAutoClassmap:
     pass
 
@@ -609,14 +631,19 @@ class AutoClassmapChildC(DirtyAutoClassmap, classmap_entry="c"):
     pass
 
 
-class AutoClassmapChildD(DirtyAutoClassmap):
+class AutoClassmapChildD(DirtyAutoClassmap, classmap_entry=None):
     pass
 
 
 class TestAutoClassmap(unittest.TestCase):
     def test_dynamic_autoclassmap(self):
         self.assertEqual(
-            {"a": AutoClassmapChildA, "b": AutoClassmapChildB},
+            {
+                "a": AutoClassmapChildA,
+                "b": AutoClassmapChildB,
+                # Test snake casing, see #880
+                "snake_child": SnakeChild,
+            },
             CleanAutoClassmap._config_dynamic_classmap,
             "Automatic classmap incorrect",
         )
@@ -771,7 +798,7 @@ class TestTypes(unittest.TestCase):
         class Test:
             c = config.attr(type=types.in_(Fib()))
 
-        b = Test({"c": 13}, _parent=TestRoot())
+        Test({"c": 13}, _parent=TestRoot())
         self.assertRaisesRegex(
             CastError, "fibonacci", Test, {"c": 14}, _parent=TestRoot()
         )
@@ -1156,7 +1183,7 @@ class TestListScripting(unittest.TestCase):
         prev = list(self.list[1:4])
         self.list[1:4] = [{"names": []}]
         self.assertList(3, prev)
-        # self.assertEqual("{removed}", prev[0].get_node_name(), 'removed node name failed')
+        self.assertEqual("{removed}", prev[0].get_node_name(), "removed node name failed")
 
     def test_append(self):
         item = self.list.append({"names": []})
@@ -1169,7 +1196,7 @@ class TestListScripting(unittest.TestCase):
 
     def test_insert(self):
         self.list[:] = [{"names": []}] * 3
-        item = self.list.insert(1, {"names": ["ey"]})
+        self.list.insert(1, {"names": ["ey"]})
         self.assertList(4)
         self.assertEqual(["ey"], self.list[1].names, "inserted names incorrect")
         with self.assertRaises(RequirementError):
@@ -1186,12 +1213,12 @@ class TestListScripting(unittest.TestCase):
 
     def test_pop(self):
         self.list[:] = [{"names": []}] * 3
-        item = self.list.pop()
+        self.list.pop()
         self.assertList(2)
 
     def test_clear(self):
         self.list[:] = [{"names": []}] * 3
-        item = self.list.clear()
+        self.list.clear()
         self.assertList(0)
 
 
