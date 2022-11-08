@@ -5,7 +5,7 @@ import numpy as np
 from .. import config, plugins
 from ..morphologies import Morphology
 from ..trees import BoxTree
-from .._util import obj_str_insert
+from .._util import obj_str_insert, immutable
 
 
 @config.pluggable(key="engine", plugin_name="storage engine")
@@ -902,6 +902,7 @@ class ConnectivitySet(Interface):
         """
         Must load the connections from ``direction`` perspective between ``local_`` and
         ``global_``.
+
         :returns: The local and global connections locations
         :rtype: Tuple[numpy.ndarray, numpy.ndarray]
         """
@@ -920,77 +921,66 @@ class ConnectivitySet(Interface):
         """
         pass
 
-    @abc.abstractmethod
-    def load_connections(self, direction="out"):
+    def load_connections(self):
         """
-        Must load all the connections from ``direction`` perspective.
+        Loads connections as a ``CSIterator``.
 
-        .. tip ::
-
-            With big models, out of memory errors may occur. In which case it's better to
-            use the :meth:`~.storage.interfaces.ConnectivitySet.incoming` or
-            :meth:`~.storage.interfaces.ConnectivitySet.outgoing` block iterators, which
-            yield the connections block by block.
-
-        :returns: A vector of the local connection chunks (1 chunk id per connection),
-          the local connection locations, a vector of the global connection chunks, and
-          the global connections locations. To identify cells, match their location with
-          their chunk id.
-        :rtype: Tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray, numpy.ndarray]
+        :returns: A connectivity set iterator, that will load data
         """
-        pass
-
-    @property
-    def incoming(self):
-        """
-        Iterator over all the connection blocks, from the incoming perspective.
-        """
-        return _CSIterator(self, "inc")
-
-    @property
-    def outgoing(self):
-        """
-        Iterator over all the connection blocks, from the outgoing perspective.
-        """
-        return _CSIterator(self, "out")
-
-    def from_(self, chunks):
-        return self.outgoing.from_(chunks)
-
-    def to(self, chunks):
-        return self.outgoing.to(chunks)
+        return ConnectivityIterator(self, "outgoing")
 
 
-class _CSIterator:
-    def __init__(self, cs, dir):
-        self.cs = cs
-        self.dir = dir
-        self.lchunks = None
-        self.gchunks = None
+class ConnectivityIterator:
+    def __init__(
+        self, cs: ConnectivitySet, direction, lchunks=None, gchunks=None, scoped=True
+    ):
+        self._cs = cs
+        self._dir = direction
+        self._lchunks = lchunks
+        self._scoped = scoped
+        self._gchunks = gchunks
+
+    def __copy__(self):
+        return ConnectivityIterator(
+            self._cs, self._dir, self._lchunks.copy(), self._gchunks.copy()
+        )
 
     def __iter__(self):
-        yield from self.cs.flat_iter_connections(self.dir, self.lchunks, self.gchunks)
+        yield from (
+            self._compound_block(*data)
+            for data in self._cs.flat_iter_connections(
+                self._dir, self._lchunks, self._gchunks
+            )
+        )
 
+    @immutable()
+    def as_globals(self):
+        self._scoped = False
+
+    @immutable()
+    def as_scoped(self):
+        self._scoped = True
+
+    @immutable()
     def to(self, chunks):
-        if self.dir == "inc":
-            self.lchunks = chunks
+        if self._dir == "inc":
+            self._lchunks = chunks
         else:
-            self.gchunks = chunks
-        return self
+            self._gchunks = chunks
 
+    @immutable()
     def from_(self, chunks):
-        if self.dir == "out":
-            self.lchunks = chunks
+        if self._dir == "out":
+            self._lchunks = chunks
         else:
-            self.gchunks = chunks
-        return self
+            self._gchunks = chunks
 
     def all(self):
         lchunks = []
         gchunks = []
         locals_ = []
         globals_ = []
-        for dir, lchunk, gchunk, data in self:
+        for _, lchunk, gchunk, data in self:
             lchunks.append(lchunk)
             gchunks.append(gchunk)
             locals_.append(data[0])
@@ -1006,6 +996,22 @@ class _CSIterator:
             gloc[ptr : ptr + len_] = global_
             ptr += len_
         return lcol, lloc, gcol, gloc
+
+    def _compound_block(self, direction: str, lchunk, gchunk, data):
+        pass
+
+    @functools.cache
+    def _local_chunk_offsets(self, direction: str):
+        if direction == "inc":
+            stats = self._cs.post.get_placement_set().get_chunk_stats()
+        else:
+            stats = self._cs.pre.get_placement_set().get_chunk_stats()
+        offsets = {}
+        ctr = 0
+        for chunk, len_ in sorted(stats.items(), key=lambda k: k[0].id):
+            offsets[chunk] = ctr
+            ctr += len_
+        return offsets
 
 
 class StoredMorphology:
