@@ -16,7 +16,7 @@ from inspect import isclass
 from ..exceptions import UnknownStorageEngineError
 from .. import plugins
 from ..services import MPI
-from ._chunks import Chunk
+from ._chunks import Chunk, chunklist
 
 
 # Pretend `Chunk` is defined here, for UX. It's only defined in `_chunks` to avoid
