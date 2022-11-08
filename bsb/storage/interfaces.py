@@ -2,6 +2,8 @@ import abc
 from pathlib import Path
 import functools
 import numpy as np
+
+from ._chunks import Chunk
 from .. import config, plugins
 from ..morphologies import Morphology
 from ..trees import BoxTree
@@ -927,7 +929,7 @@ class ConnectivitySet(Interface):
 
         :returns: A connectivity set iterator, that will load data
         """
-        return ConnectivityIterator(self, "outgoing")
+        return ConnectivityIterator(self, "out")
 
 
 class ConnectivityIterator:
@@ -947,7 +949,7 @@ class ConnectivityIterator:
 
     def __iter__(self):
         yield from (
-            self._compound_block(*data)
+            self._offset_block(*data)
             for data in self._cs.flat_iter_connections(
                 self._dir, self._lchunks, self._gchunks
             )
@@ -960,6 +962,14 @@ class ConnectivityIterator:
     @immutable()
     def as_scoped(self):
         self._scoped = True
+
+    @immutable()
+    def outgoing(self):
+        self._dir = "out"
+
+    @immutable()
+    def incoming(self):
+        self._dir = "inc"
 
     @immutable()
     def to(self, chunks):
@@ -976,40 +986,56 @@ class ConnectivityIterator:
             self._gchunks = chunks
 
     def all(self):
-        lchunks = []
-        gchunks = []
-        locals_ = []
-        globals_ = []
-        for _, lchunk, gchunk, data in self:
-            lchunks.append(lchunk)
-            gchunks.append(gchunk)
-            locals_.append(data[0])
-            globals_.append(data[1])
-        lens = [len(lcl) for lcl in locals_]
-        lcol = np.repeat([c.id for c in lchunks], lens)
-        gcol = np.repeat([c.id for c in gchunks], lens)
-        lloc = np.empty((sum(lens), 3), dtype=int)
-        gloc = np.empty((sum(lens), 3), dtype=int)
+        llocs = []
+        glocs = []
+        lens = []
+        for llocblock, glocblock in self:
+            llocs.append(llocblock)
+            glocs.append(glocblock)
+            lens.append(len(llocblock))
+        locals_ = np.empty((sum(lens), 3), dtype=int)
+        globals_ = np.empty((sum(lens), 3), dtype=int)
         ptr = 0
-        for len_, local_, global_ in zip(lens, locals_, globals_):
-            lloc[ptr : ptr + len_] = local_
-            gloc[ptr : ptr + len_] = global_
+        for len_, local_, global_ in zip(lens, llocs, glocs):
+            locals_[ptr : ptr + len_] = local_
+            globals_[ptr : ptr + len_] = global_
             ptr += len_
-        return lcol, lloc, gcol, gloc
+        return locals_, globals_
 
-    def _compound_block(self, direction: str, lchunk, gchunk, data):
-        pass
+    def _offset_block(self, direction: str, lchunk, gchunk, data):
+        loff = self._local_chunk_offsets()
+        goff = self._global_chunk_offsets()
+        llocs, glocs = data
+        llocs[:, 0] += loff[lchunk]
+        glocs[:, 0] += goff[gchunk]
+        return llocs, glocs
 
     @functools.cache
-    def _local_chunk_offsets(self, direction: str):
-        if direction == "inc":
-            stats = self._cs.post.get_placement_set().get_chunk_stats()
+    def _local_chunk_offsets(self):
+        if self._dir == "inc":
+            source = self._cs.post
         else:
-            stats = self._cs.pre.get_placement_set().get_chunk_stats()
+            source = self._cs.pre
+        return self._chunk_offsets(source, self._lchunks)
+
+    @functools.cache
+    def _global_chunk_offsets(self):
+        if self._dir == "inc":
+            source = self._cs.pre
+        else:
+            source = self._cs.post
+        return self._chunk_offsets(source, self._gchunks)
+
+    def _chunk_offsets(self, source, chunks):
+        stats = source.get_placement_set().get_chunk_stats()
+        if self._scoped and chunks is not None:
+            stats = {chunk: item for chunk, item in stats.items() if int(chunk) in chunks}
         offsets = {}
         ctr = 0
-        for chunk, len_ in sorted(stats.items(), key=lambda k: k[0].id):
-            offsets[chunk] = ctr
+        for chunk, len_ in sorted(
+            stats.items(), key=lambda k: Chunk.from_id(int(k[0]), None).id
+        ):
+            offsets[Chunk.from_id(int(chunk), None)] = ctr
             ctr += len_
         return offsets
 
