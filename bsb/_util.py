@@ -23,7 +23,7 @@ def obj_str_insert(__str__):
     @functools.wraps(__str__)
     def wrapper(self):
         obj_str = object.__repr__(self)
-        return obj_str.replace("at 0x", __str__(self) + " at 0x")
+        return obj_str.replace("at 0x", f"{__str__(self)} at 0x")
 
     return wrapper
 
@@ -43,7 +43,7 @@ def suppress_stdout():
 
 
 def get_qualified_class_name(x):
-    return x.__class__.__module__ + "." + str(x.__class__.__name__)
+    return f"{x.__class__.__module__}.{str(x.__class__.__name__)}"
 
 
 def listify_input(value):
@@ -57,15 +57,15 @@ def listify_input(value):
         return [str]
     try:
         return list(value)
-    except:
+    except Exception:
         return [value]
 
 
-def sanitize_ndarray(input, shape, dtype=None):
+def sanitize_ndarray(arr_input, shape, dtype=None):
     kwargs = {"copy": False}
     if dtype is not None:
         kwargs["dtype"] = dtype
-    arr = _np.array(input, **kwargs)
+    arr = _np.array(arr_input, **kwargs)
     arr.shape = shape
     return arr
 
@@ -186,7 +186,21 @@ class SortableByAfter:
                     if not c.is_after_satisfied(sorting_objects)
                 )
                 raise _OrderError(
-                    f"Couldn't resolve order, probably a circular dependency including: {circulars}"
+                    f"Couldn't resolve order, probably a circular dependency including: "
+                    f"{circulars}"
                 )
         # Return the sorted array.
         return sorting_objects
+
+
+def immutable():
+    def immutable_decorator(f):
+        @functools.wraps(f)
+        def immutable_action(self, *args, **kwargs):
+            new_instance = self.__copy__()
+            f(new_instance, *args, **kwargs)
+            return new_instance
+
+        return immutable_action
+
+    return immutable_decorator
