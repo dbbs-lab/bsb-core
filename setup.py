@@ -72,6 +72,7 @@ setuptools.setup(
         ],
         "bsb.commands": [
             "commands = bsb.cli.commands._commands",
+            "projects = bsb.cli.commands._projects",
         ],
         "bsb.config.parsers": ["json = bsb.config.parsers.json"],
         "bsb.config.templates": ["bsb_templates = bsb.config.templates"],
