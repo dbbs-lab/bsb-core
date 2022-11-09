@@ -1,18 +1,19 @@
+import contextlib
+import itertools
+import os
+import random
+import time
+import traceback
+
+import errr
+import numpy as np
+
+from bsb.exceptions import AdapterError, DatasetNotFoundError, TransmitterError
+from bsb.reporting import report, warn
 from bsb.services import MPI
 from bsb.simulation.adapter import SimulatorAdapter
-from bsb.simulation.results import SimulationResult, SimulationRecorder
+from bsb.simulation.results import SimulationRecorder, SimulationResult
 from bsb.storage import Chunk
-from bsb.reporting import report, warn
-from bsb.exceptions import (
-    TransmitterError,
-    IntersectionDataNotFoundError,
-)
-import random
-import os
-import numpy as np
-import traceback
-import errr
-import time
 
 
 class NeuronEntity:
@@ -31,178 +32,103 @@ class NeuronEntity:
         raise NotImplementedError("Entities do not have a soma to record.")
 
 
+class SimulationData:
+    def __init__(self):
+        self.chunks = None
+        self.cells = dict()
+        self.result = None
+
+
+@contextlib.contextmanager
+def fill_parameter_data(parameters, data):
+    for param in parameters:
+        if hasattr(param, "load_data"):
+            param.load_data(*data)
+    yield
+    for param in parameters:
+        if hasattr(param, "load_data"):
+            param.drop_data()
+
+
 class NeuronAdapter(SimulatorAdapter):
     def __init__(self):
         super().__init__()
-        self.cells = {}
-        self._next_gid = 0
-        self.transmitter_map = {}
+        self.engine = None
+        self.network = None
+        self.result = None
+        self.simdata = dict()
 
-    def validate(self):
-        pass
+    def prepare(self, simulation, comm=None):
+        if self.engine is None:
+            from patch import p as engine
 
-    def get_rank(self):
-        return self.h.parallel.id()
+            self.engine = engine
 
-    def get_size(self):
-        return self.h.parallel.nhost()
+        self.simdata[simulation] = SimulationData()
+        try:
+            report("Preparing simulation", level=2)
+            engine.dt = simulation.resolution
+            engine.celsius = simulation.temperature
+            engine.tstop = simulation.duration
 
-    def broadcast(self, data, root=0):
-        from patch import p
+            report("Load balancing", level=2)
+            self.load_balance(simulation)
+            self.simdata[simulation].result = SimulationResult(simulation)
+            report("Load balancing", level=2)
+            self.create_neurons(simulation)
+            MPI.barrier()
+            report("Creating transmitters", level=2)
+            self.create_transmitters()
+            report("", level=3)
+            self.create_source_vars()
+            report("Indexing relays", level=2)
+            self.index_relays()
+            MPI.barrier()
+            report("Creating receivers", level=2)
+            self.create_receivers()
+            MPI.barrier()
+            report("Preparing devices", level=2)
+            self.prepare_devices()
+            MPI.barrier()
+            report("Creating devices", level=2)
+            self.create_devices()
+            MPI.barrier()
+        except Exception:
+            del self.simdata[simulation]
+            raise
 
-        return p.parallel.broadcast(data, root=root)
-
-    def prepare(self, simulation):
-        from patch import p as engine
-        from time import time
-
-        report("Preparing simulation", level=3)
-
-        self.engine = engine
-        self.network = simulation.scaffold
-
-        engine.dt = simulation.resolution
-        engine.celsius = simulation.temperature
-        engine.tstop = simulation.duration
-
-        t = t0 = time()
-        self.load_balance()
-        report(
-            "Load balancing on node",
-            self.get_rank(),
-            "took",
-            round(time() - t, 2),
-            "seconds",
-            all_nodes=True,
-        )
-        t = time()
-        self.result = SimulationResult(simulation)
-        self.create_neurons()
-        t = time() - t
-        simulator.parallel.barrier()
-        report(
-            "Cell creation on node",
-            self.get_rank(),
-            "took",
-            round(t, 2),
-            "seconds",
-            all_nodes=True,
-        )
-        t = time()
-        self.create_transmitters()
-        self.create_source_vars()
-        report(
-            "Transmitter creation on node",
-            self.get_rank(),
-            "took",
-            round(time() - t, 2),
-            "seconds",
-            all_nodes=True,
-        )
-        self.index_relays()
-        simulator.parallel.barrier()
-        t = time()
-        self.create_receivers()
-        t = time() - t
-        report(
-            "Receiver creation on node",
-            self.get_rank(),
-            "took",
-            round(t, 2),
-            "seconds",
-            all_nodes=True,
-        )
-        simulator.parallel.barrier()
-        t = time()
-        self.prepare_devices()
-        t = time() - t
-        report(
-            "Device preparation on node",
-            self.get_rank(),
-            "took",
-            round(t, 2),
-            "seconds",
-            all_nodes=True,
-        )
-        simulator.parallel.barrier()
-        t = time()
-        self.create_devices()
-        t = time() - t
-        report(
-            "Device creation on node",
-            self.get_rank(),
-            "took",
-            round(t, 2),
-            "seconds",
-            all_nodes=True,
-        )
-        report("Simulator preparation took", round(time() - t0, 2), "seconds")
-        return simulator
-
-    def load_balance(self):
+    def load_balance(self, simulation):
         chunk_stats = self.network.storage.get_chunk_stats()
         size = MPI.get_size()
         rank = MPI.get_rank()
         all_chunks = [Chunk.from_id(int(chunk), None) for chunk in chunk_stats.keys()]
-        self.chunks = all_chunks[rank::size]
+        self.simdata[simulation].chunks = all_chunks[rank::size]
 
-    def run(self):
-        pc = simulator.parallel
-        self.pc = pc
-        pc.barrier()
-        report("Simulating...", level=2)
-        pc.set_maxstep(10)
-        simulator.finitialize(self.initial)
-        progression = 0
-        self.start_progress(self.duration)
-        for oi, i in self.step_progress(self.duration, 1):
-            t = time.time()
-            pc.psolve(i)
+    def run(self, simulation):
+        if simulation not in self.simdata:
+            raise AdapterError("Simulation was not prepared")
+        try:
+            pc = simulator.parallel
+            self.pc = pc
             pc.barrier()
-            self.progress(i)
-            if os.path.exists("interrupt_neuron"):
-                report("Iterrupt requested. Stopping simulation.", level=1)
-                break
-        report("Finished simulation.", level=2)
-
-    def collect_output(self, simulator):
-        import h5py, time
-
-        timestamp = str(time.time()).split(".")[0] + str(random.random()).split(".")[1]
-        timestamp = self.pc.broadcast(timestamp)
-        result_path = "results_" + self.name + "_" + timestamp + ".hdf5"
-        for node in range(self.get_size()):
-            self.pc.barrier()
-            if node == self.get_rank():
-                report("Node", self.get_rank(), "is writing", level=2, all_nodes=True)
-                with h5py.File(result_path, "a") as f:
-                    f.attrs["configuration_string"] = self.scaffold.configuration._raw
-                    for path, data, meta in self.result.safe_collect():
-                        try:
-                            path = "/".join(path)
-                            if path in f:
-                                data = np.concatenate((f[path][()], data))
-                                del f[path]
-                            d = f.create_dataset(path, data=data)
-                            for k, v in meta.items():
-                                d.attrs[k] = v
-                        except Exception as e:
-                            if not isinstance(data, np.ndarray):
-                                warn(
-                                    "Recorder {} numpy.ndarray expected, got {}".format(
-                                        path, type(data)
-                                    )
-                                )
-                            else:
-                                warn(
-                                    "Recorder {} processing errored out: {}\n\n{}".format(
-                                        path,
-                                        "{} {}".format(data.dtype, data.shape),
-                                        traceback.format_exc(),
-                                    )
-                                )
-            self.pc.barrier()
-        return result_path
+            report("Simulating...", level=2)
+            pc.set_maxstep(10)
+            simulator.finitialize(self.initial)
+            progression = 0
+            self.start_progress(self.duration)
+            for oi, i in self.step_progress(self.duration, 1):
+                t = time.time()
+                pc.psolve(i)
+                pc.barrier()
+                self.progress(i)
+                if os.path.exists("interrupt_neuron"):
+                    report("Iterrupt requested. Stopping simulation.", level=1)
+                    break
+            report("Finished simulation.", level=2)
+        finally:
+            result = self.simdata[simulation].result
+            del self.simdata[simulation]
+        return result
 
     def create_transmitters(self):
         # Concatenates all the `from` locations of all intersections together and creates
@@ -311,42 +237,28 @@ class NeuronAdapter(SimulatorAdapter):
                                     "[" + connection_model.name + "] " + str(e)
                                 ) from None
 
-    def create_neurons(self):
-        for cell_model in self.cell_models.values():
-            cell_positions = None
-            if self.scaffold.configuration.get_cell_type(cell_model.name).entity:
-                cell_data = self.scaffold.get_entities_by_type(cell_model.name)
-                cell_data = np.column_stack((cell_data, np.zeros((len(cell_data), 4))))
-            else:
-                cell_data = self.scaffold.get_cells_by_type(cell_model.name)
-            report("Placing " + str(len(cell_data)) + " " + cell_model.name)
-            for cell in cell_data:
-                cell_id = int(cell[0])
-                if not cell_id in self.node_cells:
-                    continue
-                kwargs = cell_model.get_parameters()
-                kwargs["position"] = cell[2:5]
-                if cell_model.entity or cell_model.relay:
-                    kwargs["relay"] = cell_model.relay
-                    instance = NeuronEntity.instantiate(**kwargs)
-                else:
-                    instance = cell_model.model_class(**kwargs)
-                instance.set_reference_id(cell_id)
-                instance.cell_model = cell_model
-                if cell_model.record_soma:
-                    self.register_cell_recorder(instance, instance.record_soma())
-                if cell_model.record_spikes:
-                    spike_nc = self.h.NetCon(instance.soma[0], None)
-                    spike_nc.threshold = -20
-                    spike_recorder = spike_nc.record()
-                    self.register_spike_recorder(instance, spike_recorder)
-                cell_model.instances.append(instance)
-                self.cells[cell_id] = instance
-        report(
-            f"Node {self.get_rank()} created {len(self.cells)} cells",
-            level=2,
-            all_nodes=True,
-        )
+    def create_neurons(self, simulation):
+        simdata = self.simdata[simulation]
+        for cell_model in simulation.cell_models.values():
+            if cell_model.relay:
+                continue
+            ps = cell_model.cell_type.get_placement_set()
+            for chunk in simdata.chunks:
+                self.create_chunk_neurons(chunk, simdata, simulation, cell_model, ps)
+
+    def _create_chunk_neurons(self, chunk, simdata, simulation, cell_model, ps):
+        with ps.chunk_context(chunk):
+            data = []
+            for var in ("positions", "morphologies", "rotations", "additional"):
+                try:
+                    data.append(getattr(ps, f"load_{var}")())
+                except DatasetNotFoundError:
+                    data.append(itertools.repeat(None))
+
+            with fill_parameter_data(cell_model.parameters, data):
+                simdata.cells[chunk] = [
+                    cell_model.create(i, *datum) for i, datum in enumerate(data)
+                ]
 
     def prepare_devices(self):
         device_module = __import__("devices", globals(), level=1)
@@ -449,12 +361,16 @@ class NeuronAdapter(SimulatorAdapter):
                         arr = interm_transfer[intermediate]
                         assert all(
                             isinstance(t, tuple) for t in terminal_relays[target]
-                        ), f"Terminal relay {lookup(target)} {target} contains non-terminal targets: {terminal_relays[target]}"
+                        ), (
+                            f"Terminal relay {lookup(target)} {target} contains "
+                            f"non-terminal targets: {terminal_relays[target]}"
+                        )
                         arr.extend(terminal_relays[target])
                         targets.remove(target)
                     else:
                         raise RelayError(
-                            f"Non-relay {lookup(target)} {target} found in intermediate relay map."
+                            f"Non-relay {lookup(target)} {target} found in intermediate "
+                            f"relay map."
                         )
                 # If we have no more intermediary targets, we can be removed from
                 # the intermediary relay list and be moved to the terminals.
@@ -475,9 +391,10 @@ class NeuronAdapter(SimulatorAdapter):
         # Filter out all relays to targets not on this node.
         self.relay_scheme = {}
         for relay, targets in terminal_relays.items():
-            assert all(
-                isinstance(t, tuple) for t in terminal_relays[target]
-            ), f"Terminal relay {lookup(target)} {target} contains non-terminal targets: {terminal_relays[target]}"
+            assert all(isinstance(t, tuple) for t in terminal_relays[target]), (
+                f"Terminal relay {lookup(target)} {target} contains non-terminal "
+                f"targets: {terminal_relays[target]}"
+            )
             node_targets = [x for x in targets if int(x[0]) in self.node_cells]
             self.relay_scheme[relay] = node_targets
         report(
