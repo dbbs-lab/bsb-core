@@ -1012,18 +1012,12 @@ class ConnectivityIterator:
 
     @functools.cache
     def _local_chunk_offsets(self):
-        if self._dir == "inc":
-            source = self._cs.post
-        else:
-            source = self._cs.pre
+        source = self._cs.post if self._dir == "inc" else self._cs.pre
         return self._chunk_offsets(source, self._lchunks)
 
     @functools.cache
     def _global_chunk_offsets(self):
-        if self._dir == "inc":
-            source = self._cs.pre
-        else:
-            source = self._cs.post
+        source = self._cs.pre if self._dir == "inc" else self._cs.post
         return self._chunk_offsets(source, self._gchunks)
 
     def _chunk_offsets(self, source, chunks):
