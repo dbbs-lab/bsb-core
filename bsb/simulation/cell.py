@@ -1,4 +1,5 @@
 from .component import SimulationComponent
+from .parameter import Parameter
 from .. import config
 from ..config import refs
 
@@ -18,3 +19,4 @@ class CellModel(SimulationComponent):
     Whether this cell type is a relay type. Relay types, during simulation, instantly
     transmit incoming spikes to their targets.
     """
+    parameters = config.list(type=Parameter)

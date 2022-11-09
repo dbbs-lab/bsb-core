@@ -21,7 +21,7 @@ def _json_iter(obj):  # pragma: nocover
 
 class parsed_node:
     def location(self):
-        return "/" + "/".join(self._location_parts([]))
+        return "/" + "/".join(str(part) for part in self._location_parts([]))
 
     def _location_parts(self, carry):
         if hasattr(self, "_parent"):

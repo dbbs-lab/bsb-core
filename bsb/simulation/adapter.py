@@ -14,12 +14,12 @@ class SimulatorAdapter:
             return self.collect()
 
     @abc.abstractmethod
-    def prepare(self, *simulations, comm=None):
+    def prepare(self, simulation, comm=None):
         """
         Reset the simulation backend and prepare for the given simulations.
 
-        :param simulations: The simulation configurations to prepare.
-        :type simulations: ~bsb.simulation.simulation.Simulation
+        :param simulation: The simulation configuration to prepare.
+        :type simulation: ~bsb.simulation.simulation.Simulation
         :param comm: The MPI communicator to use. Only nodes in the communicator will
           participate in the simulation. The first node will idle as the main node. Calls
           :meth:`~bsb.simulation.adapter.SimulatorAdapter.set_communicator`
