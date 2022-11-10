@@ -20,6 +20,7 @@ class ProgressEvent:
 
 @config.pluggable(key="simulator", plugin_name="simulation backend")
 class Simulation:
+    name = config.attr(key=True)
     duration = config.attr(type=float, required=True)
     cell_models = config.slot(type=CellModel, required=True)
     connection_models = config.slot(type=ConnectionModel, required=True)
