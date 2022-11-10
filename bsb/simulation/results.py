@@ -6,7 +6,7 @@ class SimulationResult:
     def __init__(self, simulation):
         from neo import Block
 
-        self.block = neo.Block(name=simulation.name, config=simulation.__tree__())
+        self.block = Block(name=simulation.name, config=simulation.__tree__())
         self.recorders = []
 
     def add(self, recorder):
