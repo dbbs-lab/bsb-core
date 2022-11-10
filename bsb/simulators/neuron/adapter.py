@@ -98,7 +98,7 @@ class NeuronAdapter(SimulatorAdapter):
             raise
 
     def load_balance(self, simulation):
-        chunk_stats = self.network.storage.get_chunk_stats()
+        chunk_stats = simulation.scaffold.storage.get_chunk_stats()
         size = MPI.get_size()
         rank = MPI.get_rank()
         all_chunks = [Chunk.from_id(int(chunk), None) for chunk in chunk_stats.keys()]
