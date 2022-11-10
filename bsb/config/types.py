@@ -115,7 +115,7 @@ def or_(*type_args):
     return type_handler
 
 
-def class_(module_path=None):
+class class_(TypeHandler):
     """
     Type validator. Attempts to import the value as the name of a class, relative to
     the `module_path` entries, absolute or just returning it if it is already a class.
@@ -128,14 +128,20 @@ def class_(module_path=None):
     :rtype: Callable
     """
 
-    def type_handler(value):
+    def __init__(self, module_path=None):
+        self._module_path = module_path
+
+    def __call__(self, value):
         try:
-            return _load_class(value, module_path)
+            return _load_class(value, self._module_path)
         except:
             raise TypeError("Could not import {} as a class".format(value))
 
-    type_handler.__name__ = "class"
-    return type_handler
+    def __inv__(self, value):
+        return f"{value.__module__}.{value.__name__}"
+
+    def __name__(self):
+        return "class"
 
 
 def str(strip=False, lower=False, upper=False):
@@ -290,7 +296,8 @@ def scalar_expand(scalar_type, size=None, expand=None):
     :type scalar_type: type
     :param size: Expand the scalar to an array of a fixed size.
     :type size: int
-    :param expand: A function that takes the scalar value as argument and returns the expanded form.
+    :param expand: A function that takes the scalar value as argument and returns the
+    expanded form.
     :type expand: Callable
     :returns: Type validator function
     :rtype: Callable
