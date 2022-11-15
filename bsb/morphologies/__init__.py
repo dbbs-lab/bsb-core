@@ -1132,7 +1132,11 @@ class Branch:
         Return the normalized vector of the axis connecting the start and terminal points.
         """
         try:
-            return (self.end - self.start) / np.linalg.norm(self.end - self.start)
+            versor = (self.end - self.start) / np.linalg.norm(self.end - self.start)
+            if np.isnan(versor).any():
+                raise EmptyBranchError("Empty branch has no versor")
+            else:
+                return versor
         except IndexError:
             raise EmptyBranchError("Empty branch has no versor") from None
 
@@ -1158,7 +1162,7 @@ class Branch:
     def max_displacement(self):
         """
         Return the max displacement of the branch points from its axis vector.
-        """
+        """        
         try:
             displacements = np.linalg.norm(
                 np.cross(self.versor, (self.points - self.start)), axis=1
