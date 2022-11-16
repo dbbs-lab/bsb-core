@@ -97,16 +97,11 @@ class MorphologySet:
 
             if idx not in self._cached:
                 self._cached[idx] = (
-                    self._loaders[idx]
-                    .load()
-                    .set_label_filter(self._labels)
-                    .as_filtered()
+                    self._loaders[idx].load().set_label_filter(self._labels).as_filtered()
                 )
             return self._cached[idx].copy()
         else:
-            return (
-                self._loaders[idx].load().set_label_filter(self._labels).as_filtered()
-            )
+            return self._loaders[idx].load().set_label_filter(self._labels).as_filtered()
 
     def _get_many(self, data, cache, hard_cache):
         if hard_cache:
@@ -381,9 +376,7 @@ class SubTree:
         Return a dictonary containing mapping the id of the branch to its children.
         """
         idmap = {b: n for n, b in enumerate(self.branches)}
-        return {
-            n: list(map(idmap.get, b.children)) for n, b in enumerate(self.branches)
-        }
+        return {n: list(map(idmap.get, b.children)) for n, b in enumerate(self.branches)}
 
     def subtree(self, labels=None):
         return SubTree(self.get_branches(labels))
@@ -631,8 +624,7 @@ class _SharedBuffers:
     def properties_shared(self, branches):
         return all(
             (
-                b._properties.keys() == self._prop.keys()
-                and all(c.base is self._prop[c])
+                b._properties.keys() == self._prop.keys() and all(c.base is self._prop[c])
                 for a, c in b._properties.items()
             )
             for b in branches
@@ -1602,9 +1594,7 @@ def _swc_branch_dfs(adjacency, branches, node):
         elif len(child_nodes) == 1:
             node = child_nodes[0]
         else:
-            node_stack.extend(
-                (branch_id, node, child) for child in reversed(child_nodes)
-            )
+            node_stack.extend((branch_id, node, child) for child in reversed(child_nodes))
             child_nodes = []
             node = None
 
@@ -1682,9 +1672,7 @@ def _swc_to_morpho(cls, branch_cls, content, tags=None, meta=None):
         else:
             roots.append(branch)
     # Then save the shared data matrices on the morphology
-    morpho = cls(
-        roots, shared_buffers=(points, radii, labels, {"tags": tags}), meta=meta
-    )
+    morpho = cls(roots, shared_buffers=(points, radii, labels, {"tags": tags}), meta=meta)
     # And assert that this shared buffer mode succeeded
     assert morpho._check_shared(), "SWC import didn't result in shareable buffers."
     return morpho
@@ -1785,9 +1773,7 @@ def _import(cls, branch_cls, file, meta=None):
                 roots.append(branch)
             children = reversed([(branch, child) for child in section.children])
             section_stack.extend(children)
-    morpho = cls(
-        roots, shared_buffers=(points, radii, labels, {"tags": tags}), meta=meta
-    )
+    morpho = cls(roots, shared_buffers=(points, radii, labels, {"tags": tags}), meta=meta)
     assert morpho._check_shared(), "MorphIO import didn't result in shareable buffers."
     return morpho
 
