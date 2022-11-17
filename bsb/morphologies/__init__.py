@@ -1169,7 +1169,7 @@ class Branch:
             return np.max(displacements)
         except IndexError:
             raise EmptyBranchError(
-                "Impossible compute max_displacement in branches with 0 or 1 points."
+                "Impossible to compute max_displacement in branches with 0 or 1 points."
             ) from None
 
     @property
