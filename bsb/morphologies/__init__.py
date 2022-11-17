@@ -1168,7 +1168,9 @@ class Branch:
             )
             return np.max(displacements)
         except IndexError:
-            raise EmptyBranchError("Impossible compute max_displacement in branches with 0 or 1 points.") from None
+            raise EmptyBranchError(
+                "Impossible compute max_displacement in branches with 0 or 1 points."
+            ) from None
 
     @property
     def fractal_dim(self):
