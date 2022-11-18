@@ -1,0 +1,115 @@
+{
+  "name": "net configuration using bsb v4.0",
+  "storage": {
+    "engine": "hdf5",
+    "root": "network.hdf5"
+  },
+  "network": {
+    "x": 1000.0,
+    "y": 1000.0,
+    "z": 1000.0,
+    "chunk_size": [50, 50, 50]
+  },
+  "regions": {
+    "primary_visual_cortex": {
+      "children": ["VISp1", "VISp23","VISp4", "VISp5", "VISp6a", "VISp6b"]
+    }
+  },
+  "partitions": {
+      "VISp1": {
+        "type": "allen",
+        "struct_name": "VISp1",
+        "sources": ["data/inh_density.nrrd","data/exc_density.nrrd"],
+        "keys": ["inh_density", "exc_density"]
+      },
+      "VISp23": {
+        "type": "allen",
+        "struct_name": "VISp2/3",
+        "sources": ["data/inh_density.nrrd","data/exc_density.nrrd"],
+        "keys": ["inh_density", "exc_density"]
+      },
+      "VISp4": {
+        "type": "allen",
+        "struct_name": "VISp4",
+        "sources": ["data/inh_density.nrrd","data/exc_density.nrrd"],
+        "keys": ["inh_density", "exc_density"]
+      },
+      "VISp5": {
+        "type": "allen",
+        "struct_name": "VISp5",
+        "sources": ["data/inh_density.nrrd","data/exc_density.nrrd"],
+        "keys": ["inh_density", "exc_density"]
+      },
+      "VISp6a": {
+        "type": "allen",
+        "struct_name": "VISp6a",
+        "sources": ["data/inh_density.nrrd","data/exc_density.nrrd"],
+        "keys": ["inh_density", "exc_density"]
+      },
+      "VISp6b": {
+        "type": "allen",
+        "struct_name": "VISp6b",
+        "sources": ["data/inh_density.nrrd","data/exc_density.nrrd"],
+        "keys": ["inh_density", "exc_density"]
+      }
+  },
+
+  "cell_types": {
+    "cellInh": {
+      "spatial": {
+        "radius": 2.5,
+        "density_key": "inh_density",
+        "detailed_morphologies": {
+          "names": ["StellateCell_v1", "StellateCell_v2"]
+        }
+      },
+      "plotting": {
+        "display_name": "cell Inh",
+        "color": "blue",
+        "opacity": 0.9
+      }
+    },
+    "cellExc": {
+      "spatial": {
+        "radius": 2.5,
+        "density_key": "exc_density",
+        "detailed_morphologies": {
+          "names": ["PyramidalCell"]
+        }
+      },
+      "plotting": {
+        "display_name": "cell Exc",
+        "color": "red",
+        "opacity": 0.3
+      }
+    }
+  },
+  "placement": {
+      "VISp5_placement": {
+      "strategy": "bsb.placement.ParticlePlacement",
+      "partitions": ["VISp5"],
+      "cell_types": ["cellInh",  "cellExc" ]
+    }
+  },
+  "connectivity": {
+    "VISp5_connectivity": {
+      "strategy": "bsb.connectivity.VoxelIntersection",
+      "presynaptic": {
+        "cell_types": ["cellExc"],
+        "morphology_labels": ["axon"]
+      },
+      "postsynaptic": {
+        "cell_types": ["cellInh"],
+        "morphology_labels": ["dendrites"]
+      },
+      "affinity": 0.2,
+      "contacts": {
+        "distribution": "norm",
+        "loc": 2,
+        "scale": 1
+     }
+    }
+   },
+  "after_placement": { },
+  "simulations": { }
+}

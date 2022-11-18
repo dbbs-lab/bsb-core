@@ -1,0 +1,55 @@
+{
+  "name": "Starting example",
+  "storage": {
+    "engine": "hdf5",
+    "root": "network.hdf5"
+  },
+  "network": {
+    "x": 400.0,
+    "y": 600.0,
+    "z": 400.0
+  },
+  "regions": {
+    "brain_region": {
+      "children": ["base_layer"]
+    }
+  },
+  "partitions": {
+    "base_layer": {
+      "type": "layer",
+      "thickness": 100
+    }
+  },
+  "cell_types": {
+    "base_type": {
+      "spatial": {
+        "radius": 2.5,
+        "density": 3.9e-4
+      },
+      "plotting": {
+        "display_name": "Template cell",
+        "color": "#E62314",
+        "opacity": 0.5
+      }
+    }
+  },
+  "placement": {
+    "example_placement": {
+      "strategy": "bsb.placement.ParticlePlacement",
+      "cell_types": ["base_type"],
+      "partitions": ["base_layer"]
+    }
+  },
+  "after_placement": {
+
+  },
+  "connectivity": {
+
+  },
+  "after_connectivity": {
+
+  },
+  "simulations": {
+
+  }
+}
