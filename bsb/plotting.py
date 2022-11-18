@@ -591,24 +591,20 @@ def set_morphology_scene_range(scene, offset_morphologies):
     )
     span = max(map(lambda b: b[1] - b[0], combined_bounds))
     combined_bounds[:, 1] = combined_bounds[:, 0] + span"""
-    
+
     min_b = np.full((len(offset_morphologies),3),0,dtype=float)
     max_b = np.full((len(offset_morphologies),3),0,dtype=float)
     for i,morpho in enumerate(offset_morphologies):
         min_b[i] = morpho[1].bounds[0]
         max_b[i] = morpho[1].bounds[1]
-    #print(min_b)
-    #print(max_b)
+
     x_min = np.min(min_b[:,0])
     x_max = np.max(max_b[:,0])
     y_min = np.min(min_b[:,1])
     y_max = np.max(max_b[:,1])
     z_min = np.min(min_b[:,2])
     z_max = np.max(max_b[:,2])
-    #scene.yaxis.range =
-    #scene.zaxis.range
     combined_bounds = [[x_min,y_min,z_min],[x_max,y_max,z_max]]
-    #combined_bounds = [[-100,-100,-100],[400,772,300]]
     set_scene_range(scene, combined_bounds)
 
 
