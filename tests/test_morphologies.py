@@ -618,6 +618,15 @@ class TestMorphometry(NumpyTestCase, unittest.TestCase):
                 with self.assertRaises(EmptyBranchError):
                     getattr(self.b0, attr)
 
+    def test_single_point_branch(self):
+        for attr in (
+            "versor",
+            "max_displacement",
+        ):
+            with self.subTest(attr=attr):
+                with self.assertRaises(EmptyBranchError):
+                    getattr(self.bzero1, attr)
+
     def test_zero_len(self):
         for attr in ("euclidean_dist", "path_dist"):
             with self.subTest(attr=attr):
@@ -678,21 +687,12 @@ class TestMorphometry(NumpyTestCase, unittest.TestCase):
             self.branches[5].versor,
             [np.cos((2 / 3) * np.pi), np.sin((2 / 3) * np.pi), 0.0],
         )
-        with self.assertRaises(
-            EmptyBranchError, msg="It should throw an EmptyBranchError"
-        ) as context:
-            self.branches[0].versor
         pass
 
     def test_displacement(self):
         self.assertClose(self.branches[2].max_displacement, 5.0)
         for b in self.branches[3:]:
             self.assertClose(b.max_displacement, 0, atol=1e-06)
-
-        with self.assertRaises(
-            EmptyBranchError, msg="It should throw an EmptyBranchError"
-        ) as context:
-            self.branches[0].max_displacement
 
     def test_fractal_dim(self):
         for b in self.branches[3:]:
