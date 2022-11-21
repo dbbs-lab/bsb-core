@@ -1135,7 +1135,7 @@ class Branch:
         if np.any(np.isnan(versor)):
             raise EmptyBranchError(
                 "Empty and single-point branched have no versor"
-            ) from None
+            )
         else:
             return versor
 
