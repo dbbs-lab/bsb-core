@@ -1133,9 +1133,7 @@ class Branch:
         """
         versor = (self.end - self.start) / np.linalg.norm(self.end - self.start)
         if np.any(np.isnan(versor)):
-            raise EmptyBranchError(
-                "Empty and single-point branched have no versor"
-            )
+            raise EmptyBranchError("Empty and single-point branched have no versor")
         else:
             return versor
 
