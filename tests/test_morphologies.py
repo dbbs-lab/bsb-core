@@ -606,7 +606,7 @@ class TestMorphometry(NumpyTestCase, unittest.TestCase):
         self.adjacency = m.branch_adjacency
         self.branches = m.branches
 
-    def test_empty_branch(self):
+    def test_short_branch(self):
         for attr in (
             "euclidean_dist",
             "vector",
@@ -618,7 +618,6 @@ class TestMorphometry(NumpyTestCase, unittest.TestCase):
                 with self.assertRaises(EmptyBranchError):
                     getattr(self.b0, attr)
 
-    def test_single_point_branch(self):
         for attr in (
             "versor",
             "max_displacement",
