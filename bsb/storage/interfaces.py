@@ -5,7 +5,6 @@ import numpy as np
 from ..morphologies import Morphology
 from ..trees import BoxTree
 from .._util import obj_str_insert
-from bsb.storage import Chunk
 
 
 class Interface(abc.ABC):
@@ -526,7 +525,7 @@ class PlacementSet(Interface):
         return BoxTree(list(self.load_boxes(morpho_cache=morpho_cache)))
 
     def _requires_morpho_mapping(self):
-        return self._subcell_labels is not None and self.count_morphologies()
+        return self._morphology_labels is not None and self.count_morphologies()
 
     def _morpho_backmap(self, locs):
         locs = locs.copy()
@@ -943,75 +942,6 @@ class _CSIterator:
             gloc[ptr : ptr + len_] = global_
             ptr += len_
         return lcol, lloc, gcol, gloc
-    
-    def iterate_all_global_id(self):
-        
-        lchunks = []
-        gchunks = []
-        locals_ = []
-        globals_ = []
-        counter = 0
-        for dir, lchunk, gchunk, data in self:
-            lchunks.append(lchunk)
-            gchunks.append(gchunk)
-            locals_.append(data[0])
-            globals_.append(data[1])
-            counter += 1
-
-        lens = [len(lcl) for lcl in locals_]
-        lcol = np.repeat([c.id for c in lchunks], lens)
-        gcol = np.repeat([c.id for c in gchunks], lens)
-        lloc = np.empty((sum(lens), 3), dtype=int)
-        gloc = np.empty((sum(lens), 3), dtype=int)
-        ptr = 0
-
-        for len_, local_, global_ in zip(lens, locals_, globals_):
-            lloc[ptr : ptr + len_] = local_
-            gloc[ptr : ptr + len_] = global_
-            ptr += len_
-        
-        gcells = self.cs.post
-        lcells = self.cs.pre
-        argsort_ids = np.array(np.argsort(lcol[:ptr]))
-
-        if (self.dir == "inc"):
-            gcells = self.cs.pre
-            lcells = self.cs.post
-            argsort_ids = np.array(np.argsort(gcol[:ptr]))
-
-        #Sort the chunks in increasing id order
-        gcol = gcol[argsort_ids]
-        lcol = lcol[argsort_ids]
-        lloc = lloc[argsort_ids]
-        gloc = gloc[argsort_ids]
-
-        chunks_size = lchunks[0].size
-
-        #Find globals global ids offsets
-        global_id_offset = 0
-        global_count_offsets = []
-        unique_globals = np.unique(gcol,axis=0)
-        for c in unique_globals:
-            global_count_offsets.append([c,global_id_offset])
-            global_id_offset += len(gcells.get_placement_set(chunks=[Chunk.from_id(c,chunks_size)]))
-        #Update globals global ids
-        for gc in global_count_offsets:
-            ids = np.where((gcol==gc[0]))
-            gloc[ids,0] += gc[1] 
-        
-        #Find locals global ids
-        local_id_offset = 0
-        local_count_offsets = []
-        unique_locals = np.unique(lcol,axis=0)
-        for c in unique_locals:
-            local_count_offsets.append([c,local_id_offset])
-            local_id_offset += len(lcells.get_placement_set(chunks=[Chunk.from_id(c,chunks_size)]))
-        #Update locals global ids
-        for gc in local_count_offsets:
-            ids = np.where((lcol==gc[0]))
-            lloc[ids,0] += gc[1] 
-
-        return lcol[:ptr], lloc[:ptr], gcol[:ptr], gloc[:ptr]
 
 
 class StoredMorphology:
