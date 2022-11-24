@@ -7,11 +7,11 @@ class SimulatorAdapter:
         Simulate the given simulation.
         """
         with simulation.scaffold.storage.read_only():
-            self.prepare(simulation)
-            for hook in simulation.post_preparation:
-                hook(self)
-            self.run()
-            return self.collect()
+            data = self.prepare(simulation)
+            for hook in simulation.post_prepare:
+                hook(self, data)
+            self.run(simulation)
+            return self.collect(simulation, data)
 
     @abc.abstractmethod
     def prepare(self, simulation, comm=None):
