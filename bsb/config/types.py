@@ -1,3 +1,5 @@
+import inspect
+
 from ..exceptions import *
 from ._hooks import overrides
 from ._make import _load_class
@@ -138,6 +140,8 @@ class class_(TypeHandler):
             raise TypeError("Could not import {} as a class".format(value))
 
     def __inv__(self, value):
+        if not inspect.isclass(value):
+            value = type(value)
         return f"{value.__module__}.{value.__name__}"
 
     def __name__(self):
