@@ -79,11 +79,23 @@ class ConnectivityReference(Reference):
         return isinstance(value, ConnectionStrategy)
 
 
+class SimCellModelReference(Reference):
+    def __call__(self, root, here):
+        print(here)
+        return here
+
+    def is_ref(self, value):
+        from ..connectivity import ConnectionStrategy
+
+        return isinstance(value, ConnectionStrategy)
+
+
 cell_type_ref = CellTypeReference()
 partition_ref = PartitionReference()
 placement_ref = PlacementReference()
 connectivity_ref = ConnectivityReference()
 regional_ref = RegionalReference()
 region_ref = RegionReference()
+sim_cell_model_ref = SimCellModelReference()
 
 __all__ = [k for k in vars().keys() if k.endswith("_ref") or k.endswith("__")]

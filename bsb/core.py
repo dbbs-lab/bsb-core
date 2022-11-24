@@ -3,17 +3,18 @@ import os
 import itertools
 from .placement import PlacementStrategy
 from .connectivity import ConnectionStrategy
-from .storage import Chunk, Storage, _util as _storutil
+from .storage import Chunk, Storage, _util as _storutil, open_storage
 from .exceptions import (
     InputError,
     NodeNotFoundError,
     RedoError,
     ScaffoldError,
 )
-from .reporting import report, warn, get_report_file
+from .reporting import report, warn
 from .config._config import Configuration
 from .services.pool import create_job_pool
 from .services import MPI
+from .simulation import get_simulation_adapter
 from ._util import obj_str_insert
 from .profiling import meter
 
@@ -42,17 +43,15 @@ def _config_property(name):
 
 
 @meter()
-def from_hdf5(file, missing_ok=False):
+def from_storage(root):
     """
-    Generate a :class:`.core.Scaffold` from an HDF5 file.
+    Load :class:`.core.Scaffold` from a storage object.
 
-    :param file: Path to the HDF5 file.
-    :returns: A scaffold object
+    :param root: Root (usually path) pointing to the storage object.
+    :returns: A network scaffold
     :rtype: :class:`Scaffold`
     """
-
-    storage = Storage("hdf5", file, missing_ok=missing_ok)
-    return storage.load()
+    return open_storage(root).load()
 
 
 class Scaffold:
@@ -348,20 +347,9 @@ class Scaffold:
         :param simulation_name: Name of the simulation in the configuration.
         :type simulation_name: str
         """
-        t = time.time()
-        simulation, simulator = self.prepare_simulation(simulation_name)
-        # If we're reporting to a file, add a stream of progress event messages..
-        report_file = get_report_file()
-        if report_file:
-            listener = ReportListener(self, report_file)
-            simulation.add_progress_listener(listener)
-        simulation.simulate(simulator)
-        result_path = simulation.collect_output(simulator)
-        time_sim = time.time() - t
-        report("Simulation runtime: {}".format(time_sim), level=2)
-        if quit and hasattr(simulator, "quit"):
-            simulator.quit()
-        return result_path
+        simulation = self.get_simulation(simulation_name)
+        adapter = get_simulation_adapter(simulation.simulator)
+        return adapter.simulate(simulation)
 
     def get_simulation(self, sim_name):
         """
@@ -373,14 +361,6 @@ class Scaffold:
                 f"Unknown simulation '{sim_name}', choose from: {simstr}"
             )
         return self.configuration.simulations[sim_name]
-
-    def prepare_simulation(self, simulation_name):
-        """
-        Retrieve and prepare the default single-instance adapter for a simulation.
-        """
-        simulation = self.get_simulation(simulation_name)
-        simulator = simulation.prepare()
-        return simulation, simulator
 
     def place_cells(
         self,

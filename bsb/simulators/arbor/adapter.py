@@ -1,24 +1,13 @@
-from ...simulation import (
-    Simulation,
-    CellModel,
-    ConnectionModel,
-    DeviceModel,
-    SimulationResult,
-    SimulationRecorder,
-)
-from ...simulation.targetting import NeuronTargetting
-from ... import config
-from ...config import types
-from ...reporting import report, warn
-from ...exceptions import *
-from ...services import MPI
+from bsb.config import types
+from bsb.reporting import report, warn
+from bsb.exceptions import AdapterError
+from bsb.services import MPI
+from bsb.simulation.results import SimulationResult
+from bsb.simulation.adapter import SimulatorAdapter
 import numpy as np
 import itertools as it
-import functools
-import os
 import time
 import psutil
-import collections
 
 try:
     import arbor
@@ -39,156 +28,6 @@ except ImportError:
     arbor.__getattr__ = get
 
 
-def _consume(iterator, n=None):
-    "Advance the iterator n-steps ahead. If n is None, consume entirely."
-    # Use functions that consume iterators at C speed.
-    if n is None:
-        # feed the entire iterator into a zero-length deque
-        collections.deque(iterator, maxlen=0)
-    else:
-        # advance to the empty slice starting at position n
-        next(islice(iterator, n, n), None)
-
-
-it.consume = _consume
-
-
-class ArborCell(CellModel):
-    node_name = "simulations.?.cell_models"
-    default_endpoint = "comp_-1"
-
-    def validate(self):
-        self.model_class = None
-        if _has_arbor and not self.relay:
-            self.model_class = get_configurable_class(self.model)
-
-    def get_description(self, gid):
-        if not self.relay:
-            morphology, labels, decor = self.model_class.cable_cell_template()
-            labels = self._add_labels(gid, labels, morphology)
-            decor = self._add_decor(gid, decor)
-            cc = arbor.cable_cell(morphology, labels, decor)
-            return cc
-        else:
-            schedule = self.get_schedule(gid)
-            return arbor.spike_source_cell(self.default_endpoint, schedule)
-
-    def get_schedule(self, gid):
-        schedule = arbor.explicit_schedule([])
-        for device in self.adapter._devices_on[gid]:
-            pattern = device.get_pattern(gid)
-            if not pattern:
-                continue
-            merged = pattern + schedule.events(0, float("inf"))
-            schedule = arbor.explicit_schedule(merged)
-        return schedule
-
-    def _add_decor(self, gid, decor):
-        self._soma_detector(decor)
-        self._create_transmitters(gid, decor)
-        self._create_gaps(gid, decor)
-        self._create_receivers(gid, decor)
-        return decor
-
-    def _add_labels(self, gid, labels, morphology):
-        pwlin = arbor.place_pwlin(morphology)
-
-        def comp_label(comp):
-            if comp.id == -1:
-                warn(f"Encountered nil compartment on {gid}")
-                return
-            loc, d = pwlin.closest(*comp.start)
-            if d > 0.0001:
-                raise AdapterError(f"Couldn't find {comp.start}, on {self._str(gid)}")
-            labels[f"comp_{comp.id}"] = str(loc)
-
-        comps_from = self.adapter._connections_from[gid]
-        comps_on = (rcv.comp_on for rcv in self.adapter._connections_on[gid])
-        gaps = (c.to_compartment for c in self.adapter._gap_junctions_on.get(gid, []))
-        it.consume(comp_label(i) for i in it.chain(comps_from, comps_on, gaps))
-        labels[self.default_endpoint] = "(root)"
-        return labels
-
-    def _str(self, gid):
-        return f"{self.adapter._name_of(gid)} {gid}"
-
-    def _soma_detector(self, decor):
-        decor.place("(root)", arbor.spike_detector(-10), self.default_endpoint)
-
-    def _create_transmitters(self, gid, decor):
-        done = set()
-        for comp in self.adapter._connections_from[gid]:
-            if comp.id in done:
-                continue
-            else:
-                done.add(comp.id)
-            decor.place(f'"comp_{comp.id}"', arbor.spike_detector(-10), f"comp_{comp.id}")
-
-    def _create_gaps(self, gid, decor):
-        done = set()
-        for conn in self.adapter._gap_junctions_on.get(gid, []):
-            comp = conn.to_compartment
-            if comp.id in done:
-                continue
-            else:
-                done.add(comp.id)
-            decor.place(f'"comp_{comp.id}"', arbor.junction("gj"), f"gap_{comp.id}")
-
-    def _create_receivers(self, gid, decor):
-        for rcv in self.adapter._connections_on[gid]:
-            decor.place(
-                f'"comp_{rcv.comp_on.id}"',
-                rcv.synapse,
-                f"comp_{rcv.comp_on.id}_{rcv.index}",
-            )
-
-
-@config.node
-class ArborDevice(DeviceModel):
-    targetting = config.attr(type=NeuronTargetting, required=True)
-    resolution = config.attr(type=float)
-    sampling_policy = config.attr(type=types.in_([""]))
-
-    defaults = {"resolution": None, "sampling_policy": "exact"}
-
-    def __boot__(self):
-        self.resolution = self.resolution or self.adapter.resolution
-
-    def register_probe_id(self, gid, tag):
-        self._probe_ids.append((gid, tag))
-
-    def prepare_samples(self, sim):
-        self._handles = [self.sample(sim, probe_id) for probe_id in self._probe_ids]
-
-    def sample(self, sim, probe_id):
-        schedule = arbor.regular_schedule(self.resolution)
-        sampling_policy = getattr(arbor.sampling_policy, self.sampling_policy)
-        return sim.sample(probe_id, schedule, sampling_policy)
-
-    def get_samples(self, sim):
-        return [sim.samples(handle) for handle in self._handles]
-
-    def get_meta(self):
-        attrs = ("name", "sampling_policy", "resolution")
-        return dict(zip(attrs, (getattr(self, attr) for attr in attrs)))
-
-
-class ArborConnection(ConnectionModel):
-    defaults = {"gap": False, "delay": 0.025, "weight": 1.0}
-    casts = {"delay": float, "gap": bool, "weight": float}
-
-    def validate(self):
-        pass
-
-    def make_receiver(*args):
-        return Receiver(*args)
-
-    def gap_(self, conn):
-        l = arbor.cell_local_label(f"gap_{conn.to_compartment.id}")
-        g = arbor.cell_global_label(int(conn.from_id), f"gap_{conn.from_compartment.id}")
-        return arbor.gap_junction_connection(g, l, self.weight)
-
-
 class ReceiverCollection(list):
     def __init__(self):
         super().__init__()
@@ -200,15 +39,6 @@ class ReceiverCollection(list):
         self._endpoint_counters[endpoint] = id + 1
         rcv.index = id
         super().append(rcv)
-
-
-class Receiver:
-    def __init__(self, conn_model, from_gid, comp_from, comp_on):
-        self.conn_model = conn_model
-        self.from_gid = from_gid
-        self.comp_from = comp_from
-        self.comp_on = comp_on
-        self.synapse = arbor.synapse("expsyn")
 
     @property
     def weight(self):
@@ -346,10 +176,7 @@ class ArborRecipe(arbor.recipe):
         return self._adapter._lookup._lookup(gid)._type.name
 
 
-@config.node
-class ArborSimulation(Simulation):
-    duration = config.attr(type=float, required=True)
-
+class ArborAdapter(SimulatorAdapter):
     defaults = {"threads": 1, "profiling": True, "resolution": 0.025}
 
     def validate(self):
@@ -675,7 +502,3 @@ class ArborSimulation(Simulation):
             targets = device.get_targets()
             for target in targets:
                 self._devices_on[target].append(device)
-
-
-class ArborAdapter:
-    Simulation = ArborSimulation

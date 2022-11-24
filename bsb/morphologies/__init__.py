@@ -821,9 +821,9 @@ class Morphology(SubTree):
             starts = (np.nonzero(filtered[1:] & ~filtered[:-1])[0] + 1).tolist()
             ends = (np.nonzero(filtered[:-1] & ~filtered[1:])[0] + 1).tolist()
             # Treat the boundary.
-            if filtered[0]:
+            if len(filtered) and filtered[0]:
                 starts.insert(0, 0)
-            if filtered[-1]:
+            if len(filtered) and filtered[-1]:
                 ends.append(len(filtered))
             prev = None
             nbranch = None

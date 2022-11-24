@@ -58,7 +58,7 @@ def make_metaclass(cls):
                 meta_subject, _parent=_parent, _key=_key, **kwargs
             )
             # Call the end user's __init__ with the rewritten arguments, if one is defined
-            if overrides(meta_subject, "__init__", mro=True):
+            if has_own_init:
                 sig = inspect.signature(instance.__init__)
                 try:
                     # Check whether the arguments match the signature. We use `sig.bind`
@@ -363,7 +363,7 @@ def _get_dynamic_class(node_cls, kwargs):
     elif dynamic_attr.should_call_default():  # pragma: nocover
         loaded_cls_name = dynamic_attr.default()
     else:
-        loaded_cls_name = dynamic_attr.default
+        loaded_cls_name = dynamic_attr.default or node_cls.__name__
     module_path = ["__main__", node_cls.__module__]
     classmap = getattr(node_cls, "_config_dynamic_classmap", None)
     interface = getattr(node_cls, "_config_dynamic_root")

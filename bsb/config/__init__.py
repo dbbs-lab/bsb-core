@@ -8,7 +8,6 @@ config.attr/dict/list/ref/reflist`` to populate your classes with powerful attri
 
 import os
 import sys
-import os
 import glob
 import itertools
 from shutil import copy2 as copy_file
@@ -32,10 +31,11 @@ from ._attrs import (
     catch_all,
     ConfigurationAttribute,
 )
+from .._util import ichain
 from ._make import walk_node_attributes, walk_nodes
 from ._hooks import on, before, after, run_hook, has_hook
 from .. import plugins
-from ..exceptions import *
+from ..exceptions import ConfigTemplateNotFoundError, ParserError, PluginError
 
 
 _path = __path__
@@ -43,7 +43,7 @@ ConfigurationAttribute.__module__ = __name__
 
 
 class ConfigurationModule:
-    from . import types, refs, nodes
+    from . import types, refs
 
     def __init__(self, name):
         self.__name__ = name
@@ -75,7 +75,7 @@ class ConfigurationModule:
     _parser_classes = {}
 
     # The __path__ attribute needs to be retained to mark this module as a package with
-    # submodules (config.nodes, config.refs, config.parsers.json, ...)
+    # submodules (config.refs, config.parsers.json, ...)
     __path__ = _path
 
     # Load the Configuration class on demand, not on import, to avoid circular
@@ -100,7 +100,7 @@ class ConfigurationModule:
 
         Configuration trees can be cast into Configuration objects.
         """
-        if not parser_name in self._parser_classes:
+        if parser_name not in self._parser_classes:
             raise PluginError("Configuration parser '{}' not found".format(parser_name))
         return self._parser_classes[parser_name]()
 
@@ -132,6 +132,9 @@ class ConfigurationModule:
         copy_file(files[0], output)
 
     def from_file(self, file):
+        if not hasattr(file, "read"):
+            with open(file, "r") as f:
+                return self.from_file(f)
         path = getattr(file, "name", None)
         if path is not None:
             path = os.path.abspath(path)
@@ -172,7 +175,10 @@ def _parser_method_docs(parser):
 
 def _try_parsers(content, classes, ext=None, path=None):  # pragma: nocover
     if ext is not None:
-        file_has_parser_ext = lambda kv: ext in getattr(kv[1], "data_extensions", ())
+
+        def file_has_parser_ext(kv):
+            ext in getattr(kv[1], "data_extensions", ())
+
         classes = builtins.dict(sorted(classes.items(), key=file_has_parser_ext))
     exc = {}
     for name, cls in classes.items():
@@ -183,9 +189,13 @@ def _try_parsers(content, classes, ext=None, path=None):  # pragma: nocover
         else:
             return (name, tree, meta)
     msges = [
-        (f"Can't parse with {n}:", traceback.format_exception(e)) for n, e in exc.items()
+        (
+            f"Can't parse contents with '{n}':\n",
+            "".join(traceback.format_exception(type(e), e, e.__traceback__)),
+        )
+        for n, e in exc.items()
     ]
-    raise ParserError("\n".join(msges))
+    raise ParserError("\n".join(ichain(msges)))
 
 
 def _from_parsed(self, parser_name, tree, meta, file=None):

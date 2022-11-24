@@ -1,8 +1,8 @@
-from bsb.core import from_hdf5
+from bsb.core import from_storage
 import numpy as np
 
 # Load the morphology
-network = from_hdf5("network.hdf5")
+network = from_storage("network.hdf5")
 morpho = network.morphologies.load("my_morphology")
 
 # Filter branches

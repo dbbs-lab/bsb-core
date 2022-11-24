@@ -1,4 +1,4 @@
-from ..adapter import NeuronDevice
+from ..device import NeuronDevice
 
 
 class VoltageClamp(NeuronDevice):

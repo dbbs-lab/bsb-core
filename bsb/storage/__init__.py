@@ -16,7 +16,7 @@ from inspect import isclass
 from ..exceptions import UnknownStorageEngineError
 from .. import plugins
 from ..services import MPI
-from ._chunks import Chunk
+from ._chunks import Chunk, chunklist
 
 
 # Pretend `Chunk` is defined here, for UX. It's only defined in `_chunks` to avoid
@@ -36,7 +36,7 @@ _storage_interfaces = {
 }
 
 
-def get_engines():
+def discover_engines():
     """
     Get a dictionary of all available storage engines.
     """
@@ -44,6 +44,12 @@ def get_engines():
     for engine_name, engine_module in engines.items():
         register_engine(engine_name, engine_module)
     return engines
+
+
+def get_engines():
+    global _engines
+    init_engines()
+    return {name: module["Engine"] for name, module in _engines.items()}
 
 
 def create_engine(name, root, comm):
@@ -118,10 +124,6 @@ class NotSupported:
 
     def __getattr__(self, attr):
         self._unsupported_err()
-
-
-_engines = {}
-_available_engines = get_engines()
 
 
 class Storage:
@@ -362,6 +364,28 @@ class Storage:
     def clear_connectivity(self):
         self._engine.clear_connectivity()
 
+    def read_only(self):
+        return self._engine.read_only()
+
+    def get_chunk_stats(self):
+        return self._engine.get_chunk_stats()
+
+
+def open_storage(root):
+    engines = get_engines()
+    for name, engine in engines.items():
+        if engine.peek_exists(root) and engine.recognizes(root):
+            return Storage(name, root, missing_ok=False)
+    else:
+        for name, engine in engines.items():
+            if engine.peek_exists(root):
+                raise IOError(
+                    f"Storage `{root}` not recognized as any installed format: "
+                    + ", ".join(f"'{n}'" for n in engines.keys())
+                )
+        else:
+            raise FileNotFoundError(f"Storage `{root}` does not exist.")
+
 
 def get_engine_node(engine):
     init_engines()
@@ -393,3 +417,13 @@ def view_support(engine=None):
             feature_name: not isinstance(feature, NotSupported)
             for feature_name, feature in _engines[engine].items()
         }
+
+
+# Module setup:
+# * Discover the engine plugins with `discover_engines`
+# * Store engine initializers in `_engines` through `register_engine`
+# Any time something from `_engines` is used, it should be checked if it is callable. If
+# it is the engine plugin is not initialized yet and the function should be called and
+# replaced with its return value.
+_engines = {}
+_available_engines = discover_engines()

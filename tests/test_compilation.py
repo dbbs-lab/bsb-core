@@ -2,7 +2,7 @@ import unittest, os, sys, numpy as np, h5py
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
-from bsb.core import Scaffold, from_hdf5
+from bsb.core import Scaffold, from_storage
 from bsb.config import from_json
 from bsb.unittest import get_config_path
 

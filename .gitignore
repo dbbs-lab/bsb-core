@@ -4,6 +4,7 @@ __pycache__/
 *.hdf5
 *.swc
 *.h5
+*.json
 build/
 dist/
 bsb-*/

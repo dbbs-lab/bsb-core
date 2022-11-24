@@ -2,9 +2,26 @@ import abc
 from pathlib import Path
 import functools
 import numpy as np
+
+from ._chunks import Chunk
+from .. import config, plugins
 from ..morphologies import Morphology
 from ..trees import BoxTree
-from .._util import obj_str_insert
+from .._util import obj_str_insert, immutable
+
+
+@config.pluggable(key="engine", plugin_name="storage engine")
+class StorageNode:
+    root = config.slot()
+
+    @classmethod
+    def __plugins__(cls):
+        if not hasattr(cls, "_plugins"):
+            cls._plugins = {
+                name: plugin.StorageNode
+                for name, plugin in plugins.discover("engines").items()
+            }
+        return cls._plugins
 
 
 class Interface(abc.ABC):
@@ -51,7 +68,7 @@ class Engine(Interface):
 
     def set_comm(self, comm):
         """
-        Set a new communicator in charge of collective operations.
+        :guilabel:`collective` Set a new communicator in charge of collective operations.
         """
         self._comm = comm
 
@@ -69,6 +86,23 @@ class Engine(Interface):
         Must return a pathlike unique identifier for the root of the storage object.
         """
         pass
+
+    @abc.abstractmethod
+    def recognizes(self, root):
+        """
+        Must return whether the given argument is recognized as a valid storage object.
+        """
+        pass
+
+    @classmethod
+    def peek_exists(cls, root):
+        """
+        Must peek at the existence of the given root, without instantiating anything.
+        """
+        try:
+            return Path(root).exists()
+        except Exception:
+            return False
 
     @abc.abstractmethod
     def exists(self):
@@ -107,10 +141,32 @@ class Engine(Interface):
 
     @abc.abstractmethod
     def clear_placement(self):
+        """
+        :guilabel:`collective` Must clear existing placement data.
+        """
         pass
 
     @abc.abstractmethod
     def clear_connectivity(self):
+        """
+        :guilabel:`collective` Must clear existing connectivity data.
+        """
+        pass
+
+    @abc.abstractmethod
+    def get_chunk_stats(self):
+        """
+        :guilabel:`readonly` Must return a dictionary with all chunk statistics.
+        """
+        pass
+
+    @abc.abstractmethod
+    def read_only(self):
+        """
+        Must return a context manager that enters the engine into readonly mode. In
+        readonly mode the engine does not perform any locking, write-operations or network
+        synchronization, and errors out if a write operation is attempted.
+        """
         pass
 
 
@@ -253,7 +309,8 @@ class PlacementSet(Interface):
         """
         return self._tag
 
-    @abc.abstractclassmethod
+    @classmethod
+    @abc.abstractmethod
     def create(cls, engine, cell_type):
         """
         Create a placement set.
@@ -267,7 +324,8 @@ class PlacementSet(Interface):
         """
         pass
 
-    @abc.abstractstaticmethod
+    @staticmethod
+    @abc.abstractmethod
     def exists(engine, cell_type):
         """
         Check existence of a placement set.
@@ -341,10 +399,13 @@ class PlacementSet(Interface):
         pass
 
     @abc.abstractmethod
-    def load_morphologies(self):
+    def load_morphologies(self, allow_empty=False):
         """
-        Return a :class:`~.morphologies.MorphologySet` associated to the cells.
+        Return a :class:`~.morphologies.MorphologySet` associated to the cells. Raises an
+        error if there is no morphology data, unless `allow_empty=True`.
 
+        :param boolean allow_empty: Silence missing morphology data error, and return an
+          empty morphology set.
         :returns: Set of morphologies
         :rtype: :class:`~.morphologies.MorphologySet`
         """
@@ -387,6 +448,9 @@ class PlacementSet(Interface):
         :type rotations: ~bsb.morphologies.RotationSet
         :param morphologies: Cell morphologies
         :type morphologies: ~bsb.morphologies.MorphologySet
+        :param additional: Additional datasets with 1 value per cell, will be stored
+          under its key in the dictionary
+        :type additional: Dict[str, numpy.ndarray]
         :param count: Amount of entities to place. Excludes the use of any positional,
           rotational or morphological data.
         :type count: int
@@ -399,11 +463,11 @@ class PlacementSet(Interface):
         Append arbitrary user data to the placement set. The length of the data must match
         that of the placement set, and must be storable by the engine.
 
+        :param name:
         :param chunk: The chunk to store data in.
         :type chunk: ~bsb.storage.Chunk
         :param data: Arbitrary user data. You decide |:heart:|
         :type data: numpy.ndarray
-        :type count: int
         """
         pass
 
@@ -430,7 +494,7 @@ class PlacementSet(Interface):
     @abc.abstractmethod
     def set_morphology_label_filter(self, morphology_labels):
         """
-        Should limit the scope of the placement set to the given subcellular labels. The
+        Should limit the scope of the placement set to the given sub-cellular labels. The
         morphologies returned by
         :meth:`~.storage.interfaces.PlacementSet.load_morphologies` should return a
         filtered form of themselves if :meth:`~.morphologies.Morphology.as_filtered` is
@@ -723,7 +787,8 @@ class ConnectivitySet(Interface):
     connections.
     """
 
-    @abc.abstractclassmethod
+    @classmethod
+    @abc.abstractmethod
     def create(cls, engine, tag):
         """
         Must create the placement set.
@@ -732,14 +797,12 @@ class ConnectivitySet(Interface):
 
     @obj_str_insert
     def __repr__(self):
-        if not len(self):
-            cstr = "without connections"
-        else:
-            cstr = f"with {len(self)} connections"
+        cstr = f"with {len(self)} connections" if len(self) else "without connections"
         return f"'{self.tag}' {cstr}"
 
-    @abc.abstractstaticmethod
-    def exists(self, engine, tag):
+    @staticmethod
+    @abc.abstractmethod
+    def exists(engine, tag):
         """
         Must check the existence of the placement set
         """
@@ -760,10 +823,13 @@ class ConnectivitySet(Interface):
         """
         pass
 
-    @abc.abstractclassmethod
+    @classmethod
+    @abc.abstractmethod
     def get_tags(cls, engine):
         """
         Must return the tags of all existing connectivity sets.
+
+        :param engine: Storage engine to inspect.
         """
         pass
 
@@ -838,6 +904,7 @@ class ConnectivitySet(Interface):
         """
         Must load the connections from ``direction`` perspective between ``local_`` and
         ``global_``.
+
         :returns: The local and global connections locations
         :rtype: Tuple[numpy.ndarray, numpy.ndarray]
         """
@@ -856,92 +923,115 @@ class ConnectivitySet(Interface):
         """
         pass
 
-    @abc.abstractmethod
-    def load_connections(self, direction="out"):
+    def load_connections(self):
         """
-        Must load all the connections from ``direction`` perspective.
+        Loads connections as a ``CSIterator``.
 
-        .. tip ::
-
-            With big models, out of memory errors may occur. In which case it's better to
-            use the :meth:`~.storage.interfaces.ConnectivitySet.incoming` or
-            :meth:`~.storage.interfaces.ConnectivitySet.outgoing` block iterators, which
-            yield the connections block by block.
-
-        :returns: A vector of the local connection chunks (1 chunk id per connection),
-          the local connection locations, a vector of the global connection chunks, and
-          the global connections locations. To identify cells, match their location with
-          their chunk id.
-        :rtype: Tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray, numpy.ndarray]
+        :returns: A connectivity set iterator, that will load data
         """
-        pass
-
-    @property
-    def incoming(self):
-        """
-        Iterator over all the connection blocks, from the incoming perspective.
-        """
-        return _CSIterator(self, "inc")
-
-    @property
-    def outgoing(self):
-        """
-        Iterator over all the connection blocks, from the outgoing perspective.
-        """
-        return _CSIterator(self, "out")
-
-    def from_(self, chunks):
-        return self.outgoing.from_(chunks)
-
-    def to(self, chunks):
-        return self.outgoing.to(chunks)
+        return ConnectivityIterator(self, "out")
 
 
-class _CSIterator:
-    def __init__(self, cs, dir):
-        self.cs = cs
-        self.dir = dir
-        self.lchunks = None
-        self.gchunks = None
+class ConnectivityIterator:
+    def __init__(
+        self, cs: ConnectivitySet, direction, lchunks=None, gchunks=None, scoped=True
+    ):
+        self._cs = cs
+        self._dir = direction
+        self._lchunks = lchunks
+        self._scoped = scoped
+        self._gchunks = gchunks
+
+    def __copy__(self):
+        return ConnectivityIterator(
+            self._cs, self._dir, self._lchunks.copy(), self._gchunks.copy()
+        )
 
     def __iter__(self):
-        yield from self.cs.flat_iter_connections(self.dir, self.lchunks, self.gchunks)
+        yield from (
+            self._offset_block(*data)
+            for data in self._cs.flat_iter_connections(
+                self._dir, self._lchunks, self._gchunks
+            )
+        )
 
+    @immutable()
+    def as_globals(self):
+        self._scoped = False
+
+    @immutable()
+    def as_scoped(self):
+        self._scoped = True
+
+    @immutable()
+    def outgoing(self):
+        self._dir = "out"
+
+    @immutable()
+    def incoming(self):
+        self._dir = "inc"
+
+    @immutable()
     def to(self, chunks):
-        if self.dir == "inc":
-            self.lchunks = chunks
+        if self._dir == "inc":
+            self._lchunks = chunks
         else:
-            self.gchunks = chunks
-        return self
+            self._gchunks = chunks
 
+    @immutable()
     def from_(self, chunks):
-        if self.dir == "out":
-            self.lchunks = chunks
+        if self._dir == "out":
+            self._lchunks = chunks
         else:
-            self.gchunks = chunks
-        return self
+            self._gchunks = chunks
 
     def all(self):
-        lchunks = []
-        gchunks = []
-        locals_ = []
-        globals_ = []
-        for dir, lchunk, gchunk, data in self:
-            lchunks.append(lchunk)
-            gchunks.append(gchunk)
-            locals_.append(data[0])
-            globals_.append(data[1])
-        lens = [len(lcl) for lcl in locals_]
-        lcol = np.repeat([c.id for c in lchunks], lens)
-        gcol = np.repeat([c.id for c in gchunks], lens)
-        lloc = np.empty((sum(lens), 3), dtype=int)
-        gloc = np.empty((sum(lens), 3), dtype=int)
+        llocs = []
+        glocs = []
+        lens = []
+        for llocblock, glocblock in self:
+            llocs.append(llocblock)
+            glocs.append(glocblock)
+            lens.append(len(llocblock))
+        locals_ = np.empty((sum(lens), 3), dtype=int)
+        globals_ = np.empty((sum(lens), 3), dtype=int)
         ptr = 0
-        for len_, local_, global_ in zip(lens, locals_, globals_):
-            lloc[ptr : ptr + len_] = local_
-            gloc[ptr : ptr + len_] = global_
+        for len_, local_, global_ in zip(lens, llocs, glocs):
+            locals_[ptr : ptr + len_] = local_
+            globals_[ptr : ptr + len_] = global_
             ptr += len_
-        return lcol, lloc, gcol, gloc
+        return locals_, globals_
+
+    def _offset_block(self, direction: str, lchunk, gchunk, data):
+        loff = self._local_chunk_offsets()
+        goff = self._global_chunk_offsets()
+        llocs, glocs = data
+        llocs[:, 0] += loff[lchunk]
+        glocs[:, 0] += goff[gchunk]
+        return llocs, glocs
+
+    @functools.cache
+    def _local_chunk_offsets(self):
+        source = self._cs.post if self._dir == "inc" else self._cs.pre
+        return self._chunk_offsets(source, self._lchunks)
+
+    @functools.cache
+    def _global_chunk_offsets(self):
+        source = self._cs.pre if self._dir == "inc" else self._cs.post
+        return self._chunk_offsets(source, self._gchunks)
+
+    def _chunk_offsets(self, source, chunks):
+        stats = source.get_placement_set().get_chunk_stats()
+        if self._scoped and chunks is not None:
+            stats = {chunk: item for chunk, item in stats.items() if int(chunk) in chunks}
+        offsets = {}
+        ctr = 0
+        for chunk, len_ in sorted(
+            stats.items(), key=lambda k: Chunk.from_id(int(k[0]), None).id
+        ):
+            offsets[Chunk.from_id(int(chunk), None)] = ctr
+            ctr += len_
+        return offsets
 
 
 class StoredMorphology:

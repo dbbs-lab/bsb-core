@@ -1,11 +1,11 @@
+import inspect
+
 from ..exceptions import *
 from ._hooks import overrides
 from ._make import _load_class
-import math, sys, numpy as np, abc, functools, weakref
-from inspect import signature as _inspect_signature
+from ._compile import _reserved_kw_passes, _wrap_reserved
+import math, sys, numpy as np, abc, weakref
 import builtins
-
-_reserved_keywords = ["_parent", "_key"]
 
 
 class TypeHandler(abc.ABC):
@@ -41,54 +41,6 @@ class TypeHandler(abc.ABC):
         passes = _reserved_kw_passes(call)
         if not all(passes.values()):
             cls.__call__ = _wrap_reserved(call)
-
-
-def _reserved_kw_passes(f):
-    # Inspect the signature and wrap the typecast in a wrapper that will accept and
-    # strip the missing 'key' kwarg
-    try:
-        sig = _inspect_signature(f)
-        params = sig.parameters
-    except:
-        params = []
-
-    return {key: key in params for key in _reserved_keywords}
-
-
-def _wrap_reserved(t):
-    """
-    Wrap a type handler in a wrapper that accepts all reserved keyword arguments that
-    the config system will push into the type handler call, and pass only those that
-    the original type handler accepts. This way type handlers can accept any
-    combination of the reserved keyword args without raising TypeErrors when they do
-    not accept one.
-    """
-    # Type handlers never need to be wrapped. The `__init_subclass__` of the TypeHandler
-    # class handles wrapping of `__call__` implementations so that they accept and strip
-    # _parent & _key.
-    if isinstance(t, TypeHandler):
-        return t
-
-    # Check which reserved keywords the function already takes
-    passes = _reserved_kw_passes(t)
-    if all(passes.values()):
-        return t
-
-    # Create the keyword arguments of the outer function that accepts all reserved kwargs
-    reserved_keys = "".join(f", {key}=None" for key in _reserved_keywords)
-    header = f"def type_handler(value, *args{reserved_keys}, **kwargs):\n"
-    passes = "".join(f", {key}={key}" for key in _reserved_keywords if passes[key])
-    # Create the call to the inner function that is passed only the kwargs that it accepts
-    wrap = f" return orig(value, *args{passes}, **kwargs)"
-    # Compile the code block and indicate that the function was compiled here.
-    mod = compile(header + wrap, f"{__file__}/<_wrap_reserved:compile>", "exec")
-    # Execute the code block in this local scope and pick the function out of the scope
-    exec(mod, {"orig": t}, bait := locals())
-    type_handler = bait["type_handler"]
-    # Copy over the metadata of the original function
-    type_handler = functools.wraps(t)(type_handler)
-    type_handler.__name__ = t.__name__
-    return type_handler
 
 
 def any():
@@ -165,7 +117,7 @@ def or_(*type_args):
     return type_handler
 
 
-def class_(module_path=None):
+class class_(TypeHandler):
     """
     Type validator. Attempts to import the value as the name of a class, relative to
     the `module_path` entries, absolute or just returning it if it is already a class.
@@ -178,14 +130,22 @@ def class_(module_path=None):
     :rtype: Callable
     """
 
-    def type_handler(value):
+    def __init__(self, module_path=None):
+        self._module_path = module_path
+
+    def __call__(self, value):
         try:
-            return _load_class(value, module_path)
+            return _load_class(value, self._module_path)
         except:
             raise TypeError("Could not import {} as a class".format(value))
 
-    type_handler.__name__ = "class"
-    return type_handler
+    def __inv__(self, value):
+        if not inspect.isclass(value):
+            value = type(value)
+        return f"{value.__module__}.{value.__name__}"
+
+    def __name__(self):
+        return "class"
 
 
 def str(strip=False, lower=False, upper=False):
@@ -340,7 +300,8 @@ def scalar_expand(scalar_type, size=None, expand=None):
     :type scalar_type: type
     :param size: Expand the scalar to an array of a fixed size.
     :type size: int
-    :param expand: A function that takes the scalar value as argument and returns the expanded form.
+    :param expand: A function that takes the scalar value as argument and returns the
+    expanded form.
     :type expand: Callable
     :returns: Type validator function
     :rtype: Callable
@@ -482,45 +443,28 @@ class deg_to_radian(TypeHandler):
         return v * 360 / (2 * math.pi)
 
 
-class _ConstantDistribution:
-    def __init__(self, const):
-        self.const = const
-
-    def draw(self, n):
-        return np.ones(n) * self.const
-
-    def __tree__(self):
-        return self.const
-
-
-def constant_distr():
+class distribution(TypeHandler):
     """
-    Type handler that turns a float into a distribution that always returns the float.
-    This can be used in places where a distribution is expected but the user might
-    want to use a single constant value instead.
-
-    :returns: Type validator function
-    :rtype: Callable
+    Type validator. Type casts the value or node to a distribution.
     """
 
-    def type_handler(value):
-        return _ConstantDistribution(_float(value))
+    def __call__(self, value, _key=None, _parent=None):
+        from ._distributions import Distribution
 
-    type_handler.__name__ = "constant distribution"
-    return type_handler
+        if not isinstance(value, builtins.list) and not isinstance(value, builtins.dict):
+            value = {"distribution": "constant", "constant": value}
 
+        return Distribution(**value, _key=_key, _parent=_parent)
 
-def distribution():
-    """
-    Type validator. Type casts a float to a constant distribution or a dict to a
-    :class:`Distribution <.config.nodes.Distribution>` node.
+    @property
+    def __name__(self):  # pragma: nocover
+        return "distribution"
 
-    :returns: Type validator function
-    :rtype: Callable
-    """
-    from .nodes import Distribution
-
-    return or_(constant_distr(), Distribution)
+    def __inv__(self, value):
+        if value["distribution"] == "constant":
+            return value["parameters"]["constant"]
+        else:
+            return value
 
 
 class evaluation(TypeHandler):

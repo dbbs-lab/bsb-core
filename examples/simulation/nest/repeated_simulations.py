@@ -1,7 +1,7 @@
-from bsb.core import from_hdf5
+from bsb.core import from_storage
 import os
 
-network = from_hdf5("my_network.hdf5")
+network = from_storage("my_network.hdf5")
 simulation = network.create_adapter("my_simulation")
 
 for i in range(10):

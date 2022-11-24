@@ -1,8 +1,7 @@
-from ..adapter import NeuronDevice
+from ..device import NeuronDevice
 from ....simulation.device import Patternless
-from ....simulation.results import SimulationRecorder, PresetPathMixin, PresetMetaMixin
+from ....simulation.results import SimulationRecorder
 from ....reporting import report, warn
-from arborize import get_section_synapses
 import numpy as np
 import itertools
 
@@ -34,7 +33,7 @@ class SynapseRecorder(Patternless, NeuronDevice):
                 self.adapter.result.add(recorder)
 
 
-class _SynapticRecorder(PresetPathMixin, PresetMetaMixin, SimulationRecorder):
+class _SynapticRecorder(SimulationRecorder):
     def __init_subclass__(cls, record=None, slug=None, **kwargs):
         super().__init_subclass__(**kwargs)
         cls._record = record
@@ -46,18 +45,12 @@ class _SynapticRecorder(PresetPathMixin, PresetMetaMixin, SimulationRecorder):
         point_process = synapse._point_process
         location = str(point_process.get_segment())
         name = str(point_process.__neuron__())
-        self.path = (
-            "recorders",
-            "synapses",
-            str(cell.ref_id),
-            self._slug,
-            location + "." + name,
-        )
         self.meta = {
             "cell": cell.ref_id,
             "section": cell.sections.index(section),
             "x": point_process.get_segment().x,
             "type": synapse._type,
+            "location": location + "." + name,
         }
         p.pop_section()
         self.vectors = self._record(synapse._point_process)
@@ -67,6 +60,9 @@ class _SynapticRecorder(PresetPathMixin, PresetMetaMixin, SimulationRecorder):
         for v in self.vectors:
             signal.extend(v)
         return np.array(signal)
+
+    def flush(self, block, segment):
+        print("tee-hee too")
 
 
 def _record_i(self, point_process):

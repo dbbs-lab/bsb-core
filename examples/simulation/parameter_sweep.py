@@ -1,4 +1,4 @@
-from bsb.core import from_hdf5
+from bsb.core import from_storage
 
 # A module with cerebellar cell models
 import dbbs_models

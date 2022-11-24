@@ -1,7 +1,7 @@
 from .reporting import report, warn
 from scipy.stats import truncnorm
 import numpy as np
-from .exceptions import *
+from .exceptions import MorphologyError, MorphologyDataError, ConnectivityWarning
 from . import config
 from .config import types
 
@@ -173,27 +173,26 @@ class SpoofDetails(PostProcessingHook):
     def spoof_connections(self, connection_type, connectivity_matrix):
         from_type = connection_type.presynaptic.type
         to_type = connection_type.postsynaptic.type
-        from_relay = False
-        to_relay = False
+        from_entity = False
+        to_entity = False
         # Check whether any of the types are relays or entities.
-        if from_type.relay or from_type.entity:
-            from_relay = True
-            if to_type.relay or to_type.entity:
+        if from_type.entity:
+            from_entity = True
+            if to_type.entity:
                 raise MorphologyError(
-                    "Can't spoof detailed connections between 2 relay or entity cell types."
+                    "Can't spoof detailed connections between 2 entity cell types."
                 )
-        elif to_type.relay or to_type.entity:
-            to_relay = True
+        elif to_type.entity:
+            to_entity = True
         # If they're not relays or entities, load their morphologies
-        if not from_relay:
+        if not from_entity:
             from_morphologies = from_type.list_all_morphologies()
             if len(from_morphologies) == 0:
                 raise MorphologyDataError(
-                    "Can't spoof detailed connection without morphologies for '{}'".format(
-                        from_type.name
-                    )
+                    "Can't spoof detailed connection without morphologies for "
+                    f"'{from_type.name}'"
                 )
-        if not to_relay:
+        if not to_entity:
             to_morphologies = to_type.list_all_morphologies()
             if len(to_morphologies) == 0:
                 raise MorphologyDataError(
@@ -205,9 +204,9 @@ class SpoofDetails(PostProcessingHook):
         # Under no circumstances should entities or relays be represented as actual
         # morphologies, so this should not matter: the data just needs to be spoofed for
         # other parts of the scaffold to function.
-        if from_relay:
+        if from_entity:
             from_morphologies = [to_morphologies[0]]
-        if to_relay:
+        if to_entity:
             to_morphologies = [from_morphologies[0]]
 
         # Use only the first morphology for spoofing.
@@ -226,7 +225,7 @@ class SpoofDetails(PostProcessingHook):
         to_m = self.scaffold.morphology_repository.load(to_morphologies[0])
         # Select random axons and dendrites to connect
         axons = np.array(from_m.get_compartment_submask(["axon"]))
-        dendrites = np.array(from_m.get_compartment_submask(["dendrites"]))
+        dendrites = np.array(to_m.get_compartment_submask(["dendrites"]))
         compartments = np.column_stack(
             (
                 axons[np.random.randint(0, len(axons), len(connectivity_matrix))],
