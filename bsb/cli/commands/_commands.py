@@ -1,6 +1,7 @@
 """
 Contains builtin commands.
 """
+from uuid import uuid4
 
 from . import BaseCommand
 from ...option import BsbOption
@@ -201,11 +202,12 @@ class BsbSimulate(BaseCommand, name="simulate"):
                 if name not in network.simulations and name == sim_name:
                     network.simulations[sim_name] = sim
         try:
-            network.run_simulation(sim_name)
+            result = network.run_simulation(sim_name)
         except NodeNotFoundError as e:
             append = ", " if len(network.simulations) else ""
             append += ", ".join(f"'{name}'" for name in extra_simulations.keys())
             errr.wrap(type(e), e, append=append)
+        result.write(f"{uuid4()}.nio", "ow")
 
     def get_options(self):
         return {
