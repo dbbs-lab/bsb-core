@@ -16,14 +16,14 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 requires = [
-    "bsb-hdf5~=0.4.2",
+    "bsb-hdf5==0.5",
     "h5py~=3.0",
     "numpy~=1.19",
     "scipy~=1.5",
     "scikit-learn~=1.0",
     "plotly~=5.5",
     "colour~=0.1",
-    "errr~=1.1.1",
+    "errr~=1.2.0",
     "rtree~=0.9",
     "psutil~=5.8",
     "pynrrd~=0.4",
@@ -103,7 +103,7 @@ setuptools.setup(
             "sphinxext-bsb~=0.0.2",
         ],
         "arbor": ["arbor~=0.6"],
-        "neuron": ["dbbs_models~=2.0.0", "nrn-patch~=3.0.1"],
+        "neuron": ["dbbs_models==4.0.0a0", "nrn-patch==4.0.0a0"],
         "mpi": ["mpi4py~=3.0", "zwembad", "mpilock~=1.1"],
     },
 )

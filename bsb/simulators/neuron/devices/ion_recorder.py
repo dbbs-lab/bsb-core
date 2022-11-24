@@ -2,7 +2,6 @@ from ..device import NeuronDevice
 from ....simulation.device import Patternless
 from ....simulation.results import SimulationRecorder
 from ....reporting import report, warn
-from arborize import get_section_synapses
 import numpy as np
 import itertools
 
