@@ -9,6 +9,7 @@ from ._backends import get_simulation_nodes
 from .cell import CellModel
 from .connection import ConnectionModel
 from .device import DeviceModel
+from ..config import types as cfgtypes
 
 
 class ProgressEvent:
@@ -25,6 +26,7 @@ class Simulation:
     cell_models = config.slot(type=CellModel, required=True)
     connection_models = config.slot(type=ConnectionModel, required=True)
     devices = config.slot(type=DeviceModel, required=True)
+    post_prepare = config.list(type=cfgtypes.class_())
 
     @staticmethod
     def __plugins__():
@@ -78,8 +80,6 @@ class Simulation:
         progress = types.SimpleNamespace(
             progression=step, duration=self._progdur, time=time()
         )
-        for listener in self._progress_listeners:
-            listener(progress)
         self._last_progtic = now
         return progress
 
