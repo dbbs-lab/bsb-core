@@ -16,7 +16,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 requires = [
-    "bsb-hdf5==0.5",
+    "bsb-hdf5==0.5.dev0",
     "h5py~=3.0",
     "numpy~=1.19",
     "scipy~=1.5",
@@ -105,7 +105,7 @@ setuptools.setup(
             "snakeviz",
         ],
         "arbor": ["arbor~=0.6"],
-        "neuron": ["dbbs_models==4.0.0a0", "nrn-patch==4.0.0a0"],
+        "neuron": ["NEURON>=8.0", "arborize==4.0.0a0"],
         "mpi": ["mpi4py~=3.0", "zwembad", "mpilock~=1.1"],
     },
 )

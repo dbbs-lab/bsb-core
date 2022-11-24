@@ -1,4 +1,4 @@
-__version__ = "4.0.0a42"
+__version__ = "4.0.0a43.dev1"
 
 import functools
 
@@ -16,9 +16,7 @@ except AttributeError:
 
     functools.singledispatchmethod.register = _register
 
-
 from .options import profiling as _pr
-
 
 if _pr:
     from .profiling import activate_session
@@ -28,7 +26,6 @@ if _pr:
     meter.start()
 
 from . import reporting
-
 
 reporting.setup_reporting()
 
