@@ -340,7 +340,7 @@ class Scaffold:
         """
         simulation = self.get_simulation(simulation_name)
         adapter = get_simulation_adapter(simulation.simulator)
-        adapter.simulate(simulation)
+        return adapter.simulate(simulation)
 
     def get_simulation(self, sim_name):
         """
