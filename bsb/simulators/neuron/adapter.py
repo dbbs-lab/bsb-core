@@ -1,42 +1,28 @@
 import contextlib
 import itertools
 import os
-import random
 import time
-import traceback
 
 import errr
 import numpy as np
+import typing
 
 from bsb.exceptions import AdapterError, DatasetNotFoundError, TransmitterError
-from bsb.reporting import report, warn
+from bsb.reporting import report
 from bsb.services import MPI
 from bsb.simulation.adapter import SimulatorAdapter
 from bsb.simulation.results import SimulationRecorder, SimulationResult
 from bsb.storage import Chunk
 
-
-class NeuronEntity:
-    @classmethod
-    def instantiate(cls, **kwargs):
-        instance = cls()
-        instance.entity = True
-        for k, v in kwargs.items():
-            instance.__dict__[k] = v
-        return instance
-
-    def set_reference_id(self, id):
-        self.ref_id = id
-
-    def record_soma(self):
-        raise NotImplementedError("Entities do not have a soma to record.")
+if typing.TYPE_CHECKING:
+    from bsb.simulation.simulation import Simulation
 
 
 class SimulationData:
     def __init__(self):
         self.chunks = None
         self.cells = dict()
-        self.result = None
+        self.result: SimulationResult = None
 
 
 @contextlib.contextmanager
@@ -51,6 +37,8 @@ def fill_parameter_data(parameters, data):
 
 
 class NeuronAdapter(SimulatorAdapter):
+    initial = -65
+
     def __init__(self):
         super().__init__()
         self.engine = None
@@ -78,24 +66,25 @@ class NeuronAdapter(SimulatorAdapter):
             self.create_neurons(simulation)
             MPI.barrier()
             report("Creating transmitters", level=2)
-            self.create_transmitters()
+            # self.create_transmitters()
             report("", level=3)
-            self.create_source_vars()
+            # self.create_source_vars()
             report("Indexing relays", level=2)
-            self.index_relays()
+            # self.index_relays()
             MPI.barrier()
             report("Creating receivers", level=2)
-            self.create_receivers()
+            # self.create_receivers()
             MPI.barrier()
             report("Preparing devices", level=2)
-            self.prepare_devices()
+            # self.prepare_devices()
             MPI.barrier()
             report("Creating devices", level=2)
-            self.create_devices()
+            # self.create_devices()
             MPI.barrier()
         except Exception:
             del self.simdata[simulation]
             raise
+        return self.simdata[simulation]
 
     def load_balance(self, simulation):
         chunk_stats = simulation.scaffold.storage.get_chunk_stats()
@@ -104,23 +93,21 @@ class NeuronAdapter(SimulatorAdapter):
         all_chunks = [Chunk.from_id(int(chunk), None) for chunk in chunk_stats.keys()]
         self.simdata[simulation].chunks = all_chunks[rank::size]
 
-    def run(self, simulation):
+    def run(self, simulation: "Simulation"):
         if simulation not in self.simdata:
             raise AdapterError("Simulation was not prepared")
+        data = self.simdata[simulation]
         try:
-            pc = simulator.parallel
-            self.pc = pc
-            pc.barrier()
             report("Simulating...", level=2)
+            pc = self.engine.ParallelContext()
             pc.set_maxstep(10)
-            simulator.finitialize(self.initial)
+            self.engine.finitialize(self.initial)
             progression = 0
-            self.start_progress(self.duration)
-            for oi, i in self.step_progress(self.duration, 1):
+            simulation.start_progress(simulation.duration)
+            for oi, i in simulation.step_progress(simulation.duration, 1):
                 t = time.time()
                 pc.psolve(i)
-                pc.barrier()
-                self.progress(i)
+                simulation.progress(i)
                 if os.path.exists("interrupt_neuron"):
                     report("Iterrupt requested. Stopping simulation.", level=1)
                     break
@@ -128,7 +115,12 @@ class NeuronAdapter(SimulatorAdapter):
         finally:
             result = self.simdata[simulation].result
             del self.simdata[simulation]
+
         return result
+
+    def collect(self, simulation: "Simulation", data: SimulationData):
+        data.result.flush()
+        return data.result
 
     def create_transmitters(self):
         # Concatenates all the `from` locations of all intersections together and creates
@@ -244,7 +236,7 @@ class NeuronAdapter(SimulatorAdapter):
                 continue
             ps = cell_model.cell_type.get_placement_set()
             for chunk in simdata.chunks:
-                self.create_chunk_neurons(chunk, simdata, simulation, cell_model, ps)
+                self._create_chunk_neurons(chunk, simdata, simulation, cell_model, ps)
 
     def _create_chunk_neurons(self, chunk, simdata, simulation, cell_model, ps):
         with ps.chunk_context(chunk):
@@ -256,9 +248,7 @@ class NeuronAdapter(SimulatorAdapter):
                     data.append(itertools.repeat(None))
 
             with fill_parameter_data(cell_model.parameters, data):
-                simdata.cells[chunk] = [
-                    cell_model.create(i, *datum) for i, datum in enumerate(data)
-                ]
+                simdata.cells[chunk] = cell_model.create_instances(len(ps), *data)
 
     def prepare_devices(self):
         device_module = __import__("devices", globals(), level=1)
