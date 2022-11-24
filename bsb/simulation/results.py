@@ -6,19 +6,19 @@ class SimulationResult:
     def __init__(self, simulation):
         from neo import Block
 
-        self.block = Block(name=simulation.name, config=simulation.__tree__())
+        tree = simulation.__tree__()
+        del tree["post_prepare"]
+        self.block = Block(name=simulation.name, config=tree)
         self.recorders = []
 
     def add(self, recorder):
         self.recorders.append(recorder)
 
-    def create_recorder(self, path_func, data_func, meta_func=None):
-        recorder = ClosureRecorder(path_func, data_func, meta_func)
+    def create_recorder(self, flush):
+        recorder = SimulationRecorder
+        recorder.flush = flush
         self.add(recorder)
         return recorder
-
-    def _collect(self, recorder):
-        return recorder.get_path(), recorder.get_data(), recorder.get_meta()
 
     def flush(self):
         from neo import Segment
@@ -32,18 +32,12 @@ class SimulationResult:
                 traceback.print_exc()
                 warn("Recorder errored out!")
 
-    def write(self):
+    def write(self, filename, mode):
         from neo import io
 
-        io.NixIO("test.nix", mode="ow").write(self.block)
+        io.NixIO(filename, mode=mode).write(self.block)
 
 
 class SimulationRecorder:
     def flush(self):
         raise NotImplementedError("Recorders need to implement the `flush` function.")
-
-
-class ClosureRecorder(SimulationRecorder):
-    def __init__(self, flush_func):
-        super().__init__()
-        self.flush = flush_func
