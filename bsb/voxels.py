@@ -549,8 +549,8 @@ class VoxelSet:
         size = mdc - ldc
         per_side = _eq_sides(size, estimate_n)
         voxel_size = size / per_side
-        squash_voxel = _squash_zero(voxel_size)
-        branch_vcs = [b.points // squash_voxel for b in morphology.branches]
+        _squash_temp = _squash_zero(voxel_size)
+        branch_vcs = [b.points // _squash_temp for b in morphology.branches]
         if with_data:
             voxel_reduce = {}
             for branch, point_vcs in enumerate(branch_vcs):
