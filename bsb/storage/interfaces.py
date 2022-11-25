@@ -943,9 +943,9 @@ class ConnectivityIterator:
         self._gchunks = gchunks
 
     def __copy__(self):
-        return ConnectivityIterator(
-            self._cs, self._dir, self._lchunks.copy(), self._gchunks.copy()
-        )
+        lchunks = self._lchunks.copy() if self._lchunks is not None else None
+        gchunks = self._gchunks.copy() if self._gchunks is not None else None
+        return ConnectivityIterator(self._cs, self._dir, lchunks, gchunks)
 
     def __iter__(self):
         yield from (
