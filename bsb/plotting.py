@@ -211,8 +211,8 @@ def _plot_network(network, fig, cubic, swapaxes):
             continue
         pos = type.get_placement_set().load_positions()
         color = type.plotting.color if type.plotting else "black"
-        opacity=type.plotting.opacity if type.plotting else 0
-        name=type.plotting.display_name or type.name if type.plotting else "None"
+        opacity = type.plotting.opacity if type.plotting else 0
+        name = type.plotting.display_name or type.name if type.plotting else "None"
         fig.add_trace(
             go.Scatter3d(
                 x=pos[:, 0],
@@ -361,19 +361,19 @@ def plot_voxel_cloud(
 
 def get_branch_trace(branch, offset=[0.0, 0.0, 0.0], color="black", width=1.0):
     if isinstance(color, dict):
-        labels= branch.list_labels()
+        labels = branch.list_labels()
         if "soma" in labels:
             color = color["soma"]
         elif "basal_dendrites" in labels:
             color = "lightblue"
         elif "apical_dendrites" in labels:
             color = "blue"
-        elif 'aa_targets' in labels:
-            color = 'red'
-        elif 'pf_targets' in labels:
-            color = 'violet'
-        elif 'sc_targets' in labels:
-            color = 'yellow'
+        elif "aa_targets" in labels:
+            color = "red"
+        elif "pf_targets" in labels:
+            color = "violet"
+        elif "sc_targets" in labels:
+            color = "yellow"
         elif "dendrites" in labels:
             color = "blue"
         elif "ascending_axon" in labels:
@@ -385,7 +385,7 @@ def get_branch_trace(branch, offset=[0.0, 0.0, 0.0], color="black", width=1.0):
         elif "axon" in labels:
             color = color["axon"]
         else:
-            color="grey"
+            color = "grey"
     return go.Scatter3d(
         x=branch.points[:, 0],
         y=branch.points[:, 2],
@@ -469,7 +469,7 @@ def plot_morphology(
         traces.append(get_branch_trace(branch, offset, color=color, width=width))
     for trace in traces:
         fig.add_trace(trace)
-    #return fig
+    # return fig
 
 
 @_figure
@@ -598,31 +598,20 @@ def set_morphology_scene_range(scene, offset_morphologies):
     :param scene: A scene of the figure. If the figure itself is given, ``figure.layout.scene`` will be used.
     :param offset_morphologies: A list of tuples where the first element is offset and the 2nd is the :class:`Morphology`
     """
-
-    """bounds = np.array([get_morphology_range(m[1], m[0]) for m in offset_morphologies])
-    combined_bounds = np.array(
-        list(zip(np.min(bounds, axis=0)[:, 0], np.max(bounds, axis=0)[:, 1]))
-    )
-    span = max(map(lambda b: b[1] - b[0], combined_bounds))
-    combined_bounds[:, 1] = combined_bounds[:, 0] + span"""
-
-    min_b = np.full((len(offset_morphologies),3),0,dtype=float)
-    max_b = np.full((len(offset_morphologies),3),0,dtype=float)
-    for i,morpho in enumerate(offset_morphologies):
+    min_b = np.full((len(offset_morphologies), 3), 0, dtype=float)
+    max_b = np.full((len(offset_morphologies), 3), 0, dtype=float)
+    for i, morpho in enumerate(offset_morphologies):
         min_b[i] = morpho[1].bounds[0]
         max_b[i] = morpho[1].bounds[1]
-    #print(min_b)
-    #print(max_b)
-    x_min = np.min(min_b[:,0])
-    x_max = np.max(max_b[:,0])
-    y_min = np.min(min_b[:,1])
-    y_max = np.max(max_b[:,1])
-    z_min = np.min(min_b[:,2])
-    z_max = np.max(max_b[:,2])
-    #scene.yaxis.range =
-    #scene.zaxis.range
-    combined_bounds = [[x_min,y_min,z_min],[x_max,y_max,z_max]]
-    #combined_bounds = [[-100,-100,-100],[400,772,300]]
+
+    x_min = np.min(min_b[:, 0])
+    x_max = np.max(max_b[:, 0])
+    y_min = np.min(min_b[:, 1])
+    y_max = np.max(max_b[:, 1])
+    z_min = np.min(min_b[:, 2])
+    z_max = np.max(max_b[:, 2])
+
+    combined_bounds = [[x_min, y_min, z_min], [x_max, y_max, z_max]]
     set_scene_range(scene, combined_bounds)
 
 
