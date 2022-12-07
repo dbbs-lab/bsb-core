@@ -79,4 +79,4 @@ class Intersectional:
                 ln = len(q)
                 return int(np.floor(ln * aff) + np.random.rand() < (ln * aff) % 1)
 
-            yield from (np.random.choice(q, sizemod(q), replace=False) for q in query)
+            return (np.random.choice(q, sizemod(q), replace=False) for q in query)
