@@ -63,6 +63,36 @@ class TestIO(NumpyTestCase, unittest.TestCase):
             self.assertTrue(lbl is b._labels.labels, "Labels should be shared")
             lbl = b._labels.labels
 
+    def test_graph_array(self):
+        file = get_morphology_path("AA0048.swc")
+        m = Morphology.from_swc(file)
+        with open(str(file), "r") as f:
+            content = f.read()
+            data = np.array(
+                [
+                    swc_data
+                    for line in content.split("\n")
+                    if not line.strip().startswith("#")
+                    and (swc_data := [float(x) for x in line.split() if x != ""])
+                ]
+            )
+        converted_samples = m.to_graph_array()[:, 0].astype(int)
+        converted_labels = m.to_graph_array()[:, 1].astype(int)
+        converted_points = m.to_graph_array()[:, 2:5].astype(float)
+        converted_radii = m.to_graph_array()[:, 5].astype(float)
+        converted_parents = m.to_graph_array()[:, 6].astype(int)
+        self.assertTrue(np.array_equal(data[:, 0].astype(int), converted_samples))
+        self.assertTrue(np.array_equal(data[:, 1].astype(int), converted_labels))
+        self.assertClose(data[:, 2:5].astype(float), converted_points)
+        self.assertTrue(np.array_equal(data[:, 5].astype(float), converted_radii))
+        self.assertTrue(np.array_equal(data[:, 6].astype(int), converted_parents))
+
+        with self.assertRaises(NotImplementedError):
+            b = _branch(10)
+            b.label(["B", "A"], [0, 1, 2])
+            m = Morphology([b])
+            m.to_graph_array()
+
 
 def _branch(len=3):
     return Branch(np.ones((len, 3)), np.ones(len), EncodedLabels.none(len), {})
@@ -576,7 +606,7 @@ class TestMorphometry(NumpyTestCase, unittest.TestCase):
         self.adjacency = m.branch_adjacency
         self.branches = m.branches
 
-    def test_empty_branch(self):
+    def test_short_branch(self):
         for attr in (
             "euclidean_dist",
             "vector",
@@ -587,6 +617,14 @@ class TestMorphometry(NumpyTestCase, unittest.TestCase):
             with self.subTest(attr=attr):
                 with self.assertRaises(EmptyBranchError):
                     getattr(self.b0, attr)
+
+        for attr in (
+            "versor",
+            "max_displacement",
+        ):
+            with self.subTest(attr=attr):
+                with self.assertRaises(EmptyBranchError):
+                    getattr(self.bzero1, attr)
 
     def test_zero_len(self):
         for attr in ("euclidean_dist", "path_dist"):
@@ -648,7 +686,6 @@ class TestMorphometry(NumpyTestCase, unittest.TestCase):
             self.branches[5].versor,
             [np.cos((2 / 3) * np.pi), np.sin((2 / 3) * np.pi), 0.0],
         )
-
         pass
 
     def test_displacement(self):

@@ -1,5 +1,6 @@
-import setuptools
 import os
+
+import setuptools
 
 _findver = "__version__ = "
 _rootpath = os.path.join(os.path.dirname(__file__), "bsb", "__init__.py")
@@ -24,7 +25,7 @@ requires = [
     "plotly~=5.5",
     "colour~=0.1",
     "errr~=1.1.1",
-    "rtree~=0.9",
+    "rtree~=1.0",
     "psutil~=5.8",
     "pynrrd~=0.4",
     "morphio~=3.3",
