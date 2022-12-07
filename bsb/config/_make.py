@@ -300,6 +300,17 @@ def _get_class_config_attrs(cls):
     for p_cls in reversed(cls.__mro__):
         if hasattr(p_cls, "_config_attrs"):
             attrs.update(p_cls._config_attrs)
+        else:
+            # Add mixin config attributes
+            from ._attrs import ConfigurationAttribute
+
+            attrs.update(
+                {
+                    key: attr
+                    for key, attr in p_cls.__dict__.items()
+                    if isinstance(attr, ConfigurationAttribute)
+                }
+            )
         for unset in getattr(p_cls, "_config_unset", []):
             attrs.pop(unset, None)
     return attrs
