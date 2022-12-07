@@ -16,6 +16,8 @@ except AttributeError:
 
     functools.singledispatchmethod.register = _register
 
+from .options import profiling as _pr
+
 if _pr:
     from .profiling import activate_session
 
