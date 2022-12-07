@@ -54,7 +54,7 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/dbbs-lab/bsb",
     license="GPLv3",
-    packages=setuptools.find_packages(),
+    packages=setuptools.find_packages(exclude=["tests"]),
     classifiers=[
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3 :: Only",
