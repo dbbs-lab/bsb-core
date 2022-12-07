@@ -15,6 +15,7 @@ from .config._config import Configuration
 from .services.pool import create_job_pool
 from .services import MPI
 from ._util import obj_str_insert
+from .profiling import meter
 
 _cfg_props = (
     "network",
@@ -40,6 +41,7 @@ def _config_property(name):
     return prop.setter(fset)
 
 
+@meter()
 def from_hdf5(file, missing_ok=False):
     """
     Generate a :class:`.core.Scaffold` from an HDF5 file.
@@ -203,6 +205,7 @@ class Scaffold:
             box_layout([0.0, 0.0, 0.0], [self.network.x, self.network.y, self.network.z])
         )
 
+    @meter()
     def run_placement(self, strategies=None, DEBUG=True):
         """
         Run placement strategies.
@@ -225,6 +228,7 @@ class Scaffold:
         else:
             pool.execute()
 
+    @meter()
     def run_connectivity(self, strategies=None, DEBUG=True):
         """
         Run connection strategies.
@@ -247,12 +251,14 @@ class Scaffold:
         else:
             pool.execute()
 
+    @meter()
     def run_placement_strategy(self, strategy):
         """
         Run a single placement strategy.
         """
         self.run_placement([strategy])
 
+    @meter()
     def run_after_placement(self):
         """
         Run after placement hooks.
@@ -264,6 +270,7 @@ class Scaffold:
         #     pool.queue(hook.after_placement)
         # pool.execute(self._pool_event_loop)
 
+    @meter()
     def run_after_connectivity(self):
         """
         Run after placement hooks.
@@ -273,6 +280,7 @@ class Scaffold:
         # for hook in self.configuration.after_connectivity.values():
         #     hook.after_connectivity()
 
+    @meter()
     def compile(
         self,
         skip_placement=False,
@@ -335,6 +343,7 @@ class Scaffold:
         # the `clear`, `redo` and `append` flags take effect on a second `compile` pass.
         self.storage._preexisted = True
 
+    @meter()
     def run_simulation(self, simulation_name, quit=False):
         """
         Run a simulation starting from the default single-instance adapter.
