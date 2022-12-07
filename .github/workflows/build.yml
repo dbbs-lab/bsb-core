@@ -38,10 +38,8 @@ jobs:
         pip install -e .
     - name: Run tests & coverage
       run: |
-        # coverage run -p -m unittest discover -v -s ./tests
-        # mpiexec -n 2 coverage run -p -m unittest discover -v -s ./tests
-        ls -la .
-        ls -la tests
+        coverage run -p -m unittest discover -v -s ./tests
+        mpiexec -n 2 coverage run -p -m unittest discover -v -s ./tests
         BSB_PROFILING=TRUE coverage run -p -m unittest tests.test_env_options
         bash <(curl -s https://codecov.io/bash)
     - name: Test default plugins
