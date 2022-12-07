@@ -18,6 +18,7 @@ import importlib
 import inspect
 import sys
 import os
+import types
 
 
 def make_metaclass(cls):
@@ -86,7 +87,13 @@ def make_metaclass(cls):
 
     # Avoid metaclass conflicts by prepending our rewrite class to existing metaclass MRO
     class NodeMeta(ConfigArgRewrite, *cls.__class__.__mro__):
-        pass
+        def __new__(cls, *args, **kwargs):
+            rcls = super().__new__(cls, *args, **kwargs)
+            # `__init_subclass__` refused to be called with correct subclass, so call
+            # it ourselves.
+            if hasattr(rcls.__bases__[0], "_cfgnode_replaced_ics"):
+                rcls.__bases__[0]._cfgnode_replaced_ics(rcls, **kwargs)
+            return rcls
 
     return NodeMeta
 
@@ -102,6 +109,18 @@ def compile_class(cls):
         cl = getattr(method, "__closure__", None)
         if cl and cl[0].cell_contents is cls:
             cl[0].cell_contents = ncls
+
+    # Shitty hack, for some reason I couldn't find a way to override the first argument
+    # of `__init_subclass__` methods, that would otherwise work on other classmethods,
+    # so we noop the actual `__init_subclass__` and we call `__init_subclass__` ourselves
+    # from the metaclass' `__new__` method, where the argument replacement works as usual.
+    if (
+        hasattr(ncls, "__init_subclass__")
+        and "__init_subclass__" in ncls.__dict__
+        and not isinstance(ncls.__init_subclass__, types.BuiltinFunctionType)
+    ):
+        ncls._cfgnode_replaced_ics = ncls.__init_subclass__.__func__
+        ncls.__init_subclass__ = lambda *args, **kwargs: None
     classmap = getattr(ncls, "_config_dynamic_classmap", None)
     if classmap is not None:
         # Replace the reference to the old class with the new class.

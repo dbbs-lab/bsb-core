@@ -1,5 +1,6 @@
 *
 !.gitignore
+!__init__.py
 !test_*
 !data
 !data/configs
