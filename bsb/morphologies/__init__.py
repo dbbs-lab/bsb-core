@@ -1131,10 +1131,11 @@ class Branch:
         """
         Return the normalized vector of the axis connecting the start and terminal points.
         """
-        try:
-            return (self.end - self.start) / np.linalg.norm(self.end - self.start)
-        except IndexError:
-            raise EmptyBranchError("Empty branch has no versor") from None
+        versor = (self.end - self.start) / np.linalg.norm(self.end - self.start)
+        if np.any(np.isnan(versor)):
+            raise EmptyBranchError("Empty and single-point branched have no versor")
+        else:
+            return versor
 
     @property
     def euclidean_dist(self):
@@ -1165,7 +1166,9 @@ class Branch:
             )
             return np.max(displacements)
         except IndexError:
-            raise EmptyBranchError("Empty branch has no displaced points") from None
+            raise EmptyBranchError(
+                "Impossible to compute max_displacement in branches with 0 or 1 points."
+            ) from None
 
     @property
     def fractal_dim(self):
