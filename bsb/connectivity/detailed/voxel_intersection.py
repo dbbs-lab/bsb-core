@@ -17,7 +17,6 @@ class VoxelIntersection(Intersectional, ConnectionStrategy):
     This strategy finds overlap between voxelized morphologies.
     """
 
-    affinity = config.attr(type=types.fraction(), default=1)
     contacts = config.attr(type=types.distribution(), default=1)
     voxels_pre = config.attr(type=int, default=50)
     voxels_post = config.attr(type=int, default=50)
