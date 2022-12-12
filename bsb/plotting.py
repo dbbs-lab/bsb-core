@@ -370,14 +370,28 @@ def get_branch_trace(branch, offset=[0.0, 0.0, 0.0], color="black", width=1.0):
         labels = branch.list_labels()
         if "soma" in labels:
             color = color["soma"]
-        if "dendrites" in labels:
-            color = color["dendrites"]
-        if "basal_dendrites" in labels:
-            color = "red"
-        if "apical_dendrites" in labels:
+        elif "basal_dendrites" in labels:
+            color = "lightblue"
+        elif "apical_dendrites" in labels:
             color = "blue"
-        if "axon" in labels:
+        elif "aa_targets" in labels:
+            color = "red"
+        elif "pf_targets" in labels:
+            color = "violet"
+        elif "sc_targets" in labels:
+            color = "yellow"
+        elif "dendrites" in labels:
+            color = "blue"
+        elif "ascending_axon" in labels:
+            color = "darkgreen"
+        elif "parallel_fiber" in labels:
+            color = "lime"
+        elif "axonal_initial_segment" in labels:
+            color = "lightseagreen"
+        elif "axon" in labels:
             color = color["axon"]
+        else:
+            color = "grey"
     return go.Scatter3d(
         x=branch.points[:, 0],
         y=branch.points[:, 2],
