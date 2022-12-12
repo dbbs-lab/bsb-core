@@ -87,7 +87,7 @@ class ParallelArrayPlacement(NotParallel, PlacementStrategy):
                     cs = self.scaffold.configuration.network.chunk_size
                     pos_chunk = chunk + [np.floor_divide(p, cs[0])]
                     mychunk = Chunk(pos_chunk[0], cs)
-                    self.place_cells(indicator, p, chunk=mychunk)
+                    self.place_cells(indicator, [p], chunk=mychunk)
                 report(
                     f"Placing {len(positions)} {cell_type.name} in {prt.name}", level=3
                 )
