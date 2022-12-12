@@ -2,13 +2,10 @@ from .strategy import PlacementStrategy
 import math, numpy as np
 from .. import config
 from ..config import types
-from ..mixins import NotParallel
-from ..storage import Chunk
-from ..reporting import report, warn
 
 
 @config.node
-class ParallelArrayPlacement(NotParallel, PlacementStrategy):
+class ParallelArrayPlacement(PlacementStrategy):
     """
     Implementation of the placement of cells in parallel arrays.
     """
@@ -27,7 +24,7 @@ class ParallelArrayPlacement(NotParallel, PlacementStrategy):
                 width, height, depth = prt.data.mdc - prt.data.ldc
                 ldc = prt.data.ldc
                 # Extension of a single array in the X dimension
-                spacing_x = self.spacing_x / np.cos(self.angle)
+                spacing_x = self.spacing_x
                 # Add a random shift to the starting points of the arrays for variation.
                 x_shift = np.random.rand() * spacing_x
                 # Place purkinje cells equally spaced over the entire length of the X axis kept apart by their dendritic trees.
@@ -40,7 +37,7 @@ class ParallelArrayPlacement(NotParallel, PlacementStrategy):
                 # Amount of parallel arrays of cells
                 n_arrays = x_pos.shape[0]
                 # Number of cells
-                n = np.sum(indicator.guess(prt.data))
+                n = np.sum(indicator.guess(chunk))
                 # Add extra cells to fill the lattice error volume which will be pruned
                 n += int((n_arrays * spacing_x % width) / width * n)
                 # cells to distribute along the rows
@@ -82,12 +79,4 @@ class ParallelArrayPlacement(NotParallel, PlacementStrategy):
                     cells[(i * len(x)) : ((i + 1) * len(x)), 2] = z
                 # Place all the cells in 1 batch (more efficient)
                 positions = cells[cells[:, 0] < width - radius]
-
-                for p in positions:
-                    cs = self.scaffold.configuration.network.chunk_size
-                    pos_chunk = chunk + [np.floor_divide(p, cs[0])]
-                    mychunk = Chunk(pos_chunk[0], cs)
-                    self.place_cells(indicator, p, chunk=mychunk)
-                report(
-                    f"Placing {len(positions)} {cell_type.name} in {prt.name}", level=3
-                )
+                self.place_cells(indicator, positions, chunk=chunk)

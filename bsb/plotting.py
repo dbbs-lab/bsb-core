@@ -578,19 +578,12 @@ def set_morphology_scene_range(scene, offset_morphologies):
     :param scene: A scene of the figure. If the figure itself is given, ``figure.layout.scene`` will be used.
     :param offset_morphologies: A list of tuples where the first element is offset and the 2nd is the :class:`Morphology`
     """
-
-    min_b = np.full((len(offset_morphologies), 3), 0, dtype=float)
-    max_b = np.full((len(offset_morphologies), 3), 0, dtype=float)
-    for i, morpho in enumerate(offset_morphologies):
-        min_b[i] = morpho[1].bounds[0]
-        max_b[i] = morpho[1].bounds[1]
-    x_min = np.min(min_b[:, 0])
-    x_max = np.max(max_b[:, 0])
-    y_min = np.min(min_b[:, 1])
-    y_max = np.max(max_b[:, 1])
-    z_min = np.min(min_b[:, 2])
-    z_max = np.max(max_b[:, 2])
-    combined_bounds = [[x_min, y_min, z_min], [x_max, y_max, z_max]]
+    bounds = np.array([get_morphology_range(m[1], m[0]) for m in offset_morphologies])
+    combined_bounds = np.array(
+        list(zip(np.min(bounds, axis=0)[:, 0], np.max(bounds, axis=0)[:, 1]))
+    )
+    span = max(map(lambda b: b[1] - b[0], combined_bounds))
+    combined_bounds[:, 1] = combined_bounds[:, 0] + span
     set_scene_range(scene, combined_bounds)
 
 
@@ -599,9 +592,7 @@ def get_morphology_range(morphology, offset=None, soma_radius=None):
         offset = [0.0, 0.0, 0.0]
     r = soma_radius or 0.0
     itr = enumerate(morphology.flatten())
-    print(offset)
-    r = [[min(min(v), -r) + offset, max(max(v), r) + offset] for i, v in itr]
-    print(r)
+    r = [[min(min(v), -r) + offset[i], max(max(v), r) + offset[i]] for i, v in itr]
     return r
 
 
