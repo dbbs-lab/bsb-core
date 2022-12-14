@@ -94,7 +94,7 @@ class ParallelArrayPlacement(NotParallel, PlacementStrategy):
                 for c in unique_chunks_list:
                     idx = np.where((chunks_list == c).all(axis=1))
                     pos_current_chunk = positions[idx]
-                    self.place_cells(indicator, [pos_current_chunk], chunk=c)
+                    self.place_cells(indicator, pos_current_chunk, chunk=c)
                 report(
                     f"Placing {len(positions)} {cell_type.name} in {prt.name}", level=3
                 )
