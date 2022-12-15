@@ -1,0 +1,149 @@
+{
+  "name": "net configuration using bsb v4.0",
+  "storage": {
+    "engine": "hdf5",
+    "root": "network.hdf5"
+  },
+  "network": {
+    "x": 100.0,
+    "y": 100.0,
+    "z": 100.0,
+    "chunk_size": [50, 50, 50]
+  },
+  "partitions": {
+      "layer1": {
+      "thickness": 100.0,
+      "stack_index": 1
+    },
+    "layer2": {
+      "thickness": 20.0,
+      "stack_index": 2
+    },
+    "layer3": {
+      "thickness": 50.0,
+      "stack_index": 3
+    }
+},
+  "regions": {
+    "brainRegion": {
+      "type": "stack",
+      "children": ["layer1", "layer2", "layer3"]
+    }
+  },
+  "cell_types": {
+
+    "cell_A": {
+      "spatial": {
+        "radius": 2.5,
+        "density": 3.9e-3,
+        "morphologies": [
+          {
+            "names": ["cellA"]
+          }
+        ]
+      },
+      "plotting": {
+        "display_name": "cell A",
+        "color": "#e81005",
+        "opacity": 0.3
+      }
+    },
+    "cell_B": {
+      "spatial": {
+        "radius": 7.5,
+        "planar_density": 0.0017,
+        "morphologies": [
+          {
+            "names": ["cellB"]
+          }
+        ]
+      },
+      "plotting": {
+        "display_name": "cell B",
+        "color": "#068f0d"
+      }
+    },
+    "cell_C": {
+      "spatial": {
+        "radius": 8.0,
+        "density": 9e-6,
+        "geometry": {
+          "axon_radius": 160
+        },
+        "morphologies": [
+          {
+            "names": ["cellC"]
+          }
+        ]
+      },
+      "plotting": {
+        "display_name": "cell C",
+        "color": "#1009e3"
+      }
+    },
+    "interneuronA": {
+      "spatial": {
+        "radius": 4.0,
+        "density": 0.5e-4,
+        "morphologies": [
+          {
+            "names": ["interneuronA"]
+          }
+        ]
+      },
+      "plotting": {
+        "display_name": "interneuron A",
+        "color": "#f5bb1d"
+      }
+    },
+    "interneuronB": {
+      "spatial": {
+        "radius": 6.0,
+        "density": 0.5e-4,
+        "morphologies": [
+          {
+            "names": ["interneuronB"]
+          }
+        ]
+      },
+      "plotting": {
+        "display_name": "interneuron B",
+        "color": "#f5830a"
+      }
+    }
+  },
+  "placement": {
+    "layer1_placement": {
+      "strategy": "bsb.placement.RandomPlacement",
+      "partitions": ["layer1"],
+      "cell_types": ["cell_A", "cell_C"]
+    },
+    "layer2_placement": {
+      "strategy": "bsb.placement.RandomPlacement",
+      "partitions": ["layer2"],
+      "cell_types": ["cell_B"]
+    },
+    "layer3_placement": {
+      "strategy": "bsb.placement.RandomPlacement",
+      "partitions": ["layer3"],
+      "cell_types": ["interneuronA", "interneuronB"]
+    }
+  },
+
+  "connectivity": {
+    "connectivity_AC": {
+      "strategy": "bsb.connectivity.VoxelIntersection",
+      "presynaptic": {
+        "cell_types": ["cell_A"],
+        "morphology_labels": ["parallel_fiber"]
+      },
+      "postsynaptic": {
+        "cell_types": ["cell_C"],
+        "morphology_labels": ["apical_dendrites"]
+      },
+      "affinity": 0.1
+    }
+  },
+  "after_placement": { },
+  "simulations": { }
+}
