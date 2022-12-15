@@ -16,6 +16,18 @@ except AttributeError:
 
     functools.singledispatchmethod.register = _register
 
+from .options import profiling as _pr
+
+if _pr:
+    from .profiling import activate_session
+
+    session = activate_session()
+    meter = session.meter("root_module")
+    meter.start()
+
 from . import reporting
 
 reporting.setup_reporting()
+
+if _pr:
+    meter.stop()
