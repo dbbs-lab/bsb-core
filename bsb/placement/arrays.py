@@ -27,7 +27,7 @@ class ParallelArrayPlacement(NotParallel, PlacementStrategy):
                 width, height, depth = prt.data.mdc - prt.data.ldc
                 ldc = prt.data.ldc
                 # Extension of a single array in the X dimension
-                spacing_x = self.spacing_x / np.cos(self.angle)
+                spacing_x = self.spacing_x
                 # Add a random shift to the starting points of the arrays for variation.
                 x_shift = np.random.rand() * spacing_x
                 # Place purkinje cells equally spaced over the entire length of the X axis kept apart by their dendritic trees.
