@@ -96,5 +96,5 @@ class ParallelArrayPlacement(NotParallel, PlacementStrategy):
                     pos_current_chunk = positions[idx]
                     self.place_cells(indicator, pos_current_chunk, chunk=c)
                 report(
-                    f"Placing {len(positions)} {cell_type.name} in {prt.name}", level=3
+                    f"Placed {len(positions)} {cell_type.name} in {prt.name}", level=3
                 )
