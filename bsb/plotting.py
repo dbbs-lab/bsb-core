@@ -4,6 +4,7 @@ import numpy as np, math, functools
 from contextlib import contextmanager
 import random, types
 from .reporting import warn
+from colour import Color
 
 
 class CellTrace:
@@ -210,7 +211,14 @@ def _plot_network(network, fig, cubic, swapaxes):
         if type.entity:
             continue
         pos = type.get_placement_set().load_positions()
-        color = type.plotting.color
+        if type.plotting:
+            color = type.plotting.color
+            opacity = type.plotting.opacity
+            name = type.plotting.display_name or type.name
+        else:
+            color = Color(pick_for=type).hex
+            opacity = 1
+            name = type.name
         fig.add_trace(
             go.Scatter3d(
                 x=pos[:, 0],
@@ -218,8 +226,8 @@ def _plot_network(network, fig, cubic, swapaxes):
                 z=pos[:, 2 if not swapaxes else 1],
                 mode="markers",
                 marker=dict(color=color, size=type.spatial.radius),
-                opacity=type.plotting.opacity,
-                name=type.plotting.display_name or type.name,
+                opacity=opacity,
+                name=name,
             )
         )
         xmin = min(xmin, np.min(pos[:, 0], initial=0))
@@ -358,6 +366,32 @@ def plot_voxel_cloud(
 
 
 def get_branch_trace(branch, offset=[0.0, 0.0, 0.0], color="black", width=1.0):
+    if isinstance(color, dict):
+        labels = branch.list_labels()
+        if "soma" in labels:
+            color = color["soma"]
+        elif "basal_dendrites" in labels:
+            color = "lightblue"
+        elif "apical_dendrites" in labels:
+            color = "blue"
+        elif "aa_targets" in labels:
+            color = "red"
+        elif "pf_targets" in labels:
+            color = "violet"
+        elif "sc_targets" in labels:
+            color = "yellow"
+        elif "dendrites" in labels:
+            color = "blue"
+        elif "ascending_axon" in labels:
+            color = "darkgreen"
+        elif "parallel_fiber" in labels:
+            color = "lime"
+        elif "axonal_initial_segment" in labels:
+            color = "lightseagreen"
+        elif "axon" in labels:
+            color = color["axon"]
+        else:
+            color = "grey"
     return go.Scatter3d(
         x=branch.points[:, 0],
         y=branch.points[:, 2],
@@ -441,7 +475,7 @@ def plot_morphology(
         traces.append(get_branch_trace(branch, offset, color=color, width=width))
     for trace in traces:
         fig.add_trace(trace)
-    return fig
+    # return fig
 
 
 @_figure
@@ -570,12 +604,20 @@ def set_morphology_scene_range(scene, offset_morphologies):
     :param scene: A scene of the figure. If the figure itself is given, ``figure.layout.scene`` will be used.
     :param offset_morphologies: A list of tuples where the first element is offset and the 2nd is the :class:`Morphology`
     """
-    bounds = np.array([get_morphology_range(m[1], m[0]) for m in offset_morphologies])
-    combined_bounds = np.array(
-        list(zip(np.min(bounds, axis=0)[:, 0], np.max(bounds, axis=0)[:, 1]))
-    )
-    span = max(map(lambda b: b[1] - b[0], combined_bounds))
-    combined_bounds[:, 1] = combined_bounds[:, 0] + span
+    min_b = np.full((len(offset_morphologies), 3), 0, dtype=float)
+    max_b = np.full((len(offset_morphologies), 3), 0, dtype=float)
+    for i, morpho in enumerate(offset_morphologies):
+        min_b[i] = morpho[1].bounds[0]
+        max_b[i] = morpho[1].bounds[1]
+
+    x_min = np.min(min_b[:, 0])
+    x_max = np.max(max_b[:, 0])
+    y_min = np.min(min_b[:, 1])
+    y_max = np.max(max_b[:, 1])
+    z_min = np.min(min_b[:, 2])
+    z_max = np.max(max_b[:, 2])
+
+    combined_bounds = [[x_min, y_min, z_min], [x_max, y_max, z_max]]
     set_scene_range(scene, combined_bounds)
 
 
@@ -584,7 +626,9 @@ def get_morphology_range(morphology, offset=None, soma_radius=None):
         offset = [0.0, 0.0, 0.0]
     r = soma_radius or 0.0
     itr = enumerate(morphology.flatten())
-    r = [[min(min(v), -r) + offset[i], max(max(v), r) + offset[i]] for i, v in itr]
+    print(offset)
+    r = [[min(min(v), -r) + offset, max(max(v), r) + offset] for i, v in itr]
+    print(r)
     return r
 
 

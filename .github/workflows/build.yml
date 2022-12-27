@@ -8,22 +8,19 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.8, 3.9]
+        python-version: ["3.8", "3.9", "3.10"]
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v2.5.0
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v4.3.0
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install apt dependencies
       run: |
         sudo apt-get update
         sudo apt-get install openmpi-bin libopenmpi-dev
-    # - name: Install NEST
-    #   run: |
-    #     bash -o errexit devops/install.sh
     - name: Cache pip
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: ~/.cache/pip
         key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
@@ -40,9 +37,11 @@ jobs:
       run: |
         coverage run -p -m unittest discover -v -s ./tests
         mpiexec -n 2 coverage run -p -m unittest discover -v -s ./tests
+        BSB_PROFILING=TRUE coverage run -p -m unittest tests.test_env_options
         bash <(curl -s https://codecov.io/bash)
     - name: Test default plugins
       run: |
         git clone https://github.com/dbbs-lab/bsb-hdf5
+        pip install -e bsb-hdf5/
         coverage run -p -m unittest discover bsb-hdf5/test
         bash <(curl -s https://codecov.io/bash)

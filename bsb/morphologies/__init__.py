@@ -572,6 +572,14 @@ class SubTree:
             root.translate(on - root.points[0])
         return self
 
+    def simplify_branches(self, epsilon):
+        """
+        Apply Ramer–Douglas–Peucker algorithm to all points of all branches of the SubTree.
+        :param epsilon: Epsilon to be used in the algorithm.
+        """
+        for branch in self.branches:
+            branch.simplify(epsilon)
+
     def voxelize(self, N):
         """
         Turn the morphology or subtree into an approximating set of axis-aligned cuboids.
@@ -728,6 +736,15 @@ class Morphology(SubTree):
         return self._meta
 
     @property
+    def adjacency_dictionary(self):
+        """
+        Return a dictonary associating to each key (branch index) a list of adjacent branch indices
+        """
+        branches = self.branches
+        idmap = {b: n for n, b in enumerate(branches)}
+        return {n: list(map(idmap.get, b.children)) for n, b in enumerate(branches)}
+
+    @property
     def labelsets(self):
         """
         Return the sets of labels associated to each numerical label.
@@ -845,6 +862,11 @@ class Morphology(SubTree):
                 branch_copy_map[branch] = nbranch
         # Construct and return the morphology
         return self.__class__(roots, meta=self.meta.copy())
+
+    def simplify(self, *args, optimize=True, **kwargs):
+        super().simplify_branches(*args, **kwargs)
+        if optimize:
+            self.optimize()
 
     @classmethod
     def from_swc(cls, file, branch_class=None, tags=None, meta=None):
@@ -1046,6 +1068,18 @@ class Branch:
             self._points = arr
 
     @property
+    def _kd_tree(self):
+        """
+        Return a `scipy.spatial.cKDTree` of this branch points for fast spatial queries.
+
+        .. warning::
+
+           Constructing a kd-tree takes time and should only be used for repeated querying.
+
+        """
+        return cKDTree(self._points)
+
+    @property
     def point_vectors(self):
         """
         Return the individual vectors between consecutive points on this branch.
@@ -1097,10 +1131,11 @@ class Branch:
         """
         Return the normalized vector of the axis connecting the start and terminal points.
         """
-        try:
-            return (self.end - self.start) / np.linalg.norm(self.end - self.start)
-        except IndexError:
-            raise EmptyBranchError("Empty branch has no versor") from None
+        versor = (self.end - self.start) / np.linalg.norm(self.end - self.start)
+        if np.any(np.isnan(versor)):
+            raise EmptyBranchError("Empty and single-point branched have no versor")
+        else:
+            return versor
 
     @property
     def euclidean_dist(self):
@@ -1131,7 +1166,9 @@ class Branch:
             )
             return np.max(displacements)
         except IndexError:
-            raise EmptyBranchError("Empty branch has no displaced points") from None
+            raise EmptyBranchError(
+                "Impossible to compute max_displacement in branches with 0 or 1 points."
+            ) from None
 
     @property
     def fractal_dim(self):
@@ -1180,6 +1217,14 @@ class Branch:
         """
         return self._labels.labels
 
+    def list_labels(self):
+        """
+        Return a list of labels present on the branch.
+        """
+        lookup = np.vectorize(self._labels.labels.get)
+        labels = np.unique(lookup(self._labels.raw))
+        return sorted(set(_gutil.ichain(labels)))
+
     @property
     def is_root(self):
         """
@@ -1210,7 +1255,7 @@ class Branch:
         :rtype: bsb.morphologies.Branch
         """
         cls = branch_class or type(self)
-        props = {k: v.copy() for k, v in self._properties}
+        props = {k: v.copy() for k, v in self._properties.items()}
         return cls(self._points.copy(), self._radii.copy(), self._labels.copy(), props)
 
     def label(self, labels, points=None):
@@ -1247,6 +1292,59 @@ class Branch:
             branch._parent.detach_child(branch)
         self._children.append(branch)
         branch._parent = self
+
+    def find_closest_point(self, coord):
+        """
+        Return the index of the closest on this branch to a desired coordinate.
+
+        :param coord: The coordinate to find the nearest point to
+        :type: :class:`numpy.ndarray`
+        """
+        diff = np.sqrt(np.sum((self._points - coord) ** 2, axis=1))
+        return np.argmin(diff)
+
+    def insert_branch(self, branch, index):
+        """
+        Split this branch and insert the given ``branch`` at the specified ``index``.
+
+        :param branch: Branch to be attached
+        :type branch: :class:`Branch <.morphologies.Branch>`
+        :param index: Index or coordinates of the cutpoint; if coordinates are given, the closest point to the coordinates is used.
+        :type: Union[:class:`numpy.ndarray`, int]
+        """
+        index = np.array(index, copy=False)
+        if index.ndim != 0:
+            index = self.find_closest_point(index)
+
+        if index < 0 or index >= len(self):
+            raise IndexError(
+                f"Cannot insert branch at cutpoint: index {index} is out of range ({len(self)})"
+            )
+
+        if index == len(self.points) - 1:
+            self.attach_child(branch)
+        elif index == 0:
+            self.parent.attach_child(branch)
+        else:
+            first_segment = Branch(
+                self._points.copy()[: index + 1],
+                self._radii.copy()[: index + 1],
+                self._labels.copy()[: index + 1],
+                {k: v.copy()[: index + 1] for k, v in self._properties.items()},
+            )
+            self.parent.attach_child(first_segment)
+            self.parent.detach_child(self)
+            first_segment.attach_child(branch)
+            second_segment = Branch(
+                self._points.copy()[index:],
+                self._radii.copy()[index:],
+                self._labels.copy()[index:],
+                {k: v.copy()[index:] for k, v in self._properties.items()},
+            )
+            for b in self.children:
+                self.detach_child(b)
+                second_segment.attach_child(b)
+            first_segment.attach_child(second_segment)
 
     def detach_child(self, branch):
         """
@@ -1401,6 +1499,74 @@ class Branch:
                 return i
         return len(self) - 1
 
+    def get_axial_distances(self, idx_start=0, idx_end=-1, return_max=False):
+        """
+        Return the displacements or its max value of a subset of branch points from its axis vector.
+        :param idx_start = 0: index of the first point of the subset.
+        :param idx_end = -1: index of the last point of the subset.
+        :param return_max = False: if True the function only returns the max value of displacements, otherwise the entire array.
+        """
+        start = self.points[idx_start]
+        end = self.points[idx_end]
+        versor = (end - start) / np.linalg.norm(end - start)
+        displacements = np.linalg.norm(
+            np.cross(
+                versor,
+                (self.points[idx_start : idx_end + 1] - self.points[idx_start]),
+            ),
+            axis=1,
+        )
+        if return_max:
+            try:
+                return np.max(displacements)
+            except IndexError:
+                raise EmptyBranchError("Selected an empty subset of points") from None
+        else:
+            return displacements
+
+    def simplify(self, epsilon, idx_start=0, idx_end=-1):
+        """
+        Apply Ramer–Douglas–Peucker algorithm to all points or a subset of points of the branch.
+        :param epsilon: Epsilon to be used in the algorithm.
+        :param idx_start = 0: Index of the first element of the subset of points to be reduced.
+        :param epsilon = -1: Index of the last element of the subset of points to be reduced.
+        """
+        if len(self.points) < 3:
+            return
+        if idx_end == -1:
+            idx_end = len(self.points) - 1
+        if epsilon < 0:
+            raise ValueError(f"Epsilon must be >= 0")
+
+        reduced = []
+        skipped = deque()
+
+        while True:
+            dists = self.get_axial_distances(idx_start, idx_end)
+            try:
+                idx_max = np.argmax(dists)
+                dmax = dists[idx_max]
+                idx_max = idx_start + idx_max
+            except ValueError:
+                dmax = 0
+
+            reduced.append(idx_start)
+            reduced.append(idx_end)
+            if dmax > epsilon and len(dists) > 2:
+                skipped.append((idx_max, idx_end))
+                idx_end = idx_max - 1
+            else:
+                try:
+                    idx_start, idx_end = skipped.pop()
+                except IndexError:
+                    break
+
+        # sorted because indexes are appended to reduced from the middle of the list (the first point with dist > epsilon)
+        # then all points with smaller index  until 0, then all points with bigger index
+        reduced = np.sort(np.unique(reduced))
+        self.points = self.points[reduced]
+        self.radii = self.radii[reduced]
+
     @functools.wraps(SubTree.cached_voxelize)
     @functools.cache
     def cached_voxelize(self, *args, **kwargs):
@@ -1515,8 +1681,20 @@ def _swc_to_morpho(cls, branch_cls, content, tags=None, meta=None):
 def _morpho_to_swc(morpho):
     # Initialize an empty data array
     data = np.empty((len(morpho.points), 7), dtype=object)
+    swc_tags = {"soma": 1, "axon": 2, "dendrites": 3}
     bmap = {}
     nid = 0
+    offset = 0
+    # Convert labels to tags
+    if not hasattr(morpho, "tags"):
+        tags = np.full(len(morpho.points), -1, dtype=int)
+        for key in swc_tags.keys():
+            mask = morpho.get_label_mask([key])
+            tags[mask] = swc_tags[key]
+    else:
+        tags = morpho.tags
+    if np.any(tags == -1):
+        raise NotImplementedError("Can't store morphologies with custom SWC tags")
     # Iterate over the morphology branches
     for b in morpho.branches:
         ids = (
@@ -1524,24 +1702,19 @@ def _morpho_to_swc(morpho):
             if len(b) > 1
             else np.arange(nid, nid + len(b))
         )
-        if len(b.labelsets.keys()) > 4:  # pragma: nocover
-            # Standard labels are 0,1,2,3
-            raise NotImplementedError(
-                "Can't store custom labelled nodes yet,"
-                " requires special handling in morphologies/__init__.py, todo"
-            )
         samples = ids + 1
         data[ids, 0] = samples
-        data[ids, 1] = b.labels[1:] if len(b) > 1 else b.labels
-        data[ids, 2:5] = b.points[1:] if len(b) > 1 else b.points
+        data[ids, 1] = tags[ids + offset]
+        data[ids, 2:5] = morpho.points[ids + offset]
         try:
-            data[ids, 5] = b.radii[1:] if len(b) > 1 else b.radii
+            data[ids, 5] = morpho.radii[ids + offset]
         except Exception as e:
             raise MorphologyDataError(
                 f"Couldn't convert morphology radii to SWC: {e}."
                 " Note that SWC files cannot store multi-dimensional radii"
             )
         nid += len(b) - 1 if len(b) > 1 else len(b)
+        offset += 1
         bmap[b] = ids[-1]
         data[ids, 6] = ids
         data[ids[0], 6] = -1 if b.parent is None else bmap[b.parent] + 1

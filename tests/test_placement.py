@@ -1,5 +1,9 @@
 import unittest, os, sys, numpy as np, h5py
 
+from bsb import config
+from bsb.connectivity import ConnectionStrategy
+from bsb.mixins import NotParallel
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
 from bsb.services import MPI
@@ -153,6 +157,47 @@ class SchedulerBaseTest:
         job = pool.queue_chunk(test_chunk, _chunk(0, 0, 0))
         pool.execute()
 
+    def test_notparallel_ps_job(test):
+        spy = 0
+
+        @config.node
+        class SerialPStrat(NotParallel, PlacementStrategy):
+            def place(self, chunk, indicators):
+                nonlocal spy
+                test.assertEqual(Chunk([0, 0, 0], None), chunk)
+                spy += 1
+
+        pool = JobPool(_net)
+        pstrat = _net.placement.add(
+            "test", SerialPStrat(strategy="", cell_types=[], partitions=[])
+        )
+        pstrat.queue(pool, None)
+        pool.execute()
+        test.assertEqual(1, sum(MPI.allgather(spy)))
+
+    def test_notparallel_cs_job(test):
+        spy = 0
+
+        @config.node
+        class SerialCStrat(NotParallel, ConnectionStrategy):
+            def connect(self, pre, post):
+                nonlocal spy
+
+                spy += 1
+
+        pool = JobPool(_net)
+        cstrat = _net.connectivity.add(
+            "test",
+            SerialCStrat(
+                strategy="",
+                presynaptic={"cell_types": []},
+                postsynaptic={"cell_types": []},
+            ),
+        )
+        cstrat.queue(pool)
+        pool.execute()
+        test.assertEqual(1, sum(MPI.allgather(spy)))
+
 
 @unittest.skipIf(MPI.get_size() < 2, "Skipped during serial testing.")
 class TestParallelScheduler(unittest.TestCase, SchedulerBaseTest):
@@ -204,6 +249,14 @@ class TestParallelScheduler(unittest.TestCase, SchedulerBaseTest):
         pool.execute(master_event_loop=spy_queue)
         if not MPI.get_rank():
             self.assertTrue(result, "A job with unfinished dependencies was scheduled.")
+
+    @unittest.expectedFailure
+    def test_notparallel_cs_job(test):
+        raise Exception("MPI voodoo deadlocks simple nonlocal assigment")
+
+    @unittest.expectedFailure
+    def test_notparallel_ps_job(test):
+        raise Exception("MPI voodoo deadlocks simple nonlocal assigment")
 
 
 @unittest.skipIf(MPI.get_size() > 1, "Skipped during parallel testing.")

@@ -2,10 +2,13 @@ from .strategy import PlacementStrategy
 import math, numpy as np
 from .. import config
 from ..config import types
+from ..mixins import NotParallel
+from ..storage import Chunk
+from ..reporting import report, warn
 
 
 @config.node
-class ParallelArrayPlacement(PlacementStrategy):
+class ParallelArrayPlacement(NotParallel, PlacementStrategy):
     """
     Implementation of the placement of cells in parallel arrays.
     """
@@ -37,7 +40,7 @@ class ParallelArrayPlacement(PlacementStrategy):
                 # Amount of parallel arrays of cells
                 n_arrays = x_pos.shape[0]
                 # Number of cells
-                n = np.sum(indicator.guess(chunk))
+                n = np.sum(indicator.guess(prt.data))
                 # Add extra cells to fill the lattice error volume which will be pruned
                 n += int((n_arrays * spacing_x % width) / width * n)
                 # cells to distribute along the rows
@@ -79,4 +82,17 @@ class ParallelArrayPlacement(PlacementStrategy):
                     cells[(i * len(x)) : ((i + 1) * len(x)), 2] = z
                 # Place all the cells in 1 batch (more efficient)
                 positions = cells[cells[:, 0] < width - radius]
-                self.place_cells(indicator, positions, chunk=chunk)
+
+                # Determine in which chunks the cells must be placed
+                cs = self.scaffold.configuration.network.chunk_size
+                chunks_list = np.array(
+                    [chunk.data + np.floor_divide(p, cs[0]) for p in positions]
+                )
+                unique_chunks_list = np.unique(chunks_list, axis=0)
+
+                # For each chunk, place the cells
+                for c in unique_chunks_list:
+                    idx = np.where((chunks_list == c).all(axis=1))
+                    pos_current_chunk = positions[idx]
+                    self.place_cells(indicator, pos_current_chunk, chunk=c)
+                report(f"Placed {len(positions)} {cell_type.name} in {prt.name}", level=3)

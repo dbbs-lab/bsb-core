@@ -37,7 +37,7 @@ class TestAllToAll(
 
     def test_per_block(self):
         # Test that connections can be stored over chunked layout and can be loaded again.
-        cs = self.network.get_connectivity_set("test_cell_to_test_cell")
+        cs = self.network.get_connectivity_set("all_to_all")
         for lchunk, g_itr in cs.nested_iter_connections(direction="out"):
             for gchunk, conns in g_itr:
                 ids = conns[0][:, 0]
@@ -52,12 +52,10 @@ class TestAllToAll(
                 self.assertEqual(25, len(u), "expected exactly 25 global cells")
                 self.assertClose(np.arange(0, 25), np.sort(u))
                 self.assertClose(25, c)
-        self.assertEqual(
-            100 * 100, len(self.network.get_connectivity_set("test_cell_to_test_cell"))
-        )
+        self.assertEqual(100 * 100, len(self.network.get_connectivity_set("all_to_all")))
 
     def test_per_local(self):
-        cs = self.network.get_connectivity_set("test_cell_to_test_cell")
+        cs = self.network.get_connectivity_set("all_to_all")
         for lchunk in cs.get_local_chunks(direction="out"):
             local_locs, gchunk_ids, global_locs = cs.load_local_connections("out", lchunk)
             ids = local_locs[:, 0]
@@ -72,9 +70,7 @@ class TestAllToAll(
             self.assertEqual(25, len(u), "expected exactly 25 global cells")
             self.assertClose(np.arange(0, 25), np.sort(u))
             self.assertClose(100, c, "expected 25 local sources per global cell")
-        self.assertEqual(
-            100 * 100, len(self.network.get_connectivity_set("test_cell_to_test_cell"))
-        )
+        self.assertEqual(100 * 100, len(self.network.get_connectivity_set("all_to_all")))
 
 
 class TestConnectivitySet(
@@ -99,7 +95,7 @@ class TestConnectivitySet(
         self.network.compile(clear=True)
 
     def test_load_all(self):
-        cs = self.network.get_connectivity_set("test_cell_to_test_cell")
+        cs = self.network.get_connectivity_set("all_to_all")
         data = cs.load_connections()
         try:
             lcol, lloc, gcol, gloc = data
@@ -111,7 +107,7 @@ class TestConnectivitySet(
         self.assertEqual(10000, len(gloc), "expected full 10k global locs")
 
     def test_load_local(self):
-        cs = self.network.get_connectivity_set("test_cell_to_test_cell")
+        cs = self.network.get_connectivity_set("all_to_all")
         chunks = cs.get_local_chunks("inc")
         data = cs.load_local_connections("inc", chunks[0])
         try:
@@ -127,12 +123,12 @@ class TestConnectivitySet(
         self.assertEqual(100, unique_globals, "Expected 100 globals")
 
     def test_flat_iter(self):
-        cs = self.network.get_connectivity_set("test_cell_to_test_cell")
+        cs = self.network.get_connectivity_set("all_to_all")
         itr = cs.flat_iter_connections()
         self.check_a2a_flat_iter(itr, ["inc", "out"], 4, 4)
 
     def test_nested_iter(self):
-        cs = self.network.get_connectivity_set("test_cell_to_test_cell")
+        cs = self.network.get_connectivity_set("all_to_all")
         try:
             iter(cs.nested_iter_connections())
         except TypeError:
@@ -170,27 +166,27 @@ class TestConnectivitySet(
             )
 
     def test_incoming(self):
-        cs = self.network.get_connectivity_set("test_cell_to_test_cell")
+        cs = self.network.get_connectivity_set("all_to_all")
         self.check_a2a_flat_iter(iter(cs.incoming), ["inc"], 4, 4)
 
     def test_outgoing(self):
-        cs = self.network.get_connectivity_set("test_cell_to_test_cell")
+        cs = self.network.get_connectivity_set("all_to_all")
         self.check_a2a_flat_iter(iter(cs.outgoing), ["out"], 4, 4)
 
     def test_from(self):
-        cs = self.network.get_connectivity_set("test_cell_to_test_cell")
+        cs = self.network.get_connectivity_set("all_to_all")
         chunks = cs.get_local_chunks("inc")
         self.check_a2a_flat_iter(iter(cs.from_(chunks)), ["out"], 4, 4)
         self.check_a2a_flat_iter(iter(cs.from_(chunks[0])), ["out"], 1, 4)
 
     def test_to(self):
-        cs = self.network.get_connectivity_set("test_cell_to_test_cell")
+        cs = self.network.get_connectivity_set("all_to_all")
         chunks = cs.get_local_chunks("inc")
         self.check_a2a_flat_iter(iter(cs.to(chunks)), ["out"], 4, 4)
         self.check_a2a_flat_iter(iter(cs.to(chunks[0])), ["out"], 4, 1)
 
     def test_from_to(self):
-        cs = self.network.get_connectivity_set("test_cell_to_test_cell")
+        cs = self.network.get_connectivity_set("all_to_all")
         chunks = cs.get_local_chunks("inc")
         self.check_a2a_flat_iter(iter(cs.from_(chunks).to(chunks)), ["out"], 4, 4)
         self.check_a2a_flat_iter(iter(cs.to(chunks).from_(chunks)), ["out"], 4, 4)
@@ -307,14 +303,14 @@ class TestConnWithLabels(
     def test_from_label(self):
         self.network.connectivity.all_to_all.presynaptic.labels = ["from_X"]
         self.network.compile(append=True, skip_placement=True)
-        cs = self.network.get_connectivity_set("test_cell_to_test_cell")
+        cs = self.network.get_connectivity_set("all_to_all")
         allcon = cs.load_connections()[0]
         self.assertEqual(300, len(allcon), "should have 3 x 100 cells with from_X label")
 
     def test_to_label(self):
         self.network.connectivity.all_to_all.postsynaptic.labels = ["from_X"]
         self.network.compile(append=True, skip_placement=True)
-        cs = self.network.get_connectivity_set("test_cell_to_test_cell")
+        cs = self.network.get_connectivity_set("all_to_all")
         allcon = cs.load_connections()[0]
         self.assertEqual(300, len(allcon), "should have 100 x 3 cells with from_X label")
 
@@ -325,7 +321,7 @@ class TestConnWithLabels(
             "from_Y",
         ]
         self.network.compile(append=True, skip_placement=True)
-        cs = self.network.get_connectivity_set("test_cell_to_test_cell")
+        cs = self.network.get_connectivity_set("all_to_all")
         allcon = cs.load_connections()[0]
         self.assertEqual(500, len(allcon), "should have 3 x 100 cells with from_X label")
 
@@ -337,7 +333,7 @@ class TestConnWithLabels(
         ]
         self.network.connectivity.all_to_all.postsynaptic.labels = ["from_X", "from_F"]
         self.network.compile(append=True, skip_placement=True)
-        cs = self.network.get_connectivity_set("test_cell_to_test_cell")
+        cs = self.network.get_connectivity_set("all_to_all")
         allcon = cs.load_connections()[0]
         self.assertEqual(
             (3 + 2) * 5, len(allcon), "should have 3 x 100 cells with from_X label"
@@ -413,7 +409,7 @@ class TestConnWithSubCellLabels(
         except Exception as e:
             raise
             self.fail(f"Unexpected error: {e}")
-        cs = self.network.get_connectivity_set("test_cell_to_test_cell")
+        cs = self.network.get_connectivity_set("self_intersect")
         _, sloc, _, dloc = cs.load_connections()
         self.assertAll(sloc > -1, "expected only true conn")
         self.assertAll(dloc > -1, "expected only true conn")
@@ -544,7 +540,7 @@ class TestVoxelIntersection(
     def test_single_voxel(self):
         # Tests whethervoxel intersection works using a few fixed positions and outcomes.
         self.network.compile()
-        cs = self.network.get_connectivity_set("test_cell_A_to_test_cell_B")
+        cs = self.network.get_connectivity_set("intersect")
         pre_chunks, pre_locs, post_chunks, post_locs = cs.load_connections()
         self.assertClose(0, pre_chunks, "expected only conns in base chunk")
         self.assertClose(0, post_chunks, "expected only conns in base chunk")
@@ -563,7 +559,7 @@ class TestVoxelIntersection(
         self.network.connectivity.intersect.presynaptic.morphology_labels = ["tip"]
         self.network.connectivity.intersect.postsynaptic.morphology_labels = ["top"]
         self.network.compile()
-        cs = self.network.get_connectivity_set("test_cell_A_to_test_cell_B")
+        cs = self.network.get_connectivity_set("intersect")
         pre_chunks, pre_locs, post_chunks, post_locs = cs.load_connections()
         self.assertClose(0, pre_chunks, "expected only conns in base chunk")
         self.assertClose(0, post_chunks, "expected only conns in base chunk")
@@ -581,7 +577,7 @@ class TestVoxelIntersection(
         self.network.connectivity.intersect.presynaptic.morphology_labels = ["tip"]
         self.network.connectivity.intersect.postsynaptic.morphology_labels = ["top"]
         self.network.compile()
-        cs = self.network.get_connectivity_set("test_cell_A_to_test_cell_B")
+        cs = self.network.get_connectivity_set("intersect")
         pre_chunks, pre_locs, post_chunks, post_locs = cs.load_connections()
         self.assertClose(0, pre_chunks, "expected only conns in base chunk")
         self.assertClose(0, post_chunks, "expected only conns in base chunk")
@@ -612,11 +608,11 @@ class TestVoxelIntersection(
         self.network.placement.fixed_pos_B.positions = [[0, 0, 0]]
         self.network.cell_types.test_cell_A.spatial.morphologies[0].names = ["C"]
         self.network.compile()
-        conns = len(self.network.get_connectivity_set("test_cell_A_to_test_cell_B"))
+        conns = len(self.network.get_connectivity_set("intersect"))
         self.assertGreater(conns, 0, "no connections formed")
         self.network.connectivity.intersect.contacts = 2
         self.network.compile(clear=True)
-        new_conns = len(self.network.get_connectivity_set("test_cell_A_to_test_cell_B"))
+        new_conns = len(self.network.get_connectivity_set("intersect"))
         self.assertEqual(conns * 2, new_conns, "Expected double contacts")
 
     def test_zero_contacts(self):
@@ -624,9 +620,9 @@ class TestVoxelIntersection(
         self.network.placement.fixed_pos_B.positions = [[100, 0, 0]]
         self.network.cell_types.test_cell_A.spatial.morphologies[0].names = ["C"]
         self.network.compile()
-        conns = len(self.network.get_connectivity_set("test_cell_A_to_test_cell_B"))
+        conns = len(self.network.get_connectivity_set("intersect"))
         self.assertEqual(0, conns, "expected no contacts")
         self.network.connectivity.intersect.contacts = -3
         self.network.compile(clear=True)
-        conns = len(self.network.get_connectivity_set("test_cell_A_to_test_cell_B"))
+        conns = len(self.network.get_connectivity_set("intersect"))
         self.assertEqual(0, conns, "expected no contacts")

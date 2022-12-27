@@ -31,7 +31,7 @@ class _VoxelBasedParticleSystem:
             for name, indicator in indicators.items()
         ]
         # Create and fill the particle system.
-        system = ParticleSystem(track_displaced=True, scaffold=self.scaffold)
+        system = ParticleSystem(track_displaced=True, scaffold=self.scaffold, strat=self)
         system.fill(voxels, particles)
         return system
 
@@ -189,11 +189,12 @@ class ParticleVoxel:
 
 
 class ParticleSystem:
-    def __init__(self, track_displaced=False, scaffold=None):
+    def __init__(self, track_displaced=False, scaffold=None, strat=None):
         self.particle_types = []
         self.voxels = []
         self.track_displaced = track_displaced
         self.scaffold = scaffold
+        self.strat = strat
 
     def fill(self, voxels, particles):
         # Amount of spatial dimensions
@@ -213,12 +214,16 @@ class ParticleSystem:
             )
         )
         pf = self.get_packing_factor()
+        if self.strat is not None:
+            strat_name = type(self.strat).__name__
+        else:
+            strat_name = "particle system"
         msg = f"Packing factor {round(pf, 2)}"
         if pf > 0.4:
             if pf > 0.64:
                 msg += " exceeds geometrical maximum packing for spheres (0.64)"
             elif pf > 0.4:
-                msg += " too high to resolve with ParticlePlacement"
+                msg += f" too high to resolve with {strat_name}"
 
             count, pvol, vol = self._get_packing_factors()
             raise PackingError(
@@ -227,7 +232,7 @@ class ParticleSystem:
             )
         elif pf > 0.2:
             warn(
-                f"{msg} is too high for good ParticlePlacement performance.",
+                f"{msg} is too high for good {strat_name} performance.",
                 PackingWarning,
             )
         # Reset particles

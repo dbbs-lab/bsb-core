@@ -1,5 +1,6 @@
-import setuptools
 import os
+
+import setuptools
 
 _findver = "__version__ = "
 _rootpath = os.path.join(os.path.dirname(__file__), "bsb", "__init__.py")
@@ -24,7 +25,7 @@ requires = [
     "plotly~=5.5",
     "colour~=0.1",
     "errr~=1.2",
-    "rtree~=0.9",
+    "rtree~=1.0",
     "psutil~=5.8",
     "pynrrd~=0.4",
     "morphio~=3.3",
@@ -55,7 +56,7 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/dbbs-lab/bsb",
     license="GPLv3",
-    packages=setuptools.find_packages(),
+    packages=setuptools.find_packages(exclude=["tests"]),
     classifiers=[
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3 :: Only",
@@ -81,6 +82,7 @@ setuptools.setup(
             "sudo = bsb._options:sudo",
             "version = bsb._options:version",
             "config = bsb._options:config",
+            "profiling = bsb._options:profiling",
         ],
     },
     python_requires="~=3.8",
@@ -101,6 +103,7 @@ setuptools.setup(
             "sphinx_design~=0.2",
             "sphinx-copybutton~=0.5",
             "sphinxext-bsb~=0.0.2",
+            "snakeviz",
         ],
         "arbor": ["arbor~=0.6"],
         "neuron": ["dbbs_models==4.0.0a0", "nrn-patch==4.0.0a0"],

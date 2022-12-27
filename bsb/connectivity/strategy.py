@@ -1,7 +1,8 @@
 from .. import config
 from ..config import refs, types
-from .._util import SortableByAfter, obj_str_insert
+from ..profiling import node_meter
 from ..reporting import report, warn
+from .._util import SortableByAfter, obj_str_insert
 import abc
 from itertools import chain
 
@@ -46,6 +47,11 @@ class ConnectionStrategy(abc.ABC, SortableByAfter):
     postsynaptic = config.attr(type=Hemitype, required=True)
     after = config.reflist(refs.connectivity_ref)
 
+    def __init_subclass__(cls, **kwargs):
+        super(cls, cls).__init_subclass__(**kwargs)
+        # Decorate subclasses to measure performance
+        node_meter("connect")(cls)
+
     def __boot__(self):
         self._queued_jobs = []
 
@@ -82,7 +88,7 @@ class ConnectionStrategy(abc.ABC, SortableByAfter):
 
     def connect_cells(self, pre_set, post_set, src_locs, dest_locs, tag=None):
         cs = self.scaffold.require_connectivity_set(
-            pre_set.cell_type, post_set.cell_type, tag
+            pre_set.cell_type, post_set.cell_type, tag if tag is not None else self.name
         )
         cs.connect(pre_set, post_set, src_locs, dest_locs)
 
