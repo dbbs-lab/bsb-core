@@ -66,7 +66,7 @@ class NeuronAdapter(SimulatorAdapter):
             self.create_neurons(simulation)
             MPI.barrier()
             report("Creating transmitters", level=2)
-            # self.create_transmitters()
+            self.create_transmitters(simulation)
             report("", level=3)
             # self.create_source_vars()
             report("Indexing relays", level=2)
@@ -122,12 +122,13 @@ class NeuronAdapter(SimulatorAdapter):
         data.result.flush()
         return data.result
 
-    def create_transmitters(self):
+    def create_transmitters(self, simulation):
+        simdata = self.simdata[simulation]
         # Concatenates all the `from` locations of all intersections together and creates
         # a network wide map of "signal origins" to NEURON parallel spike GIDs.
 
         # Fetch all of the connectivity sets that can be transmitters (excludes relays)
-        sets = self._collect_transmitter_sets(self.connection_models.values())
+        sets = self._collect_transmitter_sets(simulation)
         # Get the total size of all intersections
         total = sum(len(s) for s in sets)
         # Allocate an array for them
@@ -177,20 +178,16 @@ class NeuronAdapter(SimulatorAdapter):
                 gid = self.transmitter_map[(cell_id, section_id)]
                 cell.create_transmitter(cell.sections[section_id], gid, source)
 
-    def _collect_transmitter_sets(self, models):
-        sets = self._models_to_sets(models)
+    def _collect_transmitter_sets(self, simulation):
+        models = simulation.connection_models.values()
+        sets = [simulation.scaffold.get_connectivity_set(model.name) for model in models]
         return [s for s in sets if self._is_transmitter_set(s)]
 
-    def _models_to_sets(self, models):
-        return [self._model_to_set(model) for model in models]
-
-    def _model_to_set(self, model):
-        return self.scaffold.get_connectivity_set(model.name)
-
     def _is_transmitter_set(self, set):
+        print("IS TRANSMCHECK", dir(set))
         if set.is_orphan():
             return False
-        name = set.connection_types[0].from_cell_types[0].name
+        name = set.name
         from_cell_model = self.cell_models[name]
         return not from_cell_model.relay
 
