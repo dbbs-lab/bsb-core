@@ -27,6 +27,16 @@ class CellTypeReference(Reference):
         return isinstance(value, CellType)
 
 
+class ConnectionTypeReference(Reference):
+    def __call__(self, root, here):
+        return root.connectivity
+
+    def is_ref(self, value):
+        from ..connectivity import ConnectionStrategy
+
+        return isinstance(value, ConnectionStrategy)
+
+
 class PartitionReference(Reference):
     def __call__(self, root, here):
         return root.partitions
@@ -91,6 +101,7 @@ class SimCellModelReference(Reference):
 
 
 cell_type_ref = CellTypeReference()
+conn_type_ref = ConnectionTypeReference()
 partition_ref = PartitionReference()
 placement_ref = PlacementReference()
 connectivity_ref = ConnectivityReference()
