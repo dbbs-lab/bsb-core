@@ -16,14 +16,14 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 requires = [
-    "bsb-hdf5==0.5",
+    "bsb-hdf5==0.5.1",
     "h5py~=3.0",
     "numpy~=1.19",
     "scipy~=1.5",
     "scikit-learn~=1.0",
     "plotly~=5.5",
     "colour~=0.1",
-    "errr~=1.2.0",
+    "errr~=1.2",
     "rtree~=0.9",
     "psutil~=5.8",
     "pynrrd~=0.4",
