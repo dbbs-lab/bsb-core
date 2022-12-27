@@ -1,7 +1,4 @@
 from .. import config
-from ..config import refs, types
-from ..exceptions import ReificationError
-import abc
 
 
 @config.dynamic(attr_name="type", auto_classmap=True, required=False)
