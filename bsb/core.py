@@ -520,8 +520,8 @@ class Scaffold:
                 "Given and stored type mismatch:" + f" {post.name} vs {cs._post_name}"
             )
         try:
-            cs.pre = self.cell_types[cs._pre_name]
-            cs.post = self.cell_types[cs._post_name]
+            cs.pre_type = self.cell_types[cs._pre_name]
+            cs.post_type = self.cell_types[cs._post_name]
         except KeyError as e:
             raise NodeNotFoundError(f"Couldn't load {tag}, missing {e.args[0]}") from None
         return cs
