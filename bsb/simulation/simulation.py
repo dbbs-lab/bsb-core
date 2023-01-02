@@ -10,6 +10,12 @@ from .cell import CellModel
 from .connection import ConnectionModel
 from .device import DeviceModel
 from ..config import types as cfgtypes
+import typing
+
+if typing.TYPE_CHECKING:
+    from ..connectivity import ConnectionStrategy
+    from ..cell_types import CellType
+    from ..storage.interfaces import ConnectivitySet
 
 
 class ProgressEvent:
@@ -91,3 +97,23 @@ class Simulation:
 
     def add_progress_listener(self, listener):
         self._progress_listeners.append(listener)
+
+    def get_model_of(
+        self, type: typing.Union["CellType", "ConnectionStrategy"]
+    ) -> typing.Optional[typing.Union["CellModel", "ConnectionModel"]]:
+        cell_models = [cm for cm in self.cell_models.values() if cm.cell_type is type]
+        if cell_models:
+            return cell_models[0]
+        conn_models = [
+            cm for cm in self.connection_models.values() if cm.connection_type is type
+        ]
+        if conn_models:
+            return conn_models[0]
+
+    def get_connectivity_sets(
+        self,
+    ) -> typing.Mapping["ConnectionModel", "ConnectivitySet"]:
+        return {
+            model: self.scaffold.get_connectivity_set(model.name)
+            for model in sorted(self.connection_models.values())
+        }
