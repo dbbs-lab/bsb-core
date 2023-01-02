@@ -299,7 +299,7 @@ class TestPlacementSet(
         )
         for chunk in self.chunks:
             with self.subTest(chunk=chunk):
-                with ps.chunk_context(chunk):
+                with ps.chunk_context([chunk]):
                     self.assertEqual(
                         25,
                         len(ps),
