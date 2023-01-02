@@ -955,6 +955,16 @@ class ConnectivityIterator:
             )
         )
 
+    def chunk_iter(self):
+        yield from (
+            (data[2], data[3][1], data[1], data[3][0])
+            if dir == "inc"
+            else (data[1], data[3][0], data[2], data[3][1])
+            for data in self._cs.flat_iter_connections(
+                self._dir, self._lchunks, self._gchunks
+            )
+        )
+
     @immutable()
     def as_globals(self):
         self._scoped = False
@@ -966,13 +976,17 @@ class ConnectivityIterator:
     @immutable()
     def outgoing(self):
         self._dir = "out"
+        self._lchunks, self._gchunks = self._gchunks, self._lchunks
 
     @immutable()
     def incoming(self):
         self._dir = "inc"
+        self._lchunks, self._gchunks = self._gchunks, self._lchunks
 
     @immutable()
     def to(self, chunks):
+        if isinstance(chunks, Chunk) and chunks.ndim == 1:
+            chunks = [chunks]
         if self._dir == "inc":
             self._lchunks = chunks
         else:
@@ -980,27 +994,29 @@ class ConnectivityIterator:
 
     @immutable()
     def from_(self, chunks):
+        if isinstance(chunks, Chunk) and chunks.ndim == 1:
+            chunks = [chunks]
         if self._dir == "out":
             self._lchunks = chunks
         else:
             self._gchunks = chunks
 
     def all(self):
-        llocs = []
-        glocs = []
+        pre_blocks = []
+        post_blocks = []
         lens = []
-        for llocblock, glocblock in self:
-            llocs.append(llocblock)
-            glocs.append(glocblock)
-            lens.append(len(llocblock))
-        locals_ = np.empty((sum(lens), 3), dtype=int)
-        globals_ = np.empty((sum(lens), 3), dtype=int)
+        for pre_block, post_block in self:
+            pre_blocks.append(pre_block)
+            post_blocks.append(post_block)
+            lens.append(len(pre_block))
+        pre_locs = np.empty((sum(lens), 3), dtype=int)
+        post_locs = np.empty((sum(lens), 3), dtype=int)
         ptr = 0
-        for len_, local_, global_ in zip(lens, llocs, glocs):
-            locals_[ptr : ptr + len_] = local_
-            globals_[ptr : ptr + len_] = global_
+        for len_, pre_block, post_block in zip(lens, pre_blocks, post_blocks):
+            pre_locs[ptr : ptr + len_] = pre_block
+            post_locs[ptr : ptr + len_] = post_block
             ptr += len_
-        return locals_, globals_
+        return pre_locs, post_locs
 
     def _offset_block(self, direction: str, lchunk, gchunk, data):
         loff = self._local_chunk_offsets()
@@ -1008,16 +1024,19 @@ class ConnectivityIterator:
         llocs, glocs = data
         llocs[:, 0] += loff[lchunk]
         glocs[:, 0] += goff[gchunk]
-        return llocs, glocs
+        if direction == "out":
+            return llocs, glocs
+        else:
+            return glocs, llocs
 
     @functools.cache
     def _local_chunk_offsets(self):
-        source = self._cs.post if self._dir == "inc" else self._cs.pre
+        source = self._cs.post_type if self._dir == "inc" else self._cs.pre_type
         return self._chunk_offsets(source, self._lchunks)
 
     @functools.cache
     def _global_chunk_offsets(self):
-        source = self._cs.pre if self._dir == "inc" else self._cs.post
+        source = self._cs.pre_type if self._dir == "inc" else self._cs.post_type
         return self._chunk_offsets(source, self._gchunks)
 
     def _chunk_offsets(self, source, chunks):
