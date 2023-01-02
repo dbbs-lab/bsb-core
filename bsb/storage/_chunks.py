@@ -83,6 +83,7 @@ class Chunk(np.ndarray):
 
     @classmethod
     def from_id(cls, id, size):
+        id = int(float(id))
         raw = [id % 2**17, id // 2**16 % 2**17, id // 2**32 % 2**17]
         unpacked = np.array(raw, dtype=np.uint16).astype(np.int16)
         return cls(unpacked, size)
