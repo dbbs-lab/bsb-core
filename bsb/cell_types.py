@@ -59,6 +59,12 @@ class CellType:
         storage = self.scaffold.storage
         storage._PlacementSet.require(storage._engine, self)
 
+    def __lt__(self, other):
+        try:
+            return self.name < other.name
+        except Exception:
+            return True
+
     @obj_str_insert
     def __repr__(self):
         if hasattr(self, "scaffold"):
