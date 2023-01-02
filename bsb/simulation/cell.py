@@ -20,3 +20,9 @@ class CellModel(SimulationComponent):
     transmit incoming spikes to their targets.
     """
     parameters = config.list(type=Parameter)
+
+    def __lt__(self, other):
+        try:
+            return self.name < other.name
+        except Exception:
+            return True
