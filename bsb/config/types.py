@@ -67,7 +67,7 @@ def in_(container):
         if value in container:
             return value
         else:
-            raise TypeError("Couldn't cast '{}' to ".format(value) + error_msg)
+            raise TypeError(f"Couldn't cast '{value}' to " + error_msg)
 
     type_handler.__name__ = error_msg
     return type_handler
