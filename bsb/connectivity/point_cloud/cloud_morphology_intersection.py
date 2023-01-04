@@ -95,7 +95,7 @@ class CloudToMorphologyIntersection(ConnectionStrategy):
                 #Find the morpho points inside the cloud
                 inside_pts = pre_cloud.inside_shapes(post_coord)
                 if (self.affinity < 1):
-                    inside_pts = np.random.choice(inside_pts, np.floor(self.affinity*len(inside_pts))),
+                    inside_pts = np.random.choice(inside_pts, np.floor(self.affinity*len(inside_pts)))
                 local_selection = post_points_ids[inside_pts,:]
                 
                 selected_count = len(local_selection)

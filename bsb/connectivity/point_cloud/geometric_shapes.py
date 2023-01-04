@@ -5,7 +5,7 @@ import pickle
 import abc
 import plotly.graph_objects as go
 import copy
-from cloud_mesh_utils import rotate_3d_mesh_by_vec,translate_3d_mesh_by_vec,rotate_3d_mesh_by_rot_mat
+from .cloud_mesh_utils import rotate_3d_mesh_by_vec,translate_3d_mesh_by_vec,rotate_3d_mesh_by_rot_mat
 
 #Base class for geometric shapes
 class GeometricShape(abc.ABC):
@@ -95,6 +95,22 @@ class ShapesComposition():
             return cloud[1:]
         else:
             return None
+    
+    def generate_wireframe(self):
+        if len(self.shapes) != 0:
+            cloud = np.empty([3])
+            npoints = self.compute_n_points()
+            x = []
+            y = []
+            z = []
+            for shape in self.shapes:
+                xt,yt,zt = shape.wireframe_points()
+                x.append(xt)
+                y.append(yt)
+                z.append(zt)
+            return x,y,z
+        else:
+            return None
 
     def inside_mbox(self,points):
         if len(self.shapes) != 0:
@@ -109,13 +125,13 @@ class ShapesComposition():
 
     def inside_shapes(self,points):
         if len(self.shapes) != 0:
-            cloud = np.empty([len(points)],dtype=bool)
+            """points[:, [1, 2]] = points[:, [2, 1]]"""
+
+            cloud = np.full(len(points),1,dtype=bool)
+            print(len(points))
             for shape in self.shapes:
-                to_check = shape.check_mbox(points)
-                to_check = points[to_check]
-                tmp = shape.check_inside(to_check)
-                cloud = np.concatenate((cloud,tmp))
-            return cloud[1:]
+                cloud = cloud & shape.check_inside(points)
+            return cloud
         else:
             return None
     
@@ -157,12 +173,13 @@ class ShapesComposition():
 #-----------------------------------------------------
 
 class Ellipsoid(GeometricShape): 
-    def __init__(self, center : np.ndarray, lambdas : np.ndarray, v0 : np.ndarray, v1 : np.ndarray, v2 : np.ndarray):
+    def __init__(self, center : np.ndarray, lambdas : np.ndarray, v0 : np.ndarray, v1 : np.ndarray, v2 : np.ndarray, epsilon = 1.e-3):
         self.center = center
         self.lambdas = lambdas
         self.v0 = v0/np.linalg.norm(v0)
         self.v1 = v1/np.linalg.norm(v1)
         self.v2 = v2/np.linalg.norm(v2)
+        self.epsilon = epsilon
         self.mbb_min, self.mbb_max = self.find_mbb()
 
     def find_mbb(self):
@@ -254,10 +271,11 @@ class Ellipsoid(GeometricShape):
 
 class Cone(GeometricShape): 
     
-    def __init__(self, apex: np.ndarray, center : np.ndarray, radius : float):
+    def __init__(self, apex: np.ndarray, center : np.ndarray, radius : float, epsilon = 1.e-3):
         self.center = center
         self.radius = radius
         self.apex = apex
+        self.epsilon = epsilon
 
         #Find the minimum bounding box, to avoid computing it every time
         self.mbb_min, self.mbb_max = self.find_mbb()
@@ -281,7 +299,7 @@ class Cone(GeometricShape):
         v2 = rot.apply(v)
         v3 = self.center-self.apex
         
-        #Corrdinates identifying the minimal bounding box
+        #Coordinates identifying the minimal bounding box
         minima = np.min([v1,v2,v3,-v1,-v2],axis=0)
         maxima = np.max([v1,v2,v3,-v1,-v2],axis=0)
         return minima, maxima
@@ -376,7 +394,7 @@ class Cone(GeometricShape):
         cone_angle = np.arctan(self.radius/height)
 
         #Select the points inside the cone
-        inside_points = (apex_angles < cone_angle) & (rot_pts[:,2] > np.min([self.center[2],self.apex[2]])) & (rot_pts[:,2] < np.max([self.center[2],self.apex[2]])) 
+        inside_points = (apex_angles < cone_angle +self.epsilon) & (rot_pts[:,2] > np.min([self.center[2],self.apex[2]])-self.epsilon) & (rot_pts[:,2] < np.max([self.center[2],self.apex[2]])+self.epsilon) 
         return inside_points
     
     def wireframe_points(self):
@@ -410,11 +428,12 @@ class Cone(GeometricShape):
 
 class Cylinder(GeometricShape): 
     
-    def __init__(self, center : np.ndarray, radius : float, height_vector : np.ndarray):
+    def __init__(self, center : np.ndarray, radius : float, height_vector : np.ndarray, epsilon=1e-3):
         self.center = center
         self.radius = radius
         #Position of the apex
         self.height_vector = height_vector 
+        self.epsilon = epsilon
 
         #Find the minimum bounding box, to avoid computing it every time
         self.mbb_min, self.mbb_max = self.find_mbb()
@@ -484,7 +503,7 @@ class Cylinder(GeometricShape):
         rot_pts = rot.apply(pts)
 
         #Check for intersections
-        inside_points = (rot_pts[:,2] < height) & (rot_pts[:,2] > 0) & (rot_pts[:,0]*rot_pts[:,0]+rot_pts[:,1]*rot_pts[:,1] < self.radius)
+        inside_points = (rot_pts[:,2] < height+self.epsilon) & (rot_pts[:,2] > -self.epsilon) & (rot_pts[:,0]*rot_pts[:,0]+rot_pts[:,1]*rot_pts[:,1] < self.radius**2+self.epsilon)
         return inside_points
 
     def wireframe_points(self):
@@ -515,3 +534,75 @@ class Cylinder(GeometricShape):
         x,y,z = translate_3d_mesh_by_vec(x,y,z,self.center)      
 
         return x,y,z
+
+#-----------------------------------------------------
+
+class Sphere(GeometricShape): 
+    def __init__(self, center : np.ndarray, radius : float, epsilon = 1e-3):
+        self.center = center
+        self.radius = radius
+        self.mbb_min, self.mbb_max = self.find_mbb()
+        self.epsilon = epsilon
+
+    def find_mbb(self):
+        #Find the minimum bounding box, to avoid computing it every time
+        mbb_min = np.array([-self.radius, -self.radius, -self.radius])+self.center
+        mbb_max = np.array([self.radius, self.radius, self.radius])+self.center
+        return mbb_min, mbb_max
+
+    def get_volume(self):
+        return np.pi*4./3.*np.power(self.radius,3)
+    
+    def translate(self, t_vector : np.ndarray):
+        self.center += t_vector
+    
+    def rotate(self, r_versor : np.ndarray, angle : float):
+        #It's a sphere, it's invariant under rotation!
+        pass
+
+    def generate_point_cloud(self, npoints : int): 
+
+        #Generate a sphere centered at the origin.
+        cloud = np.full((npoints,3),0,dtype=float)
+        theta = np.pi*2.*np.random.rand(npoints)
+        phi = -1.*np.pi*np.random.rand(npoints)
+        rand = np.random.rand(npoints,3)
+        cloud[:,0] = self.radius*np.cos(theta)*np.sin(phi)
+        cloud[:,1] = self.radius*np.sin(theta)*np.sin(phi)
+        cloud[:,2] = self.radius*np.cos(phi)
+        cloud = cloud * rand
+
+        cloud = cloud + self.center
+
+        return cloud
+
+    def check_mbox(self, points : np.ndarray):
+                
+        #Check for intersections with mbb
+        inside = (points[:,0] > self.mbb_min[0]) & (points[:,0] < self.mbb_max[0]) & (points[:,1] > self.mbb_min[1]) & (points[:,1] < self.mbb_max[1]) & (points[:,2] > self.mbb_min[2]) & (points[:,2] < self.mbb_max[2])
+        return inside
+
+    def check_inside(self, points : np.ndarray):
+        #Translate the points, bringing the origin to the center of the sphere,
+        #then check the inequality defining the sphere
+        pts_centered = points - self.center
+        lhs = np.linalg.norm(pts_centered,axis=1)
+        inside_points = lhs < self.radius + self.epsilon
+        return inside_points
+    
+    def wireframe_points(self):
+        
+        #Generate a sphere centered at the origin
+        theta = np.linspace(0,2*np.pi,90)
+        phi = np.linspace(0,np.pi,90)
+        theta, phi = np.meshgrid(theta,phi)
+        x = self.radius*np.cos(theta)*np.sin(phi)
+        y = self.radius*np.sin(theta)*np.sin(phi)
+        z = self.radius*np.cos(phi)
+
+        #Translate the sphere
+        x,y,z = translate_3d_mesh_by_vec(x,y,z,self.center)
+
+        return x,y,z
+
+#-----------------------------------------------------

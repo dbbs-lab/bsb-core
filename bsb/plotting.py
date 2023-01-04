@@ -5,7 +5,7 @@ from contextlib import contextmanager
 import random, types
 from .reporting import warn
 from colour import Color
-
+from .connectivity.point_cloud.geometric_shapes import ShapesComposition
 
 class CellTrace:
     def __init__(self, meta, data):
@@ -453,6 +453,20 @@ def plot_fiber_morphology(
         fig.add_trace(trace)
     return fig
 
+def plot_cloud(cloud,fig):
+    traces = []
+    traces.append(go.Scatter3d(x=cloud[:,0],y=cloud[:,1],z=cloud[:,2],mode ='markers'))
+    for trace in traces:
+        fig.add_trace(trace)
+    # return fig
+
+def plot_shape_wireframe(xl,yl,zl,fig):
+    traces = []
+    for x,y,z in zip(xl,yl,zl):
+        traces.append(go.Surface(x=x,y=y,z=z,opacity=0.5, colorscale='bluered', showscale=False ))
+    for trace in traces:
+        fig.add_trace(trace)
+    # return fig
 
 @_morpho_figure
 def plot_morphology(
@@ -476,7 +490,6 @@ def plot_morphology(
     for trace in traces:
         fig.add_trace(trace)
     # return fig
-
 
 @_figure
 def plot_intersections(
