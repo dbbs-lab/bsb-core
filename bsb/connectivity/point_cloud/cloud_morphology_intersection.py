@@ -18,9 +18,8 @@ class CloudToMorphologyIntersection(ConnectionStrategy):
     voxel_size = config.attr(type=int, required=True)
 
     def get_region_of_interest(self, chunk):
-        
+
         chunks = ct.get_placement_set().get_all_chunks()
-        
 
         """cloud = ShapesComposition(voxel_size)
         cloud.load_from_file(cloud_name)  
@@ -40,8 +39,8 @@ class CloudToMorphologyIntersection(ConnectionStrategy):
         return chunks
 
     def connect(self, pre, post):
-        #pre_type = pre.cell_types[0]
-        #post_type = post.cell_types[0]
+        # pre_type = pre.cell_types[0]
+        # post_type = post.cell_types[0]
         for pre_ct, pre_ps in pre.placement.items():
             for post_ct, post_ps in post.placement.items():
                 self._connect_type(pre_ct, pre_ps, post_ct, post_ps)
@@ -52,58 +51,61 @@ class CloudToMorphologyIntersection(ConnectionStrategy):
         post_pos = post_ps.load_positions()
 
         cloud = ShapesComposition(self.voxel_size)
-        cloud.load_from_file(self.cloud_name)  
+        cloud.load_from_file(self.cloud_name)
 
-        to_connect_pre = np.empty([1,3],dtype=int)
-        to_connect_post = np.empty([1,3],dtype=int)
+        to_connect_pre = np.empty([1, 3], dtype=int)
+        to_connect_post = np.empty([1, 3], dtype=int)
 
         morpho_set = post_ps.load_morphologies()
         post_morphos = morpho_set.iter_morphologies(cache=True, hard_cache=True)
 
         for post_id, post_coord, morpho in zip(itertools.count(), pre_pos, post_morphos):
 
-            #Get the branches
+            # Get the branches
             branches = morpho.get_branches()
             first_axon_branch_id = branches.index(branches[0])
-            
-            #Build ids array from the morphology
+
+            # Build ids array from the morphology
             morpho_points = 0
             for b in branches:
                 morpho_points += len(b.points)
-            post_points_ids = np.empty([morpho_points,3],dtype=int)
-            post_morpho_coord = np.empty([morpho_points,3],dtype=float)
+            post_points_ids = np.empty([morpho_points, 3], dtype=int)
+            post_morpho_coord = np.empty([morpho_points, 3], dtype=float)
             local_ptr = 0
-            for i,b in enumerate(branches):
-                post_points_ids[local_ptr:local_ptr+len(b.points),0] = post_id
-                post_points_ids[local_ptr:local_ptr+len(b.points),1] = i
-                post_points_ids[local_ptr:local_ptr+len(b.points):2] = np.arange(len(b.points))
-                post_morpho_coord[local_ptr:local_ptr+len(b.points)]  = b.points
+            for i, b in enumerate(branches):
+                post_points_ids[local_ptr : local_ptr + len(b.points), 0] = post_id
+                post_points_ids[local_ptr : local_ptr + len(b.points), 1] = i
+                post_points_ids[local_ptr : local_ptr + len(b.points) : 2] = np.arange(
+                    len(b.points)
+                )
+                post_morpho_coord[local_ptr : local_ptr + len(b.points)] = b.points
                 local_ptr += len(b.points)
-            
+
             """#Find pre minimal bounding box of the morpho
             post_mbb_min = np.min(post_morpho_coord,axis=0)
             post_mbb_max = np.max(post_morpho_coord,axis=0)"""
 
             for pre_id, pre_coord in enumerate(post_pos):
-                
+
                 pre_cloud = cloud.copy()
-                pre_cloud.translate(self,pre_coord)
+                pre_cloud.translate(self, pre_coord)
 
-                local_selection = np.empty([morpho_points,3])
+                local_selection = np.empty([morpho_points, 3])
 
-
-                #Find the morpho points inside the cloud
+                # Find the morpho points inside the cloud
                 inside_pts = pre_cloud.inside_shapes(post_coord)
-                if (self.affinity < 1):
-                    inside_pts = np.random.choice(inside_pts, np.floor(self.affinity*len(inside_pts)))
-                local_selection = post_points_ids[inside_pts,:]
-                
-                selected_count = len(local_selection)
-                if (selected_count > 0):
-                    to_connect_post = np.vstack([to_connect_pre,local_selection])
-                    pre_tmp = np.full([1,3],-1,dtype=int)
-                    pre_tmp[:,0] = post_id
-                    to_connect_pre= np.vstack([to_connect_pre,pre_tmp])
+                if self.affinity < 1:
+                    inside_pts = np.random.choice(
+                        inside_pts, np.floor(self.affinity * len(inside_pts))
+                    )
+                local_selection = post_points_ids[inside_pts, :]
 
-        print("Connected", len(pre_pos), "pre cells to",len(post_pos),"post cells.")
+                selected_count = len(local_selection)
+                if selected_count > 0:
+                    to_connect_post = np.vstack([to_connect_pre, local_selection])
+                    pre_tmp = np.full([1, 3], -1, dtype=int)
+                    pre_tmp[:, 0] = post_id
+                    to_connect_pre = np.vstack([to_connect_pre, pre_tmp])
+
+        print("Connected", len(pre_pos), "pre cells to", len(post_pos), "post cells.")
         self.connect_cells(pre_ps, post_ps, to_connect_pre[1:], to_connect_post[1:])

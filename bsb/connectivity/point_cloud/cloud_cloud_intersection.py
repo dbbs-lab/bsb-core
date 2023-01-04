@@ -18,7 +18,7 @@ class CloudToCloudIntersection(ConnectionStrategy):
     voxel_size = config.attr(type=int, required=True)
 
     def get_region_of_interest(self, chunk):
-        
+
         chunks = ct.get_placement_set().get_all_chunks()
 
         """
@@ -40,8 +40,8 @@ class CloudToCloudIntersection(ConnectionStrategy):
         return chunks
 
     def connect(self, pre, post):
-        #pre_type = pre.cell_types[0]
-        #post_type = post.cell_types[0]
+        # pre_type = pre.cell_types[0]
+        # post_type = post.cell_types[0]
         for pre_ct, pre_ps in pre.placement.items():
             for post_ct, post_ps in post.placement.items():
                 self._connect_type(pre_ct, pre_ps, post_ct, post_ps)
@@ -52,39 +52,41 @@ class CloudToCloudIntersection(ConnectionStrategy):
         post_pos = post_ps.load_positions()
 
         post_cloud = ShapesComposition(self.voxel_size)
-        post_cloud.load_from_file(self.post_cloud_name)  
+        post_cloud.load_from_file(self.post_cloud_name)
 
         pre_cloud = ShapesComposition(self.voxel_size)
-        pre_cloud.load_from_file(self.pre_cloud_name)  
+        pre_cloud.load_from_file(self.pre_cloud_name)
 
-        to_connect_pre = np.empty([1,3],dtype=int)
-        to_connect_post = np.empty([1,3],dtype=int)
+        to_connect_pre = np.empty([1, 3], dtype=int)
+        to_connect_post = np.empty([1, 3], dtype=int)
 
         for pre_id, pre_coord in enumerate(pre_pos):
 
-            #Generate pre points cloud
+            # Generate pre points cloud
             current_pre_cloud = pre_cloud.copy()
-            current_pre_cloud.translate(self,pre_coord)
+            current_pre_cloud.translate(self, pre_coord)
             pre_coord = current_pre_cloud.generate_point_cloud()
-          
-            #Find pre minimal bounding box of the morpho
+
+            # Find pre minimal bounding box of the morpho
             pre_mbb_min, pre_mbb_max = current_pre_cloud.find_mbb()
 
             for post_id, post_coord in enumerate(post_pos):
                 current_post_cloud = post_cloud.copy()
-                current_post_cloud.translate(self,post_coord)
+                current_post_cloud.translate(self, post_coord)
 
-                #Compare pre and post mbbs
+                # Compare pre and post mbbs
                 post_mbb_min, post_mbb_max = post_cloud.find_mbb()
-                if (np.all(pre_mbb_min < post_mbb_min) & np.all(pre_mbb_max < post_mbb_max)):
-                    #Find the morpho points inside the cloud
+                if np.all(pre_mbb_min < post_mbb_min) & np.all(
+                    pre_mbb_max < post_mbb_max
+                ):
+                    # Find the morpho points inside the cloud
                     inside_pts = post_cloud.inside_shapes(pre_coord)
                     selected = pre_coord[inside_pts]
-                    if (len(selected) > 0):
-                        tmp_pre_selection = np.array([pre_id,-1,-1])
-                        to_connect_pre = np.vstack([to_connect_pre,tmp_pre_selection])
-                        tmp_post_selection = np.array([post_id,-1,-1])
-                        to_connect_post = np.vstack([to_connect_pre,tmp_post_selection])
+                    if len(selected) > 0:
+                        tmp_pre_selection = np.array([pre_id, -1, -1])
+                        to_connect_pre = np.vstack([to_connect_pre, tmp_pre_selection])
+                        tmp_post_selection = np.array([post_id, -1, -1])
+                        to_connect_post = np.vstack([to_connect_pre, tmp_post_selection])
 
-        print("Connected", len(pre_pos), "pre cells to",len(post_pos),"post cells.")
+        print("Connected", len(pre_pos), "pre cells to", len(post_pos), "post cells.")
         self.connect_cells(pre_ps, post_ps, to_connect_pre, to_connect_post)
