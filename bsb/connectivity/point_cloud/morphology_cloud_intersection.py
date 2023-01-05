@@ -8,6 +8,7 @@ from bsb.morphologies import Morphology
 from bsb.storage.interfaces import ConnectivitySet as IConnectivitySet
 from bsb.connectivity.strategy import Hemitype
 from bsb.connectivity.strategy import HemitypeCollection
+from bsb.connectivity.point_cloud.geometric_shapes import ShapesComposition
 
 
 @config.node
@@ -15,10 +16,11 @@ class MorphologyToCloudIntersection(ConnectionStrategy):
     # Read vars from the configuration file
     affinity = config.attr(type=int, required=True)
     cloud_name = config.attr(type=str, required=True)
-    voxel_size = config.attr(type=int, required=True)
+
 
     def get_region_of_interest(self, chunk):
-
+        
+        ct = self.postsynaptic.cell_types[0]
         chunks = ct.get_placement_set().get_all_chunks()
 
         """
@@ -51,17 +53,19 @@ class MorphologyToCloudIntersection(ConnectionStrategy):
         pre_pos = pre_ps.load_positions()
         post_pos = post_ps.load_positions()
 
-        cloud = ShapesComposition(self.voxel_size)
+        cloud = ShapesComposition()
         cloud.load_from_file(self.cloud_name)
+        #cloud = cloud.filter_by_labels(self.postsynaptic.morphology_labels)
 
         to_connect_pre = np.empty([1, 3], dtype=int)
         to_connect_post = np.empty([1, 3], dtype=int)
 
-        morpho_set = post_ps.load_morphologies()
+        morpho_set = pre_ps.load_morphologies()
         pre_morphos = morpho_set.iter_morphologies(cache=True, hard_cache=True)
 
         for pre_id, pre_coord, morpho in zip(itertools.count(), pre_pos, pre_morphos):
-
+            
+            print(pre_id, "/", len(pre_pos))
             # Get the branches
             branches = morpho.get_branches()
             first_axon_branch_id = branches.index(branches[0])
@@ -76,10 +80,11 @@ class MorphologyToCloudIntersection(ConnectionStrategy):
             for i, b in enumerate(branches):
                 pre_points_ids[local_ptr : local_ptr + len(b.points), 0] = pre_id
                 pre_points_ids[local_ptr : local_ptr + len(b.points), 1] = i
-                pre_points_ids[local_ptr : local_ptr + len(b.points) : 2] = np.arange(
-                    len(b.points)
-                )
-                pre_morpho_coord[local_ptr : local_ptr + len(b.points)] = b.points
+                pre_points_ids[local_ptr : local_ptr + len(b.points), 2] = np.arange(len(b.points))
+                tmp = b.points + pre_coord
+                #Swap y and z
+                tmp[:, [1, 2]] = tmp[:, [2, 1]]
+                pre_morpho_coord[local_ptr : local_ptr + len(b.points),:] = tmp
                 local_ptr += len(b.points)
 
             """#Find pre minimal bounding box of the morpho
@@ -89,22 +94,35 @@ class MorphologyToCloudIntersection(ConnectionStrategy):
             for post_id, post_coord in enumerate(post_pos):
 
                 post_cloud = cloud.copy()
-                post_cloud.translate(self, post_coord)
+                #print(post_id, "/", len(post_pos))
+                #print(type(post_coord))
+                #Swap y and z
+                post_coord[[1, 2]] = post_coord[[2, 1]]
+                post_cloud.translate(post_coord)
+                #print(pre_morpho_coord)
+                mbb_check = post_cloud.inside_mbox(pre_morpho_coord)
+                #print(mbb_check)
+                #print("---------")
+                if np.any(mbb_check):
+                    #print("MBB")
+                    #print("Found")
+                    # Find the morpho points inside the cloud
+                    inside_pts = post_cloud.inside_shapes(pre_morpho_coord)
+                    #print(np.count_nonzero(inside_pts))
+                    if np.any(inside_pts):
+                        print("Found")
+                        local_selection = pre_points_ids[inside_pts]
+                        if self.affinity < 1 and len(pre_morpho_coord[inside_pts]) > 0:
+                            local_selection = local_selection[np.random.choice(local_selection.shape[0], np.max([1, int(np.floor(self.affinity * len(local_selection)))])),:]
+                        #print(local_selection)
+                        #local_selection = pre_points_ids[inside_pts]
 
-                # Find the morpho points inside the cloud
-                inside_pts = post_cloud.inside_shapes(pre_morpho_coord)
-                if self.affinity < 1 and len(inside_pts) > 0:
-                    inside_pts = np.random.choice(
-                        inside_pts, np.max([1, np.floor(self.affinity * len(inside_pts))])
-                    )
-                local_selection = pre_points_ids[inside_pts, :]
-
-                selected_count = len(local_selection)
-                if selected_count > 0:
-                    to_connect_pre = np.vstack([to_connect_pre, local_selection])
-                    post_tmp = np.full([1, 3], -1, dtype=int)
-                    post_tmp[:, 0] = post_id
-                    to_connect_post = np.vstack([to_connect_pre, post_tmp])
+                        selected_count = len(local_selection)
+                        if selected_count > 0:
+                            to_connect_pre = np.vstack([to_connect_pre, local_selection])
+                            post_tmp = np.full([len(local_selection), 3], -1, dtype=int)
+                            post_tmp[:, 0] = post_id
+                            to_connect_post = np.vstack([to_connect_post, post_tmp])
 
         print("Connected", len(pre_pos), "pre cells to", len(post_pos), "post cells.")
         self.connect_cells(pre_ps, post_ps, to_connect_pre[1:], to_connect_post[1:])

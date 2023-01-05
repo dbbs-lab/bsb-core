@@ -13,12 +13,12 @@ from bsb.connectivity.strategy import HemitypeCollection
 @config.node
 class CloudToCloudIntersection(ConnectionStrategy):
     # Read vars from the configuration file
-    post_cloud_name = config.attr(type=str, required=True)
-    pre_cloud_name = config.attr(type=str, required=True)
-    voxel_size = config.attr(type=int, required=True)
+    #post_cloud_name = config.attr(type=str, required=True)
+    #pre_cloud_name = config.attr(type=str, required=True)
 
     def get_region_of_interest(self, chunk):
 
+        ct = self.postsynaptic.cell_types[0]
         chunks = ct.get_placement_set().get_all_chunks()
 
         """
@@ -51,11 +51,15 @@ class CloudToCloudIntersection(ConnectionStrategy):
         pre_pos = pre_ps.load_positions()
         post_pos = post_ps.load_positions()
 
-        post_cloud = ShapesComposition(self.voxel_size)
-        post_cloud.load_from_file(self.post_cloud_name)
+        post_cloud = ShapesComposition()
+        #post_cloud.load_from_file(self.post_cloud_name)
+        post_cloud.load_from_file(self.postsynaptic.cell_types[0].cloud_name)
+        
+        
 
-        pre_cloud = ShapesComposition(self.voxel_size)
-        pre_cloud.load_from_file(self.pre_cloud_name)
+        pre_cloud = ShapesComposition()
+        #pre_cloud.load_from_file(self.pre_cloud_name)
+        pre_cloud.load_from_file(self.presynaptic.cell_types[0].cloud_name)
 
         to_connect_pre = np.empty([1, 3], dtype=int)
         to_connect_post = np.empty([1, 3], dtype=int)
