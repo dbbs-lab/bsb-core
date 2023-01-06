@@ -15,8 +15,6 @@ from bsb.connectivity.point_cloud.geometric_shapes import ShapesComposition
 class MorphologyToCloudIntersection(ConnectionStrategy):
     # Read vars from the configuration file
     affinity = config.attr(type=int, required=True)
-    cloud_name = config.attr(type=str, required=True)
-
 
     def get_region_of_interest(self, chunk):
         
@@ -54,8 +52,12 @@ class MorphologyToCloudIntersection(ConnectionStrategy):
         post_pos = post_ps.load_positions()
 
         cloud = ShapesComposition()
-        cloud.load_from_file(self.cloud_name)
-        #cloud = cloud.filter_by_labels(self.postsynaptic.morphology_labels)
+        cloud.load_from_file(self.postsynaptic.cloud_name)
+        cloud = cloud.filter_by_labels(self.postsynaptic.morphology_labels)
+        #print(self.postsynaptic.morphology_labels)
+        #print("Numero shapes",len(cloud.shapes))
+        #print(dir(cloud.shapes[0]))
+        #print(dir(cloud.shapes[0].radius))
 
         to_connect_pre = np.empty([1, 3], dtype=int)
         to_connect_post = np.empty([1, 3], dtype=int)
@@ -65,7 +67,7 @@ class MorphologyToCloudIntersection(ConnectionStrategy):
 
         for pre_id, pre_coord, morpho in zip(itertools.count(), pre_pos, pre_morphos):
             
-            print(pre_id, "/", len(pre_pos))
+            #print(pre_id, "/", len(pre_pos))
             # Get the branches
             branches = morpho.get_branches()
             first_axon_branch_id = branches.index(branches[0])

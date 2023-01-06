@@ -44,7 +44,6 @@ class GeometricShape(abc.ABC):
 
 # -----------------------------------------------------
 
-
 class ShapesComposition:
     def __init__(self, voxel_size = 1):
         self.shapes = []
@@ -52,19 +51,55 @@ class ShapesComposition:
         self.mbb_min = np.array([0.,0.,0.])
         self.mbb_max = np.array([0.,0.,0.])
         self.origin = np.array([0.,0.,0.])
+        self.labels = []
 
     def copy(self):
         return copy.deepcopy(self)
 
-    def add_shape(self, shape):
+    def add_shape(self, shape, labels):
         self.shapes.append(shape)
+        self.labels.append(labels)
+
+    def filter_by_labels(self, labels : list[str]):
+        #print("filter")
+        result = copy.deepcopy(self)
+        selected_id = []
+        for i,lb_list in enumerate(self.labels):
+            #print(lb_list)
+            for to_select in labels: 
+                #print(to_select)
+                if (to_select not in lb_list):
+                    #print("YES",to_select)
+                    selected_id.append(i)
+        #print(not_selected_id)
+        selected_id = set(selected_id)
+        not_selected_id = []
+        for i in range(len(self.shapes)):
+            if (i not in selected_id):
+                not_selected_id.append(i)
+
+        for i in sorted(not_selected_id,reverse=True):
+            #print(i,"/",len(result.shapes))
+            del result.shapes[i]
+        """for nn,i in enumerate(selected_id):
+            print(i)
+            print(self.shapes[i])
+            result.add_shape(copy.deepcopy(self.shapes[i]),copy.deepcopy(self.labels[i]))
+            print(self.shapes[i].mbb_max)
+            print(result.shapes[nn].mbb_max)
+            print(self.shapes[i].mbb_min)
+            print(result.shapes[nn].mbb_min)
+            print("------------------------")"""
+        result.mbb_min, result.mbb_max = result.find_mbb()
+        return result
+
 
     def translate(self, t_vec):
         for shape in self.shapes:
             shape.translate(t_vec)
-            self.origin += t_vec
-            self.mbb_min += t_vec
-            self.mbb_max += t_vec
+        self.origin += t_vec
+        self.mbb_min += t_vec
+        self.mbb_max += t_vec
 
     def get_volumes(self):
         volumes = []
@@ -79,7 +114,7 @@ class ShapesComposition:
 
         mins = np.empty([len(self.shapes),3])
         maxs = np.empty([len(self.shapes),3])
-        print(len(self.shapes))
+        #print(len(self.shapes))
         for i,shape in enumerate(self.shapes):
             #min, max = shape.find_mbb()
             mins[i,:] = shape.mbb_min
@@ -133,7 +168,8 @@ class ShapesComposition:
             & (points[:, 1] > self.mbb_min[2])
             & (points[:, 1] < self.mbb_max[2])
         )
-        """print(points[0])
+        """print("SC inside_mbox")
+        print(points[0])
         print(self.mbb_min)
         print(self.mbb_max)
         print("-------")"""
@@ -154,7 +190,9 @@ class ShapesComposition:
         if len(self.shapes) != 0:
             cloud = np.full(len(points), 0, dtype=bool)
             for shape in self.shapes:
-                cloud = cloud | shape.check_inside(points)
+                tmp = shape.check_mbox(points)
+                if np.any(tmp):
+                    cloud = cloud | shape.check_inside(points)
             return cloud
         else:
             return None
@@ -170,6 +208,7 @@ class ShapesComposition:
         self.shapes = tmp.shapes
         self.voxel_size = tmp.voxel_size
         self.mbb_min, self.mbb_max = self.find_mbb()
+        self.labels = tmp.labels
 
     def plot_cloud(self, npoints):
         to_plot = np.empty([3])
@@ -209,13 +248,14 @@ class Ellipsoid(GeometricShape):
         v2: np.ndarray,
         epsilon=1.0e-3,
     ):
-        self.center = center
-        self.lambdas = lambdas
-        self.v0 = v0 / np.linalg.norm(v0)
-        self.v1 = v1 / np.linalg.norm(v1)
-        self.v2 = v2 / np.linalg.norm(v2)
+        self.center = copy.deepcopy(center)
+        self.lambdas = copy.deepcopy(lambdas)
+        self.v0 = copy.deepcopy(v0) / np.linalg.norm(v0)
+        self.v1 = copy.deepcopy(v1) / np.linalg.norm(v1)
+        self.v2 = copy.deepcopy(v2) / np.linalg.norm(v2)
         self.epsilon = epsilon
         self.mbb_min, self.mbb_max = self.find_mbb()
+        #print("Created sphere centered at:", self.center)
 
     def find_mbb(self):
         # Find the minimum bounding box, to avoid computing it every time
@@ -270,6 +310,7 @@ class Ellipsoid(GeometricShape):
         # rmat = rmat/np.linalg.det(rmat)
         cloud = cloud.dot(rmat)
         cloud = cloud + self.center
+        #print(self.center)
 
         return cloud
 
@@ -322,8 +363,6 @@ class Ellipsoid(GeometricShape):
         x, y, z = translate_3d_mesh_by_vec(x, y, z, self.center)
 
         return x, y, z
-
-
 # -----------------------------------------------------
 
 
@@ -331,9 +370,9 @@ class Cone(GeometricShape):
     def __init__(
         self, apex: np.ndarray, center: np.ndarray, radius: float, epsilon=1.0e-3
     ):
-        self.center = center
+        self.center = copy.deepcopy(center)
         self.radius = radius
-        self.apex = apex
+        self.apex = copy.deepcopy(apex)
         self.epsilon = epsilon
 
         # Find the minimum bounding box, to avoid computing it every time
@@ -385,7 +424,7 @@ class Cone(GeometricShape):
         rand_b = np.random.rand(npoints)
 
         # Height vector
-        hv = np.array(self.center) - np.array(self.apex)
+        hv = self.center - self.apex
         cloud = np.full((npoints, 3), 0, dtype=float)
 
         # Generate a cone with the apex in the origin and the center at (0,0,1)
@@ -398,6 +437,11 @@ class Cone(GeometricShape):
         zvers = np.array([0, 0, 1])
         perp = np.cross(zvers, hv)
         angle = np.arccos(np.dot(hv, zvers))
+        #print(angle)
+
+        if (hv[2]< 0):
+            cloud[:, 2] = -cloud[:, 2]
+
         rot = R.from_rotvec(perp * angle)
         cloud = rot.apply(cloud)
 
@@ -494,11 +538,13 @@ class Cone(GeometricShape):
 
         # Rotate the cone
         hv = hv / np.linalg.norm(hv)
-        zvers = np.array([0, 0, 1])
+        zvers = np.array([0, 0, -1])
         perp = np.cross(zvers, hv)
         angle = np.arccos(np.dot(hv, zvers))
 
         x, y, z = rotate_3d_mesh_by_vec(x, y, z, perp, angle)
+        if (hv[2]< 0):
+            z = -z
         x, y, z = translate_3d_mesh_by_vec(x, y, z, self.apex)
 
         return x, y, z
@@ -511,10 +557,10 @@ class Cylinder(GeometricShape):
     def __init__(
         self, center: np.ndarray, radius: float, height_vector: np.ndarray, epsilon=1e-3
     ):
-        self.center = center
+        self.center = copy.deepcopy(center)
         self.radius = radius
         # Position of the apex
-        self.height_vector = height_vector
+        self.height_vector = copy.deepcopy(height_vector)
         self.epsilon = epsilon
 
         # Find the minimum bounding box, to avoid computing it every time
@@ -578,22 +624,21 @@ class Cylinder(GeometricShape):
     def check_mbox(self, points: np.ndarray):
 
         # Check for intersections with mbb
-        
-        inside = (
+        """inside = (
             (points[:, 2] > self.mbb_min[2])
             & (points[:, 2] < self.mbb_max[2]))
         if np.any(inside):
-            inside = inside & (points[:, 1] > self.mbb_min[1]) & (points[:, 1] < self.mbb_max[1]) & (points[:, 0] > self.mbb_min[0]) & (points[:, 0] < self.mbb_max[0])
+            inside = inside & (points[:, 1] > self.mbb_min[1]) & (points[:, 1] < self.mbb_max[1]) & (points[:, 0] > self.mbb_min[0]) & (points[:, 0] < self.mbb_max[0])"""
         
                  
-        """inside = (
+        inside = (
             (points[:, 0] > self.mbb_min[0])
             & (points[:, 0] < self.mbb_max[0])
             & (points[:, 1] > self.mbb_min[1])
             & (points[:, 1] < self.mbb_max[1])
             & (points[:, 2] > self.mbb_min[2])
             & (points[:, 2] < self.mbb_max[2])
-        )"""
+        )
         return inside
 
     def check_inside(self, points: np.ndarray):
@@ -655,7 +700,7 @@ class Cylinder(GeometricShape):
 
 class Sphere(GeometricShape):
     def __init__(self, center: np.ndarray, radius: float, epsilon=1e-3):
-        self.center = center
+        self.center = copy.deepcopy(center)
         self.radius = radius
         self.mbb_min, self.mbb_max = self.find_mbb()
         self.epsilon = epsilon
@@ -671,6 +716,8 @@ class Sphere(GeometricShape):
 
     def translate(self, t_vector: np.ndarray):
         self.center += t_vector
+        self.mbb_min += t_vector
+        self.mbb_max += t_vector
 
     def rotate(self, r_versor: np.ndarray, angle: float):
         # It's a sphere, it's invariant under rotation!

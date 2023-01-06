@@ -8,6 +8,7 @@ from bsb.morphologies import Morphology
 from bsb.storage.interfaces import ConnectivitySet as IConnectivitySet
 from bsb.connectivity.strategy import Hemitype
 from bsb.connectivity.strategy import HemitypeCollection
+from bsb.connectivity.point_cloud.geometric_shapes import ShapesComposition
 
 
 @config.node
@@ -53,13 +54,15 @@ class CloudToCloudIntersection(ConnectionStrategy):
 
         post_cloud = ShapesComposition()
         #post_cloud.load_from_file(self.post_cloud_name)
-        post_cloud.load_from_file(self.postsynaptic.cell_types[0].cloud_name)
+        post_cloud.load_from_file(self.postsynaptic.cloud_name)
+        post_cloud = post_cloud.filter_by_labels(self.postsynaptic.morphology_labels)
         
         
 
         pre_cloud = ShapesComposition()
         #pre_cloud.load_from_file(self.pre_cloud_name)
-        pre_cloud.load_from_file(self.presynaptic.cell_types[0].cloud_name)
+        pre_cloud.load_from_file(self.presynaptic.cloud_name)
+        pre_cloud = pre_cloud.filter_by_labels(self.presynaptic.morphology_labels)
 
         to_connect_pre = np.empty([1, 3], dtype=int)
         to_connect_post = np.empty([1, 3], dtype=int)
@@ -68,7 +71,7 @@ class CloudToCloudIntersection(ConnectionStrategy):
 
             # Generate pre points cloud
             current_pre_cloud = pre_cloud.copy()
-            current_pre_cloud.translate(self, pre_coord)
+            current_pre_cloud.translate(pre_coord)
             pre_coord = current_pre_cloud.generate_point_cloud()
 
             # Find pre minimal bounding box of the morpho
@@ -76,7 +79,7 @@ class CloudToCloudIntersection(ConnectionStrategy):
 
             for post_id, post_coord in enumerate(post_pos):
                 current_post_cloud = post_cloud.copy()
-                current_post_cloud.translate(self, post_coord)
+                current_post_cloud.translate(post_coord)
 
                 # Compare pre and post mbbs
                 post_mbb_min, post_mbb_max = post_cloud.find_mbb()

@@ -15,7 +15,6 @@ from bsb.connectivity.point_cloud.geometric_shapes import ShapesComposition
 class CloudToMorphologyIntersection(ConnectionStrategy):
     # Read vars from the configuration file
     affinity = config.attr(type=int, required=True)
-    cloud_name = config.attr(type=str, required=True)
 
     def get_region_of_interest(self, chunk):
 
@@ -53,7 +52,8 @@ class CloudToMorphologyIntersection(ConnectionStrategy):
         post_pos = post_ps.load_positions()
 
         cloud = ShapesComposition()
-        cloud.load_from_file(self.cloud_name)  
+        cloud.load_from_file(self.presynaptic.cloud_name)
+        cloud = cloud.filter_by_labels(self.presynaptic.morphology_labels)
 
         to_connect_pre = np.empty([1,3],dtype=int)
         to_connect_post = np.empty([1,3],dtype=int)
@@ -63,8 +63,7 @@ class CloudToMorphologyIntersection(ConnectionStrategy):
 
         for post_id, post_coord, morpho in zip(itertools.count(), pre_pos, post_morphos):
 
-            print(post_id, "/", len(post_coord))
-
+            #print(post_id, "/", len(post_coord))
             #Get the branches
             branches = morpho.get_branches()
             first_axon_branch_id = branches.index(branches[0])
@@ -82,7 +81,7 @@ class CloudToMorphologyIntersection(ConnectionStrategy):
                 post_points_ids[local_ptr:local_ptr+len(b.points),2] = np.arange(len(b.points))
                 tmp = b.points + post_coord
                 tmp[:, [1, 2]] = tmp[:, [2, 1]]
-                post_morpho_coord[local_ptr:local_ptr+len(b.points)]  = tmp
+                post_morpho_coord[local_ptr:local_ptr+len(b.points),:]  = tmp
                 local_ptr += len(b.points)
             
             """#Find pre minimal bounding box of the morpho
@@ -101,20 +100,25 @@ class CloudToMorphologyIntersection(ConnectionStrategy):
                 #print(mbb_check)
                 #print("---------")
                 if np.any(mbb_check):
-                    inside_pts = pre_cloud.inside_shapes(post_coord)
+                    print("Found (mbb)")
+                    #print(post_coord)
+                    #print(post_morpho_coord[mbb_check])
+                    inside_pts = pre_cloud.inside_shapes(post_morpho_coord)
                     #Find the morpho points inside the cloud
-                    local_selection = post_points_ids[inside_pts]
-                    if self.affinity < 1 and len(post_morpho_coord[inside_pts]) > 0:
-                        local_selection = local_selection[np.random.choice(local_selection.shape[0], np.max([1, int(np.floor(self.affinity * len(local_selection)))])),:]
-                    #print(local_selection)
-                    #local_selection = pre_points_ids[inside_pts]
-                    
-                    selected_count = len(local_selection)
-                    if (selected_count > 0):
-                        to_connect_post = np.vstack([to_connect_post,local_selection])
-                        pre_tmp = np.full([1,3],-1,dtype=int)
-                        pre_tmp[:,0] = post_id
-                        to_connect_pre= np.vstack([to_connect_pre,pre_tmp])
+                    if np.any(inside_pts):
+                        print("Found (shapes)")
+                        local_selection = post_points_ids[inside_pts]
+                        if self.affinity < 1 and len(post_morpho_coord[inside_pts]) > 0:
+                            local_selection = local_selection[np.random.choice(local_selection.shape[0], np.max([1, int(np.floor(self.affinity * len(local_selection)))])),:]
+                        #print(local_selection)
+                        #local_selection = pre_points_ids[inside_pts]
+                        
+                        selected_count = len(local_selection)
+                        if (selected_count > 0):
+                            to_connect_post = np.vstack([to_connect_post,local_selection])
+                            pre_tmp = np.full([1,3],-1,dtype=int)
+                            pre_tmp[:,0] = pre_id
+                            to_connect_pre= np.vstack([to_connect_pre,pre_tmp])
 
         print("Connected", len(pre_pos), "pre cells to",len(post_pos),"post cells.")
         self.connect_cells(pre_ps, post_ps, to_connect_pre[1:], to_connect_post[1:])
