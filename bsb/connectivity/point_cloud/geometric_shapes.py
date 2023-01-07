@@ -68,7 +68,7 @@ class ShapesComposition:
             #print(lb_list)
             for to_select in labels: 
                 #print(to_select)
-                if (to_select not in lb_list):
+                if (to_select in lb_list):
                     #print("YES",to_select)
                     selected_id.append(i)
         #print(not_selected_id)
@@ -78,9 +78,15 @@ class ShapesComposition:
             if (i not in selected_id):
                 not_selected_id.append(i)
 
-        for i in sorted(not_selected_id,reverse=True):
+        result.shapes = []
+        result.labels = []
+        for nn,i in enumerate(selected_id):
+            result.shapes.append(copy.deepcopy(self.shapes[i]))
+            result.labels.append(copy.deepcopy(self.labels[i]))
+
+        """for i in sorted(not_selected_id,reverse=True):
             #print(i,"/",len(result.shapes))
-            del result.shapes[i]
+            del result.shapes[i]"""
         """for nn,i in enumerate(selected_id):
             print(i)
             print(self.shapes[i])
@@ -90,6 +96,7 @@ class ShapesComposition:
             print(self.shapes[i].mbb_min)
             print(result.shapes[nn].mbb_min)
             print("------------------------")"""
+    
         result.mbb_min, result.mbb_max = result.find_mbb()
         return result
 
@@ -128,12 +135,12 @@ class ShapesComposition:
         npoints = []
         if len(self.shapes) != 0:
             for shape in self.shapes:
-                npoints.append(int(shape.get_volume() // self.voxel_size))
+                npoints.append(int(shape.get_volume() // (self.voxel_size)**3))
         return npoints
 
     def generate_point_cloud(self):
         if len(self.shapes) != 0:
-            cloud = np.empty([3])
+            cloud = np.empty([3],dtype=np.float64)
             npoints = self.compute_n_points()
             for shape, numpts in zip(self.shapes, npoints):
                 tmp = shape.generate_point_cloud(numpts)
@@ -163,10 +170,10 @@ class ShapesComposition:
         inside = (
             (points[:, 0] > self.mbb_min[0])
             & (points[:, 0] < self.mbb_max[0])
-            & (points[:, 2] > self.mbb_min[1])
-            & (points[:, 2] < self.mbb_max[1])
-            & (points[:, 1] > self.mbb_min[2])
-            & (points[:, 1] < self.mbb_max[2])
+            & (points[:, 1] > self.mbb_min[1])
+            & (points[:, 1] < self.mbb_max[1])
+            & (points[:, 2] > self.mbb_min[2])
+            & (points[:, 2] < self.mbb_max[2])
         )
         """print("SC inside_mbox")
         print(points[0])
@@ -187,11 +194,17 @@ class ShapesComposition:
             return None"""
 
     def inside_shapes(self, points):
+        #print("INSIDE_SHAPES")
         if len(self.shapes) != 0:
             cloud = np.full(len(points), 0, dtype=bool)
             for shape in self.shapes:
                 tmp = shape.check_mbox(points)
+                #print(type(shape))
+                #print("pts",points[0])
+                #print("shape min",shape.mbb_min)
+                #print("shape max",shape.mbb_max)
                 if np.any(tmp):
+                    #print("H")
                     cloud = cloud | shape.check_inside(points)
             return cloud
         else:
@@ -286,7 +299,7 @@ class Ellipsoid(GeometricShape):
 
     def rotate(self, r_versor: np.ndarray, angle: float):
         rot = R.from_rotvec(r_versor * angle)
-        self.center = rot.apply(self.center)
+        #self.center = rot.apply(self.center)
         self.v0 = rot.apply(self.v0)
         self.v1 = rot.apply(self.v1)
         self.v2 = rot.apply(self.v2)
@@ -296,7 +309,7 @@ class Ellipsoid(GeometricShape):
         # Generate an ellipse orientated along x,y,z
         cloud = np.full((npoints, 3), 0, dtype=float)
         theta = np.pi * 2.0 * np.random.rand(npoints)
-        phi = -1.0 * np.pi * np.random.rand(npoints)
+        phi = 1.0 * np.pi * np.random.rand(npoints)
         rand = np.random.rand(npoints, 3)
 
         # Generate an ellipsoid centered at the origin, with the semiaxes on x,y,z
@@ -307,8 +320,9 @@ class Ellipsoid(GeometricShape):
 
         # Rotate the ellipse
         rmat = np.array([self.v0, self.v1, self.v2]).T
-        # rmat = rmat/np.linalg.det(rmat)
+        #rmat = rmat/np.linalg.det(rmat)
         cloud = cloud.dot(rmat)
+        #cloud = rmat.dot(cloud)
         cloud = cloud + self.center
         #print(self.center)
 
@@ -471,7 +485,7 @@ class Cone(GeometricShape):
             & (points[:, 2] < self.mbb_max[2]))
         if np.any(inside):
             inside = inside & (points[:, 1] > self.mbb_min[1]) & (points[:, 1] < self.mbb_max[1]) & (points[:, 0] > self.mbb_min[0]) & (points[:, 0] < self.mbb_max[0])"""
-
+        
         #Look for points inside the mbb.
         inside = (
             (points[:, 0] > self.mbb_min[0])
@@ -567,22 +581,34 @@ class Cylinder(GeometricShape):
         self.mbb_min, self.mbb_max = self.find_mbb()
 
     def find_mbb(self):
+        
+        height = np.linalg.norm(self.height_vector - self.center)
+        # Extrema of the xyz standard cyl
+        extrema = [np.array([-self.radius,-self.radius,0.]),np.array([-self.radius,self.radius,0.]),np.array([self.radius,-self.radius,0.]),np.array([self.radius,self.radius,0.]),np.array([self.radius,self.radius,height]),np.array([-self.radius,self.radius,height]),np.array([self.radius,-self.radius,height]),np.array([-self.radius,-self.radius,height])]
 
-        # Find extrema of the mbb
-        extrema = np.array(
-            [
-                self.center + self.radius,
-                self.center - self.radius,
-                self.height_vector + self.center + self.radius,
-                self.height_vector + self.center - self.radius,
-            ]
-        )
-        minima = np.min(extrema, axis=0)
-        maxima = np.max(extrema, axis=0)
+        # Rotate the cylinder
+        hv = (self.height_vector - self.center) / height
+        zvers = np.array([0, 0, 1])
+        perp = np.cross(zvers, hv)
+        angle = np.arccos(np.dot(hv, zvers))
+        rot = R.from_rotvec(perp * angle)
+
+        for i,pt in enumerate(extrema):
+            extrema[i] = rot.apply(pt)
+        
+        #minima = rot.apply(minima) + self.center
+        #maxima = rot.apply(maxima) + self.center
+        #print(minima)
+        #print(maxima)
+        maxima = np.max(extrema,axis=0) + self.center
+        minima = np.min(extrema,axis=0) + self.center
+        #print("FIND MBB")
+        #print(minima)
+        #print(maxima)
         return minima, maxima
 
     def get_volume(self):
-        h = np.linalg.norm(self.height_vector)
+        h = np.linalg.norm(self.height_vector-self.center)
         b = np.pi * self.radius * self.radius
         return b * h
 
@@ -623,13 +649,16 @@ class Cylinder(GeometricShape):
 
     def check_mbox(self, points: np.ndarray):
 
+        """print("INSIDE_MBOX_CYLINDER")
+        print(self.mbb_min)
+        print(self.mbb_max)
+        print("cpt", points[0] )"""
         # Check for intersections with mbb
         """inside = (
             (points[:, 2] > self.mbb_min[2])
             & (points[:, 2] < self.mbb_max[2]))
         if np.any(inside):
             inside = inside & (points[:, 1] > self.mbb_min[1]) & (points[:, 1] < self.mbb_max[1]) & (points[:, 0] > self.mbb_min[0]) & (points[:, 0] < self.mbb_max[0])"""
-        
                  
         inside = (
             (points[:, 0] > self.mbb_min[0])
@@ -639,6 +668,8 @@ class Cylinder(GeometricShape):
             & (points[:, 2] > self.mbb_min[2])
             & (points[:, 2] < self.mbb_max[2])
         )
+        """print(inside)
+        print("FINE INSIDE_MBOX_CYLINDER")"""
         return inside
 
     def check_inside(self, points: np.ndarray):
@@ -653,7 +684,7 @@ class Cylinder(GeometricShape):
         angle = -np.arccos(np.dot(hv, zvers))
         rot = R.from_rotvec(perp * angle)
         rot_pts = rot.apply(pts)
-
+        #print(rot_pts[0])
         # Check for intersections
         inside_points = (
             (rot_pts[:, 2] < height + self.epsilon)

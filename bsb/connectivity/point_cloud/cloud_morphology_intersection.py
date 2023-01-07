@@ -100,15 +100,15 @@ class CloudToMorphologyIntersection(ConnectionStrategy):
                 #print(mbb_check)
                 #print("---------")
                 if np.any(mbb_check):
-                    print("Found (mbb)")
+                    #print("Found (mbb)")
                     #print(post_coord)
                     #print(post_morpho_coord[mbb_check])
-                    inside_pts = pre_cloud.inside_shapes(post_morpho_coord)
+                    inside_pts = pre_cloud.inside_shapes(post_morpho_coord[mbb_check])
                     #Find the morpho points inside the cloud
                     if np.any(inside_pts):
-                        print("Found (shapes)")
-                        local_selection = post_points_ids[inside_pts]
-                        if self.affinity < 1 and len(post_morpho_coord[inside_pts]) > 0:
+                        #print("Found (shapes)")
+                        local_selection = (post_points_ids[mbb_check])[inside_pts]
+                        if self.affinity < 1 and len(local_selection) > 0:
                             local_selection = local_selection[np.random.choice(local_selection.shape[0], np.max([1, int(np.floor(self.affinity * len(local_selection)))])),:]
                         #print(local_selection)
                         #local_selection = pre_points_ids[inside_pts]

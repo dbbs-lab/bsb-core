@@ -54,6 +54,9 @@ class MorphologyToCloudIntersection(ConnectionStrategy):
         cloud = ShapesComposition()
         cloud.load_from_file(self.postsynaptic.cloud_name)
         cloud = cloud.filter_by_labels(self.postsynaptic.morphology_labels)
+
+        #print(len(cloud.s))
+
         #print(self.postsynaptic.morphology_labels)
         #print("Numero shapes",len(cloud.shapes))
         #print(dir(cloud.shapes[0]))
@@ -86,7 +89,7 @@ class MorphologyToCloudIntersection(ConnectionStrategy):
                 tmp = b.points + pre_coord
                 #Swap y and z
                 tmp[:, [1, 2]] = tmp[:, [2, 1]]
-                pre_morpho_coord[local_ptr : local_ptr + len(b.points),:] = tmp
+                pre_morpho_coord[local_ptr : local_ptr + len(b.points)] = tmp
                 local_ptr += len(b.points)
 
             """#Find pre minimal bounding box of the morpho
@@ -109,12 +112,12 @@ class MorphologyToCloudIntersection(ConnectionStrategy):
                     #print("MBB")
                     #print("Found")
                     # Find the morpho points inside the cloud
-                    inside_pts = post_cloud.inside_shapes(pre_morpho_coord)
+                    inside_pts = post_cloud.inside_shapes(pre_morpho_coord[mbb_check])
                     #print(np.count_nonzero(inside_pts))
                     if np.any(inside_pts):
-                        print("Found")
-                        local_selection = pre_points_ids[inside_pts]
-                        if self.affinity < 1 and len(pre_morpho_coord[inside_pts]) > 0:
+                        #print("Found")
+                        local_selection = (pre_points_ids[mbb_check])[inside_pts]
+                        if self.affinity < 1 and len(local_selection) > 0:
                             local_selection = local_selection[np.random.choice(local_selection.shape[0], np.max([1, int(np.floor(self.affinity * len(local_selection)))])),:]
                         #print(local_selection)
                         #local_selection = pre_points_ids[inside_pts]
