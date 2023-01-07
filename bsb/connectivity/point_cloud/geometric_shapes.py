@@ -61,17 +61,12 @@ class ShapesComposition:
         self.labels.append(labels)
 
     def filter_by_labels(self, labels : list[str]):
-        #print("filter")
         result = copy.deepcopy(self)
         selected_id = []
         for i,lb_list in enumerate(self.labels):
-            #print(lb_list)
             for to_select in labels: 
-                #print(to_select)
                 if (to_select in lb_list):
-                    #print("YES",to_select)
                     selected_id.append(i)
-        #print(not_selected_id)
         selected_id = set(selected_id)
         not_selected_id = []
         for i in range(len(self.shapes)):
@@ -83,20 +78,6 @@ class ShapesComposition:
         for nn,i in enumerate(selected_id):
             result.shapes.append(copy.deepcopy(self.shapes[i]))
             result.labels.append(copy.deepcopy(self.labels[i]))
-
-        """for i in sorted(not_selected_id,reverse=True):
-            #print(i,"/",len(result.shapes))
-            del result.shapes[i]"""
-        """for nn,i in enumerate(selected_id):
-            print(i)
-            print(self.shapes[i])
-            result.add_shape(copy.deepcopy(self.shapes[i]),copy.deepcopy(self.labels[i]))
-            print(self.shapes[i].mbb_max)
-            print(result.shapes[nn].mbb_max)
-            print(self.shapes[i].mbb_min)
-            print(result.shapes[nn].mbb_min)
-            print("------------------------")"""
-    
         result.mbb_min, result.mbb_max = result.find_mbb()
         return result
 
@@ -121,9 +102,7 @@ class ShapesComposition:
 
         mins = np.empty([len(self.shapes),3])
         maxs = np.empty([len(self.shapes),3])
-        #print(len(self.shapes))
         for i,shape in enumerate(self.shapes):
-            #min, max = shape.find_mbb()
             mins[i,:] = shape.mbb_min
             maxs[i,:] = shape.mbb_max
 
@@ -175,36 +154,14 @@ class ShapesComposition:
             & (points[:, 2] > self.mbb_min[2])
             & (points[:, 2] < self.mbb_max[2])
         )
-        """print("SC inside_mbox")
-        print(points[0])
-        print(self.mbb_min)
-        print(self.mbb_max)
-        print("-------")"""
-
         return inside
 
-        
-        """if len(self.shapes) != 0:
-            cloud = np.full(len(points), 0, dtype=bool)
-            for shape in self.shapes:
-                cloud = cloud | shape.check_mbox(points)
-
-            return cloud
-        else:
-            return None"""
-
     def inside_shapes(self, points):
-        #print("INSIDE_SHAPES")
         if len(self.shapes) != 0:
             cloud = np.full(len(points), 0, dtype=bool)
             for shape in self.shapes:
                 tmp = shape.check_mbox(points)
-                #print(type(shape))
-                #print("pts",points[0])
-                #print("shape min",shape.mbb_min)
-                #print("shape max",shape.mbb_max)
                 if np.any(tmp):
-                    #print("H")
                     cloud = cloud | shape.check_inside(points)
             return cloud
         else:
@@ -429,7 +386,7 @@ class Cone(GeometricShape):
 
     def rotate(self, r_versor: np.ndarray, angle: float):
         rot = R.from_rotvec(r_versor * angle)
-        self.center = rot.apply(self.center)
+        #self.center = rot.apply(self.center)
         self.apex = rot.apply(self.apex)
 
     def generate_point_cloud(self, npoints: int):
@@ -465,27 +422,6 @@ class Cone(GeometricShape):
 
     def check_mbox(self, points: np.ndarray):
 
-        """# Center the points to the origin
-        pts = points - self.apex
-
-        # Vectors identifying half of the sides of the square in xzy
-        u = np.array([self.radius, 0, 0])
-        v = np.array([0, self.radius, 0])
-
-        # Find the rotation angle and axis
-        hv = self.center - self.apex
-        hv = hv / np.linalg.norm(hv)
-        zvers = np.array([0, 0, 1])
-        perp = np.cross(zvers, hv)
-        angle = np.arccos(np.dot(hv, zvers))
-        rot = R.from_rotvec(perp * angle)"""
-
-        """inside = (
-            (points[:, 2] > self.mbb_min[2])
-            & (points[:, 2] < self.mbb_max[2]))
-        if np.any(inside):
-            inside = inside & (points[:, 1] > self.mbb_min[1]) & (points[:, 1] < self.mbb_max[1]) & (points[:, 0] > self.mbb_min[0]) & (points[:, 0] < self.mbb_max[0])"""
-        
         #Look for points inside the mbb.
         inside = (
             (points[:, 0] > self.mbb_min[0])
@@ -596,15 +532,8 @@ class Cylinder(GeometricShape):
         for i,pt in enumerate(extrema):
             extrema[i] = rot.apply(pt)
         
-        #minima = rot.apply(minima) + self.center
-        #maxima = rot.apply(maxima) + self.center
-        #print(minima)
-        #print(maxima)
         maxima = np.max(extrema,axis=0) + self.center
         minima = np.min(extrema,axis=0) + self.center
-        #print("FIND MBB")
-        #print(minima)
-        #print(maxima)
         return minima, maxima
 
     def get_volume(self):
@@ -620,7 +549,7 @@ class Cylinder(GeometricShape):
 
     def rotate(self, r_versor: np.ndarray, angle: float):
         rot = R.from_rotvec(r_versor * angle)
-        self.center = rot.apply(self.center)
+        #self.center = rot.apply(self.center)
         self.height_vector = rot.apply(self.height_vector)
 
     def generate_point_cloud(self, npoints: int):
@@ -649,17 +578,6 @@ class Cylinder(GeometricShape):
 
     def check_mbox(self, points: np.ndarray):
 
-        """print("INSIDE_MBOX_CYLINDER")
-        print(self.mbb_min)
-        print(self.mbb_max)
-        print("cpt", points[0] )"""
-        # Check for intersections with mbb
-        """inside = (
-            (points[:, 2] > self.mbb_min[2])
-            & (points[:, 2] < self.mbb_max[2]))
-        if np.any(inside):
-            inside = inside & (points[:, 1] > self.mbb_min[1]) & (points[:, 1] < self.mbb_max[1]) & (points[:, 0] > self.mbb_min[0]) & (points[:, 0] < self.mbb_max[0])"""
-                 
         inside = (
             (points[:, 0] > self.mbb_min[0])
             & (points[:, 0] < self.mbb_max[0])
@@ -668,8 +586,6 @@ class Cylinder(GeometricShape):
             & (points[:, 2] > self.mbb_min[2])
             & (points[:, 2] < self.mbb_max[2])
         )
-        """print(inside)
-        print("FINE INSIDE_MBOX_CYLINDER")"""
         return inside
 
     def check_inside(self, points: np.ndarray):
