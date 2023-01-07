@@ -51,9 +51,20 @@ class CloudToMorphologyIntersection(ConnectionStrategy):
         pre_pos = pre_ps.load_positions()
         post_pos = post_ps.load_positions()
 
-        cloud = ShapesComposition()
+        cloud_cache = []
+        for fn in self.presynaptic.cloud_names:
+            cloud = ShapesComposition()
+            cloud.load_from_file(fn)
+            cloud = cloud.filter_by_labels(self.presynaptic.morphology_labels)
+            cloud_cache.append(cloud)
+        
+        cloud_choice_id =  np.random.randint(low=0, high=len(cloud_cache), size=len(pre_pos), dtype=int)
+
+        #
+
+        """cloud = ShapesComposition()
         cloud.load_from_file(self.presynaptic.cloud_name)
-        cloud = cloud.filter_by_labels(self.presynaptic.morphology_labels)
+        cloud = cloud.filter_by_labels(self.presynaptic.morphology_labels)"""
 
         to_connect_pre = np.empty([1,3],dtype=int)
         to_connect_post = np.empty([1,3],dtype=int)
@@ -90,7 +101,7 @@ class CloudToMorphologyIntersection(ConnectionStrategy):
 
             for pre_id, pre_coord in enumerate(pre_pos):
                 
-                pre_cloud = cloud.copy()
+                pre_cloud = cloud_cache[cloud_choice_id[pre_id]].copy()
                 pre_coord[[1, 2]] = pre_coord[[2, 1]]
                 pre_cloud.translate(pre_coord)
 
