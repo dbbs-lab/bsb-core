@@ -17,7 +17,7 @@ _available_distributions.append("constant")
 @config.node
 class Distribution:
     distribution = config.attr(type=types.in_(_available_distributions), required=True)
-    parameters = config.catch_all(type=types.any())
+    parameters = config.catch_all(type=types.any_())
 
     def __init__(self, **kwargs):
         if self.distribution == "constant":

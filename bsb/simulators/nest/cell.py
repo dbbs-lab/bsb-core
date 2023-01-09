@@ -37,7 +37,7 @@ class MapsScaffoldIdentifiers:
 class NestCell(CellModel, MapsScaffoldIdentifiers):
     neuron_model = config.attr(type=str)
     relay = config.attr(default=False)
-    parameters = config.dict(type=types.any())
+    parameters = config.dict(type=types.any_())
     model_parameters = config.catch_all(
         type=dict, catch=_merge_params, tree_cb=_unmerge_params
     )
