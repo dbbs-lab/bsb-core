@@ -10,7 +10,7 @@ import nrnsub
 import h5py
 
 # Read the network file
-network = from_hdf("my_network.hdf5")
+network = from_storage("my_network.hdf5")
 
 
 @nrnsub.isolate

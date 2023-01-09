@@ -12,10 +12,6 @@ class CellModel(SimulationComponent):
 
     cell_type = config.ref(refs.cell_type_ref, key="name")
     """
-    The cell type associated to this cell_model.
-    """
-    relay = config.attr(type=bool, default=False)
-    """
     Whether this cell type is a relay type. Relay types, during simulation, instantly
     transmit incoming spikes to their targets.
     """
