@@ -73,7 +73,6 @@
       }
     },
     "glomerulus": {
-      "relay": true,
       "spatial": {
         "radius": 1.5,
         "density": 3e-4
