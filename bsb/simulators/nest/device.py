@@ -13,7 +13,7 @@ class NestDevice(DeviceModel):
     device = config.attr(type=str, required=True)
     parameters = config.dict(
         type=types.or_(
-            types.evaluation(), types.number(), types.distribution(), types.any()
+            types.evaluation(), types.number(), types.distribution(), types.any_()
         )
     )
     connection = config.attr(type=NestConnectionSettings)

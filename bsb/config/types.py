@@ -1,11 +1,11 @@
-import inspect
-
-from ..exceptions import *
-from ._hooks import overrides
-from ._make import _load_class
-from ._compile import _reserved_kw_passes, _wrap_reserved
-import math, sys, numpy as np, abc, weakref
+import abc
 import builtins
+import inspect
+import math
+import numpy as np
+
+from ._compile import _reserved_kw_passes, _wrap_reserved
+from ._make import _load_class
 
 
 class TypeHandler(abc.ABC):
@@ -43,7 +43,7 @@ class TypeHandler(abc.ABC):
             cls.__call__ = _wrap_reserved(call)
 
 
-def any():
+def any_():
     def type_handler(value):
         return value
 
@@ -136,7 +136,7 @@ class class_(TypeHandler):
     def __call__(self, value):
         try:
             return _load_class(value, self._module_path)
-        except:
+        except Exception:
             raise TypeError("Could not import {} as a class".format(value))
 
     def __inv__(self, value):
@@ -206,7 +206,7 @@ def int(min=None, max=None):
             if min is not None and min > v or max is not None and max < v:
                 raise Exception()
             return v
-        except:
+        except Exception:
             raise TypeError(
                 "Could not cast {} to an {}.".format(value, handler_name)
             ) from None
@@ -245,7 +245,7 @@ def float(min=None, max=None):
             if min is not None and min > v or max is not None and max < v:
                 raise Exception()
             return v
-        except:
+        except Exception:
             raise TypeError("Could not cast {} to an {}.".format(value, handler_name))
 
     type_handler.__name__ = handler_name
@@ -284,7 +284,7 @@ def number(min=None, max=None):
                 if min is not None and min > v or max is not None and max < v:
                     raise Exception()
             return v
-        except:
+        except Exception:
             raise TypeError("Could not cast {} to a {}.".format(value, handler_name))
 
     type_handler.__name__ = handler_name
@@ -301,14 +301,16 @@ def scalar_expand(scalar_type, size=None, expand=None):
     :param size: Expand the scalar to an array of a fixed size.
     :type size: int
     :param expand: A function that takes the scalar value as argument and returns the
-    expanded form.
+      expanded form.
     :type expand: Callable
     :returns: Type validator function
     :rtype: Callable
     """
 
     if expand is None:
-        expand = lambda x: [1.0] * x
+
+        def expand(x):
+            return [1.0] * x
 
     def type_handler(value):
         # No try block: let it raise the cast error.
@@ -363,7 +365,7 @@ def list(type=builtins.str, size=None):
         try:
             for i, e in enumerate(v):
                 v[i] = type(e)
-        except:
+        except Exception:
             raise TypeError(
                 "Couldn't cast element {} of {} into {}".format(i, value, type.__name__)
             )
@@ -396,7 +398,7 @@ def dict(type=builtins.str):
         try:
             for k, e in v.items():
                 v[k] = type(e)
-        except:
+        except Exception:
             raise TypeError(
                 "Couldn't cast {} of {} into {}".format(k, value, type.__name__)
             )
@@ -482,9 +484,9 @@ class evaluation(TypeHandler):
     def __call__(self, value):
         cfg = builtins.dict(value)
         statement = builtins.str(cfg.get("statement", "None"))
-        locals = builtins.dict(cfg.get("variables", {}))
-        globals = {"np": np}
-        res = eval(statement, globals, locals)
+        locals_ = builtins.dict(cfg.get("variables", {}))
+        globals_ = {"np": np}
+        res = eval(statement, globals_, locals_)
         self._references[id(res)] = value
         return res
 
@@ -576,7 +578,7 @@ def mut_excl(*mutuals, required=True, max=1):
             err_msg = err_msg.format("and")
             raise RequirementError(err_msg)
         if not given and required:
-            err_msg = f"A {listed} attribute is required.".format("or")
+            err_msg = f"A {listed} attribute is required."
             raise RequirementError(err_msg)
         return False
 

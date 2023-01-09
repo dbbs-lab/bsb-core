@@ -14,7 +14,7 @@ class PlacementIndications:
     density_ratio = config.attr(type=float)
     relative_to = config.ref(refs.cell_type_ref)
     count = config.attr(type=int)
-    geometry = config.dict(type=types.any())
+    geometry = config.dict(type=types.any_())
     morphologies = config.list(type=MorphologySelector)
     density_key = config.attr(type=str)
 

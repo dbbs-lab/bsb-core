@@ -404,7 +404,7 @@ class PlacementSet(Interface):
         Return a :class:`~.morphologies.MorphologySet` associated to the cells. Raises an
         error if there is no morphology data, unless `allow_empty=True`.
 
-        :param boolean allow_empty: Silence missing morphology data error, and return an
+        :param bool allow_empty: Silence missing morphology data error, and return an
           empty morphology set.
         :returns: Set of morphologies
         :rtype: :class:`~.morphologies.MorphologySet`
