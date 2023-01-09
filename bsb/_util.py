@@ -3,6 +3,8 @@ import abc as _abc
 import os as _os
 import sys as _sys
 import contextlib as _ctxlib
+import typing
+
 import numpy as _np
 from .exceptions import OrderError as _OrderError
 import functools
@@ -190,3 +192,7 @@ class SortableByAfter:
                 )
         # Return the sorted array.
         return sorting_objects
+
+
+def unique(iter_: typing.Iterable[typing.Any]):
+    return [*set(iter_)]

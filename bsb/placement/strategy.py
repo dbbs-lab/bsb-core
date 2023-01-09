@@ -1,17 +1,18 @@
 from .. import config
 from ..exceptions import (
-    MissingSourceError,
-    SourceQualityError,
     EmptySelectionError,
     DistributorError,
+    MissingSourceError,
+    SourceQualityError,
 )
+from ..profiling import node_meter
 from ..reporting import report, warn
 from ..config import refs, types
 from .._util import SortableByAfter, obj_str_insert
 from ..voxels import VoxelSet
 from ..storage import Chunk
 from .indicator import PlacementIndications, PlacementIndicator
-from .distributor import DistributorsNode
+from .distributor import DistributorsNode, Implicit
 import numpy as np
 import itertools
 import abc
@@ -32,6 +33,11 @@ class PlacementStrategy(abc.ABC, SortableByAfter):
     after = config.reflist(refs.placement_ref)
     distribute = config.attr(type=DistributorsNode, default=dict, call_default=True)
     indicator_class = PlacementIndicator
+
+    def __init_subclass__(cls, **kwargs):
+        super(cls, cls).__init_subclass__(**kwargs)
+        # Decorate subclasses to measure performance
+        node_meter("place")(cls)
 
     def __boot__(self):
         self._queued_jobs = []

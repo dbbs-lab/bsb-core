@@ -42,7 +42,7 @@ class TestNetworkUtil(
             *self.network.placement.values(),
             *self.network.connectivity.values(),
             self.network.get_placement_set("test_cell"),
-            self.network.get_connectivity_set("test_cell_to_test_cell"),
+            self.network.get_connectivity_set("all_to_all"),
         ):
             self.assertNotEqual(object.__repr__(obj), str(obj))
             self.assertNotEqual(object.__repr__(obj), repr(obj))
