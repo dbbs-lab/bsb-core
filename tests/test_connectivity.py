@@ -96,15 +96,13 @@ class TestConnectivitySet(
 
     def test_load_all(self):
         cs = self.network.get_connectivity_set("all_to_all")
-        data = cs.load_connections()
+        data = cs.load_connections().all()
         try:
-            lcol, lloc, gcol, gloc = data
+            pre, post = data
         except (ValueError, TypeError):
-            self.fail("`load_connections` did not return 4 args")
-        self.assertEqual(10000, len(lcol), "expected full 10k local chunk ids")
-        self.assertEqual(10000, len(lloc), "expected full 10k local locs")
-        self.assertEqual(10000, len(gcol), "expected full 10k global chunk ids")
-        self.assertEqual(10000, len(gloc), "expected full 10k global locs")
+            self.fail("`load_connections` did not return 2 args")
+        self.assertEqual(10000, len(pre), "expected full 10k pre locs")
+        self.assertEqual(10000, len(post), "expected full 10k post locs")
 
     def test_load_local(self):
         cs = self.network.get_connectivity_set("all_to_all")
