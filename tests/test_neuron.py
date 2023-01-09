@@ -1,14 +1,12 @@
-import os, sys
+import h5py
+import importlib
+import numpy as np
+import unittest
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
-from bsb.core import Scaffold, from_storage
 from bsb.config import from_json
-from bsb.exceptions import *
-from bsb.services import MPI as mpi
+from bsb.core import Scaffold, from_storage
+from bsb.services import MPI
 from bsb.unittest import get_config_path
-import unittest, numpy as np, h5py, importlib
-
 
 config = get_config_path("legacy_mouse_cerebellum_cortex.json")
 miniature_config = get_config_path("test_nrn_miniature.json")
@@ -29,8 +27,8 @@ class TestMiniature(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        if mpi.get_rank():
-            mpi.barrier()
+        if MPI.get_rank():
+            MPI.barrier()
             network = from_storage("nrn_miniature.hdf5")
         else:
             config = from_json(miniature_config)
@@ -61,7 +59,7 @@ class TestMiniature(unittest.TestCase):
             comp = np.array([[pre_comp_id, post_comp_id]])
             network.connect_cells(sc_pc, c, None, m, comp, None, mmap)
             network.compile_output()
-            mpi.barrier()
+            MPI.barrier()
         network.run_simulation("test")
         from glob import glob
 
