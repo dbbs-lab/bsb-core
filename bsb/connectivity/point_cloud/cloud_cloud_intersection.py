@@ -14,8 +14,8 @@ from bsb.connectivity.point_cloud.geometric_shapes import ShapesComposition
 @config.node
 class CloudToCloudIntersection(ConnectionStrategy):
     # Read vars from the configuration file
-    #post_cloud_name = config.attr(type=str, required=True)
-    #pre_cloud_name = config.attr(type=str, required=True)
+    # post_cloud_name = config.attr(type=str, required=True)
+    # pre_cloud_name = config.attr(type=str, required=True)
 
     def get_region_of_interest(self, chunk):
 
@@ -41,26 +41,30 @@ class CloudToCloudIntersection(ConnectionStrategy):
             cloud.load_from_file(fn)
             cloud = cloud.filter_by_labels(self.presynaptic.morphology_labels)
             pre_cloud_cache.append(cloud)
-        
+
         post_cloud_cache = []
         for fn in self.postsynaptic.cloud_names:
             cloud = ShapesComposition()
             cloud.load_from_file(fn)
             cloud = cloud.filter_by_labels(self.postsynaptic.morphology_labels)
             post_cloud_cache.append(cloud)
-        
-        pre_cloud_choice_id =  np.random.randint(low=0, high=len(pre_cloud_cache), size=len(pre_pos), dtype=int)
-        post_cloud_choice_id =  np.random.randint(low=0, high=len(post_cloud_cache), size=len(post_pos), dtype=int)
+
+        pre_cloud_choice_id = np.random.randint(
+            low=0, high=len(pre_cloud_cache), size=len(pre_pos), dtype=int
+        )
+        post_cloud_choice_id = np.random.randint(
+            low=0, high=len(post_cloud_cache), size=len(post_pos), dtype=int
+        )
 
         to_connect_pre = np.empty([1, 3], dtype=int)
         to_connect_post = np.empty([1, 3], dtype=int)
 
         for pre_id, pre_coord in enumerate(pre_pos):
-            
+
             # Generate pre points cloud
             current_pre_cloud = pre_cloud_cache[pre_cloud_choice_id[pre_id]].copy()
             tmp_pre_coord = np.copy(pre_coord)
-            tmp_pre_coord[[1,2]] = tmp_pre_coord[[2,1]]
+            tmp_pre_coord[[1, 2]] = tmp_pre_coord[[2, 1]]
             current_pre_cloud.translate(tmp_pre_coord)
             pre_point_cloud = current_pre_cloud.generate_point_cloud()
 
@@ -68,17 +72,19 @@ class CloudToCloudIntersection(ConnectionStrategy):
             pre_mbb_min, pre_mbb_max = current_pre_cloud.find_mbb()
 
             for post_id, post_coord in enumerate(post_pos):
-                
-                current_post_cloud = post_cloud_cache[post_cloud_choice_id[post_id]].copy()
+
+                current_post_cloud = post_cloud_cache[
+                    post_cloud_choice_id[post_id]
+                ].copy()
                 tmp_post_coord = np.copy(post_coord)
-                tmp_post_coord[[1,2]] = tmp_post_coord[[2,1]]
+                tmp_post_coord[[1, 2]] = tmp_post_coord[[2, 1]]
                 current_post_cloud.translate(tmp_post_coord)
 
                 # Compare pre and post mbbs
                 post_mbb_min, post_mbb_max = current_post_cloud.find_mbb()
 
                 inside_mbbox = current_post_cloud.inside_mbox(pre_point_cloud)
-                if (np.any(inside_mbbox)):
+                if np.any(inside_mbbox):
 
                     inside_pts = current_post_cloud.inside_shapes(pre_point_cloud)
                     selected = pre_point_cloud[inside_pts]
@@ -90,5 +96,5 @@ class CloudToCloudIntersection(ConnectionStrategy):
                         tmp_post_selection[:, 0] = post_id
                         to_connect_post = np.vstack([to_connect_post, tmp_post_selection])
 
-        #print("Connected", len(pre_pos), "pre cells to", len(post_pos), "post cells.")
+        # print("Connected", len(pre_pos), "pre cells to", len(post_pos), "post cells.")
         self.connect_cells(pre_ps, post_ps, to_connect_pre[1:], to_connect_post[1:])

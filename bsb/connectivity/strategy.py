@@ -84,7 +84,17 @@ class ConnectionStrategy(abc.ABC, SortableByAfter):
     def _get_connect_args_from_job(self, chunk, roi):
         pre = HemitypeCollection(self.presynaptic, [chunk])
         post = HemitypeCollection(self.postsynaptic, roi)
-        print("Connection strategy:", self.name, " - Connecting", self.presynaptic.cell_types[0].name, "in chunk", chunk, "to", self.postsynaptic.cell_types[0].name, "in ROI.") 
+        print(
+            "Connection strategy:",
+            self.name,
+            " - Connecting",
+            self.presynaptic.cell_types[0].name,
+            "in chunk",
+            chunk,
+            "to",
+            self.postsynaptic.cell_types[0].name,
+            "in ROI.",
+        )
         return pre, post
 
     def connect_cells(self, pre_set, post_set, src_locs, dest_locs, tag=None):
