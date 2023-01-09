@@ -6,7 +6,8 @@ from bsb.simulation.targetting import LocationTargetting
 from ..device import NeuronDevice
 
 
-class VoltageClamp(NeuronDevice):
+@config.node
+class VoltageClamp(NeuronDevice, classmap_entry="vclamp"):
     locations = config.attr(type=LocationTargetting, default={"strategy": "soma"})
     voltage = config.attr(
         type=types.or_(float, types.list(type=float, size=3)), required=True
@@ -16,13 +17,13 @@ class VoltageClamp(NeuronDevice):
     after = config.attr(type=float, default=None)
     holding = config.attr(type=float, default=None)
 
-    def implement(self, simulation, simdata):
-        for target in self.targetting.get_targets():
+    def implement(self, result, cells, connections):
+        for target in self.targetting.get_targets(cells, connections):
             clamped = False
             for location in self.locations.get_locations(target):
                 if clamped:
                     warnings.warn(f"Multiple voltage clamps placed on {target}")
-                self._add_clamp(simdata.results, target, location)
+                self._add_clamp(result, target, location)
                 clamped = True
 
     def _add_clamp(self, results, target, location):
