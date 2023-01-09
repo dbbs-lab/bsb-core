@@ -2,16 +2,16 @@ import contextlib
 import itertools
 import os
 import time
-from functools import cache
-
 import numpy as np
 import typing
+
+from neo import AnalogSignal
 
 from bsb.exceptions import AdapterError, DatasetNotFoundError, TransmitterError
 from bsb.reporting import report
 from bsb.services import MPI
 from bsb.simulation.adapter import SimulatorAdapter
-from bsb.simulation.results import SimulationRecorder, SimulationResult
+from bsb.simulation.results import SimulationResult
 from bsb.storage import Chunk
 
 if typing.TYPE_CHECKING:
@@ -25,7 +25,25 @@ class SimulationData:
         self.cid_offsets = dict()
         self.connections = dict()
         self.first_gid: int = None
-        self.result: SimulationResult = None
+        self.result: "NeuronResult" = None
+
+
+class NeuronResult(SimulationResult):
+    def record(self, obj, **annotations):
+        from patch import p
+        from quantities import ms
+
+        v = p.record(obj)
+
+        def flush(segment):
+            print("Flushing clamp", len(v))
+            segment.analogsignals.append(
+                AnalogSignal(
+                    list(v), units="mV", sampling_period=p.dt * ms, **annotations
+                )
+            )
+
+        self.create_recorder(flush)
 
 
 @contextlib.contextmanager
@@ -66,7 +84,7 @@ class NeuronAdapter(SimulatorAdapter):
 
             report("Load balancing", level=2)
             self.load_balance(simulation)
-            simdata.result = SimulationResult(simulation)
+            simdata.result = NeuronResult(simulation)
             report("Load balancing", level=2)
             self.create_neurons(simulation)
             report("Creating transmitters", level=2)
@@ -140,8 +158,8 @@ class NeuronAdapter(SimulatorAdapter):
 
     def create_devices(self, simulation):
         simdata = self.simdata[simulation]
-        for device_model in simulation.devices:
-            device_model.implement(simdata.results, simdata.cells, simdata.connections)
+        for device_model in simulation.devices.values():
+            device_model.implement(simdata.result, simdata.cells, simdata.connections)
 
     def _allocate_transmitters(self, simulation):
         simdata = self.simdata[simulation]
@@ -184,62 +202,12 @@ class NeuronAdapter(SimulatorAdapter):
                 instance.model = cell_model
                 simdata.cells[cid] = instance
 
-    def register_recorder(
-        self, group, cell, recorder, time_recorder=None, section=None, x=None, meta=None
-    ):
-        # Store the recorder so its output can be collected after the simulation.
-        self.result.add(
-            LocationRecorder(group, cell, recorder, time_recorder, section, x, meta)
-        )
 
-    def register_cell_recorder(self, cell, recorder):
-        self.result.add(LocationRecorder("soma_voltages", cell, recorder))
-
-    def register_spike_recorder(self, cell, recorder):
-        self.result.add(SpikeRecorder("soma_spikes", cell, recorder))
+class Matrix:
+    def __getitem__(self, matrix):
+        return np.array(matrix)
 
 
-class LocationRecorder(SimulationRecorder):
-    def __init__(
-        self, group, cell, recorder, time_recorder=None, section=None, x=None, meta=None
-    ):
-        # Collect metadata
-        meta = meta or {}
-        meta["cell_id"] = cell.ref_id
-        meta["label"] = cell.cell_model.name
-        if hasattr(cell.cell_model.cell_type, "plotting"):
-            # Pass plotting info along
-            meta["color"] = cell.cell_model.cell_type.plotting.color
-            meta["display_label"] = cell.cell_model.cell_type.plotting.label
-        self.group = group
-        self.meta = meta
-        self.recorder = recorder
-        self.time_recorder = time_recorder
-        self.section = section
-        self.x = x
-        # Compose the tag: `cell.section_name(x)`
-        self.id = cell.ref_id
-        self.tag = str(cell.ref_id)
-        if section is not None:
-            meta["section"] = cell.sections.index(section)
-            self.tag += "." + section.name().split(".")[-1]
-            if x is not None:
-                self.tag += "(" + str(x) + ")"
+_ = Matrix()
 
-    def get_path(self):
-        return ("recorders", self.group, self.tag)
-
-    def get_data(self):
-        if self.time_recorder:
-            return np.column_stack((list(self.recorder), list(self.time_recorder)))
-        else:
-            return np.array(list(self.recorder))
-
-    def get_meta(self):
-        return self.meta
-
-
-class SpikeRecorder(LocationRecorder):
-    def get_data(self):
-        recording = np.array(list(self.recorder))
-        return np.column_stack((np.ones(recording.shape) * self.id, recording))
+a = _[1, 2, 3]
