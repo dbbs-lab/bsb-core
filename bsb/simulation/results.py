@@ -7,7 +7,10 @@ class SimulationResult:
         from neo import Block
 
         tree = simulation.__tree__()
-        del tree["post_prepare"]
+        try:
+            del tree["post_prepare"]
+        except KeyError:
+            pass
         self.block = Block(name=simulation.name, config=tree)
         self.recorders = []
 
@@ -15,7 +18,7 @@ class SimulationResult:
         self.recorders.append(recorder)
 
     def create_recorder(self, flush):
-        recorder = SimulationRecorder
+        recorder = SimulationRecorder()
         recorder.flush = flush
         self.add(recorder)
         return recorder
