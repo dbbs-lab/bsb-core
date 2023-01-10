@@ -1,6 +1,7 @@
 """
     An attrs-inspired class annotation system, but my A stands for amateuristic.
 """
+import errr
 
 from ._hooks import run_hook
 from ._make import (
@@ -21,6 +22,7 @@ from ..exceptions import (
     NoReferenceAttributeSignal,
     CastError,
     CfgReferenceError,
+    BootError,
 )
 import builtins
 
@@ -360,7 +362,10 @@ def _root_is_booted(obj):
 def _boot_nodes(top_node, scaffold):
     for node in walk_nodes(top_node):
         node.scaffold = scaffold
-        run_hook(node, "boot")
+        try:
+            run_hook(node, "boot")
+        except Exception as e:
+            errr.wrap(BootError, e, prepend=f"Failed to boot {node}:")
 
 
 def _unset_nodes(top_node):
