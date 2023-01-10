@@ -67,7 +67,7 @@ class VoxelIntersection(Intersectional, ConnectionStrategy):
         data_acc = []
         for target, candidates in enumerate(matches):
             tpos, trot, tmor = next(target_itrs)
-            if not candidates:
+            if not len(candidates):
                 # No need to load or voxelize if there's no candidates anyway
                 continue
             # Load and voxelize the target into a box tree

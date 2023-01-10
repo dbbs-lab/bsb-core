@@ -1,4 +1,4 @@
 # Example that shows how to load a network that was previously created
-from bsb.core import from_hdf5
+from bsb.core import from_storage
 
-network = from_hdf5("my_network.hdf5")
+network = from_storage("my_network.hdf5")

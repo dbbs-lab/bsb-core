@@ -1,9 +1,8 @@
-import unittest, os, sys, numpy as np, h5py, importlib
+import importlib
+import os
+import unittest
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
 from bsb.core import Scaffold
-from bsb.exceptions import *
 
 
 def relative_to_tests_folder(path):

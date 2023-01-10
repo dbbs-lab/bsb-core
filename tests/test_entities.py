@@ -24,7 +24,7 @@ class TestEntities(unittest.TestCase):
         config = JSONConfig(file=minimal_config_entities)
         self.scaffold = Scaffold(config)
         self.scaffold.compile_network()
-        hdf_config = _from_hdf5("minimal_entities.hdf5")
+        hdf_config = _from_storage("minimal_entities.hdf5")
         self.scaffold_fresh = Scaffold(hdf_config, from_file="minimal_entities.hdf5")
 
     def test_placement_statistics(self):

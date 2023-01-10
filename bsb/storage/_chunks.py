@@ -1,7 +1,11 @@
+import typing
+
 import numpy as np
+import numpy.typing as npt
 from ..exceptions import ChunkError
 
 _iinfo = np.iinfo(np.int16)
+Chunklike = typing.Union["Chunk", npt.ArrayLike]
 
 
 class Chunk(np.ndarray):
@@ -83,6 +87,16 @@ class Chunk(np.ndarray):
 
     @classmethod
     def from_id(cls, id, size):
+        id = int(float(id))
         raw = [id % 2**17, id // 2**16 % 2**17, id // 2**32 % 2**17]
-        unpacked = np.array(raw, dtype=np.uint16).astype(np.int16)
+        unpacked = np.array(raw).astype(np.uint16).astype(np.int16)
         return cls(unpacked, size)
+
+
+def chunklist(chunks: typing.Iterable[Chunklike]) -> typing.List[Chunk]:
+    return sorted(set(c if isinstance(c, Chunk) else Chunk(c, None) for c in chunks))
+
+
+def _sort_triplet(a, b):
+    # Comparator for chunks by bitshift and sum of the coords.
+    return (a[0] << 42 + a[1] << 21 + a[2]) > (b[0] << 42 + b[1] << 21 + b[2])

@@ -1,21 +1,50 @@
 import time
 import os
 import itertools
+import typing
+
 from .placement import PlacementStrategy
 from .connectivity import ConnectionStrategy
-from .storage import Chunk, Storage, _util as _storutil
+from .storage import Chunk, Storage, _util as _storutil, open_storage
 from .exceptions import (
     InputError,
     NodeNotFoundError,
     RedoError,
     ScaffoldError,
 )
-from .reporting import report, warn, get_report_file
+from .reporting import report, warn
 from .config._config import Configuration
 from .services.pool import create_job_pool
 from .services import MPI
+from .simulation import get_simulation_adapter
 from ._util import obj_str_insert
 from .profiling import meter
+
+if typing.TYPE_CHECKING:
+    from .storage.interfaces import (
+        PlacementSet,
+        ConnectivitySet,
+        MorphologyRepository,
+        FileStore,
+    )
+    from .config._config import NetworkNode as Network
+    from .simulation.simulation import Simulation
+    from .topology import Region, Partition
+    from .cell_types import CellType
+    from .postprocessing import PostProcessingHook
+
+
+@meter()
+def from_storage(root):
+    """
+    Load :class:`.core.Scaffold` from a storage object.
+
+    :param root: Root (usually path) pointing to the storage object.
+    :returns: A network scaffold
+    :rtype: :class:`Scaffold`
+    """
+    return open_storage(root).load()
+
 
 _cfg_props = (
     "network",
@@ -41,23 +70,6 @@ def _config_property(name):
     return prop.setter(fset)
 
 
-@meter()
-def from_hdf5(file, missing_ok=False):
-    """
-    Generate a :class:`.core.Scaffold` from an HDF5 file.
-
-    :param file: Path to the HDF5 file.
-    :returns: A scaffold object
-    :rtype: :class:`Scaffold`
-    """
-
-    storage = Storage("hdf5", file, missing_ok=missing_ok)
-    return storage.load()
-
-
-from_storage = from_hdf5
-
-
 class Scaffold:
     """
 
@@ -66,6 +78,16 @@ class Scaffold:
     :class:`~.config.Configuration` with the technical side like the
     :class:`~.storage.Storage`.
     """
+
+    network: "Network"
+    regions: typing.Mapping[str, "Region"]
+    partitions: typing.Mapping[str, "Partition"]
+    cell_types: typing.Mapping[str, "CellType"]
+    placement: typing.Mapping[str, "PlacementStrategy"]
+    after_placement: typing.Mapping[str, "PostProcessingHook"]
+    connectivity: typing.Mapping[str, "ConnectionStrategy"]
+    after_connectivity: typing.Mapping[str, "PostProcessingHook"]
+    simulations: typing.Mapping[str, "Simulation"]
 
     def __init__(self, config=None, storage=None, clear=False, comm=None):
         """
@@ -97,10 +119,10 @@ class Scaffold:
         n_types = len(self.connectivity)
         return f"'{file}' with {cells_placed} cell types, and {n_types} connection_types"
 
-    def is_main_process(self):
+    def is_main_process(self) -> bool:
         return not MPI.get_rank()
 
-    def is_worker_process(self):
+    def is_worker_process(self) -> bool:
         return bool(MPI.get_rank())
 
     def _bootstrap(self, config, storage, clear=False):
@@ -143,30 +165,30 @@ class Scaffold:
         vars()[attr] = _config_property(attr)
 
     @property
-    def configuration(self):
+    def configuration(self) -> Configuration:
         return self._configuration
 
     @configuration.setter
-    def configuration(self, cfg):
+    def configuration(self, cfg: Configuration):
         self._configuration = cfg
         cfg._bootstrap(self)
         self.storage.store_active_config(cfg)
 
     @property
-    def storage(self):
+    def storage(self) -> Storage:
         return self._storage
 
     @storage.setter
-    def storage(self, storage):
+    def storage(self, storage: Storage):
         self._storage = storage
         storage.init(self)
 
     @property
-    def morphologies(self):
+    def morphologies(self) -> "MorphologyRepository":
         return self.storage.morphologies
 
     @property
-    def files(self):
+    def files(self) -> "FileStore":
         return self.storage.files
 
     def clear(self):
@@ -344,29 +366,18 @@ class Scaffold:
         self.storage._preexisted = True
 
     @meter()
-    def run_simulation(self, simulation_name, quit=False):
+    def run_simulation(self, simulation_name: str, quit=False):
         """
         Run a simulation starting from the default single-instance adapter.
 
         :param simulation_name: Name of the simulation in the configuration.
         :type simulation_name: str
         """
-        t = time.time()
-        simulation, simulator = self.prepare_simulation(simulation_name)
-        # If we're reporting to a file, add a stream of progress event messages..
-        report_file = get_report_file()
-        if report_file:
-            listener = ReportListener(self, report_file)
-            simulation.add_progress_listener(listener)
-        simulation.simulate(simulator)
-        result_path = simulation.collect_output(simulator)
-        time_sim = time.time() - t
-        report("Simulation runtime: {}".format(time_sim), level=2)
-        if quit and hasattr(simulator, "quit"):
-            simulator.quit()
-        return result_path
+        simulation = self.get_simulation(simulation_name)
+        adapter = get_simulation_adapter(simulation.simulator)
+        return adapter.simulate(simulation)
 
-    def get_simulation(self, sim_name):
+    def get_simulation(self, sim_name: str) -> "Simulation":
         """
         Retrieve the default single-instance adapter for a simulation.
         """
@@ -376,14 +387,6 @@ class Scaffold:
                 f"Unknown simulation '{sim_name}', choose from: {simstr}"
             )
         return self.configuration.simulations[sim_name]
-
-    def prepare_simulation(self, simulation_name):
-        """
-        Retrieve and prepare the default single-instance adapter for a simulation.
-        """
-        simulation = self.get_simulation(simulation_name)
-        simulator = simulation.prepare()
-        return simulation, simulator
 
     def place_cells(
         self,
@@ -442,7 +445,9 @@ class Scaffold:
         chunk = Chunk([0, 0, 0], self.network.chunk_size)
         ps.append_entities(chunk, count)
 
-    def get_placement(self, cell_types=None, skip=None, only=None):
+    def get_placement(
+        self, cell_types=None, skip=None, only=None
+    ) -> typing.List["PlacementStrategy"]:
         if cell_types is not None:
             cell_types = [
                 self.cell_types[ct] if isinstance(ct, str) else ct for ct in cell_types
@@ -464,7 +469,9 @@ class Scaffold:
         """
         return self.get_placement(cell_types=cell_types)
 
-    def get_placement_set(self, type, chunks=None, labels=None, morphology_labels=None):
+    def get_placement_set(
+        self, type, chunks=None, labels=None, morphology_labels=None
+    ) -> "PlacementSet":
         """
         Return a cell type's placement set from the output formatter.
 
@@ -483,7 +490,7 @@ class Scaffold:
             type, chunks=chunks, labels=labels, morphology_labels=morphology_labels
         )
 
-    def get_placement_sets(self):
+    def get_placement_sets(self) -> typing.List["PlacementSet"]:
         """
         Return all of the placement sets present in the network.
 
@@ -493,7 +500,7 @@ class Scaffold:
 
     def get_connectivity(
         self, anywhere=None, presynaptic=None, postsynaptic=None, skip=None, only=None
-    ):
+    ) -> typing.List["ConnectivitySet"]:
         conntype_filtered = self._connectivity_query(
             any_query=set(self._sanitize_ct(anywhere)),
             pre_query=set(self._sanitize_ct(presynaptic)),
@@ -505,21 +512,20 @@ class Scaffold:
             if (only is None or ct.name in only) and (skip is None or ct.name not in skip)
         ]
 
-    def get_connectivity_sets(self):
+    def get_connectivity_sets(self) -> typing.List["ConnectivitySet"]:
         """
         Return all connectivity sets from the output formatter.
 
         :param tag: Unique identifier of the connectivity set in the output formatter
         :type tag: str
-        :returns: A connectivity set
-        :rtype: :class:`~.storage.interfaces.ConnectivitySet`
+        :returns: All connectivity sets
         """
         return self.storage.get_connectivity_sets()
 
-    def require_connectivity_set(self, pre, post, tag=None):
+    def require_connectivity_set(self, pre, post, tag=None) -> "ConnectivitySet":
         return self.storage.require_connectivity_set(pre, post, tag)
 
-    def get_connectivity_set(self, tag=None, pre=None, post=None):
+    def get_connectivity_set(self, tag=None, pre=None, post=None) -> "ConnectivitySet":
         """
         Return a connectivity set from the output formatter.
 
@@ -543,35 +549,17 @@ class Scaffold:
                 "Given and stored type mismatch:" + f" {post.name} vs {cs._post_name}"
             )
         try:
-            cs.pre = self.cell_types[cs._pre_name]
-            cs.post = self.cell_types[cs._post_name]
+            cs.pre_type = self.cell_types[cs._pre_name]
+            cs.post_type = self.cell_types[cs._post_name]
         except KeyError as e:
             raise NodeNotFoundError(f"Couldn't load {tag}, missing {e.args[0]}") from None
         return cs
 
-    def get_cell_types(self):
+    def get_cell_types(self) -> typing.List["CellType"]:
         """
         Return a list of all cell types in the network.
         """
         return [*self.configuration.cell_types.values()]
-
-    def create_adapter(self, simulation_name):
-        """
-        Create an adapter for a simulation. Adapters are the objects that translate
-        scaffold data into simulator data.
-        """
-        if simulation_name not in self.configuration.simulations:
-            raise NodeNotFoundError("Unknown simulation '{}'".format(simulation_name))
-        simulations = self.configuration._parsed_config["simulations"]
-        simulation_config = simulations[simulation_name]
-        adapter = self.configuration.init_simulation(
-            simulation_name, simulation_config, return_obj=True
-        )
-        self.configuration.finalize_simulation(
-            simulation_name, simulation_config, adapter
-        )
-        self._initialise_simulation(adapter)
-        return adapter
 
     def merge(self, other, label=None):
         raise NotImplementedError("Revisit: merge CT, PS & CS, done?")

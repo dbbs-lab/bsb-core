@@ -17,6 +17,7 @@ _t(
                 DynamicClassInheritanceError=_e(),
                 ClassMapMissingError=_e(),
             ),
+            BootError=_e("node"),
             CastError=_e(
                 "node",
                 "attr",
@@ -53,7 +54,6 @@ _t(
             NeuronError=_e(
                 DeviceConnectionError=_e(),
                 TransmitterError=_e(),
-                RelayError=_e(),
             ),
             NestError=_e(
                 NestKernelError=_e(
@@ -93,6 +93,12 @@ _t(
             PlacementRelationError=_e(),
             ContinuityError=_e(),
             PackingError=_e(),
+        ),
+        SimulationError=_e(
+            ParameterError=_e(
+                "parameter",
+                ReificationError=_e(),
+            )
         ),
         SelectorError=_e(),
         TreeError=_e(),

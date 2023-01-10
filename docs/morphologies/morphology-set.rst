@@ -18,9 +18,9 @@ stops. Soft caching is available by passing ``cache=True`` to
 
 .. code-block:: python
 
-  from bsb.core import from_hdf5
+  from bsb.core import from_storage
 
-  network = from_hdf5
+  network = from_storage
   ps = network.get_placement_set("my_cell")
   ms = ps.load_morphologies()
   for morpho in ms.iter_morphologies(cache=True):

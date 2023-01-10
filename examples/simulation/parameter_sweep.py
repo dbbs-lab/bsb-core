@@ -1,4 +1,4 @@
-from bsb.core import from_hdf5
+from bsb.core import from_storage
 
 # A module with cerebellar cell models
 import dbbs_models
@@ -10,7 +10,7 @@ import nrnsub
 import h5py
 
 # Read the network file
-network = from_hdf("my_network.hdf5")
+network = from_storage("my_network.hdf5")
 
 
 @nrnsub.isolate
