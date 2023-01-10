@@ -1,8 +1,6 @@
 import abc
 import itertools
 
-from arborize import bsb_schematic, neuron_build
-
 from bsb import config
 from bsb.config import types
 from bsb.simulation.cell import CellModel
@@ -48,7 +46,8 @@ class ArborizedModel(NeuronCell, classmap_entry="arborize"):
     _schematics = {}
 
     def create(self, id, pos, morpho, rot, additional):
-        print("Creating", id, pos, morpho, rot, additional)
+        from arborize import bsb_schematic, neuron_build
+
         self.model.use_defaults = True
         schematic = bsb_schematic(morpho, self.model)
         return neuron_build(schematic)

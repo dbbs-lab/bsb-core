@@ -105,8 +105,8 @@ setuptools.setup(
             "sphinxext-bsb~=0.0.2",
             "snakeviz",
         ],
-        "arbor": ["arbor~=0.6"],
-        "neuron": ["dbbs_models==4.0.0a0", "nrn-patch==4.0.0a0"],
+        "arbor": ["arbor~=0.6", "arborize[arbor]==4.0.0a4"],
+        "neuron": ["nrn-patch==4.0.0a4", "arborize[neuron]==4.0.0a4"],
         "mpi": ["mpi4py~=3.0", "zwembad", "mpilock~=1.1"],
     },
 )
