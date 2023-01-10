@@ -6,6 +6,14 @@ import numpy as np
 
 from ._compile import _reserved_kw_passes, _wrap_reserved
 from ._make import _load_class
+from ..exceptions import (
+    ClassMapMissingError,
+    CastError,
+    NoneReferenceError,
+    InvalidReferenceError,
+    TypeHandlingError,
+    RequirementError,
+)
 
 
 class TypeHandler(abc.ABC):
