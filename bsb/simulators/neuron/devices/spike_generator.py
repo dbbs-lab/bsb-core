@@ -94,7 +94,7 @@ class GeneratorRecorder(SimulationRecorder):
         return np.array(self.pattern)
 
     def flush(self):
-        print("tee-hee")
+        raise NotImplementedError("Flushing generator")
 
 
 # Kopimismed from abandoned neuronpy project. By Tom McCavish

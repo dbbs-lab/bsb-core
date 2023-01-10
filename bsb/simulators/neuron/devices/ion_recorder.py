@@ -1,12 +1,10 @@
 from ..device import NeuronDevice
-from ....simulation.device import Patternless
 from ....simulation.results import SimulationRecorder
-from ....reporting import report, warn
 import numpy as np
 import itertools
 
 
-class IonRecorder(Patternless, NeuronDevice):
+class IonRecorder(NeuronDevice):
     defaults = {
         "record_current": True,
         "record_concentration": False,

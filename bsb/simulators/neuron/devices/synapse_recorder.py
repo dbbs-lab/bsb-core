@@ -1,12 +1,10 @@
 from ..device import NeuronDevice
-from ....simulation.device import Patternless
 from ....simulation.results import SimulationRecorder
-from ....reporting import report, warn
 import numpy as np
 import itertools
 
 
-class SynapseRecorder(Patternless, NeuronDevice):
+class SynapseRecorder(NeuronDevice):
     defaults = {
         "record_spikes": True,
         "record_current": False,
@@ -62,7 +60,7 @@ class _SynapticRecorder(SimulationRecorder):
         return np.array(signal)
 
     def flush(self, block, segment):
-        print("tee-hee too")
+        raise NotImplementedError("Flush synapse")
 
 
 def _record_i(self, point_process):
