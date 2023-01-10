@@ -3,7 +3,7 @@ colour==0.1.5
 errr==1.2.0
 rtree==1.0.1
 numpy==1.24.0
-pynrrd==0.4.2
+pynrrd==1.0.0
 sphinxemoji==0.2.0
 toml==0.10.2
 furo==2022.12.7
