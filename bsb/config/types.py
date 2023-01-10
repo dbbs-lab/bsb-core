@@ -472,7 +472,7 @@ class distribution(TypeHandler):
 
     def __inv__(self, value):
         if value["distribution"] == "constant":
-            return value["parameters"]["constant"]
+            return value["constant"]
         else:
             return value
 
