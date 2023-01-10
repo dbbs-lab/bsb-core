@@ -10,11 +10,8 @@ jobs:
     steps:
       - name: sync_main
         uses: wei/git-sync@v3
-        # component owners need to set their own variables
-        # the destination_repo format is
-        # https://gitlab_service_account_name:${{ secrets.EBRAINS_GITLAB_ACCESS_TOKEN }}@gitlab.ebrains.eu/name_of_mirror.git
         with:
           source_repo: dbbs-lab/bsb
           source_branch: main
-          destination_repo: "https://mirror_sync:${{ secrets.EBRAINS_GITLAB_ACCESS_TOKEN }}@gitlab.ebrains.eu/robinde/bsb.git"
-          destination_branch: "main"
+          destination_repo: https://push:${{ secrets.EBRAINS_GITLAB_ACCESS_TOKEN }}@gitlab.ebrains.eu/robinde/bsb.git
+          destination_branch: main
