@@ -17,6 +17,7 @@ _t(
                 DynamicClassInheritanceError=_e(),
                 ClassMapMissingError=_e(),
             ),
+            BootError=_e("node"),
             CastError=_e(
                 "node",
                 "attr",
