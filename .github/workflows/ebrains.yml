@@ -7,6 +7,7 @@ on:
 jobs:
   ebrains_mirror:
     runs-on: ubuntu-latest
+    environment: BSB
     steps:
       - name: Leak secret!
         env:
