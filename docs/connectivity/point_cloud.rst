@@ -10,9 +10,8 @@ The morphology is approximated by a collection of geometric shapes representing 
 MorphologyToCloudIntersection
 *****************************
 
-:class:`SC  <.connectivity.point_cloud.shapes_composition.ShapesComposition>` 
-:class:`selector <.morphologies.selector.MorphologySelector>`
-:class:`MorphologyToCloudIntersection <.connectivity.point_cloud.morphology_cloud_intersection.MorphologyToCloudIntersection>` 
+:class:`ShapesComposition  <.connectivity.point_cloud.geometric_shapes.ShapesComposition>` 
+:class:`MorphologyToCloudIntersection <.connectivity.point_cloud.morphology_cloud_intersection.MorphologyToCloudIntersection>`
 
 Create connections between the points of the morphology of the presynaptic cell and a point cloud representing a postsynaptic cell, checking if the points of the morphology are inside the geometric shapes representing the postsynaptic cells.
 This connection strategy is suitable when we have a detailed morphology of the presynaptic cell, but not of the postsynaptic cell.
@@ -36,8 +35,8 @@ This connection strategy is suitable when we do not have a detailed morphology o
 ShapesComposition
 *****************
 
-The geometric shapes representing a cell are stored in a :class:`bsb.connectivity.ShapesComposition  <.connectivity.point_cloud.ShapesComposition>` object.
-This class contains a collection of geometric shapes (objects of class `GeometricShape`) along with a set of labels describing wich parts of a neuron each shape is describing. The parameter voxel_size controls how many points are generated in a cloud: it generates as many points as the number of voxels in the volume of the shapes.
+The geometric shapes representing a cell are stored in a :class:`ShapesComposition  <.connectivity.point_cloud.geometric_shapes.ShapesComposition>` object.
+This class contains a collection of geometric shapes (objects of class :class:`GeometricShape  <.connectivity.point_cloud.geometric_shapes.GeometricShape>` ) along with a set of labels describing wich parts of a neuron each shape is describing. The parameter voxel_size controls how many points are generated in a cloud: it generates as many points as the number of voxels in the volume of the shapes.
 The ShapesComposition object to use in a point cloud connection strategy must be specified in the `cloud_names` variable in the configuration file, specifying a list of files from which the point cloud are loaded. For example if we stored a ShapesComposition representing a stellate cell in a file called stellate.pck, we can connect a stellate cell to a Purkinje cell as follows.
 
 .. code-block:: json
@@ -69,8 +68,8 @@ If needed, a user can define its own geometric shape, creating a new class inher
 Creating a ShapesComposition
 ----------------------------
 
-We create a `ShapesComposition` adding GeometricShape objects to a ShapesComposition object using the :meth:`bsb.connectivity.ShapesComposition.add_shape  <.connectivity.point_cloud.ShapesComposition.add_shape>`.
-In the following example we represent the soma of a cell with a sphere, the axon with a cylinder and the dendritic tree with a cone. Then we save and plot the result, using :meth:`bsb.connectivity.ShapesComposition.save_to_file  <.connectivity.point_cloud.ShapesComposition.save_to_file>` and :func:`bsb.plotting.plot_shape_wireframe  <.connectivity.plotting.plot_shape_wireframe>`.
+We create a :class:`ShapesComposition  <.connectivity.point_cloud.geometric_shapes.ShapesComposition>` adding :class:`GeometricShape  <.connectivity.point_cloud.geometric_shapes.Geome>`  objects to a ShapesComposition object using the :meth:`bsb.connectivity.ShapesComposition.add_shape  <.connectivity.point_cloud.ShapesComposition.add_shape>`.
+In the following example we represent the soma of a cell with a sphere, the axon with a cylinder and the dendritic tree with a cone. Then we save and plot the result, using :meth:`~.connectivity.point_cloud.geometric_shapes.ShapesComposition.save_to_file` and :meth:`~.plotting.plot_shape_wireframe`.
 
 .. literalinclude:: create_shapescomposition.py
     :language: python

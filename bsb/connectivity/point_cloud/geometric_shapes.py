@@ -30,21 +30,21 @@ class GeometricShape(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def translate(self, t_vector: npt.NDArray[np.float64]):
+    def translate(self, t_vector: numpy.ndarray[float]):
         """
         Translate the gemetric shape by the vector t_vector.
 
-        :param np.ndarray t_vector: The displacement vector
+        :param numpy.ndarray t_vector: The displacement vector
         """
         pass
 
     @abc.abstractmethod
-    def rotate(self, r_versor: npt.NDArray[np.float64], angle: float):
+    def rotate(self, r_versor: numpy.ndarray[float], angle: float):
         """
         Rotate all the shapes around r_versor, which is a versor passing through the origin, by the specified angle.
 
         :param r_versor: A versor specifying the rotation axis.
-        :type r_versor: npt.NDArray[np.float64] .
+        :type r_versor: numpy.ndarray[float].
         :param float angle: the rotation angle, in radians.
         """
         pass
@@ -55,30 +55,30 @@ class GeometricShape(abc.ABC):
         Generate a point cloud made by npoints points.
 
         :param int npoints: The number of points to generate.
-        :return: a (npoints x 3) array.
-        :rtype: np.array
+        :return: a (npoints x 3) numpy array.
+        :rtype: numpy.ndarray
         """
         pass
 
     @abc.abstractmethod
-    def check_mbox(self, points: npt.NDArray[np.float64]):
+    def check_mbox(self, points: numpy.ndarray[float]):
         """
         Check if the points given in input are inside the minimal bounding box.
 
-        :param np.ndarray points: A cloud of points.
+        :param numpy.ndarray points: A cloud of points.
         :return: A bool array of length npoints, containing whether the -ith point is inside the minimal bounding box or not.
-        :rtype: np.array
+        :rtype: numpy.ndarray
         """
         pass
 
     @abc.abstractmethod
-    def check_inside(self, points: npt.NDArray[np.float64]) -> npt.NDArray[bool]:
+    def check_inside(self, points: numpy.ndarray[float]) -> numpy.ndarray[bool]:
         """
         Check if the points given in input are inside the geometric shape.
 
-        :param np.ndarray points: A cloud of points.
+        :param numpy.ndarray points: A cloud of points.
         :return: A bool array of length npoints, containing whether the -ith point is inside the geometric shape or not.
-        :rtype: np.array
+        :rtype: numpy.ndarray
         """
         pass
 
@@ -88,7 +88,7 @@ class GeometricShape(abc.ABC):
         Generate a wireframe to plot the geometric shape.
 
         :return: An array of 3D points
-        :rtype: np.array
+        :rtype: numpy.ndarray
         """
         pass
 
@@ -158,11 +158,11 @@ class ShapesComposition:
         result.mbb_min, result.mbb_max = result.find_mbb()
         return result
 
-    def translate(self, t_vec: npt.NDArray[np.float64]):
+    def translate(self, t_vec: numpy.ndarray[float]):
         """
         Translate all the shapes in the collection by the vector t_vec. It also automatically translate the minimal bounding box.
 
-        :param np.ndarray t_vec: The displacement vector.
+        :param numpy.ndarray t_vec: The displacement vector.
         """
         for shape in self._shapes:
             shape.translate(t_vec)
@@ -181,18 +181,18 @@ class ShapesComposition:
                 volumes.append(shape.get_volume())
         return volumes
 
-    def find_mbb(self) -> Tuple(npt.NDArray[np.float64], npt.NDArray[np.float64]):
+    def find_mbb(self) -> Tuple(numpy.ndarray[float], numpy.ndarray[float]):
         """
         Compute the minimal bounding box containing the collection of shapes.
 
         :return: The two corners individuating a the minimal bounding box
-        :rtype: A tuple of np.array[dtype=np.float64]
+        :rtype: A tuple of numpy.ndarray[float]
         """
         mins = np.empty([len(self._shapes), 3])
         maxs = np.empty([len(self._shapes), 3])
         for i, shape in enumerate(self._shapes):
-            mins[i, :] = shape.mbb_min
-            maxs[i, :] = shape.mbb_max
+            mins[i, :] = shape._mbb_min
+            maxs[i, :] = shape._mbb_max
 
         box_min = np.min(mins, axis=0)
         box_max = np.max(maxs, axis=0)
@@ -215,19 +215,19 @@ class ShapesComposition:
         """
         Set the size of the side of a voxel.
 
-        :param np.ndarray t_vec: The displacement vector.
+        :param numpy.ndarray t_vec: The displacement vector.
         """
         self._voxel_size = voxel_size
 
-    def generate_point_cloud(self) -> npt.NDArray[np.float64]:
+    def generate_point_cloud(self) -> numpy.ndarray[float]:
         """
         Generate a point cloud. The number of points to generate is determined automatically using the voxel size.
 
-        :return: A np.ndarray containing the 3D points of the cloud. If there are no shapes in the collection, it returns None.
-        :rtype: np.ndarray or None
+        :return: A numpy.ndarray containing the 3D points of the cloud. If there are no shapes in the collection, it returns None.
+        :rtype: numpy.ndarray or None
         """
         if len(self._shapes) != 0:
-            cloud = np.empty([3], dtype=np.float64)
+            cloud = np.empty([3], dtype=float)
             npoints = self.compute_n_points()
             for shape, numpts in zip(self._shapes, npoints):
                 tmp = shape.generate_point_cloud(numpts)
@@ -239,14 +239,14 @@ class ShapesComposition:
     def generate_wireframe(
         self,
     ) -> Union[
-        Tuple(npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.float64]),
+        Tuple(numpy.ndarray[float], numpy.ndarray[float], numpy.ndarray[float]),
         None,
     ]:
         """
         Generate a wireframe to plot the collection of shapes.
 
         :return: The x,y,z coordinates of the wireframe
-        :rtype: Tuple[np.ndarray,np.ndarray,np.ndarray]
+        :rtype: Tuple[numpy.ndarray,numpy.ndarray,numpy.ndarray]
         """
         if len(self._shapes) != 0:
             cloud = np.empty([3])
@@ -263,13 +263,13 @@ class ShapesComposition:
         else:
             return None
 
-    def inside_mbox(self, points: npt.NDArray[np.float64]) -> npt.NDArray[bool]:
+    def inside_mbox(self, points: numpy.ndarray[float]) -> numpy.ndarray[bool]:
         """
         Check if the points given in input are inside the minimal bounding box of the collection.
 
-        :param np.ndarray points: An array of 3D points.
+        :param numpy.ndarray points: An array of 3D points.
         :return: A bool np.ndarray specifying whether each point of the input array is inside the minimal bounding box of the collection.
-        :rtype: np.ndarray[bool]
+        :rtype: numpy.ndarray[bool]
         """
         inside = (
             (points[:, 0] > self._mbb_min[0])
@@ -281,13 +281,13 @@ class ShapesComposition:
         )
         return inside
 
-    def inside_shapes(self, points: npt.NDArray[np.float64]) -> npt.NDArray[bool]:
+    def inside_shapes(self, points: numpy.ndarray[float]) -> numpy.ndarray[bool]:
         """
         Check if the points given in input are inside at least in one of the shapes of the collection.
 
-        :param np.ndarray points: An array of 3D points.
-        :return: A bool np.ndarray specifying whether each point of the input array is inside the collection of shapes or not.
-        :rtype: np.ndarray[bool]
+        :param numpy.ndarray points: An array of 3D points.
+        :return: A bool numpy.ndarray specifying whether each point of the input array is inside the collection of shapes or not.
+        :rtype: numpy.ndarray[bool]
         """
         if len(self._shapes) != 0:
             cloud = np.full(len(points), 0, dtype=bool)
@@ -317,34 +317,36 @@ class ShapesComposition:
         tmp = None
         with open(filename, "rb") as handle:
             tmp = pickle.load(handle)
-        self._shapes = tmp.shapes
-        self._voxel_size = tmp.voxel_size
+        self._shapes = tmp._shapes
+        self._voxel_size = tmp._voxel_size
         self._mbb_min, self._mbb_max = self.find_mbb()
-        self._labels = tmp.labels
+        self._labels = tmp._labels
 
 
 # -----------------------------------------------------
 
 
 class Ellipsoid(GeometricShape):
+    """
+    An ellipsoid, described in cartesian coordinates.
+    """
+
     def __init__(
         self,
-        center: npt.NDArray[np.float64],
-        lambdas: npt.NDArray[np.float64],
-        v0: npt.NDArray[np.float64],
-        v1: npt.NDArray[np.float64],
-        v2: npt.NDArray[np.float64],
+        center: numpy.ndarray[float],
+        lambdas: numpy.ndarray[float],
+        v0: numpy.ndarray[float],
+        v1: numpy.ndarray[float],
+        v2: numpy.ndarray[float],
         epsilon=1.0e-3,
     ):
 
         """
-        Create an ellipsoid
-
-        :param npt.NDArray[np.float64] center: The coordinates of the center of the ellipsoid.
-        :param npt.NDArray[np.float64] lambdas: The length of the three semi-axes.
-        :param npt.NDArray[np.float64] center: The versor on which the first semi-axis lies.
-        :param npt.NDArray[np.float64] center: The versor on which the second semi-axis lies.
-        :param npt.NDArray[np.float64] center: The versor on which the third semi-axis lies.
+        :param numpy.ndarray[float] center: The coordinates of the center of the ellipsoid.
+        :param numpy.ndarray[float] lambdas: The length of the three semi-axes.
+        :param numpy.ndarray[float] center: The versor on which the first semi-axis lies.
+        :param numpy.ndarray[float] center: The versor on which the second semi-axis lies.
+        :param numpy.ndarray[float] center: The versor on which the third semi-axis lies.
         :param float epsilon: Tolerance value to compare coordinates.
         """
 
@@ -383,7 +385,7 @@ class Ellipsoid(GeometricShape):
         self._mbb_min += t_vector
         self._mbb_max += t_vector
 
-    def rotate(self, r_versor: npt.NDArray[np.float64], angle: float):
+    def rotate(self, r_versor: numpy.ndarray[float], angle: float):
         rot = R.from_rotvec(r_versor * angle)
         self.v0 = rot.apply(self.v0)
         self.v1 = rot.apply(self.v1)
@@ -410,7 +412,7 @@ class Ellipsoid(GeometricShape):
 
         return cloud
 
-    def check_mbox(self, points: npt.NDArray[np.float64]):
+    def check_mbox(self, points: numpy.ndarray[float]):
 
         # Check for intersections with mbb
         inside = (
@@ -423,7 +425,7 @@ class Ellipsoid(GeometricShape):
         )
         return inside
 
-    def check_inside(self, points: npt.NDArray[np.float64]):
+    def check_inside(self, points: numpy.ndarray[float]):
         # Check if the quadratic form associated to the ellipse is less than 1 at a point
         diff = points - self._center
         vmat = np.array([self.v0, self.v1, self.v2])
@@ -464,18 +466,20 @@ class Ellipsoid(GeometricShape):
 
 
 class Cone(GeometricShape):
+    """
+    A cone, described in cartesian coordinates.
+    """
+
     def __init__(
         self,
-        apex: npt.NDArray[np.float64],
-        center: npt.NDArray[np.float64],
+        apex: numpy.ndarray[float],
+        center: numpy.ndarray[float],
         radius: float,
         epsilon=1.0e-3,
     ):
         """
-        Create a Cone.
-
-        :param npt.NDArray[np.float64] center: The coordinates of the apex of the cone.
-        :param npt.NDArray[np.float64] center: The coordinates of the center of the base circle.
+        :param numpy.ndarray[float] apex: The coordinates of the apex of the cone.
+        :param numpy.ndarray[float] center: The coordinates of the center of the base circle.
         :param float radius: The radius of the base circle.
         :param float epsilon: Tolerance value to compare coordinates.
         """
@@ -523,7 +527,7 @@ class Cone(GeometricShape):
         self._mbb_min += t_vector
         self._mbb_max += t_vector
 
-    def rotate(self, r_versor: npt.NDArray[np.float64], angle: float):
+    def rotate(self, r_versor: numpy.ndarray[float], angle: float):
         rot = R.from_rotvec(r_versor * angle)
         # self._center = rot.apply(self._center)
         self._apex = rot.apply(self._apex)
@@ -559,7 +563,7 @@ class Cone(GeometricShape):
         cloud = cloud + self._apex
         return cloud
 
-    def check_mbox(self, points: npt.NDArray[np.float64]):
+    def check_mbox(self, points: numpy.ndarray[float]):
 
         # Look for points inside the mbb.
         inside = (
@@ -573,7 +577,7 @@ class Cone(GeometricShape):
 
         return inside
 
-    def check_inside(self, points: npt.NDArray[np.float64]):
+    def check_inside(self, points: numpy.ndarray[float]):
 
         # Find the vector w of the height.
         h_vector = self._center - self._apex
@@ -643,19 +647,21 @@ class Cone(GeometricShape):
 
 
 class Cylinder(GeometricShape):
+    """
+    A cylinder, described in cartesian coordinates.
+    """
+
     def __init__(
         self,
-        center: npt.NDArray[np.float64],
+        center: numpy.ndarray[float],
         radius: float,
-        height_vector: npt.NDArray[np.float64],
+        height_vector: numpy.ndarray[float],
         epsilon=1e-3,
     ):
         """
-        Create a Cylinder.
-
-        :param npt.NDArray[np.float64] center: The coordinates of the center of the bottom circle of the the cylinder.
+        :param numpy.ndarray[float] center: The coordinates of the center of the bottom circle of the the cylinder.
         :param float radius: The radius of the circle.
-        :param npt.NDArray[np.float64] height_vector: The coordinates of the center of the top circle of the the cylinder.
+        :param numpy.ndarray[float] height_vector: The coordinates of the center of the top circle of the the cylinder.
         :param float epsilon: Tolerance value to compare coordinates.
         """
 
@@ -702,13 +708,13 @@ class Cylinder(GeometricShape):
         b = np.pi * self._radius * self._radius
         return b * h
 
-    def translate(self, t_vector: npt.NDArray[np.float64]):
+    def translate(self, t_vector: numpy.ndarray[float]):
         self._center += t_vector
         self._height_vector += t_vector
         self._mbb_min += t_vector
         self._mbb_max += t_vector
 
-    def rotate(self, r_versor: npt.NDArray[np.float64], angle: float):
+    def rotate(self, r_versor: numpy.ndarray[float], angle: float):
         rot = R.from_rotvec(r_versor * angle)
         # self._center = rot.apply(self._center)
         self._height_vector = rot.apply(self._height_vector)
@@ -737,7 +743,7 @@ class Cylinder(GeometricShape):
         cloud = cloud + self._center
         return cloud
 
-    def check_mbox(self, points: npt.NDArray[np.float64]):
+    def check_mbox(self, points: numpy.ndarray[float]):
 
         inside = (
             (points[:, 0] > self._mbb_min[0])
@@ -749,7 +755,7 @@ class Cylinder(GeometricShape):
         )
         return inside
 
-    def check_inside(self, points: npt.NDArray[np.float64]):
+    def check_inside(self, points: numpy.ndarray[float]):
         # Translate back to origin
         pts = points - self._center
 
@@ -807,11 +813,13 @@ class Cylinder(GeometricShape):
 
 
 class Sphere(GeometricShape):
-    def __init__(self, center: npt.NDArray[np.float64], radius: float, epsilon=1e-3):
-        """
-        Create a Shpere.
+    """
+    A sphere, described in cartesian coordinates.
+    """
 
-        :param npt.NDArray[np.float64] center: The coordinates of the center of the bottom circle of the the cylinder.
+    def __init__(self, center: numpy.ndarray[float], radius: float, epsilon=1e-3):
+        """
+        :param numpy.ndarray[float] center: The coordinates of the center of the bottom circle of the the cylinder.
         :param float radius: The radius of the sphere.
         :param float epsilon: Tolerance value to compare coordinates.
         """
@@ -829,12 +837,12 @@ class Sphere(GeometricShape):
     def get_volume(self):
         return np.pi * 4.0 / 3.0 * np.power(self._radius, 3)
 
-    def translate(self, t_vector: npt.NDArray[np.float64]):
+    def translate(self, t_vector: numpy.ndarray[float]):
         self._center += t_vector
         self._mbb_min += t_vector
         self._mbb_max += t_vector
 
-    def rotate(self, r_versor: npt.NDArray[np.float64], angle: float):
+    def rotate(self, r_versor: numpy.ndarray[float], angle: float):
         # It's a sphere, it's invariant under rotation!
         pass
 
@@ -854,7 +862,7 @@ class Sphere(GeometricShape):
 
         return cloud
 
-    def check_mbox(self, points: npt.NDArray[np.float64]):
+    def check_mbox(self, points: numpy.ndarray[float]):
 
         # Check for intersections with mbb
         inside = (
@@ -867,7 +875,7 @@ class Sphere(GeometricShape):
         )
         return inside
 
-    def check_inside(self, points: npt.NDArray[np.float64]):
+    def check_inside(self, points: numpy.ndarray[float]):
         # Translate the points, bringing the origin to the center of the sphere,
         # then check the inequality defining the sphere
         pts_centered = points - self._center

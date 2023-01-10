@@ -13,7 +13,6 @@ from bsb.plotting import plot_shape_wireframe
 network = from_storage("HumanMorphologies.hdf5")
 mr = network.morphologies
 
-# We create
 cone_base_center = np.array([0, 0, 40], dtype=np.float64)
 cone_base_radius = 50.0
 cylinder_radius = 25.0

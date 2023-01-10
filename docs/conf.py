@@ -95,6 +95,7 @@ exclude_patterns = [
     "guides/layer.rst",
 ]
 
+autoclass_content = "both"
 
 # -- Options for HTML output -------------------------------------------------
 
