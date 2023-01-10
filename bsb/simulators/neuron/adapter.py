@@ -180,11 +180,11 @@ class NeuronAdapter(SimulatorAdapter):
             pre, _ = cs.load_connections().as_globals().all()
             pre[:, 0] += simdata.cid_offsets[cs.pre_type]
             blocks.append(pre[:, :2])
+        if blocks:
+            blocks = np.unique(np.concatenate(blocks), axis=0)
         return {
             tuple(loc): gid + simdata.alloc[0]
-            for gid, loc in zip(
-                itertools.count(), np.unique(np.concatenate(blocks), axis=0)
-            )
+            for gid, loc in zip(itertools.count(), blocks)
         }
 
     def _create_population(self, simdata, cell_model, ps, offset):
