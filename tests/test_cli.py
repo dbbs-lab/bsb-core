@@ -5,7 +5,8 @@ from bsb.unittest import skip_parallel
 class TestCLI(unittest.TestCase):
     @skip_parallel
     def test_availability(self):
-        import bsb, subprocess
+        import bsb
+        import subprocess
 
         our_version = bytes(f"bsb {bsb.__version__}", encoding="utf-8")
         # Split on newlines to ignore any prepended spammy output in case of environment
