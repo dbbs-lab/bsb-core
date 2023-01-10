@@ -58,15 +58,21 @@ class TestConfiguration(unittest.TestCase):
     def test_missing_nodes(self):
         self.assertRaises(RequirementError, from_json, data="""{}""")
 
-    @unittest.expectedFailure
     def test_no_unknown_attributes(self):
-        with self.assertWarns(ConfigurationWarning):
-            from_json(minimal_config)
+        try:
+            with self.assertWarns(ConfigurationWarning) as cm:
+                from_json(minimal_config)
+            self.fail(f"Unknown configuration attributes detected: {cm.warning}")
+        except AssertionError:
+            pass
 
-    @unittest.expectedFailure
     def test_full_no_unknown_attributes(self):
-        with self.assertWarns(ConfigurationWarning):
-            from_json(full_config)
+        try:
+            with self.assertWarns(ConfigurationWarning) as cm:
+                from_json(full_config)
+            self.fail(f"Unknown configuration attributes detected: {cm.warning}")
+        except AssertionError:
+            pass
 
     def test_unknown_attributes(self):
         data = as_json(minimal_config)
