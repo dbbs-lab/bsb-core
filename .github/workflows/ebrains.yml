@@ -2,7 +2,7 @@ name: Mirror to Ebrains
 
 on:
   push:
-    branches: [ main, sync ]
+    branches: [ main ]
 
 jobs:
   deploy_ebrains:
