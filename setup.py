@@ -27,7 +27,7 @@ requires = [
     "errr~=1.2",
     "rtree~=1.0",
     "psutil~=5.8",
-    "pynrrd~=0.4",
+    "pynrrd~=1.0",
     "morphio~=3.3",
     "toml",
     "requests",
