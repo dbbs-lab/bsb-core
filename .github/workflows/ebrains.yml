@@ -5,16 +5,11 @@ on:
     branches: [ main, sync ]
 
 jobs:
-  ebrains_mirror:
+  deploy_ebrains:
     runs-on: ubuntu-latest
-    environment: BSB
+    environment: EBRAINS
     steps:
-      - name: Leak secret!
-        env:
-          BIG_SECRET: o${{ secrets.EBRAINS_GITLAB_ACCESS_TOKEN }}o
-        run: |
-          python -c "import sys; print(*reversed(sys.argv[1]))" $BIG_SECRET
-      - name: sync_main
+      - name: Mirror to EBRAINS Gitlab
         uses: wei/git-sync@v3
         with:
           source_repo: dbbs-lab/bsb
