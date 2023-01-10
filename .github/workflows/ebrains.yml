@@ -1,0 +1,18 @@
+name: Mirror to Ebrains
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy_ebrains:
+    runs-on: ubuntu-latest
+    environment: EBRAINS
+    steps:
+      - name: Mirror to EBRAINS Gitlab
+        uses: wei/git-sync@v3
+        with:
+          source_repo: dbbs-lab/bsb
+          source_branch: main
+          destination_repo: https://push:${{ secrets.EBRAINS_GITLAB_ACCESS_TOKEN }}@gitlab.ebrains.eu/robinde/bsb.git
+          destination_branch: main
