@@ -56,6 +56,7 @@ class Configuration:
     connectivity = dict(type=ConnectionStrategy, required=True)
     after_connectivity = dict(type=PostProcessingHook)
     simulations = dict(type=Simulation)
+    __module__ = "bsb.config"
 
     @classmethod
     def default(cls, **kwargs):

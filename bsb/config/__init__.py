@@ -86,7 +86,7 @@ class ConfigurationModule:
             from ._config import Configuration
 
             self._cfg_cls = Configuration
-            self._cfg_cls.__module__ = __name__
+            assert self._cfg_cls.__module__ == __name__
         return self._cfg_cls
 
     @builtins.property
