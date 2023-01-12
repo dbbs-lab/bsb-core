@@ -524,9 +524,7 @@ def get_particles_trace(particles, dimensions=3, axes={"x": 0, "y": 1, "z": 2}, 
     }
     trace_kwargs.update(kwargs)
     if dimensions > 3:
-        raise SpatialDimensionError(
-            "Maximum 3 dimensional plots. Unless you have mutant eyes."
-        )
+        raise ValueError("Maximum 3 dimensional plots. Unless you have mutant eyes.")
     elif dimensions == 3:
         return go.Scatter3d(
             x=list(map(lambda p: p.position[axes["x"]], particles)),
