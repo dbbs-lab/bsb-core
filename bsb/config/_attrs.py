@@ -318,6 +318,13 @@ def unset():
     return ConfigurationAttribute(unset=True)
 
 
+def file(**kwargs):
+    """
+    Create a file dependency attribute.
+    """
+    return ConfigurationFileAttribute(**kwargs)
+
+
 def _setattr(instance, name, value):
     instance.__dict__["_" + name] = value
 
@@ -362,6 +369,15 @@ def _root_is_booted(obj):
 def _boot_nodes(top_node, scaffold):
     for node in walk_nodes(top_node):
         node.scaffold = scaffold
+        # Boot attributes
+        for attr in getattr(node, "_config_attrs", {}).values():
+            booted = {None}
+            for cls in type(node).__mro__:
+                cls_attr = getattr(cls, attr.attr_name, None)
+                if (boot := getattr(cls_attr, "__boot__", None)) and boot not in booted:
+                    boot(node, scaffold)
+                    booted.add(boot)
+        # Boot node hook
         try:
             run_hook(node, "boot")
         except Exception as e:
@@ -1069,3 +1085,16 @@ class ConfigurationAttributeCatcher(ConfigurationAttribute):
         if hasattr(value, "__tree__"):
             value = value.__tree__()
         return value
+
+
+class ConfigurationFileAttribute(ConfigurationAttribute):
+    def __init__(self, **kwargs):
+        from ..storage._files import FileDependency
+
+        kwargs["type"] = FileDependency
+        super().__init__(**kwargs)
+
+    def __boot__(self, instance, scaffold):
+        file = getattr(instance, self.attr_name)
+        file.file_store = scaffold.files
+        file.update()
