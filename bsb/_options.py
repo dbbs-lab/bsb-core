@@ -75,6 +75,7 @@ class ConfigOption(
     BsbOption,
     name="config",
     cli=("c", "config"),
+    script=("config",),
     project=("config",),
     env=("BSB_CONFIG_FILE",),
 ):
