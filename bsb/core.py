@@ -722,15 +722,17 @@ class Scaffold:
             try:
                 cfg = storage.load_active_config()
             except Exception:
-                return None
+                import bsb.options
+
+                path = bsb.options.config
             else:
                 path = cfg._meta.get("path", None)
-                if path and os.path.exists(path):
-                    with open(path, "r") as f:
-                        cfg = bsb.config.from_file(f)
-                        return cfg
-                else:
-                    return None
+            if path and os.path.exists(path):
+                with open(path, "r") as f:
+                    cfg = bsb.config.from_file(f)
+                    return cfg
+            else:
+                return None
         elif link.type != "sys":
             raise ScaffoldError("Configuration link can only be 'auto' or 'sys' link.")
         elif link.exists():
