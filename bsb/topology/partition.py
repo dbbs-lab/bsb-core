@@ -33,7 +33,6 @@ class _backref_property(property):
 
 @config.dynamic(
     attr_name="type",
-    type=types.in_classmap(),
     required=False,
     default="layer",
     auto_classmap=True,
