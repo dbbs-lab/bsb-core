@@ -496,6 +496,11 @@ def make_dictable(node_cls):
 
 def make_tree(node_cls):
     def get_tree(instance):
+        if hasattr(instance, "__inv__") and not getattr(instance, "_config_inv", None):
+            instance._config_inv = True
+            inv = instance.__inv__()
+            instance._config_inv = False
+            return inv
         attrs = _get_class_config_attrs(instance.__class__)
         catch_attrs = [a for a in attrs.values() if hasattr(a, "__catch__")]
         tree = {}
