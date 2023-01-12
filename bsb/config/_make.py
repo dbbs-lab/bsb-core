@@ -82,6 +82,7 @@ def make_metaclass(cls):
                         + f": e.g. 'def __init__{sig}'"
                     ) from None
                 else:
+                    instance._config_pos_init = bool(len(args))
                     instance.__init__(*args, **kwargs)
             return instance
 
