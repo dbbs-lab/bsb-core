@@ -1,4 +1,5 @@
 import abc
+import typing
 from pathlib import Path
 import functools
 import numpy as np
@@ -189,7 +190,8 @@ class FileStore(Interface, engine_key="files"):
     @abc.abstractmethod
     def store(self, content, id=None, meta=None):
         """
-        Store content in the file store.
+        Store content in the file store. Should also store the current timestamp as
+        `mtime` meta.
 
         :param content: Content to be stored
         :type content: str
@@ -211,20 +213,6 @@ class FileStore(Interface, engine_key="files"):
         :type id: str
         :returns: The content of the stored object
         :rtype: str
-        :raises FileNotFoundError: The given id doesn't exist in the file store.
-        """
-        pass
-
-    @abc.abstractmethod
-    def stream(self, id, binary=False):
-        """
-        Stream the content of an object in the file store.
-
-        :param id: id of the content to be streamed.
-        :type id: str
-        :param binary: Whether to return file in text or bytes mode.
-        :type binary: bool
-        :returns: A readable file-like object of the content.
         :raises FileNotFoundError: The given id doesn't exist in the file store.
         """
         pass
@@ -263,6 +251,57 @@ class FileStore(Interface, engine_key="files"):
         :raises Exception: When there's no active configuration in the file store.
         """
         pass
+
+    @abc.abstractmethod
+    def has(self, id):
+        """
+        Must return whether the file store has a file with the given id.
+        """
+        pass
+
+    @abc.abstractmethod
+    def get_meta(self, id) -> typing.Mapping[str, typing.Any]:
+        """
+        Must return the metadata of the given id.
+        """
+        pass
+
+    def get(self, id) -> "StoredFile":
+        """
+        Return a StoredFile wrapper
+        """
+        if not self.has(id):
+            raise FileNotFoundError(f"File with id '{id}' not found.")
+        return StoredFile(self, id)
+
+    def find_files(self, predicate):
+        return (
+            StoredFile(self, id_) for id_, m in self.all().items() if predicate(id_, m)
+        )
+
+    def find_file(self, predicate):
+        return next(self.find_files(predicate), None)
+
+    def find_id(self, id):
+        return self.find_file(lambda id_, _: id_ == id)
+
+    def find_meta(self, key, value):
+        return self.find_file(lambda _, meta: meta.get(key, None) == value)
+
+
+class StoredFile:
+    def __init__(self, store, id):
+        self.store = store
+        self.id = id
+        self.meta = self.store.get_meta(id)
+        self.mtime = self.meta["mtime"]
+
+    @property
+    def meta(self):
+        return self.store.get_meta(self.id)
+
+    def load(self):
+        return self.store.load(self.id)
 
 
 class PlacementSet(Interface):
