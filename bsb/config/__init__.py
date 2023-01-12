@@ -199,6 +199,10 @@ def _try_parsers(content, classes, ext=None, path=None):  # pragma: nocover
 
 
 def _from_parsed(self, parser_name, tree, meta, file=None):
+    if "components" in tree:
+        from ._config import _bootstrap_components
+
+        _bootstrap_components(tree["components"])
     conf = self.Configuration(tree)
     conf._parser = parser_name
     conf._meta = meta
