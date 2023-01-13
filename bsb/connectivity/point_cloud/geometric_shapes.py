@@ -900,3 +900,379 @@ class Sphere(GeometricShape):
 
 
 # -----------------------------------------------------
+
+
+class Cuboid(GeometricShape):
+    """
+    A rectangular parallelepiped, described in cartesian coordinates.
+    """
+
+    def __init__(
+        self,
+        center: numpy.ndarray[float],
+        side_length_1: float,
+        side_length_2: float,
+        height_vector: numpy.ndarray[float],
+        epsilon=1e-3,
+    ):
+        """
+        :param numpy.ndarray[float] center: The coordinates of the baricenter of the bottom rectangle.
+        :param float side_length_1: Length of one side of the base rectangle.
+        :param float side_length_2: Length of the other side of the base rectangle.
+        :param numpy.ndarray[float] height_vector: The coordinates of the baricenter of the top rectangle.
+        :param float epsilon: Tolerance value to compare coordinates.
+        """
+
+        self._center = copy.deepcopy(center)
+        self._side_length_1 = side_length_1
+        self._side_length_2 = side_length_2
+        # Position of the apex
+        self._height_vector = copy.deepcopy(height_vector)
+        self._epsilon = epsilon
+
+        # Find the minimal bounding box, to avoid computing it every time
+        self._mbb_min, self._mbb_max = self.find_mbb()
+
+    def find_mbb(self):
+
+        height = np.linalg.norm(self._height_vector - self._center)
+        # Extrema of the cuboid centered at the origin
+        extrema = [
+            np.array([-self._side_length_1 / 2.0, -self._side_length_2 / 2.0, 0.0]),
+            np.array([self._side_length_1 / 2.0, self._side_length_2 / 2.0, 0.0]),
+            np.array([-self._side_length_1 / 2.0, self._side_length_2 / 2.0, 0.0]),
+            np.array([self._side_length_1 / 2.0, -self._side_length_2 / 2.0, 0.0]),
+            np.array(
+                [
+                    self._side_length_1 / 2.0 + self._height_vector[0],
+                    self._side_length_2 / 2.0 + self._height_vector[1],
+                    self._height_vector[2],
+                ]
+            ),
+            np.array(
+                [
+                    -self._side_length_1 / 2.0 + self._height_vector[0],
+                    self._side_length_2 / 2.0 + self._height_vector[1],
+                    self._height_vector[2],
+                ]
+            ),
+            np.array(
+                [
+                    -self._side_length_1 / 2.0 + self._height_vector[0],
+                    -self._side_length_2 / 2.0 + self._height_vector[1],
+                    self._height_vector[2],
+                ]
+            ),
+            np.array(
+                [
+                    self._side_length_1 / 2.0 + self._height_vector[0],
+                    -self._side_length_2 / 2.0 + self._height_vector[1],
+                    self._height_vector[2],
+                ]
+            ),
+        ]
+
+        # Rotate the cuboid
+        hv = (self._height_vector - self._center) / height
+        zvers = np.array([0, 0, 1])
+        perp = np.cross(zvers, hv)
+        angle = np.arccos(np.dot(hv, zvers))
+        rot = R.from_rotvec(perp * angle)
+
+        for i, pt in enumerate(extrema):
+            extrema[i] = rot.apply(pt)
+
+        maxima = np.max(extrema, axis=0) + self._center
+        minima = np.min(extrema, axis=0) + self._center
+        return minima, maxima
+
+    def get_volume(self):
+        h = np.linalg.norm(self._height_vector - self._center)
+        return h * self._side_length_1 * self._side_length_2
+
+    def translate(self, t_vector: numpy.ndarray[float]):
+        self._center += t_vector
+        self._height_vector += t_vector
+        self._mbb_min += t_vector
+        self._mbb_max += t_vector
+
+    def rotate(self, r_versor: numpy.ndarray[float], angle: float):
+        rot = R.from_rotvec(r_versor * angle)
+        # self._center = rot.apply(self._center)
+        self._height_vector = rot.apply(self._height_vector)
+
+    def generate_point_cloud(self, npoints: int):
+        # Generate a unit cuboid whose base rectangle has the baricenter in the origin
+        cloud = np.full((npoints, 3), 0, dtype=float)
+        rand = np.random.rand(npoints, 3)
+        rand[:, 0] = rand[:, 0] - 0.5
+        rand[:, 1] = rand[:, 1] - 0.5
+
+        # Scale the sides of the cuboid
+        height = np.linalg.norm(self._height_vector - self._center)
+        rand[:, 0] = rand[:, 0] * self._side_length_1 / 2.0
+        rand[:, 1] = rand[:, 1] * self._side_length_2 / 2.0
+        rand[:, 2] = rand[:, 2] * height
+
+        # Rotate the cuboid
+        hv = (self._height_vector - self._center) / height
+        zvers = np.array([0, 0, 1])
+        perp = np.cross(zvers, hv)
+        angle = np.arccos(np.dot(hv, zvers))
+        rot = R.from_rotvec(perp * angle)
+        cloud = rot.apply(rand)
+
+        # Translate the cuboid
+        cloud = cloud + self._center
+        return cloud
+
+    def check_mbox(self, points: numpy.ndarray[float]):
+
+        inside = (
+            (points[:, 0] > self._mbb_min[0])
+            & (points[:, 0] < self._mbb_max[0])
+            & (points[:, 1] > self._mbb_min[1])
+            & (points[:, 1] < self._mbb_max[1])
+            & (points[:, 2] > self._mbb_min[2])
+            & (points[:, 2] < self._mbb_max[2])
+        )
+        return inside
+
+    def check_inside(self, points: numpy.ndarray[float]):
+        # Translate back to origin
+        pts = points - self._center
+
+        # Rotate back to xyz
+        height = np.linalg.norm(self._height_vector - self._center)
+        hv = (self._height_vector - self._center) / height
+        zvers = np.array([0, 0, 1])
+        perp = np.cross(zvers, hv)
+        angle = -np.arccos(np.dot(hv, zvers))
+        rot = R.from_rotvec(perp * angle)
+        rot_pts = rot.apply(pts)
+
+        # Check for intersections
+        inside_points = (
+            (rot_pts[:, 2] < height)
+            & (rot_pts[:, 2] > 0.0)
+            & (rot_pts[:, 0] < self._side_length_1)
+            & (rot_pts[:, 0] > -self._side_length_1)
+            & (rot_pts[:, 1] < self._side_length_2)
+            & (rot_pts[:, 1] > -self._side_length_2)
+        )
+        return inside_points
+
+    def wireframe_points(self):
+
+        a = self._side_length_1 / 2.0
+        b = self._side_length_2 / 2.0
+        c = np.linalg.norm(self._height_vector - self._center)
+
+        x = np.array(
+            [
+                [-a, a, a, -a],  # x coordinate of points in bottom surface
+                [-a, a, a, -a],  # x coordinate of points in upper surface
+                [-a, a, -a, a],  # x coordinate of points in outside surface
+                [-a, a, -a, a],
+            ]
+        )  # x coordinate of points in inside surface
+        y = np.array(
+            [
+                [-b, -b, b, b],  # y coordinate of points in bottom surface
+                [-b, -b, b, b],  # y coordinate of points in upper surface
+                [-b, -b, -b, -b],  # y coordinate of points in outside surface
+                [b, b, b, b],
+            ]
+        )  # y coordinate of points in inside surface
+        z = np.array(
+            [
+                [0.0, 0.0, 0.0, 0.0],  # z coordinate of points in bottom surface
+                [c, c, c, c],  # z coordinate of points in upper surface
+                [0.0, 0.0, c, c],  # z coordinate of points in outside surface
+                [0.0, 0.0, c, c],
+            ]
+        )  # z coordinate of points in inside surface
+
+        # Rotate the cuboid
+        hv = (self._height_vector - self._center) / c
+        hv = hv / np.linalg.norm(hv)
+        zvers = np.array([0, 0, 1])
+        perp = np.cross(zvers, hv)
+        angle = np.arccos(np.dot(hv, zvers))
+
+        x, y, z = rotate_3d_mesh_by_vec(x, y, z, perp, angle)
+        x, y, z = translate_3d_mesh_by_vec(x, y, z, self._center)
+
+        return x, y, z
+
+    # -----------------------------------------------------
+
+
+class Parallelepiped(GeometricShape):
+    """
+    A generic parallelepiped, described by the vectors (following the right hand orientation) of the sides in cartesian coordinates
+    """
+
+    def __init__(
+        self,
+        center: numpy.ndarray[float],
+        side_vector_1: float,
+        side_vector_2: float,
+        side_vector_3: float,
+        epsilon=1e-3,
+    ):
+        """
+        :param numpy.ndarray[float] center: The coordinates of the left-bottom edge.
+        :param float side_vector_1: The first vector identifying the parallelepiped (using the right hand orientation: the thumb).
+        :param float side_vector_2: The second vector identifying the parallelepiped (using the right hand orientation: the index).
+        :param float side_vector_3: The third vector identifying the parallelepiped (using the right hand orientation: the middle finger).
+        :param float epsilon: Tolerance value to compare coordinates.
+        """
+
+        self._center = copy.deepcopy(center)
+        self._side_vector_1 = copy.deepcopy(side_vector_1)
+        self._side_vector_2 = copy.deepcopy(side_vector_2)
+        self._side_vector_3 = copy.deepcopy(side_vector_3)
+        # Position of the apex
+        self._epsilon = epsilon
+
+        # Find the minimal bounding box, to avoid computing it every time
+        self._mbb_min, self._mbb_max = self.find_mbb()
+
+    def find_mbb(self):
+
+        extrema = np.vstack(
+            [
+                np.array([0.0, 0.0, 0.0]),
+                self._side_vector_1 + self._side_vector_2 + self._side_vector_3,
+            ]
+        )
+        print(extrema)
+        maxima = np.max(extrema, axis=0) + self._center
+        minima = np.min(extrema, axis=0) + self._center
+        return minima, maxima
+
+    def get_volume(self):
+        vol = np.dot(
+            self._side_vector_3, np.cross(self._side_vector_1, self._side_vector_2)
+        )
+        return vol
+
+    def translate(self, t_vector: numpy.ndarray[float]):
+        self._center += t_vector
+        self._mbb_min += t_vector
+        self._mbb_max += t_vector
+
+    def rotate(self, r_versor: numpy.ndarray[float], angle: float):
+        rot = R.from_rotvec(r_versor * angle)
+        # self._center = rot.apply(self._center)
+        self._side_vector_1 = rot.apply(self._side_vector_1)
+        self._side_vector_2 = rot.apply(self._side_vector_2)
+        self._side_vector_3 = rot.apply(self._side_vector_3)
+
+    def generate_point_cloud(self, npoints: int):
+        # Generate a linear combination of points in the volume
+        cloud = np.full((npoints, 3), 0, dtype=float)
+        rand = np.random.rand(npoints, 3)
+        for i in range(npoints):
+            cloud[i] = (
+                rand[i, 0] * self._side_vector_1
+                + rand[i, 1] * self._side_vector_2
+                + rand[i, 2] * self._side_vector_3
+            )
+        cloud = cloud + self._center
+        return cloud
+
+    def check_mbox(self, points: numpy.ndarray[float]):
+
+        inside = (
+            (points[:, 0] > self._mbb_min[0])
+            & (points[:, 0] < self._mbb_max[0])
+            & (points[:, 1] > self._mbb_min[1])
+            & (points[:, 1] < self._mbb_max[1])
+            & (points[:, 2] > self._mbb_min[2])
+            & (points[:, 2] < self._mbb_max[2])
+        )
+        return inside
+
+    def check_inside(self, points: numpy.ndarray[float]):
+        # Translate back to origin
+        pts = points - self._center
+
+        # Rotate back to xyz
+        height = np.linalg.norm(self._height_vector - self._center)
+        hv = (self._height_vector - self._center) / height
+        zvers = np.array([0, 0, 1])
+        perp = np.cross(zvers, hv)
+        angle = -np.arccos(np.dot(hv, zvers))
+        rot = R.from_rotvec(perp * angle)
+        rot_pts = rot.apply(pts)
+
+        # Compute the Fourier components wrt to the vectors identifying the parallelipiped
+
+        comp1 = rot_pts.dot(self._side_vector_1)
+        comp2 = rot_pts.dot(self._side_vector_2)
+        comp3 = rot_pts.dot(self._side_vector_3)
+
+        # The points are inside the parallelipiped if and only if all the Fourier components are in (0,1)
+        inside_points = (
+            (comp1 > 0.0)
+            & (comp1 < 1.0)
+            & (comp2 > 0.0)
+            & (comp2 < 1.0)
+            & (comp3 > 0.0)
+            & (comp3 < 1.0)
+        )
+        return inside_points
+
+    def wireframe_points(self):
+
+        va = self._side_vector_1
+        vb = self._side_vector_2
+        vc = self._side_vector_3
+
+        a = va
+        b = va + vb
+        c = vb
+        d = np.array([0.0, 0.0, 0.0])
+        e = va + vc
+        f = va + vb + vc
+        g = vb + vc
+        h = vc
+
+        x = np.array(
+            [
+                [a[0], b[0], c[0], d[0]],
+                [e[0], f[0], g[0], h[0]],
+                [a[0], b[0], f[0], e[0]],
+                [d[0], c[0], g[0], h[0]],
+            ]
+        )
+        y = np.array(
+            [
+                [a[1], b[1], c[1], d[1]],
+                [e[1], f[1], g[1], h[1]],
+                [a[1], b[1], f[1], e[1]],
+                [d[1], c[1], g[1], h[1]],
+            ]
+        )
+        z = np.array(
+            [
+                [a[2], b[2], c[2], d[2]],
+                [e[2], f[2], g[2], h[2]],
+                [a[2], b[2], f[2], e[2]],
+                [d[2], c[2], g[2], h[2]],
+            ]
+        )
+
+        """# Rotate the cuboid
+        hv = (self._height_vector - self._center) / c
+        hv = hv / np.linalg.norm(hv)
+        zvers = np.array([0, 0, 1])
+        perp = np.cross(zvers, hv)
+        angle = np.arccos(np.dot(hv, zvers))
+ 
+        x, y, z = rotate_3d_mesh_by_vec(x, y, z, perp, angle)
+        x, y, z = translate_3d_mesh_by_vec(x, y, z, self._center)"""
+        print(x)
+        return x, y, z
