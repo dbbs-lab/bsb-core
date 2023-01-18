@@ -13,7 +13,7 @@ _t(
         ConfigurationError=_e(
             ConfigurationFormatError=_e(),
             DynamicClassError=_e(
-                DynamicClassNotFoundError=_e(),
+                DynamicObjectNotFoundError=_e(),
                 DynamicClassInheritanceError=_e(),
                 ClassMapMissingError=_e(),
             ),
