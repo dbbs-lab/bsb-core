@@ -55,21 +55,13 @@ class ProjectNewCommand(BaseCommand, name="new"):
                     "tools": {
                         "bsb": {
                             "config": output,
-                            "links": {
-                                "config": "auto",
-                                "morpho": ["sys", "morphologies.hdf5", "newer"],
-                            },
                         }
                     }
                 },
                 f,
             )
-        init_path = root / name / "__init__.py"
-        place_path = root / name / "placement.py"
-        conn_path = root / name / "connectome.py"
-        if not init_path.exists():
-            with open(init_path, "w") as f:
-                f.write("\n")
+        place_path = root / "placement.py"
+        conn_path = root / "connectome.py"
         if not place_path.exists():
             with open(place_path, "w") as f:
                 f.write("from bsb.placement import PlacementStrategy\n")
