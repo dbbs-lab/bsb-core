@@ -18,6 +18,7 @@ from ._attrs import (
     attr,
     list,
     dict,
+    file,
     node,
     root,
     dynamic,
@@ -63,6 +64,7 @@ class ConfigurationModule:
     root = staticmethod(root)
     dynamic = staticmethod(dynamic)
     pluggable = staticmethod(pluggable)
+    file = staticmethod(file)
 
     walk_node_attributes = staticmethod(walk_node_attributes)
     walk_nodes = staticmethod(walk_nodes)
