@@ -66,6 +66,7 @@ setuptools.setup(
     ],
     entry_points={
         "console_scripts": ["bsb = bsb.cli:handle_cli"],
+        "bsb.storage.engines": ["fs = bsb.storage.fs"],
         "bsb.simulation_backends": [
             "arbor = bsb.simulators.arbor",
             "nest = bsb.simulators.nest",
