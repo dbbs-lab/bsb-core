@@ -70,6 +70,25 @@ def _config_property(name):
     return prop.setter(fset)
 
 
+def _get_linked_config(storage=None):
+    import bsb.config
+
+    try:
+        cfg = storage.load_active_config()
+    except Exception:
+        import bsb.options
+
+        path = bsb.options.config
+    else:
+        path = cfg._meta.get("path", None)
+    if path and os.path.exists(path):
+        with open(path, "r") as f:
+            cfg = bsb.config.from_file(f)
+            return cfg
+    else:
+        return None
+
+
 class Scaffold:
     """
 
@@ -129,7 +148,7 @@ class Scaffold:
         if config is None:
             # No config given, check for linked configs, or stored configs, otherwise
             # make default config.
-            linked = self._get_linked_config(storage)
+            linked = _get_linked_config(storage)
             if linked:
                 report(f"Pulling configuration from linked {linked}.", level=2)
                 config = linked
