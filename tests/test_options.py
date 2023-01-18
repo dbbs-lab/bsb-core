@@ -178,7 +178,7 @@ class TestScriptOption(unittest.TestCase):
         with self.assertRaises(ReadOnlyOptionError):
             self.opt["version"].script = "5.0"
         # Read one without bindings:
-        self.assertIsNone(self.opt["config"].script, "no bindings should be None")
+        self.assertIsNone(self.opt["version"].env, "no bindings should be None")
 
     def test_script_isset(self):
         script = type(self.opt["version"]).script
@@ -188,8 +188,9 @@ class TestScriptOption(unittest.TestCase):
     def test_script_set(self):
         self.opt["force"].script = True
         self.assertTrue(self.opt["force"].script, "script opt not set")
-        with self.assertRaises(OptionError, msg="no script binding opt may not set"):
-            self.opt["config"].script = True
+        #  No options without script descr atm
+        # with self.assertRaises(OptionError, msg="no script binding opt may not set"):
+        #     self.opt["config"].script = True
         self.assertTrue(self.opt["force"].get(), "script prio broken")
 
     def test_script_del(self):
@@ -216,8 +217,6 @@ class TestOptions(unittest.TestCase):
         cfg_opt = options.get_option("config")
         with self.assertRaises(OptionError):
             options.get_option("doesntexist")
-        with self.assertRaises(OptionError):
-            options.get_module_option("config")
 
     def test_discovery(self):
         cls = options.get_option_classes()
@@ -234,8 +233,6 @@ class TestOptions(unittest.TestCase):
     def test_options_set(self):
         options.verbosity = 2
         self.assertEqual(2, options.verbosity, "verbosity not set")
-        with self.assertRaises(OptionError):
-            options.config = 3
         # Clean up the script value we set for this test.
         del self.opt["verbosity"].script
         # Double reset shouldn't error
@@ -243,7 +240,7 @@ class TestOptions(unittest.TestCase):
 
     def test_set_module_option(self):
         with self.assertRaises(OptionError):
-            options.set_module_option("config", 3)
+            options.set_module_option("doesntexist", 3)
         options.set_module_option("verbosity", 3)
         del options.verbosity
         with self.assertRaises(AttributeError):

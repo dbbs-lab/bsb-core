@@ -14,7 +14,7 @@ from bsb.exceptions import (
     UnfitClassCastError,
     DynamicClassInheritanceError,
     UnresolvedClassCastError,
-    DynamicClassNotFoundError,
+    DynamicObjectNotFoundError,
     ClassMapMissingError,
 )
 from bsb.topology.region import RegionGroup
@@ -561,7 +561,7 @@ class TestDynamic(unittest.TestCase):
         )
         # Test that without the module path the same class can't be found
         self.assertRaises(
-            DynamicClassNotFoundError,
+            DynamicObjectNotFoundError,
             sys.modules["bsb.config._make"]._load_class,
             "NotInherited",
             [],
