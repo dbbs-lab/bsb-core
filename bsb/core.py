@@ -157,8 +157,6 @@ class Scaffold:
         # Then, `storage` is initted for the scaffold, and `config` is stored (happens
         # inside the `storage` property).
         self.storage = storage
-        # Check for linked morphologies
-        self._load_morpho_link()
 
     storage_cfg = _config_property("storage")
     for attr in _cfg_props:
@@ -711,80 +709,6 @@ class Scaffold:
             ct.clear_connections()
 
         return p_contrib, c_contrib
-
-    def _get_linked_config(self, storage=None):
-        import bsb.config
-
-        link = self._get_link_cfg(storage)
-        if link is None:
-            return None
-        elif link.type == "auto":
-            try:
-                cfg = storage.load_active_config()
-            except Exception:
-                import bsb.options
-
-                path = bsb.options.config
-            else:
-                path = cfg._meta.get("path", None)
-            if path and os.path.exists(path):
-                with open(path, "r") as f:
-                    cfg = bsb.config.from_file(f)
-                    return cfg
-            else:
-                return None
-        elif link.type != "sys":
-            raise ScaffoldError("Configuration link can only be 'auto' or 'sys' link.")
-        elif link.exists():
-            stream = link.get()
-            return bsb.config.from_file(stream)
-        else:
-            warn(
-                f"Missing configuration link {link}."
-                + " Update or remove the link from your project settings."
-            )
-            return None
-
-    def _load_morpho_link(self):
-        link = self._get_link("morpho", self.storage.root_slug)
-        if link is None:
-            link = self._get_link("morpho")
-        if link is None:
-            return
-        if link.type != "sys":
-            raise ScaffoldError("Morphology repository link can only be a 'sys' link.")
-        if link.exists():
-            try:
-                mr = Storage("hdf5", link.path).morphologies
-                all = mr.all()
-            except Exception:
-                raise ScaffoldError("Morphology repository link must be HDF5 repository.")
-            else:
-                report(f"Pulling {len(all)} morphologies from linked {link}.", level=2)
-                for loader in all:
-                    self.morphologies.save(loader.name, loader.load(), overwrite=True)
-
-    def _get_link(self, name, supercat=None):
-        import bsb.option
-
-        path, content = bsb.option._pyproject_bsb()
-        links = content.get("links", {})
-        if supercat is not None:
-            links = links.get(supercat, {})
-        link = links.get(name, None)
-        if link == "auto":
-            # Send back a dummy object whose `type` attribute is "auto"
-            return type("autolink", (), {"type": "auto"})()
-        elif link:
-            path = path.parent if path else os.getcwd()
-            files = None if self.storage is None else self.files
-            return _storutil.link(files, path, *link)
-        else:
-            return None
-
-    def _get_link_cfg(self, storage):
-        subcat = storage.root_slug if storage is not None else None
-        return self._get_link("config", subcat)
 
 
 class ReportListener:
