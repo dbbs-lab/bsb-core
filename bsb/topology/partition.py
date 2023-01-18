@@ -5,11 +5,18 @@
 from ._layout import Layout, RhomboidData
 from .. import config
 from ..config import types
-from ..config.refs import region_ref
-from ..exceptions import *
+from ..exceptions import (
+    RequirementError,
+    LayoutError,
+    ConfigurationError,
+    AllenApiError,
+    NodeNotFoundError,
+)
+from ..storage._files import NrrdDependencyNode
+from ..storage._util import _cached_file
 from ..voxels import VoxelSet
-from ..storage import Chunk, _util as _storutil
-from ..reporting import report, warn
+from ..storage import Chunk
+from ..reporting import report
 import numpy as np
 import collections
 import functools
@@ -324,13 +331,15 @@ class Voxels(Partition, abc.ABC, classmap_entry="voxels"):
 @config.node
 class NrrdVoxels(Voxels, classmap_entry="nrrd"):
     source = config.attr(
-        type=str, required=types.mut_excl("source", "sources", required=True)
+        type=NrrdDependencyNode,
+        required=types.mut_excl("source", "sources", required=True),
     )
     sources = config.attr(
-        type=types.list(str), required=types.mut_excl("source", "sources", required=True)
+        type=types.list(NrrdDependencyNode),
+        required=types.mut_excl("source", "sources", required=True),
     )
     mask_value = config.attr(type=int)
-    mask_source = config.attr(type=str)
+    mask_source = config.attr(type=NrrdDependencyNode)
     mask_only = config.attr(type=bool, default=False)
     voxel_size = config.attr(type=types.voxel_size(), required=True)
     keys = config.attr(type=types.list(str))
@@ -344,7 +353,7 @@ class NrrdVoxels(Voxels, classmap_entry="nrrd"):
             # Use integer (sparse) indexing
             mask = [np.empty((0,), dtype=int) for i in range(3)]
             for mask_src in self._mask_src:
-                mask_data, _ = nrrd.read(mask_src)
+                mask_data = mask_src.get_data()
                 new_mask = np.nonzero(self._mask_cond(mask_data))
                 for i, mask_vector in enumerate(new_mask):
                     mask[i] = np.concatenate((mask[i], mask_vector))
@@ -353,23 +362,23 @@ class NrrdVoxels(Voxels, classmap_entry="nrrd"):
         else:
             # Use boolean (dense) indexing
             for mask_src in self._mask_src:
-                mask_data, _ = nrrd.read(mask_src)
+                mask_data = mask_src.get_data()
                 mask = mask | self._mask_cond(mask_data)
             mask = np.nonzero(mask)
         return mask
 
     def get_voxelset(self):
         mask = self.get_mask()
+        voxel_data = None
         if not self.mask_only:
             voxel_data = np.empty((len(mask[0]), len(self._src)))
             for i, source in enumerate(self._src):
-                data, _ = nrrd.read(source)
-                voxel_data[:, i] = data[mask]
+                voxel_data[:, i] = source.get_data()[mask]
 
         return VoxelSet(
             np.transpose(mask),
             self.voxel_size,
-            data=voxel_data if not self.mask_only else None,
+            data=voxel_data,
             data_keys=self.keys,
         )
 
@@ -390,8 +399,8 @@ class NrrdVoxels(Voxels, classmap_entry="nrrd"):
             self._mask_src = self._src.copy()
 
     def _validate_source_compat(self):
-        mask_headers = {s: _safe_hread(s) for s in self._mask_src}
-        source_headers = {s: _safe_hread(s) for s in self._src}
+        mask_headers = {s: s.get_header() for s in self._mask_src}
+        source_headers = {s: s.get_header() for s in self._src}
         all_headers = mask_headers.copy()
         all_headers.update(source_headers)
         dim_probs = [(s, d) for s, h in all_headers.items() if (d := h["dimension"]) != 3]
@@ -437,10 +446,11 @@ class AllenStructure(NrrdVoxels, classmap_entry="allen"):
         required=types.mut_excl("struct_id", "struct_name", required=True),
     )
     source = config.attr(
-        type=str, required=types.mut_excl("source", "sources", required=False)
+        type=NrrdDependencyNode,
+        required=types.mut_excl("source", "sources", required=False),
     )
     sources = config.attr(
-        type=types.list(str),
+        type=types.list(NrrdDependencyNode),
         required=types.mut_excl("source", "sources", required=False),
         default=list,
         call_default=True,
@@ -457,39 +467,20 @@ class AllenStructure(NrrdVoxels, classmap_entry="allen"):
     @config.property
     @functools.cache
     def mask_source(self):
-        return self._dl_mask()
-
-    @classmethod
-    def _dl_mask(cls):
-        url = "http://download.alleninstitute.org/informatics-archive/current-release/mouse_ccf/annotation/ccf_2017/annotation_25.nrrd"
-        fname = "_annotations_25.nrrd.cache"
-        link = _storutil.cachelink(fname, binary=True)
-        if link.should_update():
-            with link.set() as f:
-                report("Downloading Allen Brain Atlas annotations", level=3)
-                content = requests.get(url).content
-                f.write(requests.get(url).content)
-        else:
-            report("Using cached Allen Brain Atlas annotations", level=4)
-        return str(link.path)
+        node = NrrdDependencyNode()
+        node._file = _cached_file(
+            "http://download.alleninstitute.org/informatics-archive/current-release/mouse_ccf/annotation/ccf_2017/annotation_25.nrrd",
+        )
+        return node
 
     @classmethod
     @functools.cache
     def _dl_structure_ontology(cls):
-        url = "http://api.brain-map.org/api/v2/structure_graph_download/1.json"
-        fname = "_allen_ontology.cache"
-        link = _storutil.cachelink(fname)
-        if link.should_update():
-            report("Downloading Allen Brain Atlas structure ontology", level=3)
-            payload = requests.get(url).json()
-            if not payload.get("success", False):
-                raise AllenApiError(f"Could not fetch ontology from Allen API at '{url}'")
-            with link.set() as f:
-                json.dump(payload["msg"], f)
-        else:
-            report("Using cached Allen Brain Atlas ontology", level=4)
-        with link.get() as f:
-            return json.load(f)
+        return json.loads(
+            _cached_file(
+                "http://api.brain-map.org/api/v2/structure_graph_download/1.json"
+            ).get_content()[0]
+        )["msg"]
 
     @classmethod
     def get_structure_mask_condition(cls, find):
