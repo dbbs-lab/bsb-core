@@ -40,7 +40,7 @@ def discover_engines():
     """
     Get a dictionary of all available storage engines.
     """
-    engines = plugins.discover("engines")
+    engines = plugins.discover("storage.engines")
     for engine_name, engine_module in engines.items():
         register_engine(engine_name, engine_module)
     return engines
