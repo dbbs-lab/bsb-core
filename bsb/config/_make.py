@@ -7,7 +7,7 @@ from ..exceptions import (
     DynamicClassError,
     UnresolvedClassCastError,
     PluginError,
-    DynamicClassNotFoundError,
+    DynamicObjectNotFoundError,
 )
 from ..reporting import warn
 from ._hooks import overrides
@@ -434,13 +434,8 @@ def _load_class(cfg_classname, module_path, interface=None, classmap=None):
         class_ref = cfg_classname
         class_name = cfg_classname.__name__
     else:
-        class_parts = cfg_classname.split(".")
-        class_name = class_parts[-1]
-        module_name = ".".join(class_parts[:-1])
-        if module_name == "":
-            class_ref = _search_module_path(class_name, module_path, cfg_classname)
-        else:
-            class_ref = _get_module_class(class_name, module_name, cfg_classname)
+        class_ref = _load_object(cfg_classname, module_path)
+        class_name = class_ref.__name__
 
     def qualname(cls):
         return cls.__module__ + "." + cls.__name__
@@ -454,15 +449,27 @@ def _load_class(cfg_classname, module_path, interface=None, classmap=None):
     return class_ref
 
 
+def _load_object(object_path, module_path):
+    class_parts = object_path.split(".")
+    object_name = class_parts[-1]
+    module_name = ".".join(class_parts[:-1])
+    if not module_name:
+        object_ref = _search_module_path(object_name, module_path, object_path)
+    else:
+        object_ref = _get_module_object(object_name, module_name, object_path)
+
+    return object_ref
+
+
 def _search_module_path(class_name, module_path, cfg_classname):
     for module_name in module_path:
         module_dict = sys.modules[module_name].__dict__
         if class_name in module_dict:
             return module_dict[class_name]
-    raise DynamicClassNotFoundError("Class not found: " + cfg_classname)
+    raise DynamicObjectNotFoundError("Class not found: " + cfg_classname)
 
 
-def _get_module_class(class_name, module_name, cfg_classname):
+def _get_module_object(object_name, module_name, object_path):
     sys.path.append(os.getcwd())
     try:
         module_ref = importlib.import_module(module_name)
@@ -471,9 +478,9 @@ def _get_module_class(class_name, module_name, cfg_classname):
         tmp.remove(os.getcwd())
         sys.path = list(reversed(tmp))
     module_dict = module_ref.__dict__
-    if class_name not in module_dict:
-        raise DynamicClassNotFoundError("Class not found: " + cfg_classname)
-    return module_dict[class_name]
+    if object_name not in module_dict:
+        raise DynamicObjectNotFoundError(f"'{object_path}' not found.")
+    return module_dict[object_name]
 
 
 def make_dictable(node_cls):
