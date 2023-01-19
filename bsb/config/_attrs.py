@@ -323,7 +323,10 @@ def file(**kwargs):
     """
     Create a file dependency attribute.
     """
-    return ConfigurationFileAttribute(**kwargs)
+    from ..storage import FileDependencyNode
+
+    kwargs.setdefault("type", FileDependencyNode)
+    return attr(**kwargs)
 
 
 def _setattr(instance, name, value):
@@ -1086,16 +1089,3 @@ class ConfigurationAttributeCatcher(ConfigurationAttribute):
         if hasattr(value, "__tree__"):
             value = value.__tree__()
         return value
-
-
-class ConfigurationFileAttribute(ConfigurationAttribute):
-    def __init__(self, **kwargs):
-        from ..storage._files import FileDependency
-
-        kwargs["type"] = FileDependency
-        super().__init__(**kwargs)
-
-    def __boot__(self, instance, scaffold):
-        file = getattr(instance, self.attr_name)
-        file.file_store = scaffold.files
-        file.update()
