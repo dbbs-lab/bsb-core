@@ -56,7 +56,7 @@ def node(node_cls, root=False, dynamic=False, pluggable=False):
             else:
                 attrs[k] = v
     node_cls._config_attrs = attrs
-    node_cls.__post_new__ = compile_postnew(node_cls, root=root)
+    node_cls.__post_new__ = compile_postnew(node_cls)
     node_cls._config_isroot = root
     if root:
         node_cls.__post_new__ = wrap_root_postnew(node_cls.__post_new__)
@@ -138,6 +138,7 @@ def _dynamic(node_cls, class_attr, attr_name, config):
     node_cls._config_dynamic_attr = attr_name
     # Other than that compile the dynamic class like a regular node class
     node_cls = node(node_cls, dynamic=config)
+
     if config.auto_classmap or config.classmap:
         node_cls._config_dynamic_classmap = config.classmap or {}
     # This adds the parent class to its own classmap, which for subclasses happens in init

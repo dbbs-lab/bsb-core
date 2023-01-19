@@ -204,7 +204,22 @@ def _set_pk(obj, parent, key):
             _setattr(obj, a.attr_name, key)
 
 
-def compile_postnew(cls, root=False):
+def _check_required(cls, attr, kwargs):
+    dynamic_root = getattr(cls, "_config_dynamic_root", None)
+    if dynamic_root is not None:
+        dynamic_attr = dynamic_root._config_dynamic_attr
+        # If we are checking the dynamic attribute, but we're already a dynamic subclass,
+        # we skip the required check.
+        return (
+            attr.attr_name == dynamic_attr
+            and cls is dynamic_root
+            and attr.required(kwargs)
+        ) or (attr.attr_name != dynamic_attr and attr.required(kwargs))
+    else:
+        return attr.required(kwargs)
+
+
+def compile_postnew(cls):
     def __post_new__(self, _parent=None, _key=None, **kwargs):
         attrs = _get_class_config_attrs(self.__class__)
         self._config_attr_order = list(kwargs.keys())
@@ -215,7 +230,8 @@ def compile_postnew(cls, root=False):
             name = attr.attr_name
             value = values[name] = leftovers.pop(name, None)
             try:
-                if value is None and attr.required(kwargs):
+                # We use `self.__class__`, not `cls`, to get the proper child class.
+                if value is None and _check_required(self.__class__, attr, kwargs):
                     raise RequirementError(f"Missing required attribute '{name}'")
             except RequirementError as e:
                 # Catch both our own and possible `attr.required` RequirementErrors
@@ -234,7 +250,6 @@ def compile_postnew(cls, root=False):
             else:
                 setattr(self, name, value)
                 attr.flag_dirty(self)
-        # # TODO: catch attrs
         for key, value in leftovers.items():
             try:
                 _try_catch_attrs(self, catch_attrs, key, value)
