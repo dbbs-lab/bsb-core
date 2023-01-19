@@ -259,11 +259,15 @@ def _get_scheme(scheme: str) -> FileScheme:
 
 @config.node
 class FileDependencyNode:
-    file: "FileDependency" = config.file()
+    file: "FileDependency" = config.attr(type=FileDependency)
 
     def __init__(self, value=None, **kwargs):
         if value is not None:
             self.file = value
+
+    def __boot__(self):
+        self.file.file_store = self.scaffold.files
+        self.file.update()
 
     def __inv__(self):
         if not isinstance(self, FileDependencyNode):
