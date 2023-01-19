@@ -511,6 +511,19 @@ class DynamicBaseDefault:
     name = config.attr(type=str, required=True)
 
 
+@config.dynamic(required=True)
+class DynamicBaseRequired:
+    pass
+
+
+class DynamicChildNotRequired(DynamicBaseRequired):
+    pass
+
+
+class UndecoratedChildNotRequired(DynamicBaseRequired):
+    pass
+
+
 class NotInherited:
     pass
 
@@ -518,14 +531,14 @@ class NotInherited:
 class TestDynamic(unittest.TestCase):
     def test_dynamic_requirements(self):
         with self.assertRaisesRegex(RequirementError, "must contain a 'cls' attribute"):
-            DynamicBase({}, _parent=TestRoot())
+            DynamicBase({})
         with self.assertRaisesRegex(RequirementError, "must contain a 'test' attribute"):
-            DynamicAttrBase({}, _parent=TestRoot())
+            DynamicAttrBase({})
 
     def test_dynamic(self):
         self.assertTrue(
             isinstance(
-                DynamicBaseDefault({"name": "ello"}, _parent=TestRoot()),
+                DynamicBaseDefault({"name": "ello"}),
                 DynamicBaseDefault,
             ),
             "Dynamic cast with default 'DynamicBaseDefault' should produce instance"
@@ -537,7 +550,7 @@ class TestDynamic(unittest.TestCase):
         # The cast should raise an UnfitClassCastError while the direct _load_class call
         # should raise a DynamicClassInheritanceError
         with self.assertRaises(UnfitClassCastError):
-            DynamicBase({"name": "ello", "cls": "NotInherited"}, _parent=TestRoot())
+            DynamicBase({"name": "ello", "cls": "NotInherited"})
         with self.assertRaises(DynamicClassInheritanceError):
             sys.modules["bsb.config._make"]._load_class(
                 NotInherited,
@@ -566,6 +579,14 @@ class TestDynamic(unittest.TestCase):
             "NotInherited",
             [],
         )
+
+    def test_direct_dynamic_child(self):
+        # Test that even if a dynamic attr is required on the parent, we can directly
+        # construct the child. This has to be so because the chosen child class already
+        # explicitly satisfies the dynamic requirement.
+        direct_child = DynamicChildNotRequired()
+        # Undecorated child classes are not endorsed, but just in case.
+        undecorated_direct_child = UndecoratedChildNotRequired()
 
 
 @config.dynamic(
