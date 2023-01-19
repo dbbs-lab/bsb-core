@@ -281,7 +281,7 @@ class Layer(Rhomboid, classmap_entry="layer"):
 
 
 @config.node
-class Voxels(Partition, abc.ABC, classmap_entry="voxels"):
+class Voxels(Partition, abc.ABC, classmap_entry=None):
     @abc.abstractmethod
     def get_voxelset(self):
         pass
