@@ -1,28 +1,23 @@
 import abc as _abc
 import contextlib as _cl
-import datetime
-import functools
-import json
-import os
-import tempfile
-import time
+import datetime as _dt
+import tempfile as _tf
+import time as _t
 import urllib.parse as _up
 import urllib.request as _ur
 import pathlib as _pl
 import os as _os
 import functools as _ft
-import typing as _t
-import requests
-import email.utils
-
-import nrrd
+import typing as _tp
+import requests as _rq
+import email.utils as _eml
+import nrrd as _nrrd
 
 from .._util import obj_str_insert
 from .. import config
 from ..config import types
 
-if _t.TYPE_CHECKING:
-    from ..core import Scaffold
+if _tp.TYPE_CHECKING:
     from ..storage.interfaces import FileStore
     from ..morphologies import Morphology
 
@@ -90,7 +85,7 @@ class FileDependency:
     def provide_locally(self):
         try:
             path = self._scheme.get_local_path(self)
-            if os.path.exists(path):
+            if _os.path.exists(path):
                 yield (path, None)
             else:
                 raise FileNotFoundError()
@@ -98,7 +93,7 @@ class FileDependency:
             if self.file_store is None:
                 raise FileNotFoundError(f"Can't find {self}")
             content = self.get_content()
-            with tempfile.TemporaryDirectory() as dirpath:
+            with _tf.TemporaryDirectory() as dirpath:
                 name = "file"
                 if self.extension:
                     name = f"{name}.{self.extension}"
@@ -192,7 +187,7 @@ class FileScheme(UriScheme):
 
 class UrlScheme(UriScheme):
     def find(self, file: FileDependency):
-        response = requests.head(file.uri)
+        response = _rq.head(file.uri)
         return response.status_code == 200
 
     def should_update(self, file: FileDependency, stored_file):
@@ -205,19 +200,19 @@ class UrlScheme(UriScheme):
             # Check if we have the latest ETag
             return old_etag != new_etag
         elif "Last-Modified" in headers:
-            their_mtime = datetime.datetime(
-                *email.utils.parsedate(headers["Last-Modified"])[:6]
+            their_mtime = _dt.datetime(
+                *_eml.parsedate(headers["Last-Modified"])[:6]
             ).timestamp()
             return their_mtime > mtime
         # 100h default expiration
-        return time.time() > mtime + 360000
+        return _t.time() > mtime + 360000
 
     def get_content(self, file: FileDependency):
-        response = requests.get(file.uri)
+        response = _rq.get(file.uri)
         return (response.content, response.encoding)
 
     def get_meta(self, file: FileDependency):
-        response = requests.head(file.uri)
+        response = _rq.head(file.uri)
         return {"headers": dict(response.headers)}
 
     def get_local_path(self, file: FileDependency):
@@ -225,7 +220,7 @@ class UrlScheme(UriScheme):
 
 
 @_ft.cache
-def _get_schemes() -> _t.Mapping[str, FileScheme]:
+def _get_schemes() -> _tp.Mapping[str, FileScheme]:
     from ..plugins import discover
 
     schemes = discover("storage.schemes")
@@ -273,7 +268,7 @@ class CodeDependencyNode(FileDependencyNode):
         else:
             file_store = None
         return FileDependency(
-            self.module.replace(".", os.sep) + ".py", file_store=file_store
+            self.module.replace(".", _os.sep) + ".py", file_store=file_store
         )
 
     def __init__(self, module=None, **kwargs):
@@ -285,7 +280,7 @@ class CodeDependencyNode(FileDependencyNode):
         import importlib.util
         import sys
 
-        sys.path.append(os.getcwd())
+        sys.path.append(_os.getcwd())
         try:
             with self.file.provide_locally() as (path, encoding):
                 spec = importlib.util.spec_from_file_location(self.module, path)
@@ -294,7 +289,7 @@ class CodeDependencyNode(FileDependencyNode):
                 spec.loader.exec_module(module)
         finally:
             tmp = list(reversed(sys.path))
-            tmp.remove(os.getcwd())
+            tmp.remove(_os.getcwd())
             sys.path = list(reversed(tmp))
 
 
@@ -315,18 +310,18 @@ class FilePipelineMixin:
     pipeline = config.list(type=Operation)
 
     def pipe(self, input):
-        return functools.reduce(lambda state, func: func(state), self.pipeline, input)
+        return _ft.reduce(lambda state, func: func(state), self.pipeline, input)
 
 
 @config.node
 class NrrdDependencyNode(FilePipelineMixin, FileDependencyNode):
     def get_header(self):
         with self.file.provide_locally() as (path, encoding):
-            return nrrd.read_header(path)
+            return _nrrd.read_header(path)
 
     def get_data(self):
         with self.file.provide_locally() as (path, encoding):
-            return nrrd.read(path)[0]
+            return _nrrd.read(path)[0]
 
     def load_object(self):
         return self.pipe(self.get_data())
