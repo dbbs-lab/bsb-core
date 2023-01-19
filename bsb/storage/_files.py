@@ -102,6 +102,9 @@ class FileDependency:
                     f.write(content[0])
                 yield (filepath, content[1])
 
+    def provide_stream(self):
+        return self._scheme.provide_stream(self)
+
     def get_stored_file(self):
         if not self.file_store:
             raise ValueError(
@@ -155,9 +158,16 @@ class UriScheme(_abc.ABC):
 
     @_abc.abstractmethod
     def get_content(self, file: FileDependency):
+        with self.provide_stream(file) as (fp, encoding):
+            fp: _tp.BinaryIO
+            return (fp.read(), encoding)
+
+    @_cl.contextmanager
+    @_abc.abstractmethod
+    def provide_stream(self, file):
         path = _uri_to_path(file.uri)
-        with open(path, "rb") as f:
-            return (f.read(), None)
+        with open(path, "rb") as fp:
+            yield (fp, None)
 
     @_abc.abstractmethod
     def get_meta(self, file: FileDependency):
@@ -177,6 +187,9 @@ class FileScheme(UriScheme):
 
     def get_content(self, file: FileDependency):
         return super().get_content(file)
+
+    def provide_stream(self, file: FileDependency):
+        return super().provide_stream(file)
 
     def get_meta(self, file: FileDependency):
         return super().get_meta(file)
@@ -218,6 +231,13 @@ class UrlScheme(UriScheme):
     def get_local_path(self, file: FileDependency):
         raise TypeError("URL schemes don't have a local path")
 
+    @_cl.contextmanager
+    def provide_stream(self, file):
+        response = _rq.get(file.uri, stream=True)
+        response.raw.decode_content = True
+        response.raw.auto_close = False
+        yield (response.raw, response.encoding)
+
 
 @_ft.cache
 def _get_schemes() -> _tp.Mapping[str, FileScheme]:
@@ -255,6 +275,12 @@ class FileDependencyNode:
 
     def load_object(self):
         return self.file.get_content()
+
+    def provide_locally(self):
+        return self.file.provide_locally()
+
+    def provide_stream(self):
+        return self.file.provide_stream()
 
 
 @config.node
