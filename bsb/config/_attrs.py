@@ -1021,7 +1021,7 @@ class ConfigurationProperty(ConfigurationAttribute):
 
     def __get__(self, instance, owner):
         if instance is None:
-            return owner
+            return self
         return self.fget(instance)
 
     def __set__(self, instance, value):
