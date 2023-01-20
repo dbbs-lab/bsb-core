@@ -1,4 +1,5 @@
 from .. import config
+from ..storage import NrrdDependencyNode
 from ..topology.partition import Partition
 from ..exceptions import EmptySelectionError
 from ..profiling import node_meter
@@ -170,6 +171,54 @@ class RandomRotations(RotationDistributor, classmap_entry="random"):
 
 
 @config.node
+class VolumetricRotations(RotationDistributor, classmap_entry="orientation_field"):
+    orientation_path = config.attr(required=True, type=NrrdDependencyNode)
+    """Path to the nrrd file containing the volumetric orientation field. It provides a rotation 
+    for each voxel considered. Its shape should be (L, W, D, 3) where L, W and D are the sizes of 
+    the field."""
+
+    def distribute(self, positions, context):
+        """
+        Rotates according to a volumetric orientation field of specific resolution.
+        For each position, find the equivalent voxel in the volumetric orientation field and apply
+        the corresponding rotation. Positions outside the orientation field will not be rotated.
+
+        :param positions: Placed positions under consideration. Its shape is (N, 3) where N is the
+        number of positions.
+        :param context: The placement indicator and partitions.
+        :type context: ~bsb.placement.distributor.DistributionContext
+        :returns: An array of floats containing a 3D rotation vector for each position. Its shape is
+        (N, 3).
+        :rtype: np.ndarray
+        """
+
+        orientation_field = self.orientation_path.load_object()
+        voxel_pos = np.asarray(
+            np.rint(positions / context.partition.voxel_size), dtype=int
+        )
+
+        # filter for positions inside the orientation field.
+        filter_inside = np.all(
+            np.logical_and(
+                voxel_pos > 0,
+                voxel_pos[:, 0] < orientation_field.shape[1],
+                voxel_pos[:, 1] < orientation_field.shape[2],
+                voxel_pos[:, 2] < orientation_field.shape[3],
+            ),
+            axis=1,
+        )
+
+        orientations = np.zeros((positions.shape[0], 3), dtype=float)
+        orientations[filter_inside] = (
+            orientation_field.rollaxis()[
+                voxel_pos[:, 0], voxel_pos[:, 1], voxel_pos[:, 2]
+            ]
+            * 360
+        )
+        return orientations
+
+
+@config.node
 class DistributorsNode:
     morphologies = config.attr(
         type=MorphologyDistributor, default=dict, call_default=True
@@ -216,8 +265,7 @@ class DistributorsNode:
         loaders = self.scaffold.storage.morphologies.select(*sel)
         if not loaders and not self.morphologies.may_be_empty:
             raise EmptySelectionError(
-                f"Given {len(sel)} selectors: did not find any suitable morphologies",
-                sel,
+                f"Given {len(sel)} selectors: did not find any suitable morphologies", sel
             )
         distr = self._curry(partitions, indicator, positions, loaders)
         morphologies, rotations = distr("morphologies")

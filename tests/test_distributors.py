@@ -2,8 +2,12 @@ import unittest
 from bsb.exceptions import DistributorError, DatasetNotFoundError, EmptySelectionError
 from bsb.core import Scaffold
 from bsb.config import Configuration
-from bsb.unittest import skip_parallel
-from bsb.placement.distributor import MorphologyDistributor, MorphologyGenerator
+from bsb.unittest import skip_parallel, get_data_path
+from bsb.placement.distributor import (
+    MorphologyDistributor,
+    MorphologyGenerator,
+    VolumetricRotations,
+)
 from bsb.morphologies import Morphology
 
 
@@ -91,3 +95,38 @@ class TestMorphologyDistributor(unittest.TestCase):
         self.assertEqual(
             len(ps), len(morphologies), "expected 1 unique morphology per cell"
         )
+
+
+class TestVolumetricRotations(unittest.TestCase):
+    def setUp(self):
+        self.cfg = Configuration.default(
+            regions=dict(reg=dict(children=["a"])),
+            partitions=dict(
+                a=dict(
+                    type="nrrd",
+                    source=get_data_path("orientations", "toy_annotations.nrrd"),
+                    voxel_size=25,
+                )
+            ),
+            cell_types=dict(
+                a=dict(spatial=dict(radius=2, density=1e-4, morphologies=[{"names": []}]))
+            ),
+            placement=dict(
+                a=dict(
+                    strategy="bsb.placement.RandomPlacement",
+                    cell_types=["a"],
+                    partitions=["a"],
+                    distribute=dict(
+                        dexxe=VolumetricRotations(
+                            orientation_path=get_data_path(
+                                "orientations", "toy_orientations.nrrd"
+                            )
+                        ),
+                    ),
+                ),
+            ),
+        )
+        self.netw = Scaffold(self.cfg)
+
+    def test_distribute(self):
+        self.netw.compile(clear=True)
