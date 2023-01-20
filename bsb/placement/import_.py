@@ -1,10 +1,12 @@
 import abc
 import csv
 import io
+import typing
 from collections import defaultdict
 
 import psutil
 import numpy as np
+from tqdm import tqdm
 
 from .strategy import PlacementStrategy
 from ..storage import Chunk
@@ -52,7 +54,7 @@ class CsvImportPlacement(ImportPlacement):
 
     def parse_source(self, indicators):
         self._reset_cache()
-        chunk_size = self.scaffold.network.chunk_size
+        chunk_size = np.array(self.scaffold.network.chunk_size)
         print(psutil.virtual_memory())
         with self.source.provide_stream() as (fp, encoding):
             text = io.TextIOWrapper(fp, encoding=encoding, newline="")
@@ -66,25 +68,28 @@ class CsvImportPlacement(ImportPlacement):
                 r for r in range(len(headers)) if r not in coord_cols and r != type_col
             ]
             self._other_colnames = [headers[c] for c in other_cols]
+            cts = self.get_considered_cell_types()
+            if len(cts) == 1:
+                name = cts[0].name
             i = 0
-            for line in reader:
-                ct_cache = self._cache[line[type_col] if type_col is not None else 0]
-                coords = [line[c] for c in coord_cols]
-                others = [line[c] for c in other_cols]
+            for line in tqdm(reader, desc="imported", unit=" lines"):
+                ct_cache = self._cache[line[type_col] if type_col is not None else name]
+                coords = [_safe_float(line[c]) for c in coord_cols]
+                others = [_safe_float(line[c]) for c in other_cols]
                 cache = ct_cache[tuple(coords // chunk_size)]
                 cache[0].append(coords)
                 cache[1].append(others)
 
-                if i % 100000 == 0:
-                    est_memsize = (len(cache[1][0]) + 3) * len(cache[0]) * 8
+                if i % 100 == 0:
+                    est_memsize = (len(others) + 3) * i * 8
                     av_mem = psutil.virtual_memory().available
                     if est_memsize > av_mem / 10:
                         print(
                             "FLUSHING, AVAILABLE MEM:",
                         )
-                        self._flush()
+                        self._flush(indicators)
                 i += 1
-            self._flush()
+            self._flush(indicators)
 
     def get_considered_cell_types(self):
         return self.cell_types or self.scaffold.cell_types.values()
@@ -96,19 +101,25 @@ class CsvImportPlacement(ImportPlacement):
         }
 
     def _flush(self, indicators):
-        for ct, chunked_cache in zip(
-            self.get_considered_cell_types(), self._cache.values()
+        cell_types = self.get_considered_cell_types()
+        for ct, chunked_cache in tqdm(
+            zip(cell_types, self._cache.values()),
+            desc="cell types",
+            total=len(cell_types),
         ):
-            for chunk, data in (
-                (Chunk(c, None), data) for c, data in chunked_cache.items()
+            for chunk, data in tqdm(
+                ((Chunk(c, None), data) for c, data in chunked_cache.items()),
+                desc="saved",
+                total=len(chunked_cache),
+                bar_format="{l_bar}{bar} [ {n_fmt}/{total_fmt} time left: {remaining}, time spent: {elapsed}]",
             ):
-                additional = np.array(data[1], dtype=float)
+                additional = np.array(data[1], dtype=float).T
                 self.place_cells(
-                    indicators[ct],
+                    indicators[ct.name],
                     np.array(data[0]),
                     chunk,
                     additional={
-                        name: col for name, col in zip(self._other_colnames, data[1])
+                        name: col for name, col in zip(self._other_colnames, additional)
                     },
                 )
         self._reset_cache()
@@ -149,3 +160,10 @@ class CsvImportPlacement(ImportPlacement):
     #         self.scaffold.append_dset(self.name + "_ext_map", external_map)
     #     # Store the CSV positions in the scaffold
     #     self.scaffold.place_cells(self.cell_type, None, data)
+
+
+def _safe_float(value: typing.Any) -> float:
+    try:
+        return float(value)
+    except ValueError:
+        return float("nan")
