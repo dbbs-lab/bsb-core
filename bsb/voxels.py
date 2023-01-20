@@ -454,11 +454,11 @@ class VoxelSet:
         else:
             return self._boxtree()
 
-    def snap_to_grid(self, grid_size, unique=False):
+    def snap_to_grid(self, voxel_size, unique=False):
         if self.regular:
-            grid = self._indices // _squash_zero(grid_size / _squash_zero(self._size))
+            grid = self._indices // _squash_zero(voxel_size / _squash_zero(self._size))
         else:
-            grid = self._coords // _squash_zero(grid_size)
+            grid = self._coords // _squash_zero(voxel_size)
         data = self._data
         if unique:
             if self.has_data:
@@ -466,7 +466,7 @@ class VoxelSet:
                 data = data[id]
             else:
                 grid = np.unique(grid, axis=0)
-        return VoxelSet(grid, grid_size, data)
+        return VoxelSet(grid, voxel_size, data)
 
     def resize(self, size):
         val = np.array(size, copy=False)
@@ -490,8 +490,13 @@ class VoxelSet:
         return self.crop(chunk.ldc, chunk.mdc)
 
     @classmethod
-    def fill(cls, positions, grid_size):
-        return cls(positions, 0, irregular=True).snap_to_grid(grid_size, unique=True)
+    def fill(cls, positions, voxel_size, unique=True):
+        return cls(positions, 0, irregular=True).snap_to_grid(voxel_size, unique=unique)
+
+    def index_of(self, positions):
+        if not self.regular:
+            raise ValueError("Cannot find a unique voxel index in irregular VoxelSet.")
+        return positions // self.get_size()
 
     def inside(self, positions):
         mask = np.zeros(len(positions), dtype=bool)
