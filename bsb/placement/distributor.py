@@ -187,12 +187,12 @@ class VolumetricRotations(RotationDistributor, classmap_entry="orientation_field
         the corresponding rotation. Positions outside the orientation field will not be rotated.
 
         :param positions: Placed positions under consideration. Its shape is (N, 3) where N is the
-        number of positions.
+            number of positions.
         :param context: The placement indicator and partitions.
         :type context: ~bsb.placement.distributor.DistributionContext
         :returns: An array of floats containing a 3D rotation vector for each position. Its shape is
-        (N, 3).
-        :rtype: np.ndarray
+            (N, 3).
+        :rtype: numpy.ndarray
         """
 
         orientation_field = self.orientation_path.load_object()
