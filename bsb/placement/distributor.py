@@ -174,8 +174,11 @@ class RandomRotations(RotationDistributor, classmap_entry="random"):
 class VolumetricRotations(RotationDistributor, classmap_entry="orientation_field"):
     orientation_path = config.attr(required=True, type=NrrdDependencyNode)
     """Path to the nrrd file containing the volumetric orientation field. It provides a rotation 
-    for each voxel considered. Its shape should be (L, W, D, 3) where L, W and D are the sizes of 
+    for each voxel considered. Its shape should be (3, L, W, D) where L, W and D are the sizes of 
     the field."""
+    orientation_resolution = config.attr(required=False, default=25.0, type=float)
+    """Voxel size resolution of the orientation field.
+    """
 
     def distribute(self, positions, context):
         """
@@ -194,28 +197,24 @@ class VolumetricRotations(RotationDistributor, classmap_entry="orientation_field
 
         orientation_field = self.orientation_path.load_object()
         voxel_pos = np.asarray(
-            np.rint(positions / context.partition.voxel_size), dtype=int
+            np.floor(positions / self.orientation_resolution), dtype=int
         )
 
         # filter for positions inside the orientation field.
-        filter_inside = np.all(
-            np.logical_and(
-                voxel_pos > 0,
-                voxel_pos[:, 0] < orientation_field.shape[1],
-                voxel_pos[:, 1] < orientation_field.shape[2],
-                voxel_pos[:, 2] < orientation_field.shape[3],
-            ),
-            axis=1,
+        filter_inside = (
+            np.all(voxel_pos >= 0, axis=1)
+            * (voxel_pos[:, 0] < orientation_field.shape[1])
+            * (voxel_pos[:, 1] < orientation_field.shape[2])
+            * (voxel_pos[:, 2] < orientation_field.shape[3])
         )
 
         orientations = np.zeros((positions.shape[0], 3), dtype=float)
-        orientations[filter_inside] = (
-            orientation_field.rollaxis()[
-                voxel_pos[:, 0], voxel_pos[:, 1], voxel_pos[:, 2]
-            ]
-            * 360
-        )
-        return orientations
+        orientations[filter_inside] = np.moveaxis(orientation_field, 0, -1)[
+            voxel_pos[filter_inside, 0],
+            voxel_pos[filter_inside, 1],
+            voxel_pos[filter_inside, 2],
+        ]
+        return np.nan_to_num(orientations)
 
 
 @config.node

@@ -1,4 +1,5 @@
 import unittest
+import numpy as np
 from bsb.exceptions import DistributorError, DatasetNotFoundError, EmptySelectionError
 from bsb.core import Scaffold
 from bsb.config import Configuration
@@ -108,19 +109,18 @@ class TestVolumetricRotations(unittest.TestCase):
                     voxel_size=25,
                 )
             ),
-            cell_types=dict(
-                a=dict(spatial=dict(radius=2, density=1e-4, morphologies=[{"names": []}]))
-            ),
+            cell_types=dict(a=dict(spatial=dict(radius=2, density=1e-4))),
             placement=dict(
                 a=dict(
                     strategy="bsb.placement.RandomPlacement",
                     cell_types=["a"],
                     partitions=["a"],
                     distribute=dict(
-                        dexxe=VolumetricRotations(
+                        orientations=VolumetricRotations(
                             orientation_path=get_data_path(
                                 "orientations", "toy_orientations.nrrd"
-                            )
+                            ),
+                            orientation_resolution=25.0,
                         ),
                     ),
                 ),
@@ -130,3 +130,25 @@ class TestVolumetricRotations(unittest.TestCase):
 
     def test_distribute(self):
         self.netw.compile(clear=True)
+        positions = self.netw.get_placement_set("a").load_positions()
+        voxel_set = self.netw.partitions.a.get_voxelset()
+        region_ids = np.asarray(
+            voxel_set.data[:, 0][voxel_set.index_of(positions)], dtype=int
+        )
+        rotations = self.netw.get_placement_set("a").load_additional("orientations")
+        # Regions without orientation field -> no rotation
+        self.assertTrue(
+            np.array_equal(
+                np.all(rotations == 0, axis=1), np.isin(region_ids, (100, 728, 744))
+            )
+        )
+        # Regions with orientation field -> AIBS Flocculus and Lingula
+        pos_w_rot = np.any(rotations != 0, axis=1)
+        self.assertTrue(
+            np.array_equal(
+                pos_w_rot, np.isin(region_ids, (10690, 10691, 10692, 10705, 10706, 10707))
+            )
+        )
+        self.assertTrue(np.all(-1 < rotations[pos_w_rot < 1]))
+        # orientation field x component should be close to -1
+        self.assertTrue(np.all(rotations[pos_w_rot][:, 0] + 1 < 5e-2))
