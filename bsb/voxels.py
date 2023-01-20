@@ -493,10 +493,15 @@ class VoxelSet:
     def fill(cls, positions, voxel_size, unique=True):
         return cls(positions, 0, irregular=True).snap_to_grid(voxel_size, unique=unique)
 
-    def index_of(self, positions):
+    def coordinates_of(self, positions):
         if not self.regular:
             raise ValueError("Cannot find a unique voxel index in irregular VoxelSet.")
         return positions // self.get_size()
+
+    def index_of(self, positions):
+        coords = self.coordinates_of(positions)
+        map_ = {tuple(vox_coord): i for i, vox_coord in enumerate(self)}
+        return np.array([map_.get(tuple(coord), np.nan) for coord in coords])
 
     def inside(self, positions):
         mask = np.zeros(len(positions), dtype=bool)
