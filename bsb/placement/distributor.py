@@ -9,6 +9,7 @@ import numpy as np
 import abc
 import uuid
 from typing import List
+from scipy.stats import triang
 
 
 @dataclass
@@ -167,6 +168,46 @@ class ImplicitNoRotations(ExplicitNoRotations, Implicit, classmap_entry="none"):
 class RandomRotations(RotationDistributor, classmap_entry="random"):
     def distribute(self, positions, context):
         return np.random.rand(len(positions), 3) * 360
+
+
+@config.node
+class DepthDistributorLinear(MorphologyDistributor, classmap_entry="depth_linear"):
+    def distribute(self, positions, loaders, context):
+        # Atm we assume there is only one partition
+        p = context.partitions[0]
+        # Relative positions of the cells wrt the ldc of the partition
+        depth = positions[:, 1] - p.ldc[1]
+        to_top = positions[:, 1] - p.mdc[1]
+        metas = [l.get_meta() for l in loaders]
+        # We compute the heights of the cells, wrt the bottom of the partition
+        morpho_heights = [m["mdc"][1] - m["ldc"][1] for m in metas]
+        # Select which morphology to use according to the depth
+        rng = np.random.uniform(0, len(loaders), len(positions))
+        partition_height = p.mdc[1] - p.ldc[1]
+        # TODO find a rule which does not favor the lower cells
+        for i, r in enumerate(rng):
+            rng[i] = r * np.round(depth[i] / (partition_height))
+        rng = rng.astype(int)
+        return rng
+
+
+@config.node
+class DepthDistributorBinary(MorphologyDistributor, classmap_entry="depth_binary"):
+    separating_h = config.attr(type=float)
+
+    def distribute(self, positions, loaders, context):
+        # Atm we assume there is only one partition
+        p = context.partitions[0]
+        # Relative positions of the cells wrt the ldc of the partition
+        depth = positions[:, 1] - p.ldc[1]
+        metas = [l.get_meta() for l in loaders]
+        # We compute the heights of the cells, wrt the bottom of the partition
+        morpho_heights = [m["mdc"][1] - m["ldc"][1] for m in metas]
+        morphos_id = np.zeros((len(positions),), dtype=int)
+        above_separating = depth > self.separating_h
+        morphos_id[above_separating] = 1
+        print(morphos_id)
+        return morphos_id
 
 
 @config.node

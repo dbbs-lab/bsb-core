@@ -5,5 +5,5 @@ from .strategy import (
     ExternalPlacement,
 )
 from .arrays import ParallelArrayPlacement
-from .particle import ParticlePlacement, RandomPlacement
+from .particle import ParticlePlacement, RandomPlacement, RandomPlacementDepthBased
 from .satellite import Satellite
