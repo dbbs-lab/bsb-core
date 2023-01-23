@@ -1,4 +1,5 @@
 from .. import config
+from ..config.types import ndarray
 from ..storage import NrrdDependencyNode
 from ..topology.partition import Partition
 from ..exceptions import EmptySelectionError
@@ -7,6 +8,7 @@ from ..morphologies import MorphologySet
 from .indicator import PlacementIndications
 from dataclasses import dataclass
 import numpy as np
+from scipy.spatial.transform import Rotation
 import abc
 import uuid
 from typing import List
@@ -179,6 +181,14 @@ class VolumetricRotations(RotationDistributor, classmap_entry="orientation_field
     orientation_resolution = config.attr(required=False, default=25.0, type=float)
     """Voxel size resolution of the orientation field.
     """
+    default_vector = config.attr(
+        required=False,
+        default=lambda: np.array([0.0, -1.0, 0.0]),
+        call_default=True,
+        type=ndarray(),
+    )
+    """Default orientation vector of the position.
+    """
 
     def distribute(self, positions, context):
         """
@@ -190,9 +200,8 @@ class VolumetricRotations(RotationDistributor, classmap_entry="orientation_field
             number of positions.
         :param context: The placement indicator and partitions.
         :type context: ~bsb.placement.distributor.DistributionContext
-        :returns: An array of floats containing a 3D rotation vector for each position. Its shape is
-            (N, 3).
-        :rtype: numpy.ndarray
+        :returns: A Rotation object containing the 3D rotation vector for each position.
+        :rtype: from scipy.spatial.transform.Rotation
         """
 
         orientation_field = self.orientation_path.load_object()
@@ -214,7 +223,17 @@ class VolumetricRotations(RotationDistributor, classmap_entry="orientation_field
             voxel_pos[filter_inside, 1],
             voxel_pos[filter_inside, 2],
         ]
-        return np.nan_to_num(orientations)
+        # convert to quaternions
+        t = np.copy(orientations)
+        t[np.isnan(t).any(axis=1)] = self.default_vector  # default_vector -> no rotation
+        w = np.matmul(self.default_vector, np.array(t).T) + np.linalg.norm(
+            self.default_vector, axis=-1
+        ) * np.linalg.norm(t, axis=-1)
+
+        return [
+            Rotation.from_quat(v)
+            for v in np.hstack([w[:, np.newaxis], np.cross(self.default_vector, t)])
+        ]
 
 
 @config.node

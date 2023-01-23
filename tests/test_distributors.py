@@ -116,11 +116,12 @@ class TestVolumetricRotations(unittest.TestCase):
                     cell_types=["a"],
                     partitions=["a"],
                     distribute=dict(
-                        orientations=VolumetricRotations(
+                        rotations=VolumetricRotations(
                             orientation_path=get_data_path(
                                 "orientations", "toy_orientations.nrrd"
                             ),
                             orientation_resolution=25.0,
+                            default_vector=np.array([-1.0, 0.0, 0.0]),
                         ),
                     ),
                 ),
@@ -129,13 +130,19 @@ class TestVolumetricRotations(unittest.TestCase):
         self.netw = Scaffold(self.cfg)
 
     def test_distribute(self):
+        self.netw.morphologies.save("bs", Morphology.empty(), overwrite=True)
+        self.netw.cell_types.a.spatial.morphologies = [{"names": ["*"]}]
         self.netw.compile(clear=True)
         positions = self.netw.get_placement_set("a").load_positions()
         voxel_set = self.netw.partitions.a.get_voxelset()
         region_ids = np.asarray(
             voxel_set.data[:, 0][voxel_set.index_of(positions)], dtype=int
         )
-        rotations = self.netw.get_placement_set("a").load_additional("orientations")
+        rotations = (
+            self.netw.get_placement_set("a")
+            .load_additional("orientations")
+            .as_euler(degrees=True)
+        )
         # Regions without orientation field -> no rotation
         self.assertTrue(
             np.array_equal(
@@ -149,6 +156,6 @@ class TestVolumetricRotations(unittest.TestCase):
                 pos_w_rot, np.isin(region_ids, (10690, 10691, 10692, 10705, 10706, 10707))
             )
         )
-        self.assertTrue(np.all(-1 < rotations[pos_w_rot < 1]))
-        # orientation field x component should be close to -1
-        self.assertTrue(np.all(rotations[pos_w_rot][:, 0] + 1 < 5e-2))
+        self.assertTrue(np.all(-180.0 < rotations[pos_w_rot < 180.0]))
+        # orientation field x component should be close to 0.
+        self.assertTrue(np.all(np.absolute(rotations[pos_w_rot][:, 0]) < 10))
