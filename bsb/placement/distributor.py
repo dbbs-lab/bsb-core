@@ -172,6 +172,7 @@ class RandomRotations(RotationDistributor, classmap_entry="random"):
 
 @config.node
 class DepthDistributorLinear(MorphologyDistributor, classmap_entry="depth_linear"):
+    #Distribute different morphologies according to the depth. It assumes that the morphologies are specified in increasing height order.
     def distribute(self, positions, loaders, context):
         # Atm we assume there is only one partition
         p = context.partitions[0]
@@ -193,7 +194,10 @@ class DepthDistributorLinear(MorphologyDistributor, classmap_entry="depth_linear
 
 @config.node
 class DepthDistributorBinary(MorphologyDistributor, classmap_entry="depth_binary"):
+    #Distribute different morphologies according to the depth. 
     separating_h = config.attr(type=float)
+    below_morphologies = config.attr(type=list)
+    above_morphologies = config.attr(type=list)
 
     def distribute(self, positions, loaders, context):
         # Atm we assume there is only one partition
@@ -201,11 +205,24 @@ class DepthDistributorBinary(MorphologyDistributor, classmap_entry="depth_binary
         # Relative positions of the cells wrt the ldc of the partition
         depth = positions[:, 1] - p.ldc[1]
         metas = [l.get_meta() for l in loaders]
-        # We compute the heights of the cells, wrt the bottom of the partition
+        below_ids = []
+        above_ids = []
+        #Find below morphos id
+        print(self.below_morphologies)
+        for i,m in enumerate(metas):
+            if m["name"] in self.below_morphologies:
+                below_ids.append(i)
+            else:
+                above_ids.append(i)
+        below_rng = np.random.choice(below_ids,size=len(below_ids))
+        above_rng = np.random.choice(above_ids,size=len(above_ids))
+
+        #We compute the heights of the cells, wrt the bottom of the partition
         morpho_heights = [m["mdc"][1] - m["ldc"][1] for m in metas]
         morphos_id = np.zeros((len(positions),), dtype=int)
         above_separating = depth > self.separating_h
-        morphos_id[above_separating] = 1
+        morphos_id[above_separating] = above_rng
+        morphos_id[~above_separating] = below_rng
         print(morphos_id)
         return morphos_id
 
