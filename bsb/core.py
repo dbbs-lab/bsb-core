@@ -431,7 +431,7 @@ class Scaffold:
         """
         if chunk is None:
             chunk = Chunk([0, 0, 0], self.network.chunk_size)
-        if np.any(np.isnan(chunk.dimensions)):
+        if hasattr(chunk, "dimensions") and np.any(np.isnan(chunk.dimensions)):
             chunk.dimensions = self.network.chunk_size
         self.get_placement_set(cell_type).append_data(
             chunk,
