@@ -33,7 +33,7 @@ requires = [
     "requests",
     "appdirs~=1.4",
     "neo[nixio]",
-    "tqdm~=4.50.0",
+    "tqdm~=4.50",
 ]
 
 setuptools.setup(
