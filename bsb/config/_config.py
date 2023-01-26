@@ -87,7 +87,7 @@ class Configuration:
         # If there are any partitions not part of the topology, raise an error
         if unmanaged := set(self.partitions.values()) - get_partitions([topology]):
             p = "', '".join(p.name for p in unmanaged)
-            r = scaffold.configuration.regions.add(
+            r = scaffold.regions.add(
                 "__unmanaged__", RegionGroup(children=builtins.list(unmanaged))
             )
             topology.children.append(r)
