@@ -1,19 +1,17 @@
-from typing import TYPE_CHECKING
-
-from . import attr, list, dict, root, node, types, provide as config_property
+from . import attr, list, dict, root, node, types
 from ..cell_types import CellType
-from ._attrs import _boot_nodes, file as file_attr
+from ._attrs import _boot_nodes
 from ..placement import PlacementStrategy
 from ..storage._files import CodeDependencyNode
 from ..storage.interfaces import StorageNode
 from ..connectivity import ConnectionStrategy
 from ..simulation.simulation import Simulation
 from ..postprocessing import PostProcessingHook
-from ..exceptions import UnmanagedPartitionError, CodeImportError
 from .._util import merge_dicts
 from ..topology import (
     get_partitions,
     create_topology,
+    RegionGroup,
     Region,
     Partition,
 )
@@ -89,7 +87,10 @@ class Configuration:
         # If there are any partitions not part of the topology, raise an error
         if unmanaged := set(self.partitions.values()) - get_partitions([topology]):
             p = "', '".join(p.name for p in unmanaged)
-            raise UnmanagedPartitionError(f"Please make '{p}' part of a Region.")
+            r = scaffold.configuration.regions.add(
+                "__unmanaged__", RegionGroup(children=builtins.list(unmanaged))
+            )
+            topology.children.append(r)
         # Activate the scaffold property of each config node
         _boot_nodes(self, scaffold)
         self._config_isbooted = True
