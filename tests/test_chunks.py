@@ -6,10 +6,10 @@ from bsb.core import Scaffold
 from bsb.config import from_json
 from bsb.storage import Chunk
 from bsb.exceptions import *
-from bsb.unittest import get_config_path, skip_parallel, timeout
+from bsb.unittest import get_config_path, skip_parallel, timeout, NumpyTestCase
 
 
-class TestChunks(unittest.TestCase):
+class TestChunks(unittest.TestCase, NumpyTestCase):
     @skip_parallel
     @timeout(3)
     # Single process; this does not test any parallel read/write validity, just the
@@ -62,3 +62,48 @@ class TestChunks(unittest.TestCase):
         self.assertTrue(Chunk([0, 1, 1], None) >= Chunk([0, 1, 1], None), "ge chunk fail")
         self.assertTrue(Chunk([0, 1, 1], None) <= Chunk([0, 1, 1], None), "le chunk fail")
         self.assertTrue(Chunk([0, 1, 1], None) <= Chunk([0, 2, 1], None), "le chunk fail")
+
+    def test_id(self):
+        tests = (
+            ([0, 0, 0], 0),
+            ([1, 0, 0], 1),
+            ([0, 1, 0], 65536),
+            ([0, 0, 1], 4294967296),
+            ([-1, 0, 0], 65535),
+            ([0, -1, 0], 4294901760),
+            ([0, 0, -1], 281470681743360),
+            ([2, -3, -9], 281440616775682),
+            ([-32768, 0, 0], 32768),
+            ([-32768, 1, 0], 98304),
+            ([-32768, -1, 0], 4294934528),
+        )
+        self.assertEqual(
+            281440616775682, Chunk.from_id(281440616775682, None).id, "Problem case"
+        )
+        for (coords, id_) in tests:
+            with self.subTest(coords=coords, id=id_):
+                chunk = Chunk.from_id(id_, None)
+                self.assertEqual(id_, chunk.id, "Chunk.from_id not an identity op.")
+                self.assertClose(coords, chunk, "Chunk coordinates didn't match test.")
+        # Check a bunch of random cases, error out after the first failed subtest to
+        # prevent 10k errors.
+        try:
+            for coords in np.random.default_rng().integers(
+                np.iinfo(np.int16).min,
+                np.iinfo(np.int16).max,
+                size=(10000, 3),
+                dtype=np.int16,
+            ):
+                self.assertClose(
+                    coords,
+                    Chunk.from_id(Chunk(coords, None).id, None),
+                    "Chunks not bijective.",
+                )
+        except AssertionError:
+            # Reraises the caught assertion error under a subtest with the input coords.
+            with self.subTest(coords=coords):
+                self.assertClose(
+                    coords,
+                    Chunk.from_id(Chunk(coords, None).id, None),
+                    "Chunks not bijective.",
+                )

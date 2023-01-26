@@ -68,9 +68,13 @@ class Chunk(np.ndarray):
     def dimensions(self):
         return self._size
 
+    @dimensions.setter
+    def dimensions(self, value):
+        self._size = np.array(value, dtype=float)
+
     @property
     def id(self):
-        return sum(n * 2 ** (i * 16) for i, n in enumerate(self.astype(np.uint16)))
+        return sum(int(n) * 2 ** (i * 16) for i, n in enumerate(self.astype(np.uint16)))
 
     @property
     def box(self):
@@ -78,25 +82,21 @@ class Chunk(np.ndarray):
 
     @property
     def ldc(self):
-        return np.array(self._size * self, copy=False)
+        return np.array(self._size * self.astype(np.float64), copy=False)
 
     @property
     def mdc(self):
-        # self._size * (self + 1) might overflow when this formula will not.
-        return np.array(self._size * self + self._size, copy=False)
+        return np.array(self._size * (self.astype(np.float64) + 1), copy=False)
 
     @classmethod
     def from_id(cls, id, size):
-        id = int(float(id))
-        raw = [id % 2**17, id // 2**16 % 2**17, id // 2**32 % 2**17]
-        unpacked = np.array(raw).astype(np.uint16).astype(np.int16)
-        return cls(unpacked, size)
+        return cls(
+            np.uint16(
+                [id % 2**16, (id // 2**16) % 2**16, (id // 2**32) % 2**16]
+            ).astype(np.int16),
+            size,
+        )
 
 
 def chunklist(chunks: typing.Iterable[Chunklike]) -> typing.List[Chunk]:
     return sorted(set(c if isinstance(c, Chunk) else Chunk(c, None) for c in chunks))
-
-
-def _sort_triplet(a, b):
-    # Comparator for chunks by bitshift and sum of the coords.
-    return (a[0] << 42 + a[1] << 21 + a[2]) > (b[0] << 42 + b[1] << 21 + b[2])
