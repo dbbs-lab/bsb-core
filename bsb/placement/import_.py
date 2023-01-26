@@ -45,6 +45,7 @@ class CsvImportPlacement(ImportPlacement):
     z_header = config.attr(default="z")
     type_header = config.attr()
     delimiter = config.attr(default=",")
+    progress_bar = config.attr(type=bool, default=True)
 
     def __boot__(self):
         if not self.type_header and len(self.get_considered_cell_types()) > 1:
@@ -55,7 +56,6 @@ class CsvImportPlacement(ImportPlacement):
     def parse_source(self, indicators):
         self._reset_cache()
         chunk_size = np.array(self.scaffold.network.chunk_size)
-        print(psutil.virtual_memory())
         with self.source.provide_stream() as (fp, encoding):
             text = io.TextIOWrapper(fp, encoding=encoding, newline="")
             reader = csv.reader(text)
@@ -72,7 +72,9 @@ class CsvImportPlacement(ImportPlacement):
             if len(cts) == 1:
                 name = cts[0].name
             i = 0
-            for line in tqdm(reader, desc="imported", unit=" lines"):
+            if self.progress_bar:
+                reader = tqdm(reader, desc="imported", unit=" lines")
+            for line in reader:
                 ct_cache = self._cache[line[type_col] if type_col is not None else name]
                 coords = [_safe_float(line[c]) for c in coord_cols]
                 others = [_safe_float(line[c]) for c in other_cols]
@@ -102,17 +104,23 @@ class CsvImportPlacement(ImportPlacement):
 
     def _flush(self, indicators):
         cell_types = self.get_considered_cell_types()
-        for ct, chunked_cache in tqdm(
-            zip(cell_types, self._cache.values()),
-            desc="cell types",
-            total=len(cell_types),
-        ):
-            for chunk, data in tqdm(
-                ((Chunk(c, None), data) for c, data in chunked_cache.items()),
-                desc="saved",
-                total=len(chunked_cache),
-                bar_format="{l_bar}{bar} [ {n_fmt}/{total_fmt} time left: {remaining}, time spent: {elapsed}]",
-            ):
+        iter = zip(cell_types, self._cache.values())
+        if self.progress_bar:
+            iter = tqdm(
+                iter,
+                desc="cell types",
+                total=len(cell_types),
+            )
+        for ct, chunked_cache in iter:
+            inner = ((Chunk(c, None), data) for c, data in chunked_cache.items())
+            if self.progress_bar:
+                inner = tqdm(
+                    inner,
+                    desc="saved",
+                    total=len(chunked_cache),
+                    bar_format="{l_bar}{bar} [ {n_fmt}/{total_fmt} time left: {remaining}, time spent: {elapsed}]",
+                )
+            for chunk, data in inner:
                 additional = np.array(data[1], dtype=float).T
                 self.place_cells(
                     indicators[ct.name],
@@ -123,43 +131,6 @@ class CsvImportPlacement(ImportPlacement):
                     },
                 )
         self._reset_cache()
-
-    # @abc.abstractmethod
-    # def _place_from_csv(self):
-    #     src = self.get_external_source()
-    #     if not self.check_external_source():
-    #         raise MissingSourceError(f"Missing source file '{src}' for `{self.name}`.")
-    #     # If the `map_header` is given, we should store all data in that column
-    #     # as references that the user will need later on to map their external
-    #     # data to our generated data
-    #     should_map = self.map_header is not None
-    #     # Read the CSV file's first line to get the column names
-    #     with open(src, "r") as f:
-    #         headers = f.readline().split(self.delimiter)
-    #     # Search for the x, y, z headers
-    #     usecols = list(map(headers.index, (self.x_header, self.y_header, self.z_header)))
-    #     if should_map:
-    #         # Optionally, search for the map header
-    #         usecols.append(headers.index(self.map_header))
-    #     # Read the entire csv, skipping the headers and only the cols we need.
-    #     data = np.loadtxt(
-    #         src,
-    #         usecols=usecols,
-    #         skiprows=1,
-    #         delimiter=self.delimiter,
-    #     )
-    #     if should_map:
-    #         # If a map column was appended, slice it off
-    #         external_map = data[:, -1]
-    #         data = data[:, :-1]
-    #         # Check for garbage
-    #         duplicates = len(external_map) - len(np.unique(external_map))
-    #         if duplicates:
-    #             raise SourceQualityError(f"{duplicates} duplicates in source '{src}'")
-    #         # And store it as appendix dataset
-    #         self.scaffold.append_dset(self.name + "_ext_map", external_map)
-    #     # Store the CSV positions in the scaffold
-    #     self.scaffold.place_cells(self.cell_type, None, data)
 
 
 def _safe_float(value: typing.Any) -> float:
