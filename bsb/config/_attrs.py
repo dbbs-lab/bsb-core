@@ -951,9 +951,6 @@ class ConfigurationReferenceListAttribute(ConfigurationReferenceAttribute):
             remote, remote_keys = self._prepare_self(instance, root)
         except NoReferenceAttributeSignal:  # pragma: nocover
             return None
-        if _hasattr(instance, self.attr_name):
-            remote_keys.extend(_getattr(instance, self.attr_name))
-            remote_keys = builtins.list(set(remote_keys))
         return self.resolve_reference_list(instance, remote, remote_keys)
 
     def resolve_reference_list(self, instance, remote, remote_keys):
