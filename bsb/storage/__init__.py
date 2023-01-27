@@ -17,6 +17,7 @@ from ..exceptions import UnknownStorageEngineError
 from .. import plugins
 from ..services import MPI
 from ._chunks import Chunk, chunklist
+from ._files import FileDependency, FileDependencyNode, NrrdDependencyNode
 
 
 # Pretend `Chunk` is defined here, for UX. It's only defined in `_chunks` to avoid
@@ -40,7 +41,7 @@ def discover_engines():
     """
     Get a dictionary of all available storage engines.
     """
-    engines = plugins.discover("engines")
+    engines = plugins.discover("storage.engines")
     for engine_name, engine_module in engines.items():
         register_engine(engine_name, engine_module)
     return engines

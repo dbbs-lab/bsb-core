@@ -67,12 +67,14 @@ class CellType:
 
     @obj_str_insert
     def __repr__(self):
-        if hasattr(self, "scaffold"):
-            cells_placed = len(self.get_placement_set())
+        try:
             placements = len(self.get_placement())
-        else:
-            cells_placed = 0
+        except Exception:
             placements = "?"
+        try:
+            cells_placed = len(self.get_placement_set())
+        except Exception:
+            cells_placed = 0
         return f"'{self.name}', {cells_placed} cells, {placements} placement strategies"
 
     def get_placement(self):

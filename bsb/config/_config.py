@@ -1,16 +1,17 @@
-from . import attr, dict, root, node, types
+from . import attr, list, dict, root, node, types
 from ..cell_types import CellType
 from ._attrs import _boot_nodes
 from ..placement import PlacementStrategy
+from ..storage._files import CodeDependencyNode
 from ..storage.interfaces import StorageNode
 from ..connectivity import ConnectionStrategy
 from ..simulation.simulation import Simulation
 from ..postprocessing import PostProcessingHook
-from ..exceptions import UnmanagedPartitionError
 from .._util import merge_dicts
 from ..topology import (
     get_partitions,
     create_topology,
+    RegionGroup,
     Region,
     Partition,
 )
@@ -46,6 +47,7 @@ class Configuration:
     """
 
     name = attr()
+    components = list(type=CodeDependencyNode)
     storage = attr(type=StorageNode, required=True)
     network = attr(type=NetworkNode, required=True)
     regions = dict(type=Region)
@@ -85,7 +87,10 @@ class Configuration:
         # If there are any partitions not part of the topology, raise an error
         if unmanaged := set(self.partitions.values()) - get_partitions([topology]):
             p = "', '".join(p.name for p in unmanaged)
-            raise UnmanagedPartitionError(f"Please make '{p}' part of a Region.")
+            r = scaffold.regions.add(
+                "__unmanaged__", RegionGroup(children=builtins.list(unmanaged))
+            )
+            topology.children.append(r)
         # Activate the scaffold property of each config node
         _boot_nodes(self, scaffold)
         self._config_isbooted = True
@@ -101,3 +106,10 @@ class Configuration:
 
     def __repr__(self):
         return f"{type(self).__qualname__}({self})"
+
+
+def _bootstrap_components(components, file_store=None):
+    for component in components:
+        component_node = CodeDependencyNode(component)
+        component_node.file_store = file_store
+        component_node.load_object()

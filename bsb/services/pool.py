@@ -169,12 +169,11 @@ class ConnectivityJob(ChunkedJob):
     Dispatches the execution of a chunk of a placement strategy through a JobPool.
     """
 
-    def __init__(self, pool, strategy, chunk, roi, deps=None):
-        args = (strategy.name, chunk, roi)
+    def __init__(self, pool, strategy, pre_roi, post_roi, deps=None):
+        args = (strategy.name, pre_roi, post_roi)
         Job.__init__(self, pool, strategy.connect.__func__, args, {}, deps=deps)
         self._cname = strategy.__class__.__name__
         self._name = strategy.name
-        self._c = chunk
 
     @staticmethod
     def execute(job_owner, f, args, kwargs):
@@ -237,8 +236,8 @@ class JobPool:
         self._put(job)
         return job
 
-    def queue_connectivity(self, strategy, chunk, roi, deps=None):
-        job = ConnectivityJob(self, strategy, chunk, roi, deps)
+    def queue_connectivity(self, strategy, pre_roi, post_roi, deps=None):
+        job = ConnectivityJob(self, strategy, pre_roi, post_roi, deps)
         self._put(job)
         return job
 

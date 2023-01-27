@@ -143,10 +143,6 @@ The BSB's project-wide settings are all stored in ``pyproject.toml`` under ``too
   [tools.bsb]
   config = "network_configuration.json"
 
-  [tools.bsb.networks]
-  config_link = ["sys", "network_configuration.json", "always"]
-  morpho_link = ["sys", "morphologies.h5", "changes"]
-
 ========================
 Writing your own options
 ========================

@@ -1,4 +1,5 @@
 import abc
+import typing
 from pathlib import Path
 import functools
 import numpy as np
@@ -19,7 +20,7 @@ class StorageNode:
         if not hasattr(cls, "_plugins"):
             cls._plugins = {
                 name: plugin.StorageNode
-                for name, plugin in plugins.discover("engines").items()
+                for name, plugin in plugins.discover("storage.engines").items()
             }
         return cls._plugins
 
@@ -34,6 +35,14 @@ class Interface(abc.ABC):
         # Only change engine key if explicitly given.
         if "engine_key" in kwargs:
             cls._iface_engine_key = kwargs["engine_key"]
+
+
+class NoopLock:
+    def __enter__(self):
+        pass
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        pass
 
 
 class Engine(Interface):
@@ -51,6 +60,12 @@ class Engine(Interface):
     def __init__(self, root, comm):
         self._root = comm.bcast(root, root=0)
         self._comm = comm
+        self._readonly = False
+
+    def __eq__(self, other):
+        eq_format = self._format == getattr(other, "_format", None)
+        eq_root = self._root == getattr(other, "_root", None)
+        return eq_format and eq_root
 
     @property
     def root(self):
@@ -160,14 +175,28 @@ class Engine(Interface):
         """
         pass
 
-    @abc.abstractmethod
     def read_only(self):
         """
-        Must return a context manager that enters the engine into readonly mode. In
+        A context manager that enters the engine into readonly mode. In
         readonly mode the engine does not perform any locking, write-operations or network
         synchronization, and errors out if a write operation is attempted.
         """
-        pass
+        self._readonly = True
+        return ReadOnlyManager(self)
+
+    def readwrite(self):
+        self._readonly = False
+
+
+class ReadOnlyManager:
+    def __init__(self, engine):
+        self._e = engine
+
+    def __enter__(self):
+        self._e._readonly = True
+
+    def __exit__(self, *args):
+        self._e._readonly = False
 
 
 class NetworkDescription(Interface):
@@ -187,9 +216,10 @@ class FileStore(Interface, engine_key="files"):
         pass
 
     @abc.abstractmethod
-    def store(self, content, id=None, meta=None):
+    def store(self, content, id=None, meta=None, encoding=None, overwrite=False):
         """
-        Store content in the file store.
+        Store content in the file store. Should also store the current timestamp as
+        `mtime` meta.
 
         :param content: Content to be stored
         :type content: str
@@ -197,6 +227,10 @@ class FileStore(Interface, engine_key="files"):
         :type id: str
         :param meta: Metadata for the content
         :type meta: dict
+        :param encoding: Optional encoding
+        :type encoding: str
+        :param overwrite: Overwrite existing file
+        :type overwrite: bool
         :returns: The id the content was stored under
         :rtype: str
         """
@@ -211,20 +245,6 @@ class FileStore(Interface, engine_key="files"):
         :type id: str
         :returns: The content of the stored object
         :rtype: str
-        :raises FileNotFoundError: The given id doesn't exist in the file store.
-        """
-        pass
-
-    @abc.abstractmethod
-    def stream(self, id, binary=False):
-        """
-        Stream the content of an object in the file store.
-
-        :param id: id of the content to be streamed.
-        :type id: str
-        :param binary: Whether to return file in text or bytes mode.
-        :type binary: bool
-        :returns: A readable file-like object of the content.
         :raises FileNotFoundError: The given id doesn't exist in the file store.
         """
         pass
@@ -263,6 +283,74 @@ class FileStore(Interface, engine_key="files"):
         :raises Exception: When there's no active configuration in the file store.
         """
         pass
+
+    @abc.abstractmethod
+    def has(self, id):
+        """
+        Must return whether the file store has a file with the given id.
+        """
+        pass
+
+    @abc.abstractmethod
+    def get_mtime(self, id):
+        """
+        Must return the last modified timestamp of file with the given id.
+        """
+        pass
+
+    @abc.abstractmethod
+    def get_encoding(self, id):
+        """
+        Must return the encoding of the file with the given id, or None if it is
+        unspecified binary data.
+        """
+        pass
+
+    @abc.abstractmethod
+    def get_meta(self, id) -> typing.Mapping[str, typing.Any]:
+        """
+        Must return the metadata of the given id.
+        """
+        pass
+
+    def get(self, id) -> "StoredFile":
+        """
+        Return a StoredFile wrapper
+        """
+        if not self.has(id):
+            raise FileNotFoundError(f"File with id '{id}' not found.")
+        return StoredFile(self, id)
+
+    def find_files(self, predicate):
+        return (
+            StoredFile(self, id_) for id_, m in self.all().items() if predicate(id_, m)
+        )
+
+    def find_file(self, predicate):
+        return next(self.find_files(predicate), None)
+
+    def find_id(self, id):
+        return self.find_file(lambda id_, _: id_ == id)
+
+    def find_meta(self, key, value):
+        return self.find_file(lambda _, meta: meta.get(key, None) == value)
+
+
+class StoredFile:
+    def __init__(self, store, id):
+        self.store = store
+        self.id = id
+
+    @property
+    def meta(self):
+        return self.store.get_meta(self.id)
+
+    @property
+    def mtime(self):
+        return self.store.get_mtime(self.id)
+
+    def load(self):
+        return self.store.load(self.id)
 
 
 class PlacementSet(Interface):
@@ -380,6 +468,10 @@ class PlacementSet(Interface):
         pass
 
     @abc.abstractmethod
+    def load_ids(self):
+        pass
+
+    @abc.abstractmethod
     def load_positions(self):
         """
         Return a dataset of cell positions.
@@ -409,6 +501,10 @@ class PlacementSet(Interface):
         :returns: Set of morphologies
         :rtype: :class:`~.morphologies.MorphologySet`
         """
+        pass
+
+    @abc.abstractmethod
+    def load_additional(self, key=None):
         pass
 
     def count_morphologies(self):
@@ -469,6 +565,10 @@ class PlacementSet(Interface):
         :param data: Arbitrary user data. You decide |:heart:|
         :type data: numpy.ndarray
         """
+        pass
+
+    @abc.abstractmethod
+    def chunk_context(self, chunks):
         pass
 
     @abc.abstractmethod

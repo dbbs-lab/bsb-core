@@ -1,5 +1,3 @@
-from .connectivity import ConnectionStrategy
-from .placement import PlacementStrategy
 from .reporting import report
 from .storage import Chunk
 from . import _util as _gutil
@@ -47,6 +45,9 @@ def _raise_na(*args, **kwargs):
 
 class NotParallel:
     def __init_subclass__(cls, **kwargs):
+        from .connectivity import ConnectionStrategy
+        from .placement import PlacementStrategy
+
         super().__init_subclass__(**kwargs)
         if PlacementStrategy in cls.__mro__:
             cls.queue = _queue_placement

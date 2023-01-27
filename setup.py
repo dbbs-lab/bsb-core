@@ -17,7 +17,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 requires = [
-    "bsb-hdf5~=0.6",
+    "bsb-hdf5~=0.6.2",
     "h5py~=3.0",
     "numpy~=1.19",
     "scipy~=1.5",
@@ -33,6 +33,7 @@ requires = [
     "requests",
     "appdirs~=1.4",
     "neo[nixio]",
+    "tqdm~=4.50",
 ]
 
 setuptools.setup(
@@ -66,6 +67,7 @@ setuptools.setup(
     ],
     entry_points={
         "console_scripts": ["bsb = bsb.cli:handle_cli"],
+        "bsb.storage.engines": ["fs = bsb.storage.fs"],
         "bsb.simulation_backends": [
             "arbor = bsb.simulators.arbor",
             "nest = bsb.simulators.nest",

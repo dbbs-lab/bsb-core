@@ -1074,10 +1074,12 @@ class Branch:
 
         .. warning::
 
-           Constructing a kd-tree takes time and should only be used for repeated querying.
+           Constructing a kd-tree takes time and should only be used for repeat queries.
 
         """
-        return cKDTree(self._points)
+        import scipy.spatial
+
+        return scipy.spatial.cKDTree(self._points)
 
     @property
     def point_vectors(self):

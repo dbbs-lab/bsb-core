@@ -18,6 +18,7 @@ from ._attrs import (
     attr,
     list,
     dict,
+    file,
     node,
     root,
     dynamic,
@@ -63,6 +64,7 @@ class ConfigurationModule:
     root = staticmethod(root)
     dynamic = staticmethod(dynamic)
     pluggable = staticmethod(pluggable)
+    file = staticmethod(file)
 
     walk_node_attributes = staticmethod(walk_node_attributes)
     walk_nodes = staticmethod(walk_nodes)
@@ -199,6 +201,10 @@ def _try_parsers(content, classes, ext=None, path=None):  # pragma: nocover
 
 
 def _from_parsed(self, parser_name, tree, meta, file=None):
+    if "components" in tree:
+        from ._config import _bootstrap_components
+
+        _bootstrap_components(tree["components"])
     conf = self.Configuration(tree)
     conf._parser = parser_name
     conf._meta = meta

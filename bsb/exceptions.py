@@ -3,7 +3,7 @@ from errr import make_tree as _t, exception as _e
 _t(
     globals(),
     ScaffoldError=_e(
-        SpatialDimensionError=_e(),
+        CodeImportError=_e(),
         CLIError=_e(
             CommandError=_e(),
             ConfigTemplateNotFoundError=_e("template", "path"),
@@ -13,7 +13,7 @@ _t(
         ConfigurationError=_e(
             ConfigurationFormatError=_e(),
             DynamicClassError=_e(
-                DynamicClassNotFoundError=_e(),
+                DynamicObjectNotFoundError=_e(),
                 DynamicClassInheritanceError=_e(),
                 ClassMapMissingError=_e(),
             ),

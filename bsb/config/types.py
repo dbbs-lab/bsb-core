@@ -5,7 +5,7 @@ import math
 import numpy as np
 
 from ._compile import _reserved_kw_passes, _wrap_reserved
-from ._make import _load_class
+from ._make import _load_class, _load_object
 from ..exceptions import (
     ClassMapMissingError,
     CastError,
@@ -146,6 +146,42 @@ class class_(TypeHandler):
             return _load_class(value, self._module_path)
         except Exception:
             raise TypeError("Could not import {} as a class".format(value))
+
+    def __inv__(self, value):
+        if not inspect.isclass(value):
+            value = type(value)
+        return f"{value.__module__}.{value.__name__}"
+
+    def __name__(self):
+        return "class"
+
+
+class function_(TypeHandler):
+    """
+    Type validator. Attempts to import the value, absolute, or relative to the
+    `module_path` entries.
+
+    :param module_path: List of the modules that should be searched when doing a
+      relative import.
+    :type module_path: list[str]
+    :raises: TypeError when value can't be cast.
+    :returns: Type validator function
+    :rtype: Callable
+    """
+
+    def __init__(self, module_path=None):
+        self._module_path = module_path
+
+    def __call__(self, value):
+        msg = f"Could not import {value} as a callable function."
+        try:
+            obj = _load_object(value, self._module_path)
+        except Exception:
+            raise TypeError(msg)
+        else:
+            if not callable(obj):
+                raise TypeError(msg)
+            return obj
 
     def __inv__(self, value):
         if not inspect.isclass(value):

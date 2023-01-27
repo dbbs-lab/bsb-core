@@ -21,8 +21,9 @@ class TestCLI(unittest.TestCase):
 
         # Test the default verbosity
         self.assertEqual(1, bsb.options.verbosity)
-        # Test that an option without script descriptor isn't registered
-        self.assertRaises(bsb.exceptions.OptionError, lambda: bsb.options.config)
+        # Test disabled because there's currently no options without script descr.
+        # # Test that an option without script descriptor isn't registered
+        # self.assertRaises(bsb.exceptions.OptionError, lambda: bsb.options.config)
 
     def test_env_descriptor(self):
         import os, bsb.options

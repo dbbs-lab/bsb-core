@@ -34,7 +34,10 @@ class HemitypeCollection:
         }
 
     def __getattr__(self, attr):
-        return self.placement[attr]
+        if attr == "placement":
+            return type(self).placement.__get__(self)
+        else:
+            return self.placement[attr]
 
     def __getitem__(self, item):
         return self.placement[item]
@@ -81,9 +84,9 @@ class ConnectionStrategy(abc.ABC, SortableByAfter):
     def connect(self, presyn_collection, postsyn_collection):
         pass
 
-    def _get_connect_args_from_job(self, chunk, roi):
-        pre = HemitypeCollection(self.presynaptic, [chunk])
-        post = HemitypeCollection(self.postsynaptic, roi)
+    def _get_connect_args_from_job(self, pre_roi, post_roi):
+        pre = HemitypeCollection(self.presynaptic, pre_roi)
+        post = HemitypeCollection(self.postsynaptic, post_roi)
         return pre, post
 
     def connect_cells(self, pre_set, post_set, src_locs, dest_locs, tag=None):
@@ -125,7 +128,7 @@ class ConnectionStrategy(abc.ABC, SortableByAfter):
                 f"in '{self.name}'."
             )
         for chunk, roi in rois.items():
-            job = pool.queue_connectivity(self, chunk, roi, deps=deps)
+            job = pool.queue_connectivity(self, [chunk], roi, deps=deps)
             self._queued_jobs.append(job)
         report(f"Queued {len(self._queued_jobs)} jobs for {self.name}", level=2)
 
