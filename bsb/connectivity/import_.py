@@ -7,13 +7,13 @@ from collections import defaultdict
 import psutil
 import numpy as np
 from tqdm import tqdm
-
+from ..exceptions import ConfigurationError
 from .strategy import ConnectionStrategy
 from ..storage import Chunk
-from ..exceptions import ConfigurationError
 from .. import config
 from ..config import refs
 from ..mixins import NotParallel
+from ..storage.interfaces import PlacementSet
 
 
 @config.node
@@ -30,145 +30,120 @@ class ImportConnectivity(NotParallel, ConnectionStrategy, abc.ABC, classmap_entr
     def cache(self, value):
         self.source.cache = bool(value)
 
-    def connect(self, chunk, indicators):
-        self.parse_source(indicators)
+    def connect(self, pre, post):
+        self.parse_source(pre, post)
 
     @abc.abstractmethod
-    def parse_source(self, indicators):
+    def parse_source(self, pre, post):
         pass
 
 
 @config.node
 class CsvImportConnectivity(ImportConnectivity):
-    x_header = config.attr(default="x")
-    y_header = config.attr(default="y")
-    z_header = config.attr(default="z")
-    type_header = config.attr()
+    pre_header = config.attr(default="pre")
+    post_header = config.attr(default="post")
+    mapping_key = config.attr()
     delimiter = config.attr(default=",")
     progress_bar = config.attr(type=bool, default=True)
 
     def __boot__(self):
-        if not self.type_header and len(self.get_considered_cell_types()) > 1:
-            raise ConfigurationError(
-                "Must set `type_header` to import multiple cell types from single CSV."
+        if (
+            len(self.presynaptic.cell_types) != 1
+            or len(self.postsynaptic.cell_types) != 1
+        ):
+            raise NotImplementedError(
+                "CsvImportConnectivity is strictly from 1 cell type to 1 other cell type"
             )
 
-    def parse_source(self, indicators):
-        self._reset_cache()
-        chunk_size = np.array(self.scaffold.network.chunk_size)
+    def parse_source(self, pre, post):
+        pre = next(iter(pre.placement.values()))
+        post = next(iter(post.placement.values()))
+        if self.mapping_key:
+
+            def make_maps(pre_chunks, post_chunks):
+                return self._passover(pre, pre_chunks, post, post_chunks)
+
+            passover_iter = self._load_balance(pre, post)
+        else:
+
+            def make_maps(pre_chunks, post_chunks):
+                def flush(pre_block, post_block, other_block):
+                    with pre.chunk_context(pre_chunks):
+                        with post.chunk_context(post_chunks):
+                            self.connect_cells(pre, post, pre_block, post_block)
+
+                return lambda x: x, lambda x: x, flush
+
+            passover_iter = ((pre.get_all_chunks(), post.get_all_chunks()),)
+        if self.progress_bar:
+            passover_iter = tqdm(
+                passover_iter, desc="processed", unit="passes", total=len(passover_iter)
+            )
         with self.source.provide_stream() as (fp, encoding):
             text = io.TextIOWrapper(fp, encoding=encoding, newline="")
             reader = csv.reader(text)
             headers = [h.strip().lower() for h in next(reader)]
-            type_col = headers.index(self.type_header) if self.type_header else None
-            coord_cols = [
-                *map(headers.index, (self.x_header, self.y_header, self.z_header))
-            ]
-            other_cols = [
-                r for r in range(len(headers)) if r not in coord_cols and r != type_col
-            ]
+            try:
+                cols = [*map(headers.index, (self.pre_header, self.post_header))]
+            except ValueError:
+                raise ConfigurationError(
+                    f"'{self.pre_header}' or '{self.post_header}' not found in "
+                    f"'{self.source.file.uri}' column headers {headers}."
+                )
+            other_cols = [r for r in range(len(headers)) if r not in cols]
             self._other_colnames = [headers[c] for c in other_cols]
-            cts = self.get_considered_cell_types()
-            if len(cts) == 1:
-                name = cts[0].name
-            i = 0
-            if self.progress_bar:
-                reader = tqdm(reader, desc="imported", unit=" lines")
-            for line in reader:
-                ct_cache = self._cache[line[type_col] if type_col is not None else name]
-                coords = [_safe_float(line[c]) for c in coord_cols]
-                others = [_safe_float(line[c]) for c in other_cols]
-                cache = ct_cache[tuple(coords // chunk_size)]
-                cache[0].append(coords)
-                cache[1].append(others)
+            for pre_chunks, post_chunks in passover_iter:
+                mappers = make_maps(pre_chunks, post_chunks)
+                flush = mappers[2]
+                i = 0
+                if self.progress_bar:
+                    reader = tqdm(reader, desc="imported", unit=" lines")
+                pre_block = []
+                post_block = []
+                other_block = []
+                for line in reader:
+                    ids = [map_(_safe_int(line[c])) for c, map_ in zip(cols, mappers)]
+                    other = [_safe_float(line[c]) for c in other_cols]
+                    if ids[0] > -1 and ids[1] > -1:
+                        pre_block.append(ids[0])
+                        post_block.append(ids[1])
+                        other_block.append(other)
+                    if i % 100 == 0:
+                        est_memsize = (len(other_cols) + 2) * i * 24
+                        av_mem = psutil.virtual_memory().available
+                        if est_memsize > av_mem / 10:
+                            flush(pre_block, post_block, other_block)
+                            pre_block = []
+                            post_block = []
+                            other_block = []
+                    i += 1
+                flush(pre_block, post_block, other_block)
 
-                if i % 100 == 0:
-                    est_memsize = (len(others) + 3) * i * 8
-                    av_mem = psutil.virtual_memory().available
-                    if est_memsize > av_mem / 10:
-                        print(
-                            "FLUSHING, AVAILABLE MEM:",
-                        )
-                        self._flush(indicators)
-                i += 1
-            self._flush(indicators)
+    def _passover(self, pre: PlacementSet, pre_chunks, post: PlacementSet, post_chunks):
+        with pre.chunk_context(pre_chunks):
+            data = pre.load_additional(self.mapping_key)
+            pre_map = {m: i for i, m in enumerate(data)}.get
+        with pre.chunk_context(pre_chunks):
+            data = post.load_additional(self.mapping_key)
+            post_map = {m: i for i, m in enumerate(data)}.get
 
-    def get_considered_cell_types(self):
-        return self.cell_types or self.scaffold.cell_types.values()
+        def flush(pre_block, post_block, other_block):
+            with pre.chunk_context(pre_chunks):
+                with post.chunk_context(post_chunks):
+                    self.connect_cells(pre, post, pre_block, post_block)
 
-    def _reset_cache(self):
-        self._cache = {
-            ct.name: defaultdict(lambda: [[], []])
-            for ct in self.get_considered_cell_types()
-        }
+        return pre_map, post_map, flush
 
-    def _flush(self, indicators):
-        cell_types = self.get_considered_cell_types()
-        iter = zip(cell_types, self._cache.values())
-        if self.progress_bar:
-            iter = tqdm(
-                iter,
-                desc="cell types",
-                total=len(cell_types),
+    def _load_balance(self, pre, post, pre_chunks=None, post_chunks=None):
+        meminfo = psutil.virtual_memory()
+        # Div 16 for array copying safety measures
+        if (len(pre) + len(post)) * 24 < meminfo.available / 16:
+            return ((pre.get_all_chunks(), post.get_all_chunks()),)
+        else:
+            raise NotImplementedError(
+                "Too many cells to fit into memory. "
+                "Piecewise import not implemented yet. Open a GitHub issue."
             )
-        for ct, chunked_cache in iter:
-            inner = ((Chunk(c, None), data) for c, data in chunked_cache.items())
-            if self.progress_bar:
-                inner = tqdm(
-                    inner,
-                    desc="saved",
-                    total=len(chunked_cache),
-                    bar_format="{l_bar}{bar} [ {n_fmt}/{total_fmt} time left: {remaining}, time spent: {elapsed}]",
-                )
-            for chunk, data in inner:
-                print("Saving data in", chunk, chunk.id)
-                additional = np.array(data[1], dtype=float).T
-                self.place_cells(
-                    indicators[ct.name],
-                    np.array(data[0]),
-                    chunk,
-                    additional={
-                        name: col for name, col in zip(self._other_colnames, additional)
-                    },
-                )
-        self._reset_cache()
-
-    # @abc.abstractmethod
-    # def _place_from_csv(self):
-    #     src = self.get_external_source()
-    #     if not self.check_external_source():
-    #         raise MissingSourceError(f"Missing source file '{src}' for `{self.name}`.")
-    #     # If the `map_header` is given, we should store all data in that column
-    #     # as references that the user will need later on to map their external
-    #     # data to our generated data
-    #     should_map = self.map_header is not None
-    #     # Read the CSV file's first line to get the column names
-    #     with open(src, "r") as f:
-    #         headers = f.readline().split(self.delimiter)
-    #     # Search for the x, y, z headers
-    #     usecols = list(map(headers.index, (self.x_header, self.y_header, self.z_header)))
-    #     if should_map:
-    #         # Optionally, search for the map header
-    #         usecols.append(headers.index(self.map_header))
-    #     # Read the entire csv, skipping the headers and only the cols we need.
-    #     data = np.loadtxt(
-    #         src,
-    #         usecols=usecols,
-    #         skiprows=1,
-    #         delimiter=self.delimiter,
-    #     )
-    #     if should_map:
-    #         # If a map column was appended, slice it off
-    #         external_map = data[:, -1]
-    #         data = data[:, :-1]
-    #         # Check for garbage
-    #         duplicates = len(external_map) - len(np.unique(external_map))
-    #         if duplicates:
-    #             raise SourceQualityError(f"{duplicates} duplicates in source '{src}'")
-    #         # And store it as appendix dataset
-    #         self.scaffold.append_dset(self.name + "_ext_map", external_map)
-    #     # Store the CSV positions in the scaffold
-    #     self.scaffold.place_cells(self.cell_type, None, data)
 
 
 def _safe_float(value: typing.Any) -> float:
@@ -176,3 +151,10 @@ def _safe_float(value: typing.Any) -> float:
         return float(value)
     except ValueError:
         return float("nan")
+
+
+def _safe_int(value: typing.Any) -> int:
+    try:
+        return int(float(value))
+    except ValueError:
+        return -1
