@@ -31,21 +31,24 @@ class Chunk(np.ndarray):
         return self.id != other.id
 
     def __eq__(self, other):
-        self_id = np.array(self, copy=False).view(Chunk)._safe_id()
-        other_id = np.array(other, copy=False).view(Chunk)._safe_id()
+        self_id, other_id = _safe_ids(self, other)
         return self_id == other_id
 
     def __gt__(self, other):
-        return self.id > other.id
+        self_id, other_id = _safe_ids(self, other)
+        return self_id > other_id
 
     def __lt__(self, other):
-        return self.id < other.id
+        self_id, other_id = _safe_ids(self, other)
+        return self_id < other_id
 
     def __ge__(self, other):
-        return self.id >= other.id
+        self_id, other_id = _safe_ids(self, other)
+        return self_id >= other_id
 
     def __le__(self, other):
-        return self.id <= other.id
+        self_id, other_id = _safe_ids(self, other)
+        return self_id <= other_id
 
     def __hash__(self):
         return int(self.id)
@@ -100,3 +103,10 @@ class Chunk(np.ndarray):
 
 def chunklist(chunks: typing.Iterable[Chunklike]) -> typing.List[Chunk]:
     return sorted(set(c if isinstance(c, Chunk) else Chunk(c, None) for c in chunks))
+
+
+def _safe_ids(self, other):
+    return (
+        np.array(self, copy=False).view(Chunk)._safe_id(),
+        np.array(other, copy=False).view(Chunk)._safe_id(),
+    )
