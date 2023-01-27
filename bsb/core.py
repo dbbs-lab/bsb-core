@@ -2,6 +2,7 @@ import time
 import os
 import itertools
 import typing
+import numpy as np
 
 from .placement import PlacementStrategy
 from .connectivity import ConnectionStrategy
@@ -430,6 +431,8 @@ class Scaffold:
         """
         if chunk is None:
             chunk = Chunk([0, 0, 0], self.network.chunk_size)
+        if hasattr(chunk, "dimensions") and np.any(np.isnan(chunk.dimensions)):
+            chunk.dimensions = self.network.chunk_size
         self.get_placement_set(cell_type).append_data(
             chunk,
             positions=positions,

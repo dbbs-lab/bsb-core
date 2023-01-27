@@ -36,7 +36,7 @@ class FileStore(IFileStore):
             id: self.get_meta(id) for id in map(_path_to_id, os.listdir(self.file_path()))
         }
 
-    def store(self, content, id=None, meta=None, encoding=None):
+    def store(self, content, id=None, meta=None, encoding=None, overwrite=False):
         if isinstance(content, str):
             if encoding is None:
                 encoding = "utf-8"
@@ -45,6 +45,8 @@ class FileStore(IFileStore):
             id = str(uuid4())
         if meta is None:
             meta = {}
+        if not overwrite and self.has(id):
+            raise FileExistsError(f"Store already contains a file with id {id}")
         with open(self.id_to_file_path(id), "wb") as f:
             f.write(content)
         with open(self.id_to_meta_path(id), "w") as f:

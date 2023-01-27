@@ -125,7 +125,9 @@ class FileDependency:
             meta = {}
         meta.update(self._scheme.get_meta(self))
         meta["source"] = self._given_source
-        return self.file_store.store(content, meta=meta, encoding=encoding, id=id_)
+        return self.file_store.store(
+            content, meta=meta, encoding=encoding, id=id_, overwrite=True
+        )
 
     def should_update(self):
         if not self.file_store:

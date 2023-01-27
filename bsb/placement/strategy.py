@@ -6,17 +6,16 @@ from ..exceptions import (
     SourceQualityError,
 )
 from ..profiling import node_meter
-from ..reporting import report, warn
+from ..reporting import report
 from ..config import refs, types
 from .._util import SortableByAfter, obj_str_insert
 from ..voxels import VoxelSet
 from ..storage import Chunk
 from .indicator import PlacementIndications, PlacementIndicator
-from .distributor import DistributorsNode, Implicit
+from .distributor import DistributorsNode
 import numpy as np
 import itertools
 import abc
-import os
 
 
 @config.dynamic(attr_name="strategy", required=True)

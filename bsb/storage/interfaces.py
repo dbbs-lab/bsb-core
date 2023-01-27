@@ -216,7 +216,7 @@ class FileStore(Interface, engine_key="files"):
         pass
 
     @abc.abstractmethod
-    def store(self, content, id=None, meta=None, encoding=None):
+    def store(self, content, id=None, meta=None, encoding=None, overwrite=False):
         """
         Store content in the file store. Should also store the current timestamp as
         `mtime` meta.
@@ -227,6 +227,10 @@ class FileStore(Interface, engine_key="files"):
         :type id: str
         :param meta: Metadata for the content
         :type meta: dict
+        :param encoding: Optional encoding
+        :type encoding: str
+        :param overwrite: Overwrite existing file
+        :type overwrite: bool
         :returns: The id the content was stored under
         :rtype: str
         """
@@ -464,6 +468,10 @@ class PlacementSet(Interface):
         pass
 
     @abc.abstractmethod
+    def load_ids(self):
+        pass
+
+    @abc.abstractmethod
     def load_positions(self):
         """
         Return a dataset of cell positions.
@@ -493,6 +501,10 @@ class PlacementSet(Interface):
         :returns: Set of morphologies
         :rtype: :class:`~.morphologies.MorphologySet`
         """
+        pass
+
+    @abc.abstractmethod
+    def load_additional(self, key=None):
         pass
 
     def count_morphologies(self):
@@ -553,6 +565,10 @@ class PlacementSet(Interface):
         :param data: Arbitrary user data. You decide |:heart:|
         :type data: numpy.ndarray
         """
+        pass
+
+    @abc.abstractmethod
+    def chunk_context(self, chunks):
         pass
 
     @abc.abstractmethod
