@@ -34,7 +34,10 @@ class HemitypeCollection:
         }
 
     def __getattr__(self, attr):
-        return self.placement[attr]
+        if attr == "placement":
+            return type(self).placement.__get__(self)
+        else:
+            return self.placement[attr]
 
     def __getitem__(self, item):
         return self.placement[item]
