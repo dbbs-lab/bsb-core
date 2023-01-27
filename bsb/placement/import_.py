@@ -82,7 +82,7 @@ class CsvImportPlacement(ImportPlacement):
                 cache[0].append(coords)
                 cache[1].append(others)
 
-                if i % 100 == 0:
+                if i % 10000 == 0:
                     est_memsize = (len(others) + 3) * i * 8
                     av_mem = psutil.virtual_memory().available
                     if est_memsize > av_mem / 10:
