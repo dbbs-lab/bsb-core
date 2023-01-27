@@ -230,7 +230,7 @@ class FileStore(Interface, engine_key="files"):
         :param encoding: Optional encoding
         :type encoding: str
         :param overwrite: Overwrite existing file
-        :type overwrite: boolean
+        :type overwrite: bool
         :returns: The id the content was stored under
         :rtype: str
         """
