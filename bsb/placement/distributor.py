@@ -4,7 +4,7 @@ from ..storage import NrrdDependencyNode
 from ..topology.partition import Partition
 from ..exceptions import EmptySelectionError
 from ..profiling import node_meter
-from ..morphologies import MorphologySet
+from ..morphologies import MorphologySet, RotationSet
 from .indicator import PlacementIndications
 from dataclasses import dataclass
 import numpy as np
@@ -200,8 +200,9 @@ class VolumetricRotations(RotationDistributor, classmap_entry="orientation_field
             number of positions.
         :param context: The placement indicator and partitions.
         :type context: ~bsb.placement.distributor.DistributionContext
-        :returns: A Rotation object containing the 3D rotation vector for each position.
-        :rtype: from scipy.spatial.transform.Rotation
+        :returns: A RotationSet object containing the 3D Euler angles in degrees for the rotation
+            of each position.
+        :rtype: RotationSet
         """
 
         orientation_field = self.orientation_path.load_object()
@@ -230,10 +231,16 @@ class VolumetricRotations(RotationDistributor, classmap_entry="orientation_field
             self.default_vector, axis=-1
         ) * np.linalg.norm(t, axis=-1)
 
-        return [
-            Rotation.from_quat(v)
-            for v in np.hstack([w[:, np.newaxis], np.cross(self.default_vector, t)])
-        ]
+        return RotationSet(
+            np.array(
+                [
+                    Rotation.from_quat(v).as_euler("xyz", degrees=True)
+                    for v in np.hstack(
+                        [w[:, np.newaxis], np.cross(self.default_vector, t)]
+                    )
+                ]
+            )
+        )
 
 
 @config.node

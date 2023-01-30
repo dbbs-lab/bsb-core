@@ -138,11 +138,7 @@ class TestVolumetricRotations(unittest.TestCase):
         region_ids = np.asarray(
             voxel_set.data[:, 0][voxel_set.index_of(positions)], dtype=int
         )
-        rotations = (
-            self.netw.get_placement_set("a")
-            .load_additional("orientations")
-            .as_euler(degrees=True)
-        )
+        rotations = self.netw.get_placement_set("a").load_additional("rotations")
         # Regions without orientation field -> no rotation
         self.assertTrue(
             np.array_equal(
