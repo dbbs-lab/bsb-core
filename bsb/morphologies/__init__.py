@@ -235,7 +235,17 @@ class RotationSet:
     """
 
     def __init__(self, data):
-        self._data = data
+        if isinstance(data, np.ndarray):
+            self._data = data.reshape((-1, 3))
+        else:
+            self._data = np.array([*data])
+            if self._data.ndim != 2 or self._data.shape[1] != 3:
+                raise ValueError(
+                    "Dimensions of the array of rotation should be equal to 2 or 3."
+                )
+
+    def __array__(self, dtype=None, *args, **kwargs):
+        return self._data.__array__(dtype, *args, **kwargs)
 
     def __iter__(self):
         return self.iter()
