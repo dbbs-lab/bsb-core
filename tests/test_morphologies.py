@@ -941,14 +941,26 @@ class TestRotationSet(unittest.TestCase):
             [[0, 1, 0]],
             np.array([[0, 0, 1], [0, 1, 0]]),
             [Rotation.from_rotvec([0, 0, 1])],
+            [Rotation.from_rotvec([0, 0, 1]), Rotation.from_rotvec([0, -1, 0])],
         ]
         self.sets = [RotationSet(v) for v in self.vects]
 
     def test_arrays(self):
+        self.assertTrue(np.array(RotationSet(np.empty((2, 3)))).shape, (2, 3))
         self.assertTrue(np.all(np.array(self.sets[0]) == np.array(self.vects[0])))
         self.assertTrue(np.all(np.array(self.sets[1]) == self.vects[1]))
         self.assertTrue(
             np.allclose(np.array(self.sets[2]), np.array([0, 0, 180.0 / np.pi]))
         )
+        self.assertTrue(
+            np.allclose(
+                np.array(self.sets[3]),
+                np.array([[0, 0, 180.0 / np.pi], [0, -180.0 / np.pi, 0]]),
+            )
+        )
         with self.assertRaises(ValueError, msg="It should throw a ValueError") as _:
             RotationSet([])
+        with self.assertRaises(ValueError, msg="It should throw a ValueError") as _:
+            RotationSet(np.empty((4, 1)))
+        with self.assertRaises(ValueError, msg="It should throw a ValueError") as _:
+            RotationSet(np.empty((4, 3, 3)))

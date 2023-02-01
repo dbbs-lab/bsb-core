@@ -188,14 +188,23 @@ class VolumetricRotations(RotationDistributor, classmap_entry="orientation_field
         call_default=True,
         type=ndarray(),
     )
-    """Default orientation vector of the position.
+    """Default orientation vector of each position.
+    """
+    space_origin = config.attr(
+        required=False,
+        default=lambda: np.array([0.0, 0.0, 0.0]),
+        call_default=True,
+        type=ndarray(),
+    )
+    """Origin point for the orientation field.
     """
 
     def distribute(self, positions, context):
         """
         Rotates according to a volumetric orientation field of specific resolution.
         For each position, find the equivalent voxel in the volumetric orientation field and apply
-        the corresponding rotation. Positions outside the orientation field will not be rotated.
+        the rotation from the default_vector to the corresponding orientation vector.
+        Positions outside the orientation field will not be rotated.
 
         :param positions: Placed positions under consideration. Its shape is (N, 3) where N is the
             number of positions.
@@ -208,7 +217,8 @@ class VolumetricRotations(RotationDistributor, classmap_entry="orientation_field
 
         orientation_field = self.orientation_path.load_object()
         voxel_pos = np.asarray(
-            np.floor(positions / self.orientation_resolution), dtype=int
+            np.floor((positions - self.space_origin) / self.orientation_resolution),
+            dtype=int,
         )
 
         # filter for positions inside the orientation field.
@@ -219,7 +229,12 @@ class VolumetricRotations(RotationDistributor, classmap_entry="orientation_field
             * (voxel_pos[:, 2] < orientation_field.shape[3])
         )
 
+        # By default, positions outside the field should not rotate.
+        # So their target orientation vector will be set to the default_vector,
+        # from which the rotation is processed.
         orientations = np.full((positions.shape[0], 3), self.default_vector, dtype=float)
+        # Expected orientation_field shape is (3, L, W, D) where L, W and D are the sizes
+        # of the field. Here we want to filter on the space dimensions, so we move the axes.
         orientations[filter_inside] = np.moveaxis(orientation_field, 0, -1)[
             voxel_pos[filter_inside, 0],
             voxel_pos[filter_inside, 1],

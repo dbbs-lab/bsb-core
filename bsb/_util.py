@@ -235,6 +235,5 @@ def rotation_matrix_from_vectors(vec1, vec2):
         s = np.linalg.norm(v)
         kmat = np.array([[0, -v[2], v[1]], [v[2], 0, -v[0]], [-v[1], v[0], 0]])
         return np.eye(3) + kmat + kmat.dot(kmat) * ((1 - c) / (s**2))
-
     else:
         return np.eye(3)  # cross of all zeros only occurs on identical directions
