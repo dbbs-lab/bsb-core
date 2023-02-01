@@ -138,11 +138,11 @@ class TestVolumetricRotations(unittest.TestCase):
         region_ids = np.asarray(
             voxel_set.data[:, 0][voxel_set.index_of(positions)], dtype=int
         )
-        rotations = self.netw.get_placement_set("a").load_additional("rotations")
+        rotations = np.array(self.netw.get_placement_set("a").load_rotations())
         # Regions without orientation field -> no rotation
         self.assertTrue(
             np.array_equal(
-                np.all(rotations == 0, axis=1), np.isin(region_ids, (100, 728, 744))
+                np.all(rotations == 0.0, axis=1), np.isin(region_ids, (100, 728, 744))
             )
         )
         # Regions with orientation field -> AIBS Flocculus and Lingula
@@ -154,4 +154,4 @@ class TestVolumetricRotations(unittest.TestCase):
         )
         self.assertTrue(np.all(-180.0 < rotations[pos_w_rot < 180.0]))
         # orientation field x component should be close to 0.
-        self.assertTrue(np.all(np.absolute(rotations[pos_w_rot][:, 0]) < 10))
+        self.assertTrue(np.all(np.absolute(rotations[pos_w_rot][:, 0]) < 0.5))

@@ -1,4 +1,5 @@
 from .. import config
+from .._util import rotation_matrix_from_vectors
 from ..config.types import ndarray
 from ..storage import NrrdDependencyNode
 from ..topology.partition import Partition
@@ -218,28 +219,21 @@ class VolumetricRotations(RotationDistributor, classmap_entry="orientation_field
             * (voxel_pos[:, 2] < orientation_field.shape[3])
         )
 
-        orientations = np.zeros((positions.shape[0], 3), dtype=float)
+        orientations = np.full((positions.shape[0], 3), self.default_vector, dtype=float)
         orientations[filter_inside] = np.moveaxis(orientation_field, 0, -1)[
             voxel_pos[filter_inside, 0],
             voxel_pos[filter_inside, 1],
             voxel_pos[filter_inside, 2],
         ]
-        # convert to quaternions
-        t = np.copy(orientations)
-        t[np.isnan(t).any(axis=1)] = self.default_vector  # default_vector -> no rotation
-        w = np.matmul(self.default_vector, np.array(t).T) + np.linalg.norm(
-            self.default_vector, axis=-1
-        ) * np.linalg.norm(t, axis=-1)
+        orientations[
+            np.isnan(orientations).any(axis=1) + ~orientations.any(axis=1)
+        ] = self.default_vector
 
         return RotationSet(
-            np.array(
-                [
-                    Rotation.from_quat(v).as_euler("xyz", degrees=True)
-                    for v in np.hstack(
-                        [w[:, np.newaxis], np.cross(self.default_vector, t)]
-                    )
-                ]
-            )
+            Rotation.from_matrix(
+                rotation_matrix_from_vectors(self.default_vector, v)
+            ).as_euler("xyz", degrees=True)
+            for v in orientations
         )
 
 
