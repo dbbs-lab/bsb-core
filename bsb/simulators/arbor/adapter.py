@@ -355,7 +355,7 @@ class ArborAdapter(SimulatorAdapter):
                         conn_model.make_receiver(from_gid, comp_from, comp_on)
                     )
             for gid, relays in self._relays_on.items():
-                for (from_gid, comp_from, comp_on, conn_model) in relays:
+                for from_gid, comp_from, comp_on, conn_model in relays:
                     self._connections_from[from_gid].append(comp_from)
                     self._connections_on[gid].append(
                         conn_model.make_receiver(from_gid, comp_from, comp_on)

@@ -32,7 +32,6 @@ class TestEntities(unittest.TestCase):
 
     @unittest.skipIf(importlib.util.find_spec("nest") is None, "NEST is not importable.")
     def test_creation_in_nest(self):
-
         f = h5py.File("minimal_entities.hdf5", "r")
         ids = list(f["entities"]["entity_type"])
         self.assertEqual(ids, list(range(100)))
