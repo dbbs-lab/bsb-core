@@ -238,7 +238,12 @@ class RotationSet:
         if isinstance(data, np.ndarray):
             self._data = data.reshape((-1, 3))
         else:
-            self._data = np.array([*data])
+            self._data = np.array(
+                [
+                    v.as_euler("xyz", degrees=True) if isinstance(v, Rotation) else v
+                    for v in data
+                ]
+            )
             if self._data.ndim != 2 or self._data.shape[1] != 3:
                 raise ValueError(
                     "Dimensions of the array of rotation should be equal to 2 or 3."

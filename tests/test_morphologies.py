@@ -3,7 +3,7 @@ import json
 import itertools
 
 from bsb.services import MPI
-from bsb.morphologies import Morphology, Branch, MorphologySet
+from bsb.morphologies import Morphology, Branch, MorphologySet, RotationSet
 from bsb._encoding import EncodedLabels
 from bsb.storage import Storage
 from bsb.storage.interfaces import StoredMorphology
@@ -933,3 +933,22 @@ class TestMorphologyFiltering(NumpyTestCase, unittest.TestCase):
         self.assertEqual(2, len(m2.branches), "expected dropped root branch")
         self.assertTrue(m2.branches[0].is_root, "should be root, root parent is gone")
         self.assertTrue(m2.branches[1].is_root, "should be root, root parent is gone")
+
+
+class TestRotationSet(unittest.TestCase):
+    def setUp(self):
+        self.vects = [
+            [[0, 1, 0]],
+            np.array([[0, 0, 1], [0, 1, 0]]),
+            [Rotation.from_rotvec([0, 0, 1])],
+        ]
+        self.sets = [RotationSet(v) for v in self.vects]
+
+    def test_arrays(self):
+        self.assertTrue(np.all(np.array(self.sets[0]) == np.array(self.vects[0])))
+        self.assertTrue(np.all(np.array(self.sets[1]) == self.vects[1]))
+        self.assertTrue(
+            np.allclose(np.array(self.sets[2]), np.array([0, 0, 180.0 / np.pi]))
+        )
+        with self.assertRaises(ValueError, msg="It should throw a ValueError") as _:
+            RotationSet([])
