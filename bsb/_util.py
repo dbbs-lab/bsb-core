@@ -220,7 +220,13 @@ def rotation_matrix_from_vectors(vec1, vec2):
     :param vec2: A 3d "destination" vector
     :return mat: A transform matrix (3x3) which when applied to vec1, aligns it with vec2.
     """
-
+    if (
+        np.isnan(vec1).any()
+        or np.isnan(vec2).any()
+        or not np.any(vec1)
+        or not np.any(vec2)
+    ):
+        raise ValueError("Vectors should not contain nan and their norm should not be 0.")
     a = (vec1 / np.linalg.norm(vec1)).reshape(3)
     b = (vec2 / np.linalg.norm(vec2)).reshape(3)
     v = np.cross(a, b)
