@@ -1,6 +1,6 @@
 from . import attr, list, dict, root, node, types
 from ..cell_types import CellType
-from ._attrs import _boot_nodes, file as file_attr
+from ._attrs import _boot_nodes
 from ..placement import PlacementStrategy
 from ..storage._files import CodeDependencyNode
 from ..storage.interfaces import StorageNode
