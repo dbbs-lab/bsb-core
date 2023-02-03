@@ -17,7 +17,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 requires = [
-    "bsb-hdf5~=0.6.2",
+    "bsb-hdf5~=0.7.1",
     "h5py~=3.0",
     "numpy~=1.19",
     "scipy~=1.5",
@@ -34,6 +34,8 @@ requires = [
     "appdirs~=1.4",
     "neo[nixio]",
     "tqdm~=4.50",
+    "shortuuid",
+    "quantities",
 ]
 
 setuptools.setup(

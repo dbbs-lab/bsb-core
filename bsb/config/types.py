@@ -110,7 +110,6 @@ def or_(*type_args):
                 )
                 type_errors[t.__name__] = type_error
             else:
-
                 return v
         type_errors = "\n".join(
             "- Casting to '{}' raised:\n{}".format(n, e) for n, e in type_errors.items()

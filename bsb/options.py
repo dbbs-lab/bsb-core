@@ -299,7 +299,6 @@ def read(tag=None):
     :rtype: Any
     """
     if tag is None:
-
         path, content = _bsboptmod._pyproject_bsb()
         report(f"Reading project settings from '{path}'", level=4)
         return content

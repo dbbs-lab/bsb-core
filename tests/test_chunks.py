@@ -80,7 +80,7 @@ class TestChunks(unittest.TestCase, NumpyTestCase):
         self.assertEqual(
             281440616775682, Chunk.from_id(281440616775682, None).id, "Problem case"
         )
-        for (coords, id_) in tests:
+        for coords, id_ in tests:
             with self.subTest(coords=coords, id=id_):
                 chunk = Chunk.from_id(id_, None)
                 self.assertEqual(id_, chunk.id, "Chunk.from_id not an identity op.")

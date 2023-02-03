@@ -235,7 +235,20 @@ class RotationSet:
     """
 
     def __init__(self, data):
-        self._data = data
+        if not isinstance(data, np.ndarray):
+            self._data = np.array(
+                [
+                    v.as_euler("xyz", degrees=True) if isinstance(v, Rotation) else v
+                    for v in data
+                ]
+            )
+        else:
+            self._data = data
+        if self._data.ndim != 2 or self._data.shape[1] != 3:
+            raise ValueError("Input should be an (Nx3) matrix of rotations.")
+
+    def __array__(self, dtype=None, *args, **kwargs):
+        return self._data.__array__(dtype, *args, **kwargs)
 
     def __iter__(self):
         return self.iter()
