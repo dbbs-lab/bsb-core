@@ -152,6 +152,8 @@ class TestVolumetricRotations(unittest.TestCase):
                 pos_w_rot, np.isin(region_ids, (10690, 10691, 10692, 10705, 10706, 10707))
             )
         )
-        self.assertTrue(np.all(-180.0 < rotations[pos_w_rot < 180.0]))
+        self.assertTrue(
+            np.all((-180.0 < rotations[pos_w_rot]) * (rotations[pos_w_rot] < 180.0))
+        )
         # orientation field x component should be close to 0.
         self.assertTrue(np.all(np.absolute(rotations[pos_w_rot][:, 0]) < 0.5))
