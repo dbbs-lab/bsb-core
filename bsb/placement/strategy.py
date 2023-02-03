@@ -78,6 +78,11 @@ class PlacementStrategy(abc.ABC, SortableByAfter):
                     "Morphology",
                     self,
                 ) from None
+        elif self.distribute._has_rdistr():
+            rotations = self.distribute(
+                "rotations", self.partitions, indicator, positions
+            )
+            morphologies = None
         else:
             morphologies, rotations = None, None
 

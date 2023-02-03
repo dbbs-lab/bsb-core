@@ -130,8 +130,6 @@ class TestVolumetricRotations(unittest.TestCase):
         self.netw = Scaffold(self.cfg)
 
     def test_distribute(self):
-        self.netw.morphologies.save("bs", Morphology.empty(), overwrite=True)
-        self.netw.cell_types.a.spatial.morphologies = [{"names": ["*"]}]
         self.netw.compile(clear=True)
         positions = self.netw.get_placement_set("a").load_positions()
         voxel_set = self.netw.partitions.a.get_voxelset()

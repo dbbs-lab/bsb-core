@@ -333,3 +333,7 @@ class DistributorsNode:
     def _has_mdistr(self):
         # This function checks if this distributor node has specified a morpho distributor
         return self.__class__.morphologies.is_dirty(self)
+
+    def _has_rdistr(self):
+        # This function checks if this distributor node has specified a rotation distributor
+        return self.__class__.rotations.is_dirty(self)
