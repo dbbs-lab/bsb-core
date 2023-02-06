@@ -16,6 +16,7 @@ class CloudToCloudIntersection(ConnectionStrategy):
     # Read vars from the configuration file
     # post_cloud_name = config.attr(type=str, required=True)
     # pre_cloud_name = config.attr(type=str, required=True)
+    affinity = config.attr(type=float, required=True)
 
     def get_region_of_interest(self, chunk):
 
@@ -96,5 +97,22 @@ class CloudToCloudIntersection(ConnectionStrategy):
                         tmp_post_selection[:, 0] = post_id
                         to_connect_post = np.vstack([to_connect_post, tmp_post_selection])
 
+        to_connect_pre = to_connect_pre[1:]
+        to_connect_post = to_connect_post[1:]
+
+        if self.affinity < 1 and len(to_connect_pre) > 0:
+            ids_to_select = np.arange(start=0, stop=len(to_connect_pre))
+            np.random.shuffle(ids_to_select)
+            ids_to_select = ids_to_select[
+                0 : np.max(
+                    [
+                        1,
+                        int(np.floor(self.affinity * len(to_connect_pre))),
+                    ]
+                )
+            ]
+            to_connect_pre = to_connect_pre[ids_to_select]
+            to_connect_post = to_connect_post[ids_to_select]
+
         # print("Connected", len(pre_pos), "pre cells to", len(post_pos), "post cells.")
-        self.connect_cells(pre_ps, post_ps, to_connect_pre[1:], to_connect_post[1:])
+        self.connect_cells(pre_ps, post_ps, to_connect_pre, to_connect_post)

@@ -14,7 +14,7 @@ from bsb.connectivity.point_cloud.geometric_shapes import ShapesComposition
 @config.node
 class CloudToMorphologyIntersection(ConnectionStrategy):
     # Read vars from the configuration file
-    affinity = config.attr(type=int, required=True)
+    affinity = config.attr(type=float, required=True)
 
     def get_region_of_interest(self, chunk):
 
@@ -51,7 +51,7 @@ class CloudToMorphologyIntersection(ConnectionStrategy):
         morpho_set = post_ps.load_morphologies()
         post_morphos = morpho_set.iter_morphologies(cache=True, hard_cache=True)
 
-        for post_id, post_coord, morpho in zip(itertools.count(), pre_pos, post_morphos):
+        for post_id, post_coord, morpho in zip(itertools.count(), post_pos, post_morphos):
 
             # print(post_id, "/", len(post_coord))
             # Get the branches
@@ -90,7 +90,7 @@ class CloudToMorphologyIntersection(ConnectionStrategy):
                     # Find the morpho points inside the cloud
                     if np.any(inside_pts):
                         local_selection = (post_points_ids[mbb_check])[inside_pts]
-                        if self.affinity < 1 and len(local_selection) > 0:
+                        if self.affinity < 1.0 and len(local_selection) > 0:
                             local_selection = local_selection[
                                 np.random.choice(
                                     local_selection.shape[0],
@@ -107,13 +107,12 @@ class CloudToMorphologyIntersection(ConnectionStrategy):
                                 ),
                                 :,
                             ]
-
                         selected_count = len(local_selection)
                         if selected_count > 0:
                             to_connect_post = np.vstack(
                                 [to_connect_post, local_selection]
                             )
-                            pre_tmp = np.full([1, 3], -1, dtype=int)
+                            pre_tmp = np.full([selected_count, 3], -1, dtype=int)
                             pre_tmp[:, 0] = pre_id
                             to_connect_pre = np.vstack([to_connect_pre, pre_tmp])
 

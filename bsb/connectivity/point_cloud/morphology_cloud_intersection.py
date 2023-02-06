@@ -14,7 +14,7 @@ from bsb.connectivity.point_cloud.geometric_shapes import ShapesComposition
 @config.node
 class MorphologyToCloudIntersection(ConnectionStrategy):
     # Read vars from the configuration file
-    affinity = config.attr(type=int, required=True)
+    affinity = config.attr(type=float, required=True)
 
     def get_region_of_interest(self, chunk):
 
