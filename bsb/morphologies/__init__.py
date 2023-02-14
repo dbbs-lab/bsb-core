@@ -378,6 +378,13 @@ class SubTree:
         idmap = {b: n for n, b in enumerate(self.branches)}
         return {n: list(map(idmap.get, b.children)) for n, b in enumerate(self.branches)}
 
+    @property
+    def euclidean_dists(self):
+        """
+        Return the total length of the morphology meant as the sum of the euclidian distances of start-end points of every branch.
+        """
+        return sum(b.euclidean_dist for b in self.branches)
+
     def subtree(self, labels=None):
         return SubTree(self.get_branches(labels))
 
