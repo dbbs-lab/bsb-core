@@ -334,9 +334,11 @@ class NrrdVoxels(Voxels, classmap_entry="nrrd"):
         type=NrrdDependencyNode,
         required=types.mut_excl("source", "sources", required=True),
     )
-    sources = config.attr(
-        type=types.list(NrrdDependencyNode),
+    sources = config.list(
+        type=NrrdDependencyNode,
         required=types.mut_excl("source", "sources", required=True),
+        default=list,
+        call_default=True,
     )
     mask_value = config.attr(type=int)
     mask_source = config.attr(type=NrrdDependencyNode)
@@ -444,16 +446,6 @@ class AllenStructure(NrrdVoxels, classmap_entry="allen"):
     struct_name = config.attr(
         type=types.str(strip=True, lower=True),
         required=types.mut_excl("struct_id", "struct_name", required=True),
-    )
-    source = config.attr(
-        type=NrrdDependencyNode,
-        required=types.mut_excl("source", "sources", required=False),
-    )
-    sources = config.attr(
-        type=types.list(NrrdDependencyNode),
-        required=types.mut_excl("source", "sources", required=False),
-        default=list,
-        call_default=True,
     )
 
     @config.property
