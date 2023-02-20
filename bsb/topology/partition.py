@@ -352,7 +352,7 @@ class NrrdVoxels(Voxels, classmap_entry="nrrd"):
         if self.sparse:
             # Use integer (sparse) indexing
             mask = [np.empty((0,), dtype=int) for i in range(3)]
-            for mask_src in self._mask_source:
+            for mask_src in self._mask_src:
                 mask_data = mask_src.get_data()
                 new_mask = np.nonzero(self._mask_cond(mask_data))
                 for i, mask_vector in enumerate(new_mask):
@@ -361,7 +361,7 @@ class NrrdVoxels(Voxels, classmap_entry="nrrd"):
             mask = tuple(inter[i, :] for i in range(3))
         else:
             # Use boolean (dense) indexing
-            for mask_src in self._mask_source:
+            for mask_src in self._mask_src:
                 mask_data = mask_src.get_data()
                 mask = mask | self._mask_cond(mask_data)
             mask = np.nonzero(mask)
@@ -394,12 +394,12 @@ class NrrdVoxels(Voxels, classmap_entry="nrrd"):
         else:
             self._src = self.sources.copy()
         if self.mask_source is not None:
-            self._mask_source = [self.mask_source]
+            self._mask_src = [self.mask_source]
         else:
-            self._mask_source = self._src.copy()
+            self._mask_src = self._src.copy()
 
     def _validate_source_compat(self):
-        mask_headers = {s: s.get_header() for s in self._mask_source}
+        mask_headers = {s: s.get_header() for s in self._mask_src}
         source_headers = {s: s.get_header() for s in self._src}
         all_headers = mask_headers.copy()
         all_headers.update(source_headers)
@@ -467,8 +467,8 @@ class AllenStructure(NrrdVoxels, classmap_entry="allen"):
     @config.property
     @functools.cache
     def mask_source(self):
-        if hasattr(self, "_mask_source_override"):
-            return self._mask_source_override
+        if hasattr(self, "_annotations_file"):
+            return self._annotations_file
         else:
             node = NrrdDependencyNode()
             node._file = _cached_file(
@@ -478,8 +478,11 @@ class AllenStructure(NrrdVoxels, classmap_entry="allen"):
 
     @mask_source.setter
     def mask_source(self, value):
+        self._mask_source = value
         if value is not None:
-            self._mask_source_override = NrrdDependencyNode(file=value)
+            self._annotations_file = NrrdDependencyNode(file=value)
+        elif hasattr(self, "_annotations_file"):
+            delattr(self, "_annotations_file")
 
     @classmethod
     @functools.cache
