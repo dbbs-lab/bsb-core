@@ -155,3 +155,12 @@ class TestVolumetricRotations(unittest.TestCase):
         )
         # orientation field x component should be close to 0.
         self.assertTrue(np.all(np.absolute(rotations[pos_w_rot][:, 0]) < 0.5))
+        self.cfg["placement"]["a"]["distribute"]["rotations"].space_origin = [
+            1000,
+            1000,
+            1000,
+        ]
+        self.netw = Scaffold(self.cfg)
+        self.netw.compile(clear=True)
+        rotations = np.array(self.netw.get_placement_set("a").load_rotations())
+        self.assertTrue(np.array_equal(np.all(rotations == 0.0, axis=1), region_ids > 0))
