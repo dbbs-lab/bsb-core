@@ -282,6 +282,11 @@ class Layer(Rhomboid, classmap_entry="layer"):
 
 @config.node
 class Voxels(Partition, abc.ABC, classmap_entry=None):
+    """
+    Partition based on a set of voxels.
+    Positions in the partition will be indexed according to the voxels' coordinates.
+    """
+
     @abc.abstractmethod
     def get_voxelset(self):
         pass
@@ -330,25 +335,51 @@ class Voxels(Partition, abc.ABC, classmap_entry=None):
 
 @config.node
 class NrrdVoxels(Voxels, classmap_entry="nrrd"):
+    """
+    Voxel Partition whose volumetric data (sources) is stored in nrrd files.
+    A mask can also be assigned to filter the data.
+    """
+
     source = config.attr(
         type=NrrdDependencyNode,
         required=types.mut_excl("source", "sources", required=True),
     )
+    """Path to the nrrd file containing volumetric data to associate with the partition.
+    If source is set, then sources should not be set."""
     sources = config.list(
         type=NrrdDependencyNode,
         required=types.mut_excl("source", "sources", required=True),
         default=list,
         call_default=True,
     )
+    """List of paths to nrrd files containing volumetric data to associate with the Partition.
+    If sources is set, then source should not be set."""
     mask_value = config.attr(type=int)
+    """Integer value to filter in mask_source (if it is set, otherwise sources/source) to create a 
+    mask of the voxel set(s) used as input."""
     mask_source = config.attr(type=NrrdDependencyNode)
+    """Path to the nrrd file containing the volumetric annotation data of the Partition."""
     mask_only = config.attr(type=bool, default=False)
-    voxel_size = config.attr(type=types.voxel_size(), required=True)
+    """Flag to indicate if only the mask should be used as source."""
+    voxel_size = config.attr(type=int, required=True)
+    """Size of each voxel."""
     keys = config.attr(type=types.list(str))
+    """List of names to assign to each source of the Partition."""
     sparse = config.attr(type=bool, default=True)
+    """Boolean flag to indicate if the mask data is sparse or dense."""
     strict = config.attr(type=bool, default=True)
+    """Boolean flag to check the sources and the mask sizes. 
+    When the flag is True, sources and mask should have exactly the same sizes;
+    otherwise, sources sizes should be greater than mask sizes."""
 
     def get_mask(self):
+        """
+        Get the mask to apply on the sources' data of the partition.
+
+        :returns: A tuple of arrays, one for each dimension of the mask, containing the indices of
+            the non-zero elements in that dimension.
+        """
+
         mask_shape = self._validate()
         mask = np.zeros(mask_shape, dtype=bool)
         if self.sparse:
@@ -370,6 +401,12 @@ class NrrdVoxels(Voxels, classmap_entry="nrrd"):
         return mask
 
     def get_voxelset(self):
+        """
+        Creates a VoxelSet of the sources of the Partition that matches its mask.
+
+        :returns: VoxelSet of the Partition sources.
+        """
+
         mask = self.get_mask()
         voxel_data = None
         if not self.mask_only:
@@ -440,17 +477,25 @@ class NrrdVoxels(Voxels, classmap_entry="nrrd"):
 
 @config.node
 class AllenStructure(NrrdVoxels, classmap_entry="allen"):
+    """
+    Partition based on the Allen Institute for Brain Science mouse brain region ontology, later
+    referred as Allen Mouse Brain Region Hierarchy (AMBRH)
+    """
+
     struct_id = config.attr(
         type=int, required=types.mut_excl("struct_id", "struct_name", required=True)
     )
+    """Id of the region to filter within the annotation volume according to the AMBRH.
+    If struct_id is set, then struct_name should not be set."""
     struct_name = config.attr(
         type=types.str(strip=True, lower=True),
         required=types.mut_excl("struct_id", "struct_name", required=True),
     )
+    """Name or acronym of the region to filter within the annotation volume according to the AMBRH.
+    If struct_name is set, then struct_id should not be set."""
 
-    @config.property
-    def voxel_size(self):
-        return 25
+    voxel_size = config.attr(type=int, required=False, default=25)
+    """Size of each voxel."""
 
     @config.property
     def mask_only(self):
@@ -491,7 +536,7 @@ class AllenStructure(NrrdVoxels, classmap_entry="allen"):
         Return a lambda that when applied to the mask data, returns a mask that delineates
         the Allen structure.
 
-        :param find: Acronym or ID of the Allen structure.
+        :param find: Acronym, Name or ID of the Allen structure.
         :type find: Union[str, int]
         :returns: Masking lambda
         :rtype: Callable[numpy.ndarray]
@@ -505,6 +550,14 @@ class AllenStructure(NrrdVoxels, classmap_entry="allen"):
 
     @classmethod
     def get_structure_mask(cls, find):
+        """
+        Returns the mask data delineated by the Allen structure.
+
+        :param find: Acronym, Name or ID of the Allen structure.
+        :type find: Union[str, int]
+        :returns: A boolean of the mask filtered based on the Allen structure.
+        :rtype: Callable[numpy.ndarray]
+        """
         mask_data, _ = nrrd.read(cls._dl_mask())
         return cls.get_structure_mask_condition(find)(mask_data)
 
