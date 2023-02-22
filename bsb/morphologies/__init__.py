@@ -892,11 +892,13 @@ class Morphology(SubTree):
         :returns: The parsed morphology, with the SWC tags as a property.
         :rtype: bsb.morphologies.Morphology
         """
+        print("Calling from_swc with:", file, branch_class, tags, meta)
         if isinstance(file, str) or isinstance(file, Path):
             with open(str(file), "r") as f:
                 return cls.from_swc(f, branch_class, meta=meta)
         if branch_class is None:
             branch_class = Branch
+        print("Calling _swc_to_morpho with:", file, branch_class, tags, meta)
         return _swc_to_morpho(cls, branch_class, file.read(), tags=tags, meta=meta)
 
     @classmethod
@@ -1615,6 +1617,7 @@ def _swc_branch_dfs(adjacency, branches, node):
 
 
 def _swc_to_morpho(cls, branch_cls, content, tags=None, meta=None):
+    print("Called with", cls, branch_cls, content, tags, meta)
     tag_map = {1: "soma", 2: "axon", 3: "dendrites"}
     if tags is not None:
         tag_map.update(tags)
