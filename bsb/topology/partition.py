@@ -349,8 +349,6 @@ class NrrdVoxels(Voxels, classmap_entry="nrrd"):
     sources = config.list(
         type=NrrdDependencyNode,
         required=types.mut_excl("source", "sources", required=True),
-        default=list,
-        call_default=True,
     )
     """List of paths to nrrd files containing volumetric data to associate with the Partition.
     If sources is set, then source should not be set."""
