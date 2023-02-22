@@ -6,8 +6,9 @@ from .._util import SortableByAfter
 class SimulationComponent(SortableByAfter):
     name = config.attr(key=True)
 
-    def __boot__(self):
-        self.simulation = self._config_parent._config_parent
+    @property
+    def simulation(self):
+        return self._config_parent._config_parent
 
     @classmethod
     def get_ordered(cls, objects):
