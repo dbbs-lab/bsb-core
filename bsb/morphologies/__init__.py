@@ -1679,7 +1679,6 @@ def _swc_to_morpho(cls, branch_cls, content, tags=None, meta=None):
             tag_labels = tag_map.get(v, f"tag_{v}")
             if isinstance(tag_labels, str):
                 tag_labels = [tag_labels]
-            print("Labelling tag", v, "with", tag_labels)
             branch_labels.label(tag_labels, branch_tags == v)
         ptr = nptr
         # Use the views to construct the branch
