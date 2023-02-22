@@ -36,7 +36,6 @@ class NeuronResult(SimulationResult):
         v = p.record(obj)
 
         def flush(segment):
-            print("Flushing clamp", len(v))
             segment.analogsignals.append(
                 AnalogSignal(
                     list(v), units="mV", sampling_period=p.dt * ms, **annotations
@@ -63,8 +62,6 @@ class NeuronAdapter(SimulatorAdapter):
     def __init__(self):
         super().__init__()
         self.engine = None
-        self.network = None
-        self.result = None
         self.simdata = dict()
         self.next_gid = 0
 
@@ -91,11 +88,10 @@ class NeuronAdapter(SimulatorAdapter):
             self.create_connections(simulation)
             report("Creating devices", level=2)
             self.create_devices(simulation)
-            MPI.barrier()
+            return self.simdata[simulation]
         except:
             del self.simdata[simulation]
             raise
-        return self.simdata[simulation]
 
     def load_balance(self, simulation):
         simdata = self.simdata[simulation]
@@ -140,7 +136,7 @@ class NeuronAdapter(SimulatorAdapter):
         simdata = self.simdata[simulation]
         offset = 0
         for cell_model in sorted(simulation.cell_models.values()):
-            ps = cell_model.cell_type.get_placement_set()
+            ps = cell_model.get_placement_set()
             simdata.cid_offsets[cell_model.cell_type] = offset
             with ps.chunk_context(simdata.chunks):
                 self._create_population(simdata, cell_model, ps, offset)
@@ -201,13 +197,3 @@ class NeuronAdapter(SimulatorAdapter):
                 instance.id = cid
                 instance.model = cell_model
                 simdata.cells[cid] = instance
-
-
-class Matrix:
-    def __getitem__(self, matrix):
-        return np.array(matrix)
-
-
-_ = Matrix()
-
-a = _[1, 2, 3]
