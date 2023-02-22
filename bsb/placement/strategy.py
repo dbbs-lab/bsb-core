@@ -195,5 +195,5 @@ class Entities(PlacementStrategy):
         for indicator in indicators.values():
             cell_type = indicator.cell_type
             # Guess total number, not chunk number, as entities bypass chunking.
-            n = indicator.guess()
+            n = np.sum(indicator.guess())
             self.scaffold.create_entities(cell_type, n)
