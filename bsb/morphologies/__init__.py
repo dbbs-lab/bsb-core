@@ -909,6 +909,15 @@ class Morphology(SubTree):
         return _import(cls, branch_class, path, meta=meta)
 
     @classmethod
+    def from_buffer(cls, buffer, branch_class=None, tags=None, meta=None):
+        if not isinstance(buffer, str):
+            buffer = buffer.read()
+        if branch_class is None:
+            branch_class = Branch
+        print("Sending buffer:", type(buffer))
+        return _swc_to_morpho(cls, branch_class, buffer, tags=tags, meta=meta)
+
+    @classmethod
     def from_arbor(cls, arb_m, centering=True, branch_class=None, meta=None):
         if branch_class is None:
             branch_class = Branch

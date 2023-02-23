@@ -1,6 +1,8 @@
 """
     An attrs-inspired class annotation system, but my A stands for amateuristic.
 """
+import traceback
+
 import errr
 
 from ._hooks import run_hook
@@ -24,6 +26,7 @@ from ..exceptions import (
     CfgReferenceError,
     BootError,
 )
+from ..services import MPI
 import builtins
 
 
@@ -386,6 +389,7 @@ def _boot_nodes(top_node, scaffold):
             run_hook(node, "boot")
         except Exception as e:
             errr.wrap(BootError, e, prepend=f"Failed to boot {node}:")
+    MPI.barrier()
 
 
 def _unset_nodes(top_node):
@@ -456,6 +460,7 @@ class ConfigurationAttribute:
                 e.node, e.attr = instance, self.attr_name
             raise
         except Exception as e:
+            traceback.print_exc()
             raise CastError(
                 f"Couldn't cast '{value}' into {self.type.__name__}: {e}",
                 instance,

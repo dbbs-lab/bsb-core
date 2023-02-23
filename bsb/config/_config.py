@@ -2,7 +2,7 @@ from . import attr, list, dict, root, node, types
 from ..cell_types import CellType
 from ._attrs import _boot_nodes
 from ..placement import PlacementStrategy
-from ..storage._files import CodeDependencyNode
+from ..storage._files import CodeDependencyNode, MorphologyDependencyNode
 from ..storage.interfaces import StorageNode
 from ..connectivity import ConnectionStrategy
 from ..simulation.simulation import Simulation
@@ -48,6 +48,7 @@ class Configuration:
 
     name = attr()
     components = list(type=CodeDependencyNode)
+    morphologies = list(type=MorphologyDependencyNode)
     storage = attr(type=StorageNode, required=True)
     network = attr(type=NetworkNode, required=True)
     regions = dict(type=Region)

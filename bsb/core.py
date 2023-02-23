@@ -246,10 +246,12 @@ class Scaffold:
         )
 
     @meter()
-    def run_placement(self, strategies=None, DEBUG=True):
+    def run_placement(self, strategies=None, DEBUG=True, pipelines=True):
         """
         Run placement strategies.
         """
+        if pipelines:
+            self.run_pipelines()
         if strategies is None:
             strategies = list(self.placement.values())
         strategies = PlacementStrategy.resolve_order(strategies)
@@ -269,10 +271,12 @@ class Scaffold:
             pool.execute()
 
     @meter()
-    def run_connectivity(self, strategies=None, DEBUG=True):
+    def run_connectivity(self, strategies=None, DEBUG=True, pipelines=True):
         """
         Run connection strategies.
         """
+        if pipelines:
+            self.run_pipelines()
         if strategies is None:
             strategies = list(self.connectivity.values())
         strategies = ConnectionStrategy.resolve_order(strategies)
@@ -299,7 +303,7 @@ class Scaffold:
         self.run_placement([strategy])
 
     @meter()
-    def run_after_placement(self):
+    def run_after_placement(self, pipelines=True):
         """
         Run after placement hooks.
         """
@@ -311,7 +315,7 @@ class Scaffold:
         # pool.execute(self._pool_event_loop)
 
     @meter()
-    def run_after_connectivity(self):
+    def run_after_connectivity(self, pipelines=True):
         """
         Run after placement hooks.
         """
@@ -349,8 +353,8 @@ class Scaffold:
                 raise FileExistsError(
                     f"The `{self.storage.format}` storage"
                     + f" at `{self.storage.root}` already exists."
-                    + " Use `clear`, `append` or `redo` to pick"
-                    + " what to do with existing data."
+                    + " Use the `clear`, `append` or `redo` arguments"
+                    + " to pick what to do with stored data."
                 )
             if clear:
                 report("Clearing data", level=2)
@@ -366,22 +370,42 @@ class Scaffold:
             #   append mode is luckily simpler, just don't clear anything :)
 
         t = time.time()
+        self.run_pipelines()
         if not skip_placement:
             placement_todo = ", ".join(s.name for s in p_strats)
-            report(f"Starting placement strategies: {placement_todo}", level=3)
-            self.run_placement(p_strats)
+            report(f"Starting placement strategies: {placement_todo}", level=2)
+            self.run_placement(p_strats, pipelines=False)
         if not skip_after_placement:
-            self.run_after_placement()
+            self.run_after_placement(pipelines=False)
         if not skip_connectivity:
             connectivity_todo = ", ".join(s.name for s in c_strats)
-            report(f"Starting connectivity strategies: {connectivity_todo}", level=3)
-            self.run_connectivity(c_strats)
+            report(f"Starting connectivity strategies: {connectivity_todo}", level=2)
+            self.run_connectivity(c_strats, pipelines=False)
         if not skip_after_connectivity:
-            self.run_after_connectivity()
+            self.run_after_connectivity(pipelines=False)
         report("Runtime: {}".format(time.time() - t), 2)
         # After compilation we should flag the storage as having existed before so that
         # the `clear`, `redo` and `append` flags take effect on a second `compile` pass.
         self.storage._preexisted = True
+
+    @meter()
+    def run_pipelines(self, pipelines=None, DEBUG=True):
+        if pipelines is None:
+            pipelines = self.get_dependency_pipelines()
+        pool = create_job_pool(self)
+        if pool.is_master():
+            for pipeline in pipelines:
+                pipeline.queue(pool)
+            loop = self._progress_terminal_loop(pool, debug=DEBUG)
+            try:
+                pool.execute(loop)
+            except Exception:
+                self._stop_progress_loop(loop, debug=DEBUG)
+                raise
+            finally:
+                self._stop_progress_loop(loop, debug=DEBUG)
+        else:
+            pool.execute()
 
     @meter()
     def run_simulation(self, simulation_name: str, quit=False):
@@ -440,9 +464,6 @@ class Scaffold:
             rotations=rotations,
             additional=additional,
         )
-
-    def connect_cells(self):
-        raise NotImplementedError("hehe, todo!")
 
     def create_entities(self, cell_type, count):
         """
@@ -731,6 +752,9 @@ class Scaffold:
             ct.clear_connections()
 
         return p_contrib, c_contrib
+
+    def get_dependency_pipelines(self):
+        return [*self.configuration.morphologies]
 
 
 class ReportListener:

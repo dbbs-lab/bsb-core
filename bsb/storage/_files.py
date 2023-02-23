@@ -1,3 +1,5 @@
+import warnings
+
 import abc as _abc
 import contextlib as _cl
 import datetime as _dt
@@ -12,6 +14,7 @@ import typing as _tp
 import requests as _rq
 import email.utils as _eml
 import nrrd as _nrrd
+import hashlib as _hl
 
 from .._util import obj_str_insert
 from .. import config
@@ -55,6 +58,9 @@ class FileDependency:
     @property
     def uri(self):
         return self._uri
+
+    def __hash__(self):
+        return hash(self._uri)
 
     @obj_str_insert
     def __str__(self):
@@ -201,8 +207,11 @@ class FileScheme(UriScheme):
 
 
 class UrlScheme(UriScheme):
+    def resolve_uri(self, file: FileDependency):
+        return file.uri
+
     def find(self, file: FileDependency):
-        response = _rq.head(file.uri)
+        response = _rq.head(self.resolve_uri(file))
         return response.status_code == 200
 
     def should_update(self, file: FileDependency, stored_file):
@@ -223,11 +232,11 @@ class UrlScheme(UriScheme):
         return _t.time() > mtime + 360000
 
     def get_content(self, file: FileDependency):
-        response = _rq.get(file.uri)
+        response = _rq.get(self.resolve_uri(file))
         return (response.content, response.encoding)
 
     def get_meta(self, file: FileDependency):
-        response = _rq.head(file.uri)
+        response = _rq.head(self.resolve_uri(file))
         return {"headers": dict(response.headers)}
 
     def get_local_path(self, file: FileDependency):
@@ -235,10 +244,60 @@ class UrlScheme(UriScheme):
 
     @_cl.contextmanager
     def provide_stream(self, file):
-        response = _rq.get(file.uri, stream=True)
+        response = _rq.get(self.resolve_uri(file), stream=True)
         response.raw.decode_content = True
         response.raw.auto_close = False
         yield (response.raw, response.encoding)
+
+
+class NeuroMorphoScheme(UrlScheme):
+    _nm_url = "https://neuromorpho.org/"
+    _meta = "api/neuron/name/"
+    _files = "dableFiles/"
+
+    def resolve_uri(self, file: FileDependency):
+        meta = self.get_nm_meta(file)
+        print("URI resolved: ", self._swc_url(meta["archive"], meta["neuron_name"]))
+        return self._swc_url(meta["archive"], meta["neuron_name"])
+
+    @_ft.cache
+    def get_nm_meta(self, file: FileDependency):
+        name = _up.urlparse(file.uri).hostname
+        # Weak DH key on neuromorpho.org
+        # https://stackoverflow.com/questions/38015537/python-requests-exceptions-sslerror-dh-key-too-small
+        _rq.packages.urllib3.util.ssl_.DEFAULT_CIPHERS += ":HIGH:!DH:!aNULL"
+        print("Sending NM meta request")
+        try:
+            _rq.packages.urllib3.contrib.pyopenssl.util.ssl_.DEFAULT_CIPHERS += (
+                ":HIGH:!DH:!aNULL"
+            )
+        except AttributeError:
+            # no pyopenssl support used / needed / available
+            pass
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            # Certificate issues with neuromorpho --> verify=False
+            print("Sending request", self._nm_url + self._meta + name)
+            try:
+                res = _rq.get(self._nm_url + self._meta + name, verify=False)
+            except Exception as e:
+                print("NeuroMorpho unavailable")
+                return {"archive": "none", "neuron_name": "none"}
+            if res.status_code == 404:
+                raise IOError(f"'{name}' is not a valid NeuroMorpho name.")
+            elif res.status_code != 200:
+                raise IOError("NeuroMorpho API error: " + res.message)
+            return res.json()
+
+    def get_meta(self, file: FileDependency):
+        meta = super().get_meta(file)
+        meta["neuromorpho_data"] = self.get_nm_meta(file)
+        return meta
+
+    @classmethod
+    def _swc_url(cls, archive, name):
+        base_url = f"{cls._nm_url}{cls._files}{_up.quote(archive.lower())}"
+        return f"{base_url}/CNG%20version/{name}.CNG.swc"
 
 
 @_ft.cache
@@ -248,6 +307,7 @@ def _get_schemes() -> _tp.Mapping[str, FileScheme]:
     schemes = discover("storage.schemes")
     schemes["file"] = FileScheme()
     schemes["http"] = schemes["https"] = UrlScheme()
+    schemes["nm"] = NeuroMorphoScheme()
     return schemes
 
 
@@ -255,8 +315,8 @@ def _get_scheme(scheme: str) -> FileScheme:
     schemes = _get_schemes()
     try:
         return schemes[scheme]
-    except AttributeError:
-        raise AttributeError(f"{scheme} is not a known file scheme.")
+    except KeyError:
+        raise KeyError(f"{scheme} is not a known file scheme.")
 
 
 @config.node
@@ -269,7 +329,8 @@ class FileDependencyNode:
 
     def __boot__(self):
         self.file.file_store = self.scaffold.files
-        self.file.update()
+        if self.scaffold.is_main_process():
+            self.file.update()
 
     def __inv__(self):
         if not isinstance(self, FileDependencyNode):
@@ -287,6 +348,9 @@ class FileDependencyNode:
 
     def provide_stream(self):
         return self.file.provide_stream()
+
+    def get_stored_file(self):
+        return self.file.get_stored_file()
 
 
 @config.node
@@ -361,8 +425,67 @@ class NrrdDependencyNode(FilePipelineMixin, FileDependencyNode):
 
 @config.node
 class MorphologyDependencyNode(FilePipelineMixin, FileDependencyNode):
+    name = config.attr()
+
+    def store_content(self, content, *args, encoding=None, meta=None):
+        if meta is None:
+            meta = {}
+        meta["_hash"] = self._hash(content)
+        meta["_stale"] = True
+        stored = super().store_content(content, *args, encoding=encoding, meta=meta)
+        print(
+            "STORED MORPHOLOGY FILE IN NETWORK",
+            stored.id,
+            self.get_morphology_name(),
+            stored.meta,
+        )
+        return stored
+
     def load_object(self) -> "Morphology":
         from ..morphologies import Morphology
 
-        with self.file.provide_locally() as (path, encoding):
-            return self.pipe(Morphology.from_file(path))
+        self.file.update()
+        stored = self.get_stored_file()
+        meta = stored.meta
+        print("stored meta", meta)
+        if stored.meta.get("_stale", True):
+            content, meta = stored.load()
+            print(type(content))
+            print("loaded meta", meta)
+            try:
+                morpho_in = Morphology.from_buffer(content, meta=meta)
+            except Exception as e:
+                print(e)
+                with self.file.provide_locally() as (path, encoding):
+                    morpho_in = Morphology.from_file(path, meta=meta)
+            morpho = self.pipe(morpho_in)
+            meta["hash"] = self._hash(content)
+            self.scaffold.morphologies.save(self.get_morphology_name(), morpho, meta=meta)
+            print("SAVED MORPHOLOGY", stored.id, self.get_morphology_name())
+            stored.set_meta("_stale", False)
+            stored.morphology = morpho
+            return stored
+        else:
+            return self.scaffold.morphologies.load(self.get_morphology_name())
+
+    def get_morphology_name(self):
+        return self.name if self.name is not None else _pl.Path(self.file.uri).stem
+
+    def store_object(self, morpho, hash_):
+        self.scaffold.morphologies.save(
+            self.get_morphology_name(), morpho, meta={"hash": hash_}
+        )
+
+    def _hash(self, content):
+        md5 = _hl.md5(usedforsecurity=False)
+        md5.update(content.encode("utf-8"))
+        return md5.hexdigest()
+
+    def queue(self, pool):
+        print(pool)
+        print(dir(self))
+        pool.queue(
+            lambda scaffold, i=self._config_index: scaffold.configuration.morphologies[
+                i
+            ].load_object()
+        )
