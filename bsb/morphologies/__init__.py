@@ -748,6 +748,10 @@ class Morphology(SubTree):
     def meta(self):
         return self._meta
 
+    @meta.setter
+    def meta(self, value):
+        self._meta = value
+
     @property
     def adjacency_dictionary(self):
         """
@@ -914,7 +918,6 @@ class Morphology(SubTree):
             buffer = buffer.read()
         if branch_class is None:
             branch_class = Branch
-        print("Sending buffer:", type(buffer))
         return _swc_to_morpho(cls, branch_class, buffer, tags=tags, meta=meta)
 
     @classmethod

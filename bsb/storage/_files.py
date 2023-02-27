@@ -257,7 +257,6 @@ class NeuroMorphoScheme(UrlScheme):
 
     def resolve_uri(self, file: FileDependency):
         meta = self.get_nm_meta(file)
-        print("URI resolved: ", self._swc_url(meta["archive"], meta["neuron_name"]))
         return self._swc_url(meta["archive"], meta["neuron_name"])
 
     @_ft.cache
@@ -266,7 +265,6 @@ class NeuroMorphoScheme(UrlScheme):
         # Weak DH key on neuromorpho.org
         # https://stackoverflow.com/questions/38015537/python-requests-exceptions-sslerror-dh-key-too-small
         _rq.packages.urllib3.util.ssl_.DEFAULT_CIPHERS += ":HIGH:!DH:!aNULL"
-        print("Sending NM meta request")
         try:
             _rq.packages.urllib3.contrib.pyopenssl.util.ssl_.DEFAULT_CIPHERS += (
                 ":HIGH:!DH:!aNULL"
@@ -277,11 +275,9 @@ class NeuroMorphoScheme(UrlScheme):
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             # Certificate issues with neuromorpho --> verify=False
-            print("Sending request", self._nm_url + self._meta + name)
             try:
                 res = _rq.get(self._nm_url + self._meta + name, verify=False)
             except Exception as e:
-                print("NeuroMorpho unavailable")
                 return {"archive": "none", "neuron_name": "none"}
             if res.status_code == 404:
                 raise IOError(f"'{name}' is not a valid NeuroMorpho name.")
@@ -433,12 +429,6 @@ class MorphologyDependencyNode(FilePipelineMixin, FileDependencyNode):
         meta["_hash"] = self._hash(content)
         meta["_stale"] = True
         stored = super().store_content(content, *args, encoding=encoding, meta=meta)
-        print(
-            "STORED MORPHOLOGY FILE IN NETWORK",
-            stored.id,
-            self.get_morphology_name(),
-            stored.meta,
-        )
         return stored
 
     def load_object(self) -> "Morphology":
@@ -447,22 +437,20 @@ class MorphologyDependencyNode(FilePipelineMixin, FileDependencyNode):
         self.file.update()
         stored = self.get_stored_file()
         meta = stored.meta
-        print("stored meta", meta)
-        if stored.meta.get("_stale", True):
+        if meta.get("_stale", True):
             content, meta = stored.load()
-            print(type(content))
-            print("loaded meta", meta)
             try:
                 morpho_in = Morphology.from_buffer(content, meta=meta)
             except Exception as e:
-                print(e)
                 with self.file.provide_locally() as (path, encoding):
                     morpho_in = Morphology.from_file(path, meta=meta)
             morpho = self.pipe(morpho_in)
             meta["hash"] = self._hash(content)
-            self.scaffold.morphologies.save(self.get_morphology_name(), morpho, meta=meta)
-            print("SAVED MORPHOLOGY", stored.id, self.get_morphology_name())
-            stored.set_meta("_stale", False)
+            meta["_stale"] = False
+            morpho.meta = meta
+            self.scaffold.morphologies.save(
+                self.get_morphology_name(), morpho, overwrite=True
+            )
             stored.morphology = morpho
             return stored
         else:
@@ -482,8 +470,6 @@ class MorphologyDependencyNode(FilePipelineMixin, FileDependencyNode):
         return md5.hexdigest()
 
     def queue(self, pool):
-        print(pool)
-        print(dir(self))
         pool.queue(
             lambda scaffold, i=self._config_index: scaffold.configuration.morphologies[
                 i
