@@ -63,7 +63,7 @@ def make_metaclass(cls):
                 raise ValueError(f"Unexpected positional argument '{primer}'")
             # Call the base class's new with internal arguments
             instance = meta_subject.__new__(
-                meta_subject, _parent=_parent, _key=_key, **kwargs
+                meta_subject, *args, _parent=_parent, _key=_key, **kwargs
             )
             # Call the end user's __init__ with the rewritten arguments, if one is defined
             if has_own_init:
@@ -105,6 +105,12 @@ def make_metaclass(cls):
             return rcls
 
     return NodeMeta
+
+
+class NodeKwargs(dict):
+    def __init__(self, instance, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.is_shortform = getattr(instance, "_config_pos_init", False)
 
 
 def compile_class(cls):
@@ -184,15 +190,16 @@ def compile_new(node_cls, dynamic=False, pluggable=False, root=False):
     else:
         class_determinant = _node_determinant
 
-    def __new__(_cls, _parent=None, _key=None, **kwargs):
+    def __new__(_cls, *args, _parent=None, _key=None, **kwargs):
         ncls = class_determinant(_cls, kwargs)
         instance = object.__new__(ncls)
+        instance._config_pos_init = bool(len(args))
         _set_pk(instance, _parent, _key)
         if root:
             instance._config_isfinished = False
         instance.__post_new__(**kwargs)
         if _cls is not ncls:
-            instance.__init__(**kwargs)
+            instance.__init__(*args, **kwargs)
         return instance
 
     __new__.class_determinant = class_determinant
@@ -214,8 +221,11 @@ def _set_pk(obj, parent, key):
             _setattr(obj, a.attr_name, key)
 
 
-def _check_required(cls, attr, kwargs):
+def _check_required(instance, attr, kwargs):
+    # We use `self.__class__`, not `cls`, to get the proper child class.
+    cls = instance.__class__
     dynamic_root = getattr(cls, "_config_dynamic_root", None)
+    kwargs = NodeKwargs(instance, kwargs)
     if dynamic_root is not None:
         dynamic_attr = dynamic_root._config_dynamic_attr
         # If we are checking the dynamic attribute, but we're already a dynamic subclass,
@@ -240,8 +250,7 @@ def compile_postnew(cls):
             name = attr.attr_name
             value = values[name] = leftovers.pop(name, None)
             try:
-                # We use `self.__class__`, not `cls`, to get the proper child class.
-                if value is None and _check_required(self.__class__, attr, kwargs):
+                if value is None and _check_required(self, attr, kwargs):
                     raise RequirementError(f"Missing required attribute '{name}'")
             except RequirementError as e:
                 # Catch both our own and possible `attr.required` RequirementErrors

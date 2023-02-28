@@ -650,6 +650,13 @@ def mut_excl(*mutuals, required=True, max=1):
     return requirement
 
 
+def shortform():
+    def requirement(section):
+        return not section.is_shortform
+
+    return requirement
+
+
 class ndarray(TypeHandler):
     """
     Type validator numpy arrays.
