@@ -62,6 +62,9 @@ class FileDependency:
     def __hash__(self):
         return hash(self._uri)
 
+    def __inv__(self):
+        return self._given_source
+
     @obj_str_insert
     def __str__(self):
         return f"'{self._uri}'"
@@ -334,7 +337,8 @@ class FileDependencyNode:
         if self._config_pos_init:
             return self.file._given_source
         else:
-            return self.__tree__()
+            tree = self.__tree__()
+            return tree
 
     def load_object(self):
         return self.file.get_content()
@@ -466,7 +470,10 @@ class MorphologyDependencyNode(FilePipelineMixin, FileDependencyNode):
 
     def _hash(self, content):
         md5 = _hl.md5(usedforsecurity=False)
-        md5.update(content.encode("utf-8"))
+        if isinstance(content, str):
+            md5.update(content.encode("utf-8"))
+        else:
+            md5.update(content)
         return md5.hexdigest()
 
     def queue(self, pool):
