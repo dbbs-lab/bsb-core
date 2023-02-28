@@ -1,6 +1,5 @@
-from ..exceptions import *
+from ..config import types
 from .. import config
-from ..config import refs, types
 from ..services import MPI
 import concurrent
 from concurrent.futures import ThreadPoolExecutor
@@ -31,7 +30,11 @@ class MorphologySelector(abc.ABC):
 
 @config.node
 class NameSelector(MorphologySelector, classmap_entry="by_name"):
-    names = config.list(type=str, required=True)
+    names = config.list(type=str, required=types.shortform())
+
+    def __init__(self, name=None, /, **kwargs):
+        if name is not None:
+            self.names = [name]
 
     def _cache_patterns(self):
         self._pnames = {n: n.replace("*", r".*").replace("|", "\\|") for n in self.names}
