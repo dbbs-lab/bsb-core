@@ -21,6 +21,14 @@ import os
 import types
 
 
+def _has_own_init(meta_subject, kwargs):
+    try:
+        determined_class = meta_subject.__new__.class_determinant(meta_subject, kwargs)
+        return overrides(determined_class, "__init__", mro=True)
+    except Exception:
+        return overrides(meta_subject, "__init__", mro=True)
+
+
 def make_metaclass(cls):
     # We make a `NodeMeta` class for each decorated node class, in compliance with any
     # metaclasses they might already have (to prevent metaclass confusion).
@@ -36,7 +44,7 @@ def make_metaclass(cls):
     # and keep the object reference that the user gives them
     class ConfigArgRewrite:
         def __call__(meta_subject, *args, _parent=None, _key=None, **kwargs):
-            has_own_init = overrides(meta_subject, "__init__", mro=True)
+            has_own_init = _has_own_init(meta_subject, kwargs)
             # Rewrite the arguments
             primer = args[0] if args else None
             if isinstance(primer, meta_subject):
@@ -186,6 +194,8 @@ def compile_new(node_cls, dynamic=False, pluggable=False, root=False):
         if _cls is not ncls:
             instance.__init__(**kwargs)
         return instance
+
+    __new__.class_determinant = class_determinant
 
     return __new__
 
