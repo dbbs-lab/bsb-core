@@ -910,7 +910,10 @@ class Morphology(SubTree):
         """
         if branch_class is None:
             branch_class = Branch
-        return _import(cls, branch_class, path, meta=meta)
+        if path.endswith("swc"):
+            return cls.from_swc(path, branch_class, meta=meta)
+        else:
+            return _import(cls, branch_class, path, meta=meta)
 
     @classmethod
     def from_buffer(cls, buffer, branch_class=None, tags=None, meta=None):
