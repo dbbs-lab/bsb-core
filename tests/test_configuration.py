@@ -4,7 +4,7 @@ import numpy as np
 import json
 from bsb.core import Scaffold
 from bsb import config
-from bsb.config import from_json, Configuration, _attrs
+from bsb.config import from_json, Configuration, _attrs, compose_nodes
 from bsb.config import types
 from bsb.exceptions import (
     CfgReferenceError,
@@ -1256,3 +1256,28 @@ class TestScripting(unittest.TestCase):
         self.assertIsNone(_attrs._booted_root(cfg.partitions), "shouldnt be booted yet")
         Scaffold(cfg)
         self.assertIsNotNone(_attrs._booted_root(cfg), "now it should be booted")
+
+
+class TestNodeComposition(unittest.TestCase):
+    def setUp(self):
+        @config.node
+        class NodeA:
+            attrA = config.attr()
+
+        @config.node
+        class NodeB:
+            attrB = config.attr()
+
+        @config.node
+        class NodeC(compose_nodes(NodeA, NodeB)):
+            attrC = config.attr()
+
+        self.tested = NodeC()
+
+    def test_composite_node(self):
+        assert hasattr(self.tested, "attrA")
+        assert type(self.tested.attrA == config.ConfigurationAttribute)
+        assert hasattr(self.tested, "attrB")
+        assert type(self.tested.attrB == config.ConfigurationAttribute)
+        assert hasattr(self.tested, "attrC")
+        assert type(self.tested.attrC == config.ConfigurationAttribute)
