@@ -40,9 +40,7 @@ class NeuronCell(CellModel):
 
 @config.node
 class ArborizedModel(NeuronCell, classmap_entry="arborize"):
-    model = config.attr(
-        type=types.class_(), required=lambda s: not ("relay" in s and s["relay"])
-    )
+    model = config.attr(type=types.object_(), required=True)
     _schematics = {}
 
     def create(self, id, pos, morpho, rot, additional):
