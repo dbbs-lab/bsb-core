@@ -284,7 +284,6 @@ class Layer(Rhomboid, classmap_entry="layer"):
 class Voxels(Partition, abc.ABC, classmap_entry=None):
     """
     Partition based on a set of voxels.
-    Positions in the partition will be indexed according to the voxels' coordinates.
     """
 
     @abc.abstractmethod
@@ -496,8 +495,14 @@ class AllenStructure(NrrdVoxels, classmap_entry="allen"):
     """Name or acronym of the region to filter within the annotation volume according to the AMBRH.
     If struct_name is set, then struct_id should not be set."""
 
-    voxel_size = config.attr(type=int, required=False, default=25)
-    """Size of each voxel."""
+    @config.property
+    def voxel_size(self):
+        """Size of each voxel."""
+        return self._voxel_size if self._voxel_size is not None else 25
+
+    @voxel_size.setter
+    def voxel_size(self, value):
+        self._voxel_size = value
 
     @config.property
     def mask_only(self):
