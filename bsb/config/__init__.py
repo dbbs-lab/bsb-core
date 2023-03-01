@@ -33,7 +33,7 @@ from ._attrs import (
     ConfigurationAttribute,
 )
 from .._util import ichain
-from ._make import walk_node_attributes, walk_nodes
+from ._make import walk_node_attributes, walk_nodes, compose_nodes
 from ._hooks import on, before, after, run_hook, has_hook
 from .. import plugins
 from ..exceptions import ConfigTemplateNotFoundError, ParserError, PluginError
@@ -68,6 +68,7 @@ class ConfigurationModule:
 
     walk_node_attributes = staticmethod(walk_node_attributes)
     walk_nodes = staticmethod(walk_nodes)
+    compose_nodes = staticmethod(compose_nodes)
     on = staticmethod(on)
     after = staticmethod(after)
     before = staticmethod(before)
