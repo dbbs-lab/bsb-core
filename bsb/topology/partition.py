@@ -336,35 +336,39 @@ class Voxels(Partition, abc.ABC, classmap_entry=None):
 @config.node
 class NrrdVoxels(Voxels, classmap_entry="nrrd"):
     """
-    Voxel Partition whose volumetric data (sources) is stored in nrrd files.
-    A mask can also be assigned to filter the data.
+    Voxel partition whose voxelset is loaded from an NRRD file. By default it includes all the
+    nonzero voxels in the file, but other masking conditions can be specified. Additionally, data
+    can be associated to each voxel by inclusion of (multiple) source NRRD files.
     """
 
     source = config.attr(
         type=NrrdDependencyNode,
         required=types.mut_excl("source", "sources", required=False),
     )
-    """Path to the nrrd file containing volumetric data to associate with the partition.
+    """Path to the NRRD file containing volumetric data to associate with the partition.
     If source is set, then sources should not be set."""
     sources = config.list(
         type=NrrdDependencyNode,
         required=types.mut_excl("source", "sources", required=False),
     )
-    """List of paths to nrrd files containing volumetric data to associate with the Partition.
+    """List of paths to NRRD files containing volumetric data to associate with the Partition.
     If sources is set, then source should not be set."""
     mask_value = config.attr(type=int)
     """Integer value to filter in mask_source (if it is set, otherwise sources/source) to create a 
     mask of the voxel set(s) used as input."""
     mask_source = config.attr(type=NrrdDependencyNode)
-    """Path to the nrrd file containing the volumetric annotation data of the Partition."""
+    """Path to the NRRD file containing the volumetric annotation data of the Partition."""
     mask_only = config.attr(type=bool, default=False)
-    """Flag to indicate if only the mask should be used as source."""
+    """Flag to indicate no voxel data needs to be stored"""
     voxel_size = config.attr(type=int, required=True)
     """Size of each voxel."""
     keys = config.attr(type=types.list(str))
     """List of names to assign to each source of the Partition."""
     sparse = config.attr(type=bool, default=True)
-    """Boolean flag to indicate if the mask data is sparse or dense."""
+    """
+    Boolean flag to expect a sparse or dense mask. If the mask selects most
+    voxels, use ``dense``, otherwise use ``sparse``.
+    """
     strict = config.attr(type=bool, default=True)
     """Boolean flag to check the sources and the mask sizes. 
     When the flag is True, sources and mask should have exactly the same sizes;
