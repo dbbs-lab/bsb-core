@@ -398,8 +398,11 @@ class Operation:
         if value is not None:
             self.func = value
 
+    def __call__(self, *args, **kwargs):
+        return self.func(*args, **kwargs)
+
     def process(self, obj):
-        return self.func(obj, self.parameters)
+        return self.func(obj, *self.parameters)
 
 
 class FilePipelineMixin:
