@@ -3,7 +3,7 @@ from ..device import NeuronDevice
 
 
 @config.node
-class CurrentClamp(NeuronDevice, classmap_entry="vclamp"):
+class CurrentClamp(NeuronDevice, classmap_entry="iclamp"):
     locations = config.attr(type=LocationTargetting, default={"strategy": "soma"})
     current = config.attr(
         type=types.or_(float, types.list(type=float, size=3)), required=True
@@ -25,7 +25,7 @@ class CurrentClamp(NeuronDevice, classmap_entry="vclamp"):
     def _add_clamp(self, results, location):
         sx = location.arc(0.5)
         clamp = location.section.iclamp(
-            x = xs,
+            x = sx,
             delay=self.before, 
             duration=self.duration+self.after,
             amplitude=self.holding
