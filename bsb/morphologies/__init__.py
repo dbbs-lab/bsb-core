@@ -196,14 +196,10 @@ class MorphologySet:
         else:
             # No overlap, we can just offset the new dataset
             merge_offset = len(self._loaders)
-            print("Self", self._loaders)
-            print("Other", other._loaders)
             merged_loaders = self._loaders + other._loaders
-            print("Merged", merged_loaders)
             merged_indices = np.concatenate(
                 (self._m_indices, other._m_indices + merge_offset)
             )
-            print(merged_indices)
         return MorphologySet(merged_loaders, merged_indices)
 
     def _mapback(self, locs):
