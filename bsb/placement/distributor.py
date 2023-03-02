@@ -235,14 +235,15 @@ class VolumetricRotations(RotationDistributor, classmap_entry="orientation_field
         orientations = np.full((positions.shape[0], 3), self.default_vector, dtype=float)
         # Expected orientation_field shape is (3, L, W, D) where L, W and D are the sizes
         # of the field. Here we want to filter on the space dimensions, so we move the axes.
-        orientations[filter_inside] = np.moveaxis(orientation_field, 0, -1)[
-            voxel_pos[filter_inside, 0],
-            voxel_pos[filter_inside, 1],
-            voxel_pos[filter_inside, 2],
-        ]
-        orientations[
-            np.isnan(orientations).any(axis=1) + ~orientations.any(axis=1)
-        ] = self.default_vector
+        if filter_inside.any():
+            orientations[filter_inside] = np.moveaxis(orientation_field, 0, -1)[
+                voxel_pos[filter_inside, 0],
+                voxel_pos[filter_inside, 1],
+                voxel_pos[filter_inside, 2],
+            ]
+            orientations[
+                np.isnan(orientations).any(axis=1) + ~orientations.any(axis=1)
+            ] = self.default_vector
 
         return RotationSet(
             Rotation.from_matrix(

@@ -89,15 +89,15 @@ human-readable, multi-scale models!
 
 .. toctree::
   :maxdepth: 2
-  :caption: Cell types
-
-  cells/cells-toc
-
-.. toctree::
-  :maxdepth: 2
   :caption: Topology
 
   topology/topology-toc
+
+.. toctree::
+  :maxdepth: 2
+  :caption: Cell types
+
+  cells/cells-toc
 
 .. toctree::
   :maxdepth: 2
