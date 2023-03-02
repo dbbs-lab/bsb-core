@@ -5,13 +5,11 @@ from ..device import NeuronDevice
 @config.node
 class CurrentClamp(NeuronDevice, classmap_entry="iclamp"):
     locations = config.attr(type=LocationTargetting, default={"strategy": "soma"})
-    current = config.attr(
-        type=types.or_(float, types.list(type=float, size=3)), required=True
+    amplitude = config.attr(
+        type=float, required=True
     )
     before = config.attr(type=float, default=None)
     duration = config.attr(type=float, default=None)
-    after = config.attr(type=float, default=None)
-    holding = config.attr(type=float, default=None)
 
     def implement(self, result, cells, connections):
         for target in self.targetting.get_targets(cells, connections):
@@ -27,10 +25,11 @@ class CurrentClamp(NeuronDevice, classmap_entry="iclamp"):
         clamp = location.section.iclamp(
             x = sx,
             delay=self.before, 
-            duration=self.duration+self.after,
-            amplitude=self.holding
+            duration=self.duration,
+            amplitude=self.amplitude
         )
         results.record(clamp._ref_i)
+
 """
 
 class CurrentClamp(NeuronDevice):
