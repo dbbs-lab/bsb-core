@@ -36,9 +36,11 @@ class MorphologySet:
     <.storage.interfaces.StoredMorphology>` to cells
     """
 
-    def __init__(self, loaders, m_indices, labels=None):
+    def __init__(self, loaders, m_indices=None, /, labels=None):
+        if m_indices is None:
+            loaders, m_indices = np.unique(loaders, return_inverse=True)
         self._m_indices = np.array(m_indices, copy=False, dtype=int)
-        self._loaders = loaders
+        self._loaders = list(loaders)
         check_max = np.max(m_indices, initial=-1)
         if check_max >= len(loaders):
             raise IndexError(f"Index {check_max} out of range for {len(loaders)}.")
@@ -194,10 +196,14 @@ class MorphologySet:
         else:
             # No overlap, we can just offset the new dataset
             merge_offset = len(self._loaders)
+            print("Self", self._loaders)
+            print("Other", other._loaders)
             merged_loaders = self._loaders + other._loaders
+            print("Merged", merged_loaders)
             merged_indices = np.concatenate(
                 (self._m_indices, other._m_indices + merge_offset)
             )
+            print(merged_indices)
         return MorphologySet(merged_loaders, merged_indices)
 
     def _mapback(self, locs):
@@ -696,6 +702,10 @@ class Morphology(SubTree):
             b1.is_terminal == b2.is_terminal and (not b1.is_terminal or b1 == b2)
             for b1, b2 in zip(self.branches, other.branches)
         )
+
+    def __lt__(self, other):
+        # Sorting compares using lt, so we use id for useless but stable comparison.
+        return id(self) < id(other)
 
     def __hash__(self):
         return id(self)
