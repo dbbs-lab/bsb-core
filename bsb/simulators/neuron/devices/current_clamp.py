@@ -1,13 +1,10 @@
 from ..device import NeuronDevice
 
 
-
 @config.node
 class CurrentClamp(NeuronDevice, classmap_entry="iclamp"):
     locations = config.attr(type=LocationTargetting, default={"strategy": "soma"})
-    amplitude = config.attr(
-        type=float, required=True
-    )
+    amplitude = config.attr(type=float, required=True)
     before = config.attr(type=float, default=None)
     duration = config.attr(type=float, default=None)
 
@@ -23,26 +20,6 @@ class CurrentClamp(NeuronDevice, classmap_entry="iclamp"):
     def _add_clamp(self, results, location):
         sx = location.arc(0.5)
         clamp = location.section.iclamp(
-            x = sx,
-            delay=self.before, 
-            duration=self.duration,
-            amplitude=self.amplitude
+            x=sx, delay=self.before, duration=self.duration, amplitude=self.amplitude
         )
         results.record(clamp._ref_i)
-
-"""
-
-class CurrentClamp(NeuronDevice):
-    def implement(self, target, location):
-        pattern = self.get_pattern(target, location)
-        location.section.iclamp(**pattern)
-
-    def validate_specifics(self):
-        pass
-
-    def create_patterns(self):
-        return self.parameters
-
-    def get_pattern(self, target, cell=None, section=None, synapse=None):
-        return self.get_patterns()
-"""
