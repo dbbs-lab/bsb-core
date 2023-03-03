@@ -521,10 +521,10 @@ def _get_module_object(object_name, module_name, object_path):
         tmp = list(reversed(sys.path))
         tmp.remove(os.getcwd())
         sys.path = list(reversed(tmp))
-    module_dict = module_ref.__dict__
-    if object_name not in module_dict:
+    try:
+        return getattr(module_ref, object_name)
+    except Exception:
         raise DynamicObjectNotFoundError(f"'{object_path}' not found.")
-    return module_dict[object_name]
 
 
 def make_dictable(node_cls):
