@@ -7,6 +7,7 @@ import errr
 
 from ._hooks import run_hook
 from ._make import (
+    MISSING,
     compile_class,
     compile_postnew,
     compile_new,
@@ -419,6 +420,7 @@ class ConfigurationAttribute:
         required=False,
         key=False,
         unset=False,
+        hint=MISSING,
     ):
         if not callable(required):
             self.required = lambda s: required
@@ -429,6 +431,7 @@ class ConfigurationAttribute:
         self.call_default = call_default
         self.type = self._get_type(type)
         self.unset = unset
+        self.hint = hint
 
     def __set_name__(self, owner, name):
         self.attr_name = name
@@ -485,6 +488,11 @@ class ConfigurationAttribute:
         # like `_parent` and `_key`
         t = _wrap_reserved(t)
         return t
+
+    def get_hint(self):
+        if hasattr(self.type, "__hint__"):
+            return self.type.__hint__()
+        return self.hint
 
     def get_node_name(self, instance):
         return instance.get_node_name() + "." + self.attr_name
