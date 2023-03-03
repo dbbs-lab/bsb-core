@@ -512,7 +512,7 @@ class ConfigurationAttribute:
             val = val.__tree__()
         # Check if the type handler specifies any inversion function to convert tree
         # values back to how they were found in the document.
-        if hasattr(self.type, "__inv__"):
+        if hasattr(self.type, "__inv__") and val is not None:
             val = self.type.__inv__(val)
         return val
 
