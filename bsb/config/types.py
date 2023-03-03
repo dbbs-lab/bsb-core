@@ -201,6 +201,8 @@ class function_(object_):
     """
 
     def __call__(self, value):
+        if callable(value):
+            return value
         obj = super().__call__(value)
         if not callable(obj):
             raise TypeError(f"Could not import {value} as a callable function.")
