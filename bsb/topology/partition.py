@@ -456,15 +456,15 @@ class AllenStructure(NrrdVoxels, classmap_entry="allen"):
         call_default=True,
     )
 
-    @config.property
+    @config.property(type=int)
     def voxel_size(self):
         return 25
 
-    @config.property
+    @config.property(type=bool)
     def mask_only(self):
         return self.source is None and len(self.sources) == 0
 
-    @config.property
+    @config.property(type=str)
     @functools.cache
     def mask_source(self):
         node = NrrdDependencyNode()
