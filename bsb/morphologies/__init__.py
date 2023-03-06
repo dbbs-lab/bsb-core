@@ -884,17 +884,21 @@ class Morphology(SubTree):
     @classmethod
     def from_swc(cls, file, branch_class=None, tags=None, meta=None):
         """
-        Create a Morphology from a file-like object.
+        Create a Morphology from a swc file.
 
         :param file: path or file-like object to parse.
         :param branch_class: Custom branch class
-        :type branch_class: type
+        :type branch_class: bsb.morphologies.Branch
+        :param tags: dictionary mapping morphology label id to its name
+        :type tags: dict
+        :param meta: dictionary header containing metadata on morphology
+        :type meta: dict
         :returns: The parsed morphology, with the SWC tags as a property.
         :rtype: bsb.morphologies.Morphology
         """
         if isinstance(file, str) or isinstance(file, Path):
             with open(str(file), "r") as f:
-                return cls.from_swc(f, branch_class, meta=meta)
+                return cls.from_swc(f, branch_class, meta=meta, tags=tags)
         if branch_class is None:
             branch_class = Branch
         return _swc_to_morpho(cls, branch_class, file.read(), tags=tags, meta=meta)
@@ -918,7 +922,8 @@ class Morphology(SubTree):
         """
         Create a SWC file from a Morphology.
         :param file: path or file-like object to parse.
-        :param branch_class: Custom branch class
+        :param meta: dictionary header containing metadata related to morphology
+        :type meta: dict
         """
         file_data = _morpho_to_swc(self)
         if meta:  # pragma: nocover
