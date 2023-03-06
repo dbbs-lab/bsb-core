@@ -36,9 +36,11 @@ class MorphologySet:
     <.storage.interfaces.StoredMorphology>` to cells
     """
 
-    def __init__(self, loaders, m_indices, labels=None):
+    def __init__(self, loaders, m_indices=None, /, labels=None):
+        if m_indices is None:
+            loaders, m_indices = np.unique(loaders, return_inverse=True)
         self._m_indices = np.array(m_indices, copy=False, dtype=int)
-        self._loaders = loaders
+        self._loaders = list(loaders)
         check_max = np.max(m_indices, initial=-1)
         if check_max >= len(loaders):
             raise IndexError(f"Index {check_max} out of range for {len(loaders)}.")
@@ -697,6 +699,10 @@ class Morphology(SubTree):
             for b1, b2 in zip(self.branches, other.branches)
         )
 
+    def __lt__(self, other):
+        # Sorting compares using lt, so we use id for useless but stable comparison.
+        return id(self) < id(other)
+
     def __hash__(self):
         return id(self)
 
@@ -902,6 +908,20 @@ class Morphology(SubTree):
         if branch_class is None:
             branch_class = Branch
         return _swc_to_morpho(cls, branch_class, file.read(), tags=tags, meta=meta)
+
+    @classmethod
+    def from_swc_data(cls, data, branch_class=None, tags=None, meta=None):
+        """
+        Create a Morphology from a SWC-like formatted array.
+
+        :param numpy.ndarray data: (N,7) array.
+        :param type branch_class: Custom branch class
+        :returns: The parsed morphology, with the SWC tags as a property.
+        :rtype: bsb.morphologies.Morphology
+        """
+        if branch_class is None:
+            branch_class = Branch
+        return _swc_data_to_morpho(cls, branch_class, data, tags=tags, meta=meta)
 
     @classmethod
     def from_file(cls, path, branch_class=None, meta=None):
@@ -1630,9 +1650,6 @@ def _swc_branch_dfs(adjacency, branches, node):
 
 
 def _swc_to_morpho(cls, branch_cls, content, tags=None, meta=None):
-    tag_map = {1: "soma", 2: "axon", 3: "dendrites"}
-    if tags is not None:
-        tag_map.update(tags)
     data = np.array(
         [
             swc_data
@@ -1644,6 +1661,13 @@ def _swc_to_morpho(cls, branch_cls, content, tags=None, meta=None):
     if data.dtype.name == "object":
         err_lines = ", ".join(i for i, d in enumerate(data) if len(d) != 7)
         raise ValueError(f"SWC incorrect on lines: {err_lines}")
+    return _swc_data_to_morpho(cls, branch_cls, data, tags=tags, meta=meta)
+
+
+def _swc_data_to_morpho(cls, branch_cls, data, tags=None, meta=None):
+    tag_map = {1: "soma", 2: "axon", 3: "dendrites"}
+    if tags is not None:
+        tag_map.update(tags)
     # `data` is the raw SWC data, `samples` and `parents` are the graph nodes and edges.
     samples = data[:, 0].astype(int)
     # Map possibly irregular sample IDs (SWC spec allows this) to an ordered 0 to N map.
