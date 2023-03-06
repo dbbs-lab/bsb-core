@@ -75,7 +75,8 @@ class EncodedLabels(np.ndarray):
                 # Check if this new combination of labels already is assigned an id.
                 for k, v in self.labels.items():
                     if trans_labels == v:
-                        # Transition labels already exist, return it
+                        # Transition labels already exist, store and return it
+                        _transitions[point] = k
                         return k
                 else:
                     # Transition labels are a new combination, store them under a new id.

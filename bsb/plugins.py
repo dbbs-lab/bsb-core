@@ -10,7 +10,7 @@ from .exceptions import PluginError
 import types
 
 
-def discover(category, *args, **kwargs):
+def discover(category):
     """
     Discover all plugins for a given category.
 

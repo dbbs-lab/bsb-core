@@ -6,9 +6,8 @@ Inherit from :class:`BaseCommand` for regular CLI style commands, or from
 :class:`BsbCommand` if you want more freedom in what exactly constitutes a command to the
 BSB.
 """
-import abc
 import argparse
-from ...exceptions import *
+from ...exceptions import CommandError
 from ...reporting import report
 
 
@@ -65,8 +64,8 @@ class BaseCommand(BsbCommand, abstract=True):
         locals = locals.copy()
         locals.update(self.get_options())
         parser = parent.add_parser(self.name)
-        self.add_parser_options(parser, context, locals, level)
         self.add_parser_arguments(parser)
+        self.add_parser_options(parser, context, locals, level)
         parser.set_defaults(handler=self.execute_handler)
         self.add_subparsers(parser, context, self._subcommands, locals, level)
         return parser

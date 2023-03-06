@@ -299,7 +299,7 @@ class TestPlacementSet(
         )
         for chunk in self.chunks:
             with self.subTest(chunk=chunk):
-                with ps.chunk_context(chunk):
+                with ps.chunk_context([chunk]):
                     self.assertEqual(
                         25,
                         len(ps),
@@ -480,7 +480,7 @@ class TestConnectivitySet(
 
     def test_io(self):
         # Test that connections can be stored over chunked layout and can be loaded again.
-        cs = self.network.get_connectivity_set("test_cell_to_test_cell")
+        cs = self.network.get_connectivity_set("all_to_all")
         for lchunk, g_itr in cs.nested_iter_connections(direction="out"):
             for gchunk, conns in g_itr:
                 ids = conns[0][:, 0]
@@ -495,13 +495,11 @@ class TestConnectivitySet(
                 self.assertEqual(25, len(u), "expected exactly 25 global cells")
                 self.assertClose(np.arange(0, 25), np.sort(u))
                 self.assertClose(25, c)
-        self.assertEqual(
-            100 * 100, len(self.network.get_connectivity_set("test_cell_to_test_cell"))
-        )
+        self.assertEqual(100 * 100, len(self.network.get_connectivity_set("all_to_all")))
 
     def test_local(self):
         # Test that connections can be stored over chunked layout and can be loaded again.
-        cs = self.network.get_connectivity_set("test_cell_to_test_cell")
+        cs = self.network.get_connectivity_set("all_to_all")
         for lchunk in cs.get_local_chunks(direction="out"):
             local_locs, gchunk_ids, global_locs = cs.load_local_connections("out", lchunk)
             ids = local_locs[:, 0]
@@ -516,9 +514,7 @@ class TestConnectivitySet(
             self.assertEqual(25, len(u), "expected exactly 25 global cells")
             self.assertClose(np.arange(0, 25), np.sort(u))
             self.assertClose(100, c, "expected 25 local sources per global cell")
-        self.assertEqual(
-            100 * 100, len(self.network.get_connectivity_set("test_cell_to_test_cell"))
-        )
+        self.assertEqual(100 * 100, len(self.network.get_connectivity_set("all_to_all")))
 
     @single_process_test
     def test_connect_connect(self):
@@ -555,19 +551,17 @@ class TestConnectivitySet(
         )
 
     def test_load_all(self):
-        cs = self.network.get_connectivity_set("test_cell_to_test_cell")
+        cs = self.network.get_connectivity_set("all_to_all")
         data = cs.load_connections()
         try:
-            lcol, lloc, gcol, gloc = data
+            pre, post = data.all()
         except (ValueError, TypeError):
-            self.fail("`load_connections` did not return 4 args")
-        self.assertEqual(10000, len(lcol), "expected full 10k local chunk ids")
-        self.assertEqual(10000, len(lloc), "expected full 10k local locs")
-        self.assertEqual(10000, len(gcol), "expected full 10k global chunk ids")
-        self.assertEqual(10000, len(gloc), "expected full 10k global locs")
+            self.fail("`load_connections` did not return 2 args")
+        self.assertEqual(10000, len(pre), "expected full 10k presynaptic locs")
+        self.assertEqual(10000, len(post), "expected full 10k postsynaptic locs")
 
     def test_load_local(self):
-        cs = self.network.get_connectivity_set("test_cell_to_test_cell")
+        cs = self.network.get_connectivity_set("all_to_all")
         chunks = cs.get_local_chunks("inc")
         data = cs.load_local_connections("inc", chunks[0])
         try:
@@ -583,12 +577,12 @@ class TestConnectivitySet(
         self.assertEqual(100, unique_globals, "Expected 100 globals")
 
     def test_flat_iter(self):
-        cs = self.network.get_connectivity_set("test_cell_to_test_cell")
+        cs = self.network.get_connectivity_set("all_to_all")
         itr = cs.flat_iter_connections()
         self.check_a2a_flat_iter(itr, ["inc", "out"], 4, 4)
 
     def test_nested_iter(self):
-        cs = self.network.get_connectivity_set("test_cell_to_test_cell")
+        cs = self.network.get_connectivity_set("all_to_all")
         try:
             iter(cs.nested_iter_connections())
         except TypeError:

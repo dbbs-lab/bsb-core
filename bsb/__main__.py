@@ -1,3 +1,3 @@
 from . import cli
 
-cli.scaffold_cli()
+cli.handle_cli()

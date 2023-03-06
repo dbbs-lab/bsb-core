@@ -1,6 +1,7 @@
 """
     An attrs-inspired class annotation system, but my A stands for amateuristic.
 """
+import errr
 
 from ._hooks import run_hook
 from ._make import (
@@ -15,12 +16,13 @@ from ._make import (
     walk_nodes,
     _resolve_references,
 )
-from .types import _wrap_reserved
+from ._compile import _wrap_reserved
 from ..exceptions import (
     RequirementError,
     NoReferenceAttributeSignal,
     CastError,
     CfgReferenceError,
+    BootError,
 )
 import builtins
 
@@ -54,7 +56,7 @@ def node(node_cls, root=False, dynamic=False, pluggable=False):
             else:
                 attrs[k] = v
     node_cls._config_attrs = attrs
-    node_cls.__post_new__ = compile_postnew(node_cls, root=root)
+    node_cls.__post_new__ = compile_postnew(node_cls)
     node_cls._config_isroot = root
     if root:
         node_cls.__post_new__ = wrap_root_postnew(node_cls.__post_new__)
@@ -136,6 +138,7 @@ def _dynamic(node_cls, class_attr, attr_name, config):
     node_cls._config_dynamic_attr = attr_name
     # Other than that compile the dynamic class like a regular node class
     node_cls = node(node_cls, dynamic=config)
+
     if config.auto_classmap or config.classmap:
         node_cls._config_dynamic_classmap = config.classmap or {}
     # This adds the parent class to its own classmap, which for subclasses happens in init
@@ -316,6 +319,16 @@ def unset():
     return ConfigurationAttribute(unset=True)
 
 
+def file(**kwargs):
+    """
+    Create a file dependency attribute.
+    """
+    from ..storage import FileDependencyNode
+
+    kwargs.setdefault("type", FileDependencyNode)
+    return attr(**kwargs)
+
+
 def _setattr(instance, name, value):
     instance.__dict__["_" + name] = value
 
@@ -360,7 +373,19 @@ def _root_is_booted(obj):
 def _boot_nodes(top_node, scaffold):
     for node in walk_nodes(top_node):
         node.scaffold = scaffold
-        run_hook(node, "boot")
+        # Boot attributes
+        for attr in getattr(node, "_config_attrs", {}).values():
+            booted = {None}
+            for cls in type(node).__mro__:
+                cls_attr = getattr(cls, attr.attr_name, None)
+                if (boot := getattr(cls_attr, "__boot__", None)) and boot not in booted:
+                    boot(node, scaffold)
+                    booted.add(boot)
+        # Boot node hook
+        try:
+            run_hook(node, "boot")
+        except Exception as e:
+            errr.wrap(BootError, e, prepend=f"Failed to boot {node}:")
 
 
 def _unset_nodes(top_node):
@@ -926,9 +951,6 @@ class ConfigurationReferenceListAttribute(ConfigurationReferenceAttribute):
             remote, remote_keys = self._prepare_self(instance, root)
         except NoReferenceAttributeSignal:  # pragma: nocover
             return None
-        if _hasattr(instance, self.attr_name):
-            remote_keys.extend(_getattr(instance, self.attr_name))
-            remote_keys = builtins.list(set(remote_keys))
         return self.resolve_reference_list(instance, remote, remote_keys)
 
     def resolve_reference_list(self, instance, remote, remote_keys):
@@ -996,7 +1018,7 @@ class ConfigurationProperty(ConfigurationAttribute):
 
     def __get__(self, instance, owner):
         if instance is None:
-            return owner
+            return self
         return self.fget(instance)
 
     def __set__(self, instance, value):

@@ -235,7 +235,20 @@ class RotationSet:
     """
 
     def __init__(self, data):
-        self._data = data
+        if not isinstance(data, np.ndarray):
+            self._data = np.array(
+                [
+                    v.as_euler("xyz", degrees=True) if isinstance(v, Rotation) else v
+                    for v in data
+                ]
+            )
+        else:
+            self._data = data
+        if self._data.ndim != 2 or self._data.shape[1] != 3:
+            raise ValueError("Input should be an (Nx3) matrix of rotations.")
+
+    def __array__(self, dtype=None, *args, **kwargs):
+        return self._data.__array__(dtype, *args, **kwargs)
 
     def __iter__(self):
         return self.iter()
@@ -829,9 +842,9 @@ class Morphology(SubTree):
             starts = (np.nonzero(filtered[1:] & ~filtered[:-1])[0] + 1).tolist()
             ends = (np.nonzero(filtered[:-1] & ~filtered[1:])[0] + 1).tolist()
             # Treat the boundary.
-            if filtered[0]:
+            if len(filtered) and filtered[0]:
                 starts.insert(0, 0)
-            if filtered[-1]:
+            if len(filtered) and filtered[-1]:
                 ends.append(len(filtered))
             prev = None
             nbranch = None
@@ -1074,10 +1087,12 @@ class Branch:
 
         .. warning::
 
-           Constructing a kd-tree takes time and should only be used for repeated querying.
+           Constructing a kd-tree takes time and should only be used for repeat queries.
 
         """
-        return cKDTree(self._points)
+        import scipy.spatial
+
+        return scipy.spatial.cKDTree(self._points)
 
     @property
     def point_vectors(self):

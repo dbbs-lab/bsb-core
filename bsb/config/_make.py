@@ -7,7 +7,7 @@ from ..exceptions import (
     DynamicClassError,
     UnresolvedClassCastError,
     PluginError,
-    DynamicClassNotFoundError,
+    DynamicObjectNotFoundError,
 )
 from ..reporting import warn
 from ._hooks import overrides
@@ -58,7 +58,7 @@ def make_metaclass(cls):
                 meta_subject, _parent=_parent, _key=_key, **kwargs
             )
             # Call the end user's __init__ with the rewritten arguments, if one is defined
-            if overrides(meta_subject, "__init__", mro=True):
+            if has_own_init:
                 sig = inspect.signature(instance.__init__)
                 try:
                     # Check whether the arguments match the signature. We use `sig.bind`
@@ -82,6 +82,7 @@ def make_metaclass(cls):
                         + f": e.g. 'def __init__{sig}'"
                     ) from None
                 else:
+                    instance._config_pos_init = bool(len(args))
                     instance.__init__(*args, **kwargs)
             return instance
 
@@ -96,6 +97,16 @@ def make_metaclass(cls):
             return rcls
 
     return NodeMeta
+
+
+def compose_nodes(*node_classes):
+    """
+    Create a composite mixin class of the given classes. Inherit from the returned class
+    to inherit from more than one node class.
+
+    """
+    meta = type("ComposedMetaclass", tuple(type(cls) for cls in node_classes), {})
+    return meta("CompositionMixin", node_classes, {})
 
 
 def compile_class(cls):
@@ -203,7 +214,22 @@ def _set_pk(obj, parent, key):
             _setattr(obj, a.attr_name, key)
 
 
-def compile_postnew(cls, root=False):
+def _check_required(cls, attr, kwargs):
+    dynamic_root = getattr(cls, "_config_dynamic_root", None)
+    if dynamic_root is not None:
+        dynamic_attr = dynamic_root._config_dynamic_attr
+        # If we are checking the dynamic attribute, but we're already a dynamic subclass,
+        # we skip the required check.
+        return (
+            attr.attr_name == dynamic_attr
+            and cls is dynamic_root
+            and attr.required(kwargs)
+        ) or (attr.attr_name != dynamic_attr and attr.required(kwargs))
+    else:
+        return attr.required(kwargs)
+
+
+def compile_postnew(cls):
     def __post_new__(self, _parent=None, _key=None, **kwargs):
         attrs = _get_class_config_attrs(self.__class__)
         self._config_attr_order = list(kwargs.keys())
@@ -214,7 +240,8 @@ def compile_postnew(cls, root=False):
             name = attr.attr_name
             value = values[name] = leftovers.pop(name, None)
             try:
-                if value is None and attr.required(kwargs):
+                # We use `self.__class__`, not `cls`, to get the proper child class.
+                if value is None and _check_required(self.__class__, attr, kwargs):
                     raise RequirementError(f"Missing required attribute '{name}'")
             except RequirementError as e:
                 # Catch both our own and possible `attr.required` RequirementErrors
@@ -233,7 +260,6 @@ def compile_postnew(cls, root=False):
             else:
                 setattr(self, name, value)
                 attr.flag_dirty(self)
-        # # TODO: catch attrs
         for key, value in leftovers.items():
             try:
                 _try_catch_attrs(self, catch_attrs, key, value)
@@ -374,7 +400,7 @@ def _get_dynamic_class(node_cls, kwargs):
     elif dynamic_attr.should_call_default():  # pragma: nocover
         loaded_cls_name = dynamic_attr.default()
     else:
-        loaded_cls_name = dynamic_attr.default
+        loaded_cls_name = dynamic_attr.default or node_cls.__name__
     module_path = ["__main__", node_cls.__module__]
     classmap = getattr(node_cls, "_config_dynamic_classmap", None)
     interface = getattr(node_cls, "_config_dynamic_root")
@@ -433,13 +459,8 @@ def _load_class(cfg_classname, module_path, interface=None, classmap=None):
         class_ref = cfg_classname
         class_name = cfg_classname.__name__
     else:
-        class_parts = cfg_classname.split(".")
-        class_name = class_parts[-1]
-        module_name = ".".join(class_parts[:-1])
-        if module_name == "":
-            class_ref = _search_module_path(class_name, module_path, cfg_classname)
-        else:
-            class_ref = _get_module_class(class_name, module_name, cfg_classname)
+        class_ref = _load_object(cfg_classname, module_path)
+        class_name = class_ref.__name__
 
     def qualname(cls):
         return cls.__module__ + "." + cls.__name__
@@ -453,15 +474,27 @@ def _load_class(cfg_classname, module_path, interface=None, classmap=None):
     return class_ref
 
 
+def _load_object(object_path, module_path):
+    class_parts = object_path.split(".")
+    object_name = class_parts[-1]
+    module_name = ".".join(class_parts[:-1])
+    if not module_name:
+        object_ref = _search_module_path(object_name, module_path, object_path)
+    else:
+        object_ref = _get_module_object(object_name, module_name, object_path)
+
+    return object_ref
+
+
 def _search_module_path(class_name, module_path, cfg_classname):
     for module_name in module_path:
         module_dict = sys.modules[module_name].__dict__
         if class_name in module_dict:
             return module_dict[class_name]
-    raise DynamicClassNotFoundError("Class not found: " + cfg_classname)
+    raise DynamicObjectNotFoundError("Class not found: " + cfg_classname)
 
 
-def _get_module_class(class_name, module_name, cfg_classname):
+def _get_module_object(object_name, module_name, object_path):
     sys.path.append(os.getcwd())
     try:
         module_ref = importlib.import_module(module_name)
@@ -470,9 +503,9 @@ def _get_module_class(class_name, module_name, cfg_classname):
         tmp.remove(os.getcwd())
         sys.path = list(reversed(tmp))
     module_dict = module_ref.__dict__
-    if class_name not in module_dict:
-        raise DynamicClassNotFoundError("Class not found: " + cfg_classname)
-    return module_dict[class_name]
+    if object_name not in module_dict:
+        raise DynamicObjectNotFoundError(f"'{object_path}' not found.")
+    return module_dict[object_name]
 
 
 def make_dictable(node_cls):
@@ -495,6 +528,11 @@ def make_dictable(node_cls):
 
 def make_tree(node_cls):
     def get_tree(instance):
+        if hasattr(instance, "__inv__") and not getattr(instance, "_config_inv", None):
+            instance._config_inv = True
+            inv = instance.__inv__()
+            instance._config_inv = False
+            return inv
         attrs = _get_class_config_attrs(instance.__class__)
         catch_attrs = [a for a in attrs.values() if hasattr(a, "__catch__")]
         tree = {}

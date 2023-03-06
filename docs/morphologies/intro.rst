@@ -218,7 +218,7 @@ giving a :class:`~scipy.spatial.transform.Rotation` (and a center, by default 0)
 
   from scipy.spatial.transform import Rotation
 
-  r = Rotation.from_euler("xy", 90, 90, degrees=True)
+  r = Rotation.from_euler("xy", [90, 90], degrees=True)
   dendrites.rotate(r)
 
 .. figure:: /images/m_trans/rotate_dend.png

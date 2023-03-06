@@ -4,12 +4,8 @@
 
 from . import config
 from .config import types
-from .placement import PlacementStrategy
 from .placement.indicator import PlacementIndications
-from ._util import SortableByAfter
-from .exceptions import *
 from ._util import obj_str_insert
-import abc
 
 
 @config.node
@@ -53,11 +49,6 @@ class CellType:
     """
     Plotting information about the cell type, such as color and labels.
     """
-    relay = config.attr(type=bool, default=False)
-    """
-    Whether this cell type is a relay type. Relay types, during simulation, instantly
-    transmit incoming spikes to their targets.
-    """
     entity = config.attr(type=bool, default=False)
     """
     Whether this cell type is an entity type. Entity types don't have representations in
@@ -68,14 +59,22 @@ class CellType:
         storage = self.scaffold.storage
         storage._PlacementSet.require(storage._engine, self)
 
+    def __lt__(self, other):
+        try:
+            return self.name < other.name
+        except Exception:
+            return True
+
     @obj_str_insert
     def __repr__(self):
-        if hasattr(self, "scaffold"):
-            cells_placed = len(self.get_placement_set())
+        try:
             placements = len(self.get_placement())
-        else:
-            cells_placed = 0
+        except Exception:
             placements = "?"
+        try:
+            cells_placed = len(self.get_placement_set())
+        except Exception:
+            cells_placed = 0
         return f"'{self.name}', {cells_placed} cells, {placements} placement strategies"
 
     def get_placement(self):

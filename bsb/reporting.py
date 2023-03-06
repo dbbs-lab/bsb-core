@@ -12,6 +12,7 @@ _preamble_bar = chr(191) * 3
 _report_file = None
 
 
+# Always show all scaffold warnings
 for e in _exc.__dict__.values():
     if isinstance(e, type) and issubclass(e, Warning):
         warnings.simplefilter("always", e)

@@ -16,6 +16,14 @@ class Reference:  # pragma: nocover
     def __call__(self, root, here):
         return here
 
+    def up(self, here, to):
+        while not isinstance(here, to):
+            try:
+                here = here._config_parent
+            except AttributeError:
+                return None
+        return here
+
 
 class CellTypeReference(Reference):
     def __call__(self, root, here):
@@ -25,6 +33,16 @@ class CellTypeReference(Reference):
         from ..cell_types import CellType
 
         return isinstance(value, CellType)
+
+
+class ConnectionTypeReference(Reference):
+    def __call__(self, root, here):
+        return root.connectivity
+
+    def is_ref(self, value):
+        from ..connectivity import ConnectionStrategy
+
+        return isinstance(value, ConnectionStrategy)
 
 
 class PartitionReference(Reference):
@@ -79,11 +97,26 @@ class ConnectivityReference(Reference):
         return isinstance(value, ConnectionStrategy)
 
 
+class SimCellModelReference(Reference):
+    def __call__(self, root, here):
+        from bsb.simulation.simulation import Simulation
+
+        sim = self.up(here, Simulation)
+        return sim.cell_models
+
+    def is_ref(self, value):
+        from ..simulation.cell import CellModel
+
+        return isinstance(value, CellModel)
+
+
 cell_type_ref = CellTypeReference()
+conn_type_ref = ConnectionTypeReference()
 partition_ref = PartitionReference()
 placement_ref = PlacementReference()
 connectivity_ref = ConnectivityReference()
 regional_ref = RegionalReference()
 region_ref = RegionReference()
+sim_cell_model_ref = SimCellModelReference()
 
 __all__ = [k for k in vars().keys() if k.endswith("_ref") or k.endswith("__")]

@@ -1,6 +1,6 @@
 from .... import config
-from ..adapter import NeuronDevice
-from ....simulation.results import SimulationRecorder, PresetPathMixin, PresetMetaMixin
+from ..device import NeuronDevice
+from ....simulation.results import SimulationRecorder
 from ....exceptions import *
 from ....reporting import report, warn
 import numpy as np
@@ -85,14 +85,16 @@ class SpikeGenerator(NeuronDevice):
         return self.get_patterns()[target]
 
 
-class GeneratorRecorder(PresetPathMixin, PresetMetaMixin, SimulationRecorder):
+class GeneratorRecorder(SimulationRecorder):
     def __init__(self, device, target, pattern):
         self.pattern = pattern
-        self.meta = {"device": device.name, "target": str(target)}
-        self.path = ("recorders", "input", device.name, str(target))
+        self.device = device
 
     def get_data(self):
         return np.array(self.pattern)
+
+    def flush(self):
+        raise NotImplementedError("Flushing generator")
 
 
 # Kopimismed from abandoned neuronpy project. By Tom McCavish

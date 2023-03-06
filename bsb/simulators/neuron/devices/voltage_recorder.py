@@ -1,9 +1,8 @@
-from ..adapter import NeuronDevice
-from ....simulation.device import Patternless
+from ..device import NeuronDevice
 import numpy as np
 
 
-class VoltageRecorder(Patternless, NeuronDevice):
+class VoltageRecorder(NeuronDevice):
     casts = {"x": float}
 
     def implement(self, target, location):

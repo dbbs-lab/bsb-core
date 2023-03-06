@@ -1,8 +1,8 @@
 # How to access and work with the placement data of a network
-from bsb.core import from_hdf5
+from bsb.core import from_storage
 import numpy as np
 
-network = from_hdf5("network.hdf5")
+network = from_storage("network.hdf5")
 for cell_type in network.cell_types:
     ps = cell_type.get_placement_set()
     pos = ps.load_positions()

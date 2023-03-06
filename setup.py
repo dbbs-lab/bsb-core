@@ -17,21 +17,25 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 requires = [
-    "bsb-hdf5~=0.4.4",
+    "bsb-hdf5~=0.7.2",
     "h5py~=3.0",
     "numpy~=1.19",
     "scipy~=1.5",
     "scikit-learn~=1.0",
     "plotly~=5.5",
     "colour~=0.1",
-    "errr~=1.1.1",
+    "errr~=1.2",
     "rtree~=1.0",
     "psutil~=5.8",
-    "pynrrd~=0.4",
+    "pynrrd~=1.0",
     "morphio~=3.3",
     "toml",
     "requests",
     "appdirs~=1.4",
+    "neo[nixio]",
+    "tqdm~=4.50",
+    "shortuuid",
+    "quantities",
 ]
 
 setuptools.setup(
@@ -65,13 +69,15 @@ setuptools.setup(
     ],
     entry_points={
         "console_scripts": ["bsb = bsb.cli:handle_cli"],
-        "bsb.adapters": [
+        "bsb.storage.engines": ["fs = bsb.storage.fs"],
+        "bsb.simulation_backends": [
             "arbor = bsb.simulators.arbor",
             "nest = bsb.simulators.nest",
             "neuron = bsb.simulators.neuron",
         ],
         "bsb.commands": [
             "commands = bsb.cli.commands._commands",
+            "projects = bsb.cli.commands._projects",
         ],
         "bsb.config.parsers": ["json = bsb.config.parsers.json"],
         "bsb.config.templates": ["bsb_templates = bsb.config.templates"],
@@ -103,8 +109,8 @@ setuptools.setup(
             "sphinxext-bsb~=0.0.2",
             "snakeviz",
         ],
-        "arbor": ["arbor~=0.6"],
-        "neuron": ["dbbs_models~=2.0.0", "nrn-patch~=3.0.1"],
+        "arbor": ["arbor~=0.6", "arborize[arbor]==4.0.0a4"],
+        "neuron": ["nrn-patch==4.0.0a4", "arborize[neuron]==4.0.0a4"],
         "mpi": ["mpi4py~=3.0", "zwembad", "mpilock~=1.1"],
     },
 )

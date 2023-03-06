@@ -96,15 +96,13 @@ class TestConnectivitySet(
 
     def test_load_all(self):
         cs = self.network.get_connectivity_set("all_to_all")
-        data = cs.load_connections()
+        data = cs.load_connections().all()
         try:
-            lcol, lloc, gcol, gloc = data
+            pre, post = data
         except (ValueError, TypeError):
-            self.fail("`load_connections` did not return 4 args")
-        self.assertEqual(10000, len(lcol), "expected full 10k local chunk ids")
-        self.assertEqual(10000, len(lloc), "expected full 10k local locs")
-        self.assertEqual(10000, len(gcol), "expected full 10k global chunk ids")
-        self.assertEqual(10000, len(gloc), "expected full 10k global locs")
+            self.fail("`load_connections` did not return 2 args")
+        self.assertEqual(10000, len(pre), "expected full 10k pre locs")
+        self.assertEqual(10000, len(post), "expected full 10k post locs")
 
     def test_load_local(self):
         cs = self.network.get_connectivity_set("all_to_all")
@@ -167,35 +165,36 @@ class TestConnectivitySet(
 
     def test_incoming(self):
         cs = self.network.get_connectivity_set("all_to_all")
-        self.check_a2a_flat_iter(iter(cs.incoming), ["inc"], 4, 4)
+        flat = cs.flat_iter_connections
+        self.check_a2a_flat_iter(iter(flat(direction="inc")), ["inc"], 4, 4)
 
     def test_outgoing(self):
         cs = self.network.get_connectivity_set("all_to_all")
-        self.check_a2a_flat_iter(iter(cs.outgoing), ["out"], 4, 4)
+        flat = cs.flat_iter_connections
+        self.check_a2a_flat_iter(iter(flat(direction="out")), ["out"], 4, 4)
 
     def test_from(self):
         cs = self.network.get_connectivity_set("all_to_all")
+        flat = cs.flat_iter_connections
         chunks = cs.get_local_chunks("inc")
-        self.check_a2a_flat_iter(iter(cs.from_(chunks)), ["out"], 4, 4)
-        self.check_a2a_flat_iter(iter(cs.from_(chunks[0])), ["out"], 1, 4)
+        self.check_a2a_flat_iter(iter(flat("out", chunks)), ["out"], 4, 4)
+        self.check_a2a_flat_iter(iter(flat("out", chunks[0])), ["out"], 1, 4)
 
     def test_to(self):
         cs = self.network.get_connectivity_set("all_to_all")
+        flat = cs.flat_iter_connections
         chunks = cs.get_local_chunks("inc")
-        self.check_a2a_flat_iter(iter(cs.to(chunks)), ["out"], 4, 4)
-        self.check_a2a_flat_iter(iter(cs.to(chunks[0])), ["out"], 4, 1)
+        self.check_a2a_flat_iter(iter(flat("out", global_=chunks)), ["out"], 4, 4)
+        self.check_a2a_flat_iter(iter(flat("out", global_=chunks[0])), ["out"], 4, 1)
 
     def test_from_to(self):
         cs = self.network.get_connectivity_set("all_to_all")
+        flat = cs.flat_iter_connections
         chunks = cs.get_local_chunks("inc")
-        self.check_a2a_flat_iter(iter(cs.from_(chunks).to(chunks)), ["out"], 4, 4)
-        self.check_a2a_flat_iter(iter(cs.to(chunks).from_(chunks)), ["out"], 4, 4)
-        self.check_a2a_flat_iter(iter(cs.from_(chunks[0]).to(chunks)), ["out"], 1, 4)
-        self.check_a2a_flat_iter(iter(cs.to(chunks).from_(chunks[0])), ["out"], 1, 4)
-        self.check_a2a_flat_iter(iter(cs.from_(chunks).to(chunks[0])), ["out"], 4, 1)
-        self.check_a2a_flat_iter(iter(cs.to(chunks[0]).from_(chunks)), ["out"], 4, 1)
-        self.check_a2a_flat_iter(iter(cs.to(chunks[0]).from_(chunks[0])), ["out"], 1, 1)
-        self.check_a2a_flat_iter(iter(cs.from_(chunks[0]).to(chunks[0])), ["out"], 1, 1)
+        self.check_a2a_flat_iter(iter(flat("out", chunks, chunks)), ["out"], 4, 4)
+        self.check_a2a_flat_iter(iter(flat("out", chunks[0], chunks)), ["out"], 1, 4)
+        self.check_a2a_flat_iter(iter(flat("out", chunks, chunks[0])), ["out"], 4, 1)
+        self.check_a2a_flat_iter(iter(flat("out", chunks[0], chunks[0])), ["out"], 1, 1)
 
     def check_a2a_flat_iter(self, itr, dirs, lcount, gcount):
         self.assertTrue(hasattr(itr, "__next__"), "expected flat iterator")
@@ -304,14 +303,14 @@ class TestConnWithLabels(
         self.network.connectivity.all_to_all.presynaptic.labels = ["from_X"]
         self.network.compile(append=True, skip_placement=True)
         cs = self.network.get_connectivity_set("all_to_all")
-        allcon = cs.load_connections()[0]
+        allcon = cs.load_connections().all()[0]
         self.assertEqual(300, len(allcon), "should have 3 x 100 cells with from_X label")
 
     def test_to_label(self):
         self.network.connectivity.all_to_all.postsynaptic.labels = ["from_X"]
         self.network.compile(append=True, skip_placement=True)
         cs = self.network.get_connectivity_set("all_to_all")
-        allcon = cs.load_connections()[0]
+        allcon = cs.load_connections().all()[0]
         self.assertEqual(300, len(allcon), "should have 100 x 3 cells with from_X label")
 
     def test_dupe_from_labels(self):
@@ -322,8 +321,11 @@ class TestConnWithLabels(
         ]
         self.network.compile(append=True, skip_placement=True)
         cs = self.network.get_connectivity_set("all_to_all")
-        allcon = cs.load_connections()[0]
-        self.assertEqual(500, len(allcon), "should have 3 x 100 cells with from_X label")
+        allcon = cs.load_connections().all()[0]
+        # 5 cells labelled either X or Y
+        self.assertEqual(
+            500, len(allcon), "should have 5 x 100 cells with from_X or from_Y label"
+        )
 
     def test_dupe_labels(self):
         self.network.connectivity.all_to_all.presynaptic.labels = [
@@ -334,7 +336,7 @@ class TestConnWithLabels(
         self.network.connectivity.all_to_all.postsynaptic.labels = ["from_X", "from_F"]
         self.network.compile(append=True, skip_placement=True)
         cs = self.network.get_connectivity_set("all_to_all")
-        allcon = cs.load_connections()[0]
+        allcon = cs.load_connections().all()[0]
         self.assertEqual(
             (3 + 2) * 5, len(allcon), "should have 3 x 100 cells with from_X label"
         )
@@ -410,7 +412,7 @@ class TestConnWithSubCellLabels(
             raise
             self.fail(f"Unexpected error: {e}")
         cs = self.network.get_connectivity_set("self_intersect")
-        _, sloc, _, dloc = cs.load_connections()
+        sloc, dloc = cs.load_connections().all()
         self.assertAll(sloc > -1, "expected only true conn")
         self.assertAll(dloc > -1, "expected only true conn")
         self.assertLess(100, len(cs), "Expected more connections")
@@ -541,7 +543,9 @@ class TestVoxelIntersection(
         # Tests whethervoxel intersection works using a few fixed positions and outcomes.
         self.network.compile()
         cs = self.network.get_connectivity_set("intersect")
-        pre_chunks, pre_locs, post_chunks, post_locs = cs.load_connections()
+        pre_chunks, pre_locs, post_chunks, post_locs = next(
+            cs.load_connections().chunk_iter()
+        )
         self.assertClose(0, pre_chunks, "expected only conns in base chunk")
         self.assertClose(0, post_chunks, "expected only conns in base chunk")
         self.assertEqual(2, len(pre_locs), "expected 2 connections")
@@ -560,7 +564,9 @@ class TestVoxelIntersection(
         self.network.connectivity.intersect.postsynaptic.morphology_labels = ["top"]
         self.network.compile()
         cs = self.network.get_connectivity_set("intersect")
-        pre_chunks, pre_locs, post_chunks, post_locs = cs.load_connections()
+        pre_chunks, pre_locs, post_chunks, post_locs = next(
+            cs.load_connections().chunk_iter()
+        )
         self.assertClose(0, pre_chunks, "expected only conns in base chunk")
         self.assertClose(0, post_chunks, "expected only conns in base chunk")
         self.assertEqual(1, len(pre_locs), "expected 1 connection")
@@ -578,7 +584,9 @@ class TestVoxelIntersection(
         self.network.connectivity.intersect.postsynaptic.morphology_labels = ["top"]
         self.network.compile()
         cs = self.network.get_connectivity_set("intersect")
-        pre_chunks, pre_locs, post_chunks, post_locs = cs.load_connections()
+        pre_chunks, pre_locs, post_chunks, post_locs = next(
+            cs.load_connections().chunk_iter()
+        )
         self.assertClose(0, pre_chunks, "expected only conns in base chunk")
         self.assertClose(0, post_chunks, "expected only conns in base chunk")
         self.assertEqual(1, len(pre_locs), "expected 1 connection")

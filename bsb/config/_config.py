@@ -1,24 +1,43 @@
-from . import attr, list, dict, node, root, pluggable, on, after, before
+from . import attr, list, dict, root, node, types
 from ..cell_types import CellType
-from . import types
 from ._attrs import _boot_nodes
-from ._make import walk_nodes
-from ._hooks import run_hook, has_hook
-from .nodes import StorageNode, NetworkNode
-from ..storage import get_engines
 from ..placement import PlacementStrategy
+from ..storage._files import CodeDependencyNode
+from ..storage.interfaces import StorageNode
 from ..connectivity import ConnectionStrategy
-from ..simulation import Simulation
+from ..simulation.simulation import Simulation
 from ..postprocessing import PostProcessingHook
-from ..exceptions import *
 from .._util import merge_dicts
-import os, builtins
 from ..topology import (
     get_partitions,
     create_topology,
+    RegionGroup,
     Region,
     Partition,
 )
+import builtins
+import numpy as np
+
+
+@node
+class NetworkNode:
+    x = attr(type=float, required=True)
+    y = attr(type=float, required=True)
+    z = attr(type=float, required=True)
+    origin = attr(
+        type=types.list(type=float, size=3), default=lambda: [0, 0, 0], call_default=True
+    )
+    chunk_size = attr(
+        type=types.or_(
+            types.list(float),
+            types.scalar_expand(float, expand=lambda s: np.ones(3) * s),
+        ),
+        default=lambda: [100.0, 100.0, 100.0],
+        call_default=True,
+    )
+
+    def boot(self):
+        self.chunk_size = np.array(self.chunk_size)
 
 
 @root
@@ -28,6 +47,7 @@ class Configuration:
     """
 
     name = attr()
+    components = list(type=CodeDependencyNode)
     storage = attr(type=StorageNode, required=True)
     network = attr(type=NetworkNode, required=True)
     regions = dict(type=Region)
@@ -38,6 +58,7 @@ class Configuration:
     connectivity = dict(type=ConnectionStrategy, required=True)
     after_connectivity = dict(type=PostProcessingHook)
     simulations = dict(type=Simulation)
+    __module__ = "bsb.config"
 
     @classmethod
     def default(cls, **kwargs):
@@ -66,7 +87,10 @@ class Configuration:
         # If there are any partitions not part of the topology, raise an error
         if unmanaged := set(self.partitions.values()) - get_partitions([topology]):
             p = "', '".join(p.name for p in unmanaged)
-            raise UnmanagedPartitionError(f"Please make '{p}' part of a Region.")
+            r = scaffold.regions.add(
+                "__unmanaged__", RegionGroup(children=builtins.list(unmanaged))
+            )
+            topology.children.append(r)
         # Activate the scaffold property of each config node
         _boot_nodes(self, scaffold)
         self._config_isbooted = True
@@ -82,3 +106,10 @@ class Configuration:
 
     def __repr__(self):
         return f"{type(self).__qualname__}({self})"
+
+
+def _bootstrap_components(components, file_store=None):
+    for component in components:
+        component_node = CodeDependencyNode(component)
+        component_node.file_store = file_store
+        component_node.load_object()

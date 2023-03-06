@@ -1,5 +1,5 @@
-Atlas based placement
-=====================
+Mouse brain atlas based placement
+=================================
 
 The BSB supports integration with cell atlases. All that's required is to implement a
 :class:`~bsb.topology.partition.Voxels` partition so that the atlas data can be converted
@@ -10,16 +10,20 @@ from the atlas raster format, into a framework object. The framework has
 After loading shapes from the atlas, we will use a local data file to assign density
 values to each voxel, and place cells accordingly.
 
-We start by defining the basics: a region, a cell type and an ``allen`` partition:
+We start by defining the basics: a region, an ``allen`` partition and a cell type:
 
 .. literalinclude:: ../../../examples/atlas/allen_structure.json
   :language: json
   :lines: 12-17,20-26,28-31
   :emphasize-lines: 6
 
-The :guilabel:`struct_name` refers to the Allen structure acronym or name. You can also
-replace that with :guilabel:`struct_id`, if you're using the numeric identifiers. You can
-find the ids, acronyms and names in the Allen Brain Atlas.
+Here, the :guilabel:`mask_source` is not set so BSB will automatically download the 2017 version of
+the CCFv3 mouse brain annotation atlas volume from the Allen Institute website.
+Use :guilabel:`mask_source` to provide your own nrrd annotation volume.
+
+The :guilabel:`struct_name` refers to the Allen mouse brain region acronym or name.
+You can also replace that with :guilabel:`struct_id`, if you're using the numeric identifiers.
+You can find the ids, acronyms and names in the Allen Brain Atlas brain region hierarchy file.
 
 If we now place our ``my_cell`` in the ``declive``, it will be placed with a fixed
 density of ``0.003/μm^3``:
@@ -49,7 +53,7 @@ other data. We can do this by specifying a :guilabel:`density_key`:
 
 .. literalinclude:: ../../../examples/atlas/allen_structure.json
   :language: json
-  :lines: 23-31
+  :lines: 23-27,29-31
   :emphasize-lines: 5
 
 That's it! If we compile the network, ``my_cell`` will be placed into ``declive`` with

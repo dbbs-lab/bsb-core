@@ -648,9 +648,7 @@ def get_morphology_range(morphology, offset=None, soma_radius=None):
         offset = [0.0, 0.0, 0.0]
     r = soma_radius or 0.0
     itr = enumerate(morphology.flatten())
-    print(offset)
     r = [[min(min(v), -r) + offset, max(max(v), r) + offset] for i, v in itr]
-    print(r)
     return r
 
 

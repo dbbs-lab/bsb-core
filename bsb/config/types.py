@@ -1,11 +1,19 @@
-from ..exceptions import *
-from ._hooks import overrides
-from ._make import _load_class
-import math, sys, numpy as np, abc, functools, weakref
-from inspect import signature as _inspect_signature
+import abc
 import builtins
+import inspect
+import math
+import numpy as np
 
-_reserved_keywords = ["_parent", "_key"]
+from ._compile import _reserved_kw_passes, _wrap_reserved
+from ._make import _load_class, _load_object
+from ..exceptions import (
+    ClassMapMissingError,
+    CastError,
+    NoneReferenceError,
+    InvalidReferenceError,
+    TypeHandlingError,
+    RequirementError,
+)
 
 
 class TypeHandler(abc.ABC):
@@ -43,55 +51,7 @@ class TypeHandler(abc.ABC):
             cls.__call__ = _wrap_reserved(call)
 
 
-def _reserved_kw_passes(f):
-    # Inspect the signature and wrap the typecast in a wrapper that will accept and
-    # strip the missing 'key' kwarg
-    try:
-        sig = _inspect_signature(f)
-        params = sig.parameters
-    except:
-        params = []
-
-    return {key: key in params for key in _reserved_keywords}
-
-
-def _wrap_reserved(t):
-    """
-    Wrap a type handler in a wrapper that accepts all reserved keyword arguments that
-    the config system will push into the type handler call, and pass only those that
-    the original type handler accepts. This way type handlers can accept any
-    combination of the reserved keyword args without raising TypeErrors when they do
-    not accept one.
-    """
-    # Type handlers never need to be wrapped. The `__init_subclass__` of the TypeHandler
-    # class handles wrapping of `__call__` implementations so that they accept and strip
-    # _parent & _key.
-    if isinstance(t, TypeHandler):
-        return t
-
-    # Check which reserved keywords the function already takes
-    passes = _reserved_kw_passes(t)
-    if all(passes.values()):
-        return t
-
-    # Create the keyword arguments of the outer function that accepts all reserved kwargs
-    reserved_keys = "".join(f", {key}=None" for key in _reserved_keywords)
-    header = f"def type_handler(value, *args{reserved_keys}, **kwargs):\n"
-    passes = "".join(f", {key}={key}" for key in _reserved_keywords if passes[key])
-    # Create the call to the inner function that is passed only the kwargs that it accepts
-    wrap = f" return orig(value, *args{passes}, **kwargs)"
-    # Compile the code block and indicate that the function was compiled here.
-    mod = compile(header + wrap, f"{__file__}/<_wrap_reserved:compile>", "exec")
-    # Execute the code block in this local scope and pick the function out of the scope
-    exec(mod, {"orig": t}, bait := locals())
-    type_handler = bait["type_handler"]
-    # Copy over the metadata of the original function
-    type_handler = functools.wraps(t)(type_handler)
-    type_handler.__name__ = t.__name__
-    return type_handler
-
-
-def any():
+def any_():
     def type_handler(value):
         return value
 
@@ -115,7 +75,7 @@ def in_(container):
         if value in container:
             return value
         else:
-            raise TypeError("Couldn't cast '{}' to ".format(value) + error_msg)
+            raise TypeError(f"Couldn't cast '{value}' to " + error_msg)
 
     type_handler.__name__ = error_msg
     return type_handler
@@ -150,7 +110,6 @@ def or_(*type_args):
                 )
                 type_errors[t.__name__] = type_error
             else:
-
                 return v
         type_errors = "\n".join(
             "- Casting to '{}' raised:\n{}".format(n, e) for n, e in type_errors.items()
@@ -165,7 +124,39 @@ def or_(*type_args):
     return type_handler
 
 
-def class_(module_path=None):
+class object_(TypeHandler):
+    """
+    Type validator. Attempts to import the value, absolute, or relative to the
+    `module_path` entries.
+
+    :param module_path: List of the modules that should be searched when doing a
+      relative import.
+    :type module_path: list[str]
+    :raises: TypeError when value can't be cast.
+    :returns: Type validator function
+    :rtype: Callable
+    """
+
+    def __init__(self, module_path=None):
+        self._module_path = module_path
+
+    def __call__(self, value):
+        msg = f"Could not import object {value}."
+        try:
+            obj = _load_object(value, self._module_path)
+            obj._cfg_inv = value
+        except Exception:
+            raise TypeError(msg)
+        return obj
+
+    def __inv__(self, value):
+        return getattr(value, "_cfg_inv", value)
+
+    def __name__(self):
+        return "object"
+
+
+class class_(TypeHandler):
     """
     Type validator. Attempts to import the value as the name of a class, relative to
     the `module_path` entries, absolute or just returning it if it is already a class.
@@ -178,14 +169,48 @@ def class_(module_path=None):
     :rtype: Callable
     """
 
-    def type_handler(value):
+    def __init__(self, module_path=None):
+        self._module_path = module_path
+
+    def __call__(self, value):
         try:
-            return _load_class(value, module_path)
-        except:
+            return _load_class(value, self._module_path)
+        except Exception:
             raise TypeError("Could not import {} as a class".format(value))
 
-    type_handler.__name__ = "class"
-    return type_handler
+    def __inv__(self, value):
+        if not inspect.isclass(value):
+            value = type(value)
+        return f"{value.__module__}.{value.__name__}"
+
+    def __name__(self):
+        return "class"
+
+
+class function_(object_):
+    """
+    Type validator. Attempts to import the value, absolute, or relative to the
+    `module_path` entries, and verifies that it is callable.
+
+    :param module_path: List of the modules that should be searched when doing a
+      relative import.
+    :type module_path: list[str]
+    :raises: TypeError when value can't be cast.
+    :returns: Type validator function
+    :rtype: Callable
+    """
+
+    def __call__(self, value):
+        obj = super().__call__(value)
+        if not callable(obj):
+            raise TypeError(f"Could not import {value} as a callable function.")
+        return obj
+
+    def __inv__(self, value):
+        return f"{value.__module__}.{value.__name__}"
+
+    def __name__(self):
+        return "function"
 
 
 def str(strip=False, lower=False, upper=False):
@@ -246,7 +271,7 @@ def int(min=None, max=None):
             if min is not None and min > v or max is not None and max < v:
                 raise Exception()
             return v
-        except:
+        except Exception:
             raise TypeError(
                 "Could not cast {} to an {}.".format(value, handler_name)
             ) from None
@@ -285,7 +310,7 @@ def float(min=None, max=None):
             if min is not None and min > v or max is not None and max < v:
                 raise Exception()
             return v
-        except:
+        except Exception:
             raise TypeError("Could not cast {} to an {}.".format(value, handler_name))
 
     type_handler.__name__ = handler_name
@@ -324,7 +349,7 @@ def number(min=None, max=None):
                 if min is not None and min > v or max is not None and max < v:
                     raise Exception()
             return v
-        except:
+        except Exception:
             raise TypeError("Could not cast {} to a {}.".format(value, handler_name))
 
     type_handler.__name__ = handler_name
@@ -340,14 +365,17 @@ def scalar_expand(scalar_type, size=None, expand=None):
     :type scalar_type: type
     :param size: Expand the scalar to an array of a fixed size.
     :type size: int
-    :param expand: A function that takes the scalar value as argument and returns the expanded form.
+    :param expand: A function that takes the scalar value as argument and returns the
+      expanded form.
     :type expand: Callable
     :returns: Type validator function
     :rtype: Callable
     """
 
     if expand is None:
-        expand = lambda x: [1.0] * x
+
+        def expand(x):
+            return [1.0] * x
 
     def type_handler(value):
         # No try block: let it raise the cast error.
@@ -402,7 +430,7 @@ def list(type=builtins.str, size=None):
         try:
             for i, e in enumerate(v):
                 v[i] = type(e)
-        except:
+        except Exception:
             raise TypeError(
                 "Couldn't cast element {} of {} into {}".format(i, value, type.__name__)
             )
@@ -435,7 +463,7 @@ def dict(type=builtins.str):
         try:
             for k, e in v.items():
                 v[k] = type(e)
-        except:
+        except Exception:
             raise TypeError(
                 "Couldn't cast {} of {} into {}".format(k, value, type.__name__)
             )
@@ -482,45 +510,28 @@ class deg_to_radian(TypeHandler):
         return v * 360 / (2 * math.pi)
 
 
-class _ConstantDistribution:
-    def __init__(self, const):
-        self.const = const
-
-    def draw(self, n):
-        return np.ones(n) * self.const
-
-    def __tree__(self):
-        return self.const
-
-
-def constant_distr():
+class distribution(TypeHandler):
     """
-    Type handler that turns a float into a distribution that always returns the float.
-    This can be used in places where a distribution is expected but the user might
-    want to use a single constant value instead.
-
-    :returns: Type validator function
-    :rtype: Callable
+    Type validator. Type casts the value or node to a distribution.
     """
 
-    def type_handler(value):
-        return _ConstantDistribution(_float(value))
+    def __call__(self, value, _key=None, _parent=None):
+        from ._distributions import Distribution
 
-    type_handler.__name__ = "constant distribution"
-    return type_handler
+        if not isinstance(value, builtins.list) and not isinstance(value, builtins.dict):
+            value = {"distribution": "constant", "constant": value}
 
+        return Distribution(**value, _key=_key, _parent=_parent)
 
-def distribution():
-    """
-    Type validator. Type casts a float to a constant distribution or a dict to a
-    :class:`Distribution <.config.nodes.Distribution>` node.
+    @property
+    def __name__(self):  # pragma: nocover
+        return "distribution"
 
-    :returns: Type validator function
-    :rtype: Callable
-    """
-    from .nodes import Distribution
-
-    return or_(constant_distr(), Distribution)
+    def __inv__(self, value):
+        if value["distribution"] == "constant":
+            return value["constant"]
+        else:
+            return value
 
 
 class evaluation(TypeHandler):
@@ -538,9 +549,9 @@ class evaluation(TypeHandler):
     def __call__(self, value):
         cfg = builtins.dict(value)
         statement = builtins.str(cfg.get("statement", "None"))
-        locals = builtins.dict(cfg.get("variables", {}))
-        globals = {"np": np}
-        res = eval(statement, globals, locals)
+        locals_ = builtins.dict(cfg.get("variables", {}))
+        globals_ = {"np": np}
+        res = eval(statement, globals_, locals_)
         self._references[id(res)] = value
         return res
 
@@ -632,7 +643,7 @@ def mut_excl(*mutuals, required=True, max=1):
             err_msg = err_msg.format("and")
             raise RequirementError(err_msg)
         if not given and required:
-            err_msg = f"A {listed} attribute is required.".format("or")
+            err_msg = f"A {listed} attribute is required."
             raise RequirementError(err_msg)
         return False
 

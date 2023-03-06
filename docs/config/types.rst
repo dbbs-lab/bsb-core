@@ -13,7 +13,7 @@ more complex combinations of types. Every configuration node itself can be used 
 
 	All of the members of the :mod:`.config.types` module are factory methods: they need to
 	be **called** in order to produce the type handler. Make sure that you use
-	``config.attr(type=types.any())``, as opposed to ``config.attr(type=types.any)``.
+	``config.attr(type=types.any_())``, as opposed to ``config.attr(type=types.any_)``.
 
 Examples
 --------
@@ -68,7 +68,7 @@ Examples
         )
     )
     # Anything
-    any = config.attr(type=types.any())
+    any_ = config.attr(type=types.any_())
     # One of the following strings: "all", "some", "none"
     give_me = config.attr(type=types.in_(["all", "some", "none"]))
     # The answer to life, the universe, and everything else

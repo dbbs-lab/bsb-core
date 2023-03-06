@@ -4,7 +4,7 @@ import numpy as np
 import json
 from bsb.core import Scaffold
 from bsb import config
-from bsb.config import from_json, Configuration, _attrs
+from bsb.config import from_json, Configuration, _attrs, compose_nodes
 from bsb.config import types
 from bsb.exceptions import (
     CfgReferenceError,
@@ -14,7 +14,7 @@ from bsb.exceptions import (
     UnfitClassCastError,
     DynamicClassInheritanceError,
     UnresolvedClassCastError,
-    DynamicClassNotFoundError,
+    DynamicObjectNotFoundError,
     ClassMapMissingError,
 )
 from bsb.topology.region import RegionGroup
@@ -58,15 +58,21 @@ class TestConfiguration(unittest.TestCase):
     def test_missing_nodes(self):
         self.assertRaises(RequirementError, from_json, data="""{}""")
 
-    @unittest.expectedFailure
     def test_no_unknown_attributes(self):
-        with self.assertWarns(ConfigurationWarning):
-            from_json(minimal_config)
+        try:
+            with self.assertWarns(ConfigurationWarning) as cm:
+                from_json(minimal_config)
+            self.fail(f"Unknown configuration attributes detected: {cm.warning}")
+        except AssertionError:
+            pass
 
-    @unittest.expectedFailure
     def test_full_no_unknown_attributes(self):
-        with self.assertWarns(ConfigurationWarning):
-            from_json(full_config)
+        try:
+            with self.assertWarns(ConfigurationWarning) as cm:
+                from_json(full_config)
+            self.fail(f"Unknown configuration attributes detected: {cm.warning}")
+        except AssertionError:
+            pass
 
     def test_unknown_attributes(self):
         data = as_json(minimal_config)
@@ -505,6 +511,19 @@ class DynamicBaseDefault:
     name = config.attr(type=str, required=True)
 
 
+@config.dynamic(required=True)
+class DynamicBaseRequired:
+    pass
+
+
+class DynamicChildNotRequired(DynamicBaseRequired):
+    pass
+
+
+class UndecoratedChildNotRequired(DynamicBaseRequired):
+    pass
+
+
 class NotInherited:
     pass
 
@@ -512,14 +531,14 @@ class NotInherited:
 class TestDynamic(unittest.TestCase):
     def test_dynamic_requirements(self):
         with self.assertRaisesRegex(RequirementError, "must contain a 'cls' attribute"):
-            DynamicBase({}, _parent=TestRoot())
+            DynamicBase({})
         with self.assertRaisesRegex(RequirementError, "must contain a 'test' attribute"):
-            DynamicAttrBase({}, _parent=TestRoot())
+            DynamicAttrBase({})
 
     def test_dynamic(self):
         self.assertTrue(
             isinstance(
-                DynamicBaseDefault({"name": "ello"}, _parent=TestRoot()),
+                DynamicBaseDefault({"name": "ello"}),
                 DynamicBaseDefault,
             ),
             "Dynamic cast with default 'DynamicBaseDefault' should produce instance"
@@ -531,7 +550,7 @@ class TestDynamic(unittest.TestCase):
         # The cast should raise an UnfitClassCastError while the direct _load_class call
         # should raise a DynamicClassInheritanceError
         with self.assertRaises(UnfitClassCastError):
-            DynamicBase({"name": "ello", "cls": "NotInherited"}, _parent=TestRoot())
+            DynamicBase({"name": "ello", "cls": "NotInherited"})
         with self.assertRaises(DynamicClassInheritanceError):
             sys.modules["bsb.config._make"]._load_class(
                 NotInherited,
@@ -555,11 +574,19 @@ class TestDynamic(unittest.TestCase):
         )
         # Test that without the module path the same class can't be found
         self.assertRaises(
-            DynamicClassNotFoundError,
+            DynamicObjectNotFoundError,
             sys.modules["bsb.config._make"]._load_class,
             "NotInherited",
             [],
         )
+
+    def test_direct_dynamic_child(self):
+        # Test that even if a dynamic attr is required on the parent, we can directly
+        # construct the child. This has to be so because the chosen child class already
+        # explicitly satisfies the dynamic requirement.
+        direct_child = DynamicChildNotRequired()
+        # Undecorated child classes are not endorsed, but just in case.
+        undecorated_direct_child = UndecoratedChildNotRequired()
 
 
 @config.dynamic(
@@ -861,7 +888,7 @@ class TestTypes(unittest.TestCase):
     def test_constant_distribution(self):
         @config.root
         class Test:
-            c = config.attr(type=types.constant_distr())
+            c = config.attr(type=types.distribution())
 
         a = Test({"c": 1})
         self.assertTrue(np.array_equal(np.ones(5), a.c.draw(5)))
@@ -879,7 +906,7 @@ class TestTypes(unittest.TestCase):
         self.assertEqual(type(equivalent), type(a.c._distr))
         self.assertEqual(equivalent.pdf(5.9), a.c.pdf(5.9))
 
-        with self.assertRaises(CastError):
+        with self.assertRaises(RequirementError):
             a = Test({"c": {"a": 3, "loc": 2, "scale": 2.5}})
 
         with self.assertRaises(CastError):
@@ -1229,3 +1256,28 @@ class TestScripting(unittest.TestCase):
         self.assertIsNone(_attrs._booted_root(cfg.partitions), "shouldnt be booted yet")
         Scaffold(cfg)
         self.assertIsNotNone(_attrs._booted_root(cfg), "now it should be booted")
+
+
+class TestNodeComposition(unittest.TestCase):
+    def setUp(self):
+        @config.node
+        class NodeA:
+            attrA = config.attr()
+
+        @config.node
+        class NodeB:
+            attrB = config.attr()
+
+        @config.node
+        class NodeC(compose_nodes(NodeA, NodeB)):
+            attrC = config.attr()
+
+        self.tested = NodeC()
+
+    def test_composite_node(self):
+        assert hasattr(self.tested, "attrA")
+        assert type(self.tested.attrA == config.ConfigurationAttribute)
+        assert hasattr(self.tested, "attrB")
+        assert type(self.tested.attrB == config.ConfigurationAttribute)
+        assert hasattr(self.tested, "attrC")
+        assert type(self.tested.attrC == config.ConfigurationAttribute)
