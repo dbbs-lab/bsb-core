@@ -1,3 +1,6 @@
+import sys
+import os
+
 import unittest
 from bsb.unittest import skip_parallel
 
@@ -8,6 +11,8 @@ class TestCLI(unittest.TestCase):
         import bsb
         import subprocess
 
+        # Ensure that the current interpreter can be detected from the subprocess via PATH
+        os.environ["PATH"] += ":" + os.path.join(sys.prefix, "bin")
         our_version = bytes(f"bsb {bsb.__version__}", encoding="utf-8")
         # Split on newlines to ignore any prepended spammy output in case of environment
         # specific warnings when running BSB commands.
