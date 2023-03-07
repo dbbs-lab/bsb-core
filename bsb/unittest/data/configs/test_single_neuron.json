@@ -45,22 +45,23 @@
   "simulations": {
     "test_single_neuron": {
       "simulator": "nest",
-      "default_neuron_model": "iaf_cond_alpha",
-      "default_synapse_model": "static_synapse",
       "duration": 10,
       "cell_models": {
         "test_cell": {
-          "parameters": {
+          "neuron_model": "iaf_cond_alpha",
+          "constants": {
             "t_ref": 1.5,
             "C_m": 7.0,
             "V_th": -41.0,
             "V_reset": -70.0,
-            "E_L": -62.0
-          },
-          "iaf_cond_alpha": {
+            "E_L": -62.0,
             "I_e": 0.0
-          },
-          "eglif_cond_alpha_multisyn": {
+          }
+        },
+        "eglif_cell": {
+          "cell_type": "test_cell",
+          "neuron_model": "eglif_cond_alpha_multisyn",
+          "constants": {
             "Vinit": -62.0,
             "lambda_0":1.0,
             "tau_V":0.3,
