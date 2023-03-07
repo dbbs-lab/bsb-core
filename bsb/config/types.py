@@ -110,7 +110,6 @@ def or_(*type_args):
                 )
                 type_errors[t.__name__] = type_error
             else:
-
                 return v
         type_errors = "\n".join(
             "- Casting to '{}' raised:\n{}".format(n, e) for n, e in type_errors.items()
@@ -174,10 +173,16 @@ class class_(TypeHandler):
         self._module_path = module_path
 
     def __call__(self, value):
+        if inspect.isclass(value):
+            return value
+        msg = f"Could not import '{value}'"
         try:
-            return _load_class(value, self._module_path)
+            obj = _load_object(value, self._module_path)
         except Exception:
-            raise TypeError("Could not import {} as a class".format(value))
+            raise TypeError(msg + ".")
+        if not inspect.isclass(value):
+            raise TypeError(msg + " as a class.")
+        return obj
 
     def __inv__(self, value):
         if not inspect.isclass(value):
@@ -189,6 +194,18 @@ class class_(TypeHandler):
 
 
 class function_(object_):
+    """
+    Type validator. Attempts to import the value, absolute, or relative to the
+    `module_path` entries, and verifies that it is callable.
+
+    :param module_path: List of the modules that should be searched when doing a
+      relative import.
+    :type module_path: list[str]
+    :raises: TypeError when value can't be cast.
+    :returns: Type validator function
+    :rtype: Callable
+    """
+
     def __call__(self, value):
         obj = super().__call__(value)
         if not callable(obj):

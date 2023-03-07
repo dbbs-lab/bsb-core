@@ -99,6 +99,16 @@ def make_metaclass(cls):
     return NodeMeta
 
 
+def compose_nodes(*node_classes):
+    """
+    Create a composite mixin class of the given classes. Inherit from the returned class
+    to inherit from more than one node class.
+
+    """
+    meta = type("ComposedMetaclass", tuple(type(cls) for cls in node_classes), {})
+    return meta("CompositionMixin", node_classes, {})
+
+
 def compile_class(cls):
     cls_dict = dict(cls.__dict__)
     if "__dict__" in cls_dict:
