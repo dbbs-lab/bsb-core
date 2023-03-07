@@ -1,5 +1,5 @@
 from bsb import config
-from bsb.config import types
+from bsb.config import types, compose_nodes
 from bsb.simulation.connection import ConnectionModel
 
 
@@ -17,7 +17,7 @@ class NestConnectionSettings:
 
 
 @config.dynamic(attr_name="model_strategy", required=False)
-class NestConnection(NestConnectionSettings, ConnectionModel):
+class NestConnection(compose_nodes(NestConnectionSettings, ConnectionModel)):
     tag = config.attr(type=str)
     synapse = config.attr(type=NestSynapseSettings, required=True)
 
@@ -30,6 +30,7 @@ class NestConnection(NestConnectionSettings, ConnectionModel):
                 pre_nodes, post_nodes, conn_spec, self.get_syn_spec(), True
             )
         else:
+            print("Rule-less connection should be loaded from CS")
             synapses = None
         return synapses
 
