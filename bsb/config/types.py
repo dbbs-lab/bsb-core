@@ -180,7 +180,7 @@ class class_(TypeHandler):
             obj = _load_object(value, self._module_path)
         except Exception:
             raise TypeError(msg + ".")
-        if not inspect.isclass(value):
+        if not inspect.isclass(obj):
             raise TypeError(msg + " as a class.")
         return obj
 
