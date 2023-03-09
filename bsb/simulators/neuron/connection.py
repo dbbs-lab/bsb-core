@@ -1,9 +1,7 @@
-import itertools
-from functools import cache
-
 import numpy as np
 
 from bsb import config
+from bsb.config import types
 from bsb.simulation.connection import ConnectionModel
 from bsb.simulation.parameter import Parameter
 from bsb.services import MPI
@@ -21,7 +19,7 @@ class NeuronConnection(ConnectionModel):
 
 @config.node
 class SynapseSpec:
-    synapse = config.attr(type=str, required=True)
+    synapse = config.attr(type=str, required=types.shortform())
     parameters = config.list(type=Parameter)
 
     def __init__(self, synapse_name=None, /, **kwargs):
