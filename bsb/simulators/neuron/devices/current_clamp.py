@@ -1,4 +1,6 @@
 from ..device import NeuronDevice
+from .... import config
+from ....simulation.targetting import LocationTargetting
 
 
 @config.node

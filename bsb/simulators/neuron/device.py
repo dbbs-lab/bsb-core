@@ -17,7 +17,7 @@ class TargetLocation:
 class NeuronDevice(DeviceModel):
     targetting = config.attr(type=Targetting, required=True)
 
-    def implement(self, simulation, simdata):
+    def implement(self, result, cells, connections):
         raise NotImplementedError(
             "The "
             + self.__class__.__name__
