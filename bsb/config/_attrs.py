@@ -460,7 +460,6 @@ class ConfigurationAttribute:
                 e.node, e.attr = instance, self.attr_name
             raise
         except Exception as e:
-            traceback.print_exc()
             raise CastError(
                 f"Couldn't cast '{value}' into {self.type.__name__}: {e}",
                 instance,
