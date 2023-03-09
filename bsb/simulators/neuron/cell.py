@@ -30,9 +30,15 @@ class NeuronCell(CellModel):
         )
         additer = dictzip()
         return [
-            self.create(i, next(pos), next(morpho), next(rot), next(additer))
+            self._create(i, next(pos), next(morpho), next(rot), next(additer))
             for i in range(count)
         ]
+
+    def _create(self, id, pos, morpho, rot, additional):
+        instance = self.create(id, pos, morpho, rot, additional)
+        instance._bsb_ref_id = id
+        instance._bsb_ref_pos = pos
+        return instance
 
     def create(self, id, pos, morpho, rot, additional):
         raise NotImplementedError("Cell models should implement the `create` method.")
@@ -49,3 +55,13 @@ class ArborizedModel(NeuronCell, classmap_entry="arborize"):
         self.model.use_defaults = True
         schematic = bsb_schematic(morpho, self.model)
         return neuron_build(schematic)
+
+
+class Shim:
+    pass
+
+
+@config.node
+class ShimModel(NeuronCell, classmap_entry="shim"):
+    def create(self, id, pos, morpho, rot, additional):
+        return Shim()
