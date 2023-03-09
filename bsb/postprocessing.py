@@ -2,6 +2,7 @@ from .reporting import report, warn
 import numpy as np
 from .exceptions import MorphologyError, MorphologyDataError, ConnectivityWarning
 from . import config
+from .config import refs
 
 
 @config.dynamic(attr_name="strategy")
@@ -126,6 +127,8 @@ class Relay(PostProcessingHook):
     Replaces connections on a cell with the relayed connections to the connection targets
     of that cell. Not implemented yet.
     """
+
+    cell_types = config.reflist(refs.cell_type_ref)
 
     def after_placement(self):
         pass
