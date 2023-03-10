@@ -196,6 +196,7 @@ class BsbSimulate(BaseCommand, name="simulate"):
         network = from_storage(context.arguments.network)
         config_option = context.options["config"]
         sim_name = context.arguments.simulation
+        extra_simulations = {}
         if config_option.is_set("cli"):
             extra_simulations = from_file(context.config).simulations
             for name, sim in extra_simulations.items():
@@ -207,7 +208,8 @@ class BsbSimulate(BaseCommand, name="simulate"):
             append = ", " if len(network.simulations) else ""
             append += ", ".join(f"'{name}'" for name in extra_simulations.keys())
             errr.wrap(type(e), e, append=append)
-        result.write(f"{uuid4()}.nio", "ow")
+        else:
+            result.write(getattr(context.arguments, "output", f"{uuid4()}.nio"), "ow")
 
     def get_options(self):
         return {
@@ -218,6 +220,7 @@ class BsbSimulate(BaseCommand, name="simulate"):
     def add_parser_arguments(self, parser):
         parser.add_argument("network")
         parser.add_argument("simulation")
+        parser.add_argument("-o", "--output")
 
 
 class CacheCommand(BaseCommand, name="cache"):  # pragma: nocover
