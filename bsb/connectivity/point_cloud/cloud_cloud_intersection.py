@@ -12,7 +12,6 @@ class CloudToCloudIntersection(ConnectionStrategy):
     affinity = config.attr(type=float, required=True)
 
     def get_region_of_interest(self, chunk):
-
         ct = self.postsynaptic.cell_types[0]
         chunks = ct.get_placement_set().get_all_chunks()
         return chunks
@@ -25,7 +24,6 @@ class CloudToCloudIntersection(ConnectionStrategy):
                 self._connect_type(pre_ct, pre_ps, post_ct, post_ps)
 
     def _connect_type(self, pre_ct, pre_ps, post_ct, post_ps):
-
         pre_pos = pre_ps.load_positions()
         post_pos = post_ps.load_positions()
 
@@ -54,7 +52,6 @@ class CloudToCloudIntersection(ConnectionStrategy):
         to_connect_post = np.empty([1, 3], dtype=int)
 
         for pre_id, pre_coord in enumerate(pre_pos):
-
             # Generate pre points cloud
             current_pre_cloud = pre_cloud_cache[pre_cloud_choice_id[pre_id]].copy()
             tmp_pre_coord = np.copy(pre_coord)
@@ -66,7 +63,6 @@ class CloudToCloudIntersection(ConnectionStrategy):
             pre_mbb_min, pre_mbb_max = current_pre_cloud.find_mbb()
 
             for post_id, post_coord in enumerate(post_pos):
-
                 current_post_cloud = post_cloud_cache[
                     post_cloud_choice_id[post_id]
                 ].copy()
@@ -79,7 +75,6 @@ class CloudToCloudIntersection(ConnectionStrategy):
 
                 inside_mbbox = current_post_cloud.inside_mbox(pre_point_cloud)
                 if np.any(inside_mbbox):
-
                     inside_pts = current_post_cloud.inside_shapes(pre_point_cloud)
                     selected = pre_point_cloud[inside_pts]
                     if len(selected) > 0:

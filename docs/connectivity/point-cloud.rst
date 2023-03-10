@@ -56,13 +56,13 @@ Geometric shapes
 ----------------
 
 There are four pre-defined GeometricShape already implemented in BSB: Ellipsoid, Cylinder, Cone and Sphere.
-If needed, a user can define its own geometric shape, creating a new class inheriting from the base virtual class :class:`bsb.connectivity.GeometricShape  <.connectivity.point_cloud.GeometricShape>`.
+If needed, a user can define its own geometric shape, creating a new class inheriting from the base virtual class :class:`bsb.connectivity.GeometricShape  <.connectivity.point_cloud.geometric_shapes.GeometricShape>`.
 
 Creating a ShapesComposition
 ----------------------------
 
 We create a :class:`ShapesComposition  <.connectivity.point_cloud.geometric_shapes.ShapesComposition>` adding :class:`GeometricShape  <.connectivity.point_cloud.geometric_shapes.GeometricShape>`  objects to a ShapesComposition object using the :meth:`~.connectivity.point_cloud.geometric_shapes.ShapesComposition.add_shape`.
-In the following example we represent the soma of a cell with a sphere, the axon with a cylinder and the dendritic tree with a cone. Then we save and plot the result, using :meth:`~.connectivity.point_cloud.geometric_shapes.ShapesComposition.save_to_file` and :meth:`~.plotting.plot_shape_wireframe`.
+In the following example we represent the soma of a cell with a sphere, the axon with a cylinder and the dendritic tree with a cone. Then we save and plot the result, using :meth:`~.connectivity.point_cloud.geometric_shapes.ShapesComposition.save_to_file` and `plot_shape_wireframe`.
 
 .. literalinclude:: create_shapescomposition.py
     :language: python

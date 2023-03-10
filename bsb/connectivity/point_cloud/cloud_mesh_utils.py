@@ -5,7 +5,6 @@ from scipy.spatial.transform import Rotation as R
 def rotate_3d_mesh_by_vec(
     x: np.array, y: np.array, z: np.array, rot_versor: np.array, angle: float
 ):
-
     # Arrange point coordinates in shape (N, 3) for vectorized processing
     pts = np.array([x.ravel(), y.ravel(), z.ravel()]).transpose()
 
@@ -22,7 +21,6 @@ def rotate_3d_mesh_by_vec(
 
 
 def translate_3d_mesh_by_vec(x: np.array, y: np.array, z: np.array, t_vec: np.array):
-
     # Arrange point coordinates in shape (N, 3) for vectorized processing
     pts = np.array([x.ravel(), y.ravel(), z.ravel()]).transpose()
 
@@ -37,7 +35,6 @@ def translate_3d_mesh_by_vec(x: np.array, y: np.array, z: np.array, t_vec: np.ar
 
 
 def rotate_3d_mesh_by_rot_mat(x: np.array, y: np.array, z: np.array, rot_mat: np.array):
-
     # Arrange point coordinates in shape (N, 3) for vectorized processing
     pts = np.array([x.ravel(), y.ravel(), z.ravel()]).transpose()
 

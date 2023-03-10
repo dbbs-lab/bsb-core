@@ -11,7 +11,6 @@ class MorphologyToCloudIntersection(ConnectionStrategy):
     affinity = config.attr(type=float, required=True)
 
     def get_region_of_interest(self, chunk):
-
         ct = self.postsynaptic.cell_types[0]
         chunks = ct.get_placement_set().get_all_chunks()
 
@@ -45,7 +44,6 @@ class MorphologyToCloudIntersection(ConnectionStrategy):
                 self._connect_type(pre_ct, pre_ps, post_ct, post_ps)
 
     def _connect_type(self, pre_ct, pre_ps, post_ct, post_ps):
-
         pre_pos = pre_ps.load_positions()
         post_pos = post_ps.load_positions()
 
@@ -68,7 +66,6 @@ class MorphologyToCloudIntersection(ConnectionStrategy):
         pre_morphos = morpho_set.iter_morphologies(cache=True, hard_cache=True)
 
         for pre_id, pre_coord, morpho in zip(itertools.count(), pre_pos, pre_morphos):
-
             # Get the branches
             branches = morpho.get_branches()
             first_axon_branch_id = branches.index(branches[0])
@@ -93,7 +90,6 @@ class MorphologyToCloudIntersection(ConnectionStrategy):
                 local_ptr += len(b.points)
 
             for post_id, post_coord in enumerate(post_pos):
-
                 post_cloud = cloud_cache[cloud_choice_id[post_id]].copy()
                 # Swap y and z
                 post_coord[[1, 2]] = post_coord[[2, 1]]
