@@ -1,13 +1,7 @@
 import numpy as np
 import itertools
 from bsb.connectivity import ConnectionStrategy
-from bsb.storage import Chunk
 from bsb import config
-from scipy.stats.distributions import truncexpon
-from bsb.morphologies import Morphology
-from bsb.storage.interfaces import ConnectivitySet as IConnectivitySet
-from bsb.connectivity.strategy import Hemitype
-from bsb.connectivity.strategy import HemitypeCollection
 from bsb.connectivity.point_cloud.geometric_shapes import ShapesComposition
 
 

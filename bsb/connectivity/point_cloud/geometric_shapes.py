@@ -6,7 +6,7 @@ import abc
 import plotly.graph_objects as go
 import copy
 from typing import List, Tuple, Union
-import numpy.typing as npt
+import numpy
 
 from .cloud_mesh_utils import (
     rotate_3d_mesh_by_vec,

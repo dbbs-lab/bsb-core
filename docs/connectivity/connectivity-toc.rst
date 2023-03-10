@@ -1,5 +1,5 @@
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
    :caption: Connectivity
 
-   point_cloud
+   point-cloud

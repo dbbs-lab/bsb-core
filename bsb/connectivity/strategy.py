@@ -84,9 +84,9 @@ class ConnectionStrategy(abc.ABC, SortableByAfter):
     def connect(self, presyn_collection, postsyn_collection):
         pass
 
-    def _get_connect_args_from_job(self, chunk, roi):
-        pre = HemitypeCollection(self.presynaptic, [chunk])
-        post = HemitypeCollection(self.postsynaptic, roi)
+    def _get_connect_args_from_job(self, pre_roi, post_roi):
+        pre = HemitypeCollection(self.presynaptic, pre_roi)
+        post = HemitypeCollection(self.postsynaptic, post_roi)
         return pre, post
 
     def connect_cells(self, pre_set, post_set, src_locs, dest_locs, tag=None):

@@ -1,13 +1,7 @@
 import numpy as np
 import itertools
 from bsb.connectivity import ConnectionStrategy
-from bsb.storage import Chunk
 from bsb import config
-from scipy.stats.distributions import truncexpon
-from bsb.morphologies import Morphology
-from bsb.storage.interfaces import ConnectivitySet as IConnectivitySet
-from bsb.connectivity.strategy import Hemitype
-from bsb.connectivity.strategy import HemitypeCollection
 from bsb.connectivity.point_cloud.geometric_shapes import ShapesComposition
 
 
@@ -29,10 +23,14 @@ class MorphologyToCloudIntersection(ConnectionStrategy):
         selected_chunks = []
 
         # Look for chunks inside the mbb
-        #inside = (c[:,0]>mbb_min[0]) & (c[:,1]>mbb_min[1]) & (c[:,2]>mbb_min[2]) & (c[:,0]<mbb_max[0]) & (c[:,1]<mbb_max[1]) & (c[:,2]<mbb_max[2])
+        #inside = (c[:,0]>mbb_min[0]) & (c[:,1]>mbb_min[1]) & (c[:,2]>mbb_min[2]) & 
+                  (c[:,0]<mbb_max[0]) & (c[:,1]<mbb_max[1]) & (c[:,2]<mbb_max[2])
         for c in chunks:    
-            #inside = (c[0]>mbb_min[0]) & (c[1]>mbb_min[1]) & (c[2]>mbb_min[2]) & (c[0]<mbb_max[0]) & (c[1]<mbb_max[1]) & (c[2]<mbb_max[2])
-            inside = (c[0]>mbb_min[0]-c.dimensions[0]) & (c[1]>mbb_min[1]-c.dimensions[1]) & (c[2]>mbb_min[2]-c.dimensions[2]) & (c[0]<mbb_max[0]+c.dimensions[0]) & (c[1]<mbb_max[1]+c.dimensions[1]) & (c[2]<mbb_max[2]+c.dimensions[2])
+            #inside = (c[0]>mbb_min[0]) & (c[1]>mbb_min[1]) & (c[2]>mbb_min[2]) & 
+                      (c[0]<mbb_max[0]) & (c[1]<mbb_max[1]) & (c[2]<mbb_max[2])
+            inside = (c[0]>mbb_min[0]-c.dimensions[0]) & (c[1]>mbb_min[1]-c.dimensions[1]) & 
+                     (c[2]>mbb_min[2]-c.dimensions[2]) & (c[0]<mbb_max[0]+c.dimensions[0]) & 
+                     (c[1]<mbb_max[1]+c.dimensions[1]) & (c[2]<mbb_max[2]+c.dimensions[2])
             if (inside == True):
                 selected_chunks.append(Chunk([c[0], c[1], c[2]], chunk.dimensions))
         """
