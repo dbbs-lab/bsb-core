@@ -10,13 +10,13 @@ class SimulatorAdapter:
             data = self.prepare(simulation)
             for hook in simulation.post_prepare:
                 hook(self, data)
-            self.run(simulation)
-            return self.collect(simulation, data)
+            result = self.run(simulation)
+            return self.collect(simulation, data, result)
 
     @abc.abstractmethod
     def prepare(self, simulation, comm=None):
         """
-        Reset the simulation backend and prepare for the given simulations.
+        Reset the simulation backend and prepare for the given simulation.
 
         :param simulation: The simulation configuration to prepare.
         :type simulation: ~bsb.simulation.simulation.Simulation
@@ -27,18 +27,19 @@ class SimulatorAdapter:
         pass
 
     @abc.abstractmethod
-    def run(self):
+    def run(self, simulation):
         """
         Fire up the prepared adapter.
         """
         pass
 
     @abc.abstractmethod
-    def collect(self):
+    def collect(self, simulation, simdata, simresult):
         """
         Collect the output of a simulation that completed
         """
-        pass
+        simresult.flush()
+        return simresult
 
     @abc.abstractmethod
     def set_communicator(self, comm):

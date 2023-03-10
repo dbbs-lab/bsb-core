@@ -128,10 +128,6 @@ class NeuronAdapter(SimulatorAdapter):
 
         return result
 
-    def collect(self, simulation: "Simulation", data: SimulationData):
-        data.result.flush()
-        return data.result
-
     def create_neurons(self, simulation):
         simdata = self.simdata[simulation]
         offset = 0
