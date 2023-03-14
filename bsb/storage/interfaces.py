@@ -1048,18 +1048,11 @@ class ConnectivityIterator:
         return ConnectivityIterator(self._cs, self._dir, lchunks, gchunks)
 
     def __iter__(self):
-        yield from (
-            self._offset_block(*data)
-            for data in self._cs.flat_iter_connections(
-                self._dir, self._lchunks, self._gchunks
-            )
-        )
+        yield from (data[1::2] for data in self.chunk_iter())
 
     def chunk_iter(self):
         yield from (
-            (data[2], data[3][1], data[1], data[3][0])
-            if dir == "inc"
-            else (data[1], data[3][0], data[2], data[3][1])
+            self._offset_block(*data)
             for data in self._cs.flat_iter_connections(
                 self._dir, self._lchunks, self._gchunks
             )
@@ -1125,9 +1118,9 @@ class ConnectivityIterator:
         llocs[:, 0] += loff[lchunk]
         glocs[:, 0] += goff[gchunk]
         if direction == "out":
-            return llocs, glocs
+            return lchunk, llocs, gchunk, glocs
         else:
-            return glocs, llocs
+            return gchunk, glocs, lchunk, llocs
 
     @functools.cache
     def _local_chunk_offsets(self):
