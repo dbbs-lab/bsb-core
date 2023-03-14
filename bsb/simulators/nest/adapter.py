@@ -1,4 +1,4 @@
-from neo import AnalogSignal
+from neo import SpikeTrain
 from tempfile import TemporaryDirectory
 
 import typing
@@ -34,17 +34,21 @@ class SimulationData:
 
 
 class NestResult(SimulationResult):
-    def record(self, obj, **annotations):
-        from quantities import ms
+    def record(self, nc, **annotations):
+        import nest
+
+        recorder = nest.Create("spike_recorder", params={"record_to": "memory"})
+        nest.Connect(nc, recorder)
 
         def flush(segment):
-            import nest
+            events = nest.GetStatus(recorder, "events")[0]
 
-            segment.analogsignals.append(
-                AnalogSignal(
-                    list(obj),
+            segment.spiketrains.append(
+                SpikeTrain(
+                    events["times"],
+                    waveforms=events["senders"],
+                    t_stop=nest.biological_time,
                     units="ms",
-                    sampling_period=nest.resolution * ms,
                     **annotations,
                 )
             )
