@@ -143,6 +143,7 @@ class NeuronAdapter(SimulatorAdapter):
             ps = cell_model.cell_type.get_placement_set()
             simdata.cid_offsets[cell_model.cell_type] = offset
             with ps.chunk_context(simdata.chunks):
+                # print("processing chunk", ps._chunks, "on", MPI.get_rank())
                 self._create_population(simdata, cell_model, ps, offset)
             offset += len(ps)
 
@@ -167,10 +168,10 @@ class NeuronAdapter(SimulatorAdapter):
         chunk_stats = simulation.scaffold.storage.get_chunk_stats()
         max_trans = sum(stats["connections"]["out"] for stats in chunk_stats.values())
         report(
-            f"Node {MPI.get_rank()} allocated GIDs {self.next_gid} to {max_trans}",
+            f"Allocated GIDs {first} to {first + max_trans}",
             level=3,
-            all_nodes=True,
         )
+        self.next_gid += max_trans
         simdata.alloc = (first, self.next_gid)
         simdata.transmap = self._map_transmitters(simulation, simdata)
 
@@ -196,10 +197,12 @@ class NeuronAdapter(SimulatorAdapter):
                 data.append(itertools.repeat(None))
         with fill_parameter_data(cell_model.parameters, data):
             instances = cell_model.create_instances(len(ps), *data)
+            # print("IDs", ps.load_ids(), "loaded on", MPI.get_rank())
             for id, instance in zip(ps.load_ids(), instances):
+                # print(MPI.get_rank(), id)
                 cid = offset + id
                 instance.id = cid
-                instance.model = cell_model
+                instance.cell_model = cell_model
                 simdata.cells[cid] = instance
 
 

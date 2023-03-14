@@ -1,5 +1,4 @@
 import warnings
-
 from bsb import config
 from bsb.config import types
 from bsb.simulation.targetting import LocationTargetting

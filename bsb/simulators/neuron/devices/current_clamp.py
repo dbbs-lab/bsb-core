@@ -1,6 +1,8 @@
 from ..device import NeuronDevice
-from .... import config
-from ....simulation.targetting import LocationTargetting
+from bsb import config
+from bsb.simulation.targetting import LocationTargetting
+from ..device import NeuronDevice
+import warnings
 
 
 @config.node
