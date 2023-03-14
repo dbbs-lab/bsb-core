@@ -1,39 +1,35 @@
+from neo import AnalogSignal
+from tempfile import TemporaryDirectory
+
+import typing
+
 import functools
 
 from bsb.simulation.adapter import SimulatorAdapter
-from bsb.simulation.results import SimulationRecorder, SimulationResult
-from bsb.services import MPI
+from bsb.simulation.results import SimulationResult
 from bsb.reporting import report, warn
 from bsb.exceptions import (
     KernelWarning,
     NestModelError,
     NestModuleError,
-    ConnectivityWarning,
     UnknownGIDError,
     ConfigurationError,
     AdapterError,
     KernelLockedError,
     SuffixTakenError,
     NestKernelError,
-    SimulationWarning,
 )
-from .connection import NestConnection
-import os
-import json
-import numpy as np
-from copy import deepcopy
-import warnings
-import h5py
 import time
+
+if typing.TYPE_CHECKING:
+    from ...simulation import Simulation
 
 
 class SimulationData:
     def __init__(self):
         self.chunks = None
-        self.cells = dict()
-        self.cid_offsets = dict()
+        self.populations = dict()
         self.connections = dict()
-        self.first_gid: int = None
         self.result: "NestResult" = None
 
 
@@ -42,7 +38,16 @@ class NestResult(SimulationResult):
         from quantities import ms
 
         def flush(segment):
-            segment.analogsignals.append(...)
+            import nest
+
+            segment.analogsignals.append(
+                AnalogSignal(
+                    list(obj),
+                    units="ms",
+                    sampling_period=nest.resolution * ms,
+                    **annotations,
+                )
+            )
 
         self.create_recorder(flush)
 
@@ -60,12 +65,13 @@ class NestAdapter(SimulatorAdapter):
 
         return nest
 
-    def prepare(self, simulation):
+    def prepare(self, simulation, comm=None):
         self.simdata[simulation] = simdata = SimulationData()
         try:
             simdata.result = SimulationResult(simulation)
             report("Installing  NEST modules...", level=2)
             self.load_modules(simulation)
+            self.set_settings(simulation)
             report("Creating neurons...", level=2)
             self.create_neurons(simulation)
             report("Creating connections...", level=2)
@@ -73,99 +79,46 @@ class NestAdapter(SimulatorAdapter):
             report("Creating devices...", level=2)
             self.create_devices(simulation)
             return self.simdata[simulation]
-        except:
+        except Exception:
             del self.simdata[simulation]
             raise
 
-    def reset_kernel(self):
-        self.nest.set_verbosity(self.verbosity)
+    def reset_kernel(self, simulation: "Simulation"):
         self.nest.ResetKernel()
         # Reset which modules we should consider explicitly loaded by the user
         # to appropriately warn them when they load them twice.
         self.loaded_modules = set()
-        self.reset_processes(self.threads)
-        self.nest.SetKernelStatus(
-            {
-                "resolution": self.resolution,
-                "overwrite_files": True,
-                "data_path": self.scaffold.output_formatter.get_simulator_output_path(
-                    self.simulator_name
-                ),
-            }
-        )
-
-    def reset(self):
-        self.is_prepared = False
-        if hasattr(self, "nest"):
-            self.reset_kernel()
-        self.global_identifier_map = {}
-        for cell_model in self.cell_models.values():
-            cell_model.reset()
 
     def run(self, simulation):
+        if simulation not in self.simdata:
+            raise RuntimeError("Can't run unprepared simulation")
         report("Simulating...", level=2)
         tick = time.time()
-        with self.nest.RunManager():
-            for oi, i in self.step_progress(self.duration, step=1):
-                self.nest.Run(i - oi)
-                self.progress(i)
+        simulation.start_progress(simulation.duration)
+        self.simdata[simulation].result_dir = tmpdir = TemporaryDirectory()
+        self.nest.data_path = tmpdir.name
+        try:
+            with self.nest.RunManager():
+                for oi, i in simulation.step_progress(simulation.duration, step=1):
+                    self.nest.Run(i - oi)
+                    simulation.progress(i)
+        except Exception as e:
+            tmpdir.cleanup()
+            raise
+        finally:
+            self.nest.data_path = "."
+            result = self.simdata[simulation].result
+            del self.simdata[simulation]
         report(f"Simulation done. {time.time() - tick:.2f}s elapsed.", level=2)
+        return result
 
-    def step(self, simulator, dt):
-        if not self.is_prepared:
-            warn("Adapter has not been prepared", SimulationWarning)
-        report("Simulating...", level=2)
-        tick = time.time()
-        with simulator.RunManager():
-            for oi, i in self.step_progress(self.duration, step=dt):
-                simulator.Run(i - oi)
-                yield self.progress(i)
-
-        report(f"Simulation done. {time.time() - tick:.2f}s elapsed.", level=2)
-        if self.has_lock:
-            self.release_lock()
-
-    def collect_output(self, simulation):
-        report("Collecting output...", level=2)
-        tick = time.time()
-        rank = MPI.get_rank()
-
-        result = self.simdata[simulation].result
-        if rank == 0:
-            with h5py.File(result_path, "a") as f:
-                f.attrs["configuration_string"] = self.scaffold.configuration._raw
-                for path, data, meta in self.result.safe_collect():
-                    try:
-                        path = "/".join(path)
-                        if path in f:
-                            data = np.vstack((f[path][()], data))
-                            del f[path]
-                        d = f.create_dataset(path, data=data)
-                        for k, v in meta.items():
-                            d.attrs[k] = v
-                    except Exception as e:
-                        import traceback
-
-                        traceback.print_exc()
-                        if not isinstance(data, np.ndarray):
-                            warn(
-                                "Recorder {} numpy.ndarray expected, got {}".format(
-                                    path, type(data)
-                                )
-                            )
-                        else:
-                            warn(
-                                "Recorder {} processing errored out: {}".format(
-                                    path, "{} {}".format(data.dtype, data.shape)
-                                )
-                            )
-        MPI.bcast(result_path, root=0)
-        report(
-            f"Output collected in '{result_path}'. "
-            + f"{time.time() - tick:.2f}s elapsed.",
-            level=2,
-        )
-        return result_path
+    def collect(self, simulation, simdata, simresult):
+        try:
+            simresult = super().collect(simulation, simdata, simresult)
+        finally:
+            self.reset_kernel(simulation)
+            simdata.result_dir.cleanup()
+        return simresult
 
     def load_modules(self, simulation):
         for module in simulation.modules:
@@ -203,10 +156,21 @@ class NestAdapter(SimulatorAdapter):
         """
         simdata = self.simdata[simulation]
         for connection_model in simulation.connection_models.values():
-            simdata.synapses[connection_model] = connection_model.create_connections()
+            cs = simulation.scaffold.get_connectivity_set(connection_model.name)
 
-    def create_devices(self):
+            pre_nodes = simdata.populations[simulation.get_model_of(cs.pre_type)]
+            post_nodes = simdata.populations[simulation.get_model_of(cs.post_type)]
+            simdata.connections[connection_model] = connection_model.create_connections(
+                simdata, pre_nodes, post_nodes, cs
+            )
+
+    def create_devices(self, simulation):
         """
         Create the configured NEST devices in the simulator
         """
         pass
+
+    def set_settings(self, simulation: "Simulation"):
+        self.nest.set_verbosity(simulation.verbosity)
+        self.nest.resolution = simulation.resolution
+        self.nest.overwrite_files = True
