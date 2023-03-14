@@ -169,10 +169,11 @@ class NestAdapter(SimulatorAdapter):
             )
 
     def create_devices(self, simulation):
-        """
-        Create the configured NEST devices in the simulator
-        """
-        pass
+        simdata = self.simdata[simulation]
+        for device_model in simulation.devices.values():
+            device_model.implement(
+                simdata.result, simdata.populations, simdata.connections
+            )
 
     def set_settings(self, simulation: "Simulation"):
         self.nest.set_verbosity(simulation.verbosity)
