@@ -1,7 +1,4 @@
-import shortuuid
-import itertools
 from bsb import config
-from bsb.exceptions import DatasetNotFoundError
 from bsb.config import types
 from bsb.simulation.cell import CellModel
 
@@ -11,7 +8,7 @@ class NestCell(CellModel):
     neuron_model = config.attr(type=str)
     constants = config.dict(type=types.any_())
 
-    def create_population(self, simdata):
+    def create_population(self):
         import nest
 
         population = nest.Create(self.neuron_model, len(self.get_placement_set()))
