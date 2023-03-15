@@ -38,27 +38,6 @@ class Simulation:
     def __plugins__():
         return get_simulation_nodes()
 
-    @abc.abstractmethod
-    def get_rank(self):
-        """
-        Return the rank of the current node.
-        """
-        pass
-
-    @abc.abstractmethod
-    def get_size(self):
-        """
-        Return the size of the collection of all distributed nodes.
-        """
-        pass
-
-    @abc.abstractmethod
-    def broadcast(self, data, root=0):
-        """
-        Broadcast data over MPI
-        """
-        pass
-
     def start_progress(self, duration):
         """
         Start a progress meter.
