@@ -7,7 +7,7 @@ from bsb.simulation.connection import ConnectionModel
 
 @config.node
 class NestSynapseSettings:
-    model = config.attr(type=str)
+    model = config.attr(type=str, default="static_synapse")
     weight = config.attr(type=float, required=True)
     delay = config.attr(type=float, required=True)
     receptor_type = config.attr(type=int)
