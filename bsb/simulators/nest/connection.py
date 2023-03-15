@@ -50,21 +50,19 @@ class NestConnection(compose_nodes(NestConnectionSettings, ConnectionModel)):
                         return_counts=True,
                         axis=0,
                     )
-                    for pair, mult in zip(cell_pairs, multiplicity):
-                        targets, mults = conns.setdefault(pair[0], ([], []))
-                        targets.append(pair[1])
-                        mults.append(mult)
-                for source, (targets, mults) in tqdm(conns.items(), total=len(conns)):
-                    ssw = syn_spec["weight"]
-                    scol = nest.Connect(
-                        pre_nodes[source],
-                        post_nodes[np.array(sorted(targets))],
-                        "all_to_all",
-                        syn_spec,
-                        return_synapsecollection=True,
+                    prel = pre_nodes.tolist()
+                    postl = post_nodes.tolist()
+                    ssw = {**syn_spec}
+                    bw = syn_spec["weight"]
+                    ssw["weight"] = [bw * m for m in multiplicity]
+                    ssw["delay"] = [syn_spec["delay"]] * len(ssw["weight"])
+                    nest.Connect(
+                        [prel[x] for x in cell_pairs[:, 0]],
+                        [postl[x] for x in cell_pairs[:, 1]],
+                        "one_to_one",
+                        ssw,
+                        return_synapsecollection=False,
                     )
-                    scol.weight = [ssw * w for w in mults]
-                    connections.append(scol)
         return connections
 
     def get_connectivity_set(self):

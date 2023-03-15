@@ -1,10 +1,8 @@
 from neo import SpikeTrain
 from tempfile import TemporaryDirectory
-
 import typing
-
+import time
 import functools
-
 from bsb.simulation.adapter import SimulatorAdapter
 from bsb.simulation.results import SimulationResult
 from bsb.reporting import report, warn
@@ -14,7 +12,7 @@ from bsb.exceptions import (
     NestModelError,
     NestConnectError,
 )
-import time
+from ...services import MPI
 
 if typing.TYPE_CHECKING:
     from ...simulation import Simulation
@@ -61,6 +59,8 @@ class NestAdapter(SimulatorAdapter):
     def nest(self):
         report("Importing  NEST...", level=2)
         import nest
+
+        self.check_comm()
 
         return nest
 
@@ -185,3 +185,12 @@ class NestAdapter(SimulatorAdapter):
         self.nest.set_verbosity(simulation.verbosity)
         self.nest.resolution = simulation.resolution
         self.nest.overwrite_files = True
+
+    def check_comm(self):
+        import nest
+
+        print("CHECKING NUM PROC", nest.NumProcesses())
+        if nest.NumProcesses() != MPI.get_size():
+            raise RuntimeError(
+                f"NEST wants {nest.NumProcesses()} processes, while the BSB wants {MPI.get_size()}"
+            )
