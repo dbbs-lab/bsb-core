@@ -10,14 +10,9 @@ from bsb.simulation.results import SimulationResult
 from bsb.reporting import report, warn
 from bsb.exceptions import (
     KernelWarning,
-    NestModelError,
     NestModuleError,
-    UnknownGIDError,
-    ConfigurationError,
-    AdapterError,
-    KernelLockedError,
-    SuffixTakenError,
-    NestKernelError,
+    NestModelError,
+    NestConnectError,
 )
 import time
 
@@ -162,11 +157,22 @@ class NestAdapter(SimulatorAdapter):
         for connection_model in simulation.connection_models.values():
             cs = simulation.scaffold.get_connectivity_set(connection_model.name)
 
-            pre_nodes = simdata.populations[simulation.get_model_of(cs.pre_type)]
-            post_nodes = simdata.populations[simulation.get_model_of(cs.post_type)]
-            simdata.connections[connection_model] = connection_model.create_connections(
-                simdata, pre_nodes, post_nodes, cs
-            )
+            try:
+                pre_nodes = simdata.populations[simulation.get_model_of(cs.pre_type)]
+            except KeyError:
+                raise NestModelError(f"No model found for {cs.pre_type}")
+            try:
+                post_nodes = simdata.populations[simulation.get_model_of(cs.post_type)]
+            except KeyError:
+                raise NestModelError(f"No model found for {cs.post_type}")
+            try:
+                simdata.connections[
+                    connection_model
+                ] = connection_model.create_connections(
+                    simdata, pre_nodes, post_nodes, cs
+                )
+            except Exception as e:
+                raise NestConnectError(f"{connection_model} error during connect.")
 
     def create_devices(self, simulation):
         simdata = self.simdata[simulation]
