@@ -1,18 +1,13 @@
 from .... import config
 from ....config import types
 from ..device import NeuronDevice
-from ....simulation.results import SimulationRecorder
 from bsb.simulation.targetting import LocationTargetting
-from ....exceptions import *
-from ....reporting import report, warn
-import numpy as np
-from patch import p
 
 
 @config.node
 class SpikeGenerator(NeuronDevice):
     locations = config.attr(type=LocationTargetting, default={"strategy": "soma"})
-    synapses = config.attr(type=types.list())
+    synapses = config.list()
     parameters = config.catch_all(type=types.any_())
 
     def implement(self, result, cells, connections):
