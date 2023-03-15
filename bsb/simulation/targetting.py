@@ -9,7 +9,7 @@ from ..config import refs, types
 class Targetting:
     type = config.attr(type=types.in_(["cell", "connection"]), default="cell")
 
-    def get_targets(self, cells, connections):
+    def get_targets(self, adapter, cells, connections):
         if self.type == "cell":
             return cells
         elif self.type == "connection":
@@ -22,7 +22,7 @@ class CellTargetting(Targetting, classmap_entry="all"):
     def type(self):
         return "cell"
 
-    def get_targets(self, cells, connections):
+    def get_targets(self, adapter, cells, connections):
         return cells
 
 
@@ -32,7 +32,7 @@ class ConnectionTargetting(Targetting, classmap_entry="all_connections"):
     def type(self):
         return "connection"
 
-    def get_targets(self, cells, connections):
+    def get_targets(self, adapter, cells, connections):
         return connections
 
 
@@ -45,7 +45,7 @@ class CellModelTargetting(CellTargetting, classmap_entry="cell_model"):
 
     cell_models = config.reflist(refs.sim_cell_model_ref, required=True)
 
-    def get_targets(self, cells, connections):
+    def get_targets(self, adapter, cells, connections):
         return [cell for cell in cells.values() if cell.model in self.cell_models]
 
 
@@ -58,7 +58,7 @@ class RepresentativesTargetting(CellModelTargetting, classmap_entry="representat
 
     n = config.attr(type=int, default=1)
 
-    def get_targets(self, cells, connections):
+    def get_targets(self, adapter, cells, connections):
         reps = {cell_model: [] for cell_model in self.cell_models}
         for cell in cells.values():
             reps[cell.model] = cell
@@ -77,7 +77,7 @@ class ByIdTargetting(CellTargetting, classmap_entry="by_id"):
 
     ids = config.attr(type=types.list(type=int), required=True)
 
-    def get_targets(self, cells, connections):
+    def get_targets(self, adapter, cells, connections):
         return [cells[id] for id in self.ids]
 
 
@@ -89,7 +89,7 @@ class ByLabelTargetting(CellTargetting, classmap_entry="by_label"):
 
     labels = config.attr(type=types.list(type=str), required=True)
 
-    def get_targets(self, cells, connections):
+    def get_targets(self, adapter, cells, connections):
         raise NotImplementedError("Labels still need to be transferred onto models")
 
 
@@ -111,11 +111,15 @@ class CylindricalTargetting(CellModelFilter, CellTargetting, classmap_entry="cyl
     axis = config.attr(type=types.in_(["x", "y", "z"]), default="y")
     radius = config.attr(type=float, required=True)
 
-    def get_targets(self, cells, connections):
+    def get_targets(self, adapter, cells, connections):
         """
         Target all or certain cells within a cylinder of specified radius.
         """
-        cells = super().get_targets(cells, connections)
+        cells = super().get_targets(
+            cells,
+            self,
+            connections,
+        )
         if self.axis == "x":
             axes = [1, 2]
         elif self.axis == "y":
@@ -138,13 +142,17 @@ class SphericalTargetting(CellModelFilter, CellTargetting, classmap_entry="spher
     origin = config.attr(type=types.list(type=float, size=3), required=True)
     radius = config.attr(type=float, required=True)
 
-    def get_targets(self, cells, connections):
+    def get_targets(self, adapter, cells, connections):
         """
         Target all or certain cells within a cylinder of specified radius.
         """
         return [
             cell
-            for cell in super().get_targets(cells, connections)
+            for cell in super().get_targets(
+                cells,
+                self,
+                connections,
+            )
             if np.sum((cell.position - self.origin) ** 2) < self.radius**2
         ]
 

@@ -6,11 +6,18 @@ class CurrentClamp(NeuronDevice):
         pattern = self.get_pattern(target, location)
         location.section.iclamp(**pattern)
 
-    def validate_specifics(self):
-        pass
+    def implement(self, adapter, result, cells, connections):
+        for target in self.targetting.get_targets(adapter, cells, connections):
+            clamped = False
+            for location in self.locations.get_locations(target):
+                if clamped:
+                    warnings.warn(f"Multiple current clamps placed on {target}")
+                self._add_clamp(result, location)
+                clamped = True
 
-    def create_patterns(self):
-        return self.parameters
-
-    def get_pattern(self, target, cell=None, section=None, synapse=None):
-        return self.get_patterns()
+    def _add_clamp(self, results, location):
+        sx = location.arc(0.5)
+        clamp = location.section.iclamp(
+            x=sx, delay=self.before, duration=self.duration, amplitude=self.amplitude
+        )
+        results.record(clamp._ref_i)

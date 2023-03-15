@@ -499,6 +499,6 @@ class ArborAdapter(SimulatorAdapter):
     def _cache_devices(self):
         self._devices_on = {gid: [] for gid in self.gids}
         for device in self.devices.values():
-            targets = device.get_targets()
+            targets = device.get_targets(self)
             for target in targets:
                 self._devices_on[target].append(device)

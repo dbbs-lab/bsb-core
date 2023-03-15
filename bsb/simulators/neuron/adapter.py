@@ -7,7 +7,7 @@ import typing
 
 from neo import AnalogSignal
 
-from bsb.exceptions import AdapterError, DatasetNotFoundError, TransmitterError
+from bsb.exceptions import AdapterError, DatasetNotFoundError
 from bsb.reporting import report
 from bsb.services import MPI
 from bsb.simulation.adapter import SimulatorAdapter
@@ -151,7 +151,9 @@ class NeuronAdapter(SimulatorAdapter):
     def create_devices(self, simulation):
         simdata = self.simdata[simulation]
         for device_model in simulation.devices.values():
-            device_model.implement(simdata.result, simdata.cells, simdata.connections)
+            device_model.implement(
+                self, simdata.result, simdata.cells, simdata.connections
+            )
 
     def _allocate_transmitters(self, simulation):
         simdata = self.simdata[simulation]

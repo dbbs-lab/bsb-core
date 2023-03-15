@@ -1,4 +1,5 @@
 import numpy as np
+from tqdm import tqdm
 
 from bsb import config
 from bsb.config import types, compose_nodes
@@ -35,10 +36,15 @@ class NestConnection(compose_nodes(NestConnectionSettings, ConnectionModel)):
             ]
         else:
             connections = []
-            for local_chunk in cs.get_local_chunks("out"):
+            local_chunks = cs.get_local_chunks("out")
+            for local_chunk in tqdm(local_chunks, total=len(local_chunks), desc="locals"):
                 conns = {}
                 itr = cs.load_connections().from_(local_chunk).as_globals()
-                for pre_locs, post_locs in itr:
+                for pre_locs, post_locs in tqdm(
+                    itr,
+                    total=len(cs.get_global_chunks("out", local_chunk)),
+                    desc="blocks",
+                ):
                     cell_pairs, multiplicity = np.unique(
                         np.column_stack((pre_locs[:, 0], post_locs[:, 0])),
                         return_counts=True,
@@ -48,7 +54,7 @@ class NestConnection(compose_nodes(NestConnectionSettings, ConnectionModel)):
                         targets, mults = conns.setdefault(pair[0], ([], []))
                         targets.append(pair[1])
                         mults.append(mult)
-                for source, (targets, mults) in conns.items():
+                for source, (targets, mults) in tqdm(conns.items(), total=len(conns)):
                     ssw = syn_spec["weight"]
                     scol = nest.Connect(
                         pre_nodes[source],
