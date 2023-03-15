@@ -76,13 +76,14 @@ class NestConnection(compose_nodes(NestConnectionSettings, ConnectionModel)):
     def get_syn_spec(self):
         return {
             **{
-                label: getattr(self.synapse, attr)
+                label: value
                 for attr, label in (
                     ("model", "synapse_model"),
                     ["weight"] * 2,
                     ["delay"] * 2,
                     ["receptor_type"] * 2,
                 )
+                if (value := getattr(self.synapse, attr)) is not None
             },
             **self.synapse.constants,
         }
