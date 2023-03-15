@@ -11,7 +11,8 @@ class NestCell(CellModel):
     def create_population(self):
         import nest
 
-        population = nest.Create(self.neuron_model, len(self.get_placement_set()))
+        n = len(self.get_placement_set())
+        population = nest.Create(self.neuron_model, n) if n else nest.NodeCollection([])
         self.set_constants(population)
         self.set_parameters(population)
         return population
