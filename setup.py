@@ -28,6 +28,7 @@ requires = [
     "rtree~=1.0",
     "psutil~=5.8",
     "pynrrd~=1.0",
+    "PyYAML~=6.0",
     "morphio~=3.3",
     "toml",
     "requests",
