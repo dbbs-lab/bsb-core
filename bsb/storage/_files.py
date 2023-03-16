@@ -12,6 +12,7 @@ import typing as _tp
 import requests as _rq
 import email.utils as _eml
 import nrrd as _nrrd
+import yaml
 
 from .._util import obj_str_insert
 from .. import config
@@ -347,6 +348,10 @@ class FilePipelineMixin:
 
 @config.node
 class NrrdDependencyNode(FilePipelineMixin, FileDependencyNode):
+    """
+    Configuration dependency node to load NRRD files.
+    """
+
     def get_header(self):
         with self.file.provide_locally() as (path, encoding):
             return _nrrd.read_header(path)
@@ -361,8 +366,24 @@ class NrrdDependencyNode(FilePipelineMixin, FileDependencyNode):
 
 @config.node
 class MorphologyDependencyNode(FilePipelineMixin, FileDependencyNode):
+    """
+    Configuration dependency node to load morphology files.
+    The content of these files will be stored in bsb.morphologies.Morphology instances.
+    """
+
     def load_object(self) -> "Morphology":
         from ..morphologies import Morphology
 
         with self.file.provide_locally() as (path, encoding):
             return self.pipe(Morphology.from_file(path))
+
+
+@config.node
+class YamlDependencyNode(FileDependencyNode):
+    """
+    Configuration dependency node to load yaml files.
+    """
+
+    def load_object(self):
+        with self.file.provide_locally() as (path, encoding):
+            return yaml.safe_load(open(path, "r"))
