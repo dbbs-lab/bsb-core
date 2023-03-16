@@ -1,12 +1,15 @@
+import sys
 from neo import SpikeTrain
 from tempfile import TemporaryDirectory
 import typing
 import time
 import functools
-from bsb.simulation.adapter import SimulatorAdapter
-from bsb.simulation.results import SimulationResult
-from bsb.reporting import report, warn
-from bsb.exceptions import (
+from tqdm import tqdm
+
+from ...simulation.adapter import SimulatorAdapter
+from ...simulation.results import SimulationResult
+from ...reporting import report, warn
+from ...exceptions import (
     KernelWarning,
     NestModuleError,
     NestModelError,
@@ -154,9 +157,16 @@ class NestAdapter(SimulatorAdapter):
         Connect the cells in NEST according to the connection model configurations
         """
         simdata = self.simdata[simulation]
-        for connection_model in simulation.connection_models.values():
+        iter = simulation.connection_models.values()
+        if MPI.get_rank() == 0:
+            iter = tqdm(iter, desc="", file=sys.stdout)
+        for connection_model in iter:
+            try:
+                iter.set_description(connection_model.name)
+            except AttributeError:
+                # Only rank 0 should report progress bar
+                pass
             cs = simulation.scaffold.get_connectivity_set(connection_model.name)
-
             try:
                 pre_nodes = simdata.populations[simulation.get_model_of(cs.pre_type)]
             except KeyError:
@@ -189,8 +199,8 @@ class NestAdapter(SimulatorAdapter):
     def check_comm(self):
         import nest
 
-        print("CHECKING NUM PROC", nest.NumProcesses())
         if nest.NumProcesses() != MPI.get_size():
             raise RuntimeError(
-                f"NEST wants {nest.NumProcesses()} processes, while the BSB wants {MPI.get_size()}"
+                f"NEST is managing {nest.NumProcesses()} processes, but {MPI.get_size()}"
+                " were detected. Please check your MPI setup."
             )
