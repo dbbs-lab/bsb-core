@@ -1,8 +1,12 @@
+import sys
+
 import numpy as np
+import psutil
 from tqdm import tqdm
 
 from bsb import config
 from bsb.config import types, compose_nodes
+from bsb.services import MPI
 from bsb.simulation.connection import ConnectionModel
 
 
@@ -31,39 +35,79 @@ class NestConnection(compose_nodes(NestConnectionSettings, ConnectionModel)):
 
         syn_spec = self.get_syn_spec()
         if self.rule is not None:
-            connections = [
-                nest.Connect(pre_nodes, post_nodes, self.get_conn_spec(), syn_spec, True)
-            ]
+            nest.Connect(pre_nodes, post_nodes, self.get_conn_spec(), syn_spec)
         else:
-            connections = []
-            local_chunks = cs.get_local_chunks("out")
-            for local_chunk in tqdm(local_chunks, total=len(local_chunks), desc="locals"):
-                conns = {}
-                itr = cs.load_connections().from_(local_chunk).as_globals()
-                for pre_locs, post_locs in tqdm(
-                    itr,
-                    total=len(cs.get_global_chunks("out", local_chunk)),
-                    desc="blocks",
-                ):
-                    cell_pairs, multiplicity = np.unique(
-                        np.column_stack((pre_locs[:, 0], post_locs[:, 0])),
-                        return_counts=True,
-                        axis=0,
+            MPI.barrier()
+            for pre_locs, post_locs in self.predict_mem_iterator(
+                pre_nodes, post_nodes, cs
+            ):
+                MPI.barrier()
+                cell_pairs, multiplicity = np.unique(
+                    np.column_stack((pre_locs[:, 0], post_locs[:, 0])),
+                    return_counts=True,
+                    axis=0,
+                )
+                prel = pre_nodes.tolist()
+                postl = post_nodes.tolist()
+                ssw = {**syn_spec}
+                bw = syn_spec["weight"]
+                ssw["weight"] = [bw * m for m in multiplicity]
+                ssw["delay"] = [syn_spec["delay"]] * len(ssw["weight"])
+                nest.Connect(
+                    [prel[x] for x in cell_pairs[:, 0]],
+                    [postl[x] for x in cell_pairs[:, 1]],
+                    "one_to_one",
+                    ssw,
+                    return_synapsecollection=False,
+                )
+            MPI.barrier()
+        return nest.GetConnections(pre_nodes, post_nodes)
+
+    def predict_mem_iterator(self, pre_nodes, post_nodes, cs):
+        avmem = psutil.virtual_memory().available
+        predicted_all_mem = (
+            len(pre_nodes) * 8 * 2 + len(post_nodes) * 8 * 2 + len(cs) * 6 * 8 * (16 + 2)
+        ) * MPI.get_size()
+        predicted_local_mem = predicted_all_mem / len(cs.get_local_chunks("out"))
+        if predicted_local_mem > avmem / 2:
+            # Iterate block-by-block
+            return self.block_iterator(cs)
+        elif predicted_all_mem > avmem / 2:
+            # Iterate local hyperblocks
+            return self.local_iterator(cs)
+        else:
+            # Iterate all
+            return (cs.load_connections().as_globals().all(),)
+
+    def block_iterator(self, cs):
+        locals = cs.get_local_chunks("out")
+
+        def block_iter():
+            iter = locals
+            if MPI.get_rank() == 0:
+                iter = tqdm(iter, desc="hyperblocks", file=sys.stdout)
+            for local in iter:
+                inner_iter = cs.load_connections().as_globals().from_(local)
+                if MPI.get_rank() == 0:
+                    yield from tqdm(
+                        inner_iter,
+                        desc="blocks",
+                        total=len(cs.get_global_chunks("out", local)),
+                        file=sys.stdout,
+                        leave=False,
                     )
-                    prel = pre_nodes.tolist()
-                    postl = post_nodes.tolist()
-                    ssw = {**syn_spec}
-                    bw = syn_spec["weight"]
-                    ssw["weight"] = [bw * m for m in multiplicity]
-                    ssw["delay"] = [syn_spec["delay"]] * len(ssw["weight"])
-                    nest.Connect(
-                        [prel[x] for x in cell_pairs[:, 0]],
-                        [postl[x] for x in cell_pairs[:, 1]],
-                        "one_to_one",
-                        ssw,
-                        return_synapsecollection=False,
-                    )
-        return connections
+                else:
+                    yield from inner_iter
+
+        return block_iter()
+
+    def local_iterator(self, cs):
+        iter = cs.get_local_chunks("out")
+        if MPI.get_rank() == 0:
+            iter = tqdm(iter, desc="hyperblocks", file=sys.stdout)
+        yield from (
+            cs.load_connections().as_globals().from_(local).all() for local in iter
+        )
 
     def get_connectivity_set(self):
         if self.tag is not None:
