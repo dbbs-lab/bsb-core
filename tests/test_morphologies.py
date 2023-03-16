@@ -208,6 +208,35 @@ class TestMorphologies(NumpyTestCase, unittest.TestCase):
         res = m.rotate(r).root_rotate(r).translate([0, 0, 0]).collapse().close_gaps()
         self.assertEqual(m, res, "chaining calls should return self")
 
+    def test_root_rotate(self):
+        points = np.array([[0, 0, 0], [1, 1, 0], [0, 4, 0], [0, 6, 0], [2, 4, 8]])
+        radii = np.array([0, 1, 2, 2, 1])
+        m = Morphology([Branch(points, radii)])
+        # rotate from root
+        rotated = m.copy().root_rotate(Rotation.from_euler("x", np.pi))
+        rot_points = np.copy(points)
+        rot_points[:, 1:] = -rot_points[:, 1:]
+        expected = Morphology([Branch(rot_points, radii)])
+        self.assertEqual(rotated, expected)
+
+        # rotate from second point
+        rotated = m.copy().root_rotate(Rotation.from_euler("x", np.pi), downstream_of=1)
+        rot_points = np.copy(points)
+        rot_points[1:, 1:] = 2 * rot_points[1, 1:] - rot_points[1:, 1:]
+        expected = Morphology([Branch(rot_points, radii)])
+        self.assertEqual(rotated, expected)
+
+        # Wrong point index -> no rotation
+        expected = Morphology([Branch(points, radii)])
+        rotated = m.copy().root_rotate(Rotation.from_euler("x", np.pi), downstream_of=5)
+        self.assertEqual(rotated, expected)
+        rotated = m.copy().root_rotate(Rotation.from_euler("x", np.pi), downstream_of=-1)
+        self.assertEqual(rotated, expected)
+        rotated = m.copy().root_rotate(
+            Rotation.from_euler("x", np.pi), downstream_of="bla"
+        )
+        self.assertEqual(rotated, expected)
+
     def test_simplification(self):
         def branch_one():
             return Branch(
