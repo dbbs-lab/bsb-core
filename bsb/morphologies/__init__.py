@@ -1442,7 +1442,7 @@ class Branch:
         Filter out all points with certain labels
 
         :param labels: The labels to check for.
-        :type labels: list[str]|numpy.ndarray[str]
+        :type labels: List[str] | numpy.ndarray[str]
         :returns: All points with the labels.
         :rtype: List[numpy.ndarray]
         """
