@@ -277,13 +277,16 @@ Additionally, you can :meth:`root-rotate <.morphologies.SubTree.root_rotate>` fr
 subtree instead of its root. In this case, points starting from the point selected will be rotated.
 
 To do so, set the `downstream_of` parameter with the index of the point of your interest.
-This latter feature only works if the subtree has a single root.
 
 .. code-block:: python
 
   # rotate all points after the second point in the subtree
   # i.e.: points at index 0 and 1 will not be rotated.
   dendrites.root_rotate(r, downstream_of=2)
+
+.. note::
+
+  This feature can only be applied to subtrees with a single root
 
 Gap closing
 -----------

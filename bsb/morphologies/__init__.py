@@ -513,9 +513,9 @@ class SubTree:
         Point rotation
 
         :param rot: Scipy rotation
-        :type rot: :class:`scipy.spatial.transform.Rotation`
+        :type rot: scipy.spatial.transform.Rotation
         :param center: rotation offset point.
-        :type center: :class:`numpy.ndarray`
+        :type center: numpy.ndarray
         """
 
         if self._is_shared:
@@ -541,11 +541,11 @@ class SubTree:
         subtrees with a single root).
 
         :param rot: Scipy rotation to apply to the subtree.
-        :type rot: :class:`scipy.spatial.transform.Rotation`
+        :type rot: scipy.spatial.transform.Rotation
         :param downstream_of: index of the point in the subtree from which the rotation should be
-            applied. This feature works only when the subtree has only one branch, i.e. one root.
+            applied. This feature works only when the subtree has only one root branch.
         :returns: rotated Morphology
-        :rtype: :class:`bsb.morphologies.Morphology`
+        :rtype: bsb.morphologies.Morphology
         """
 
         if downstream_of != 0:
@@ -1018,15 +1018,15 @@ class Branch:
     def __init__(self, points, radii, labels=None, properties=None, children=None):
         """
         :param points: Array of 3D coordinates defining the point of the branch
-        :type points: list | :class:`numpy.ndarray`
-        :param radii: Array of radius associated to each point
-        :type radii: list|:class:`numpy.ndarray`
-        :param labels: Array of label to associate to each point
-        :type labels: EncodedLabels | list[str] | set | :class:`numpy.ndarray`
+        :type points: list | numpy.ndarray
+        :param radii: Array of radii associated to each point
+        :type radii: list | numpy.ndarray
+        :param labels: Array of labels to associate to each point
+        :type labels: EncodedLabels | List[str] | set | numpy.ndarray
         :param properties: dictionary of metadata to store in the branch
         :type properties: dict
-        :param children: list of children branches to attach to the branch
-        :type children: list[:class:`bsb.morphologies.Branch`]
+        :param children: list of child branches to attach to the branch
+        :type children: List[bsb.morphologies.Branch]
         """
 
         self._points = _gutil.sanitize_ndarray(points, (-1, 3), float)
@@ -1453,7 +1453,7 @@ class Branch:
         Return a mask for the specified labels
 
         :param labels: The labels to check for.
-        :type labels: list[str]|numpy.ndarray[str]
+        :type labels: List[str] | numpy.ndarray[str]
         :returns: A boolean mask that selects out the points that match the label.
         :rtype: List[numpy.ndarray]
         """
