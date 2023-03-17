@@ -8,6 +8,7 @@ from bsb import config
 from bsb.config import types, compose_nodes
 from bsb.services import MPI
 from bsb.simulation.connection import ConnectionModel
+from bsb.exceptions import NestConnectError
 
 
 @config.node
@@ -34,6 +35,10 @@ class NestConnection(compose_nodes(NestConnectionSettings, ConnectionModel)):
         import nest
 
         syn_spec = self.get_syn_spec()
+        if syn_spec["synapse_model"] not in nest.synapse_models:
+            raise NestConnectError(
+                f"Unknown synapse model '{syn_spec['synapse_model']}'."
+            )
         if self.rule is not None:
             nest.Connect(pre_nodes, post_nodes, self.get_conn_spec(), syn_spec)
         else:
