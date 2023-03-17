@@ -1,3 +1,4 @@
+import functools
 import sys
 
 import numpy as np
@@ -24,6 +25,21 @@ class NestSynapseSettings:
 class NestConnectionSettings:
     rule = config.attr(type=str)
     constants = config.catch_all(type=types.any_())
+
+
+class LazySynapseCollection:
+    def __init__(self, pre, post):
+        self._pre = pre
+        self._post = post
+
+    def __getattr__(self, attr):
+        return getattr(self.collection, attr)
+
+    @functools.cache
+    def collection(self):
+        import nest
+
+        return nest.GetConnections(self._pre, self._post)
 
 
 @config.dynamic(attr_name="model_strategy", required=False)
@@ -66,7 +82,7 @@ class NestConnection(compose_nodes(NestConnectionSettings, ConnectionModel)):
                     return_synapsecollection=False,
                 )
             MPI.barrier()
-        return nest.GetConnections(pre_nodes, post_nodes)
+        return LazySynapseCollection(pre_nodes, post_nodes)
 
     def predict_mem_iterator(self, pre_nodes, post_nodes, cs):
         avmem = psutil.virtual_memory().available
