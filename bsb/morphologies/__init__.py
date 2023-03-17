@@ -1018,15 +1018,15 @@ class Branch:
     def __init__(self, points, radii, labels=None, properties=None, children=None):
         """
         :param points: Array of 3D coordinates defining the point of the branch
-        :type points: list|:class:`numpy.ndarray`
+        :type points: list | :class:`numpy.ndarray`
         :param radii: Array of radius associated to each point
         :type radii: list|:class:`numpy.ndarray`
         :param labels: Array of label to associate to each point
-        :type labels: EncodedLabels|list|:class:`numpy.ndarray`|set
+        :type labels: EncodedLabels | list[str] | set | :class:`numpy.ndarray`
         :param properties: dictionary of metadata to store in the branch
         :type properties: dict
         :param children: list of children branches to attach to the branch
-        :type children: list[bsb.morphologies.Branch]
+        :type children: list[:class:`bsb.morphologies.Branch`]
         """
 
         self._points = _gutil.sanitize_ndarray(points, (-1, 3), float)
