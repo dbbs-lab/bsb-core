@@ -80,7 +80,10 @@ setuptools.setup(
             "commands = bsb.cli.commands._commands",
             "projects = bsb.cli.commands._projects",
         ],
-        "bsb.config.parsers": ["json = bsb.config.parsers.json"],
+        "bsb.config.parsers": [
+            "json = bsb.config.parsers.json",
+            "yaml = bsb.config.parsers.yaml",
+        ],
         "bsb.config.templates": ["bsb_templates = bsb.config.templates"],
         "bsb.options": [
             "verbosity = bsb._options:verbosity",
