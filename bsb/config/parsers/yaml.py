@@ -24,3 +24,6 @@ class YAMLParser(Parser):
         content = yaml.safe_load(content)
         meta = {"path": path}
         return content, meta
+
+
+__plugin__ = YAMLParser
