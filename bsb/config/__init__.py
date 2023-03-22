@@ -193,12 +193,16 @@ def _try_parsers(content, classes, ext=None, path=None):  # pragma: nocover
             return (name, tree, meta)
     msges = [
         (
-            f"Can't parse contents with '{n}':\n",
+            f"- Can't parse contents with '{n}':\n",
             "".join(traceback.format_exception(type(e), e, e.__traceback__)),
         )
         for n, e in exc.items()
     ]
-    raise ParserError("\n".join(ichain(msges)))
+    if path:
+        msg = f"Could not parse '{path}'"
+    else:
+        msg = f"Could not parse content string ({len(content)} characters long)"
+    raise ParserError("\n".join(ichain(msges)) + f"\n{msg}")
 
 
 def _from_parsed(self, parser_name, tree, meta, file=None):
