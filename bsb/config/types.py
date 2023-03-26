@@ -3,9 +3,9 @@ import builtins
 import inspect
 import math
 import numpy as np
-
+from weakref import WeakKeyDictionary
 from ._compile import _reserved_kw_passes, _wrap_reserved
-from ._make import _load_class, _load_object
+from ._make import _load_object
 from ..exceptions import (
     ClassMapMissingError,
     CastError,
@@ -215,17 +215,15 @@ class function_(object_):
         return "function"
 
 
-class method_shortcut:
+class method(function_):
     def __init__(self, class_name):
-        self._shortcut = class_name
+        self._class = class_name
 
     def __call__(self, value):
-        parent = class_()(self._shortcut)
+        parent = class_()(self._class)
         obj = getattr(parent, value)
         if not callable(obj):
-            raise TypeError(
-                f"Could not import '{value}' as a method of `{self._shortcut}`."
-            )
+            raise TypeError(f"Could not import '{value}' as a method of `{self._class}`.")
         return obj
 
     def __inv__(self, value):
@@ -233,7 +231,34 @@ class method_shortcut:
 
     @property
     def __name__(self):
-        return f"method of '{self._shortcut}'"
+        return f"method of '{self._class}'"
+
+
+class WeakInverter:
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._map = WeakKeyDictionary()
+
+    def store_value(self, value, result):
+        self._map[result] = value
+
+    def __inv__(self, value):
+        return self._map.get(value, value)
+
+
+class method_shortcut(WeakInverter, method, function_):
+    def __call__(self, value):
+        try:
+            obj = method.__call__(self, value)
+        except TypeError:
+            try:
+                obj = function_.__call__(self, value)
+            except TypeError:
+                raise TypeError(
+                    f"Could not import '{value}' as a function or a method of `{self._class}`."
+                ) from None
+        self.store_value(value, obj)
+        return obj
 
 
 def str(strip=False, lower=False, upper=False):
