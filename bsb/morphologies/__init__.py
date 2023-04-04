@@ -508,21 +508,22 @@ class SubTree:
 
         return self
 
-    def rotate(self, rot, center=None):
+    def rotate(self, rotation, center=None):
         """
         Point rotation
 
         :param rot: Scipy rotation
-        :type rot: scipy.spatial.transform.Rotation
+        :type: Union[scipy.spatial.transform.Rotation, List[float,float,float]]
         :param center: rotation offset point.
         :type center: numpy.ndarray
         """
-
+        if not isinstance(rotation, Rotation):
+            rotation = Rotation.from_euler("xyz", rotation, degrees=True)
         if self._is_shared:
-            self._shared._points[:] = self._rotate(self._shared._points, rot, center)
+            self._shared._points[:] = self._rotate(self._shared._points, rotation, center)
         else:
             for b in self.branches:
-                b.points[:] = self._rotate(b.points, rot, center)
+                b.points[:] = self._rotate(b.points, rotation, center)
         return self
 
     def _rotate(self, points, rot, center):
