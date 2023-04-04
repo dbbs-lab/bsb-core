@@ -627,7 +627,7 @@ class TestMorphometry(NumpyTestCase, unittest.TestCase):
                     getattr(self.bzero1, attr)
 
     def test_zero_len(self):
-        for attr in ("euclidean_dist", "path_dist"):
+        for attr in ("euclidean_dist", "path_length"):
             with self.subTest(attr=attr):
                 self.assertEqual(getattr(self.b1, attr), 0)
                 self.assertEqual(getattr(self.bzero1, attr), 0)
@@ -638,7 +638,7 @@ class TestMorphometry(NumpyTestCase, unittest.TestCase):
                 self.assertEqual(getattr(self.bzero_r10, attr), 0)
 
     def test_known_len(self):
-        self.assertClose(self.b3.path_dist, 12)
+        self.assertClose(self.b3.path_length, 12)
         self.assertClose(self.b3.euclidean_dist, 6)
 
     def test_adjacency(self):

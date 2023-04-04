@@ -379,11 +379,14 @@ class SubTree:
         return {n: list(map(idmap.get, b.children)) for n, b in enumerate(self.branches)}
 
     @property
-    def euclidean_dists(self):
+    def path_length(self):
         """
-        Return the total length of the morphology meant as the sum of the euclidian distances of start-end points of every branch.
+        Return the total path length as the sum of the euclidian distances between
+        consecutive points.
         """
-        return sum(b.euclidean_dist for b in self.branches)
+        return sum(
+            np.sum(np.sqrt(np.sum(b.point_vectors**2, axis=1))) for b in self.branches
+        )
 
     def subtree(self, labels=None):
         return SubTree(self.get_branches(labels))
@@ -1155,14 +1158,6 @@ class Branch:
             return np.sqrt(np.sum((self.end - self.start) ** 2))
         except IndexError:
             raise EmptyBranchError("Empty branch has no Euclidean distance") from None
-
-    @property
-    def path_dist(self):
-        """
-        Return the path distance from the start to the terminal point of this branch,
-        computed as the sum of Euclidean segments between consecutive branch points.
-        """
-        return np.sum(np.sqrt(np.sum(self.point_vectors**2, axis=1)))
 
     @property
     def max_displacement(self):
