@@ -6,7 +6,12 @@ import toml
 import tempfile
 
 from bsb.exceptions import *
-from bsb.option import _pyproject_content, _pyproject_bsb, _save_pyproject_bsb
+from bsb.option import (
+    _pyproject_content,
+    _pyproject_bsb,
+    _save_pyproject_bsb,
+    _pyproject_path,
+)
 from bsb import options
 from bsb.cli import handle_command
 from bsb._contexts import get_cli_context
@@ -83,6 +88,11 @@ class TestEnvOption(unittest.TestCase):
 
 
 class TestProjectOption(unittest.TestCase):
+    dir: tempfile.TemporaryDirectory
+    old_path: pathlib.Path
+    path: pathlib.Path
+    proj: pathlib.Path
+
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
@@ -98,14 +108,13 @@ class TestProjectOption(unittest.TestCase):
         super().tearDownClass()
         try:
             cls.proj.unlink()
-        except:
+        except FileNotFoundError:
             pass
         os.chdir(cls.old_path)
         cls.dir.cleanup()
 
     def tearDown(self):
-        _pyproject_content.cache_clear()
-        _pyproject_bsb.cache_clear()
+        _pyproject_path.cache_clear()
         try:
             self.proj.unlink()
         except:
@@ -127,7 +136,7 @@ class TestProjectOption(unittest.TestCase):
         deep.mkdir(parents=True, exist_ok=True)
         os.chdir(deep)
         try:
-            _pyproject_content.cache_clear()
+            _pyproject_path.cache_clear()
             path, content = _pyproject_content()
         finally:
             os.chdir(self.path)
@@ -137,7 +146,7 @@ class TestProjectOption(unittest.TestCase):
         self.create_toml({"_dbl_": True}, proj=deep / "pyproject.toml")
         os.chdir(deep)
         try:
-            _pyproject_content.cache_clear()
+            _pyproject_path.cache_clear()
             path, content = _pyproject_content()
         finally:
             os.chdir(self.path)
@@ -153,7 +162,6 @@ class TestProjectOption(unittest.TestCase):
             options.store("versionnnn", "hello.json")
         with self.assertRaises(OptionError):
             options.read("versionnnn")
-        _pyproject_content.cache_clear()
         with open(self.proj, "w") as f:
             toml.dump({}, f)
         options.store("config", "hello.json")
