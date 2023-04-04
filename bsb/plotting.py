@@ -148,7 +148,7 @@ def _morpho_figure(f):
             soma_radius=soma_radius,
             **kwargs,
         )
-        if set_range:
+        if set_range and len(morphology):
             # Set the range to be the cube around the min and max of the
             # morphology
             rng = (

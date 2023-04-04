@@ -1,6 +1,8 @@
 """
     An attrs-inspired class annotation system, but my A stands for amateuristic.
 """
+import traceback
+
 import errr
 
 from ._hooks import run_hook
@@ -24,6 +26,7 @@ from ..exceptions import (
     CfgReferenceError,
     BootError,
 )
+from ..services import MPI
 import builtins
 
 
@@ -386,6 +389,7 @@ def _boot_nodes(top_node, scaffold):
             run_hook(node, "boot")
         except Exception as e:
             errr.wrap(BootError, e, prepend=f"Failed to boot {node}:")
+    MPI.barrier()
 
 
 def _unset_nodes(top_node):
@@ -586,7 +590,7 @@ class cfglist(builtins.list):
             item = self._config_type(item, _parent=self, _key=index)
             try:
                 item._config_index = index
-            except Exception:
+            except Exception as e:
                 pass
             return item
         except (RequirementError, CastError) as e:
@@ -599,10 +603,10 @@ class cfglist(builtins.list):
             if not e.node:
                 e.node, e.attr = self, index
             raise
-        except Exception:
+        except Exception as e:
             raise CastError(
                 f"Couldn't cast element {index} from '{item}'"
-                + f" into a {self._config_type.__name__}"
+                + f" into a {self._config_type.__name__}: {e}"
             )
 
     def _postset(self, items):

@@ -121,6 +121,13 @@ class NumpyTestCase:
             _np.allclose(a, b, **kwargs), f"{msg}Expected {a}, got {b}"
         )
 
+    def assertNotClose(self, a, b, msg="", /, **kwargs):
+        if msg:
+            msg += ". "
+        return self.assertFalse(
+            _np.allclose(a, b, **kwargs), f"{msg}Expected {a}, got {b}"
+        )
+
     def assertAll(self, a, msg="", /, **kwargs):
         trues = _np.sum(a.astype(bool))
         all = _np.product(a.shape)
