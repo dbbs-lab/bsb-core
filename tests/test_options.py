@@ -113,7 +113,12 @@ class TestProjectOption(unittest.TestCase):
         os.chdir(cls.old_path)
         cls.dir.cleanup()
 
+    def setUp(self):
+        super().setUp()
+        _pyproject_path.cache_clear()
+
     def tearDown(self):
+        super().tearDown()
         _pyproject_path.cache_clear()
         try:
             self.proj.unlink()
