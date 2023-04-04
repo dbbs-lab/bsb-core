@@ -165,7 +165,15 @@ class UriScheme(_abc.ABC):
     @_abc.abstractmethod
     def should_update(self, file: FileDependency, stored_file):
         path = _uri_to_path(file.uri)
-        return _os.path.getmtime(path) > stored_file.mtime
+        try:
+            file_mtime = _os.path.getmtime(path)
+        except FileNotFoundError:
+            return False
+        try:
+            stored_mtime = stored_file.mtime
+        except Exception:
+            return True
+        return file_mtime > stored_mtime
 
     @_abc.abstractmethod
     def get_content(self, file: FileDependency):
