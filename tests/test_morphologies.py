@@ -117,10 +117,13 @@ class TestMorphologies(NumpyTestCase, unittest.TestCase):
         self.assertTrue(branch_C.is_terminal)
         self.assertTrue(branch_D.is_terminal)
         branch_A.detach_child(branch_C)
-        self.assertIsNone(branch_C._parent)
+        self.assertIsNone(branch_C.parent)
         with self.assertRaises(ValueError):
             branch_A.detach_child(branch_D)
-        self.assertEqual(branch_B, branch_D._parent)
+        self.assertEqual(branch_B, branch_D.parent)
+        branch_B.detach()
+        branch_B.detach()
+        self.assertEqual(None, branch_B.parent)
 
     def test_properties(self):
         branch = Branch(

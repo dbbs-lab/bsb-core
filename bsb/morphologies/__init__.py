@@ -1401,6 +1401,10 @@ class Branch:
                 second_segment.attach_child(b)
             first_segment.attach_child(second_segment)
 
+    def detach(self):
+        if self.parent:
+            self.parent.detach_child(self)
+
     def detach_child(self, branch):
         """
         Remove a branch as a child from this branch.
