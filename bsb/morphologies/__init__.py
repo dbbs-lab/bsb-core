@@ -510,18 +510,22 @@ class SubTree:
 
         return self
 
-    def rotate(self, rot, center=None):
+    def rotate(self, rotation, center=None):
         """
         Point rotation
 
         :param rot: Scipy rotation
-        :type: :class:`scipy.spatial.transform.Rotation`
+        :type: Union[scipy.spatial.transform.Rotation, List[float,float,float]]
+        :param center: rotation offset point.
+        :type center: numpy.ndarray
         """
+        if not isinstance(rotation, Rotation):
+            rotation = Rotation.from_euler("xyz", rotation, degrees=True)
         if self._is_shared:
-            self._shared._points[:] = self._rotate(self._shared._points, rot, center)
+            self._shared._points[:] = self._rotate(self._shared._points, rotation, center)
         else:
             for b in self.branches:
-                b.points[:] = self._rotate(b.points, rot, center)
+                b.points[:] = self._rotate(b.points, rotation, center)
         return self
 
     def _rotate(self, points, rot, center):
@@ -533,13 +537,37 @@ class SubTree:
             rotated_points = rot.apply(points)
         return rotated_points
 
-    def root_rotate(self, rot):
+    def root_rotate(self, rot, downstream_of=0):
         """
         Rotate the subtree emanating from each root around the start of that root
+        If downstream_of is provided, will rotate points starting from the index provided (only for
+        subtrees with a single root).
+
+        :param rot: Scipy rotation to apply to the subtree.
+        :type rot: scipy.spatial.transform.Rotation
+        :param downstream_of: index of the point in the subtree from which the rotation should be
+            applied. This feature works only when the subtree has only one root branch.
+        :returns: rotated Morphology
+        :rtype: bsb.morphologies.Morphology
         """
-        for b in self.roots:
-            group = SubTree([b])
-            group.rotate(rot, group.origin)
+
+        if downstream_of != 0:
+            if len(self.roots) > 1:
+                raise ValueError(
+                    "Can't rotate with subbranch precision with multiple roots"
+                )
+            elif type(downstream_of) == int and 0 < downstream_of < len(
+                self.roots[0].points
+            ):
+                b = self.roots[0]
+                group = SubTree([b])
+                upstream = np.copy(b.points[:downstream_of])
+                group.rotate(rot, b.points[downstream_of])
+                b.points[:downstream_of] = upstream
+        else:
+            for b in self.roots:
+                group = SubTree([b])
+                group.rotate(rot, group.origin)
         return self
 
     def translate(self, point):
@@ -1024,6 +1052,19 @@ class Branch:
     """
 
     def __init__(self, points, radii, labels=None, properties=None, children=None):
+        """
+        :param points: Array of 3D coordinates defining the point of the branch
+        :type points: list | numpy.ndarray
+        :param radii: Array of radii associated to each point
+        :type radii: list | numpy.ndarray
+        :param labels: Array of labels to associate to each point
+        :type labels: EncodedLabels | List[str] | set | numpy.ndarray
+        :param properties: dictionary of metadata to store in the branch
+        :type properties: dict
+        :param children: list of child branches to attach to the branch
+        :type children: List[bsb.morphologies.Branch]
+        """
+
         self._points = _gutil.sanitize_ndarray(points, (-1, 3), float)
         self._radii = _gutil.sanitize_ndarray(radii, (-1,), float)
         _gutil.assert_samelen(self._points, self._radii)
@@ -1434,11 +1475,11 @@ class Branch:
 
     def get_points_labelled(self, labels):
         """
-        Filter out all points with a certain label
+        Filter out all points with certain labels
 
-        :param label: The label to check for.
-        :type label: str
-        :returns: All points with the label.
+        :param labels: The labels to check for.
+        :type labels: List[str] | numpy.ndarray[str]
+        :returns: All points with the labels.
         :rtype: List[numpy.ndarray]
         """
         return self.points[self.get_label_mask(labels)]
@@ -1447,8 +1488,8 @@ class Branch:
         """
         Return a mask for the specified labels
 
-        :param label: The label to check for.
-        :type label: str
+        :param labels: The labels to check for.
+        :type labels: List[str] | numpy.ndarray[str]
         :returns: A boolean mask that selects out the points that match the label.
         :rtype: List[numpy.ndarray]
         """

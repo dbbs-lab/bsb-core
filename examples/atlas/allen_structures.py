@@ -8,7 +8,7 @@ print("Structure acronym:", struct)
 # Retrieve the raw Allen information on a structure:
 node = AllenStructure.find_structure(struct)
 print("Allen node:", node)
-# Get all of the IDs that are part of this structure:
+# Get all the IDs that are part of this structure:
 ids = AllenStructure.get_structure_idset(struct)
 print("Structure IDs:", ids)
 # Get the boolean mask of the structure. 1's are part of the structure, 0s aren't.
