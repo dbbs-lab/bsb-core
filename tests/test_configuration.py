@@ -996,7 +996,7 @@ class TestTypes(unittest.TestCase):
         b = Test(c=get_data_path("configs", "test_yaml.yaml"), _parent=TestRoot())
         tested = b.c.load_object()
         expected = dict(testKey={"testSubKey": ["content1", 2, 3.0], 4: None})
-        assert tested == expected
+        self.assertEqual(expected, tested, "Yaml parsing failed")
         self.assertRaises(CastError, Test, c=2, _parent=TestRoot())
         d = Test(c="test.yaml", _parent=TestRoot())
         self.assertRaises(FileNotFoundError, d.c.load_object)
