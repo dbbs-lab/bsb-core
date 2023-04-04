@@ -402,7 +402,7 @@ class Operation:
         return self.func(*args, **kwargs)
 
     def process(self, obj):
-        return self.func(obj, *self.parameters)
+        return self.func(obj, **self.parameters)
 
 
 class FilePipelineMixin:
@@ -427,7 +427,23 @@ class NrrdDependencyNode(FilePipelineMixin, FileDependencyNode):
 
 
 @config.node
+class MorphologyOperation(Operation):
+    func = config.attr(
+        type=types.or_(
+            types.method_shortcut("bsb.morphologies.Morphology"),
+            types.function_(),
+        )
+    )
+
+
+@config.node
 class MorphologyDependencyNode(FilePipelineMixin, FileDependencyNode):
+    """
+    Configuration dependency node to load morphology files.
+    The content of these files will be stored in bsb.morphologies.Morphology instances.
+    """
+
+    pipeline = config.list(type=MorphologyOperation)
     name = config.attr()
 
     def store_content(self, content, *args, encoding=None, meta=None):
