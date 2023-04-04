@@ -391,6 +391,14 @@ class SubTree:
         idmap = {b: n for n, b in enumerate(self.branches)}
         return {n: list(map(idmap.get, b.children)) for n, b in enumerate(self.branches)}
 
+    @property
+    def path_length(self):
+        """
+        Return the total path length as the sum of the euclidian distances between
+        consecutive points.
+        """
+        return sum(b.path_length for b in self.branches)
+
     def subtree(self, labels=None):
         return SubTree(self.get_branches(labels))
 
@@ -1204,14 +1212,6 @@ class Branch:
             raise EmptyBranchError("Empty branch has no Euclidean distance") from None
 
     @property
-    def path_dist(self):
-        """
-        Return the path distance from the start to the terminal point of this branch,
-        computed as the sum of Euclidean segments between consecutive branch points.
-        """
-        return np.sum(np.sqrt(np.sum(self.point_vectors**2, axis=1)))
-
-    @property
     def max_displacement(self):
         """
         Return the max displacement of the branch points from its axis vector.
@@ -1225,6 +1225,13 @@ class Branch:
             raise EmptyBranchError(
                 "Impossible to compute max_displacement in branches with 0 or 1 points."
             ) from None
+
+    @property
+    def path_length(self):
+        """
+        Return the sum of the euclidean distances between the points on the branch.
+        """
+        return np.sum(np.sqrt(np.sum(self.point_vectors**2, axis=1)))
 
     @property
     def fractal_dim(self):

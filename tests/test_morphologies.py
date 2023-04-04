@@ -664,75 +664,75 @@ class TestMorphometry(NumpyTestCase, unittest.TestCase):
                     getattr(self.bzero1, attr)
 
     def test_zero_len(self):
-        for attr in ("euclidean_dist", "path_dist"):
+        for attr in ("euclidean_dist", "path_length"):
             with self.subTest(attr=attr):
-                self.assertEqual(getattr(self.b1, attr), 0)
-                self.assertEqual(getattr(self.bzero1, attr), 0)
-                self.assertEqual(getattr(self.bzero_r1, attr), 0)
-                self.assertEqual(getattr(self.bzero2, attr), 0)
-                self.assertEqual(getattr(self.bzero_r2, attr), 0)
-                self.assertEqual(getattr(self.bzero10, attr), 0)
-                self.assertEqual(getattr(self.bzero_r10, attr), 0)
+                self.assertEqual(0, getattr(self.b1, attr))
+                self.assertEqual(0, getattr(self.bzero1, attr))
+                self.assertEqual(0, getattr(self.bzero_r1, attr))
+                self.assertEqual(0, getattr(self.bzero2, attr))
+                self.assertEqual(0, getattr(self.bzero_r2, attr))
+                self.assertEqual(0, getattr(self.bzero10, attr))
+                self.assertEqual(0, getattr(self.bzero_r10, attr))
 
     def test_known_len(self):
-        self.assertClose(self.b3.path_dist, 12)
-        self.assertClose(self.b3.euclidean_dist, 6)
+        self.assertClose(12, self.b3.path_length)
+        self.assertClose(12, Morphology([self.b3]).path_length)
+        self.assertClose(6, self.b3.euclidean_dist)
 
     def test_adjacency(self):
         known_adj = {0: [1, 2], 1: [], 2: [3, 4, 5], 3: [], 4: [], 5: []}
-        self.assertEqual(len(self.branches[0].children), 2)
-        self.assertEqual(len(self.branches[2].children), 3)
+        self.assertEqual(2, len(self.branches[0].children))
+        self.assertEqual(3, len(self.branches[2].children))
         self.assertDictEqual(known_adj, self.adjacency)
 
     def test_start_end(self):
-        self.assertClose(self.branches[0].start, [0.0, 1.0, 0.0])
-        self.assertClose(self.branches[0].end, [0.0, 1.0, 0.0])
-        self.assertClose(self.branches[1].start, [0.0, 1.0, 0.0])
-        self.assertClose(self.branches[1].end, [-5.0, np.exp(5), 0.0])
-        self.assertClose(self.branches[2].start, [0.0, 1.0, 0.0])
-        self.assertClose(self.branches[2].end, [0.0, 11.0, 0.0])
-        self.assertClose(self.branches[3].start, [0.0, 11.0, 0.0])
+        self.assertClose([0.0, 1.0, 0.0], self.branches[0].start)
+        self.assertClose([0.0, 1.0, 0.0], self.branches[0].end)
+        self.assertClose([0.0, 1.0, 0.0], self.branches[1].start)
+        self.assertClose([-5.0, np.exp(5), 0.0], self.branches[1].end)
+        self.assertClose([0.0, 1.0, 0.0], self.branches[2].start)
+        self.assertClose([0.0, 11.0, 0.0], self.branches[2].end)
+        self.assertClose([0.0, 11.0, 0.0], self.branches[3].start)
         self.assertClose(
-            self.branches[3].end,
             [0.0 + 10 * np.cos(np.pi / 2), 11.0 + 10 * np.sin(np.pi / 2), 0.0],
+            self.branches[3].end,
         )
-        self.assertClose(self.branches[4].start, [0.0, 11.0, 0.0])
+        self.assertClose([0.0, 11.0, 0.0], self.branches[4].start)
         self.assertClose(
-            self.branches[4].end,
             [0.0 + 10 * np.cos(np.pi / 3), 11.0 + 10 * np.sin(np.pi / 3), 0.0],
+            self.branches[4].end,
         )
-        self.assertClose(self.branches[5].start, [0.0, 11.0, 0.0])
+        self.assertClose([0.0, 11.0, 0.0], self.branches[5].start)
         self.assertClose(
-            self.branches[5].end,
             [
                 0.0 + 10 * np.cos((2 / 3) * np.pi),
                 11.0 + 10 * np.sin((2 / 3) * np.pi),
                 0.0,
             ],
+            self.branches[5].end,
         )
 
     def test_vectors(self):
-        self.assertClose(self.branches[2].versor, [0.0, 1.0, 0.0])
-        self.assertClose(self.branches[2].vector, [0.0, 10.0, 0.0])
-        self.assertClose(self.branches[3].versor, [0, 1.0, 0.0])
-        self.assertClose(self.branches[3].vector, [0, 10.0, 0.0])
+        self.assertClose([0.0, 1.0, 0.0], self.branches[2].versor)
+        self.assertClose([0.0, 10.0, 0.0], self.branches[2].vector)
+        self.assertClose([0, 1.0, 0.0], self.branches[3].versor)
+        self.assertClose([0, 10.0, 0.0], self.branches[3].vector)
         self.assertClose(
-            self.branches[4].versor, [np.cos(np.pi / 3), np.sin(np.pi / 3), 0.0]
+            [np.cos(np.pi / 3), np.sin(np.pi / 3), 0.0], self.branches[4].versor
         )
         self.assertClose(
-            self.branches[5].versor,
             [np.cos((2 / 3) * np.pi), np.sin((2 / 3) * np.pi), 0.0],
+            self.branches[5].versor,
         )
-        pass
 
     def test_displacement(self):
-        self.assertClose(self.branches[2].max_displacement, 5.0)
+        self.assertClose(5.0, self.branches[2].max_displacement)
         for b in self.branches[3:]:
-            self.assertClose(b.max_displacement, 0, atol=1e-06)
+            self.assertClose(0, b.max_displacement, atol=1e-06)
 
     def test_fractal_dim(self):
         for b in self.branches[3:]:
-            self.assertClose(b.fractal_dim, 1.0)
+            self.assertClose(1.0, b.fractal_dim)
 
 
 class TestSwcFiles(NumpyTestCase, unittest.TestCase):
