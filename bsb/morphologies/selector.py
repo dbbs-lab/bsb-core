@@ -33,6 +33,11 @@ class MorphologySelector(abc.ABC):
 class NameSelector(MorphologySelector, classmap_entry="by_name"):
     names = config.list(type=str, required=True)
 
+    def __inv__(self):
+        if self._config_pos_init:
+            return self.names[0]
+        return self.__tree__()
+
     def _cache_patterns(self):
         self._pnames = {n: n.replace("*", r".*").replace("|", "\\|") for n in self.names}
         self._patterns = {n: re.compile(f"^{pat}$") for n, pat in self._pnames.items()}
