@@ -384,9 +384,7 @@ class SubTree:
         Return the total path length as the sum of the euclidian distances between
         consecutive points.
         """
-        return sum(
-            np.sum(np.sqrt(np.sum(b.point_vectors**2, axis=1))) for b in self.branches
-        )
+        return sum(b.path_length for b in self.branches)
 
     def subtree(self, labels=None):
         return SubTree(self.get_branches(labels))
@@ -1173,6 +1171,13 @@ class Branch:
             raise EmptyBranchError(
                 "Impossible to compute max_displacement in branches with 0 or 1 points."
             ) from None
+
+    @property
+    def path_length(self):
+        """
+        Return the sum of the euclidean distances between the points on the branch.
+        """
+        return np.sum(np.sqrt(np.sum(self.point_vectors**2, axis=1)))
 
     @property
     def fractal_dim(self):
