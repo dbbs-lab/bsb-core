@@ -347,7 +347,6 @@ class QuiverTransform(FiberTransform):
             )
 
     def transform_branch(self, branch, offset):
-
         """
         Compute bending transformation of a fiber branch (discretized according to original compartments and configured resolution value).
         The transformation is a rotation of each segment/compartment of each fiber branch to align to the cross product between

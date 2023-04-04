@@ -191,20 +191,38 @@ a name with each column. Data columns can then be indexed as strings:
 
 .. _allen-atlas-integration:
 
-Allen Atlas integration
------------------------
+Allen Mouse Brain Atlas integration
+-----------------------------------
 
-The `Allen Brain Atlas <https://mouse.brain-map.org/>`_ provides NRRD files and brain
-structure annotations; with the BSB these can be seamlessly integrated into your workflow
-using the :class:`~.topology.partition.AllenStructure`. The Allen Atlas divides the brain
-into a hierarchical tree of ``Structures``: each structure has an id, name, and acronym.
-The BSB accepts any of these identifiers and will load the Allen Atlas data and select the
-structure for you. You can then download any Allen Atlas image as a local NRRD file, and
-associate it to the structure, by specifying it as a source file (through
-:guilabel:`source` or :guilabel:`sources`). The Allen structure will be converted to a
-voxel mask, and the mask will be applied to your source files, thereby selecting the
-structure from the source files. Each source file will be converted into a data column on
-the voxelset:
+The Allen Institute for Brain Science (``AIBS``) gives free access, through their website, to thousands
+of datasets based on experiments on mice and humans.
+
+For the mouse, these datasets are 3D-registered in a Common Coordinate Framework (CCF).
+The ``AIBS`` maintains the `Allen Mouse Brain Atlas <https://mouse.brain-map.org/>`_;
+a pair of files which defines a mouse brain region ontology, and its spatial segregation
+in the ``CCF``:
+
+- The brain region ontology takes the form of a hierarchical tree of brain region, with the root
+  (top parent) region defining the borders of the mouse brain and the leafs its finest
+  parcellations. It will be later be called ``Allen Mouse Brain Region Hierarchy`` (``AMBRH``)
+  Each brain region in the ``AMBRH`` has a unique ``id``, ``name``, and ``acronym``
+  which can all be used to refer to the region.
+- They also defined a mouse brain ``Annotation volume`` (NRRD file) which provides for each voxel
+  of the ``CCF`` the id of the finest region it belongs to according to the brain region ontology.
+
+With the BSB you can be seamlessly integrate any dataset registered in the Allen Mouse Brain CCF
+into your workflow using the :class:`~.topology.partition.AllenStructure`.
+By default (:guilabel:`mask_volume` is not specified), the
+:class:`~.topology.partition.AllenStructure` leverages the 2017 version of the
+``CCFv3 Annotation volume``, which it downloads directly from the Allen website. BSB will also
+automatically download the ``AMBRH`` that you can use to filter regions, providing any of the
+brain region id, name or acronym identifiers.
+
+You can then download any Allen Atlas registered dataset as a local NRRD file, and associate it to
+the structure, by specifying it as a source file (through :guilabel:`source`
+or :guilabel:`sources`). The ``Annotation volume`` will be converted to a voxel mask,
+and the mask will be applied to your source files, thereby selecting the structure from the source
+files. Each source file will be converted into a data column on the voxelset:
 
 .. tab-set-code::
 
@@ -229,7 +247,7 @@ the voxelset:
 
         partition = AllenStructure(
           # Loads the "ventroanterolateral thalamic nucleus" from the
-          # ALlen Mouse Brain Atlas
+          # Allen Mouse Brain Annotation volume
           struct_name="VAL",
           mask_source="data/brain_structures.nrrd",
           sources=[

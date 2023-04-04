@@ -3,7 +3,7 @@ import json
 import itertools
 
 from bsb.services import MPI
-from bsb.morphologies import Morphology, Branch, MorphologySet
+from bsb.morphologies import Morphology, Branch, MorphologySet, RotationSet
 from bsb._encoding import EncodedLabels
 from bsb.storage import Storage
 from bsb.storage.interfaces import StoredMorphology
@@ -117,10 +117,13 @@ class TestMorphologies(NumpyTestCase, unittest.TestCase):
         self.assertTrue(branch_C.is_terminal)
         self.assertTrue(branch_D.is_terminal)
         branch_A.detach_child(branch_C)
-        self.assertIsNone(branch_C._parent)
+        self.assertIsNone(branch_C.parent)
         with self.assertRaises(ValueError):
             branch_A.detach_child(branch_D)
-        self.assertEqual(branch_B, branch_D._parent)
+        self.assertEqual(branch_B, branch_D.parent)
+        branch_B.detach()
+        branch_B.detach()
+        self.assertEqual(None, branch_B.parent)
 
     def test_properties(self):
         branch = Branch(
@@ -207,6 +210,40 @@ class TestMorphologies(NumpyTestCase, unittest.TestCase):
         r = Rotation.from_euler("z", 0)
         res = m.rotate(r).root_rotate(r).translate([0, 0, 0]).collapse().close_gaps()
         self.assertEqual(m, res, "chaining calls should return self")
+
+    def test_root_rotate(self):
+        points = np.array([[0, 0, 0], [1, 1, 0], [0, 4, 0], [0, 6, 0], [2, 4, 8]])
+        radii = np.array([0, 1, 2, 2, 1])
+        m = Morphology([Branch(points, radii)])
+        rot = Rotation.from_euler("x", np.pi)
+        # rotate from root
+        rotated = m.copy().root_rotate(rot)
+        rot_points = np.copy(points)
+        rot_points[:, 1:] = -rot_points[:, 1:]
+        expected = Morphology([Branch(rot_points, radii)])
+        self.assertEqual(rotated, expected)
+
+        # rotate from second point
+        rotated = m.copy().root_rotate(rot, downstream_of=1)
+        rot_points = np.copy(points)
+        rot_points[1:, 1:] = 2 * rot_points[1, 1:] - rot_points[1:, 1:]
+        expected = Morphology([Branch(rot_points, radii)])
+        self.assertEqual(rotated, expected)
+
+        # Wrong point index -> no rotation
+        expected = Morphology([Branch(points, radii)])
+        rotated = m.copy().root_rotate(rot, downstream_of=5)
+        self.assertEqual(rotated, expected)
+        rotated = m.copy().root_rotate(rot, downstream_of=-1)
+        self.assertEqual(rotated, expected)
+        rotated = m.copy().root_rotate(
+            Rotation.from_euler("x", np.pi), downstream_of="bla"
+        )
+        self.assertEqual(rotated, expected)
+
+        # More than one root
+        m = Morphology([Branch(points, radii), Branch(points, radii)])
+        self.assertRaises(ValueError, m.root_rotate, rot=rot, downstream_of=1)
 
     def test_simplification(self):
         def branch_one():
@@ -933,3 +970,34 @@ class TestMorphologyFiltering(NumpyTestCase, unittest.TestCase):
         self.assertEqual(2, len(m2.branches), "expected dropped root branch")
         self.assertTrue(m2.branches[0].is_root, "should be root, root parent is gone")
         self.assertTrue(m2.branches[1].is_root, "should be root, root parent is gone")
+
+
+class TestRotationSet(unittest.TestCase):
+    def setUp(self):
+        self.vects = [
+            [[0, 1, 0]],
+            np.array([[0, 0, 1], [0, 1, 0]]),
+            [Rotation.from_rotvec([0, 0, 1])],
+            [Rotation.from_rotvec([0, 0, 1]), Rotation.from_rotvec([0, -1, 0])],
+        ]
+        self.sets = [RotationSet(v) for v in self.vects]
+
+    def test_arrays(self):
+        self.assertTrue(np.array(RotationSet(np.empty((2, 3)))).shape, (2, 3))
+        self.assertTrue(np.all(np.array(self.sets[0]) == np.array(self.vects[0])))
+        self.assertTrue(np.all(np.array(self.sets[1]) == self.vects[1]))
+        self.assertTrue(
+            np.allclose(np.array(self.sets[2]), np.array([0, 0, 180.0 / np.pi]))
+        )
+        self.assertTrue(
+            np.allclose(
+                np.array(self.sets[3]),
+                np.array([[0, 0, 180.0 / np.pi], [0, -180.0 / np.pi, 0]]),
+            )
+        )
+        with self.assertRaises(ValueError, msg="It should throw a ValueError") as _:
+            RotationSet([])
+        with self.assertRaises(ValueError, msg="It should throw a ValueError") as _:
+            RotationSet(np.empty((4, 1)))
+        with self.assertRaises(ValueError, msg="It should throw a ValueError") as _:
+            RotationSet(np.empty((4, 3, 3)))

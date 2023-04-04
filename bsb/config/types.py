@@ -110,7 +110,6 @@ def or_(*type_args):
                 )
                 type_errors[t.__name__] = type_error
             else:
-
                 return v
         type_errors = "\n".join(
             "- Casting to '{}' raised:\n{}".format(n, e) for n, e in type_errors.items()
@@ -123,6 +122,38 @@ def or_(*type_args):
 
     type_handler.__name__ = handler_name
     return type_handler
+
+
+class object_(TypeHandler):
+    """
+    Type validator. Attempts to import the value, absolute, or relative to the
+    `module_path` entries.
+
+    :param module_path: List of the modules that should be searched when doing a
+      relative import.
+    :type module_path: list[str]
+    :raises: TypeError when value can't be cast.
+    :returns: Type validator function
+    :rtype: Callable
+    """
+
+    def __init__(self, module_path=None):
+        self._module_path = module_path
+
+    def __call__(self, value):
+        msg = f"Could not import object {value}."
+        try:
+            obj = _load_object(value, self._module_path)
+            obj._cfg_inv = value
+        except Exception:
+            raise TypeError(msg)
+        return obj
+
+    def __inv__(self, value):
+        return getattr(value, "_cfg_inv", value)
+
+    def __name__(self):
+        return "object"
 
 
 class class_(TypeHandler):
@@ -156,10 +187,10 @@ class class_(TypeHandler):
         return "class"
 
 
-class function_(TypeHandler):
+class function_(object_):
     """
     Type validator. Attempts to import the value, absolute, or relative to the
-    `module_path` entries.
+    `module_path` entries, and verifies that it is callable.
 
     :param module_path: List of the modules that should be searched when doing a
       relative import.
@@ -169,27 +200,17 @@ class function_(TypeHandler):
     :rtype: Callable
     """
 
-    def __init__(self, module_path=None):
-        self._module_path = module_path
-
     def __call__(self, value):
-        msg = f"Could not import {value} as a callable function."
-        try:
-            obj = _load_object(value, self._module_path)
-        except Exception:
-            raise TypeError(msg)
-        else:
-            if not callable(obj):
-                raise TypeError(msg)
-            return obj
+        obj = super().__call__(value)
+        if not callable(obj):
+            raise TypeError(f"Could not import {value} as a callable function.")
+        return obj
 
     def __inv__(self, value):
-        if not inspect.isclass(value):
-            value = type(value)
         return f"{value.__module__}.{value.__name__}"
 
     def __name__(self):
-        return "class"
+        return "function"
 
 
 def str(strip=False, lower=False, upper=False):
