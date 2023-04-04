@@ -2,13 +2,16 @@ import unittest, os, sys, numpy as np, h5py
 import json
 import itertools
 
+from bsb.config._config import Configuration
+from bsb.core import Scaffold
 from bsb.services import MPI
 from bsb.morphologies import Morphology, Branch, MorphologySet, RotationSet
 from bsb._encoding import EncodedLabels
 from bsb.storage import Storage
+from bsb.storage._files import MorphologyDependencyNode, MorphologyOperation
 from bsb.storage.interfaces import StoredMorphology
 from bsb.exceptions import *
-from bsb.unittest import get_morphology_path, NumpyTestCase
+from bsb.unittest import get_morphology_path, NumpyTestCase, RandomStorageFixture
 from scipy.spatial.transform import Rotation
 
 
@@ -1001,3 +1004,31 @@ class TestRotationSet(unittest.TestCase):
             RotationSet(np.empty((4, 1)))
         with self.assertRaises(ValueError, msg="It should throw a ValueError") as _:
             RotationSet(np.empty((4, 3, 3)))
+
+
+class TestPipelines(
+    NumpyTestCase, RandomStorageFixture, unittest.TestCase, engine_name="hdf5"
+):
+    def test_pipeline_functions(self):
+        m1 = MorphologyDependencyNode(file="nm://hippo-1264-9")
+        m2 = MorphologyDependencyNode(
+            file="nm://hippo-1264-9",
+            pipeline=[MorphologyOperation(func="rotate", rotation=[90, 0, 0])],
+        )
+        m3 = MorphologyDependencyNode(
+            file="nm://hippo-1264-9",
+            pipeline=[
+                MorphologyOperation(func="rotate", rotation=[90, 0, 0]),
+                MorphologyOperation(func="rotate", rotation=[-90, 0, 0]),
+            ],
+        )
+        cfg = Configuration.default(morphologies=[m1, m2, m3])
+        Scaffold(cfg, self.storage)
+        self.assertNotClose(
+            m1.load_object().points, m2.load_object().points, "Pipeline rotation skipped"
+        )
+        self.assertClose(
+            m1.load_object().points,
+            m3.load_object().points,
+            "Pipeline rotations went wrong",
+        )
