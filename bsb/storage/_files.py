@@ -466,8 +466,7 @@ class MorphologyDependencyNode(FilePipelineMixin, FileDependencyNode):
             self.scaffold.morphologies.save(
                 self.get_morphology_name(), morpho, overwrite=True
             )
-            stored.morphology = morpho
-            return stored
+            return morpho
         else:
             return self.scaffold.morphologies.load(self.get_morphology_name())
 
