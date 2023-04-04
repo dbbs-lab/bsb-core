@@ -10,6 +10,7 @@ import re
 import urllib
 import tempfile
 from . import Morphology
+from ..exceptions import MissingMorphologyError, SelectorError
 
 
 @config.dynamic(
