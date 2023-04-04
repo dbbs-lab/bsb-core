@@ -479,7 +479,7 @@ class MorphologyDependencyNode(FilePipelineMixin, FileDependencyNode):
         )
 
     def _hash(self, content):
-        md5 = _hl.md5(usedforsecurity=False)
+        md5 = _hl.new("md5", usedforsecurity=False)
         if isinstance(content, str):
             md5.update(content.encode("utf-8"))
         else:
