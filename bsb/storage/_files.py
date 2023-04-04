@@ -428,12 +428,7 @@ class NrrdDependencyNode(FilePipelineMixin, FileDependencyNode):
 
 @config.node
 class MorphologyOperation(Operation):
-    func = config.attr(
-        type=types.or_(
-            types.method_shortcut("bsb.morphologies.Morphology"),
-            types.function_(),
-        )
-    )
+    func = config.attr(type=types.method_shortcut("bsb.morphologies.Morphology"))
 
 
 @config.node
