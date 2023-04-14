@@ -102,7 +102,7 @@ setuptools.setup(
     },
     extras_require={
         "dev": [
-            "sphinx~=5.0",
+            "sphinx~=6.0",
             "furo",
             "pre-commit",
             "black~=22.3.0",
@@ -110,7 +110,7 @@ setuptools.setup(
             "sphinxemoji",
             "sphinx_design~=0.2",
             "sphinx-copybutton~=0.5",
-            "sphinxext-bsb~=0.0.2",
+            "sphinxext-bsb~=0.2.0",
             "snakeviz",
         ],
         "arbor": ["arbor~=0.6", "arborize[arbor]==4.0.0a4"],
