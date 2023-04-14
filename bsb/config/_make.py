@@ -65,6 +65,7 @@ def make_metaclass(cls):
             instance = meta_subject.__new__(
                 meta_subject, *args, _parent=_parent, _key=_key, **kwargs
             )
+            instance._config_pos_init = getattr(instance, "_config_pos_init", False)
             # Call the end user's __init__ with the rewritten arguments, if one is defined
             if has_own_init:
                 sig = inspect.signature(instance.__init__)

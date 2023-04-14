@@ -10,6 +10,7 @@ import re
 import urllib
 import tempfile
 from . import Morphology
+from ..exceptions import MissingMorphologyError, SelectorError
 
 
 @config.dynamic(
@@ -35,6 +36,11 @@ class NameSelector(MorphologySelector, classmap_entry="by_name"):
     def __init__(self, name=None, /, **kwargs):
         if name is not None:
             self.names = [name]
+
+    def __inv__(self):
+        if self._config_pos_init:
+            return self.names[0]
+        return self.__tree__()
 
     def _cache_patterns(self):
         self._pnames = {n: n.replace("*", r".*").replace("|", "\\|") for n in self.names}

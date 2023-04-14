@@ -165,7 +165,15 @@ class UriScheme(_abc.ABC):
     @_abc.abstractmethod
     def should_update(self, file: FileDependency, stored_file):
         path = _uri_to_path(file.uri)
-        return _os.path.getmtime(path) > stored_file.mtime
+        try:
+            file_mtime = _os.path.getmtime(path)
+        except FileNotFoundError:
+            return False
+        try:
+            stored_mtime = stored_file.mtime
+        except Exception:
+            return True
+        return file_mtime > stored_mtime
 
     @_abc.abstractmethod
     def get_content(self, file: FileDependency):
@@ -392,17 +400,14 @@ class CodeDependencyNode(FileDependencyNode):
 @config.node
 class Operation:
     func = config.attr(type=types.function_())
-    parameters = config.catch_all()
+    parameters = config.catch_all(type=types.any_())
 
     def __init__(self, value=None, /, **kwargs):
         if value is not None:
             self.func = value
 
-    def __call__(self, *args, **kwargs):
-        return self.func(*args, **kwargs)
-
-    def process(self, obj):
-        return self.func(obj, *self.parameters)
+    def __call__(self, obj):
+        return self.func(obj, **self.parameters)
 
 
 class FilePipelineMixin:
@@ -427,7 +432,18 @@ class NrrdDependencyNode(FilePipelineMixin, FileDependencyNode):
 
 
 @config.node
+class MorphologyOperation(Operation):
+    func = config.attr(type=types.method_shortcut("bsb.morphologies.Morphology"))
+
+
+@config.node
 class MorphologyDependencyNode(FilePipelineMixin, FileDependencyNode):
+    """
+    Configuration dependency node to load morphology files.
+    The content of these files will be stored in bsb.morphologies.Morphology instances.
+    """
+
+    pipeline = config.list(type=MorphologyOperation)
     name = config.attr()
 
     def store_content(self, content, *args, encoding=None, meta=None):
@@ -458,8 +474,7 @@ class MorphologyDependencyNode(FilePipelineMixin, FileDependencyNode):
             self.scaffold.morphologies.save(
                 self.get_morphology_name(), morpho, overwrite=True
             )
-            stored.morphology = morpho
-            return stored
+            return morpho
         else:
             return self.scaffold.morphologies.load(self.get_morphology_name())
 
@@ -472,7 +487,7 @@ class MorphologyDependencyNode(FilePipelineMixin, FileDependencyNode):
         )
 
     def _hash(self, content):
-        md5 = _hl.md5(usedforsecurity=False)
+        md5 = _hl.new("md5", usedforsecurity=False)
         if isinstance(content, str):
             md5.update(content.encode("utf-8"))
         else:
