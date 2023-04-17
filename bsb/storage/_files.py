@@ -445,6 +445,8 @@ class MorphologyDependencyNode(FilePipelineMixin, FileDependencyNode):
 
     pipeline = config.list(type=MorphologyOperation)
     name = config.attr()
+    tags = config.attr(type=dict,default=None,required=False)
+    
 
     def store_content(self, content, *args, encoding=None, meta=None):
         if meta is None:
@@ -466,7 +468,7 @@ class MorphologyDependencyNode(FilePipelineMixin, FileDependencyNode):
                 morpho_in = Morphology.from_buffer(content, meta=meta)
             except Exception as e:
                 with self.file.provide_locally() as (path, encoding):
-                    morpho_in = Morphology.from_file(path, meta=meta)
+                    morpho_in = Morphology.from_file(path, tags=self.tags, meta=meta)
             morpho = self.pipe(morpho_in)
             meta["hash"] = self._hash(content)
             meta["_stale"] = False
@@ -474,7 +476,8 @@ class MorphologyDependencyNode(FilePipelineMixin, FileDependencyNode):
             self.scaffold.morphologies.save(
                 self.get_morphology_name(), morpho, overwrite=True
             )
-            return morpho
+            stored.morphology = morpho
+            return stored
         else:
             return self.scaffold.morphologies.load(self.get_morphology_name())
 

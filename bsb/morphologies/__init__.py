@@ -940,7 +940,7 @@ class Morphology(SubTree):
         """
         if isinstance(file, str) or isinstance(file, Path):
             with open(str(file), "r") as f:
-                return cls.from_swc(f, branch_class, meta=meta)
+                return cls.from_swc(f, branch_class, tags=tags, meta=meta)
         if branch_class is None:
             branch_class = Branch
         return _swc_to_morpho(cls, branch_class, file.read(), tags=tags, meta=meta)
@@ -960,14 +960,14 @@ class Morphology(SubTree):
         return _swc_data_to_morpho(cls, branch_class, data, tags=tags, meta=meta)
 
     @classmethod
-    def from_file(cls, path, branch_class=None, meta=None):
+    def from_file(cls, path, branch_class=None, tags=None, meta=None):
         """
         Create a Morphology from a file on the file system through MorphIO.
         """
         if branch_class is None:
             branch_class = Branch
         if path.endswith("swc"):
-            return cls.from_swc(path, branch_class, meta=meta)
+            return cls.from_swc(path, branch_class, tags=tags, meta=meta)
         else:
             return _import(cls, branch_class, path, meta=meta)
 
@@ -1245,6 +1245,14 @@ class Branch:
             return np.sqrt(np.sum((self.end - self.start) ** 2))
         except IndexError:
             raise EmptyBranchError("Empty branch has no Euclidean distance") from None
+
+    @property
+    def path_dist(self):
+        """
+        Return the path distance from the start to the terminal point of this branch,
+        computed as the sum of Euclidean segments between consecutive branch points.
+        """
+        return np.sum(np.sqrt(np.sum(self.point_vectors**2, axis=1)))
 
     @property
     def max_displacement(self):
@@ -1721,6 +1729,7 @@ def _swc_to_morpho(cls, branch_cls, content, tags=None, meta=None):
 
 def _swc_data_to_morpho(cls, branch_cls, data, tags=None, meta=None):
     tag_map = {1: "soma", 2: "axon", 3: "dendrites"}
+    tags = {int(k) : v for (k,v) in tags.items()}
     if tags is not None:
         tag_map.update(tags)
     # `data` is the raw SWC data, `samples` and `parents` are the graph nodes and edges.
@@ -1770,7 +1779,13 @@ def _swc_data_to_morpho(cls, branch_cls, data, tags=None, meta=None):
         # And the labels
         branch_labels = labels[ptr:nptr]
         for v in np.unique(branch_tags):
-            branch_labels.label([tag_map.get(v, f"tag_{v}")], branch_tags == v)
+            tag_labels = tag_map.get(v, f"tag_{v}")
+            if isinstance(tag_labels, str):
+                tag_labels = [tag_labels]
+            else:
+                tag_labels = list(tag_labels)
+            
+            branch_labels.label(tag_labels, branch_tags == v)
         ptr = nptr
         # Use the views to construct the branch
         branch = branch_cls(branch_points, branch_radii, branch_labels)
