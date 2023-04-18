@@ -100,14 +100,14 @@ class Scaffold:
     """
 
     network: "Network"
-    regions: typing.Mapping[str, "Region"]
-    partitions: typing.Mapping[str, "Partition"]
-    cell_types: typing.Mapping[str, "CellType"]
-    placement: typing.Mapping[str, "PlacementStrategy"]
-    after_placement: typing.Mapping[str, "PostProcessingHook"]
-    connectivity: typing.Mapping[str, "ConnectionStrategy"]
-    after_connectivity: typing.Mapping[str, "PostProcessingHook"]
-    simulations: typing.Mapping[str, "Simulation"]
+    regions: typing.Dict[str, "Region"]
+    partitions: typing.Dict[str, "Partition"]
+    cell_types: typing.Dict[str, "CellType"]
+    placement: typing.Dict[str, "PlacementStrategy"]
+    after_placement: typing.Dict[str, "PostProcessingHook"]
+    connectivity: typing.Dict[str, "ConnectionStrategy"]
+    after_connectivity: typing.Dict[str, "PostProcessingHook"]
+    simulations: typing.Dict[str, "Simulation"]
 
     def __init__(self, config=None, storage=None, clear=False, comm=None):
         """
