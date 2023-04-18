@@ -219,6 +219,7 @@ class function_(object_):
 
 class method(function_):
     def __init__(self, class_name):
+        super().__init__()
         self._class = class_name
 
     def __call__(self, value):
@@ -248,7 +249,7 @@ class WeakInverter:
         return self._map.get(value, value)
 
 
-class method_shortcut(WeakInverter, method, function_):
+class method_shortcut(method, function_):
     def __call__(self, value):
         try:
             obj = method.__call__(self, value)
@@ -259,8 +260,17 @@ class method_shortcut(WeakInverter, method, function_):
                 raise TypeError(
                     f"Could not import '{value}' as a function or a method of `{self._class}`."
                 ) from None
-        self.store_value(value, obj)
         return obj
+
+    def __inv__(self, value):
+        if inspect.isfunction(value):
+            try:
+                method.__call__(self, value.__name__)
+                return method.__inv__(self, value)
+            except TypeError:
+                return function_.__inv__(self, value)
+        else:
+            return value
 
 
 def str(strip=False, lower=False, upper=False):
