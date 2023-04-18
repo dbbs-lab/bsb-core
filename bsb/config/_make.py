@@ -225,7 +225,7 @@ def _set_pk(obj, parent, key):
         obj._config_attr_order = []
     if not hasattr(obj, "_config_state"):
         obj._config_state = {}
-    for a in _get_class_config_attrs(obj.__class__).values():
+    for a in get_config_attributes(obj.__class__).values():
         if a.key:
             from ._attrs import _setattr
 
@@ -252,7 +252,7 @@ def _check_required(instance, attr, kwargs):
 
 def compile_postnew(cls):
     def __post_new__(self, _parent=None, _key=None, **kwargs):
-        attrs = _get_class_config_attrs(self.__class__)
+        attrs = get_config_attributes(self.__class__)
         self._config_attr_order = list(kwargs.keys())
         catch_attrs = [a for a in attrs.values() if hasattr(a, "__catch__")]
         leftovers = kwargs.copy()
@@ -341,7 +341,7 @@ def _bubble_up_warnings(log):
             warn(str(m), w.category, stacklevel=4)
 
 
-def _get_class_config_attrs(cls):
+def get_config_attributes(cls):
     attrs = {}
     for p_cls in reversed(cls.__mro__):
         if hasattr(p_cls, "_config_attrs"):
@@ -522,24 +522,24 @@ def _get_module_object(object_name, module_name, object_path):
         tmp = list(reversed(sys.path))
         tmp.remove(os.getcwd())
         sys.path = list(reversed(tmp))
-    module_dict = module_ref.__dict__
-    if object_name not in module_dict:
+    try:
+        return getattr(module_ref, object_name)
+    except Exception:
         raise DynamicObjectNotFoundError(f"'{object_path}' not found.")
-    return module_dict[object_name]
 
 
 def make_dictable(node_cls):
     def __contains__(self, attr):
-        return attr in _get_class_config_attrs(self.__class__)
+        return attr in get_config_attributes(self.__class__)
 
     def __getitem__(self, attr):
-        if attr in _get_class_config_attrs(self.__class__):
+        if attr in get_config_attributes(self.__class__):
             return getattr(self, attr)
         else:
             raise KeyError(attr)
 
     def __iter__(self):
-        return (attr for attr in _get_class_config_attrs(self.__class__))
+        return (attr for attr in get_config_attributes(self.__class__))
 
     node_cls.__contains__ = __contains__
     node_cls.__getitem__ = __getitem__
@@ -553,7 +553,7 @@ def make_tree(node_cls):
             inv = instance.__inv__()
             instance._config_inv = False
             return inv
-        attrs = _get_class_config_attrs(instance.__class__)
+        attrs = get_config_attributes(instance.__class__)
         catch_attrs = [a for a in attrs.values() if hasattr(a, "__catch__")]
         tree = {}
         for name in instance._config_attr_order:

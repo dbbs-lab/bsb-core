@@ -78,6 +78,9 @@ class Configuration:
         return conf
 
     def _bootstrap(self, scaffold):
+        # Activate the scaffold property of each config node
+        _boot_nodes(self, scaffold)
+        self._config_isbooted = True
         # Initialise the topology from the defined regions
         regions = builtins.list(self.regions.values())
         # Arrange the topology based on network boundaries
@@ -92,9 +95,6 @@ class Configuration:
                 "__unmanaged__", RegionGroup(children=builtins.list(unmanaged))
             )
             topology.children.append(r)
-        # Activate the scaffold property of each config node
-        _boot_nodes(self, scaffold)
-        self._config_isbooted = True
 
     def _update_storage_node(self, storage):
         if self.storage.engine != storage.format:
