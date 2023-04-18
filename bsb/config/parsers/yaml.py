@@ -15,9 +15,9 @@ class YAMLParser(Parser):
         """
         Parse the YAML
 
-        :param content: file stream
-        :type content: stream
-        :param path: path to file to store in metadata
+        :param content: File contents
+        :type content: str
+        :param path: Path the content came from
         :type path: str
         """
 
