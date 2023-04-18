@@ -224,7 +224,10 @@ class method(function_):
 
     def __call__(self, value):
         parent = class_()(self._class)
-        obj = getattr(parent, value)
+        try:
+            obj = getattr(parent, value)
+        except AttributeError as e:
+            raise TypeError(builtins.str(e)) from None
         if not callable(obj):
             raise TypeError(f"Could not import '{value}' as a method of `{self._class}`.")
         return obj
