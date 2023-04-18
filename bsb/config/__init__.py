@@ -37,6 +37,7 @@ from ._make import walk_node_attributes, walk_nodes, compose_nodes, get_config_a
 from ._hooks import on, before, after, run_hook, has_hook
 from .. import plugins
 from ..exceptions import ConfigTemplateNotFoundError, ParserError, PluginError
+from . import parsers
 
 
 _path = __path__
@@ -49,6 +50,7 @@ class ConfigurationModule:
     def __init__(self, name):
         self.__name__ = name
 
+    parsers = parsers
     attr = staticmethod(attr)
     list = staticmethod(list)
     dict = staticmethod(dict)
