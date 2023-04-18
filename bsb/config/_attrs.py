@@ -7,6 +7,7 @@ import errr
 
 from ._hooks import run_hook
 from ._make import (
+    MISSING,
     compile_class,
     compile_postnew,
     compile_new,
@@ -419,6 +420,7 @@ class ConfigurationAttribute:
         required=False,
         key=False,
         unset=False,
+        hint=MISSING,
     ):
         if not callable(required):
             self.required = lambda s: required
@@ -427,8 +429,9 @@ class ConfigurationAttribute:
         self.key = key
         self.default = default
         self.call_default = call_default
-        self.type = self._get_type(type)
+        self.type = self._set_type(type)
         self.unset = unset
+        self.hint = hint
 
     def __set_name__(self, owner, name):
         self.attr_name = name
@@ -460,6 +463,7 @@ class ConfigurationAttribute:
                 e.node, e.attr = instance, self.attr_name
             raise
         except Exception as e:
+            traceback.print_exc()
             raise CastError(
                 f"Couldn't cast '{value}' into {self.type.__name__}: {e}",
                 instance,
@@ -471,7 +475,8 @@ class ConfigurationAttribute:
         if _is_booted(root):
             _boot_nodes(value, root.scaffold)
 
-    def _get_type(self, type):
+    def _set_type(self, type):
+        self._config_type = type
         # Determine type of the attribute
         if not type and self.default is not None:
             if self.should_call_default():
@@ -485,8 +490,19 @@ class ConfigurationAttribute:
         t = _wrap_reserved(t)
         return t
 
+    def get_type(self):
+        return self._config_type
+
+    def get_hint(self):
+        if hasattr(self.type, "__hint__"):
+            return self.type.__hint__()
+        return self.hint
+
     def get_node_name(self, instance):
         return instance.get_node_name() + "." + self.attr_name
+
+    def is_node_type(self):
+        return hasattr(self._config_type, "_config_attrs")
 
     def tree(self, instance):
         val = _getattr(instance, self.attr_name)
@@ -496,7 +512,7 @@ class ConfigurationAttribute:
             val = val.__tree__()
         # Check if the type handler specifies any inversion function to convert tree
         # values back to how they were found in the document.
-        if hasattr(self.type, "__inv__"):
+        if hasattr(self.type, "__inv__") and val is not None:
             val = self.type.__inv__(val)
         return val
 
@@ -587,7 +603,7 @@ class cfglist(builtins.list):
 
     def _preset(self, index, item):
         try:
-            item = self._config_type(item, _parent=self, _key=index)
+            item = self._elem_type(item, _parent=self, _key=index)
             try:
                 item._config_index = index
             except Exception as e:
@@ -596,7 +612,7 @@ class cfglist(builtins.list):
         except (RequirementError, CastError) as e:
             e.args = (
                 f"Couldn't cast element {index} from '{item}'"
-                + f" into a {self._config_type.__name__}. "
+                + f" into a {self._elem_type.__name__}. "
                 + e.msg,
                 *e.args,
             )
@@ -606,7 +622,7 @@ class cfglist(builtins.list):
         except Exception as e:
             raise CastError(
                 f"Couldn't cast element {index} from '{item}'"
-                + f" into a {self._config_type.__name__}: {e}"
+                + f" into a {self._elem_type.__name__}: {e}"
             )
 
     def _postset(self, items):
@@ -640,7 +656,7 @@ class ConfigurationListAttribute(ConfigurationAttribute):
         _cfglist = cfglist()
         _cfglist._config_parent = _parent
         _cfglist._config_attr = self
-        _cfglist._config_type = self.child_type
+        _cfglist._elem_type = self.child_type
         if isinstance(value, builtins.dict):
             raise CastError(f"Dictionary `{value}` given where list is expected.")
         _cfglist.extend(value or builtins.list())
@@ -651,8 +667,8 @@ class ConfigurationListAttribute(ConfigurationAttribute):
             )
         return _cfglist
 
-    def _get_type(self, type):
-        self.child_type = super()._get_type(type)
+    def _set_type(self, type):
+        self.child_type = super()._set_type(type)
         return self.fill
 
     def tree(self, instance):
@@ -673,7 +689,7 @@ class cfgdict(builtins.dict):
         if key in self:
             _unset_nodes(self[key])
         try:
-            value = self._config_type(value, _parent=self, _key=key)
+            value = self._elem_type(value, _parent=self, _key=key)
         except (RequirementError, CastError) as e:
             if not (hasattr(e, "node") and e.node):
                 e.node, e.attr = self, key
@@ -683,7 +699,7 @@ class cfgdict(builtins.dict):
 
             raise CastError(
                 "Couldn't cast {}.{} from '{}' into a {}".format(
-                    self.get_node_name(), key, value, self._config_type.__name__
+                    self.get_node_name(), key, value, self._elem_type.__name__
                 )
                 + "\n"
                 + traceback.format_exc()
@@ -702,7 +718,7 @@ class cfgdict(builtins.dict):
                 f"{self.get_node_name()} already contains '{key}'."
                 + " Use `node[key] = value` if you want to overwrite it."
             )
-        self[key] = value = self._config_type(*args, _parent=self, _key=key, **kwargs)
+        self[key] = value = self._elem_type(*args, _parent=self, _key=key, **kwargs)
         return value
 
     def clear(self):
@@ -760,7 +776,7 @@ class cfgdict(builtins.dict):
 class cfgdictcopy(builtins.dict):
     def __init__(self, other):
         super().__init__(other)
-        self._config_type = other._config_type
+        self._elem_type = other._elem_type
         self._copied_from = other
 
     @builtins.property
@@ -787,12 +803,12 @@ class ConfigurationDictAttribute(ConfigurationAttribute):
         _cfgdict._config_parent = _parent
         _cfgdict._config_key = _key
         _cfgdict._config_attr = self
-        _cfgdict._config_type = self.child_type
+        _cfgdict._elem_type = self.child_type
         _cfgdict.update(value or builtins.dict())
         return _cfgdict
 
-    def _get_type(self, type):
-        self.child_type = super()._get_type(type)
+    def _set_type(self, type):
+        self.child_type = super()._set_type(type)
         return self.fill
 
     def tree(self, instance):

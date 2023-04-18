@@ -25,5 +25,8 @@ class YAMLParser(Parser):
         meta = {"path": path}
         return content, meta
 
+    def generate(self, tree, pretty=False):
+        return yaml.dump(tree)
+
 
 __plugin__ = YAMLParser
