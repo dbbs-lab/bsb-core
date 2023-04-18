@@ -37,6 +37,7 @@ from ._make import walk_node_attributes, walk_nodes, compose_nodes, get_config_a
 from ._hooks import on, before, after, run_hook, has_hook
 from .. import plugins
 from ..exceptions import ConfigTemplateNotFoundError, ParserError, PluginError
+from . import parsers
 
 
 _path = __path__
@@ -49,6 +50,7 @@ class ConfigurationModule:
     def __init__(self, name):
         self.__name__ = name
 
+    parsers = parsers
     attr = staticmethod(attr)
     list = staticmethod(list)
     dict = staticmethod(dict)
@@ -194,12 +196,16 @@ def _try_parsers(content, classes, ext=None, path=None):  # pragma: nocover
             return (name, tree, meta)
     msges = [
         (
-            f"Can't parse contents with '{n}':\n",
+            f"- Can't parse contents with '{n}':\n",
             "".join(traceback.format_exception(type(e), e, e.__traceback__)),
         )
         for n, e in exc.items()
     ]
-    raise ParserError("\n".join(ichain(msges)))
+    if path:
+        msg = f"Could not parse '{path}'"
+    else:
+        msg = f"Could not parse content string ({len(content)} characters long)"
+    raise ParserError("\n".join(ichain(msges)) + f"\n{msg}")
 
 
 def _from_parsed(self, parser_name, tree, meta, file=None):

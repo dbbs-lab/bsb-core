@@ -15,6 +15,7 @@ import requests as _rq
 import email.utils as _eml
 import nrrd as _nrrd
 import hashlib as _hl
+import yaml
 
 from .._util import obj_str_insert
 from .. import config
@@ -419,6 +420,10 @@ class FilePipelineMixin:
 
 @config.node
 class NrrdDependencyNode(FilePipelineMixin, FileDependencyNode):
+    """
+    Configuration dependency node to load NRRD files.
+    """
+
     def get_header(self):
         with self.file.provide_locally() as (path, encoding):
             return _nrrd.read_header(path)
@@ -500,3 +505,14 @@ class MorphologyDependencyNode(FilePipelineMixin, FileDependencyNode):
                 i
             ].load_object()
         )
+
+
+@config.node
+class YamlDependencyNode(FileDependencyNode):
+    """
+    Configuration dependency node to load yaml files.
+    """
+
+    def load_object(self):
+        with self.file.provide_locally() as (path, encoding):
+            return yaml.safe_load(open(path, "r"))

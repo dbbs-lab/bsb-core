@@ -17,7 +17,12 @@ from ..exceptions import UnknownStorageEngineError
 from .. import plugins
 from ..services import MPI
 from ._chunks import Chunk, chunklist
-from ._files import FileDependency, FileDependencyNode, NrrdDependencyNode
+from ._files import (
+    FileDependency,
+    FileDependencyNode,
+    NrrdDependencyNode,
+    YamlDependencyNode,
+)
 
 
 # Pretend `Chunk` is defined here, for UX. It's only defined in `_chunks` to avoid
