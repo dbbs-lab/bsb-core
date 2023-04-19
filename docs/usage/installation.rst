@@ -5,13 +5,12 @@ Installation Guide
 
 .. tip::
 
-	Use virtual environments!
+  Use virtual environments!
 
 The scaffold framework can be installed using ``pip``:
 
 .. code-block:: bash
 
-  sudo apt-get update && sudo apt-get install -y libopenmpi-dev openmpi-bin
   pip install "bsb>=4.0.0a0"
 
 You can verify that the installation works with:
@@ -48,7 +47,7 @@ To then install the BSB with MPI support:
 
 .. code-block:: bash
 
-	pip install "bsb[mpi]>=4.0.0a0"
+  pip install "bsb[mpi]>=4.0.0a0"
 
 Simulator backends
 ==================
@@ -66,9 +65,9 @@ NEST or multicompartmental neuron simulations with NEURON use:
 
 .. note::
 
-	This does not install the simulators themselves. It installs the Python tools that the
-	BSB needs to deal with them. Install the simulators separately according to their
-	respective installation instructions.
+  This does not install the simulators themselves. It installs the Python tools that the
+  BSB needs to deal with them. Install the simulators separately according to their
+  respective installation instructions.
 
 Installing NEST
 ===============
@@ -97,4 +96,4 @@ Confirm your installation with:
 
 .. note::
 
-	There might be a few failed tests related to ``NEST_DATA_PATH`` but this is OK.
+  There might be a few failed tests related to ``NEST_DATA_PATH`` but this is OK.

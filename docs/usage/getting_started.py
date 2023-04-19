@@ -1,6 +1,5 @@
 from bsb.core import Scaffold
 from bsb.config import from_json
-from bsb.topology import Stack
 from bsb.plotting import plot_network
 import bsb.options
 
@@ -8,11 +7,13 @@ bsb.options.verbosity = 3
 config = from_json("network_configuration.json")
 
 config.partitions.add("top_layer", thickness=100, stack_index=1)
-config.regions["brain_region"] = Stack(
+config.regions.add(
+    "brain_region",
+    type="stack",
     children=[
         "base_layer",
         "top_layer",
-    ]
+    ],
 )
 config.cell_types.add("top_type", spatial=dict(radius=7, count=10))
 config.placement.add(

@@ -68,6 +68,7 @@ autodoc_mock_imports = [
     "zwembad",
     "arbor",
     "morphio",
+    "nrrd",
 ]
 
 intersphinx_mapping = {

@@ -6,7 +6,9 @@ Configuration reference
 Root nodes
 ==========
 
-.. include:: _empty_root_nodes.rst
+.. autoconfig:: bsb.config.Configuration
+   :no-imports:
+   :max-depth: 1
 
 Storage
 =======
@@ -15,7 +17,7 @@ Storage
 
 	Storage nodes host plugins and can contain plugin-specific configuration.
 
-.. include:: _full_storage_node.rst
+.. autoconfig:: bsb.storage.interfaces.StorageNode
 
 * :guilabel:`engine`: The name of the storage engine to use.
 * :guilabel:`root`: The storage engine specific identifier of the location of the storage.
@@ -23,7 +25,7 @@ Storage
 Network
 =======
 
-.. include:: _full_network_node.rst
+.. autoconfig:: bsb.config._config.NetworkNode
 
 * :guilabel:`x`, :guilabel:`y` and :guilabel:`z`:
   Loose indicators of the scale of the network. They are handed to the topology of the
@@ -32,6 +34,16 @@ Network
   The size used to parallelize the topology into multiple rhomboids. Can be a list of 3
   floats for a rhomboid or 1 float for cubes.
 
+Components
+==========
+
+.. autoconfig:: bsb.storage._files.CodeDependencyNode
+
+Morphologies
+============
+
+.. autoconfig:: bsb.storage._files.MorphologyDependencyNode
+
 Regions
 =======
 
@@ -39,7 +51,7 @@ Regions
 
 	Region nodes are components and can contain additional component-specific attributes.
 
-.. include:: _full_region_node.rst
+.. autoconfig:: bsb.topology.Region
 
 * :guilabel:`type`:
   Type of the region, determines what kind of structure it imposes on its children.
@@ -53,7 +65,7 @@ Partitions
 
 	Partition nodes are components and can contain additional component-specific attributes.
 
-.. include:: _full_partition_node.rst
+.. autoconfig:: bsb.topology.Partition
 
 * :guilabel:`type`: Name of the partition component, or its class.
 * :guilabel:`region`: By-name reference to a region.
@@ -61,7 +73,7 @@ Partitions
 Cell types
 ==========
 
-.. include:: _full_cell_type_node.rst
+.. autoconfig:: bsb.cell_types.CellType
 
 * :guilabel:`entity`:
   Indicates whether this cell type is an abstract entity, or a regular cell.
@@ -108,7 +120,7 @@ Placement
 
 	Placement nodes are components and can contain additional component-specific attributes.
 
-.. include:: _full_placement_node.rst
+.. autoconfig:: bsb.placement.PlacementStrategy
 
 * :guilabel:`strategy`: Class name of the placement strategy algorithm to import.
 
@@ -140,7 +152,7 @@ Connectivity
 	Connectivity nodes are components and can contain additional component-specific
 	attributes.
 
-.. include:: _full_connectivity_node.rst
+.. autoconfig:: bsb.connectivity.ConnectionStrategy
 
 * :guilabel:`strategy`: Class name of the connectivity strategy algorithm to import.
 
@@ -151,3 +163,8 @@ Connectivity
     List of cell type references. It is the underlying strategy that determines how they
     will interact, so check the component documentation. For most strategies, all the
     presynaptic cell types will be cross combined with all the postsynaptic cell types.
+
+Simulations
+===========
+
+.. autoconfig:: bsb.simulation.simulation.Simulation
