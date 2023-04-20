@@ -9,11 +9,6 @@
     "y": 600.0,
     "z": 400.0
   },
-  "regions": {
-    "brain_region": {
-      "children": ["base_layer"]
-    }
-  },
   "partitions": {
     "base_layer": {
       "type": "layer",

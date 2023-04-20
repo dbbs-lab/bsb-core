@@ -26,7 +26,7 @@ Use the command below to create a new project directory and some starter files:
 
 .. code-block:: bash
 
-  bsb new my_first_model --quickstart
+  bsb new my_first_model --quickstart --json
   cd my_first_model
 
 The project now contains a couple of important files:
@@ -35,9 +35,9 @@ The project now contains a couple of important files:
 * A ``pyproject.toml`` file: your project settings are declared here.
 * A ``placement.py`` and ``connectome.py`` file to put your code in.
 
-The configuration contains a generic ``brain_region``, a ``base_layer``, a ``base_type``
-and an ``example_placement``. These minimal components are enough to *compile* your first
-network. You can do this from the CLI or Python:
+The configuration contains a ``base_layer``, a ``base_type`` and an ``example_placement``.
+These minimal components are enough to *compile* your first network. You can do this from
+the CLI or Python:
 
 .. tab-set-code::
 
@@ -47,7 +47,7 @@ network. You can do this from the CLI or Python:
 
   .. literalinclude:: getting_started.py
     :language: python
-    :lines: 1-8,31-
+    :lines: -7,32-
 
 The ``verbosity`` flag increases the amount of output that is generated, to follow along
 or troubleshoot. The ``plot`` flags opens a plot |:slight_smile:|.
@@ -67,8 +67,8 @@ Regions combine multiple partitions and/or regions together, in a hierarchy, all
 up to a single topmost region, while partitions are exact pieces of volume that can be
 filled with cells.
 
-To get started, we'll change the ``brain_region`` into a ``stack``, and add a
-``top_layer``:
+To get started, we'll add a second layer ``top_layer``, and a region ``brain_region``
+which will stack our layers on top of each other:
 
 .. tab-set-code::
 
@@ -78,7 +78,7 @@ To get started, we'll change the ``brain_region`` into a ``stack``, and add a
 
   .. literalinclude:: getting_started.py
     :language: python
-    :lines: 10-16
+    :lines: 9-17
 
 The :guilabel:`type` of the ``brain_region`` is ``stack``. This means it will place its
 children stacked on top of each other. The :guilabel:`type` of ``base_layer`` is
@@ -101,7 +101,7 @@ created for them. In the simplest case you define a soma :guilabel:`radius` and
 
   .. literalinclude:: getting_started.py
     :language: python
-    :lines: 17
+    :lines: 18
 
 
 Placement
@@ -115,7 +115,7 @@ Placement
 
   .. literalinclude:: getting_started.py
     :language: python
-    :lines: 18-23
+    :lines: 19-24
 
 
 The ``placement`` blocks use the cell type indications to place cell types into
@@ -154,7 +154,7 @@ Connectivity
 
   .. literalinclude:: getting_started.py
     :language: python
-    :lines: 24-29
+    :lines: 25-30
 
 
 The ``connectivity`` blocks specify connections between systems of cell types. They can

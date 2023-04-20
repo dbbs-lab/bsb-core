@@ -495,7 +495,7 @@ class AllenStructure(NrrdVoxels, classmap_entry="allen"):
     """Name or acronym of the region to filter within the annotation volume according to the AMBRH.
     If struct_name is set, then struct_id should not be set."""
 
-    @config.property
+    @config.property(type=int)
     def voxel_size(self):
         """Size of each voxel."""
         return self._voxel_size if self._voxel_size is not None else 25
@@ -504,11 +504,11 @@ class AllenStructure(NrrdVoxels, classmap_entry="allen"):
     def voxel_size(self, value):
         self._voxel_size = value
 
-    @config.property
+    @config.property(type=bool)
     def mask_only(self):
         return self.source is None and len(self.sources) == 0
 
-    @config.property
+    @config.property(type=str)
     @functools.cache
     def mask_source(self):
         if hasattr(self, "_annotations_file"):

@@ -1,5 +1,4 @@
 from . import BaseCommand
-from ...option import BsbOption
 from ...reporting import report
 from ... import config
 import pathlib
@@ -17,6 +16,9 @@ class ProjectNewCommand(BaseCommand, name="new"):
         )
         parser.add_argument(
             "--quickstart", action="store_true", help="Start an example project"
+        )
+        parser.add_argument(
+            "--json", action="store_true", help="Use JSON as configuration language"
         )
         parser.add_argument(
             "--exists",
@@ -37,16 +39,15 @@ class ProjectNewCommand(BaseCommand, name="new"):
             return report(
                 f"Could not create '{root.absolute()}', directory exists.", level=0
             )
-
-        (root / name).mkdir(exist_ok=context.arguments.exists)
+        ext = "json" if context.arguments.json else "yaml"
         if context.arguments.quickstart:
-            template = "starting_example.json"
-            output = "network_configuration.json"
+            template = f"starting_example.{ext}"
+            output = f"network_configuration.{ext}"
         else:
-            template = input("Config template [skeleton.json]: ") or "skeleton.json"
+            template = input(f"Config template [skeleton.{ext}]: ") or f"skeleton.{ext}"
             output = (
-                input("Config filename [network_configuration.json]: ")
-                or "network_configuration.json"
+                input(f"Config filename [network_configuration.{ext}]: ")
+                or f"network_configuration.{ext}"
             )
         config.copy_template(template, output=root / output)
         with open(root / "pyproject.toml", "w") as f:

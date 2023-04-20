@@ -21,6 +21,14 @@ import os
 import types
 
 
+def _has_own_init(meta_subject, kwargs):
+    try:
+        determined_class = meta_subject.__new__.class_determinant(meta_subject, kwargs)
+        return overrides(determined_class, "__init__", mro=True)
+    except Exception:
+        return overrides(meta_subject, "__init__", mro=True)
+
+
 def make_metaclass(cls):
     # We make a `NodeMeta` class for each decorated node class, in compliance with any
     # metaclasses they might already have (to prevent metaclass confusion).
@@ -36,7 +44,7 @@ def make_metaclass(cls):
     # and keep the object reference that the user gives them
     class ConfigArgRewrite:
         def __call__(meta_subject, *args, _parent=None, _key=None, **kwargs):
-            has_own_init = overrides(meta_subject, "__init__", mro=True)
+            has_own_init = _has_own_init(meta_subject, kwargs)
             # Rewrite the arguments
             primer = args[0] if args else None
             if isinstance(primer, meta_subject):
@@ -55,8 +63,9 @@ def make_metaclass(cls):
                 raise ValueError(f"Unexpected positional argument '{primer}'")
             # Call the base class's new with internal arguments
             instance = meta_subject.__new__(
-                meta_subject, _parent=_parent, _key=_key, **kwargs
+                meta_subject, *args, _parent=_parent, _key=_key, **kwargs
             )
+            instance._config_pos_init = getattr(instance, "_config_pos_init", False)
             # Call the end user's __init__ with the rewritten arguments, if one is defined
             if has_own_init:
                 sig = inspect.signature(instance.__init__)
@@ -97,6 +106,12 @@ def make_metaclass(cls):
             return rcls
 
     return NodeMeta
+
+
+class NodeKwargs(dict):
+    def __init__(self, instance, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.is_shortform = getattr(instance, "_config_pos_init", False)
 
 
 def compose_nodes(*node_classes):
@@ -186,16 +201,19 @@ def compile_new(node_cls, dynamic=False, pluggable=False, root=False):
     else:
         class_determinant = _node_determinant
 
-    def __new__(_cls, _parent=None, _key=None, **kwargs):
+    def __new__(_cls, *args, _parent=None, _key=None, **kwargs):
         ncls = class_determinant(_cls, kwargs)
         instance = object.__new__(ncls)
+        instance._config_pos_init = bool(len(args))
         _set_pk(instance, _parent, _key)
         if root:
             instance._config_isfinished = False
         instance.__post_new__(**kwargs)
         if _cls is not ncls:
-            instance.__init__(**kwargs)
+            instance.__init__(*args, **kwargs)
         return instance
+
+    __new__.class_determinant = class_determinant
 
     return __new__
 
@@ -207,15 +225,18 @@ def _set_pk(obj, parent, key):
         obj._config_attr_order = []
     if not hasattr(obj, "_config_state"):
         obj._config_state = {}
-    for a in _get_class_config_attrs(obj.__class__).values():
+    for a in get_config_attributes(obj.__class__).values():
         if a.key:
             from ._attrs import _setattr
 
             _setattr(obj, a.attr_name, key)
 
 
-def _check_required(cls, attr, kwargs):
+def _check_required(instance, attr, kwargs):
+    # We use `self.__class__`, not `cls`, to get the proper child class.
+    cls = instance.__class__
     dynamic_root = getattr(cls, "_config_dynamic_root", None)
+    kwargs = NodeKwargs(instance, kwargs)
     if dynamic_root is not None:
         dynamic_attr = dynamic_root._config_dynamic_attr
         # If we are checking the dynamic attribute, but we're already a dynamic subclass,
@@ -231,7 +252,7 @@ def _check_required(cls, attr, kwargs):
 
 def compile_postnew(cls):
     def __post_new__(self, _parent=None, _key=None, **kwargs):
-        attrs = _get_class_config_attrs(self.__class__)
+        attrs = get_config_attributes(self.__class__)
         self._config_attr_order = list(kwargs.keys())
         catch_attrs = [a for a in attrs.values() if hasattr(a, "__catch__")]
         leftovers = kwargs.copy()
@@ -240,8 +261,7 @@ def compile_postnew(cls):
             name = attr.attr_name
             value = values[name] = leftovers.pop(name, None)
             try:
-                # We use `self.__class__`, not `cls`, to get the proper child class.
-                if value is None and _check_required(self.__class__, attr, kwargs):
+                if value is None and _check_required(self, attr, kwargs):
                     raise RequirementError(f"Missing required attribute '{name}'")
             except RequirementError as e:
                 # Catch both our own and possible `attr.required` RequirementErrors
@@ -321,7 +341,7 @@ def _bubble_up_warnings(log):
             warn(str(m), w.category, stacklevel=4)
 
 
-def _get_class_config_attrs(cls):
+def get_config_attributes(cls):
     attrs = {}
     for p_cls in reversed(cls.__mro__):
         if hasattr(p_cls, "_config_attrs"):
@@ -502,24 +522,24 @@ def _get_module_object(object_name, module_name, object_path):
         tmp = list(reversed(sys.path))
         tmp.remove(os.getcwd())
         sys.path = list(reversed(tmp))
-    module_dict = module_ref.__dict__
-    if object_name not in module_dict:
+    try:
+        return getattr(module_ref, object_name)
+    except Exception:
         raise DynamicObjectNotFoundError(f"'{object_path}' not found.")
-    return module_dict[object_name]
 
 
 def make_dictable(node_cls):
     def __contains__(self, attr):
-        return attr in _get_class_config_attrs(self.__class__)
+        return attr in get_config_attributes(self.__class__)
 
     def __getitem__(self, attr):
-        if attr in _get_class_config_attrs(self.__class__):
+        if attr in get_config_attributes(self.__class__):
             return getattr(self, attr)
         else:
             raise KeyError(attr)
 
     def __iter__(self):
-        return (attr for attr in _get_class_config_attrs(self.__class__))
+        return (attr for attr in get_config_attributes(self.__class__))
 
     node_cls.__contains__ = __contains__
     node_cls.__getitem__ = __getitem__
@@ -533,7 +553,7 @@ def make_tree(node_cls):
             inv = instance.__inv__()
             instance._config_inv = False
             return inv
-        attrs = _get_class_config_attrs(instance.__class__)
+        attrs = get_config_attributes(instance.__class__)
         catch_attrs = [a for a in attrs.values() if hasattr(a, "__catch__")]
         tree = {}
         for name in instance._config_attr_order:

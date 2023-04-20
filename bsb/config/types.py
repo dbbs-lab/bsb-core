@@ -3,9 +3,9 @@ import builtins
 import inspect
 import math
 import numpy as np
-
+from weakref import WeakKeyDictionary
 from ._compile import _reserved_kw_passes, _wrap_reserved
-from ._make import _load_class, _load_object
+from ._make import _load_object
 from ..exceptions import (
     ClassMapMissingError,
     CastError,
@@ -91,7 +91,7 @@ def or_(*type_args):
     :raises: TypeError if none of the given type validators can cast the value.
     :rtype: Callable
     """
-    handler_name = "any of: " + ", ".join(map(lambda x: x.__name__, type_args))
+    handler_name = "any of: " + ", ".join(x.__name__ for x in type_args)
     # Make sure to wrap all type handlers so that they accept the parent and key args.
     type_args = [_wrap_reserved(t) for t in type_args]
 
@@ -202,6 +202,8 @@ class function_(object_):
     """
 
     def __call__(self, value):
+        if callable(value):
+            return value
         obj = super().__call__(value)
         if not callable(obj):
             raise TypeError(f"Could not import {value} as a callable function.")
@@ -213,6 +215,65 @@ class function_(object_):
     @property
     def __name__(self):
         return "function"
+
+
+class method(function_):
+    def __init__(self, class_name):
+        super().__init__()
+        self._class = class_name
+
+    def __call__(self, value):
+        parent = class_()(self._class)
+        try:
+            obj = getattr(parent, value)
+        except AttributeError as e:
+            raise TypeError(builtins.str(e)) from None
+        if not callable(obj):
+            raise TypeError(f"Could not import '{value}' as a method of `{self._class}`.")
+        return obj
+
+    def __inv__(self, value):
+        return value.__name__
+
+    @property
+    def __name__(self):
+        return f"method of '{self._class}'"
+
+
+class WeakInverter:
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._map = WeakKeyDictionary()
+
+    def store_value(self, value, result):
+        self._map[result] = value
+
+    def __inv__(self, value):
+        return self._map.get(value, value)
+
+
+class method_shortcut(method, function_):
+    def __call__(self, value):
+        try:
+            obj = method.__call__(self, value)
+        except TypeError:
+            try:
+                obj = function_.__call__(self, value)
+            except TypeError:
+                raise TypeError(
+                    f"Could not import '{value}' as a function or a method of `{self._class}`."
+                ) from None
+        return obj
+
+    def __inv__(self, value):
+        if inspect.isfunction(value):
+            try:
+                method.__call__(self, value.__name__)
+                return method.__inv__(self, value)
+            except TypeError:
+                return function_.__inv__(self, value)
+        else:
+            return value
 
 
 def str(strip=False, lower=False, upper=False):
@@ -648,6 +709,13 @@ def mut_excl(*mutuals, required=True, max=1):
             err_msg = f"A {listed} attribute is required."
             raise RequirementError(err_msg)
         return False
+
+    return requirement
+
+
+def shortform():
+    def requirement(section):
+        return not section.is_shortform
 
     return requirement
 

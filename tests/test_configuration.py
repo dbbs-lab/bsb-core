@@ -17,8 +17,9 @@ from bsb.exceptions import (
     DynamicObjectNotFoundError,
     ClassMapMissingError,
 )
+from bsb.storage import NrrdDependencyNode, YamlDependencyNode
 from bsb.topology.region import RegionGroup
-from bsb.unittest import get_config_path
+from bsb.unittest import get_config_path, get_data_path
 
 minimal_config = get_config_path("test_minimal.json")
 full_config = get_config_path("test_full_v4.json")
@@ -970,6 +971,35 @@ class TestTypes(unittest.TestCase):
         # later on, where it is supposed to burn.
         with self.assertRaises(UnresolvedClassCastError):
             self.assertEqual("d", Test(c={"cls": "d"}))
+
+    def test_nrrd(self):
+        @config.node
+        class Test:
+            c = config.attr(type=NrrdDependencyNode)
+
+        b = Test(
+            c=get_data_path("orientations", "toy_annotations.nrrd"), _parent=TestRoot()
+        )
+        tested = b.c.load_object()
+        self.assertEqual(type(tested), np.ndarray)
+        self.assertEqual(tested.shape, (10, 8, 8))
+        self.assertEqual(tested.dtype, np.int32)
+        self.assertRaises(CastError, Test, c=2, _parent=TestRoot())
+        d = Test(c="test.nrrd", _parent=TestRoot())
+        self.assertRaises(FileNotFoundError, d.c.load_object)
+
+    def test_yaml(self):
+        @config.node
+        class Test:
+            c = config.attr(type=YamlDependencyNode)
+
+        b = Test(c=get_data_path("configs", "test_yaml.yaml"), _parent=TestRoot())
+        tested = b.c.load_object()
+        expected = dict(testKey={"testSubKey": ["content1", 2, 3.0], 4: None})
+        self.assertEqual(expected, tested, "Yaml parsing failed")
+        self.assertRaises(CastError, Test, c=2, _parent=TestRoot())
+        d = Test(c="test.yaml", _parent=TestRoot())
+        self.assertRaises(FileNotFoundError, d.c.load_object)
 
 
 @config.dynamic(
