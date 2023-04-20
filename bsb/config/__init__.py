@@ -11,6 +11,7 @@ import sys
 import glob
 import itertools
 from shutil import copy2 as copy_file
+from types import ModuleType
 import builtins
 import traceback
 
@@ -44,11 +45,8 @@ _path = __path__
 ConfigurationAttribute.__module__ = __name__
 
 
-class ConfigurationModule:
+class ConfigurationModule(ModuleType):
     from . import types, refs
-
-    def __init__(self, name):
-        self.__name__ = name
 
     parsers = parsers
     attr = staticmethod(attr)
