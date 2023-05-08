@@ -58,7 +58,7 @@ class VoxelIntersection(Intersectional, ConnectionStrategy):
             )
 
     def _match_voxel_intersection(self, matches, tset, cset, tmset, cmset):
-        # Soft caching caches at the IO level and gives you a fresh copy of the morphology
+        # Soft-caching caches at the IO level and gives you a fresh copy of the morphology
         # each time, the `cached_voxelize` function we need wouldn't have any effect!
         tm_iter = tmset.iter_morphologies(cache=self.cache, hard_cache=self.cache)
         target_itrs = zip(tset.load_positions(), tset.load_rotations().iter(), tm_iter)
@@ -150,3 +150,13 @@ def _pairs_with_zero(iterable):
         pass
     else:
         yield from zip(a, b)
+
+
+from patch import p
+import glia
+
+s = p.Section()
+pp = glia.insert(s, "NMDA", "autistic")
+pp.set("difwave_init", 0.0)
+
+p.run(1)
