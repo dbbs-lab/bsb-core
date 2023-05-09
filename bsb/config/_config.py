@@ -87,14 +87,14 @@ class Configuration:
         start = self.network.origin.copy()
         net = self.network
         end = [start[0] + net.x, start[1] + net.y, start[2] + net.z]
-        scaffold.topology = topology = create_topology(regions, start, end)
-        # If there are any partitions not part of the topology, raise an error
-        if unmanaged := set(self.partitions.values()) - get_partitions([topology]):
+        # If there are any partitions not part of the topology, add them to a group
+        if unmanaged := set(self.partitions.values()) - get_partitions(regions):
             p = "', '".join(p.name for p in unmanaged)
             r = scaffold.regions.add(
                 "__unmanaged__", RegionGroup(children=builtins.list(unmanaged))
             )
-            topology.children.append(r)
+            regions.append(r)
+        scaffold.topology = topology = create_topology(regions, start, end)
 
     def _update_storage_node(self, storage):
         if self.storage.engine != storage.format:
