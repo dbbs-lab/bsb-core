@@ -9,7 +9,7 @@ class SimulatorAdapter:
         with simulation.scaffold.storage.read_only():
             data = self.prepare(simulation)
             for hook in simulation.post_prepare:
-                hook(self, data)
+                hook(self, simulation, data)
             result = self.run(simulation)
             return self.collect(simulation, data, result)
 
