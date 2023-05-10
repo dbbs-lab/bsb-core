@@ -274,28 +274,16 @@ class NeuroMorphoScheme(UrlScheme):
     @_ft.cache
     def get_nm_meta(self, file: FileDependency):
         name = _up.urlparse(file.uri).hostname
-        # Weak DH key on neuromorpho.org
-        # https://stackoverflow.com/questions/38015537/python-requests-exceptions-sslerror-dh-key-too-small
-        _rq.packages.urllib3.util.ssl_.DEFAULT_CIPHERS += ":HIGH:!DH:!aNULL"
+        session = self._create_session()
         try:
-            _rq.packages.urllib3.contrib.pyopenssl.util.ssl_.DEFAULT_CIPHERS += (
-                ":HIGH:!DH:!aNULL"
-            )
-        except AttributeError:
-            # no pyopenssl support used / needed / available
-            pass
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            # Certificate issues with neuromorpho --> verify=False
-            try:
-                res = _rq.get(self._nm_url + self._meta + name, verify=False)
-            except Exception as e:
-                return {"archive": "none", "neuron_name": "none"}
-            if res.status_code == 404:
-                raise IOError(f"'{name}' is not a valid NeuroMorpho name.")
-            elif res.status_code != 200:
-                raise IOError("NeuroMorpho API error: " + res.message)
-            return res.json()
+            res = session.get(self._nm_url + self._meta + name)
+        except Exception as e:
+            return {"archive": "none", "neuron_name": "none"}
+        if res.status_code == 404:
+            raise IOError(f"'{name}' is not a valid NeuroMorpho name.")
+        elif res.status_code != 200:
+            raise IOError("NeuroMorpho API error: " + res.message)
+        return res.json()
 
     def get_meta(self, file: FileDependency):
         meta = super().get_meta(file)
@@ -306,6 +294,29 @@ class NeuroMorphoScheme(UrlScheme):
     def _swc_url(cls, archive, name):
         base_url = f"{cls._nm_url}{cls._files}{_up.quote(archive.lower())}"
         return f"{base_url}/CNG%20version/{name}.CNG.swc"
+
+    @classmethod
+    def _create_session(cls):
+        # Weak DH key on neuromorpho.org
+        # https://stackoverflow.com/questions/38015537/python-requests-exceptions-sslerror-dh-key-too-small
+        from requests.adapters import HTTPAdapter
+        from urllib3.util import create_urllib3_context
+        from urllib3 import PoolManager
+
+        class DHAdapter(HTTPAdapter):
+            def init_poolmanager(self, connections, maxsize, block=False, **kwargs):
+                ctx = create_urllib3_context(ciphers=":HIGH:!DH:!aNULL")
+                self.poolmanager = PoolManager(
+                    num_pools=connections,
+                    maxsize=maxsize,
+                    block=block,
+                    ssl_context=ctx,
+                    **kwargs,
+                )
+
+        session = _rq.Session()
+        session.mount(cls._nm_url, DHAdapter())
+        return session
 
 
 @_ft.cache
