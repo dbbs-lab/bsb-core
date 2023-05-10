@@ -3,22 +3,22 @@
     "engine": "hdf5"
   },
   "network": {
-    "x": 150.0,
-    "y": 150.0,
-    "z": 150.0,
+    "x": 50.0,
+    "y": 50.0,
+    "z": 50.0,
     "chunk_size": 50
   },
   "partitions": {
     "any": {
       "type": "layer",
-      "thickness": 100
+      "thickness": 50
     }
   },
   "cell_types": {
     "gif_pop_psc_exp": {
       "spatial": {
         "radius": 1,
-        "count": 500
+        "count": 1
       }
     }
   },
@@ -35,10 +35,16 @@
   },
   "connectivity": {
     "gif_pop_psc_exp": {
-      "strategy": "bsb.connectivity.Placeholder",
+      "strategy": "bsb.connectivity.AllToAll",
       "presynaptic": {
-        "cell_types": ["gif_pop_psc_exp"],
-        ""
+        "cell_types": [
+          "gif_pop_psc_exp"
+        ]
+      },
+      "postsynaptic": {
+        "cell_types": [
+          "gif_pop_psc_exp"
+        ]
       }
     }
   },
@@ -70,8 +76,15 @@
         }
       },
       "connection_models": {
-        "rule": "all_to_all"
-      }
+        "gif_pop_psc_exp": {
+          "rule": "all_to_all",
+          "synapse": {
+            "weight": -6.25,
+            "delay": 1
+          }
+        }
+      },
+      "devices": {}
     }
   }
 }
