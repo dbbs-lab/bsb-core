@@ -32,7 +32,7 @@ class Simulation:
     cell_models = config.slot(type=CellModel, required=True)
     connection_models = config.slot(type=ConnectionModel, required=True)
     devices = config.slot(type=DeviceModel, required=True)
-    post_prepare = config.list(type=cfgtypes.class_())
+    post_prepare = config.list(type=cfgtypes.function_())
 
     @staticmethod
     def __plugins__():
