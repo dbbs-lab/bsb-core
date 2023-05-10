@@ -31,3 +31,7 @@ nrn-subprocess==1.3.4
 
 # Plugins
 bsb-hdf5==0.7.4
+
+# HTTP
+requests==2.30.0
+urllib3==2.0.2
