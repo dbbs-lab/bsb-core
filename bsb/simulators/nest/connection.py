@@ -32,10 +32,19 @@ class LazySynapseCollection:
         self._pre = pre
         self._post = post
 
+    def __len__(self):
+        return self.collection.__len__()
+
+    def __str__(self):
+        return self.collection.__str__()
+
+    def __iter__(self):
+        return iter(self.collection)
+
     def __getattr__(self, attr):
         return getattr(self.collection, attr)
 
-    @functools.cache
+    @functools.cached_property
     def collection(self):
         import nest
 
