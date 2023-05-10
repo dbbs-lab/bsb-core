@@ -223,7 +223,8 @@ class UrlScheme(UriScheme):
         return file.uri
 
     def find(self, file: FileDependency):
-        response = _rq.head(self.resolve_uri(file))
+        with self.create_session() as session:
+            response = session.head(self.resolve_uri(file))
         return response.status_code == 200
 
     def should_update(self, file: FileDependency, stored_file):
@@ -244,11 +245,13 @@ class UrlScheme(UriScheme):
         return _t.time() > mtime + 360000
 
     def get_content(self, file: FileDependency):
-        response = _rq.get(self.resolve_uri(file))
+        with self.create_session() as session:
+            response = session.get(self.resolve_uri(file))
         return (response.content, response.encoding)
 
     def get_meta(self, file: FileDependency):
-        response = _rq.head(self.resolve_uri(file))
+        with self.create_session() as session:
+            response = session.head(self.resolve_uri(file))
         return {"headers": dict(response.headers)}
 
     def get_local_path(self, file: FileDependency):
@@ -256,10 +259,14 @@ class UrlScheme(UriScheme):
 
     @_cl.contextmanager
     def provide_stream(self, file):
-        response = _rq.get(self.resolve_uri(file), stream=True)
+        with self.create_session() as session:
+            response = session.get(self.resolve_uri(file), stream=True)
         response.raw.decode_content = True
         response.raw.auto_close = False
         yield (response.raw, response.encoding)
+
+    def create_session(self):
+        return _rq.Session()
 
 
 class NeuroMorphoScheme(UrlScheme):
@@ -274,15 +281,15 @@ class NeuroMorphoScheme(UrlScheme):
     @_ft.cache
     def get_nm_meta(self, file: FileDependency):
         name = _up.urlparse(file.uri).hostname
-        session = self._create_session()
         try:
-            res = session.get(self._nm_url + self._meta + name)
+            with self.create_session() as session:
+                res = session.get(self._nm_url + self._meta + name)
         except Exception as e:
             return {"archive": "none", "neuron_name": "none"}
         if res.status_code == 404:
             raise IOError(f"'{name}' is not a valid NeuroMorpho name.")
         elif res.status_code != 200:
-            raise IOError("NeuroMorpho API error: " + res.message)
+            raise IOError("NeuroMorpho API error: " + res.text)
         return res.json()
 
     def get_meta(self, file: FileDependency):
@@ -295,10 +302,9 @@ class NeuroMorphoScheme(UrlScheme):
         base_url = f"{cls._nm_url}{cls._files}{_up.quote(archive.lower())}"
         return f"{base_url}/CNG%20version/{name}.CNG.swc"
 
-    @classmethod
-    def _create_session(cls):
+    def create_session(self):
         # Weak DH key on neuromorpho.org
-        # https://stackoverflow.com/questions/38015537/python-requests-exceptions-sslerror-dh-key-too-small
+        # https://stackoverflow.com/a/76217135/1016004
         from requests.adapters import HTTPAdapter
         from urllib3.util import create_urllib3_context
         from urllib3 import PoolManager
@@ -315,7 +321,7 @@ class NeuroMorphoScheme(UrlScheme):
                 )
 
         session = _rq.Session()
-        session.mount(cls._nm_url, DHAdapter())
+        session.mount(self._nm_url, DHAdapter())
         return session
 
 
