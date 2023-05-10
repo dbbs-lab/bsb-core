@@ -150,13 +150,3 @@ def _pairs_with_zero(iterable):
         pass
     else:
         yield from zip(a, b)
-
-
-from patch import p
-import glia
-
-s = p.Section()
-pp = glia.insert(s, "NMDA", "autistic")
-pp.set("difwave_init", 0.0)
-
-p.run(1)
