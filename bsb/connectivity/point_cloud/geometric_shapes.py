@@ -149,6 +149,8 @@ class ShapesComposition:
         """
         self._shapes.append(shape)
         self._labels.append(labels)
+        #Update mbb
+        self._mbb_min, self._mbb_max = self.find_mbb()
 
     def filter_by_labels(self, labels: List[str]) -> ShapesComposition:
         """
@@ -573,14 +575,14 @@ class Cone(GeometricShape):
         pts = points - self._apex
 
         # Rotate back to xyz
-        zvers = np.array([0, 0, 1])
+        zvers = np.array([0, 0, 1],dtype=np.float64)
         perp = np.cross(zvers, hv)
         angle = -np.arccos(np.dot(hv, zvers))
         rot = R.from_rotvec(perp * angle)
-        rot_pts = rot.apply(points)
+        rot_pts = rot.apply(pts)
 
         # Find the angle between the points and the apex
-        diff = rot_pts - np.array([0, 0, height])
+        diff = rot_pts
         apex_angles = np.full((len(points)), 0, dtype=float)
 
         # TODO: Find a way to vectorize these computation
@@ -624,7 +626,6 @@ class Cone(GeometricShape):
         if hv[2] < 0:
             z = -z
         x, y, z = translate_3d_mesh_by_vec(x, y, z, self._apex)
-
         return x, y, z
 
 
@@ -1084,7 +1085,6 @@ class Parallelepiped(GeometricShape):
                 self._side_vector_1 + self._side_vector_2 + self._side_vector_3,
             ]
         )
-        print(extrema)
         maxima = np.max(extrema, axis=0) + self._center
         minima = np.min(extrema, axis=0) + self._center
         return minima, maxima
@@ -1125,8 +1125,8 @@ class Parallelepiped(GeometricShape):
         pts = points - self._center
 
         # Rotate back to xyz
-        height = np.linalg.norm(self._height_vector - self._center)
-        hv = (self._height_vector - self._center) / height
+        height = np.linalg.norm(self._side_vector_3)
+        hv = (self._side_vector_3) / height
         zvers = np.array([0, 0, 1])
         perp = np.cross(zvers, hv)
         angle = -np.arccos(np.dot(hv, zvers))
@@ -1134,20 +1134,23 @@ class Parallelepiped(GeometricShape):
         rot_pts = rot.apply(pts)
 
         # Compute the Fourier components wrt to the vectors identifying the parallelepiped
-
-        comp1 = rot_pts.dot(self._side_vector_1)
-        comp2 = rot_pts.dot(self._side_vector_2)
-        comp3 = rot_pts.dot(self._side_vector_3)
+        
+        v1_norm = np.linalg.norm(self._side_vector_1)
+        comp1 = rot_pts.dot(self._side_vector_1)/v1_norm
+        v2_norm = np.linalg.norm(self._side_vector_2)
+        comp2 = rot_pts.dot(self._side_vector_2)/v2_norm
+        v3_norm = np.linalg.norm(self._side_vector_3)
+        comp3 = rot_pts.dot(self._side_vector_3)/v3_norm
 
         # The points are inside the parallelepiped if and only if all the Fourier components
-        # are in (0,1)
+        # are between 0 and the norm of sides of the parallelepiped
         inside_points = (
             (comp1 > 0.0)
-            & (comp1 < 1.0)
+            & (comp1 < v1_norm)
             & (comp2 > 0.0)
-            & (comp2 < 1.0)
+            & (comp2 < v2_norm)
             & (comp3 > 0.0)
-            & (comp3 < 1.0)
+            & (comp3 < v3_norm)
         )
         return inside_points
 
@@ -1199,5 +1202,4 @@ class Parallelepiped(GeometricShape):
  
         x, y, z = rotate_3d_mesh_by_vec(x, y, z, perp, angle)
         x, y, z = translate_3d_mesh_by_vec(x, y, z, self._center)"""
-        print(x)
         return x, y, z
