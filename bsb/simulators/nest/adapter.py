@@ -37,7 +37,7 @@ class NestResult(SimulationResult):
         nest.Connect(nc, recorder)
 
         def flush(segment):
-            events = nest.GetStatus(recorder, "events")[0]
+            events = recorder.events[0]
 
             segment.spiketrains.append(
                 SpikeTrain(
