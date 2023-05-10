@@ -94,7 +94,7 @@ class Configuration:
                 "__unmanaged__", RegionGroup(children=builtins.list(unmanaged))
             )
             regions.append(r)
-        scaffold.topology = topology = create_topology(regions, start, end)
+        scaffold.topology = create_topology(regions, start, end)
 
     def _update_storage_node(self, storage):
         if self.storage.engine != storage.format:
