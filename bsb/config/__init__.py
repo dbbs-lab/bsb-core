@@ -44,6 +44,8 @@ _path = __path__
 ConfigurationAttribute.__module__ = __name__
 
 
+# ConfigurationModule should not inherit from `ModuleType`, otherwise Sphinx doesn't
+# document all the properties.
 class ConfigurationModule:
     from . import types, refs
 
