@@ -38,12 +38,12 @@ jobs:
       id: cache-nest
       uses: actions/cache@v3
       with:
-        path: $GITHUB_WORKSPACE/simulators/nest
+        path: /simulators/nest
         key: ${{ runner.os }}-${{ matrix.python-version }}-nest
 
     - name: Install NEST
       if: steps.cache-nest.outputs.cache-hit != 'true'
-      run: .github/devops/install-nest.sh ${NEST_VERSION} $GITHUB_WORKSPACE/simulators/nest
+      run: .github/devops/install-nest.sh ${NEST_VERSION} /simulators/nest
 
     - name: Install dependencies & self
       run: |
@@ -54,7 +54,7 @@ jobs:
 
     - name: Run tests & coverage
       run: |
-        source $GITHUB_WORKSPACE/simulators/nest/bin/nest_vars.sh
+        source /simulators/nest/bin/nest_vars.sh
         python -c "import nest"
         coverage run -p -m unittest discover -v -s ./tests
         mpiexec -n 2 coverage run -p -m unittest discover -v -s ./tests
