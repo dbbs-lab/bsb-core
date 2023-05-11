@@ -506,15 +506,18 @@ class ConfigurationAttribute:
 
     def tree(self, instance):
         val = _getattr(instance, self.attr_name)
+        return self.tree_of(val)
+
+    def tree_of(self, value):
         # Allow subnodes and other class values to convert themselves to their tree
         # representation
-        if hasattr(val, "__tree__"):
-            val = val.__tree__()
+        if hasattr(value, "__tree__"):
+            value = value.__tree__()
         # Check if the type handler specifies any inversion function to convert tree
         # values back to how they were found in the document.
-        if hasattr(self.type, "__inv__") and val is not None:
-            val = self.type.__inv__(val)
-        return val
+        if hasattr(self.type, "__inv__") and value is not None:
+            value = self.type.__inv__(value)
+        return value
 
     def flag_dirty(self, instance):
         instance._config_state[self.attr_name] = False
@@ -673,7 +676,7 @@ class ConfigurationListAttribute(ConfigurationAttribute):
 
     def tree(self, instance):
         val = _getattr(instance, self.attr_name)
-        return [e if not hasattr(e, "__tree__") else e.__tree__() for e in val]
+        return [self.tree_of(e) for e in val]
 
 
 class cfgdict(builtins.dict):
@@ -813,7 +816,7 @@ class ConfigurationDictAttribute(ConfigurationAttribute):
 
     def tree(self, instance):
         val = _getattr(instance, self.attr_name).items()
-        return {k: v if not hasattr(v, "__tree__") else v.__tree__() for k, v in val}
+        return {k: self.tree_of(v) for k, v in val}
 
 
 class ConfigurationReferenceAttribute(ConfigurationAttribute):
