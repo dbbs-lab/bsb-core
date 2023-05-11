@@ -111,7 +111,7 @@ setuptools.setup(
             "sphinxemoji",
             "sphinx_design~=0.2",
             "sphinx-copybutton~=0.5",
-            "sphinxext-bsb~=0.2.0",
+            "sphinxext-bsb~=0.2.1",
             "snakeviz",
         ],
         "arbor": ["arbor~=0.6", "arborize[arbor]==4.0.0a4"],
