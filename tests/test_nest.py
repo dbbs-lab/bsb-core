@@ -1,11 +1,13 @@
 from bsb.config import from_file
 from bsb.core import Scaffold
+from bsb.services import MPI
 from bsb.unittest import RandomStorageFixture, get_config_path
 import numpy as np
 import unittest
 
 
 class TestNest(RandomStorageFixture, unittest.TestCase, engine_name="hdf5"):
+    @unittest.skipIf(MPI.get_size() > 1, "Skipped during serial testing.")
     def test_gif_pop_psc_exp(self):
         """Mimics test_gif_pop_psc_exp of NEST's test suite to validate the adapter."""
         import nest
