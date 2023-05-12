@@ -97,3 +97,47 @@ class TestNest(RandomStorageFixture, unittest.TestCase, engine_name="hdf5"):
 
         self.assertGreaterEqual(err_mean, abs(mean_rate - expected_rate))
         self.assertGreaterEqual(err_var, var_rate - expected_var)
+
+    def test_brunel(self):
+        cfg = from_file(get_config_path("test_brunel.json"))
+        simcfg = cfg.simulations.test
+        N_rec = 50
+        events_ex, events_in = None, None
+
+        def setup(adapter, simulation, data):
+            import nest
+
+            syn_exc = dict(
+                simcfg.connection_models.excitatory_to_excitatory.synapse.__tree__()
+            )
+            pg = nest.Create("poisson_generator", params={"rate": 17789.007714721884})
+            sr_exc, sr_inh = nest.Create("spike_recorder", 2)
+            exc = data.populations[simulation.cell_models["excitatory"]]
+            inh = data.populations[simulation.cell_models["inhibitory"]]
+            nest.Connect(
+                pg,
+                exc + inh,
+                syn_spec=syn_exc,
+            )
+            nest.Connect(exc[:N_rec], sr_exc, syn_spec=syn_exc)
+            nest.Connect(inh[:N_rec], sr_inh, syn_spec=syn_exc)
+
+            def spy(segment):
+                nonlocal events_ex, events_in
+
+                events_ex = sr_exc.n_events
+                events_in = sr_inh.n_events
+
+            data.result.create_recorder(spy)
+
+        simcfg.post_prepare.append(setup)
+
+        network = Scaffold(cfg, self.storage)
+        network.compile()
+        network.run_simulation("test")
+
+        rate_ex = events_ex / simcfg.duration * 1000.0 / N_rec
+        rate_in = events_in / simcfg.duration * 1000.0 / N_rec
+
+        self.assertAlmostEqual(rate_in, 50, delta=1)
+        self.assertAlmostEqual(rate_ex, 50, delta=1)
