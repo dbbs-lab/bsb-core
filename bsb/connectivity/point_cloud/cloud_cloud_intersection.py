@@ -102,5 +102,4 @@ class CloudToCloudIntersection(ConnectionStrategy):
             to_connect_pre = to_connect_pre[ids_to_select]
             to_connect_post = to_connect_post[ids_to_select]
 
-        # print("Connected", len(pre_pos), "pre cells to", len(post_pos), "post cells.")
         self.connect_cells(pre_ps, post_ps, to_connect_pre, to_connect_post)

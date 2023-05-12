@@ -113,6 +113,29 @@ class MorphologiesFixture:
             MPI.barrier()
 
 
+class PointCloudFixture:
+    def __init_subclass__(
+        cls, point_cloud_filters=None, point_cloud_suffix="pck", **kwargs
+    ):
+        super().__init_subclass__(**kwargs)
+        cls._point_cloud_suffix = point_cloud_suffix
+        cls._point_cloud_filters = point_cloud_filters
+
+    def setUp(self):
+        super().setUp()
+        self.point_clouds_files = []
+        if MPI.get_rank():
+            MPI.barrier()
+        else:
+            for mpath in get_all_point_cloud_paths(self._point_cloud_suffix):
+                if self._point_cloud_filters and all(
+                    mpath.find(filter) == -1 for filter in self._point_cloud_filters
+                ):
+                    continue
+                self.point_clouds_files.append(mpath)
+            MPI.barrier()
+
+
 class NumpyTestCase:
     def assertClose(self, a, b, msg="", /, **kwargs):
         if msg:

@@ -68,7 +68,6 @@ class MorphologyToCloudIntersection(ConnectionStrategy):
         for pre_id, pre_coord, morpho in zip(itertools.count(), pre_pos, pre_morphos):
             # Get the branches
             branches = morpho.get_branches()
-            first_axon_branch_id = branches.index(branches[0])
 
             # Build ids array from the morphology
             morpho_points = 0

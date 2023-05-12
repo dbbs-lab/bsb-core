@@ -44,10 +44,8 @@ class CloudToMorphologyIntersection(ConnectionStrategy):
         post_morphos = morpho_set.iter_morphologies(cache=True, hard_cache=True)
 
         for post_id, post_coord, morpho in zip(itertools.count(), post_pos, post_morphos):
-            # print(post_id, "/", len(post_coord))
             # Get the branches
             branches = morpho.get_branches()
-            first_axon_branch_id = branches.index(branches[0])
 
             # Build ids array from the morphology
             morpho_points = 0
@@ -106,5 +104,4 @@ class CloudToMorphologyIntersection(ConnectionStrategy):
                             pre_tmp[:, 0] = pre_id
                             to_connect_pre = np.vstack([to_connect_pre, pre_tmp])
 
-        # print("Connected", len(pre_pos), "pre cells to",len(post_pos),"post cells.")
         self.connect_cells(pre_ps, post_ps, to_connect_pre[1:], to_connect_post[1:])
