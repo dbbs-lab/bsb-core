@@ -6,8 +6,8 @@ import numpy as np
 import unittest
 
 
+@unittest.skipIf(MPI.get_size() > 1, "Skipped during serial testing.")
 class TestNest(RandomStorageFixture, unittest.TestCase, engine_name="hdf5"):
-    @unittest.skipIf(MPI.get_size() > 1, "Skipped during serial testing.")
     def test_gif_pop_psc_exp(self):
         """Mimics test_gif_pop_psc_exp of NEST's test suite to validate the adapter."""
         import nest
@@ -23,12 +23,11 @@ class TestNest(RandomStorageFixture, unittest.TestCase, engine_name="hdf5"):
         network = Scaffold(cfg, self.storage)
         network.compile()
 
-        simdata = None
         simulation = None
         vm = None
         nspike = None
 
-        def probe(adapter, sim, data):
+        def probe(_, sim, data):
             # Probe and steal some local refs to data that's otherwise encapsulated :)
             nonlocal simdata, vm, simulation
             simulation = sim
@@ -48,7 +47,7 @@ class TestNest(RandomStorageFixture, unittest.TestCase, engine_name="hdf5"):
             nest.Connect(vm, pop)
 
             # Add a spying recorder
-            def spy(segment):
+            def spy(_):
                 nonlocal nspike
 
                 start_time = 1000
@@ -104,7 +103,7 @@ class TestNest(RandomStorageFixture, unittest.TestCase, engine_name="hdf5"):
         N_rec = 50
         events_ex, events_in = None, None
 
-        def setup(adapter, simulation, data):
+        def setup(_, simulation, data):
             import nest
 
             syn_exc = dict(
@@ -122,7 +121,7 @@ class TestNest(RandomStorageFixture, unittest.TestCase, engine_name="hdf5"):
             nest.Connect(exc[:N_rec], sr_exc, syn_spec=syn_exc)
             nest.Connect(inh[:N_rec], sr_inh, syn_spec=syn_exc)
 
-            def spy(segment):
+            def spy(_):
                 nonlocal events_ex, events_in
 
                 events_ex = sr_exc.n_events
