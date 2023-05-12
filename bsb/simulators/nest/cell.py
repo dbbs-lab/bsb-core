@@ -5,7 +5,7 @@ from bsb.simulation.cell import CellModel
 
 @config.node
 class NestCell(CellModel):
-    neuron_model = config.attr(type=str)
+    neuron_model = config.attr(type=str, default="iaf_psc_alpha")
     constants = config.dict(type=types.any_())
 
     def create_population(self):
