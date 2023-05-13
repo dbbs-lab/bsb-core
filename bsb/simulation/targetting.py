@@ -1,6 +1,6 @@
-import itertools
 import random
 import numpy as np
+from numpy.random import default_rng
 from .. import config
 from ..config import refs, types
 
@@ -46,7 +46,7 @@ class CellModelTargetting(CellTargetting, classmap_entry="cell_model"):
     cell_models = config.reflist(refs.sim_cell_model_ref, required=True)
 
     def get_targets(self, adapter, cells, connections):
-        return [cell for cell in cells.values() if cell.model in self.cell_models]
+        return {model: data for model, data in cells.items() if model in self.cell_models}
 
 
 @config.node
@@ -59,14 +59,11 @@ class RepresentativesTargetting(CellModelTargetting, classmap_entry="representat
     n = config.attr(type=int, default=1)
 
     def get_targets(self, adapter, cells, connections):
-        reps = {cell_model: [] for cell_model in self.cell_models}
-        for cell in cells.values():
-            reps[cell.model] = cell
-        return [
-            *itertools.chain.from_iterable(
-                random.choices(group, k=self.n) for group in reps.values()
-            )
-        ]
+        return {
+            model: default_rng().choice(len(data), size=self.n, replace=False)
+            for model, data in cells
+            if model in self.cell_models
+        }
 
 
 @config.node
@@ -75,10 +72,15 @@ class ByIdTargetting(CellTargetting, classmap_entry="by_id"):
     Targetting mechanism (use ``"type": "by_id"``) to target all given identifiers.
     """
 
-    ids = config.attr(type=types.list(type=int), required=True)
+    ids = config.attr(type=types.dict(type=types.list(type=int)), required=True)
 
     def get_targets(self, adapter, cells, connections):
-        return [cells[id] for id in self.ids]
+        by_name = {model.name: model for model in cells.keys()}
+        return {
+            model: ids
+            for model_name, ids in self.ids.items()
+            if (model := by_name.get(model_name)) is not None
+        }
 
 
 @config.node
