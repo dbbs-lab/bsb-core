@@ -4,6 +4,9 @@ on: [push, pull_request]
 
 env:
   NEST_VERSION: 3.4
+  ACTIONS_STEP_DEBUG: true
+  ACTIONS_RUNNER_DEBUG: true
+  RUNNER_DEBUG: true
 
 jobs:
   build:
