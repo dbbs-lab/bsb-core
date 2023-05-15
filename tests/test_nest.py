@@ -29,9 +29,8 @@ class TestNest(RandomStorageFixture, unittest.TestCase, engine_name="hdf5"):
 
         def probe(_, sim, data):
             # Probe and steal some local refs to data that's otherwise encapsulated :)
-            nonlocal simdata, vm, simulation
+            nonlocal vm, simulation
             simulation = sim
-            simdata = data
 
             # Get the important information out of the sim/data
             cell_m = sim.cell_models.gif_pop_psc_exp
