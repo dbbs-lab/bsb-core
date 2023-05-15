@@ -23,8 +23,8 @@ jobs:
 
     - name: Install apt dependencies
       run: |
-        sudo apt-get update
-        sudo apt-get install openmpi-bin libopenmpi-dev gsl-bin libgsl-dev 
+        sudo apt update
+        sudo apt install openmpi-bin libopenmpi-dev gsl-bin libgsl-dev 
 
     - name: Cache pip
       uses: actions/cache@v3
