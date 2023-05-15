@@ -9,6 +9,8 @@ jobs:
   build:
     if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
     runs-on: ubuntu-latest
+    env:
+      - NEST_INSTALL_PATH: /home/runner/work/simulators/nest
     strategy:
       matrix:
         python-version: ["3.8", "3.9", "3.10"]
@@ -38,12 +40,12 @@ jobs:
       id: cache-nest
       uses: actions/cache@v3
       with:
-        path: /simulators/nest
+        path: "${NEST_INSTALL_PATH}"
         key: ${{ runner.os }}-${{ matrix.python-version }}-nest
 
     - name: Install NEST
       if: steps.cache-nest.outputs.cache-hit != 'true'
-      run: .github/devops/install-nest.sh ${NEST_VERSION} /simulators/nest
+      run: .github/devops/install-nest.sh ${NEST_VERSION} "${NEST_INSTALL_PATH}"
 
     - name: Install dependencies & self
       run: |
@@ -54,7 +56,7 @@ jobs:
 
     - name: Run tests & coverage
       run: |
-        source /simulators/nest/bin/nest_vars.sh
+        source "${NEST_INSTALL_PATH}/bin/nest_vars.sh"
         python -c "import nest"
         coverage run -p -m unittest discover -v -s ./tests
         mpiexec -n 2 coverage run -p -m unittest discover -v -s ./tests
