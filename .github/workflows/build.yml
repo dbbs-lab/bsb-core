@@ -5,9 +5,6 @@ on: [push, pull_request]
 env:
   NEST_VERSION: 3.4
   NEST_INSTALL_PATH: /home/runner/work/simulators/nest
-  ACTIONS_STEP_DEBUG: true
-  ACTIONS_RUNNER_DEBUG: true
-  ACTIONS_CACHE_DEBUG: true
 
 jobs:
   build:
@@ -74,5 +71,3 @@ jobs:
         pip install -e bsb-hdf5/
         coverage run -p -m unittest discover bsb-hdf5/test
         bash <(curl -s https://codecov.io/bash)
-    - name: Sanity check
-      run: ls "${NEST_INSTALL_PATH}"
