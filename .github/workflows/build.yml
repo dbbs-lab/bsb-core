@@ -4,16 +4,15 @@ on: [push, pull_request]
 
 env:
   NEST_VERSION: 3.4
+  NEST_INSTALL_PATH: /home/runner/work/simulators/nest
   ACTIONS_STEP_DEBUG: true
   ACTIONS_RUNNER_DEBUG: true
-  RUNNER_DEBUG: true
+  ACTIONS_CACHE_DEBUG: true
 
 jobs:
   build:
     if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
     runs-on: ubuntu-latest
-    env:
-      NEST_INSTALL_PATH: /home/runner/work/simulators/nest
     strategy:
       matrix:
         python-version: ["3.8", "3.9", "3.10"]
