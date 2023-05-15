@@ -1,5 +1,4 @@
 import warnings
-
 from bsb import config
 from bsb.config import types
 from bsb.simulation.targetting import LocationTargetting
@@ -17,7 +16,8 @@ class VoltageClamp(NeuronDevice, classmap_entry="vclamp"):
     after = config.attr(type=float, default=None)
     holding = config.attr(type=float, default=None)
 
-    def implement(self, adapter, result, cells, connections):
+    def implement(self, adapter, simulation, simdata):
+        result, cells, connections = simdata.results, simdata.cells, simdata.connections
         for target in self.targetting.get_targets(adapter, cells, connections):
             clamped = False
             for location in self.locations.get_locations(target):

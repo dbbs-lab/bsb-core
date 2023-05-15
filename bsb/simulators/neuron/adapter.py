@@ -21,6 +21,7 @@ if typing.TYPE_CHECKING:
 class SimulationData:
     def __init__(self):
         self.chunks = None
+        self.populations = dict()
         self.cells = dict()
         self.cid_offsets = dict()
         self.connections = dict()
@@ -151,9 +152,7 @@ class NeuronAdapter(SimulatorAdapter):
     def create_devices(self, simulation):
         simdata = self.simdata[simulation]
         for device_model in simulation.devices.values():
-            device_model.implement(
-                self, simdata.result, simdata.cells, simdata.connections
-            )
+            device_model.implement(self, simulation, simdata)
 
     def _allocate_transmitters(self, simulation):
         simdata = self.simdata[simulation]
@@ -190,6 +189,7 @@ class NeuronAdapter(SimulatorAdapter):
                 data.append(itertools.repeat(None))
         with fill_parameter_data(cell_model.parameters, data):
             instances = cell_model.create_instances(len(ps), *data)
+            simdata.populations[cell_model] = instances
             for id, instance in zip(ps.load_ids(), instances):
                 cid = offset + id
                 instance.id = cid

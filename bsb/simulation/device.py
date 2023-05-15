@@ -5,7 +5,7 @@ from .component import SimulationComponent
 
 @config.node
 class DeviceModel(SimulationComponent):
-    def implement(self, adapter, simdata):
+    def implement(self, adapter, simulation, simdata):
         raise NotImplementedError(
             "The "
             + self.__class__.__name__

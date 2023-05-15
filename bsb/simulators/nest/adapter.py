@@ -187,9 +187,7 @@ class NestAdapter(SimulatorAdapter):
     def create_devices(self, simulation):
         simdata = self.simdata[simulation]
         for device_model in simulation.devices.values():
-            device_model.implement(
-                simdata.result, simdata.populations, simdata.connections
-            )
+            device_model.implement(self, simulation, simdata)
 
     def set_settings(self, simulation: "Simulation"):
         self.nest.set_verbosity(simulation.verbosity)
