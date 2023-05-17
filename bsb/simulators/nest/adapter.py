@@ -71,6 +71,13 @@ class NestAdapter(SimulatorAdapter):
 
         return nest
 
+    def simulate(self, simulation):
+        try:
+            self.reset_kernel()
+            return super().simulate(simulation)
+        finally:
+            self.reset_kernel()
+
     def prepare(self, simulation, comm=None):
         self.simdata[simulation] = simdata = SimulationData(simulation)
         try:
@@ -89,7 +96,7 @@ class NestAdapter(SimulatorAdapter):
             del self.simdata[simulation]
             raise
 
-    def reset_kernel(self, simulation: "Simulation"):
+    def reset_kernel(self):
         self.nest.ResetKernel()
         # Reset which modules we should consider explicitly loaded by the user
         # to appropriately warn them when they load them twice.
@@ -101,30 +108,16 @@ class NestAdapter(SimulatorAdapter):
         report("Simulating...", level=2)
         tick = time.time()
         simulation.start_progress(simulation.duration)
-        self.simdata[simulation].result_dir = tmpdir = TemporaryDirectory()
-        self.nest.data_path = tmpdir.name
         try:
             with self.nest.RunManager():
                 for oi, i in simulation.step_progress(simulation.duration, step=1):
                     self.nest.Run(i - oi)
                     simulation.progress(i)
-        except Exception as e:
-            tmpdir.cleanup()
-            raise
         finally:
-            self.nest.data_path = "."
             result = self.simdata[simulation].result
             del self.simdata[simulation]
         report(f"Simulation done. {time.time() - tick:.2f}s elapsed.", level=2)
         return result
-
-    def collect(self, simulation, simdata, simresult):
-        try:
-            simresult = super().collect(simulation, simdata, simresult)
-        finally:
-            self.reset_kernel(simulation)
-            simdata.result_dir.cleanup()
-        return simresult
 
     def load_modules(self, simulation):
         for module in simulation.modules:
