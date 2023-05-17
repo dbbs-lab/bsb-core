@@ -37,7 +37,7 @@ def make_metaclass(cls):
     # The metaclass makes it so that there are 3 overloaded constructor forms:
     #
     # MyNode({ <config dict values> })
-    # MyNode(config="dict", values="here")
+    # MyNode(example="attr", values="here")
     # ParentNode(me=MyNode(...))
     #
     # The third makes it that type handling and other types of casting opt out early
