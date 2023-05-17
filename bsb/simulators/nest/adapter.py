@@ -22,9 +22,12 @@ if typing.TYPE_CHECKING:
 
 
 class SimulationData:
-    def __init__(self):
+    def __init__(self, simulation):
         self.chunks = None
         self.populations = dict()
+        self.placement = {
+            model: model.get_placement_set() for model in simulation.cell_models.values()
+        }
         self.connections = dict()
         self.result: "NestResult" = None
 
@@ -68,7 +71,7 @@ class NestAdapter(SimulatorAdapter):
         return nest
 
     def prepare(self, simulation, comm=None):
-        self.simdata[simulation] = simdata = SimulationData()
+        self.simdata[simulation] = simdata = SimulationData(simulation)
         try:
             simdata.result = SimulationResult(simulation)
             report("Installing  NEST modules...", level=2)
@@ -150,7 +153,7 @@ class NestAdapter(SimulatorAdapter):
         """
         simdata = self.simdata[simulation]
         for cell_model in simulation.cell_models.values():
-            simdata.populations[cell_model] = cell_model.create_population()
+            simdata.populations[cell_model] = cell_model.create_population(simdata)
 
     def connect_neurons(self, simulation):
         """
