@@ -192,3 +192,7 @@ def get_morphology_path(file):
 
 def get_all_morphology_paths(suffix=""):
     yield from _glob.glob(get_data_path("morphologies", "*" + suffix))
+
+
+def get_all_point_cloud_paths(suffix=""):
+    yield from _glob.glob(get_data_path("point_clouds", "*" + suffix))

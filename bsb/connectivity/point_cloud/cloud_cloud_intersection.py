@@ -1,14 +1,29 @@
+from functools import cached_property
+
 import numpy as np
 from bsb.connectivity import ConnectionStrategy
 from bsb import config
-from bsb.connectivity.point_cloud.geometric_shapes import ShapesComposition
+from bsb.connectivity.strategy import Hemitype
+from .geometric_shapes import ShapeCompositionDependencyNode
+
+
+@config.node
+class CloudHemitype(Hemitype):
+    _shape_compositions = config.list(type=ShapeCompositionDependencyNode)
+
+    @cached_property
+    def shape_compositions(self):
+        result = []
+        for sc in self._shape_compositions:
+            result.append(sc.load_object())
+            result[-1].filter_by_labels(self.presynaptic.morphology_labels)
+        return result
 
 
 @config.node
 class CloudToCloudIntersection(ConnectionStrategy):
-    # Read vars from the configuration file
-    # post_cloud_name = config.attr(type=str, required=True)
-    # pre_cloud_name = config.attr(type=str, required=True)
+    presynaptic = config.attr(type=CloudHemitype)
+    postsynaptic = config.attr(type=CloudHemitype)
     affinity = config.attr(type=float, required=True)
 
     def get_region_of_interest(self, chunk):
@@ -27,19 +42,8 @@ class CloudToCloudIntersection(ConnectionStrategy):
         pre_pos = pre_ps.load_positions()
         post_pos = post_ps.load_positions()
 
-        pre_cloud_cache = []
-        for fn in self.presynaptic.cloud_names:
-            cloud = ShapesComposition()
-            cloud.load_from_file(fn)
-            cloud = cloud.filter_by_labels(self.presynaptic.morphology_labels)
-            pre_cloud_cache.append(cloud)
-
-        post_cloud_cache = []
-        for fn in self.postsynaptic.cloud_names:
-            cloud = ShapesComposition()
-            cloud.load_from_file(fn)
-            cloud = cloud.filter_by_labels(self.postsynaptic.morphology_labels)
-            post_cloud_cache.append(cloud)
+        pre_cloud_cache = self.presynaptic.shape_compositions
+        post_cloud_cache = self.postsynaptic.shape_compositions
 
         pre_cloud_choice_id = np.random.randint(
             low=0, high=len(pre_cloud_cache), size=len(pre_pos), dtype=int
@@ -89,16 +93,11 @@ class CloudToCloudIntersection(ConnectionStrategy):
         to_connect_post = to_connect_post[1:]
 
         if self.affinity < 1 and len(to_connect_pre) > 0:
-            ids_to_select = np.arange(start=0, stop=len(to_connect_pre))
-            np.random.shuffle(ids_to_select)
-            ids_to_select = ids_to_select[
-                0 : np.max(
-                    [
-                        1,
-                        int(np.floor(self.affinity * len(to_connect_pre))),
-                    ]
-                )
-            ]
+            ids_to_select = np.random.choice(
+                len(to_connect_pre),
+                int(np.floor(self.affinity * len(to_connect_pre))),
+                replace=False,
+            )
             to_connect_pre = to_connect_pre[ids_to_select]
             to_connect_post = to_connect_post[ids_to_select]
 
