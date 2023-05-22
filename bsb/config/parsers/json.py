@@ -222,6 +222,10 @@ class JsonParser(Parser):
         if doc not in self.documents:
             self.documents[doc] = set()
         self.documents[doc].add(ref)
+        if "values" not in imp:
+            e = RuntimeError(f"Import node {node} is missing a 'values' list.")
+            e._bsbparser_show_user = True
+            raise e
         self.references.append(json_imp(node, doc, ref, imp["values"]))
 
     def _resolve_documents(self):
