@@ -1,4 +1,5 @@
 import copy
+import functools
 import math
 import random
 
@@ -40,35 +41,46 @@ class ConnectionTargetting(Targetting, classmap_entry="all_connections"):
 
 
 class CellModelFilter:
-    cell_models = config.reflist(refs.sim_cell_model_ref, required=True)
+    cell_models = config.reflist(refs.sim_cell_model_ref, required=False)
 
     def get_targets(self, adapter, simulation, simdata):
         return {
             model: pop
             for model, pop in simdata.populations.items()
-            if model in self.cell_models
+            if not self.cell_models or model in self.cell_models
         }
 
 
 class FractionFilter:
-    count = config.attr(type=int, required=types.mut_excl("fraction", "count"))
+    count = config.attr(
+        type=int, required=types.mut_excl("fraction", "count", required=False)
+    )
     fraction = config.attr(
-        type=types.fraction(), required=types.mut_excl("fraction", "count")
+        type=types.fraction(),
+        required=types.mut_excl("fraction", "count", required=False),
     )
 
     def satisfy_fractions(self, targets):
         return {model: self._frac(data) for model, data in targets.items()}
 
     def _frac(self, data):
+        take = None
         if self.count is not None:
-            return random.shuffle(copy.copy(data))[: self.count]
+            take = self.count
         if self.fraction is not None:
-            count = math.floor(len(data) * self.fraction)
-            return random.shuffle(copy.copy(data))[:count]
-        return data
+            take = math.floor(len(data) * self.fraction)
+        if take is None:
+            return data
+        else:
+            # Select `take` elements from data with a boolean mask (otherwise a sorted
+            # integer mask would be required)
+            idx = np.zeros(len(data), dtype=bool)
+            idx[np.random.default_rng().integers(0, len(data), take)] = True
+            return data[idx]
 
     @staticmethod
     def filter(f):
+        @functools.wraps(f)
         def wrapper(self, *args, **kwargs):
             return self.satisfy_fractions(f(self, *args, **kwargs))
 
@@ -82,6 +94,8 @@ class CellModelTargetting(
     """
     Targets all cells of certain cell models.
     """
+
+    cell_models = config.reflist(refs.sim_cell_model_ref, required=True)
 
     @FractionFilter.filter
     def get_targets(self, adapter, simulation, simdata):
@@ -197,10 +211,13 @@ class SphericalTargetting(
         """
         return {
             model: simdata.populations[model][
-                np.sum(
-                    simdata.placement[model].load_positions() - self.origin**2, axis=0
+                (
+                    np.sum(
+                        (simdata.placement[model].load_positions() - self.origin) ** 2,
+                        axis=1,
+                    )
+                    < self.radius**2
                 )
-                < self.radius**2
             ]
             for model in super().get_targets(adapter, simulation, simdata).keys()
         }
