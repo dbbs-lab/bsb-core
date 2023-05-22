@@ -99,43 +99,24 @@ class TestNest(RandomStorageFixture, unittest.TestCase, engine_name="hdf5"):
     def test_brunel(self):
         cfg = from_file(get_config_path("test_brunel.json"))
         simcfg = cfg.simulations.test
-        N_rec = 50
-        events_ex, events_in = None, None
-
-        def setup(_, simulation, data):
-            import nest
-
-            syn_exc = dict(
-                simcfg.connection_models.excitatory_to_excitatory.synapse.__tree__()
-            )
-            pg = nest.Create("poisson_generator", params={"rate": 17789.007714721884})
-            sr_exc, sr_inh = nest.Create("spike_recorder", 2)
-            exc = data.populations[simulation.cell_models["excitatory"]]
-            inh = data.populations[simulation.cell_models["inhibitory"]]
-            nest.Connect(
-                pg,
-                exc + inh,
-                syn_spec=syn_exc,
-            )
-            nest.Connect(exc[:N_rec], sr_exc, syn_spec=syn_exc)
-            nest.Connect(inh[:N_rec], sr_inh, syn_spec=syn_exc)
-
-            def spy(_):
-                nonlocal events_ex, events_in
-
-                events_ex = sr_exc.n_events
-                events_in = sr_inh.n_events
-
-            data.result.create_recorder(spy)
-
-        simcfg.post_prepare.append(setup)
 
         network = Scaffold(cfg, self.storage)
         network.compile()
-        network.run_simulation("test")
+        result = network.run_simulation("test")
 
-        rate_ex = events_ex / simcfg.duration * 1000.0 / N_rec
-        rate_in = events_in / simcfg.duration * 1000.0 / N_rec
+        spiketrains = result.block.segments[0].spiketrains
+        sr_exc, sr_inh = None, None
+        for st in spiketrains:
+            if st.annotations["device"] == "sr_exc":
+                sr_exc = st
+            elif st.annotations["device"] == "sr_inh":
+                sr_inh = st
+
+        self.assertIsNotNone(sr_exc)
+        self.assertIsNotNone(sr_inh)
+
+        rate_ex = len(sr_exc) / simcfg.duration * 1000.0 / sr_exc.annotations["pop_size"]
+        rate_in = len(sr_inh) / simcfg.duration * 1000.0 / sr_inh.annotations["pop_size"]
 
         self.assertAlmostEqual(rate_in, 50, delta=1)
         self.assertAlmostEqual(rate_ex, 50, delta=1)

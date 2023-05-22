@@ -161,7 +161,37 @@
           }
         }
       },
-      "devices": {}
+      "devices": {
+        "pg": {
+          "device": "poisson_generator",
+          "rate": 17789.007714721884,
+          "targetting": {
+            "strategy": "all"
+          },
+          "$import": {
+            "ref": "#../../connection_models/excitatory_to_excitatory/synapse",
+            "values": ["weight", "delay"]
+          }
+        },
+        "sr_exc": {
+          "device": "spike_recorder",
+          "delay": 1,
+          "targetting": {
+            "strategy": "cell_model",
+            "cell_models": ["excitatory"],
+            "count": 50
+          }
+        },
+        "sr_inh": {
+          "device": "spike_recorder",
+          "delay": 1,
+          "targetting": {
+            "strategy": "cell_model",
+            "cell_models": ["inhibitory"],
+            "count": 50
+          }
+        }
+      }
     }
   }
 }
