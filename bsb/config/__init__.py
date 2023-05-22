@@ -193,6 +193,8 @@ def _try_parsers(content, classes, ext=None, path=None):  # pragma: nocover
         try:
             tree, meta = cls().parse(content, path=path)
         except Exception as e:
+            if getattr(e, "_bsbparser_show_user", False):
+                raise e from None
             exc[name] = e
         else:
             return (name, tree, meta)
