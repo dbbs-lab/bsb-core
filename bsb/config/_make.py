@@ -132,9 +132,7 @@ def compile_class(cls):
         del cls_dict["__weakref__"]
     ncls = make_metaclass(cls)(cls.__name__, cls.__bases__, cls_dict)
     for method in ncls.__dict__.values():
-        cl = getattr(method, "__closure__", None)
-        if cl and cl[0].cell_contents is cls:
-            cl[0].cell_contents = ncls
+        _replace_closure_cells(method, cls, ncls)
 
     # Shitty hack, for some reason I couldn't find a way to override the first argument
     # of `__init_subclass__` methods, that would otherwise work on other classmethods,
@@ -156,6 +154,15 @@ def compile_class(cls):
             if v is cls:
                 classmap[k] = ncls
     return ncls
+
+
+def _replace_closure_cells(method, old, new):
+    cl = getattr(method, "__closure__", None) or []
+    for cell in cl:
+        if cell.cell_contents is old:
+            cell.cell_contents = new
+        elif inspect.isfunction(cell.cell_contents):
+            _replace_closure_cells(cell.cell_contents, old, new)
 
 
 def compile_isc(node_cls, dynamic_config):
