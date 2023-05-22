@@ -1,4 +1,4 @@
-__version__ = "4.0.0a50"
+__version__ = "4.0.0a53"
 
 import functools
 
@@ -16,7 +16,10 @@ except AttributeError:
 
     functools.singledispatchmethod.register = _register
 
-from .options import profiling as _pr
+try:
+    from .options import profiling as _pr
+except Exception:
+    _pr = False
 
 if _pr:
     from .profiling import activate_session
