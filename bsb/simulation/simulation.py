@@ -54,14 +54,14 @@ class Simulation:
         tic = now - self._last_progtic
         self._progtics += 1
         el = now - self._progstart
-        report(
-            f"Simulated {step}/{self._progdur}ms.",
-            f"{el:.2f}s elapsed.",
-            f"Simulated tick in {tic:.2f}.",
-            f"Avg tick {el / self._progtics:.4f}s",
-            level=3,
-            ongoing=False,
-        )
+        # report(
+        #     f"Simulated {step}/{self._progdur}ms.",
+        #     f"{el:.2f}s elapsed.",
+        #     f"Simulated tick in {tic:.2f}.",
+        #     f"Avg tick {el / self._progtics:.4f}s",
+        #     level=3,
+        #     ongoing=False,
+        # )
         progress = types.SimpleNamespace(
             progression=step, duration=self._progdur, time=time()
         )
