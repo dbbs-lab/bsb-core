@@ -185,7 +185,7 @@ def _try_parsers(content, classes, ext=None, path=None):  # pragma: nocover
     if ext is not None:
 
         def file_has_parser_ext(kv):
-            return ext in getattr(kv[1], "data_extensions", ())
+            return ext not in getattr(kv[1], "data_extensions", ())
 
         classes = builtins.dict(sorted(classes.items(), key=file_has_parser_ext))
     exc = {}
