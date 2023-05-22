@@ -29,6 +29,7 @@ class SimulationData:
             model: model.get_placement_set() for model in simulation.cell_models.values()
         }
         self.connections = dict()
+        self.devices = dict()
         self.result: "NestResult" = None
 
 
