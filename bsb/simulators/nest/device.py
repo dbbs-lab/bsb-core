@@ -1,7 +1,9 @@
+import warnings
+
 from bsb import config
 from bsb.config import types, refs
 from bsb.simulation.device import DeviceModel
-from bsb.simulation.targetting import CellTargetting
+from bsb.simulation.targetting import Targetting
 
 
 @config.node
@@ -15,7 +17,45 @@ class NestRule:
 class NestDevice(DeviceModel):
     weight = config.attr(type=float, required=True)
     delay = config.attr(type=float, required=True)
-    targetting = config.attr(type=types.or_(CellTargetting, NestRule))
+    targetting = config.attr(type=types.or_(Targetting, NestRule))
+
+    def get_target_nodes(self, adapter, simulation, simdata):
+        if isinstance(self.targetting, Targetting):
+            node_collector = self.targetting.get_targets(
+                adapter, simulation, simdata
+            ).values()
+        else:
+            node_collector = (
+                simdata.populations[model][targets]
+                for model, targets in simdata.populations.items()
+                if not self.targetting.cell_models or model in self.targetting.cell_models
+            )
+        return sum(node_collector, start=adapter.nest.NodeCollection())
+
+    def connect_to_nodes(self, device, nodes):
+        import nest
+
+        if len(nodes) == 0:
+            warnings.warn(f"{self.name} has no targets")
+        else:
+            try:
+                nest.Connect(
+                    device,
+                    nodes,
+                    syn_spec={"weight": self.weight, "delay": self.delay},
+                )
+            except Exception as e:
+                if "does not send output" not in str(e):
+                    raise
+                nest.Connect(
+                    nodes,
+                    device,
+                    syn_spec={"weight": self.weight, "delay": self.delay},
+                )
+
+    def register_device(self, simdata, device):
+        simdata.devices[self] = device
+        return device
 
 
 @config.node
@@ -27,19 +67,5 @@ class ExtNestDevice(NestDevice, classmap_entry="external"):
         simdata.devices[self] = device = adapter.nest.Create(
             self.nest_model, params=self.constants
         )
-        if isinstance(self.targetting, CellTargetting):
-            nodes = sum(
-                simdata.populations[model][targets]
-                for model, targets in self.targetting.get_targets(
-                    adapter, simdata
-                ).items()
-            )
-        else:
-            nodes = sum(
-                simdata.populations[model][targets]
-                for model, targets in simdata.populations.items()
-                if not self.targetting.cell_models or model in self.targetting.cell_models
-            )
-        adapter.nest.Connect(
-            device, nodes, syn_spec={"weight": self.weight, "delay": self.delay}
-        )
+        nodes = self.get_target_nodes(adapter, simdata)
+        self.connect_to_nodes(device, nodes)
