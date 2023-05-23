@@ -1,13 +1,28 @@
+from functools import cached_property
 import numpy as np
 import itertools
 from bsb.connectivity import ConnectionStrategy
 from bsb import config
 from bsb.connectivity.point_cloud.geometric_shapes import ShapesComposition
+from bsb.connectivity.strategy import Hemitype
+from .geometric_shapes import ShapeCompositionDependencyNode
 
 
 @config.node
+class CloudHemitype(Hemitype):
+    _shape_compositions = config.list(type=ShapeCompositionDependencyNode)
+
+    @cached_property
+    def shape_compositions(self):
+        result = []
+        for sc in self._shape_compositions:
+            result.append(sc.load_object())
+            result[-1].filter_by_labels(self.presynaptic.morphology_labels)
+        return result
+
+@config.node
 class MorphologyToCloudIntersection(ConnectionStrategy):
-    # Read vars from the configuration file
+    postsynaptic = config.attr(type=CloudHemitype)
     affinity = config.attr(type=float, required=True)
 
     def get_region_of_interest(self, chunk):
@@ -47,13 +62,7 @@ class MorphologyToCloudIntersection(ConnectionStrategy):
         pre_pos = pre_ps.load_positions()
         post_pos = post_ps.load_positions()
 
-        cloud_cache = []
-        for fn in self.postsynaptic.cloud_names:
-            print(fn)
-            cloud = ShapesComposition()
-            cloud.load_from_file(fn)
-            cloud = cloud.filter_by_labels(self.postsynaptic.morphology_labels)
-            cloud_cache.append(cloud)
+        cloud_cache = self.postsynaptic.shape_compositions
 
         cloud_choice_id = np.random.randint(
             low=0, high=len(cloud_cache), size=len(post_pos), dtype=int

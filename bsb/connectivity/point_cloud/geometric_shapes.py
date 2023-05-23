@@ -121,7 +121,7 @@ class GeometricShape(abc.ABC):
 
     def clone(self):
         # TODO: find a cleaner way to copy
-        return type(self)({k: self.__getattribute__(k) for k in self._config_attr_order})
+        return type(self)({k: copy.deepcopy(self.__getattribute__(k)) for k in self._config_attr_order})
 
 
 class ShapesComposition:

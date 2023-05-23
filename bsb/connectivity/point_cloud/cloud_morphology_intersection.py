@@ -1,13 +1,28 @@
+from functools import cached_property
 import numpy as np
 import itertools
 from bsb.connectivity import ConnectionStrategy
 from bsb import config
 from bsb.connectivity.point_cloud.geometric_shapes import ShapesComposition
+from bsb.connectivity.strategy import Hemitype
+from .geometric_shapes import ShapeCompositionDependencyNode
 
 
 @config.node
+class CloudHemitype(Hemitype):
+    _shape_compositions = config.list(type=ShapeCompositionDependencyNode)
+
+    @cached_property
+    def shape_compositions(self):
+        result = []
+        for sc in self._shape_compositions:
+            result.append(sc.load_object())
+            result[-1].filter_by_labels(self.presynaptic.morphology_labels)
+        return result
+
+@config.node
 class CloudToMorphologyIntersection(ConnectionStrategy):
-    # Read vars from the configuration file
+    presynaptic = config.attr(type=CloudHemitype)
     affinity = config.attr(type=float, required=True)
 
     def get_region_of_interest(self, chunk):
@@ -25,20 +40,16 @@ class CloudToMorphologyIntersection(ConnectionStrategy):
     def _connect_type(self, pre_ct, pre_ps, post_ct, post_ps):
         pre_pos = pre_ps.load_positions()
         post_pos = post_ps.load_positions()
+        pre_pos[:,[1, 2]] = pre_pos[:,[2, 1]]
 
-        cloud_cache = []
-        for fn in self.presynaptic.cloud_names:
-            cloud = ShapesComposition()
-            cloud.load_from_file(fn)
-            cloud = cloud.filter_by_labels(self.presynaptic.morphology_labels)
-            cloud_cache.append(cloud)
-
+        cloud_cache = self.presynaptic.shape_compositions
         cloud_choice_id = np.random.randint(
             low=0, high=len(cloud_cache), size=len(pre_pos), dtype=int
         )
 
         to_connect_pre = np.empty([1, 3], dtype=int)
         to_connect_post = np.empty([1, 3], dtype=int)
+
 
         morpho_set = post_ps.load_morphologies()
         post_morphos = morpho_set.iter_morphologies(cache=True, hard_cache=True)
@@ -67,7 +78,7 @@ class CloudToMorphologyIntersection(ConnectionStrategy):
 
             for pre_id, pre_coord in enumerate(pre_pos):
                 pre_cloud = cloud_cache[cloud_choice_id[pre_id]].copy()
-                pre_coord[[1, 2]] = pre_coord[[2, 1]]
+
                 pre_cloud.translate(pre_coord)
                 local_selection = np.empty([morpho_points, 3])
 

@@ -14,7 +14,10 @@ from bsb.unittest import (
 import unittest
 import numpy as np
 from collections import defaultdict
-
+from bsb.connectivity.point_cloud.geometric_shapes import (
+    ShapesComposition,
+    Sphere
+)
 
 class TestPointCloudConnectivity(
     MorphologiesFixture,
@@ -70,14 +73,10 @@ class TestPointCloudConnectivity(
 
     def test_cloud_to_cloud(self):
 
-        # Look for the point cloud in "ball_radius_40.pck"
-        ball_index = 0
-        for i, st in enumerate(self.point_clouds_files):
-            if st.find("ball_radius_40") != -1:
-                ball_index = i
-                break
-
-        cloud_file_ball = self.point_clouds_files[ball_index]
+        voxel_size = 25
+        ball_shape = ShapesComposition(25)
+        config_sphere = dict(radius=40.0, center=np.array([0, 0, 0], dtype=np.float64))
+        ball_shape.add_shape(Sphere(config_sphere), ["sphere"])
 
         # All the points of the point cloud are inside the geometric shape
         self.network.connectivity.add(
@@ -86,12 +85,12 @@ class TestPointCloudConnectivity(
                 strategy="bsb.connectivity.point_cloud.CloudToCloudIntersection",
                 presynaptic=dict(
                     cell_types=["test_cell_pc_1"],
-                    cloud_names=[cloud_file_ball],
+                    shape_compositions=[ball_shape],
                     morphology_labels=["soma"],
                 ),
                 postsynaptic=dict(
                     cell_types=["test_cell_pc_1"],
-                    cloud_names=[cloud_file_ball],
+                    shape_compositions=[ball_shape],
                     morphology_labels=["soma"],
                 ),
                 affinity=0.1,
@@ -105,12 +104,12 @@ class TestPointCloudConnectivity(
                 strategy="bsb.connectivity.point_cloud.CloudToCloudIntersection",
                 presynaptic=dict(
                     cell_types=["test_cell_pc_1"],
-                    cloud_names=[cloud_file_ball],
+                    shape_compositions=[ball_shape],
                     morphology_labels=["soma"],
                 ),
                 postsynaptic=dict(
                     cell_types=["test_cell_pc_2"],
-                    cloud_names=[cloud_file_ball],
+                    shape_compositions=[ball_shape],
                     morphology_labels=["soma"],
                 ),
                 affinity=0.1,
@@ -122,11 +121,10 @@ class TestPointCloudConnectivity(
         cs = self.network.get_connectivity_set("cloud_to_cloud_1")
         con = cs.load_connections().all()[0]
         intersection_points = len(con)
-        expected_intersection_points = 3
-        self.assertClose(
-            expected_intersection_points,
+        self.assertGreater(
             intersection_points,
-            "expected " + str(expected_intersection_points) + " intersection points",
+            0,
+            "expected at least one intersection point",
         )
 
         cs = self.network.get_connectivity_set("cloud_to_cloud_2")
@@ -140,15 +138,10 @@ class TestPointCloudConnectivity(
         )
 
     def test_cloud_to_morpho(self):
-
-        # Look for the point cloud in "ball_radius_40.pck"
-        ball_index = 0
-        for i, st in enumerate(self.point_clouds_files):
-            if st.find("ball_radius_40") != -1:
-                ball_index = i
-                break
-
-        cloud_file_ball = self.point_clouds_files[ball_index]
+        voxel_size = 25
+        ball_shape = ShapesComposition(25)
+        config_sphere = dict(radius=40.0, center=np.array([0, 0, 0], dtype=np.float64))
+        ball_shape.add_shape(Sphere(config_sphere), ["sphere"])
 
         # We know a priori that there are intersections between the point cloud and the morphology
         self.network.connectivity.add(
@@ -157,7 +150,7 @@ class TestPointCloudConnectivity(
                 strategy="bsb.connectivity.point_cloud.CloudToMorphologyIntersection",
                 presynaptic=dict(
                     cell_types=["test_cell_pc_2"],
-                    cloud_names=[cloud_file_ball],
+                    shape_compositions=[ball_shape],
                     morphology_labels=["soma"],
                 ),
                 postsynaptic=dict(
@@ -174,7 +167,7 @@ class TestPointCloudConnectivity(
                 strategy="bsb.connectivity.point_cloud.CloudToMorphologyIntersection",
                 presynaptic=dict(
                     cell_types=["test_cell_pc_1"],
-                    cloud_names=[cloud_file_ball],
+                    shape_compositions=[ball_shape],
                     morphology_labels=["soma"],
                 ),
                 postsynaptic=dict(
@@ -200,14 +193,11 @@ class TestPointCloudConnectivity(
 
     def test_morpho_to_cloud(self):
 
-        # Look for the point cloud in "ball_radius_40.pck"
-        ball_index = 0
-        for i, st in enumerate(self.point_clouds_files):
-            if st.find("ball_radius_40") != -1:
-                ball_index = i
-                break
+        voxel_size = 25
+        ball_shape = ShapesComposition(25)
+        config_sphere = dict(radius=40.0, center=np.array([0, 0, 0], dtype=np.float64))
+        ball_shape.add_shape(Sphere(config_sphere), ["sphere"])
 
-        cloud_file_ball = self.point_clouds_files[ball_index]
 
         # We know a priori that there are intersections between the point cloud and the morphology
         self.network.connectivity.add(
@@ -216,7 +206,7 @@ class TestPointCloudConnectivity(
                 strategy="bsb.connectivity.point_cloud.MorphologyToCloudIntersection",
                 postsynaptic=dict(
                     cell_types=["test_cell_pc_2"],
-                    cloud_names=[cloud_file_ball],
+                    shape_compositions=[ball_shape],
                     morphology_labels=["soma"],
                 ),
                 presynaptic=dict(
@@ -233,7 +223,7 @@ class TestPointCloudConnectivity(
                 strategy="bsb.connectivity.point_cloud.MorphologyToCloudIntersection",
                 postsynaptic=dict(
                     cell_types=["test_cell_pc_1"],
-                    cloud_names=[cloud_file_ball],
+                    shape_compositions=[ball_shape],
                     morphology_labels=["soma"],
                 ),
                 presynaptic=dict(

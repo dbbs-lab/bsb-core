@@ -5,7 +5,7 @@ from bsb.connectivity import ConnectionStrategy
 from bsb import config
 from bsb.connectivity.strategy import Hemitype
 from .geometric_shapes import ShapeCompositionDependencyNode
-
+from bsb.trees import BoxRTree
 
 @config.node
 class CloudHemitype(Hemitype):
@@ -54,6 +54,10 @@ class CloudToCloudIntersection(ConnectionStrategy):
 
         to_connect_pre = np.empty([1, 3], dtype=int)
         to_connect_post = np.empty([1, 3], dtype=int)
+
+        print("*************")
+        print(pre_cloud_cache)
+        print(post_cloud_cache)
 
         for pre_id, pre_coord in enumerate(pre_pos):
             # Generate pre points cloud
