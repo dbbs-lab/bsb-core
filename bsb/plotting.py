@@ -240,8 +240,8 @@ def _plot_network(network, fig, cubic, swapaxes):
         rng = max(xmax - xmin, ymax - ymin, zmax - zmin)
         fig.layout.scene.xaxis.range = [xmin, xmin + rng]
         if swapaxes:
-            fig.layout.scene.yaxis.range = [ymin, ymin + rng]
-            fig.layout.scene.zaxis.range = [zmin, zmin + rng]
+            fig.layout.scene.yaxis.range = [zmin, zmin + rng]
+            fig.layout.scene.zaxis.range = [ymin, ymin + rng]
         else:
             fig.layout.scene.yaxis.range = [ymin, ymin + rng]
             fig.layout.scene.zaxis.range = [zmin, zmin + rng]
