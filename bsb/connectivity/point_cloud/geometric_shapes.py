@@ -17,6 +17,35 @@ from .cloud_mesh_utils import (
 )
 
 
+def inside_mbox(
+    points: numpy.ndarray[float],
+    mbb_min: numpy.ndarray[float],
+    mbb_max: numpy.ndarray[float],
+):
+    """
+    Check if the points given in input are inside the minimal bounding box.
+
+    :param numpy.ndarray points: An array of 3D points.
+    :param numpy.ndarray mbb_min: 3D point representing the lowest coordinate of the
+        minimal bounding box.
+    :param numpy.ndarray mbb_max: 3D point representing the highest coordinate of the
+        minimal bounding box.
+    :return: A bool np.ndarray specifying whether each point of the input array is inside the
+        minimal bounding box or not.
+    :rtype: numpy.ndarray[bool]
+    """
+    inside = (
+        (points[:, 0] > mbb_min[0])
+        & (points[:, 0] < mbb_max[0])
+        & (points[:, 1] > mbb_min[1])
+        & (points[:, 1] < mbb_max[1])
+        & (points[:, 2] > mbb_min[2])
+        & (points[:, 2] < mbb_max[2])
+    )
+
+    return inside
+
+
 @config.dynamic(attr_name="shape", auto_classmap=True, classmap_entry=None)
 class GeometricShape(abc.ABC):
     """
@@ -41,20 +70,11 @@ class GeometricShape(abc.ABC):
         Check if the points given in input are inside the minimal bounding box.
 
         :param numpy.ndarray points: A cloud of points.
-        :return: A bool array of length npoints, containing whether the -ith point is inside the
+        :return: A bool np.ndarray specifying whether each point of the input array is inside the
             minimal bounding box or not.
         :rtype: numpy.ndarray
         """
-        inside = (
-            (points[:, 0] > self.mbb_min[0])
-            & (points[:, 0] < self.mbb_max[0])
-            & (points[:, 1] > self.mbb_min[1])
-            & (points[:, 1] < self.mbb_max[1])
-            & (points[:, 2] > self.mbb_min[2])
-            & (points[:, 2] < self.mbb_max[2])
-        )
-
-        return inside
+        return inside_mbox(points, self.mbb_min, self.mbb_max)
 
     @abc.abstractmethod
     def get_volume(self):
@@ -121,7 +141,9 @@ class GeometricShape(abc.ABC):
 
     def clone(self):
         # TODO: find a cleaner way to copy
-        return type(self)({k: copy.deepcopy(self.__getattribute__(k)) for k in self._config_attr_order})
+        return type(self)(
+            {k: copy.deepcopy(self.__getattribute__(k)) for k in self._config_attr_order}
+        )
 
 
 class ShapesComposition:
@@ -164,35 +186,28 @@ class ShapesComposition:
         :param GeometricShape shape: A GeometricShape to add to the collection.
         :param List[str] labels: A list of labels for the geometric shape to add.
         """
+        # Update mbb
+        if len(self._shapes) == 0:
+            self._mbb_min = np.copy(shape.mbb_min)
+            self._mbb_max = np.copy(shape.mbb_max)
+        else:
+            self._mbb_min = np.minimum(self._mbb_min, shape.mbb_min)
+            self._mbb_max = np.maximum(self._mbb_max, shape.mbb_max)
         self._shapes.append(shape)
         self._labels.append(labels)
-        # Update mbb
-        self._mbb_min, self._mbb_max = self.find_mbb()
 
     def filter_by_labels(self, labels: List[str]) -> ShapesComposition:
         """
-        Filter the collection of shapes, returning only the ones corresponding the the given labels.
+        Filter the collection of shapes, returning only the ones corresponding the given labels.
 
         :param List[str] labels: A list of labels.
         :return: A new ShapesComposition object containing only the shapes labelled as specified.
         :rtype: ShapesComposition
         """
-        result = self.copy()
-        selected_id = []
-        for i, lb_list in enumerate(self._labels):
-            for to_select in labels:
-                if to_select in lb_list:
-                    selected_id.append(i)
-        selected_id = set(selected_id)
-        not_selected_id = []
-        for i in range(len(self._shapes)):
-            if i not in selected_id:
-                not_selected_id.append(i)
-        result.shapes = []
-        result.labels = []
-        for nn, i in enumerate(selected_id):
-            result.shapes.append(self._shapes[i].clone())
-            result.labels.append(self._labels[i].copy())
+        result = ShapesComposition(self._voxel_size)
+        selected_id = np.where(np.isin(labels, self._labels))[0]
+        result._shapes = [self._shapes[i].clone() for i in selected_id]
+        result._labels = [self._labels[i].copy() for i in selected_id]
         result.mbb_min, result.mbb_max = result.find_mbb()
         return result
 
@@ -214,17 +229,13 @@ class ShapesComposition:
 
         :rtype: List[float]
         """
-        volumes = []
-        if len(self.shape) != 0:
-            for shape in self._shapes:
-                volumes.append(shape.get_volume())
-        return volumes
+        return [shape.get_volume() for shape in self._shapes]
 
     def find_mbb(self) -> Tuple[numpy.ndarray[float], numpy.ndarray[float]]:
         """
         Compute the minimal bounding box containing the collection of shapes.
 
-        :return: The two corners individuating a the minimal bounding box
+        :return: The two corners individuating the minimal bounding box of the shapes collection.
         :rtype: Tuple(numpy.ndarray[float], numpy.ndarray[float])
         """
         mins = np.empty([len(self._shapes), 3])
@@ -243,19 +254,17 @@ class ShapesComposition:
         specified in self._voxel_size.
 
         :return: The number of points to generate.
-        :rtype: List[int]
+        :rtype: numpy.ndarray[int]
         """
-        npoints = []
-        if len(self._shapes) != 0:
-            for shape in self._shapes:
-                npoints.append(int(shape.get_volume() // (self._voxel_size) ** 3))
-        return npoints
+        return [
+            int(shape.get_volume() // self._voxel_size**3) for shape in self._shapes
+        ]
 
     def set_voxel_size(self, voxel_size: float):
         """
         Set the size of the side of a voxel.
 
-        :param numpy.ndarray t_vec: The displacement vector.
+        :param float voxel_size: Dimension of the side of a voxel.
         """
         self._voxel_size = voxel_size
 
@@ -269,12 +278,12 @@ class ShapesComposition:
         :rtype: numpy.ndarray[float] | None
         """
         if len(self._shapes) != 0:
-            cloud = np.empty([3], dtype=float)
-            npoints = self.compute_n_points()
-            for shape, numpts in zip(self._shapes, npoints):
-                tmp = shape.generate_point_cloud(numpts)
-                cloud = np.vstack((cloud, tmp))
-            return cloud[1:]
+            return np.concatenate(
+                [
+                    shape.generate_point_cloud(numpts)
+                    for shape, numpts in zip(self._shapes, self.compute_n_points())
+                ]
+            )
         else:
             return None
 
@@ -288,19 +297,10 @@ class ShapesComposition:
         :rtype: Tuple(numpy.ndarray[float], numpy.ndarray[float], numpy.ndarray[float]) | None
         """
         if len(self._shapes) != 0:
-            cloud = np.empty([3])
-            npoints = self.compute_n_points()
-            x = []
-            y = []
-            z = []
-            for shape in self._shapes:
-                xt, yt, zt = shape.wireframe_points()
-                x.append(xt)
-                y.append(yt)
-                z.append(zt)
-            return x, y, z
-        else:
-            return None
+            return tuple(
+                np.array([shape.wireframe_points() for shape in self._shapes]).T.tolist()
+            )
+        return None
 
     def inside_mbox(self, points: numpy.ndarray[float]) -> numpy.ndarray[bool]:
         """
@@ -311,16 +311,7 @@ class ShapesComposition:
             minimal bounding box of the collection.
         :rtype: numpy.ndarray[bool]
         """
-        inside = (
-            (points[:, 0] > self._mbb_min[0])
-            & (points[:, 0] < self._mbb_max[0])
-            & (points[:, 1] > self._mbb_min[1])
-            & (points[:, 1] < self._mbb_max[1])
-            & (points[:, 2] > self._mbb_min[2])
-            & (points[:, 2] < self._mbb_max[2])
-        )
-
-        return inside
+        return inside_mbox(points, self._mbb_min, self._mbb_max)
 
     def inside_shapes(self, points: numpy.ndarray[float]) -> numpy.ndarray[bool]:
         """
@@ -475,12 +466,8 @@ class Ellipsoid(GeometricShape, classmap_entry="ellipsoid"):
         diff = points - self.center
         vmat = np.array([self.v0, self.v1, self.v2])
         diag = np.diag(1 / self.lambdas**2)
-        qmat = (vmat).dot(diag).dot(vmat)
-        quad_prod = np.full((len(points)), 0, dtype=float)
-
-        # TODO: Find a way to vectorize these computations
-        for i, p in enumerate(diff):
-            quad_prod[i] = p.dot(qmat.dot(p.T))
+        qmat = vmat.dot(diag).dot(vmat)
+        quad_prod = np.diagonal(diff.dot(qmat.dot(diff.T)))
 
         # Check if the points are inside the ellipsoid
         inside_points = quad_prod < 1
@@ -576,7 +563,6 @@ class Cone(GeometricShape, classmap_entry="cone"):
         zvers = np.array([0, 0, 1])
         perp = np.cross(zvers, hv)
         angle = np.arccos(np.dot(hv, zvers))
-        # print(angle)
 
         if hv[2] < 0:
             cloud[:, 2] = -cloud[:, 2]
@@ -605,13 +591,9 @@ class Cone(GeometricShape, classmap_entry="cone"):
         rot_pts = rot.apply(pts)
 
         # Find the angle between the points and the apex
-        diff = rot_pts
-        apex_angles = np.full((len(points)), 0, dtype=float)
-
-        # TODO: Find a way to vectorize these computation
-        for i, p in enumerate(diff):
-            apex_angles[i] = np.arccos(np.dot(p / np.linalg.norm(p), hv))
-
+        apex_angles = np.arccos(
+            np.dot((rot_pts / np.linalg.norm(rot_pts, axis=1)[..., np.newaxis]), hv)
+        )
         # Compute the cone angle
         cone_angle = np.arctan(self.radius / height)
 
@@ -744,7 +726,6 @@ class Cylinder(GeometricShape, classmap_entry="cylinder"):
         angle = -np.arccos(np.dot(hv, zvers))
         rot = R.from_rotvec(perp * angle)
         rot_pts = rot.apply(pts)
-        # print(rot_pts[0])
         # Check for intersections
         inside_points = (
             (rot_pts[:, 2] < height + self.epsilon)
@@ -935,7 +916,6 @@ class Cuboid(GeometricShape, classmap_entry="cuboid"):
 
     def generate_point_cloud(self, npoints: int):
         # Generate a unit cuboid whose base rectangle has the barycenter in the origin
-        cloud = np.full((npoints, 3), 0, dtype=float)
         rand = np.random.rand(npoints, 3)
         rand[:, 0] = rand[:, 0] - 0.5
         rand[:, 1] = rand[:, 1] - 0.5
@@ -1092,7 +1072,7 @@ class Parallelepiped(GeometricShape, classmap_entry="parallelepiped"):
 
         # Rotate back to xyz
         height = np.linalg.norm(self.side_vector_3)
-        hv = (self.side_vector_3) / height
+        hv = self.side_vector_3 / height
         zvers = np.array([0, 0, 1])
         perp = np.cross(zvers, hv)
         angle = -np.arccos(np.dot(hv, zvers))

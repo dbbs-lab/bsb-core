@@ -1,24 +1,8 @@
-from functools import cached_property
 import numpy as np
-import itertools
 from bsb.connectivity import ConnectionStrategy
 from bsb import config
-from bsb.connectivity.point_cloud.geometric_shapes import ShapesComposition
-from bsb.connectivity.strategy import Hemitype
-from .geometric_shapes import ShapeCompositionDependencyNode
+from .cloud_cloud_intersection import CloudHemitype
 
-
-@config.node
-class CloudHemitype(Hemitype):
-    _shape_compositions = config.list(type=ShapeCompositionDependencyNode)
-
-    @cached_property
-    def shape_compositions(self):
-        result = []
-        for sc in self._shape_compositions:
-            result.append(sc.load_object())
-            result[-1].filter_by_labels(self.presynaptic.morphology_labels)
-        return result
 
 @config.node
 class CloudToMorphologyIntersection(ConnectionStrategy):
@@ -31,30 +15,26 @@ class CloudToMorphologyIntersection(ConnectionStrategy):
         return chunks
 
     def connect(self, pre, post):
-        # pre_type = pre.cell_types[0]
-        # post_type = post.cell_types[0]
         for pre_ct, pre_ps in pre.placement.items():
             for post_ct, post_ps in post.placement.items():
                 self._connect_type(pre_ct, pre_ps, post_ct, post_ps)
 
     def _connect_type(self, pre_ct, pre_ps, post_ct, post_ps):
-        pre_pos = pre_ps.load_positions()
+        pre_pos = pre_ps.load_positions()[:, [0, 2, 1]]
         post_pos = post_ps.load_positions()
-        pre_pos[:,[1, 2]] = pre_pos[:,[2, 1]]
 
         cloud_cache = self.presynaptic.shape_compositions
-        cloud_choice_id = np.random.randint(
-            low=0, high=len(cloud_cache), size=len(pre_pos), dtype=int
-        )
+        cloud_cache = np.array(cloud_cache)[
+            np.random.randint(low=0, high=len(cloud_cache), size=len(pre_pos), dtype=int)
+        ]
 
-        to_connect_pre = np.empty([1, 3], dtype=int)
-        to_connect_post = np.empty([1, 3], dtype=int)
-
+        to_connect_pre = np.empty([0, 3], dtype=int)
+        to_connect_post = np.empty([0, 3], dtype=int)
 
         morpho_set = post_ps.load_morphologies()
         post_morphos = morpho_set.iter_morphologies(cache=True, hard_cache=True)
 
-        for post_id, post_coord, morpho in zip(itertools.count(), post_pos, post_morphos):
+        for post_id, (post_coord, morpho) in enumerate(zip(post_pos, post_morphos)):
             # Get the branches
             branches = morpho.get_branches()
 
@@ -77,11 +57,8 @@ class CloudToMorphologyIntersection(ConnectionStrategy):
                 local_ptr += len(b.points)
 
             for pre_id, pre_coord in enumerate(pre_pos):
-                pre_cloud = cloud_cache[cloud_choice_id[pre_id]].copy()
-
+                pre_cloud = cloud_cache[pre_id]
                 pre_cloud.translate(pre_coord)
-                local_selection = np.empty([morpho_points, 3])
-
                 mbb_check = pre_cloud.inside_mbox(post_morpho_coord)
 
                 if np.any(mbb_check):
@@ -114,5 +91,5 @@ class CloudToMorphologyIntersection(ConnectionStrategy):
                             pre_tmp = np.full([selected_count, 3], -1, dtype=int)
                             pre_tmp[:, 0] = pre_id
                             to_connect_pre = np.vstack([to_connect_pre, pre_tmp])
-
-        self.connect_cells(pre_ps, post_ps, to_connect_pre[1:], to_connect_post[1:])
+                pre_cloud.translate(-pre_coord)
+        self.connect_cells(pre_ps, post_ps, to_connect_pre, to_connect_post)

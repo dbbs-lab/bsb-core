@@ -290,7 +290,7 @@ def branch_iter(branch):
 
 class SubTree:
     """
-    Collection of branches, not necesarily all connected.
+    Collection of branches, not necessarily all connected.
     """
 
     def __init__(self, branches, sanitize=True):
@@ -298,7 +298,7 @@ class SubTree:
             # Find the roots of the full subtree(s) emanating from the given, possibly
             # overlapping branches.
             if len(branches) < 2:
-                # The roots of the subtrees of 0 or 1 branches is eaqual to the 0 or 1
+                # The roots of the subtrees of 0 or 1 branches is equal to the 0 or 1
                 # branches themselves.
                 self.roots = branches
             else:
@@ -388,7 +388,7 @@ class SubTree:
     @property
     def branch_adjacency(self):
         """
-        Return a dictonary containing mapping the id of the branch to its children.
+        Return a dictionary containing mapping the id of the branch to its children.
         """
         idmap = {b: n for n, b in enumerate(self.branches)}
         return {n: list(map(idmap.get, b.children)) for n, b in enumerate(self.branches)}
@@ -1071,7 +1071,7 @@ class Branch:
         :param radii: Array of radii associated to each point
         :type radii: list | numpy.ndarray
         :param labels: Array of labels to associate to each point
-        :type labels: :class:`!EncodedLabels` | List[str] | set | numpy.ndarray
+        :type labels: List[str] | set | numpy.ndarray
         :param properties: dictionary of metadata to store in the branch
         :type properties: dict
         :param children: list of child branches to attach to the branch
