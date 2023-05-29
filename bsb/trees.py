@@ -63,8 +63,12 @@ class _BoxRTree(BoxTreeInterface):
             yield from all_
 
 
-# Cheapo provider. Needs to be a class definition so that the doc reference can be found.
+# Cheapo provider pattern.
 class BoxTree(_BoxRTree):
+    """
+    Tree for fast lookup of repeat queries of axis aligned rhomboids.
+    """
+
     pass
 
 

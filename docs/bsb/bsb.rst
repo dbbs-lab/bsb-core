@@ -88,8 +88,6 @@ bsb.trees module
 
 .. automodule:: bsb.trees
    :members:
-   :undoc-members:
-   :show-inheritance:
 
 bsb.voxels module
 -----------------
