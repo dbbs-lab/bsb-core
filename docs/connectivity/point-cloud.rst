@@ -78,7 +78,7 @@ strategy, controls the probability to form a connection.
 Geometric shapes
 ----------------
 
-Pre-defined GeometricShape implemented can be found in the :mod:`~bsb.connectivity.point_cloud` package.
+Pre-defined GeometricShape implemented can be found in the ``~bsb.connectivity.point_cloud`` package.
 If needed, a user can define its own geometric shape, creating a new class inheriting from the base
 virtual class :class:`~bsb.connectivity.point_cloud.geometric_shapes.GeometricShape`.
 

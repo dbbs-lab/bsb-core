@@ -80,7 +80,6 @@ class MorphologyToCloudIntersection(ConnectionStrategy):
 
             for post_id, post_coord in enumerate(post_pos):
                 post_cloud = cloud_cache[post_id]
-                # Swap y and z
                 post_cloud.translate(post_coord)
                 mbb_check = post_cloud.inside_mbox(pre_morpho_coord)
                 if np.any(mbb_check):

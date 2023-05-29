@@ -4,20 +4,14 @@ import numpy as np
 from bsb.connectivity import ConnectionStrategy
 from bsb import config
 from bsb.connectivity.strategy import Hemitype
-from .geometric_shapes import ShapeCompositionDependencyNode
+from .geometric_shapes import ShapesComposition
 
 
 @config.node
 class CloudHemitype(Hemitype):
-    _shape_compositions = config.list(type=ShapeCompositionDependencyNode)
-
-    @cached_property
-    def shape_compositions(self):
-        result = []
-        for sc in self._shape_compositions:
-            result.append(sc.load_object())
-            result[-1].filter_by_labels(self.presynaptic.morphology_labels)
-        return result
+    shape_compositions = config.list(
+        type=ShapesComposition, required=True, default=list, call_default=True
+    )
 
 
 @config.node

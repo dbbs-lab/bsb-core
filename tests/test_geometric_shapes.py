@@ -17,8 +17,8 @@ class TestGeometricShapes(unittest.TestCase, NumpyTestCase):
     # Create a sphere, add it to a ShapeComposition object and test the minimal bounding box, inside_mbox, inside_shapes and generate_point_cloud methods
     def test_sphere(self):
         # Create a ShapesComposition object; In this test the size of the voxel is not important.
-        voxel_side = 25
-        sc = ShapesComposition(voxel_side)
+        conf = dict(voxel_size=25, shapes=[], labels=[])
+        sc = ShapesComposition(conf)
 
         # Add the sphere to the ShapesComposition object
         configuration = dict(radius=100.0, center=np.array([0, 0, 0], dtype=np.float64))
@@ -81,7 +81,7 @@ class TestGeometricShapes(unittest.TestCase, NumpyTestCase):
         # The expected number of points is given by the volume of the sphere divided by the voxel side to the third
         # The points should be inside the sphere.
         volume = 4 * (np.pi * configuration["radius"] ** 3) / 3.0
-        expected_number_of_points = int(volume / voxel_side**3)
+        expected_number_of_points = int(volume / conf["voxel_size"] ** 3)
         point_cloud = sc.generate_point_cloud()
         npoints = len(point_cloud)
 
@@ -102,8 +102,8 @@ class TestGeometricShapes(unittest.TestCase, NumpyTestCase):
     # Create an ellipsoid, add it to a ShapeComposition object and test the minimal bounding box, inside_mbox, inside_shapes and generate_point_cloud methods
     def test_ellipsoid(self):
         # Create a ShapesComposition object; In this test the size of the voxel is not important.
-        voxel_side = 25
-        sc = ShapesComposition(voxel_side)
+        conf = dict(voxel_size=25, shapes=[], labels=[])
+        sc = ShapesComposition(conf)
 
         # Add the ellipsoid to the ShapesComposition object
         configuration = dict(
@@ -177,7 +177,7 @@ class TestGeometricShapes(unittest.TestCase, NumpyTestCase):
             * configuration["lambdas"][1]
             * configuration["lambdas"][2]
         )
-        expected_number_of_points = int(volume / voxel_side**3)
+        expected_number_of_points = int(volume / conf["voxel_size"] ** 3)
         point_cloud = sc.generate_point_cloud()
         npoints = len(point_cloud)
 
@@ -198,8 +198,8 @@ class TestGeometricShapes(unittest.TestCase, NumpyTestCase):
     # Create a cylinder, add it to a ShapeComposition object and test the minimal bounding box, inside_mbox, inside_shapes and generate_point_cloud methods
     def test_cylinder(self):
         # Create a ShapesComposition object; In this test the size of the voxel is not important.
-        voxel_side = 25
-        sc = ShapesComposition(voxel_side)
+        conf = dict(voxel_size=25, shapes=[], labels=[])
+        sc = ShapesComposition(conf)
 
         # Add the cylinder to the ShapesComposition object
         configuration = dict(
@@ -269,7 +269,7 @@ class TestGeometricShapes(unittest.TestCase, NumpyTestCase):
             configuration["top_center"] - configuration["bottom_center"]
         )
         volume = np.pi * height * configuration["radius"] ** 2
-        expected_number_of_points = int(volume / voxel_side**3)
+        expected_number_of_points = int(volume / conf["voxel_size"] ** 3)
         point_cloud = sc.generate_point_cloud()
         npoints = len(point_cloud)
 
@@ -290,8 +290,8 @@ class TestGeometricShapes(unittest.TestCase, NumpyTestCase):
     # Create a parallelepiped, add it to a ShapeComposition object and test the minimal bounding box, inside_mbox, inside_shapes and generate_point_cloud methods
     def test_parallelepiped(self):
         # Create a ShapesComposition object; In this test the size of the voxel is not important.
-        voxel_side = 25
-        sc = ShapesComposition(voxel_side)
+        conf = dict(voxel_size=25, shapes=[], labels=[])
+        sc = ShapesComposition(conf)
 
         # Add the parallelepiped to the ShapesComposition object
         configuration = dict(
@@ -366,7 +366,7 @@ class TestGeometricShapes(unittest.TestCase, NumpyTestCase):
             * np.linalg.norm(configuration["side_vector_2"])
             * np.linalg.norm(configuration["side_vector_3"])
         )
-        expected_number_of_points = int(volume / voxel_side**3)
+        expected_number_of_points = int(volume / conf["voxel_size"] ** 3)
         point_cloud = sc.generate_point_cloud()
         npoints = len(point_cloud)
 
@@ -387,8 +387,8 @@ class TestGeometricShapes(unittest.TestCase, NumpyTestCase):
     # Create a cuboid, add it to a ShapeComposition object and test the minimal bounding box, inside_mbox, inside_shapes and generate_point_cloud methods
     def test_cuboid(self):
         # Create a ShapesComposition object; In this test the size of the voxel is not important.
-        voxel_side = 25
-        sc = ShapesComposition(voxel_side)
+        conf = dict(voxel_size=25, shapes=[], labels=[])
+        sc = ShapesComposition(conf)
 
         # Add the cuboid to the ShapesComposition object
         configuration = dict(
@@ -460,7 +460,7 @@ class TestGeometricShapes(unittest.TestCase, NumpyTestCase):
             * configuration["side_length_2"]
             * np.linalg.norm(configuration["top_center"])
         )
-        expected_number_of_points = int(volume / voxel_side**3)
+        expected_number_of_points = int(volume / conf["voxel_size"] ** 3)
         point_cloud = sc.generate_point_cloud()
         npoints = len(point_cloud)
 
@@ -481,8 +481,8 @@ class TestGeometricShapes(unittest.TestCase, NumpyTestCase):
     # Create a cone, add it to a ShapeComposition object and test the minimal bounding box, inside_mbox, inside_shapes and generate_point_cloud methods
     def test_cone(self):
         # Create a ShapesComposition object; In this test the size of the voxel is not important.
-        voxel_side = 50
-        sc = ShapesComposition(voxel_side)
+        conf = dict(voxel_size=50, shapes=[], labels=[])
+        sc = ShapesComposition(conf)
 
         # Add the cone to the ShapesComposition object
         configuration = {
@@ -550,7 +550,7 @@ class TestGeometricShapes(unittest.TestCase, NumpyTestCase):
         # The points should be inside the cone.
         cone_height = np.linalg.norm(configuration["center"] - configuration["apex"])
         cone_volume = (np.pi * cone_height * configuration["radius"] ** 2) / 3.0
-        expected_number_of_points = int(cone_volume / voxel_side**3)
+        expected_number_of_points = int(cone_volume / conf["voxel_size"] ** 3)
         point_cloud = sc.generate_point_cloud()
         npoints = len(point_cloud)
 
@@ -578,8 +578,8 @@ class TestGeometricShapes(unittest.TestCase, NumpyTestCase):
         )
 
         # Create a ShapesComposition object
-        voxel_side = 10
-        sc = ShapesComposition(voxel_side)
+        conf = dict(voxel_size=10, shapes=[], labels=[])
+        sc = ShapesComposition(conf)
 
         # Build a sphere
         sc.add_shape(Sphere(config_sphere), ["sphere"])
@@ -620,7 +620,7 @@ class TestGeometricShapes(unittest.TestCase, NumpyTestCase):
             * config_cylinder["radius"] ** 2
         )
         total_volume = sphere_volume + cylinder_volume
-        expected_number_of_points = int(total_volume / voxel_side**3)
+        expected_number_of_points = int(total_volume / conf["voxel_size"] ** 3)
         point_cloud = sc.generate_point_cloud()
         npoints = len(point_cloud)
 

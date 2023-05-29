@@ -713,6 +713,30 @@ def mut_excl(*mutuals, required=True, max=1):
     return requirement
 
 
+def same_size(*mutuals, required=True):
+    listed = ", ".join(f"`{m}`" for m in mutuals[:-1])
+    if len(mutuals) > 1:
+        listed += f" {{}} `{mutuals[-1]}`"
+
+    def requirement(section):
+        common_size = -1
+        count = 0
+        for m in mutuals:
+            if m in section:
+                v = builtins.list(section[m])
+                if len(v) != common_size and common_size >= 0:
+                    err_msg = f"The {listed} attributes should have the same size."
+                    raise RequirementError(err_msg)
+                common_size = len(v)
+                count += 1
+        if not count == len(mutuals) and required:
+            err_msg = f"The {listed} attributes are required."
+            raise RequirementError(err_msg)
+        return False
+
+    return requirement
+
+
 def shortform():
     def requirement(section):
         return not section.is_shortform

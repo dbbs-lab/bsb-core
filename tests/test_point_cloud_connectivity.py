@@ -14,10 +14,8 @@ from bsb.unittest import (
 import unittest
 import numpy as np
 from collections import defaultdict
-from bsb.connectivity.point_cloud.geometric_shapes import (
-    ShapesComposition,
-    Sphere
-)
+from bsb.connectivity.point_cloud.geometric_shapes import ShapesComposition, Sphere
+
 
 class TestPointCloudConnectivity(
     MorphologiesFixture,
@@ -72,12 +70,15 @@ class TestPointCloudConnectivity(
         self.network.compile(skip_connectivity=True)
 
     def test_cloud_to_cloud(self):
-
         voxel_size = 25
-        ball_shape = ShapesComposition(25)
-        config_sphere = dict(radius=40.0, center=np.array([0, 0, 0], dtype=np.float64))
-        ball_shape.add_shape(Sphere(config_sphere), ["sphere"])
-
+        config_sphere = dict(
+            type="sphere", radius=40.0, center=np.array([0, 0, 0], dtype=np.float64)
+        )
+        ball_shape = {
+            "voxel_size": voxel_size,
+            "shapes": [config_sphere],
+            "labels": [["sphere"]],
+        }
         # All the points of the point cloud are inside the geometric shape
         self.network.connectivity.add(
             "cloud_to_cloud_1",
@@ -139,9 +140,14 @@ class TestPointCloudConnectivity(
 
     def test_cloud_to_morpho(self):
         voxel_size = 25
-        ball_shape = ShapesComposition(25)
-        config_sphere = dict(radius=40.0, center=np.array([0, 0, 0], dtype=np.float64))
-        ball_shape.add_shape(Sphere(config_sphere), ["sphere"])
+        config_sphere = dict(
+            type="sphere", radius=40.0, center=np.array([0, 0, 0], dtype=np.float64)
+        )
+        ball_shape = {
+            "voxel_size": voxel_size,
+            "shapes": [config_sphere],
+            "labels": [["sphere"]],
+        }
 
         # We know a priori that there are intersections between the point cloud and the morphology
         self.network.connectivity.add(
@@ -192,12 +198,15 @@ class TestPointCloudConnectivity(
         self.assertClose(0, intersection_points, "expected no intersection points")
 
     def test_morpho_to_cloud(self):
-
         voxel_size = 25
-        ball_shape = ShapesComposition(25)
-        config_sphere = dict(radius=40.0, center=np.array([0, 0, 0], dtype=np.float64))
-        ball_shape.add_shape(Sphere(config_sphere), ["sphere"])
-
+        config_sphere = dict(
+            type="sphere", radius=40.0, center=np.array([0, 0, 0], dtype=np.float64)
+        )
+        ball_shape = {
+            "voxel_size": voxel_size,
+            "shapes": [config_sphere],
+            "labels": [["sphere"]],
+        }
 
         # We know a priori that there are intersections between the point cloud and the morphology
         self.network.connectivity.add(

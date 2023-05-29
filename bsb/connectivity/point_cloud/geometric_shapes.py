@@ -8,7 +8,6 @@ from typing import List, Tuple
 import numpy
 from bsb import config
 from bsb.config import types
-from bsb.storage import FileDependencyNode
 
 from .cloud_mesh_utils import (
     rotate_3d_mesh_by_vec,
@@ -46,7 +45,7 @@ def inside_mbox(
     return inside
 
 
-@config.dynamic(attr_name="shape", auto_classmap=True, classmap_entry=None)
+@config.dynamic(attr_name="type", default="shape", auto_classmap=True)
 class GeometricShape(abc.ABC):
     """
     Base class for geometric shapes
@@ -146,23 +145,32 @@ class GeometricShape(abc.ABC):
         )
 
 
+@config.node
 class ShapesComposition:
     """
     A collection of geometric shapes, which can be labelled to distinguish different parts of a
     neuron.
     """
 
-    def __init__(self, voxel_size=1.0):
-        # A list of GeometricShape.
-        self._shapes = []
-        # Dimension of the side of a voxel, used to determine how many points must be generated
-        # in a point cloud.
-        self._voxel_size = voxel_size
+    shapes = config.list(
+        type=GeometricShape, required=types.same_size("shapes", "labels", required=True)
+    )
+    # A list of GeometricShape.
+    labels = config.list(
+        type=list, required=types.same_size("shapes", "labels", required=True)
+    )
+    # The labels associated to each geometric shape.
+    # A list of GeometricShape with their associated labels.
+    voxel_size = config.attr(type=float, required=False, default=1.0)
+    # Dimension of the side of a voxel, used to determine how many points must be generated
+    # in a point cloud.
+
+    def __init__(self, **kwargs):
         # The two corners individuating the minimal bounding box.
         self._mbb_min = np.array([0.0, 0.0, 0.0])
         self._mbb_max = np.array([0.0, 0.0, 0.0])
-        # The labels of each geometric shape in the collection.
-        self._labels = []
+
+        self.find_mbb()
 
     def copy(self) -> ShapesComposition:
         """
@@ -171,7 +179,7 @@ class ShapesComposition:
         :return: A copy of this object.
         :rtype: ShapesComposition
         """
-        result = ShapesComposition(self._voxel_size)
+        result = type(self)(dict(voxel_size=self.voxel_size, labels=[], shapes=[]))
         for shape, label in zip(self._shapes, self._labels):
             result._shapes.append(shape.clone())
             result._labels.append(label.copy())
@@ -204,7 +212,9 @@ class ShapesComposition:
         :return: A new ShapesComposition object containing only the shapes labelled as specified.
         :rtype: ShapesComposition
         """
-        result = ShapesComposition(self._voxel_size)
+        result = ShapesComposition(
+            dict(voxel_size=self._voxel_size, labels=[], shapes=[])
+        )
         selected_id = np.where(np.isin(labels, self._labels))[0]
         result._shapes = [self._shapes[i].clone() for i in selected_id]
         result._labels = [self._labels[i].copy() for i in selected_id]
@@ -243,10 +253,9 @@ class ShapesComposition:
         for i, shape in enumerate(self._shapes):
             mins[i, :] = shape.mbb_min
             maxs[i, :] = shape.mbb_max
-
-        box_min = np.min(mins, axis=0)
-        box_max = np.max(maxs, axis=0)
-        return box_min, box_max
+        self._mbb_min = np.min(mins, axis=0) if len(self._shapes) > 0 else np.zeros(3)
+        self._mbb_max = np.max(maxs, axis=0) if len(self._shapes) > 0 else np.zeros(3)
+        return self._mbb_min, self._mbb_max
 
     def compute_n_points(self) -> List[int]:
         """
@@ -355,19 +364,6 @@ class ShapesComposition:
         self._voxel_size = tmp._voxel_size
         self._mbb_min, self._mbb_max = self.find_mbb()
         self._labels = tmp._labels
-
-
-# TODO: Convert file format to match maintained bsb formats.
-@config.node
-class ShapeCompositionDependencyNode(FileDependencyNode):
-    """
-    Configuration dependency node to load shape composition storing files.
-    """
-
-    def load_object(self):
-        cloud = ShapesComposition()
-        cloud.load_from_file(self.file.provide_locally())
-        return cloud
 
 
 @config.node
@@ -1139,13 +1135,4 @@ class Parallelepiped(GeometricShape, classmap_entry="parallelepiped"):
             ]
         )
 
-        """# Rotate the cuboid
-        hv = (self.top_center - self.center) / c
-        hv = hv / np.linalg.norm(hv)
-        zvers = np.array([0, 0, 1])
-        perp = np.cross(zvers, hv)
-        angle = np.arccos(np.dot(hv, zvers))
- 
-        x, y, z = rotate_3d_mesh_by_vec(x, y, z, perp, angle)
-        x, y, z = translate_3d_mesh_by_vec(x, y, z, self.center)"""
         return x, y, z
