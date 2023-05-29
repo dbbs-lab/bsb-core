@@ -281,6 +281,9 @@ class NeuroMorphoScheme(UrlScheme):
     @_ft.cache
     def get_nm_meta(self, file: FileDependency):
         name = _up.urlparse(file.uri).hostname
+        # urlparse gives lowercase, so slice out the original cased NM name
+        idx = file.uri.lower().find(name)
+        name = file.uri[idx : (idx + len(name))]
         try:
             with self.create_session() as session:
                 res = session.get(self._nm_url + self._meta + name)
