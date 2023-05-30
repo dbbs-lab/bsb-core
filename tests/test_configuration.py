@@ -844,6 +844,29 @@ class TestTypes(unittest.TestCase):
         self.assertEqual(b.c, "h")
         self.assertRaises(CastError, TestF, {"c": "h"}, _parent=TestRoot())
 
+    def test_dynamic_or(self):
+        @config.dynamic(
+            attr_name="f", default="a", auto_classmap=True, classmap_entry="a"
+        )
+        class TestA:
+            pass
+
+        class TestB(TestA, classmap_entry="b"):
+            pass
+
+        @config.node
+        class Container:
+            direct = config.attr(type=TestA)
+            or_ = config.attr(type=types.or_(TestA, TestA))
+
+        self.assertEqual(TestB, type(TestA(f="b")))
+        self.assertEqual(TestB, type(Container(direct={"f": "b"}).direct))
+        self.assertEqual(TestB, type(Container(or_={"f": "b"}).or_))
+        with self.assertRaises(CastError):
+            _ = Container(or_={"f": "bb"}).or_
+        with self.assertRaises(RequirementError):
+            _ = Container(or_={})
+
     def test_scalar_expand(self):
         @config.node
         class Test:

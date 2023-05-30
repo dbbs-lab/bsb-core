@@ -63,7 +63,7 @@ class ExtNestDevice(NestDevice, classmap_entry="external"):
     nest_model = config.attr(type=str, required=True)
     constants = config.dict(type=types.or_(types.number(), str))
 
-    def implement(self, adapter, simdata):
+    def implement(self, adapter, simulation, simdata):
         simdata.devices[self] = device = adapter.nest.Create(
             self.nest_model, params=self.constants
         )
