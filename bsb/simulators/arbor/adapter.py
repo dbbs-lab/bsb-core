@@ -1,31 +1,16 @@
-from bsb.config import types
+import typing
+
 from bsb.reporting import report, warn
 from bsb.exceptions import AdapterError
 from bsb.services import MPI
-from bsb.simulation.results import SimulationResult
 from bsb.simulation.adapter import SimulatorAdapter
 import numpy as np
 import itertools as it
 import time
 import psutil
 
-try:
-    import arbor
-
-    _has_arbor = True
-except ImportError:
-    _has_arbor = False
-    import types as _t
-
-    # Mock missing requirements, as arbor is, like
-    # all simulators, an optional dep. of the BSB.
-    arbor = _t.ModuleType("arbor")
-    arbor.recipe = type("mock_recipe", (), dict())
-
-    def get(*arg):
-        raise ImportError("Arbor not installed.")
-
-    arbor.__getattr__ = get
+if typing.TYPE_CHECKING:
+    from .simulation import ArborSimulation
 
 
 class ReceiverCollection(list):
@@ -74,11 +59,10 @@ class QuickContains:
 
 
 class QuickLookup:
-    def __init__(self, adapter):
-        network = adapter.scaffold
+    def __init__(self, simulation):
         self._contains = [
-            QuickContains(model, network.get_placement_set(model.name))
-            for model in adapter.cell_models.values()
+            QuickContains(model, model.get_placement_set(model.name))
+            for model in simulation.cell_models.values()
         ]
 
     def lookup_kind(self, gid):
@@ -177,8 +161,6 @@ class ArborRecipe(arbor.recipe):
 
 
 class ArborAdapter(SimulatorAdapter):
-    defaults = {"threads": 1, "profiling": True, "resolution": 0.025}
-
     def validate(self):
         if self.threads == "all":
             self.threads = psutil.cpu_count(logical=False)
@@ -195,53 +177,57 @@ class ArborAdapter(SimulatorAdapter):
     def barrier(self):
         return MPI.barrier()
 
-    def init_result(self):
-        self.result = SimulationResult()
+    def prepare(self, simulation: "ArborSimulation", comm=None):
+        self.simdata[simulation] = simdata = SimulationData(simulation)
+        try:
+            import arbor
 
-    def prepare(self):
-        try:
-            self.scaffold.assert_continuity()
-        except AssertionError as e:
-            raise AssertionError(
-                str(e) + " The arbor adapter requires completely continuous GIDs."
-            ) from None
-        try:
-            if hasattr(MPI, "_mocked"):
-                mpi = None
-            else:
-                mpi = MPI
-            context = arbor.context(arbor.proc_allocation(self.threads), comm=mpi)
-        except TypeError:
-            if MPI.get_size() > 1:
-                s = MPI.get_size()
-                warn(
-                    f"Arbor does not seem to be built with MPI support, running duplicate simulations on {s} nodes."
+            try:
+                if hasattr(MPI, "_mocked"):
+                    mpi = None
+                else:
+                    mpi = MPI
+                context = arbor.context(
+                    arbor.proc_allocation(simulation.threads), comm=mpi
                 )
-            context = arbor.context(arbor.proc_allocation(self.threads))
-        if self.profiling and arbor.config()["profiling"]:
-            report("enabling profiler", level=2)
-            arbor.profiler_initialize(context)
-        self.init_result()
-        self._lookup = QuickLookup(self)
-        report("preparing simulation", level=1)
-        report("MPI processes:", context.ranks, level=2)
-        report("Threads per process:", context.threads, level=2)
-        recipe = self.get_recipe()
-        # Gap junctions are required for domain decomposition
-        self._cache_gap_junctions()
-        self.domain = arbor.partition_load_balance(recipe, context)
-        self.gids = set(it.chain.from_iterable(g.gids for g in self.domain.groups))
-        # Cache uses the domain decomposition to cache info per gid on this node. The
-        # recipe functions use the cache, but luckily aren't called until
-        # `arbor.simulation` and `simulation.run`.
-        self._index_relays()
-        self._cache_connections()
-        self.prepare_devices()
-        self._cache_devices()
-        simulation = arbor.simulation(recipe, self.domain, context)
-        self.prepare_samples(simulation)
-        report("prepared simulation", level=1)
-        return simulation
+            except TypeError:
+                if MPI.get_size() > 1:
+                    s = MPI.get_size()
+                    warn(
+                        f"Arbor does not seem to be built with MPI support, running duplicate simulations on {s} nodes."
+                    )
+                context = arbor.context(arbor.proc_allocation(self.threads))
+            if simulation.profiling:
+                if arbor.config()["profiling"]:
+                    report("enabling profiler", level=2)
+                    arbor.profiler_initialize(context)
+                else:
+                    raise RuntimeError(
+                        "Arbor must be built with profiling support to use `profiling` in a simulation."
+                    )
+            simdata.lookup = QuickLookup(simulation)
+            report("preparing simulation", level=1)
+            report("MPI processes:", context.ranks, level=2)
+            report("Threads per process:", context.threads, level=2)
+            recipe = self.get_recipe(simulation, simdata)
+            # Gap junctions are required for domain decomposition
+            self._cache_gap_junctions()
+            self.domain = arbor.partition_load_balance(recipe, context)
+            self.gids = set(it.chain.from_iterable(g.gids for g in self.domain.groups))
+            # Cache uses the domain decomposition to cache info per gid on this node. The
+            # recipe functions use the cache, but luckily aren't called until
+            # `arbor.simulation` and `simulation.run`.
+            self._index_relays()
+            self._cache_connections()
+            self.prepare_devices()
+            self._cache_devices()
+            simulation = arbor.simulation(recipe, self.domain, context)
+            self.prepare_samples(simulation)
+            report("prepared simulation", level=1)
+            return simulation
+        except Exception:
+            del self.simdata[simulation]
+            raise
 
     def prepare_samples(self, sim):
         for device in self.devices.values():
@@ -311,8 +297,10 @@ class ArborAdapter(SimulatorAdapter):
             self.barrier()
         return result_path
 
-    def get_recipe(self):
-        return ArborRecipe(self)
+    def get_recipe(self, simulation, simdata=None):
+        if simdata is None:
+            self.simdata[simulation] = simdata = SimulationData(simulation)
+        return ArborRecipe(simulation, simdata)
 
     def _cache_gap_junctions(self):
         self._gap_junctions_on = {}
@@ -360,135 +348,6 @@ class ArborAdapter(SimulatorAdapter):
                     self._connections_on[gid].append(
                         conn_model.make_receiver(from_gid, comp_from, comp_on)
                     )
-
-    def _index_relays(self):
-        report("Indexing relays.")
-        terminal_relays = {}
-        intermediate_relays = {}
-        output_handler = self.scaffold.output_formatter
-        cell_types = self.scaffold.get_cell_types()
-        type_lookup = {
-            ct.name: range(min(ids), max(ids) + 1)
-            for ct, ids in zip(
-                cell_types, (ct.get_placement_set().identifiers for ct in cell_types)
-            )
-        }
-
-        def lookup(i):
-            for n, t in type_lookup.items():
-                if i in t:
-                    return n
-            else:
-                return None
-
-        for connection_model in self.connection_models.values():
-            name = connection_model.name
-            # Get the connectivity set associated with this connection model
-            connectivity_set = ConnectivitySet(output_handler, connection_model.name)
-            if connectivity_set.is_orphan():
-                continue
-            from_cell_type = connectivity_set.connection_types[0].from_cell_types[0]
-            from_cell_model = self.cell_models[from_cell_type.name]
-            to_cell_type = connectivity_set.connection_types[0].to_cell_types[0]
-            to_cell_model = self.cell_models[to_cell_type.name]
-            if not from_cell_model.relay:
-                continue
-            if to_cell_model.relay:
-                report(
-                    "Adding",
-                    len(connectivity_set),
-                    connection_model.name,
-                    "connections as intermediate.",
-                    level=3,
-                )
-                bin = intermediate_relays
-                connections = connectivity_set.connections
-                target = lambda c: c.to_id
-            else:
-                report(
-                    "Adding",
-                    len(connectivity_set),
-                    connection_model.name,
-                    "connections as terminal.",
-                    level=3,
-                )
-                bin = terminal_relays
-                connections = connectivity_set.intersections
-                target = lambda c: (
-                    c.to_id,
-                    c.from_compartment,
-                    c.to_compartment,
-                    connection_model,
-                )
-            for id in self.scaffold.get_placement_set(from_cell_type.name).identifiers:
-                if id not in bin:
-                    bin[id] = []
-            for connection in connections:
-                fid = connection.from_id
-                bin[fid].append(target(connection))
-
-        report("Relays indexed, resolving intermediates.")
-
-        interm_transfer = {k: [] for k in intermediate_relays.keys()}
-        while len(intermediate_relays) > 0:
-            intermediates_to_remove = []
-            for intermediate, targets in intermediate_relays.items():
-                for target in targets:
-                    if target in intermediate_relays:
-                        # This target of this intermediary is also an
-                        # intermediary and cannot be resolved to a terminal at
-                        # this point, so we wait until a next iteration where
-                        # the intermediary target might have been resolved.
-                        continue
-                    elif target in terminal_relays:
-                        # The target is a terminal relay and can be removed from
-                        # our intermediary target list and its terminal targets
-                        # added to our terminal target list.
-                        arr = interm_transfer[intermediate]
-                        assert all(
-                            isinstance(t, tuple) for t in terminal_relays[target]
-                        ), f"Terminal relay {lookup(target)} {target} contains non-terminal targets: {terminal_relays[target]}"
-                        arr.extend(terminal_relays[target])
-                        targets.remove(target)
-                    else:
-                        raise RelayError(
-                            f"Non-relay {lookup(target)} {target} found in intermediate relay map."
-                        )
-                # If we have no more intermediary targets, we can be removed from
-                # the intermediary relay list and be moved to the terminals.
-                if not targets:
-                    intermediates_to_remove.append(intermediate)
-                    terminal_relays[intermediate] = interm_transfer.pop(intermediate)
-            for intermediate in intermediates_to_remove:
-                report(
-                    "Intermediate resolved to",
-                    len(terminal_relays[intermediate]),
-                    "targets",
-                    level=4,
-                )
-                intermediate_relays.pop(intermediate, None)
-
-        report("Relays resolved.")
-
-        # Filter out all relays to targets not on this node.
-        self._relays_on = {gid: [] for gid in self.gids}
-        for relay, targets in terminal_relays.items():
-            assert all(
-                isinstance(t, tuple) for t in terminal_relays[target]
-            ), f"Terminal relay {lookup(target)} {target} contains non-terminal targets: {terminal_relays[target]}"
-
-            for conn in targets:
-                to_id = int(conn[0])
-                if to_id in self.gids:
-                    self._relays_on[to_id].append((relay, *conn[1:]))
-        report(
-            "Node",
-            self.get_rank(),
-            "needs to relay",
-            sum(bool(relays) for relays in self._relays_on.values()),
-            "relays.",
-            level=4,
-        )
 
     def prepare_devices(self):
         device_module = __import__("devices", globals(), level=1).__dict__
