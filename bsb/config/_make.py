@@ -259,7 +259,7 @@ def compile_postnew(cls):
         values = {}
         for attr in attrs.values():
             name = attr.attr_name
-            value = values[name] = leftovers.pop(name, None)
+            values[name] = leftovers.pop(name, None)
             try:
                 if _missing_requirements(self, attr, kwargs):
                     raise RequirementError(f"Missing required attribute '{name}'")
