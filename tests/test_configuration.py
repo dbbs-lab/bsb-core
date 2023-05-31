@@ -175,6 +175,34 @@ class TestConfigAttrs(unittest.TestCase):
         with self.assertRaises(RequirementError):
             Test4(timmy="x")
 
+    def test_requirement_proc(self):
+        fcalled = False
+
+        def fspy(value):
+            nonlocal fcalled
+            fcalled = True
+            return False
+
+        @config.node
+        class Test:
+            name = config.attr(type=str, required=fspy)
+
+        tcalled = False
+
+        def tspy(value):
+            nonlocal tcalled
+            tcalled = True
+            return True
+
+        @config.node
+        class Test2:
+            name = config.attr(type=str, required=tspy)
+
+        Test()
+        self.assertTrue(fcalled, "Requirement functions should always be called.")
+        Test2(name="required")
+        self.assertTrue(tcalled, "Requirement functions should always be called.")
+
     def test_precast_identity(self):
         @config.node
         class Test:
