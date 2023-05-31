@@ -9,8 +9,22 @@ import itertools as it
 import time
 import psutil
 
+from ...storage import Chunk
+
 if typing.TYPE_CHECKING:
     from .simulation import ArborSimulation
+
+
+class SimulationData:
+    def __init__(self, simulation):
+        self.chunks = None
+        self.populations = dict()
+        self.placement = {
+            model: model.get_placement_set() for model in simulation.cell_models.values()
+        }
+        self.connections = dict()
+        self.devices = dict()
+        self.result: "NestResult" = None
 
 
 class ReceiverCollection(list):
@@ -79,9 +93,10 @@ class QuickLookup:
 
 
 class ArborRecipe(arbor.recipe):
-    def __init__(self, adapter):
+    def __init__(self, simulation, simdata):
         super().__init__()
-        self._adapter = adapter
+        self._simulation = simulation
+        self._simdata = simdata
         self._catalogue = self._get_catalogue()
         self._global_properties = arbor.neuron_cable_properties()
         self._global_properties.set_property(Vm=-65, tempK=300, rL=35.4, cm=0.01)
@@ -96,6 +111,8 @@ class ArborRecipe(arbor.recipe):
         self._global_properties.register(self._catalogue)
 
     def _get_catalogue(self):
+        import arbor
+
         catalogue = arbor.default_catalogue()
         prefixes = set()
         for cell in self._adapter.cell_models.values():
@@ -114,13 +131,10 @@ class ArborRecipe(arbor.recipe):
         return self._global_properties
 
     def num_cells(self):
-        adapter = self._adapter
-        network = adapter.scaffold
-        s = sum(len(ps) for ps in map(network.get_placement_set, adapter.cell_models))
-        return s
-
-    def num_sources(self, gid):
-        return 1 if self._is_relay(gid) else 0
+        return sum(
+            len(model.get_placement_set())
+            for model in self._simulation.cell_models.values()
+        )
 
     def cell_kind(self, gid):
         return self._adapter._lookup.lookup_kind(gid)
@@ -130,8 +144,6 @@ class ArborRecipe(arbor.recipe):
         return model.get_description(gid)
 
     def connections_on(self, gid):
-        if self._is_relay(gid):
-            return []
         return [
             arbor.connection(rcv.from_(), rcv.on(), rcv.weight, rcv.delay)
             for rcv in self._adapter._connections_on[gid]
@@ -140,12 +152,7 @@ class ArborRecipe(arbor.recipe):
     def gap_junctions_on(self, gid):
         return [c.model.gap_(c) for c in self._adapter._gap_junctions_on.get(gid, [])]
 
-    def _is_relay(self, gid):
-        return self._adapter._lookup.lookup_kind(gid) == arbor.cell_kind.spike_source
-
     def probes(self, gid):
-        if self._is_relay(gid):
-            return []
         devices = self._adapter._devices_on[gid]
         _ntag = 0
         probes = []
@@ -161,10 +168,6 @@ class ArborRecipe(arbor.recipe):
 
 
 class ArborAdapter(SimulatorAdapter):
-    def validate(self):
-        if self.threads == "all":
-            self.threads = psutil.cpu_count(logical=False)
-
     def get_rank(self):
         return MPI.get_rank()
 
@@ -178,7 +181,7 @@ class ArborAdapter(SimulatorAdapter):
         return MPI.barrier()
 
     def prepare(self, simulation: "ArborSimulation", comm=None):
-        self.simdata[simulation] = simdata = SimulationData(simulation)
+        simdata = self._create_simdata(simulation)
         try:
             import arbor
 
@@ -203,7 +206,7 @@ class ArborAdapter(SimulatorAdapter):
                     arbor.profiler_initialize(context)
                 else:
                     raise RuntimeError(
-                        "Arbor must be built with profiling support to use `profiling` in a simulation."
+                        "Arbor must be built with profiling support to use the `profiling` flag."
                     )
             simdata.lookup = QuickLookup(simulation)
             report("preparing simulation", level=1)
@@ -211,16 +214,8 @@ class ArborAdapter(SimulatorAdapter):
             report("Threads per process:", context.threads, level=2)
             recipe = self.get_recipe(simulation, simdata)
             # Gap junctions are required for domain decomposition
-            self._cache_gap_junctions()
             self.domain = arbor.partition_load_balance(recipe, context)
             self.gids = set(it.chain.from_iterable(g.gids for g in self.domain.groups))
-            # Cache uses the domain decomposition to cache info per gid on this node. The
-            # recipe functions use the cache, but luckily aren't called until
-            # `arbor.simulation` and `simulation.run`.
-            self._index_relays()
-            self._cache_connections()
-            self.prepare_devices()
-            self._cache_devices()
             simulation = arbor.simulation(recipe, self.domain, context)
             self.prepare_samples(simulation)
             report("prepared simulation", level=1)
@@ -299,8 +294,17 @@ class ArborAdapter(SimulatorAdapter):
 
     def get_recipe(self, simulation, simdata=None):
         if simdata is None:
-            self.simdata[simulation] = simdata = SimulationData(simulation)
+            simdata = self._create_simdata(simulation)
+        self._cache_gap_junctions()
+        self._cache_connections()
+        self.prepare_devices()
+        self._cache_devices()
         return ArborRecipe(simulation, simdata)
+
+    def _create_simdata(self, simulation):
+        self.simdata[simulation] = simdata = SimulationData(simulation)
+        self._assign_chunks(simulation)
+        return simdata
 
     def _cache_gap_junctions(self):
         self._gap_junctions_on = {}
@@ -361,3 +365,15 @@ class ArborAdapter(SimulatorAdapter):
             targets = device.get_targets(self)
             for target in targets:
                 self._devices_on[target].append(device)
+
+    def _assign_chunks(self, simulation):
+        simdata = self.simdata[simulation]
+        chunk_stats = simulation.scaffold.storage.get_chunk_stats()
+        size = MPI.get_size()
+        all_chunks = [Chunk.from_id(int(chunk), None) for chunk in chunk_stats.keys()]
+        simdata.node_chunk_alloc = [all_chunks[rank::size] for rank in range(0, size)]
+        simdata.chunk_node_map = {}
+        for node, chunks in enumerate(simdata.node_chunk_alloc):
+            for chunk in chunks:
+                simdata.chunk_node_map[chunk] = node
+        simdata.chunks = simdata.node_chunk_alloc[MPI.get_rank()]
