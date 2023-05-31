@@ -30,12 +30,15 @@ class NeuronCell(CellModel):
         )
         additer = dictzip()
         return [
-            self.create(i, next(pos), next(morpho), next(rot), next(additer))
+            self._create(i, next(pos), next(morpho), next(rot), next(additer))
             for i in range(count)
         ]
 
-    def create(self, id, pos, morpho, rot, additional):
-        raise NotImplementedError("Cell models should implement the `create` method.")
+    def _create(self, id, pos, morpho, rot, additional):
+        instance = self.create(id, pos, morpho, rot, additional)
+        instance._bsb_ref_id = id
+        instance._bsb_ref_pos = pos
+        return instance
 
 
 @config.node

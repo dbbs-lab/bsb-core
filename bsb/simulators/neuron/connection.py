@@ -58,3 +58,9 @@ class TransceiverModel(NeuronConnection, classmap_entry="transceiver"):
             cell = simdata.cells[post_loc[0]]
             for spec in self.synapses:
                 cell.insert_receiver(gid, spec.synapse, post_loc[1:], source=self.source)
+
+    def __lt__(self, other):
+        try:
+            return self.name < other.name
+        except Exception:
+            return True

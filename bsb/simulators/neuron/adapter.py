@@ -199,7 +199,7 @@ class NeuronAdapter(SimulatorAdapter):
             for id, instance in zip(ps.load_ids(), instances):
                 cid = offset + id
                 instance.id = cid
-                instance.model = cell_model
+                instance.cell_model = cell_model
                 simdata.cells[cid] = instance
 
 
