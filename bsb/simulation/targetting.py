@@ -46,7 +46,7 @@ class CellModelTargetting(CellTargetting, classmap_entry="cell_model"):
     cell_models = config.reflist(refs.sim_cell_model_ref, required=True)
 
     def get_targets(self, cells, connections):
-        return [cell for cell in cells.values() if cell.model in self.cell_models]
+        return [cell for cell in cells.values() if cell.cell_model in self.cell_models]
 
 
 @config.node
@@ -97,7 +97,9 @@ class CellModelFilter:
     cell_models = config.reflist(refs.sim_cell_model_ref)
 
     def get_targets(self, cells, connections):
-        return [cell for cell in cells.values() if cell.cell_model in self.cell_models]
+        return [
+            cell for cell in cells.values() if cell.cell_model.name in self.cell_models
+        ]
 
 
 @config.node
@@ -125,7 +127,8 @@ class CylindricalTargetting(CellModelFilter, CellTargetting, classmap_entry="cyl
         return [
             cell
             for cell in cells
-            if np.sum((cell.position[axes] - self.origin) ** 2) < self.radius**2
+            if np.sum((cell._bsb_ref_pos[axes] - self.origin[axes]) ** 2)
+            < self.radius**2
         ]
 
 
@@ -140,12 +143,13 @@ class SphericalTargetting(CellModelFilter, CellTargetting, classmap_entry="spher
 
     def get_targets(self, cells, connections):
         """
-        Target all or certain cells within a cylinder of specified radius.
+        Target all or certain cells within a sphere of specified radius.
         """
+
         return [
             cell
             for cell in super().get_targets(cells, connections)
-            if np.sum((cell.position - self.origin) ** 2) < self.radius**2
+            if np.sum((cell._bsb_ref_pos - self.origin) ** 2) < self.radius**2
         ]
 
 
@@ -164,3 +168,12 @@ class LocationTargetting:
 class SomaTargetting(LocationTargetting, classmap_entry="soma"):
     def get_locations(self, cell):
         return [cell.locations[(0, 0)]]
+
+
+@config.node
+class LabelTargetting(LocationTargetting, classmap_entry="label"):
+    labels = config.list(required=True)
+
+    def get_locations(self, cell):
+        locs = [loc for loc in cell.locations.values() if all(l in loc.section.labels for l in self.labels)]
+        return locs
