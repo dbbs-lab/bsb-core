@@ -19,8 +19,8 @@ class SpikeGenerator(NeuronDevice,classmap_entry="spike_generator"):
     def implement(self, result, cells, connections):
         for target in self.targetting.get_targets(cells, connections):
             for ii, location in enumerate(self.locations.get_locations(target)):
-                for synapse, synapse_name in zip(location.section.synapses,location.section.synapses_names):
-                    print(synapse_name)
-                    if synapse_name in self.synapses:
+                for synapse in location.section.synapses:
+                    print(synapse.synapse_name)
+                    if synapse.synapse_name in self.synapses:
                         synapse.stimulate(**self.parameters)
                         pass
