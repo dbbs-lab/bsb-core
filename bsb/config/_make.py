@@ -259,9 +259,9 @@ def compile_postnew(cls):
         values = {}
         for attr in attrs.values():
             name = attr.attr_name
-            values[name] = leftovers.pop(name, None)
+            value = values[name] = leftovers.pop(name, None)
             try:
-                if _missing_requirements(self, attr, kwargs):
+                if _missing_requirements(self, attr, kwargs) and value is None:
                     raise RequirementError(f"Missing required attribute '{name}'")
             except RequirementError as e:
                 # Catch both our own and possible `attr.required` RequirementErrors

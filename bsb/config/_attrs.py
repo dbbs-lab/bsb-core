@@ -423,7 +423,7 @@ class ConfigurationAttribute:
         hint=MISSING,
     ):
         if not callable(required):
-            self.required = lambda s: required and self.attr_name not in s
+            self.required = lambda s: required
         else:
             self.required = required
         self.key = key
