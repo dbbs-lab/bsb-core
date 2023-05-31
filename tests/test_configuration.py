@@ -145,6 +145,9 @@ class TestConfigAttrs(unittest.TestCase):
         class Test:
             name = config.attr(type=str, required=True)
 
+        def regular(value):
+            return "timmy" in value
+
         def special(value):
             raise RequirementError("special")
 
@@ -156,13 +159,28 @@ class TestConfigAttrs(unittest.TestCase):
         class Test3:
             name = config.attr(type=str, required=lambda x: True)
 
+        @config.node
+        class Test4:
+            name = config.attr(type=str, required=regular)
+
+        Test(name="required")
         with self.assertRaises(RequirementError):
-            Test({}, _parent=TestRoot())
+            Test()
         with self.assertRaisesRegex(RequirementError, r"special"):
-            Test2({}, _parent=TestRoot())
+            Test2()
         with self.assertRaises(RequirementError):
-            Test3({}, _parent=TestRoot())
-        t = Test({"name": "hello"}, _parent=TestRoot())
+            Test3()
+        Test4()
+        Test4(timmy="x", name="required")
+        with self.assertRaises(RequirementError):
+            Test4(timmy="x")
+
+    def test_precast_identity(self):
+        @config.node
+        class Test:
+            name = config.attr(type=str, required=True)
+
+        t = Test(name="hello")
         self.assertEqual(t, Test(t), "Already cast object should not be altered")
 
 
