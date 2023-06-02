@@ -930,17 +930,21 @@ class Morphology(SubTree):
     @classmethod
     def from_swc(cls, file, branch_class=None, tags=None, meta=None):
         """
-        Create a Morphology from a file-like object.
+        Create a Morphology from a swc file.
 
         :param file: path or file-like object to parse.
         :param branch_class: Custom branch class
-        :type branch_class: type
-        :returns: The parsed morphology, with the SWC tags as a property.
+        :type branch_class: bsb.morphologies.Branch
+        :param tags: dictionary mapping morphology label id to its name
+        :type tags: dict
+        :param meta: dictionary header containing metadata on morphology
+        :type meta: dict
+        :returns: The parsed morphology.
         :rtype: bsb.morphologies.Morphology
         """
         if isinstance(file, str) or isinstance(file, Path):
             with open(str(file), "r") as f:
-                return cls.from_swc(f, branch_class, meta=meta)
+                return cls.from_swc(f, branch_class, tags=tags, meta=meta)
         if branch_class is None:
             branch_class = Branch
         return _swc_to_morpho(cls, branch_class, file.read(), tags=tags, meta=meta)
@@ -960,14 +964,22 @@ class Morphology(SubTree):
         return _swc_data_to_morpho(cls, branch_class, data, tags=tags, meta=meta)
 
     @classmethod
-    def from_file(cls, path, branch_class=None, meta=None):
+    def from_file(cls, path, branch_class=None, tags=None, meta=None):
         """
         Create a Morphology from a file on the file system through MorphIO.
+
+        :param path: path or file-like object to parse.
+        :param branch_class: Custom branch class
+        :type branch_class: bsb.morphologies.Branch
+        :param tags: dictionary mapping morphology label id to its name
+        :type tags: dict
+        :param meta: dictionary header containing metadata on morphology
+        :type meta: dict
         """
         if branch_class is None:
             branch_class = Branch
         if path.endswith("swc"):
-            return cls.from_swc(path, branch_class, meta=meta)
+            return cls.from_swc(path, branch_class, tags=tags, meta=meta)
         else:
             return _import(cls, branch_class, path, meta=meta)
 

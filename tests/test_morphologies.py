@@ -1,3 +1,4 @@
+import re
 import unittest, os, sys, numpy as np, h5py
 import json
 import itertools
@@ -40,7 +41,7 @@ class TestIO(NumpyTestCase, unittest.TestCase):
 
     def test_known(self):
         # TODO: Check the morphos visually with glover
-        m = Morphology.from_swc(get_morphology_path("PurkinjeCell.swc"))
+        m = Morphology.from_file(get_morphology_path("PurkinjeCell.swc"))
         self.assertEqual(3834, len(m), "Amount of point on purkinje changed")
         self.assertEqual(459, len(m.branches), "Amount of branches on purkinje changed")
         self.assertEqual(
@@ -48,6 +49,24 @@ class TestIO(NumpyTestCase, unittest.TestCase):
             np.mean(m.points),
             "value of the universe, life and everything changed.",
         )
+        for labelset in m.labelsets.values():
+            for label in labelset:
+                self.assertTrue(re.match(r"((tag_)?[0-9]+)|(soma)", label) is not None)
+        tags = {
+            1: "soma",
+            16: "axon_AIS",
+            17: "axon_AIS_K",
+            18: "axon_axonmyelin",
+            19: "axon_nodes",
+            20: "dendrites_basal_dendrites",
+            21: "dendrites_pf_targets",
+            22: "dendrites_aa_targets",
+        }
+        m = Morphology.from_file(get_morphology_path("PurkinjeCell.swc"), tags=tags)
+        all_sets = set()
+        for value in m.labelsets.values():
+            all_sets.update(value)
+        self.assertEqual(set(tags.values()), all_sets)
         m = Morphology.from_file(get_morphology_path("GolgiCell.asc"))
         self.assertEqual(5105, len(m), "Amount of point on purkinje changed")
         self.assertEqual(227, len(m.branches), "Amount of branches on purkinje changed")

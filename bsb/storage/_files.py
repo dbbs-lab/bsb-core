@@ -466,7 +466,15 @@ class MorphologyDependencyNode(FilePipelineMixin, FileDependencyNode):
     """
 
     pipeline = config.list(type=MorphologyOperation)
-    name = config.attr()
+    name = config.attr(type=str, default=None, required=False)
+    """
+    Name associated to the morphology. If not provided, the program will use the name of the file 
+    in which the morphology is stored. 
+    """
+    tags = config.attr(type=dict, default=None, required=False)
+    """
+    Dictionary mapping morphology label id to its name.
+    """
 
     def store_content(self, content, *args, encoding=None, meta=None):
         if meta is None:
@@ -486,9 +494,9 @@ class MorphologyDependencyNode(FilePipelineMixin, FileDependencyNode):
             content, meta = stored.load()
             try:
                 morpho_in = Morphology.from_buffer(content, meta=meta)
-            except Exception as e:
+            except Exception as _:
                 with self.file.provide_locally() as (path, encoding):
-                    morpho_in = Morphology.from_file(path, meta=meta)
+                    morpho_in = Morphology.from_file(path, tags=self.tags, meta=meta)
             morpho = self.pipe(morpho_in)
             meta["hash"] = self._hash(content)
             meta["_stale"] = False
@@ -501,9 +509,23 @@ class MorphologyDependencyNode(FilePipelineMixin, FileDependencyNode):
             return self.scaffold.morphologies.load(self.get_morphology_name())
 
     def get_morphology_name(self):
+        """
+        Returns morphology name provided by the user or extract it from its file name.
+
+        :returns: Morphology name
+        rtype:str
+        """
         return self.name if self.name is not None else _pl.Path(self.file.uri).stem
 
     def store_object(self, morpho, hash_):
+        """
+        Save a morphology into the circuit file under the name of this instance morphology.
+
+        :param hash_: Hash key to store as metadata with the morphology
+        :type hash_: str
+        :param morpho: Morphology to store
+        :type morpho: bsb.morphologies.Morphology
+        """
         self.scaffold.morphologies.save(
             self.get_morphology_name(), morpho, meta={"hash": hash_}
         )
@@ -517,6 +539,12 @@ class MorphologyDependencyNode(FilePipelineMixin, FileDependencyNode):
         return md5.hexdigest()
 
     def queue(self, pool):
+        """
+        Add the loading of the current morphology to a job queue.
+
+        :param pool: Queue of jobs.
+        :type pool:bsb.services.pool.JobPool
+        """
         pool.queue(
             lambda scaffold, i=self._config_index: scaffold.configuration.morphologies[
                 i
