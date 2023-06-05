@@ -232,7 +232,7 @@ def _set_pk(obj, parent, key):
             _setattr(obj, a.attr_name, key)
 
 
-def _check_required(instance, attr, kwargs):
+def _missing_requirements(instance, attr, kwargs):
     # We use `self.__class__`, not `cls`, to get the proper child class.
     cls = instance.__class__
     dynamic_root = getattr(cls, "_config_dynamic_root", None)
@@ -261,7 +261,7 @@ def compile_postnew(cls):
             name = attr.attr_name
             value = values[name] = leftovers.pop(name, None)
             try:
-                if value is None and _check_required(self, attr, kwargs):
+                if _missing_requirements(self, attr, kwargs) and value is None:
                     raise RequirementError(f"Missing required attribute '{name}'")
             except RequirementError as e:
                 # Catch both our own and possible `attr.required` RequirementErrors

@@ -14,7 +14,7 @@ class _VoxelBasedParticleSystem:
     Internal mixin for particle system placement strategies
     """
 
-    def _fill_system(self, chunk, indicators):
+    def _fill_system(self, chunk, indicators, check_pack=True):
         voxels = VoxelSet.concatenate(
             *(p.chunk_to_voxels(chunk) for p in self.partitions)
         )
@@ -32,7 +32,7 @@ class _VoxelBasedParticleSystem:
         ]
         # Create and fill the particle system.
         system = ParticleSystem(track_displaced=True, scaffold=self.scaffold, strat=self)
-        system.fill(voxels, particles)
+        system.fill(voxels, particles, check_pack=check_pack)
         return system
 
     def _extract_system(self, system, chunk, indicators):
@@ -58,7 +58,7 @@ class RandomPlacement(PlacementStrategy, _VoxelBasedParticleSystem):
     """
 
     def place(self, chunk, indicators):
-        system = self._fill_system(chunk, indicators)
+        system = self._fill_system(chunk, indicators, check_pack=False)
         self._extract_system(system, chunk, indicators)
 
 
@@ -187,7 +187,7 @@ class ParticleSystem:
         self.scaffold = scaffold
         self.strat = strat
 
-    def fill(self, voxels, particles):
+    def fill(self, voxels, particles, check_pack=True):
         # Amount of spatial dimensions
         self.dimensions = voxels.get_raw(copy=False).shape[1]
         # Extend list of particle types in the system
@@ -210,22 +210,23 @@ class ParticleSystem:
         else:
             strat_name = "particle system"
         msg = f"Packing factor {round(pf, 2)}"
-        if pf > 0.4:
-            if pf > 0.64:
-                msg += " exceeds geometrical maximum packing for spheres (0.64)"
-            elif pf > 0.4:
-                msg += f" too high to resolve with {strat_name}"
+        if check_pack:
+            if pf > 0.4:
+                if pf > 0.64:
+                    msg += " exceeds geometrical maximum packing for spheres (0.64)"
+                elif pf > 0.4:
+                    msg += f" too high to resolve with {strat_name}"
 
-            count, pvol, vol = self._get_packing_factors()
-            raise PackingError(
-                f"{msg}. Can not fit {round(count)} particles for a total of "
-                f"{round(pvol, 3)}μm³ micrometers into {round(vol, 3)}μm³."
-            )
-        elif pf > 0.2:
-            warn(
-                f"{msg} is too high for good {strat_name} performance.",
-                PackingWarning,
-            )
+                count, pvol, vol = self._get_packing_factors()
+                raise PackingError(
+                    f"{msg}. Can not fit {round(count)} particles for a total of "
+                    f"{round(pvol, 3)}μm³ micrometers into {round(vol, 3)}μm³."
+                )
+            elif pf > 0.2:
+                warn(
+                    f"{msg} is too high for good {strat_name} performance.",
+                    PackingWarning,
+                )
         # Reset particles
         self.particles = []
         for particle_type in self.particle_types:

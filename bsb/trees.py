@@ -26,7 +26,7 @@ class BoxTreeInterface(abc.ABC):
         pass
 
 
-class BoxRTree(BoxTreeInterface):
+class _BoxRTree(BoxTreeInterface):
     """
     Tree for fast lookup of queries of axis aligned rhomboids using the Rtree package.
     """
@@ -37,7 +37,7 @@ class BoxRTree(BoxTreeInterface):
             self._rtree.insert(id, box)
 
     def __len__(self):
-        return self._rtree.get_size()
+        return len(self._rtree)
 
     def query(self, boxes, unique=False):
         """
@@ -63,6 +63,13 @@ class BoxRTree(BoxTreeInterface):
             yield from all_
 
 
-# Cheapo provider. Needs to be a class definition so that the doc reference can be found.
-class BoxTree(BoxRTree):
+# Cheapo provider pattern.
+class BoxTree(_BoxRTree):
+    """
+    Tree for fast lookup of repeat queries of axis aligned rhomboids.
+    """
+
     pass
+
+
+__all__ = ["BoxTreeInterface", "BoxTree"]
