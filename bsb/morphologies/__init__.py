@@ -930,7 +930,7 @@ class Morphology(SubTree):
     @classmethod
     def from_swc(cls, file, branch_class=None, tags=None, meta=None):
         """
-        Create a Morphology from a swc file.
+        Create a Morphology from an SWC file.
 
         :param file: path or file-like object to parse.
         :param branch_class: Custom branch class

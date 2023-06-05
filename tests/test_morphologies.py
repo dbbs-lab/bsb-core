@@ -47,7 +47,7 @@ class TestIO(NumpyTestCase, unittest.TestCase):
         self.assertEqual(
             42.45157433053635,
             np.mean(m.points),
-            "value of the universe, life and everything changed.",
+            "value of the universe, life and everything.",
         )
         for labelset in m.labelsets.values():
             for label in labelset:

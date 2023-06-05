@@ -471,9 +471,9 @@ class MorphologyDependencyNode(FilePipelineMixin, FileDependencyNode):
     Name associated to the morphology. If not provided, the program will use the name of the file 
     in which the morphology is stored. 
     """
-    tags = config.attr(type=dict, default=None, required=False)
+    tags = config.attr(type=types.dict(type=types.or_(str, types.list(str))))
     """
-    Dictionary mapping morphology label id to its name.
+    Dictionary mapping SWC tags to sets of morphology labels.
     """
 
     def store_content(self, content, *args, encoding=None, meta=None):
@@ -513,7 +513,7 @@ class MorphologyDependencyNode(FilePipelineMixin, FileDependencyNode):
         Returns morphology name provided by the user or extract it from its file name.
 
         :returns: Morphology name
-        rtype:str
+        :rtype: str
         """
         return self.name if self.name is not None else _pl.Path(self.file.uri).stem
 
