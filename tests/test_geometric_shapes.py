@@ -1,6 +1,6 @@
 import unittest
 import numpy as np
-from bsb.exceptions import *
+from bsb.exceptions import RequirementError
 from bsb.unittest import NumpyTestCase
 from bsb.connectivity.point_cloud.geometric_shapes import (
     ShapesComposition,
@@ -576,6 +576,23 @@ class TestGeometricShapes(unittest.TestCase, NumpyTestCase):
             radius=25.0,
             bottom_center=np.array([0, 0, -40], dtype=np.float64),
         )
+
+        with self.assertRaises(RequirementError):
+            ShapesComposition(
+                dict(
+                    shapes=[
+                        dict(
+                            type="sphere",
+                            radius=10.0,
+                            center=np.array([0, 0, 0], dtype=np.float64),
+                        )
+                    ],
+                    labels=[["label1"], ["label2"]],
+                )
+            )
+
+        with self.assertRaises(RequirementError):
+            ShapesComposition(dict(shapes=[], labels=[["label1"], ["label2"]]))
 
         # Create a ShapesComposition object
         conf = dict(voxel_size=10, shapes=[], labels=[])

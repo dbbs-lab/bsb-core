@@ -155,15 +155,14 @@ class ShapesComposition:
     shapes = config.list(
         type=GeometricShape, required=types.same_size("shapes", "labels", required=True)
     )
-    # A list of GeometricShape.
+    """List of GeometricShape that make up the neuron."""
     labels = config.list(
         type=list, required=types.same_size("shapes", "labels", required=True)
     )
-    # The labels associated to each geometric shape.
-    # A list of GeometricShape with their associated labels.
+    """List of lists of labels associated to each geometric shape."""
     voxel_size = config.attr(type=float, required=False, default=1.0)
-    # Dimension of the side of a voxel, used to determine how many points must be generated
-    # in a point cloud.
+    """Dimension of the side of a voxel, used to determine how many points must be generated
+    in a point cloud."""
 
     def __init__(self, **kwargs):
         # The two corners individuating the minimal bounding box.
