@@ -54,19 +54,22 @@ class TestIO(NumpyTestCase, unittest.TestCase):
                 self.assertTrue(re.match(r"((tag_)?[0-9]+)|(soma)", label) is not None)
         tags = {
             1: "soma",
-            16: "axon_AIS",
-            17: "axon_AIS_K",
-            18: "axon_axonmyelin",
-            19: "axon_nodes",
-            20: "dendrites_basal_dendrites",
-            21: "dendrites_pf_targets",
-            22: "dendrites_aa_targets",
+            16: ["axon", "AIS"],
+            17: ["axon", "AIS", "K"],
+            18: ["axon", "axonmyelin"],
+            19: ["axon", "nodes"],
+            20: ["dendrites", "basal_dendrites"],
+            21: ["dendrites", "pf_targets"],
+            22: ["dendrites", "aa_targets"],
         }
         m = Morphology.from_file(get_morphology_path("PurkinjeCell.swc"), tags=tags)
         all_sets = set()
         for value in m.labelsets.values():
             all_sets.update(value)
-        self.assertEqual(set(tags.values()), all_sets)
+        self.assertEqual(
+            set(np.concatenate([[v] if type(v) == str else v for v in tags.values()])),
+            all_sets,
+        )
         m = Morphology.from_file(get_morphology_path("GolgiCell.asc"))
         self.assertEqual(5105, len(m), "Amount of point on purkinje changed")
         self.assertEqual(227, len(m.branches), "Amount of branches on purkinje changed")

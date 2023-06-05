@@ -1782,7 +1782,10 @@ def _swc_data_to_morpho(cls, branch_cls, data, tags=None, meta=None):
         # And the labels
         branch_labels = labels[ptr:nptr]
         for v in np.unique(branch_tags):
-            branch_labels.label([tag_map.get(v, f"tag_{v}")], branch_tags == v)
+            u_tags = tag_map.get(v, f"tag_{v}")
+            branch_labels.label(
+                [u_tags] if type(u_tags) == str else u_tags, branch_tags == v
+            )
         ptr = nptr
         # Use the views to construct the branch
         branch = branch_cls(branch_points, branch_radii, branch_labels)
