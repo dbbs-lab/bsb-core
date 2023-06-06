@@ -714,6 +714,16 @@ def mut_excl(*mutuals, required=True, max=1):
 
 
 def same_size(*mutuals, required=True):
+    """
+    Requirement handler for list attributes that should have the same size.
+
+    :param mutuals: The keys of the list attributes.
+    :type mutuals: str
+    :param required: Whether at least one of the keys is required
+    :type required: bool
+    :returns: Requirement function
+    :rtype: Callable
+    """
     listed = ", ".join(f"`{m}`" for m in mutuals[:-1])
     if len(mutuals) > 1:
         listed += f" {{}} `{mutuals[-1]}`"
@@ -752,7 +762,12 @@ class ndarray(TypeHandler):
     :rtype: Callable
     """
 
+    def __init__(self, dtype=None):
+        self.dtype = dtype
+
     def __call__(self, value):
+        if self.dtype is not None:
+            return np.array(value, copy=False, dtype=self.dtype)
         return np.array(value, copy=False)
 
     @property

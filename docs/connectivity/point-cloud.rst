@@ -67,17 +67,17 @@ for the axon:
             {
                 "type": "sphere",
                 "radius": 40.0,
-                "center": [0, 0, 0]},
+                "center": [0., 0., 0.]},
             {
                 "type": "cone",
-                "center": [0, 0, 0],
+                "center": [0., 0., 0.],
                 "radius": 100.0,
-                "apex": [0, 100, 0]},
+                "apex": [0., 100., 0.]},
             {
                 "type": "cylinder",
                 "radius": 100.0,
-                "top_center": [0, 0, 0],
-                "bottom_center": [0, 0, 10]
+                "top_center": [0., 0., 0.],
+                "bottom_center": [0., 0., 10.]
             }
         ],
         "labels":
@@ -130,7 +130,7 @@ Configuration example:
       "morphology_labels": ["sc_targets"],
       "shape_compositions" : [{
         "voxel_size": 25,
-        "shapes": [{"type": "sphere", "radius": 40.0, "center": [0, 0, 0]}],
+        "shapes": [{"type": "sphere", "radius": 40.0, "center": [0., 0., 0.]}],
         "labels": [["soma", "dendrites", "sc_targets", "axon"]],
       }]
     },
@@ -156,7 +156,7 @@ Configuration example:
       "morphology_labels": ["axon"],
       "shape_compositions" : [{
         "voxel_size": 25,
-        "shapes": [{"type": "sphere", "radius": 40.0, "center": [0, 0, 0]}],
+        "shapes": [{"type": "sphere", "radius": 40.0, "center": [0., 0., 0.]}],
         "labels": [["soma", "dendrites", "axon"]],
       }]
     },
@@ -190,7 +190,7 @@ Configuration example:
       "morphology_labels": ["axon"],
       "shape_compositions" : [{
         "voxel_size": 25,
-        "shapes": [{"type": "sphere", "radius": 40.0, "center": [0, 0, 0]}],
+        "shapes": [{"type": "sphere", "radius": 40.0, "center": [0., 0., 0.]}],
         "labels": [["soma", "dendrites", "axon"]],
       }]
     },
@@ -199,7 +199,7 @@ Configuration example:
       "morphology_labels": ["sc_targets"],
       "shape_compositions" : [{
         "voxel_size": 25,
-        "shapes": [{"type": "sphere", "radius": 40.0, "center": [0, 0, 0]}],
+        "shapes": [{"type": "sphere", "radius": 40.0, "center": [0., 0., 0.]}],
         "labels": [["soma", "dendrites", "sc_targets", "axon"]],
       }]
     },

@@ -20,12 +20,12 @@ from bsb.unittest import get_config_path, timeout, RandomStorageFixture, NumpyTe
 from time import sleep
 
 
-def test_dud(scaffold, x, y):
+def _test_dud(scaffold, x, y):
     sleep(y)
     return x
 
 
-def test_chunk(scaffold, chunk):
+def _test_chunk(scaffold, chunk):
     return chunk
 
 
@@ -130,7 +130,7 @@ class SchedulerBaseTest:
     @timeout(3)
     def test_single_job(self):
         pool = JobPool(_net)
-        job = pool.queue(test_dud, (5, 0.1))
+        job = pool.queue(_test_dud, (5, 0.1))
         pool.execute()
 
     @timeout(3)
@@ -142,7 +142,7 @@ class SchedulerBaseTest:
             i += 1
 
         pool = JobPool(_net, listeners=[spy])
-        job = pool.queue(test_dud, (5, 0.1))
+        job = pool.queue(_test_dud, (5, 0.1))
         pool.execute()
         if not MPI.get_rank():
             self.assertEqual(1, i, "Listeners not executed.")
@@ -154,7 +154,7 @@ class SchedulerBaseTest:
 
     def test_chunked_job(self):
         pool = JobPool(_net)
-        job = pool.queue_chunk(test_chunk, _chunk(0, 0, 0))
+        job = pool.queue_chunk(_test_chunk, _chunk(0, 0, 0))
         pool.execute()
 
     def test_notparallel_ps_job(test):
@@ -204,16 +204,16 @@ class TestParallelScheduler(unittest.TestCase, SchedulerBaseTest):
     @timeout(3)
     def test_double_pool(self):
         pool = JobPool(_net)
-        job = pool.queue(test_dud, (5, 0.1))
+        job = pool.queue(_test_dud, (5, 0.1))
         pool.execute()
         pool = JobPool(_net)
-        job = pool.queue(test_dud, (5, 0.1))
+        job = pool.queue(_test_dud, (5, 0.1))
         pool.execute()
 
     @timeout(3)
     def test_master_loop(self):
         pool = JobPool(_net)
-        job = pool.queue(test_dud, (5, 0.1))
+        job = pool.queue(_test_dud, (5, 0.1))
         executed = False
 
         def spy_loop(p):
@@ -229,7 +229,7 @@ class TestParallelScheduler(unittest.TestCase, SchedulerBaseTest):
     @timeout(3)
     def test_fake_futures(self):
         pool = JobPool(_net)
-        job = pool.queue(test_dud, (5, 0.1))
+        job = pool.queue(_test_dud, (5, 0.1))
         self.assertIs(FakeFuture.done, job._future.done.__func__)
         self.assertFalse(job._future.done())
         self.assertFalse(job._future.running())
@@ -237,8 +237,8 @@ class TestParallelScheduler(unittest.TestCase, SchedulerBaseTest):
     @timeout(3)
     def test_dependencies(self):
         pool = JobPool(_net)
-        job = pool.queue(test_dud, (5, 0.1))
-        job2 = pool.queue(test_dud, (5, 0.1), deps=[job])
+        job = pool.queue(_test_dud, (5, 0.1))
+        job2 = pool.queue(_test_dud, (5, 0.1), deps=[job])
         result = None
 
         def spy_queue(jobs):

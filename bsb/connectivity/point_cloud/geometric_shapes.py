@@ -371,9 +371,9 @@ class Ellipsoid(GeometricShape, classmap_entry="ellipsoid"):
     An ellipsoid, described in cartesian coordinates.
     """
 
-    center = config.attr(type=types.ndarray(), required=True)
+    center = config.attr(type=types.ndarray(dtype=float), required=True)
     """The coordinates of the center of the ellipsoid."""
-    lambdas = config.attr(type=types.ndarray(), required=True)
+    lambdas = config.attr(type=types.ndarray(dtype=float), required=True)
     """The length of the three semi-axes."""
 
     @config.property(type=types.ndarray(), required=True)
@@ -494,9 +494,9 @@ class Cone(GeometricShape, classmap_entry="cone"):
     A cone, described in cartesian coordinates.
     """
 
-    apex = config.attr(type=types.ndarray(), required=True)
+    apex = config.attr(type=types.ndarray(dtype=float), required=True)
     """The coordinates of the apex of the cone."""
-    center = config.attr(type=types.ndarray(), required=True)
+    center = config.attr(type=types.ndarray(dtype=float), required=True)
     """The coordinates of the center of the cone."""
     radius = config.attr(type=float, required=False, default=1.0e-3)
     """The radius of the base circle."""
@@ -635,9 +635,9 @@ class Cylinder(GeometricShape, classmap_entry="cylinder"):
     A cylinder, described in cartesian coordinates.
     """
 
-    bottom_center = config.attr(type=types.ndarray(), required=True)
+    bottom_center = config.attr(type=types.ndarray(dtype=float), required=True)
     """The coordinates of the center of the bottom circle of the cylinder."""
-    top_center = config.attr(type=types.ndarray(), required=True)
+    top_center = config.attr(type=types.ndarray(dtype=float), required=True)
     """The coordinates of the center of the top circle of the cylinder."""
     radius = config.attr(type=float, required=False, default=1.0e-3)
     """The radius of the base circle."""
@@ -767,7 +767,7 @@ class Sphere(GeometricShape, classmap_entry="sphere"):
     A sphere, described in cartesian coordinates.
     """
 
-    center = config.attr(type=types.ndarray(), required=True)
+    center = config.attr(type=types.ndarray(dtype=float), required=True)
     """The coordinates of the center of the sphere."""
     radius = config.attr(type=float, required=False, default=1.0e-3)
     """The radius of the sphere."""
@@ -834,9 +834,9 @@ class Cuboid(GeometricShape, classmap_entry="cuboid"):
     A rectangular parallelepiped, described in cartesian coordinates.
     """
 
-    bottom_center = config.attr(type=types.ndarray(), required=True)
+    bottom_center = config.attr(type=types.ndarray(dtype=float), required=True)
     """The coordinates of the center of the barycenter of the bottom rectangle."""
-    top_center = config.attr(type=types.ndarray(), required=True)
+    top_center = config.attr(type=types.ndarray(dtype=float), required=True)
     """The coordinates of the center of the barycenter of the top rectangle."""
     side_length_1 = config.attr(type=float, required=False, default=1.0e-3)
     """Length of one side of the base rectangle."""
@@ -1009,15 +1009,15 @@ class Parallelepiped(GeometricShape, classmap_entry="parallelepiped"):
     sides in cartesian coordinates
     """
 
-    center = config.attr(type=types.ndarray(), required=True)
+    center = config.attr(type=types.ndarray(dtype=float), required=True)
     """The coordinates of the left-bottom edge."""
-    side_vector_1 = config.attr(type=types.ndarray(), required=True)
+    side_vector_1 = config.attr(type=types.ndarray(dtype=float), required=True)
     """The first vector identifying the parallelepiped (using the right-hand orientation: the 
         thumb)."""
-    side_vector_2 = config.attr(type=types.ndarray(), required=True)
+    side_vector_2 = config.attr(type=types.ndarray(dtype=float), required=True)
     """The second vector identifying the parallelepiped (using the right-hand orientation: the 
         index)."""
-    side_vector_3 = config.attr(type=types.ndarray(), required=True)
+    side_vector_3 = config.attr(type=types.ndarray(dtype=float), required=True)
     """The third vector identifying the parallelepiped (using the right-hand orientation: the 
         middle finger)."""
 
