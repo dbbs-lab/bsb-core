@@ -1,16 +1,12 @@
-import os
-import sys
 import unittest
 import numpy as np
-import inspect
 
 from scipy.spatial.transform import Rotation
 
 from bsb._util import rotation_matrix_from_vectors
 from bsb.core import Scaffold
-from bsb.voxels import VoxelSet
-from bsb.exceptions import *
-import bsb.unittest
+from bsb.storage import FileDependency
+from bsb.storage._files import NeuroMorphoScheme
 from bsb.unittest import (
     FixedPosConfigFixture,
     RandomStorageFixture,
@@ -71,3 +67,12 @@ class TestRotationUtils(unittest.TestCase):
             rotation_matrix_from_vectors(err1, vec2)
         with self.assertRaises(ValueError, msg="This should raise a ValueError") as _:
             rotation_matrix_from_vectors(vec1, err2)
+
+
+class TestUriSchemes(unittest.TestCase):
+    def test_nm_scheme(self):
+        file = FileDependency("nm://AX2_scaled", Scaffold().files)
+        self.assertIs(NeuroMorphoScheme, type(file._scheme), "Expected NM scheme")
+        meta = file.get_meta()
+        self.assertIn("neuromorpho_data", meta)
+        self.assertEqual(130892, meta["neuromorpho_data"]["neuron_id"])
