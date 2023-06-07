@@ -1,3 +1,4 @@
+import itertools
 import os
 import numpy as np
 import functools
@@ -117,8 +118,18 @@ class ExternalConnections(ConnectionStrategy):
             raise SourceQualityError("Missing GIDs in external map.")
 
 
+@config.node
 class FixedIndegree(InvertedRoI, ConnectionStrategy):
     indegree = config.attr(type=int, required=True)
+
+    def get_region_of_interest(self, chunk):
+        from_chunks = set(
+            itertools.chain.from_iterable(
+                ct.get_placement_set().get_all_chunks()
+                for ct in self.presynaptic.cell_types
+            )
+        )
+        return from_chunks
 
     def connect(self, pre, post):
         in_ = self.indegree
@@ -134,7 +145,6 @@ class FixedIndegree(InvertedRoI, ConnectionStrategy):
                 pre_targets[ptr : ptr + in_, 0] = rng.choice(high, in_, replace=False)
                 ptr += in_
             lowmux = 0
-            highmux = 0
             for pre, pre_ps in pre.placement.items():
                 highmux = lowmux + len(pre_ps)
                 demux_idx = (pre_targets[:, 0] >= lowmux) & (pre_targets[:, 0] < highmux)
