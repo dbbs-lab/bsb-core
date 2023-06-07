@@ -5,6 +5,7 @@ from .strategy import ConnectionStrategy
 from ..exceptions import SourceQualityError
 from .. import config, _util as _gutil
 from ..config import types
+from ..mixins import InvertedRoI
 from ..reporting import warn
 
 
@@ -114,3 +115,30 @@ class ExternalConnections(ConnectionStrategy):
             return np.vectorize(dict(zip(map, targets)).get)(data)
         except TypeError:
             raise SourceQualityError("Missing GIDs in external map.")
+
+
+class FixedIndegree(InvertedRoI, ConnectionStrategy):
+    indegree = config.attr(type=int, required=True)
+
+    def connect(self, pre, post):
+        in_ = self.indegree
+        rng = np.random.default_rng()
+        high = sum(len(ps) for ps in pre.placement.values())
+        for post, ps in post.placement.items():
+            l = len(ps)
+            pre_targets = np.full((l * in_, 3), -1)
+            post_targets = np.full((l * in_, 3), -1)
+            ptr = 0
+            for i in range(l):
+                post_targets[ptr : ptr + in_, 0] = i
+                pre_targets[ptr : ptr + in_, 0] = rng.choice(high, in_, replace=False)
+                ptr += in_
+            lowmux = 0
+            highmux = 0
+            for pre, pre_ps in pre.placement.items():
+                highmux = lowmux + len(pre_ps)
+                demux_idx = (pre_targets[:, 0] >= lowmux) & (pre_targets[:, 0] < highmux)
+                demuxed = pre_targets[demux_idx]
+                demuxed[:, 0] -= lowmux
+                self.connect_cells(pre_ps, ps, demuxed, post_targets[demux_idx])
+                lowmux = highmux
