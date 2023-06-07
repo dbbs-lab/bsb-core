@@ -7,7 +7,7 @@ from bsb.simulation.adapter import SimulatorAdapter
 import numpy as np
 import itertools as it
 import time
-import psutil
+import arbor
 
 from ...storage import Chunk
 
@@ -111,8 +111,6 @@ class ArborRecipe(arbor.recipe):
         self._global_properties.register(self._catalogue)
 
     def _get_catalogue(self):
-        import arbor
-
         catalogue = arbor.default_catalogue()
         prefixes = set()
         for cell in self._adapter.cell_models.values():
@@ -183,8 +181,6 @@ class ArborAdapter(SimulatorAdapter):
     def prepare(self, simulation: "ArborSimulation", comm=None):
         simdata = self._create_simdata(simulation)
         try:
-            import arbor
-
             try:
                 if hasattr(MPI, "_mocked"):
                     mpi = None
