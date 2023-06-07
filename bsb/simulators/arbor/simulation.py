@@ -7,6 +7,6 @@ from .device import ArborDevice
 
 @config.node
 class ArborSimulation(Simulation):
-    cell_models = config.slot(type=ArborCell, required=True)
-    connection_models = config.slot(type=ArborConnection, required=True)
-    devices = config.slot(type=ArborDevice, required=True)
+    cell_models = config.dict(type=ArborCell, required=True)
+    connection_models = config.dict(type=ArborConnection, required=True)
+    devices = config.dict(type=ArborDevice, required=True)
