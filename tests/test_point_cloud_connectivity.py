@@ -1,7 +1,7 @@
+from copy import deepcopy
+
 from bsb.core import Scaffold
-from bsb.services import MPI
 from bsb.config import Configuration
-from bsb.morphologies import Morphology, Branch
 from bsb.unittest import (
     NumpyTestCase,
     FixedPosConfigFixture,
@@ -86,12 +86,12 @@ class TestPointCloudConnectivity(
                 strategy="bsb.connectivity.point_cloud.CloudToCloudIntersection",
                 presynaptic=dict(
                     cell_types=["test_cell_pc_1"],
-                    shape_compositions=[ball_shape],
+                    shapes_composition=ball_shape,
                     morphology_labels=["soma"],
                 ),
                 postsynaptic=dict(
                     cell_types=["test_cell_pc_1"],
-                    shape_compositions=[ball_shape],
+                    shapes_composition=deepcopy(ball_shape),
                     morphology_labels=["soma"],
                 ),
                 affinity=0.1,
@@ -105,12 +105,12 @@ class TestPointCloudConnectivity(
                 strategy="bsb.connectivity.point_cloud.CloudToCloudIntersection",
                 presynaptic=dict(
                     cell_types=["test_cell_pc_1"],
-                    shape_compositions=[ball_shape],
+                    shapes_composition=deepcopy(ball_shape),
                     morphology_labels=["soma"],
                 ),
                 postsynaptic=dict(
                     cell_types=["test_cell_pc_2"],
-                    shape_compositions=[ball_shape],
+                    shapes_composition=deepcopy(ball_shape),
                     morphology_labels=["soma"],
                 ),
                 affinity=0.1,
@@ -156,7 +156,7 @@ class TestPointCloudConnectivity(
                 strategy="bsb.connectivity.point_cloud.CloudToMorphologyIntersection",
                 presynaptic=dict(
                     cell_types=["test_cell_pc_2"],
-                    shape_compositions=[ball_shape],
+                    shapes_composition=ball_shape,
                     morphology_labels=["soma"],
                 ),
                 postsynaptic=dict(
@@ -173,7 +173,7 @@ class TestPointCloudConnectivity(
                 strategy="bsb.connectivity.point_cloud.CloudToMorphologyIntersection",
                 presynaptic=dict(
                     cell_types=["test_cell_pc_1"],
-                    shape_compositions=[ball_shape],
+                    shapes_composition=deepcopy(ball_shape),
                     morphology_labels=["soma"],
                 ),
                 postsynaptic=dict(
@@ -215,7 +215,7 @@ class TestPointCloudConnectivity(
                 strategy="bsb.connectivity.point_cloud.MorphologyToCloudIntersection",
                 postsynaptic=dict(
                     cell_types=["test_cell_pc_2"],
-                    shape_compositions=[ball_shape],
+                    shapes_composition=ball_shape,
                     morphology_labels=["soma"],
                 ),
                 presynaptic=dict(
@@ -232,7 +232,7 @@ class TestPointCloudConnectivity(
                 strategy="bsb.connectivity.point_cloud.MorphologyToCloudIntersection",
                 postsynaptic=dict(
                     cell_types=["test_cell_pc_1"],
-                    shape_compositions=[ball_shape],
+                    shapes_composition=deepcopy(ball_shape),
                     morphology_labels=["soma"],
                 ),
                 presynaptic=dict(

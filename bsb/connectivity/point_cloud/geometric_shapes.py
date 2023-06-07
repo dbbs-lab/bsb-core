@@ -240,6 +240,24 @@ class ShapesComposition:
         """
         return [shape.get_volume() for shape in self._shapes]
 
+    def get_mbb_min(self):
+        """
+        Returns the bottom corner of the minimum bounding box containing the collection of shapes.
+
+        :return: The bottom corner individuating the minimal bounding box of the shapes collection.
+        :rtype: numpy.ndarray[float]
+        """
+        return self._mbb_min
+
+    def get_mbb_max(self):
+        """
+        Returns the top corner of the minimum bounding box containing the collection of shapes.
+
+        :return: The top corner individuating the minimal bounding box of the shapes collection.
+        :rtype: numpy.ndarray[float]
+        """
+        return self._mbb_max
+
     def find_mbb(self) -> Tuple[numpy.ndarray[float], numpy.ndarray[float]]:
         """
         Compute the minimal bounding box containing the collection of shapes.
@@ -340,29 +358,6 @@ class ShapesComposition:
             return cloud
         else:
             return None
-
-    def save_to_file(self, filename: str):
-        """
-        Save the collection of shapes to file.
-
-        :param str filename: The name of the output file.
-        """
-        with open(filename, "wb") as handle:
-            pickle.dump(self, handle, protocol=pickle.HIGHEST_PROTOCOL)
-
-    def load_from_file(self, filename: str):
-        """
-        Load a collection of shapes from a file.
-
-        :param str filename: The name of the output file.
-        """
-        tmp = None
-        with open(filename, "rb") as handle:
-            tmp = pickle.load(handle)
-        self._shapes = tmp._shapes
-        self._voxel_size = tmp._voxel_size
-        self._mbb_min, self._mbb_max = self.find_mbb()
-        self._labels = tmp._labels
 
 
 @config.node

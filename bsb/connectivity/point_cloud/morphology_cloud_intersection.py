@@ -1,7 +1,7 @@
 import numpy as np
 from bsb.connectivity import ConnectionStrategy
 from bsb import config
-from .cloud_cloud_intersection import CloudHemitype
+from .cloud_cloud_intersection import CloudHemitype, get_postsyn_chunks
 
 
 @config.node
@@ -10,30 +10,9 @@ class MorphologyToCloudIntersection(ConnectionStrategy):
     affinity = config.attr(type=float, required=True)
 
     def get_region_of_interest(self, chunk):
-        ct = self.postsynaptic.cell_types[0]
-        chunks = ct.get_placement_set().get_all_chunks()
-
-        """
-        cloud = ShapesComposition(voxel_size)
-        cloud.load_from_file(cloud_name)  
-        mbb_min, mbb_max = cloud.find_mbb()
-        
-        selected_chunks = []
-
-        # Look for chunks inside the mbb
-        #inside = (c[:,0]>mbb_min[0]) & (c[:,1]>mbb_min[1]) & (c[:,2]>mbb_min[2]) & 
-                  (c[:,0]<mbb_max[0]) & (c[:,1]<mbb_max[1]) & (c[:,2]<mbb_max[2])
-        for c in chunks:    
-            #inside = (c[0]>mbb_min[0]) & (c[1]>mbb_min[1]) & (c[2]>mbb_min[2]) & 
-                      (c[0]<mbb_max[0]) & (c[1]<mbb_max[1]) & (c[2]<mbb_max[2])
-            inside = (c[0]>mbb_min[0]-c.dimensions[0]) & (c[1]>mbb_min[1]-c.dimensions[1]) & 
-                     (c[2]>mbb_min[2]-c.dimensions[2]) & (c[0]<mbb_max[0]+c.dimensions[0]) & 
-                     (c[1]<mbb_max[1]+c.dimensions[1]) & (c[2]<mbb_max[2]+c.dimensions[2])
-            if (inside == True):
-                selected_chunks.append(Chunk([c[0], c[1], c[2]], chunk.dimensions))
-        """
-
-        return chunks
+        return get_postsyn_chunks(
+            chunk, self.postsynaptic.cell_types, self.postsynaptic.shapes_composition
+        )
 
     def connect(self, pre, post):
         for pre_ct, pre_ps in pre.placement.items():
@@ -44,10 +23,7 @@ class MorphologyToCloudIntersection(ConnectionStrategy):
         pre_pos = pre_ps.load_positions()
         post_pos = post_ps.load_positions()[:, [0, 2, 1]]
 
-        cloud_cache = self.postsynaptic.shape_compositions
-        cloud_cache = np.array(cloud_cache)[
-            np.random.randint(low=0, high=len(cloud_cache), size=len(post_pos), dtype=int)
-        ]
+        post_cloud = self.postsynaptic.shapes_composition
 
         to_connect_pre = np.empty([0, 3], dtype=int)
         to_connect_post = np.empty([0, 3], dtype=int)
@@ -79,7 +55,6 @@ class MorphologyToCloudIntersection(ConnectionStrategy):
                 local_ptr += len(b.points)
 
             for post_id, post_coord in enumerate(post_pos):
-                post_cloud = cloud_cache[post_id]
                 post_cloud.translate(post_coord)
                 mbb_check = post_cloud.inside_mbox(pre_morpho_coord)
                 if np.any(mbb_check):

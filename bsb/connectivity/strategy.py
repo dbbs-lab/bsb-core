@@ -97,6 +97,15 @@ class ConnectionStrategy(abc.ABC, SortableByAfter):
 
     @abc.abstractmethod
     def get_region_of_interest(self, chunk):
+        """
+        Returns the list of chunks containing the potential postsynaptic neurons, based on a
+        chunk containing the presynaptic neurons.
+
+        :param chunk: Presynaptic chunk
+        :type chunk: bsb.storage.Chunk
+        :returns: List of postsynaptic chunks
+        :rtype: List[bsb.storage.Chunk]
+        """
         pass
 
     def queue(self, pool):
