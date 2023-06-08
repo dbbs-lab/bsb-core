@@ -25,12 +25,18 @@
         "radius": 1.0,
         "count": 2000
       }
+    },
+    "extra": {
+      "spatial": {
+        "radius": 1.0,
+        "count": 500
+      }
     }
   },
   "placement": {
     "random": {
       "strategy": "bsb.placement.RandomPlacement",
-      "cell_types": ["inhibitory","excitatory"],
+      "cell_types": ["inhibitory","excitatory", "extra"],
       "partitions": ["all"]
     }
   },
@@ -43,6 +49,16 @@
       },
       "postsynaptic": {
         "cell_types": ["inhibitory"]
+      }
+    },
+    "multi_indegree": {
+      "strategy": "bsb.connectivity.FixedIndegree",
+      "indegree": 50,
+      "presynaptic": {
+        "cell_types": ["excitatory", "extra"]
+      },
+      "postsynaptic": {
+        "cell_types": ["inhibitory", "extra"]
       }
     }
   },

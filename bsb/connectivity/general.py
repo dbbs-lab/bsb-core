@@ -135,7 +135,7 @@ class FixedIndegree(InvertedRoI, ConnectionStrategy):
         in_ = self.indegree
         rng = np.random.default_rng()
         high = sum(len(ps) for ps in pre.placement.values())
-        for post, ps in post.placement.items():
+        for post_ct, ps in post.placement.items():
             l = len(ps)
             pre_targets = np.full((l * in_, 3), -1)
             post_targets = np.full((l * in_, 3), -1)
@@ -145,7 +145,7 @@ class FixedIndegree(InvertedRoI, ConnectionStrategy):
                 pre_targets[ptr : ptr + in_, 0] = rng.choice(high, in_, replace=False)
                 ptr += in_
             lowmux = 0
-            for pre, pre_ps in pre.placement.items():
+            for pre_ct, pre_ps in pre.placement.items():
                 highmux = lowmux + len(pre_ps)
                 demux_idx = (pre_targets[:, 0] >= lowmux) & (pre_targets[:, 0] < highmux)
                 demuxed = pre_targets[demux_idx]

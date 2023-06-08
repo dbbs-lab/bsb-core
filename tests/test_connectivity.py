@@ -655,3 +655,21 @@ class TestFixedIndegree(
             "Not all post cells have connections",
         )
         self.assertTrue(np.all(c == 50), "Not all cells have indegree 50")
+
+    def test_multi_indegree(self):
+        self.network.compile()
+        for post_name in ("inhibitory", "extra"):
+            total = np.zeros(len(self.network.get_placement_set(post_name)))
+            for pre_name in ("excitatory", "extra"):
+                cs = self.network.get_connectivity_set(
+                    f"multi_indegree_{pre_name}_to_{post_name}"
+                )
+                _, post_locs = cs.load_connections().all()
+                ps = self.network.get_placement_set("inhibitory")
+                u, c = np.unique(post_locs[:, 0], return_counts=True)
+                self.assertTrue(
+                    np.array_equal(np.arange(len(ps)), np.sort(u)),
+                    "Not all post cells have connections",
+                )
+                total += c
+            self.assertTrue(np.all(total == 50), "Not all cells have indegree 50")
