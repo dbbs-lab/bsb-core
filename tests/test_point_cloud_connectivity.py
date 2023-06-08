@@ -1,5 +1,3 @@
-from copy import deepcopy
-
 from bsb.core import Scaffold
 from bsb.config import Configuration
 from bsb.unittest import (
@@ -8,13 +6,8 @@ from bsb.unittest import (
     RandomStorageFixture,
     MorphologiesFixture,
     NetworkFixture,
-    PointCloudFixture,
-    skip_parallel,
 )
 import unittest
-import numpy as np
-from collections import defaultdict
-from bsb.connectivity.point_cloud.geometric_shapes import ShapesComposition, Sphere
 
 
 class TestPointCloudConnectivity(
@@ -23,16 +16,12 @@ class TestPointCloudConnectivity(
     FixedPosConfigFixture,
     RandomStorageFixture,
     NumpyTestCase,
-    PointCloudFixture,
     unittest.TestCase,
     engine_name="hdf5",
     morpho_filters=["2branch"],
 ):
     def setUp(self):
         super().setUp()
-        self.network.cell_types.test_cell.spatial.morphologies = [
-            {"names": self.network.morphologies.list()}
-        ]
 
         self.cfg = Configuration.default(
             cell_types=dict(
@@ -71,9 +60,7 @@ class TestPointCloudConnectivity(
 
     def test_cloud_to_cloud(self):
         voxel_size = 25
-        config_sphere = dict(
-            type="sphere", radius=40.0, center=np.array([0, 0, 0], dtype=np.float64)
-        )
+        config_sphere = dict(type="sphere", radius=40.0, center=[0, 0, 0])
         ball_shape = {
             "voxel_size": voxel_size,
             "shapes": [config_sphere],
@@ -91,7 +78,7 @@ class TestPointCloudConnectivity(
                 ),
                 postsynaptic=dict(
                     cell_types=["test_cell_pc_1"],
-                    shapes_composition=deepcopy(ball_shape),
+                    shapes_composition=ball_shape,
                     morphology_labels=["soma"],
                 ),
                 affinity=0.1,
@@ -105,12 +92,12 @@ class TestPointCloudConnectivity(
                 strategy="bsb.connectivity.point_cloud.CloudToCloudIntersection",
                 presynaptic=dict(
                     cell_types=["test_cell_pc_1"],
-                    shapes_composition=deepcopy(ball_shape),
+                    shapes_composition=ball_shape,
                     morphology_labels=["soma"],
                 ),
                 postsynaptic=dict(
                     cell_types=["test_cell_pc_2"],
-                    shapes_composition=deepcopy(ball_shape),
+                    shapes_composition=ball_shape,
                     morphology_labels=["soma"],
                 ),
                 affinity=0.1,
@@ -140,9 +127,7 @@ class TestPointCloudConnectivity(
 
     def test_cloud_to_morpho(self):
         voxel_size = 25
-        config_sphere = dict(
-            type="sphere", radius=40.0, center=np.array([0, 0, 0], dtype=np.float64)
-        )
+        config_sphere = dict(type="sphere", radius=40.0, center=[0, 0, 0])
         ball_shape = {
             "voxel_size": voxel_size,
             "shapes": [config_sphere],
@@ -159,9 +144,7 @@ class TestPointCloudConnectivity(
                     shapes_composition=ball_shape,
                     morphology_labels=["soma"],
                 ),
-                postsynaptic=dict(
-                    cell_types=["test_cell_morpho"], morphology_names=["2branch"]
-                ),
+                postsynaptic=dict(cell_types=["test_cell_morpho"]),
                 affinity=0.1,
             ),
         )
@@ -173,12 +156,10 @@ class TestPointCloudConnectivity(
                 strategy="bsb.connectivity.point_cloud.CloudToMorphologyIntersection",
                 presynaptic=dict(
                     cell_types=["test_cell_pc_1"],
-                    shapes_composition=deepcopy(ball_shape),
+                    shapes_composition=ball_shape,
                     morphology_labels=["soma"],
                 ),
-                postsynaptic=dict(
-                    cell_types=["test_cell_morpho"], morphology_names=["2branch"]
-                ),
+                postsynaptic=dict(cell_types=["test_cell_morpho"]),
                 affinity=0.1,
             ),
         )
@@ -199,9 +180,7 @@ class TestPointCloudConnectivity(
 
     def test_morpho_to_cloud(self):
         voxel_size = 25
-        config_sphere = dict(
-            type="sphere", radius=40.0, center=np.array([0, 0, 0], dtype=np.float64)
-        )
+        config_sphere = dict(type="sphere", radius=40.0, center=[0, 0, 0])
         ball_shape = {
             "voxel_size": voxel_size,
             "shapes": [config_sphere],
@@ -218,9 +197,7 @@ class TestPointCloudConnectivity(
                     shapes_composition=ball_shape,
                     morphology_labels=["soma"],
                 ),
-                presynaptic=dict(
-                    cell_types=["test_cell_morpho"], morphology_names=["2branch"]
-                ),
+                presynaptic=dict(cell_types=["test_cell_morpho"]),
                 affinity=0.1,
             ),
         )
@@ -232,12 +209,10 @@ class TestPointCloudConnectivity(
                 strategy="bsb.connectivity.point_cloud.MorphologyToCloudIntersection",
                 postsynaptic=dict(
                     cell_types=["test_cell_pc_1"],
-                    shapes_composition=deepcopy(ball_shape),
+                    shapes_composition=ball_shape,
                     morphology_labels=["soma"],
                 ),
-                presynaptic=dict(
-                    cell_types=["test_cell_morpho"], morphology_names=["2branch"]
-                ),
+                presynaptic=dict(cell_types=["test_cell_morpho"]),
                 affinity=0.1,
             ),
         )

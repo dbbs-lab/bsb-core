@@ -78,8 +78,8 @@ class CloudToCloudIntersection(ConnectionStrategy):
         pre_pos = pre_ps.load_positions()[:, [0, 2, 1]]
         post_pos = post_ps.load_positions()[:, [0, 2, 1]]
 
-        pre_cloud_cache = self.presynaptic.shapes_composition
-        post_cloud_cache = self.postsynaptic.shapes_composition
+        pre_cloud_cache = self.presynaptic.shapes_composition.copy()
+        post_cloud_cache = self.postsynaptic.shapes_composition.copy()
 
         to_connect_pre = np.empty([0, 3], dtype=int)
         to_connect_post = np.empty([0, 3], dtype=int)

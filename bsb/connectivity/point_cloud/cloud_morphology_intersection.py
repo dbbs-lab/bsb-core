@@ -25,7 +25,7 @@ class CloudToMorphologyIntersection(ConnectionStrategy):
         pre_pos = pre_ps.load_positions()[:, [0, 2, 1]]
         post_pos = post_ps.load_positions()
 
-        pre_cloud = self.presynaptic.shapes_composition
+        pre_cloud = self.presynaptic.shapes_composition.copy()
 
         to_connect_pre = np.empty([0, 3], dtype=int)
         to_connect_post = np.empty([0, 3], dtype=int)
