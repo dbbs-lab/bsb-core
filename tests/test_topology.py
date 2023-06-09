@@ -90,7 +90,7 @@ class TestAllenVoxels(unittest.TestCase):
 
     def test_mask_nrrd(self):
         cfg = Configuration.default(
-            region=dict(br=dict(children=["a"])),
+            regions=dict(br=dict(children=["a"])),
             partitions=dict(
                 a=dict(
                     type="allen",

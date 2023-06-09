@@ -713,25 +713,25 @@ def mut_excl(*mutuals, required=True, max=1):
     return requirement
 
 
-def same_size(*mutuals, required=True):
+def same_size(*list_attrs, required=True):
     """
     Requirement handler for list attributes that should have the same size.
 
-    :param mutuals: The keys of the list attributes.
-    :type mutuals: str
+    :param list_attrs: The keys of the list attributes.
+    :type list_attrs: str
     :param required: Whether at least one of the keys is required
     :type required: bool
     :returns: Requirement function
     :rtype: Callable
     """
-    listed = ", ".join(f"`{m}`" for m in mutuals[:-1])
-    if len(mutuals) > 1:
-        listed += f" {{}} `{mutuals[-1]}`"
+    listed = ", ".join(f"`{m}`" for m in list_attrs[:-1])
+    if len(list_attrs) > 1:
+        listed += f" {{}} `{list_attrs[-1]}`"
 
     def requirement(section):
         common_size = -1
         count = 0
-        for m in mutuals:
+        for m in list_attrs:
             if m in section:
                 v = builtins.list(section[m])
                 if len(v) != common_size and common_size >= 0:
@@ -739,7 +739,7 @@ def same_size(*mutuals, required=True):
                     raise RequirementError(err_msg)
                 common_size = len(v)
                 count += 1
-        if not count == len(mutuals) and required:
+        if not count == len(list_attrs) and required:
             err_msg = f"The {listed} attributes are required."
             raise RequirementError(err_msg)
         return False

@@ -31,31 +31,27 @@ def get_postsyn_chunks(presyn_chunk, post_cell_types, post_shapes_composition):
     chunks = [
         c for ct in post_cell_types for c in ct.get_placement_set().get_all_chunks()
     ]
+    # Creates a Boxtree storing postsynaptic minimal bounding boxes.
     tree = BoxTree(
         [
             np.concatenate(
                 [
-                    post_shapes_composition.get_mbb_min() + np.array(pre_coord),
-                    post_shapes_composition.get_mbb_max() + np.array(pre_coord),
+                    post_shapes_composition.get_mbb_min() + np.array(post_coord),
+                    post_shapes_composition.get_mbb_max() + np.array(post_coord),
                 ]
             )
-            for pre_coord in chunks
+            for post_coord in chunks
         ]
     )
-    return [
-        chunks[j]
-        for i in tree.query(
-            [
-                np.concatenate(
-                    [
-                        np.array(presyn_chunk),
-                        np.array(presyn_chunk) + presyn_chunk.dimensions,
-                    ]
-                )
-            ]
-        )
-        for j in i
-    ]
+    # Filter postsyn chunks that overlap the presyn chunk.
+    index_overlap_chunks = tree.query(
+        [
+            np.concatenate(
+                [np.array(presyn_chunk), np.array(presyn_chunk) + presyn_chunk.dimensions]
+            )
+        ]
+    )
+    return [chunks[i[0]] for i in index_overlap_chunks]
 
 
 @config.node
