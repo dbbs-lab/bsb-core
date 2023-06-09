@@ -60,3 +60,50 @@ class NotParallel:
                 "NotParallel can only be applied to placement or "
                 "connectivity strategies"
             )
+
+
+class InvertedRoI:
+    """
+    This mixin inverts the perspective of the ``get_region_of_interest`` interface and
+    lets you find presynaptic regions of interest for a postsynaptic chunk.
+
+    Usage:
+
+    ..code-block:: python
+
+        class MyConnStrat(InvertedRoI, ConnectionStrategy):
+          def get_region_of_interest(post_chunk):
+            return [pre_chunk1, pre_chunk2]
+    """
+
+    def queue(self, pool):
+        # Reset jobs that we own
+        self._queued_jobs = []
+        # Get the queued jobs of all the strategies we depend on.
+        deps = set(
+            itertools.chain.from_iterable(
+                strat._queued_jobs for strat in self.get_after()
+            )
+        )
+        post_types = self.postsynaptic.cell_types
+        # Iterate over each chunk that is populated by our postsynaptic cell types.
+        to_chunks = set(
+            itertools.chain.from_iterable(
+                ct.get_placement_set().get_all_chunks() for ct in post_types
+            )
+        )
+        rois = {
+            chunk: roi
+            for chunk in to_chunks
+            if (roi := self.get_region_of_interest(chunk))
+        }
+        if not rois:
+            warn(
+                f"No overlap found between {[post.name for post in post_types]} and "
+                f"{[pre.name for pre in self.presynaptic.cell_types]} "
+                f"in '{self.name}'."
+            )
+        for chunk, roi in rois.items():
+            job = pool.queue_connectivity(self, roi, [chunk], deps=deps)
+            self._queued_jobs.append(job)
+        report(f"Queued {len(self._queued_jobs)} jobs for {self.name}", level=2)
