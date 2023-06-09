@@ -43,6 +43,13 @@ bsb.exceptions module
    :undoc-members:
    :show-inheritance:
 
+bsb.exceptions module
+---------------------
+
+.. automodule:: bsb.mixins
+   :members:
+   :undoc-members:
+
 bsb.option module
 -----------------
 
@@ -88,8 +95,6 @@ bsb.trees module
 
 .. automodule:: bsb.trees
    :members:
-   :undoc-members:
-   :show-inheritance:
 
 bsb.voxels module
 -----------------
