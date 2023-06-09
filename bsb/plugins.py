@@ -4,7 +4,7 @@ categories.
 """
 
 
-import pkg_resources
+from importlib.metadata import entry_points
 import errr
 from .exceptions import PluginError
 import types
@@ -20,7 +20,7 @@ def discover(category):
     :rtype: dict
     """
     registry = {}
-    for entry in pkg_resources.iter_entry_points("bsb." + category):
+    for entry in entry_points().get("bsb." + category, []):
         try:
             advert = entry.load()
             if hasattr(advert, "__plugin__"):
