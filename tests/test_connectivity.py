@@ -1,6 +1,6 @@
 from bsb.core import Scaffold
 from bsb.services import MPI
-from bsb.config import Configuration
+from bsb.config import Configuration, from_file
 from bsb.morphologies import Morphology, Branch
 from bsb.unittest import (
     NumpyTestCase,
@@ -9,6 +9,7 @@ from bsb.unittest import (
     MorphologiesFixture,
     NetworkFixture,
     skip_parallel,
+    get_config_path,
 )
 import unittest
 import numpy as np
@@ -634,3 +635,40 @@ class TestVoxelIntersection(
         self.network.compile(clear=True)
         conns = len(self.network.get_connectivity_set("intersect"))
         self.assertEqual(0, conns, "expected no contacts")
+
+
+class TestFixedIndegree(
+    NetworkFixture, RandomStorageFixture, unittest.TestCase, engine_name="hdf5"
+):
+    def setUp(self) -> None:
+        self.cfg = from_file(get_config_path("test_indegree.json"))
+        super().setUp()
+
+    def test_indegree(self):
+        self.network.compile()
+        cs = self.network.get_connectivity_set("indegree")
+        _, post_locs = cs.load_connections().all()
+        ps = self.network.get_placement_set("inhibitory")
+        u, c = np.unique(post_locs[:, 0], return_counts=True)
+        self.assertTrue(
+            np.array_equal(np.arange(len(ps)), np.sort(u)),
+            "Not all post cells have connections",
+        )
+        self.assertTrue(np.all(c == 50), "Not all cells have indegree 50")
+
+    def test_multi_indegree(self):
+        self.network.compile()
+        for post_name in ("inhibitory", "extra"):
+            post_ps = self.network.get_placement_set(post_name)
+            total = np.zeros(len(post_ps))
+            for pre_name in ("excitatory", "extra"):
+                cs = self.network.get_connectivity_set(
+                    f"multi_indegree_{pre_name}_to_{post_name}"
+                )
+                _, post_locs = cs.load_connections().all()
+                ps = self.network.get_placement_set("inhibitory")
+                u, c = np.unique(post_locs[:, 0], return_counts=True)
+                this = np.zeros(len(post_ps))
+                this[u] = c
+                total += this
+            self.assertTrue(np.all(total == 50), "Not all cells have indegree 50")

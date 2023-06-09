@@ -90,8 +90,12 @@ class ConnectionStrategy(abc.ABC, SortableByAfter):
         return pre, post
 
     def connect_cells(self, pre_set, post_set, src_locs, dest_locs, tag=None):
+        if len(self.presynaptic.cell_types) > 1 or len(self.postsynaptic.cell_types) > 1:
+            name = f"{self.name}_{pre_set.cell_type.name}_to_{post_set.cell_type.name}"
+        else:
+            name = self.name
         cs = self.scaffold.require_connectivity_set(
-            pre_set.cell_type, post_set.cell_type, tag if tag is not None else self.name
+            pre_set.cell_type, post_set.cell_type, tag if tag is not None else name
         )
         cs.connect(pre_set, post_set, src_locs, dest_locs)
 
