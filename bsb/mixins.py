@@ -63,6 +63,19 @@ class NotParallel:
 
 
 class InvertedRoI:
+    """
+    This mixin inverts the perspective of the ``get_region_of_interest`` interface and
+    lets you find presynaptic regions of interest for a postsynaptic chunk.
+
+    Usage:
+
+    ..code-block:: python
+
+        class MyConnStrat(InvertedRoI, ConnectionStrategy):
+          def get_region_of_interest(post_chunk):
+            return [pre_chunk1, pre_chunk2]
+    """
+
     def queue(self, pool):
         # Reset jobs that we own
         self._queued_jobs = []

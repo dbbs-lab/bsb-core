@@ -120,6 +120,11 @@ class ExternalConnections(ConnectionStrategy):
 
 @config.node
 class FixedIndegree(InvertedRoI, ConnectionStrategy):
+    """
+    Connect a group of postsynaptic cell types to ``indegree`` uniformly random
+    presynaptic cells from all the presynaptic cell types.
+    """
+
     indegree = config.attr(type=int, required=True)
 
     def get_region_of_interest(self, chunk):
