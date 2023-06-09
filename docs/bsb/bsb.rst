@@ -43,6 +43,13 @@ bsb.exceptions module
    :undoc-members:
    :show-inheritance:
 
+bsb.exceptions module
+---------------------
+
+.. automodule:: bsb.mixins
+   :members:
+   :undoc-members:
+
 bsb.option module
 -----------------
 
