@@ -1,10 +1,11 @@
-from ..adapter import ArborDevice
-from ....simulation.results import SimulationRecorder, PresetPathMixin, PresetMetaMixin
-from ....exceptions import *
+from bsb import config
+from ..device import ArborDevice
+from ....simulation.results import SimulationRecorder
 from ....reporting import report, warn
 import numpy as np
 
 
+@config.node
 class SpikeGenerator(ArborDevice):
     defaults = {"record": True}
     casts = {
@@ -53,7 +54,7 @@ class SpikeGenerator(ArborDevice):
         return self.get_patterns()[target]
 
 
-class GeneratorRecorder(PresetPathMixin, PresetMetaMixin, SimulationRecorder):
+class GeneratorRecorder(SimulationRecorder):
     def __init__(self, device, target, pattern):
         self.pattern = pattern
         self.meta = {"device": device.name, "target": str(target)}

@@ -1,7 +1,8 @@
+import itertools
 import typing
 
 from bsb.reporting import report, warn
-from bsb.exceptions import AdapterError
+from bsb.exceptions import AdapterError, UnknownGIDError
 from bsb.services import MPI
 from bsb.simulation.adapter import SimulatorAdapter
 import numpy as np
@@ -55,35 +56,54 @@ class ReceiverCollection(list):
 
 
 class QuickContains:
-    def __init__(self, cell_model, ps):
+    def __init__(self, simdata, cell_model, offset):
         self._model = cell_model
-        self._ps = ps
-        self._type = ps.type
-        if cell_model.relay or ps.type.entity:
-            self._kind = arbor.cell_kind.spike_source
-        else:
-            self._kind = arbor.cell_kind.cable
-        self._ranges = [
-            (start, start + count)
-            for start, count in continuity_hop(iter(ps._identifiers.get_dataset()))
-        ]
+        ps = cell_model.get_placement_set(simdata.chunks)
+        self._ranges = self._get_ranges(simdata.chunks, ps, offset)
+
+    @property
+    def model(self):
+        return self._model
 
     def __contains__(self, i):
-        return any(i >= start and i < stop for start, stop in self._ranges)
+        return any(start <= i < stop for start, stop in self._ranges)
+
+    def _get_ranges(self, chunks, ps, offset):
+        stats = ps.get_chunk_stats()
+        ranges = []
+        for chunk, len_ in sorted(
+            stats.items(), key=lambda k: Chunk.from_id(int(k[0]), None).id
+        ):
+            if chunk in chunks:
+                ranges.append((offset, offset + len_))
+            offset += len_
+        return ranges
+
+    def __iter__(self):
+        yield from itertools.chain.from_iterable(range(r[0], r[1]) for r in self._ranges)
 
 
-class QuickLookup:
-    def __init__(self, simulation):
+class GIDManager:
+    def __init__(self, simulation, simdata):
+        self._gid_offsets = {}
+        self._model_order = sorted(
+            simulation.cell_models.values(),
+            key=lambda model: len(model.get_placement_set()),
+        )
+        ctr = 0
+        for model in self._model_order:
+            self._gid_offsets[model] = ctr
+            ctr += len(model.get_placement_set())
         self._contains = [
-            QuickContains(model, model.get_placement_set(model.name))
-            for model in simulation.cell_models.values()
+            QuickContains(simdata, model, offset)
+            for model, offset in self._gid_offsets.items()
         ]
 
     def lookup_kind(self, gid):
-        return self._lookup(gid)._kind
+        return self._lookup(gid).model.get_cell_kind(gid)
 
     def lookup_model(self, gid):
-        return self._lookup(gid)._model
+        return self._lookup(gid).model
 
     def _lookup(self, gid):
         try:
@@ -91,13 +111,15 @@ class QuickLookup:
         except StopIteration:
             raise UnknownGIDError(f"Can't find gid {gid}.") from None
 
+    def all(self):
+        yield from itertools.chain.from_iterable(self._contains)
+
 
 class ArborRecipe(arbor.recipe):
     def __init__(self, simulation, simdata):
         super().__init__()
         self._simulation = simulation
         self._simdata = simdata
-        self._catalogue = self._get_catalogue()
         self._global_properties = arbor.neuron_cable_properties()
         self._global_properties.set_property(Vm=-65, tempK=300, rL=35.4, cm=0.01)
         self._global_properties.set_ion(ion="na", int_con=10, ext_con=140, rev_pot=50)
@@ -108,20 +130,16 @@ class ArborRecipe(arbor.recipe):
         self._global_properties.set_ion(
             ion="h", valence=1, int_con=1.0, ext_con=1.0, rev_pot=-34
         )
-        self._global_properties.register(self._catalogue)
+        self._global_properties.catalogue = self._get_catalogue()
 
     def _get_catalogue(self):
         catalogue = arbor.default_catalogue()
         prefixes = set()
-        for cell in self._adapter.cell_models.values():
-            # Add the unique set of catalogues of non relay models to the recipe
-            # catalogue.
-            if (
-                cell.model_class
-                and (p := cell.model_class.get_catalogue_prefix()) not in prefixes
-            ):
-                prefixes.add(p)
-                catalogue.extend(cell.model_class.get_catalogue(), "")
+        for model in self._simulation.cell_models.values():
+            prefix, model_catalogue = model.get_prefixed_catalogue()
+            if model_catalogue is not None and prefix not in prefixes:
+                prefixes.add(prefix)
+                catalogue.extend(model_catalogue, "")
 
         return catalogue
 
@@ -135,7 +153,7 @@ class ArborRecipe(arbor.recipe):
         )
 
     def cell_kind(self, gid):
-        return self._adapter._lookup.lookup_kind(gid)
+        return self._simdata._lookup.lookup_kind(gid)
 
     def cell_description(self, gid):
         model = self._adapter._lookup.lookup_model(gid)
@@ -148,7 +166,7 @@ class ArborRecipe(arbor.recipe):
         ]
 
     def gap_junctions_on(self, gid):
-        return [c.model.gap_(c) for c in self._adapter._gap_junctions_on.get(gid, [])]
+        return [c.model.gap_(c) for c in self._simdata.gap_junctions_on.get(gid, [])]
 
     def probes(self, gid):
         devices = self._adapter._devices_on[gid]
@@ -165,7 +183,19 @@ class ArborRecipe(arbor.recipe):
         return self._adapter._lookup._lookup(gid)._type.name
 
 
+class ConnectionWrapper:
+    def __init__(self, pre_loc, post_loc):
+        self.from_id = pre_loc[0]
+        self.to_id = post_loc[0]
+        self.pre_loc = pre_loc[1:]
+        self.post_loc = post_loc[1:]
+
+
 class ArborAdapter(SimulatorAdapter):
+    def __init__(self):
+        super().__init__()
+        self.simdata = {}
+
     def get_rank(self):
         return MPI.get_rank()
 
@@ -195,7 +225,7 @@ class ArborAdapter(SimulatorAdapter):
                     warn(
                         f"Arbor does not seem to be built with MPI support, running duplicate simulations on {s} nodes."
                     )
-                context = arbor.context(arbor.proc_allocation(self.threads))
+                context = arbor.context(arbor.proc_allocation(simulation.threads))
             if simulation.profiling:
                 if arbor.config()["profiling"]:
                     report("enabling profiler", level=2)
@@ -204,7 +234,7 @@ class ArborAdapter(SimulatorAdapter):
                     raise RuntimeError(
                         "Arbor must be built with profiling support to use the `profiling` flag."
                     )
-            simdata.lookup = QuickLookup(simulation)
+            simdata.gid_manager = self.get_gid_manager(simulation, simdata)
             report("preparing simulation", level=1)
             report("MPI processes:", context.ranks, level=2)
             report("Threads per process:", context.threads, level=2)
@@ -220,11 +250,14 @@ class ArborAdapter(SimulatorAdapter):
             del self.simdata[simulation]
             raise
 
+    def get_gid_manager(self, simulation, simdata):
+        return GIDManager(simulation, simdata)
+
     def prepare_samples(self, sim):
         for device in self.devices.values():
             device.prepare_samples(sim)
 
-    def simulate(self, simulation):
+    def run(self, simulation):
         if not MPI.get_rank():
             simulation.record(arbor.spike_recording.all)
         start = time.time()
@@ -291,79 +324,54 @@ class ArborAdapter(SimulatorAdapter):
     def get_recipe(self, simulation, simdata=None):
         if simdata is None:
             simdata = self._create_simdata(simulation)
-        self._cache_gap_junctions()
-        self._cache_connections()
-        self.prepare_devices()
-        self._cache_devices()
+        self._cache_gap_junctions(simulation, simdata)
+        self._cache_connections(simulation, simdata)
+        self._cache_devices(simulation, simdata)
         return ArborRecipe(simulation, simdata)
 
     def _create_simdata(self, simulation):
         self.simdata[simulation] = simdata = SimulationData(simulation)
-        self._assign_chunks(simulation)
+        self._assign_chunks(simulation, simdata)
         return simdata
 
-    def _cache_gap_junctions(self):
-        self._gap_junctions_on = {}
-        for conn_set in self.scaffold.get_connectivity_sets():
-            if conn_set.is_orphan() or not len(conn_set):
-                continue
-            try:
-                conn_model = self.connection_models[conn_set.tag]
-            except KeyError:
-                raise AdapterError(f"Missing connection model `{conn_set.tag}`")
+    def _cache_gap_junctions(self, simulation, simdata):
+        simdata.gap_junctions_on = {}
+        for conn_model in simulation.connection_models:
             if not conn_model.gap:
                 continue
-            for conn in conn_set.intersections:
-                conn.model = conn_model
-                self._gap_junctions_on.setdefault(conn.from_id, []).append(conn)
+            conn_set = conn_model.get_connection_set()
+            conn_iter = conn_set.load_connections().to(simdata.chunks).as_globals()
+            for pre_loc, post_loc in conn_iter:
+                conn = ConnectionWrapper(pre_loc, post_loc)
+                simdata.gap_junctions_on.setdefault(conn.from_id, []).append(conn)
 
-    def _cache_connections(self):
-        self._connections_on = {gid: ReceiverCollection() for gid in self.gids}
-        self._connections_from = {gid: [] for gid in self.gids}
-        for conn_set in self.scaffold.get_connectivity_sets():
-            if conn_set.is_orphan() or not len(conn_set):
-                continue
-            ct = conn_set.connection_types[0]
-            try:
-                conn_model = self.connection_models[conn_set.tag]
-            except KeyError:
-                raise AdapterError(f"Missing connection model `{conn_set.tag}`")
+    def _cache_connections(self, simulation, simdata):
+        simdata.connections_on = {
+            gid: ReceiverCollection() for gid in simdata.gid_manager.all()
+        }
+        simdata.connections_from = {gid: [] for gid in simdata.gid_manager.all()}
+        for conn_model in simulation.connection_models:
+            conn_set = conn_model.get_connection_set()
             if conn_model.gap:
                 continue
             w = conn_model.weight
-            for conn in conn_set.intersections:
-                from_gid = int(conn.from_id)
-                to_gid = int(conn.to_id)
-                comp_from = conn.from_compartment
-                comp_on = conn.to_compartment
-                if from_gid in self._connections_from:
-                    self._connections_from[from_gid].append(comp_from)
-                if to_gid in self._connections_on:
-                    self._connections_on[to_gid].append(
-                        conn_model.make_receiver(from_gid, comp_from, comp_on)
-                    )
-            for gid, relays in self._relays_on.items():
-                for from_gid, comp_from, comp_on, conn_model in relays:
-                    self._connections_from[from_gid].append(comp_from)
-                    self._connections_on[gid].append(
-                        conn_model.make_receiver(from_gid, comp_from, comp_on)
-                    )
+            conns_on = conn_set.load_connections().to(simdata.chunks).as_globals()
+            for conn in conns_on:
+                simdata.connections_on[conn.to_id].append(
+                    conn_model.make_receiver(conn.from_id, conn.pre_loc, conn.post_loc)
+                )
+            conns_from = conn_set.load_connections().from_(simdata.chunks).as_globals()
+            for conn in conns_from:
+                simdata.connections_from[conn.from_id].append(conn.pre_loc)
 
-    def prepare_devices(self):
-        device_module = __import__("devices", globals(), level=1).__dict__
-        for device in self.devices.values():
-            device_class = "".join(x.title() for x in device.device.split("_"))
-            device._bootstrap(device_module[device_class])
-
-    def _cache_devices(self):
-        self._devices_on = {gid: [] for gid in self.gids}
-        for device in self.devices.values():
+    def _cache_devices(self, simulation, simdata):
+        simdata.devices_on = {gid: [] for gid in simdata.gid_manager.all()}
+        for device in simulation.devices.values():
             targets = device.get_targets(self)
             for target in targets:
-                self._devices_on[target].append(device)
+                simdata.devices_on[target].append(device)
 
-    def _assign_chunks(self, simulation):
-        simdata = self.simdata[simulation]
+    def _assign_chunks(self, simulation, simdata):
         chunk_stats = simulation.scaffold.storage.get_chunk_stats()
         size = MPI.get_size()
         all_chunks = [Chunk.from_id(int(chunk), None) for chunk in chunk_stats.keys()]

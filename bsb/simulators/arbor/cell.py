@@ -1,62 +1,46 @@
+import abc
+import typing
+
 from bsb import config
 from bsb.config import types
 from bsb.simulation.cell import CellModel
 from bsb.exceptions import AdapterError
 from bsb.reporting import warn
 import itertools as _it
-import collections
+import arbor
 
-try:
-    import arbor
-
-    _has_arbor = True
-except ImportError:
-    _has_arbor = False
-    import types as _t
-
-    # Mock missing requirements, as arbor is, like
-    # all simulators, an optional dep. of the BSB.
-    arbor = _t.ModuleType("arbor")
-    arbor.recipe = type("mock_recipe", (), dict())
-
-    def get(*arg):
-        raise ImportError("Arbor not installed.")
-
-    arbor.__getattr__ = get
+if typing.TYPE_CHECKING:
+    from bsb.storage.interfaces import PlacementSet
 
 
-def _consume(iterator, n=None):
-    "Advance the iterator n-steps ahead. If n is None, consume entirely."
-    # Use functions that consume iterators at C speed.
-    if n is None:
-        # feed the entire iterator into a zero-length deque
-        collections.deque(iterator, maxlen=0)
-    else:
-        # advance to the empty slice starting at position n
-        next(_it.islice(iterator, n, n), None)
+@config.dynamic(
+    attr_name="model_strategy",
+    auto_classmap=True,
+    required=True,
+    classmap_entry=None,
+)
+class ArborCell(CellModel, abc.ABC):
+    gap = config.attr(type=bool, default=False)
+    model = config.attr(type=types.class_(), required=True)
 
+    @abc.abstractmethod
+    def cache_population_data(self, simdata, ps: "PlacementSet"):
+        pass
 
-_it.consume = _consume
+    @abc.abstractmethod
+    def discard_population_data(self):
+        pass
 
-
-@config.node
-class ArborCell(CellModel):
-    node_name = "simulations.?.cell_models"
-    model = config.attr(
-        type=types.class_, required=lambda s: "relay" not in s or not s["relay"]
-    )
-    default_endpoint = "comp_-1"
+    @abc.abstractmethod
+    def get_prefixed_catalogue(self):
+        pass
 
     def get_description(self, gid):
-        if not self.relay:
-            morphology, labels, decor = self.model.cable_cell_template()
-            labels = self._add_labels(gid, labels, morphology)
-            decor = self._add_decor(gid, decor)
-            cc = arbor.cable_cell(morphology, labels, decor)
-            return cc
-        else:
-            schedule = self.get_schedule(gid)
-            return arbor.spike_source_cell(self.default_endpoint, schedule)
+        morphology, labels, decor = self.model.cable_cell_template()
+        labels = self._add_labels(gid, labels, morphology)
+        decor = self._add_decor(gid, decor)
+        cc = arbor.cable_cell(morphology, labels, decor)
+        return cc
 
     def get_schedule(self, gid):
         schedule = arbor.explicit_schedule([])
@@ -126,3 +110,24 @@ class ArborCell(CellModel):
                 rcv.synapse,
                 f"comp_{rcv.comp_on.id}_{rcv.index}",
             )
+
+
+@config.node
+class LIFCell(ArborCell, classmap_entry="lif"):
+    model = config.unset()
+    constants = config.dict(type=types.any_())
+
+    def cache_population_data(self, simdata, ps: "PlacementSet"):
+        pass
+
+    def discard_population_data(self):
+        pass
+
+    def get_prefixed_catalogue(self):
+        return None, None
+
+    def get_description(self, gid):
+        cell = arbor.lif_cell(f"ello{gid}", f"bye{gid}")
+        for k, v in self.constants:
+            setattr(cell, k, v)
+        return cell
