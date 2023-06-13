@@ -120,3 +120,28 @@ class TestNest(RandomStorageFixture, unittest.TestCase, engine_name="hdf5"):
 
         self.assertAlmostEqual(rate_in, 50, delta=1)
         self.assertAlmostEqual(rate_ex, 50, delta=1)
+
+    def test_brunel_with_conn(self):
+        cfg = from_file(get_config_path("test_brunel_wbsb.json"))
+        simcfg = cfg.simulations.test
+
+        network = Scaffold(cfg, self.storage)
+        network.compile()
+        result = network.run_simulation("test")
+
+        spiketrains = result.block.segments[0].spiketrains
+        sr_exc, sr_inh = None, None
+        for st in spiketrains:
+            if st.annotations["device"] == "sr_exc":
+                sr_exc = st
+            elif st.annotations["device"] == "sr_inh":
+                sr_inh = st
+
+        self.assertIsNotNone(sr_exc)
+        self.assertIsNotNone(sr_inh)
+
+        rate_ex = len(sr_exc) / simcfg.duration * 1000.0 / sr_exc.annotations["pop_size"]
+        rate_in = len(sr_inh) / simcfg.duration * 1000.0 / sr_inh.annotations["pop_size"]
+
+        self.assertAlmostEqual(rate_in, 50, delta=1)
+        self.assertAlmostEqual(rate_ex, 50, delta=1)
