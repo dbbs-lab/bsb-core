@@ -11,6 +11,8 @@ errr==1.2.0
 psutil==5.9.4
 coverage==7.0.4
 appdirs==1.4.4
+tqdm==4.65.0
+quantities==0.14.1
 
 # IO
 h5py==3.7.0
