@@ -641,6 +641,13 @@ class PlacementSet(Interface):
         """
         pass
 
+    @abc.abstractmethod
+    def get_chunk_stats(self):
+        """
+        Should return how many cells were placed in each chunk.
+        """
+        pass
+
     def load_boxes(self, morpho_cache=None):
         """
         Load the cells as axis aligned bounding box rhomboids matching the extension,
