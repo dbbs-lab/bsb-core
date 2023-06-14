@@ -4,10 +4,9 @@ import typing
 from bsb import config
 from bsb.config import types
 from bsb.simulation.cell import CellModel
-from bsb.exceptions import AdapterError
-from bsb.reporting import warn
-import itertools as _it
 import arbor
+
+from bsb.simulators.arbor.adapter import SingleReceiverCollection
 
 if typing.TYPE_CHECKING:
     from bsb.storage.interfaces import PlacementSet
@@ -39,6 +38,10 @@ class ArborCell(CellModel):
     def get_cell_kind(self, gid):
         pass
 
+    @abc.abstractmethod
+    def make_receiver_collection(self):
+        pass
+
     def get_description(self, gid):
         morphology, labels, decor = self.model.cable_cell_template()
         labels = self._add_labels(gid, labels, morphology)
@@ -65,7 +68,10 @@ class LIFCell(ArborCell, classmap_entry="lif"):
         return arbor.cell_kind.lif
 
     def get_description(self, gid):
-        cell = arbor.lif_cell(f"-1_-1", f"-1_-1")
+        cell = arbor.lif_cell(f"-1_-1", f"-1_-1_0")
         for k, v in self.constants.items():
             setattr(cell, k, v)
         return cell
+
+    def make_receiver_collection(self):
+        return SingleReceiverCollection()

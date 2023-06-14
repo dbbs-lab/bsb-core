@@ -29,6 +29,11 @@ class SimulationData:
 
 
 class ReceiverCollection(list):
+    """
+    Receiver collections store the incoming connections and deduplicate them into multiple
+    targets.
+    """
+
     def __init__(self):
         super().__init__()
         self._endpoint_counters = {}
@@ -38,6 +43,16 @@ class ReceiverCollection(list):
         id = self._endpoint_counters.get(endpoint, 0)
         self._endpoint_counters[endpoint] = id + 1
         rcv.index = id
+        super().append(rcv)
+
+
+class SingleReceiverCollection(list):
+    """
+    The single receiver collection redirects all incoming connections to the same receiver
+    """
+
+    def append(self, rcv):
+        rcv.index = 0
         super().append(rcv)
 
 
@@ -281,7 +296,8 @@ class ArborAdapter(SimulatorAdapter):
 
     def _cache_connections(self, simulation, simdata):
         simdata.connections_on = {
-            gid: ReceiverCollection() for gid in simdata.gid_manager.all()
+            gid: simdata.gid_manager.lookup_model(gid).make_receiver_collection()
+            for gid in simdata.gid_manager.all()
         }
         simdata.connections_from = {gid: [] for gid in simdata.gid_manager.all()}
         for conn_model in simulation.connection_models.values():

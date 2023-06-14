@@ -18,13 +18,9 @@ class Receiver:
         return arbor.cell_global_label(self.from_gid, f"{b}_{p}")
 
     def on(self):
-        # Not sure if endpoint labels need to be unique anymore, what about LIF with only
-        # 1 source and target label?
-
-        # # self.index is set on us by the ReceiverCollection when we are appended.
-        # return arbor.cell_local_label(f"comp_{self.loc_on}_{self.index}")
+        # self.index is set on us by the ReceiverCollection when we are appended.
         b, p = self.loc_on
-        return arbor.cell_local_label(f"{b}_{p}")
+        return arbor.cell_local_label(f"{b}_{p}_{self.index}")
 
     @property
     def weight(self):
