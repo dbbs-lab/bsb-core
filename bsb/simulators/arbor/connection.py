@@ -12,6 +12,7 @@ class Receiver:
         self.loc_from = loc_from
         self.loc_on = loc_on
         self.synapse = arbor.synapse("expsyn")
+        self.index = -1
 
     def from_(self):
         b, p = self.loc_from
