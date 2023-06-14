@@ -5,7 +5,6 @@ from bsb.reporting import report, warn
 from bsb.exceptions import AdapterError, UnknownGIDError
 from bsb.services import MPI
 from bsb.simulation.adapter import SimulatorAdapter
-import numpy as np
 import itertools as it
 import time
 import arbor
@@ -140,23 +139,23 @@ class ArborRecipe(arbor.recipe):
         )
 
     def cell_kind(self, gid):
-        return self._simdata._lookup.lookup_kind(gid)
+        return self._simdata.gid_manager.lookup_kind(gid)
 
     def cell_description(self, gid):
-        model = self._adapter._lookup.lookup_model(gid)
+        model = self._simdata.gid_manager.lookup_model(gid)
         return model.get_description(gid)
 
     def connections_on(self, gid):
         return [
             arbor.connection(rcv.from_(), rcv.on(), rcv.weight, rcv.delay)
-            for rcv in self._adapter._connections_on[gid]
+            for rcv in self._simdata.connections_on[gid]
         ]
 
     def gap_junctions_on(self, gid):
         return [c.model.gap_(c) for c in self._simdata.gap_junctions_on.get(gid, [])]
 
     def probes(self, gid):
-        devices = self._adapter._devices_on[gid]
+        devices = self._simdata.devices_on[gid]
         _ntag = 0
         probes = []
         for device in devices:
@@ -167,15 +166,7 @@ class ArborRecipe(arbor.recipe):
         return probes
 
     def _name_of(self, gid):
-        return self._adapter._lookup._lookup(gid)._type.name
-
-
-class ConnectionWrapper:
-    def __init__(self, pre_loc, post_loc):
-        self.from_id = pre_loc[0]
-        self.to_id = post_loc[0]
-        self.pre_loc = pre_loc[1:]
-        self.post_loc = post_loc[1:]
+        return self._simdata.gid_manager.lookup_model(gid).cell_type.name
 
 
 class ArborAdapter(SimulatorAdapter):
