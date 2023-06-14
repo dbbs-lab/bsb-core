@@ -1,8 +1,10 @@
 from .. import config
 from .component import SimulationComponent
-from ..config import refs
 
 
 @config.node
 class ConnectionModel(SimulationComponent):
-    connection_type = config.ref(refs.conn_type_ref, key="name")
+    tag = config.attr(type=str, key="name")
+
+    def get_connectivity_set(self):
+        return self.scaffold.get_connectivity_set(self.tag)
