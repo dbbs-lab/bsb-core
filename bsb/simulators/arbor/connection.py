@@ -41,15 +41,30 @@ class Connection:
         self.post_loc = post_loc[1:]
 
 
+@config.node
 class ArborConnection(ConnectionModel):
-    defaults = {"gap": False, "delay": 0.025, "weight": 1.0}
-    casts = {"delay": float, "gap": bool, "weight": float}
+    gap = config.attr(type=bool, default=False)
+    weight = config.attr(type=float, required=True)
+    delay = config.attr(type=float, required=True)
 
-    def validate(self):
-        pass
+    def create_gap_junctions_on(self, gj_on_gid, conns):
+        for pre_loc, post_loc in conns:
+            conn = Connection(pre_loc, post_loc)
+            gj_on_gid.setdefault(conn.from_id, []).append(conn)
 
-    def make_receiver(*args):
-        return Receiver(*args)
+    def create_connections_on(self, conns_on_gid, conns):
+        i = 0
+        for pre_loc, post_loc in tqdm.tqdm(conns, total=len(conns), desc=self.name):
+            i += 1
+            if i > 1000:
+                break
+            conns_on_gid[post_loc[0]].append(
+                Receiver(self, pre_loc[0], pre_loc[1:], post_loc[1:])
+            )
+
+    def create_connections_from(self, conns_from_gid, conns):
+        for pre_loc, post_loc in conns:
+            conns_from_gid[int(pre_loc[0])].append(pre_loc[1:])
 
     def gap_(self, conn):
         l = arbor.cell_local_label(f"gap_{conn.to_compartment.id}")

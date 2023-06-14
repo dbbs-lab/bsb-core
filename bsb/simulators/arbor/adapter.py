@@ -10,6 +10,7 @@ import itertools as it
 import time
 import arbor
 
+from ...simulation.results import SimulationResult
 from ...storage import Chunk
 
 if typing.TYPE_CHECKING:
@@ -322,33 +323,29 @@ class ArborAdapter(SimulatorAdapter):
 
     def _cache_gap_junctions(self, simulation, simdata):
         simdata.gap_junctions_on = {}
-        for conn_model in simulation.connection_models:
-            if not conn_model.gap:
-                continue
-            conn_set = conn_model.get_connection_set()
-            conn_iter = conn_set.load_connections().to(simdata.chunks).as_globals()
-            for pre_loc, post_loc in conn_iter:
-                conn = ConnectionWrapper(pre_loc, post_loc)
-                simdata.gap_junctions_on.setdefault(conn.from_id, []).append(conn)
+        for conn_model in simulation.connection_models.values():
+            if conn_model.gap:
+                conn_set = conn_model.get_connectivity_set()
+                conns = conn_set.load_connections().to(simdata.chunks).as_globals()
+                conn_model.create_gap_junctions_on(simdata.gap_junctions_on, conns)
 
     def _cache_connections(self, simulation, simdata):
         simdata.connections_on = {
             gid: ReceiverCollection() for gid in simdata.gid_manager.all()
         }
         simdata.connections_from = {gid: [] for gid in simdata.gid_manager.all()}
-        for conn_model in simulation.connection_models:
-            conn_set = conn_model.get_connection_set()
+        for conn_model in simulation.connection_models.values():
             if conn_model.gap:
                 continue
-            w = conn_model.weight
+            conn_set = conn_model.get_connectivity_set()
+            # Load the arriving connection iterator
             conns_on = conn_set.load_connections().to(simdata.chunks).as_globals()
-            for conn in conns_on:
-                simdata.connections_on[conn.to_id].append(
-                    conn_model.make_receiver(conn.from_id, conn.pre_loc, conn.post_loc)
-                )
+            # Create the arriving connections
+            conn_model.create_connections_on(simdata.connections_on, conns_on)
+            # Load the outgoing connection iterator
             conns_from = conn_set.load_connections().from_(simdata.chunks).as_globals()
-            for conn in conns_from:
-                simdata.connections_from[conn.from_id].append(conn.pre_loc)
+            # Create the outgoing connections
+            conn_model.create_connections_from(simdata.connections_from, conns_from)
 
     def _cache_devices(self, simulation, simdata):
         simdata.devices_on = {gid: [] for gid in simdata.gid_manager.all()}
