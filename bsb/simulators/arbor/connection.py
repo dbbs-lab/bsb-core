@@ -6,13 +6,13 @@ import arbor
 
 
 class Receiver:
-    def __init__(self, conn_model, from_gid, loc_from, loc_on):
+    def __init__(self, conn_model, from_gid, loc_from, loc_on, index=-1):
         self.conn_model = conn_model
         self.from_gid = from_gid
         self.loc_from = loc_from
         self.loc_on = loc_on
         self.synapse = arbor.synapse("expsyn")
-        self.index = -1
+        self.index = index
 
     def from_(self):
         b, p = self.loc_from

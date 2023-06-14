@@ -1,2 +1,2 @@
-from .spike_generator import SpikeGenerator
+from .poisson_generator import PoissonGenerator
 from .probe import Probe

@@ -56,7 +56,7 @@ class SingleReceiverCollection(list):
         super().append(rcv)
 
 
-class QuickContains:
+class Population:
     def __init__(self, simdata, cell_model, offset):
         self._model = cell_model
         ps = cell_model.get_placement_set(simdata.chunks)
@@ -95,8 +95,8 @@ class GIDManager:
         for model in self._model_order:
             self._gid_offsets[model] = ctr
             ctr += len(model.get_placement_set())
-        self._contains = [
-            QuickContains(simdata, model, offset)
+        self._populations = [
+            Population(simdata, model, offset)
             for model, offset in self._gid_offsets.items()
         ]
 
@@ -108,12 +108,15 @@ class GIDManager:
 
     def _lookup(self, gid):
         try:
-            return next(c for c in self._contains if gid in c)
+            return next(c for c in self._populations if gid in c)
         except StopIteration:
             raise UnknownGIDError(f"Can't find gid {gid}.") from None
 
     def all(self):
-        yield from itertools.chain.from_iterable(self._contains)
+        yield from itertools.chain.from_iterable(self._populations)
+
+    def get_populations(self):
+        return {pop.model: pop for pop in self._populations}
 
 
 class ArborRecipe(arbor.recipe):
@@ -174,11 +177,19 @@ class ArborRecipe(arbor.recipe):
         _ntag = 0
         probes = []
         for device in devices:
-            device_probes = device.implement(gid)
+            device_probes = device.implement_probes(self._simdata, gid)
             for tag in range(_ntag, _ntag + len(device_probes)):
                 device.register_probe_id(gid, tag)
             probes.extend(device_probes)
         return probes
+
+    def event_generators(self, gid):
+        devices = self._simdata.devices_on[gid]
+        generators = []
+        for device in devices:
+            device_generators = device.implement_generators(self._simdata, gid)
+            generators.extend(device_generators)
+        return generators
 
     def _name_of(self, gid):
         return self._simdata.gid_manager.lookup_model(gid).cell_type.name
@@ -228,6 +239,7 @@ class ArborAdapter(SimulatorAdapter):
                         "Arbor must be built with profiling support to use the `profiling` flag."
                     )
             simdata.gid_manager = self.get_gid_manager(simulation, simdata)
+            simdata.populations = simdata.gid_manager.get_populations()
             report("preparing simulation", level=1)
             report("MPI processes:", context.ranks, level=2)
             report("Threads per process:", context.threads, level=2)
@@ -316,8 +328,8 @@ class ArborAdapter(SimulatorAdapter):
     def _cache_devices(self, simulation, simdata):
         simdata.devices_on = {gid: [] for gid in simdata.gid_manager.all()}
         for device in simulation.devices.values():
-            targets = device.get_targets(self)
-            for target in targets:
+            targets = device.targetting.get_targets(self, simulation, simdata)
+            for target in itertools.chain.from_iterable(targets.values()):
                 simdata.devices_on[target].append(device)
 
     def _assign_chunks(self, simulation, simdata):

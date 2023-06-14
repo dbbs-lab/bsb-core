@@ -244,7 +244,17 @@
           "delay": 1.5
         }
       },
-      "devices": {}
+      "devices": {
+        "pg": {
+          "device": "poisson_generator",
+          "rate": 17789.007714721884,
+          "targetting": {
+            "strategy": "all"
+          },
+          "weight": 20.68015524367846,
+          "delay": 1.5
+        }
+      }
     }
   }
 }
