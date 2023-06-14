@@ -14,7 +14,7 @@ class NestSimulation(Simulation):
 
     modules = config.list(type=str)
     threads = config.attr(type=types.int(min=1), default=1)
-    resolution = config.attr(type=types.float(min=0.0), default=1.0)
+    resolution = config.attr(type=types.float(min=0.0), default=0.1)
     default_synapse_model = config.attr(type=str, default="static_synapse")
     default_neuron_model = config.attr(type=str, default="iaf_cond_alpha")
     verbosity = config.attr(type=str, default="M_ERROR")
