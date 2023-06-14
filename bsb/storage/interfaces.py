@@ -1054,8 +1054,12 @@ class ConnectivityIterator:
         gchunks = self._gchunks.copy() if self._gchunks is not None else None
         return ConnectivityIterator(self._cs, self._dir, lchunks, gchunks)
 
+    def __len__(self):
+        return len(self.all()[0])
+
     def __iter__(self):
-        yield from (data[1::2] for data in self.chunk_iter())
+        for _, pre_locs, _, post_locs in self.chunk_iter():
+            yield from zip(pre_locs, post_locs)
 
     def chunk_iter(self):
         yield from (
@@ -1105,7 +1109,7 @@ class ConnectivityIterator:
         pre_blocks = []
         post_blocks = []
         lens = []
-        for pre_block, post_block in self:
+        for _, pre_block, _, post_block in self.chunk_iter():
             pre_blocks.append(pre_block)
             post_blocks.append(post_block)
             lens.append(len(pre_block))
