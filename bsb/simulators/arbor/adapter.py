@@ -34,25 +34,11 @@ class ReceiverCollection(list):
         self._endpoint_counters = {}
 
     def append(self, rcv):
-        endpoint = rcv.comp_on.id
+        endpoint = str(rcv.loc_on)
         id = self._endpoint_counters.get(endpoint, 0)
         self._endpoint_counters[endpoint] = id + 1
         rcv.index = id
         super().append(rcv)
-
-    @property
-    def weight(self):
-        return self.conn_model.weight
-
-    @property
-    def delay(self):
-        return self.conn_model.delay
-
-    def from_(self):
-        return arbor.cell_global_label(self.from_gid, f"comp_{self.comp_from.id}")
-
-    def on(self):
-        return arbor.cell_local_label(f"comp_{self.comp_on.id}_{self.index}")
 
 
 class QuickContains:
