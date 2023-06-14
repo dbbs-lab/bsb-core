@@ -220,10 +220,10 @@ class ArborAdapter(SimulatorAdapter):
             # Gap junctions are required for domain decomposition
             self.domain = arbor.partition_load_balance(recipe, context)
             self.gids = set(it.chain.from_iterable(g.gids for g in self.domain.groups))
-            simulation = arbor.simulation(recipe, self.domain, context)
-            self.prepare_samples(simulation)
+            simdata.arbor_sim = arbor.simulation(recipe, self.domain, context)
+            self.prepare_samples(simulation, simdata)
             report("prepared simulation", level=1)
-            return simulation
+            return simdata
         except Exception:
             del self.simdata[simulation]
             raise
@@ -231,73 +231,31 @@ class ArborAdapter(SimulatorAdapter):
     def get_gid_manager(self, simulation, simdata):
         return GIDManager(simulation, simdata)
 
-    def prepare_samples(self, sim):
-        for device in self.devices.values():
-            device.prepare_samples(sim)
+    def prepare_samples(self, simulation, simdata):
+        for device in simulation.devices.values():
+            device.prepare_samples(simdata.arbor_sim)
 
     def run(self, simulation):
-        if not MPI.get_rank():
-            simulation.record(arbor.spike_recording.all)
-        start = time.time()
-        report("running simulation", level=1)
-        self.start_progress(self.duration)
-        for oi, i in self.step_progress(self.duration, 1):
-            simulation.run(i, dt=self.resolution)
-            self.progress(i)
-        report(f"completed simulation. {time.time() - start:.2f}s", level=1)
-        if self.profiling and arbor.config()["profiling"]:
-            report("printing profiler summary", level=2)
-            report(arbor.profiler_summary(), level=1)
-
-    def collect_output(self, simulation):
-        import h5py, time, random, traceback
-
-        timestamp = str(time.time()).split(".")[0] + str(random.random()).split(".")[1]
-        timestamp = self.broadcast(timestamp)
-        result_path = "results_" + self.name + "_" + timestamp + ".hdf5"
-        rank = self.get_rank()
-        for node in range(self.get_size()):
-            self.barrier()
-            if node == rank:
-                report("Node", rank, "is writing", level=2, all_nodes=True)
-                with h5py.File(result_path, "a") as f:
-                    if rank == 0:
-                        spikes = simulation.spikes()
-                        spikes = np.column_stack(
-                            (
-                                np.fromiter((l[0][0] for l in spikes), dtype=int),
-                                np.fromiter((l[1] for l in spikes), dtype=int),
-                            )
-                        )
-                        f.create_dataset("all_spikes_dump", data=spikes)
-                    f.attrs["configuration_string"] = self.scaffold.configuration._raw
-                    for path, data, meta in self.result.safe_collect():
-                        try:
-                            path = "/".join(f"{p}" for p in path)
-                            if path in f:
-                                # Path exists, append by recreating concatenated data
-                                data = np.concatenate((f[path][()], data))
-                                _meta = d.attrs[k].copy()
-                                _meta.update(meta)
-                                meta = _meta
-                                del f[path]
-                            d = f.create_dataset(path, data=data)
-                            for k, v in meta.items():
-                                d.attrs[k] = v
-                        except Exception as e:
-                            if not isinstance(data, np.ndarray):
-                                warn(
-                                    f"Recorder `{path}` expected numpy.ndarray data,"
-                                    + f" got {type(data)}"
-                                )
-                            else:
-                                warn(
-                                    f"Recorder {path} processing errored out."
-                                    + f" - Data: {data.dtype} {data.shape}"
-                                    + f"\n\n{traceback.format_exc()}"
-                                )
-            self.barrier()
-        return result_path
+        try:
+            simdata = self.simdata[simulation]
+            arbor_sim = simdata.arbor_sim
+        except KeyError:
+            raise AdapterError(
+                f"Can't run unprepared simulation '{simulation.name}'"
+            ) from None
+        try:
+            if not MPI.get_rank():
+                arbor_sim.record(arbor.spike_recording.all)
+            start = time.time()
+            report("running simulation", level=1)
+            arbor_sim.run(simulation.duration, dt=simulation.resolution)
+            report(f"completed simulation. {time.time() - start:.2f}s", level=1)
+            if simulation.profiling and arbor.config()["profiling"]:
+                report("printing profiler summary", level=2)
+                report(arbor.profiler_summary(), level=1)
+            return simdata.result
+        finally:
+            del self.simdata[simulation]
 
     def get_recipe(self, simulation, simdata=None):
         if simdata is None:
@@ -309,6 +267,7 @@ class ArborAdapter(SimulatorAdapter):
 
     def _create_simdata(self, simulation):
         self.simdata[simulation] = simdata = SimulationData(simulation)
+        simdata.result = SimulationResult(simulation)
         self._assign_chunks(simulation, simdata)
         return simdata
 
