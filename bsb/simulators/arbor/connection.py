@@ -14,7 +14,8 @@ class Receiver:
         self.synapse = arbor.synapse("expsyn")
 
     def from_(self):
-        return arbor.cell_global_label(self.from_gid, f"comp_{self.loc_from}")
+        b, p = self.loc_from
+        return arbor.cell_global_label(self.from_gid, f"{b}_{p}")
 
     def on(self):
         # Not sure if endpoint labels need to be unique anymore, what about LIF with only
@@ -22,7 +23,8 @@ class Receiver:
 
         # # self.index is set on us by the ReceiverCollection when we are appended.
         # return arbor.cell_local_label(f"comp_{self.loc_on}_{self.index}")
-        return arbor.cell_local_label(f"comp_{self.loc_on}")
+        b, p = self.loc_on
+        return arbor.cell_local_label(f"{b}_{p}")
 
     @property
     def weight(self):
