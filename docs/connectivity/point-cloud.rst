@@ -34,14 +34,9 @@ Pre-defined GeometricShape implemented can be found in the ``~bsb.connectivity.p
 Each shape has its own set of parameters. We provide here an example of the configuration
 for a sphere:
 
-.. code-block:: json
-
-    "sphere":
-    {
-        "type": "sphere",
-        "radius": 40.0,
-        "center": [0, 0, 0]
-    }
+.. autoconfig:: bsb.connectivity.point_cloud.Sphere
+   :no-imports:
+   :max-depth: 1
 
 If needed, a user can define its own geometric shape, creating a new class inheriting from the base
 virtual class :class:`~bsb.connectivity.point_cloud.geometric_shapes.GeometricShape`.
@@ -54,7 +49,12 @@ to provide a list of ``shapes`` together with their ``labels``: a list of lists 
 You can additionally control the number of points sampled for connectivity with the parameter
 ``voxel_size``. This parameter corresponds to the side length of one voxel used to decompose the
 shape collection.
-Here represent the cell as a single sphere for the soma, a cone for the dendrites and a cylinder
+
+.. autoconfig:: bsb.connectivity.point_cloud.ShapesComposition
+   :no-imports:
+   :max-depth: 2
+
+Here, we represent the cell as a single sphere for the soma, a cone for the dendrites and a cylinder
 for the axon:
 
 .. code-block:: json

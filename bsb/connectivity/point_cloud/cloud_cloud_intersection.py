@@ -3,6 +3,7 @@ from bsb.connectivity import ConnectionStrategy
 from bsb import config
 from bsb.connectivity.strategy import Hemitype
 from .geometric_shapes import ShapesComposition
+from ...config import types
 from ...trees import BoxTree
 
 
@@ -58,7 +59,7 @@ def get_postsyn_chunks(presyn_chunk, post_cell_types, post_shapes_composition):
 class CloudToCloudIntersection(ConnectionStrategy):
     presynaptic = config.attr(type=CloudHemitype)
     postsynaptic = config.attr(type=CloudHemitype)
-    affinity = config.attr(type=float, required=True)
+    affinity = config.attr(type=types.fraction(), required=True, hint=0.1)
 
     def get_region_of_interest(self, chunk):
         return get_postsyn_chunks(

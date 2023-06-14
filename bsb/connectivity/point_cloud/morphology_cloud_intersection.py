@@ -2,12 +2,13 @@ import numpy as np
 from bsb.connectivity import ConnectionStrategy
 from bsb import config
 from .cloud_cloud_intersection import CloudHemitype, get_postsyn_chunks
+from ...config import types
 
 
 @config.node
 class MorphologyToCloudIntersection(ConnectionStrategy):
     postsynaptic = config.attr(type=CloudHemitype)
-    affinity = config.attr(type=float, required=True)
+    affinity = config.attr(type=types.fraction(), required=True, hint=0.1)
 
     def get_region_of_interest(self, chunk):
         return get_postsyn_chunks(

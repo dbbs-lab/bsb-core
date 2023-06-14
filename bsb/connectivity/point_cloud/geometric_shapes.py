@@ -153,11 +153,15 @@ class ShapesComposition:
     """
 
     shapes = config.list(
-        type=GeometricShape, required=types.same_size("shapes", "labels", required=True)
+        type=GeometricShape,
+        required=types.same_size("shapes", "labels", required=True),
+        hint=[{"type": "sphere", "radius": 40.0, "center": [0.0, 0.0, 0.0]}],
     )
     """List of GeometricShape that make up the neuron."""
     labels = config.list(
-        type=list, required=types.same_size("shapes", "labels", required=True)
+        type=types.list(),
+        required=types.same_size("shapes", "labels", required=True),
+        hint=[["soma", "dendrites", "axon"]],
     )
     """List of lists of labels associated to each geometric shape."""
     voxel_size = config.attr(type=float, required=False, default=1.0)
@@ -366,9 +370,13 @@ class Ellipsoid(GeometricShape, classmap_entry="ellipsoid"):
     An ellipsoid, described in cartesian coordinates.
     """
 
-    center = config.attr(type=types.ndarray(dtype=float), required=True)
+    center = config.attr(
+        type=types.ndarray(dtype=float), required=True, hint=[0.0, 0.0, 0.0]
+    )
     """The coordinates of the center of the ellipsoid."""
-    lambdas = config.attr(type=types.ndarray(dtype=float), required=True)
+    lambdas = config.attr(
+        type=types.ndarray(dtype=float), required=True, hint=[1.0, 0.5, 2.0]
+    )
     """The length of the three semi-axes."""
 
     @config.property(type=types.ndarray(), required=True)
@@ -489,11 +497,15 @@ class Cone(GeometricShape, classmap_entry="cone"):
     A cone, described in cartesian coordinates.
     """
 
-    apex = config.attr(type=types.ndarray(dtype=float), required=True)
+    apex = config.attr(
+        type=types.ndarray(dtype=float), required=True, hint=[0.0, 1.0, 0.0]
+    )
     """The coordinates of the apex of the cone."""
-    center = config.attr(type=types.ndarray(dtype=float), required=True)
+    center = config.attr(
+        type=types.ndarray(dtype=float), required=True, hint=[0.0, 0.0, 0.0]
+    )
     """The coordinates of the center of the cone."""
-    radius = config.attr(type=float, required=False, default=1.0e-3)
+    radius = config.attr(type=float, required=False, default=1.0)
     """The radius of the base circle."""
 
     def find_mbb(self):
@@ -630,11 +642,15 @@ class Cylinder(GeometricShape, classmap_entry="cylinder"):
     A cylinder, described in cartesian coordinates.
     """
 
-    bottom_center = config.attr(type=types.ndarray(dtype=float), required=True)
+    bottom_center = config.attr(
+        type=types.ndarray(dtype=float), required=True, hint=[0.0, 0.0, 0.0]
+    )
     """The coordinates of the center of the bottom circle of the cylinder."""
-    top_center = config.attr(type=types.ndarray(dtype=float), required=True)
+    top_center = config.attr(
+        type=types.ndarray(dtype=float), required=True, hint=[0.0, 2.0, 0.0]
+    )
     """The coordinates of the center of the top circle of the cylinder."""
-    radius = config.attr(type=float, required=False, default=1.0e-3)
+    radius = config.attr(type=float, required=False, default=1.0)
     """The radius of the base circle."""
 
     def find_mbb(self):
@@ -762,9 +778,11 @@ class Sphere(GeometricShape, classmap_entry="sphere"):
     A sphere, described in cartesian coordinates.
     """
 
-    center = config.attr(type=types.ndarray(dtype=float), required=True)
+    center = config.attr(
+        type=types.ndarray(dtype=float), required=True, hint=[0.0, 0.0, 0.0]
+    )
     """The coordinates of the center of the sphere."""
-    radius = config.attr(type=float, required=False, default=1.0e-3)
+    radius = config.attr(type=float, required=False, default=1.0)
     """The radius of the sphere."""
 
     def find_mbb(self):
@@ -829,13 +847,17 @@ class Cuboid(GeometricShape, classmap_entry="cuboid"):
     A rectangular parallelepiped, described in cartesian coordinates.
     """
 
-    bottom_center = config.attr(type=types.ndarray(dtype=float), required=True)
+    bottom_center = config.attr(
+        type=types.ndarray(dtype=float), required=True, hint=[0.0, 0.0, 0.0]
+    )
     """The coordinates of the center of the barycenter of the bottom rectangle."""
-    top_center = config.attr(type=types.ndarray(dtype=float), required=True)
+    top_center = config.attr(
+        type=types.ndarray(dtype=float), required=True, hint=[0.0, 1.0, 0.0]
+    )
     """The coordinates of the center of the barycenter of the top rectangle."""
-    side_length_1 = config.attr(type=float, required=False, default=1.0e-3)
+    side_length_1 = config.attr(type=float, required=False, default=1.0)
     """Length of one side of the base rectangle."""
-    side_length_2 = config.attr(type=float, required=False, default=1.0e-3)
+    side_length_2 = config.attr(type=float, required=False, default=1.0)
     """Length of the other side of the base rectangle."""
 
     def find_mbb(self):
@@ -1004,15 +1026,23 @@ class Parallelepiped(GeometricShape, classmap_entry="parallelepiped"):
     sides in cartesian coordinates
     """
 
-    center = config.attr(type=types.ndarray(dtype=float), required=True)
+    center = config.attr(
+        type=types.ndarray(dtype=float), required=True, hint=[0.0, 0.0, 0.0]
+    )
     """The coordinates of the left-bottom edge."""
-    side_vector_1 = config.attr(type=types.ndarray(dtype=float), required=True)
+    side_vector_1 = config.attr(
+        type=types.ndarray(dtype=float), required=True, hint=[1.0, 0.0, 0.0]
+    )
     """The first vector identifying the parallelepiped (using the right-hand orientation: the 
         thumb)."""
-    side_vector_2 = config.attr(type=types.ndarray(dtype=float), required=True)
+    side_vector_2 = config.attr(
+        type=types.ndarray(dtype=float), required=True, hint=[0.0, 1.0, 0.0]
+    )
     """The second vector identifying the parallelepiped (using the right-hand orientation: the 
         index)."""
-    side_vector_3 = config.attr(type=types.ndarray(dtype=float), required=True)
+    side_vector_3 = config.attr(
+        type=types.ndarray(dtype=float), required=True, hint=[0.0, 0.0, 1.0]
+    )
     """The third vector identifying the parallelepiped (using the right-hand orientation: the 
         middle finger)."""
 
