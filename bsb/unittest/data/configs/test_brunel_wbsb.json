@@ -206,8 +206,6 @@
           "constants": {
             "C_m": 250,
             "tau_m": 20,
-            "tau_syn_ex": 0.5,
-            "tau_syn_in": 0.5,
             "t_ref": 2.0,
             "E_L": 0.0,
             "V_reset": 0.0,
@@ -220,8 +218,6 @@
           "constants": {
             "C_m": 250,
             "tau_m": 20,
-            "tau_syn_ex": 0.5,
-            "tau_syn_in": 0.5,
             "t_ref": 2.0,
             "E_L": 0.0,
             "V_reset": 0.0,
@@ -230,7 +226,24 @@
           }
         }
       },
-      "connection_models": {},
+      "connection_models": {
+        "excitatory_to_excitatory": {
+          "weight": 20.68015524367846,
+          "delay": 1.5
+        },
+        "excitatory_to_inhibitory": {
+          "weight": 20.68015524367846,
+          "delay": 1.5
+        },
+        "inhibitory_to_excitatory": {
+          "weight": -103.4007762183923,
+          "delay": 1.5
+        },
+        "inhibitory_to_inhibitory": {
+          "weight": -103.4007762183923,
+          "delay": 1.5
+        }
+      },
       "devices": {}
     }
   }
