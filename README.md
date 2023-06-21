@@ -74,8 +74,12 @@ The default project currently contains no simulation config.
 All contributions are very much welcome.
 Take a look at the [contribution guide](CONTRIBUTING.md)
 
-# Known issues
+# Acknowledgements
 
-## Simulation interfaces are not reinstated yet in v4
-
-Shouldn't be much work, famous last words.
+This research has received funding from the European Union’s Horizon 2020 Framework
+Program for Research and Innovation under the Specific Grant Agreement No. 945539
+(Human Brain Project SGA3) and Specific Grant Agreement No. 785907 (Human Brain
+Project SGA2) and from Centro Fermi project “Local Neuronal Microcircuits” to ED. We
+acknowledge the use of EBRAINS platform and Fenix Infrastructure resources, which are
+partially funded from the European Union’s Horizon 2020 research and innovation
+programme through the ICEI project under the grant agreement No. 800858
