@@ -9,50 +9,44 @@ from ...trees import BoxTree
 
 @config.node
 class CloudHemitype(Hemitype):
+    """
+    Class representing a population of cells to connect with a ConnectionStrategy.
+    These cells' morphology is implemented as a ShapesComposition.
+    """
+
     shapes_composition = config.attr(type=ShapesComposition, required=True)
     """
     Composite shape representing the Hemitype.
     """
 
+    def get_mbb(self, chunks, chunk_dimension):
+        """
+        Get the list of minimal bounding box containing all cells in the CloudHemitype.
 
-def get_postsyn_chunks(presyn_chunk, post_cell_types, post_shapes_composition):
-    """
-    Returns the list of chunks overlapping with the postsynaptic point clouds, based on a
-    chunk containing the presynaptic neurons .
-
-    :param presyn_chunk: Presynaptic chunk
-    :type presyn_chunk: bsb.storage.Chunk
-    :param post_cell_types: Postsynaptic cell types
-    :type post_cell_types: List[bsb.cell_types.CellType]
-    :param post_shapes_composition: Composite shape representing the postsynaptic neuron.
-    :type post_shapes_composition: ShapesComposition
-    :returns: List of postsynaptic chunks
-    :rtype: List[bsb.storage.Chunk]
-    """
-    chunks = [
-        c for ct in post_cell_types for c in ct.get_placement_set().get_all_chunks()
-    ]
-    # Creates a Boxtree storing postsynaptic minimal bounding boxes.
-    tree = BoxTree(
-        [
+        :param chunks: List of chunks containing the cell types
+            (see bsb.connectivity.strategy.Hemitype.get_all_chunks)
+        :type chunks: List[bsb.storage.Chunk]
+        :param chunk_dimension: Size of a chunk
+        :type chunk_dimension: float
+        :return: List of bounding boxes in the form [min_x, min_y, min_z, max_x, max_y, max_z]
+            for each chunk containing cells.
+        :rtype: List[numpy.ndarray[float, float, float, float, float, float]]
+        """
+        return [
             np.concatenate(
                 [
-                    post_shapes_composition.get_mbb_min() + np.array(post_coord),
-                    post_shapes_composition.get_mbb_max() + np.array(post_coord),
+                    self.shapes_composition.get_mbb_min()
+                    + np.array(idx_chunk) * chunk_dimension,
+                    self.shapes_composition.get_mbb_max()
+                    + np.array(idx_chunk) * chunk_dimension,
                 ]
             )
-            for post_coord in chunks
+            for idx_chunk in chunks
         ]
-    )
-    # Filter postsyn chunks that overlap the presyn chunk.
-    index_overlap_chunks = tree.query(
-        [
-            np.concatenate(
-                [np.array(presyn_chunk), np.array(presyn_chunk) + presyn_chunk.dimensions]
-            )
-        ]
-    )
-    return [chunks[i[0]] for i in index_overlap_chunks]
+
+    def _get_cloud_boxtree(self, chunks):
+        mbbs = self.get_mbb(chunks, chunks[0].dimensions)
+        return BoxTree(mbbs)
 
 
 @config.node
@@ -62,9 +56,15 @@ class CloudToCloudIntersection(ConnectionStrategy):
     affinity = config.attr(type=types.fraction(), required=True, hint=0.1)
 
     def get_region_of_interest(self, chunk):
-        return get_postsyn_chunks(
-            chunk, self.postsynaptic.cell_types, self.postsynaptic.shapes_composition
+        # Filter postsyn chunks that overlap the presyn chunk.
+        post_chunks = self.postsynaptic.get_all_chunks()
+        tree = self.postsynaptic._get_cloud_boxtree(
+            post_chunks,
         )
+        pre_mbb = self.presynaptic.get_mbb(
+            self.presynaptic.get_all_chunks(), chunk.dimensions
+        )
+        return [post_chunks[i] for i in tree.query(pre_mbb, unique=True)]
 
     def connect(self, pre, post):
         for pre_ct, pre_ps in pre.placement.items():

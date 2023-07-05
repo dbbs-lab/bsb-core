@@ -1,7 +1,7 @@
 import numpy as np
 from bsb.connectivity import ConnectionStrategy
 from bsb import config
-from .cloud_cloud_intersection import CloudHemitype, get_postsyn_chunks
+from .cloud_cloud_intersection import CloudHemitype
 from ...config import types
 
 
@@ -11,9 +11,20 @@ class MorphologyToCloudIntersection(ConnectionStrategy):
     affinity = config.attr(type=types.fraction(), required=True, hint=0.1)
 
     def get_region_of_interest(self, chunk):
-        return get_postsyn_chunks(
-            chunk, self.postsynaptic.cell_types, self.postsynaptic.shapes_composition
+        lpre, upre = self.presynaptic._get_rect_ext(tuple(chunk.dimensions))
+        post_chunks = self.postsynaptic.get_all_chunks()
+        tree = self.postsynaptic._get_cloud_boxtree(
+            post_chunks,
         )
+        pre_mbb = [
+            np.concatenate(
+                [
+                    (lpre + chunk) * chunk.dimensions,
+                    np.maximum((upre + chunk), (lpre + chunk) + 1) * chunk.dimensions,
+                ]
+            )
+        ]
+        return [post_chunks[i] for i in tree.query(pre_mbb, unique=True)]
 
     def connect(self, pre, post):
         for pre_ct, pre_ps in pre.placement.items():

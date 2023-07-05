@@ -5,13 +5,50 @@ from ..reporting import report, warn
 from .._util import SortableByAfter, obj_str_insert
 import abc
 from itertools import chain
+from functools import cache
+import numpy as np
 
 
 @config.node
 class Hemitype:
+    """
+    Class representing a population of cells to connect with a ConnectionStrategy.
+    """
+
     cell_types = config.reflist(refs.cell_type_ref, required=True)
     labels = config.attr(type=types.list())
     morphology_labels = config.attr(type=types.list())
+
+    def get_all_chunks(self):
+        """
+        Get the list of all chunks where the cell types were placed
+
+        :return: List of Chunks
+        :rtype: List[bsb.storage.Chunk]
+        """
+        return [
+            c for ct in self.cell_types for c in ct.get_placement_set().get_all_chunks()
+        ]
+
+    @cache
+    def _get_rect_ext(self, chunk_size):
+        # Returns the lower and upper boundary Chunk of the box containing the cell type population,
+        # based on the cell type's morphology if it exists.
+        # This box is centered on the Chunk [0., 0., 0.].
+        # If no morphologies are associated to the cell types then the bounding box size is 0.
+        types = self.cell_types
+        ps_list = [ct.get_placement_set() for ct in types]
+        ms_list = [ps.load_morphologies() for ps in ps_list]
+        if not sum(map(len, ms_list)):
+            # No cells placed, return smallest possible RoI.
+            return [np.array([0, 0, 0]), np.array([0, 0, 0])]
+        metas = list(chain.from_iterable(ms.iter_meta(unique=True) for ms in ms_list))
+        # TODO: Combine morphology extension information with PS rotation information.
+        # Get the chunk coordinates of the boundaries of this chunk convoluted with the
+        # extension of the intersecting morphologies.
+        lbounds = np.min([m["ldc"] for m in metas], axis=0) // chunk_size
+        ubounds = np.max([m["mdc"] for m in metas], axis=0) // chunk_size
+        return lbounds, ubounds
 
 
 class HemitypeCollection:

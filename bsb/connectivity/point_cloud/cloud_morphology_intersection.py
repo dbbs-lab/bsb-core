@@ -11,11 +11,21 @@ class CloudToMorphologyIntersection(ConnectionStrategy):
     affinity = config.attr(type=types.fraction(), required=True, hint=0.1)
 
     def get_region_of_interest(self, chunk):
-        return [
-            c
-            for ct in self.postsynaptic.cell_types
-            for c in ct.get_placement_set().get_all_chunks()
+        lpost, upost = self.postsynaptic._get_rect_ext(tuple(chunk.dimensions))
+        pre_chunks = self.presynaptic.get_all_chunks()
+        tree = self.presynaptic._get_cloud_boxtree(
+            pre_chunks,
+        )
+        post_mbb = [
+            np.concatenate(
+                [
+                    (lpost + chunk) * chunk.dimensions,
+                    np.maximum((upost + chunk), (lpost + chunk) + 1) * chunk.dimensions,
+                ]
+            )
         ]
+
+        return [pre_chunks[i] for i in tree.query(post_mbb, unique=True)]
 
     def connect(self, pre, post):
         for pre_ct, pre_ps in pre.placement.items():

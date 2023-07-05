@@ -7,6 +7,7 @@ from bsb.unittest import (
     MorphologiesFixture,
     NetworkFixture,
 )
+from bsb.exceptions import DatasetNotFoundError
 import unittest
 
 
@@ -115,15 +116,9 @@ class TestPointCloudConnectivity(
             "expected at least one intersection point",
         )
 
-        cs = self.network.get_connectivity_set("cloud_to_cloud_2")
-        con = cs.load_connections().all()[0]
-        intersection_points = len(con)
-        expected_intersection_points = 0
-        self.assertClose(
-            expected_intersection_points,
-            intersection_points,
-            "expected " + str(expected_intersection_points) + " intersection points",
-        )
+        with self.assertRaises(DatasetNotFoundError):
+            # No connectivity set expected because no overlap of the populations' chunks.
+            self.network.get_connectivity_set("cloud_to_cloud_2")
 
     def test_cloud_to_morpho(self):
         voxel_size = 25
