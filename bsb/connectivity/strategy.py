@@ -10,7 +10,7 @@ from itertools import chain
 @config.node
 class Hemitype:
     """
-    Class used to represent a population of neurons used as sources or targets in a connection rule.
+    Class used to represent one (pre- or postsynaptic) side of a connection rule.
     """
 
     cell_types = config.reflist(refs.cell_type_ref, required=True)
