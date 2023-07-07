@@ -72,9 +72,9 @@ class FiberIntersection(Intersectional, ConnectionStrategy):
         to_ps = self.scaffold.get_placement_set(to_type.name, labels=labels_post)
 
         # Load the morphology and voxelization data for the entrire morphology, for each cell type.
-        from_morphology_set = from_placement_set.load_morphologies()
+        from_morphology_set = self.presynaptic.morpho_loader(from_ps)
 
-        to_morphology_set = to_placement_set.load_morphologies()
+        to_morphology_set = self.postsynaptic.morpho_loader(to_ps)
         joined_map = (
             from_morphology_set._morphology_map + to_morphology_set._morphology_map
         )
