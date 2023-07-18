@@ -1,3 +1,19 @@
+"""
+This module contains sets of unittests per interface of the storage engines. This allows
+authors of storage engines to test their implementations against a standardized set of
+tests.
+
+Usage:
+
+    from bsb.unittest.engines import TestStorage
+
+    class TestMyStorage(TestStorage, unittest.TestCase, engine_name="my_storage"):
+        pass
+
+This will import all tests of `TestStorage` to your test suite, given that your storage
+engine is available as "my_storage" (e.g. `bsb-hdf5` would use `engine_name="hdf5"`).
+"""
+
 from ..exceptions import DatasetNotFoundError, DatasetExistsError
 from ..core import Scaffold
 from ..cell_types import CellType
@@ -205,6 +221,22 @@ class TestPlacementSet(
         self.assertEqual(
             sorted(self.chunks), sorted(ps.get_all_chunks()), "populated chunks incorrect"
         )
+
+    def test_load_ids(self):
+        self.network.compile()
+        ps = self.network.get_placement_set("test_cell")
+        # Load all ids
+        arr = ps.load_ids()
+        self.assertIsInstance(arr, np.ndarray, "Should load pos as numpy arr")
+        self.assertEqual((100,), arr.shape, "Expected 100 ids")
+        self.assertEqual(int, arr.dtype, "Expected ints")
+        self.assertClose(np.arange(100), arr, "Expected ids 0 to 99")
+
+        # Load one chunk (the `FixedPosConfigFixture` places 25 cells in 4 chunks).
+        ps.set_chunk_filter([(1, 0, 0)])
+        arr = ps.load_ids()
+        self.assertEqual((25,), arr.shape, "Expected 25 ids")
+        self.assertClose(np.arange(25, 50), arr, "Expected ids 25 to 49")
 
     def test_load_positions(self):
         self.network.compile()
