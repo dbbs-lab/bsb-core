@@ -53,9 +53,13 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install wheel
+        # Install the regular requirements
         pip install -r requirements.txt --prefer-binary
-        pip install -e .
-
+        # Install the default plugins, without dependencies, to avoid circular dependency
+        # conflicts with the BSB itself
+        pip install -r plugins.txt --prefer-binary --no-deps
+        # Install the BSB from the repo without dependencies, already installed above.
+        pip install -e . --no-deps
     - name: Run tests & coverage
       run: |
         source "${NEST_INSTALL_PATH}/bin/nest_vars.sh"

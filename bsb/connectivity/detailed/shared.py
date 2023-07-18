@@ -44,10 +44,12 @@ class Intersectional:
     def _get_rect_ext(self, chunk_size, pre_post_flag):
         if pre_post_flag:
             types = self.presynaptic.cell_types
+            loader = self.presynaptic.morpho_loader
         else:
             types = self.postsynaptic.cell_types
+            loader = self.postsynaptic.morpho_loader
         ps_list = [ct.get_placement_set() for ct in types]
-        ms_list = [ps.load_morphologies() for ps in ps_list]
+        ms_list = [loader(ps) for ps in ps_list]
         if not sum(map(len, ms_list)):
             # No cells placed, return smallest possible RoI.
             return [np.array([0, 0, 0]), np.array([0, 0, 0])]

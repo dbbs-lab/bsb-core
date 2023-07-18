@@ -35,24 +35,28 @@ class VoxelIntersection(Intersectional, ConnectionStrategy):
             candidates = post
             self._n_tvoxels = self.voxels_pre
             self._n_cvoxels = self.voxels_post
+            target_morpho = self.presynaptic.morpho_loader
+            cand_morpho = self.postsynaptic.morpho_loader
         else:
             targets = post
             candidates = pre
             self._n_tvoxels = self.voxels_post
             self._n_cvoxels = self.voxels_pre
+            target_morpho = self.postsynaptic.morpho_loader
+            cand_morpho = self.presynaptic.morpho_loader
         combo_itr = self.candidate_intersection(targets, candidates)
         mset_cache = {}
         for target_set, cand_set, match_itr in combo_itr:
             if self.cache:
                 if id(target_set) not in mset_cache:
-                    mset_cache[id(target_set)] = target_set.load_morphologies()
+                    mset_cache[id(target_set)] = target_morpho(target_set)
                 if id(cand_set) not in mset_cache:
-                    mset_cache[id(cand_set)] = cand_set.load_morphologies()
+                    mset_cache[id(cand_set)] = cand_morpho(cand_set)
                 target_mset = mset_cache[id(target_set)]
                 cand_mset = mset_cache[id(cand_set)]
             else:
-                target_mset = target_set.load_morphologies()
-                cand_mset = cand_set.load_morphologies()
+                target_mset = target_morpho(target_set)
+                cand_mset = cand_morpho(cand_set)
             self._match_voxel_intersection(
                 match_itr, target_set, cand_set, target_mset, cand_mset
             )
