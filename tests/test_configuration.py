@@ -905,13 +905,17 @@ class TestTypes(unittest.TestCase):
             direct = config.attr(type=TestA)
             or_ = config.attr(type=types.or_(TestA, TestA))
 
+        # Direct dynamic TestA with value 'b' should resolve to TestB
         self.assertEqual(TestB, type(TestA(f="b")))
+        # Dynamic attr TestA with value 'b' should resolve to TestB
         self.assertEqual(TestB, type(Container(direct={"f": "b"}).direct))
+        # Dynamic or of TestA with value 'b' should resolve to TestB
         self.assertEqual(TestB, type(Container(or_={"f": "b"}).or_))
+        # Dynamic or of TestA should fall back to default TestA
+        self.assertEqual(TestA, type(Container(or_={}).or_))
+        # Unknown value 'bb' in dynamic or should raise CastError
         with self.assertRaises(CastError):
             _ = Container(or_={"f": "bb"}).or_
-        with self.assertRaises(RequirementError):
-            _ = Container(or_={})
 
     def test_scalar_expand(self):
         @config.node

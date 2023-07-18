@@ -111,7 +111,7 @@ def dynamic(
     :param kwargs: All keyword arguments are passed to the constructor of the
       :func:`attribute <.config.attr>`.
     """
-    if "required" not in kwargs:
+    if "required" not in kwargs and "default" not in kwargs:
         kwargs["required"] = True
     if "type" not in kwargs:
         kwargs["type"] = str
