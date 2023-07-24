@@ -153,6 +153,9 @@ class ConfigurationModule:
         parser, tree, meta = _try_parsers(content, self._parser_classes, ext, path=path)
         return _from_parsed(self, parser, tree, meta, path)
 
+    def generate_config(self, parser_name, config):
+        return self.get_parser(parser_name).generate(config.__tree__(), pretty=True)
+
     __all__ = [*(vars().keys() - {"__init__", "__qualname__", "__module__"})]
 
 
