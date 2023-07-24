@@ -140,6 +140,9 @@ class ConfigurationModule:
         copy_file(files[0], output)
 
     def from_file(self, file):
+        """
+        Create a configuration object from a path or file-like object.
+        """
         if not hasattr(file, "read"):
             with open(file, "r") as f:
                 return self.from_file(f)
@@ -149,11 +152,17 @@ class ConfigurationModule:
         return self.from_content(file.read(), path)
 
     def from_content(self, content, path=None):
+        """
+        Create a configuration object from a content string
+        """
         ext = path.split(".")[-1] if path is not None else None
         parser, tree, meta = _try_parsers(content, self._parser_classes, ext, path=path)
         return _from_parsed(self, parser, tree, meta, path)
 
-    def generate_config(self, parser_name, config):
+    def format_content(self, parser_name, config):
+        """
+        Convert a configuration object to a string using the given parser.
+        """
         return self.get_parser(parser_name).generate(config.__tree__(), pretty=True)
 
     __all__ = [*(vars().keys() - {"__init__", "__qualname__", "__module__"})]
