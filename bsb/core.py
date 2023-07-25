@@ -756,6 +756,22 @@ class Scaffold:
     def get_dependency_pipelines(self):
         return [*self.configuration.morphologies]
 
+    def get_config_diagram(self):
+        from .config import make_config_diagram
+
+        return make_config_diagram(self.configuration)
+
+    def get_storage_diagram(self):
+        dot = f'digraph "{self.configuration.name or "network"}" {{'
+        for ps in self.get_placement_sets():
+            dot += f'\n  {ps.tag}[label="{ps.tag} ({len(ps)} {ps.cell_type.name})"]'
+        for conn in self.get_connectivity_sets():
+            dot += f'\n  {conn.pre_type.name} -> {conn.post_type.name}"'
+            dot += f'[label="{conn.tag} ({len(conn)})"];'
+
+        dot += "\n}\n"
+        return dot
+
 
 class ReportListener:
     def __init__(self, scaffold, file):
