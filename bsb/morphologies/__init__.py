@@ -817,6 +817,11 @@ class Morphology(SubTree):
         self.optimize()
         return self._shared._labels.labels
 
+    @property
+    def swc_tags(self):
+        self.optimize()
+        return _get_swc_labeldict(self)
+
     def list_labels(self):
         """
         Return a list of labels present on the morphology.
@@ -1379,7 +1384,7 @@ class Branch:
         Add labels to the branch.
 
         :param labels: Label(s) for the branch
-        :type labels: str
+        :type labels: list[str]
         :param points: An integer or boolean mask to select the points to label.
         """
         if points is None:
@@ -1808,43 +1813,67 @@ def _swc_data_to_morpho(cls, branch_cls, data, tags=None, meta=None):
     return morpho
 
 
+def _get_swc_labeldict(morpho):
+    swc_tags = {"soma": 1, "axon": 2, "dendrites": 3, "": 0}
+    labeldict = {}
+    custom_tag = 5
+    for encoded_tag, labelset in morpho.labelsets.items():
+        swc_tagname = " ".join(labelset)
+        if swc_tagname in swc_tags:
+            labeldict[swc_tags[swc_tagname]] = labelset
+        else:
+            labeldict[custom_tag] = labelset
+            custom_tag += 1
+    return labeldict
+
+
 def _morpho_to_swc(morpho):
     # Initialize an empty data array
     data = np.empty((len(morpho.points), 7), dtype=object)
-    swc_tags = {"soma": 1, "axon": 2, "dendrites": 3}
     bmap = {}
     nid = 0
-    offset = 0
     # Convert labels to tags
     if not hasattr(morpho, "tags"):
+        swc_tags = {"": 0, "soma": 1, "axon": 2, "dendrites": 3}
         tags = np.full(len(morpho.points), -1, dtype=int)
-        for key in swc_tags.keys():
-            mask = morpho.get_label_mask([key])
-            tags[mask] = swc_tags[key]
+        custom_tag = 5
+        for morpho_tag, labelset in morpho.labelsets.items():
+            swc_tagname = " ".join(labelset)
+            if swc_tagname in swc_tags:
+                tag = swc_tags[swc_tagname]
+            else:
+                tag = custom_tag
+                custom_tag += 1
+            tags[morpho.labels == morpho_tag] = tag
     else:
         tags = morpho.tags
     if np.any(tags == -1):
-        raise NotImplementedError("Can't store morphologies with custom SWC tags")
+        raise NotImplementedError("Can't store morphologies with missing tags")
     # Iterate over the morphology branches
     for b in morpho.branches:
+        # When loading an SWC morphology, a point is added at the start of a branch
+        # equal to the last point of the parent branch. This is because SWC defines
+        # parent-child edges, while the BSB defines edges between points-on-a-branch.
+        # So this additional point is needed to close the gap that would arise between
+        # the parent-child edge in SWC where we create child branches.
+        skip_first = len(b) > 1 and b.parent
         ids = (
-            np.arange(nid, nid + len(b) - 1)
-            if len(b) > 1
+            np.arange(nid + 1, nid + len(b))
+            if skip_first
             else np.arange(nid, nid + len(b))
         )
         samples = ids + 1
         data[ids, 0] = samples
-        data[ids, 1] = tags[ids + offset]
-        data[ids, 2:5] = morpho.points[ids + offset]
+        data[ids, 1] = tags[ids]
+        data[ids, 2:5] = morpho.points[ids]
         try:
-            data[ids, 5] = morpho.radii[ids + offset]
+            data[ids, 5] = morpho.radii[ids]
         except Exception as e:
             raise MorphologyDataError(
                 f"Couldn't convert morphology radii to SWC: {e}."
                 " Note that SWC files cannot store multi-dimensional radii"
             )
-        nid += len(b) - 1 if len(b) > 1 else len(b)
-        offset += 1
+        nid += len(b)
         bmap[b] = ids[-1]
         data[ids, 6] = ids
         data[ids[0], 6] = -1 if b.parent is None else bmap[b.parent] + 1
