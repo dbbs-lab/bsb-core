@@ -484,7 +484,9 @@ class ConfigurationAttribute:
             else:
                 t = builtins.type(self.default)
         else:
-            t = type or str
+            from . import types
+
+            t = type or types.str()
         # This call wraps the type handler so that it accepts all reserved keyword args
         # like `_parent` and `_key`
         t = _wrap_reserved(t)
