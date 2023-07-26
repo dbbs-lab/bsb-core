@@ -353,8 +353,13 @@ class TestConnWithSubCellLabels(
     engine_name="hdf5",
     morpho_filters=["PurkinjeCell", "StellateCell"],
 ):
+    def _morpho_loader(self, ps):
+        self.increment += 1
+        return ps.load_morphologies()
+
     def setUp(self):
         super().setUp()
+        self.increment = 0
         self.network.connectivity.add(
             "self_intersect",
             dict(
@@ -363,6 +368,7 @@ class TestConnWithSubCellLabels(
                 postsynaptic=dict(
                     cell_types=["test_cell"],
                     morphology_labels=["tag_16", "tag_17", "tag_18"],
+                    morpho_loader=self._morpho_loader,
                 ),
             ),
         )
@@ -412,6 +418,12 @@ class TestConnWithSubCellLabels(
         except Exception as e:
             raise
             self.fail(f"Unexpected error: {e}")
+        self.assertEqual(
+            self.increment,
+            len(self.chunks) + 1,
+            "expect one call of the loading function per chunk + 1 for processing"
+            " the region of interest.",
+        )
         cs = self.network.get_connectivity_set("self_intersect")
         sloc, dloc = cs.load_connections().all()
         self.assertAll(sloc > -1, "expected only true conn")

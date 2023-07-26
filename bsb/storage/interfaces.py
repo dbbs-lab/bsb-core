@@ -11,6 +11,10 @@ from ..trees import BoxTree
 from .._util import obj_str_insert, immutable
 
 
+if typing.TYPE_CHECKING:
+    from ..cell_types import CellType
+
+
 @config.pluggable(key="engine", plugin_name="storage engine")
 class StorageNode:
     root = config.slot()
@@ -363,6 +367,10 @@ class PlacementSet(Interface):
         self._engine = engine
         self._type = cell_type
         self._tag = cell_type.name
+
+    @abc.abstractmethod
+    def __len__(self):
+        pass
 
     @obj_str_insert
     def __repr__(self):
@@ -886,6 +894,15 @@ class ConnectivitySet(Interface):
     outgoing connections they are the presynaptic cells. Vice versa for the global
     connections.
     """
+
+    # The following attributes must be set on each ConnectivitySet by the engine:
+    tag: str
+    pre_type: "CellType"
+    post_type: "CellType"
+
+    @abc.abstractmethod
+    def __len__(self):
+        pass
 
     @classmethod
     @abc.abstractmethod

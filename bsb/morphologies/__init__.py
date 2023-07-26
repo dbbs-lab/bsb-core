@@ -37,6 +37,12 @@ class MorphologySet:
     """
 
     def __init__(self, loaders, m_indices=None, /, labels=None):
+        """
+        :param loaders: list of Morphology loader functions.
+        :type loaders: List[Callable[[], bsb.storage.interfaces.StoredMorphology]]
+        :param m_indices: indices of the loaders for each of the morphologies.
+        :type: List[int]
+        """
         if m_indices is None:
             loaders, m_indices = np.unique(loaders, return_inverse=True)
         self._m_indices = np.array(m_indices, copy=False, dtype=int)

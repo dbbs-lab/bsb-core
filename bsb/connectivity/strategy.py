@@ -12,12 +12,22 @@ import numpy as np
 @config.node
 class Hemitype:
     """
-    Class representing a population of cells to connect with a ConnectionStrategy.
+    Class used to represent one (pre- or postsynaptic) side of a connection rule.
     """
 
     cell_types = config.reflist(refs.cell_type_ref, required=True)
+    """List of cell types to use in connection."""
     labels = config.attr(type=types.list())
+    """List of labels to filter the placement set by."""
     morphology_labels = config.attr(type=types.list())
+    """List of labels to filter the morphologies by."""
+    morpho_loader = config.attr(
+        type=types.function_(),
+        required=False,
+        call_default=False,
+        default=(lambda ps: ps.load_morphologies()),
+    )
+    """Function to load the morphologies (MorphologySet) from a PlacementSet"""
 
     def get_all_chunks(self):
         """
@@ -37,8 +47,9 @@ class Hemitype:
         # This box is centered on the Chunk [0., 0., 0.].
         # If no morphologies are associated to the cell types then the bounding box size is 0.
         types = self.cell_types
+        loader = self.morpho_loader
         ps_list = [ct.get_placement_set() for ct in types]
-        ms_list = [ps.load_morphologies() for ps in ps_list]
+        ms_list = [loader(ps) for ps in ps_list]
         if not sum(map(len, ms_list)):
             # No cells placed, return smallest possible RoI.
             return [np.array([0, 0, 0]), np.array([0, 0, 0])]
@@ -83,9 +94,13 @@ class HemitypeCollection:
 @config.dynamic(attr_name="strategy", required=True)
 class ConnectionStrategy(abc.ABC, SortableByAfter):
     name = config.attr(key=True)
+    """Name used to refer to the connectivity strategy"""
     presynaptic = config.attr(type=Hemitype, required=True)
+    """Presynaptic (source) neuron population"""
     postsynaptic = config.attr(type=Hemitype, required=True)
+    """Postsynaptic (target) neuron population"""
     after = config.reflist(refs.connectivity_ref)
+    """Action to perform after connecting the neurons with the current strategy."""
 
     def __init_subclass__(cls, **kwargs):
         super(cls, cls).__init_subclass__(**kwargs)
