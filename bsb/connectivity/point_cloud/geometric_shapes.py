@@ -323,13 +323,21 @@ class ShapesComposition:
         """
         Generate a wireframe to plot the collection of shapes.
 
-        :return: The x,y,z coordinates of the wireframe
+        :return: The x,y,z coordinates of the wireframe of each shape.
         :rtype: Tuple(numpy.ndarray[float], numpy.ndarray[float], numpy.ndarray[float]) | None
         """
         if len(self._shapes) != 0:
-            return tuple(
-                np.array([shape.wireframe_points() for shape in self._shapes]).T.tolist()
-            )
+            x = []
+            y = []
+            z = []
+            for shape in self._shapes:
+                # For each shape, the shape of the wireframe is different, so we need to append them
+                # manually
+                xt, yt, zt = shape.wireframe_points()
+                x.append(xt)
+                y.append(yt)
+                z.append(zt)
+            return x, y, z
         return None
 
     def inside_mbox(self, points: numpy.ndarray[float]) -> numpy.ndarray[bool]:
