@@ -59,6 +59,11 @@ class PlacementStrategy(abc.ABC, SortableByAfter):
         Central method of each placement strategy. Given a chunk, should fill that chunk
         with cells by calling the scaffold's (available as ``self.scaffold``)
         :func:`~bsb.core.Scaffold.place_cells` method.
+
+        :param chunk: Chunk to fill
+        :type chunk: bsb.storage.Chunk
+        :param indicators: Dictionary of each cell type to its PlacementIndicator
+        :type indicators: Mapping[str, bsb.placement.indicator.PlacementIndicator]
         """
         pass
 
@@ -195,5 +200,5 @@ class Entities(PlacementStrategy):
         for indicator in indicators.values():
             cell_type = indicator.cell_type
             # Guess total number, not chunk number, as entities bypass chunking.
-            n = np.sum(indicator.guess())
+            n = sum(np.sum(indicator.guess(voxels=p.voxelset)) for p in self.partitions)
             self.scaffold.create_entities(cell_type, n)
