@@ -38,9 +38,7 @@ API and subject to sudden change in the future.
 
 from ._util import MockModule, ErrorModule
 from . import MPI
-import time
 import concurrent.futures
-import threading
 
 
 class _MissingMPIPoolExecutor(ErrorModule):

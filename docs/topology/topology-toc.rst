@@ -3,6 +3,5 @@
    :caption: Topology
 
    intro
-   module/module-toc
    regions
    partitions

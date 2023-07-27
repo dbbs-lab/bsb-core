@@ -1,6 +1,6 @@
 from bsb.core import Scaffold
 from bsb.services import MPI
-from bsb.config import Configuration
+from bsb.config import Configuration, from_file
 from bsb.morphologies import Morphology, Branch
 from bsb.unittest import (
     NumpyTestCase,
@@ -9,6 +9,7 @@ from bsb.unittest import (
     MorphologiesFixture,
     NetworkFixture,
     skip_parallel,
+    get_config_path,
 )
 import unittest
 import numpy as np
@@ -352,8 +353,13 @@ class TestConnWithSubCellLabels(
     engine_name="hdf5",
     morpho_filters=["PurkinjeCell", "StellateCell"],
 ):
+    def _morpho_loader(self, ps):
+        self.increment += 1
+        return ps.load_morphologies()
+
     def setUp(self):
         super().setUp()
+        self.increment = 0
         self.network.connectivity.add(
             "self_intersect",
             dict(
@@ -362,6 +368,7 @@ class TestConnWithSubCellLabels(
                 postsynaptic=dict(
                     cell_types=["test_cell"],
                     morphology_labels=["tag_16", "tag_17", "tag_18"],
+                    morpho_loader=self._morpho_loader,
                 ),
             ),
         )
@@ -411,6 +418,12 @@ class TestConnWithSubCellLabels(
         except Exception as e:
             raise
             self.fail(f"Unexpected error: {e}")
+        self.assertEqual(
+            self.increment,
+            len(self.chunks) + 1,
+            "expect one call of the loading function per chunk + 1 for processing"
+            " the region of interest.",
+        )
         cs = self.network.get_connectivity_set("self_intersect")
         sloc, dloc = cs.load_connections().all()
         self.assertAll(sloc > -1, "expected only true conn")
@@ -634,3 +647,40 @@ class TestVoxelIntersection(
         self.network.compile(clear=True)
         conns = len(self.network.get_connectivity_set("intersect"))
         self.assertEqual(0, conns, "expected no contacts")
+
+
+class TestFixedIndegree(
+    NetworkFixture, RandomStorageFixture, unittest.TestCase, engine_name="hdf5"
+):
+    def setUp(self) -> None:
+        self.cfg = from_file(get_config_path("test_indegree.json"))
+        super().setUp()
+
+    def test_indegree(self):
+        self.network.compile()
+        cs = self.network.get_connectivity_set("indegree")
+        _, post_locs = cs.load_connections().all()
+        ps = self.network.get_placement_set("inhibitory")
+        u, c = np.unique(post_locs[:, 0], return_counts=True)
+        self.assertTrue(
+            np.array_equal(np.arange(len(ps)), np.sort(u)),
+            "Not all post cells have connections",
+        )
+        self.assertTrue(np.all(c == 50), "Not all cells have indegree 50")
+
+    def test_multi_indegree(self):
+        self.network.compile()
+        for post_name in ("inhibitory", "extra"):
+            post_ps = self.network.get_placement_set(post_name)
+            total = np.zeros(len(post_ps))
+            for pre_name in ("excitatory", "extra"):
+                cs = self.network.get_connectivity_set(
+                    f"multi_indegree_{pre_name}_to_{post_name}"
+                )
+                _, post_locs = cs.load_connections().all()
+                ps = self.network.get_placement_set("inhibitory")
+                u, c = np.unique(post_locs[:, 0], return_counts=True)
+                this = np.zeros(len(post_ps))
+                this[u] = c
+                total += this
+            self.assertTrue(np.all(total == 50), "Not all cells have indegree 50")

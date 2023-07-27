@@ -1,0 +1,30 @@
+name: Starting example
+storage:
+  engine: hdf5
+  root: network.hdf5
+network:
+  x: 400
+  y: 600
+  z: 400
+partitions:
+  base_layer:
+    type: layer
+    thickness: 100
+cell_types:
+  base_type:
+    spatial:
+      radius: 2.5
+      density: 0.00039
+    plotting:
+      display_name: Template cell
+      color: "#E62314"
+      opacity: 0.5
+placement:
+  example_placement:
+    strategy: bsb.placement.ParticlePlacement
+    cell_types:
+    - base_type
+    partitions:
+    - base_layer
+connectivity: {}
+simulations: {}

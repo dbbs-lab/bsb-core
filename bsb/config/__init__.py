@@ -33,22 +33,26 @@ from ._attrs import (
     ConfigurationAttribute,
 )
 from .._util import ichain
-from ._make import walk_node_attributes, walk_nodes
+from ._make import walk_node_attributes, walk_nodes, compose_nodes, get_config_attributes
 from ._hooks import on, before, after, run_hook, has_hook
 from .. import plugins
 from ..exceptions import ConfigTemplateNotFoundError, ParserError, PluginError
+from . import parsers
 
 
 _path = __path__
 ConfigurationAttribute.__module__ = __name__
 
 
+# ConfigurationModule should not inherit from `ModuleType`, otherwise Sphinx doesn't
+# document all the properties.
 class ConfigurationModule:
     from . import types, refs
 
     def __init__(self, name):
         self.__name__ = name
 
+    parsers = parsers
     attr = staticmethod(attr)
     list = staticmethod(list)
     dict = staticmethod(dict)
@@ -67,7 +71,9 @@ class ConfigurationModule:
     file = staticmethod(file)
 
     walk_node_attributes = staticmethod(walk_node_attributes)
+    get_config_attributes = staticmethod(get_config_attributes)
     walk_nodes = staticmethod(walk_nodes)
+    compose_nodes = staticmethod(compose_nodes)
     on = staticmethod(on)
     after = staticmethod(after)
     before = staticmethod(before)
@@ -134,6 +140,9 @@ class ConfigurationModule:
         copy_file(files[0], output)
 
     def from_file(self, file):
+        """
+        Create a configuration object from a path or file-like object.
+        """
         if not hasattr(file, "read"):
             with open(file, "r") as f:
                 return self.from_file(f)
@@ -143,9 +152,18 @@ class ConfigurationModule:
         return self.from_content(file.read(), path)
 
     def from_content(self, content, path=None):
+        """
+        Create a configuration object from a content string
+        """
         ext = path.split(".")[-1] if path is not None else None
         parser, tree, meta = _try_parsers(content, self._parser_classes, ext, path=path)
         return _from_parsed(self, parser, tree, meta, path)
+
+    def format_content(self, parser_name, config):
+        """
+        Convert a configuration object to a string using the given parser.
+        """
+        return self.get_parser(parser_name).generate(config.__tree__(), pretty=True)
 
     __all__ = [*(vars().keys() - {"__init__", "__qualname__", "__module__"})]
 
@@ -192,12 +210,16 @@ def _try_parsers(content, classes, ext=None, path=None):  # pragma: nocover
             return (name, tree, meta)
     msges = [
         (
-            f"Can't parse contents with '{n}':\n",
+            f"- Can't parse contents with '{n}':\n",
             "".join(traceback.format_exception(type(e), e, e.__traceback__)),
         )
         for n, e in exc.items()
     ]
-    raise ParserError("\n".join(ichain(msges)))
+    if path:
+        msg = f"Could not parse '{path}'"
+    else:
+        msg = f"Could not parse content string ({len(content)} characters long)"
+    raise ParserError("\n".join(ichain(msges)) + f"\n{msg}")
 
 
 def _from_parsed(self, parser_name, tree, meta, file=None):

@@ -1,14 +1,18 @@
+import re
 import unittest, os, sys, numpy as np, h5py
 import json
 import itertools
 
+from bsb.config._config import Configuration
+from bsb.core import Scaffold
 from bsb.services import MPI
 from bsb.morphologies import Morphology, Branch, MorphologySet, RotationSet
 from bsb._encoding import EncodedLabels
 from bsb.storage import Storage
+from bsb.storage._files import MorphologyDependencyNode, MorphologyOperation
 from bsb.storage.interfaces import StoredMorphology
 from bsb.exceptions import *
-from bsb.unittest import get_morphology_path, NumpyTestCase
+from bsb.unittest import get_morphology_path, NumpyTestCase, RandomStorageFixture
 from scipy.spatial.transform import Rotation
 
 
@@ -37,13 +41,34 @@ class TestIO(NumpyTestCase, unittest.TestCase):
 
     def test_known(self):
         # TODO: Check the morphos visually with glover
-        m = Morphology.from_swc(get_morphology_path("PurkinjeCell.swc"))
+        m = Morphology.from_file(get_morphology_path("PurkinjeCell.swc"))
         self.assertEqual(3834, len(m), "Amount of point on purkinje changed")
         self.assertEqual(459, len(m.branches), "Amount of branches on purkinje changed")
         self.assertEqual(
             42.45157433053635,
             np.mean(m.points),
-            "value of the universe, life and everything changed.",
+            "value of the universe, life and everything.",
+        )
+        for labelset in m.labelsets.values():
+            for label in labelset:
+                self.assertTrue(re.match(r"((tag_)?[0-9]+)|(soma)", label) is not None)
+        tags = {
+            1: "soma",
+            16: ["axon", "AIS"],
+            17: ["axon", "AIS", "K"],
+            18: ["axon", "axonmyelin"],
+            19: ["axon", "nodes"],
+            20: ["dendrites", "basal_dendrites"],
+            21: ["dendrites", "pf_targets"],
+            22: ["dendrites", "aa_targets"],
+        }
+        m = Morphology.from_file(get_morphology_path("PurkinjeCell.swc"), tags=tags)
+        all_sets = set()
+        for value in m.labelsets.values():
+            all_sets.update(value)
+        self.assertEqual(
+            set(np.concatenate([[v] if type(v) == str else v for v in tags.values()])),
+            all_sets,
         )
         m = Morphology.from_file(get_morphology_path("GolgiCell.asc"))
         self.assertEqual(5105, len(m), "Amount of point on purkinje changed")
@@ -117,10 +142,13 @@ class TestMorphologies(NumpyTestCase, unittest.TestCase):
         self.assertTrue(branch_C.is_terminal)
         self.assertTrue(branch_D.is_terminal)
         branch_A.detach_child(branch_C)
-        self.assertIsNone(branch_C._parent)
+        self.assertIsNone(branch_C.parent)
         with self.assertRaises(ValueError):
             branch_A.detach_child(branch_D)
-        self.assertEqual(branch_B, branch_D._parent)
+        self.assertEqual(branch_B, branch_D.parent)
+        branch_B.detach()
+        branch_B.detach()
+        self.assertEqual(None, branch_B.parent)
 
     def test_properties(self):
         branch = Branch(
@@ -207,6 +235,40 @@ class TestMorphologies(NumpyTestCase, unittest.TestCase):
         r = Rotation.from_euler("z", 0)
         res = m.rotate(r).root_rotate(r).translate([0, 0, 0]).collapse().close_gaps()
         self.assertEqual(m, res, "chaining calls should return self")
+
+    def test_root_rotate(self):
+        points = np.array([[0, 0, 0], [1, 1, 0], [0, 4, 0], [0, 6, 0], [2, 4, 8]])
+        radii = np.array([0, 1, 2, 2, 1])
+        m = Morphology([Branch(points, radii)])
+        rot = Rotation.from_euler("x", np.pi)
+        # rotate from root
+        rotated = m.copy().root_rotate(rot)
+        rot_points = np.copy(points)
+        rot_points[:, 1:] = -rot_points[:, 1:]
+        expected = Morphology([Branch(rot_points, radii)])
+        self.assertEqual(rotated, expected)
+
+        # rotate from second point
+        rotated = m.copy().root_rotate(rot, downstream_of=1)
+        rot_points = np.copy(points)
+        rot_points[1:, 1:] = 2 * rot_points[1, 1:] - rot_points[1:, 1:]
+        expected = Morphology([Branch(rot_points, radii)])
+        self.assertEqual(rotated, expected)
+
+        # Wrong point index -> no rotation
+        expected = Morphology([Branch(points, radii)])
+        rotated = m.copy().root_rotate(rot, downstream_of=5)
+        self.assertEqual(rotated, expected)
+        rotated = m.copy().root_rotate(rot, downstream_of=-1)
+        self.assertEqual(rotated, expected)
+        rotated = m.copy().root_rotate(
+            Rotation.from_euler("x", np.pi), downstream_of="bla"
+        )
+        self.assertEqual(rotated, expected)
+
+        # More than one root
+        m = Morphology([Branch(points, radii), Branch(points, radii)])
+        self.assertRaises(ValueError, m.root_rotate, rot=rot, downstream_of=1)
 
     def test_simplification(self):
         def branch_one():
@@ -627,75 +689,75 @@ class TestMorphometry(NumpyTestCase, unittest.TestCase):
                     getattr(self.bzero1, attr)
 
     def test_zero_len(self):
-        for attr in ("euclidean_dist", "path_dist"):
+        for attr in ("euclidean_dist", "path_length"):
             with self.subTest(attr=attr):
-                self.assertEqual(getattr(self.b1, attr), 0)
-                self.assertEqual(getattr(self.bzero1, attr), 0)
-                self.assertEqual(getattr(self.bzero_r1, attr), 0)
-                self.assertEqual(getattr(self.bzero2, attr), 0)
-                self.assertEqual(getattr(self.bzero_r2, attr), 0)
-                self.assertEqual(getattr(self.bzero10, attr), 0)
-                self.assertEqual(getattr(self.bzero_r10, attr), 0)
+                self.assertEqual(0, getattr(self.b1, attr))
+                self.assertEqual(0, getattr(self.bzero1, attr))
+                self.assertEqual(0, getattr(self.bzero_r1, attr))
+                self.assertEqual(0, getattr(self.bzero2, attr))
+                self.assertEqual(0, getattr(self.bzero_r2, attr))
+                self.assertEqual(0, getattr(self.bzero10, attr))
+                self.assertEqual(0, getattr(self.bzero_r10, attr))
 
     def test_known_len(self):
-        self.assertClose(self.b3.path_dist, 12)
-        self.assertClose(self.b3.euclidean_dist, 6)
+        self.assertClose(12, self.b3.path_length)
+        self.assertClose(12, Morphology([self.b3]).path_length)
+        self.assertClose(6, self.b3.euclidean_dist)
 
     def test_adjacency(self):
         known_adj = {0: [1, 2], 1: [], 2: [3, 4, 5], 3: [], 4: [], 5: []}
-        self.assertEqual(len(self.branches[0].children), 2)
-        self.assertEqual(len(self.branches[2].children), 3)
+        self.assertEqual(2, len(self.branches[0].children))
+        self.assertEqual(3, len(self.branches[2].children))
         self.assertDictEqual(known_adj, self.adjacency)
 
     def test_start_end(self):
-        self.assertClose(self.branches[0].start, [0.0, 1.0, 0.0])
-        self.assertClose(self.branches[0].end, [0.0, 1.0, 0.0])
-        self.assertClose(self.branches[1].start, [0.0, 1.0, 0.0])
-        self.assertClose(self.branches[1].end, [-5.0, np.exp(5), 0.0])
-        self.assertClose(self.branches[2].start, [0.0, 1.0, 0.0])
-        self.assertClose(self.branches[2].end, [0.0, 11.0, 0.0])
-        self.assertClose(self.branches[3].start, [0.0, 11.0, 0.0])
+        self.assertClose([0.0, 1.0, 0.0], self.branches[0].start)
+        self.assertClose([0.0, 1.0, 0.0], self.branches[0].end)
+        self.assertClose([0.0, 1.0, 0.0], self.branches[1].start)
+        self.assertClose([-5.0, np.exp(5), 0.0], self.branches[1].end)
+        self.assertClose([0.0, 1.0, 0.0], self.branches[2].start)
+        self.assertClose([0.0, 11.0, 0.0], self.branches[2].end)
+        self.assertClose([0.0, 11.0, 0.0], self.branches[3].start)
         self.assertClose(
-            self.branches[3].end,
             [0.0 + 10 * np.cos(np.pi / 2), 11.0 + 10 * np.sin(np.pi / 2), 0.0],
+            self.branches[3].end,
         )
-        self.assertClose(self.branches[4].start, [0.0, 11.0, 0.0])
+        self.assertClose([0.0, 11.0, 0.0], self.branches[4].start)
         self.assertClose(
-            self.branches[4].end,
             [0.0 + 10 * np.cos(np.pi / 3), 11.0 + 10 * np.sin(np.pi / 3), 0.0],
+            self.branches[4].end,
         )
-        self.assertClose(self.branches[5].start, [0.0, 11.0, 0.0])
+        self.assertClose([0.0, 11.0, 0.0], self.branches[5].start)
         self.assertClose(
-            self.branches[5].end,
             [
                 0.0 + 10 * np.cos((2 / 3) * np.pi),
                 11.0 + 10 * np.sin((2 / 3) * np.pi),
                 0.0,
             ],
+            self.branches[5].end,
         )
 
     def test_vectors(self):
-        self.assertClose(self.branches[2].versor, [0.0, 1.0, 0.0])
-        self.assertClose(self.branches[2].vector, [0.0, 10.0, 0.0])
-        self.assertClose(self.branches[3].versor, [0, 1.0, 0.0])
-        self.assertClose(self.branches[3].vector, [0, 10.0, 0.0])
+        self.assertClose([0.0, 1.0, 0.0], self.branches[2].versor)
+        self.assertClose([0.0, 10.0, 0.0], self.branches[2].vector)
+        self.assertClose([0, 1.0, 0.0], self.branches[3].versor)
+        self.assertClose([0, 10.0, 0.0], self.branches[3].vector)
         self.assertClose(
-            self.branches[4].versor, [np.cos(np.pi / 3), np.sin(np.pi / 3), 0.0]
+            [np.cos(np.pi / 3), np.sin(np.pi / 3), 0.0], self.branches[4].versor
         )
         self.assertClose(
-            self.branches[5].versor,
             [np.cos((2 / 3) * np.pi), np.sin((2 / 3) * np.pi), 0.0],
+            self.branches[5].versor,
         )
-        pass
 
     def test_displacement(self):
-        self.assertClose(self.branches[2].max_displacement, 5.0)
+        self.assertClose(5.0, self.branches[2].max_displacement)
         for b in self.branches[3:]:
-            self.assertClose(b.max_displacement, 0, atol=1e-06)
+            self.assertClose(0, b.max_displacement, atol=1e-06)
 
     def test_fractal_dim(self):
         for b in self.branches[3:]:
-            self.assertClose(b.fractal_dim, 1.0)
+            self.assertClose(1.0, b.fractal_dim)
 
 
 class TestSwcFiles(NumpyTestCase, unittest.TestCase):
@@ -964,3 +1026,31 @@ class TestRotationSet(unittest.TestCase):
             RotationSet(np.empty((4, 1)))
         with self.assertRaises(ValueError, msg="It should throw a ValueError") as _:
             RotationSet(np.empty((4, 3, 3)))
+
+
+class TestPipelines(
+    NumpyTestCase, RandomStorageFixture, unittest.TestCase, engine_name="hdf5"
+):
+    def test_pipeline_functions(self):
+        m1 = MorphologyDependencyNode(file="nm://hippo-1264-9")
+        m2 = MorphologyDependencyNode(
+            file="nm://hippo-1264-9",
+            pipeline=[MorphologyOperation(func="rotate", rotation=[90, 0, 0])],
+        )
+        m3 = MorphologyDependencyNode(
+            file="nm://hippo-1264-9",
+            pipeline=[
+                MorphologyOperation(func="rotate", rotation=[90, 0, 0]),
+                MorphologyOperation(func="rotate", rotation=[-90, 0, 0]),
+            ],
+        )
+        cfg = Configuration.default(morphologies=[m1, m2, m3])
+        Scaffold(cfg, self.storage)
+        self.assertNotClose(
+            m1.load_object().points, m2.load_object().points, "Pipeline rotation skipped"
+        )
+        self.assertClose(
+            m1.load_object().points,
+            m3.load_object().points,
+            "Pipeline rotations went wrong",
+        )

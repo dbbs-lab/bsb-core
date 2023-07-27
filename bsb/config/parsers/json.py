@@ -4,6 +4,7 @@ references.
 """
 
 import json
+import numpy as np
 import os
 from ...exceptions import JsonImportError, ConfigurationWarning, JsonReferenceError
 from ...reporting import warn
@@ -142,6 +143,13 @@ class json_imp(json_ref):
                 self.node[key] = target[key]
 
 
+def _to_json(value):
+    if isinstance(value, np.ndarray):
+        return value.tolist()
+    else:
+        raise TypeError()
+
+
 class JsonParser(Parser):
     """
     Parser plugin class to parse JSON configuration files.
@@ -149,6 +157,7 @@ class JsonParser(Parser):
 
     data_description = "JSON"
     data_extensions = ("json",)
+    data_syntax = "json"
 
     def parse(self, content, path=None):
         # Parses the content. If path is set it's used as the root for the multi-document
@@ -169,6 +178,12 @@ class JsonParser(Parser):
         self._resolve_references()
         meta = {"path": path}
         return content, meta
+
+    def generate(self, tree, pretty=False):
+        if pretty:
+            return json.dumps(tree, indent=4, default=_to_json)
+        else:
+            return json.dumps(tree, default=_to_json)
 
     def _traverse(self, node, iter):
         # Iterates over all values in `iter` and checks for import keys, recursion or refs

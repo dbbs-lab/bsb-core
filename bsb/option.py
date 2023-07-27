@@ -360,18 +360,24 @@ class BsbOption:
 
 
 @functools.cache
-def _pyproject_content():
+def _pyproject_path():
     path = pathlib.Path.cwd()
     while str(path)[len(path.drive) :] != path.root:
         proj = path / "pyproject.toml"
         if proj.exists():
-            with open(proj, "r") as f:
-                return proj.resolve(), toml.load(f)
+            return proj
         path = path.parent
-    return None, {}  # pragma: nocover
 
 
-@functools.cache
+def _pyproject_content():
+    path = _pyproject_path()
+    if path:
+        with open(path, "r") as f:
+            return path.resolve(), toml.load(f)
+    else:
+        return None, {}  # pragma: nocover
+
+
 def _pyproject_bsb():
     path, content = _pyproject_content()
     return path, content.get("tools", {}).get("bsb", {})

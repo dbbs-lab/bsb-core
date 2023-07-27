@@ -1,3 +1,5 @@
+import warnings
+
 import abc as _abc
 import contextlib as _cl
 import datetime as _dt
@@ -12,6 +14,8 @@ import typing as _tp
 import requests as _rq
 import email.utils as _eml
 import nrrd as _nrrd
+import hashlib as _hl
+import yaml
 
 from .._util import obj_str_insert
 from .. import config
@@ -55,6 +59,12 @@ class FileDependency:
     @property
     def uri(self):
         return self._uri
+
+    def __hash__(self):
+        return hash(self._uri)
+
+    def __inv__(self):
+        return self._given_source
 
     @obj_str_insert
     def __str__(self):
@@ -156,7 +166,15 @@ class UriScheme(_abc.ABC):
     @_abc.abstractmethod
     def should_update(self, file: FileDependency, stored_file):
         path = _uri_to_path(file.uri)
-        return _os.path.getmtime(path) > stored_file.mtime
+        try:
+            file_mtime = _os.path.getmtime(path)
+        except FileNotFoundError:
+            return False
+        try:
+            stored_mtime = stored_file.mtime
+        except Exception:
+            return True
+        return file_mtime > stored_mtime
 
     @_abc.abstractmethod
     def get_content(self, file: FileDependency):
@@ -201,8 +219,12 @@ class FileScheme(UriScheme):
 
 
 class UrlScheme(UriScheme):
+    def resolve_uri(self, file: FileDependency):
+        return file.uri
+
     def find(self, file: FileDependency):
-        response = _rq.head(file.uri)
+        with self.create_session() as session:
+            response = session.head(self.resolve_uri(file))
         return response.status_code == 200
 
     def should_update(self, file: FileDependency, stored_file):
@@ -223,11 +245,13 @@ class UrlScheme(UriScheme):
         return _t.time() > mtime + 360000
 
     def get_content(self, file: FileDependency):
-        response = _rq.get(file.uri)
+        with self.create_session() as session:
+            response = session.get(self.resolve_uri(file))
         return (response.content, response.encoding)
 
     def get_meta(self, file: FileDependency):
-        response = _rq.head(file.uri)
+        with self.create_session() as session:
+            response = session.head(self.resolve_uri(file))
         return {"headers": dict(response.headers)}
 
     def get_local_path(self, file: FileDependency):
@@ -235,10 +259,73 @@ class UrlScheme(UriScheme):
 
     @_cl.contextmanager
     def provide_stream(self, file):
-        response = _rq.get(file.uri, stream=True)
+        with self.create_session() as session:
+            response = session.get(self.resolve_uri(file), stream=True)
         response.raw.decode_content = True
         response.raw.auto_close = False
         yield (response.raw, response.encoding)
+
+    def create_session(self):
+        return _rq.Session()
+
+
+class NeuroMorphoScheme(UrlScheme):
+    _nm_url = "https://neuromorpho.org/"
+    _meta = "api/neuron/name/"
+    _files = "dableFiles/"
+
+    def resolve_uri(self, file: FileDependency):
+        meta = self.get_nm_meta(file)
+        return self._swc_url(meta["archive"], meta["neuron_name"])
+
+    @_ft.cache
+    def get_nm_meta(self, file: FileDependency):
+        name = _up.urlparse(file.uri).hostname
+        # urlparse gives lowercase, so slice out the original cased NM name
+        idx = file.uri.lower().find(name)
+        name = file.uri[idx : (idx + len(name))]
+        try:
+            with self.create_session() as session:
+                res = session.get(self._nm_url + self._meta + name)
+        except Exception as e:
+            return {"archive": "none", "neuron_name": "none"}
+        if res.status_code == 404:
+            raise IOError(f"'{name}' is not a valid NeuroMorpho name.")
+        elif res.status_code != 200:
+            raise IOError("NeuroMorpho API error: " + res.text)
+        return res.json()
+
+    def get_meta(self, file: FileDependency):
+        meta = super().get_meta(file)
+        meta["neuromorpho_data"] = self.get_nm_meta(file)
+        return meta
+
+    @classmethod
+    def _swc_url(cls, archive, name):
+        base_url = f"{cls._nm_url}{cls._files}{_up.quote(archive.lower())}"
+        return f"{base_url}/CNG%20version/{name}.CNG.swc"
+
+    def create_session(self):
+        # Weak DH key on neuromorpho.org
+        # https://stackoverflow.com/a/76217135/1016004
+        from requests.adapters import HTTPAdapter
+        from urllib3.util import create_urllib3_context
+        from urllib3 import PoolManager
+
+        class DHAdapter(HTTPAdapter):
+            def init_poolmanager(self, connections, maxsize, block=False, **kwargs):
+                ctx = create_urllib3_context(ciphers=":HIGH:!DH:!aNULL")
+                self.poolmanager = PoolManager(
+                    num_pools=connections,
+                    maxsize=maxsize,
+                    block=block,
+                    ssl_context=ctx,
+                    **kwargs,
+                )
+
+        session = _rq.Session()
+        session.mount(self._nm_url, DHAdapter())
+        return session
 
 
 @_ft.cache
@@ -248,6 +335,7 @@ def _get_schemes() -> _tp.Mapping[str, FileScheme]:
     schemes = discover("storage.schemes")
     schemes["file"] = FileScheme()
     schemes["http"] = schemes["https"] = UrlScheme()
+    schemes["nm"] = NeuroMorphoScheme()
     return schemes
 
 
@@ -255,8 +343,8 @@ def _get_scheme(scheme: str) -> FileScheme:
     schemes = _get_schemes()
     try:
         return schemes[scheme]
-    except AttributeError:
-        raise AttributeError(f"{scheme} is not a known file scheme.")
+    except KeyError:
+        raise KeyError(f"{scheme} is not a known file scheme.")
 
 
 @config.node
@@ -269,7 +357,8 @@ class FileDependencyNode:
 
     def __boot__(self):
         self.file.file_store = self.scaffold.files
-        self.file.update()
+        if self.scaffold.is_main_process():
+            self.file.update()
 
     def __inv__(self):
         if not isinstance(self, FileDependencyNode):
@@ -277,7 +366,8 @@ class FileDependencyNode:
         if self._config_pos_init:
             return self.file._given_source
         else:
-            return self.__tree__()
+            tree = self.__tree__()
+            return tree
 
     def load_object(self):
         return self.file.get_content()
@@ -287,6 +377,9 @@ class FileDependencyNode:
 
     def provide_stream(self):
         return self.file.provide_stream()
+
+    def get_stored_file(self):
+        return self.file.get_stored_file()
 
 
 @config.node
@@ -328,14 +421,14 @@ class CodeDependencyNode(FileDependencyNode):
 @config.node
 class Operation:
     func = config.attr(type=types.function_())
-    parameters = config.catch_all()
+    parameters = config.catch_all(type=types.any_())
 
     def __init__(self, value=None, /, **kwargs):
         if value is not None:
             self.func = value
 
-    def process(self, obj):
-        return self.func(obj, self.parameters)
+    def __call__(self, obj):
+        return self.func(obj, **self.parameters)
 
 
 class FilePipelineMixin:
@@ -347,6 +440,10 @@ class FilePipelineMixin:
 
 @config.node
 class NrrdDependencyNode(FilePipelineMixin, FileDependencyNode):
+    """
+    Configuration dependency node to load NRRD files.
+    """
+
     def get_header(self):
         with self.file.provide_locally() as (path, encoding):
             return _nrrd.read_header(path)
@@ -360,9 +457,110 @@ class NrrdDependencyNode(FilePipelineMixin, FileDependencyNode):
 
 
 @config.node
+class MorphologyOperation(Operation):
+    func = config.attr(type=types.method_shortcut("bsb.morphologies.Morphology"))
+
+
+@config.node
 class MorphologyDependencyNode(FilePipelineMixin, FileDependencyNode):
+    """
+    Configuration dependency node to load morphology files.
+    The content of these files will be stored in bsb.morphologies.Morphology instances.
+    """
+
+    pipeline = config.list(type=MorphologyOperation)
+    name = config.attr(type=str, default=None, required=False)
+    """
+    Name associated to the morphology. If not provided, the program will use the name of the file 
+    in which the morphology is stored. 
+    """
+    tags = config.attr(type=types.dict(type=types.or_(str, types.list(str))))
+    """
+    Dictionary mapping SWC tags to sets of morphology labels.
+    """
+
+    def store_content(self, content, *args, encoding=None, meta=None):
+        if meta is None:
+            meta = {}
+        meta["_hash"] = self._hash(content)
+        meta["_stale"] = True
+        stored = super().store_content(content, *args, encoding=encoding, meta=meta)
+        return stored
+
     def load_object(self) -> "Morphology":
         from ..morphologies import Morphology
 
+        self.file.update()
+        stored = self.get_stored_file()
+        meta = stored.meta
+        if meta.get("_stale", True):
+            content, meta = stored.load()
+            try:
+                morpho_in = Morphology.from_buffer(content, meta=meta)
+            except Exception as _:
+                with self.file.provide_locally() as (path, encoding):
+                    morpho_in = Morphology.from_file(path, tags=self.tags, meta=meta)
+            morpho = self.pipe(morpho_in)
+            meta["hash"] = self._hash(content)
+            meta["_stale"] = False
+            morpho.meta = meta
+            self.scaffold.morphologies.save(
+                self.get_morphology_name(), morpho, overwrite=True
+            )
+            return morpho
+        else:
+            return self.scaffold.morphologies.load(self.get_morphology_name())
+
+    def get_morphology_name(self):
+        """
+        Returns morphology name provided by the user or extract it from its file name.
+
+        :returns: Morphology name
+        :rtype: str
+        """
+        return self.name if self.name is not None else _pl.Path(self.file.uri).stem
+
+    def store_object(self, morpho, hash_):
+        """
+        Save a morphology into the circuit file under the name of this instance morphology.
+
+        :param hash_: Hash key to store as metadata with the morphology
+        :type hash_: str
+        :param morpho: Morphology to store
+        :type morpho: bsb.morphologies.Morphology
+        """
+        self.scaffold.morphologies.save(
+            self.get_morphology_name(), morpho, meta={"hash": hash_}
+        )
+
+    def _hash(self, content):
+        md5 = _hl.new("md5", usedforsecurity=False)
+        if isinstance(content, str):
+            md5.update(content.encode("utf-8"))
+        else:
+            md5.update(content)
+        return md5.hexdigest()
+
+    def queue(self, pool):
+        """
+        Add the loading of the current morphology to a job queue.
+
+        :param pool: Queue of jobs.
+        :type pool:bsb.services.pool.JobPool
+        """
+        pool.queue(
+            lambda scaffold, i=self._config_index: scaffold.configuration.morphologies[
+                i
+            ].load_object()
+        )
+
+
+@config.node
+class YamlDependencyNode(FileDependencyNode):
+    """
+    Configuration dependency node to load yaml files.
+    """
+
+    def load_object(self):
         with self.file.provide_locally() as (path, encoding):
-            return self.pipe(Morphology.from_file(path))
+            return yaml.safe_load(open(path, "r"))

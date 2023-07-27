@@ -478,6 +478,18 @@ class TestConnectivitySet(
             "must exist after require",
         )
 
+    def test_attrs(self):
+        ct = self.network.cell_types.add(
+            "new_cell", dict(spatial=dict(radius=2, density=1e-3))
+        )
+        self.network.require_connectivity_set(
+            ct, self.network.cell_types.test_cell, "test"
+        )
+        cs = self.storage._ConnectivitySet(self.storage._engine, "test")
+        for attr in ("tag", "pre_type", "post_type"):
+            with self.subTest(attr=attr):
+                self.assertTrue(hasattr(cs, attr), f"CS must have `{attr}` attr")
+
     def test_io(self):
         # Test that connections can be stored over chunked layout and can be loaded again.
         cs = self.network.get_connectivity_set("all_to_all")

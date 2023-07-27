@@ -2,7 +2,7 @@ from . import attr, list, dict, root, node, types
 from ..cell_types import CellType
 from ._attrs import _boot_nodes
 from ..placement import PlacementStrategy
-from ..storage._files import CodeDependencyNode
+from ..storage._files import CodeDependencyNode, MorphologyDependencyNode
 from ..storage.interfaces import StorageNode
 from ..connectivity import ConnectionStrategy
 from ..simulation.simulation import Simulation
@@ -48,6 +48,7 @@ class Configuration:
 
     name = attr()
     components = list(type=CodeDependencyNode)
+    morphologies = list(type=MorphologyDependencyNode)
     storage = attr(type=StorageNode, required=True)
     network = attr(type=NetworkNode, required=True)
     regions = dict(type=Region)
@@ -77,23 +78,23 @@ class Configuration:
         return conf
 
     def _bootstrap(self, scaffold):
+        # Activate the scaffold property of each config node
+        _boot_nodes(self, scaffold)
+        self._config_isbooted = True
         # Initialise the topology from the defined regions
         regions = builtins.list(self.regions.values())
         # Arrange the topology based on network boundaries
         start = self.network.origin.copy()
         net = self.network
         end = [start[0] + net.x, start[1] + net.y, start[2] + net.z]
-        scaffold.topology = topology = create_topology(regions, start, end)
-        # If there are any partitions not part of the topology, raise an error
-        if unmanaged := set(self.partitions.values()) - get_partitions([topology]):
+        # If there are any partitions not part of the topology, add them to a group
+        if unmanaged := set(self.partitions.values()) - get_partitions(regions):
             p = "', '".join(p.name for p in unmanaged)
             r = scaffold.regions.add(
                 "__unmanaged__", RegionGroup(children=builtins.list(unmanaged))
             )
-            topology.children.append(r)
-        # Activate the scaffold property of each config node
-        _boot_nodes(self, scaffold)
-        self._config_isbooted = True
+            regions.append(r)
+        scaffold.topology = create_topology(regions, start, end)
 
     def _update_storage_node(self, storage):
         if self.storage.engine != storage.format:

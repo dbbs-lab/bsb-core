@@ -9,9 +9,23 @@ from itertools import chain
 
 @config.node
 class Hemitype:
+    """
+    Class used to represent one (pre- or postsynaptic) side of a connection rule.
+    """
+
     cell_types = config.reflist(refs.cell_type_ref, required=True)
+    """List of cell types to use in connection."""
     labels = config.attr(type=types.list())
+    """List of labels to filter the placement set by."""
     morphology_labels = config.attr(type=types.list())
+    """List of labels to filter the morphologies by."""
+    morpho_loader = config.attr(
+        type=types.function_(),
+        required=False,
+        call_default=False,
+        default=(lambda ps: ps.load_morphologies()),
+    )
+    """Function to load the morphologies (MorphologySet) from a PlacementSet"""
 
 
 class HemitypeCollection:
@@ -46,9 +60,13 @@ class HemitypeCollection:
 @config.dynamic(attr_name="strategy", required=True)
 class ConnectionStrategy(abc.ABC, SortableByAfter):
     name = config.attr(key=True)
+    """Name used to refer to the connectivity strategy"""
     presynaptic = config.attr(type=Hemitype, required=True)
+    """Presynaptic (source) neuron population"""
     postsynaptic = config.attr(type=Hemitype, required=True)
+    """Postsynaptic (target) neuron population"""
     after = config.reflist(refs.connectivity_ref)
+    """Action to perform after connecting the neurons with the current strategy."""
 
     def __init_subclass__(cls, **kwargs):
         super(cls, cls).__init_subclass__(**kwargs)
@@ -90,8 +108,12 @@ class ConnectionStrategy(abc.ABC, SortableByAfter):
         return pre, post
 
     def connect_cells(self, pre_set, post_set, src_locs, dest_locs, tag=None):
+        if len(self.presynaptic.cell_types) > 1 or len(self.postsynaptic.cell_types) > 1:
+            name = f"{self.name}_{pre_set.cell_type.name}_to_{post_set.cell_type.name}"
+        else:
+            name = self.name
         cs = self.scaffold.require_connectivity_set(
-            pre_set.cell_type, post_set.cell_type, tag if tag is not None else self.name
+            pre_set.cell_type, post_set.cell_type, tag if tag is not None else name
         )
         cs.connect(pre_set, post_set, src_locs, dest_locs)
 

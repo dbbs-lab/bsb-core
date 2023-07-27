@@ -2,6 +2,7 @@ from bsb import topology
 from bsb.config import Configuration
 from bsb.exceptions import *
 import unittest, numpy as np
+from bsb.unittest import get_data_path
 
 
 def single_layer():
@@ -86,3 +87,19 @@ class TestAllenVoxels(unittest.TestCase):
                 transform = getattr(part, t)
                 with self.assertRaises(LayoutError, msg=not_impl):
                     transform(0)
+
+    def test_mask_nrrd(self):
+        cfg = Configuration.default(
+            region=dict(br=dict(children=["a"])),
+            partitions=dict(
+                a=dict(
+                    type="allen",
+                    mask_source=get_data_path("orientations", "toy_annotations.nrrd"),
+                    struct_id=10690,
+                )
+            ),
+        )
+        part = cfg.partitions.a
+        vs = part.voxelset
+        self.assertEqual(24, len(vs), "Region has that many voxels")
+        self.assertEqual(24 * 25**3, part.volume(), "Region occupies this much space")

@@ -235,14 +235,15 @@ class VolumetricRotations(RotationDistributor, classmap_entry="orientation_field
         orientations = np.full((positions.shape[0], 3), self.default_vector, dtype=float)
         # Expected orientation_field shape is (3, L, W, D) where L, W and D are the sizes
         # of the field. Here we want to filter on the space dimensions, so we move the axes.
-        orientations[filter_inside] = np.moveaxis(orientation_field, 0, -1)[
-            voxel_pos[filter_inside, 0],
-            voxel_pos[filter_inside, 1],
-            voxel_pos[filter_inside, 2],
-        ]
-        orientations[
-            np.isnan(orientations).any(axis=1) + ~orientations.any(axis=1)
-        ] = self.default_vector
+        if filter_inside.any():
+            orientations[filter_inside] = np.moveaxis(orientation_field, 0, -1)[
+                voxel_pos[filter_inside, 0],
+                voxel_pos[filter_inside, 1],
+                voxel_pos[filter_inside, 2],
+            ]
+            orientations[
+                np.isnan(orientations).any(axis=1) + ~orientations.any(axis=1)
+            ] = self.default_vector
 
         return RotationSet(
             Rotation.from_matrix(
@@ -320,10 +321,13 @@ class DistributorsNode:
             mr = self.scaffold.morphologies
             uid = uuid.uuid4()
             loaders = []
+            all_meta = mr.get_all_meta()
             for gen_morpho, i in generated.items():
                 name = f"{prefix}-{uid}-{i}"
-                saved = mr.save(name, gen_morpho)
+                saved = mr.save(name, gen_morpho, update_meta=False)
+                all_meta[name] = saved.get_meta()
                 loaders.append(saved)
+            mr.set_all_meta(all_meta)
             morphologies = MorphologySet(loaders, indices)
         if not isinstance(morphologies, MorphologySet) and morphologies is not None:
             morphologies = MorphologySet(loaders, morphologies)
