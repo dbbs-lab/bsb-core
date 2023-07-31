@@ -167,6 +167,17 @@ class ConfigurationModule:
 
     __all__ = [*(vars().keys() - {"__init__", "__qualname__", "__module__"})]
 
+    def make_config_diagram(self, config):
+        dot = f'digraph "{config.name or "network"}" {{'
+        for c in config.cell_types.values():
+            dot += f'\n  {c.name}[label="{c.name}"]'
+        for name, conn in config.connectivity.items():
+            for pre in conn.presynaptic.cell_types:
+                for post in conn.postsynaptic.cell_types:
+                    dot += f'\n  {pre.name} -> {post.name}[label="{name}"];'
+        dot += "\n}\n"
+        return dot
+
 
 def _parser_method_docs(parser):
     mod = parser.__module__

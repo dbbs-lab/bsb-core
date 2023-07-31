@@ -561,10 +561,12 @@ class Scaffold:
         :type tag: str
         :returns: All connectivity sets
         """
-        return self.storage.get_connectivity_sets()
+        return [self._load_cs_types(cs) for cs in self.storage.get_connectivity_sets()]
 
     def require_connectivity_set(self, pre, post, tag=None) -> "ConnectivitySet":
-        return self.storage.require_connectivity_set(pre, post, tag)
+        return self._load_cs_types(
+            self.storage.require_connectivity_set(pre, post, tag), pre, post
+        )
 
     def get_connectivity_set(self, tag=None, pre=None, post=None) -> "ConnectivitySet":
         """
@@ -580,21 +582,7 @@ class Scaffold:
                 tag = f"{pre.name}_to_{post.name}"
             except Exception:
                 raise ValueError("Supply either `tag` or a valid pre and post cell type.")
-        cs = self.storage.get_connectivity_set(tag)
-        if pre and pre.name != cs._pre_name:
-            raise ValueError(
-                "Given and stored type mismatch:" + f" {pre.name} vs {cs._pre_name}"
-            )
-        if post and post.name != cs._post_name:
-            raise ValueError(
-                "Given and stored type mismatch:" + f" {post.name} vs {cs._post_name}"
-            )
-        try:
-            cs.pre_type = self.cell_types[cs._pre_name]
-            cs.post_type = self.cell_types[cs._post_name]
-        except KeyError as e:
-            raise NodeNotFoundError(f"Couldn't load {tag}, missing {e.args[0]}") from None
-        return cs
+        return self._load_cs_types(self.storage.get_connectivity_set(tag), pre, post)
 
     def get_cell_types(self) -> typing.List["CellType"]:
         """
@@ -755,6 +743,42 @@ class Scaffold:
 
     def get_dependency_pipelines(self):
         return [*self.configuration.morphologies]
+
+    def get_config_diagram(self):
+        from .config import make_config_diagram
+
+        return make_config_diagram(self.configuration)
+
+    def get_storage_diagram(self):
+        dot = f'digraph "{self.configuration.name or "network"}" {{'
+        for ps in self.get_placement_sets():
+            dot += f'\n  {ps.tag}[label="{ps.tag} ({len(ps)} {ps.cell_type.name})"]'
+        for conn in self.get_connectivity_sets():
+            dot += f'\n  {conn.pre_type.name} -> {conn.post_type.name}'
+            dot += f'[label="{conn.tag} ({len(conn)})"];'
+
+        dot += "\n}\n"
+        return dot
+
+    def _load_cs_types(
+        self, cs: "ConnectivitySet", pre=None, post=None
+    ) -> "ConnectivitySet":
+        if pre and pre.name != cs.pre_type_name:
+            raise ValueError(
+                "Given and stored type mismatch:" + f" {pre.name} vs {cs.pre_type_name}"
+            )
+        if post and post.name != cs.post_type_name:
+            raise ValueError(
+                "Given and stored type mismatch:" + f" {post.name} vs {cs.post_type_name}"
+            )
+        try:
+            cs.pre_type = self.cell_types[cs.pre_type_name]
+            cs.post_type = self.cell_types[cs.post_type_name]
+        except KeyError as e:
+            raise NodeNotFoundError(
+                f"Couldn't load '{cs.tag}' connections, missing cell type '{e.args[0]}'."
+            ) from None
+        return cs
 
 
 class ReportListener:
