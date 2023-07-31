@@ -897,6 +897,8 @@ class ConnectivitySet(Interface):
 
     # The following attributes must be set on each ConnectivitySet by the engine:
     tag: str
+    pre_type_name: str
+    post_type_name: str
     pre_type: "CellType"
     post_type: "CellType"
 
