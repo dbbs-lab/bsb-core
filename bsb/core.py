@@ -754,7 +754,7 @@ class Scaffold:
         for ps in self.get_placement_sets():
             dot += f'\n  {ps.tag}[label="{ps.tag} ({len(ps)} {ps.cell_type.name})"]'
         for conn in self.get_connectivity_sets():
-            dot += f'\n  {conn.pre_type.name} -> {conn.post_type.name}'
+            dot += f"\n  {conn.pre_type.name} -> {conn.post_type.name}"
             dot += f'[label="{conn.tag} ({len(conn)})"];'
 
         dot += "\n}\n"
