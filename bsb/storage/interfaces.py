@@ -812,6 +812,24 @@ class MorphologyRepository(Interface, engine_key="morphologies"):
         pass
 
     @abc.abstractmethod
+    def get_all_meta(self):
+        """
+        Get the metadata of all stored morphologies.
+        :returns: Metadata dictionary
+        :rtype: dict
+        """
+        pass
+
+    @abc.abstractmethod
+    def set_all_meta(self, all_meta):
+        """
+        Set the metadata of all stored morphologies.
+        :param all_meta: Metadata dictionary.
+        :type all_meta: dict
+        """
+        pass
+    
+    @abc.abstractmethod
     def update_all_meta(self, meta):
         """
         Update the metadata of stored morphologies with the provided key values
