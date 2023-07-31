@@ -17,7 +17,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 requires = [
-    "bsb-hdf5~=0.8.1",
+    "bsb-hdf5~=0.8.2",
     "h5py~=3.0",
     "numpy~=1.19",
     "scipy~=1.5",
