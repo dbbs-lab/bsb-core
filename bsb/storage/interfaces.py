@@ -828,7 +828,7 @@ class MorphologyRepository(Interface, engine_key="morphologies"):
         :type all_meta: dict
         """
         pass
-    
+
     @abc.abstractmethod
     def update_all_meta(self, meta):
         """
