@@ -828,6 +828,16 @@ class MorphologyRepository(Interface, engine_key="morphologies"):
         :type all_meta: dict
         """
         pass
+    
+    @abc.abstractmethod
+    def update_all_meta(self, meta):
+        """
+        Update the metadata of stored morphologies with the provided key values
+
+        :param meta: Metadata dictionary.
+        :type meta: str
+        """
+        pass
 
     def import_swc(self, file, name=None, overwrite=False):
         """
