@@ -6,6 +6,7 @@ import numpy as np
 from bsb import config
 from bsb.simulation.connection import ConnectionModel
 from bsb.simulation.parameter import Parameter
+from bsb.services import MPI
 
 
 @config.dynamic(
@@ -47,7 +48,7 @@ class TransceiverModel(NeuronConnection, classmap_entry="transceiver"):
         locs = np.unique(pre[:, :2], axis=0)
         for loc in locs:
             gid = simdata.transmap[tuple(loc)]
-            simdata.cells[loc[0]].insert_transmitter(gid, (loc[1], 0), source=self.source)
+            simdata.cells[gid].insert_transmitter(gid, (loc[1], 0), source=self.source)
 
     def create_receivers(self, simdata, cs):
         pre, post = cs.load_connections().incoming().to(simdata.chunks).as_globals().all()
