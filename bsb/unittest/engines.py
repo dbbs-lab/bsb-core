@@ -486,7 +486,7 @@ class TestConnectivitySet(
             ct, self.network.cell_types.test_cell, "test"
         )
         cs = self.storage._ConnectivitySet(self.storage._engine, "test")
-        for attr in ("tag", "pre_type", "post_type"):
+        for attr in ("tag", "pre_type_name", "post_type_name"):
             with self.subTest(attr=attr):
                 self.assertTrue(hasattr(cs, attr), f"CS must have `{attr}` attr")
 

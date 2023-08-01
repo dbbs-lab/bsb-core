@@ -811,6 +811,34 @@ class MorphologyRepository(Interface, engine_key="morphologies"):
         """
         pass
 
+    @abc.abstractmethod
+    def get_all_meta(self):
+        """
+        Get the metadata of all stored morphologies.
+        :returns: Metadata dictionary
+        :rtype: dict
+        """
+        pass
+
+    @abc.abstractmethod
+    def set_all_meta(self, all_meta):
+        """
+        Set the metadata of all stored morphologies.
+        :param all_meta: Metadata dictionary.
+        :type all_meta: dict
+        """
+        pass
+
+    @abc.abstractmethod
+    def update_all_meta(self, meta):
+        """
+        Update the metadata of stored morphologies with the provided key values
+
+        :param meta: Metadata dictionary.
+        :type meta: str
+        """
+        pass
+
     def import_swc(self, file, name=None, overwrite=False):
         """
         Import and store .swc file contents as a morphology in the repository.
@@ -897,6 +925,8 @@ class ConnectivitySet(Interface):
 
     # The following attributes must be set on each ConnectivitySet by the engine:
     tag: str
+    pre_type_name: str
+    post_type_name: str
     pre_type: "CellType"
     post_type: "CellType"
 
