@@ -195,7 +195,7 @@ def attr(**kwargs):
     """
     Create a configuration attribute.
 
-    Only works when used inside of a class decorated with the :func:`node
+    Only works when used inside a class decorated with the :func:`node
     <.config.node>`, :func:`dynamic <.config.dynamic>`,  :func:`root <.config.root>`
     or  :func:`pluggable <.config.pluggable>` decorators.
 
@@ -486,7 +486,7 @@ class ConfigurationAttribute:
         else:
             from . import types
 
-            t = type or types.str()
+            t = type or types.str(safe=False)
         # This call wraps the type handler so that it accepts all reserved keyword args
         # like `_parent` and `_key`
         t = _wrap_reserved(t)
