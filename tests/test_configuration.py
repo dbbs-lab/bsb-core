@@ -248,7 +248,7 @@ class TestConfigList(unittest.TestCase):
     def test_list_attr(self):
         @config.node
         class Child:
-            index = config.attr(key=True)
+            index = config.attr(type=int, key=True)
             name = config.attr(type=str, required=True)
 
         @config.node
@@ -1143,7 +1143,7 @@ class TestTreeing(unittest.TestCase):
         class Test:
             a = config.attr(default=5)
             b = config.attr(type=float)
-            c = config.attr()
+            c = config.attr(type=types.str(safe=False))
 
         cfg = Test({"a": "5", "b": "5.", "c": 3})
         test_tree = cfg.__tree__()
