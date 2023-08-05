@@ -195,7 +195,7 @@ def attr(**kwargs):
     """
     Create a configuration attribute.
 
-    Only works when used inside of a class decorated with the :func:`node
+    Only works when used inside a class decorated with the :func:`node
     <.config.node>`, :func:`dynamic <.config.dynamic>`,  :func:`root <.config.root>`
     or  :func:`pluggable <.config.pluggable>` decorators.
 
@@ -429,7 +429,7 @@ class ConfigurationAttribute:
         self.key = key
         self.default = default
         self.call_default = call_default
-        self.type = self._set_type(type)
+        self.type = self._set_type(type, key)
         self.unset = unset
         self.hint = hint
 
@@ -475,7 +475,7 @@ class ConfigurationAttribute:
         if _is_booted(root):
             _boot_nodes(value, root.scaffold)
 
-    def _set_type(self, type):
+    def _set_type(self, type, key):
         self._config_type = type
         # Determine type of the attribute
         if not type and self.default is not None:
@@ -484,7 +484,9 @@ class ConfigurationAttribute:
             else:
                 t = builtins.type(self.default)
         else:
-            t = type or str
+            from . import types
+
+            t = type or (key and types.key()) or types.str()
         # This call wraps the type handler so that it accepts all reserved keyword args
         # like `_parent` and `_key`
         t = _wrap_reserved(t)
@@ -667,8 +669,8 @@ class ConfigurationListAttribute(ConfigurationAttribute):
             )
         return _cfglist
 
-    def _set_type(self, type):
-        self.child_type = super()._set_type(type)
+    def _set_type(self, type, key=None):
+        self.child_type = super()._set_type(type, key=False)
         return self.fill
 
     def tree(self, instance):
@@ -807,8 +809,8 @@ class ConfigurationDictAttribute(ConfigurationAttribute):
         _cfgdict.update(value or builtins.dict())
         return _cfgdict
 
-    def _set_type(self, type):
-        self.child_type = super()._set_type(type)
+    def _set_type(self, type, key=None):
+        self.child_type = super()._set_type(type, key=False)
         return self.fill
 
     def tree(self, instance):
