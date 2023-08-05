@@ -422,6 +422,25 @@ def number(min=None, max=None):
     return type_handler
 
 
+def key():
+    """
+    Type handler for keys in configuration trees. Keys can be either int indices of a
+    config list, or string keys of a config dict.
+
+    :returns: Type validator function
+    :rtype: Callable
+    """
+
+    def type_handler(value):
+        if not isinstance(value, builtins.int) or isinstance(value, builtins.str):
+            raise TypeError(f"{type(value)} is not an int or str")
+        else:
+            return value
+
+    type_handler.__name__ = "configuration key"
+    return type_handler
+
+
 def scalar_expand(scalar_type, size=None, expand=None):
     """
     Create a method that expands a scalar into an array with a specific size or uses
