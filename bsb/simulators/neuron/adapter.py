@@ -62,7 +62,6 @@ class NeuronAdapter(SimulatorAdapter):
 
     def __init__(self):
         super().__init__()
-        self.engine = None
         self.network = None
         self.result = None
         self.simdata = dict()
