@@ -11,7 +11,7 @@ import random
 
 
 @config.node
-class SpikeGenerator(NeuronDevice,classmap_entry="spike_generator"):
+class SpikeGenerator(NeuronDevice, classmap_entry="spike_generator"):
     locations = config.attr(type=LocationTargetting, default={"strategy": "soma"})
     synapses = config.attr(type=types.list())
     parameters = config.catch_all(type=types.any_())

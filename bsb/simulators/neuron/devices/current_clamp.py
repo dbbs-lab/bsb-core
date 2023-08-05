@@ -5,6 +5,7 @@ from ..device import NeuronDevice
 import warnings
 from neuron import h
 
+
 @config.node
 class CurrentClamp(NeuronDevice, classmap_entry="iclamp"):
     locations = config.attr(type=LocationTargetting, default={"strategy": "soma"})

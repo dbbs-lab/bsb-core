@@ -1740,7 +1740,7 @@ def _swc_to_morpho(cls, branch_cls, content, tags=None, meta=None):
 def _swc_data_to_morpho(cls, branch_cls, data, tags=None, meta=None):
     tag_map = {1: "soma", 2: "axon", 3: "dendrites"}
     if tags is not None:
-        tag_map.update((int(k), v) for (k,v) in tags.items())
+        tag_map.update((int(k), v) for (k, v) in tags.items())
     # `data` is the raw SWC data, `samples` and `parents` are the graph nodes and edges.
     samples = data[:, 0].astype(int)
     # Map possibly irregular sample IDs (SWC spec allows this) to an ordered 0 to N map.

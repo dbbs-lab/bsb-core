@@ -175,5 +175,9 @@ class LabelTargetting(LocationTargetting, classmap_entry="label"):
     labels = config.list(required=True)
 
     def get_locations(self, cell):
-        locs = [loc for loc in cell.locations.values() if all(l in loc.section.labels for l in self.labels)]
+        locs = [
+            loc
+            for loc in cell.locations.values()
+            if all(l in loc.section.labels for l in self.labels)
+        ]
         return locs

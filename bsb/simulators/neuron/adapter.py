@@ -34,6 +34,7 @@ class NeuronResult(SimulationResult):
         from quantities import ms
 
         v = p.record(obj)
+
         def flush(segment):
             print("Flushing clamp", len(v))
             segment.analogsignals.append(
@@ -41,6 +42,7 @@ class NeuronResult(SimulationResult):
                     list(v), units="mV", sampling_period=p.dt * ms, **annotations
                 )
             )
+
         self.create_recorder(flush)
 
 
@@ -192,11 +194,10 @@ class NeuronAdapter(SimulatorAdapter):
                 data.append(getattr(ps, f"load_{var}")())
             except DatasetNotFoundError:
                 data.append(itertools.repeat(None))
-            
 
         with fill_parameter_data(cell_model.parameters, data):
             instances = cell_model.create_instances(len(ps), *data)
-            
+
             for id, instance in zip(ps.load_ids(), instances):
                 cid = offset + id
                 instance.id = cid
