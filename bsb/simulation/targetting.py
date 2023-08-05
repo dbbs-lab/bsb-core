@@ -1,162 +1,166 @@
-import random, numpy as np
+import itertools
+import random
+import numpy as np
 from .. import config
-from ..config import types
-from ..exceptions import *
-from itertools import chain
+from ..config import refs, types
 
 
-@config.dynamic(attr_name="type", auto_classmap=True)
-class NeuronTargetting:
-    def __boot__(self):
-        self.device = self._config_parent
-        self.simulation = self.device.simulation if self.device is not None else None
+@config.dynamic(attr_name="strategy", default="all", auto_classmap=True)
+class Targetting:
+    type = config.attr(type=types.in_(["cell", "connection"]), default="cell")
 
-    def get_targets(self):
-        raise NotImplementedError(
-            "Targetting mechanism '{}' did not implement a `get_targets` method".format(
-                self.type
-            )
-        )
+    def get_targets(self, cells, connections):
+        if self.type == "cell":
+            return cells
+        elif self.type == "connection":
+            return connections
 
 
 @config.node
-class CellTypeTargetting(NeuronTargetting, classmap_entry="cell_type"):
-    """
-    Targetting mechanism (use ``"type": "cell_type"``) to target all identifiers of
-    certain cell types.
-    """
+class CellTargetting(Targetting, classmap_entry="all"):
+    @config.property
+    def type(self):
+        return "cell"
 
-    cell_types = config.attr(type=types.list(type=str), required=True)
-
-    def get_targets(self):
-        sets = [self.scaffold.get_placement_set(t) for t in self.cell_types]
-        ids = []
-        for set in sets:
-            ids.extend(set.identifiers)
-        return ids
+    def get_targets(self, cells, connections):
+        return cells
 
 
 @config.node
-class RepresentativesTargetting(NeuronTargetting, classmap_entry="representatives"):
+class ConnectionTargetting(Targetting, classmap_entry="all_connections"):
+    @config.property
+    def type(self):
+        return "connection"
+
+    def get_targets(self, cells, connections):
+        return connections
+
+
+@config.node
+class CellModelTargetting(CellTargetting, classmap_entry="cell_model"):
+    """
+    Targetting mechanism (use ``"type": "cell_model"``) to target all cells of
+    certain cell models.
+    """
+
+    cell_models = config.reflist(refs.sim_cell_model_ref, required=True)
+
+    def get_targets(self, cells, connections):
+        return [cell for cell in cells.values() if cell.model in self.cell_models]
+
+
+@config.node
+class RepresentativesTargetting(CellModelTargetting, classmap_entry="representatives"):
     """
     Targetting mechanism (use ``"type": "representatives"``) to target all identifiers
     of certain cell types.
     """
 
-    cell_types = config.attr(type=types.list(type=str))
+    n = config.attr(type=int, default=1)
 
-    def get_targets(self):
-        filter_types = self.cell_types or self.adapter.cell_models.keys()
-        target_ids = [
-            cell_model.cell_type.get_placement_set().identifiers
-            for cell_model in self.adapter.cell_models.values()
-            if not cell_model.cell_type.relay and cell_model.name in filter_types
+    def get_targets(self, cells, connections):
+        reps = {cell_model: [] for cell_model in self.cell_models}
+        for cell in cells.values():
+            reps[cell.model] = cell
+        return [
+            *itertools.chain.from_iterable(
+                random.choices(group, k=self.n) for group in reps.values()
+            )
         ]
-        if hasattr(self, "cell_types"):
-            target_types = [t for t in target_types if t.name in self.cell_types]
-        target_ids = [t.get_placement_set().identifiers for t in target_types]
-        representatives = [
-            random.choice(type_ids) for type_ids in target_ids if len(target_ids) > 0
-        ]
-        return representatives
 
 
 @config.node
-class ByIdTargetting(NeuronTargetting, classmap_entry="by_id"):
+class ByIdTargetting(CellTargetting, classmap_entry="by_id"):
     """
     Targetting mechanism (use ``"type": "by_id"``) to target all given identifiers.
     """
 
-    targets = config.attr(type=types.list(type=int), required=True)
+    ids = config.attr(type=types.list(type=int), required=True)
 
-    def get_targets(self):
-        return self.targets
+    def get_targets(self, cells, connections):
+        return [cells[id] for id in self.ids]
 
 
 @config.node
-class CylindricalTargetting(NeuronTargetting, classmap_entry="cylinder"):
+class ByLabelTargetting(CellTargetting, classmap_entry="by_label"):
+    """
+    Targetting mechanism (use ``"type": "by_label"``) to target all given labels.
+    """
+
+    labels = config.attr(type=types.list(type=str), required=True)
+
+    def get_targets(self, cells, connections):
+        raise NotImplementedError("Labels still need to be transferred onto models")
+
+
+class CellModelFilter:
+    cell_models = config.reflist(refs.sim_cell_model_ref)
+
+    def get_targets(self, cells, connections):
+        return [cell for cell in cells.values() if cell.cell_model in self.cell_models]
+
+
+@config.node
+class CylindricalTargetting(CellModelFilter, CellTargetting, classmap_entry="cylinder"):
     """
     Targetting mechanism (use ``"type": "cylinder"``) to target all cells in a
     horizontal cylinder (xz circle expanded along y).
     """
 
-    cell_types = config.attr(type=types.list(type=str))
     origin = config.attr(type=types.list(type=float, size=2))
+    axis = config.attr(type=types.in_(["x", "y", "z"]), default="y")
     radius = config.attr(type=float, required=True)
 
-    def boot(self):
-        if self.cell_types is None:
-            self.cell_types = [m.cell_type for m in self.adapter.cell_models.values()]
-        if self.origin is None:
-            network = self.scaffold.configuration.network
-            self.origin = [network.x / 2, network.z / 2]
-
-    def get_targets(self):
+    def get_targets(self, cells, connections):
         """
         Target all or certain cells within a cylinder of specified radius.
         """
-        sets = [self.scaffold.get_placement_set(t) for t in self.cell_types]
-        targets = []
-        for set in sets:
-            if not set.positions:
-                continue
-            distances = np.sum((set.positions[:, [0, 2]] - self.origin) ** 2)
-            targets.extend(set.identifiers[distances <= self.radius])
-        return np.array(targets)
+        cells = super().get_targets(cells, connections)
+        if self.axis == "x":
+            axes = [1, 2]
+        elif self.axis == "y":
+            axes = [0, 2]
+        else:
+            axes = [0, 1]
+        return [
+            cell
+            for cell in cells
+            if np.sum((cell.position[axes] - self.origin) ** 2) < self.radius**2
+        ]
 
 
 @config.node
-class SphericalTargetting(NeuronTargetting, classmap_entry="sphere"):
+class SphericalTargetting(CellModelFilter, CellTargetting, classmap_entry="sphere"):
     """
     Targetting mechanism (use ``"type": "sphere"``) to target all cells in a sphere.
     """
 
-    cell_types = config.attr(type=types.list(type=str))
     origin = config.attr(type=types.list(type=float, size=3), required=True)
     radius = config.attr(type=float, required=True)
 
-    def boot(self):
-        if self.cell_types is None:
-            self.cell_types = [m.cell_type for m in self.adapter.cell_models.values()]
-
-    def get_targets(self):
+    def get_targets(self, cells, connections):
         """
         Target all or certain cells within a cylinder of specified radius.
         """
-        sets = [self.scaffold.get_placement_set(t) for t in self.cell_types]
-        targets = []
-        for set in sets:
-            if not set.positions:
-                continue
-            distances = np.sum((set.positions - self.origin) ** 2)
-            targets.extend(set.identifiers[distances <= self.radius])
-        return np.array(targets)
+        return [
+            cell
+            for cell in super().get_targets(cells, connections)
+            if np.sum((cell.position - self.origin) ** 2) < self.radius**2
+        ]
 
 
-class TargetsSections:
-    def target_section(self, cell):
-        if not hasattr(self, "section_targetting"):
-            self.section_targetting = "default"
-        method_name = "_section_target_" + self.section_targetting
-        if not hasattr(self, method_name):
-            raise Exception(
-                "Unknown section targetting type '{}'".format(self.section_targetting)
-            )
-        return getattr(self, method_name)(cell)
+@config.dynamic(
+    attr_name="strategy",
+    default="everywhere",
+    auto_classmap=True,
+    classmap_entry="everywhere",
+)
+class LocationTargetting:
+    def get_locations(self, cell):
+        return cell.locations
 
-    def _section_target_default(self, cell):
-        if not hasattr(self, "section_count"):
-            self.section_count = "all"
-        elif self.section_count != "all":
-            self.section_count = int(self.section_count)
-        sections = cell.sections
-        if hasattr(self, "section_types"):
-            ts = self.section_types
-            sections = [s for s in sections if any(t in s.labels for t in ts)]
-        if hasattr(self, "section_type"):
-            raise ConfigurationError(
-                "`section_type` is deprecated, use `section_types` instead."
-            )
-        if self.section_count == "all":
-            return sections
-        return [random.choice(sections) for _ in range(self.section_count)]
+
+@config.node
+class SomaTargetting(LocationTargetting, classmap_entry="soma"):
+    def get_locations(self, cell):
+        return [cell.locations[(0, 0)]]

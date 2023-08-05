@@ -1,13 +1,10 @@
-from ..adapter import NeuronDevice
-from ....simulation.device import Patternless
-from ....simulation.results import SimulationRecorder, PresetPathMixin, PresetMetaMixin
-from ....reporting import report, warn
-from arborize import get_section_synapses
+from ..device import NeuronDevice
+from ....simulation.results import SimulationRecorder
 import numpy as np
 import itertools
 
 
-class IonRecorder(Patternless, NeuronDevice):
+class IonRecorder(NeuronDevice):
     defaults = {
         "record_current": True,
         "record_concentration": False,
@@ -33,7 +30,7 @@ class IonRecorder(Patternless, NeuronDevice):
             self.adapter.result.add(ii)
 
 
-class _IonicRecorder(PresetPathMixin, PresetMetaMixin, SimulationRecorder):
+class _IonicRecorder(SimulationRecorder):
     def __init_subclass__(cls, record=None, slug=None, **kwargs):
         super().__init_subclass__(**kwargs)
         cls._record = record
@@ -42,20 +39,7 @@ class _IonicRecorder(PresetPathMixin, PresetMetaMixin, SimulationRecorder):
     def __init__(self, cell, section, ion):
         from patch import p
 
-        section_id = cell.sections.index(section)
-        self.path = (
-            "recorders",
-            "ions",
-            str(ion),
-            str(cell.ref_id),
-            self._slug,
-            str(section_id),
-        )
-        self.meta = {
-            "cell": cell.ref_id,
-            "section": section_id,
-            "x": 0.5,
-        }
+        self.inputs = (cell, section, ion)
         self.vectors = self._record(ion, section(0.5))
 
     def get_data(self):

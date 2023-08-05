@@ -9,14 +9,17 @@ _mpi_size = MPI.get_size()
 
 
 def internet_connection():
-    conn = _http.HTTPSConnection("8.8.8.8", timeout=2)
-    try:
-        _http.request("HEAD", "/")
-        return True
-    except Exception:
+    for ip in ("1.1.1.1", "8.8.8.8"):
+        conn = _http.HTTPSConnection("8.8.8.8", timeout=2)
+        try:
+            _http.request("HEAD", "/")
+            return True
+        except Exception:
+            pass
+        finally:
+            conn.close()
+    else:
         return False
-    finally:
-        conn.close()
 
 
 def skip_nointernet(o):

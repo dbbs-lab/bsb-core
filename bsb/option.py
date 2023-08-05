@@ -65,7 +65,7 @@ class EnvOptionDescriptor(OptionDescriptor, slug="env"):
         # Iterate the env for all tags, if none are set this returns `None`
         for tag in self.tags:
             if tag in os.environ:
-                return self._parse(getter(os.environ[tag]))
+                return getter(self._parse(os.environ[tag]))
 
     def __set__(self, instance, value):
         value = getattr(instance, "setter", lambda x: x)(value)
@@ -85,7 +85,7 @@ class EnvOptionDescriptor(OptionDescriptor, slug="env"):
 
     def _parse(self, value):
         if self.flag:
-            if value.strip().upper() in ("ON", "TRUE", "1", "YES"):
+            if value is True or str(value).strip().upper() in ("ON", "TRUE", "1", "YES"):
                 return True
             else:
                 return False
@@ -263,19 +263,28 @@ class BsbOption:
 
         :returns: option value
         """
-        if prio is not None:
-            return getattr(self, prio)
+        try:
+            if prio is not None:
+                return getattr(self, prio)
 
-        cls = self.__class__
-        if cls.script.is_set(self):
-            return self.script
-        if cls.cli.is_set(self):
-            return self.cli
-        if cls.project.is_set(self):
-            return self.project
-        if cls.env.is_set(self):
-            return self.env
-        return self.get_default()
+            cls = self.__class__
+            if cls.script.is_set(self):
+                return self.script
+            if cls.cli.is_set(self):
+                return self.cli
+            if cls.project.is_set(self):
+                return self.project
+            if cls.env.is_set(self):
+                return self.env
+            return self.get_default()
+        except Exception as e:
+            print(e)
+
+    def is_set(self, slug):
+        if descriptor := getattr(type(self), slug, None):
+            return descriptor.is_set(self)
+        else:
+            return False
 
     def get_default(self):
         """
@@ -351,18 +360,24 @@ class BsbOption:
 
 
 @functools.cache
-def _pyproject_content():
+def _pyproject_path():
     path = pathlib.Path.cwd()
     while str(path)[len(path.drive) :] != path.root:
         proj = path / "pyproject.toml"
         if proj.exists():
-            with open(proj, "r") as f:
-                return proj.resolve(), toml.load(f)
+            return proj
         path = path.parent
-    return None, {}  # pragma: nocover
 
 
-@functools.cache
+def _pyproject_content():
+    path = _pyproject_path()
+    if path:
+        with open(path, "r") as f:
+            return path.resolve(), toml.load(f)
+    else:
+        return None, {}  # pragma: nocover
+
+
 def _pyproject_bsb():
     path, content = _pyproject_content()
     return path, content.get("tools", {}).get("bsb", {})

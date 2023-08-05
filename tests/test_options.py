@@ -6,7 +6,12 @@ import toml
 import tempfile
 
 from bsb.exceptions import *
-from bsb.option import _pyproject_content, _pyproject_bsb, _save_pyproject_bsb
+from bsb.option import (
+    _pyproject_content,
+    _pyproject_bsb,
+    _save_pyproject_bsb,
+    _pyproject_path,
+)
 from bsb import options
 from bsb.cli import handle_command
 from bsb._contexts import get_cli_context
@@ -83,6 +88,11 @@ class TestEnvOption(unittest.TestCase):
 
 
 class TestProjectOption(unittest.TestCase):
+    dir: tempfile.TemporaryDirectory
+    old_path: pathlib.Path
+    path: pathlib.Path
+    proj: pathlib.Path
+
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
@@ -98,14 +108,18 @@ class TestProjectOption(unittest.TestCase):
         super().tearDownClass()
         try:
             cls.proj.unlink()
-        except:
+        except FileNotFoundError:
             pass
         os.chdir(cls.old_path)
         cls.dir.cleanup()
 
+    def setUp(self):
+        super().setUp()
+        _pyproject_path.cache_clear()
+
     def tearDown(self):
-        _pyproject_content.cache_clear()
-        _pyproject_bsb.cache_clear()
+        super().tearDown()
+        _pyproject_path.cache_clear()
         try:
             self.proj.unlink()
         except:
@@ -127,7 +141,7 @@ class TestProjectOption(unittest.TestCase):
         deep.mkdir(parents=True, exist_ok=True)
         os.chdir(deep)
         try:
-            _pyproject_content.cache_clear()
+            _pyproject_path.cache_clear()
             path, content = _pyproject_content()
         finally:
             os.chdir(self.path)
@@ -137,7 +151,7 @@ class TestProjectOption(unittest.TestCase):
         self.create_toml({"_dbl_": True}, proj=deep / "pyproject.toml")
         os.chdir(deep)
         try:
-            _pyproject_content.cache_clear()
+            _pyproject_path.cache_clear()
             path, content = _pyproject_content()
         finally:
             os.chdir(self.path)
@@ -153,7 +167,6 @@ class TestProjectOption(unittest.TestCase):
             options.store("versionnnn", "hello.json")
         with self.assertRaises(OptionError):
             options.read("versionnnn")
-        _pyproject_content.cache_clear()
         with open(self.proj, "w") as f:
             toml.dump({}, f)
         options.store("config", "hello.json")
@@ -178,7 +191,7 @@ class TestScriptOption(unittest.TestCase):
         with self.assertRaises(ReadOnlyOptionError):
             self.opt["version"].script = "5.0"
         # Read one without bindings:
-        self.assertIsNone(self.opt["config"].script, "no bindings should be None")
+        self.assertIsNone(self.opt["version"].env, "no bindings should be None")
 
     def test_script_isset(self):
         script = type(self.opt["version"]).script
@@ -188,8 +201,9 @@ class TestScriptOption(unittest.TestCase):
     def test_script_set(self):
         self.opt["force"].script = True
         self.assertTrue(self.opt["force"].script, "script opt not set")
-        with self.assertRaises(OptionError, msg="no script binding opt may not set"):
-            self.opt["config"].script = True
+        #  No options without script descr atm
+        # with self.assertRaises(OptionError, msg="no script binding opt may not set"):
+        #     self.opt["config"].script = True
         self.assertTrue(self.opt["force"].get(), "script prio broken")
 
     def test_script_del(self):
@@ -216,8 +230,6 @@ class TestOptions(unittest.TestCase):
         cfg_opt = options.get_option("config")
         with self.assertRaises(OptionError):
             options.get_option("doesntexist")
-        with self.assertRaises(OptionError):
-            options.get_module_option("config")
 
     def test_discovery(self):
         cls = options.get_option_classes()
@@ -234,8 +246,6 @@ class TestOptions(unittest.TestCase):
     def test_options_set(self):
         options.verbosity = 2
         self.assertEqual(2, options.verbosity, "verbosity not set")
-        with self.assertRaises(OptionError):
-            options.config = 3
         # Clean up the script value we set for this test.
         del self.opt["verbosity"].script
         # Double reset shouldn't error
@@ -243,7 +253,7 @@ class TestOptions(unittest.TestCase):
 
     def test_set_module_option(self):
         with self.assertRaises(OptionError):
-            options.set_module_option("config", 3)
+            options.set_module_option("doesntexist", 3)
         options.set_module_option("verbosity", 3)
         del options.verbosity
         with self.assertRaises(AttributeError):

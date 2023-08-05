@@ -1,5 +1,6 @@
-import setuptools
 import os
+
+import setuptools
 
 _findver = "__version__ = "
 _rootpath = os.path.join(os.path.dirname(__file__), "bsb", "__init__.py")
@@ -16,21 +17,27 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 requires = [
-    "bsb-hdf5~=0.4.4",
+    "bsb-hdf5~=0.8.3",
     "h5py~=3.0",
     "numpy~=1.19",
     "scipy~=1.5",
     "scikit-learn~=1.0",
     "plotly~=5.5",
     "colour~=0.1",
-    "errr~=1.1.1",
-    "rtree~=0.9",
+    "errr~=1.2",
+    "rtree~=1.0",
     "psutil~=5.8",
-    "pynrrd~=0.4",
+    "pynrrd~=1.0",
+    "PyYAML~=6.0",
     "morphio~=3.3",
     "toml",
-    "requests",
+    "requests~=2.30",
+    "urllib3~=2.0",
     "appdirs~=1.4",
+    "neo[nixio]",
+    "tqdm~=4.50",
+    "shortuuid",
+    "quantities",
 ]
 
 setuptools.setup(
@@ -54,7 +61,7 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/dbbs-lab/bsb",
     license="GPLv3",
-    packages=setuptools.find_packages(),
+    packages=setuptools.find_packages(exclude=["tests"]),
     classifiers=[
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3 :: Only",
@@ -64,21 +71,27 @@ setuptools.setup(
     ],
     entry_points={
         "console_scripts": ["bsb = bsb.cli:handle_cli"],
-        "bsb.adapters": [
+        "bsb.storage.engines": ["fs = bsb.storage.fs"],
+        "bsb.simulation_backends": [
             "arbor = bsb.simulators.arbor",
             "nest = bsb.simulators.nest",
             "neuron = bsb.simulators.neuron",
         ],
         "bsb.commands": [
             "commands = bsb.cli.commands._commands",
+            "projects = bsb.cli.commands._projects",
         ],
-        "bsb.config.parsers": ["json = bsb.config.parsers.json"],
+        "bsb.config.parsers": [
+            "json = bsb.config.parsers.json",
+            "yaml = bsb.config.parsers.yaml",
+        ],
         "bsb.config.templates": ["bsb_templates = bsb.config.templates"],
         "bsb.options": [
             "verbosity = bsb._options:verbosity",
             "sudo = bsb._options:sudo",
             "version = bsb._options:version",
             "config = bsb._options:config",
+            "profiling = bsb._options:profiling",
         ],
     },
     python_requires="~=3.8",
@@ -90,7 +103,7 @@ setuptools.setup(
     },
     extras_require={
         "dev": [
-            "sphinx~=5.0",
+            "sphinx~=6.0",
             "furo",
             "pre-commit",
             "black~=22.3.0",
@@ -98,10 +111,11 @@ setuptools.setup(
             "sphinxemoji",
             "sphinx_design~=0.2",
             "sphinx-copybutton~=0.5",
-            "sphinxext-bsb~=0.0.2",
+            "sphinxext-bsb~=0.2.1",
+            "snakeviz",
         ],
-        "arbor": ["arbor~=0.6"],
-        "neuron": ["dbbs_models~=2.0.0", "nrn-patch~=3.0.1"],
+        "arbor": ["arbor~=0.6", "arborize[arbor]==4.0.0a4"],
+        "neuron": ["nrn-patch==4.0.0a4", "arborize[neuron]==4.0.0a4"],
         "mpi": ["mpi4py~=3.0", "zwembad", "mpilock~=1.1"],
     },
 )

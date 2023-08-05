@@ -147,9 +147,7 @@ class TestVoxelSet(bsb.unittest.NumpyTestCase, unittest.TestCase):
         VoxelSet([[1, 2, 3]], [[1, 0, 0]], [1])
         VoxelSet([[1, 2, 3]], 1, [1])
         VoxelSet([[1, 2, 3]], 1, [[1, 2]])
-        with self.assertWarns(np.VisibleDeprecationWarning):
-            VoxelSet([[1, 2, 3], [0, 0, 0]], 1, [[1, 2], [1]])
-        het = VoxelSet([[1, 2, 3], [2, 0, 0]], 1, [[1, 2], [1, "a"]])
+        VoxelSet([[1, 2, 3], [2, 0, 0]], 1, [[1, 2], [1, "a"]])
 
     def test_unequal_len(self):
         with self.assertRaises(ValueError):

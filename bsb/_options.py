@@ -75,6 +75,7 @@ class ConfigOption(
     BsbOption,
     name="config",
     cli=("c", "config"),
+    script=("config",),
     project=("config",),
     env=("BSB_CONFIG_FILE",),
 ):
@@ -84,6 +85,35 @@ class ConfigOption(
 
     def get_default(self):
         return "network_configuration.json"
+
+
+class ProfilingOption(
+    BsbOption,
+    name="profiling",
+    cli=("pr", "profiling"),
+    project=("profiling",),
+    script=("profiling",),
+    env=("BSB_PROFILING",),
+    flag=True,
+):
+    """
+    Enables profiling.
+    """
+
+    def setter(self, value):
+        from .profiling import activate_session, get_active_session
+
+        if value:
+            activate_session()
+        else:
+            get_active_session().stop()
+        return bool(value)
+
+    def getter(self, value):
+        return bool(value)
+
+    def get_default(self):
+        return False
 
 
 def verbosity():
@@ -100,3 +130,7 @@ def sudo():
 
 def config():
     return ConfigOption
+
+
+def profiling():
+    return ProfilingOption

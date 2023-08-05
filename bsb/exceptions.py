@@ -3,7 +3,7 @@ from errr import make_tree as _t, exception as _e
 _t(
     globals(),
     ScaffoldError=_e(
-        SpatialDimensionError=_e(),
+        CodeImportError=_e(),
         CLIError=_e(
             CommandError=_e(),
             ConfigTemplateNotFoundError=_e("template", "path"),
@@ -13,10 +13,11 @@ _t(
         ConfigurationError=_e(
             ConfigurationFormatError=_e(),
             DynamicClassError=_e(
-                DynamicClassNotFoundError=_e(),
+                DynamicObjectNotFoundError=_e(),
                 DynamicClassInheritanceError=_e(),
                 ClassMapMissingError=_e(),
             ),
+            BootError=_e("node"),
             CastError=_e(
                 "node",
                 "attr",
@@ -53,7 +54,6 @@ _t(
             NeuronError=_e(
                 DeviceConnectionError=_e(),
                 TransmitterError=_e(),
-                RelayError=_e(),
             ),
             NestError=_e(
                 NestKernelError=_e(
@@ -93,6 +93,12 @@ _t(
             PlacementRelationError=_e(),
             ContinuityError=_e(),
             PackingError=_e(),
+        ),
+        SimulationError=_e(
+            ParameterError=_e(
+                "parameter",
+                ReificationError=_e(),
+            )
         ),
         SelectorError=_e(),
         TreeError=_e(),

@@ -200,6 +200,43 @@ that fast so caching them is recommended). The returned plugin objects should be
 configuration node classes. These classes will then be used to further handle the given
 configuration.
 
+Node inheritance
+================
+
+Classes decorated with node decorators have their class and metaclass machinery rewritten.
+Basic inheritance works like this:
+
+.. code-block:: python
+
+    @config.node
+    class NodeA:
+        pass
+
+    @config.node
+    class NodeB(NodeA):
+        pass
+
+However, when inheriting from more than one node class you will run into a metaclass
+conflict. To solve it, use :func:`.config.compose_nodes`:
+
+.. code-block:: python
+
+    from bsb import config
+    from bsb.config import compose_nodes
+
+    @config.node
+    class NodeA:
+        pass
+
+    @config.node
+    class NodeB:
+        pass
+
+    @config.node
+    class NodeC(compose_nodes(NodeA, NodeB)):
+        pass
+
+
 .. _config_attrs:
 
 Configuration attributes
@@ -491,7 +528,7 @@ descriptor for the population attribute and define a ``__populate__`` method on 
     # Example that only stores referrers if their name in the configuration is "square".
     def __populate__(self, instance, value):
       print("We're referenced in", value.get_node_name())
-      if value.get_node_name().endswith("square"):
+      if value.get_node_name().endswith(".square"):
         self.__set__(instance, [value])
       else:
         print("We only store referrers coming from a .square configuration attribute")

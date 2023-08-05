@@ -1,17 +1,9 @@
-from ..adapter import ArborDevice
-from ....simulation.results import (
-    SimulationRecorder,
-    MultiRecorder,
-    PresetPathMixin,
-    PresetMetaMixin,
-)
-from ....simulation.device import Patternless
-from ....exceptions import *
-from ....reporting import report, warn
-import numpy as np
+from ..device import ArborDevice
+from ....simulation.results import SimulationRecorder
+from ....exceptions import ConfigurationError
 
 
-class Probe(Patternless, ArborDevice):
+class Probe(ArborDevice):
     required = ["targetting", "probe_type"]
 
     def get_probe_name(self):
@@ -38,7 +30,7 @@ class Probe(Patternless, ArborDevice):
             self.adapter.result.add(ProbeRecorder(self, sim, probe_id, handle))
 
 
-class ProbeRecorder(PresetPathMixin, PresetMetaMixin, MultiRecorder):
+class ProbeRecorder:
     def __init__(self, device, sim, probe_id, handle):
         self.path = ("recorders", device.name, *probe_id)
         self.meta = device.get_meta()
@@ -54,7 +46,7 @@ class ProbeRecorder(PresetPathMixin, PresetMetaMixin, MultiRecorder):
             yield ProbeRecorderSample(self, i, sample)
 
 
-class ProbeRecorderSample(PresetPathMixin, PresetMetaMixin, SimulationRecorder):
+class ProbeRecorderSample(SimulationRecorder):
     def __init__(self, parent, i, sample):
         self.path = tuple(list(parent.get_path()) + [i])
         self.data = sample[0]

@@ -8,7 +8,6 @@ config.attr/dict/list/ref/reflist`` to populate your classes with powerful attri
 
 import os
 import sys
-import os
 import glob
 import itertools
 from shutil import copy2 as copy_file
@@ -19,6 +18,7 @@ from ._attrs import (
     attr,
     list,
     dict,
+    file,
     node,
     root,
     dynamic,
@@ -32,22 +32,27 @@ from ._attrs import (
     catch_all,
     ConfigurationAttribute,
 )
-from ._make import walk_node_attributes, walk_nodes
+from .._util import ichain
+from ._make import walk_node_attributes, walk_nodes, compose_nodes, get_config_attributes
 from ._hooks import on, before, after, run_hook, has_hook
 from .. import plugins
-from ..exceptions import *
+from ..exceptions import ConfigTemplateNotFoundError, ParserError, PluginError
+from . import parsers
 
 
 _path = __path__
 ConfigurationAttribute.__module__ = __name__
 
 
+# ConfigurationModule should not inherit from `ModuleType`, otherwise Sphinx doesn't
+# document all the properties.
 class ConfigurationModule:
-    from . import types, refs, nodes
+    from . import types, refs
 
     def __init__(self, name):
         self.__name__ = name
 
+    parsers = parsers
     attr = staticmethod(attr)
     list = staticmethod(list)
     dict = staticmethod(dict)
@@ -63,9 +68,12 @@ class ConfigurationModule:
     root = staticmethod(root)
     dynamic = staticmethod(dynamic)
     pluggable = staticmethod(pluggable)
+    file = staticmethod(file)
 
     walk_node_attributes = staticmethod(walk_node_attributes)
+    get_config_attributes = staticmethod(get_config_attributes)
     walk_nodes = staticmethod(walk_nodes)
+    compose_nodes = staticmethod(compose_nodes)
     on = staticmethod(on)
     after = staticmethod(after)
     before = staticmethod(before)
@@ -75,7 +83,7 @@ class ConfigurationModule:
     _parser_classes = {}
 
     # The __path__ attribute needs to be retained to mark this module as a package with
-    # submodules (config.nodes, config.refs, config.parsers.json, ...)
+    # submodules (config.refs, config.parsers.json, ...)
     __path__ = _path
 
     # Load the Configuration class on demand, not on import, to avoid circular
@@ -86,7 +94,7 @@ class ConfigurationModule:
             from ._config import Configuration
 
             self._cfg_cls = Configuration
-            self._cfg_cls.__module__ = __name__
+            assert self._cfg_cls.__module__ == __name__
         return self._cfg_cls
 
     @builtins.property
@@ -100,7 +108,7 @@ class ConfigurationModule:
 
         Configuration trees can be cast into Configuration objects.
         """
-        if not parser_name in self._parser_classes:
+        if parser_name not in self._parser_classes:
             raise PluginError("Configuration parser '{}' not found".format(parser_name))
         return self._parser_classes[parser_name]()
 
@@ -132,17 +140,43 @@ class ConfigurationModule:
         copy_file(files[0], output)
 
     def from_file(self, file):
+        """
+        Create a configuration object from a path or file-like object.
+        """
+        if not hasattr(file, "read"):
+            with open(file, "r") as f:
+                return self.from_file(f)
         path = getattr(file, "name", None)
         if path is not None:
             path = os.path.abspath(path)
         return self.from_content(file.read(), path)
 
     def from_content(self, content, path=None):
+        """
+        Create a configuration object from a content string
+        """
         ext = path.split(".")[-1] if path is not None else None
         parser, tree, meta = _try_parsers(content, self._parser_classes, ext, path=path)
         return _from_parsed(self, parser, tree, meta, path)
 
+    def format_content(self, parser_name, config):
+        """
+        Convert a configuration object to a string using the given parser.
+        """
+        return self.get_parser(parser_name).generate(config.__tree__(), pretty=True)
+
     __all__ = [*(vars().keys() - {"__init__", "__qualname__", "__module__"})]
+
+    def make_config_diagram(self, config):
+        dot = f'digraph "{config.name or "network"}" {{'
+        for c in config.cell_types.values():
+            dot += f'\n  {c.name}[label="{c.name}"]'
+        for name, conn in config.connectivity.items():
+            for pre in conn.presynaptic.cell_types:
+                for post in conn.postsynaptic.cell_types:
+                    dot += f'\n  {pre.name} -> {post.name}[label="{name}"];'
+        dot += "\n}\n"
+        return dot
 
 
 def _parser_method_docs(parser):
@@ -172,7 +206,10 @@ def _parser_method_docs(parser):
 
 def _try_parsers(content, classes, ext=None, path=None):  # pragma: nocover
     if ext is not None:
-        file_has_parser_ext = lambda kv: ext in getattr(kv[1], "data_extensions", ())
+
+        def file_has_parser_ext(kv):
+            return ext in getattr(kv[1], "data_extensions", ())
+
         classes = builtins.dict(sorted(classes.items(), key=file_has_parser_ext))
     exc = {}
     for name, cls in classes.items():
@@ -183,12 +220,24 @@ def _try_parsers(content, classes, ext=None, path=None):  # pragma: nocover
         else:
             return (name, tree, meta)
     msges = [
-        (f"Can't parse with {n}:", traceback.format_exception(e)) for n, e in exc.items()
+        (
+            f"- Can't parse contents with '{n}':\n",
+            "".join(traceback.format_exception(type(e), e, e.__traceback__)),
+        )
+        for n, e in exc.items()
     ]
-    raise ParserError("\n".join(msges))
+    if path:
+        msg = f"Could not parse '{path}'"
+    else:
+        msg = f"Could not parse content string ({len(content)} characters long)"
+    raise ParserError("\n".join(ichain(msges)) + f"\n{msg}")
 
 
 def _from_parsed(self, parser_name, tree, meta, file=None):
+    if "components" in tree:
+        from ._config import _bootstrap_components
+
+        _bootstrap_components(tree["components"])
     conf = self.Configuration(tree)
     conf._parser = parser_name
     conf._meta = meta

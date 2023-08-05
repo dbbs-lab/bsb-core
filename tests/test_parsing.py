@@ -1,9 +1,6 @@
-import unittest, os, sys, numpy as np, h5py
+import unittest
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
 from bsb import config
-from bsb.config import from_json
 from bsb.exceptions import *
 from bsb.unittest import get_data_path
 
@@ -134,3 +131,15 @@ class TestJsonImport(unittest.TestCase):
 
     def test_far_import(self):
         pass
+
+
+class TestYAML(unittest.TestCase):
+    def test_yaml_parse(self):
+        yaml = config.get_parser("yaml")
+        tree, meta = yaml.parse("some_key: 5")
+        self.assertEqual({"some_key": 5}, tree)
+
+    def test_yaml_generate(self):
+        yaml = config.get_parser("yaml")
+        content = yaml.generate({"some_key": 5})
+        self.assertEqual("some_key: 5\n", content)

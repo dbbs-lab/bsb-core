@@ -1,13 +1,17 @@
 """
 Contains builtin commands.
 """
+from uuid import uuid4
 
 from . import BaseCommand
 from ...option import BsbOption
-from ...exceptions import *
 from ..._options import ConfigOption
-from . import _projects
+from ...core import from_storage, Scaffold
+from ...storage import open_storage
+from ...config import from_file
+from ...exceptions import NodeNotFoundError
 import itertools
+import errr
 
 
 class XScale(BsbOption, name="x", cli=("x",), env=("BSB_CONFIG_NETWORK_X",)):
@@ -127,11 +131,7 @@ class MakeConfigCommand(BaseCommand, name="make-config"):
 
 class BsbCompile(BaseCommand, name="compile"):
     def handler(self, context):
-        from ...config import from_json
-        from ...core import Scaffold
-
-        cfg = from_json(context.config)
-        # Bootstrap the scaffold and clear the storage if not in append mode
+        cfg = from_file(context.config)
         network = Scaffold(cfg)
         network.resize(context.x, context.y, context.z)
         network.compile(
@@ -175,9 +175,41 @@ class BsbCompile(BaseCommand, name="compile"):
         pass
 
 
+class BsbReconfigure(BaseCommand, name="reconfigure"):
+    def handler(self, context):
+        cfg = from_file(context.config)
+        # Bootstrap the scaffold and clear the storage if not in append mode
+        storage = open_storage(context.arguments.network)
+        storage.store_active_config(cfg)
+
+    def get_options(self):
+        return {
+            "config": ConfigOption(positional=True),
+        }
+
+    def add_parser_arguments(self, parser):
+        parser.add_argument("network")
+
+
 class BsbSimulate(BaseCommand, name="simulate"):
     def handler(self, context):
-        pass
+        network = from_storage(context.arguments.network)
+        config_option = context.options["config"]
+        sim_name = context.arguments.simulation
+        extra_simulations = {}
+        if config_option.is_set("cli"):
+            extra_simulations = from_file(context.config).simulations
+            for name, sim in extra_simulations.items():
+                if name not in network.simulations and name == sim_name:
+                    network.simulations[sim_name] = sim
+        try:
+            result = network.run_simulation(sim_name)
+        except NodeNotFoundError as e:
+            append = ", " if len(network.simulations) else ""
+            append += ", ".join(f"'{name}'" for name in extra_simulations.keys())
+            errr.wrap(type(e), e, append=append)
+        else:
+            result.write(f"{uuid4()}.nio", "ow")
 
     def get_options(self):
         return {
@@ -186,7 +218,8 @@ class BsbSimulate(BaseCommand, name="simulate"):
         }
 
     def add_parser_arguments(self, parser):
-        pass
+        parser.add_argument("network")
+        parser.add_argument("simulation")
 
 
 class CacheCommand(BaseCommand, name="cache"):  # pragma: nocover
@@ -204,7 +237,7 @@ class CacheCommand(BaseCommand, name="cache"):  # pragma: nocover
             files = [*_cache_path.iterdir()]
             maxlen = 5
             try:
-                maxlen = max(maxlen, max(len(l.name) for l in files))
+                maxlen = max(maxlen, max(len(file.name) for file in files))
             except ValueError:
                 print("Cache is empty")
             else:

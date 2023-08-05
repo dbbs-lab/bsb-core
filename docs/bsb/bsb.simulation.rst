@@ -4,6 +4,14 @@ bsb.simulation package
 Submodules
 ----------
 
+bsb.simulation.simulation module
+--------------------------------
+
+.. automodule:: bsb.simulation.simulation
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 bsb.simulation.adapter module
 -----------------------------
 

@@ -1,10 +1,15 @@
 from .. import config
+from .._util import rotation_matrix_from_vectors
+from ..config.types import ndarray
+from ..storage import NrrdDependencyNode
 from ..topology.partition import Partition
 from ..exceptions import EmptySelectionError
-from ..morphologies import MorphologySet
+from ..profiling import node_meter
+from ..morphologies import MorphologySet, RotationSet
 from .indicator import PlacementIndications
 from dataclasses import dataclass
 import numpy as np
+from scipy.spatial.transform import Rotation
 import abc
 import uuid
 from typing import List
@@ -18,6 +23,11 @@ class DistributionContext:
 
 @config.dynamic(attr_name="strategy", required=True)
 class Distributor(abc.ABC):
+    def __init_subclass__(cls, **kwargs):
+        super(cls, cls).__init_subclass__(**kwargs)
+        # Decorate subclasses to measure performance
+        node_meter("distribute")(cls)
+
     @abc.abstractmethod
     def distribute(self, positions, context):
         """
@@ -116,6 +126,11 @@ class MorphologyGenerator(MorphologyDistributor, classmap_entry=None):
 
     may_be_empty = config.attr(type=bool, default=True)
 
+    def __init_subclass__(cls, **kwargs):
+        super(cls, cls).__init_subclass__(**kwargs)
+        # Decorate subclasses to measure performance
+        node_meter("generate")(cls)
+
     def distribute(self, positions, morphologies, context):
         pass
 
@@ -156,6 +171,86 @@ class ImplicitNoRotations(ExplicitNoRotations, Implicit, classmap_entry="none"):
 class RandomRotations(RotationDistributor, classmap_entry="random"):
     def distribute(self, positions, context):
         return np.random.rand(len(positions), 3) * 360
+
+
+@config.node
+class VolumetricRotations(RotationDistributor, classmap_entry="orientation_field"):
+    orientation_path = config.attr(required=True, type=NrrdDependencyNode)
+    """Path to the nrrd file containing the volumetric orientation field. It provides a rotation 
+    for each voxel considered. Its shape should be (3, L, W, D) where L, W and D are the sizes of 
+    the field."""
+    orientation_resolution = config.attr(required=False, default=25.0, type=float)
+    """Voxel size resolution of the orientation field.
+    """
+    default_vector = config.attr(
+        required=False,
+        default=lambda: np.array([0.0, -1.0, 0.0]),
+        call_default=True,
+        type=ndarray(),
+    )
+    """Default orientation vector of each position.
+    """
+    space_origin = config.attr(
+        required=False,
+        default=lambda: np.array([0.0, 0.0, 0.0]),
+        call_default=True,
+        type=ndarray(),
+    )
+    """Origin point for the orientation field.
+    """
+
+    def distribute(self, positions, context):
+        """
+        Rotates according to a volumetric orientation field of specific resolution.
+        For each position, find the equivalent voxel in the volumetric orientation field and apply
+        the rotation from the default_vector to the corresponding orientation vector.
+        Positions outside the orientation field will not be rotated.
+
+        :param positions: Placed positions under consideration. Its shape is (N, 3) where N is the
+            number of positions.
+        :param context: The placement indicator and partitions.
+        :type context: ~bsb.placement.distributor.DistributionContext
+        :returns: A RotationSet object containing the 3D Euler angles in degrees for the rotation
+            of each position.
+        :rtype: RotationSet
+        """
+
+        orientation_field = self.orientation_path.load_object()
+        voxel_pos = np.asarray(
+            np.floor((positions - self.space_origin) / self.orientation_resolution),
+            dtype=int,
+        )
+
+        # filter for positions inside the orientation field.
+        filter_inside = (
+            np.all(voxel_pos >= 0, axis=1)
+            * (voxel_pos[:, 0] < orientation_field.shape[1])
+            * (voxel_pos[:, 1] < orientation_field.shape[2])
+            * (voxel_pos[:, 2] < orientation_field.shape[3])
+        )
+
+        # By default, positions outside the field should not rotate.
+        # So their target orientation vector will be set to the default_vector,
+        # from which the rotation is processed.
+        orientations = np.full((positions.shape[0], 3), self.default_vector, dtype=float)
+        # Expected orientation_field shape is (3, L, W, D) where L, W and D are the sizes
+        # of the field. Here we want to filter on the space dimensions, so we move the axes.
+        if filter_inside.any():
+            orientations[filter_inside] = np.moveaxis(orientation_field, 0, -1)[
+                voxel_pos[filter_inside, 0],
+                voxel_pos[filter_inside, 1],
+                voxel_pos[filter_inside, 2],
+            ]
+            orientations[
+                np.isnan(orientations).any(axis=1) + ~orientations.any(axis=1)
+            ] = self.default_vector
+
+        return RotationSet(
+            Rotation.from_matrix(
+                rotation_matrix_from_vectors(self.default_vector, v)
+            ).as_euler("xyz", degrees=True)
+            for v in orientations
+        )
 
 
 @config.node
@@ -205,8 +300,7 @@ class DistributorsNode:
         loaders = self.scaffold.storage.morphologies.select(*sel)
         if not loaders and not self.morphologies.may_be_empty:
             raise EmptySelectionError(
-                f"Given {len(sel)} selectors: did not find any suitable morphologies",
-                sel,
+                f"Given {len(sel)} selectors: did not find any suitable morphologies", sel
             )
         distr = self._curry(partitions, indicator, positions, loaders)
         morphologies, rotations = distr("morphologies")
@@ -227,10 +321,13 @@ class DistributorsNode:
             mr = self.scaffold.morphologies
             uid = uuid.uuid4()
             loaders = []
+            all_meta = {}
             for gen_morpho, i in generated.items():
                 name = f"{prefix}-{uid}-{i}"
-                saved = mr.save(name, gen_morpho)
+                saved = mr.save(name, gen_morpho, update_meta=False)
+                all_meta[name] = saved.get_meta()
                 loaders.append(saved)
+            mr.update_all_meta(all_meta)
             morphologies = MorphologySet(loaders, indices)
         if not isinstance(morphologies, MorphologySet) and morphologies is not None:
             morphologies = MorphologySet(loaders, morphologies)
@@ -240,3 +337,7 @@ class DistributorsNode:
     def _has_mdistr(self):
         # This function checks if this distributor node has specified a morpho distributor
         return self.__class__.morphologies.is_dirty(self)
+
+    def _has_rdistr(self):
+        # This function checks if this distributor node has specified a rotation distributor
+        return self.__class__.rotations.is_dirty(self)

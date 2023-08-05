@@ -218,7 +218,7 @@ giving a :class:`~scipy.spatial.transform.Rotation` (and a center, by default 0)
 
   from scipy.spatial.transform import Rotation
 
-  r = Rotation.from_euler("xy", 90, 90, degrees=True)
+  r = Rotation.from_euler("xy", [90, 90], degrees=True)
   dendrites.rotate(r)
 
 .. figure:: /images/m_trans/rotate_dend.png
@@ -272,6 +272,21 @@ respective root in the tree:
 .. code-block:: python
 
   dendrites.root_rotate(r)
+
+Additionally, you can :meth:`root-rotate <.morphologies.SubTree.root_rotate>` from a point of the
+subtree instead of its root. In this case, points starting from the point selected will be rotated.
+
+To do so, set the `downstream_of` parameter with the index of the point of your interest.
+
+.. code-block:: python
+
+  # rotate all points after the second point in the subtree
+  # i.e.: points at index 0 and 1 will not be rotated.
+  dendrites.root_rotate(r, downstream_of=2)
+
+.. note::
+
+  This feature can only be applied to subtrees with a single root
 
 Gap closing
 -----------

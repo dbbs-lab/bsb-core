@@ -230,10 +230,11 @@ def set_module_option(tag, value):
 
     global _module_option_values
 
-    if (option := _get_module_option(tag)).readonly:
+    option = _get_module_option(tag)
+    if option.readonly:
         raise ReadOnlyOptionError("'%tag%' is a read-only option.", option, tag)
     mod_tag = _get_module_tag(tag)
-    _module_option_values[mod_tag] = value
+    _module_option_values[mod_tag] = getattr(option, "setter", lambda x: x)(value)
 
 
 def get_module_option(tag):
@@ -298,7 +299,6 @@ def read(tag=None):
     :rtype: Any
     """
     if tag is None:
-
         path, content = _bsboptmod._pyproject_bsb()
         report(f"Reading project settings from '{path}'", level=4)
         return content

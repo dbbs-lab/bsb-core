@@ -14,7 +14,7 @@ class _VoxelBasedParticleSystem:
     Internal mixin for particle system placement strategies
     """
 
-    def _fill_system(self, chunk, indicators):
+    def _fill_system(self, chunk, indicators, check_pack=True):
         voxels = VoxelSet.concatenate(
             *(p.chunk_to_voxels(chunk) for p in self.partitions)
         )
@@ -31,8 +31,8 @@ class _VoxelBasedParticleSystem:
             for name, indicator in indicators.items()
         ]
         # Create and fill the particle system.
-        system = ParticleSystem(track_displaced=True, scaffold=self.scaffold)
-        system.fill(voxels, particles)
+        system = ParticleSystem(track_displaced=True, scaffold=self.scaffold, strat=self)
+        system.fill(voxels, particles, check_pack=check_pack)
         return system
 
     def _extract_system(self, system, chunk, indicators):
@@ -58,7 +58,7 @@ class RandomPlacement(PlacementStrategy, _VoxelBasedParticleSystem):
     """
 
     def place(self, chunk, indicators):
-        system = self._fill_system(chunk, indicators)
+        system = self._fill_system(chunk, indicators, check_pack=False)
         self._extract_system(system, chunk, indicators)
 
 
@@ -117,15 +117,6 @@ class Particle:
         f_inert = f * other.volume / (other.volume + self.volume)
         A_norm = A / d
         self.displacement = self.displacement + A_norm * f_inert * collision_radius
-        # print()
-        # print(self.id, "being displaced by", other.id)
-        # print("---")
-        # print("Initial: Displacing particles were {} cr away from eachother".format(d / collision_radius))
-        # print("Repulsion: Particles will now move {} cr away from each other".format(f))
-        # print("Intertia: I make up {} of the total volume".format(self.volume / (other.volume + self.volume)))
-        # print("Intertia: This particle moving {} cr".format(f_inert))
-        # print("Final: ".format(d / collision_radius + f))
-        # print("Displacement: particles end up {} cr away from eachother", A_norm * f_inert * collision_radius)
 
     def displace(self):
         # TODO: STAY INSIDE OF PARTNER RADIUS
@@ -189,13 +180,14 @@ class ParticleVoxel:
 
 
 class ParticleSystem:
-    def __init__(self, track_displaced=False, scaffold=None):
+    def __init__(self, track_displaced=False, scaffold=None, strat=None):
         self.particle_types = []
         self.voxels = []
         self.track_displaced = track_displaced
         self.scaffold = scaffold
+        self.strat = strat
 
-    def fill(self, voxels, particles):
+    def fill(self, voxels, particles, check_pack=True):
         # Amount of spatial dimensions
         self.dimensions = voxels.get_raw(copy=False).shape[1]
         # Extend list of particle types in the system
@@ -213,23 +205,28 @@ class ParticleSystem:
             )
         )
         pf = self.get_packing_factor()
+        if self.strat is not None:
+            strat_name = type(self.strat).__name__
+        else:
+            strat_name = "particle system"
         msg = f"Packing factor {round(pf, 2)}"
-        if pf > 0.4:
-            if pf > 0.64:
-                msg += " exceeds geometrical maximum packing for spheres (0.64)"
-            elif pf > 0.4:
-                msg += " too high to resolve with ParticlePlacement"
+        if check_pack:
+            if pf > 0.4:
+                if pf > 0.64:
+                    msg += " exceeds geometrical maximum packing for spheres (0.64)"
+                elif pf > 0.4:
+                    msg += f" too high to resolve with {strat_name}"
 
-            count, pvol, vol = self._get_packing_factors()
-            raise PackingError(
-                f"{msg}. Can not fit {round(count)} particles for a total of "
-                f"{round(pvol, 3)}μm³ micrometers into {round(vol, 3)}μm³."
-            )
-        elif pf > 0.2:
-            warn(
-                f"{msg} is too high for good ParticlePlacement performance.",
-                PackingWarning,
-            )
+                count, pvol, vol = self._get_packing_factors()
+                raise PackingError(
+                    f"{msg}. Can not fit {round(count)} particles for a total of "
+                    f"{round(pvol, 3)}μm³ micrometers into {round(vol, 3)}μm³."
+                )
+            elif pf > 0.2:
+                warn(
+                    f"{msg} is too high for good {strat_name} performance.",
+                    PackingWarning,
+                )
         # Reset particles
         self.particles = []
         for particle_type in self.particle_types:
@@ -328,7 +325,6 @@ class ParticleSystem:
             # Double check that there's no collisions left
             self.freeze()
             self.find_colliding_particles()
-            # print("Neighbourhood solved.", len(self.colliding_particles), "colliding particles remaining.")
         self.displaced_particles = list(self.displaced_particles)
 
     def resolve_neighbourhood(self, neighbourhood):
@@ -337,14 +333,11 @@ class ParticleSystem:
         # for partner in neighbourhood.partners:
         #     partner.locked = False
         i = 0
-        # print("Solving neighbourhood", neighbourhood.epicenter.id)
-        # print("---")
         stuck = False
         overlap = 0.0
         while neighbourhood.colliding():
             i += 1
             overlap = neighbourhood.get_overlap()
-            # print(i, "Neighbourhood overlap:", overlap)
             for partner in neighbourhood.partners:
                 for neighbour in neighbourhood.neighbours:
                     if partner.id == neighbour.id:
@@ -353,7 +346,6 @@ class ParticleSystem:
             for partner in neighbourhood.partners:
                 partner.displace()
             overlap = neighbourhood.get_overlap()
-            # print()
             if i > 100:
                 stuck = True
                 print("STUCK")
@@ -365,7 +357,6 @@ class ParticleSystem:
 
     def find_neighbourhood(self, particle):
         epicenter = particle.position
-        # print("Finding collision neighbourhood for particle", particle.id)
         neighbourhood_radius = self.max_radius * 2
         neighbourhood_ok = False
         expansions = 0
@@ -534,9 +525,7 @@ def get_particles_trace(particles, dimensions=3, axes={"x": 0, "y": 1, "z": 2}, 
     }
     trace_kwargs.update(kwargs)
     if dimensions > 3:
-        raise SpatialDimensionError(
-            "Maximum 3 dimensional plots. Unless you have mutant eyes."
-        )
+        raise ValueError("Maximum 3 dimensional plots. Unless you have mutant eyes.")
     elif dimensions == 3:
         return go.Scatter3d(
             x=list(map(lambda p: p.position[axes["x"]], particles)),
@@ -611,7 +600,6 @@ def distance(a, b):
 class AdaptiveNeighbourhood(ParticleSystem):
     def find_neighbourhood(self, particle):
         epicenter = particle.position
-        # print("Finding collision neighbourhood for particle", particle.id)
         precautious_radius = particle.radius + self.max_radius
         partner_ids = self.tree.query_radius([epicenter], r=precautious_radius)[0]
         if len(partner_ids) == 0:
@@ -698,10 +686,6 @@ class SmallestNeighbourhood(ParticleSystem):
                 raise Exception(
                     f"ERROR! Unable to find suited neighbourhood around {epicenter}"
                 )
-        # print("Neighbourhood of {} particles with radius {} and packing factor of {}. Found after {} expansions.".format(
-        #     len(neighbour_ids), neighbourhood_radius, partner_packing_factor, expansions
-        # ))
-        # print(len(partner_ids), "particles will be moved.")
         return Neighbourhood(
             epicenter, neighbours, neighbourhood_radius, partners, partner_radius
         )

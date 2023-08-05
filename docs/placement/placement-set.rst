@@ -20,9 +20,9 @@ same :class:`~.storage.interfaces.PlacementSet`. If the placement set does not e
 
 .. code-block:: python
 
-  from bsb.core import from_hdf5
+  from bsb.core import from_storage
 
-  network = from_hdf5("my_network.hdf5")
+  network = from_storage("my_network.hdf5")
   ps = network.get_placement_set("my_cell")
   # Alternatives to obtain the same placement set:
   ps = network.get_placement_set(network.cell_types.my_cell)

@@ -13,14 +13,6 @@ Subpackages
 Submodules
 ----------
 
-bsb.config.nodes module
------------------------
-
-.. automodule:: bsb.config.nodes
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 bsb.config.refs module
 ----------------------
 

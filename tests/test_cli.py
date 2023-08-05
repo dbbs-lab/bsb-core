@@ -5,7 +5,8 @@ from bsb.unittest import skip_parallel
 class TestCLI(unittest.TestCase):
     @skip_parallel
     def test_availability(self):
-        import bsb, subprocess
+        import bsb
+        import subprocess
 
         our_version = bytes(f"bsb {bsb.__version__}", encoding="utf-8")
         # Split on newlines to ignore any prepended spammy output in case of environment
@@ -20,8 +21,9 @@ class TestCLI(unittest.TestCase):
 
         # Test the default verbosity
         self.assertEqual(1, bsb.options.verbosity)
-        # Test that an option without script descriptor isn't registered
-        self.assertRaises(bsb.exceptions.OptionError, lambda: bsb.options.config)
+        # Test disabled because there's currently no options without script descr.
+        # # Test that an option without script descriptor isn't registered
+        # self.assertRaises(bsb.exceptions.OptionError, lambda: bsb.options.config)
 
     def test_env_descriptor(self):
         import os, bsb.options

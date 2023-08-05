@@ -7,7 +7,7 @@ from ..exceptions import (
     DynamicClassError,
     UnresolvedClassCastError,
     PluginError,
-    DynamicClassNotFoundError,
+    DynamicObjectNotFoundError,
 )
 from ..reporting import warn
 from ._hooks import overrides
@@ -18,6 +18,15 @@ import importlib
 import inspect
 import sys
 import os
+import types
+
+
+def _has_own_init(meta_subject, kwargs):
+    try:
+        determined_class = meta_subject.__new__.class_determinant(meta_subject, kwargs)
+        return overrides(determined_class, "__init__", mro=True)
+    except Exception:
+        return overrides(meta_subject, "__init__", mro=True)
 
 
 def make_metaclass(cls):
@@ -35,7 +44,7 @@ def make_metaclass(cls):
     # and keep the object reference that the user gives them
     class ConfigArgRewrite:
         def __call__(meta_subject, *args, _parent=None, _key=None, **kwargs):
-            has_own_init = overrides(meta_subject, "__init__", mro=True)
+            has_own_init = _has_own_init(meta_subject, kwargs)
             # Rewrite the arguments
             primer = args[0] if args else None
             if isinstance(primer, meta_subject):
@@ -54,10 +63,11 @@ def make_metaclass(cls):
                 raise ValueError(f"Unexpected positional argument '{primer}'")
             # Call the base class's new with internal arguments
             instance = meta_subject.__new__(
-                meta_subject, _parent=_parent, _key=_key, **kwargs
+                meta_subject, *args, _parent=_parent, _key=_key, **kwargs
             )
+            instance._config_pos_init = getattr(instance, "_config_pos_init", False)
             # Call the end user's __init__ with the rewritten arguments, if one is defined
-            if overrides(meta_subject, "__init__", mro=True):
+            if has_own_init:
                 sig = inspect.signature(instance.__init__)
                 try:
                     # Check whether the arguments match the signature. We use `sig.bind`
@@ -81,14 +91,37 @@ def make_metaclass(cls):
                         + f": e.g. 'def __init__{sig}'"
                     ) from None
                 else:
+                    instance._config_pos_init = bool(len(args))
                     instance.__init__(*args, **kwargs)
             return instance
 
     # Avoid metaclass conflicts by prepending our rewrite class to existing metaclass MRO
     class NodeMeta(ConfigArgRewrite, *cls.__class__.__mro__):
-        pass
+        def __new__(cls, *args, **kwargs):
+            rcls = super().__new__(cls, *args, **kwargs)
+            # `__init_subclass__` refused to be called with correct subclass, so call
+            # it ourselves.
+            if hasattr(rcls.__bases__[0], "_cfgnode_replaced_ics"):
+                rcls.__bases__[0]._cfgnode_replaced_ics(rcls, **kwargs)
+            return rcls
 
     return NodeMeta
+
+
+class NodeKwargs(dict):
+    def __init__(self, instance, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.is_shortform = getattr(instance, "_config_pos_init", False)
+
+
+def compose_nodes(*node_classes):
+    """
+    Create a composite mixin class of the given classes. Inherit from the returned class
+    to inherit from more than one node class.
+
+    """
+    meta = type("ComposedMetaclass", tuple(type(cls) for cls in node_classes), {})
+    return meta("CompositionMixin", node_classes, {})
 
 
 def compile_class(cls):
@@ -102,6 +135,18 @@ def compile_class(cls):
         cl = getattr(method, "__closure__", None)
         if cl and cl[0].cell_contents is cls:
             cl[0].cell_contents = ncls
+
+    # Shitty hack, for some reason I couldn't find a way to override the first argument
+    # of `__init_subclass__` methods, that would otherwise work on other classmethods,
+    # so we noop the actual `__init_subclass__` and we call `__init_subclass__` ourselves
+    # from the metaclass' `__new__` method, where the argument replacement works as usual.
+    if (
+        hasattr(ncls, "__init_subclass__")
+        and "__init_subclass__" in ncls.__dict__
+        and not isinstance(ncls.__init_subclass__, types.BuiltinFunctionType)
+    ):
+        ncls._cfgnode_replaced_ics = ncls.__init_subclass__.__func__
+        ncls.__init_subclass__ = lambda *args, **kwargs: None
     classmap = getattr(ncls, "_config_dynamic_classmap", None)
     if classmap is not None:
         # Replace the reference to the old class with the new class.
@@ -156,16 +201,19 @@ def compile_new(node_cls, dynamic=False, pluggable=False, root=False):
     else:
         class_determinant = _node_determinant
 
-    def __new__(_cls, _parent=None, _key=None, **kwargs):
+    def __new__(_cls, *args, _parent=None, _key=None, **kwargs):
         ncls = class_determinant(_cls, kwargs)
         instance = object.__new__(ncls)
+        instance._config_pos_init = bool(len(args))
         _set_pk(instance, _parent, _key)
         if root:
             instance._config_isfinished = False
         instance.__post_new__(**kwargs)
         if _cls is not ncls:
-            instance.__init__(**kwargs)
+            instance.__init__(*args, **kwargs)
         return instance
+
+    __new__.class_determinant = class_determinant
 
     return __new__
 
@@ -177,16 +225,34 @@ def _set_pk(obj, parent, key):
         obj._config_attr_order = []
     if not hasattr(obj, "_config_state"):
         obj._config_state = {}
-    for a in _get_class_config_attrs(obj.__class__).values():
+    for a in get_config_attributes(obj.__class__).values():
         if a.key:
             from ._attrs import _setattr
 
             _setattr(obj, a.attr_name, key)
 
 
-def compile_postnew(cls, root=False):
+def _missing_requirements(instance, attr, kwargs):
+    # We use `self.__class__`, not `cls`, to get the proper child class.
+    cls = instance.__class__
+    dynamic_root = getattr(cls, "_config_dynamic_root", None)
+    kwargs = NodeKwargs(instance, kwargs)
+    if dynamic_root is not None:
+        dynamic_attr = dynamic_root._config_dynamic_attr
+        # If we are checking the dynamic attribute, but we're already a dynamic subclass,
+        # we skip the required check.
+        return (
+            attr.attr_name == dynamic_attr
+            and cls is dynamic_root
+            and attr.required(kwargs)
+        ) or (attr.attr_name != dynamic_attr and attr.required(kwargs))
+    else:
+        return attr.required(kwargs)
+
+
+def compile_postnew(cls):
     def __post_new__(self, _parent=None, _key=None, **kwargs):
-        attrs = _get_class_config_attrs(self.__class__)
+        attrs = get_config_attributes(self.__class__)
         self._config_attr_order = list(kwargs.keys())
         catch_attrs = [a for a in attrs.values() if hasattr(a, "__catch__")]
         leftovers = kwargs.copy()
@@ -195,7 +261,7 @@ def compile_postnew(cls, root=False):
             name = attr.attr_name
             value = values[name] = leftovers.pop(name, None)
             try:
-                if value is None and attr.required(kwargs):
+                if _missing_requirements(self, attr, kwargs) and value is None:
                     raise RequirementError(f"Missing required attribute '{name}'")
             except RequirementError as e:
                 # Catch both our own and possible `attr.required` RequirementErrors
@@ -214,7 +280,6 @@ def compile_postnew(cls, root=False):
             else:
                 setattr(self, name, value)
                 attr.flag_dirty(self)
-        # # TODO: catch attrs
         for key, value in leftovers.items():
             try:
                 _try_catch_attrs(self, catch_attrs, key, value)
@@ -276,11 +341,22 @@ def _bubble_up_warnings(log):
             warn(str(m), w.category, stacklevel=4)
 
 
-def _get_class_config_attrs(cls):
+def get_config_attributes(cls):
     attrs = {}
     for p_cls in reversed(cls.__mro__):
         if hasattr(p_cls, "_config_attrs"):
             attrs.update(p_cls._config_attrs)
+        else:
+            # Add mixin config attributes
+            from ._attrs import ConfigurationAttribute
+
+            attrs.update(
+                {
+                    key: attr
+                    for key, attr in p_cls.__dict__.items()
+                    if isinstance(attr, ConfigurationAttribute)
+                }
+            )
         for unset in getattr(p_cls, "_config_unset", []):
             attrs.pop(unset, None)
     return attrs
@@ -344,7 +420,7 @@ def _get_dynamic_class(node_cls, kwargs):
     elif dynamic_attr.should_call_default():  # pragma: nocover
         loaded_cls_name = dynamic_attr.default()
     else:
-        loaded_cls_name = dynamic_attr.default
+        loaded_cls_name = dynamic_attr.default or node_cls.__name__
     module_path = ["__main__", node_cls.__module__]
     classmap = getattr(node_cls, "_config_dynamic_classmap", None)
     interface = getattr(node_cls, "_config_dynamic_root")
@@ -403,13 +479,8 @@ def _load_class(cfg_classname, module_path, interface=None, classmap=None):
         class_ref = cfg_classname
         class_name = cfg_classname.__name__
     else:
-        class_parts = cfg_classname.split(".")
-        class_name = class_parts[-1]
-        module_name = ".".join(class_parts[:-1])
-        if module_name == "":
-            class_ref = _search_module_path(class_name, module_path, cfg_classname)
-        else:
-            class_ref = _get_module_class(class_name, module_name, cfg_classname)
+        class_ref = _load_object(cfg_classname, module_path)
+        class_name = class_ref.__name__
 
     def qualname(cls):
         return cls.__module__ + "." + cls.__name__
@@ -423,15 +494,27 @@ def _load_class(cfg_classname, module_path, interface=None, classmap=None):
     return class_ref
 
 
+def _load_object(object_path, module_path):
+    class_parts = object_path.split(".")
+    object_name = class_parts[-1]
+    module_name = ".".join(class_parts[:-1])
+    if not module_name:
+        object_ref = _search_module_path(object_name, module_path, object_path)
+    else:
+        object_ref = _get_module_object(object_name, module_name, object_path)
+
+    return object_ref
+
+
 def _search_module_path(class_name, module_path, cfg_classname):
     for module_name in module_path:
         module_dict = sys.modules[module_name].__dict__
         if class_name in module_dict:
             return module_dict[class_name]
-    raise DynamicClassNotFoundError("Class not found: " + cfg_classname)
+    raise DynamicObjectNotFoundError("Class not found: " + cfg_classname)
 
 
-def _get_module_class(class_name, module_name, cfg_classname):
+def _get_module_object(object_name, module_name, object_path):
     sys.path.append(os.getcwd())
     try:
         module_ref = importlib.import_module(module_name)
@@ -439,24 +522,24 @@ def _get_module_class(class_name, module_name, cfg_classname):
         tmp = list(reversed(sys.path))
         tmp.remove(os.getcwd())
         sys.path = list(reversed(tmp))
-    module_dict = module_ref.__dict__
-    if class_name not in module_dict:
-        raise DynamicClassNotFoundError("Class not found: " + cfg_classname)
-    return module_dict[class_name]
+    try:
+        return getattr(module_ref, object_name)
+    except Exception:
+        raise DynamicObjectNotFoundError(f"'{object_path}' not found.")
 
 
 def make_dictable(node_cls):
     def __contains__(self, attr):
-        return attr in _get_class_config_attrs(self.__class__)
+        return attr in get_config_attributes(self.__class__)
 
     def __getitem__(self, attr):
-        if attr in _get_class_config_attrs(self.__class__):
+        if attr in get_config_attributes(self.__class__):
             return getattr(self, attr)
         else:
             raise KeyError(attr)
 
     def __iter__(self):
-        return (attr for attr in _get_class_config_attrs(self.__class__))
+        return (attr for attr in get_config_attributes(self.__class__))
 
     node_cls.__contains__ = __contains__
     node_cls.__getitem__ = __getitem__
@@ -465,7 +548,12 @@ def make_dictable(node_cls):
 
 def make_tree(node_cls):
     def get_tree(instance):
-        attrs = _get_class_config_attrs(instance.__class__)
+        if hasattr(instance, "__inv__") and not getattr(instance, "_config_inv", None):
+            instance._config_inv = True
+            inv = instance.__inv__()
+            instance._config_inv = False
+            return inv
+        attrs = get_config_attributes(instance.__class__)
         catch_attrs = [a for a in attrs.values() if hasattr(a, "__catch__")]
         tree = {}
         for name in instance._config_attr_order:
