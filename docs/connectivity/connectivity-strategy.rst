@@ -4,11 +4,15 @@ Connectivity strategy
 
 :light-bulb: Make sure to read the :ref:`Writing Components <components>` section first.
 
-:class:`~bsb.connectivity.strategy.ConnectionStrategy` is a component that defines how to connect one or more presynaptic cell types to one or more postsynaptic cell types.
+:class:`~bsb.connectivity.strategy.ConnectionStrategy` is a component that defines how to
+connect one or more presynaptic cell types to one or more postsynaptic cell types.
 Connection strategies are :ref:`configured <files>` in the :guilabel:`connectivity` block.
-For example suppose we are writing a cerebellum module and that we are defining a connection strategy ``ConnectomeGolgiGranule`` to connect Golgi cells to granule cells in the Python module ``cerebellum/connectome/golgi_granule.py``.
-Suppose that up to 40 granule cells can be connected to a Golgi cell and that a connection can be formed only if the somata of two cells are less than 100 micrometers away. 
-In the case in which more than 40 cells meet the conditions, we take the 40 closer ones.
+For example suppose we are writing a cerebellum module and that we are defining a
+connection strategy ``ConnectomeGolgiGranule`` to connect Golgi cells to granule cells in
+the Python module ``cerebellum/connectome/golgi_granule.py``. Suppose that up to 40
+granule cells can be connected to a Golgi cell and that a connection can be formed only if
+the somata of two cells are less than 100 micrometers away. In the case in which more than
+40 cells meet the conditions, we take the 40 closer ones.
 
 .. code-block:: json
   
@@ -80,17 +84,25 @@ Arguments: ``pre`` and ``post`` are :class:`HemitypeCollections <bsb.connectivit
 The connection between two types of cells is made calling ``self.connect_cells``.
 ``connect_cells`` needs four arguments:
 
- * ``pre_set`` : A numpy array containing the positions of the presynaptic cells.
- * ``post_set`` : A numpy array containing the positions of the postsynaptic cells.
- * ``src_locs`` : A nx3 matrix, with n the number of connections, containing information about where the connection starts.
-Each row of the matrix contains three integers (a,b,c), with a the index of the presynaptic cell, b the index of the branch on which a connection is made 
-and c the index (relative to a branch) of the point at which the connection starts.  
-  * ``dest_locs`` : A nx3 matrix,with n the number of connections, containing information about where the connection ends.
-Each row of the matrix contains three integers (a,b,c), with a the index of the postsynaptic cell, b the index of the branch on which a connection is made 
-and c the index (relative to a branch) of the point at which the connection ends. 
-The k-th row of src_locs describes the beginning of the k-th connection on the presynaptic cell, while the k-th row of dest_locs stores the info about the end of the k-th connection on the postsynaptic cell. 
-There is also an optional argument: 
- * ``tag`` : a tag describing the connection (optional, defaults to the strategy name, or `f"{name}_{pre}_to_{post}"` when multiple cell types are combined).
+* ``pre_set`` : A numpy array containing the positions of the presynaptic cells.
+* ``post_set`` : A numpy array containing the positions of the postsynaptic cells.
+* ``src_locs`` : A nx3 matrix, with n the number of connections, containing information
+   about where the connection starts. Each row of the matrix contains three integers
+   (a,b,c), with a the index of the presynaptic cell, b the index of the branch on which
+   a connection is made and c the index (relative to a branch) of the point at which the
+   connection starts.
+
+* ``dest_locs`` : A nx3 matrix,with n the number of connections, containing information
+   about where the connection ends. Each row of the matrix contains three integers
+   (a,b,c), with a the index of the postsynaptic cell, b the index of the branch on which
+   a connection is made and c the index (relative to a branch) of the point at which the
+   connection ends. The k-th row of src_locs describes the beginning of the k-th
+   connection on the presynaptic cell, while the k-th row of dest_locs stores the info
+   about the end of the k-th connection on the postsynaptic cell.
+
+ * ``tag`` : a tag describing the connection (optional, defaults to the strategy name, or
+   `f"{name}_{pre}_to_{post}"` when multiple cell types are combined).
+
 
 For example, if ``src_locs`` and ``dest_locs`` are the following matrices:
 
@@ -125,13 +137,23 @@ For example, if ``src_locs`` and ``dest_locs`` are the following matrices:
 
 then two connections are formed:
 
-* The first connection is formed between the presynaptic cell whose index in ``pre_pos`` is ``2`` and the postsynaptic cell whose index in ``post_pos`` is ``10``.
-Furthermore, the connection begins at the point with id ``6`` on the branch whose id is ``0`` on the presynaptic cell and ends on the points with id ``3`` on the branch whose id is ``1`` on the postsynaptic cell.
-* The second connection is formed between the presynaptic cell whose index in ``pre_pos`` is ``10`` and the postsynaptic cell whose index in ``post_pos`` is ``7``.
-Furthermore, the connection begins at the point with id ``3`` on the branch whose id is ``0`` on the presynaptic cell and ends on the points with id ``4`` on the branch whose id is ``1`` on the postsynaptic cell. 
+* The first connection is formed between the presynaptic cell whose index in ``pre_pos``
+   is ``2`` and the postsynaptic cell whose index in ``post_pos`` is ``10``.
+
+Furthermore, the connection begins at the point with id ``6`` on the branch whose id is
+   ``0`` on the presynaptic cell and ends on the points with id ``3`` on the branch whose
+   id is ``1`` on the postsynaptic cell.
+
+* The second connection is formed between the presynaptic cell whose index in ``pre_pos``
+   is ``10`` and the postsynaptic cell whose index in ``post_pos`` is ``7``. Furthermore,
+   the connection begins at the point with id ``3`` on the branch whose id is ``0`` on the
+   presynaptic cell and ends on the points with id ``4`` on the branch whose id is ``1``
+   on the postsynaptic cell.
 
 .. note::
-  If the exact location of a synaptic connection is not needed, then in both ``src_locs`` and ``dest_locs`` the indices of the branches and of the point on the branch can be set to ``-1``.
+  If the exact location of a synaptic connection is not needed, then in both ``src_locs``
+  and ``dest_locs`` the indices of the branches and of the point on the branch can be set
+  to ``-1``.
 
 Use case 1 : Connect point-like cells 
 =====================================
