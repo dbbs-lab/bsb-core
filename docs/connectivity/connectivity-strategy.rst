@@ -173,7 +173,7 @@ Such cells are contained for sure in the chunks which are less than 50 micromete
             selected_chunks.append(Chunk([c[0], c[1], c[2]], chunk.dimensions))
       return selected_chunks
     
-Finally we are ready to write the connect method. 
+Now we're ready to write the ``connect`` method:
 
 .. code-block:: python
 
