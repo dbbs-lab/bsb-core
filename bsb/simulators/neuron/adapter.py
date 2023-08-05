@@ -68,18 +68,19 @@ class NeuronAdapter(SimulatorAdapter):
         self.simdata = dict()
         self.next_gid = 0
 
+    @property
+    def engine(self):
+        from patch import p as engine
+
+        return engine
+
     def prepare(self, simulation, comm=None):
-        if self.engine is None:
-            from patch import p as engine
-
-            self.engine = engine
-
         self.simdata[simulation] = SimulationData()
         try:
             report("Preparing simulation", level=2)
-            engine.dt = simulation.resolution
-            engine.celsius = simulation.temperature
-            engine.tstop = simulation.duration
+            self.engine.dt = simulation.resolution
+            self.engine.celsius = simulation.temperature
+            self.engine.tstop = simulation.duration
             simdata = self.simdata[simulation]
             report("Load balancing", level=2)
             self.load_balance(simulation)
