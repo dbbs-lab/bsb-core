@@ -248,7 +248,7 @@ class TestConfigList(unittest.TestCase):
     def test_list_attr(self):
         @config.node
         class Child:
-            index = config.attr(type=int, key=True)
+            index = config.attr(key=True)
             name = config.attr(type=str, required=True)
 
         @config.node
