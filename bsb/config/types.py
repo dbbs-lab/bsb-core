@@ -432,7 +432,7 @@ def key():
     """
 
     def type_handler(value):
-        if not isinstance(value, builtins.int) or isinstance(value, builtins.str):
+        if not (isinstance(value, builtins.int) or isinstance(value, builtins.str)):
             raise TypeError(f"{type(value)} is not an int or str")
         else:
             return value
