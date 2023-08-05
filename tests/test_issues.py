@@ -26,7 +26,7 @@ class Example:
 
 @config.node
 class Extension:
-    ex_mut = config.attr(required=True)
+    ex_mut = config.attr(type=int, required=True)
     ref = config.ref(BothReference(), required=True)
 
 

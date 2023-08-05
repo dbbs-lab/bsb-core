@@ -321,13 +321,13 @@ class DistributorsNode:
             mr = self.scaffold.morphologies
             uid = uuid.uuid4()
             loaders = []
-            all_meta = mr.get_all_meta()
+            all_meta = {}
             for gen_morpho, i in generated.items():
                 name = f"{prefix}-{uid}-{i}"
                 saved = mr.save(name, gen_morpho, update_meta=False)
                 all_meta[name] = saved.get_meta()
                 loaders.append(saved)
-            mr.set_all_meta(all_meta)
+            mr.update_all_meta(all_meta)
             morphologies = MorphologySet(loaders, indices)
         if not isinstance(morphologies, MorphologySet) and morphologies is not None:
             morphologies = MorphologySet(loaders, morphologies)

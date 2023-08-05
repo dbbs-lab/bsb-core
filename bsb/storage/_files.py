@@ -474,7 +474,7 @@ class MorphologyDependencyNode(FilePipelineMixin, FileDependencyNode):
     Name associated to the morphology. If not provided, the program will use the name of the file 
     in which the morphology is stored. 
     """
-    tags = config.attr(type=types.dict(type=types.or_(str, types.list(str))))
+    tags = config.attr(type=types.dict(type=types.or_(types.str(), types.list(str))))
     """
     Dictionary mapping SWC tags to sets of morphology labels.
     """
