@@ -1230,6 +1230,4 @@ class StoredMorphology:
 
 class GeneratedMorphology(StoredMorphology):
     def __init__(self, name, generated, meta):
-        self.name = name
-        self._loader = lambda: generated
-        self._meta = meta
+        super().__init__(name, lambda: generated, meta)
