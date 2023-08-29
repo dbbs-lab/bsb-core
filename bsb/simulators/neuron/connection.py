@@ -22,6 +22,8 @@ class NeuronConnection(ConnectionModel):
 @config.node
 class SynapseSpec:
     synapse = config.attr(type=str, required=True)
+    weight = config.attr(type=float, default=0.004)
+    delay = config.attr(type=float, default=0.0)
     parameters = config.list(type=Parameter)
 
     def __init__(self, synapse_name=None, /, **kwargs):
@@ -58,7 +60,14 @@ class TransceiverModel(NeuronConnection, classmap_entry="transceiver"):
             gid = simdata.transmap[tuple(pre_loc)]
             cell = simdata.cells[post_loc[0]]
             for spec in self.synapses:
-                cell.insert_receiver(gid, spec.synapse, post_loc[1:], source=self.source)
+                cell.insert_receiver(
+                    gid,
+                    spec.synapse,
+                    post_loc[1:],
+                    source=self.source,
+                    weight=self.weight,
+                    delay=self.delay,
+                )
 
     def __lt__(self, other):
         try:
