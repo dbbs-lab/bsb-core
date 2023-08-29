@@ -35,6 +35,10 @@ class NeuronCell(CellModel):
         ]
 
     def _create(self, id, pos, morpho, rot, additional):
+        if morpho is None:
+            raise RuntimeError(
+                f"Cell {id} of {self.name} has no morphology, can't use {self.__class__.__name__} to construct it."
+            )
         instance = self.create(id, pos, morpho, rot, additional)
         instance._bsb_ref_id = id
         instance._bsb_ref_pos = pos
