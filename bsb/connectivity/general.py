@@ -6,7 +6,7 @@ from .strategy import ConnectionStrategy
 from ..exceptions import SourceQualityError
 from .. import config, _util as _gutil
 from ..config import types
-from ..mixins import InvertedRoI
+from ..mixins import InvertedRoI, NoRoI
 from ..reporting import warn
 
 
@@ -27,17 +27,6 @@ class AllToAll(ConnectionStrategy):
     """
     All to all connectivity between two neural populations
     """
-
-    def get_region_of_interest(self, chunk):
-        # All to all needs all pre chunks per post chunk.
-        # Fingers crossed for out of memory errors.
-        return self._get_all_post_chunks()
-
-    @functools.cache
-    def _get_all_post_chunks(self):
-        all_ps = (ct.get_placement_set() for ct in self.postsynaptic.cell_types)
-        chunks = set(_gutil.ichain(ps.get_all_chunks() for ps in all_ps))
-        return list(chunks)
 
     def connect(self, pre, post):
         for from_ps in pre.placement.values():
@@ -60,15 +49,6 @@ class FixedIndegree(InvertedRoI, ConnectionStrategy):
     """
 
     indegree = config.attr(type=int, required=True)
-
-    def get_region_of_interest(self, chunk):
-        from_chunks = set(
-            itertools.chain.from_iterable(
-                ct.get_placement_set().get_all_chunks()
-                for ct in self.presynaptic.cell_types
-            )
-        )
-        return from_chunks
 
     def connect(self, pre, post):
         in_ = self.indegree
