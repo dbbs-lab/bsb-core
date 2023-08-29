@@ -65,8 +65,8 @@ class TransceiverModel(NeuronConnection, classmap_entry="transceiver"):
                     spec.synapse,
                     post_loc[1:],
                     source=self.source,
-                    weight=self.weight,
-                    delay=self.delay,
+                    weight=spec.weight,
+                    delay=spec.delay,
                 )
 
     def __lt__(self, other):
