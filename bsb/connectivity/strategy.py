@@ -155,3 +155,13 @@ class ConnectionStrategy(abc.ABC, SortableByAfter):
 
     def get_cell_types(self):
         return set(self.presynaptic.cell_types) | set(self.postsynaptic.cell_types)
+
+    def get_all_pre_chunks(self):
+        all_ps = (ct.get_placement_set() for ct in self.presynaptic.cell_types)
+        chunks = set(ichain(ps.get_all_chunks() for ps in all_ps))
+        return list(chunks)
+
+    def get_all_post_chunks(self):
+        all_ps = (ct.get_placement_set() for ct in self.postsynaptic.cell_types)
+        chunks = set(ichain(ps.get_all_chunks() for ps in all_ps))
+        return list(chunks)
