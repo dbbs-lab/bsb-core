@@ -1,6 +1,6 @@
-#############################
-List of connection strategies
-#############################
+##################
+List of strategies
+##################
 
 :class:`VoxelIntersection <.connectivity.detailed.voxel_intersection.VoxelIntersection>`
 ========================================================================================

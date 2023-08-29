@@ -1,108 +1,33 @@
-#####################
-Connectivity strategy
-#####################
+===================
+Writing a component
+===================
 
-:light-bulb: Make sure to read the :ref:`Writing Components <components>` section first.
+.. bsb_component_intro::
 
-:class:`~bsb.connectivity.strategy.ConnectionStrategy` is a component that defines how to
-connect one or more presynaptic cell types to one or more postsynaptic cell types.
-Connection strategies are :ref:`configured <files>` in the :guilabel:`connectivity` block.
-For example suppose we are writing a cerebellum module and that we are defining a
-connection strategy ``ConnectomeGolgiGranule`` to connect Golgi cells to granule cells in
-the Python module ``cerebellum/connectome/golgi_granule.py``. Suppose that up to 40
-granule cells can be connected to a Golgi cell and that a connection can be formed only if
-the somata of two cells are less than 100 micrometers away. In the case in which more than
-40 cells meet the conditions, we take the 40 closer ones.
+You can create custom connectivity patterns by creating a Python file in your project
+root (e.g. ``my_module.py``) with inside a class inheriting from
+:class:`~.connectivity.strategy.ConnectionStrategy`.
 
-.. code-block:: json
-  
-  "golgi_to_granule": {
-        "strategy": "cerebellum.connectome.golgi_granule.ConnectomeGolgiGranule",
-        "radius": 100,
-        "convergence": 40,
-        "presynaptic": {
-          "cell_types": ["golgi_cell"]
-        },
-        "postsynaptic": {
-          "cell_types": ["granule_cell"]
-        }
-      }
+First we'll discuss the parts of the interface to implement, followed by an example, some
+notes, and use cases.
 
-The prototype of a custom connection strategy is the following:
-
-.. code-block:: python
-
-  # We import the base class ConnectionStrategy
-  from bsb.strategy import ConnectionStrategy
-  # We import config to read the variables from the configuration file
-  from bsb import config
-  # We import numpy because we shall use it to perform the math operations 
-  # need to select the cells to connect.
-  import numpy as np
-
-  class ConnectomeGolgiGranule(ConnectionStrategy):
-    
-    def get_region_of_interest(self, chunk):
-      # For a given chunk this method returns a list of chunks in which to look for postsynaptic cells. 
-      pass
-
-    def connect(self, pre, post):
-      # Here goes the code that selects the cells to connect
-      # The information about the connections to be formed are stored
-      # in two matrices to be passed to the connect connect_cells method,
-      # to be called at the end. 
-      pass
-
-.. note::
-  Due to performance and memory reasons, the connections are not formed processing the whole simulation volume at once, since it would require a lot of memory, time and computational power. Instead, the volume is divided in chunks, which may be processed in parallel to further speed up the creation of the connectome, and the connections are formed on a chunk by chunk basis. This step is handles by the :meth:`~.bsb.connectivity.strategy.ConnectionStrategy.queue` method of the base class :class:`~bsb.connectivity.strategy.ConnectionStrategy` : The user writing a custom connection strategy does not need to care about the subdivision in chucks, since it is handled automatically by the framework. 
-
-.. note::
-  By default a single presyptic-chunk is associated with many post-synaptic chunks as dictated by ``get_region_of_interest``. Therefore, the argument ``post`` contains the data about the postsynaptic cells in the chunks inside the region of interest (ROI), while ``pre`` contains data about the presynaptic cells of a single chunk. 
-  However, when writing a custom connection strategy it may be useful to do the opposite, namely to associate a single post-synaptic chunk to many pre-synaptic chunks, an example being the connection between mossy fibers and glomeruli, for which we need to make sure that each glomerulus is associated to one and only one mossy fiber. 
-  This can be done by inheriting from :class:`bsb.mixins.InvertedRoI`. In this case, the ``pre`` argument will contain a RoI consisting of multiple presynaptic chunks, and the ``post`` argument will contain a RoI of just 1 postsynaptic chunk.
-
-  .. code-block:: python
-  
-    from bsb.mixins import InvertedRoI
-    
-    class MyConnStrategy(InvertedRoI, ConnectionStrategy):
-      pass
-
-:meth:`~bsb.connectivity.strategy.ConnectionStrategy.get_region_of_interest`
-----------------------------------------------------------------------------
-
-The goal of this method is to find all the chunks in the simulation volume containing all the possibile the postsynaptic cells of the presynaptic cells in the chunk given as argument.
+Interface
+---------
 
 :meth:`~bsb.connectivity.strategy.ConnectionStrategy.connect`
--------------------------------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Arguments: ``pre`` and ``post`` are :class:`HemitypeCollections <bsb.connectivity.strategy.HemitypeCollection>`. ``pre`` contains the presynaptic cell collection and ``post`` contains the postsynaptic cell collection in the region of interest.
+* ``pre_set``/``post_set``: The pre/post-synaptic placement sets you used to perform the calculations.
+* ``src_locs``/``dest_locs``:
 
-.. note::
-  Inside of the ``connect`` method, try to exclusively perform the mathematical operations required to determine the connectivity matrix.
+   * A matrix with 3 columns with on each row the cell id, branch id, and
+      point id.
+   * Each row of the ``src_locs`` matrix will be connected to the same row in the
+      ``dest_locs`` matrix
 
-The connection between two types of cells is made calling ``self.connect_cells``.
-``connect_cells`` needs four arguments:
-
-* ``pre_set`` : A numpy array containing the positions of the presynaptic cells.
-* ``post_set`` : A numpy array containing the positions of the postsynaptic cells.
-* ``src_locs`` : A nx3 matrix, with n the number of connections, containing information
-   about where the connection starts. Each row of the matrix contains three integers
-   (a,b,c), with a the index of the presynaptic cell, b the index of the branch on which
-   a connection is made and c the index (relative to a branch) of the point at which the
-   connection starts.
-
-* ``dest_locs`` : A nx3 matrix,with n the number of connections, containing information
-   about where the connection ends. Each row of the matrix contains three integers
-   (a,b,c), with a the index of the postsynaptic cell, b the index of the branch on which
-   a connection is made and c the index (relative to a branch) of the point at which the
-   connection ends. The k-th row of src_locs describes the beginning of the k-th
-   connection on the presynaptic cell, while the k-th row of dest_locs stores the info
-   about the end of the k-th connection on the postsynaptic cell.
-
- * ``tag`` : a tag describing the connection (optional, defaults to the strategy name, or
-   `f"{name}_{pre}_to_{post}"` when multiple cell types are combined).
-
+* ``tag`` : a tag describing the connection (optional, defaults to the strategy name, or
+   `f"{name}_{pre}_to_{post}"` when multiple cell types are combined). Use this when you
+   wish to create multiple distinct sets between the same cell types.
 
 For example, if ``src_locs`` and ``dest_locs`` are the following matrices:
 
@@ -119,7 +44,7 @@ For example, if ``src_locs`` and ``dest_locs`` are the following matrices:
    * - 10
      - 0
      - 2
-   
+
 
 .. list-table:: dest_locs
    :widths: 75 75 75
@@ -155,10 +80,173 @@ Furthermore, the connection begins at the point with id ``6`` on the branch whos
   and ``dest_locs`` the indices of the branches and of the point on the branch can be set
   to ``-1``.
 
-Use case 1 : Connect point-like cells 
-=====================================
+:meth:`~bsb.connectivity.strategy.ConnectionStrategy.get_region_of_interest`
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This is an optional part of the interface. Using a region of interest (RoI) can speed
+up algorithms when it is possible to know for a given presynaptic chunk, which
+postsynaptic chunks might contain useful cell candidates.
+
+Chunks are identified by a set of coordinates on a regular grid. E.g., for
+a network with chunk size (100, 100, 100), the chunk (3, -2, 1) is the rhomboid region
+between its least dominant corner at (300, -200, 100), and its most dominant corner at
+(200, -100, 0).
+
+``get_region_of_interest(chunk)`` receives the presynaptic chunk and should return a list
+of postsynaptic chunks.
+
+Example
+-------
+
+The example connects cells that are near each other, between a :guilabel:`min` and :guilabel:`max` distance:
+
+.. code-block:: python
+
+  from bsb.connectivity import ConnectionStrategy
+  from bsb.exceptions import ConfigurationError
+  from bsb import config
+  import numpy as np
+  import scipy.spatial.distance as dist
+
+  @config.node
+  class ConnectBetween(ConnectionStrategy):
+    # Define the class' configuration attributes
+    min = config.attr(type=float, default=0)
+    max = config.attr(type=float, required=True)
+
+    def connect(self, pre, post):
+      # The `connect` function is responsible for deciding which cells get connected.
+      # Use each hemitype's `.placement` to get a dictionary of `PlacementSet`s to connect
+
+      # Cross-combine each presynaptic cell type ...
+      for from_type, from_set in pre.placement.items():
+        from_pos = from_set.load_positions()
+        # ... with each postsynaptic cell type
+        for to_type, to_set in post.placement.items():
+          to_pos = to_set.load_positions()
+          # Calculate the NxM pairwise distances between the cells
+          pairw_dist = dist.cdist(from_pos, to_pos)
+          # Find those that match the distance criteria
+          m_pre, m_post = np.nonzero((pairw_dist <= max) & (pairw_dist >= min))
+          # Construct the Kx3 connection matrices
+          pre_locs = np.full((len(m_pre), 3), -1)
+          post_locs = np.full((len(m_pre), 3), -1)
+          # The first columns are the cell ids, the other columns are padded with -1
+          # to ignore subcellular precision and form point neuron connections.
+          pre_locs[:, 0] = m_pre
+          post_locs[:, 0] = m_post
+          # Call `self.connect_cells` to store the connections you found
+          self.connect_cells(from_type, to_type, pre_locs, post_locs)
+
+    # Optional, you can leave this off to focus on `connect` first.
+    def get_region_of_interest(self, chunk):
+      # Find all postsynaptic chunks that are within the search radius away from us.
+      return [
+        c
+        for c in self.get_all_post_chunks()
+        if dist.euclidean(c.ldc, chunk.ldc) < self.max + chunk.dimensions
+      ]
+
+    # Optional, you can add extra checks and preparation of your component here
+    def __init__(self, **kwargs):
+      # Check if the configured max and min distance values make sense.
+      if self.max < self.min:
+        raise ConfigurationError("Max distance should be larger than min distance.")
+
+And an example configuration using this strategy:
+
+.. code-block:: json
+
+  {
+    "components": ["my_module.py"],
+    "connectivity": {
+      "type_A_to_type_B": {
+        "class": "my_module.ConnectBetween",
+        "min": 10,
+        "max": 15.5,
+        "presynaptic": {
+          "cell_types": ["type_A"]
+        },
+        "postsynaptic": {
+          "cell_types": ["type_B"]
+        }
+      }
+    }
+  }
+
+Notes
+~~~~~
+
+.. rubric:: Setting up the class
+
+We need to inherit from :class:`bsb.connectivity.ConnectionStrategy` to create a
+connection component and decorate our class with the ``config.node`` decorator to
+integrate it with the configuration system. For specifics on configuration, see
+:doc:`/config/nodes`.
+
+.. rubric:: Accessing configuration values during ``connect``
+
+Any ``config.attr`` or similar attributes that you define on the class will be populated
+with data from the network configuration, and will be available on ``self`` in the
+methods of the component.
+
+In this example :guilabel:`min` is an optional float that defaults to 0, and
+:guilabel:`max` is a required float.
+
+.. rubric:: Accessing placement data during ``connect``
+
+The ``connect`` function is handed the placement information as the ``pre`` and ``post``
+parameters. The ``.placement`` attribute contains a dictionary with as keys the
+:class:`.cell_types.CellType` and as value the
+:class:`PlacementSets <.storage.interfaces.PlacementSet>`.
+
+.. note::
+  The placement sets in the parameters are scoped to the data of the parallel job that is
+  being executed. If you want to remove this scope and access to the global data, you can
+  create a fresh placement set from the cell type with ``cell_type.get_placement_set()``.
+
+.. rubric:: Creating connections
+
+Connections are stored in a presynaptic and postsynaptic matrix. Each matrix contains 3
+columns: the cell id, branch id, and point id. If your cells have no morphologies, use -1
+as a filler for the branch and point ids.
+
+Call ``self.scaffold.connect_cells(from_type, to_type, from_locs, to_locs)``to connect
+the cells. If you are creating multiple different connections between the same pair of cell
+types, you can pass an optional ``tag`` keyword argument to give them a unique name and
+separate them.
+
+.. rubric:: Use regions of interest
+
+Using a region of interest (RoI) can speed up algorithms when it is possible to know,
+when given a presynaptic chunk, which postsynaptic chunks might contain useful cell
+candidates.
+
+Chunks are identified by a set of coordinates on a regular grid. E.g., for
+a network with chunk size (100, 100, 100), the chunk (3, -2, 1) is the rhomboid region
+between its least dominant corner at (300, -200, 100), and its most dominant corner at
+(200, -100, 0).
+
+Using the same example, for every presynaptic chunk, we know that we will only form
+connections with cells less than ``max`` distance away, so why check cells in chunks more
+than ``max`` distance away?
+
+If you implement ``get_region_of_interest(chunk)``, you can return the list of chunks that
+should be loaded for the parallel job that processes that ``chunk``:
+
+.. code-block:: python
+
+  def get_region_of_interest(self, chunk):
+    return [
+      c
+      for c in self.get_all_post_chunks()
+      if dist.euclidean(c.ldc, chunk.ldc) < self.max + chunk.dimensions
+    ]
+
+Connecting point-like cells
+---------------------------
 Suppose we want to connect Golgi cells and granule cells, without storing information about the exact positions of the synapses (we may want to consider cells as point-like objects, as in NEST).
-We want to write a class called ``ConnectomeGolgiGranule`` that connects a Golgi cell to a granule cell if their distance is less than 100 micrometers (see the configuration block above). 
+We want to write a class called ``ConnectomeGolgiGranule`` that connects a Golgi cell to a granule cell if their distance is less than 100 micrometers (see the configuration block above).
 
 First we define the class ``ConnectomeGolgiGlomerulus`` and we specify that we require to be configured with a :guilabel:`radius` and :guilabel:`divergence` attribute.
 
@@ -184,7 +272,7 @@ Such cells are contained for sure in the chunks which are less than 50 micromete
       # We define an empty list in which we shall add the chunks of interest
       selected_chunks = []
       # We look for chunks which are less than radius away from the current one
-      for c in chunks:    
+      for c in chunks:
         dist = np.sqrt(
           np.power((chunk[0] - c[0]) * chunk.dimensions[0], 2)
             + np.power((chunk[1]  - c[1]) * chunk.dimensions[1], 2)
@@ -194,7 +282,7 @@ Such cells are contained for sure in the chunks which are less than 50 micromete
         if (dist < self.radius):
             selected_chunks.append(Chunk([c[0], c[1], c[2]], chunk.dimensions))
       return selected_chunks
-    
+
 Now we're ready to write the ``connect`` method:
 
 .. code-block:: python
@@ -216,11 +304,11 @@ Now we're ready to write the ``connect`` method:
         n_glomeruli = len(glomeruli_pos)
         n_golgi = len(golgi_pos)
         n_conn = n_glomeruli * n_golgi
-        # For the sake of speed we define two arrays pre_locs and post_locs of length n_conn 
-        # (the maximum number of connections which can be made) to store the connections information, 
+        # For the sake of speed we define two arrays pre_locs and post_locs of length n_conn
+        # (the maximum number of connections which can be made) to store the connections information,
         # even if we will not use all the entries of arrays.
         # We keep track of how many entries we actually employ, namely how many connection
-        # we made, using the variable ptr. For example if we formed 4 connections the useful 
+        # we made, using the variable ptr. For example if we formed 4 connections the useful
         # data lie in the first 4 elements
         pre_locs = np.full((n_conn, 3), -1, dtype=int)
         post_locs = np.full((n_conn, 3), -1, dtype=int)
@@ -236,15 +324,15 @@ Now we're ready to write the ``connect`` method:
           # We select all the granule cells which are less than 100 micrometers away up to the divergence value.
           # For the sake of simplicity in this example we assume to find at least 40 candidates satisfying the condition.
           granule_close_enough = dist < self.radius
-          
+
           # We find the indices of the 40 closest granule cells
           to_connect_ids = np.argsort(granule_close_enough)[0:self.divergence]
 
           # Since we are interested in connecting point-like cells, we do not need to store
-          # info about the precise position on the dendrites or axons; 
+          # info about the precise position on the dendrites or axons;
           # It is enough to store which presynaptic cell is connected to
           # certain postsynaptic cells, namely the first entry of both `pre_set` and `post_set`.
-          
+
           # The index of the presynaptic cell in the `golgi_pos` array is `i`
           pre_set[ptr:ptr+self.divergence,0] = i
           # We store in post_set the indices of the postsynaptic cells we selected before.
@@ -255,14 +343,14 @@ Now we're ready to write the ``connect`` method:
         # calling the `connect_cells` method.
         self.connect_cells(pre_set, post_set, src_locs, dest_locs)
 
-Use case 2 : Connection between a detailed cell and a point-like cell. 
-======================================================================
+Connections between a detailed cell and a point-like cell
+---------------------------------------------------------
 
 If we have a detailed morphology of the pre- or postsynaptic cells we can specify where to form the connection. Suppose we want to connect Golgi cells to glomeruli specifying the position of the connection on the Golgi cell axon. In this example we form a connection on the closest point to a glomerulus.
 First, we need to specify the type of neurites that we want to consider on the morphologies when forming synapses. We can do this in the configuration file, using the :guilabel:`morphology_labels` attribute on the `connectivity.*.postsynaptic` (or `presynaptic`) node:
 
 .. code-block:: json
-  
+
   "golgi_to_granule": {
         "strategy": "cerebellum.connectome.golgi_granule.ConnectomeGolgiGranule",
         "radius": 100,
@@ -284,7 +372,7 @@ The :meth:`~bsb.connectivity.strategy.ConnectionStrategy.get_region_of_interest`
       for pre_ct, pre_ps in pre.placement.items():
           for post_ct, post_ps in post.placement.items():
               self._connect_type(pre_ct, pre_ps, post_ct, post_ps)
-  
+
       def _connect_type(self, pre_ct, pre_ps, post_ct, post_ps):
         # We store the positions of the pre and post synaptic cells.
         golgi_pos = pre_ps.load_positions()
@@ -298,14 +386,14 @@ The :meth:`~bsb.connectivity.strategy.ConnectionStrategy.get_region_of_interest`
         post_locs = np.full((max_conn , 3), -1, dtype=int)
         # `ptr` keeps track of how many connections we've made so far.
         ptr = 0
-      
+
         # Cache morphologies and generate the morphologies iterator.
         morpho_set = post_ps.load_morphologies()
         golgi_morphos = morpho_set.iter_morphologies(cache=True, hard_cache=True)
-        
+
         # Loop through all the Golgi cells
         for i, golgi, morpho in zip(itertools.count(), golgi_pos, golgi_morphos):
-            
+
             # We compute the distance between the current Golgi cell and all the glomeruli,
             # then select the good ones.
             dist = np.sqrt(
@@ -313,23 +401,23 @@ The :meth:`~bsb.connectivity.strategy.ConnectionStrategy.get_region_of_interest`
                 + np.power(golgi[1] - glomeruli_pos[:, 1], 2)
                 + np.power(golgi[2] - glomeruli_pos[:, 2], 2)
             )
-            
+
             to_connect_bool = dist < self.radius
             to_connect_idx = np.nonzero(to_connect_bool)[0]
             connected_gloms = len(to_connect_idx)
-            
-            # We assign the indices of the Golgi cell and the granule cells to connect 
+
+            # We assign the indices of the Golgi cell and the granule cells to connect
             pre_locs[ptr : (ptr + connected_gloms), 0] = to_connect_idx
             post_locs[ptr : (ptr + connected_gloms), 0] = i
-           
+
             # Get the branches corresponding to basal dendrites.
-            # `morpho` contains only the branches tagged as specified 
+            # `morpho` contains only the branches tagged as specified
             # in the configuration file.
             basal_dendrides_branches = morpho.get_branches()
-            
+
             # Get the starting branch id of the denridic branches
             first_dendride_id = morpho.branches.index(basal_dendrides_branches[0])
-            
+
             # Find terminal points on branches
             terminal_ids = np.full(len(basal_dendrides_branches), 0, dtype=int)
             for i,b in enumerate(basal_dendrides_branches):
@@ -349,8 +437,8 @@ The :meth:`~bsb.connectivity.strategy.ConnectionStrategy.get_region_of_interest`
             # Choose randomly the branch where the synapse is made
             # favouring the branches closer to the glomerulus.
             rolls = exp_dist.rvs(size=len(basal_dendrides_branches))
-            
-            # Compute the distance between terminal points of basal dendrites 
+
+            # Compute the distance between terminal points of basal dendrites
             # and the soma of the avaiable glomeruli
             for id_g,glom_p in enumerate(glomeruli_pos):
                 pts_dist = np.sqrt(np.power(tips_coordinates[:,0] + golgi[0] - glom_p[0], 2)

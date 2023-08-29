@@ -6,7 +6,7 @@ from .strategy import ConnectionStrategy
 from ..exceptions import SourceQualityError
 from .. import config, _util as _gutil
 from ..config import types
-from ..mixins import InvertedRoI, NoRoI
+from ..mixins import InvertedRoI
 from ..reporting import warn
 
 
