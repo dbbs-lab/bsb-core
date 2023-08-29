@@ -2,7 +2,7 @@ from .. import config
 from ..config import refs, types
 from ..profiling import node_meter
 from ..reporting import report, warn
-from .._util import SortableByAfter, obj_str_insert
+from .._util import SortableByAfter, obj_str_insert, ichain
 import abc
 from itertools import chain
 
@@ -40,7 +40,7 @@ class HemitypeCollection:
     def placement(self):
         return {
             ct: ct.get_placement_set(
-                self.roi,
+                chunks=self.roi,
                 labels=self.hemitype.labels,
                 morphology_labels=self.hemitype.morphology_labels,
             )
@@ -117,7 +117,6 @@ class ConnectionStrategy(abc.ABC, SortableByAfter):
         )
         cs.connect(pre_set, post_set, src_locs, dest_locs)
 
-    @abc.abstractmethod
     def get_region_of_interest(self, chunk):
         pass
 
@@ -141,7 +140,7 @@ class ConnectionStrategy(abc.ABC, SortableByAfter):
         rois = {
             chunk: roi
             for chunk in from_chunks
-            if (roi := self.get_region_of_interest(chunk))
+            if (roi := self.get_region_of_interest(chunk)) is None or len(roi)
         }
         if not rois:
             warn(
