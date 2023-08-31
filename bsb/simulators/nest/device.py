@@ -17,7 +17,9 @@ class NestRule:
 class NestDevice(DeviceModel):
     weight = config.attr(type=float, required=True)
     delay = config.attr(type=float, required=True)
-    targetting = config.attr(type=types.or_(Targetting, NestRule))
+    targetting = config.attr(
+        type=types.or_(Targetting, NestRule), default=dict, call_default=True
+    )
 
     def get_target_nodes(self, adapter, simulation, simdata):
         if isinstance(self.targetting, Targetting):
