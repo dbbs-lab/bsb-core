@@ -59,6 +59,39 @@ class TestCore(unittest.TestCase):
         self.assertEqual(1, len(pslist), "should have one PS per cell type")
         self.assertIsInstance(pslist[0], PlacementSet, "elements should be PS")
 
+    def test_diagrams(self):
+        netw = Scaffold()
+        netw.cell_types.add("cell1", {"spatial": {"radius": 1, "density": 1}})
+        netw.cell_types.add("cell2", {"spatial": {"radius": 1, "density": 1}})
+        netw.placement.add(
+            "p1",
+            {
+                "strategy": "bsb.placement.FixedPositions",
+                "positions": [[0, 0, 0], [1, 1, 1], [2, 2, 2]],
+                "cell_types": ["cell1", "cell2"],
+                "partitions": [],
+            },
+        )
+        netw.connectivity.add(
+            "a_to_b",
+            {
+                "strategy": "bsb.connectivity.AllToAll",
+                "presynaptic": {"cell_types": ["cell1"]},
+                "postsynaptic": {"cell_types": ["cell2"]},
+            },
+        )
+        cfg_diagram = netw.get_config_diagram()
+        self.assertIn('digraph "network"', cfg_diagram)
+        self.assertIn('cell1[label="cell1"]', cfg_diagram)
+        self.assertIn('cell2[label="cell2"]', cfg_diagram)
+        self.assertIn('cell1 -> cell2[label="a_to_b"]', cfg_diagram)
+        netw.compile()
+        storage_diagram = netw.get_storage_diagram()
+        self.assertIn('digraph "network"', storage_diagram)
+        self.assertIn('cell1[label="cell1 (3 cell1)"]', storage_diagram)
+        self.assertIn('cell2[label="cell2 (3 cell2)"]', storage_diagram)
+        self.assertIn('cell1 -> cell2[label="a_to_b (9)"]', storage_diagram)
+
 
 class TestProfiling(RandomStorageFixture, unittest.TestCase, engine_name="hdf5"):
     def setUp(self):

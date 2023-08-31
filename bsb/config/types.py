@@ -276,9 +276,9 @@ class method_shortcut(method, function_):
             return value
 
 
-def str(strip=False, lower=False, upper=False):
+def str(strip=False, lower=False, upper=False, safe=True):
     """
-    Type validator. Attempts to cast the value to an str, optionally with some sanitation.
+    Type validator. Attempts to cast the value to a str, optionally with some sanitation.
 
     :param strip: Trim whitespaces
     :type strip: bool
@@ -286,13 +286,16 @@ def str(strip=False, lower=False, upper=False):
     :type lower: bool
     :param upper: Convert value to uppercase
     :type upper: bool
+    :param safe: If False, checks that the type of value is string before cast.
+    :type safe: bool
     :returns: Type validator function
     :raises: TypeError when value can't be cast.
     :rtype: Callable
     """
     handler_name = "str"
     # Compile a custom function to sanitize the string according to args
-    fstr = "def f(s): return str(s)"
+    safety_check = "\n if not isinstance(s, str):\n  raise TypeError()\n" if safe else ""
+    fstr = f"def f(s):{safety_check} return str(s)"
     for add, mod in zip((strip, lower, upper), ("strip", "lower", "upper")):
         if add:
             fstr += f".{mod}()"
@@ -416,6 +419,25 @@ def number(min=None, max=None):
             raise TypeError("Could not cast {} to a {}.".format(value, handler_name))
 
     type_handler.__name__ = handler_name
+    return type_handler
+
+
+def key():
+    """
+    Type handler for keys in configuration trees. Keys can be either int indices of a
+    config list, or string keys of a config dict.
+
+    :returns: Type validator function
+    :rtype: Callable
+    """
+
+    def type_handler(value):
+        if not (isinstance(value, builtins.int) or isinstance(value, builtins.str)):
+            raise TypeError(f"{type(value)} is not an int or str")
+        else:
+            return value
+
+    type_handler.__name__ = "configuration key"
     return type_handler
 
 

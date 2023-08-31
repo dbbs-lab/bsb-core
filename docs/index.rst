@@ -113,6 +113,12 @@ human-readable, multi-scale models!
 
 .. toctree::
   :maxdepth: 2
+  :caption: Connectivity
+
+  connectivity/connectivity-toc
+
+.. toctree::
+  :maxdepth: 2
   :caption: Simulation
 
   simulation/simulation-toc
