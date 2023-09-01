@@ -81,8 +81,6 @@
   "simulations": {
     "test_double_neuron_network_static": {
       "simulator": "nest",
-      "default_neuron_model": "iaf_cond_alpha",
-      "default_synapse_model": "static_synapse",
       "modules": ["cerebmodule"],
       "duration": 10,
       "cell_models": {

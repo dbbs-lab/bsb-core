@@ -166,11 +166,6 @@ NEST
 
 .. rubric:: Additional root attributes:
 
-* ``default_neuron_model``: default model used for all ``cell_models``, unless indicated
-  otherwise in the ``neuron_model`` attribute of a specific cell model.
-* ``default_synapse_model``: default model used for all ``connection_models`` (e.g.
-  ``static_synapse``), unless differently indicated in the ``synapse_model`` attribute of
-  a specific connection model.
 * ``modules``: list of NEST extension modules to be installed.
 
 .. code-block:: json
@@ -179,8 +174,6 @@ NEST
     "simulations": {
       "first_simulation": {
         "simulator": "nest",
-        "default_neuron_model": "iaf_cond_alpha",
-        "default_synapse_model": "static_synapse",
         "duration": 1000,
         "modules": ["cerebmodule"],
 
