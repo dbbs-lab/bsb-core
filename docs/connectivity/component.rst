@@ -118,12 +118,12 @@ The example connects cells that are near each other, between a :guilabel:`min` a
       # The `connect` function is responsible for deciding which cells get connected.
       # Use each hemitype's `.placement` to get a dictionary of `PlacementSet`s to connect
 
-      # Cross-combine each presynaptic cell type ...
-      for from_type, from_set in pre.placement.items():
-        from_pos = from_set.load_positions()
-        # ... with each postsynaptic cell type
-        for to_type, to_set in post.placement.items():
-          to_pos = to_set.load_positions()
+      # Cross-combine each presynaptic placement set ...
+      for presyn_data in pre.placement:
+        from_pos = presyn_data.load_positions()
+        # ... with each postsynaptic placement set
+        for postsyn_data in post.placement:
+          to_pos = postsyn_data.load_positions()
           # Calculate the NxM pairwise distances between the cells
           pairw_dist = dist.cdist(from_pos, to_pos)
           # Find those that match the distance criteria
@@ -136,7 +136,7 @@ The example connects cells that are near each other, between a :guilabel:`min` a
           pre_locs[:, 0] = m_pre
           post_locs[:, 0] = m_post
           # Call `self.connect_cells` to store the connections you found
-          self.connect_cells(from_type, to_type, pre_locs, post_locs)
+          self.connect_cells(presyn_data, postsyn_data, pre_locs, post_locs)
 
     # Optional, you can leave this off to focus on `connect` first.
     def get_region_of_interest(self, chunk):
@@ -180,7 +180,7 @@ Notes
 .. rubric:: Setting up the class
 
 We need to inherit from :class:`~bsb.connectivity.strategy.ConnectionStrategy` to create a
-connection component and decorate our class with the ``config.node``decorator to
+connection component and decorate our class with the ``config.node`` decorator to
 integrate it with the configuration system. For specifics on configuration, see
 :doc:`/config/nodes`.
 
@@ -211,7 +211,7 @@ Connections are stored in a presynaptic and postsynaptic matrix. Each matrix con
 columns: the cell id, branch id, and point id. If your cells have no morphologies, use -1
 as a filler for the branch and point ids.
 
-Call ``self.scaffold.connect_cells(from_type, to_type, from_locs, to_locs)``to connect
+Call ``self.scaffold.connect_cells(from_type, to_type, from_locs, to_locs)`` to connect
 the cells. If you are creating multiple different connections between the same pair of cell
 types, you can pass an optional ``tag`` keyword argument to give them a unique name and
 separate them.
@@ -295,13 +295,13 @@ Now we're ready to write the ``connect`` method:
     def connect(self, pre, post):
       # This strategy connects every combination pair of the configured presynaptic to postsynaptic cell types.
       # We will tackle each pair's connectivity inside of our own `_connect_type` helper method.
-      for pre_ct, pre_ps in pre.placement.items():
-          for post_ct, post_ps in post.placement.items():
+      for pre_ps in pre.placement:
+          for post_ps in post.placement:
               # The hemitype collection's `placement` is a dictionary mapping each cell type to a placement set with all
               # cells being processed in this parallel job. So call our own `_connect_type` method with each pre-post combination
-              self._connect_type(pre_ct, pre_ps, post_ct, post_ps)
+              self._connect_type(pre_ps, post_ps)
 
-      def _connect_type(self, pre_ct, pre_ps, post_ct, post_ps):
+      def _connect_type(self, pre_ps, post_ps):
         # This is the inner function that calculates the connectivity matrix for a pre-post cell type pair
         # We start by loading the cell position matrices (Nx3)
         golgi_pos = pre_ps.load_positions()
@@ -381,11 +381,11 @@ analogous to the previous example, so we focus only on the
 .. code-block:: python
 
     def connect(self, pre, post):
-      for pre_ct, pre_ps in pre.placement.items():
-          for post_ct, post_ps in post.placement.items():
-              self._connect_type(pre_ct, pre_ps, post_ct, post_ps)
+      for pre_ps in pre.placement:
+          for post_ps in post.placement:
+              self._connect_type(pre_ps, post_ps)
 
-      def _connect_type(self, pre_ct, pre_ps, post_ct, post_ps):
+      def _connect_type(self, pre_ps, post_ps):
         # We store the positions of the pre and post synaptic cells.
         golgi_pos = pre_ps.load_positions()
         glomeruli_pos = post_ps.load_positions()
