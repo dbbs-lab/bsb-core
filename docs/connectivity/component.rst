@@ -179,8 +179,8 @@ Notes
 
 .. rubric:: Setting up the class
 
-We need to inherit from :class:`bsb.connectivity.ConnectionStrategy` to create a
-connection component and decorate our class with the ``config.node`` decorator to
+We need to inherit from :class:`~bsb.connectivity.strategy.ConnectionStrategy` to create a
+connection component and decorate our class with the ``config.node``decorator to
 integrate it with the configuration system. For specifics on configuration, see
 :doc:`/config/nodes`.
 
@@ -245,10 +245,14 @@ should be loaded for the parallel job that processes that ``chunk``:
 
 Connecting point-like cells
 ---------------------------
-Suppose we want to connect Golgi cells and granule cells, without storing information about the exact positions of the synapses (we may want to consider cells as point-like objects, as in NEST).
-We want to write a class called ``ConnectomeGolgiGranule`` that connects a Golgi cell to a granule cell if their distance is less than 100 micrometers (see the configuration block above).
+Suppose we want to connect Golgi cells and granule cells, without storing information
+about the exact positions of the synapses (we may want to consider cells as point-like
+objects, as in NEST). We want to write a class called ``ConnectomeGolgiGranule`` that
+connects a Golgi cell to a granule cell if their distance is less than 100 micrometers
+(see the configuration block above).
 
-First we define the class ``ConnectomeGolgiGlomerulus`` and we specify that we require to be configured with a :guilabel:`radius` and :guilabel:`divergence` attribute.
+First we define the class ``ConnectomeGolgiGlomerulus`` and we specify that we require
+to be configured with a :guilabel:`radius` and :guilabel:`divergence` attribute.
 
 .. code-block:: python
 
@@ -258,9 +262,10 @@ First we define the class ``ConnectomeGolgiGlomerulus`` and we specify that we r
       radius = config.attr(type=int, required=True)
       divergence = config.attr(type=int, required=True)
 
-Now we need to write the ``get_region_of_interest`` method.
-For a given chunk we want all the neighbouring chunks in which we can find the presynaptic cells at less than 50 micrometers.
-Such cells are contained for sure in the chunks which are less than 50 micrometers away from the current chunk.
+Now we need to write the ``get_region_of_interest`` method. For a given chunk we want
+all the neighbouring chunks in which we can find the presynaptic cells at less than 50
+micrometers. Such cells are contained for sure in the chunks which are less than 50
+micrometers away from the current chunk.
 
 .. code-block:: python
 
@@ -346,8 +351,13 @@ Now we're ready to write the ``connect`` method:
 Connections between a detailed cell and a point-like cell
 ---------------------------------------------------------
 
-If we have a detailed morphology of the pre- or postsynaptic cells we can specify where to form the connection. Suppose we want to connect Golgi cells to glomeruli specifying the position of the connection on the Golgi cell axon. In this example we form a connection on the closest point to a glomerulus.
-First, we need to specify the type of neurites that we want to consider on the morphologies when forming synapses. We can do this in the configuration file, using the :guilabel:`morphology_labels` attribute on the `connectivity.*.postsynaptic` (or `presynaptic`) node:
+If we have a detailed morphology of the pre- or postsynaptic cells we can specify where
+to form the connection. Suppose we want to connect Golgi cells to glomeruli specifying
+the position of the connection on the Golgi cell axon. In this example we form a
+connection on the closest point to a glomerulus. First, we need to specify the type of
+neurites that we want to consider on the morphologies when forming synapses. We can do
+this in the configuration file, using the:guilabel:`morphology_labels` attribute on the
+``connectivity.*.postsynaptic`` (or ``presynaptic``) node:
 
 .. code-block:: json
 
@@ -364,7 +374,9 @@ First, we need to specify the type of neurites that we want to consider on the m
         }
       }
 
-The :meth:`~bsb.connectivity.strategy.ConnectionStrategy.get_region_of_interest` is analogous to the previous example, so we focus only on the :meth:`~bsb.connectivity.strategy.ConnectionStrategy.connect` method.
+The :meth:`~bsb.connectivity.strategy.ConnectionStrategy.get_region_of_interest` is
+analogous to the previous example, so we focus only on the
+:meth:`~bsb.connectivity.strategy.ConnectionStrategy.connect` method.
 
 .. code-block:: python
 
