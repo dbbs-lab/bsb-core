@@ -11,8 +11,11 @@
     consumers and can be used independent of the underlying storage engine, which is the
     end goal of this module.
 """
+from typing import Type
 
 from inspect import isclass
+
+from .interfaces import ConnectivitySet, PlacementSet, FileStore, MorphologyRepository
 from ..exceptions import UnknownStorageEngineError
 from .. import plugins
 from ..services import MPI
@@ -137,6 +140,11 @@ class Storage:
     Factory class that produces all of the features and shims the functionality of the
     underlying engine.
     """
+
+    _PlacementSet: Type[PlacementSet]
+    _ConnectivitySet: Type[ConnectivitySet]
+    _MorphologyRepository: Type[MorphologyRepository]
+    _FileStore: Type[FileStore]
 
     def __init__(self, engine, root, comm=None, main=0, missing_ok=True):
         """
