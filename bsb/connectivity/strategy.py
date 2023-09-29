@@ -38,23 +38,14 @@ class HemitypeCollection:
 
     @property
     def placement(self):
-        return {
-            ct: ct.get_placement_set(
+        return [
+            ct.get_placement_set(
                 chunks=self.roi,
                 labels=self.hemitype.labels,
                 morphology_labels=self.hemitype.morphology_labels,
             )
             for ct in self.hemitype.cell_types
-        }
-
-    def __getattr__(self, attr):
-        if attr == "placement":
-            return type(self).placement.__get__(self)
-        else:
-            return self.placement[attr]
-
-    def __getitem__(self, item):
-        return self.placement[item]
+        ]
 
 
 @config.dynamic(attr_name="strategy", required=True)
