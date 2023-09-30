@@ -61,7 +61,7 @@ class TestPointCloudConnectivity(
 
     def test_cloud_to_cloud(self):
         voxel_size = 25
-        config_sphere = dict(type="sphere", radius=40.0, center=[0, 0, 0])
+        config_sphere = dict(type="sphere", radius=40.0, origin=[0, 0, 0])
         ball_shape = {
             "voxel_size": voxel_size,
             "shapes": [config_sphere],
@@ -122,7 +122,7 @@ class TestPointCloudConnectivity(
 
     def test_cloud_to_morpho(self):
         voxel_size = 25
-        config_sphere = dict(type="sphere", radius=40.0, center=[0, 0, 0])
+        config_sphere = dict(type="sphere", radius=40.0, origin=[0, 0, 0])
         ball_shape = {
             "voxel_size": voxel_size,
             "shapes": [config_sphere],
@@ -175,7 +175,7 @@ class TestPointCloudConnectivity(
 
     def test_morpho_to_cloud(self):
         voxel_size = 25
-        config_sphere = dict(type="sphere", radius=40.0, center=[0, 0, 0])
+        config_sphere = dict(type="sphere", radius=40.0, origin=[0, 0, 0])
         ball_shape = {
             "voxel_size": voxel_size,
             "shapes": [config_sphere],
