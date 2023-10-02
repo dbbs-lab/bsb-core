@@ -165,6 +165,18 @@ class TestMorphologies(NumpyTestCase, unittest.TestCase):
         self.assertTrue(branch.is_terminal)
         branch.attach_child(branch)
         self.assertFalse(branch.is_terminal)
+        with self.assertRaises(MorphologyError):
+            _ = Branch(
+                np.array(
+                    [
+                        [0, 1, 2],
+                        [0, 1, 2],
+                        [0, 1, 2],
+                    ]
+                ),
+                np.array([0, 1, 2]),
+                properties={"a": np.array([0, 1])},  # not one value per point
+            )
 
     def test_optimize(self):
         b1 = _branch(3)
@@ -341,6 +353,22 @@ class TestMorphologies(NumpyTestCase, unittest.TestCase):
         m = Morphology([root])
 
         self.assertEqual(m.adjacency_dictionary, target)
+
+    def test_delete_point(self):
+        points = np.arange(9).reshape(3, 3)
+        labels = set(["test1", "test2"])
+        old_branch = Branch(
+            points, np.array([0, 1, 2]), properties={"a": np.array([0, 1, 2])}
+        )
+        old_branch.label(labels, [0, 2])
+        branch = old_branch.copy()
+        child = branch.copy()
+        child.translate(np.array([0, 0, 1]))
+        branch.attach_child(child)
+        branch.delete_point(0)
+        self.assertClose(branch.points, points[1:])
+        self.assertClose(branch.radii, np.array([1, 2]))
+        self.assertClose([0, 1], branch.labels)
 
 
 class TestMorphologyLabels(NumpyTestCase, unittest.TestCase):
