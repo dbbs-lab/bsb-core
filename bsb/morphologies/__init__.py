@@ -1116,13 +1116,15 @@ class Branch:
         self._labels = labels
         if properties is None:
             properties = {}
-        self._properties = {}
-        for k, v in properties.items():
-            if len(v) != len(points):
-                raise MorphologyError(
-                    f"Morphology property {k} should have one value per point in the branch"
-                )
-            self._properties[k] = v if isinstance(v, np.ndarray) else np.array(v)
+        mismatched = [v for v in properties.values() if len(v) != len(points)]
+        if mismatched:
+            raise MorphologyError(
+                f"Morphology properties {', '.join(mismatched)} are not length {len(points)}"
+            )
+        self._properties = {
+            k: v if isinstance(v, np.ndarray) else np.array(v)
+            for k, v in properties.items()
+        }
         self._parent = None
         self._on_mutate = lambda: None
         if children is not None:
