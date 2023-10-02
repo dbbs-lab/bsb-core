@@ -1116,7 +1116,7 @@ class Branch:
         self._labels = labels
         if properties is None:
             properties = {}
-        mismatched = [v for v in properties.values() if len(v) != len(points)]
+        mismatched = [str(k) for k, v in properties.items() if len(v) != len(points)]
         if mismatched:
             raise MorphologyError(
                 f"Morphology properties {', '.join(mismatched)} are not length {len(points)}"
