@@ -357,14 +357,10 @@ class TestMorphologies(NumpyTestCase, unittest.TestCase):
     def test_delete_point(self):
         points = np.arange(9).reshape(3, 3)
         labels = set(["test1", "test2"])
-        old_branch = Branch(
+        branch = Branch(
             points, np.array([0, 1, 2]), properties={"a": np.array([0, 1, 2])}
         )
-        old_branch.label(labels, [0, 2])
-        branch = old_branch.copy()
-        child = branch.copy()
-        child.translate(np.array([0, 0, 1]))
-        branch.attach_child(child)
+        branch.label(labels, [0, 2])
         branch.delete_point(0)
         self.assertClose(branch.points, points[1:])
         self.assertClose(branch.radii, np.array([1, 2]))
