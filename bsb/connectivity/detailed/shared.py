@@ -63,10 +63,9 @@ class Intersectional:
 
     def candidate_intersection(self, target_coll, candidate_coll):
         target_cache = [
-            (ttype, tset, tset.load_boxes())
-            for ttype, tset in target_coll.placement.items()
+            (tset.cell_type, tset, tset.load_boxes()) for tset in target_coll.placement
         ]
-        for ctype, cset in candidate_coll.placement.items():
+        for cset in candidate_coll.placement:
             box_tree = cset.load_box_tree()
             for ttype, tset, tboxes in target_cache:
                 yield (tset, cset, self._affinity_filter(box_tree.query(tboxes)))

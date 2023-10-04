@@ -95,7 +95,7 @@ class InvertedRoI:
         rois = {
             chunk: roi
             for chunk in to_chunks
-            if (roi := self.get_region_of_interest(chunk))
+            if (roi := self.get_region_of_interest(chunk)) is None or len(roi)
         }
         if not rois:
             warn(
