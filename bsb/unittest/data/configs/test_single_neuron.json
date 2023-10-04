@@ -1,13 +1,13 @@
 {
-  "name": "DBBS Mouse cerebellum configuration v4.0",
+  "name": "Test single cell type",
   "storage": {
-    "engine": "hdf5",
-    "root": "single_neuron_test.hdf5"
+    "engine": "hdf5"
   },
   "network": {
-    "x": 150.0,
-    "y": 600.0,
-    "z": 150.0
+    "x": 100.0,
+    "y": 50.0,
+    "z": 100.0,
+    "chunk_size": [50, 50, 50]
   },
   "regions": {
     "test_region": {
@@ -17,7 +17,7 @@
   "partitions": {
     "test_layer": {
       "type": "layer",
-      "thickness": 600
+      "thickness": 50
     }
   },
   "cell_types": {
