@@ -19,7 +19,7 @@ class TestSingleTypeCompilation(
     """
 
     def setUp(self) -> None:
-        self.cfg = from_json(multi_neuron_path)
+        self.cfg = from_json(single_neuron_path)
         super().setUp()
         self.network.compile()
 
