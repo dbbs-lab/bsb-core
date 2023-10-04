@@ -1,3 +1,5 @@
+import typing
+
 from .. import config
 from ..config import refs, types
 from ..profiling import node_meter
@@ -6,12 +8,17 @@ from .._util import SortableByAfter, obj_str_insert, ichain
 import abc
 from itertools import chain
 
+if typing.TYPE_CHECKING:
+    from ..core import Scaffold
+
 
 @config.node
 class Hemitype:
     """
     Class used to represent one (pre- or postsynaptic) side of a connection rule.
     """
+
+    scaffold: "Scaffold"
 
     cell_types = config.reflist(refs.cell_type_ref, required=True)
     """List of cell types to use in connection."""
@@ -50,6 +57,7 @@ class HemitypeCollection:
 
 @config.dynamic(attr_name="strategy", required=True)
 class ConnectionStrategy(abc.ABC, SortableByAfter):
+    scaffold: "Scaffold"
     name = config.attr(key=True)
     """Name used to refer to the connectivity strategy"""
     presynaptic = config.attr(type=Hemitype, required=True)

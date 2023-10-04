@@ -1,12 +1,18 @@
+import typing
+
 from ..exceptions import IndicatorError, PlacementRelationError, PlacementError
 from .. import config
 from ..config import refs, types
 from ..morphologies.selector import MorphologySelector
 import numpy as np
 
+if typing.TYPE_CHECKING:
+    from ..core import Scaffold
+
 
 @config.node
 class PlacementIndications:
+    scaffold: "Scaffold"
     radius = config.attr(type=float)
     density = config.attr(type=float)
     planar_density = config.attr(type=float)
@@ -80,8 +86,6 @@ class PlacementIndicator:
         count_ratio = self.indication("count_ratio")
         if count is not None:
             estimate = self._estim_for_chunk(chunk, count)
-        if density_key is not None:
-            pass
         if density is not None:
             estimate = self._density_to_estim(density, chunk)
         if planar_density is not None:
@@ -160,10 +164,13 @@ class PlacementIndicator:
                 "No configuration indicators found for the number of"
                 + f"'{self._cell_type.name}' in '{self._strat.name}'"
             )
-        # 1.2 cells == 0.8 probability for 1, 0.2 probability for 2
-        return (
-            np.floor(estimate) + (np.random.rand(estimate.size) < estimate % 1)
-        ).astype(int)
+        if not np.allclose(estimate, estimate // 1):
+            # 1.2 cells == 0.8 probability for 1, 0.2 probability for 2
+            return (
+                np.floor(estimate) + (np.random.rand(estimate.size) < estimate % 1)
+            ).astype(int)
+        else:
+            return np.round(estimate).astype(int)
 
     def _density_to_estim(self, density, chunk=None):
         return sum(p.volume(chunk) * density for p in self._strat.partitions)
@@ -181,6 +188,6 @@ class PlacementIndicator:
         return count * chunk_volume / total_volume
 
     def _estim_for_voxels(self, voxels, key):
-        return voxels.get_data(key).ravel() * np.product(
+        return voxels.get_data(key).ravel().astype(float) * np.product(
             voxels.get_size_matrix(copy=False), axis=1
         )
