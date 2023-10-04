@@ -1,3 +1,5 @@
+import typing
+
 from . import attr, list, dict, root, node, types
 from ..cell_types import CellType
 from ._attrs import _boot_nodes
@@ -18,9 +20,14 @@ from ..topology import (
 import builtins
 import numpy as np
 
+if typing.TYPE_CHECKING:
+    from ..core import Scaffold
+
 
 @node
 class NetworkNode:
+    scaffold: "Scaffold"
+
     x = attr(type=float, required=True)
     y = attr(type=float, required=True)
     z = attr(type=float, required=True)
@@ -45,6 +52,8 @@ class Configuration:
     """
     The main Configuration object containing the full definition of a scaffold model.
     """
+
+    scaffold: "Scaffold"
 
     name = attr()
     components = list(type=CodeDependencyNode)

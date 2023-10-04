@@ -1,12 +1,18 @@
+import typing
+
 from ..exceptions import IndicatorError, PlacementRelationError, PlacementError
 from .. import config
 from ..config import refs, types
 from ..morphologies.selector import MorphologySelector
 import numpy as np
 
+if typing.TYPE_CHECKING:
+    from ..core import Scaffold
+
 
 @config.node
 class PlacementIndications:
+    scaffold: "Scaffold"
     radius = config.attr(type=float)
     density = config.attr(type=float)
     planar_density = config.attr(type=float)
