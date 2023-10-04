@@ -86,8 +86,6 @@ class PlacementIndicator:
         count_ratio = self.indication("count_ratio")
         if count is not None:
             estimate = self._estim_for_chunk(chunk, count)
-        if density_key is not None:
-            pass
         if density is not None:
             estimate = self._density_to_estim(density, chunk)
         if planar_density is not None:
@@ -190,6 +188,6 @@ class PlacementIndicator:
         return count * chunk_volume / total_volume
 
     def _estim_for_voxels(self, voxels, key):
-        return voxels.get_data(key).ravel() * np.product(
+        return voxels.get_data(key).ravel().astype(float) * np.product(
             voxels.get_size_matrix(copy=False), axis=1
         )
