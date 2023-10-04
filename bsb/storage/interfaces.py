@@ -1095,6 +1095,12 @@ class ConnectivityIterator:
         return ConnectivityIterator(self._cs, self._dir, lchunks, gchunks)
 
     def __iter__(self):
+        """
+        Iterate over the data chunk by chunk, offset as their global ids
+
+        :returns: presyn global cell IDs, postsyn global cell IDs (0 to N)
+        :rtype: Tuple[numpy.ndarray, numpy.ndarray]
+        """
         yield from (
             self._offset_block(*data)
             for data in self._cs.flat_iter_connections(
@@ -1103,6 +1109,14 @@ class ConnectivityIterator:
         )
 
     def chunk_iter(self):
+        """
+        Iterate over the data chunk by chunk, with the chunk-local cell IDs, and the local
+        and global chunks they stem from returned as well.
+
+        :returns: presyn chunk, presyn chunk-local cell IDs (0 to N), postsyn chunk,
+          postsyn chunk-local cell IDs (0 to N)
+        :rtype: Tuple[~bsb.storage.Chunk, numpy.ndarray, ~bsb.storage.Chunk, numpy.ndarray]
+        """
         yield from (
             (data[2], data[3][1], data[1], data[3][0])
             if dir == "inc"
@@ -1230,6 +1244,4 @@ class StoredMorphology:
 
 class GeneratedMorphology(StoredMorphology):
     def __init__(self, name, generated, meta):
-        self.name = name
-        self._loader = lambda: generated
-        self._meta = meta
+        super().__init__(name, lambda: generated, meta)
