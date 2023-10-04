@@ -10,6 +10,4 @@ Guides
   include_morphos
   networks
   components
-  connectivity
-  connection-strategies
   packaging
