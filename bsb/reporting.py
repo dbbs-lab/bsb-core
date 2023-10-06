@@ -1,3 +1,5 @@
+from os import PathLike
+
 from .services import MPI
 from . import exceptions as _exc
 import functools
@@ -59,6 +61,12 @@ def get_report_file():
     return _report_file
 
 
+def read_report_file(file: PathLike):
+    with open(file, "r") as f:
+        print(f)
+        return _decode(f.read())
+
+
 def report(*message, level=2, ongoing=False, token=None, nodes=None, all_nodes=False):
     """
     Send a message to the appropriate output channel.
@@ -106,6 +114,24 @@ def _encode(header, message):
     header = base64.b64encode(bytes(header, "UTF-8")).decode("UTF-8")
     message = base64.b64encode(bytes(message, "UTF-8")).decode("UTF-8")
     return _preamble + header + _preamble_bar + message + _preamble
+
+
+def _decode(payload: str):
+    pos = -1
+    plen = len(_preamble)
+    reading = False
+    log = []
+    while (npos := payload.find(_preamble, pos + 1)) != -1:
+        if reading:
+            header, message = payload[pos + plen : npos].split(_preamble_bar)
+            header = base64.b64decode(header).decode("UTF-8")
+            message = base64.b64decode(message).decode("UTF-8")
+            if header:
+                message = f"[header: {header}] {message}"
+            log.append(message)
+        reading = not reading
+        pos = npos
+    return "\n".join(log)
 
 
 def setup_reporting():
