@@ -163,7 +163,9 @@ class NestAdapter(SimulatorAdapter):
             except AttributeError:
                 # Only rank 0 should report progress bar
                 pass
-            cs = simulation.scaffold.get_connectivity_set(connection_model.name)
+            cs = simulation.scaffold.get_connectivity_set(
+                connection_model.tag or connection_model.name
+            )
             try:
                 pre_nodes = simdata.populations[simulation.get_model_of(cs.pre_type)]
             except KeyError:
