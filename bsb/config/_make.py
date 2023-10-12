@@ -343,6 +343,8 @@ def _bubble_up_warnings(log):
 
 def get_config_attributes(cls):
     attrs = {}
+    if not isinstance(cls, type):
+        cls = cls.__class__
     for p_cls in reversed(cls.__mro__):
         if hasattr(p_cls, "_config_attrs"):
             attrs.update(p_cls._config_attrs)
