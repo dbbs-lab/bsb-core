@@ -13,7 +13,7 @@ with open(_rootpath, "r") as f:
     else:
         raise Exception(f"No `__version__` found in '{_rootpath}'.")
 
-with open("README.md", "r") as fh:
+with open("README.md", "r", encoding="utf8") as fh:
     long_description = fh.read()
 
 requires = [
