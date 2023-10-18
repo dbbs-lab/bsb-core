@@ -1116,11 +1116,10 @@ class ConnectivityIterator:
 
     def chunk_iter(self):
         """
-        Iterate over the data chunk by chunk, with the chunk-local cell IDs, and the local
-        and global chunks they stem from returned as well.
+        Iterate over the connection data chunk by chunk.
 
-        :returns: presyn chunk, presyn chunk-local cell IDs (0 to N), postsyn chunk,
-          postsyn chunk-local cell IDs (0 to N)
+        :returns: The presynaptic chunk, presynaptic locations, postsynaptic chunk,
+          and postsynaptic locations.
         :rtype: Tuple[~bsb.storage.Chunk, numpy.ndarray, ~bsb.storage.Chunk, numpy.ndarray]
         """
         yield from (
