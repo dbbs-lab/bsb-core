@@ -6,7 +6,7 @@ from bsb.config import types
 from bsb.simulation.cell import CellModel
 import arbor
 
-from bsb.simulators.arbor.adapter import SingleReceiverCollection
+from .adapter import SingleReceiverCollection
 
 if typing.TYPE_CHECKING:
     from bsb.storage.interfaces import PlacementSet
