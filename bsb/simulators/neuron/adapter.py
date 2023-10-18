@@ -194,6 +194,7 @@ class NeuronAdapter(SimulatorAdapter):
             instances = cell_model.create_instances(len(ps), *data)
             simdata.populations[cell_model] = instances
             for id, instance in zip(ps.load_ids(), instances):
+                # print(MPI.get_rank(), id)
                 cid = offset + id
                 instance.id = cid
                 instance.cell_model = cell_model

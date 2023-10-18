@@ -56,3 +56,13 @@ class ArborizedModel(NeuronCell, classmap_entry="arborize"):
         self.model.use_defaults = True
         schematic = bsb_schematic(morpho, self.model)
         return neuron_build(schematic)
+
+
+class Shim:
+    pass
+
+
+@config.node
+class ShimModel(NeuronCell, classmap_entry="shim"):
+    def create(self, id, pos, morpho, rot, additional):
+        return Shim()

@@ -3,7 +3,6 @@ from bsb import config
 from bsb.simulation.targetting import LocationTargetting
 from ..device import NeuronDevice
 import warnings
-from neuron import h
 
 
 @config.node
@@ -16,14 +15,11 @@ class CurrentClamp(NeuronDevice, classmap_entry="iclamp"):
     def implement(self, result, cells, connections):
         for target in self.targetting.get_targets(cells, connections):
             clamped = False
-            # for section in target.sections:
-            #     print(section.psection())
             for location in self.locations.get_locations(target):
                 if clamped:
                     warnings.warn(f"Multiple current clamps placed on {target}")
-                else:
-                    self._add_clamp(result, location)
-                    clamped = True
+                self._add_clamp(result, location)
+                clamped = True
 
     def _add_clamp(self, results, location):
         sx = location.arc(0.5)

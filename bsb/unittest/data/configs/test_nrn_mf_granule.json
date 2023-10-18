@@ -40,7 +40,6 @@
       }
     },
     "mossy_fibers": {
-      "relay": true,
       "entity": true,
       "placement": {
         "class": "bsb.placement.Entities",
@@ -50,7 +49,6 @@
       }
     },
     "glomerulus": {
-      "relay": true,
       "placement": {
         "class": "bsb.placement.FixedPositions",
         "layer": "test_layer",
