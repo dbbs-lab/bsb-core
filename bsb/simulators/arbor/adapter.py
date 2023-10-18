@@ -215,21 +215,18 @@ class ArborAdapter(SimulatorAdapter):
     def prepare(self, simulation: "ArborSimulation", comm=None):
         simdata = self._create_simdata(simulation)
         try:
-            try:
-                if hasattr(MPI, "_mocked"):
-                    mpi = None
-                else:
-                    mpi = MPI
-                context = arbor.context(
-                    arbor.proc_allocation(simulation.threads), comm=mpi
-                )
-            except TypeError:
-                if MPI.get_size() > 1:
-                    s = MPI.get_size()
+            context = arbor.context(arbor.proc_allocation(threads=simulation.threads))
+            if MPI.get_size() > 1:
+                if not arbor.config()["mpi4py"]:
                     warn(
-                        f"Arbor does not seem to be built with MPI support, running duplicate simulations on {s} nodes."
+                        f"Arbor does not seem to be built with MPI support, running"
+                        "duplicate simulations on {MPI.get_size()} nodes."
                     )
-                context = arbor.context(arbor.proc_allocation(simulation.threads))
+                else:
+                    mpi = MPI.get_communicator()
+                    context = arbor.context(
+                        arbor.proc_allocation(threads=simulation.threads), mpi=mpi
+                    )
             if simulation.profiling:
                 if arbor.config()["profiling"]:
                     report("enabling profiler", level=2)
