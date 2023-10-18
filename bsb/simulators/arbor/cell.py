@@ -3,6 +3,7 @@ import typing
 
 from bsb import config
 from bsb.config import types
+from bsb.exceptions import ConfigurationError
 from bsb.simulation.cell import CellModel
 import arbor
 
@@ -69,8 +70,14 @@ class LIFCell(ArborCell, classmap_entry="lif"):
 
     def get_description(self, gid):
         cell = arbor.lif_cell(f"-1_-1", f"-1_-1_0")
-        for k, v in self.constants.items():
-            setattr(cell, k, v)
+        try:
+            for k, v in self.constants.items():
+                setattr(cell, k, v)
+        except AttributeError:
+            node_name = type(self).constants.get_node_name(self)
+            raise ConfigurationError(
+                f"'{k}' is not a valid LIF parameter in '{node_name}'."
+            ) from None
         return cell
 
     def make_receiver_collection(self):
