@@ -11,6 +11,7 @@ from ..config import types as cfgtypes
 import typing
 
 if typing.TYPE_CHECKING:
+    from ..core import Scaffold
     from ..connectivity import ConnectionStrategy
     from ..cell_types import CellType
     from ..storage.interfaces import ConnectivitySet
@@ -25,6 +26,7 @@ class ProgressEvent:
 
 @config.pluggable(key="simulator", plugin_name="simulation backend")
 class Simulation:
+    scaffold: "Scaffold"
     name = config.attr(key=True)
     duration = config.attr(type=float, required=True)
     cell_models = config.slot(type=CellModel, required=True)
