@@ -206,8 +206,10 @@ class Entities(PlacementStrategy):
     def place(self, chunk, indicators):
         for indicator in indicators.values():
             cell_type = indicator.cell_type
-            # Pass the voxelset if it exists
-            voxels = getattr(p, "voxelset", None)
             # Guess total number, not chunk number, as entities bypass chunking.
-            n = sum(np.sum(indicator.guess(voxels=voxels)) for p in self.partitions)
+            n = sum(
+                # Pass the voxelset if it exists
+                np.sum(indicator.guess(voxels=getattr(p, "voxelset", None)))
+                for p in self.partitions
+            )
             self.scaffold.create_entities(cell_type, n)
