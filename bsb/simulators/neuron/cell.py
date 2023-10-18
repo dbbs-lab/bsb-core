@@ -30,12 +30,19 @@ class NeuronCell(CellModel):
         )
         additer = dictzip()
         return [
-            self.create(i, next(pos), next(morpho), next(rot), next(additer))
+            self._create(i, next(pos), next(morpho), next(rot), next(additer))
             for i in range(count)
         ]
 
-    def create(self, id, pos, morpho, rot, additional):
-        raise NotImplementedError("Cell models should implement the `create` method.")
+    def _create(self, id, pos, morpho, rot, additional):
+        if morpho is None:
+            raise RuntimeError(
+                f"Cell {id} of {self.name} has no morphology, can't use {self.__class__.__name__} to construct it."
+            )
+        instance = self.create(id, pos, morpho, rot, additional)
+        instance._bsb_ref_id = id
+        instance._bsb_ref_pos = pos
+        return instance
 
 
 @config.node

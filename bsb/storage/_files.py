@@ -469,7 +469,7 @@ class MorphologyDependencyNode(FilePipelineMixin, FileDependencyNode):
     """
 
     pipeline = config.list(type=MorphologyOperation)
-    name = config.attr(type=str, default=None, required=False)
+    name = config.attr()
     """
     Name associated to the morphology. If not provided, the program will use the name of the file 
     in which the morphology is stored. 

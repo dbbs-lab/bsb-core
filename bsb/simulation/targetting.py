@@ -207,7 +207,7 @@ class SphericalTargetting(
     @FractionFilter.filter
     def get_targets(self, adapter, simulation, simdata):
         """
-        Target all or certain cells within a cylinder of specified radius.
+        Target all or certain cells within a sphere of specified radius.
         """
         return {
             model: simdata.populations[model][
@@ -238,3 +238,16 @@ class LocationTargetting:
 class SomaTargetting(LocationTargetting, classmap_entry="soma"):
     def get_locations(self, cell):
         return [cell.locations[(0, 0)]]
+
+
+@config.node
+class LabelTargetting(LocationTargetting, classmap_entry="label"):
+    labels = config.list(required=True)
+
+    def get_locations(self, cell):
+        locs = [
+            loc
+            for loc in cell.locations.values()
+            if all(l in loc.section.labels for l in self.labels)
+        ]
+        return locs

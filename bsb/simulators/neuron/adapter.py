@@ -62,28 +62,29 @@ class NeuronAdapter(SimulatorAdapter):
 
     def __init__(self):
         super().__init__()
-        self.engine = None
+        self.network = None
+        self.result = None
         self.simdata = dict()
         self.next_gid = 0
 
+    @property
+    def engine(self):
+        from patch import p as engine
+
+        return engine
+
     def prepare(self, simulation, comm=None):
-        if self.engine is None:
-            from patch import p as engine
-
-            self.engine = engine
-
         self.simdata[simulation] = SimulationData()
         try:
             report("Preparing simulation", level=2)
-            engine.dt = simulation.resolution
-            engine.celsius = simulation.temperature
-            engine.tstop = simulation.duration
+            self.engine.dt = simulation.resolution
+            self.engine.celsius = simulation.temperature
+            self.engine.tstop = simulation.duration
             simdata = self.simdata[simulation]
-
             report("Load balancing", level=2)
             self.load_balance(simulation)
             simdata.result = NeuronResult(simulation)
-            report("Load balancing", level=2)
+            report("Creating neurons", level=2)
             self.create_neurons(simulation)
             report("Creating transmitters", level=2)
             self.create_connections(simulation)
@@ -136,8 +137,9 @@ class NeuronAdapter(SimulatorAdapter):
             ps = cell_model.get_placement_set()
             simdata.cid_offsets[cell_model.cell_type] = offset
             with ps.chunk_context(simdata.chunks):
-                self._create_population(simdata, cell_model, ps, offset)
-            offset += len(ps)
+                if (len(ps)) != 0:
+                    self._create_population(simdata, cell_model, ps, offset)
+                    offset += len(ps)
 
     def create_connections(self, simulation):
         simdata = self.simdata[simulation]
@@ -160,10 +162,10 @@ class NeuronAdapter(SimulatorAdapter):
         chunk_stats = simulation.scaffold.storage.get_chunk_stats()
         max_trans = sum(stats["connections"]["out"] for stats in chunk_stats.values())
         report(
-            f"Node {MPI.get_rank()} allocated GIDs {self.next_gid} to {max_trans}",
+            f"Allocated GIDs {first} to {first + max_trans}",
             level=3,
-            all_nodes=True,
         )
+        self.next_gid += max_trans
         simdata.alloc = (first, self.next_gid)
         simdata.transmap = self._map_transmitters(simulation, simdata)
 
@@ -187,11 +189,12 @@ class NeuronAdapter(SimulatorAdapter):
                 data.append(getattr(ps, f"load_{var}")())
             except DatasetNotFoundError:
                 data.append(itertools.repeat(None))
+
         with fill_parameter_data(cell_model.parameters, data):
             instances = cell_model.create_instances(len(ps), *data)
             simdata.populations[cell_model] = instances
             for id, instance in zip(ps.load_ids(), instances):
                 cid = offset + id
                 instance.id = cid
-                instance.model = cell_model
+                instance.cell_model = cell_model
                 simdata.cells[cid] = instance

@@ -60,6 +60,7 @@ jobs:
         pip install -r plugins.txt --prefer-binary --no-deps
         # Install the BSB from the repo without dependencies, already installed above.
         pip install -e . --no-deps
+        pip install "dbbs-models>=4.0.0a0"
     - name: Run tests & coverage
       run: |
         source "${NEST_INSTALL_PATH}/bin/nest_vars.sh"

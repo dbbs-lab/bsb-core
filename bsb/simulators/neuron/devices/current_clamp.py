@@ -1,19 +1,27 @@
 from ..device import NeuronDevice
+from bsb import config
+from bsb.simulation.targetting import LocationTargetting
+from ..device import NeuronDevice
 import warnings
+from neuron import h
 
 
-class CurrentClamp(NeuronDevice):
-    def implement(self, adapter, simulation, simdata):
-        result, cells, connections = simdata.results, simdata.cells, simdata.connections
-        for model, targets in self.targetting.get_targets(
-            adapter, simulation, simdata
-        ).items():
-            for id_ in targets:
-                target = simdata.populations[id_]
-                clamped = False
-                for location in self.locations.get_locations(target):
-                    if clamped:
-                        warnings.warn(f"Multiple current clamps placed on {target}")
+@config.node
+class CurrentClamp(NeuronDevice, classmap_entry="iclamp"):
+    locations = config.attr(type=LocationTargetting, default={"strategy": "soma"})
+    amplitude = config.attr(type=float, required=True)
+    before = config.attr(type=float, default=None)
+    duration = config.attr(type=float, default=None)
+
+    def implement(self, result, cells, connections):
+        for target in self.targetting.get_targets(cells, connections):
+            clamped = False
+            # for section in target.sections:
+            #     print(section.psection())
+            for location in self.locations.get_locations(target):
+                if clamped:
+                    warnings.warn(f"Multiple current clamps placed on {target}")
+                else:
                     self._add_clamp(result, location)
                     clamped = True
 
