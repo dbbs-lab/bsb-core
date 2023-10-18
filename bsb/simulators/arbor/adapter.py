@@ -244,7 +244,7 @@ class ArborAdapter(SimulatorAdapter):
             # Gap junctions are required for domain decomposition
             self.domain = arbor.partition_load_balance(recipe, context)
             self.gids = set(it.chain.from_iterable(g.gids for g in self.domain.groups))
-            simdata.arbor_sim = arbor.simulation(recipe, self.domain, context)
+            simdata.arbor_sim = arbor.simulation(recipe, context, self.domain)
             self.prepare_samples(simulation, simdata)
             report("prepared simulation", level=1)
             return simdata
