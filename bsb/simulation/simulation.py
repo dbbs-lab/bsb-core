@@ -1,7 +1,5 @@
-import abc
 import types
 import numpy as np
-from ..reporting import report
 from time import time
 import itertools
 from .. import config

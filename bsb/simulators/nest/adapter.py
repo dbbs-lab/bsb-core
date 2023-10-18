@@ -1,6 +1,5 @@
 import sys
 from neo import SpikeTrain
-from tempfile import TemporaryDirectory
 import typing
 import time
 import functools

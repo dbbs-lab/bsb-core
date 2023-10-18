@@ -1,3 +1,5 @@
+import abc
+
 from bsb import config
 from bsb.config import types
 from bsb.simulation.device import DeviceModel
@@ -22,16 +24,17 @@ except ImportError:
     arbor.__getattr__ = get
 
 
-@config.node
+@config.dynamic(attr_name="device", auto_classmap=True, classmap_entry=None)
 class ArborDevice(DeviceModel):
     targetting = config.attr(type=CellTargetting, required=True)
     resolution = config.attr(type=float)
-    sampling_policy = config.attr(type=types.in_([""]))
+    sampling_policy = config.attr(type=types.in_(["exact"]))
 
-    defaults = {"resolution": None, "sampling_policy": "exact"}
+    def __init__(self, **kwargs):
+        self._probe_ids = []
 
     def __boot__(self):
-        self.resolution = self.resolution or self.adapter.resolution
+        self.resolution = self.resolution or self.simulation.resolution
 
     def register_probe_id(self, gid, tag):
         self._probe_ids.append((gid, tag))
@@ -50,3 +53,11 @@ class ArborDevice(DeviceModel):
     def get_meta(self):
         attrs = ("name", "sampling_policy", "resolution")
         return dict(zip(attrs, (getattr(self, attr) for attr in attrs)))
+
+    @abc.abstractmethod
+    def implement_probes(self, simdata, target):
+        pass
+
+    @abc.abstractmethod
+    def implement_generators(self, simdata, target):
+        pass

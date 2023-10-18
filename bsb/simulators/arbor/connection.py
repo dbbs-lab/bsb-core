@@ -1,44 +1,69 @@
+import tqdm
+
 from bsb import config
-from bsb.config import types
 from bsb.simulation.connection import ConnectionModel
-
-try:
-    import arbor
-
-    _has_arbor = True
-except ImportError:
-    _has_arbor = False
-    import types as _t
-
-    # Mock missing requirements, as arbor is, like
-    # all simulators, an optional dep. of the BSB.
-    arbor = _t.ModuleType("arbor")
-    arbor.recipe = type("mock_recipe", (), dict())
-
-    def get(*arg):
-        raise ImportError("Arbor not installed.")
-
-    arbor.__getattr__ = get
+import arbor
 
 
 class Receiver:
-    def __init__(self, conn_model, from_gid, comp_from, comp_on):
+    def __init__(self, conn_model, from_gid, loc_from, loc_on, index=-1):
         self.conn_model = conn_model
         self.from_gid = from_gid
-        self.comp_from = comp_from
-        self.comp_on = comp_on
+        self.loc_from = loc_from
+        self.loc_on = loc_on
         self.synapse = arbor.synapse("expsyn")
+        self.index = index
+
+    def from_(self):
+        b, p = self.loc_from
+        return arbor.cell_global_label(self.from_gid, f"{b}_{p}")
+
+    def on(self):
+        # self.index is set on us by the ReceiverCollection when we are appended.
+        b, p = self.loc_on
+        return arbor.cell_local_label(f"{b}_{p}_{self.index}")
+
+    @property
+    def weight(self):
+        return self.conn_model.weight
+
+    @property
+    def delay(self):
+        return self.conn_model.delay
 
 
+class Connection:
+    def __init__(self, pre_loc, post_loc):
+        self.from_id = pre_loc[0]
+        self.to_id = post_loc[0]
+        self.pre_loc = pre_loc[1:]
+        self.post_loc = post_loc[1:]
+
+
+@config.node
 class ArborConnection(ConnectionModel):
-    defaults = {"gap": False, "delay": 0.025, "weight": 1.0}
-    casts = {"delay": float, "gap": bool, "weight": float}
+    gap = config.attr(type=bool, default=False)
+    weight = config.attr(type=float, required=True)
+    delay = config.attr(type=float, required=True)
 
-    def validate(self):
-        pass
+    def create_gap_junctions_on(self, gj_on_gid, conns):
+        for pre_loc, post_loc in conns:
+            conn = Connection(pre_loc, post_loc)
+            gj_on_gid.setdefault(conn.from_id, []).append(conn)
 
-    def make_receiver(*args):
-        return Receiver(*args)
+    def create_connections_on(self, conns_on_gid, conns):
+        i = 0
+        for pre_loc, post_loc in tqdm.tqdm(conns, total=len(conns), desc=self.name):
+            i += 1
+            if i > 1000:
+                break
+            conns_on_gid[post_loc[0]].append(
+                Receiver(self, pre_loc[0], pre_loc[1:], post_loc[1:])
+            )
+
+    def create_connections_from(self, conns_from_gid, conns):
+        for pre_loc, post_loc in conns:
+            conns_from_gid[int(pre_loc[0])].append(pre_loc[1:])
 
     def gap_(self, conn):
         l = arbor.cell_local_label(f"gap_{conn.to_compartment.id}")

@@ -6,7 +6,7 @@ import numpy as np
 import unittest
 
 
-@unittest.skipIf(MPI.get_size() > 1, "Skipped during serial testing.")
+@unittest.skipIf(MPI.get_size() > 1, "Skipped during parallel testing.")
 class TestNest(RandomStorageFixture, unittest.TestCase, engine_name="hdf5"):
     def test_gif_pop_psc_exp(self):
         """Mimics test_gif_pop_psc_exp of NEST's test suite to validate the adapter."""
@@ -127,7 +127,7 @@ class TestNest(RandomStorageFixture, unittest.TestCase, engine_name="hdf5"):
 
         network = Scaffold(cfg, self.storage)
         network.compile()
-        result = network.run_simulation("test")
+        result = network.run_simulation("test_nest")
 
         spiketrains = result.block.segments[0].spiketrains
         sr_exc, sr_inh = None, None

@@ -25,5 +25,5 @@ class CellModel(SimulationComponent):
         except Exception:
             return True
 
-    def get_placement_set(self):
-        return self.cell_type.get_placement_set()
+    def get_placement_set(self, chunks=None):
+        return self.cell_type.get_placement_set(chunks=chunks)
