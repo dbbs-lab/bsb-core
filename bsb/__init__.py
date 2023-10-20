@@ -1,3 +1,7 @@
+"""
+A component framework for multiscale bottom-up neural modelling.
+"""
+
 __version__ = "4.0.0a56"
 
 import functools
