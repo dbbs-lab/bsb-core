@@ -253,6 +253,26 @@
           },
           "weight": 20.68015524367846,
           "delay": 1.5
+        },
+        "sr_exc": {
+          "device": "spike_recorder",
+          "targetting": {
+            "strategy": "cell_model",
+            "cell_models": [
+              "excitatory"
+            ],
+            "count": 50
+          }
+        },
+        "sr_inh": {
+          "device": "spike_recorder",
+          "targetting": {
+            "strategy": "cell_model",
+            "cell_models": [
+              "inhibitory"
+            ],
+            "count": 50
+          }
         }
       }
     }
