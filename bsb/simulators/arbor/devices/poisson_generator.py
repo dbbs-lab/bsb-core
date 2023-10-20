@@ -4,10 +4,6 @@ from ..device import ArborDevice
 import arbor
 
 
-class DeviceConnectionModel:
-    pass
-
-
 @config.node
 class PoissonGenerator(ArborDevice, classmap_entry="poisson_generator"):
     record = config.attr(type=bool, default=True)
