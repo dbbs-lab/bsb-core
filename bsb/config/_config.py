@@ -1,8 +1,9 @@
 import typing
 
-from . import attr, list, dict, root, node, types
+from .. import config
+from . import types
 from ..cell_types import CellType
-from ._attrs import _boot_nodes
+from ._attrs import _boot_nodes, cfgdict, cfglist
 from ..placement import PlacementStrategy
 from ..storage._files import CodeDependencyNode, MorphologyDependencyNode
 from ..storage.interfaces import StorageNode
@@ -17,24 +18,25 @@ from ..topology import (
     Region,
     Partition,
 )
-import builtins
 import numpy as np
 
 if typing.TYPE_CHECKING:
     from ..core import Scaffold
 
 
-@node
+@config.node
 class NetworkNode:
     scaffold: "Scaffold"
 
-    x = attr(type=float, required=True)
-    y = attr(type=float, required=True)
-    z = attr(type=float, required=True)
-    origin = attr(
-        type=types.list(type=float, size=3), default=lambda: [0, 0, 0], call_default=True
+    x: float = config.attr(type=float, required=True)
+    y: float = config.attr(type=float, required=True)
+    z: float = config.attr(type=float, required=True)
+    origin: list[float] = config.attr(
+        type=types.list(type=float, size=3),
+        default=lambda: [0, 0, 0],
+        call_default=True,
     )
-    chunk_size = attr(
+    chunk_size: list[float] = config.attr(
         type=types.or_(
             types.list(float),
             types.scalar_expand(float, expand=lambda s: np.ones(3) * s),
@@ -47,7 +49,7 @@ class NetworkNode:
         self.chunk_size = np.array(self.chunk_size)
 
 
-@root
+@config.root
 class Configuration:
     """
     The main Configuration object containing the full definition of a scaffold model.
@@ -55,24 +57,57 @@ class Configuration:
 
     scaffold: "Scaffold"
 
-    name = attr()
-    components = list(type=CodeDependencyNode)
-    morphologies = list(type=MorphologyDependencyNode)
-    storage = attr(type=StorageNode, required=True)
-    network = attr(type=NetworkNode, required=True)
-    regions = dict(type=Region)
-    partitions = dict(type=Partition, required=True)
-    cell_types = dict(type=CellType, required=True)
-    placement = dict(type=PlacementStrategy, required=True)
-    after_placement = dict(type=PostProcessingHook)
-    connectivity = dict(type=ConnectionStrategy, required=True)
-    after_connectivity = dict(type=PostProcessingHook)
-    simulations = dict(type=Simulation)
+    name: str = config.attr()
+    """
+    Descriptive name of the model
+    """
+    components: cfglist[CodeDependencyNode] = config.list(
+        type=CodeDependencyNode,
+    )
+    morphologies: cfglist[MorphologyDependencyNode] = config.list(
+        type=MorphologyDependencyNode,
+    )
+    storage: StorageNode = config.attr(
+        type=StorageNode,
+        required=True,
+    )
+    network: NetworkNode = config.attr(
+        type=NetworkNode,
+        required=True,
+    )
+    regions: cfgdict[str, Region] = config.dict(
+        type=Region,
+    )
+    partitions: cfgdict[str, Partition] = config.dict(
+        type=Partition,
+        required=True,
+    )
+    cell_types: cfgdict[str, CellType] = config.dict(
+        type=CellType,
+        required=True,
+    )
+    placement: cfgdict[str, PlacementStrategy] = config.dict(
+        type=PlacementStrategy,
+        required=True,
+    )
+    after_placement: cfgdict[str, PostProcessingHook] = config.dict(
+        type=PostProcessingHook,
+    )
+    connectivity: cfgdict[str, ConnectionStrategy] = config.dict(
+        type=ConnectionStrategy,
+        required=True,
+    )
+    after_connectivity: cfgdict[str, PostProcessingHook] = config.dict(
+        type=PostProcessingHook,
+    )
+    simulations: cfgdict[str, Simulation] = config.dict(
+        type=Simulation,
+    )
     __module__ = "bsb.config"
 
     @classmethod
     def default(cls, **kwargs):
-        default_args = builtins.dict(
+        default_args = dict(
             storage={"engine": "hdf5"},
             network={"x": 200, "y": 200, "z": 200},
             partitions={},
@@ -91,7 +126,7 @@ class Configuration:
         _boot_nodes(self, scaffold)
         self._config_isbooted = True
         # Initialise the topology from the defined regions
-        regions = builtins.list(self.regions.values())
+        regions = list(self.regions.values())
         # Arrange the topology based on network boundaries
         start = self.network.origin.copy()
         net = self.network
@@ -100,7 +135,7 @@ class Configuration:
         if unmanaged := set(self.partitions.values()) - get_partitions(regions):
             p = "', '".join(p.name for p in unmanaged)
             r = scaffold.regions.add(
-                "__unmanaged__", RegionGroup(children=builtins.list(unmanaged))
+                "__unmanaged__", RegionGroup(children=list(unmanaged))
             )
             regions.append(r)
         scaffold.topology = create_topology(regions, start, end)
