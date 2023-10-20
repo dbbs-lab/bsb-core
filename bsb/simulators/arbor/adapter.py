@@ -26,6 +26,7 @@ class SimulationData:
         self.connections = dict()
         self.devices = dict()
         self.result: "NestResult" = None
+        self.arbor_sim: "arbor.simulation" = None
 
 
 class ReceiverCollection(list):
@@ -257,7 +258,7 @@ class ArborAdapter(SimulatorAdapter):
 
     def prepare_samples(self, simulation, simdata):
         for device in simulation.devices.values():
-            device.prepare_samples(simdata.arbor_sim)
+            device.prepare_samples(simdata)
 
     def run(self, simulation):
         try:
@@ -270,6 +271,7 @@ class ArborAdapter(SimulatorAdapter):
         try:
             if not MPI.get_rank():
                 arbor_sim.record(arbor.spike_recording.all)
+
             start = time.time()
             report("running simulation", level=1)
             arbor_sim.run(simulation.duration, dt=simulation.resolution)

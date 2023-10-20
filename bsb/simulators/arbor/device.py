@@ -39,8 +39,8 @@ class ArborDevice(DeviceModel):
     def register_probe_id(self, gid, tag):
         self._probe_ids.append((gid, tag))
 
-    def prepare_samples(self, sim):
-        self._handles = [self.sample(sim, probe_id) for probe_id in self._probe_ids]
+    def prepare_samples(self, simdata):
+        self._handles = [self.sample(simdata.arbor_sim, probe_id) for probe_id in self._probe_ids]
 
     def sample(self, sim, probe_id):
         schedule = arbor.regular_schedule(self.resolution)
