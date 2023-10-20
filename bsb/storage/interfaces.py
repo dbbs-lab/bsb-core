@@ -17,7 +17,7 @@ if typing.TYPE_CHECKING:
 
 @config.pluggable(key="engine", plugin_name="storage engine")
 class StorageNode:
-    root = config.slot()
+    root: typing.Any = config.slot()
 
     @classmethod
     def __plugins__(cls):

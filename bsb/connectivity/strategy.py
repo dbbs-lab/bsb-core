@@ -10,6 +10,10 @@ from itertools import chain
 
 if typing.TYPE_CHECKING:
     from ..core import Scaffold
+    from ..cell_types import CellType
+    from ..storage.interfaces import PlacementSet
+    from ..morphologies import MorphologySet
+    from ..connectivity import ConnectionStrategy
 
 
 @config.node
@@ -20,13 +24,13 @@ class Hemitype:
 
     scaffold: "Scaffold"
 
-    cell_types = config.reflist(refs.cell_type_ref, required=True)
+    cell_types: list["CellType"] = config.reflist(refs.cell_type_ref, required=True)
     """List of cell types to use in connection."""
-    labels = config.attr(type=types.list())
+    labels: list[str] = config.attr(type=types.list())
     """List of labels to filter the placement set by."""
-    morphology_labels = config.attr(type=types.list())
+    morphology_labels: list[str] = config.attr(type=types.list())
     """List of labels to filter the morphologies by."""
-    morpho_loader = config.attr(
+    morpho_loader: typing.Callable[["PlacementSet"], "MorphologySet"] = config.attr(
         type=types.function_(),
         required=False,
         call_default=False,
@@ -58,14 +62,17 @@ class HemitypeCollection:
 @config.dynamic(attr_name="strategy", required=True)
 class ConnectionStrategy(abc.ABC, SortableByAfter):
     scaffold: "Scaffold"
-    name = config.attr(key=True)
+    name: str = config.attr(key=True)
     """Name used to refer to the connectivity strategy"""
-    presynaptic = config.attr(type=Hemitype, required=True)
+    presynaptic: Hemitype = config.attr(type=Hemitype, required=True)
     """Presynaptic (source) neuron population"""
-    postsynaptic = config.attr(type=Hemitype, required=True)
+    postsynaptic: Hemitype = config.attr(type=Hemitype, required=True)
     """Postsynaptic (target) neuron population"""
-    after = config.reflist(refs.connectivity_ref)
-    """Action to perform after connecting the neurons with the current strategy."""
+    after: list["ConnectionStrategy"] = config.reflist(refs.connectivity_ref)
+    """
+        This strategy should be executed only after all the connections in this list have
+        been executed.
+    """
 
     def __init_subclass__(cls, **kwargs):
         super(cls, cls).__init_subclass__(**kwargs)

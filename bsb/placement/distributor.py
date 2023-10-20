@@ -255,11 +255,11 @@ class VolumetricRotations(RotationDistributor, classmap_entry="orientation_field
 
 @config.node
 class DistributorsNode:
-    morphologies = config.attr(
+    morphologies: MorphologyDistributor = config.attr(
         type=MorphologyDistributor, default=dict, call_default=True
     )
-    rotations = config.attr(type=RotationDistributor, default=dict, call_default=True)
-    properties = config.catch_all(type=Distributor)
+    rotations: RotationDistributor = config.attr(type=RotationDistributor, default=dict, call_default=True)
+    properties: dict[Distributor] = config.catch_all(type=Distributor)
 
     def __call__(self, key, partitions, indicator, positions, loaders=None):
         context = DistributionContext(indicator, partitions)

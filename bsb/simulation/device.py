@@ -1,5 +1,4 @@
 from .. import config
-from ..services import MPI
 from .component import SimulationComponent
 
 

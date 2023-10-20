@@ -130,7 +130,7 @@ class NumpyTestCase:
 
     def assertAll(self, a, msg="", /, **kwargs):
         trues = _np.sum(a.astype(bool))
-        all = _np.product(a.shape)
+        all = _np.prod(a.shape)
         if msg:
             msg += ". "
         return self.assertTrue(
@@ -141,7 +141,7 @@ class NumpyTestCase:
         if msg:
             msg += ". "
         nans = _np.isnan(a)
-        all = _np.product(a.shape)
+        all = _np.prod(a.shape)
         return self.assertTrue(
             _np.all(a, **kwargs), f"{msg}Only {_np.sum(nans)} out of {all} True"
         )

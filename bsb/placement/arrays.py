@@ -13,8 +13,8 @@ class ParallelArrayPlacement(NotParallel, PlacementStrategy):
     Implementation of the placement of cells in parallel arrays.
     """
 
-    spacing_x = config.attr(type=float, required=True)
-    angle = config.attr(type=types.deg_to_radian(), required=True)
+    spacing_x: float = config.attr(type=float, required=True)
+    angle: float = config.attr(type=types.deg_to_radian(), required=True)
 
     def place(self, chunk, indicators):
         """

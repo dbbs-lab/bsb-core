@@ -21,8 +21,10 @@ _available_distributions.append("constant")
 @config.node
 class Distribution:
     scaffold: "Scaffold"
-    distribution = config.attr(type=types.in_(_available_distributions), required=True)
-    parameters = config.catch_all(type=types.any_())
+    distribution: str = config.attr(
+        type=types.in_(_available_distributions), required=True
+    )
+    parameters: dict[str, typing.Any] = config.catch_all(type=types.any_())
 
     def __init__(self, **kwargs):
         if self.distribution == "constant":
