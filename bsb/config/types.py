@@ -143,8 +143,11 @@ class object_(TypeHandler):
     def __call__(self, value):
         msg = f"Could not import '{value}': "
         try:
-            obj = _load_object(value, self._module_path)
-            obj._cfg_inv = value
+            if isinstance(value, builtins.str):
+                obj = _load_object(value, self._module_path)
+                obj._cfg_inv = value
+            else:
+                obj = value
         except Exception as e:
             raise TypeError(msg + builtins.str(e))
         return obj
