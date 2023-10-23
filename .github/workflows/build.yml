@@ -18,7 +18,7 @@ jobs:
     - name: Install apt dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install openmpi-bin libopenmpi-dev
+        sudo apt-get install openmpi-bin libopenmpi-dev libhdf5-dev
     - name: Cache pip
       uses: actions/cache@v3
       with:
