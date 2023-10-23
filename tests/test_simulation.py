@@ -38,9 +38,8 @@ class TestSimulate(
     def test_simulate(self):
         self.network.simulations.add(
             "test",
-            simulator="neuron",
+            simulator="nest",
             duration=100,
-            temperature=32,
             cell_models=dict(),
             connection_models=dict(),
             devices=dict(),
