@@ -94,10 +94,7 @@ class Population:
 class GIDManager:
     def __init__(self, simulation, simdata):
         self._gid_offsets = {}
-        self._model_order = sorted(
-            simulation.cell_models.values(),
-            key=lambda model: len(model.get_placement_set()),
-        )
+        self._model_order = self.sort_models(simulation.cell_models.values())
         ctr = 0
         for model in self._model_order:
             self._gid_offsets[model] = ctr
@@ -106,6 +103,16 @@ class GIDManager:
             Population(simdata, model, offset)
             for model, offset in self._gid_offsets.items()
         ]
+
+    def sort_models(self, models):
+        return sorted(
+            models,
+            key=lambda model: len(model.get_placement_set()),
+        )
+
+    def lookup_offset(self, gid):
+        model = self.lookup_model(gid)
+        return self._gid_offsets[model]
 
     def lookup_kind(self, gid):
         return self._lookup(gid).model.get_cell_kind(gid)
