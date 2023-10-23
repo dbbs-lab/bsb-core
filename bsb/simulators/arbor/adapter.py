@@ -330,14 +330,24 @@ class ArborAdapter(SimulatorAdapter):
             if conn_model.gap:
                 continue
             conn_set = conn_model.get_connectivity_set()
-            # Load the arriving connection iterator
+            pop_pre, pop_post = None, None
+            for model in simulation.cell_models.values():
+                if model.cell_type is conn_set.pre_type:
+                    pop_pre = simdata.populations[model]
+                if model.cell_type is conn_set.post_type:
+                    pop_post = simdata.populations[model]
+            # Get the arriving connection iterator
             conns_on = conn_set.load_connections().to(simdata.chunks).as_globals()
             # Create the arriving connections
-            conn_model.create_connections_on(simdata.connections_on, conns_on)
-            # Load the outgoing connection iterator
+            conn_model.create_connections_on(
+                simdata.connections_on, conns_on, pop_pre, pop_post
+            )
+            # Get the outgoing connection iterator
             conns_from = conn_set.load_connections().from_(simdata.chunks).as_globals()
             # Create the outgoing connections
-            conn_model.create_connections_from(simdata.connections_from, conns_from)
+            conn_model.create_connections_from(
+                simdata.connections_from, conns_from, pop_pre, pop_post
+            )
 
     def _cache_devices(self, simulation, simdata):
         simdata.devices_on = {gid: [] for gid in simdata.gid_manager.all()}
