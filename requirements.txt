@@ -1,25 +1,25 @@
 # General
-numpy==1.24.1
-scikit-learn==1.0.2
-scipy==1.10.0
-rtree==1.0.1
-plotly==5.11.0
-pre-commit==2.21.0
-black==22.12.0
+numpy==1.26.1
+scikit-learn==1.3.1
+scipy==1.11.3
+rtree==1.1.0
+plotly==5.17.0
+pre-commit==3.5.0
+black==23.10.0
 colour==0.1.5
 errr==1.2.0
-psutil==5.9.4
-coverage==7.0.4
+psutil==5.9.6
+coverage==7.3.2
 appdirs==1.4.4
-tqdm==4.65.0
+tqdm==4.66.1
 quantities==0.14.1
 
 # IO
-h5py==3.7.0
+h5py==3.10.0
 pynrrd==1.0.0
-PyYAML==6.0
-morphio==3.3.3
-neo[nixio]==0.11.1
+PyYAML==6.0.1
+morphio==3.3.6
+neo[nixio]==0.12.0
 toml==0.10.2
 
 # MPI
@@ -27,10 +27,10 @@ zwembad==1.2.2
 mpilock==1.1.0
 
 # NEURON
-nrn-patch==4.0.0a4
-NEURON==8.2.2
-nrn-subprocess==1.3.4
+nrn-patch==4.0.0a4;python_version<"3.12"
+NEURON==8.2.3;python_version<"3.12"
+nrn-subprocess==1.3.4;python_version<"3.12"
 
 # HTTP
-requests==2.30.0
-urllib3==2.0.2
+requests==2.31.0
+urllib3==2.0.7

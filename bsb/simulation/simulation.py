@@ -1,6 +1,8 @@
 import abc
 import types
 import numpy as np
+
+from ..config._attrs import cfgdict, cfglist
 from ..reporting import report
 from time import time
 import itertools
@@ -27,12 +29,14 @@ class ProgressEvent:
 
 @config.pluggable(key="simulator", plugin_name="simulation backend")
 class Simulation:
-    name = config.attr(key=True)
-    duration = config.attr(type=float, required=True)
-    cell_models = config.slot(type=CellModel, required=True)
-    connection_models = config.slot(type=ConnectionModel, required=True)
-    devices = config.slot(type=DeviceModel, required=True)
-    post_prepare = config.list(type=cfgtypes.class_())
+    name: str = config.attr(key=True)
+    duration: float = config.attr(type=float, required=True)
+    cell_models: cfgdict[CellModel] = config.slot(type=CellModel, required=True)
+    connection_models: cfgdict[ConnectionModel] = config.slot(
+        type=ConnectionModel, required=True
+    )
+    devices: cfgdict[DeviceModel] = config.slot(type=DeviceModel, required=True)
+    post_prepare: cfglist[type] = config.list(type=cfgtypes.class_())
 
     @staticmethod
     def __plugins__():

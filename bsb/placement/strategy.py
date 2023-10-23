@@ -1,6 +1,7 @@
 import typing
 
 from .. import config
+from ..config._attrs import cfgdict, cfglist
 from ..exceptions import (
     EmptySelectionError,
     DistributorError,
@@ -21,6 +22,8 @@ import abc
 
 if typing.TYPE_CHECKING:
     from ..core import Scaffold
+    from ..cell_types import CellType
+    from ..topology import Partition
 
 
 @config.dynamic(attr_name="strategy", required=True)
@@ -32,12 +35,14 @@ class PlacementStrategy(abc.ABC, SortableByAfter):
 
     scaffold: "Scaffold"
 
-    name = config.attr(key=True)
-    cell_types = config.reflist(refs.cell_type_ref, required=True)
-    partitions = config.reflist(refs.partition_ref, required=True)
-    overrides = config.dict(type=PlacementIndications)
-    after = config.reflist(refs.placement_ref)
-    distribute = config.attr(type=DistributorsNode, default=dict, call_default=True)
+    name: str = config.attr(key=True)
+    cell_types: list["CellType"] = config.reflist(refs.cell_type_ref, required=True)
+    partitions: list["Partition"] = config.reflist(refs.partition_ref, required=True)
+    overrides: cfgdict["PlacementIndications"] = config.dict(type=PlacementIndications)
+    after: list["PlacementStrategy"] = config.reflist(refs.placement_ref)
+    distribute: DistributorsNode = config.attr(
+        type=DistributorsNode, default=dict, call_default=True
+    )
     indicator_class = PlacementIndicator
 
     def __init_subclass__(cls, **kwargs):
@@ -162,7 +167,7 @@ class PlacementStrategy(abc.ABC, SortableByAfter):
 
 @config.node
 class FixedPositions(PlacementStrategy):
-    positions = config.attr(type=types.ndarray())
+    positions: np.ndarray = config.attr(type=types.ndarray())
 
     def place(self, chunk, indicators):
         if self.positions is None:

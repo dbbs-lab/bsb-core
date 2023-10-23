@@ -267,10 +267,10 @@ class VoxelSet:
     @property
     def volume(self):
         if self._single_size:
-            voxel_volume = np.abs(np.product(self.get_size(copy=False) * np.ones(3)))
+            voxel_volume = np.abs(np.prod(self.get_size(copy=False) * np.ones(3)))
             return voxel_volume * len(self)
         else:
-            return np.sum(np.abs(np.product(self.get_size_matrix(copy=False), axis=1)))
+            return np.sum(np.abs(np.prod(self.get_size_matrix(copy=False), axis=1)))
 
     @property
     def data(self):
@@ -600,7 +600,7 @@ def _eq_sides(sides, n):
     # Use the relative magnitudes of each side
     norm = sides / max(sides)
     # Find out how many divisions each side should to form a grid with `n` rhomboids.
-    per_side = norm * (n / np.product(norm)) ** (1 / len(sides))
+    per_side = norm * (n / np.prod(norm)) ** (1 / len(sides))
     # Divisions should be integers, and minimum 1
     solution = np.maximum(np.floor(per_side), 1)
     order = np.argsort(sides)

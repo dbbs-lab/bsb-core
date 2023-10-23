@@ -69,9 +69,8 @@ class ParticlePlacement(PlacementStrategy, _VoxelBasedParticleSystem):
     overlap.
     """
 
-    prune = config.attr(type=bool, default=True)
-    bounded = config.attr(type=bool, default=False)
-    restrict = config.attr(type=dict)
+    prune: bool = config.attr(type=bool, default=True)
+    bounded: bool = config.attr(type=bool, default=False)
 
     def place(self, chunk, indicators):
         system = self._fill_system(chunk, indicators)
@@ -413,7 +412,7 @@ class ParticleSystem:
         else:
             particles_volume = np.sum([sphere_volume(p.radius) for p in particles])
         if volume is None:
-            volume = np.sum([np.product(v.size) for v in self.voxels])
+            volume = np.sum([np.prod(v.size) for v in self.voxels])
         return particles_volume / volume
 
     def _get_packing_factors(self, particles=None, volume=None):
@@ -426,7 +425,7 @@ class ParticleSystem:
             particles_volume = np.sum([sphere_volume(p.radius) for p in particles])
             particles_count = len(particles)
         if volume is None:
-            volume = np.sum([np.product(v.size) for v in self.voxels])
+            volume = np.sum([np.prod(v.size) for v in self.voxels])
         return particles_count, particles_volume, volume
 
     def prune(self, at_risk_particles=None, voxels=None):

@@ -39,7 +39,7 @@ Documentation = "https://bsb.readthedocs.io/"
 "Bug Tracker" = "https://github.com/dbbs-lab/bsb/issues/"
 "Source Code" = "https://github.com/dbbs-lab/bsb/"
 
-[project.entry-points."console-scripts"]
+[project.scripts]
 bsb = "bsb.cli:handle_cli"
 
 [project.entry-points."bsb.storage.engines"]
@@ -70,13 +70,13 @@ profiling = "bsb._options:profiling"
 
 [project.optional-dependencies]
 dev = [
-    "sphinx~=6.0",
+    "sphinx~=7.0",
     "furo",
     "pre-commit",
     "black~=22.3.0",
     "nrn-subprocess~=1.3.4",
     "sphinxemoji",
-    "sphinx_design~=0.2",
+    "sphinx_design~=0.5",
     "sphinx-copybutton~=0.5",
     "sphinxext-bsb~=0.2.1",
     "snakeviz",

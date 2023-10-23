@@ -1,13 +1,20 @@
 import itertools
 import random
+import typing
+
 import numpy as np
 from .. import config
 from ..config import refs, types
 
+if typing.TYPE_CHECKING:
+    from .cell import CellModel
+
 
 @config.dynamic(attr_name="strategy", default="all", auto_classmap=True)
 class Targetting:
-    type = config.attr(type=types.in_(["cell", "connection"]), default="cell")
+    type: typing.Union[
+        typing.Literal["cell"], typing.Literal["connection"]
+    ] = config.attr(type=types.in_(["cell", "connection"]), default="cell")
 
     def get_targets(self, cells, connections):
         if self.type == "cell":
@@ -43,7 +50,9 @@ class CellModelTargetting(CellTargetting, classmap_entry="cell_model"):
     certain cell models.
     """
 
-    cell_models = config.reflist(refs.sim_cell_model_ref, required=True)
+    cell_models: list["CellModel"] = config.reflist(
+        refs.sim_cell_model_ref, required=True
+    )
 
     def get_targets(self, cells, connections):
         return [cell for cell in cells.values() if cell.model in self.cell_models]
@@ -56,7 +65,7 @@ class RepresentativesTargetting(CellModelTargetting, classmap_entry="representat
     of certain cell types.
     """
 
-    n = config.attr(type=int, default=1)
+    n: int = config.attr(type=int, default=1)
 
     def get_targets(self, cells, connections):
         reps = {cell_model: [] for cell_model in self.cell_models}
@@ -75,7 +84,7 @@ class ByIdTargetting(CellTargetting, classmap_entry="by_id"):
     Targetting mechanism (use ``"type": "by_id"``) to target all given identifiers.
     """
 
-    ids = config.attr(type=types.list(type=int), required=True)
+    ids: list[int] = config.attr(type=types.list(type=int), required=True)
 
     def get_targets(self, cells, connections):
         return [cells[id] for id in self.ids]
@@ -87,14 +96,14 @@ class ByLabelTargetting(CellTargetting, classmap_entry="by_label"):
     Targetting mechanism (use ``"type": "by_label"``) to target all given labels.
     """
 
-    labels = config.attr(type=types.list(type=str), required=True)
+    labels: list[str] = config.attr(type=types.list(type=str), required=True)
 
     def get_targets(self, cells, connections):
         raise NotImplementedError("Labels still need to be transferred onto models")
 
 
 class CellModelFilter:
-    cell_models = config.reflist(refs.sim_cell_model_ref)
+    cell_models: list["CellModel"] = config.reflist(refs.sim_cell_model_ref)
 
     def get_targets(self, cells, connections):
         return [cell for cell in cells.values() if cell.cell_model in self.cell_models]
@@ -107,9 +116,11 @@ class CylindricalTargetting(CellModelFilter, CellTargetting, classmap_entry="cyl
     horizontal cylinder (xz circle expanded along y).
     """
 
-    origin = config.attr(type=types.list(type=float, size=2))
-    axis = config.attr(type=types.in_(["x", "y", "z"]), default="y")
-    radius = config.attr(type=float, required=True)
+    origin: list[float] = config.attr(type=types.list(type=float, size=2))
+    axis: typing.Union[
+        typing.Literal["x"], typing.Literal["y"], typing.Literal["z"]
+    ] = config.attr(type=types.in_(["x", "y", "z"]), default="y")
+    radius: float = config.attr(type=float, required=True)
 
     def get_targets(self, cells, connections):
         """
@@ -135,8 +146,8 @@ class SphericalTargetting(CellModelFilter, CellTargetting, classmap_entry="spher
     Targetting mechanism (use ``"type": "sphere"``) to target all cells in a sphere.
     """
 
-    origin = config.attr(type=types.list(type=float, size=3), required=True)
-    radius = config.attr(type=float, required=True)
+    origin: list[float] = config.attr(type=types.list(type=float, size=3), required=True)
+    radius: float = config.attr(type=float, required=True)
 
     def get_targets(self, cells, connections):
         """

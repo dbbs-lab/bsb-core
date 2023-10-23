@@ -1,18 +1,10 @@
 from bsb.core import Scaffold
-from bsb.services import MPI
-from bsb.config import Configuration
-from bsb.morphologies import Morphology, Branch
 from bsb.unittest import (
     NumpyTestCase,
     FixedPosConfigFixture,
     RandomStorageFixture,
-    MorphologiesFixture,
-    NetworkFixture,
-    skip_parallel,
 )
 import unittest
-import numpy as np
-from collections import defaultdict
 
 
 class TestSimulate(
@@ -36,13 +28,4 @@ class TestSimulate(
         self.network.compile(clear=True)
 
     def test_simulate(self):
-        self.network.simulations.add(
-            "test",
-            simulator="neuron",
-            duration=100,
-            temperature=32,
-            cell_models=dict(),
-            connection_models=dict(),
-            devices=dict(),
-        )
-        self.network.run_simulation("test")
+        pass

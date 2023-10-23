@@ -10,6 +10,7 @@ import os
 import sys
 import glob
 import itertools
+from importlib.machinery import ModuleSpec
 from shutil import copy2 as copy_file
 import builtins
 import traceback
@@ -88,6 +89,7 @@ class ConfigurationModule:
     # The __path__ attribute needs to be retained to mark this module as a package with
     # submodules (config.refs, config.parsers.json, ...)
     __path__ = _path
+    __spec__ = ModuleSpec(__name__, __loader__, origin=__file__)
 
     # Load the Configuration class on demand, not on import, to avoid circular
     # dependencies.
