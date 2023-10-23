@@ -65,7 +65,7 @@ class ArborConnection(ConnectionModel):
         for pre_loc, post_loc in conns:
             conns_from_gid[int(pre_loc[0])].append(pre_loc[1:])
 
-    def gap_(self, conn):
+    def gap_junction(self, conn):
         l = arbor.cell_local_label(f"gap_{conn.to_compartment.id}")
         g = arbor.cell_global_label(int(conn.from_id), f"gap_{conn.from_compartment.id}")
         return arbor.gap_junction_connection(g, l, self.weight)

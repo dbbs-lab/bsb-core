@@ -184,7 +184,9 @@ class ArborRecipe(arbor.recipe):
         ]
 
     def gap_junctions_on(self, gid):
-        return [c.model.gap_(c) for c in self._simdata.gap_junctions_on.get(gid, [])]
+        return [
+            c.model.gap_junction(c) for c in self._simdata.gap_junctions_on.get(gid, [])
+        ]
 
     def probes(self, gid):
         devices = self._simdata.devices_on[gid]
