@@ -39,7 +39,7 @@ Documentation = "https://bsb.readthedocs.io/"
 "Bug Tracker" = "https://github.com/dbbs-lab/bsb/issues/"
 "Source Code" = "https://github.com/dbbs-lab/bsb/"
 
-[project.entry-points."console-scripts"]
+[project.scripts]
 bsb = "bsb.cli:handle_cli"
 
 [project.entry-points."bsb.storage.engines"]
