@@ -4,11 +4,11 @@ from bsb import config
 
 
 @config.node
-class VoltageRecorder(NeuronDevice, classmap_entry="vrecorder"):
+class VoltageRecorder(NeuronDevice, classmap_entry="voltage_recorder"):
     locations = config.attr(type=LocationTargetting, default={"strategy": "soma"})
 
-    def implement(self, result, cells, connections):
-        for target in self.targetting.get_targets(cells, connections):
+    def implement(self, adapter, simulation, simdata):
+        for target in self.targetting.get_targets(adapter, simulation, simdata):
             for location in self.locations.get_locations(target):
                 self._add_voltage_recorder(result, location)
 
