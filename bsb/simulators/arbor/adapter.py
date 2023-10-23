@@ -63,10 +63,15 @@ class Population:
         self._model = cell_model
         ps = cell_model.get_placement_set(simdata.chunks)
         self._ranges = self._get_ranges(simdata.chunks, ps, offset)
+        self._offset = offset
 
     @property
     def model(self):
         return self._model
+
+    @property
+    def offset(self):
+        return self._offset
 
     def __contains__(self, i):
         return any(start <= i < stop for start, stop in self._ranges)
