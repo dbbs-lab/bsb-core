@@ -97,7 +97,7 @@
           }
         },
         "to_cell": {
-          "neuron_model": "eglif_cond_alpha_multisyn",
+          "model": "eglif_cond_alpha_multisyn",
           "parameters": {
             "t_ref": 0.8,
             "C_m": 620.0,

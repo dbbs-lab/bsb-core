@@ -95,7 +95,7 @@
     }
   },
   "simulations": {
-    "test": {
+    "test_nest": {
       "simulator": "nest",
       "duration": 1000,
       "resolution": 0.1,
@@ -192,10 +192,6 @@
           }
         }
       }
-    },
-    "test_arbor": {
-      "simulator": "arbor",
-      "$ref": "#../test"
     }
   }
 }

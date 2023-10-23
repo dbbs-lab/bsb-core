@@ -15,8 +15,7 @@ class TestNest(RandomStorageFixture, unittest.TestCase, engine_name="hdf5"):
         pop_size = 500
 
         cfg = from_file(get_config_path("test_gif_pop_psc_exp.json"))
-        ct = cfg.cell_types.gif_pop_psc_exp
-        sim_cfg = cfg.simulations.test
+        sim_cfg = cfg.simulations.test_nest
         sim_cfg.resolution = 0.5
         sim_cfg.cell_models.gif_pop_psc_exp.constants["N"] = pop_size
 
@@ -78,8 +77,8 @@ class TestNest(RandomStorageFixture, unittest.TestCase, engine_name="hdf5"):
                 with self.subTest(param=param, value=value):
                     self.assertEqual(value, syn.get(param))
 
-        network.simulations.test.post_prepare.append(probe)
-        network.run_simulation("test")
+        network.simulations.test_nest.post_prepare.append(probe)
+        network.run_simulation("test_nest")
 
         mean_nspike = np.mean(nspike)
         mean_rate = mean_nspike / pop_size / simulation.resolution * 1000.0
@@ -98,11 +97,11 @@ class TestNest(RandomStorageFixture, unittest.TestCase, engine_name="hdf5"):
 
     def test_brunel(self):
         cfg = from_file(get_config_path("test_brunel.json"))
-        simcfg = cfg.simulations.test
+        simcfg = cfg.simulations.test_nest
 
         network = Scaffold(cfg, self.storage)
         network.compile()
-        result = network.run_simulation("test")
+        result = network.run_simulation("test_nest")
 
         spiketrains = result.block.segments[0].spiketrains
         sr_exc, sr_inh = None, None
@@ -123,7 +122,7 @@ class TestNest(RandomStorageFixture, unittest.TestCase, engine_name="hdf5"):
 
     def test_brunel_with_conn(self):
         cfg = from_file(get_config_path("test_brunel_wbsb.json"))
-        simcfg = cfg.simulations.test
+        simcfg = cfg.simulations.test_nest
 
         network = Scaffold(cfg, self.storage)
         network.compile()

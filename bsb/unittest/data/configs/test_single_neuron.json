@@ -48,7 +48,7 @@
       "duration": 10,
       "cell_models": {
         "test_cell": {
-          "neuron_model": "iaf_cond_alpha",
+          "model": "iaf_cond_alpha",
           "constants": {
             "t_ref": 1.5,
             "C_m": 7.0,
@@ -60,7 +60,7 @@
         },
         "eglif_cell": {
           "cell_type": "test_cell",
-          "neuron_model": "eglif_cond_alpha_multisyn",
+          "model": "eglif_cond_alpha_multisyn",
           "constants": {
             "Vinit": -62.0,
             "lambda_0":1.0,

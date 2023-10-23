@@ -49,12 +49,12 @@
     }
   },
   "simulations": {
-    "test": {
+    "test_nest": {
       "simulator": "nest",
       "duration": 10000,
       "cell_models": {
         "gif_pop_psc_exp": {
-          "neuron_model": "gif_pop_psc_exp",
+          "model": "gif_pop_psc_exp",
           "constants": {
             "V_reset": 0.0,
             "V_T_star": 10.0,
