@@ -31,6 +31,9 @@ nrn-patch==4.0.0a4;python_version<"3.12"
 NEURON==8.2.3;python_version<"3.12"
 nrn-subprocess==1.3.4;python_version<"3.12"
 
+# Arbor
+arbor==0.9.0
+
 # HTTP
 requests==2.31.0
 urllib3==2.0.7
