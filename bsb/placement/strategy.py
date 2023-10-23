@@ -1,4 +1,7 @@
+import typing
+
 from .. import config
+from ..config._attrs import cfgdict, cfglist
 from ..exceptions import (
     EmptySelectionError,
     DistributorError,
@@ -17,6 +20,11 @@ import numpy as np
 import itertools
 import abc
 
+if typing.TYPE_CHECKING:
+    from ..core import Scaffold
+    from ..cell_types import CellType
+    from ..topology import Partition
+
 
 @config.dynamic(attr_name="strategy", required=True)
 class PlacementStrategy(abc.ABC, SortableByAfter):
@@ -25,12 +33,16 @@ class PlacementStrategy(abc.ABC, SortableByAfter):
     approach to placing neurons into a volume.
     """
 
-    name = config.attr(key=True)
-    cell_types = config.reflist(refs.cell_type_ref, required=True)
-    partitions = config.reflist(refs.partition_ref, required=True)
-    overrides = config.dict(type=PlacementIndications)
-    after = config.reflist(refs.placement_ref)
-    distribute = config.attr(type=DistributorsNode, default=dict, call_default=True)
+    scaffold: "Scaffold"
+
+    name: str = config.attr(key=True)
+    cell_types: list["CellType"] = config.reflist(refs.cell_type_ref, required=True)
+    partitions: list["Partition"] = config.reflist(refs.partition_ref, required=True)
+    overrides: cfgdict["PlacementIndications"] = config.dict(type=PlacementIndications)
+    after: list["PlacementStrategy"] = config.reflist(refs.placement_ref)
+    distribute: DistributorsNode = config.attr(
+        type=DistributorsNode, default=dict, call_default=True
+    )
     indicator_class = PlacementIndicator
 
     def __init_subclass__(cls, **kwargs):
@@ -155,7 +167,7 @@ class PlacementStrategy(abc.ABC, SortableByAfter):
 
 @config.node
 class FixedPositions(PlacementStrategy):
-    positions = config.attr(type=types.ndarray())
+    positions: np.ndarray = config.attr(type=types.ndarray())
 
     def place(self, chunk, indicators):
         if self.positions is None:
@@ -200,5 +212,9 @@ class Entities(PlacementStrategy):
         for indicator in indicators.values():
             cell_type = indicator.cell_type
             # Guess total number, not chunk number, as entities bypass chunking.
-            n = sum(np.sum(indicator.guess(voxels=p.voxelset)) for p in self.partitions)
+            n = sum(
+                # Pass the voxelset if it exists
+                np.sum(indicator.guess(voxels=getattr(p, "voxelset", None)))
+                for p in self.partitions
+            )
             self.scaffold.create_entities(cell_type, n)

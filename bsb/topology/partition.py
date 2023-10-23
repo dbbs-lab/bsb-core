@@ -1,6 +1,7 @@
 """
     Module for the Partition configuration nodes and its dependencies.
 """
+import typing
 
 from ._layout import Layout, RhomboidData
 from .. import config
@@ -25,6 +26,9 @@ import nrrd
 import json
 import abc
 
+if typing.TYPE_CHECKING:
+    from ..core import Scaffold
+
 
 def _size_requirements(section):
     if "thickness" not in section and "volume_scale" not in section:
@@ -45,7 +49,8 @@ class _backref_property(property):
     auto_classmap=True,
 )
 class Partition(abc.ABC):
-    name = config.attr(key=True)
+    scaffold: "Scaffold"
+    name: str = config.attr(key=True)
 
     @_backref_property
     def region(self):
@@ -157,21 +162,21 @@ class Partition(abc.ABC):
 
 @config.node
 class Rhomboid(Partition, classmap_entry="rhomboid"):
-    dimensions = config.attr(type=types.list(type=float, size=3))
-    can_scale = config.attr(type=bool, default=True)
-    origin = config.attr(type=types.list(type=float, size=3))
-    can_move = config.attr(type=bool, default=True)
-    orientation = config.attr(type=types.list(type=float, size=3))
-    can_rotate = config.attr(type=bool, default=True)
+    dimensions: list[float] = config.attr(type=types.list(type=float, size=3))
+    can_scale: bool = config.attr(type=bool, default=True)
+    origin: list[float] = config.attr(type=types.list(type=float, size=3))
+    can_move: bool = config.attr(type=bool, default=True)
+    orientation: list[float] = config.attr(type=types.list(type=float, size=3))
+    can_rotate: bool = config.attr(type=bool, default=True)
 
     def volume(self, chunk=None):
         if chunk is not None:
             # Create an intersection between the partition and the chunk
             low = np.maximum(self.ldc, chunk.ldc)
             high = np.minimum(self.mdc, chunk.mdc)
-            return np.product(np.maximum(high - low, 0))
+            return np.prod(np.maximum(high - low, 0))
         else:
-            return np.product(self.data.dimensions)
+            return np.prod(self.data.dimensions)
 
     @property
     def mdc(self):
@@ -192,7 +197,7 @@ class Rhomboid(Partition, classmap_entry="rhomboid"):
             # Create an intersection between the partition and the chunk
             low = np.maximum(ldc, cl)
             high = np.minimum(mdc, cm)
-            return np.product(np.maximum(high - low, 0))
+            return np.prod(np.maximum(high - low, 0))
         else:
             return self.data.width * self.data.depth
 
@@ -252,8 +257,8 @@ class Rhomboid(Partition, classmap_entry="rhomboid"):
 @config.node
 class Layer(Rhomboid, classmap_entry="layer"):
     dimensions = config.unset()
-    thickness = config.attr(type=float, required=_size_requirements)
-    volume_scale = config.attr(
+    thickness: float = config.attr(type=float, required=_size_requirements)
+    volume_scale: list[float] = config.attr(
         type=types.or_(
             types.list(float, size=2),
             types.scalar_expand(
@@ -264,8 +269,10 @@ class Layer(Rhomboid, classmap_entry="layer"):
         default=lambda: [1.0, 1.0],
         call_default=True,
     )
-    axis = config.attr(type=types.in_(["x", "y", "z"]), default="y")
-    stack_index = config.attr(type=float, default=0)
+    axis: typing.Union[
+        typing.Literal["x"], typing.Literal["y"], typing.Literal["z"]
+    ] = config.attr(type=types.in_(["x", "y", "z"]), default="y")
+    stack_index: float = config.attr(type=float, default=0)
 
     def get_layout(self, hint):
         axis = ["x", "y", "z"].index(self.axis)
@@ -340,35 +347,35 @@ class NrrdVoxels(Voxels, classmap_entry="nrrd"):
     can be associated to each voxel by inclusion of (multiple) source NRRD files.
     """
 
-    source = config.attr(
+    source: NrrdDependencyNode = config.attr(
         type=NrrdDependencyNode,
         required=types.mut_excl("source", "sources", required=False),
     )
     """Path to the NRRD file containing volumetric data to associate with the partition.
     If source is set, then sources should not be set."""
-    sources = config.list(
+    sources: NrrdDependencyNode = config.list(
         type=NrrdDependencyNode,
         required=types.mut_excl("source", "sources", required=False),
     )
     """List of paths to NRRD files containing volumetric data to associate with the Partition.
     If sources is set, then source should not be set."""
-    mask_value = config.attr(type=int)
+    mask_value: int = config.attr(type=int)
     """Integer value to filter in mask_source (if it is set, otherwise sources/source) to create a 
     mask of the voxel set(s) used as input."""
-    mask_source = config.attr(type=NrrdDependencyNode)
+    mask_source: NrrdDependencyNode = config.attr(type=NrrdDependencyNode)
     """Path to the NRRD file containing the volumetric annotation data of the Partition."""
-    mask_only = config.attr(type=bool, default=False)
+    mask_only: bool = config.attr(type=bool, default=False)
     """Flag to indicate no voxel data needs to be stored"""
-    voxel_size = config.attr(type=int, required=True)
+    voxel_size: int = config.attr(type=int, required=True)
     """Size of each voxel."""
-    keys = config.attr(type=types.list(str))
+    keys: list[str] = config.attr(type=types.list(str))
     """List of names to assign to each source of the Partition."""
-    sparse = config.attr(type=bool, default=True)
+    sparse: bool = config.attr(type=bool, default=True)
     """
     Boolean flag to expect a sparse or dense mask. If the mask selects most
     voxels, use ``dense``, otherwise use ``sparse``.
     """
-    strict = config.attr(type=bool, default=True)
+    strict: bool = config.attr(type=bool, default=True)
     """Boolean flag to check the sources and the mask sizes. 
     When the flag is True, sources and mask should have exactly the same sizes;
     otherwise, sources sizes should be greater than mask sizes."""
@@ -483,12 +490,12 @@ class AllenStructure(NrrdVoxels, classmap_entry="allen"):
     referred as Allen Mouse Brain Region Hierarchy (AMBRH)
     """
 
-    struct_id = config.attr(
+    struct_id: int = config.attr(
         type=int, required=types.mut_excl("struct_id", "struct_name", required=True)
     )
     """Id of the region to filter within the annotation volume according to the AMBRH.
     If struct_id is set, then struct_name should not be set."""
-    struct_name = config.attr(
+    struct_name: str = config.attr(
         type=types.str(strip=True, lower=True),
         required=types.mut_excl("struct_id", "struct_name", required=True),
     )

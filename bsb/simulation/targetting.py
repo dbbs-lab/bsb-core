@@ -2,16 +2,22 @@ import copy
 import functools
 import math
 import random
+import typing
 
 import numpy as np
 from numpy.random import default_rng
 from .. import config
 from ..config import refs, types
 
+if typing.TYPE_CHECKING:
+    from .cell import CellModel
+
 
 @config.dynamic(attr_name="strategy", default="all", auto_classmap=True)
 class Targetting:
-    type = config.attr(type=types.in_(["cell", "connection"]), default="cell")
+    type: typing.Union[
+        typing.Literal["cell"], typing.Literal["connection"]
+    ] = config.attr(type=types.in_(["cell", "connection"]), default="cell")
 
     def get_targets(self, adapter, simulation, simdata):
         if self.type == "cell":
@@ -41,7 +47,9 @@ class ConnectionTargetting(Targetting, classmap_entry="all_connections"):
 
 
 class CellModelFilter:
-    cell_models = config.reflist(refs.sim_cell_model_ref, required=False)
+    cell_models: list["CellModel"] = config.reflist(
+        refs.sim_cell_model_ref, required=False
+    )
 
     def get_targets(self, adapter, simulation, simdata):
         return {
@@ -95,7 +103,9 @@ class CellModelTargetting(
     Targets all cells of certain cell models.
     """
 
-    cell_models = config.reflist(refs.sim_cell_model_ref, required=True)
+    cell_models: list["CellModel"] = config.reflist(
+        refs.sim_cell_model_ref, required=True
+    )
 
     @FractionFilter.filter
     def get_targets(self, adapter, simulation, simdata):
@@ -110,7 +120,7 @@ class RepresentativesTargetting(
     Targets all identifiers of certain cell types.
     """
 
-    n = config.attr(type=int, default=1)
+    n: int = config.attr(type=int, default=1)
 
     @FractionFilter.filter
     def get_targets(self, adapter, simulation, simdata):
@@ -126,7 +136,9 @@ class ByIdTargetting(FractionFilter, CellTargetting, classmap_entry="by_id"):
     Targets all given identifiers.
     """
 
-    ids = config.attr(type=types.dict(type=types.list(type=int)), required=True)
+    ids: dict[str, list[int]] = config.attr(
+        type=types.dict(type=types.list(type=int)), required=True
+    )
 
     @FractionFilter.filter
     def get_targets(self, adapter, simulation, simdata):
@@ -146,7 +158,7 @@ class ByLabelTargetting(
     Targets all given labels.
     """
 
-    labels = config.attr(type=types.list(type=str), required=True)
+    labels: list[str] = config.attr(type=types.list(type=str), required=True)
 
     @FractionFilter.filter
     def get_targets(self, adapter, simulation, simdata):
@@ -166,9 +178,11 @@ class CylindricalTargetting(
     Targets all cells in a cylinder along specified axis.
     """
 
-    origin = config.attr(type=types.list(type=float, size=2))
-    axis = config.attr(type=types.in_(["x", "y", "z"]), default="y")
-    radius = config.attr(type=float, required=True)
+    origin: list[float] = config.attr(type=types.list(type=float, size=2))
+    axis: typing.Union[
+        typing.Literal["x"], typing.Literal["y"], typing.Literal["z"]
+    ] = config.attr(type=types.in_(["x", "y", "z"]), default="y")
+    radius: float = config.attr(type=float, required=True)
 
     @FractionFilter.filter
     def get_targets(self, adapter, simulation, simdata):
@@ -201,8 +215,8 @@ class SphericalTargetting(
     Targets all cells in a sphere.
     """
 
-    origin = config.attr(type=types.list(type=float, size=3), required=True)
-    radius = config.attr(type=float, required=True)
+    origin: list[float] = config.attr(type=types.list(type=float, size=3), required=True)
+    radius: float = config.attr(type=float, required=True)
 
     @FractionFilter.filter
     def get_targets(self, adapter, simulation, simdata):

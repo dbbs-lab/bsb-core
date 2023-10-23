@@ -1,7 +1,13 @@
+import typing
+
 from .component import SimulationComponent
 from .parameter import Parameter
 from .. import config
 from ..config import refs
+from ..config._attrs import cfglist
+
+if typing.TYPE_CHECKING:
+    from ..cell_types import CellType
 
 
 @config.node
@@ -10,11 +16,11 @@ class CellModel(SimulationComponent):
     Cell models are simulator specific representations of a cell type.
     """
 
-    cell_type = config.ref(refs.cell_type_ref, key="name")
+    cell_type: "CellType" = config.ref(refs.cell_type_ref, key="name")
     """
     The cell type that this model represents
     """
-    parameters = config.list(type=Parameter)
+    parameters: cfglist[Parameter] = config.list(type=Parameter)
     """
     The parameters of the model.
     """

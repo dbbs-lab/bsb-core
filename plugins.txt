@@ -1,5 +1,5 @@
 # Plugins
-bsb-hdf5==0.8.3
+bsb-hdf5==0.9.0
 
 # Plugin dependencies
 shortuuid

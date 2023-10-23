@@ -2,25 +2,28 @@ import abc
 import csv
 import io
 import typing
-from collections import defaultdict
 
 import psutil
-import numpy as np
 from tqdm import tqdm
+
 from ..exceptions import ConfigurationError
 from .strategy import ConnectionStrategy
-from ..storage import Chunk
 from .. import config
 from ..config import refs
 from ..mixins import NotParallel
 from ..storage.interfaces import PlacementSet
 
+if typing.TYPE_CHECKING:
+    from ..storage import FileDependencyNode
+    from ..cell_types import CellType
+    from ..topology import Partition
+
 
 @config.node
 class ImportConnectivity(NotParallel, ConnectionStrategy, abc.ABC, classmap_entry=None):
-    source = config.file(required=True)
-    cell_types = config.reflist(refs.cell_type_ref, required=False)
-    partitions = config.reflist(refs.partition_ref, required=False)
+    source: "FileDependencyNode" = config.file(required=True)
+    cell_types: list["CellType"] = config.reflist(refs.cell_type_ref, required=False)
+    partitions: list["Partition"] = config.reflist(refs.partition_ref, required=False)
 
     @config.property(default=False)
     def cache(self):
@@ -40,11 +43,11 @@ class ImportConnectivity(NotParallel, ConnectionStrategy, abc.ABC, classmap_entr
 
 @config.node
 class CsvImportConnectivity(ImportConnectivity):
-    pre_header = config.attr(default="pre")
-    post_header = config.attr(default="post")
-    mapping_key = config.attr()
-    delimiter = config.attr(default=",")
-    progress_bar = config.attr(type=bool, default=True)
+    pre_header: str = config.attr(default="pre")
+    post_header: str = config.attr(default="post")
+    mapping_key: str = config.attr()
+    delimiter: str = config.attr(default=",")
+    progress_bar: bool = config.attr(type=bool, default=True)
 
     def __boot__(self):
         if (

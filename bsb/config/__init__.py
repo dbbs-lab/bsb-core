@@ -10,6 +10,7 @@ import os
 import sys
 import glob
 import itertools
+from importlib.machinery import ModuleSpec
 from shutil import copy2 as copy_file
 import builtins
 import traceback
@@ -35,6 +36,7 @@ from ._attrs import (
 from .._util import ichain
 from ._make import walk_node_attributes, walk_nodes, compose_nodes, get_config_attributes
 from ._hooks import on, before, after, run_hook, has_hook
+from ._distributions import Distribution
 from .. import plugins
 from ..exceptions import ConfigTemplateNotFoundError, ParserError, PluginError
 from . import parsers
@@ -80,11 +82,14 @@ class ConfigurationModule:
     run_hook = staticmethod(run_hook)
     has_hook = staticmethod(has_hook)
 
+    Distribution = Distribution
+
     _parser_classes = {}
 
     # The __path__ attribute needs to be retained to mark this module as a package with
     # submodules (config.refs, config.parsers.json, ...)
     __path__ = _path
+    __spec__ = ModuleSpec(__name__, __loader__, origin=__file__)
 
     # Load the Configuration class on demand, not on import, to avoid circular
     # dependencies.

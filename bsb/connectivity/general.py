@@ -1,13 +1,15 @@
 import itertools
 import os
+import typing
+
 import numpy as np
-import functools
 from .strategy import ConnectionStrategy
-from ..exceptions import SourceQualityError
-from .. import config, _util as _gutil
+from .. import config
 from ..config import types
 from ..mixins import InvertedRoI
-from ..reporting import warn
+
+if typing.TYPE_CHECKING:
+    from ..config import Distribution
 
 
 @config.node
@@ -17,7 +19,7 @@ class Convergence(ConnectionStrategy):
     to X target cells.
     """
 
-    convergence = config.attr(type=types.distribution(), required=True)
+    convergence: "Distribution" = config.attr(type=types.distribution(), required=True)
 
     def connect(self):
         raise NotImplementedError("Needs to be restored, please open an issue.")
@@ -48,7 +50,7 @@ class FixedIndegree(InvertedRoI, ConnectionStrategy):
     presynaptic cells from all the presynaptic cell types.
     """
 
-    indegree = config.attr(type=int, required=True)
+    indegree: int = config.attr(type=int, required=True)
 
     def connect(self, pre, post):
         in_ = self.indegree

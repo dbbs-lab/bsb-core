@@ -16,6 +16,7 @@ class SpikeRecorder(ArborDevice, classmap_entry="spike_recorder"):
     def prepare_samples(self, simdata):
         super().prepare_samples(simdata)
         if not MPI.get_rank():
+
             def record_device_spikes(segment):
                 spiketrain = list()
                 senders = list()

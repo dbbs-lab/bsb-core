@@ -1,3 +1,4 @@
+import typing
 import warnings
 
 import abc as _abc
@@ -20,6 +21,7 @@ import yaml
 from .._util import obj_str_insert
 from .. import config
 from ..config import types
+from ..config._attrs import cfglist
 
 if _tp.TYPE_CHECKING:
     from ..storage.interfaces import FileStore
@@ -420,8 +422,8 @@ class CodeDependencyNode(FileDependencyNode):
 
 @config.node
 class Operation:
-    func = config.attr(type=types.function_())
-    parameters = config.catch_all(type=types.any_())
+    func: typing.Callable[[object, ...], object] = config.attr(type=types.function_())
+    parameters: dict[typing.Any] = config.catch_all(type=types.any_())
 
     def __init__(self, value=None, /, **kwargs):
         if value is not None:
@@ -432,7 +434,7 @@ class Operation:
 
 
 class FilePipelineMixin:
-    pipeline = config.list(type=Operation)
+    pipeline: cfglist[Operation] = config.list(type=Operation)
 
     def pipe(self, input):
         return _ft.reduce(lambda state, func: func(state), self.pipeline, input)
@@ -458,7 +460,9 @@ class NrrdDependencyNode(FilePipelineMixin, FileDependencyNode):
 
 @config.node
 class MorphologyOperation(Operation):
-    func = config.attr(type=types.method_shortcut("bsb.morphologies.Morphology"))
+    func: typing.Callable[["Morphology", ...], "Morphology"] = config.attr(
+        type=types.method_shortcut("bsb.morphologies.Morphology")
+    )
 
 
 @config.node
@@ -468,13 +472,15 @@ class MorphologyDependencyNode(FilePipelineMixin, FileDependencyNode):
     The content of these files will be stored in bsb.morphologies.Morphology instances.
     """
 
-    pipeline = config.list(type=MorphologyOperation)
-    name = config.attr()
+    pipeline: cfglist[MorphologyOperation] = config.list(type=MorphologyOperation)
+    name: str = config.attr(type=str, default=None, required=False)
     """
     Name associated to the morphology. If not provided, the program will use the name of the file 
     in which the morphology is stored. 
     """
-    tags = config.attr(type=types.dict(type=types.or_(types.str(), types.list(str))))
+    tags: dict[typing.Union[str, list[str]]] = config.attr(
+        type=types.dict(type=types.or_(types.str(), types.list(str)))
+    )
     """
     Dictionary mapping SWC tags to sets of morphology labels.
     """

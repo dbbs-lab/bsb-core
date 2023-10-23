@@ -1,18 +1,10 @@
 from bsb.core import Scaffold
-from bsb.services import MPI
-from bsb.config import Configuration
-from bsb.morphologies import Morphology, Branch
 from bsb.unittest import (
     NumpyTestCase,
     FixedPosConfigFixture,
     RandomStorageFixture,
-    MorphologiesFixture,
-    NetworkFixture,
-    skip_parallel,
 )
 import unittest
-import numpy as np
-from collections import defaultdict
 
 
 class TestSimulate(

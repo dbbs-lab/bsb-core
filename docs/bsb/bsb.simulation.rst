@@ -52,6 +52,14 @@ bsb.simulation.device module
    :undoc-members:
    :show-inheritance:
 
+bsb.simulation.parameter module
+-------------------------------
+
+.. automodule:: bsb.simulation.parameter
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 bsb.simulation.results module
 -----------------------------
 

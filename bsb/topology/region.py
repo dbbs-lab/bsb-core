@@ -1,14 +1,18 @@
 """
 Module for the Region types.
 """
+import typing
 
-from ._layout import Layout, RhomboidData
+from ._layout import Layout
 from .. import config
-from ..config import types, refs
-from ..exceptions import *
+from ..config import refs, types
 from ..reporting import warn
 import numpy as np
 import abc
+
+if typing.TYPE_CHECKING:
+    from ..core import Scaffold
+    from .partition import Partition
 
 
 @config.dynamic(attr_name="type", required=False, default="group", auto_classmap=True)
@@ -20,8 +24,12 @@ class Region(abc.ABC):
     changes itself.
     """
 
-    name = config.attr(key=True)
-    children = config.reflist(refs.regional_ref, backref="region", required=True)
+    scaffold: "Scaffold"
+
+    name: str = config.attr(key=True)
+    children: list[typing.Union["Region", "Partition"]] = config.reflist(
+        refs.regional_ref, backref="region", required=True
+    )
 
     @property
     def data(self):
@@ -78,7 +86,9 @@ class Stack(RegionGroup, classmap_entry="stack"):
     own height accordingly.
     """
 
-    axis = config.attr(default="y")
+    axis: typing.Union[
+        typing.Literal["x"], typing.Literal["y"], typing.Literal["z"]
+    ] = config.attr(type=types.in_(["x", "y", "z"]), default="y")
 
     def get_layout(self, hint):
         layout = super().get_layout(hint)

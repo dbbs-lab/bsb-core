@@ -5,7 +5,7 @@ from .._util import obj_str_insert
 
 @config.node
 class SimulationComponent(abc.ABC):
-    name = config.attr(key=True)
+    name: str = config.attr(key=True)
 
     @property
     def simulation(self):

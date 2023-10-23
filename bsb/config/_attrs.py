@@ -541,6 +541,10 @@ class ConfigurationAttribute:
 
 
 class cfglist(builtins.list):
+    """
+    Extension of the builtin list to manipulate lists of configuration nodes.
+    """
+
     def get_node_name(self):
         return self._config_parent.get_node_name() + "." + self._config_attr_name
 
@@ -682,6 +686,10 @@ class ConfigurationListAttribute(ConfigurationAttribute):
 
 
 class cfgdict(builtins.dict):
+    """
+    Extension of the builtin dictionary to manipulate dicts of configuration nodes.
+    """
+
     def __getattr__(self, name):
         try:
             return self[name]
