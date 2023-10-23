@@ -37,8 +37,10 @@ Module contents
    :undoc-members:
    :show-inheritance:
 
-Dev contents
-------------
+Dev
+---
+
+.. autoclass:: bsb.config._config.NetworkNode
 
 .. autoclass:: bsb.config._attrs.cfgdict
 
