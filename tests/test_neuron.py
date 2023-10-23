@@ -7,9 +7,8 @@ import unittest
 from scipy.signal import find_peaks
 
 from bsb.config import from_json, from_file
-from bsb.core import Scaffold, from_storage
-from bsb.services import MPI
-from bsb.unittest import get_config_path, get_morphology_path, RandomStorageFixture
+from bsb.core import Scaffold
+from bsb.unittest import get_config_path, RandomStorageFixture
 
 golgi_autorythm_config = get_config_path("test_nrn_goc_autorythm.json")
 pc_autorythm_config = get_config_path("test_nrn_pc_autorythm.json")
@@ -21,8 +20,7 @@ def neuron_installed():
     return importlib.util.find_spec("neuron")
 
 
-# Run these tests with mpirun -n 1
-# @unittest.skip("NEURON tests need to be run manually")
+@unittest.skipIf(not neuron_installed(), "NEURON is not installed")
 class NeuronTest(RandomStorageFixture, unittest.TestCase, engine_name="hdf5"):
     def test_golgi_autorythm(self):
         # Read the config and build a network with a single Golgi cell
