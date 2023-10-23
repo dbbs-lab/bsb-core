@@ -1,3 +1,5 @@
+import typing
+
 from ..config import types
 from .. import config
 from ..services import MPI
@@ -12,6 +14,9 @@ import tempfile
 from . import Morphology
 from ..exceptions import MissingMorphologyError, SelectorError
 
+if typing.TYPE_CHECKING:
+    from ..core import Scaffold
+
 
 @config.dynamic(
     attr_name="select",
@@ -20,6 +25,8 @@ from ..exceptions import MissingMorphologyError, SelectorError
     default="by_name",
 )
 class MorphologySelector(abc.ABC):
+    scaffold: "Scaffold"
+
     @abc.abstractmethod
     def validate(self, all_morphos):
         pass

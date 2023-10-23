@@ -1,12 +1,18 @@
+import typing
+
 from ..exceptions import IndicatorError, PlacementRelationError, PlacementError
 from .. import config
 from ..config import refs, types
 from ..morphologies.selector import MorphologySelector
 import numpy as np
 
+if typing.TYPE_CHECKING:
+    from ..core import Scaffold
+
 
 @config.node
 class PlacementIndications:
+    scaffold: "Scaffold"
     radius = config.attr(type=float)
     density = config.attr(type=float)
     planar_density = config.attr(type=float)
@@ -58,6 +64,19 @@ class PlacementIndicator:
         return ind
 
     def guess(self, chunk=None, voxels=None):
+        """
+        Estimate the count of cell to place based on the cell_type's PlacementIndications.
+        Float estimates are converted to int using an acceptance-rejection method.
+
+        :param chunk: if provided, will estimate the number of cell within the Chunk.
+        :type chunk: bsb.storage.Chunk
+        :param voxels: if provided, will estimate the number of cell within the VoxelSet.
+            Only for cells with the indication "density_key" set or with the indication
+            "relative_to" set and the target cell has the indication "density_key" set.
+        :type voxels: bsb.voxels.VoxelSet
+        :returns: Cell counts for each chunk or voxel.
+        :rtype: numpy.ndarray[int]
+        """
         count = self.indication("count")
         density = self.indication("density")
         density_key = self.indication("density_key")
@@ -67,8 +86,6 @@ class PlacementIndicator:
         count_ratio = self.indication("count_ratio")
         if count is not None:
             estimate = self._estim_for_chunk(chunk, count)
-        if density_key is not None:
-            pass
         if density is not None:
             estimate = self._density_to_estim(density, chunk)
         if planar_density is not None:
@@ -78,7 +95,10 @@ class PlacementIndicator:
             if count_ratio is not None:
                 strats = self._strat.scaffold.get_placement_of(relation)
                 estimate = (
-                    sum(PlacementIndicator(s, relation).guess() for s in strats)
+                    sum(
+                        PlacementIndicator(s, relation).guess(chunk, voxels)
+                        for s in strats
+                    )
                     * count_ratio
                 )
                 estimate = self._estim_for_chunk(chunk, estimate)
@@ -144,10 +164,13 @@ class PlacementIndicator:
                 "No configuration indicators found for the number of"
                 + f"'{self._cell_type.name}' in '{self._strat.name}'"
             )
-        # 1.2 cells == 0.8 probability for 1, 0.2 probability for 2
-        return (
-            np.floor(estimate) + (np.random.rand(estimate.size) < estimate % 1)
-        ).astype(int)
+        if not np.allclose(estimate, estimate // 1):
+            # 1.2 cells == 0.8 probability for 1, 0.2 probability for 2
+            return (
+                np.floor(estimate) + (np.random.rand(estimate.size) < estimate % 1)
+            ).astype(int)
+        else:
+            return np.round(estimate).astype(int)
 
     def _density_to_estim(self, density, chunk=None):
         return sum(p.volume(chunk) * density for p in self._strat.partitions)
@@ -165,6 +188,6 @@ class PlacementIndicator:
         return count * chunk_volume / total_volume
 
     def _estim_for_voxels(self, voxels, key):
-        return voxels.get_data(key).ravel() * np.product(
+        return voxels.get_data(key).ravel().astype(float) * np.product(
             voxels.get_size_matrix(copy=False), axis=1
         )

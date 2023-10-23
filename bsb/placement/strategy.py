@@ -1,3 +1,5 @@
+import typing
+
 from .. import config
 from ..exceptions import (
     EmptySelectionError,
@@ -17,6 +19,9 @@ import numpy as np
 import itertools
 import abc
 
+if typing.TYPE_CHECKING:
+    from ..core import Scaffold
+
 
 @config.dynamic(attr_name="strategy", required=True)
 class PlacementStrategy(abc.ABC, SortableByAfter):
@@ -24,6 +29,8 @@ class PlacementStrategy(abc.ABC, SortableByAfter):
     Quintessential interface of the placement module. Each placement strategy defines an
     approach to placing neurons into a volume.
     """
+
+    scaffold: "Scaffold"
 
     name = config.attr(key=True)
     cell_types = config.reflist(refs.cell_type_ref, required=True)
@@ -59,6 +66,11 @@ class PlacementStrategy(abc.ABC, SortableByAfter):
         Central method of each placement strategy. Given a chunk, should fill that chunk
         with cells by calling the scaffold's (available as ``self.scaffold``)
         :func:`~bsb.core.Scaffold.place_cells` method.
+
+        :param chunk: Chunk to fill
+        :type chunk: bsb.storage.Chunk
+        :param indicators: Dictionary of each cell type to its PlacementIndicator
+        :type indicators: Mapping[str, bsb.placement.indicator.PlacementIndicator]
         """
         pass
 
@@ -195,5 +207,9 @@ class Entities(PlacementStrategy):
         for indicator in indicators.values():
             cell_type = indicator.cell_type
             # Guess total number, not chunk number, as entities bypass chunking.
-            n = indicator.guess()
+            n = sum(
+                # Pass the voxelset if it exists
+                np.sum(indicator.guess(voxels=getattr(p, "voxelset", None)))
+                for p in self.partitions
+            )
             self.scaffold.create_entities(cell_type, n)

@@ -159,6 +159,9 @@ class VoxelSet:
     def __iter__(self):
         return iter(self.get_raw(copy=False))
 
+    def __array__(self):
+        return self.get_raw(copy=False)
+
     def __len__(self):
         return len(self.get_raw(copy=False))
 

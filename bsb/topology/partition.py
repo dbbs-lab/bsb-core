@@ -1,6 +1,7 @@
 """
     Module for the Partition configuration nodes and its dependencies.
 """
+import typing
 
 from ._layout import Layout, RhomboidData
 from .. import config
@@ -25,6 +26,9 @@ import nrrd
 import json
 import abc
 
+if typing.TYPE_CHECKING:
+    from ..core import Scaffold
+
 
 def _size_requirements(section):
     if "thickness" not in section and "volume_scale" not in section:
@@ -45,6 +49,7 @@ class _backref_property(property):
     auto_classmap=True,
 )
 class Partition(abc.ABC):
+    scaffold: "Scaffold"
     name = config.attr(key=True)
 
     @_backref_property

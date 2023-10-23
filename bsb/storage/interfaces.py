@@ -11,6 +11,10 @@ from ..trees import BoxTree
 from .._util import obj_str_insert, immutable
 
 
+if typing.TYPE_CHECKING:
+    from ..cell_types import CellType
+
+
 @config.pluggable(key="engine", plugin_name="storage engine")
 class StorageNode:
     root = config.slot()
@@ -363,6 +367,10 @@ class PlacementSet(Interface):
         self._engine = engine
         self._type = cell_type
         self._tag = cell_type.name
+
+    @abc.abstractmethod
+    def __len__(self):
+        pass
 
     @obj_str_insert
     def __repr__(self):
@@ -803,6 +811,34 @@ class MorphologyRepository(Interface, engine_key="morphologies"):
         """
         pass
 
+    @abc.abstractmethod
+    def get_all_meta(self):
+        """
+        Get the metadata of all stored morphologies.
+        :returns: Metadata dictionary
+        :rtype: dict
+        """
+        pass
+
+    @abc.abstractmethod
+    def set_all_meta(self, all_meta):
+        """
+        Set the metadata of all stored morphologies.
+        :param all_meta: Metadata dictionary.
+        :type all_meta: dict
+        """
+        pass
+
+    @abc.abstractmethod
+    def update_all_meta(self, meta):
+        """
+        Update the metadata of stored morphologies with the provided key values
+
+        :param meta: Metadata dictionary.
+        :type meta: str
+        """
+        pass
+
     def import_swc(self, file, name=None, overwrite=False):
         """
         Import and store .swc file contents as a morphology in the repository.
@@ -886,6 +922,17 @@ class ConnectivitySet(Interface):
     outgoing connections they are the presynaptic cells. Vice versa for the global
     connections.
     """
+
+    # The following attributes must be set on each ConnectivitySet by the engine:
+    tag: str
+    pre_type_name: str
+    post_type_name: str
+    pre_type: "CellType"
+    post_type: "CellType"
+
+    @abc.abstractmethod
+    def __len__(self):
+        pass
 
     @classmethod
     @abc.abstractmethod
@@ -1048,6 +1095,12 @@ class ConnectivityIterator:
         return ConnectivityIterator(self._cs, self._dir, lchunks, gchunks)
 
     def __iter__(self):
+        """
+        Iterate over the data chunk by chunk, offset as their global ids
+
+        :returns: presyn global cell IDs, postsyn global cell IDs (0 to N)
+        :rtype: Tuple[numpy.ndarray, numpy.ndarray]
+        """
         yield from (
             self._offset_block(*data)
             for data in self._cs.flat_iter_connections(
@@ -1056,6 +1109,14 @@ class ConnectivityIterator:
         )
 
     def chunk_iter(self):
+        """
+        Iterate over the data chunk by chunk, with the chunk-local cell IDs, and the local
+        and global chunks they stem from returned as well.
+
+        :returns: presyn chunk, presyn chunk-local cell IDs (0 to N), postsyn chunk,
+          postsyn chunk-local cell IDs (0 to N)
+        :rtype: Tuple[~bsb.storage.Chunk, numpy.ndarray, ~bsb.storage.Chunk, numpy.ndarray]
+        """
         yield from (
             (data[2], data[3][1], data[1], data[3][0])
             if dir == "inc"
@@ -1183,6 +1244,4 @@ class StoredMorphology:
 
 class GeneratedMorphology(StoredMorphology):
     def __init__(self, name, generated, meta):
-        self.name = name
-        self._loader = lambda: generated
-        self._meta = meta
+        super().__init__(name, lambda: generated, meta)

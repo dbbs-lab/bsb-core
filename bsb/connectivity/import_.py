@@ -56,8 +56,8 @@ class CsvImportConnectivity(ImportConnectivity):
             )
 
     def parse_source(self, pre, post):
-        pre = next(iter(pre.placement.values()))
-        post = next(iter(post.placement.values()))
+        pre = pre.placement[0]
+        post = post.placement[0]
         if self.mapping_key:
 
             def make_maps(pre_chunks, post_chunks):

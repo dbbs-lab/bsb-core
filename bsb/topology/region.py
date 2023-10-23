@@ -1,14 +1,17 @@
 """
 Module for the Region types.
 """
+import typing
 
-from ._layout import Layout, RhomboidData
+from ._layout import Layout
 from .. import config
-from ..config import types, refs
-from ..exceptions import *
+from ..config import refs
 from ..reporting import warn
 import numpy as np
 import abc
+
+if typing.TYPE_CHECKING:
+    from ..core import Scaffold
 
 
 @config.dynamic(attr_name="type", required=False, default="group", auto_classmap=True)
@@ -19,6 +22,8 @@ class Region(abc.ABC):
     When arranging will simply call arrange/layout on its children but won't cause any
     changes itself.
     """
+
+    scaffold: "Scaffold"
 
     name = config.attr(key=True)
     children = config.reflist(refs.regional_ref, backref="region", required=True)
