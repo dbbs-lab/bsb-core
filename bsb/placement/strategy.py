@@ -40,7 +40,9 @@ class PlacementStrategy(abc.ABC, SortableByAfter):
     partitions: list["Partition"] = config.reflist(refs.partition_ref, required=True)
     overrides: cfgdict["PlacementIndications"] = config.dict(type=PlacementIndications)
     after: list["PlacementStrategy"] = config.reflist(refs.placement_ref)
-    distribute: DistributorsNode = config.attr(type=DistributorsNode, default=dict, call_default=True)
+    distribute: DistributorsNode = config.attr(
+        type=DistributorsNode, default=dict, call_default=True
+    )
     indicator_class = PlacementIndicator
 
     def __init_subclass__(cls, **kwargs):

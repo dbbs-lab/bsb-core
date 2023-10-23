@@ -32,7 +32,9 @@ class Simulation:
     name: str = config.attr(key=True)
     duration: float = config.attr(type=float, required=True)
     cell_models: cfgdict[CellModel] = config.slot(type=CellModel, required=True)
-    connection_models: cfgdict[ConnectionModel] = config.slot(type=ConnectionModel, required=True)
+    connection_models: cfgdict[ConnectionModel] = config.slot(
+        type=ConnectionModel, required=True
+    )
     devices: cfgdict[DeviceModel] = config.slot(type=DeviceModel, required=True)
     post_prepare: cfglist[type] = config.list(type=cfgtypes.class_())
 

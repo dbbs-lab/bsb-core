@@ -258,7 +258,9 @@ class DistributorsNode:
     morphologies: MorphologyDistributor = config.attr(
         type=MorphologyDistributor, default=dict, call_default=True
     )
-    rotations: RotationDistributor = config.attr(type=RotationDistributor, default=dict, call_default=True)
+    rotations: RotationDistributor = config.attr(
+        type=RotationDistributor, default=dict, call_default=True
+    )
     properties: dict[Distributor] = config.catch_all(type=Distributor)
 
     def __call__(self, key, partitions, indicator, positions, loaders=None):
