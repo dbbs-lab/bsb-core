@@ -14,12 +14,13 @@ from ...storage import Chunk
 
 if typing.TYPE_CHECKING:
     from .simulation import ArborSimulation
+    from .cell import ArborCell
 
 
 class SimulationData:
     def __init__(self, simulation):
         self.chunks = None
-        self.populations = dict()
+        self.populations: dict["ArborCell", Population] = None
         self.placement = {
             model: model.get_placement_set() for model in simulation.cell_models.values()
         }
