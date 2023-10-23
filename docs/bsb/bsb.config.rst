@@ -36,3 +36,10 @@ Module contents
    :members:
    :undoc-members:
    :show-inheritance:
+
+Dev contents
+------------
+
+.. autoclass:: bsb.config._attrs.cfgdict
+
+.. autoclass:: bsb.config._attrs.cfglist
