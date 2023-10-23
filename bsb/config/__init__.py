@@ -89,7 +89,7 @@ class ConfigurationModule:
     # The __path__ attribute needs to be retained to mark this module as a package with
     # submodules (config.refs, config.parsers.json, ...)
     __path__ = _path
-    __spec__ = ModuleSpec(__name__, __loader__, origin=__file__)
+    __spec__ = None
 
     # Load the Configuration class on demand, not on import, to avoid circular
     # dependencies.
