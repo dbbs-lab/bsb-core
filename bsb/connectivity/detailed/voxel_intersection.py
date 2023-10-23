@@ -126,7 +126,7 @@ class VoxelIntersection(Intersectional, ConnectionStrategy):
         self.connect_cells(src_set, dest_set, src_locs, dest_locs)
 
     def _pick_locations(self, tid, cid, tvoxels, cvoxels, overlap):
-        n = int(self.contacts.draw(1))
+        n = int(self.contacts.draw(1)[0])
         if n <= 0:
             return np.empty((0, 3), dtype=int), np.empty((0, 3), dtype=int)
         cpool = cvoxels.get_data([c for c, _ in overlap])
