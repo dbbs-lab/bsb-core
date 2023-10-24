@@ -1,7 +1,7 @@
 import abc
 
 
-class SimulatorAdapter:
+class SimulatorAdapter(abc.ABC):
     def simulate(self, simulation):
         """
         Simulate the given simulation.
@@ -20,9 +20,8 @@ class SimulatorAdapter:
 
         :param simulation: The simulation configuration to prepare.
         :type simulation: ~bsb.simulation.simulation.Simulation
-        :param comm: The MPI communicator to use. Only nodes in the communicator will
-          participate in the simulation. The first node will idle as the main node. Calls
-          :meth:`~bsb.simulation.adapter.SimulatorAdapter.set_communicator`
+        :param comm: The mpi4py MPI communicator to use. Only nodes in the communicator
+          will participate in the simulation. The first node will idle as the main node.
         """
         pass
 
@@ -33,17 +32,9 @@ class SimulatorAdapter:
         """
         pass
 
-    @abc.abstractmethod
     def collect(self, simulation, simdata, simresult):
         """
         Collect the output of a simulation that completed
         """
         simresult.flush()
         return simresult
-
-    @abc.abstractmethod
-    def set_communicator(self, comm):
-        """
-        Set the communicator for this adapter.
-        """
-        pass

@@ -1,5 +1,6 @@
 import itertools
 import typing
+from collections import defaultdict
 
 from bsb.reporting import report, warn
 from bsb.exceptions import AdapterError, UnknownGIDError
@@ -14,6 +15,7 @@ from ...storage import Chunk
 
 if typing.TYPE_CHECKING:
     from .simulation import ArborSimulation
+    import neo
     from .cell import ArborCell
 
 
@@ -26,7 +28,7 @@ class SimulationData:
         }
         self.connections = dict()
         self.devices = dict()
-        self.result: "NestResult" = None
+        self.result: "SimulationResult" = None
         self.arbor_sim: "arbor.simulation" = None
 
 
@@ -214,7 +216,7 @@ class ArborRecipe(arbor.recipe):
 class ArborAdapter(SimulatorAdapter):
     def __init__(self):
         super().__init__()
-        self.simdata = {}
+        self.simdata: typing.Dict["ArborSimulation", "SimulationData"] = {}
 
     def get_rank(self):
         return MPI.get_rank()
@@ -239,9 +241,9 @@ class ArborAdapter(SimulatorAdapter):
                         "duplicate simulations on {MPI.get_size()} nodes."
                     )
                 else:
-                    mpi = MPI.get_communicator()
                     context = arbor.context(
-                        arbor.proc_allocation(threads=simulation.threads), mpi=mpi
+                        arbor.proc_allocation(threads=simulation.threads),
+                        mpi=comm or MPI.get_communicator(),
                     )
             if simulation.profiling:
                 if arbor.config()["profiling"]:

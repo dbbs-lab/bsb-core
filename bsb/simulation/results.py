@@ -1,5 +1,10 @@
+import typing
+
 from ..reporting import warn
 import traceback
+
+if typing.TYPE_CHECKING:
+    import neo
 
 
 class SimulationResult:
@@ -17,7 +22,7 @@ class SimulationResult:
     def add(self, recorder):
         self.recorders.append(recorder)
 
-    def create_recorder(self, flush):
+    def create_recorder(self, flush: typing.Callable[["neo.Segment"], None]):
         recorder = SimulationRecorder()
         recorder.flush = flush
         self.add(recorder)
@@ -42,5 +47,5 @@ class SimulationResult:
 
 
 class SimulationRecorder:
-    def flush(self):
+    def flush(self, segment: "neo.Segment"):
         raise NotImplementedError("Recorders need to implement the `flush` function.")
