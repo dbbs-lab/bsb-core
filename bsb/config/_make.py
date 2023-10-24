@@ -356,7 +356,7 @@ def get_config_attributes(cls):
         if hasattr(p_cls, "_config_attrs"):
             attrs.update(p_cls._config_attrs)
         else:
-            # Add mixin config attributes
+            # Scrape for mixin config attributes
             from ._attrs import ConfigurationAttribute
 
             attrs.update(
@@ -593,12 +593,12 @@ def walk_node_attributes(node):
     :returns: attribute, node, parents
     :rtype: Tuple[:class:`~.config.ConfigurationAttribute`, Any, Tuple]
     """
-    if hasattr(node.__class__, "_config_attrs"):
-        attrs = node.__class__._config_attrs
-    elif hasattr(node, "_config_attr"):
-        attrs = _get_walkable_iterator(node)
-    else:
-        return
+    attrs = get_config_attributes(node)
+    if not attrs:
+        if hasattr(node, "_config_attr"):
+            attrs = _get_walkable_iterator(node)
+        else:
+            return
     for attr in attrs.values():
         yield node, attr
         # Yield but don't follow references.

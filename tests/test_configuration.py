@@ -339,6 +339,20 @@ class TestConfigRefList(unittest.TestCase):
         with self.assertRaises(CfgReferenceError):
             root.empty_list = 5
 
+    def test_mixin_reflist_resolution(self):
+        """
+        This test aims to confirm that mixin reflists are resolved properly.
+        This config uses the `CellModelFilter` mixin, which declares a reflist.
+        """
+        golgi_autorythm_config = get_config_path("test_nrn_goc_autorythm.json")
+        cfg = from_json(golgi_autorythm_config)
+        node = cfg.simulations.neurontest_goc_test.devices.vrecorder_golgi.targetting
+        self.assertIs(
+            node.cell_models[0],
+            cfg.simulations.neurontest_goc_test.cell_models.golgi_cell,
+            "Mixin reference should be resolved",
+        )
+
 
 class HasRefsReference:
     def __call__(self, r, h):
