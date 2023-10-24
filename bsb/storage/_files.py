@@ -420,9 +420,14 @@ class CodeDependencyNode(FileDependencyNode):
             sys.path = list(reversed(tmp))
 
 
+class OperationCallable(typing.Protocol):
+    def __call__(self, obj: object, **kwargs: typing.Any) -> object:
+        pass
+
+
 @config.node
 class Operation:
-    func: typing.Callable[[object, ...], object] = config.attr(type=types.function_())
+    func: OperationCallable = config.attr(type=types.function_())
     parameters: dict[typing.Any] = config.catch_all(type=types.any_())
 
     def __init__(self, value=None, /, **kwargs):
@@ -458,9 +463,14 @@ class NrrdDependencyNode(FilePipelineMixin, FileDependencyNode):
         return self.pipe(self.get_data())
 
 
+class MorphologyOperationCallable(OperationCallable):
+    def __call__(self, obj: "Morphology", **kwargs: typing.Any) -> "Morphology":
+        pass
+
+
 @config.node
 class MorphologyOperation(Operation):
-    func: typing.Callable[["Morphology", ...], "Morphology"] = config.attr(
+    func: MorphologyOperationCallable = config.attr(
         type=types.method_shortcut("bsb.morphologies.Morphology")
     )
 
