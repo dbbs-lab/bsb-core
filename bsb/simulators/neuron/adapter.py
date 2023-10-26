@@ -10,7 +10,7 @@ from neo import AnalogSignal
 from bsb.exceptions import AdapterError, DatasetNotFoundError
 from bsb.reporting import report
 from bsb.services import MPI
-from bsb.simulation.adapter import SimulatorAdapter
+from bsb.simulation.adapter import SimulatorAdapter, SimulationData
 from bsb.simulation.results import SimulationResult
 from bsb.storage import Chunk
 
@@ -18,15 +18,13 @@ if typing.TYPE_CHECKING:
     from bsb.simulation.simulation import Simulation
 
 
-class SimulationData:
-    def __init__(self):
-        self.chunks = None
-        self.populations = dict()
+class NeuronSimulationData(SimulationData):
+    def __init__(self, simulation: "Simulation", result=None):
+        super().__init__(simulation, result=result)
         self.cells = dict()
         self.cid_offsets = dict()
         self.connections = dict()
         self.first_gid: int = None
-        self.result: "NeuronResult" = None
 
 
 class NeuronResult(SimulationResult):
@@ -63,8 +61,6 @@ class NeuronAdapter(SimulatorAdapter):
     def __init__(self):
         super().__init__()
         self.network = None
-        self.result = None
-        self.simdata = dict()
         self.next_gid = 0
 
     @property
@@ -74,16 +70,16 @@ class NeuronAdapter(SimulatorAdapter):
         return engine
 
     def prepare(self, simulation, comm=None):
-        self.simdata[simulation] = SimulationData()
+        self.simdata[simulation] = NeuronSimulationData(
+            simulation, result=NeuronResult(simulation)
+        )
         try:
             report("Preparing simulation", level=2)
             self.engine.dt = simulation.resolution
             self.engine.celsius = simulation.temperature
             self.engine.tstop = simulation.duration
-            simdata = self.simdata[simulation]
             report("Load balancing", level=2)
             self.load_balance(simulation)
-            simdata.result = NeuronResult(simulation)
             report("Creating neurons", level=2)
             self.create_neurons(simulation)
             report("Creating transmitters", level=2)

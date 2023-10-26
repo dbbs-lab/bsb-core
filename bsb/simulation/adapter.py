@@ -1,7 +1,32 @@
 import abc
+import typing
+from .results import SimulationResult
+
+
+if typing.TYPE_CHECKING:
+    from .simulation import Simulation
+    from .cell import CellModel
+    from ..storage import PlacementSet
+
+
+class SimulationData:
+    def __init__(self, simulation: "Simulation", result=None):
+        self.chunks = None
+        self.populations = dict()
+        self.placement: dict["CellModel", "PlacementSet"] = {
+            model: model.get_placement_set() for model in simulation.cell_models.values()
+        }
+        self.connections = dict()
+        self.devices = dict()
+        if result is None:
+            result = SimulationResult(simulation)
+        self.result: SimulationResult = result
 
 
 class SimulatorAdapter(abc.ABC):
+    def __init__(self):
+        self.simdata: dict["Simulation", "SimulationData"] = dict()
+
     def simulate(self, simulation):
         """
         Simulate the given simulation.

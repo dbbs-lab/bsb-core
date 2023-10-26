@@ -5,7 +5,7 @@ import time
 import functools
 from tqdm import tqdm
 
-from ...simulation.adapter import SimulatorAdapter
+from ...simulation.adapter import SimulatorAdapter, SimulationData
 from ...simulation.results import SimulationResult
 from ...reporting import report, warn
 from ...exceptions import (
@@ -18,18 +18,6 @@ from ...services import MPI
 
 if typing.TYPE_CHECKING:
     from ...simulation import Simulation
-
-
-class SimulationData:
-    def __init__(self, simulation):
-        self.chunks = None
-        self.populations = dict()
-        self.placement = {
-            model: model.get_placement_set() for model in simulation.cell_models.values()
-        }
-        self.connections = dict()
-        self.devices = dict()
-        self.result: "NestResult" = None
 
 
 class NestResult(SimulationResult):
@@ -78,9 +66,8 @@ class NestAdapter(SimulatorAdapter):
             self.reset_kernel()
 
     def prepare(self, simulation, comm=None):
-        self.simdata[simulation] = simdata = SimulationData(simulation)
+        self.simdata[simulation] = SimulationData(simulation)
         try:
-            simdata.result = SimulationResult(simulation)
             report("Installing  NEST modules...", level=2)
             self.load_modules(simulation)
             self.set_settings(simulation)
