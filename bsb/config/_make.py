@@ -449,9 +449,7 @@ def _get_dynamic_class(node_cls, kwargs):
     except DynamicClassError:
         mapped_class_msg = _get_mapped_class_msg(loaded_cls_name, classmap)
         raise UnresolvedClassCastError(
-            "Could not resolve '{}'{} to a class.".format(
-                loaded_cls_name, mapped_class_msg
-            )
+            f"Could not resolve '{loaded_cls_name}'{mapped_class_msg} to a class"
         ) from None
     return dynamic_cls
 
