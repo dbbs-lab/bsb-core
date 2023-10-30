@@ -23,7 +23,7 @@
 },
   "morphologies": [
     {
-      "file": "bsb/unittest/data/morphologies/GolgiCell.swc",
+      "file": "../bsb/unittest/data/morphologies/GolgiCell.swc",
       "tags": 
       {
         "16": ["dendrites", "basal_dendrites"],
@@ -87,7 +87,7 @@
       "devices": {
 
         "golgi_stimulus": {
-            "device": "iclamp",
+            "device": "current_clamp",
             "amplitude": 200e-3,
             "before": 200,
             "duration": 1000,
@@ -105,7 +105,7 @@
         
         "vrecorder_golgi": 
         {
-          "device": "vrecorder",
+          "device": "voltage_recorder",
           "targetting": {
             "strategy": "sphere",
             "radius" : 50,

@@ -1,8 +1,7 @@
 {
   "name": "Test config v4",
   "storage": {
-    "engine": "hdf5",
-    "root": "some_file.hdf5"
+    "engine": "hdf5"
   },
   "network": {
     "x": 400.0,

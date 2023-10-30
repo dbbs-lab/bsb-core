@@ -1,7 +1,6 @@
 {
   "storage": {
-    "engine": "hdf5",
-    "root": "minimal.hdf5"
+    "engine": "hdf5"
   },
   "network": {
     "x": 150.0,

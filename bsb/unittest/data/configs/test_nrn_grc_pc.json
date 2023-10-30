@@ -28,7 +28,7 @@
 },
   "morphologies": [
     {
-      "file": "bsb/unittest/data/morphologies/GranuleCell.swc", 
+      "file": "../bsb/unittest/data/morphologies/GranuleCell.swc",
       "tags": 
       {
         "16": ["axon", "axon_hillock"],  
@@ -38,7 +38,7 @@
       }
     },
     {
-      "file": "bsb/unittest/data/morphologies/PurkinjeCell.swc",
+      "file": "../bsb/unittest/data/morphologies/PurkinjeCell.swc",
       "tags":
       {
         "16": ["axon", "AIS"],
@@ -182,7 +182,7 @@
       },
       "devices": {
         "current_clamp": {
-          "device": "iclamp",
+          "device": "current_clamp",
           "amplitude": 25e-3,
           "before": 70,
           "duration": 100,
@@ -198,7 +198,7 @@
           }
         },
         "current_clamp_baseline": {
-          "device": "iclamp",
+          "device": "current_clamp",
           "amplitude": 10e-3,
           "before": 0,
           "duration": 100,
@@ -215,7 +215,7 @@
         },
         "vrecorder_granule": 
         {
-          "device": "vrecorder",
+          "device": "voltage_recorder",
           "targetting": {
             "strategy": "sphere",
             "radius" : 200,
@@ -225,7 +225,7 @@
         },
         "vrecorder_purkinje": 
         {
-          "device": "vrecorder",
+          "device": "voltage_recorder",
           "targetting": {
             "strategy": "sphere",
             "radius" : 200,

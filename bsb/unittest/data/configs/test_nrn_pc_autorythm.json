@@ -23,7 +23,7 @@
 },
   "morphologies": [
     {
-      "file": "bsb/unittest/data/morphologies/PurkinjeCell.swc",
+      "file": "../bsb/unittest/data/morphologies/PurkinjeCell.swc",
       "tags":
       {
         "16": ["axon", "AIS"],
@@ -92,7 +92,7 @@
         
         "vrecorder_purkinje": 
         {
-          "device": "vrecorder",
+          "device": "voltage_recorder",
           "targetting": {
             "strategy": "sphere",
             "radius" : 50,
