@@ -3,7 +3,7 @@ import abc
 from bsb import config
 from bsb.config import types
 from bsb.simulation.device import DeviceModel
-from bsb.simulation.targetting import CellTargetting
+from bsb.simulation.targetting import Targetting
 
 try:
     import arbor
@@ -26,7 +26,7 @@ except ImportError:
 
 @config.dynamic(attr_name="device", auto_classmap=True, classmap_entry=None)
 class ArborDevice(DeviceModel):
-    targetting = config.attr(type=CellTargetting, required=True)
+    targetting = config.attr(type=Targetting, required=True)
     resolution = config.attr(type=float)
     sampling_policy = config.attr(type=types.in_(["exact"]))
 

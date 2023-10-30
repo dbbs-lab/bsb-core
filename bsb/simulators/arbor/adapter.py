@@ -1,34 +1,23 @@
 import itertools
 import typing
-from collections import defaultdict
 
 from bsb.reporting import report, warn
 from bsb.exceptions import AdapterError, UnknownGIDError
 from bsb.services import MPI
-from bsb.simulation.adapter import SimulatorAdapter
+from bsb.simulation.adapter import SimulationData, SimulatorAdapter
 import itertools as it
 import time
 import arbor
 
-from ...simulation.results import SimulationResult
 from ...storage import Chunk
 
 if typing.TYPE_CHECKING:
     from .simulation import ArborSimulation
-    import neo
-    from .cell import ArborCell
 
 
-class SimulationData:
+class ArborSimulationData(SimulationData):
     def __init__(self, simulation):
-        self.chunks = None
-        self.populations: dict["ArborCell", Population] = None
-        self.placement = {
-            model: model.get_placement_set() for model in simulation.cell_models.values()
-        }
-        self.connections = dict()
-        self.devices = dict()
-        self.result: "SimulationResult" = None
+        super().__init__(simulation)
         self.arbor_sim: "arbor.simulation" = None
 
 
@@ -310,7 +299,6 @@ class ArborAdapter(SimulatorAdapter):
 
     def _create_simdata(self, simulation):
         self.simdata[simulation] = simdata = SimulationData(simulation)
-        simdata.result = SimulationResult(simulation)
         self._assign_chunks(simulation, simdata)
         return simdata
 

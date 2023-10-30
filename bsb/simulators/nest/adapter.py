@@ -66,7 +66,9 @@ class NestAdapter(SimulatorAdapter):
             self.reset_kernel()
 
     def prepare(self, simulation, comm=None):
-        self.simdata[simulation] = SimulationData(simulation)
+        self.simdata[simulation] = SimulationData(
+            simulation, result=NestResult(simulation)
+        )
         try:
             report("Installing  NEST modules...", level=2)
             self.load_modules(simulation)
@@ -113,10 +115,9 @@ class NestAdapter(SimulatorAdapter):
             except Exception as e:
                 if e.errorname == "DynamicModuleManagementError":
                     if "loaded already" in e.message:
-                        # Modules stay loaded in between `ResetKernel` calls. We
-                        # assume that there's nothing to warn the user about if
-                        # the adapter installs the modules each
-                        # `reset`/`prepare` cycle.
+                        # Modules stay loaded in between `ResetKernel` calls. If the module
+                        # is not in the `loaded_modules` set, then it's the first time this
+                        # `reset`/`prepare` cycle, and there is no user-side issue.
                         if module in self.loaded_modules:
                             warn(f"Already loaded '{module}'.", KernelWarning)
                     elif "file not found" in e.message:

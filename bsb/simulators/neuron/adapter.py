@@ -188,10 +188,26 @@ class NeuronAdapter(SimulatorAdapter):
 
         with fill_parameter_data(cell_model.parameters, data):
             instances = cell_model.create_instances(len(ps), *data)
-            simdata.populations[cell_model] = instances
+            simdata.populations[cell_model] = NeuronPopulation(instances)
             for id, instance in zip(ps.load_ids(), instances):
-                # print(MPI.get_rank(), id)
                 cid = offset + id
                 instance.id = cid
                 instance.cell_model = cell_model
                 simdata.cells[cid] = instance
+
+
+class NeuronPopulation(list):
+    def __getitem__(self, item):
+        # Boolean masking, kind of
+        if getattr(item, "dtype", None) == bool or _all_bools(item):
+            return NeuronPopulation([p for p, b in zip(self, item) if b])
+        else:
+            return super().__getitem__(item)
+
+
+def _all_bools(arr):
+    try:
+        return all(isinstance(b, bool) for b in arr)
+    except TypeError:
+        # Not iterable
+        return False
