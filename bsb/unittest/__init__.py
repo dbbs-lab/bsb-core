@@ -24,16 +24,26 @@ class NetworkFixture:
 
 
 class RandomStorageFixture:
-    def __init_subclass__(cls, root_factory=None, debug=False, *, engine_name, **kwargs):
+    def __init_subclass__(
+        cls, root_factory=None, debug=False, setup_cls=False, *, engine_name, **kwargs
+    ):
         super().__init_subclass__(**kwargs)
         cls._engine = engine_name
         cls._rootf = root_factory
         cls._open_storages = []
         cls._debug_storage = debug
+        cls._setup_cls = setup_cls
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        if cls._setup_cls:
+            cls.storage = cls.random_storage()
 
     def setUp(self):
         super().setUp()
-        self.storage = self.random_storage()
+        if not self._setup_cls:
+            self.storage = self.random_storage()
 
     @classmethod
     def tearDownClass(cls):
