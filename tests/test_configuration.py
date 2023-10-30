@@ -19,7 +19,7 @@ from bsb.exceptions import (
 )
 from bsb.storage import NrrdDependencyNode, YamlDependencyNode
 from bsb.topology.region import RegionGroup
-from bsb.unittest import get_config_path, get_data_path
+from bsb.unittest import RandomStorageFixture, get_config_path, get_data_path
 
 minimal_config = get_config_path("test_minimal.json")
 full_config = get_config_path("test_full_v4.json")
@@ -37,24 +37,26 @@ def as_json(f):
         return json.load(fh)
 
 
-class TestConfiguration(unittest.TestCase):
+class TestConfiguration(
+    RandomStorageFixture, unittest.TestCase, setup_cls=True, engine_name="hdf5"
+):
     def test_minimal_json_bootstrap(self):
         config = from_json(minimal_config)
-        Scaffold(config)
+        Scaffold(config, self.storage)
 
     def test_default_bootstrap(self):
         cfg = config.Configuration.default()
-        Scaffold(cfg)
+        Scaffold(cfg, self.storage)
 
     def test_minimal_json_content_bootstrap(self):
         with open(minimal_config, "r") as f:
             content = f.read()
         config = from_json(data=content)
-        Scaffold(config)
+        Scaffold(config, self.storage)
 
     def test_full_json_bootstrap(self):
         config = from_json(full_config)
-        Scaffold(config)
+        Scaffold(config, self.storage)
 
     def test_missing_nodes(self):
         self.assertRaises(RequirementError, from_json, data="""{}""")
