@@ -1,7 +1,6 @@
 from ..device import NeuronDevice
 from ....simulation.results import SimulationRecorder
 import numpy as np
-import itertools
 
 
 class IonRecorder(NeuronDevice):
@@ -12,13 +11,10 @@ class IonRecorder(NeuronDevice):
 
     required = ["ion"]
 
-    def boot(self):
-        pass
-
-    def validate_specifics(self):
-        pass
-
-    def implement(self, target, location):
+    def implement(self, adapter, simulation, simdata):
+        raise NotImplementedError(
+            "Ion recorder not re-implemented yet. Open an issue if you need it."
+        )
         cell = location.cell
         section = location.section
         recorders = []

@@ -17,7 +17,10 @@ class SynapseRecorder(NeuronDevice):
     def validate_specifics(self):
         pass
 
-    def implement(self, target, location):
+    def implement(self, adapter, simulation, simdata):
+        raise NotImplementedError(
+            "Ion recorder not re-implemented yet. Open an issue if you need it."
+        )
         cell = location.cell
         section = location.section
         recorder_classes = []
