@@ -1,5 +1,10 @@
 """
-A component framework for multiscale bottom-up neural modelling.
+`bsb-core` is the backbone package contain the essential code of the BSB: A component
+framework for multiscale bottom-up neural modelling.
+
+`bsb-core` needs to be installed alongside a bundle of desired bsb plugins, some of
+which are essential for `bsb-core` to function. First time users are recommended to
+install the `bsb` package instead.
 """
 
 __version__ = "4.0.0a60"

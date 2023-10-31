@@ -3,7 +3,7 @@ requires = ["flit_core >=3.2,<4"]
 build-backend = "flit_core.buildapi"
 
 [project]
-name = "bsb"
+name = "bsb-core"
 authors = [{ name = "Robin De Schepper", email = "robingilbert.deschepper@unipv.it" }]
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -32,6 +32,10 @@ dependencies = [
     "shortuuid",
     "quantities",
 ]
+
+[tool.flit.module]
+# The `bsb-core` package installs the `bsb` Python module
+name = "bsb"
 
 [project.urls]
 Home = "https://github.com/dbbs-lab/bsb"
