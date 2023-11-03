@@ -187,6 +187,20 @@ class ParticleSystem:
         self.strat = strat
 
     def fill(self, voxels, particles, check_pack=True):
+        """
+        Fill a list of voxels with Particles.
+
+        :param bsb.voxels.VoxelSet voxels: List of voxels in which to place the particles.
+        :param List[dict] particles: List of dictionary for each particle to place.
+            Each dictionary needs to contain the "name" (str), "radius" (float) of particle.
+            It should also store the "count" of particle (int | List[int]) either in total or
+            for each voxel and "voxels" (List[int]) which gives in which voxel the placement will
+            append.
+        :param bool check_pack: If True, will check the packing factor before placing particles in
+            the voxels.
+        :raise PackingError: If check_pack is True and the resulting packing factor is greater than
+            0.4.
+        """
         # Amount of spatial dimensions
         self.dimensions = voxels.get_raw(copy=False).shape[1]
         # Extend list of particle types in the system
@@ -203,13 +217,13 @@ class ParticleSystem:
                 voxels.as_spatial_coords(copy=False), voxels.get_size_matrix(copy=False)
             )
         )
-        pf = self.get_packing_factor()
-        if self.strat is not None:
-            strat_name = type(self.strat).__name__
-        else:
-            strat_name = "particle system"
-        msg = f"Packing factor {round(pf, 2)}"
         if check_pack:
+            pf = self.get_packing_factor()
+            if self.strat is not None:
+                strat_name = type(self.strat).__name__
+            else:
+                strat_name = "particle system"
+            msg = f"Packing factor {round(pf, 2)}"
             if pf > 0.4:
                 if pf > 0.64:
                     msg += " exceeds geometrical maximum packing for spheres (0.64)"
@@ -405,14 +419,29 @@ class ParticleSystem:
             nearest_neighbours = self.estimate_nearest_neighbours()
 
     def get_packing_factor(self, particles=None, volume=None):
+        """
+        Calculate the packing factor of the volume where particles will be placed.
+        It corresponds to the ratio of the sum of the particles' volume over the volume itself.
+
+        :param List[bsb.placement.particle.Particle] | None particles: List of Particle to place.
+            If None, it will use the ParticleSystem particle_types list.
+        :param float | None volume: Size of the volume in which the particles will be placed.
+            If None, it will use the total volume of the voxels of the ParticleSystem.
+        :return: Packing factor
+        :rtype: float
+        """
         if particles is None:
-            particles_volume = np.sum(
-                [p["count"] * sphere_volume(p["radius"]) for p in self.particle_types]
+            particles_volume = sum(
+                np.sum(p["count"]) * sphere_volume(p["radius"])
+                for p in self.particle_types
             )
         else:
-            particles_volume = np.sum([sphere_volume(p.radius) for p in particles])
+            particles_volume = sum(sphere_volume(p.radius) for p in particles)
         if volume is None:
-            volume = np.sum([np.prod(v.size) for v in self.voxels])
+            volume = sum(
+                sum(np.prod(v.size) for v in np.array(self.voxels)[np.array(p["voxels"])])
+                for p in self.particle_types
+            )
         return particles_volume / volume
 
     def _get_packing_factors(self, particles=None, volume=None):

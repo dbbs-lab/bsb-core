@@ -1,3 +1,4 @@
+import re
 import unittest, os, sys, numpy as np, h5py
 
 from bsb import config
@@ -353,6 +354,60 @@ class TestVoxelDensities(unittest.TestCase):
         ps = network.get_placement_set("test_cell")
         self.assertGreater(len(ps), 90)
         self.assertLess(len(ps), 130)
+
+    def test_packing_factor(self):
+        cfg = Configuration.default(
+            network={
+                "x": 20.0,
+                "y": 5.0,
+                "z": 20.0,
+                "chunk_size": [20, 20, 10],  # at least two chunks
+            },
+            partitions={
+                "first_layer": {"thickness": 5.0, "stack_index": 0},
+            },
+            cell_types=dict(
+                test_cell=dict(spatial=dict(radius=1.5, count=100)),
+                test_cell2=dict(
+                    spatial=dict(radius=2, relative_to="test_cell", count_ratio=0.05)
+                ),
+            ),
+            placement=dict(
+                test_place2=dict(
+                    strategy="bsb.placement.RandomPlacement",
+                    partitions=["first_layer"],
+                    cell_types=["test_cell2"],
+                ),
+                ch4_c25=dict(
+                    strategy="bsb.placement.ParticlePlacement",
+                    partitions=["first_layer"],
+                    cell_types=["test_cell"],
+                ),
+            ),
+        )
+        network = Scaffold(cfg)
+        with self.assertRaises(PackingError) as exc:
+            network.compile(clear=True)
+        self.assertTrue(
+            re.match(
+                r"Packing factor .* exceeds geometrical maximum packing for spheres \(0\.64\).*",
+                str(exc.exception),
+            )
+        )
+        cfg.cell_types["test_cell"] = dict(spatial=dict(radius=1.3, count=100))
+        network = Scaffold(cfg)
+        with self.assertRaises(PackingError) as exc:
+            network.compile(clear=True)
+        self.assertTrue(
+            re.match(
+                r"Packing factor .* too high to resolve with ParticlePlacement.*",
+                str(exc.exception),
+            )
+        )
+        cfg.cell_types["test_cell"] = dict(spatial=dict(radius=1, count=100))
+        network = Scaffold(cfg)
+        with self.assertWarns(PackingWarning):
+            network.compile(clear=True)
 
 
 class VoxelParticleTest(Partition, classmap_entry="test"):
