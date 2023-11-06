@@ -48,7 +48,6 @@ fs = "bsb.storage.fs"
 
 [project.entry-points."bsb.simulation_backends"]
 arbor = "bsb.simulators.arbor"
-neuron = "bsb.simulators.neuron"
 
 [project.entry-points."bsb.commands"]
 commands = "bsb.cli.commands._commands"
@@ -82,7 +81,6 @@ dev = [
     "snakeviz",
 ]
 arbor = ["arbor~=0.6", "arborize[arbor]==4.0.0a4"]
-neuron = ["nrn-patch==4.0.0a4", "arborize[neuron]==4.0.0a4"]
 mpi = ["mpi4py~=3.0", "zwembad", "mpilock~=1.1"]
 
 [tool.black]
