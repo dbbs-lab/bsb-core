@@ -327,7 +327,7 @@ class TestPlacementStrategies(
         self.assertAll(pos[:, 1] >= cfg.partitions.test_layer.data.ldc[1], "not in layer")
 
 
-class TestVoxelDensities(unittest.TestCase):
+class TestVoxelDensities(RandomStorageFixture, unittest.TestCase, engine_name="hdf5"):
     def test_particle_vd(self):
         cfg = Configuration.default(
             cell_types=dict(
@@ -343,7 +343,8 @@ class TestVoxelDensities(unittest.TestCase):
                 )
             ),
         )
-        network = Scaffold(cfg)
+        print(cfg.storage)
+        network = Scaffold(cfg, self.storage)
         counts = network.placement.voxel_density.get_indicators()["test_cell"].guess(
             chunk=Chunk([0, 0, 0], [100, 100, 100]),
             voxels=network.partitions.test_part.vs,
@@ -355,8 +356,8 @@ class TestVoxelDensities(unittest.TestCase):
         self.assertGreater(len(ps), 90)
         self.assertLess(len(ps), 130)
 
-    def test_packing_factor(self):
-        cfg = Configuration.default(
+    def _config_packing_fact(self):
+        return Configuration.default(
             network={
                 "x": 20.0,
                 "y": 5.0,
@@ -385,7 +386,10 @@ class TestVoxelDensities(unittest.TestCase):
                 ),
             ),
         )
-        network = Scaffold(cfg)
+
+    def test_packing_factor_error1(self):
+        cfg = self._config_packing_fact()
+        network = Scaffold(cfg, self.storage)
         with self.assertRaises(PackingError) as exc:
             network.compile(clear=True)
         self.assertTrue(
@@ -394,8 +398,11 @@ class TestVoxelDensities(unittest.TestCase):
                 str(exc.exception),
             )
         )
+
+    def test_packing_factor_error2(self):
+        cfg = self._config_packing_fact()
         cfg.cell_types["test_cell"] = dict(spatial=dict(radius=1.3, count=100))
-        network = Scaffold(cfg)
+        network = Scaffold(cfg, self.storage)
         with self.assertRaises(PackingError) as exc:
             network.compile(clear=True)
         self.assertTrue(
@@ -404,8 +411,11 @@ class TestVoxelDensities(unittest.TestCase):
                 str(exc.exception),
             )
         )
+
+    def test_packing_factor_warning(self):
+        cfg = self._config_packing_fact()
         cfg.cell_types["test_cell"] = dict(spatial=dict(radius=1, count=100))
-        network = Scaffold(cfg)
+        network = Scaffold(cfg, self.storage)
         with self.assertWarns(PackingWarning):
             network.compile(clear=True)
 
