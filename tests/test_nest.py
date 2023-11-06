@@ -1,13 +1,15 @@
-from bsb.config import from_file
+from bsb.config import from_file, Configuration
 from bsb.core import Scaffold
 from bsb.services import MPI
-from bsb.unittest import RandomStorageFixture, get_config_path
+from bsb.unittest import RandomStorageFixture, get_config_path, NumpyTestCase
 import numpy as np
 import unittest
 
 
 @unittest.skipIf(MPI.get_size() > 1, "Skipped during parallel testing.")
-class TestNest(RandomStorageFixture, unittest.TestCase, engine_name="hdf5"):
+class TestNest(
+    RandomStorageFixture, NumpyTestCase, unittest.TestCase, engine_name="hdf5"
+):
     def test_gif_pop_psc_exp(self):
         """Mimics test_gif_pop_psc_exp of NEST's test suite to validate the adapter."""
         import nest
@@ -144,3 +146,69 @@ class TestNest(RandomStorageFixture, unittest.TestCase, engine_name="hdf5"):
 
         self.assertAlmostEqual(rate_in, 50, delta=1)
         self.assertAlmostEqual(rate_ex, 50, delta=1)
+
+    def test_iaf_cond_alpha(self):
+        """
+        Create an iaf_cond_alpha in NEST, and with the BSB, with a base current, and check
+        spike times.
+        """
+        import nest
+
+        nest.ResetKernel()
+        nest.resolution = 0.1
+        A = nest.Create("iaf_cond_alpha", 1, params={"I_e": 260.0})
+        spikeA = nest.Create("spike_recorder")
+        nest.Connect(A, spikeA)
+        nest.Simulate(1000.0)
+
+        spike_times_nest = spikeA.get("events")["times"]
+
+        cfg = Configuration(
+            {
+                "name": "test",
+                "storage": {"engine": "hdf5"},
+                "network": {"x": 1, "y": 1, "z": 1},
+                "partitions": {"B": {"type": "layer", "thickness": 1}},
+                "cell_types": {"A": {"spatial": {"radius": 1, "count": 1}}},
+                "placement": {
+                    "placement_A": {
+                        "strategy": "bsb.placement.strategy.FixedPositions",
+                        "cell_types": ["A"],
+                        "partitions": ["B"],
+                        "positions": [[1, 1, 1]],
+                    }
+                },
+                "connectivity": {},
+                "after_connectivity": {},
+                "simulations": {
+                    "test": {
+                        "simulator": "nest",
+                        "duration": 1000,
+                        "resolution": 0.1,
+                        "cell_models": {
+                            "A": {
+                                "model": "iaf_cond_alpha",
+                                "constants": {"I_e": 260.0},
+                            }
+                        },
+                        "connection_models": {},
+                        "devices": {
+                            "record_A_spikes": {
+                                "device": "spike_recorder",
+                                "delay": 0.5,
+                                "targetting": {
+                                    "strategy": "cell_model",
+                                    "cell_models": ["A"],
+                                },
+                            }
+                        },
+                    }
+                },
+            }
+        )
+
+        netw = Scaffold(cfg, self.storage)
+        netw.compile()
+        results = netw.run_simulation("test")
+        spike_times_bsb = results.spiketrains[0]
+        self.assertClose(np.array(spike_times_nest), np.array(spike_times_bsb))
