@@ -10,6 +10,7 @@ import os
 import sys
 import glob
 import itertools
+import typing
 from importlib.machinery import ModuleSpec
 from shutil import copy2 as copy_file
 import builtins
@@ -44,6 +45,12 @@ from . import parsers
 
 _path = __path__
 ConfigurationAttribute.__module__ = __name__
+
+if typing.TYPE_CHECKING:
+    from ._config import Configuration
+
+# Add some static type hinting, to help tools figure out this dynamic module
+Configuration: "Configuration"
 
 
 # ConfigurationModule should not inherit from `ModuleType`, otherwise Sphinx doesn't
