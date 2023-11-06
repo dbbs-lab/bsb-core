@@ -51,7 +51,6 @@ commands = "bsb.cli.commands._commands"
 projects = "bsb.cli.commands._projects"
 
 [project.entry-points."bsb.config.parsers"]
-json = "bsb.config.parsers.json"
 yaml = "bsb.config.parsers.yaml"
 
 [project.entry-points."bsb.config.templates"]
