@@ -45,6 +45,7 @@
     "test_recorders": {
       "simulator": "nest",
       "duration": 10,
+      "resolution": 1.0,
       "cell_models": {
         "test_cell": {
           "parameters": {

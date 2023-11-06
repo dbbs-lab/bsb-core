@@ -175,6 +175,7 @@ NEST
       "first_simulation": {
         "simulator": "nest",
         "duration": 1000,
+        "resolution": 1.0,
         "modules": ["cerebmodule"],
 
         "cell_models": {

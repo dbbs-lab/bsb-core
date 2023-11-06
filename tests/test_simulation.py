@@ -32,6 +32,7 @@ class TestSimulate(
             "test",
             simulator="nest",
             duration=100,
+            resolution=1.0,
             cell_models=dict(),
             connection_models=dict(),
             devices=dict(),

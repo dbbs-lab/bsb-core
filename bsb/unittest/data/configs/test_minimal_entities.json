@@ -33,6 +33,7 @@
     "test": {
       "simulator": "nest",
       "duration": 10,
+      "resolution": 1.0,
       "modules": ["cerebmodule"],
       "cell_models": {
 

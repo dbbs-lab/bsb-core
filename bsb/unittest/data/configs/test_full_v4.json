@@ -218,6 +218,7 @@
     "FCN_2019": {
       "simulator": "nest",
       "duration": 1000.0,
+      "resolution": 1.0,
       "modules": ["cerebmodule"],
       "cell_models": {
         "granule_cell": {

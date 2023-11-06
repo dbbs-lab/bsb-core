@@ -52,6 +52,7 @@
     "test_nest": {
       "simulator": "nest",
       "duration": 10000,
+      "resolution": 1.0,
       "cell_models": {
         "gif_pop_psc_exp": {
           "model": "gif_pop_psc_exp",

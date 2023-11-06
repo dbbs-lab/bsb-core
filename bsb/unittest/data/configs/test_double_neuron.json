@@ -62,6 +62,7 @@
     "test_double_neuron": {
       "simulator": "nest",
       "duration": 10,
+      "resolution": 1.0,
       "cell_models": {
         "from_cell": {
           "constants": {

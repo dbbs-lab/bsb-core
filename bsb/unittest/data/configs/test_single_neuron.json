@@ -46,6 +46,7 @@
     "test_single_neuron": {
       "simulator": "nest",
       "duration": 10,
+      "resolution": 1.0,
       "cell_models": {
         "test_cell": {
           "model": "iaf_cond_alpha",

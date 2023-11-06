@@ -67,6 +67,7 @@
       "simulator": "nest",
       "modules": ["cerebmodule"],
       "duration": 1000,
+      "resolution": 1.0,
       "cell_models": {
         "from_cell": {
           "parameters": {

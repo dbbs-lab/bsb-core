@@ -83,6 +83,7 @@
       "simulator": "nest",
       "modules": ["cerebmodule"],
       "duration": 10,
+      "resolution": 1.0,
       "cell_models": {
         "golgi_cell": {
           "parameters": {
