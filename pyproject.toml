@@ -50,12 +50,6 @@ fs = "bsb.storage.fs"
 commands = "bsb.cli.commands._commands"
 projects = "bsb.cli.commands._projects"
 
-[project.entry-points."bsb.config.parsers"]
-yaml = "bsb.config.parsers.yaml"
-
-[project.entry-points."bsb.config.templates"]
-bsb_templates = "bsb.config.templates"
-
 [project.entry-points."bsb.options"]
 verbosity = "bsb._options:verbosity"
 sudo = "bsb._options:sudo"

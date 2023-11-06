@@ -2,7 +2,7 @@ import unittest
 
 from bsb import config
 from bsb.exceptions import *
-from bsb.unittest import get_data_path
+from bsb_test import get_data_path
 
 
 def get_content(f):

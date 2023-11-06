@@ -1,5 +1,4 @@
 from ._parser import Parser
-from .yaml import YAMLParser
 
 
 def get_parser_classes():

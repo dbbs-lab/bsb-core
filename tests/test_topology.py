@@ -2,7 +2,7 @@ from bsb import topology
 from bsb.config import Configuration
 from bsb.exceptions import *
 import unittest, numpy as np
-from bsb.unittest import get_data_path
+from bsb_test import get_data_path
 
 
 def single_layer():

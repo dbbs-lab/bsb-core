@@ -1,5 +1,5 @@
 from bsb.core import Scaffold
-from bsb.unittest import (
+from bsb_test import (
     NumpyTestCase,
     FixedPosConfigFixture,
     RandomStorageFixture,

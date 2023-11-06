@@ -2,7 +2,7 @@ from bsb.core import Scaffold
 from bsb.services import MPI
 from bsb.config import Configuration, from_file
 from bsb.morphologies import Morphology, Branch
-from bsb.unittest import (
+from bsb_test import (
     NumpyTestCase,
     FixedPosConfigFixture,
     RandomStorageFixture,

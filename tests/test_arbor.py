@@ -1,7 +1,7 @@
 from bsb.config import from_file
 from bsb.core import Scaffold
 from bsb.services import MPI
-from bsb.unittest import RandomStorageFixture, get_config_path
+from bsb_test import RandomStorageFixture, get_config_path
 import unittest
 
 

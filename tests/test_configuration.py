@@ -19,7 +19,7 @@ from bsb.exceptions import (
 )
 from bsb.storage import NrrdDependencyNode, YamlDependencyNode
 from bsb.topology.region import RegionGroup
-from bsb.unittest import RandomStorageFixture, get_config_path, get_data_path
+from bsb_test import RandomStorageFixture, get_config_path, get_data_path
 
 minimal_config = get_config_path("test_minimal.json")
 full_config = get_config_path("test_full_v4.json")

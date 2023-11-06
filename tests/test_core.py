@@ -4,7 +4,7 @@ from bsb.core import Scaffold
 from bsb.storage.interfaces import PlacementSet
 from bsb.config import Configuration
 from bsb import core
-from bsb.unittest import RandomStorageFixture
+from bsb_test import RandomStorageFixture
 
 
 class TestCore(unittest.TestCase):

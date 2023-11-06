@@ -2,7 +2,7 @@ import sys
 import os
 
 import unittest
-from bsb.unittest import skip_parallel
+from bsb_test import skip_parallel
 
 
 class TestCLI(unittest.TestCase):

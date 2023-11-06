@@ -6,7 +6,7 @@ from scipy.signal import find_peaks
 
 from bsb.config import from_json, from_file
 from bsb.core import Scaffold
-from bsb.unittest import get_config_path, RandomStorageFixture
+from bsb_test import get_config_path, RandomStorageFixture
 
 golgi_autorythm_config = get_config_path("test_nrn_goc_autorythm.json")
 pc_autorythm_config = get_config_path("test_nrn_pc_autorythm.json")

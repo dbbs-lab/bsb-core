@@ -12,7 +12,7 @@ from bsb.storage import Storage
 from bsb.storage._files import MorphologyDependencyNode, MorphologyOperation
 from bsb.storage.interfaces import StoredMorphology
 from bsb.exceptions import *
-from bsb.unittest import get_morphology_path, NumpyTestCase, RandomStorageFixture
+from bsb_test import get_morphology_path, NumpyTestCase, RandomStorageFixture
 from scipy.spatial.transform import Rotation
 
 

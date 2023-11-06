@@ -16,7 +16,7 @@ from bsb.exceptions import *
 from bsb.storage import Chunk
 from bsb.placement import PlacementStrategy, RandomPlacement
 from bsb.services.pool import JobPool, FakeFuture, create_job_pool
-from bsb.unittest import get_config_path, timeout, RandomStorageFixture, NumpyTestCase
+from bsb_test import get_config_path, timeout, RandomStorageFixture, NumpyTestCase
 from time import sleep
 
 
