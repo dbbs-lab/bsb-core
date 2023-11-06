@@ -14,7 +14,7 @@ class NestSimulation(Simulation):
 
     modules = config.list(type=str)
     threads = config.attr(type=types.int(min=1), default=1)
-    resolution = config.attr(type=types.float(min=0.0), default=1.0)
+    resolution = config.attr(type=types.float(min=0.0), required=True)
     verbosity = config.attr(type=str, default="M_ERROR")
 
     cell_models = config.dict(type=NestCell, required=True)
