@@ -176,7 +176,7 @@ class NestAdapter(SimulatorAdapter):
             device_model.implement(self, simulation, simdata)
 
     def set_settings(self, simulation: "Simulation"):
-        self.nest.verbosity = simulation.verbosity
+        self.nest.set_verbosity(simulation.verbosity)
         self.nest.resolution = simulation.resolution
         self.nest.overwrite_files = True
 
