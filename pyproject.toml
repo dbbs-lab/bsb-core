@@ -46,9 +46,6 @@ bsb = "bsb.cli:handle_cli"
 [project.entry-points."bsb.storage.engines"]
 fs = "bsb.storage.fs"
 
-[project.entry-points."bsb.simulation_backends"]
-arbor = "bsb.simulators.arbor"
-
 [project.entry-points."bsb.commands"]
 commands = "bsb.cli.commands._commands"
 projects = "bsb.cli.commands._projects"
@@ -80,7 +77,6 @@ dev = [
     "sphinxext-bsb~=0.2.1",
     "snakeviz",
 ]
-arbor = ["arbor~=0.6", "arborize[arbor]==4.0.0a4"]
 mpi = ["mpi4py~=3.0", "zwembad", "mpilock~=1.1"]
 
 [tool.black]
