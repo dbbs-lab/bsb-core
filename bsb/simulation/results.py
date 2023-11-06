@@ -19,6 +19,14 @@ class SimulationResult:
         self.block = Block(name=simulation.name, config=tree)
         self.recorders = []
 
+    @property
+    def spiketrains(self):
+        return self.block.segments[0].spiketrains
+
+    @property
+    def analogsignals(self):
+        return self.block.segments[0].analogsignals
+
     def add(self, recorder):
         self.recorders.append(recorder)
 
