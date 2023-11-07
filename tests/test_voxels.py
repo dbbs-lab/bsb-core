@@ -6,6 +6,7 @@ from bsb.storage import Chunk
 from bsb.morphologies import Branch, Morphology
 import bsb_test
 from itertools import count as _ico, chain as _ic
+from bsb.exceptions import EmptyVoxelSetError
 
 
 class TestVoxelSet(bsb_test.NumpyTestCase, unittest.TestCase):

@@ -2,6 +2,8 @@ import unittest
 import sys
 import numpy as np
 import json
+
+from bsb.config.refs import Reference
 from bsb.core import Scaffold
 from bsb import config
 from bsb.config import from_json, Configuration, _attrs, compose_nodes
@@ -312,15 +314,32 @@ class TestConfigRefList(unittest.TestCase):
 
     def test_mixin_reflist_resolution(self):
         """
-        This test aims to confirm that mixin reflists are resolved properly.
-        This config uses the `CellModelFilter` mixin, which declares a reflist.
+        Test that mixins without decorators also have their references resolved.
         """
-        golgi_autorythm_config = get_config_path("test_nrn_goc_autorythm.json")
-        cfg = from_json(golgi_autorythm_config)
-        node = cfg.simulations.neurontest_goc_test.devices.vrecorder_golgi.targetting
+
+        class NodeReference(Reference):
+            def __call__(self, root, here):
+                return self.up(here)
+
+            def is_ref(self, value):
+                return isinstance(value, Node)
+
+        class NodeMixin:
+            children = config.reflist(NodeReference())
+
+        @config.node
+        class Node(NodeMixin):
+            pass
+
+        @config.root
+        class Root:
+            a = config.dict(type=Node)
+
+        cfg = Root(a=dict(b=Node(children=["b", "c"]), c=Node(children=[])))
+        node = cfg.a.b
         self.assertIs(
-            node.cell_models[0],
-            cfg.simulations.neurontest_goc_test.cell_models.golgi_cell,
+            node.children[0],
+            node,
             "Mixin reference should be resolved",
         )
 
