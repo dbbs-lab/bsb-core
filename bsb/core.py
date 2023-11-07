@@ -381,6 +381,7 @@ class Scaffold:
         t = time.time()
         self.run_pipelines()
         if not skip_placement:
+            placement_todo = ", ".join(s.name for s in p_strats)
             report(f"Starting placement strategies: {placement_todo}", level=2)
             self.run_placement(p_strats, pipelines=False)
         if not skip_after_placement:
