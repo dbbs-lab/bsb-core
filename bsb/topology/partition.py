@@ -21,7 +21,6 @@ from ..reporting import report
 import numpy as np
 import collections
 import functools
-import requests
 import nrrd
 import json
 import abc
