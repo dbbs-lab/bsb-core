@@ -1,5 +1,6 @@
 *
 !.gitignore
+!required_plugins.txt
 !__init__.py
 !test_*
 !data

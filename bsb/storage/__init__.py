@@ -401,9 +401,18 @@ def open_storage(root):
             raise FileNotFoundError(f"Storage `{root}` does not exist.")
 
 
-def get_engine_node(engine):
+def get_engine_node(engine_name):
     init_engines()
-    return _engines[engine]["StorageNode"]
+    try:
+        engine = _engines[engine_name]
+    except KeyError:
+        raise RuntimeError(f"Unknown storage engine '{engine_name}'")
+    try:
+        return engine["StorageNode"]
+    except KeyError:
+        raise RuntimeError(
+            f"Broken storage engine plugin '{engine_name}' is missing a StorageNode."
+        )
 
 
 def view_support(engine=None):

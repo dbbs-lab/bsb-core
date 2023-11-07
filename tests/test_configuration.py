@@ -6,7 +6,7 @@ import json
 from bsb.config.refs import Reference
 from bsb.core import Scaffold
 from bsb import config
-from bsb.config import from_json, Configuration, _attrs, compose_nodes
+from bsb.config import Configuration, _attrs, compose_nodes
 from bsb.config import types
 from bsb.exceptions import (
     CfgReferenceError,
