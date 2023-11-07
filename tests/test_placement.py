@@ -343,7 +343,6 @@ class TestVoxelDensities(RandomStorageFixture, unittest.TestCase, engine_name="h
                 )
             ),
         )
-        print(cfg.storage)
         network = Scaffold(cfg, self.storage)
         counts = network.placement.voxel_density.get_indicators()["test_cell"].guess(
             chunk=Chunk([0, 0, 0], [100, 100, 100]),
