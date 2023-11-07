@@ -87,15 +87,15 @@ class TestIndicators(unittest.TestCase):
         bottom = 400 * bottom_ratio / 4
         top_ratio = 0.2 / 1.2
         top = 400 * top_ratio / 4
-        for x, y, z in ((0, 0, 0), (0, 0, 1), (1, 0, 0), (1, 0, 1)):
+        for x, y, z in ((0, 0, 0), (0, 1, 0), (1, 0, 0), (1, 1, 0)):
             with self.subTest(x=x, y=y, z=z):
                 guess = dud_ind.guess(_chunk(x, y, z))
                 self.assertTrue(np.floor(bottom) <= guess <= np.ceil(bottom))
-        for x, y, z in ((0, 1, 0), (0, 1, 1), (1, 1, 0), (1, 1, 1)):
+        for x, y, z in ((0, 0, 1), (0, 1, 1), (1, 0, 1), (1, 1, 1)):
             with self.subTest(x=x, y=y, z=z):
                 guess = dud_ind.guess(_chunk(x, y, z))
                 self.assertTrue(np.floor(top) <= guess <= np.ceil(top))
-        for x, y, z in ((0, -1, 0), (0, 2, 0), (2, 1, 0), (1, 1, -3)):
+        for x, y, z in ((0, 0, -1), (0, 0, 2), (2, 0, 1), (1, -3, 1)):
             with self.subTest(x=x, y=y, z=z):
                 guess = dud_ind.guess(_chunk(x, y, z))
                 self.assertEqual(0, guess)
@@ -108,15 +108,15 @@ class TestIndicators(unittest.TestCase):
         bottom = 40 * bottom_ratio / 4
         top_ratio = 0.2 / 1.2
         top = 40 * top_ratio / 4
-        for x, y, z in ((-3, -3, -3), (-3, -3, -2), (-2, -3, -3), (-2, -3, -2)):
+        for x, y, z in ((-3, -3, -3), (-3, -2, -3), (-2, -3, -3), (-2, -2, -3)):
             with self.subTest(x=x, y=y, z=z):
                 guess = dud_ind.guess(_chunk(x, y, z))
                 self.assertTrue(np.floor(bottom) <= guess <= np.ceil(bottom))
-        for x, y, z in ((-3, -2, -3), (-3, -2, -2), (-2, -2, -3), (-2, -2, -2)):
+        for x, y, z in ((-3, -3, -2), (-3, -2, -2), (-2, -3, -2), (-2, -2, -2)):
             with self.subTest(x=x, y=y, z=z):
                 guess = dud_ind.guess(_chunk(x, y, z))
                 self.assertTrue(np.floor(top) <= guess <= np.ceil(top))
-        for x, y, z in ((0, -1, 0), (0, 0, 0), (2, 0, 0), (1, 1, -3)):
+        for x, y, z in ((0, 0, -1), (0, 0, 0), (2, 0, 0), (1, -3, 1)):
             with self.subTest(x=x, y=y, z=z):
                 guess = dud_ind.guess(_chunk(x, y, z))
                 self.assertEqual(0, guess)
