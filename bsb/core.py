@@ -346,6 +346,15 @@ class Scaffold:
         c_strats = self.get_connectivity(skip=skip, only=only)
         todo_list_str = ", ".join(s.name for s in itertools.chain(p_strats, c_strats))
         report(f"Compiling the following strategies: {todo_list_str}", level=2)
+        if (
+            bool(clear) is not clear
+            or bool(redo) is not redo
+            or bool(append) is not append
+        ):
+            raise InputError(
+                "`clear`, `redo` and `append` are strictly boolean flags. "
+                "Pass the strategies to run to the skip/only options instead."
+            )
         if sum((bool(clear), bool(redo), bool(append))) > 1:
             raise InputError("`clear`, `redo` and `append` are mutually exclusive.")
         if existed:
@@ -372,7 +381,6 @@ class Scaffold:
         t = time.time()
         self.run_pipelines()
         if not skip_placement:
-            placement_todo = ", ".join(s.name for s in p_strats)
             report(f"Starting placement strategies: {placement_todo}", level=2)
             self.run_placement(p_strats, pipelines=False)
         if not skip_after_placement:
