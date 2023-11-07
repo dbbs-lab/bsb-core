@@ -1,3 +1,0 @@
-# Plugins required for testing bsb-core
-bsb-hdf5==1.0.0b0
-bsb-json==0.0.0b0
