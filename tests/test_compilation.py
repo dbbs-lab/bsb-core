@@ -3,7 +3,8 @@ import unittest, os, sys, numpy as np, h5py
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
 from bsb.core import Scaffold, from_storage
-from bsb.config import from_json
+from bsb.config import from_json, Configuration
+from bsb.exceptions import InputError
 from bsb_test import NetworkFixture, RandomStorageFixture, get_config_path
 
 
@@ -64,5 +65,61 @@ class TestMultiTypeCompilation(
         )
         self.assertEqual(16, len(cs), "alltoall => 4x4 = 16")
 
+
+class TestRedoCompilation(
+    RandomStorageFixture, NetworkFixture, unittest.TestCase, engine_name="hdf5"
+):
     def test_redo_issue752(self):
+        # `redo` was untested
         self.network.compile(redo=True, only=["connection"])
+
+    def test_redo_issue763(self):
+        # Test that users are protected against removing data by incorrect usage of
+        # `append`/`redo`
+        cfg = Configuration.default(
+            **{
+                "name": "test",
+                "partitions": {
+                    "layer": {"thickness": 50.0, "stack_index": 0},
+                },
+                "cell_types": {
+                    "cell": {
+                        "spatial": {
+                            "radius": 1,
+                            "count": 1,
+                        },
+                    },
+                },
+                "placement": {
+                    "layer_placement": {
+                        "strategy": "bsb.placement.FixedPositions",
+                        "partitions": ["layer"],
+                        "cell_types": ["cell"],
+                        "positions": [[0, 0, 0]],
+                    }
+                },
+                "connectivity": {
+                    "cell_to_cell": {
+                        "strategy": "bsb.connectivity.AllToAll",
+                        "presynaptic": {"cell_types": ["cell"]},
+                        "postsynaptic": {"cell_types": ["cell"]},
+                    },
+                },
+            }
+        )
+
+        network = Scaffold(cfg)
+        network.compile(clear=True)
+        self.assertEqual(
+            1,
+            len(network.cell_types.cell.get_placement_set()),
+            "test setup should place 1 cell",
+        )
+        with self.assertRaises(InputError, msg="should error incorrect usage"):
+            network.compile(redo=["cell_to_cell"])
+        network.compile(redo=True, only=["cell_to_cell"])
+        self.assertEqual(
+            1,
+            len(network.cell_types.cell.get_placement_set()),
+            "redoing a conn strat should not affect the placement",
+        )
