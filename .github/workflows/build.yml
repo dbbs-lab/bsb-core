@@ -20,15 +20,7 @@ jobs:
     - name: Install apt dependencies
       run: |
         sudo apt update
-        sudo apt install openmpi-bin libopenmpi-dev gsl-bin libgsl-dev libhdf5-dev
-    - name: Cache pip
-      uses: actions/cache@v3
-      with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-${{ matrix.python-version }}-pip-${{ hashFiles('requirements.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-${{ matrix.python-version }}-pip-
-          ${{ runner.os }}-
+        sudo apt install openmpi-bin libopenmpi-dev
 
     - name: Install dependencies & self
       run: |
