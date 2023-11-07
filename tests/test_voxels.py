@@ -1,17 +1,14 @@
-import os
-import sys
 import unittest
 import numpy as np
 import random
 from bsb.voxels import VoxelSet, VoxelData
 from bsb.storage import Chunk
 from bsb.morphologies import Branch, Morphology
-from bsb.exceptions import *
-import bsb.unittest
+import bsb_test
 from itertools import count as _ico, chain as _ic
 
 
-class TestVoxelSet(bsb.unittest.NumpyTestCase, unittest.TestCase):
+class TestVoxelSet(bsb_test.NumpyTestCase, unittest.TestCase):
     def setUp(self):
         vs = VoxelSet
         self.regulars = [

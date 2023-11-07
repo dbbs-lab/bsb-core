@@ -21,67 +21,36 @@ from bsb.storage import NrrdDependencyNode, YamlDependencyNode
 from bsb.topology.region import RegionGroup
 from bsb_test import RandomStorageFixture, get_config_path, get_data_path
 
-minimal_config = get_config_path("test_minimal.json")
-full_config = get_config_path("test_full_v4.json")
-
 
 @config.root
 class TestRoot:
     pass
 
 
-def as_json(f):
-    import json
-
-    with open(f, "r") as fh:
-        return json.load(fh)
-
-
 class TestConfiguration(
     RandomStorageFixture, unittest.TestCase, setup_cls=True, engine_name="hdf5"
 ):
-    def test_minimal_json_bootstrap(self):
-        config = from_json(minimal_config)
-        Scaffold(config, self.storage)
-
     def test_default_bootstrap(self):
         cfg = config.Configuration.default()
         Scaffold(cfg, self.storage)
 
-    def test_minimal_json_content_bootstrap(self):
-        with open(minimal_config, "r") as f:
-            content = f.read()
-        config = from_json(data=content)
-        Scaffold(config, self.storage)
-
-    def test_full_json_bootstrap(self):
-        config = from_json(full_config)
-        Scaffold(config, self.storage)
-
     def test_missing_nodes(self):
-        self.assertRaises(RequirementError, from_json, data="""{}""")
+        with self.assertRaises(RequirementError):
+            Configuration({})
 
     def test_no_unknown_attributes(self):
         try:
             with self.assertWarns(ConfigurationWarning) as cm:
-                from_json(minimal_config)
-            self.fail(f"Unknown configuration attributes detected: {cm.warning}")
-        except AssertionError:
-            pass
-
-    def test_full_no_unknown_attributes(self):
-        try:
-            with self.assertWarns(ConfigurationWarning) as cm:
-                from_json(full_config)
+                Configuration.default()
             self.fail(f"Unknown configuration attributes detected: {cm.warning}")
         except AssertionError:
             pass
 
     def test_unknown_attributes(self):
-        data = as_json(minimal_config)
-        data["shouldntexistasattr"] = 15
+        tree = Configuration.default().__tree__()
+        tree["shouldntexistasattr"] = 15
         with self.assertWarns(ConfigurationWarning) as warning:
-            from_json(data=data)
+            Configuration(tree)
 
         self.assertIn(
             """Unknown attribute: 'shouldntexistasattr'""", str(warning.warning)
@@ -1192,10 +1161,6 @@ class TestTreeing(unittest.TestCase):
         test_tree = cfg.__tree__()
         ref_tree = {"a": 5, "b": 5.0, "c": "3"}
         self.surjective("autocorrect", Test, ref_tree, test_tree)
-
-    @unittest.expectedFailure
-    def test_full(self):
-        self.bijective("full", Configuration, as_json(full_config))
 
     def test_eval(self):
         @config.root

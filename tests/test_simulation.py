@@ -7,6 +7,7 @@ from bsb_test import (
 import unittest
 
 
+@unittest.skip("todo: Move this test from bsb-core to bsb")
 class TestSimulate(
     FixedPosConfigFixture,
     RandomStorageFixture,
