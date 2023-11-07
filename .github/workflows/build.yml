@@ -53,9 +53,7 @@ jobs:
         # Install latest pip
         pip install --upgrade pip
         # Install bsb-core
-        pip install .
-        # Install plugins required to run the tests
-        pip install -r tests/required_plugins.txt
+        pip install .[test]
     - name: Run tests & coverage
       run: |
         source "${NEST_INSTALL_PATH}/bin/nest_vars.sh"

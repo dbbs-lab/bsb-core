@@ -58,6 +58,11 @@ config = "bsb._options:config"
 profiling = "bsb._options:profiling"
 
 [project.optional-dependencies]
+test = [
+    "coverage~=7.3.0",
+    "bsb-hdf5==1.0.0b0",
+    "bsb-json==0.0.0b0"
+]
 dev = [
     "sphinx~=7.0",
     "furo",
