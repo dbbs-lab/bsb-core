@@ -358,9 +358,9 @@ class TestVoxelDensities(RandomStorageFixture, unittest.TestCase, engine_name="h
         return Configuration.default(
             network={
                 "x": 20.0,
-                "y": 5.0,
-                "z": 20.0,
-                "chunk_size": [20, 20, 10],  # at least two chunks
+                "y": 20.0,
+                "z": 5.0,
+                "chunk_size": [20, 10, 20],  # at least two chunks
             },
             partitions={
                 "first_layer": {"thickness": 5.0, "stack_index": 0},
@@ -388,27 +388,21 @@ class TestVoxelDensities(RandomStorageFixture, unittest.TestCase, engine_name="h
     def test_packing_factor_error1(self):
         cfg = self._config_packing_fact()
         network = Scaffold(cfg, self.storage)
-        with self.assertRaises(PackingError) as exc:
+        with self.assertRaisesRegexp(
+            PackingError,
+            r"Packing factor .* exceeds geometrical maximum packing for spheres \(0\.64\).*",
+        ):
             network.compile(clear=True)
-        self.assertTrue(
-            re.match(
-                r"Packing factor .* exceeds geometrical maximum packing for spheres \(0\.64\).*",
-                str(exc.exception),
-            )
-        )
 
     def test_packing_factor_error2(self):
         cfg = self._config_packing_fact()
         cfg.cell_types["test_cell"] = dict(spatial=dict(radius=1.3, count=100))
         network = Scaffold(cfg, self.storage)
-        with self.assertRaises(PackingError) as exc:
+        with self.assertRaisesRegexp(
+            PackingError,
+            r"Packing factor .* too high to resolve with ParticlePlacement.*",
+        ):
             network.compile(clear=True)
-        self.assertTrue(
-            re.match(
-                r"Packing factor .* too high to resolve with ParticlePlacement.*",
-                str(exc.exception),
-            )
-        )
 
     def test_packing_factor_warning(self):
         cfg = self._config_packing_fact()
