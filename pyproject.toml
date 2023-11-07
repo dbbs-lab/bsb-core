@@ -61,6 +61,7 @@ profiling = "bsb._options:profiling"
 test = [
     "coverage~=7.3.0",
     "bsb-hdf5==1.0.0b0",
+    "bsb-test==0.0.0b0",
     "bsb-json==0.0.0b0"
 ]
 dev = [
