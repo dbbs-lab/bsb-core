@@ -2,10 +2,6 @@ name: Build and test BSB
 
 on: [push, pull_request]
 
-env:
-  NEST_VERSION: 3.4
-  NEST_INSTALL_PATH: /home/runner/work/simulators/nest
-
 jobs:
   build:
     if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
@@ -34,30 +30,15 @@ jobs:
           ${{ runner.os }}-${{ matrix.python-version }}-pip-
           ${{ runner.os }}-
 
-    - name: Cache NEST
-      id: cache-nest
-      uses: actions/cache@v3
-      with:
-        # Path resolution error, see:
-        # https://github.com/actions/cache/issues/878
-        # path: ${NEST_INSTALL_PATH}
-        path: /home/runner/work/simulators/nest
-        key: ${{ runner.os }}-${{ matrix.python-version }}-nest
-
-    - name: Install NEST
-      if: steps.cache-nest.outputs.cache-hit != 'true'
-      run: .github/devops/install-nest.sh ${NEST_VERSION} "${NEST_INSTALL_PATH}"
-
     - name: Install dependencies & self
       run: |
         # Install latest pip
         pip install --upgrade pip
         # Install bsb-core
         pip install .[test]
+
     - name: Run tests & coverage
       run: |
-        source "${NEST_INSTALL_PATH}/bin/nest_vars.sh"
-        python -c "import nest"
         coverage run -p -m unittest discover -v -s ./tests
         mpiexec -n 2 coverage run -p -m unittest discover -v -s ./tests
         BSB_PROFILING=TRUE coverage run -p -m unittest tests.test_env_options
