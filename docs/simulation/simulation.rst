@@ -291,9 +291,7 @@ Devices
 -------
 
 In NEURON an assortment of devices is provided by the BSB to send input, or
-record output. See :doc:`/simulation/neuron/devices` for a complete list.
-Some devices like voltage and spike recorders can be placed by requesting them
-on cell models using :guilabel:`record_soma` or :guilabel:`record_spikes`.
+record output.
 
 In addition to voltage and spike recording we'll place a spike generator and a
 voltage clamp:
@@ -303,10 +301,11 @@ voltage clamp:
   {
     "devices": {
       "stimulus": {
-        "io": "input",
         "device": "spike_generator",
-        "targetting": "cell_type",
-        "cell_types": ["cell_type_A"],
+        "targetting": {
+            "strategy": "cell_model",
+            "cell_models": ["cell_type_A"]
+        },
         "synapses": ["AMPA"],
         "start": 500,
         "number": 10,
@@ -314,13 +313,15 @@ voltage clamp:
         "noise": true
       },
       "voltage_clamp": {
-        "io": "input",
         "device": "voltage_clamp",
-        "targetting": "cell_type",
-        "cell_types": ["cell_type_B"],
-        "cell_count": 1,
-        "section_types": ["soma"],
-        "section_count": 1,
+        "targetting": {
+            "strategy": "cell_model",
+            "cell_models": ["cell_type_A"]
+            "count": 1,
+        },
+        "location": {
+            "strategy": "soma"
+        },
         "parameters": {
           "delay": 0,
           "duration": 1000,
@@ -330,7 +331,3 @@ voltage clamp:
       }
     }
   }
-
-The voltage clamp targets 1 random ``cell_type_B`` which is a bit awkward, but
-either the ``targetting`` (docs incomplete) or the ``labelling`` system (docs
-incomplete) can help you target exactly the right cells.

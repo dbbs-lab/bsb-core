@@ -30,7 +30,7 @@ class SimulationResult:
     def add(self, recorder):
         self.recorders.append(recorder)
 
-    def create_recorder(self, flush: typing.Callable[["neo.Segment"], None]):
+    def create_recorder(self, flush: typing.Callable[["neo.core.Segment"], None]):
         recorder = SimulationRecorder()
         recorder.flush = flush
         self.add(recorder)
@@ -55,5 +55,5 @@ class SimulationResult:
 
 
 class SimulationRecorder:
-    def flush(self, segment: "neo.Segment"):
+    def flush(self, segment: "neo.core.Segment"):
         raise NotImplementedError("Recorders need to implement the `flush` function.")

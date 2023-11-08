@@ -271,7 +271,7 @@ def parser_factory(name, parser):
         return _from_parsed(self, name, tree, meta, file)
 
     parser_method.__name__ = "from_" + name
-    parser_method.__doc__ = _parser_method_docs(parser)
+    # parser_method.__doc__ = _parser_method_docs(parser)
     return parser_method
 
 
