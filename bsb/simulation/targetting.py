@@ -1,8 +1,11 @@
-import itertools
+import copy
+import functools
+import math
 import random
 import typing
 
 import numpy as np
+from numpy.random import default_rng
 from .. import config
 from ..config import refs, types
 
@@ -16,11 +19,11 @@ class Targetting:
         typing.Literal["cell"], typing.Literal["connection"]
     ] = config.attr(type=types.in_(["cell", "connection"]), default="cell")
 
-    def get_targets(self, cells, connections):
+    def get_targets(self, adapter, simulation, simdata):
         if self.type == "cell":
-            return cells
+            return simdata.populations
         elif self.type == "connection":
-            return connections
+            return simdata.connections
 
 
 @config.node
@@ -29,8 +32,8 @@ class CellTargetting(Targetting, classmap_entry="all"):
     def type(self):
         return "cell"
 
-    def get_targets(self, cells, connections):
-        return cells
+    def get_targets(self, adapter, simulation, simdata):
+        return simdata.populations
 
 
 @config.node
@@ -39,81 +42,140 @@ class ConnectionTargetting(Targetting, classmap_entry="all_connections"):
     def type(self):
         return "connection"
 
-    def get_targets(self, cells, connections):
-        return connections
+    def get_targets(self, adapter, simulation, simdata):
+        return simdata.connections
+
+
+class CellModelFilter:
+    cell_models: list["CellModel"] = config.reflist(
+        refs.sim_cell_model_ref, required=False
+    )
+
+    def get_targets(self, adapter, simulation, simdata):
+        return {
+            model: pop
+            for model, pop in simdata.populations.items()
+            if not self.cell_models or model in self.cell_models
+        }
+
+
+class FractionFilter:
+    count = config.attr(
+        type=int, required=types.mut_excl("fraction", "count", required=False)
+    )
+    fraction = config.attr(
+        type=types.fraction(),
+        required=types.mut_excl("fraction", "count", required=False),
+    )
+
+    def satisfy_fractions(self, targets):
+        return {model: self._frac(data) for model, data in targets.items()}
+
+    def _frac(self, data):
+        take = None
+        if self.count is not None:
+            take = self.count
+        if self.fraction is not None:
+            take = math.floor(len(data) * self.fraction)
+        if take is None:
+            return data
+        else:
+            # Select `take` elements from data with a boolean mask (otherwise a sorted
+            # integer mask would be required)
+            idx = np.zeros(len(data), dtype=bool)
+            idx[np.random.default_rng().integers(0, len(data), take)] = True
+            return data[idx]
+
+    @staticmethod
+    def filter(f):
+        @functools.wraps(f)
+        def wrapper(self, *args, **kwargs):
+            return self.satisfy_fractions(f(self, *args, **kwargs))
+
+        return wrapper
 
 
 @config.node
-class CellModelTargetting(CellTargetting, classmap_entry="cell_model"):
+class CellModelTargetting(
+    CellModelFilter, FractionFilter, CellTargetting, classmap_entry="cell_model"
+):
     """
-    Targetting mechanism (use ``"type": "cell_model"``) to target all cells of
-    certain cell models.
+    Targets all cells of certain cell models.
     """
 
     cell_models: list["CellModel"] = config.reflist(
         refs.sim_cell_model_ref, required=True
     )
 
-    def get_targets(self, cells, connections):
-        return [cell for cell in cells.values() if cell.model in self.cell_models]
+    @FractionFilter.filter
+    def get_targets(self, adapter, simulation, simdata):
+        return super().get_targets(adapter, simulation, simdata)
 
 
 @config.node
-class RepresentativesTargetting(CellModelTargetting, classmap_entry="representatives"):
+class RepresentativesTargetting(
+    CellModelFilter, FractionFilter, CellTargetting, classmap_entry="representatives"
+):
     """
-    Targetting mechanism (use ``"type": "representatives"``) to target all identifiers
-    of certain cell types.
+    Targets all identifiers of certain cell types.
     """
 
     n: int = config.attr(type=int, default=1)
 
-    def get_targets(self, cells, connections):
-        reps = {cell_model: [] for cell_model in self.cell_models}
-        for cell in cells.values():
-            reps[cell.model] = cell
-        return [
-            *itertools.chain.from_iterable(
-                random.choices(group, k=self.n) for group in reps.values()
-            )
-        ]
+    @FractionFilter.filter
+    def get_targets(self, adapter, simulation, simdata):
+        return {
+            model: default_rng().choice(len(pop), size=self.n, replace=False)
+            for model, pop in super().get_targets(adapter, simulation, simdata)
+        }
 
 
 @config.node
-class ByIdTargetting(CellTargetting, classmap_entry="by_id"):
+class ByIdTargetting(FractionFilter, CellTargetting, classmap_entry="by_id"):
     """
-    Targetting mechanism (use ``"type": "by_id"``) to target all given identifiers.
+    Targets all given identifiers.
     """
 
-    ids: list[int] = config.attr(type=types.list(type=int), required=True)
+    ids: dict[str, list[int]] = config.attr(
+        type=types.dict(type=types.list(type=int)), required=True
+    )
 
-    def get_targets(self, cells, connections):
-        return [cells[id] for id in self.ids]
+    @FractionFilter.filter
+    def get_targets(self, adapter, simulation, simdata):
+        by_name = {model.name: model for model in simdata.populations.keys()}
+        return {
+            model: simdata.populations[model][ids]
+            for model_name, ids in self.ids.items()
+            if (model := by_name.get(model_name)) is not None
+        }
 
 
 @config.node
-class ByLabelTargetting(CellTargetting, classmap_entry="by_label"):
+class ByLabelTargetting(
+    CellModelFilter, FractionFilter, CellTargetting, classmap_entry="by_label"
+):
     """
-    Targetting mechanism (use ``"type": "by_label"``) to target all given labels.
+    Targets all given labels.
     """
 
     labels: list[str] = config.attr(type=types.list(type=str), required=True)
 
-    def get_targets(self, cells, connections):
-        raise NotImplementedError("Labels still need to be transferred onto models")
-
-
-class CellModelFilter:
-    cell_models: list["CellModel"] = config.reflist(refs.sim_cell_model_ref)
-
-    def get_targets(self, cells, connections):
-        return [cell for cell in cells.values() if cell.cell_model in self.cell_models]
+    @FractionFilter.filter
+    def get_targets(self, adapter, simulation, simdata):
+        return {
+            model: simdata.populations[
+                simdata.placement[model].get_label_mask(self.labels)
+            ]
+            for model in super().get_targets(adapter, simulation, simdata).keys()
+        }
 
 
 @config.node
-class CylindricalTargetting(CellModelFilter, CellTargetting, classmap_entry="cylinder"):
+class CylindricalTargetting(
+    CellModelFilter, FractionFilter, CellTargetting, classmap_entry="cylinder"
+):
     """
-    Targetting mechanism (use ``"type": "cylinder"``) to target all cells in a
-    horizontal cylinder (xz circle expanded along y).
+    Targets all cells in a cylinder along specified axis.
     """
 
     origin: list[float] = config.attr(type=types.list(type=float, size=2))
@@ -122,42 +184,57 @@ class CylindricalTargetting(CellModelFilter, CellTargetting, classmap_entry="cyl
     ] = config.attr(type=types.in_(["x", "y", "z"]), default="y")
     radius: float = config.attr(type=float, required=True)
 
-    def get_targets(self, cells, connections):
+    @FractionFilter.filter
+    def get_targets(self, adapter, simulation, simdata):
         """
         Target all or certain cells within a cylinder of specified radius.
         """
-        cells = super().get_targets(cells, connections)
         if self.axis == "x":
             axes = [1, 2]
         elif self.axis == "y":
             axes = [0, 2]
         else:
             axes = [0, 1]
-        return [
-            cell
-            for cell in cells
-            if np.sum((cell.position[axes] - self.origin) ** 2) < self.radius**2
-        ]
+        return {
+            model: simdata.populations[model][
+                np.sum(
+                    simdata.placement[model].load_positions()[:, axes] - self.origin**2,
+                    axis=0,
+                )
+                < self.radius**2
+            ]
+            for model in super().get_targets(adapter, simulation, simdata).keys()
+        }
 
 
 @config.node
-class SphericalTargetting(CellModelFilter, CellTargetting, classmap_entry="sphere"):
+class SphericalTargetting(
+    CellModelFilter, FractionFilter, CellTargetting, classmap_entry="sphere"
+):
     """
-    Targetting mechanism (use ``"type": "sphere"``) to target all cells in a sphere.
+    Targets all cells in a sphere.
     """
 
     origin: list[float] = config.attr(type=types.list(type=float, size=3), required=True)
     radius: float = config.attr(type=float, required=True)
 
-    def get_targets(self, cells, connections):
+    @FractionFilter.filter
+    def get_targets(self, adapter, simulation, simdata):
         """
-        Target all or certain cells within a cylinder of specified radius.
+        Target all or certain cells within a sphere of specified radius.
         """
-        return [
-            cell
-            for cell in super().get_targets(cells, connections)
-            if np.sum((cell.position - self.origin) ** 2) < self.radius**2
-        ]
+        return {
+            model: simdata.populations[model][
+                (
+                    np.sum(
+                        (simdata.placement[model].load_positions() - self.origin) ** 2,
+                        axis=1,
+                    )
+                    < self.radius**2
+                )
+            ]
+            for model in super().get_targets(adapter, simulation, simdata).keys()
+        }
 
 
 @config.dynamic(
@@ -175,3 +252,16 @@ class LocationTargetting:
 class SomaTargetting(LocationTargetting, classmap_entry="soma"):
     def get_locations(self, cell):
         return [cell.locations[(0, 0)]]
+
+
+@config.node
+class LabelTargetting(LocationTargetting, classmap_entry="label"):
+    labels = config.list(required=True)
+
+    def get_locations(self, cell):
+        locs = [
+            loc
+            for loc in cell.locations.values()
+            if all(l in loc.section.labels for l in self.labels)
+        ]
+        return locs

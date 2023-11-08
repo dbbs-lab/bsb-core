@@ -21,7 +21,6 @@ from ..reporting import report
 import numpy as np
 import collections
 import functools
-import requests
 import nrrd
 import json
 import abc
@@ -271,7 +270,7 @@ class Layer(Rhomboid, classmap_entry="layer"):
     )
     axis: typing.Union[
         typing.Literal["x"], typing.Literal["y"], typing.Literal["z"]
-    ] = config.attr(type=types.in_(["x", "y", "z"]), default="y")
+    ] = config.attr(type=types.in_(["x", "y", "z"]), default="z")
     stack_index: float = config.attr(type=float, default=0)
 
     def get_layout(self, hint):

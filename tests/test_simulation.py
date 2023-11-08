@@ -1,5 +1,5 @@
 from bsb.core import Scaffold
-from bsb.unittest import (
+from bsb_test import (
     NumpyTestCase,
     FixedPosConfigFixture,
     RandomStorageFixture,
@@ -7,6 +7,7 @@ from bsb.unittest import (
 import unittest
 
 
+@unittest.skip("todo: Move this test from bsb-core to bsb")
 class TestSimulate(
     FixedPosConfigFixture,
     RandomStorageFixture,
@@ -28,4 +29,13 @@ class TestSimulate(
         self.network.compile(clear=True)
 
     def test_simulate(self):
-        pass
+        self.network.simulations.add(
+            "test",
+            simulator="nest",
+            duration=100,
+            resolution=1.0,
+            cell_models=dict(),
+            connection_models=dict(),
+            devices=dict(),
+        )
+        self.network.run_simulation("test")

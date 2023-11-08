@@ -35,7 +35,9 @@ class TestTargetting(unittest.TestCase):
         adapter.load_balance()
         device = adapter.devices["test_representatives"]
         device.initialise_targets()
-        targets = adapter.devices["test_representatives"].get_targets()
+        targets = adapter.devices["test_representatives"].get_targets(
+            self,
+        )
         self.assertEqual(
             1,
             len(targets),

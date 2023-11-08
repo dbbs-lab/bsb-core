@@ -5,7 +5,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
 from bsb.core import Scaffold, from_storage
 from bsb.config import from_json, Configuration
 from bsb.exceptions import InputError
-from bsb.unittest import NetworkFixture, RandomStorageFixture, get_config_path
+from bsb_test import NetworkFixture, RandomStorageFixture, get_config_path
 
 
 single_neuron_path = get_config_path("test_single_neuron.json")

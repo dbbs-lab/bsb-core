@@ -10,6 +10,7 @@ import os
 import sys
 import glob
 import itertools
+import typing
 from importlib.machinery import ModuleSpec
 from shutil import copy2 as copy_file
 import builtins
@@ -44,6 +45,12 @@ from . import parsers
 
 _path = __path__
 ConfigurationAttribute.__module__ = __name__
+
+if typing.TYPE_CHECKING:
+    from ._config import Configuration
+
+# Add some static type hinting, to help tools figure out this dynamic module
+Configuration: "Configuration"
 
 
 # ConfigurationModule should not inherit from `ModuleType`, otherwise Sphinx doesn't
@@ -213,7 +220,7 @@ def _try_parsers(content, classes, ext=None, path=None):  # pragma: nocover
     if ext is not None:
 
         def file_has_parser_ext(kv):
-            return ext in getattr(kv[1], "data_extensions", ())
+            return ext not in getattr(kv[1], "data_extensions", ())
 
         classes = builtins.dict(sorted(classes.items(), key=file_has_parser_ext))
     exc = {}
@@ -221,6 +228,8 @@ def _try_parsers(content, classes, ext=None, path=None):  # pragma: nocover
         try:
             tree, meta = cls().parse(content, path=path)
         except Exception as e:
+            if getattr(e, "_bsbparser_show_user", False):
+                raise e from None
             exc[name] = e
         else:
             return (name, tree, meta)
@@ -262,7 +271,7 @@ def parser_factory(name, parser):
         return _from_parsed(self, name, tree, meta, file)
 
     parser_method.__name__ = "from_" + name
-    parser_method.__doc__ = _parser_method_docs(parser)
+    # parser_method.__doc__ = _parser_method_docs(parser)
     return parser_method
 
 

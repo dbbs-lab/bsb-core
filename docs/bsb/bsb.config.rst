@@ -8,7 +8,6 @@ Subpackages
    :maxdepth: 4
 
    bsb.config.parsers
-   bsb.config.templates
 
 Submodules
 ----------

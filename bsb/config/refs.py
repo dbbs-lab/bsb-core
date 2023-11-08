@@ -16,7 +16,9 @@ class Reference:  # pragma: nocover
     def __call__(self, root, here):
         return here
 
-    def up(self, here, to):
+    def up(self, here, to=None):
+        if to is None:
+            return here._config_parent
         while not isinstance(here, to):
             try:
                 here = here._config_parent

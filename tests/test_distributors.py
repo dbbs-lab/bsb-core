@@ -3,7 +3,7 @@ import numpy as np
 from bsb.exceptions import DistributorError, DatasetNotFoundError, EmptySelectionError
 from bsb.core import Scaffold
 from bsb.config import Configuration
-from bsb.unittest import skip_parallel, get_data_path
+from bsb_test import skip_parallel, get_data_path
 from bsb.placement.distributor import (
     MorphologyDistributor,
     MorphologyGenerator,

@@ -649,6 +649,13 @@ class PlacementSet(Interface):
         """
         pass
 
+    @abc.abstractmethod
+    def get_chunk_stats(self):
+        """
+        Should return how many cells were placed in each chunk.
+        """
+        pass
+
     def load_boxes(self, morpho_cache=None):
         """
         Load the cells as axis aligned bounding box rhomboids matching the extension,
@@ -1094,33 +1101,29 @@ class ConnectivityIterator:
         gchunks = self._gchunks.copy() if self._gchunks is not None else None
         return ConnectivityIterator(self._cs, self._dir, lchunks, gchunks)
 
+    def __len__(self):
+        return len(self.all()[0])
+
     def __iter__(self):
         """
-        Iterate over the data chunk by chunk, offset as their global ids
+        Iterate over the connection locations chunk by chunk.
 
-        :returns: presyn global cell IDs, postsyn global cell IDs (0 to N)
+        :returns: The presynaptic location matrix and postsynaptic location matrix.
         :rtype: Tuple[numpy.ndarray, numpy.ndarray]
         """
-        yield from (
-            self._offset_block(*data)
-            for data in self._cs.flat_iter_connections(
-                self._dir, self._lchunks, self._gchunks
-            )
-        )
+        for _, pre_locs, _, post_locs in self.chunk_iter():
+            yield from zip(pre_locs, post_locs)
 
     def chunk_iter(self):
         """
-        Iterate over the data chunk by chunk, with the chunk-local cell IDs, and the local
-        and global chunks they stem from returned as well.
+        Iterate over the connection data chunk by chunk.
 
-        :returns: presyn chunk, presyn chunk-local cell IDs (0 to N), postsyn chunk,
-          postsyn chunk-local cell IDs (0 to N)
+        :returns: The presynaptic chunk, presynaptic locations, postsynaptic chunk,
+          and postsynaptic locations.
         :rtype: Tuple[~bsb.storage.Chunk, numpy.ndarray, ~bsb.storage.Chunk, numpy.ndarray]
         """
         yield from (
-            (data[2], data[3][1], data[1], data[3][0])
-            if dir == "inc"
-            else (data[1], data[3][0], data[2], data[3][1])
+            self._offset_block(*data)
             for data in self._cs.flat_iter_connections(
                 self._dir, self._lchunks, self._gchunks
             )
@@ -1166,7 +1169,7 @@ class ConnectivityIterator:
         pre_blocks = []
         post_blocks = []
         lens = []
-        for pre_block, post_block in self:
+        for _, pre_block, _, post_block in self.chunk_iter():
             pre_blocks.append(pre_block)
             post_blocks.append(post_block)
             lens.append(len(pre_block))
@@ -1186,9 +1189,9 @@ class ConnectivityIterator:
         llocs[:, 0] += loff[lchunk]
         glocs[:, 0] += goff[gchunk]
         if direction == "out":
-            return llocs, glocs
+            return lchunk, llocs, gchunk, glocs
         else:
-            return glocs, llocs
+            return gchunk, glocs, lchunk, llocs
 
     @functools.cache
     def _local_chunk_offsets(self):

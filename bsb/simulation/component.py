@@ -1,23 +1,16 @@
+import abc
 from .. import config
-from .._util import SortableByAfter
+from .._util import obj_str_insert
 
 
 @config.node
-class SimulationComponent(SortableByAfter):
+class SimulationComponent(abc.ABC):
     name: str = config.attr(key=True)
 
-    def __boot__(self):
-        self.simulation = self._config_parent._config_parent
+    @property
+    def simulation(self):
+        return self._config_parent._config_parent
 
-    @classmethod
-    def get_ordered(cls, objects):
-        return objects.values()  # No sorting of simulation components required.
-
-    def get_after(self):
-        return None if not self.has_after() else self.after
-
-    def create_after(self):
-        self.after = []
-
-    def has_after(self):
-        return hasattr(self, "after")
+    @obj_str_insert
+    def __str__(self):
+        return f"'{self.name}'"

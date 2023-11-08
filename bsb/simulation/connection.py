@@ -2,7 +2,6 @@ import typing
 
 from .. import config
 from .component import SimulationComponent
-from ..config import refs
 
 if typing.TYPE_CHECKING:
     from ..connectivity import ConnectionStrategy
@@ -10,4 +9,7 @@ if typing.TYPE_CHECKING:
 
 @config.node
 class ConnectionModel(SimulationComponent):
-    connection_type: "ConnectionStrategy" = config.ref(refs.conn_type_ref, key="name")
+    tag: str = config.attr(type=str, key=True)
+
+    def get_connectivity_set(self):
+        return self.scaffold.get_connectivity_set(self.tag)

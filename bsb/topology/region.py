@@ -88,7 +88,7 @@ class Stack(RegionGroup, classmap_entry="stack"):
 
     axis: typing.Union[
         typing.Literal["x"], typing.Literal["y"], typing.Literal["z"]
-    ] = config.attr(type=types.in_(["x", "y", "z"]), default="y")
+    ] = config.attr(type=types.in_(["x", "y", "z"]), default="z")
 
     def get_layout(self, hint):
         layout = super().get_layout(hint)

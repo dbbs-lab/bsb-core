@@ -1,5 +1,10 @@
+import typing
+
 from ..reporting import warn
 import traceback
+
+if typing.TYPE_CHECKING:
+    import neo
 
 
 class SimulationResult:
@@ -14,10 +19,18 @@ class SimulationResult:
         self.block = Block(name=simulation.name, config=tree)
         self.recorders = []
 
+    @property
+    def spiketrains(self):
+        return self.block.segments[0].spiketrains
+
+    @property
+    def analogsignals(self):
+        return self.block.segments[0].analogsignals
+
     def add(self, recorder):
         self.recorders.append(recorder)
 
-    def create_recorder(self, flush):
+    def create_recorder(self, flush: typing.Callable[["neo.core.Segment"], None]):
         recorder = SimulationRecorder()
         recorder.flush = flush
         self.add(recorder)
@@ -42,5 +55,5 @@ class SimulationResult:
 
 
 class SimulationRecorder:
-    def flush(self):
+    def flush(self, segment: "neo.core.Segment"):
         raise NotImplementedError("Recorders need to implement the `flush` function.")
