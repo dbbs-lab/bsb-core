@@ -17,10 +17,15 @@ class SpikeGenerator(NeuronDevice, classmap_entry="spike_generator"):
     parameters = config.catch_all(type=types.any_())
 
     def implement(self, result, cells, connections):
+        n_syn = 0
         for target in self.targetting.get_targets(cells, connections):
-            for ii, location in enumerate(self.locations.get_locations(target)):
-                for synapse in location.section.synapses:
+            for location in self.locations.get_locations(target):
+                sec = location.section
+                print(sec)
+                print(sec.labels)
+                for synapse in sec.synapses:
                     print(synapse.synapse_name)
                     if synapse.synapse_name in self.synapses:
+                        print(n_syn)
+                        n_syn = n_syn + 1
                         synapse.stimulate(**self.parameters)
-                        pass

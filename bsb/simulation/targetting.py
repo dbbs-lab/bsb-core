@@ -181,3 +181,22 @@ class LabelTargetting(LocationTargetting, classmap_entry="label"):
             if all(l in loc.section.labels for l in self.labels)
         ]
         return locs
+
+
+@config.node
+class BranchLocTargetting(LabelTargetting, classmap_entry="branch"):
+    x = config.attr(type=types.fraction(), default=0.5)
+
+    def get_locations(self, cell):
+        locations = super().get_locations(cell)
+        branches = set()
+        selected = []
+        for loc in locations:
+            if (
+                loc._loc[0] not in branches
+                and loc.arc(0) <= self.x
+                and loc.arc(1) > self.x
+            ):
+                selected.append(loc)
+                branches.add(loc._loc[0])
+        return selected

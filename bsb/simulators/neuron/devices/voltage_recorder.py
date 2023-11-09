@@ -13,4 +13,6 @@ class VoltageRecorder(NeuronDevice, classmap_entry="vrecorder"):
                 self._add_voltage_recorder(result, location)
 
     def _add_voltage_recorder(self, results, location):
-        results.record(location.section)
+        section = location.section
+        x = location.arc(0)
+        results.record(section(x)._ref_v)
