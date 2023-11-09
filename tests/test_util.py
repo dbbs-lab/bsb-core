@@ -7,7 +7,7 @@ from bsb._util import rotation_matrix_from_vectors
 from bsb.core import Scaffold
 from bsb.storage import FileDependency
 from bsb.storage._files import NeuroMorphoScheme
-from bsb.unittest import (
+from bsb_test import (
     FixedPosConfigFixture,
     RandomStorageFixture,
     NumpyTestCase,

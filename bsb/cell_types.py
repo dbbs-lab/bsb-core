@@ -1,15 +1,21 @@
 """
     Module for the CellType configuration node and its dependencies.
 """
+import typing
 
 from . import config
 from .config import types
 from .placement.indicator import PlacementIndications
 from ._util import obj_str_insert
 
+if typing.TYPE_CHECKING:
+    from .core import Scaffold
+
 
 @config.node
 class Plotting:
+    scaffold: "Scaffold"
+
     display_name = config.attr()
     """
     Label used to display this cell type in plots.
@@ -33,6 +39,8 @@ class CellType:
     """
     Information on a population of cells.
     """
+
+    scaffold: "Scaffold"
 
     name = config.attr(key=True)
     """
@@ -123,7 +131,7 @@ class CellType:
         set that this cell type is a part of will be entirely removed.
         """
         for conn_set in self.scaffold.get_connectivity_sets():
-            if self is conn_set.presynaptic or self is conn_set.postsynaptic:
+            if self is conn_set.pre_type or self is conn_set.post_type:
                 conn_set.clear()
 
     # This property was mostly added so that accidental assignment to `ct.morphologies`

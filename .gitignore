@@ -11,16 +11,17 @@ bsb-*/
 *.egg-info/
 pip-wheel-metadata/
 .python-version
+venv/
 dev_env/
 test_env/
 nrnmech.dll
 .coverage
 htmlcov/
-.idea/
 !morphologies.hdf5
 # Ignore report files
 *.io
 .vscode/
+.idea/
 bsb-*/
 
 

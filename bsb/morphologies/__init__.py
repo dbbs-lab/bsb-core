@@ -25,7 +25,12 @@ from pathlib import Path
 from scipy.spatial.transform import Rotation
 from .._encoding import EncodedLabels
 from ..voxels import VoxelSet
-from ..exceptions import MorphologyDataError, EmptyBranchError, MorphologyWarning
+from ..exceptions import (
+    MorphologyError,
+    MorphologyDataError,
+    EmptyBranchError,
+    MorphologyWarning,
+)
 from ..reporting import warn
 from .. import _util as _gutil
 
@@ -562,7 +567,7 @@ class SubTree:
         :param downstream_of: index of the point in the subtree from which the rotation should be
             applied. This feature works only when the subtree has only one root branch.
         :returns: rotated Morphology
-        :rtype: bsb.morphologies.Morphology
+        :rtype: bsb.morphologies.SubTree
         """
 
         if downstream_of != 0:
@@ -585,6 +590,13 @@ class SubTree:
         return self
 
     def translate(self, point):
+        """
+        Translate the subtree by a 3D vector.
+
+        :param numpy.ndarray point: 3D vector to translate the subtree.
+        :returns: the translated subtree
+        :rtype: bsb.morphologies.SubTree
+        """
         if len(point) != 3:
             raise ValueError("Point must be a sequence of x, y and z coordinates")
         if self._is_shared:
@@ -618,7 +630,7 @@ class SubTree:
 
     def collapse(self, on=None):
         """
-        Collapse all of the roots of the morphology or subtree onto a single point.
+        Collapse all the roots of the morphology or subtree onto a single point.
 
         :param on: Index of the root to collapse on. Collapses onto the origin by default.
         :type on: int
@@ -1085,10 +1097,12 @@ class Branch:
         :type radii: list | numpy.ndarray
         :param labels: Array of labels to associate to each point
         :type labels: EncodedLabels | List[str] | set | numpy.ndarray
-        :param properties: dictionary of metadata to store in the branch
+        :param properties: dictionary of per-point data to store in the branch
         :type properties: dict
         :param children: list of child branches to attach to the branch
         :type children: List[bsb.morphologies.Branch]
+        :raises bsb.exceptions.MorphologyError: if a property of the branch does not have the same
+            size as its points
         """
 
         self._points = _gutil.sanitize_ndarray(points, (-1, 3), float)
@@ -1102,6 +1116,11 @@ class Branch:
         self._labels = labels
         if properties is None:
             properties = {}
+        mismatched = [str(k) for k, v in properties.items() if len(v) != len(points)]
+        if mismatched:
+            raise MorphologyError(
+                f"Morphology properties {', '.join(mismatched)} are not length {len(points)}"
+            )
         self._properties = {
             k: v if isinstance(v, np.ndarray) else np.array(v)
             for k, v in properties.items()
@@ -1379,7 +1398,7 @@ class Branch:
         Add labels to the branch.
 
         :param labels: Label(s) for the branch
-        :type labels: str
+        :type labels: List[str]
         :param points: An integer or boolean mask to select the points to label.
         """
         if points is None:
@@ -1492,7 +1511,7 @@ class Branch:
             self.points[:, 2],
             self.radii,
             self.labels.walk(),
-            *self.properties.values(),
+            *self._properties.values(),
         )
 
     def contains_labels(self, labels):
@@ -1646,6 +1665,21 @@ class Branch:
                 raise EmptyBranchError("Selected an empty subset of points") from None
         else:
             return displacements
+
+    def delete_point(self, index):
+        """
+        Remove a point from the branch
+
+        :param int index: index position of the point to remove
+        :returns: the branch where the point has been removed
+        :rtype: bsb.morphologies.Branch
+        """
+        self._points = np.delete(self._points, index, axis=0)
+        self._labels = np.delete(self._labels, index, axis=0)
+        self._radii = np.delete(self._radii, index, axis=0)
+        for k, v in self._properties.items():
+            self._properties[k] = np.delete(v, index, axis=0)
+        return self
 
     def simplify(self, epsilon, idx_start=0, idx_end=-1):
         """

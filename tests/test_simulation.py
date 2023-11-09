@@ -1,20 +1,13 @@
 from bsb.core import Scaffold
-from bsb.services import MPI
-from bsb.config import Configuration
-from bsb.morphologies import Morphology, Branch
-from bsb.unittest import (
+from bsb_test import (
     NumpyTestCase,
     FixedPosConfigFixture,
     RandomStorageFixture,
-    MorphologiesFixture,
-    NetworkFixture,
-    skip_parallel,
 )
 import unittest
-import numpy as np
-from collections import defaultdict
 
 
+@unittest.skip("todo: Move this test from bsb-core to bsb")
 class TestSimulate(
     FixedPosConfigFixture,
     RandomStorageFixture,
@@ -38,9 +31,9 @@ class TestSimulate(
     def test_simulate(self):
         self.network.simulations.add(
             "test",
-            simulator="neuron",
+            simulator="nest",
             duration=100,
-            temperature=32,
+            resolution=1.0,
             cell_models=dict(),
             connection_models=dict(),
             devices=dict(),

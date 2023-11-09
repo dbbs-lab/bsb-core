@@ -43,6 +43,7 @@ the CLI or Python:
 
   .. code-block:: bash
 
+    pip install bsb-plotting
     bsb compile --verbosity 3 --plot
 
   .. literalinclude:: getting_started.py

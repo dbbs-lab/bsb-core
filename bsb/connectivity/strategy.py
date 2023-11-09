@@ -1,10 +1,19 @@
+import typing
+
 from .. import config
 from ..config import refs, types
 from ..profiling import node_meter
 from ..reporting import report, warn
-from .._util import SortableByAfter, obj_str_insert
+from .._util import SortableByAfter, obj_str_insert, ichain
 import abc
 from itertools import chain
+
+if typing.TYPE_CHECKING:
+    from ..core import Scaffold
+    from ..cell_types import CellType
+    from ..storage.interfaces import PlacementSet
+    from ..morphologies import MorphologySet
+    from ..connectivity import ConnectionStrategy
 
 
 @config.node
@@ -13,13 +22,15 @@ class Hemitype:
     Class used to represent one (pre- or postsynaptic) side of a connection rule.
     """
 
-    cell_types = config.reflist(refs.cell_type_ref, required=True)
+    scaffold: "Scaffold"
+
+    cell_types: list["CellType"] = config.reflist(refs.cell_type_ref, required=True)
     """List of cell types to use in connection."""
-    labels = config.attr(type=types.list())
+    labels: list[str] = config.attr(type=types.list())
     """List of labels to filter the placement set by."""
-    morphology_labels = config.attr(type=types.list())
+    morphology_labels: list[str] = config.attr(type=types.list())
     """List of labels to filter the morphologies by."""
-    morpho_loader = config.attr(
+    morpho_loader: typing.Callable[["PlacementSet"], "MorphologySet"] = config.attr(
         type=types.function_(),
         required=False,
         call_default=False,
@@ -38,35 +49,30 @@ class HemitypeCollection:
 
     @property
     def placement(self):
-        return {
-            ct: ct.get_placement_set(
-                self.roi,
+        return [
+            ct.get_placement_set(
+                chunks=self.roi,
                 labels=self.hemitype.labels,
                 morphology_labels=self.hemitype.morphology_labels,
             )
             for ct in self.hemitype.cell_types
-        }
-
-    def __getattr__(self, attr):
-        if attr == "placement":
-            return type(self).placement.__get__(self)
-        else:
-            return self.placement[attr]
-
-    def __getitem__(self, item):
-        return self.placement[item]
+        ]
 
 
 @config.dynamic(attr_name="strategy", required=True)
 class ConnectionStrategy(abc.ABC, SortableByAfter):
-    name = config.attr(key=True)
+    scaffold: "Scaffold"
+    name: str = config.attr(key=True)
     """Name used to refer to the connectivity strategy"""
-    presynaptic = config.attr(type=Hemitype, required=True)
+    presynaptic: Hemitype = config.attr(type=Hemitype, required=True)
     """Presynaptic (source) neuron population"""
-    postsynaptic = config.attr(type=Hemitype, required=True)
+    postsynaptic: Hemitype = config.attr(type=Hemitype, required=True)
     """Postsynaptic (target) neuron population"""
-    after = config.reflist(refs.connectivity_ref)
-    """Action to perform after connecting the neurons with the current strategy."""
+    after: list["ConnectionStrategy"] = config.reflist(refs.connectivity_ref)
+    """
+        This strategy should be executed only after all the connections in this list have
+        been executed.
+    """
 
     def __init_subclass__(cls, **kwargs):
         super(cls, cls).__init_subclass__(**kwargs)
@@ -117,7 +123,6 @@ class ConnectionStrategy(abc.ABC, SortableByAfter):
         )
         cs.connect(pre_set, post_set, src_locs, dest_locs)
 
-    @abc.abstractmethod
     def get_region_of_interest(self, chunk):
         pass
 
@@ -141,7 +146,7 @@ class ConnectionStrategy(abc.ABC, SortableByAfter):
         rois = {
             chunk: roi
             for chunk in from_chunks
-            if (roi := self.get_region_of_interest(chunk))
+            if (roi := self.get_region_of_interest(chunk)) is None or len(roi)
         }
         if not rois:
             warn(
@@ -156,3 +161,13 @@ class ConnectionStrategy(abc.ABC, SortableByAfter):
 
     def get_cell_types(self):
         return set(self.presynaptic.cell_types) | set(self.postsynaptic.cell_types)
+
+    def get_all_pre_chunks(self):
+        all_ps = (ct.get_placement_set() for ct in self.presynaptic.cell_types)
+        chunks = set(ichain(ps.get_all_chunks() for ps in all_ps))
+        return list(chunks)
+
+    def get_all_post_chunks(self):
+        all_ps = (ct.get_placement_set() for ct in self.postsynaptic.cell_types)
+        chunks = set(ichain(ps.get_all_chunks() for ps in all_ps))
+        return list(chunks)

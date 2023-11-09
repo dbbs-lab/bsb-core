@@ -1,8 +1,0 @@
-{
-  "refs": {
-    "whats the": {
-      "$ref": "basics.json#/nest me hard",
-      "$ref": "interdoc_refs.json#/target"
-    }
-  }
-}

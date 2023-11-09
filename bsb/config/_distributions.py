@@ -1,8 +1,12 @@
+import typing
+
 from .. import config
 from . import types
-from .. import plugins
 from ..exceptions import DistributionCastError
 import scipy.stats.distributions as _distributions, errr, numpy as np
+
+if typing.TYPE_CHECKING:
+    from ..core import Scaffold
 
 # Scan the scipy distributions module for all distribution names. Ignore `_gen` which are
 # the factory functions for the distribution classes. `rvs` is a duck type check.
@@ -16,8 +20,11 @@ _available_distributions.append("constant")
 
 @config.node
 class Distribution:
-    distribution = config.attr(type=types.in_(_available_distributions), required=True)
-    parameters = config.catch_all(type=types.any_())
+    scaffold: "Scaffold"
+    distribution: str = config.attr(
+        type=types.in_(_available_distributions), required=True
+    )
+    parameters: dict[str, typing.Any] = config.catch_all(type=types.any_())
 
     def __init__(self, **kwargs):
         if self.distribution == "constant":

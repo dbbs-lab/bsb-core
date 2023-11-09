@@ -16,7 +16,7 @@ from bsb.exceptions import *
 from bsb.storage import Chunk
 from bsb.placement import PlacementStrategy, RandomPlacement
 from bsb.services.pool import JobPool, FakeFuture, create_job_pool
-from bsb.unittest import get_config_path, timeout, RandomStorageFixture, NumpyTestCase
+from bsb_test import get_config_path, timeout, RandomStorageFixture, NumpyTestCase
 from time import sleep
 
 
@@ -87,15 +87,15 @@ class TestIndicators(unittest.TestCase):
         bottom = 400 * bottom_ratio / 4
         top_ratio = 0.2 / 1.2
         top = 400 * top_ratio / 4
-        for x, y, z in ((0, 0, 0), (0, 0, 1), (1, 0, 0), (1, 0, 1)):
+        for x, y, z in ((0, 0, 0), (0, 1, 0), (1, 0, 0), (1, 1, 0)):
             with self.subTest(x=x, y=y, z=z):
                 guess = dud_ind.guess(_chunk(x, y, z))
                 self.assertTrue(np.floor(bottom) <= guess <= np.ceil(bottom))
-        for x, y, z in ((0, 1, 0), (0, 1, 1), (1, 1, 0), (1, 1, 1)):
+        for x, y, z in ((0, 0, 1), (0, 1, 1), (1, 0, 1), (1, 1, 1)):
             with self.subTest(x=x, y=y, z=z):
                 guess = dud_ind.guess(_chunk(x, y, z))
                 self.assertTrue(np.floor(top) <= guess <= np.ceil(top))
-        for x, y, z in ((0, -1, 0), (0, 2, 0), (2, 1, 0), (1, 1, -3)):
+        for x, y, z in ((0, 0, -1), (0, 0, 2), (2, 0, 1), (1, -3, 1)):
             with self.subTest(x=x, y=y, z=z):
                 guess = dud_ind.guess(_chunk(x, y, z))
                 self.assertEqual(0, guess)
@@ -108,15 +108,15 @@ class TestIndicators(unittest.TestCase):
         bottom = 40 * bottom_ratio / 4
         top_ratio = 0.2 / 1.2
         top = 40 * top_ratio / 4
-        for x, y, z in ((-3, -3, -3), (-3, -3, -2), (-2, -3, -3), (-2, -3, -2)):
+        for x, y, z in ((-3, -3, -3), (-3, -2, -3), (-2, -3, -3), (-2, -2, -3)):
             with self.subTest(x=x, y=y, z=z):
                 guess = dud_ind.guess(_chunk(x, y, z))
                 self.assertTrue(np.floor(bottom) <= guess <= np.ceil(bottom))
-        for x, y, z in ((-3, -2, -3), (-3, -2, -2), (-2, -2, -3), (-2, -2, -2)):
+        for x, y, z in ((-3, -3, -2), (-3, -2, -2), (-2, -3, -2), (-2, -2, -2)):
             with self.subTest(x=x, y=y, z=z):
                 guess = dud_ind.guess(_chunk(x, y, z))
                 self.assertTrue(np.floor(top) <= guess <= np.ceil(top))
-        for x, y, z in ((0, -1, 0), (0, 0, 0), (2, 0, 0), (1, 1, -3)):
+        for x, y, z in ((0, 0, -1), (0, 0, 0), (2, 0, 0), (1, -3, 1)):
             with self.subTest(x=x, y=y, z=z):
                 guess = dud_ind.guess(_chunk(x, y, z))
                 self.assertEqual(0, guess)
@@ -326,7 +326,7 @@ class TestPlacementStrategies(
         self.assertAll(pos[:, 1] >= cfg.partitions.test_layer.data.ldc[1], "not in layer")
 
 
-class TestVoxelDensities(unittest.TestCase):
+class TestVoxelDensities(RandomStorageFixture, unittest.TestCase, engine_name="hdf5"):
     def test_particle_vd(self):
         cfg = Configuration.default(
             cell_types=dict(
@@ -342,7 +342,7 @@ class TestVoxelDensities(unittest.TestCase):
                 )
             ),
         )
-        network = Scaffold(cfg)
+        network = Scaffold(cfg, self.storage)
         counts = network.placement.voxel_density.get_indicators()["test_cell"].guess(
             chunk=Chunk([0, 0, 0], [100, 100, 100]),
             voxels=network.partitions.test_part.vs,
@@ -353,6 +353,63 @@ class TestVoxelDensities(unittest.TestCase):
         ps = network.get_placement_set("test_cell")
         self.assertGreater(len(ps), 90)
         self.assertLess(len(ps), 130)
+
+    def _config_packing_fact(self):
+        return Configuration.default(
+            network={
+                "x": 20.0,
+                "y": 20.0,
+                "z": 5.0,
+                "chunk_size": [20, 10, 20],  # at least two chunks
+            },
+            partitions={
+                "first_layer": {"thickness": 5.0, "stack_index": 0},
+            },
+            cell_types=dict(
+                test_cell=dict(spatial=dict(radius=1.5, count=100)),
+                test_cell2=dict(
+                    spatial=dict(radius=2, relative_to="test_cell", count_ratio=0.05)
+                ),
+            ),
+            placement=dict(
+                test_place2=dict(
+                    strategy="bsb.placement.RandomPlacement",
+                    partitions=["first_layer"],
+                    cell_types=["test_cell2"],
+                ),
+                ch4_c25=dict(
+                    strategy="bsb.placement.ParticlePlacement",
+                    partitions=["first_layer"],
+                    cell_types=["test_cell"],
+                ),
+            ),
+        )
+
+    def test_packing_factor_error1(self):
+        cfg = self._config_packing_fact()
+        network = Scaffold(cfg, self.storage)
+        with self.assertRaisesRegex(
+            PackingError,
+            r"Packing factor .* exceeds geometrical maximum packing for spheres \(0\.64\).*",
+        ):
+            network.compile(clear=True)
+
+    def test_packing_factor_error2(self):
+        cfg = self._config_packing_fact()
+        cfg.cell_types["test_cell"] = dict(spatial=dict(radius=1.3, count=100))
+        network = Scaffold(cfg, self.storage)
+        with self.assertRaisesRegex(
+            PackingError,
+            r"Packing factor .* too high to resolve with ParticlePlacement.*",
+        ):
+            network.compile(clear=True)
+
+    def test_packing_factor_warning(self):
+        cfg = self._config_packing_fact()
+        cfg.cell_types["test_cell"] = dict(spatial=dict(radius=1, count=100))
+        network = Scaffold(cfg, self.storage)
+        with self.assertWarns(PackingWarning):
+            network.compile(clear=True)
 
 
 class VoxelParticleTest(Partition, classmap_entry="test"):

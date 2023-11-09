@@ -11,7 +11,7 @@ The scaffold framework can be installed using ``pip``:
 
 .. code-block:: bash
 
-  pip install "bsb>=4.0.0a0"
+  pip install "bsb>=4.0.0b0"
 
 You can verify that the installation works with:
 
@@ -68,32 +68,3 @@ NEST or multicompartmental neuron simulations with NEURON use:
   This does not install the simulators themselves. It installs the Python tools that the
   BSB needs to deal with them. Install the simulators separately according to their
   respective installation instructions.
-
-Installing NEST
-===============
-
-The BSB currently runs a fork of NEST 2.18. To install it, follow the instructions,
-with a virtual environment activated.
-
-.. code-block:: bash
-
-  sudo apt-get update && apt-get install -y openmpi-bin libopenmpi-dev
-  git clone https://github.com/dbbs-lab/nest-simulator
-  cd nest-simulator
-  mkdir build
-  cd build
-  pip install cmake cython
-  cmake .. \
-    -Dwith-mpi=ON \
-    -Dwith-python=ON
-  make install
-
-Confirm your installation with:
-
-.. code-block:: bash
-
-  python -c "import nest; nest.test()"
-
-.. note::
-
-  There might be a few failed tests related to ``NEST_DATA_PATH`` but this is OK.

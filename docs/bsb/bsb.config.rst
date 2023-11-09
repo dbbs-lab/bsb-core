@@ -8,7 +8,6 @@ Subpackages
    :maxdepth: 4
 
    bsb.config.parsers
-   bsb.config.templates
 
 Submodules
 ----------
@@ -36,3 +35,12 @@ Module contents
    :members:
    :undoc-members:
    :show-inheritance:
+
+Dev
+---
+
+.. autoclass:: bsb.config._config.NetworkNode
+
+.. autoclass:: bsb.config._attrs.cfgdict
+
+.. autoclass:: bsb.config._attrs.cfglist

@@ -11,8 +11,11 @@
     consumers and can be used independent of the underlying storage engine, which is the
     end goal of this module.
 """
+from typing import Type
 
 from inspect import isclass
+
+from .interfaces import ConnectivitySet, PlacementSet, FileStore, MorphologyRepository
 from ..exceptions import UnknownStorageEngineError
 from .. import plugins
 from ..services import MPI
@@ -137,6 +140,11 @@ class Storage:
     Factory class that produces all of the features and shims the functionality of the
     underlying engine.
     """
+
+    _PlacementSet: Type[PlacementSet]
+    _ConnectivitySet: Type[ConnectivitySet]
+    _MorphologyRepository: Type[MorphologyRepository]
+    _FileStore: Type[FileStore]
 
     def __init__(self, engine, root, comm=None, main=0, missing_ok=True):
         """
@@ -393,9 +401,18 @@ def open_storage(root):
             raise FileNotFoundError(f"Storage `{root}` does not exist.")
 
 
-def get_engine_node(engine):
+def get_engine_node(engine_name):
     init_engines()
-    return _engines[engine]["StorageNode"]
+    try:
+        engine = _engines[engine_name]
+    except KeyError:
+        raise RuntimeError(f"Unknown storage engine '{engine_name}'")
+    try:
+        return engine["StorageNode"]
+    except KeyError:
+        raise RuntimeError(
+            f"Broken storage engine plugin '{engine_name}' is missing a StorageNode."
+        )
 
 
 def view_support(engine=None):

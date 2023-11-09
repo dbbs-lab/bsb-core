@@ -253,7 +253,7 @@ class Scaffold:
         if pipelines:
             self.run_pipelines()
         if strategies is None:
-            strategies = list(self.placement.values())
+            strategies = [*self.placement]
         strategies = PlacementStrategy.resolve_order(strategies)
         pool = create_job_pool(self)
         if pool.is_master():
@@ -346,6 +346,15 @@ class Scaffold:
         c_strats = self.get_connectivity(skip=skip, only=only)
         todo_list_str = ", ".join(s.name for s in itertools.chain(p_strats, c_strats))
         report(f"Compiling the following strategies: {todo_list_str}", level=2)
+        if (
+            bool(clear) is not clear
+            or bool(redo) is not redo
+            or bool(append) is not append
+        ):
+            raise InputError(
+                "`clear`, `redo` and `append` are strictly boolean flags. "
+                "Pass the strategies to run to the skip/only options instead."
+            )
         if sum((bool(clear), bool(redo), bool(append))) > 1:
             raise InputError("`clear`, `redo` and `append` are mutually exclusive.")
         if existed:

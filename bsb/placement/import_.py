@@ -15,12 +15,17 @@ from .. import config
 from ..config import refs
 from ..mixins import NotParallel
 
+if typing.TYPE_CHECKING:
+    from ..storage import FileDependencyNode
+    from ..cell_types import CellType
+    from ..topology import Partition
+
 
 @config.node
 class ImportPlacement(NotParallel, PlacementStrategy, abc.ABC, classmap_entry=None):
-    source = config.file(required=True)
-    cell_types = config.reflist(refs.cell_type_ref, required=False)
-    partitions = config.reflist(refs.partition_ref, required=False)
+    source: "FileDependencyNode" = config.file(required=True)
+    cell_types: list["CellType"] = config.reflist(refs.cell_type_ref, required=False)
+    partitions: list["Partition"] = config.reflist(refs.partition_ref, required=False)
 
     @config.property(default=False)
     def cache(self):
@@ -40,12 +45,12 @@ class ImportPlacement(NotParallel, PlacementStrategy, abc.ABC, classmap_entry=No
 
 @config.node
 class CsvImportPlacement(ImportPlacement):
-    x_header = config.attr(default="x")
-    y_header = config.attr(default="y")
-    z_header = config.attr(default="z")
-    type_header = config.attr()
-    delimiter = config.attr(default=",")
-    progress_bar = config.attr(type=bool, default=True)
+    x_header: str = config.attr(default="x")
+    y_header: str = config.attr(default="y")
+    z_header: str = config.attr(default="z")
+    type_header: str = config.attr()
+    delimiter: str = config.attr(default=",")
+    progress_bar: bool = config.attr(type=bool, default=True)
 
     def __boot__(self):
         if not self.type_header and len(self.get_considered_cell_types()) > 1:

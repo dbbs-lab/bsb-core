@@ -2,7 +2,7 @@ from bsb.core import Scaffold
 from bsb.services import MPI
 from bsb.config import Configuration, from_file
 from bsb.morphologies import Morphology, Branch
-from bsb.unittest import (
+from bsb_test import (
     NumpyTestCase,
     FixedPosConfigFixture,
     RandomStorageFixture,
@@ -382,8 +382,8 @@ class TestConnWithSubCellLabels(
         f = self.network.connectivity.self_intersect.connect
 
         def connect_spy(strat, pre, post):
-            tc, pre_set = [*pre.placement.items()][0]
-            tc, post_set = [*post.placement.items()][0]
+            pre_set = pre.placement[0]
+            post_set = post.placement[0]
             self.assertEqual(
                 ["tag_21"],
                 pre_set._morphology_labels,
