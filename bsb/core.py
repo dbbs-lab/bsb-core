@@ -90,6 +90,10 @@ def _get_linked_config(storage=None):
         return None
 
 
+def _bad_flag(flag: bool):
+    return flag is not None and bool(flag) is not flag
+
+
 class Scaffold:
     """
 
@@ -346,11 +350,7 @@ class Scaffold:
         c_strats = self.get_connectivity(skip=skip, only=only)
         todo_list_str = ", ".join(s.name for s in itertools.chain(p_strats, c_strats))
         report(f"Compiling the following strategies: {todo_list_str}", level=2)
-        if (
-            bool(clear) is not clear
-            or bool(redo) is not redo
-            or bool(append) is not append
-        ):
+        if _bad_flag(clear) or _bad_flag(redo) or _bad_flag(append):
             raise InputError(
                 "`clear`, `redo` and `append` are strictly boolean flags. "
                 "Pass the strategies to run to the skip/only options instead."
