@@ -2,13 +2,13 @@
 Documentation
 #############
 
-Install the developer requirements of the BSB:
+Install the documentation dependencies of the BSB:
 
 .. code-block:: bash
 
-  pip install -e .[dev]
+  pip install -e .[docs]
 
-Then from the ``docs`` directory run:
+Then navigate to the ``docs`` directory and run:
 
 .. code-block:: bash
 
