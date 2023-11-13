@@ -59,28 +59,28 @@ profiling = "bsb._options:profiling"
 
 [project.optional-dependencies]
 parallel = [
-    "mpi4py~=3.0.0",
-    "zwembad~=1.2.2",
-    "mpilock~=1.1.0"
+    "mpi4py~=3.0",
+    "zwembad~=1.2",
+    "mpilock~=1.1"
 ]
 test = [
-    "coverage~=7.3.0",
+    "coverage~=7.3",
     "bsb-hdf5==1.0.0b1",
     "bsb-test==0.0.0b0",
     "bsb-json==0.0.0b0"
 ]
 docs = [
-    "sphinx~=7.0.0",
-    "furo~=2023.9.10",
+    "sphinx~=7.0",
+    "furo~=2023.9",
     "sphinxemoji~=0.2.0",
     "sphinx_design~=0.5.0",
     "sphinx-copybutton~=0.5.0",
     "sphinxext-bsb~=0.2.1"
 ]
 dev = [
-    "pre-commit~=3.5.0",
-    "black~=23.11.0",
-    "snakeviz~=2.1.0"
+    "pre-commit~=3.5",
+    "black~=23.11",
+    "snakeviz~=2.1"
 ]
 
 [tool.black]
