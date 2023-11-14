@@ -12,10 +12,49 @@ connected them in an all-to-all fashion. A logical next step would be to assign
 intersection!
 
 A new model never contains any morphologies, and needs to fetch them from somewhere.
-Projects are configured to fetch from a local file called ``morphologies.hdf5``. Any
-morphologies you place in that file will be included in your model. An alternative to
-``morphologies.hdf5`` is to fetch from different sources, like NeuroMorpho. We'll go over
-the different approaches.
+It is possible to load a local file or to fetch from different sources, like NeuroMorpho.
+
+Fetching from the local repository
+----------------------------------
+The BSB Scaffold contains a Morphology Repository object where is possible to store
+morphology templates. You can import morphologies into this template repository by
+importing local files, or constructing your own :class:`~.morphologies.Morphology`
+objects, and saving them:
+
+.. tab-set-code::
+  .. code-block:: python
+
+   from bsb.core import Scaffold
+   from bsb.config import from_json
+   import bsb.options
+   from bsb.morphologies import Morphology
+
+   bsb.options.verbosity = 3
+
+   morpho = Morphology.from_swc("my_neuron.swc")
+
+  .. literalinclude:: include_morphos.json
+    :language: json
+    :lines: 11-17
+
+.. hint::
+
+	Download a morphology from NeuroMorpho and save it as ``my_neuron.swc`` locally.
+
+In this case a Morphology is created from "my_neuron.swc" with the name "my_neuron".
+Afterwards, we add a :class:`~.morphologies.selector.NameSelector` to the ``base_type``:
+
+.. tab-set-code::
+
+  .. literalinclude:: include_morphos.json
+    :language: json
+    :lines: 36-48
+    :emphasize-lines: 6-12
+
+  .. literalinclude:: include_morphos.py
+    :language: python
+    :lines: 18-22
+
 
 Fetching from NeuroMorpho
 -------------------------
@@ -28,7 +67,7 @@ your ``top_type``:
 
   .. literalinclude:: include_morphos.json
     :language: json
-    :lines: 44-58
+    :lines: 51-65
     :emphasize-lines: 5-14
 
   .. literalinclude:: include_morphos.py
@@ -74,43 +113,7 @@ find the :guilabel:`names` on the neuron info pages:
 .. 	you want to load the morphology itself, call the
 .. 	:meth:`.storage.interfaces.StoredMorphology.load` method on them.
 
-Fetching from the local repository
-----------------------------------
 
-By default each model in a project will fetch from ``morphologies.hdf5`` (check your
-``pyproject.toml``). You can import morphologies into this template repository by
-importing local files, or constructing your own :class:`~.morphologies.Morphology`
-objects, and saving them:
-
-.. code-block:: python
-
-  from bsb.storage import Storage
-  from bsb.morphologies import Morphology, Branch
-
-  morphologies = Storage("hdf5", "morphologies.hdf5").morphologies
-  # From file
-  morpho = Morphology.from_swc("my_neuron.swc")
-  morphologies.save("my_neuron", morpho)
-  # From objects
-  obj = Morphology([Branch([[0, 0, 0], [1, 1, 1]], [1])])
-  morphologies.save("my_obj", obj)
-
-.. hint::
-
-	Download a morphology from NeuroMorpho and save it as ``my_neuron.swc`` locally.
-
-Afterwards, we add a :class:`~.morphologies.selector.NameSelector` to the ``base_type``:
-
-.. tab-set-code::
-
-  .. literalinclude:: include_morphos.json
-    :language: json
-    :lines: 31-43
-    :emphasize-lines: 5-11
-
-  .. literalinclude:: include_morphos.py
-    :language: python
-    :lines: 17-21
 
 Morphology intersection
 -----------------------

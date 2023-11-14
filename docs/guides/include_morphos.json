@@ -9,6 +9,12 @@
     "y": 600.0,
     "z": 400.0
   },
+    "morphologies":[
+          {
+            "name": "my_neuron",
+            "file": "my_neuron.swc"
+          }
+  ],
   "regions": {
     "brain_region": {
       "type": "stack",
@@ -34,6 +40,7 @@
         "density": 1e-3,
         "morphologies": [
           {
+            "select": "by_name",
             "names": [
               "my_neuron"
             ]

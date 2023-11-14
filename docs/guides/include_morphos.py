@@ -2,6 +2,7 @@ from bsb.core import Scaffold
 from bsb.config import from_json
 from bsb.topology import Stack
 from bsb.plotting import plot_network
+from bsb.morphologies import Morphology
 import bsb.options
 
 bsb.options.verbosity = 3
@@ -50,5 +51,9 @@ config.connectivity.add(
 )
 
 network = Scaffold(config)
+
+morpho = Morphology.from_swc("my_neuron.swc")
+network.storage.morphologies.save("my_neuron", morpho)
+
 network.compile()
 plot_network(network)
