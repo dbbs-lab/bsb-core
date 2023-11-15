@@ -494,6 +494,10 @@ class MorphologyDependencyNode(FilePipelineMixin, FileDependencyNode):
     """
     Dictionary mapping SWC tags to sets of morphology labels.
     """
+    skip_boundary: list[str] = config.attr(type=types.list(str))
+    """
+    Dictionary mapping SWC tags to sets of morphology labels.
+    """
 
     def store_content(self, content, *args, encoding=None, meta=None):
         if meta is None:
@@ -515,7 +519,9 @@ class MorphologyDependencyNode(FilePipelineMixin, FileDependencyNode):
                 morpho_in = Morphology.from_buffer(content, meta=meta)
             except Exception as _:
                 with self.file.provide_locally() as (path, encoding):
-                    morpho_in = Morphology.from_file(path, tags=self.tags, meta=meta)
+                    morpho_in = Morphology.from_file(
+                        path, tags=self.tags, meta=meta, skip_boundary=self.skip_boundary
+                    )
             morpho = self.pipe(morpho_in)
             meta["hash"] = self._hash(content)
             meta["_stale"] = False

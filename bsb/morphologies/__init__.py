@@ -946,7 +946,7 @@ class Morphology(SubTree):
             self.optimize()
 
     @classmethod
-    def from_swc(cls, file, branch_class=None, tags=None, meta=None):
+    def from_swc(cls, file, branch_class=None, tags=None, meta=None, skip_boundary=None):
         """
         Create a Morphology from an SWC file or file-like object.
 
@@ -957,6 +957,9 @@ class Morphology(SubTree):
         :type tags: dict
         :param meta: dictionary header containing metadata on morphology
         :type meta: dict
+        :param list[str] skip_boundary: Optional. When given, no line segment will be
+          inferred at the boundary between a parent point with the given labels and
+          child points without the labels.
         :returns: The parsed morphology.
         :rtype: bsb.morphologies.Morphology
         """
@@ -965,21 +968,39 @@ class Morphology(SubTree):
                 return cls.from_swc(f, branch_class, tags=tags, meta=meta)
         if branch_class is None:
             branch_class = Branch
-        return _swc_to_morpho(cls, branch_class, file.read(), tags=tags, meta=meta)
+        return _swc_to_morpho(
+            cls,
+            branch_class,
+            file.read(),
+            tags=tags,
+            meta=meta,
+            skip_boundary=skip_boundary,
+        )
 
     @classmethod
-    def from_swc_data(cls, data, branch_class=None, tags=None, meta=None):
+    def from_swc_data(
+        cls, data, branch_class=None, tags=None, meta=None, skip_boundary=None
+    ):
         """
         Create a Morphology from a SWC-like formatted array.
 
         :param numpy.ndarray data: (N,7) array.
         :param type branch_class: Custom branch class
+        :param tags: dictionary mapping morphology label id to its name
+        :type tags: dict
+        :param meta: dictionary header containing metadata on morphology
+        :type meta: dict
+        :param list[str] skip_boundary: Optional. When given, no line segment will be
+          inferred at the boundary between a parent point with the given labels and
+          child points without the labels.
         :returns: The parsed morphology, with the SWC tags as a property.
         :rtype: bsb.morphologies.Morphology
         """
         if branch_class is None:
             branch_class = Branch
-        return _swc_data_to_morpho(cls, branch_class, data, tags=tags, meta=meta)
+        return _swc_data_to_morpho(
+            cls, branch_class, data, tags=tags, meta=meta, skip_boundary=skip_boundary
+        )
 
     @classmethod
     def from_file(cls, path, branch_class=None, tags=None, meta=None):
@@ -1756,7 +1777,7 @@ def _swc_branch_dfs(adjacency, branches, node):
             node = None
 
 
-def _swc_to_morpho(cls, branch_cls, content, tags=None, meta=None):
+def _swc_to_morpho(cls, branch_cls, content, tags=None, meta=None, skip_boundary=None):
     data = np.array(
         [
             swc_data
@@ -1768,13 +1789,29 @@ def _swc_to_morpho(cls, branch_cls, content, tags=None, meta=None):
     if data.dtype.name == "object":
         err_lines = ", ".join(i for i, d in enumerate(data) if len(d) != 7)
         raise ValueError(f"SWC incorrect on lines: {err_lines}")
-    return _swc_data_to_morpho(cls, branch_cls, data, tags=tags, meta=meta)
+    return _swc_data_to_morpho(
+        cls, branch_cls, data, tags=tags, meta=meta, skip_boundary=skip_boundary
+    )
 
 
-def _swc_data_to_morpho(cls, branch_cls, data, tags=None, meta=None):
+def _swc_data_to_morpho(cls, branch_cls, data, tags=None, meta=None, skip_boundary=None):
+    """
+    Convert an SWC data array (Nx7) to a Morphology.
+
+    :param type branch_cls: The class of branches to construct new branch objects from.
+    :param numpy.ndarray: data The data array representing the SWC samples (Nx7)
+    :param dict[int, Union[str, list[str]]] tags: Map of SWC sample tag to labelset.
+    :param meta: Morphology metadata object
+    :param list[str] skip_boundary: Optional. When given, no line segment will be
+      inferred at the boundary between a parent point with the given labels and
+      child points without the labels.
+    :returns: A morphology
+    :rtype: bsb.morphologies.Morphology
+    """
     tag_map = {1: "soma", 2: "axon", 3: "dendrites"}
     if tags is not None:
         tag_map.update((int(k), v) for (k, v) in tags.items())
+    tag_map = {k: [v] if isinstance(v, str) else v for k, v in tag_map.items()}
     # `data` is the raw SWC data, `samples` and `parents` are the graph nodes and edges.
     samples = data[:, 0].astype(int)
     # Map possibly irregular sample IDs (SWC spec allows this) to an ordered 0 to N map.
@@ -1806,6 +1843,14 @@ def _swc_data_to_morpho(cls, branch_cls, data, tags=None, meta=None):
     for parent, branch_nodes in node_branches:
         nptr = ptr + len(branch_nodes)
         node_data = data[branch_nodes]
+        if parent and skip_boundary:
+            parent_labels = parent.list_labels()
+            if skip_boundary and all(
+                req_label in parent_labels for req_label in skip_boundary
+            ):
+                node_data = data[branch_nodes[1:]]
+        else:
+            node_data = data[branch_nodes]
         # Example with the points data matrix: copy over the swc data into contiguous arr
         points[ptr:nptr] = node_data[:, 2:5]
         # Then create a partial view into that data matrix for the branch
@@ -1822,10 +1867,8 @@ def _swc_data_to_morpho(cls, branch_cls, data, tags=None, meta=None):
         # And the labels
         branch_labels = labels[ptr:nptr]
         for v in np.unique(branch_tags):
-            u_tags = tag_map.get(v, f"tag_{v}")
-            branch_labels.label(
-                [u_tags] if isinstance(u_tags, str) else u_tags, branch_tags == v
-            )
+            u_tags = tag_map.get(v, [f"tag_{v}"])
+            branch_labels.label(u_tags, branch_tags == v)
         ptr = nptr
         # Use the views to construct the branch
         branch = branch_cls(branch_points, branch_radii, branch_labels)

@@ -926,6 +926,22 @@ class TestBranchInsertion(NumpyTestCase, unittest.TestCase):
             self.assertClose(second_insertion_pt, c.start)
         self.assertEqual(self.m.adjacency_dictionary, target)
 
+    def test_skip_boundary(self):
+        swc_data = [
+            [1, 1, 3, 3, 3, 1, -1],
+            [2, 1, 4, 3, 3, 1, 1],
+            [3, 2, 5, 3, 3, 1, 2],
+            [4, 2, 6, 3, 3, 1, 3],
+        ]
+        Morphology.from_swc_data(data=swc_data)
+        Morphology.from_swc_data(data=swc_data, skip_boundary=["soma"])
+        Morphology.from_swc_data(
+            data=swc_data, tags={1: "blabla"}, skip_boundary=["blabla"]
+        )
+        Morphology.from_swc_data(
+            data=swc_data, tags={4: "A", 5: "B", 6: ["A", "B"]}, skip_boundary=["A", "B"]
+        )
+
 
 class TestMorphologyFiltering(NumpyTestCase, unittest.TestCase):
     def test_filter_none(self):
