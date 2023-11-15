@@ -6,6 +6,7 @@ should always behave neatly on import.
 from ._util import ErrorModule as _ErrorModule
 from .mpi import MPIService as _MPIService
 from .mpilock import MPILockModule as _MPILockModule
+from .plotting import PlottingModule as _PlottingModule
 
 MPI = _MPIService()
 """
@@ -14,6 +15,10 @@ MPI service
 MPILock = _MPILockModule("mpilock")
 """
 MPILock service
+"""
+plotting = _PlottingModule("bsb_plotting")
+"""
+Plotting service
 """
 
 from .pool import JobPool as _JobPool  # noqa

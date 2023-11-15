@@ -1,4 +1,4 @@
-from ..exceptions import *
+from ..exceptions import DependencyError as _DepErr
 import importlib
 
 
@@ -7,7 +7,7 @@ class ErrorModule:
         self._msg = message
 
     def __getattr__(self, attr):
-        raise DependencyError(self._msg)
+        raise _DepErr(self._msg)
 
 
 class MockModule:
@@ -18,3 +18,9 @@ class MockModule:
             instance = super().__new__(cls)
             instance._mocked = True
         return instance
+
+
+def mock_error(f):
+    def wrapper(*args, **kwargs):
+        print(f.__closure__)
+        raise _DepErr(f)
