@@ -9,11 +9,15 @@
     "y": 600.0,
     "z": 400.0
   },
-    "morphologies":[
-          {
-            "name": "my_neuron",
-            "file": "my_neuron.swc"
-          }
+  "morphologies":[
+    {
+      "name": "my_neuron",
+      "file": "my_neuron.swc"
+    },
+    {
+       "name": "cell005_GroundTruth",
+       "file": "nm://cell005_GroundTruth"
+    }
   ],
   "regions": {
     "brain_region": {
@@ -54,11 +58,9 @@
         "count": 10,
         "morphologies": [
           {
-            "select": "from_neuromorpho",
+            "select": "by_name",
             "names": [
               "cell005_GroundTruth",
-              "DD13-10-c8-3",
-              "10_666-GM9-He-Ctl-Chow-BNL16A-CA1Finished2e"
             ]
           }
         ]

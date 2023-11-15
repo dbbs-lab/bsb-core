@@ -22,20 +22,19 @@ importing local files, or constructing your own :class:`~.morphologies.Morpholog
 objects, and saving them:
 
 .. tab-set-code::
-  .. code-block:: python
 
-   from bsb.core import Scaffold
-   from bsb.config import from_json
-   import bsb.options
-   from bsb.morphologies import Morphology
+  .. code-block:: json
 
-   bsb.options.verbosity = 3
+       "morphologies":[
+    {
+      "name": "my_neuron",
+      "file": "my_neuron.swc"
+    }
+    ],
 
-   morpho = Morphology.from_swc("my_neuron.swc")
-
-  .. literalinclude:: include_morphos.json
-    :language: json
-    :lines: 11-17
+  .. literalinclude:: include_morphos.py
+    :language: python
+    :lines: 18-24
 
 .. hint::
 
@@ -48,31 +47,50 @@ Afterwards, we add a :class:`~.morphologies.selector.NameSelector` to the ``base
 
   .. literalinclude:: include_morphos.json
     :language: json
-    :lines: 36-48
+    :lines: 40-54
     :emphasize-lines: 6-12
 
   .. literalinclude:: include_morphos.py
     :language: python
-    :lines: 18-22
+    :lines: 26-30
+
+It is also possible to add a pipeline to perform transformations on the loaded
+morphology. The actions that are available are listed here :ref:`transform`
+
+.. code-block:: json
+
+  "morphologies":[
+           {
+            "name": "my_neuron",
+            "file": "my_neuron.swc",
+            "pipeline": [
+                    {"func": "center"}
+            ]
+          }
+  ],
 
 
-Fetching from NeuroMorpho
--------------------------
 
-The framework can fetch morphologies for you from `neuromorpho.org
-<https://neuromorpho.org>`_. Add a :guilabel:`morphologies` list to
+Fetching with alternative URI schemes
+-------------------------------------
+
+The framework use URI schemes to define the path of the sources that are loaded.
+By default it try to load from the project local folder, using a scheme of the type: "file://"
+but sometimes can be useful to define alternative paths.
+It is possible to fetch morphologies direcly from `neuromorpho.org
+<https://neuromorpho.org>`_ using the scheme "nm://". When morphologies are fetched add a :guilabel:`morphologies` list to
 your ``top_type``:
 
 .. tab-set-code::
 
   .. literalinclude:: include_morphos.json
     :language: json
-    :lines: 51-65
-    :emphasize-lines: 5-14
+    :lines: 11-21,40-69
+    :emphasize-lines: 8-9,27-35
 
   .. literalinclude:: include_morphos.py
     :language: python
-    :lines: 22-38
+    :lines: 32-53
 
 .. tip::
 

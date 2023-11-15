@@ -15,11 +15,27 @@ config.regions["brain_region"] = Stack(
         "top_layer",
     ]
 )
+
+config.morphologies.append(
+  dict(
+   name="my_neuron",
+   file="my_neuron.swc"
+  )
+)
+
 config.cell_types.base_type.spatial.morphologies = [
     dict(
         names=["my_neuron"],
     )
 ]
+
+config.morphologies.append(
+  dict(
+   name="cell005_GroundTruth",
+   file="nm://cell005_GroundTruth"
+  )
+)
+
 config.cell_types.add(
     "top_type",
     spatial=dict(
@@ -29,9 +45,7 @@ config.cell_types.add(
             dict(
                 select="from_neuromorpho",
                 names=[
-                    "cell005_GroundTruth",
-                    "DD13-10-c8-3",
-                    "10_666-GM9-He-Ctl-Chow-BNL16A-CA1Finished2e",
+                    "cell005_GroundTruth"
                 ],
             )
         ],
@@ -52,8 +66,6 @@ config.connectivity.add(
 
 network = Scaffold(config)
 
-morpho = Morphology.from_swc("my_neuron.swc")
-network.storage.morphologies.save("my_neuron", morpho)
 
 network.compile()
 plot_network(network)
