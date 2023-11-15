@@ -14,8 +14,8 @@ intersection!
 A new model never contains any morphologies, and needs to fetch them from somewhere.
 It is possible to load a local file or to fetch from different sources, like NeuroMorpho.
 
-Fetching from the local repository
-----------------------------------
+Using local files
+-----------------
 The BSB Scaffold contains a Morphology Repository object where is possible to store
 morphology templates. You can import morphologies into this template repository by
 importing local files, or constructing your own :class:`~.morphologies.Morphology`
@@ -25,82 +25,96 @@ objects, and saving them:
 
   .. code-block:: json
 
-       "morphologies":[
-    {
-      "name": "my_neuron",
-      "file": "my_neuron.swc"
-    }
-    ],
+       "morphologies": [
+         "neuron_A.swc"
+       ],
 
   .. literalinclude:: include_morphos.py
     :language: python
-    :lines: 18-24
+    :lines: 18
 
 .. hint::
 
-	Download a morphology from NeuroMorpho and save it as ``my_neuron.swc`` locally.
+    Download a morphology from NeuroMorpho and save it as ``neuron_A.swc`` locally.
 
-In this case a Morphology is created from "my_neuron.swc" with the name "my_neuron".
-Afterwards, we add a :class:`~.morphologies.selector.NameSelector` to the ``base_type``:
+In this case a Morphology is created from ``neuron_A.swc`` with the name ``"neuron_A"``.
+As a second step, we associate this morphology to the :guilabel:`morphologies` of our cell types by its name:
 
 .. tab-set-code::
 
   .. literalinclude:: include_morphos.json
     :language: json
-    :lines: 40-54
-    :emphasize-lines: 6-12
+    :lines: 41-50
+    :emphasize-lines: 6-9
 
   .. literalinclude:: include_morphos.py
     :language: python
-    :lines: 26-30
+    :lines: 21
+
+
+By default the name assigned to the morphology is the file name without ``.swc`` extension, to
+change the name we can edit the attribute:
+
+.. tab-set-code::
+
+  .. code-block:: json
+
+       "morphologies": [
+         {
+           "name": "neuron_B",
+           "file": "my_other_neuron.swc"
+         }
+
+       ],
+
+  .. literalinclude:: include_morphos.py
+    :language: python
+    :lines: 19
+
 
 It is also possible to add a pipeline to perform transformations on the loaded
-morphology. The actions that are available are listed here :ref:`transform`
+morphology. There is a set of implemented actions listed here :ref:`transform`
+where we can select the method and assign it to the :guilabel:`pipeline` attribute with the
+addition of parameters if it is required. Another option is to use user defined functions.
 
 .. code-block:: json
 
-  "morphologies":[
-           {
-            "name": "my_neuron",
-            "file": "my_neuron.swc",
-            "pipeline": [
-                    {"func": "center"}
-            ]
-          }
-  ],
-
-
+  "morphologies": [
+    {
+      "name": "my_neuron",
+      "file": "my_neuron.swc",
+      "pipeline": [
+        "center",
+        "my_module.add_axon",
+        {
+          "func": "rotate",
+          "parameters": [
+            [20, 0, 20]
+          ]
+        },
+      ],
+    }
+  ]
 
 Fetching with alternative URI schemes
 -------------------------------------
 
-The framework use URI schemes to define the path of the sources that are loaded.
-By default it try to load from the project local folder, using a scheme of the type: "file://"
-but sometimes can be useful to define alternative paths.
-It is possible to fetch morphologies direcly from `neuromorpho.org
-<https://neuromorpho.org>`_ using the scheme "nm://". When morphologies are fetched add a :guilabel:`morphologies` list to
+The framework uses URI schemes to define the path of the sources that are loaded.
+By default it tries to load from the project local folder, using the ``file`` URI scheme (``"file://"``).
+It is possible to fetch morphologies directly from `neuromorpho.org
+<https://neuromorpho.org>`_ using the NeuroMorpho scheme (``"nm://"``). Then, associate it to the :guilabel:`morphologies` list of
 your ``top_type``:
 
 .. tab-set-code::
 
   .. literalinclude:: include_morphos.json
     :language: json
-    :lines: 11-21,40-69
-    :emphasize-lines: 8-9,27-35
+    :lines: 11-21,40-60
+    :emphasize-lines: 9-10
 
   .. literalinclude:: include_morphos.py
     :language: python
-    :lines: 32-53
-
-.. tip::
-
-	The :guilabel:`morphologies` attribute is a **list**. Each item in the list is a
-	:class:`selector <.morphologies.selector.MorphologySelector>`. Each selector selects a
-	set of morphologies from the repository, and those selections are added together and
-	assigned to the population.
-
-Each item in the :guilabel:`names` attribute will be downloaded from NeuroMorpho. You can
-find the :guilabel:`names` on the neuron info pages:
+    :lines: 22-32
 
 .. figure:: /images/nm_what.png
   :figwidth: 450px
@@ -131,8 +145,6 @@ find the :guilabel:`names` on the neuron info pages:
 .. 	you want to load the morphology itself, call the
 .. 	:meth:`.storage.interfaces.StoredMorphology.load` method on them.
 
-
-
 Morphology intersection
 -----------------------
 
@@ -148,7 +160,7 @@ that use morphologies, such as
 
   .. literalinclude:: include_morphos.py
     :language: python
-    :lines: 45-50
+    :lines: 39-44
 
 .. note::
 

@@ -10,12 +10,13 @@
     "z": 400.0
   },
   "morphologies":[
+    "neuron_A.swc",
     {
-      "name": "my_neuron",
-      "file": "my_neuron.swc"
+      "name": "neuron_B",
+      "file": "my_other_neuron.swc"
     },
     {
-       "name": "cell005_GroundTruth",
+       "name": "neron_NM",
        "file": "nm://cell005_GroundTruth"
     }
   ],
@@ -43,12 +44,7 @@
         "radius": 2,
         "density": 1e-3,
         "morphologies": [
-          {
-            "select": "by_name",
-            "names": [
-              "my_neuron"
-            ]
-          }
+          "neuron_A"
         ]
       }
     },
@@ -57,12 +53,7 @@
         "radius": 7,
         "count": 10,
         "morphologies": [
-          {
-            "select": "by_name",
-            "names": [
-              "cell005_GroundTruth",
-            ]
-          }
+          "neuron_NM"
         ]
       }
     }
