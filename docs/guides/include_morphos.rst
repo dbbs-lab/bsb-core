@@ -93,7 +93,7 @@ function reference placed in the guilabel:`func` attribute, and a :guilabel:`par
     }
   ]
 
-.. info::
+.. note::
 
   Parameters are passed positionally, keyword arguments must be passed in the order they appear
   in in the signature. If your target function has a complicated signature or keyword-only
@@ -122,37 +122,12 @@ It is possible to fetch morphologies directly from `neuromorpho.org
   :figwidth: 450px
   :align: center
 
-.. Once you initialize your model, the framework will connect to NeuroMorpho, and download
-.. the morphology files for you. They will be stored in your storage object, and accessible
-.. through the ``scaffold.morphologies`` property, and the cell type's
-.. :meth:`~.cell_types.CellType.get_morphologies` method:
-..
-.. .. code-block:: python
-..
-..   from bsb.core import Scaffold
-..   from bsb.config import from_json
-..
-..   cfg = from_json("network_configuration.json")
-..   network = Scaffold(cfg)
-..   top_type = network.cell_types.top_type
-..   names = (info.name for info in network.morphologies.all())
-..   top_names = (info.name for info in top_type.get_morphologies())
-..   print("Morphologies:", ", ".join(names))
-..   print("Top type morphologies:", ", ".join(names))
-..
-.. .. note::
-..
-.. 	Usually when you request morphologies, you'll be handed :class:`StoredMorphologies
-.. 	<.storage.interfaces.StoredMorphology>`. They contain only the morphology metadata. If
-.. 	you want to load the morphology itself, call the
-.. 	:meth:`.storage.interfaces.StoredMorphology.load` method on them.
 
 Morphology intersection
 -----------------------
 
-Now that our cell types are assigned morphologies we can use some connection strategies
-that use morphologies, such as
-:class:`~.connectivity.detailed.voxel_intersection.VoxelIntersection`:
+Now that we have assigned morphologies to our cell types, we can use morphology-based
+connection strategies such as :class:`~.connectivity.detailed.voxel_intersection.VoxelIntersection`:
 
 .. tab-set-code::
 
