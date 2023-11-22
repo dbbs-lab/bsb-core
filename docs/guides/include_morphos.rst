@@ -12,14 +12,11 @@ connected them in an all-to-all fashion. A logical next step would be to assign
 intersection!
 
 A new model never contains any morphologies, and needs to fetch them from somewhere.
-It is possible to load a local file or to fetch from different sources, like NeuroMorpho.
+It is possible to load local files or to fetch from remote sources, like NeuroMorpho.
 
 Using local files
 -----------------
-The BSB Scaffold contains a Morphology Repository object where is possible to store
-morphology templates. You can import morphologies into this template repository by
-importing local files, or constructing your own :class:`~.morphologies.Morphology`
-objects, and saving them:
+You can declare source morphologies in the root :guilabel:`morphologies` list:
 
 .. tab-set-code::
 
@@ -35,10 +32,11 @@ objects, and saving them:
 
 .. hint::
 
-    Download a morphology from NeuroMorpho and save it as ``neuron_A.swc`` locally.
+    To follow along, you can download a morphology from NeuroMorpho and save it as ``neuron_A.swc`` locally.
 
-In this case a Morphology is created from ``neuron_A.swc`` with the name ``"neuron_A"``.
-As a second step, we associate this morphology to the :guilabel:`morphologies` of our cell types by its name:
+In this case a morphology is created from ``neuron_A.swc`` with the name ``"neuron_A"``.
+As a second step, we associate this morphology to the ``top_type`` by referencing it by name
+in :guilabel:`cell_types.top_type.spatial.morphologies`:
 
 .. tab-set-code::
 
@@ -52,8 +50,8 @@ As a second step, we associate this morphology to the :guilabel:`morphologies` o
     :lines: 21
 
 
-By default the name assigned to the morphology is the file name without ``.swc`` extension, to
-change the name we can edit the attribute:
+By default the name assigned to the morphology is the file name without ``.swc`` extension. To
+change the name we can use the extended notation, specifying a node with a :guilabel:`name` and :guilabel:`file`:
 
 .. tab-set-code::
 
@@ -64,18 +62,17 @@ change the name we can edit the attribute:
            "name": "neuron_B",
            "file": "my_other_neuron.swc"
          }
-
        ],
 
   .. literalinclude:: include_morphos.py
     :language: python
     :lines: 19
 
-
 It is also possible to add a pipeline to perform transformations on the loaded
-morphology. There is a set of implemented actions listed here :ref:`transform`
-where we can select the method and assign it to the :guilabel:`pipeline` attribute with the
-addition of parameters if it is required. Another option is to use user defined functions.
+morphology. Pipelines can be added by adding a :guilabel`pipeline` list to the morphology node.
+Each item in the list may either be a string reference to an importable function or a method of
+the :class:`~bsb.morphologies.Morphology` class. To pass parameters, use a node with the
+function reference placed in the guilabel:`func` attribute, and a :guilabel:`parameters` list:
 
 .. code-block:: json
 
@@ -96,14 +93,19 @@ addition of parameters if it is required. Another option is to use user defined 
     }
   ]
 
+.. info::
+
+  Parameters are passed positionally, keyword arguments must be passed in the order they appear
+  in in the signature. If your target function has a complicated signature or keyword-only
+  arguments, create a wrapping function and target that instead.
+
 Fetching with alternative URI schemes
 -------------------------------------
 
 The framework uses URI schemes to define the path of the sources that are loaded.
 By default it tries to load from the project local folder, using the ``file`` URI scheme (``"file://"``).
 It is possible to fetch morphologies directly from `neuromorpho.org
-<https://neuromorpho.org>`_ using the NeuroMorpho scheme (``"nm://"``). Then, associate it to the :guilabel:`morphologies` list of
-your ``top_type``:
+<https://neuromorpho.org>`_ using the NeuroMorpho scheme (``"nm://"``):
 
 .. tab-set-code::
 
