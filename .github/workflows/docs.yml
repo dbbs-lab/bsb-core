@@ -34,4 +34,4 @@ jobs:
     - name: read the docs
       uses: readthedocs/actions/preview@v1
       with:
-        project-slug: "readthedocs-preview"
+        project-slug: "bsb"
