@@ -27,7 +27,7 @@ jobs:
     - name: Fail documentations on warnings
       run: cd docs && sphinx-build -nW -b html . _build/html
   docs-preview:
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
+    if: github.event.pull_request.head.repo.full_name != github.repository
     runs-on: ubuntu-latest
     
     steps:
