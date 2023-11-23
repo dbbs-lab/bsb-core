@@ -43,28 +43,30 @@ On Windows, install `Microsoft MPI
 <https://docs.microsoft.com/en-us/message-passing-interface/microsoft-mpi>`_. On
 supercomputers it is usually installed already, otherwise contact your administrator.
 
-To then install the BSB with MPI support:
+To then install the BSB with parallel MPI support:
 
 .. code-block:: bash
 
-  pip install "bsb[mpi]>=4.0.0a0"
+  pip install "bsb[parallel]>=4.0.0b0"
 
 Simulator backends
 ==================
 
 If you'd like to install the scaffold builder for point neuron simulations with
-NEST or multicompartmental neuron simulations with NEURON use:
+NEST or multicompartmental neuron simulations with NEURON or Arbor use:
 
 .. code-block:: bash
 
   pip install bsb[nest]
   # or
+  pip install bsb[arbor]
+  # or
   pip install bsb[neuron]
-  # or both
-  pip install bsb[nest,neuron]
+  # or any combination
+  pip install bsb[arbor,nest,neuron]
 
 .. note::
 
   This does not install the simulators themselves. It installs the Python tools that the
-  BSB needs to deal with them. Install the simulators separately according to their
+  BSB needs to support them. Install the simulators separately according to their
   respective installation instructions.
