@@ -26,12 +26,4 @@ jobs:
         pip install -e .
     - name: Fail documentations on warnings
       run: cd docs && sphinx-build -nW -b html . _build/html
-  docs-preview:
-    if: github.event.pull_request.head.repo.full_name != github.repository
-    runs-on: ubuntu-latest
-    
-    steps:
-    - name: read the docs
-      uses: readthedocs/actions/preview@v1
-      with:
-        project-slug: "bsb"
+
