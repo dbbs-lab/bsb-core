@@ -188,7 +188,7 @@ class Rhomboid(Partition, classmap_entry="rhomboid"):
     def surface(self, chunk=None):
         if chunk is not None:
             # Gets the xz "square" from a volume
-            sq = lambda v: np.array(v)[[0, 2]]
+            sq = lambda v: np.array(v)[[0, 1]]
             ldc = sq(self.ldc)
             mdc = sq(self.mdc)
             cl = sq(chunk.ldc)
