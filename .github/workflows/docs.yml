@@ -26,4 +26,3 @@ jobs:
         pip install -e .
     - name: Fail documentations on warnings
       run: cd docs && sphinx-build -nW -b html . _build/html
-
