@@ -1,5 +1,4 @@
 import typing
-import warnings
 
 import abc as _abc
 import contextlib as _cl
@@ -331,20 +330,20 @@ class NeuroMorphoScheme(UrlScheme):
 
 
 @_ft.cache
-def _get_schemes() -> _tp.Mapping[str, FileScheme]:
+def _get_schemes() -> _tp.Mapping[str, typing.Type[FileScheme]]:
     from ..plugins import discover
 
     schemes = discover("storage.schemes")
-    schemes["file"] = FileScheme()
-    schemes["http"] = schemes["https"] = UrlScheme()
-    schemes["nm"] = NeuroMorphoScheme()
+    schemes["file"] = FileScheme
+    schemes["http"] = schemes["https"] = UrlScheme
+    schemes["nm"] = NeuroMorphoScheme
     return schemes
 
 
 def _get_scheme(scheme: str) -> FileScheme:
     schemes = _get_schemes()
     try:
-        return schemes[scheme]
+        return schemes[scheme]()
     except KeyError:
         raise KeyError(f"{scheme} is not a known file scheme.")
 
