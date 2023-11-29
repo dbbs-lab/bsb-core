@@ -30,7 +30,7 @@ jobs:
         # Install latest pip
         pip install --upgrade pip
         # Install bsb-core
-        pip install .[test,mpi]
+        pip install .[test,parallel]
 
     - name: Run tests & coverage
       run: |

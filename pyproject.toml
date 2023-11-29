@@ -58,25 +58,30 @@ config = "bsb._options:config"
 profiling = "bsb._options:profiling"
 
 [project.optional-dependencies]
+parallel = [
+    "mpi4py~=3.0",
+    "zwembad~=1.2",
+    "mpilock~=1.1"
+]
 test = [
-    "coverage~=7.3.0",
+    "coverage~=7.3",
     "bsb-hdf5==1.0.0b1",
     "bsb-test==0.0.0b0",
     "bsb-json==0.0.0b0"
 ]
-dev = [
+docs = [
     "sphinx~=7.0",
-    "furo",
-    "pre-commit",
-    "black~=22.3.0",
-    "nrn-subprocess~=1.3.4",
-    "sphinxemoji",
-    "sphinx_design~=0.5",
-    "sphinx-copybutton~=0.5",
-    "sphinxext-bsb~=0.2.1",
-    "snakeviz",
+    "furo~=2023.9",
+    "sphinxemoji~=0.2.0",
+    "sphinx_design~=0.5.0",
+    "sphinx-copybutton~=0.5.0",
+    "sphinxext-bsb~=0.2.1"
 ]
-mpi = ["mpi4py~=3.0", "zwembad", "mpilock~=1.1"]
+dev = [
+    "pre-commit~=3.5",
+    "black~=23.11",
+    "snakeviz~=2.1"
+]
 
 [tool.black]
 line-length = 90
