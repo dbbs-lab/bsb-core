@@ -385,7 +385,8 @@ class FileDependencyNode:
 
 @config.node
 class CodeDependencyNode(FileDependencyNode):
-    module: str = config.attr(type=str)
+    module: str = config.attr(type=str, required=types.shortform())
+    attr: str = config.attr(type=str)
 
     @config.property
     def file(self):
@@ -413,6 +414,7 @@ class CodeDependencyNode(FileDependencyNode):
                 module = importlib.util.module_from_spec(spec)
                 sys.modules[self.module] = module
                 spec.loader.exec_module(module)
+                return module if self.attr is None else module[self.attr]
         finally:
             tmp = list(reversed(sys.path))
             tmp.remove(_os.getcwd())
