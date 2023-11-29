@@ -1,12 +1,12 @@
-name: readthedocs/actions
-on:
+name: readthedocs/preview
+on: 
   pull_request_target:
     types:
       - opened
     # Execute this action only on PRs that touch
     # documentation files.
-    # paths:
-    #   - "docs/**"
+    paths:
+      - "docs/**"
 
 permissions:
   pull-requests: write
