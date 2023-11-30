@@ -6,15 +6,29 @@ import traceback
 
 import errr
 
-from ..exceptions import (BootError, CastError, CfgReferenceError,
-                          NoReferenceAttributeSignal, RequirementError)
+from ..exceptions import (
+    BootError,
+    CastError,
+    CfgReferenceError,
+    NoReferenceAttributeSignal,
+    RequirementError,
+)
 from ..services import MPI
 from ._compile import _wrap_reserved
 from ._hooks import run_hook
-from ._make import (MISSING, _resolve_references, compile_class, compile_isc,
-                    compile_new, compile_postnew, make_dictable,
-                    make_get_node_name, make_tree, walk_nodes,
-                    wrap_root_postnew)
+from ._make import (
+    MISSING,
+    _resolve_references,
+    compile_class,
+    compile_isc,
+    compile_new,
+    compile_postnew,
+    make_dictable,
+    make_get_node_name,
+    make_tree,
+    walk_nodes,
+    wrap_root_postnew,
+)
 
 
 def root(root_cls):

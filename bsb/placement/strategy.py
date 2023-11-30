@@ -8,8 +8,12 @@ from .. import config
 from .._util import SortableByAfter, obj_str_insert
 from ..config import refs, types
 from ..config._attrs import cfgdict, cfglist
-from ..exceptions import (DistributorError, EmptySelectionError,
-                          MissingSourceError, SourceQualityError)
+from ..exceptions import (
+    DistributorError,
+    EmptySelectionError,
+    MissingSourceError,
+    SourceQualityError,
+)
 from ..profiling import node_meter
 from ..reporting import report
 from ..storage import Chunk

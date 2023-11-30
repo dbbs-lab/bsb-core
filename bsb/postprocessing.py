@@ -2,8 +2,7 @@ import numpy as np
 
 from . import config
 from .config import refs
-from .exceptions import (ConnectivityWarning, MorphologyDataError,
-                         MorphologyError)
+from .exceptions import ConnectivityWarning, MorphologyDataError, MorphologyError
 from .reporting import report, warn
 
 

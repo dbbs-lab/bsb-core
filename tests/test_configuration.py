@@ -9,10 +9,17 @@ from bsb import config
 from bsb.config import Configuration, _attrs, compose_nodes, types
 from bsb.config.refs import Reference
 from bsb.core import Scaffold
-from bsb.exceptions import (CastError, CfgReferenceError, ClassMapMissingError,
-                            ConfigurationWarning, DynamicClassInheritanceError,
-                            DynamicObjectNotFoundError, RequirementError,
-                            UnfitClassCastError, UnresolvedClassCastError)
+from bsb.exceptions import (
+    CastError,
+    CfgReferenceError,
+    ClassMapMissingError,
+    ConfigurationWarning,
+    DynamicClassInheritanceError,
+    DynamicObjectNotFoundError,
+    RequirementError,
+    UnfitClassCastError,
+    UnresolvedClassCastError,
+)
 from bsb.storage import NrrdDependencyNode, YamlDependencyNode
 from bsb.topology.region import RegionGroup
 

@@ -1,7 +1,9 @@
 # A module with cerebellar cell models
 import dbbs_models
+
 # A module to read HDF5 data
 import h5py
+
 # A module to run NEURON simulations in isolation
 import nrnsub
 

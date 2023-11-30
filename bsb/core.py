@@ -15,17 +15,19 @@ from .reporting import report, warn
 from .services import MPI
 from .services.pool import create_job_pool
 from .simulation import get_simulation_adapter
-from .storage import Chunk, Storage
-from .storage import _util as _storutil
-from .storage import open_storage
+from .storage import Chunk, Storage, open_storage
 
 if typing.TYPE_CHECKING:
     from .cell_types import CellType
     from .config._config import NetworkNode as Network
     from .postprocessing import PostProcessingHook
     from .simulation.simulation import Simulation
-    from .storage.interfaces import (ConnectivitySet, FileStore,
-                                     MorphologyRepository, PlacementSet)
+    from .storage.interfaces import (
+        ConnectivitySet,
+        FileStore,
+        MorphologyRepository,
+        PlacementSet,
+    )
     from .topology import Partition, Region
 
 

@@ -2,9 +2,15 @@ import unittest
 from collections import defaultdict
 
 import numpy as np
-from bsb_test import (FixedPosConfigFixture, MorphologiesFixture,
-                      NetworkFixture, NumpyTestCase, RandomStorageFixture,
-                      get_config_path, skip_parallel)
+from bsb_test import (
+    FixedPosConfigFixture,
+    MorphologiesFixture,
+    NetworkFixture,
+    NumpyTestCase,
+    RandomStorageFixture,
+    get_config_path,
+    skip_parallel,
+)
 
 from bsb.config import Configuration, from_file
 from bsb.core import Scaffold

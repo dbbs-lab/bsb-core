@@ -20,13 +20,32 @@ from .. import plugins
 from .._util import ichain
 from ..exceptions import ConfigTemplateNotFoundError, ParserError, PluginError
 from . import parsers
-from ._attrs import (ConfigurationAttribute, attr, catch_all, dict, dynamic,
-                     file, list, node, pluggable, property, provide, ref,
-                     reflist, root, slot, unset)
+from ._attrs import (
+    ConfigurationAttribute,
+    attr,
+    catch_all,
+    dict,
+    dynamic,
+    file,
+    list,
+    node,
+    pluggable,
+    property,
+    provide,
+    ref,
+    reflist,
+    root,
+    slot,
+    unset,
+)
 from ._distributions import Distribution
 from ._hooks import after, before, has_hook, on, run_hook
-from ._make import (compose_nodes, get_config_attributes, walk_node_attributes,
-                    walk_nodes)
+from ._make import (
+    compose_nodes,
+    get_config_attributes,
+    walk_node_attributes,
+    walk_nodes,
+)
 
 _path = __path__
 ConfigurationAttribute.__module__ = __name__

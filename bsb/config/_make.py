@@ -8,11 +8,17 @@ from re import sub
 
 import errr
 
-from ..exceptions import (CastError, ConfigurationWarning, DynamicClassError,
-                          DynamicClassInheritanceError,
-                          DynamicObjectNotFoundError, PluginError,
-                          RequirementError, UnfitClassCastError,
-                          UnresolvedClassCastError)
+from ..exceptions import (
+    CastError,
+    ConfigurationWarning,
+    DynamicClassError,
+    DynamicClassInheritanceError,
+    DynamicObjectNotFoundError,
+    PluginError,
+    RequirementError,
+    UnfitClassCastError,
+    UnresolvedClassCastError,
+)
 from ..reporting import warn
 from ._hooks import overrides
 

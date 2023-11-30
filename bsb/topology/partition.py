@@ -12,8 +12,13 @@ import numpy as np
 
 from .. import config
 from ..config import types
-from ..exceptions import (AllenApiError, ConfigurationError, LayoutError,
-                          NodeNotFoundError, RequirementError)
+from ..exceptions import (
+    AllenApiError,
+    ConfigurationError,
+    LayoutError,
+    NodeNotFoundError,
+    RequirementError,
+)
 from ..reporting import report
 from ..storage import Chunk
 from ..storage._files import NrrdDependencyNode

@@ -27,8 +27,12 @@ from scipy.spatial.transform import Rotation
 
 from .. import _util as _gutil
 from .._encoding import EncodedLabels
-from ..exceptions import (EmptyBranchError, MorphologyDataError,
-                          MorphologyError, MorphologyWarning)
+from ..exceptions import (
+    EmptyBranchError,
+    MorphologyDataError,
+    MorphologyError,
+    MorphologyWarning,
+)
 from ..reporting import warn
 from ..voxels import VoxelSet
 

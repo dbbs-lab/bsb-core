@@ -7,8 +7,7 @@ import h5py
 import numpy as np
 
 from bsb.core import Scaffold
-from bsb.exceptions import (MissingMorphologyError, MorphologyDataError,
-                            MorphologyError)
+from bsb.exceptions import MissingMorphologyError, MorphologyDataError, MorphologyError
 from bsb.postprocessing import SpoofDetails
 
 

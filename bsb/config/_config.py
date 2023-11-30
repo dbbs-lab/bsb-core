@@ -11,8 +11,7 @@ from ..postprocessing import PostProcessingHook
 from ..simulation.simulation import Simulation
 from ..storage._files import CodeDependencyNode, MorphologyDependencyNode
 from ..storage.interfaces import StorageNode
-from ..topology import (Partition, Region, RegionGroup, create_topology,
-                        get_partitions)
+from ..topology import Partition, Region, RegionGroup, create_topology, get_partitions
 from . import types
 from ._attrs import _boot_nodes, cfgdict, cfglist
 

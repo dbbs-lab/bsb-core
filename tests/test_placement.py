@@ -13,8 +13,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
 from time import sleep
 
-from bsb_test import (NumpyTestCase, RandomStorageFixture, get_config_path,
-                      timeout)
+from bsb_test import NumpyTestCase, RandomStorageFixture, get_config_path, timeout
 
 from bsb.cell_types import CellType
 from bsb.config import Configuration, from_json

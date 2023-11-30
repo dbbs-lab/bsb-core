@@ -6,9 +6,14 @@ from weakref import WeakKeyDictionary
 
 import numpy as np
 
-from ..exceptions import (CastError, ClassMapMissingError,
-                          InvalidReferenceError, NoneReferenceError,
-                          RequirementError, TypeHandlingError)
+from ..exceptions import (
+    CastError,
+    ClassMapMissingError,
+    InvalidReferenceError,
+    NoneReferenceError,
+    RequirementError,
+    TypeHandlingError,
+)
 from ._compile import _reserved_kw_passes, _wrap_reserved
 from ._make import _load_object
 
