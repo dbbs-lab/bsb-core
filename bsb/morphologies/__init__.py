@@ -15,24 +15,26 @@ Morphology module
 # In the simulation step, these (possibly dynamically modified) morphologies are passed
 # to the cell model instantiators.
 
+import functools
 import inspect
 import itertools
-import functools
-import morphio
-import numpy as np
 from collections import deque
 from pathlib import Path
+
+import morphio
+import numpy as np
 from scipy.spatial.transform import Rotation
+
+from .. import _util as _gutil
 from .._encoding import EncodedLabels
-from ..voxels import VoxelSet
 from ..exceptions import (
-    MorphologyError,
-    MorphologyDataError,
     EmptyBranchError,
+    MorphologyDataError,
+    MorphologyError,
     MorphologyWarning,
 )
 from ..reporting import warn
-from .. import _util as _gutil
+from ..voxels import VoxelSet
 
 
 class MorphologySet:

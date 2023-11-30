@@ -6,42 +6,46 @@ decorate your classes and add class attributes using ``x =
 config.attr/dict/list/ref/reflist`` to populate your classes with powerful attributes.
 """
 
-import os
-import sys
+import builtins
 import glob
 import itertools
+import os
+import sys
+import traceback
 import typing
 from importlib.machinery import ModuleSpec
 from shutil import copy2 as copy_file
-import builtins
-import traceback
 
-from ._attrs import (
-    attr,
-    list,
-    dict,
-    file,
-    node,
-    root,
-    dynamic,
-    ref,
-    reflist,
-    slot,
-    property,
-    provide,
-    unset,
-    pluggable,
-    catch_all,
-    ConfigurationAttribute,
-)
-from .._util import ichain
-from ._make import walk_node_attributes, walk_nodes, compose_nodes, get_config_attributes
-from ._hooks import on, before, after, run_hook, has_hook
-from ._distributions import Distribution
 from .. import plugins
+from .._util import ichain
 from ..exceptions import ConfigTemplateNotFoundError, ParserError, PluginError
 from . import parsers
-
+from ._attrs import (
+    ConfigurationAttribute,
+    attr,
+    catch_all,
+    dict,
+    dynamic,
+    file,
+    list,
+    node,
+    pluggable,
+    property,
+    provide,
+    ref,
+    reflist,
+    root,
+    slot,
+    unset,
+)
+from ._distributions import Distribution
+from ._hooks import after, before, has_hook, on, run_hook
+from ._make import (
+    compose_nodes,
+    get_config_attributes,
+    walk_node_attributes,
+    walk_nodes,
+)
 
 _path = __path__
 ConfigurationAttribute.__module__ = __name__
@@ -56,7 +60,7 @@ Configuration: "Configuration"
 # ConfigurationModule should not inherit from `ModuleType`, otherwise Sphinx doesn't
 # document all the properties.
 class ConfigurationModule:
-    from . import types, refs
+    from . import refs, types
 
     def __init__(self, name):
         self.__name__ = name

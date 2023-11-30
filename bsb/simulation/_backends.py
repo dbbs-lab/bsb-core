@@ -1,5 +1,6 @@
-from .. import plugins
 import functools
+
+from .. import plugins
 
 
 @functools.cache

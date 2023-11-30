@@ -1,10 +1,13 @@
-from .strategy import PlacementStrategy
-import math, numpy as np
+import math
+
+import numpy as np
+
 from .. import config
 from ..config import types
 from ..mixins import NotParallel
-from ..storage import Chunk
 from ..reporting import report, warn
+from ..storage import Chunk
+from .strategy import PlacementStrategy
 
 
 @config.node

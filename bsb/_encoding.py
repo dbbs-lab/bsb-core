@@ -1,5 +1,7 @@
-import numpy as np
 import itertools
+
+import numpy as np
+
 from ._util import obj_str_insert
 
 

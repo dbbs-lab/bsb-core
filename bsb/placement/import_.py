@@ -4,20 +4,20 @@ import io
 import typing
 from collections import defaultdict
 
-import psutil
 import numpy as np
+import psutil
 from tqdm import tqdm
 
-from .strategy import PlacementStrategy
-from ..storage import Chunk
-from ..exceptions import ConfigurationError
 from .. import config
 from ..config import refs
+from ..exceptions import ConfigurationError
 from ..mixins import NotParallel
+from ..storage import Chunk
+from .strategy import PlacementStrategy
 
 if typing.TYPE_CHECKING:
-    from ..storage import FileDependencyNode
     from ..cell_types import CellType
+    from ..storage import FileDependencyNode
     from ..topology import Partition
 
 

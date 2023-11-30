@@ -1,8 +1,9 @@
-from .reporting import report, warn
 import numpy as np
-from .exceptions import MorphologyError, MorphologyDataError, ConnectivityWarning
+
 from . import config
 from .config import refs
+from .exceptions import ConnectivityWarning, MorphologyDataError, MorphologyError
+from .reporting import report, warn
 
 
 @config.dynamic(attr_name="strategy")

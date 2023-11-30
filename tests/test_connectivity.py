@@ -1,19 +1,21 @@
-from bsb.core import Scaffold
-from bsb.services import MPI
-from bsb.config import Configuration, from_file
-from bsb.morphologies import Morphology, Branch
+import unittest
+from collections import defaultdict
+
+import numpy as np
 from bsb_test import (
-    NumpyTestCase,
     FixedPosConfigFixture,
-    RandomStorageFixture,
     MorphologiesFixture,
     NetworkFixture,
-    skip_parallel,
+    NumpyTestCase,
+    RandomStorageFixture,
     get_config_path,
+    skip_parallel,
 )
-import unittest
-import numpy as np
-from collections import defaultdict
+
+from bsb.config import Configuration, from_file
+from bsb.core import Scaffold
+from bsb.morphologies import Branch, Morphology
+from bsb.services import MPI
 
 
 class TestAllToAll(

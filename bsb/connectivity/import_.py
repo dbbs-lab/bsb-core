@@ -6,16 +6,16 @@ import typing
 import psutil
 from tqdm import tqdm
 
-from ..exceptions import ConfigurationError
-from .strategy import ConnectionStrategy
 from .. import config
 from ..config import refs
+from ..exceptions import ConfigurationError
 from ..mixins import NotParallel
 from ..storage.interfaces import PlacementSet
+from .strategy import ConnectionStrategy
 
 if typing.TYPE_CHECKING:
-    from ..storage import FileDependencyNode
     from ..cell_types import CellType
+    from ..storage import FileDependencyNode
     from ..topology import Partition
 
 

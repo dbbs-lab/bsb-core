@@ -1,13 +1,15 @@
+import math
 import typing
+from itertools import chain
 
-from .strategy import PlacementStrategy
-import math, numpy as np
+import numpy as np
+
+from .. import config
+from ..config import refs, types
 from ..exceptions import *
 from ..reporting import report, warn
-from .. import config
-from ..config import types, refs
-from itertools import chain
 from .indicator import PlacementIndicator
+from .strategy import PlacementStrategy
 
 if typing.TYPE_CHECKING:
     from ..cell_types import CellType

@@ -1,34 +1,34 @@
 """
     An attrs-inspired class annotation system, but my A stands for amateuristic.
 """
+import builtins
 import traceback
 
 import errr
 
+from ..exceptions import (
+    BootError,
+    CastError,
+    CfgReferenceError,
+    NoReferenceAttributeSignal,
+    RequirementError,
+)
+from ..services import MPI
+from ._compile import _wrap_reserved
 from ._hooks import run_hook
 from ._make import (
     MISSING,
-    compile_class,
-    compile_postnew,
-    compile_new,
-    compile_isc,
-    make_get_node_name,
-    make_dictable,
-    make_tree,
-    wrap_root_postnew,
-    walk_nodes,
     _resolve_references,
+    compile_class,
+    compile_isc,
+    compile_new,
+    compile_postnew,
+    make_dictable,
+    make_get_node_name,
+    make_tree,
+    walk_nodes,
+    wrap_root_postnew,
 )
-from ._compile import _wrap_reserved
-from ..exceptions import (
-    RequirementError,
-    NoReferenceAttributeSignal,
-    CastError,
-    CfgReferenceError,
-    BootError,
-)
-from ..services import MPI
-import builtins
 
 
 def root(root_cls):

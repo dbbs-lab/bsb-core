@@ -1,8 +1,9 @@
-from ._util import MockModule
-from ..exceptions import DependencyError
 import functools
 import os
 import warnings
+
+from ..exceptions import DependencyError
+from ._util import MockModule
 
 
 class MPIService:

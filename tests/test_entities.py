@@ -1,4 +1,10 @@
-import unittest, os, sys, numpy as np, h5py, importlib
+import importlib
+import os
+import sys
+import unittest
+
+import h5py
+import numpy as np
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__)))

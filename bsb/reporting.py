@@ -1,13 +1,12 @@
+import base64
+import functools
+import io
+import sys
+import warnings
 from os import PathLike
 
-from .services import MPI
 from . import exceptions as _exc
-import functools
-import warnings
-import base64
-import sys
-import io
-
+from .services import MPI
 
 _preamble = chr(240) + chr(80) + chr(85) + chr(248) + chr(228)
 _preamble_bar = chr(191) * 3

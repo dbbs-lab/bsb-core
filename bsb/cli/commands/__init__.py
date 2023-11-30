@@ -7,6 +7,7 @@ Inherit from :class:`BaseCommand` for regular CLI style commands, or from
 BSB.
 """
 import argparse
+
 from ...exceptions import CommandError
 from ...reporting import report
 

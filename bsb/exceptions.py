@@ -1,4 +1,5 @@
-from errr import make_tree as _t, exception as _e
+from errr import exception as _e
+from errr import make_tree as _t
 
 _t(
     globals(),

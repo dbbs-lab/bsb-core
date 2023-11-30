@@ -1,6 +1,7 @@
 # TODO: check for parallel support in the hdf5 provider, if it has it, provide noop
-from ._util import MockModule
 import numpy as np
+
+from ._util import MockModule
 
 
 class MockedWindowController:

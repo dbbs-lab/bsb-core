@@ -1,10 +1,8 @@
-from bsb.core import Scaffold
-from bsb_test import (
-    NumpyTestCase,
-    FixedPosConfigFixture,
-    RandomStorageFixture,
-)
 import unittest
+
+from bsb_test import FixedPosConfigFixture, NumpyTestCase, RandomStorageFixture
+
+from bsb.core import Scaffold
 
 
 @unittest.skip("todo: Move this test from bsb-core to bsb")

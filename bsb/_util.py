@@ -1,13 +1,12 @@
+import contextlib as _ctxlib
+import functools
 import itertools as _it
 import os as _os
 import sys as _sys
-import contextlib as _ctxlib
 import typing
 
 import numpy as np
-
 import numpy as _np
-import functools
 
 ichain = _it.chain.from_iterable
 

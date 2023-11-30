@@ -1,12 +1,14 @@
-import numpy as np
-from numpy.random import default_rng
 import itertools
 import random
+
+import numpy as np
+from numpy.random import default_rng
+
+from ... import config
+from ..._util import ichain
+from ...config import types
 from ..strategy import ConnectionStrategy
 from .shared import Intersectional
-from ... import config
-from ...config import types
-from ..._util import ichain
 
 _rng = default_rng()
 

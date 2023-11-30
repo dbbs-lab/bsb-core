@@ -1,20 +1,20 @@
-import typing
-
-from .. import config
-from ..config import refs, types
-from ..profiling import node_meter
-from ..reporting import report, warn
-from .._util import obj_str_insert, ichain
-from ..mixins import HasDependencies
 import abc
+import typing
 from itertools import chain
 
+from .. import config
+from .._util import ichain, obj_str_insert
+from ..config import refs, types
+from ..mixins import HasDependencies
+from ..profiling import node_meter
+from ..reporting import report, warn
+
 if typing.TYPE_CHECKING:
-    from ..core import Scaffold
     from ..cell_types import CellType
-    from ..storage.interfaces import PlacementSet
-    from ..morphologies import MorphologySet
     from ..connectivity import ConnectionStrategy
+    from ..core import Scaffold
+    from ..morphologies import MorphologySet
+    from ..storage.interfaces import PlacementSet
 
 
 @config.node

@@ -3,8 +3,9 @@ Module for binary space partitioning, to facilitate optimal runtime complexity f
 problems.
 """
 
-from rtree import index as rtree
 import abc
+
+from rtree import index as rtree
 
 
 class BoxTreeInterface(abc.ABC):

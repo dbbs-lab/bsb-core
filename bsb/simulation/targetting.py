@@ -6,6 +6,7 @@ import typing
 
 import numpy as np
 from numpy.random import default_rng
+
 from .. import config
 from ..config import refs, types
 

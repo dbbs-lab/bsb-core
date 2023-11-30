@@ -1,38 +1,34 @@
-import time
-import os
 import itertools
+import os
+import time
 import typing
+
 import numpy as np
 
-from .placement import PlacementStrategy
-from .connectivity import ConnectionStrategy
-from .storage import Chunk, Storage, _util as _storutil, open_storage
-from .exceptions import (
-    InputError,
-    NodeNotFoundError,
-    RedoError,
-    ScaffoldError,
-)
-from .reporting import report, warn
-from .config._config import Configuration
-from .services.pool import create_job_pool
-from .services import MPI
-from .simulation import get_simulation_adapter
 from ._util import obj_str_insert
+from .config._config import Configuration
+from .connectivity import ConnectionStrategy
+from .exceptions import InputError, NodeNotFoundError, RedoError, ScaffoldError
+from .placement import PlacementStrategy
 from .profiling import meter
+from .reporting import report, warn
+from .services import MPI
+from .services.pool import create_job_pool
+from .simulation import get_simulation_adapter
+from .storage import Chunk, Storage, open_storage
 
 if typing.TYPE_CHECKING:
-    from .storage.interfaces import (
-        PlacementSet,
-        ConnectivitySet,
-        MorphologyRepository,
-        FileStore,
-    )
-    from .config._config import NetworkNode as Network
-    from .simulation.simulation import Simulation
-    from .topology import Region, Partition
     from .cell_types import CellType
+    from .config._config import NetworkNode as Network
     from .postprocessing import PostProcessingHook
+    from .simulation.simulation import Simulation
+    from .storage.interfaces import (
+        ConnectivitySet,
+        FileStore,
+        MorphologyRepository,
+        PlacementSet,
+    )
+    from .topology import Partition, Region
 
 
 @meter()

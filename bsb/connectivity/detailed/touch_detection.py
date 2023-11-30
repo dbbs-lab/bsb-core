@@ -1,10 +1,12 @@
-import numpy as np
-from ..strategy import ConnectionStrategy
-from .shared import Intersectional
-from ...reporting import report, warn
 from random import sample as sample_elements
+
+import numpy as np
+
 from ... import config
 from ...config import types
+from ...reporting import report, warn
+from ..strategy import ConnectionStrategy
+from .shared import Intersectional
 
 
 class TouchInformation:

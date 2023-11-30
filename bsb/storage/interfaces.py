@@ -1,15 +1,15 @@
 import abc
+import functools
 import typing
 from pathlib import Path
-import functools
+
 import numpy as np
 
-from ._chunks import Chunk
 from .. import config, plugins
+from .._util import immutable, obj_str_insert
 from ..morphologies import Morphology
 from ..trees import BoxTree
-from .._util import obj_str_insert, immutable
-
+from ._chunks import Chunk
 
 if typing.TYPE_CHECKING:
     from ..cell_types import CellType

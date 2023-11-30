@@ -1,11 +1,10 @@
 import abc as _abc
+import itertools
 from graphlib import TopologicalSorter
 
+from . import _util as _gutil
 from .reporting import report
 from .storage import Chunk
-from . import _util as _gutil
-
-import itertools
 
 
 def _queue_placement(self, pool, chunk_size):

@@ -4,9 +4,9 @@
 import typing
 
 from . import config
+from ._util import obj_str_insert
 from .config import types
 from .placement.indicator import PlacementIndications
-from ._util import obj_str_insert
 
 if typing.TYPE_CHECKING:
     from .core import Scaffold

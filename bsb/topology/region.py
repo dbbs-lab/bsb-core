@@ -1,14 +1,15 @@
 """
 Module for the Region types.
 """
+import abc
 import typing
 
-from ._layout import Layout
+import numpy as np
+
 from .. import config
 from ..config import refs, types
 from ..reporting import warn
-import numpy as np
-import abc
+from ._layout import Layout
 
 if typing.TYPE_CHECKING:
     from ..core import Scaffold

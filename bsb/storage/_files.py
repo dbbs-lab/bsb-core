@@ -1,30 +1,31 @@
-import typing
-
 import abc as _abc
 import contextlib as _cl
 import datetime as _dt
+import email.utils as _eml
+import functools as _ft
+import hashlib as _hl
+import os as _os
+import pathlib as _pl
 import tempfile as _tf
 import time as _t
+import typing
+import typing as _tp
 import urllib.parse as _up
 import urllib.request as _ur
-import pathlib as _pl
-import os as _os
-import functools as _ft
-import typing as _tp
-import requests as _rq
-import email.utils as _eml
+import warnings
+
 import nrrd as _nrrd
-import hashlib as _hl
+import requests as _rq
 import yaml
 
-from .._util import obj_str_insert
 from .. import config
+from .._util import obj_str_insert
 from ..config import types
 from ..config._attrs import cfglist
 
 if _tp.TYPE_CHECKING:
-    from ..storage.interfaces import FileStore
     from ..morphologies import Morphology
+    from ..storage.interfaces import FileStore
 
 
 def _is_uri(url):
@@ -310,8 +311,8 @@ class NeuroMorphoScheme(UrlScheme):
         # Weak DH key on neuromorpho.org
         # https://stackoverflow.com/a/76217135/1016004
         from requests.adapters import HTTPAdapter
-        from urllib3.util import create_urllib3_context
         from urllib3 import PoolManager
+        from urllib3.util import create_urllib3_context
 
         class DHAdapter(HTTPAdapter):
             def init_poolmanager(self, connections, maxsize, block=False, **kwargs):

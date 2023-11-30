@@ -1,8 +1,10 @@
-from . import BaseCommand
-from ...reporting import report
-from ... import config
 import pathlib
+
 import toml
+
+from ... import config
+from ...reporting import report
+from . import BaseCommand
 
 
 class ProjectNewCommand(BaseCommand, name="new"):

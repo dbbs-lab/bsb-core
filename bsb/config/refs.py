@@ -74,7 +74,7 @@ class RegionalReference(Reference):
         return merged
 
     def is_ref(self, value):
-        from ..topology import Region, Partition
+        from ..topology import Partition, Region
 
         return isinstance(value, Region) or isinstance(value, Partition)
 

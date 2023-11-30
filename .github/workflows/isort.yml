@@ -1,0 +1,19 @@
+name: Run isort
+on:
+  - push
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.9
+      - name: Install apt dependencies
+        run: |
+          sudo apt update
+          # Install `libopenmpi` for MPI
+          sudo apt install openmpi-bin libopenmpi-dev
+      - run: pip install -e .[parallel]
+      - uses: isort/isort-action@master

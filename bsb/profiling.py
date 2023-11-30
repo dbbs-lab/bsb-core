@@ -1,15 +1,16 @@
-from functools import cache
-import cProfile
-import bsb.options
-from bsb.services import MPI
-from time import time
-from uuid import uuid4
-import pickle
 import atexit
+import cProfile
+import functools
+import pickle
 import sys
 import traceback
-import functools
 import warnings
+from functools import cache
+from time import time
+from uuid import uuid4
+
+import bsb.options
+from bsb.services import MPI
 
 
 class Meter:

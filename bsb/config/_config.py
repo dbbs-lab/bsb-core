@@ -1,24 +1,19 @@
 import typing
 
+import numpy as np
+
 from .. import config
-from . import types
+from .._util import merge_dicts
 from ..cell_types import CellType
-from ._attrs import _boot_nodes, cfgdict, cfglist
+from ..connectivity import ConnectionStrategy
 from ..placement import PlacementStrategy
+from ..postprocessing import PostProcessingHook
+from ..simulation.simulation import Simulation
 from ..storage._files import CodeDependencyNode, MorphologyDependencyNode
 from ..storage.interfaces import StorageNode
-from ..connectivity import ConnectionStrategy
-from ..simulation.simulation import Simulation
-from ..postprocessing import PostProcessingHook
-from .._util import merge_dicts
-from ..topology import (
-    get_partitions,
-    create_topology,
-    RegionGroup,
-    Region,
-    Partition,
-)
-import numpy as np
+from ..topology import Partition, Region, RegionGroup, create_topology, get_partitions
+from . import types
+from ._attrs import _boot_nodes, cfgdict, cfglist
 
 if typing.TYPE_CHECKING:
     from ..core import Scaffold

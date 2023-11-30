@@ -1,8 +1,10 @@
-from .trees import BoxTree
-from .exceptions import EmptyVoxelSetError
-import numpy as np
 import functools
 import itertools
+
+import numpy as np
+
+from .exceptions import EmptyVoxelSetError
+from .trees import BoxTree
 
 
 class VoxelData(np.ndarray):
