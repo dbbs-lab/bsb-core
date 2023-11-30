@@ -43,6 +43,42 @@ def _raise_na(*args, **kwargs):
     raise NotImplementedError("NotParallel connection strategies have no RoI.")
 
 
+class HasDependencies:
+    """
+    Mixin class to mark that this node may depend on other nodes.
+    """
+
+    @_abc.abstractmethod
+    def get_deps(self):
+        pass
+
+    @_abc.abstractmethod
+    def __lt__(self, other):
+        raise NotImplementedError(f"{type(self).__name__} must implement __lt__.")
+
+    @_abc.abstractmethod
+    def __hash__(self):
+        raise NotImplementedError(f"{type(self).__name__} must implement __hash__.")
+
+    @classmethod
+    def sort_deps(cls, objects):
+        """
+        Orders a given dictionary of objects by the class's default mechanism and
+        then apply the `after` attribute for further restrictions.
+        """
+        objects = set(objects)
+        ordered = []
+        sorter = TopologicalSorter(
+            {o: set(d for d in o.get_deps() if d in objects) for o in objects}
+        )
+        sorter.prepare()
+        while sorter.is_active():
+            node_group = sorter.get_ready()
+            ordered.extend(sorted(node_group))
+            sorter.done(*node_group)
+        return ordered
+
+
 class NotParallel:
     def __init_subclass__(cls, **kwargs):
         from .connectivity import ConnectionStrategy
