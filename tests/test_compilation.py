@@ -13,7 +13,7 @@ class TestSingleTypeCompilation(
     RandomStorageFixture, NetworkFixture, unittest.TestCase, engine_name="hdf5"
 ):
     """
-    Check if we can compile a single cell type.
+    Check if we can compile a single cell type..
     """
 
     def setUp(self) -> None:
