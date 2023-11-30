@@ -87,9 +87,9 @@ exclude_patterns = [
     "_build",
     "Thumbs.db",
     ".DS_Store",
-    "guides/labels.rst",
-    "guides/blender.rst",
-    "guides/layer.rst",
+    "getting-started/labels.rst",
+    "getting-started/blender.rst",
+    "getting-started/layer.rst",
 ]
 
 

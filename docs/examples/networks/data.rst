@@ -28,4 +28,8 @@ interface. This example shows how to access the cell positions of each populatio
 
 .. todo::
 
-   Document best ways to interact with the morphology data
+   Document best practices for the morphology data
+
+.. todo::
+
+   Document best practices for the connectivity data

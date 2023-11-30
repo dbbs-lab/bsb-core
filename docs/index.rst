@@ -35,42 +35,41 @@ human-readable, multi-scale models!
       Get started with your first project!
 
     .. grid-item-card:: :octicon:`tools;1em;sd-text-warning` Components
-	    :link: components
-	    :link-type: ref
+       :link: components
+       :link-type: ref
 
-	    Learn how to write your own components to e.g. place or connect cells.
+       Learn how to write your own components to e.g. place or connect cells.
 
     .. grid-item-card:: :octicon:`database;1em;sd-text-warning` Simulations
-	    :link: simulations
-	    :link-type: ref
+       :link: simulations
+       :link-type: ref
 
-	    Learn how to simulate your network models
+       Learn how to simulate your network models
 
     .. grid-item-card:: :octicon:`device-camera-video;1em;sd-text-warning` Examples
-	    :link: examples
-	    :link-type: ref
+       :link: examples
+       :link-type: ref
 
-	    View examples explained step by step
+       View examples explained step by step
 
     .. grid-item-card:: :octicon:`package-dependents;1em;sd-text-warning` Plugins
-	    :link: plugins
-	    :link-type: ref
+       :link: plugins
+       :link-type: ref
 
-	    Learn to package your code for others to use!
+       Learn to package your code for others to use!
 
     .. grid-item-card:: :octicon:`mark-github;1em;sd-text-warning` Contributing
-	    :link: https://github.com/dbbs-lab/bsb
+       :link: https://github.com/dbbs-lab/bsb
 
-	    Help out the project by contributing code.
+       Help out the project by contributing code.
 
 .. toctree::
    :maxdepth: 2
    :caption: Getting Started
 
-   usage/installation
-   usage/top-level-guide
-   usage/getting-started
-   usage/projects
+   getting-started/installation
+   getting-started/top-level-guide
+   getting-started/toc
    guides/toc
    examples/toc
 

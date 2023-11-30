@@ -1,0 +1,64 @@
+name: Starting example
+storage:
+  engine: hdf5
+  root: network.hdf5
+network:
+  x: 400
+  y: 600
+  z: 400
+morphologies:
+- neuron_A.swc
+- name: neuron_B
+  file: neuron2.swc
+- name: neron_NM
+  file: nm://cell005_GroundTruth
+regions:
+  brain_region:
+    type: stack
+    children:
+    - base_layer
+    - top_layer
+partitions:
+  base_layer:
+    type: layer
+    thickness: 100
+    stack_index: 0
+  top_layer:
+    type: layer
+    thickness: 100
+    stack_index: 1
+cell_types:
+  base_type:
+    spatial:
+      radius: 2
+      density: 0.001
+      morphologies:
+      - neuron_A
+  top_type:
+    spatial:
+      radius: 7
+      count: 10
+      morphologies:
+      - neuron_NM
+placement:
+  base_placement:
+    strategy: bsb.placement.ParticlePlacement
+    cell_types:
+    - base_type
+    partitions:
+    - base_layer
+  top_placement:
+    strategy: bsb.placement.ParticlePlacement
+    cell_types:
+    - top_type
+    partitions:
+    - top_layer
+connectivity:
+  A_to_B:
+    strategy: bsb.connectivity.VoxelIntersection
+    presynaptic:
+      cell_types:
+      - base_type
+    postsynaptic:
+      cell_types:
+      - top_type

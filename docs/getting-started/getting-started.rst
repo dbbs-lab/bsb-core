@@ -1,10 +1,10 @@
 .. _get-started:
 
-###############
-Getting Started
-###############
+##################
+Your first network
+##################
 
-Follow the :doc:`/usage/installation`:
+Follow the :doc:`/getting-started/installation`:
 
 * Set up a new environment
 * Install the software into the environment
@@ -174,7 +174,7 @@ cells and connections in place, you're ready to move to the :ref:`simulations` s
 	    :link: include_morphos
 	    :link-type: ref
 
-	    Follow the rest of the guides and learn how to include morphologies.
+	    Follow the next chapter and learn how to include morphologies.
 
     .. grid-item-card:: :octicon:`tools;1em;sd-text-warning` Components
 	    :link: components
@@ -201,7 +201,7 @@ cells and connections in place, you're ready to move to the :ref:`simulations` s
 	    Learn to package your code for others to use!
 
     .. grid-item-card:: :octicon:`mark-github;1em;sd-text-warning` Contributing
-	    :link: https://github.com/dbbs-lab/bsb
+	    :link: https://github.com/dbbs-lab/bsb-core
 
 	    Help out the project by contributing code.
 

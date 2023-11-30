@@ -63,7 +63,7 @@ and connections:
 bsb compile -p
 ```
 
-This creates a [network file](bsb.readthedocs.io/guides/networks.html) and plots the network.
+This creates a [network file](bsb.readthedocs.io/getting-started/networks.html) and plots the network.
 
 ### Simulating a network
 
