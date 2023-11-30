@@ -11,7 +11,8 @@ from ..exceptions import (
 from ..profiling import node_meter
 from ..reporting import report
 from ..config import refs, types
-from .._util import HasDependencies, obj_str_insert
+from ..mixins import HasDependencies
+from .._util import obj_str_insert
 from ..voxels import VoxelSet
 from ..storage import Chunk
 from .indicator import PlacementIndications, PlacementIndicator

@@ -4,7 +4,8 @@ from .. import config
 from ..config import refs, types
 from ..profiling import node_meter
 from ..reporting import report, warn
-from .._util import HasDependencies, obj_str_insert, ichain
+from .._util import obj_str_insert, ichain
+from ..mixins import HasDependencies
 import abc
 from itertools import chain
 
