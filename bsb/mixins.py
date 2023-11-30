@@ -1,4 +1,6 @@
+import abc as _abc
 import itertools
+from graphlib import TopologicalSorter
 
 from . import _util as _gutil
 from .reporting import report
@@ -9,7 +11,7 @@ def _queue_placement(self, pool, chunk_size):
     # Reset jobs that we own
     self._queued_jobs = []
     # Get the queued jobs of all the strategies we depend on.
-    deps = set(itertools.chain(*(strat._queued_jobs for strat in self.get_after())))
+    deps = set(itertools.chain(*(strat._queued_jobs for strat in self.get_deps())))
     # todo: perhaps pass the volume or partition boundaries as chunk size
     job = pool.queue_placement(self, Chunk([0, 0, 0], None), deps=deps)
     self._queued_jobs.append(job)
@@ -29,7 +31,7 @@ def _queue_connectivity(self, pool):
     self._queued_jobs = []
     # Get the queued jobs of all the strategies we depend on.
     deps = set(
-        itertools.chain.from_iterable(strat._queued_jobs for strat in self.get_after())
+        itertools.chain.from_iterable(strat._queued_jobs for strat in self.get_deps())
     )
     # Schedule all chunks in 1 job
     pre_chunks = _all_chunks(self.presynaptic.cell_types)
@@ -41,6 +43,42 @@ def _queue_connectivity(self, pool):
 
 def _raise_na(*args, **kwargs):
     raise NotImplementedError("NotParallel connection strategies have no RoI.")
+
+
+class HasDependencies:
+    """
+    Mixin class to mark that this node may depend on other nodes.
+    """
+
+    @_abc.abstractmethod
+    def get_deps(self):
+        pass
+
+    @_abc.abstractmethod
+    def __lt__(self, other):
+        raise NotImplementedError(f"{type(self).__name__} must implement __lt__.")
+
+    @_abc.abstractmethod
+    def __hash__(self):
+        raise NotImplementedError(f"{type(self).__name__} must implement __hash__.")
+
+    @classmethod
+    def sort_deps(cls, objects):
+        """
+        Orders a given dictionary of objects by the class's default mechanism and
+        then apply the `after` attribute for further restrictions.
+        """
+        objects = set(objects)
+        ordered = []
+        sorter = TopologicalSorter(
+            {o: set(d for d in o.get_deps() if d in objects) for o in objects}
+        )
+        sorter.prepare()
+        while sorter.is_active():
+            node_group = sorter.get_ready()
+            ordered.extend(sorted(node_group))
+            sorter.done(*node_group)
+        return ordered
 
 
 class NotParallel:
@@ -81,9 +119,7 @@ class InvertedRoI:
         self._queued_jobs = []
         # Get the queued jobs of all the strategies we depend on.
         deps = set(
-            itertools.chain.from_iterable(
-                strat._queued_jobs for strat in self.get_after()
-            )
+            itertools.chain.from_iterable(strat._queued_jobs for strat in self.get_deps())
         )
         post_types = self.postsynaptic.cell_types
         # Iterate over each chunk that is populated by our postsynaptic cell types.

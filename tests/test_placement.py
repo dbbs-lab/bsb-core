@@ -1,16 +1,11 @@
-import os
-import sys
 import unittest
 
-import h5py
 import numpy as np
 
 from bsb import config
 from bsb.connectivity import ConnectionStrategy
 from bsb.mixins import NotParallel
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
 from time import sleep
 
 from bsb_test import NumpyTestCase, RandomStorageFixture, get_config_path, timeout

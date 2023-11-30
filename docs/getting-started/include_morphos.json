@@ -9,6 +9,17 @@
     "y": 600.0,
     "z": 400.0
   },
+  "morphologies": [
+    "neuron_A.swc",
+    {
+      "name": "neuron_B",
+      "file": "neuron2.swc"
+    },
+    {
+       "name": "neuron_NM",
+       "file": "nm://cell005_GroundTruth"
+    }
+  ],
   "regions": {
     "brain_region": {
       "type": "stack",
@@ -33,11 +44,7 @@
         "radius": 2,
         "density": 1e-3,
         "morphologies": [
-          {
-            "names": [
-              "my_neuron"
-            ]
-          }
+          "neuron_A"
         ]
       }
     },
@@ -46,14 +53,8 @@
         "radius": 7,
         "count": 10,
         "morphologies": [
-          {
-            "select": "from_neuromorpho",
-            "names": [
-              "cell005_GroundTruth",
-              "DD13-10-c8-3",
-              "10_666-GM9-He-Ctl-Chow-BNL16A-CA1Finished2e"
-            ]
-          }
+          "neuron_B",
+          "neuron_NM"
         ]
       }
     }

@@ -53,7 +53,7 @@ class Satellite(PlacementStrategy):
         placements = self.scaffold.get_placement_of(*self.planet_types)
         self.partitions = list(chain(*(p.partitions for p in placements)))
 
-    def get_after(self):
+    def get_deps(self):
         return self.scaffold.get_placement_of(*self.planet_types)
 
     def place(self, chunk, indicators):

@@ -331,20 +331,20 @@ class NeuroMorphoScheme(UrlScheme):
 
 
 @_ft.cache
-def _get_schemes() -> _tp.Mapping[str, FileScheme]:
+def _get_schemes() -> _tp.Mapping[str, typing.Type[FileScheme]]:
     from ..plugins import discover
 
     schemes = discover("storage.schemes")
-    schemes["file"] = FileScheme()
-    schemes["http"] = schemes["https"] = UrlScheme()
-    schemes["nm"] = NeuroMorphoScheme()
+    schemes["file"] = FileScheme
+    schemes["http"] = schemes["https"] = UrlScheme
+    schemes["nm"] = NeuroMorphoScheme
     return schemes
 
 
 def _get_scheme(scheme: str) -> FileScheme:
     schemes = _get_schemes()
     try:
-        return schemes[scheme]
+        return schemes[scheme]()
     except KeyError:
         raise KeyError(f"{scheme} is not a known file scheme.")
 
@@ -386,7 +386,8 @@ class FileDependencyNode:
 
 @config.node
 class CodeDependencyNode(FileDependencyNode):
-    module: str = config.attr(type=str)
+    module: str = config.attr(type=str, required=types.shortform())
+    attr: str = config.attr(type=str)
 
     @config.property
     def file(self):
@@ -414,6 +415,7 @@ class CodeDependencyNode(FileDependencyNode):
                 module = importlib.util.module_from_spec(spec)
                 sys.modules[self.module] = module
                 spec.loader.exec_module(module)
+                return module if self.attr is None else module[self.attr]
         finally:
             tmp = list(reversed(sys.path))
             tmp.remove(_os.getcwd())

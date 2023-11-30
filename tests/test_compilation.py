@@ -1,17 +1,9 @@
-import os
-import sys
 import unittest
 
-import h5py
-import numpy as np
-
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
-from bsb_test import NetworkFixture, RandomStorageFixture, get_config_path
-
 from bsb.config import Configuration, from_json
-from bsb.core import Scaffold, from_storage
+from bsb.core import Scaffold
 from bsb.exceptions import InputError
+from bsb_test import get_config_path, NetworkFixture, RandomStorageFixture
 
 single_neuron_path = get_config_path("test_single_neuron.json")
 multi_neuron_path = get_config_path("test_double_neuron.json")
