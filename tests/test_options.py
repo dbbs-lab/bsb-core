@@ -1,20 +1,17 @@
-import unittest
-import pathlib
 import os
+import pathlib
 import sys
-import toml
 import tempfile
+import unittest
 
-from bsb.exceptions import *
-from bsb.option import (
-    _pyproject_content,
-    _pyproject_bsb,
-    _save_pyproject_bsb,
-    _pyproject_path,
-)
+import toml
+
 from bsb import options
-from bsb.cli import handle_command
 from bsb._contexts import get_cli_context
+from bsb.cli import handle_command
+from bsb.exceptions import *
+from bsb.option import (_pyproject_bsb, _pyproject_content, _pyproject_path,
+                        _save_pyproject_bsb)
 
 
 class TestCLIOption(unittest.TestCase):

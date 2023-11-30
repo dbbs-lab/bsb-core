@@ -1,6 +1,6 @@
-import numpy as np
 import unittest
 
+import numpy as np
 from bsb_test import NumpyTestCase, skip_parallel, timeout
 
 from bsb.core import Scaffold

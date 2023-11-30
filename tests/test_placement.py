@@ -1,4 +1,9 @@
-import unittest, os, sys, numpy as np, h5py
+import os
+import sys
+import unittest
+
+import h5py
+import numpy as np
 
 from bsb import config
 from bsb.connectivity import ConnectionStrategy
@@ -6,18 +11,21 @@ from bsb.mixins import NotParallel
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
-from bsb.services import MPI
-from bsb.core import Scaffold
-from bsb.config import Configuration, from_json
-from bsb.cell_types import CellType
-from bsb.topology import Region, Partition
-from bsb.voxels import VoxelSet, VoxelData
-from bsb.exceptions import *
-from bsb.storage import Chunk
-from bsb.placement import PlacementStrategy, RandomPlacement
-from bsb.services.pool import JobPool, FakeFuture, create_job_pool
-from bsb_test import get_config_path, timeout, RandomStorageFixture, NumpyTestCase
 from time import sleep
+
+from bsb_test import (NumpyTestCase, RandomStorageFixture, get_config_path,
+                      timeout)
+
+from bsb.cell_types import CellType
+from bsb.config import Configuration, from_json
+from bsb.core import Scaffold
+from bsb.exceptions import *
+from bsb.placement import PlacementStrategy, RandomPlacement
+from bsb.services import MPI
+from bsb.services.pool import FakeFuture, JobPool, create_job_pool
+from bsb.storage import Chunk
+from bsb.topology import Partition, Region
+from bsb.voxels import VoxelData, VoxelSet
 
 
 def test_dud(scaffold, x, y):

@@ -1,7 +1,7 @@
+import traceback
 import typing
 
 from ..reporting import warn
-import traceback
 
 if typing.TYPE_CHECKING:
     import neo

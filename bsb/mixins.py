@@ -1,8 +1,8 @@
+import itertools
+
+from . import _util as _gutil
 from .reporting import report
 from .storage import Chunk
-from . import _util as _gutil
-
-import itertools
 
 
 def _queue_placement(self, pool, chunk_size):

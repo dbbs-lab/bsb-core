@@ -1,9 +1,15 @@
-import unittest, os, sys, numpy as np, h5py, importlib
+import importlib
+import os
+import sys
+import unittest
+
+import h5py
+import numpy as np
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
-from bsb.core import Scaffold
 from bsb.config import from_json
+from bsb.core import Scaffold
 
 
 def relative_to_tests_folder(path):

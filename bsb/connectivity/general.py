@@ -3,10 +3,11 @@ import os
 import typing
 
 import numpy as np
-from .strategy import ConnectionStrategy
+
 from .. import config
 from ..config import types
 from ..mixins import InvertedRoI
+from .strategy import ConnectionStrategy
 
 if typing.TYPE_CHECKING:
     from ..config import Distribution

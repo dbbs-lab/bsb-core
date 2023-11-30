@@ -1,6 +1,7 @@
-from bsb.placement.distributor import MorphologyGenerator
-from bsb.morphologies import Morphology, Branch
 import numpy as np
+
+from bsb.morphologies import Branch, Morphology
+from bsb.placement.distributor import MorphologyGenerator
 
 
 class TouchTheBottomMorphologies(MorphologyGenerator, classmap_entry="touchdown"):

@@ -1,11 +1,13 @@
-from itertools import chain
 from functools import cache
+from itertools import chain
+
 import numpy as np
+
 from ... import config
 from ...config import types
-from ...storage import Chunk
-from ...reporting import warn
 from ...exceptions import ConnectivityWarning
+from ...reporting import warn
+from ...storage import Chunk
 
 
 class Intersectional:

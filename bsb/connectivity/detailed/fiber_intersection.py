@@ -1,12 +1,14 @@
+import abc
+
 import numpy as np
-from ..strategy import ConnectionStrategy
-from .shared import Intersectional
+from rtree import index
+
 from ... import config
 from ...config import types
 from ...exceptions import *
 from ...reporting import warn
-import abc
-from rtree import index
+from ..strategy import ConnectionStrategy
+from .shared import Intersectional
 
 
 class FiberTransform(abc.ABC):

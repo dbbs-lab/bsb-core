@@ -1,24 +1,20 @@
-from ..exceptions import (
-    CastError,
-    RequirementError,
-    ConfigurationWarning,
-    DynamicClassInheritanceError,
-    UnfitClassCastError,
-    DynamicClassError,
-    UnresolvedClassCastError,
-    PluginError,
-    DynamicObjectNotFoundError,
-)
-from ..reporting import warn
-from ._hooks import overrides
-from re import sub
-import warnings
-import errr
 import importlib
 import inspect
-import sys
 import os
+import sys
 import types
+import warnings
+from re import sub
+
+import errr
+
+from ..exceptions import (CastError, ConfigurationWarning, DynamicClassError,
+                          DynamicClassInheritanceError,
+                          DynamicObjectNotFoundError, PluginError,
+                          RequirementError, UnfitClassCastError,
+                          UnresolvedClassCastError)
+from ..reporting import warn
+from ._hooks import overrides
 
 
 def _has_own_init(meta_subject, kwargs):

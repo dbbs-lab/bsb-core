@@ -1,10 +1,14 @@
-import unittest, os, sys, numpy as np, h5py, importlib
+import importlib
+import os
+import sys
+import unittest
+
+import h5py
+import numpy as np
+
 from bsb.core import Scaffold
-from bsb.exceptions import (
-    MorphologyDataError,
-    MorphologyError,
-    MissingMorphologyError,
-)
+from bsb.exceptions import (MissingMorphologyError, MorphologyDataError,
+                            MorphologyError)
 from bsb.postprocessing import SpoofDetails
 
 

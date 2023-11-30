@@ -1,28 +1,25 @@
+import abc
+import itertools
 import typing
 
+import numpy as np
+
 from .. import config
+from .._util import SortableByAfter, obj_str_insert
+from ..config import refs, types
 from ..config._attrs import cfgdict, cfglist
-from ..exceptions import (
-    EmptySelectionError,
-    DistributorError,
-    MissingSourceError,
-    SourceQualityError,
-)
+from ..exceptions import (DistributorError, EmptySelectionError,
+                          MissingSourceError, SourceQualityError)
 from ..profiling import node_meter
 from ..reporting import report
-from ..config import refs, types
-from .._util import SortableByAfter, obj_str_insert
-from ..voxels import VoxelSet
 from ..storage import Chunk
-from .indicator import PlacementIndications, PlacementIndicator
+from ..voxels import VoxelSet
 from .distributor import DistributorsNode
-import numpy as np
-import itertools
-import abc
+from .indicator import PlacementIndications, PlacementIndicator
 
 if typing.TYPE_CHECKING:
-    from ..core import Scaffold
     from ..cell_types import CellType
+    from ..core import Scaffold
     from ..topology import Partition
 
 

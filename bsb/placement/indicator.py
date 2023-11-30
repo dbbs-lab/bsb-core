@@ -1,15 +1,16 @@
 import typing
 
-from ..config._attrs import cfglist
-from ..exceptions import IndicatorError, PlacementRelationError, PlacementError
-from .. import config
-from ..config import refs, types
-from ..morphologies.selector import MorphologySelector
 import numpy as np
 
+from .. import config
+from ..config import refs, types
+from ..config._attrs import cfglist
+from ..exceptions import IndicatorError, PlacementError, PlacementRelationError
+from ..morphologies.selector import MorphologySelector
+
 if typing.TYPE_CHECKING:
-    from ..core import Scaffold
     from ..cell_types import CellType
+    from ..core import Scaffold
 
 
 @config.node

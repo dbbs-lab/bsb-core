@@ -4,10 +4,12 @@ categories.
 """
 
 
-from importlib.metadata import entry_points
-import errr
-from .exceptions import PluginError
 import types
+from importlib.metadata import entry_points
+
+import errr
+
+from .exceptions import PluginError
 
 
 # Before 3.10 `importlib.metadata` was provisional, and didn't have `select` yet.

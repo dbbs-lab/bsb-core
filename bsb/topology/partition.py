@@ -1,29 +1,25 @@
 """
     Module for the Partition configuration nodes and its dependencies.
 """
+import abc
+import collections
+import functools
+import json
 import typing
 
-from ._layout import Layout, RhomboidData
+import nrrd
+import numpy as np
+
 from .. import config
 from ..config import types
-from ..exceptions import (
-    RequirementError,
-    LayoutError,
-    ConfigurationError,
-    AllenApiError,
-    NodeNotFoundError,
-)
+from ..exceptions import (AllenApiError, ConfigurationError, LayoutError,
+                          NodeNotFoundError, RequirementError)
+from ..reporting import report
+from ..storage import Chunk
 from ..storage._files import NrrdDependencyNode
 from ..storage._util import _cached_file
 from ..voxels import VoxelSet
-from ..storage import Chunk
-from ..reporting import report
-import numpy as np
-import collections
-import functools
-import nrrd
-import json
-import abc
+from ._layout import Layout, RhomboidData
 
 if typing.TYPE_CHECKING:
     from ..core import Scaffold

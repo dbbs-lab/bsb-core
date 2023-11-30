@@ -1,9 +1,9 @@
+import base64
 import json
 import os
 import time
 import typing
 from uuid import uuid4
-import base64
 
 from ..interfaces import FileStore as IFileStore
 

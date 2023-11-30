@@ -1,10 +1,10 @@
 import typing
 
-from .component import SimulationComponent
-from .parameter import Parameter
 from .. import config
 from ..config import refs
 from ..config._attrs import cfglist
+from .component import SimulationComponent
+from .parameter import Parameter
 
 if typing.TYPE_CHECKING:
     from ..cell_types import CellType

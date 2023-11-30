@@ -27,12 +27,13 @@ be read from the ``MY_SETTING`` environment variable.
 # Store the module magic for unpolluted namespace copy
 _module_magic = globals().copy()
 
-import sys, types
+import sys
+import types
+
+from . import option as _bsboptmod
 from .exceptions import OptionError, ReadOnlyOptionError
 from .plugins import discover
-from . import option as _bsboptmod
 from .reporting import report
-
 
 _options = {}
 _project_options = {}

@@ -36,9 +36,10 @@ API and subject to sudden change in the future.
 
 """
 
-from ._util import MockModule, ErrorModule
-from . import MPI
 import concurrent.futures
+
+from . import MPI
+from ._util import ErrorModule, MockModule
 
 
 class _MissingMPIPoolExecutor(ErrorModule):

@@ -1,12 +1,12 @@
 import abc
 import typing
+
 from .results import SimulationResult
 
-
 if typing.TYPE_CHECKING:
-    from .simulation import Simulation
-    from .cell import CellModel
     from ..storage import PlacementSet
+    from .cell import CellModel
+    from .simulation import Simulation
 
 
 class SimulationData:

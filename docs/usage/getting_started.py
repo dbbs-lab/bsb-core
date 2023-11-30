@@ -1,7 +1,7 @@
-from bsb.core import Scaffold
-from bsb.config import from_json
-from bsb.plotting import plot_network
 import bsb.options
+from bsb.config import from_json
+from bsb.core import Scaffold
+from bsb.plotting import plot_network
 
 bsb.options.verbosity = 3
 config = from_json("network_configuration.json")

@@ -1,9 +1,12 @@
 import typing
 
+import errr
+import numpy as np
+import scipy.stats.distributions as _distributions
+
 from .. import config
-from . import types
 from ..exceptions import DistributionCastError
-import scipy.stats.distributions as _distributions, errr, numpy as np
+from . import types
 
 if typing.TYPE_CHECKING:
     from ..core import Scaffold

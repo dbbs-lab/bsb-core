@@ -1,7 +1,8 @@
+import inspect
 import os
 import sys
 import unittest
-import inspect
+
 from bsb.voxels import VoxelSet
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))

@@ -1,15 +1,16 @@
-import sys
 import os
-
+import sys
 import unittest
+
 from bsb_test import skip_parallel
 
 
 class TestCLI(unittest.TestCase):
     @skip_parallel
     def test_availability(self):
-        import bsb
         import subprocess
+
+        import bsb
 
         # Ensure that the current interpreter can be detected from the subprocess via PATH
         os.environ["PATH"] += ":" + os.path.join(sys.prefix, "bin")
@@ -22,7 +23,8 @@ class TestCLI(unittest.TestCase):
         self.assertEqual(our_version, cli_version, "Could not access the BSB through CLI")
 
     def test_defaults(self):
-        import bsb.options, bsb.exceptions
+        import bsb.exceptions
+        import bsb.options
 
         # Test the default verbosity
         self.assertEqual(1, bsb.options.verbosity)
@@ -31,7 +33,9 @@ class TestCLI(unittest.TestCase):
         # self.assertRaises(bsb.exceptions.OptionError, lambda: bsb.options.config)
 
     def test_env_descriptor(self):
-        import os, bsb.options
+        import os
+
+        import bsb.options
         from bsb.option import BsbOption
 
         class TestOption(BsbOption, name="_test_", env=("GRZLGRK",), script=("GRZLGRK",)):
@@ -82,7 +86,8 @@ class TestOptions(unittest.TestCase):
         pass
 
     def test_register(self):
-        import bsb.options, bsb.exceptions
+        import bsb.exceptions
+        import bsb.options
         from bsb.option import BsbOption
 
         # Test that registering an option into the module works

@@ -1,19 +1,24 @@
-import re
-import unittest, os, sys, numpy as np, h5py
-import json
 import itertools
+import json
+import os
+import re
+import sys
+import unittest
 
+import h5py
+import numpy as np
+from bsb_test import NumpyTestCase, RandomStorageFixture, get_morphology_path
+from scipy.spatial.transform import Rotation
+
+from bsb._encoding import EncodedLabels
 from bsb.config._config import Configuration
 from bsb.core import Scaffold
+from bsb.exceptions import *
+from bsb.morphologies import Branch, Morphology, MorphologySet, RotationSet
 from bsb.services import MPI
-from bsb.morphologies import Morphology, Branch, MorphologySet, RotationSet
-from bsb._encoding import EncodedLabels
 from bsb.storage import Storage
 from bsb.storage._files import MorphologyDependencyNode, MorphologyOperation
 from bsb.storage.interfaces import StoredMorphology
-from bsb.exceptions import *
-from bsb_test import get_morphology_path, NumpyTestCase, RandomStorageFixture
-from scipy.spatial.transform import Rotation
 
 
 class TestIO(NumpyTestCase, unittest.TestCase):

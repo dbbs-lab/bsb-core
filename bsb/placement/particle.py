@@ -1,12 +1,14 @@
-from .strategy import PlacementStrategy
-from ..voxels import VoxelSet
+import itertools
+
+import numpy as np
+from rtree import index
+from sklearn.neighbors import KDTree
+
+from .. import config
 from ..exceptions import *
 from ..reporting import report, warn
-from .. import config
-import itertools
-import numpy as np
-from sklearn.neighbors import KDTree
-from rtree import index
+from ..voxels import VoxelSet
+from .strategy import PlacementStrategy
 
 
 class _VoxelBasedParticleSystem:

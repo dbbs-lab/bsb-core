@@ -11,22 +11,17 @@
     consumers and can be used independent of the underlying storage engine, which is the
     end goal of this module.
 """
+from inspect import isclass
 from typing import Type
 
-from inspect import isclass
-
-from .interfaces import ConnectivitySet, PlacementSet, FileStore, MorphologyRepository
-from ..exceptions import UnknownStorageEngineError
 from .. import plugins
+from ..exceptions import UnknownStorageEngineError
 from ..services import MPI
 from ._chunks import Chunk, chunklist
-from ._files import (
-    FileDependency,
-    FileDependencyNode,
-    NrrdDependencyNode,
-    YamlDependencyNode,
-)
-
+from ._files import (FileDependency, FileDependencyNode, NrrdDependencyNode,
+                     YamlDependencyNode)
+from .interfaces import (ConnectivitySet, FileStore, MorphologyRepository,
+                         PlacementSet)
 
 # Pretend `Chunk` is defined here, for UX. It's only defined in `_chunks` to avoid
 # circular imports anyway.

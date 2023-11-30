@@ -1,21 +1,22 @@
+import itertools
 import types
+import typing
+from time import time
+
 import numpy as np
 
-from ..config._attrs import cfgdict, cfglist
-from time import time
-import itertools
 from .. import config
+from ..config import types as cfgtypes
+from ..config._attrs import cfgdict, cfglist
 from ._backends import get_simulation_nodes
 from .cell import CellModel
 from .connection import ConnectionModel
 from .device import DeviceModel
-from ..config import types as cfgtypes
-import typing
 
 if typing.TYPE_CHECKING:
-    from ..core import Scaffold
-    from ..connectivity import ConnectionStrategy
     from ..cell_types import CellType
+    from ..connectivity import ConnectionStrategy
+    from ..core import Scaffold
     from ..storage.interfaces import ConnectivitySet
 
 

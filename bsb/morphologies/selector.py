@@ -1,19 +1,20 @@
-import typing
-
-from ..config import types
-from .. import config
-from ..config._attrs import cfglist
-from ..services import MPI
-import concurrent
-from concurrent.futures import ThreadPoolExecutor
-import requests
 import abc
-import warnings
+import concurrent
 import re
-import urllib
 import tempfile
-from . import Morphology
+import typing
+import urllib
+import warnings
+from concurrent.futures import ThreadPoolExecutor
+
+import requests
+
+from .. import config
+from ..config import types
+from ..config._attrs import cfglist
 from ..exceptions import MissingMorphologyError, SelectorError
+from ..services import MPI
+from . import Morphology
 
 if typing.TYPE_CHECKING:
     from ..core import Scaffold
