@@ -2,7 +2,6 @@ from bsb.core import Scaffold
 from bsb.config import from_json
 from bsb.topology import Stack
 from bsb_plotting import plot_network
-from bsb.morphologies import Morphology
 import bsb.options
 
 bsb.options.verbosity = 3
@@ -17,12 +16,14 @@ config.regions["brain_region"] = Stack(
 )
 config.morphologies = [
     "neuron_A.swc",
-    {"name": "neuron_B", "file": "my_other_neuron.swc"}
+    {"name": "neuron_B", "file": "neuron2.swc"},
 ]
 
 config.cell_types.base_type.spatial.morphologies = ["neuron_A"]
 
-config.morphologies.append({"name": "neuron_NM", "file": "nm://cell005_GroundTruth"})
+config.morphologies.append(
+    {"name": "neuron_NM", "file": "nm://cell005_GroundTruth"},
+)
 
 config.cell_types.add(
     "top_type",

@@ -1,13 +1,9 @@
 Guides
 ======
 
-.. _all-guides:
-
 .. toctree::
   :maxdepth: 1
-  :caption: Guides
+  :caption: Getting Started
 
-  include_morphos
-  networks
   components
   packaging

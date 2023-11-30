@@ -3,19 +3,26 @@
 Adding morphologies
 ===================
 
-This guide is a continuation of the |:books:| :doc:`Getting Started guide
-</usage/getting-started>`.
+.. note::
 
-We've constructed a stacked double layer topology, and we have 2 cell types. We then
-connected them in an all-to-all fashion. A logical next step would be to assign
-:doc:`morphologies </morphologies/intro>` to our cells, and connect them based on
-intersection!
+    This guide is a continuation of the |:books:| :doc:`Getting Started guide </getting-started/getting-started>`.
 
-A new model never contains any morphologies, and needs to fetch them from somewhere.
-It is possible to load local files or to fetch from remote sources, like NeuroMorpho.
+.. hint::
+
+    To follow along, download 2 morphologies from
+    `NeuroMorpho <https://neuromorpho.org/>`_ and save them as ``neuron_A.swc`` and
+    ``neuron2.swc`` locally.
+
+Previously we constructed a stacked double layer topology, with 2 cell types. We then
+connected them in an all-to-all fashion. The next step assigns
+:doc:`morphologies </morphologies/intro>` to our cells, and connects the cells based on
+the intersection of their morphologies!
+
+Morphologies can be loaded from local files or to fetch from remote sources, like NeuroMorpho.
 
 Using local files
 -----------------
+
 You can declare source morphologies in the root :guilabel:`morphologies` list:
 
 .. tab-set-code::
@@ -30,11 +37,7 @@ You can declare source morphologies in the root :guilabel:`morphologies` list:
     :language: python
     :lines: 18
 
-.. hint::
-
-    To follow along, you can download a morphology from NeuroMorpho and save it as ``neuron_A.swc`` locally.
-
-In this case a morphology is created from ``neuron_A.swc`` with the name ``"neuron_A"``.
+In this case a morphology is created from ``neuron_A.swc`` and given the name ``"neuron_A"``.
 As a second step, we associate this morphology to the ``top_type`` by referencing it by name
 in :guilabel:`cell_types.top_type.spatial.morphologies`:
 
@@ -50,8 +53,8 @@ in :guilabel:`cell_types.top_type.spatial.morphologies`:
     :lines: 21
 
 
-By default the name assigned to the morphology is the file name without ``.swc`` extension. To
-change the name we can use the extended notation, specifying a node with a :guilabel:`name` and :guilabel:`file`:
+By default the name assigned to the morphology is the file name without its extension (here ``.swc``). To
+change the name we can use a node with a :guilabel:`name` and :guilabel:`file`:
 
 .. tab-set-code::
 
