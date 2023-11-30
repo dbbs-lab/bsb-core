@@ -1,9 +1,10 @@
 import unittest
 
+from bsb_test import NetworkFixture, RandomStorageFixture, get_config_path
+
 from bsb.config import Configuration, from_json
 from bsb.core import Scaffold
 from bsb.exceptions import InputError
-from bsb_test import get_config_path, NetworkFixture, RandomStorageFixture
 
 single_neuron_path = get_config_path("test_single_neuron.json")
 multi_neuron_path = get_config_path("test_double_neuron.json")

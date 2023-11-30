@@ -1,19 +1,16 @@
 import unittest
-
-import numpy as np
-
-from bsb import config
-from bsb.connectivity import ConnectionStrategy
-from bsb.mixins import NotParallel
-
 from time import sleep
 
+import numpy as np
 from bsb_test import NumpyTestCase, RandomStorageFixture, get_config_path, timeout
 
+from bsb import config
 from bsb.cell_types import CellType
 from bsb.config import Configuration, from_json
+from bsb.connectivity import ConnectionStrategy
 from bsb.core import Scaffold
 from bsb.exceptions import *
+from bsb.mixins import NotParallel
 from bsb.placement import PlacementStrategy, RandomPlacement
 from bsb.services import MPI
 from bsb.services.pool import FakeFuture, JobPool, create_job_pool
