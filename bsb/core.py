@@ -258,7 +258,7 @@ class Scaffold:
             self.run_pipelines()
         if strategies is None:
             strategies = [*self.placement]
-        strategies = PlacementStrategy.resolve_order(strategies)
+        strategies = PlacementStrategy.sort_deps(strategies)
         pool = create_job_pool(self)
         if pool.is_master():
             for strategy in strategies:
@@ -282,8 +282,8 @@ class Scaffold:
         if pipelines:
             self.run_pipelines()
         if strategies is None:
-            strategies = list(self.connectivity.values())
-        strategies = ConnectionStrategy.resolve_order(strategies)
+            strategies = set(self.connectivity.values())
+        strategies = ConnectionStrategy.sort_deps(strategies)
         pool = create_job_pool(self)
         if pool.is_master():
             for strategy in strategies:

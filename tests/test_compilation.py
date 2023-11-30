@@ -1,8 +1,5 @@
-import unittest, os, sys, numpy as np, h5py
-
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
-from bsb.core import Scaffold, from_storage
+import unittest
+from bsb.core import Scaffold
 from bsb.config import from_json, Configuration
 from bsb.exceptions import InputError
 from bsb_test import NetworkFixture, RandomStorageFixture, get_config_path
