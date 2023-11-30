@@ -1,3 +1,6 @@
+import abc as _abc
+from graphlib import TopologicalSorter
+
 from .reporting import report
 from .storage import Chunk
 from . import _util as _gutil
@@ -9,7 +12,7 @@ def _queue_placement(self, pool, chunk_size):
     # Reset jobs that we own
     self._queued_jobs = []
     # Get the queued jobs of all the strategies we depend on.
-    deps = set(itertools.chain(*(strat._queued_jobs for strat in self.get_after())))
+    deps = set(itertools.chain(*(strat._queued_jobs for strat in self.get_deps())))
     # todo: perhaps pass the volume or partition boundaries as chunk size
     job = pool.queue_placement(self, Chunk([0, 0, 0], None), deps=deps)
     self._queued_jobs.append(job)
@@ -29,7 +32,7 @@ def _queue_connectivity(self, pool):
     self._queued_jobs = []
     # Get the queued jobs of all the strategies we depend on.
     deps = set(
-        itertools.chain.from_iterable(strat._queued_jobs for strat in self.get_after())
+        itertools.chain.from_iterable(strat._queued_jobs for strat in self.get_deps())
     )
     # Schedule all chunks in 1 job
     pre_chunks = _all_chunks(self.presynaptic.cell_types)
@@ -117,9 +120,7 @@ class InvertedRoI:
         self._queued_jobs = []
         # Get the queued jobs of all the strategies we depend on.
         deps = set(
-            itertools.chain.from_iterable(
-                strat._queued_jobs for strat in self.get_after()
-            )
+            itertools.chain.from_iterable(strat._queued_jobs for strat in self.get_deps())
         )
         post_types = self.postsynaptic.cell_types
         # Iterate over each chunk that is populated by our postsynaptic cell types.

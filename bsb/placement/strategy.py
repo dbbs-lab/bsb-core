@@ -11,7 +11,7 @@ from ..exceptions import (
 from ..profiling import node_meter
 from ..reporting import report
 from ..config import refs, types
-from .._util import SortableByAfter, obj_str_insert
+from .._util import HasDependencies, obj_str_insert
 from ..voxels import VoxelSet
 from ..storage import Chunk
 from .indicator import PlacementIndications, PlacementIndicator
@@ -27,7 +27,7 @@ if typing.TYPE_CHECKING:
 
 
 @config.dynamic(attr_name="strategy", required=True)
-class PlacementStrategy(abc.ABC, SortableByAfter):
+class PlacementStrategy(abc.ABC, HasDependencies):
     """
     Quintessential interface of the placement module. Each placement strategy defines an
     approach to placing neurons into a volume.
@@ -39,7 +39,7 @@ class PlacementStrategy(abc.ABC, SortableByAfter):
     cell_types: list["CellType"] = config.reflist(refs.cell_type_ref, required=True)
     partitions: list["Partition"] = config.reflist(refs.partition_ref, required=True)
     overrides: cfgdict["PlacementIndications"] = config.dict(type=PlacementIndications)
-    after: list["PlacementStrategy"] = config.reflist(refs.placement_ref)
+    depends_on: list["PlacementStrategy"] = config.reflist(refs.placement_ref)
     distribute: DistributorsNode = config.attr(
         type=DistributorsNode, default=dict, call_default=True
     )
@@ -49,6 +49,13 @@ class PlacementStrategy(abc.ABC, SortableByAfter):
         super(cls, cls).__init_subclass__(**kwargs)
         # Decorate subclasses to measure performance
         node_meter("place")(cls)
+
+    def __hash__(self):
+        return id(self)
+
+    def __lt__(self, other):
+        # This comparison should sort placement strategies by name, via __repr__ below
+        return str(self) < str(other)
 
     def __boot__(self):
         self._queued_jobs = []
@@ -125,7 +132,7 @@ class PlacementStrategy(abc.ABC, SortableByAfter):
         # Reset jobs that we own
         self._queued_jobs = []
         # Get the queued jobs of all the strategies we depend on.
-        deps = set(itertools.chain(*(strat._queued_jobs for strat in self.get_after())))
+        deps = set(itertools.chain(*(strat._queued_jobs for strat in self.get_deps())))
         for p in self.partitions:
             chunks = p.to_chunks(chunk_size)
             for chunk in chunks:
@@ -146,23 +153,11 @@ class PlacementStrategy(abc.ABC, SortableByAfter):
             ct.name: self.__class__.indicator_class(self, ct) for ct in self.cell_types
         }
 
-    @classmethod
-    def get_ordered(cls, objects):
-        # No need to sort placement strategies, just obey dependencies.
-        return objects
-
     def guess_cell_count(self):
         return sum(ind.guess() for ind in self.get_indicators().values())
 
-    def has_after(self):
-        return hasattr(self, "after")
-
-    def get_after(self):
-        return [] if not self.has_after() else self.after
-
-    def create_after(self):
-        # I think the reflist should always be there.
-        pass
+    def get_deps(self):
+        return set(self.depends_on)
 
 
 @config.node
@@ -189,7 +184,7 @@ class FixedPositions(PlacementStrategy):
         # Reset jobs that we own
         self._queued_jobs = []
         # Get the queued jobs of all the strategies we depend on.
-        deps = set(itertools.chain(*(strat._queued_jobs for strat in self.get_after())))
+        deps = set(itertools.chain(*(strat._queued_jobs for strat in self.get_deps())))
         for chunk in VoxelSet.fill(self.positions, chunk_size):
             job = pool.queue_placement(self, Chunk(chunk, chunk_size), deps=deps)
             self._queued_jobs.append(job)
