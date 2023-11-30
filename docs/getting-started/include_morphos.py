@@ -30,7 +30,7 @@ config.cell_types.add(
     spatial=dict(
         radius=7,
         count=10,
-        morphologies=["neuron_NM"],
+        morphologies=["neuron_B", "neuron_NM"],
     ),
 )
 config.placement.add(
