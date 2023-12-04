@@ -39,7 +39,7 @@ You can declare source morphologies in the root :guilabel:`morphologies` list:
 
   .. literalinclude:: include_morphos.py
     :language: python
-    :lines: 17,18,20
+    :lines: 18,19,21
 
 In this case a morphology is created from ``neuron_A.swc`` and given the name ``"neuron_A"``.
 As a second step, we associate this morphology to the ``base_type`` by referencing it by name
@@ -59,7 +59,7 @@ in :guilabel:`cell_types.base_type.spatial.morphologies`:
 
   .. literalinclude:: include_morphos.py
     :language: python
-    :lines: 22
+    :lines: 23
 
 
 By default the name assigned to the morphology is the file name without its extension (here ``.swc``). To
@@ -79,7 +79,7 @@ change the name we can use a node with a :guilabel:`name` and :guilabel:`file`:
 
   .. literalinclude:: include_morphos.py
     :language: python
-    :lines: 17-20
+    :lines: 18-21
     :emphasize-lines: 3
 
 It is also possible to add a pipeline to perform transformations on the loaded
@@ -149,11 +149,11 @@ NeuroMorpho morphologies by their morphology name:
   .. literalinclude:: include_morphos.json
     :language: json
     :lines: 12-22,41-61
-    :emphasize-lines: 7-10,27-30
+    :emphasize-lines: 7-10,27-28
 
   .. literalinclude:: include_morphos.py
     :language: python
-    :lines: 24-35
+    :lines: 25-36
     :emphasize-lines: 2,10
 
 
@@ -175,7 +175,7 @@ connection strategies such as :class:`~.connectivity.detailed.voxel_intersection
 
   .. literalinclude:: include_morphos.py
     :language: python
-    :lines: 42-47
+    :lines: 43-48
 
 .. note::
 
