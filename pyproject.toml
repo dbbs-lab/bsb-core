@@ -47,6 +47,7 @@ bsb = "bsb.cli:handle_cli"
 [project.entry-points."bsb.storage.engines"]
 fs = "bsb.storage.fs"
 
+
 [project.entry-points."bsb.commands"]
 commands = "bsb.cli.commands._commands"
 projects = "bsb.cli.commands._projects"

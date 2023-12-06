@@ -33,6 +33,7 @@ def discover(category):
         eps = _EntryPointsPatch(eps)
 
     for entry in eps.select(group="bsb." + category):
+
         try:
             advert = entry.load()
             if hasattr(advert, "__plugin__"):
