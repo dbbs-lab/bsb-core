@@ -7,7 +7,12 @@ import unittest
 
 import h5py
 import numpy as np
-from bsb_test import NumpyTestCase, RandomStorageFixture, get_morphology_path
+from bsb_test import (
+    NumpyTestCase,
+    RandomStorageFixture,
+    get_morphology_path,
+    skipIfOffline,
+)
 from scipy.spatial.transform import Rotation
 
 from bsb._encoding import EncodedLabels
@@ -17,7 +22,11 @@ from bsb.exceptions import *
 from bsb.morphologies import Branch, Morphology, MorphologySet, RotationSet
 from bsb.services import MPI
 from bsb.storage import Storage
-from bsb.storage._files import MorphologyDependencyNode, MorphologyOperation
+from bsb.storage._files import (
+    MorphologyDependencyNode,
+    MorphologyOperation,
+    NeuroMorphoScheme,
+)
 from bsb.storage.interfaces import StoredMorphology
 
 
@@ -1060,6 +1069,7 @@ class TestRotationSet(unittest.TestCase):
 class TestPipelines(
     NumpyTestCase, RandomStorageFixture, unittest.TestCase, engine_name="hdf5"
 ):
+    @skipIfOffline(scheme=NeuroMorphoScheme())
     def test_pipeline_functions(self):
         m1 = MorphologyDependencyNode(file="nm://hippo-1264-9")
         m2 = MorphologyDependencyNode(

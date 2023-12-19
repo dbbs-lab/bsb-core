@@ -22,6 +22,7 @@ from .. import config
 from .._util import obj_str_insert
 from ..config import types
 from ..config._attrs import cfglist
+from ..reporting import warn
 
 if _tp.TYPE_CHECKING:
     from ..morphologies import Morphology
@@ -270,6 +271,9 @@ class UrlScheme(UriScheme):
     def create_session(self):
         return _rq.Session()
 
+    def get_base_url(self):
+        raise NotImplementedError("Base UrlScheme has no fixed base URL.")
+
 
 class NeuroMorphoScheme(UrlScheme):
     _nm_url = "https://neuromorpho.org/"
@@ -286,16 +290,23 @@ class NeuroMorphoScheme(UrlScheme):
         # urlparse gives lowercase, so slice out the original cased NM name
         idx = file.uri.lower().find(name)
         name = file.uri[idx : (idx + len(name))]
-        try:
-            with self.create_session() as session:
+        with self.create_session() as session:
+            try:
                 res = session.get(self._nm_url + self._meta + name)
-        except Exception as e:
-            return {"archive": "none", "neuron_name": "none"}
-        if res.status_code == 404:
-            raise IOError(f"'{name}' is not a valid NeuroMorpho name.")
-        elif res.status_code != 200:
-            raise IOError("NeuroMorpho API error: " + res.text)
+            except Exception as e:
+                return {"archive": "none", "neuron_name": "none"}
+            if res.status_code == 404:
+                res = session.get(self._nm_url)
+                if res.status_code != 200 or "Service Interruption Notice" in res.text:
+                    warn(f"NeuroMorpho.org is down, can't retrieve morphology '{name}'.")
+                    return {"archive": "none", "neuron_name": "none"}
+                raise IOError(f"'{name}' is not a valid NeuroMorpho name.")
+            elif res.status_code != 200:
+                raise IOError("NeuroMorpho API error: " + res.text)
         return res.json()
+
+    def get_base_url(self):
+        return self._nm_url
 
     def get_meta(self, file: FileDependency):
         meta = super().get_meta(file)
