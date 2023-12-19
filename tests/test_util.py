@@ -78,3 +78,14 @@ class TestUriSchemes(unittest.TestCase):
         meta = file.get_meta()
         self.assertIn("neuromorpho_data", meta)
         self.assertEqual(130892, meta["neuromorpho_data"]["neuron_id"])
+
+    def test_nm_scheme_down(self):
+        url = NeuroMorphoScheme._nm_url
+        # Consistently trigger a 404 response in the NM scheme
+        NeuroMorphoScheme._nm_url = "https://google.com/404"
+        try:
+            file = FileDependency("nm://AX2_scaled", Scaffold().files)
+            with self.assertWarns(UserWarning) as w:
+                file.get_meta()
+        finally:
+            NeuroMorphoScheme._nm_url = url
