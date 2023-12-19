@@ -1,7 +1,12 @@
 import unittest
 
 import numpy as np
-from bsb_test import FixedPosConfigFixture, NumpyTestCase, RandomStorageFixture
+from bsb_test import (
+    FixedPosConfigFixture,
+    NumpyTestCase,
+    RandomStorageFixture,
+    skipIfOffline,
+)
 from scipy.spatial.transform import Rotation
 
 from bsb._util import rotation_matrix_from_vectors
@@ -66,6 +71,7 @@ class TestRotationUtils(unittest.TestCase):
 
 
 class TestUriSchemes(unittest.TestCase):
+    @skipIfOffline(scheme=NeuroMorphoScheme())
     def test_nm_scheme(self):
         file = FileDependency("nm://AX2_scaled", Scaffold().files)
         self.assertIs(NeuroMorphoScheme, type(file._scheme), "Expected NM scheme")
