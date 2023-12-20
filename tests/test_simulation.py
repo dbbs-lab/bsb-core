@@ -5,7 +5,6 @@ from bsb_test import FixedPosConfigFixture, NumpyTestCase, RandomStorageFixture
 from bsb.core import Scaffold
 
 
-@unittest.skip("todo: Move this test from bsb-core to bsb")
 class TestSimulate(
     FixedPosConfigFixture,
     RandomStorageFixture,
@@ -29,7 +28,7 @@ class TestSimulate(
     def test_simulate(self):
         self.network.simulations.add(
             "test",
-            simulator="nest",
+            simulator="arbor",
             duration=100,
             resolution=1.0,
             cell_models=dict(),
