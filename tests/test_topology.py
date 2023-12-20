@@ -73,7 +73,7 @@ class TestTopology(unittest.TestCase):
 class TestAllenVoxels(unittest.TestCase):
     def test_val(self):
         cfg = Configuration.default(
-            region=dict(br=dict(children=["a"])),
+            regions=dict(br=dict(children=["a"])),
             partitions=dict(a=dict(type="allen", struct_name="VAL")),
         )
         part = cfg.partitions.a
@@ -93,7 +93,7 @@ class TestAllenVoxels(unittest.TestCase):
 
     def test_mask_nrrd(self):
         cfg = Configuration.default(
-            region=dict(br=dict(children=["a"])),
+            regions=dict(br=dict(children=["a"])),
             partitions=dict(
                 a=dict(
                     type="allen",

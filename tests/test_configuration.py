@@ -13,6 +13,7 @@ from bsb.exceptions import (
     CastError,
     CfgReferenceError,
     ClassMapMissingError,
+    ConfigurationError,
     ConfigurationWarning,
     DynamicClassInheritanceError,
     DynamicObjectNotFoundError,
@@ -51,12 +52,8 @@ class TestConfiguration(
     def test_unknown_attributes(self):
         tree = Configuration.default().__tree__()
         tree["shouldntexistasattr"] = 15
-        with self.assertWarns(ConfigurationWarning) as warning:
+        with self.assertRaises(ConfigurationError) as e:
             Configuration(tree)
-
-        self.assertIn(
-            """Unknown attribute: 'shouldntexistasattr'""", str(warning.warning)
-        )
 
 
 class TestConfigAttrs(unittest.TestCase):
@@ -143,10 +140,6 @@ class TestConfigAttrs(unittest.TestCase):
             Test2()
         with self.assertRaises(RequirementError):
             Test3()
-        Test4()
-        Test4(timmy="x", name="required")
-        with self.assertRaises(RequirementError):
-            Test4(timmy="x")
 
     def test_requirement_proc(self):
         fcalled = False

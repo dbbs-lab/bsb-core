@@ -293,6 +293,14 @@ def compile_postnew(cls):
             try:
                 _try_catch_attrs(self, catch_attrs, key, value)
             except UncaughtAttributeError:
+                try:
+                    setattr(self, key, value)
+                except AttributeError:
+                    raise AttributeError(
+                        f"Configuration attribute key '{key}' conflicts with"
+                        + f" readonly class attribute on `{self.__class__.__module__}"
+                        + f".{self.__class__.__name__}`."
+                    ) from None
                 raise ConfigurationError(f"Unknown attribute:  '{key}'") from None
 
     return __post_new__
