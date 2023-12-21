@@ -22,6 +22,7 @@ from bsb.exceptions import (
     UnresolvedClassCastError,
 )
 from bsb.storage import NrrdDependencyNode, YamlDependencyNode
+from bsb.topology.partition import Partition
 from bsb.topology.region import RegionGroup
 
 
@@ -54,6 +55,21 @@ class TestConfiguration(
         tree["shouldntexistasattr"] = 15
         with self.assertRaises(ConfigurationError) as e:
             Configuration(tree)
+
+    def test_readonly_attributes(self):
+        tree = Configuration.default().__tree__()
+        tree["partitions"] = {
+            "base_layer": {"type": "layer", "thickness": 100, "region": "x"}
+        }
+        with self.assertRaises(CastError) as ec:
+            Configuration(tree)
+        # Need a further check since CastError is raised before AttributeError
+        if "Configuration attribute key 'region' conflicts with readonly" in str(
+            ec.exception
+        ):
+            pass
+        else:
+            raise AttributeError("Readonly class attribute conflicts")
 
 
 class TestConfigAttrs(unittest.TestCase):
@@ -131,6 +147,7 @@ class TestConfigAttrs(unittest.TestCase):
 
         @config.node
         class Test4:
+            timmy = config.attr(type=str)
             name = config.attr(type=str, required=regular)
 
         Test(name="required")
@@ -140,6 +157,10 @@ class TestConfigAttrs(unittest.TestCase):
             Test2()
         with self.assertRaises(RequirementError):
             Test3()
+        Test4()
+        Test4(timmy="x", name="required")
+        with self.assertRaises(RequirementError):
+            Test4(timmy="x")
 
     def test_requirement_proc(self):
         fcalled = False
