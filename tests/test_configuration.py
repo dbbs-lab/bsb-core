@@ -64,12 +64,9 @@ class TestConfiguration(
         with self.assertRaises(CastError) as ec:
             Configuration(tree)
         # Need a further check since CastError is raised before AttributeError
-        if "Configuration attribute key 'region' conflicts with readonly" in str(
-            ec.exception
-        ):
-            pass
-        else:
-            raise AttributeError("Readonly class attribute conflicts")
+        check_str = "Configuration attribute key 'region' conflicts with readonly"
+        msg_str = "Readonly class attribute conflicts"
+        self.assertIn(check_str, str(ec.exception), msg_str)
 
 
 class TestConfigAttrs(unittest.TestCase):
