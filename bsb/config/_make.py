@@ -10,7 +10,7 @@ import errr
 
 from ..exceptions import (
     CastError,
-    ConfigurationWarning,
+    ConfigurationError,
     DynamicClassError,
     DynamicClassInheritanceError,
     DynamicObjectNotFoundError,
@@ -293,17 +293,15 @@ def compile_postnew(cls):
             try:
                 _try_catch_attrs(self, catch_attrs, key, value)
             except UncaughtAttributeError:
-                warning = ConfigurationWarning(f"Unknown attribute: '{key}'")
-                warning.node = self
-                warn(warning, ConfigurationWarning)
                 try:
                     setattr(self, key, value)
                 except AttributeError:
                     raise AttributeError(
-                        f"Unknown configuration attribute key '{key}' conflicts with"
+                        f"Configuration attribute key '{key}' conflicts with"
                         + f" readonly class attribute on `{self.__class__.__module__}"
                         + f".{self.__class__.__name__}`."
                     ) from None
+                raise ConfigurationError(f"Unknown attribute:  '{key}'") from None
 
     return __post_new__
 
