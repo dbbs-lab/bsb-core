@@ -4,8 +4,8 @@ Developer Installation
 
 To install::
 
-  git clone git@github.com:dbbs-lab/bsb
-  cd bsb
+  git clone git@github.com:dbbs-lab/bsb-core
+  cd bsb-core
   pip install -e .[dev]
   pre-commit install
 
@@ -13,3 +13,12 @@ To install::
 Test your install with::
 
   python -m unittest discover -s tests
+
+Releases
+--------
+
+To release a new version::
+
+  bump2version pre
+  python -m build
+  twine upload dist/* --skip-existing
