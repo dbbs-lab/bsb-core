@@ -1,3 +1,4 @@
+import os
 import shutil
 from datetime import datetime
 
@@ -5,9 +6,9 @@ import shortuuid
 
 from ... import config
 from ...services import MPILock
-from ..interfaces import Engine, NoopLock, StorageNode as IStorageNode
+from ..interfaces import Engine, NoopLock
+from ..interfaces import StorageNode as IStorageNode
 from .file_store import FileStore
-import os
 
 
 class FileSystemEngine(Engine):

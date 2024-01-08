@@ -1,10 +1,13 @@
-from .strategy import PlacementStrategy
-import math, numpy as np
+import math
+
+import numpy as np
+
 from .. import config
 from ..config import types
 from ..mixins import NotParallel
-from ..storage import Chunk
 from ..reporting import report, warn
+from ..storage import Chunk
+from .strategy import PlacementStrategy
 
 
 @config.node
@@ -13,8 +16,8 @@ class ParallelArrayPlacement(NotParallel, PlacementStrategy):
     Implementation of the placement of cells in parallel arrays.
     """
 
-    spacing_x = config.attr(type=float, required=True)
-    angle = config.attr(type=types.deg_to_radian(), required=True)
+    spacing_x: float = config.attr(type=float, required=True)
+    angle: float = config.attr(type=types.deg_to_radian(), required=True)
 
     def place(self, chunk, indicators):
         """
@@ -24,7 +27,7 @@ class ParallelArrayPlacement(NotParallel, PlacementStrategy):
             cell_type = indicator.cell_type
             radius = indicator.get_radius()
             for prt in self.partitions:
-                width, height, depth = prt.data.mdc - prt.data.ldc
+                width, depth, height = prt.data.mdc - prt.data.ldc
                 ldc = prt.data.ldc
                 # Extension of a single array in the X dimension
                 spacing_x = self.spacing_x
@@ -48,7 +51,7 @@ class ParallelArrayPlacement(NotParallel, PlacementStrategy):
                 # The rounded amount of cells that will be placed
                 cells_placed = cells_per_row * n_arrays
                 # Calculate the position of the cells along the z-axis.
-                z_pos, z_axis_distance = np.linspace(
+                y_pos, y_axis_distance = np.linspace(
                     start=0.0,
                     stop=depth - radius,
                     num=cells_per_row,
@@ -56,26 +59,26 @@ class ParallelArrayPlacement(NotParallel, PlacementStrategy):
                     endpoint=False,
                 )
                 # Center the cell soma center to the middle of the unit cell
-                z_pos += radius + z_axis_distance / 2
+                y_pos += radius + y_axis_distance / 2
                 # The length of the X axis rounded up to a multiple of the unit cell size.
                 lattice_x = n_arrays * spacing_x
                 # The length of the X axis where cells can be placed in.
                 bounded_x = lattice_x - radius * 2
                 # Epsilon: open space in the unit cell along the z-axis
-                ϵ = z_axis_distance - radius * 2
+                epsilon = y_axis_distance - radius * 2
                 # Storage array for the cells
                 cells = np.empty((cells_placed, 3))
-                for i in range(z_pos.shape[0]):
+                for i in range(y_pos.shape[0]):
                     # Shift the arrays at an angle
-                    angleShift = z_pos[i] * math.tan(self.angle)
+                    angleShift = y_pos[i] * math.tan(self.angle)
                     # Apply shift and offset
                     x = x_pos + angleShift
                     # Place the cells in a bounded lattice with a little modulus magic
                     x = ldc[0] + x % bounded_x + radius
+                    # Place the cells in their y-position with jitter
+                    y = ldc[1] + y_pos[i] + epsilon * (np.random.rand(x.shape[0]) - 0.5)
                     # Place them at a uniformly random height throughout the partition.
-                    y = ldc[1] + np.random.uniform(radius, height - radius, x.shape[0])
-                    # Place the cells in their z-position with jitter
-                    z = ldc[2] + z_pos[i] + ϵ * (np.random.rand(x.shape[0]) - 0.5)
+                    z = ldc[2] + np.random.uniform(radius, height - radius, x.shape[0])
                     # Store this stack's cells
                     cells[(i * len(x)) : ((i + 1) * len(x)), 0] = x
                     cells[(i * len(x)) : ((i + 1) * len(x)), 1] = y

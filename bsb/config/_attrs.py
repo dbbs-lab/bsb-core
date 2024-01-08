@@ -1,34 +1,34 @@
 """
     An attrs-inspired class annotation system, but my A stands for amateuristic.
 """
+import builtins
 import traceback
 
 import errr
 
+from ..exceptions import (
+    BootError,
+    CastError,
+    CfgReferenceError,
+    NoReferenceAttributeSignal,
+    RequirementError,
+)
+from ..services import MPI
+from ._compile import _wrap_reserved
 from ._hooks import run_hook
 from ._make import (
     MISSING,
-    compile_class,
-    compile_postnew,
-    compile_new,
-    compile_isc,
-    make_get_node_name,
-    make_dictable,
-    make_tree,
-    wrap_root_postnew,
-    walk_nodes,
     _resolve_references,
+    compile_class,
+    compile_isc,
+    compile_new,
+    compile_postnew,
+    make_dictable,
+    make_get_node_name,
+    make_tree,
+    walk_nodes,
+    wrap_root_postnew,
 )
-from ._compile import _wrap_reserved
-from ..exceptions import (
-    RequirementError,
-    NoReferenceAttributeSignal,
-    CastError,
-    CfgReferenceError,
-    BootError,
-)
-from ..services import MPI
-import builtins
 
 
 def root(root_cls):
@@ -111,7 +111,7 @@ def dynamic(
     :param kwargs: All keyword arguments are passed to the constructor of the
       :func:`attribute <.config.attr>`.
     """
-    if "required" not in kwargs:
+    if "required" not in kwargs and "default" not in kwargs:
         kwargs["required"] = True
     if "type" not in kwargs:
         kwargs["type"] = str
@@ -508,15 +508,18 @@ class ConfigurationAttribute:
 
     def tree(self, instance):
         val = _getattr(instance, self.attr_name)
+        return self.tree_of(val)
+
+    def tree_of(self, value):
         # Allow subnodes and other class values to convert themselves to their tree
         # representation
-        if hasattr(val, "__tree__"):
-            val = val.__tree__()
+        if hasattr(value, "__tree__"):
+            value = value.__tree__()
         # Check if the type handler specifies any inversion function to convert tree
         # values back to how they were found in the document.
-        if hasattr(self.type, "__inv__") and val is not None:
-            val = self.type.__inv__(val)
-        return val
+        if hasattr(self.type, "__inv__") and value is not None:
+            value = self.type.__inv__(value)
+        return value
 
     def flag_dirty(self, instance):
         instance._config_state[self.attr_name] = False
@@ -538,6 +541,10 @@ class ConfigurationAttribute:
 
 
 class cfglist(builtins.list):
+    """
+    Extension of the builtin list to manipulate lists of configuration nodes.
+    """
+
     def get_node_name(self):
         return self._config_parent.get_node_name() + "." + self._config_attr_name
 
@@ -675,10 +682,14 @@ class ConfigurationListAttribute(ConfigurationAttribute):
 
     def tree(self, instance):
         val = _getattr(instance, self.attr_name)
-        return [e if not hasattr(e, "__tree__") else e.__tree__() for e in val]
+        return [self.tree_of(e) for e in val]
 
 
 class cfgdict(builtins.dict):
+    """
+    Extension of the builtin dictionary to manipulate dicts of configuration nodes.
+    """
+
     def __getattr__(self, name):
         try:
             return self[name]
@@ -815,7 +826,7 @@ class ConfigurationDictAttribute(ConfigurationAttribute):
 
     def tree(self, instance):
         val = _getattr(instance, self.attr_name).items()
-        return {k: v if not hasattr(v, "__tree__") else v.__tree__() for k, v in val}
+        return {k: self.tree_of(v) for k, v in val}
 
 
 class ConfigurationReferenceAttribute(ConfigurationAttribute):

@@ -1,16 +1,23 @@
-from ..config import types
-from .. import config
-from ..services import MPI
-import concurrent
-from concurrent.futures import ThreadPoolExecutor
-import requests
 import abc
-import warnings
+import concurrent
 import re
-import urllib
 import tempfile
-from . import Morphology
+import typing
+import urllib
+import warnings
+from concurrent.futures import ThreadPoolExecutor
+
+import requests
+
+from .. import config
+from ..config import types
+from ..config._attrs import cfglist
 from ..exceptions import MissingMorphologyError, SelectorError
+from ..services import MPI
+from . import Morphology
+
+if typing.TYPE_CHECKING:
+    from ..core import Scaffold
 
 
 @config.dynamic(
@@ -20,6 +27,8 @@ from ..exceptions import MissingMorphologyError, SelectorError
     default="by_name",
 )
 class MorphologySelector(abc.ABC):
+    scaffold: "Scaffold"
+
     @abc.abstractmethod
     def validate(self, all_morphos):
         pass
@@ -31,7 +40,7 @@ class MorphologySelector(abc.ABC):
 
 @config.node
 class NameSelector(MorphologySelector, classmap_entry="by_name"):
-    names = config.list(type=str, required=types.shortform())
+    names: cfglist[str] = config.list(type=str, required=types.shortform())
 
     def __init__(self, name=None, /, **kwargs):
         if name is not None:

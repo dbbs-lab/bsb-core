@@ -1,2 +1,96 @@
+[build-system]
+requires = ["flit_core >=3.2,<4"]
+build-backend = "flit_core.buildapi"
+
+[project]
+name = "bsb-core"
+authors = [{ name = "Robin De Schepper", email = "robingilbert.deschepper@unipv.it" }]
+readme = "README.md"
+license = { file = "LICENSE" }
+classifiers = ["License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)"]
+requires-python = ">=3.9"
+dynamic = ["version", "description"]
+dependencies = [
+    "numpy~=1.19",
+    "scipy~=1.5",
+    "scikit-learn~=1.0",
+    "colour~=0.1",
+    "errr~=1.2",
+    "rtree~=1.0",
+    "psutil~=5.8",
+    "pynrrd~=1.0",
+    "PyYAML~=6.0",
+    "morphio~=3.3",
+    "toml",
+    "requests~=2.30",
+    "urllib3~=2.0",
+    "appdirs~=1.4",
+    "neo[nixio]",
+    "tqdm~=4.50",
+    "shortuuid",
+    "quantities",
+]
+
+[tool.flit.module]
+# The `bsb-core` package installs the `bsb` Python module
+name = "bsb"
+
+[project.urls]
+Home = "https://github.com/dbbs-lab/bsb"
+Documentation = "https://bsb.readthedocs.io/"
+"Bug Tracker" = "https://github.com/dbbs-lab/bsb/issues/"
+"Source Code" = "https://github.com/dbbs-lab/bsb/"
+
+[project.scripts]
+bsb = "bsb.cli:handle_cli"
+
+[project.entry-points."bsb.storage.engines"]
+fs = "bsb.storage.fs"
+
+[project.entry-points."bsb.commands"]
+commands = "bsb.cli.commands._commands"
+projects = "bsb.cli.commands._projects"
+
+[project.entry-points."bsb.options"]
+verbosity = "bsb._options:verbosity"
+sudo = "bsb._options:sudo"
+version = "bsb._options:version"
+config = "bsb._options:config"
+profiling = "bsb._options:profiling"
+
+[project.optional-dependencies]
+parallel = [
+    "mpi4py~=3.0",
+    "zwembad~=1.2",
+    "mpilock~=1.1"
+]
+test = [
+    "coverage~=7.3",
+    "bsb-hdf5==1.0.0b1",
+    "bsb-test==0.0.0b2",
+    "bsb-json==0.0.0b0",
+    "bsb-arbor==0.0.0b0"
+]
+docs = [
+    "sphinx~=7.0",
+    "furo~=2023.9",
+    "sphinxemoji~=0.2.0",
+    "sphinx_design~=0.5.0",
+    "sphinx-copybutton~=0.5.0",
+    "sphinxext-bsb~=0.2.1"
+]
+dev = [
+    "build~=1.0",
+    "twine~=4.0",
+    "pre-commit~=3.5",
+    "black~=23.11",
+    "isort~=5.12",
+    "snakeviz~=2.1",
+    "bump2version~=1.0"
+]
+
 [tool.black]
 line-length = 90
+
+[tool.isort]
+profile = "black"

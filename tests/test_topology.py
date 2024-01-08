@@ -1,8 +1,11 @@
+import unittest
+
+import numpy as np
+from bsb_test import get_data_path
+
 from bsb import topology
 from bsb.config import Configuration
 from bsb.exceptions import *
-import unittest, numpy as np
-from bsb.unittest import get_data_path
 
 
 def single_layer():
@@ -56,21 +59,21 @@ class TestTopology(unittest.TestCase):
         r, l = single_layer()
         cs = np.array([100, 100, 100])
         # Test 100x150x100 layer producing 2 100x100x100 chunks on top of eachother
-        self.assertEqual([[0, 0, 0], [0, 1, 0]], l.to_chunks(cs).tolist())
+        self.assertEqual([[0, 0, 0], [0, 0, 1]], l.to_chunks(cs).tolist())
         # Test translation by whole chunk
         l.data.x += cs[0]
-        self.assertEqual([[1, 0, 0], [1, 1, 0]], l.to_chunks(cs).tolist())
+        self.assertEqual([[1, 0, 0], [1, 0, 1]], l.to_chunks(cs).tolist())
         # Translate less than a chunk so that we overflow into an extra layer of x chunks
         l.data.x += 1
         self.assertEqual(
-            [[1, 0, 0], [1, 1, 0], [2, 0, 0], [2, 1, 0]], l.to_chunks(cs).tolist()
+            [[1, 0, 0], [1, 0, 1], [2, 0, 0], [2, 0, 1]], l.to_chunks(cs).tolist()
         )
 
 
 class TestAllenVoxels(unittest.TestCase):
     def test_val(self):
         cfg = Configuration.default(
-            region=dict(br=dict(children=["a"])),
+            regions=dict(br=dict(children=["a"])),
             partitions=dict(a=dict(type="allen", struct_name="VAL")),
         )
         part = cfg.partitions.a

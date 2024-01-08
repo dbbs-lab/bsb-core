@@ -1,16 +1,25 @@
-import unittest, os, sys, numpy as np, h5py, json, string, random
+import json
+import os
+import random
+import string
+import sys
+import unittest
+
+import h5py
+import numpy as np
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
-from bsb.morphologies.selector import NameSelector, NeuroMorphoSelector
-from bsb.core import Scaffold
-from bsb.services import MPI
+from bsb_test import skip_nointernet, skip_parallel
+
 from bsb.cell_types import CellType
-from bsb.config import from_json, Configuration
-from bsb.morphologies import Morphology, Branch
+from bsb.config import Configuration, from_json
+from bsb.core import Scaffold
 from bsb.exceptions import *
+from bsb.morphologies import Branch, Morphology
+from bsb.morphologies.selector import NameSelector, NeuroMorphoSelector
+from bsb.services import MPI
 from bsb.storage.interfaces import StoredMorphology
-from bsb.unittest import skip_parallel, skip_nointernet
 
 
 def spoof(*names):

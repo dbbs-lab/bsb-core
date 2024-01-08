@@ -1,4 +1,5 @@
-from errr import make_tree as _t, exception as _e
+from errr import exception as _e
+from errr import make_tree as _t
 
 _t(
     globals(),
@@ -60,9 +61,7 @@ _t(
                     NestModuleError=_e(),
                 ),
                 NestModelError=_e(),
-                KernelLockedError=_e(),
-                SuffixTakenError=_e(),
-                ReceptorSpecificationError=_e(),
+                NestConnectError=_e(),
             ),
             ParallelIntegrityError=_e("rank"),
             ArborError=_e(),
@@ -122,7 +121,6 @@ _t(
                 JsonImportError=_e(),
             ),
         ),
-        OrderError=_e(),
         ClassError=_e(),
         TestError=_e(FixtureError=_e()),
     ),

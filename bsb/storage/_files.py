@@ -1,29 +1,32 @@
-import warnings
-
 import abc as _abc
 import contextlib as _cl
 import datetime as _dt
+import email.utils as _eml
+import functools as _ft
+import hashlib as _hl
+import os as _os
+import pathlib as _pl
 import tempfile as _tf
 import time as _t
+import typing
+import typing as _tp
 import urllib.parse as _up
 import urllib.request as _ur
-import pathlib as _pl
-import os as _os
-import functools as _ft
-import typing as _tp
-import requests as _rq
-import email.utils as _eml
+import warnings
+
 import nrrd as _nrrd
-import hashlib as _hl
+import requests as _rq
 import yaml
 
-from .._util import obj_str_insert
 from .. import config
+from .._util import obj_str_insert
 from ..config import types
+from ..config._attrs import cfglist
+from ..reporting import warn
 
 if _tp.TYPE_CHECKING:
-    from ..storage.interfaces import FileStore
     from ..morphologies import Morphology
+    from ..storage.interfaces import FileStore
 
 
 def _is_uri(url):
@@ -268,6 +271,9 @@ class UrlScheme(UriScheme):
     def create_session(self):
         return _rq.Session()
 
+    def get_base_url(self):
+        raise NotImplementedError("Base UrlScheme has no fixed base URL.")
+
 
 class NeuroMorphoScheme(UrlScheme):
     _nm_url = "https://neuromorpho.org/"
@@ -284,16 +290,23 @@ class NeuroMorphoScheme(UrlScheme):
         # urlparse gives lowercase, so slice out the original cased NM name
         idx = file.uri.lower().find(name)
         name = file.uri[idx : (idx + len(name))]
-        try:
-            with self.create_session() as session:
+        with self.create_session() as session:
+            try:
                 res = session.get(self._nm_url + self._meta + name)
-        except Exception as e:
-            return {"archive": "none", "neuron_name": "none"}
-        if res.status_code == 404:
-            raise IOError(f"'{name}' is not a valid NeuroMorpho name.")
-        elif res.status_code != 200:
-            raise IOError("NeuroMorpho API error: " + res.text)
+            except Exception as e:
+                return {"archive": "none", "neuron_name": "none"}
+            if res.status_code == 404:
+                res = session.get(self._nm_url)
+                if res.status_code != 200 or "Service Interruption Notice" in res.text:
+                    warn(f"NeuroMorpho.org is down, can't retrieve morphology '{name}'.")
+                    return {"archive": "none", "neuron_name": "none"}
+                raise IOError(f"'{name}' is not a valid NeuroMorpho name.")
+            elif res.status_code != 200:
+                raise IOError("NeuroMorpho API error: " + res.text)
         return res.json()
+
+    def get_base_url(self):
+        return self._nm_url
 
     def get_meta(self, file: FileDependency):
         meta = super().get_meta(file)
@@ -309,8 +322,8 @@ class NeuroMorphoScheme(UrlScheme):
         # Weak DH key on neuromorpho.org
         # https://stackoverflow.com/a/76217135/1016004
         from requests.adapters import HTTPAdapter
-        from urllib3.util import create_urllib3_context
         from urllib3 import PoolManager
+        from urllib3.util import create_urllib3_context
 
         class DHAdapter(HTTPAdapter):
             def init_poolmanager(self, connections, maxsize, block=False, **kwargs):
@@ -329,20 +342,20 @@ class NeuroMorphoScheme(UrlScheme):
 
 
 @_ft.cache
-def _get_schemes() -> _tp.Mapping[str, FileScheme]:
+def _get_schemes() -> _tp.Mapping[str, typing.Type[FileScheme]]:
     from ..plugins import discover
 
     schemes = discover("storage.schemes")
-    schemes["file"] = FileScheme()
-    schemes["http"] = schemes["https"] = UrlScheme()
-    schemes["nm"] = NeuroMorphoScheme()
+    schemes["file"] = FileScheme
+    schemes["http"] = schemes["https"] = UrlScheme
+    schemes["nm"] = NeuroMorphoScheme
     return schemes
 
 
 def _get_scheme(scheme: str) -> FileScheme:
     schemes = _get_schemes()
     try:
-        return schemes[scheme]
+        return schemes[scheme]()
     except KeyError:
         raise KeyError(f"{scheme} is not a known file scheme.")
 
@@ -384,7 +397,8 @@ class FileDependencyNode:
 
 @config.node
 class CodeDependencyNode(FileDependencyNode):
-    module: str = config.attr(type=str)
+    module: str = config.attr(type=str, required=types.shortform())
+    attr: str = config.attr(type=str)
 
     @config.property
     def file(self):
@@ -412,16 +426,22 @@ class CodeDependencyNode(FileDependencyNode):
                 module = importlib.util.module_from_spec(spec)
                 sys.modules[self.module] = module
                 spec.loader.exec_module(module)
+                return module if self.attr is None else module[self.attr]
         finally:
             tmp = list(reversed(sys.path))
             tmp.remove(_os.getcwd())
             sys.path = list(reversed(tmp))
 
 
+class OperationCallable(typing.Protocol):
+    def __call__(self, obj: object, **kwargs: typing.Any) -> object:
+        pass
+
+
 @config.node
 class Operation:
-    func = config.attr(type=types.function_())
-    parameters = config.catch_all(type=types.any_())
+    func: OperationCallable = config.attr(type=types.function_())
+    parameters: dict[typing.Any] = config.catch_all(type=types.any_())
 
     def __init__(self, value=None, /, **kwargs):
         if value is not None:
@@ -432,7 +452,7 @@ class Operation:
 
 
 class FilePipelineMixin:
-    pipeline = config.list(type=Operation)
+    pipeline: cfglist[Operation] = config.list(type=Operation)
 
     def pipe(self, input):
         return _ft.reduce(lambda state, func: func(state), self.pipeline, input)
@@ -456,9 +476,16 @@ class NrrdDependencyNode(FilePipelineMixin, FileDependencyNode):
         return self.pipe(self.get_data())
 
 
+class MorphologyOperationCallable(OperationCallable):
+    def __call__(self, obj: "Morphology", **kwargs: typing.Any) -> "Morphology":
+        pass
+
+
 @config.node
 class MorphologyOperation(Operation):
-    func = config.attr(type=types.method_shortcut("bsb.morphologies.Morphology"))
+    func: MorphologyOperationCallable = config.attr(
+        type=types.method_shortcut("bsb.morphologies.Morphology")
+    )
 
 
 @config.node
@@ -468,13 +495,15 @@ class MorphologyDependencyNode(FilePipelineMixin, FileDependencyNode):
     The content of these files will be stored in bsb.morphologies.Morphology instances.
     """
 
-    pipeline = config.list(type=MorphologyOperation)
-    name = config.attr(type=str, default=None, required=False)
+    pipeline: cfglist[MorphologyOperation] = config.list(type=MorphologyOperation)
+    name: str = config.attr(type=str, default=None, required=False)
     """
     Name associated to the morphology. If not provided, the program will use the name of the file 
     in which the morphology is stored. 
     """
-    tags = config.attr(type=types.dict(type=types.or_(types.str(), types.list(str))))
+    tags: dict[typing.Union[str, list[str]]] = config.attr(
+        type=types.dict(type=types.or_(types.str(), types.list(str)))
+    )
     """
     Dictionary mapping SWC tags to sets of morphology labels.
     """

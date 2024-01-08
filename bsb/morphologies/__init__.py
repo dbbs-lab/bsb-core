@@ -15,19 +15,26 @@ Morphology module
 # In the simulation step, these (possibly dynamically modified) morphologies are passed
 # to the cell model instantiators.
 
+import functools
 import inspect
 import itertools
-import functools
-import morphio
-import numpy as np
 from collections import deque
 from pathlib import Path
+
+import morphio
+import numpy as np
 from scipy.spatial.transform import Rotation
-from .._encoding import EncodedLabels
-from ..voxels import VoxelSet
-from ..exceptions import MorphologyDataError, EmptyBranchError, MorphologyWarning
-from ..reporting import warn
+
 from .. import _util as _gutil
+from .._encoding import EncodedLabels
+from ..exceptions import (
+    EmptyBranchError,
+    MorphologyDataError,
+    MorphologyError,
+    MorphologyWarning,
+)
+from ..reporting import warn
+from ..voxels import VoxelSet
 
 
 class MorphologySet:
@@ -296,7 +303,7 @@ def branch_iter(branch):
 
 class SubTree:
     """
-    Collection of branches, not necessarily all connected.
+    Collection of branches, not necesarily all connected.
     """
 
     def __init__(self, branches, sanitize=True):
@@ -304,7 +311,7 @@ class SubTree:
             # Find the roots of the full subtree(s) emanating from the given, possibly
             # overlapping branches.
             if len(branches) < 2:
-                # The roots of the subtrees of 0 or 1 branches is equal to the 0 or 1
+                # The roots of the subtrees of 0 or 1 branches is eaqual to the 0 or 1
                 # branches themselves.
                 self.roots = branches
             else:
@@ -394,7 +401,7 @@ class SubTree:
     @property
     def branch_adjacency(self):
         """
-        Return a dictionary containing mapping the id of the branch to its children.
+        Return a dictonary containing mapping the id of the branch to its children.
         """
         idmap = {b: n for n, b in enumerate(self.branches)}
         return {n: list(map(idmap.get, b.children)) for n, b in enumerate(self.branches)}
@@ -562,7 +569,7 @@ class SubTree:
         :param downstream_of: index of the point in the subtree from which the rotation should be
             applied. This feature works only when the subtree has only one root branch.
         :returns: rotated Morphology
-        :rtype: bsb.morphologies.Morphology
+        :rtype: bsb.morphologies.SubTree
         """
 
         if downstream_of != 0:
@@ -585,6 +592,13 @@ class SubTree:
         return self
 
     def translate(self, point):
+        """
+        Translate the subtree by a 3D vector.
+
+        :param numpy.ndarray point: 3D vector to translate the subtree.
+        :returns: the translated subtree
+        :rtype: bsb.morphologies.SubTree
+        """
         if len(point) != 3:
             raise ValueError("Point must be a sequence of x, y and z coordinates")
         if self._is_shared:
@@ -618,7 +632,7 @@ class SubTree:
 
     def collapse(self, on=None):
         """
-        Collapse all of the roots of the morphology or subtree onto a single point.
+        Collapse all the roots of the morphology or subtree onto a single point.
 
         :param on: Index of the root to collapse on. Collapses onto the origin by default.
         :type on: int
@@ -945,7 +959,7 @@ class Morphology(SubTree):
         :type tags: dict
         :param meta: dictionary header containing metadata on morphology
         :type meta: dict
-        :returns: The parsed morphology, with the SWC tags as a property.
+        :returns: The parsed morphology.
         :rtype: bsb.morphologies.Morphology
         """
         if isinstance(file, str) or isinstance(file, Path):
@@ -1007,8 +1021,7 @@ class Morphology(SubTree):
         """
         Create a SWC file from a Morphology.
         :param file: path or file-like object to parse.
-        :param meta: dictionary header containing metadata related to morphology
-        :type meta: dict
+        :param branch_class: Custom branch class
         """
         file_data = _morpho_to_swc(self)
         if meta:  # pragma: nocover
@@ -1085,11 +1098,13 @@ class Branch:
         :param radii: Array of radii associated to each point
         :type radii: list | numpy.ndarray
         :param labels: Array of labels to associate to each point
-        :type labels: List[str] | set | numpy.ndarray
-        :param properties: dictionary of metadata to store in the branch
+        :type labels: EncodedLabels | List[str] | set | numpy.ndarray
+        :param properties: dictionary of per-point data to store in the branch
         :type properties: dict
         :param children: list of child branches to attach to the branch
         :type children: List[bsb.morphologies.Branch]
+        :raises bsb.exceptions.MorphologyError: if a property of the branch does not have the same
+            size as its points
         """
 
         self._points = _gutil.sanitize_ndarray(points, (-1, 3), float)
@@ -1103,6 +1118,11 @@ class Branch:
         self._labels = labels
         if properties is None:
             properties = {}
+        mismatched = [str(k) for k, v in properties.items() if len(v) != len(points)]
+        if mismatched:
+            raise MorphologyError(
+                f"Morphology properties {', '.join(mismatched)} are not length {len(points)}"
+            )
         self._properties = {
             k: v if isinstance(v, np.ndarray) else np.array(v)
             for k, v in properties.items()
@@ -1380,7 +1400,7 @@ class Branch:
         Add labels to the branch.
 
         :param labels: Label(s) for the branch
-        :type labels: str
+        :type labels: List[str]
         :param points: An integer or boolean mask to select the points to label.
         """
         if points is None:
@@ -1493,7 +1513,7 @@ class Branch:
             self.points[:, 2],
             self.radii,
             self.labels.walk(),
-            *self.properties.values(),
+            *self._properties.values(),
         )
 
     def contains_labels(self, labels):
@@ -1648,6 +1668,21 @@ class Branch:
         else:
             return displacements
 
+    def delete_point(self, index):
+        """
+        Remove a point from the branch
+
+        :param int index: index position of the point to remove
+        :returns: the branch where the point has been removed
+        :rtype: bsb.morphologies.Branch
+        """
+        self._points = np.delete(self._points, index, axis=0)
+        self._labels = np.delete(self._labels, index, axis=0)
+        self._radii = np.delete(self._radii, index, axis=0)
+        for k, v in self._properties.items():
+            self._properties[k] = np.delete(v, index, axis=0)
+        return self
+
     def simplify(self, epsilon, idx_start=0, idx_end=-1):
         """
         Apply Ramer–Douglas–Peucker algorithm to all points or a subset of points of the branch.
@@ -1741,7 +1776,7 @@ def _swc_to_morpho(cls, branch_cls, content, tags=None, meta=None):
 def _swc_data_to_morpho(cls, branch_cls, data, tags=None, meta=None):
     tag_map = {1: "soma", 2: "axon", 3: "dendrites"}
     if tags is not None:
-        tag_map.update(tags)
+        tag_map.update((int(k), v) for (k, v) in tags.items())
     # `data` is the raw SWC data, `samples` and `parents` are the graph nodes and edges.
     samples = data[:, 0].astype(int)
     # Map possibly irregular sample IDs (SWC spec allows this) to an ordered 0 to N map.
@@ -1791,7 +1826,7 @@ def _swc_data_to_morpho(cls, branch_cls, data, tags=None, meta=None):
         for v in np.unique(branch_tags):
             u_tags = tag_map.get(v, f"tag_{v}")
             branch_labels.label(
-                [u_tags] if type(u_tags) == str else u_tags, branch_tags == v
+                [u_tags] if isinstance(u_tags, str) else u_tags, branch_tags == v
             )
         ptr = nptr
         # Use the views to construct the branch

@@ -1,12 +1,10 @@
-import unittest, os, sys, numpy as np, h5py, json, shutil
+import unittest
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
+import numpy as np
+from bsb_test import NumpyTestCase, skip_parallel, timeout
+
 from bsb.core import Scaffold
-from bsb.config import from_json
 from bsb.storage import Chunk
-from bsb.exceptions import *
-from bsb.unittest import get_config_path, skip_parallel, timeout, NumpyTestCase
 
 
 class TestChunks(unittest.TestCase, NumpyTestCase):
@@ -34,8 +32,9 @@ class TestChunks(unittest.TestCase, NumpyTestCase):
     # basic chunk properties. For example uses `.place` directly.
     def test_single_chunk(self):
         # Test that specifying a single chunk only reads the data from that chunk
-        cfg = from_json(get_config_path("test_single"))
-        self.network = network = Scaffold(cfg, clear=True)
+        from bsb_test.pyconfig import cfg_single
+
+        self.network = network = Scaffold(cfg_single, clear=True)
         self.ps = ps = network.get_placement_set("test_cell")
         ps.include_chunk(Chunk((0, 0, 0), None))
         pos = ps.load_positions()

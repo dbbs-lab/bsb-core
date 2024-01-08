@@ -1,19 +1,33 @@
-import re
-import unittest, os, sys, numpy as np, h5py
-import json
 import itertools
+import json
+import os
+import re
+import sys
+import unittest
 
+import h5py
+import numpy as np
+from bsb_test import (
+    NumpyTestCase,
+    RandomStorageFixture,
+    get_morphology_path,
+    skipIfOffline,
+)
+from scipy.spatial.transform import Rotation
+
+from bsb._encoding import EncodedLabels
 from bsb.config._config import Configuration
 from bsb.core import Scaffold
-from bsb.services import MPI
-from bsb.morphologies import Morphology, Branch, MorphologySet, RotationSet
-from bsb._encoding import EncodedLabels
-from bsb.storage import Storage
-from bsb.storage._files import MorphologyDependencyNode, MorphologyOperation
-from bsb.storage.interfaces import StoredMorphology
 from bsb.exceptions import *
-from bsb.unittest import get_morphology_path, NumpyTestCase, RandomStorageFixture
-from scipy.spatial.transform import Rotation
+from bsb.morphologies import Branch, Morphology, MorphologySet, RotationSet
+from bsb.services import MPI
+from bsb.storage import Storage
+from bsb.storage._files import (
+    MorphologyDependencyNode,
+    MorphologyOperation,
+    NeuroMorphoScheme,
+)
+from bsb.storage.interfaces import StoredMorphology
 
 
 class TestIO(NumpyTestCase, unittest.TestCase):
@@ -165,6 +179,18 @@ class TestMorphologies(NumpyTestCase, unittest.TestCase):
         self.assertTrue(branch.is_terminal)
         branch.attach_child(branch)
         self.assertFalse(branch.is_terminal)
+        with self.assertRaises(MorphologyError):
+            _ = Branch(
+                np.array(
+                    [
+                        [0, 1, 2],
+                        [0, 1, 2],
+                        [0, 1, 2],
+                    ]
+                ),
+                np.array([0, 1, 2]),
+                properties={"a": np.array([0, 1])},  # not one value per point
+            )
 
     def test_optimize(self):
         b1 = _branch(3)
@@ -341,6 +367,18 @@ class TestMorphologies(NumpyTestCase, unittest.TestCase):
         m = Morphology([root])
 
         self.assertEqual(m.adjacency_dictionary, target)
+
+    def test_delete_point(self):
+        points = np.arange(9).reshape(3, 3)
+        labels = set(["test1", "test2"])
+        branch = Branch(
+            points, np.array([0, 1, 2]), properties={"a": np.array([0, 1, 2])}
+        )
+        branch.label(labels, [0, 2])
+        branch.delete_point(0)
+        self.assertClose(branch.points, points[1:])
+        self.assertClose(branch.radii, np.array([1, 2]))
+        self.assertClose([0, 1], branch.labels)
 
 
 class TestMorphologyLabels(NumpyTestCase, unittest.TestCase):
@@ -1031,6 +1069,7 @@ class TestRotationSet(unittest.TestCase):
 class TestPipelines(
     NumpyTestCase, RandomStorageFixture, unittest.TestCase, engine_name="hdf5"
 ):
+    @skipIfOffline(scheme=NeuroMorphoScheme())
     def test_pipeline_functions(self):
         m1 = MorphologyDependencyNode(file="nm://hippo-1264-9")
         m2 = MorphologyDependencyNode(

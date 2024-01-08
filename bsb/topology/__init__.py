@@ -2,10 +2,11 @@
 Topology module
 """
 
-from .region import Region, RegionGroup, Stack
-from .partition import Partition, Layer, AllenStructure, NrrdVoxels
-from ._layout import box_layout
 import numpy as np
+
+from ._layout import box_layout
+from .partition import AllenStructure, Layer, NrrdVoxels, Partition
+from .region import Region, RegionGroup, Stack
 
 
 def create_topology(regions, ldc, mdc):

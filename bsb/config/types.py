@@ -2,18 +2,20 @@ import abc
 import builtins
 import inspect
 import math
-import numpy as np
 from weakref import WeakKeyDictionary
+
+import numpy as np
+
+from ..exceptions import (
+    CastError,
+    ClassMapMissingError,
+    InvalidReferenceError,
+    NoneReferenceError,
+    RequirementError,
+    TypeHandlingError,
+)
 from ._compile import _reserved_kw_passes, _wrap_reserved
 from ._make import _load_object
-from ..exceptions import (
-    ClassMapMissingError,
-    CastError,
-    NoneReferenceError,
-    InvalidReferenceError,
-    TypeHandlingError,
-    RequirementError,
-)
 
 
 class TypeHandler(abc.ABC):
@@ -143,8 +145,11 @@ class object_(TypeHandler):
     def __call__(self, value):
         msg = f"Could not import '{value}': "
         try:
-            obj = _load_object(value, self._module_path)
-            obj._cfg_inv = value
+            if isinstance(value, builtins.str):
+                obj = _load_object(value, self._module_path)
+                obj._cfg_inv = value
+            else:
+                obj = value
         except Exception as e:
             raise TypeError(msg + builtins.str(e))
         return obj

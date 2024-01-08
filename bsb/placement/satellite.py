@@ -1,11 +1,19 @@
-from .strategy import PlacementStrategy
-import math, numpy as np
+import math
+import typing
+from itertools import chain
+
+import numpy as np
+
+from .. import config
+from ..config import refs, types
 from ..exceptions import *
 from ..reporting import report, warn
-from .. import config
-from ..config import types, refs
-from itertools import chain
 from .indicator import PlacementIndicator
+from .strategy import PlacementStrategy
+
+if typing.TYPE_CHECKING:
+    from ..cell_types import CellType
+    from ..topology import Partition
 
 
 class SatelliteIndicator(PlacementIndicator):
@@ -35,9 +43,9 @@ class Satellite(PlacementStrategy):
     depending on the radius of both cells.
     """
 
-    per_planet = config.attr(type=float, default=1.0)
-    planet_types = config.reflist(refs.cell_type_ref, required=True)
-    partitions = config.reflist(refs.regional_ref)
+    per_planet: float = config.attr(type=float, default=1.0)
+    planet_types: list["CellType"] = config.reflist(refs.cell_type_ref, required=True)
+    partitions: list["Partition"] = config.reflist(refs.regional_ref)
     indicator_class = SatelliteIndicator
 
     def boot(self):
@@ -45,7 +53,7 @@ class Satellite(PlacementStrategy):
         placements = self.scaffold.get_placement_of(*self.planet_types)
         self.partitions = list(chain(*(p.partitions for p in placements)))
 
-    def get_after(self):
+    def get_deps(self):
         return self.scaffold.get_placement_of(*self.planet_types)
 
     def place(self, chunk, indicators):

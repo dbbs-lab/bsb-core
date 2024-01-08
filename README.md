@@ -17,14 +17,14 @@ connectivity strategy.
 
 ## Installation
 
-The BSB requires Python 3.8+.
+The BSB requires Python 3.9+.
 
 ### pip
 
 This software can be installed as a Python package from PyPI through pip:
 
 ```
-pip install "bsb>=4.0.0a0"
+pip install "bsb>=4.0.0b0"
 ```
 
 ### Developers
@@ -33,7 +33,7 @@ Developers best use pip's *editable* install. This creates a live link between t
 installed package and the local git repository:
 
 ```
- git clone git@github.com:dbbs-lab/bsb
+ git clone git@github.com:dbbs-lab/bsb-core
  cd bsb
  pip install -e .[dev]
  pre-commit install
@@ -63,7 +63,7 @@ and connections:
 bsb compile -p
 ```
 
-This creates a [network file](bsb.readthedocs.io/guides/networks.html) and plots the network.
+This creates a [network file](bsb.readthedocs.io/getting-started/networks.html) and plots the network.
 
 ### Simulating a network
 

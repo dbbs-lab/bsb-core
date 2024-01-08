@@ -1,42 +1,63 @@
+import abc
+import itertools
+import typing
+
+import numpy as np
+
 from .. import config
+from .._util import obj_str_insert
+from ..config import refs, types
+from ..config._attrs import cfgdict, cfglist
 from ..exceptions import (
-    EmptySelectionError,
     DistributorError,
+    EmptySelectionError,
     MissingSourceError,
     SourceQualityError,
 )
+from ..mixins import HasDependencies
 from ..profiling import node_meter
 from ..reporting import report
-from ..config import refs, types
-from .._util import SortableByAfter, obj_str_insert
-from ..voxels import VoxelSet
 from ..storage import Chunk
-from .indicator import PlacementIndications, PlacementIndicator
+from ..voxels import VoxelSet
 from .distributor import DistributorsNode
-import numpy as np
-import itertools
-import abc
+from .indicator import PlacementIndications, PlacementIndicator
+
+if typing.TYPE_CHECKING:
+    from ..cell_types import CellType
+    from ..core import Scaffold
+    from ..topology import Partition
 
 
 @config.dynamic(attr_name="strategy", required=True)
-class PlacementStrategy(abc.ABC, SortableByAfter):
+class PlacementStrategy(abc.ABC, HasDependencies):
     """
     Quintessential interface of the placement module. Each placement strategy defines an
     approach to placing neurons into a volume.
     """
 
-    name = config.attr(key=True)
-    cell_types = config.reflist(refs.cell_type_ref, required=True)
-    partitions = config.reflist(refs.partition_ref, required=True)
-    overrides = config.dict(type=PlacementIndications)
-    after = config.reflist(refs.placement_ref)
-    distribute = config.attr(type=DistributorsNode, default=dict, call_default=True)
+    scaffold: "Scaffold"
+
+    name: str = config.attr(key=True)
+    cell_types: list["CellType"] = config.reflist(refs.cell_type_ref, required=True)
+    partitions: list["Partition"] = config.reflist(refs.partition_ref, required=True)
+    overrides: cfgdict["PlacementIndications"] = config.dict(type=PlacementIndications)
+    depends_on: list["PlacementStrategy"] = config.reflist(refs.placement_ref)
+    distribute: DistributorsNode = config.attr(
+        type=DistributorsNode, default=dict, call_default=True
+    )
     indicator_class = PlacementIndicator
 
     def __init_subclass__(cls, **kwargs):
         super(cls, cls).__init_subclass__(**kwargs)
         # Decorate subclasses to measure performance
         node_meter("place")(cls)
+
+    def __hash__(self):
+        return id(self)
+
+    def __lt__(self, other):
+        # This comparison should sort placement strategies by name, via __repr__ below
+        return str(self) < str(other)
 
     def __boot__(self):
         self._queued_jobs = []
@@ -113,7 +134,7 @@ class PlacementStrategy(abc.ABC, SortableByAfter):
         # Reset jobs that we own
         self._queued_jobs = []
         # Get the queued jobs of all the strategies we depend on.
-        deps = set(itertools.chain(*(strat._queued_jobs for strat in self.get_after())))
+        deps = set(itertools.chain(*(strat._queued_jobs for strat in self.get_deps())))
         for p in self.partitions:
             chunks = p.to_chunks(chunk_size)
             for chunk in chunks:
@@ -134,28 +155,16 @@ class PlacementStrategy(abc.ABC, SortableByAfter):
             ct.name: self.__class__.indicator_class(self, ct) for ct in self.cell_types
         }
 
-    @classmethod
-    def get_ordered(cls, objects):
-        # No need to sort placement strategies, just obey dependencies.
-        return objects
-
     def guess_cell_count(self):
         return sum(ind.guess() for ind in self.get_indicators().values())
 
-    def has_after(self):
-        return hasattr(self, "after")
-
-    def get_after(self):
-        return [] if not self.has_after() else self.after
-
-    def create_after(self):
-        # I think the reflist should always be there.
-        pass
+    def get_deps(self):
+        return set(self.depends_on)
 
 
 @config.node
 class FixedPositions(PlacementStrategy):
-    positions = config.attr(type=types.ndarray())
+    positions: np.ndarray = config.attr(type=types.ndarray())
 
     def place(self, chunk, indicators):
         if self.positions is None:
@@ -177,7 +186,7 @@ class FixedPositions(PlacementStrategy):
         # Reset jobs that we own
         self._queued_jobs = []
         # Get the queued jobs of all the strategies we depend on.
-        deps = set(itertools.chain(*(strat._queued_jobs for strat in self.get_after())))
+        deps = set(itertools.chain(*(strat._queued_jobs for strat in self.get_deps())))
         for chunk in VoxelSet.fill(self.positions, chunk_size):
             job = pool.queue_placement(self, Chunk(chunk, chunk_size), deps=deps)
             self._queued_jobs.append(job)
@@ -200,5 +209,9 @@ class Entities(PlacementStrategy):
         for indicator in indicators.values():
             cell_type = indicator.cell_type
             # Guess total number, not chunk number, as entities bypass chunking.
-            n = sum(np.sum(indicator.guess(voxels=p.voxelset)) for p in self.partitions)
+            n = sum(
+                # Pass the voxelset if it exists
+                np.sum(indicator.guess(voxels=getattr(p, "voxelset", None)))
+                for p in self.partitions
+            )
             self.scaffold.create_entities(cell_type, n)

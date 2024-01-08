@@ -1,9 +1,10 @@
-from .._contexts import get_cli_context, reset_cli_context
-from .commands import load_root_command
-from ..exceptions import *
-import sys
-import inspect
 import builtins
+import inspect
+import sys
+
+from .._contexts import get_cli_context, reset_cli_context
+from ..exceptions import *
+from .commands import load_root_command
 
 
 def handle_cli():

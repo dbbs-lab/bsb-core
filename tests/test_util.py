@@ -1,17 +1,18 @@
 import unittest
-import numpy as np
 
+import numpy as np
+from bsb_test import (
+    FixedPosConfigFixture,
+    NumpyTestCase,
+    RandomStorageFixture,
+    skipIfOffline,
+)
 from scipy.spatial.transform import Rotation
 
 from bsb._util import rotation_matrix_from_vectors
 from bsb.core import Scaffold
 from bsb.storage import FileDependency
 from bsb.storage._files import NeuroMorphoScheme
-from bsb.unittest import (
-    FixedPosConfigFixture,
-    RandomStorageFixture,
-    NumpyTestCase,
-)
 
 
 class TestNetworkUtil(
@@ -70,9 +71,21 @@ class TestRotationUtils(unittest.TestCase):
 
 
 class TestUriSchemes(unittest.TestCase):
+    @skipIfOffline(scheme=NeuroMorphoScheme())
     def test_nm_scheme(self):
         file = FileDependency("nm://AX2_scaled", Scaffold().files)
         self.assertIs(NeuroMorphoScheme, type(file._scheme), "Expected NM scheme")
         meta = file.get_meta()
         self.assertIn("neuromorpho_data", meta)
         self.assertEqual(130892, meta["neuromorpho_data"]["neuron_id"])
+
+    def test_nm_scheme_down(self):
+        url = NeuroMorphoScheme._nm_url
+        # Consistently trigger a 404 response in the NM scheme
+        NeuroMorphoScheme._nm_url = "https://google.com/404"
+        try:
+            file = FileDependency("nm://AX2_scaled", Scaffold().files)
+            with self.assertWarns(UserWarning) as w:
+                file.get_meta()
+        finally:
+            NeuroMorphoScheme._nm_url = url

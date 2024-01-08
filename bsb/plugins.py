@@ -4,10 +4,18 @@ categories.
 """
 
 
-from importlib.metadata import entry_points
-import errr
-from .exceptions import PluginError
 import types
+from importlib.metadata import entry_points
+
+import errr
+
+from .exceptions import PluginError
+
+
+# Before 3.10 `importlib.metadata` was provisional, and didn't have `select` yet.
+class _EntryPointsPatch(dict):
+    def select(self, *, group=None):
+        return self.get(group, [])
 
 
 def discover(category):
@@ -20,7 +28,11 @@ def discover(category):
     :rtype: dict
     """
     registry = {}
-    for entry in entry_points().get("bsb." + category, []):
+    eps = entry_points()
+    if not hasattr(eps, "select"):
+        eps = _EntryPointsPatch(eps)
+
+    for entry in eps.select(group="bsb." + category):
         try:
             advert = entry.load()
             if hasattr(advert, "__plugin__"):

@@ -1,10 +1,15 @@
-from .. import plugins
 import functools
+
+from .. import plugins
 
 
 @functools.cache
 def get_backends():
-    return plugins.discover("simulation_backends")
+    backends = plugins.discover("simulation_backends")
+    for backend in backends.values():
+        plugins._decorate_advert(backend.Simulation, backend._bsb_entry_point)
+        plugins._decorate_advert(backend.Adapter, backend._bsb_entry_point)
+    return backends
 
 
 @functools.cache

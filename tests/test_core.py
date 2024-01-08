@@ -1,10 +1,12 @@
-import unittest
 import os
+import unittest
+
+from bsb_test import RandomStorageFixture
+
+from bsb import core
+from bsb.config import Configuration
 from bsb.core import Scaffold
 from bsb.storage.interfaces import PlacementSet
-from bsb.config import Configuration
-from bsb import core
-from bsb.unittest import RandomStorageFixture
 
 
 class TestCore(unittest.TestCase):

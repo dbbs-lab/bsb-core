@@ -1,18 +1,20 @@
+import abc
+import uuid
+from dataclasses import dataclass
+from typing import List
+
+import numpy as np
+from scipy.spatial.transform import Rotation
+
 from .. import config
 from .._util import rotation_matrix_from_vectors
 from ..config.types import ndarray
+from ..exceptions import EmptySelectionError
+from ..morphologies import MorphologySet, RotationSet
+from ..profiling import node_meter
 from ..storage import NrrdDependencyNode
 from ..topology.partition import Partition
-from ..exceptions import EmptySelectionError
-from ..profiling import node_meter
-from ..morphologies import MorphologySet, RotationSet
 from .indicator import PlacementIndications
-from dataclasses import dataclass
-import numpy as np
-from scipy.spatial.transform import Rotation
-import abc
-import uuid
-from typing import List
 
 
 @dataclass
@@ -255,11 +257,13 @@ class VolumetricRotations(RotationDistributor, classmap_entry="orientation_field
 
 @config.node
 class DistributorsNode:
-    morphologies = config.attr(
+    morphologies: MorphologyDistributor = config.attr(
         type=MorphologyDistributor, default=dict, call_default=True
     )
-    rotations = config.attr(type=RotationDistributor, default=dict, call_default=True)
-    properties = config.catch_all(type=Distributor)
+    rotations: RotationDistributor = config.attr(
+        type=RotationDistributor, default=dict, call_default=True
+    )
+    properties: dict[Distributor] = config.catch_all(type=Distributor)
 
     def __call__(self, key, partitions, indicator, positions, loaders=None):
         context = DistributionContext(indicator, partitions)

@@ -1,12 +1,14 @@
-import numpy as np
-from numpy.random import default_rng
 import itertools
 import random
+
+import numpy as np
+from numpy.random import default_rng
+
+from ... import config
+from ..._util import ichain
+from ...config import types
 from ..strategy import ConnectionStrategy
 from .shared import Intersectional
-from ... import config
-from ...config import types
-from ..._util import ichain
 
 _rng = default_rng()
 
@@ -62,7 +64,7 @@ class VoxelIntersection(Intersectional, ConnectionStrategy):
             )
 
     def _match_voxel_intersection(self, matches, tset, cset, tmset, cmset):
-        # Soft caching caches at the IO level and gives you a fresh copy of the morphology
+        # Soft-caching caches at the IO level and gives you a fresh copy of the morphology
         # each time, the `cached_voxelize` function we need wouldn't have any effect!
         tm_iter = tmset.iter_morphologies(cache=self.cache, hard_cache=self.cache)
         target_itrs = zip(tset.load_positions(), tset.load_rotations().iter(), tm_iter)
@@ -126,7 +128,7 @@ class VoxelIntersection(Intersectional, ConnectionStrategy):
         self.connect_cells(src_set, dest_set, src_locs, dest_locs)
 
     def _pick_locations(self, tid, cid, tvoxels, cvoxels, overlap):
-        n = int(self.contacts.draw(1))
+        n = int(self.contacts.draw(1)[0])
         if n <= 0:
             return np.empty((0, 3), dtype=int), np.empty((0, 3), dtype=int)
         cpool = cvoxels.get_data([c for c, _ in overlap])

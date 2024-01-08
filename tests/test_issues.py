@@ -1,5 +1,6 @@
-import unittest
 import os
+import unittest
+
 from bsb import config
 from bsb.config.refs import Reference
 from bsb.exceptions import CfgReferenceError

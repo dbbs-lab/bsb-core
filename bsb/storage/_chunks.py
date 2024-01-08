@@ -2,6 +2,7 @@ import typing
 
 import numpy as np
 import numpy.typing as npt
+
 from ..exceptions import ChunkError
 
 _iinfo = np.iinfo(np.int16)

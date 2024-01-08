@@ -1,20 +1,22 @@
-import abc
-import types
-import numpy as np
-from ..reporting import report
-from time import time
 import itertools
+import types
+import typing
+from time import time
+
+import numpy as np
+
 from .. import config
+from ..config import types as cfgtypes
+from ..config._attrs import cfgdict, cfglist
 from ._backends import get_simulation_nodes
 from .cell import CellModel
 from .connection import ConnectionModel
 from .device import DeviceModel
-from ..config import types as cfgtypes
-import typing
 
 if typing.TYPE_CHECKING:
-    from ..connectivity import ConnectionStrategy
     from ..cell_types import CellType
+    from ..connectivity import ConnectionStrategy
+    from ..core import Scaffold
     from ..storage.interfaces import ConnectivitySet
 
 
@@ -27,37 +29,21 @@ class ProgressEvent:
 
 @config.pluggable(key="simulator", plugin_name="simulation backend")
 class Simulation:
-    name = config.attr(key=True)
-    duration = config.attr(type=float, required=True)
-    cell_models = config.slot(type=CellModel, required=True)
-    connection_models = config.slot(type=ConnectionModel, required=True)
-    devices = config.slot(type=DeviceModel, required=True)
-    post_prepare = config.list(type=cfgtypes.class_())
+    scaffold: "Scaffold"
+    name: str = config.attr(key=True)
+    duration: float = config.attr(type=float, required=True)
+    cell_models: cfgdict[CellModel] = config.slot(type=CellModel, required=True)
+    connection_models: cfgdict[ConnectionModel] = config.slot(
+        type=ConnectionModel, required=True
+    )
+    devices: cfgdict[DeviceModel] = config.slot(type=DeviceModel, required=True)
+    post_prepare: cfglist[
+        typing.Callable[["Simulation", typing.Any], None]
+    ] = config.list(type=cfgtypes.function_())
 
     @staticmethod
     def __plugins__():
         return get_simulation_nodes()
-
-    @abc.abstractmethod
-    def get_rank(self):
-        """
-        Return the rank of the current node.
-        """
-        pass
-
-    @abc.abstractmethod
-    def get_size(self):
-        """
-        Return the size of the collection of all distributed nodes.
-        """
-        pass
-
-    @abc.abstractmethod
-    def broadcast(self, data, root=0):
-        """
-        Broadcast data over MPI
-        """
-        pass
 
     def start_progress(self, duration):
         """
@@ -75,14 +61,14 @@ class Simulation:
         tic = now - self._last_progtic
         self._progtics += 1
         el = now - self._progstart
-        report(
-            f"Simulated {step}/{self._progdur}ms.",
-            f"{el:.2f}s elapsed.",
-            f"Simulated tick in {tic:.2f}.",
-            f"Avg tick {el / self._progtics:.4f}s",
-            level=3,
-            ongoing=False,
-        )
+        # report(
+        #     f"Simulated {step}/{self._progdur}ms.",
+        #     f"{el:.2f}s elapsed.",
+        #     f"Simulated tick in {tic:.2f}.",
+        #     f"Avg tick {el / self._progtics:.4f}s",
+        #     level=3,
+        #     ongoing=False,
+        # )
         progress = types.SimpleNamespace(
             progression=step, duration=self._progdur, time=time()
         )

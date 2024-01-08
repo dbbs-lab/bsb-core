@@ -1,8 +1,9 @@
-from ._util import MockModule
-from ..exceptions import DependencyError
 import functools
 import os
 import warnings
+
+from ..exceptions import DependencyError
+from ._util import MockModule
 
 
 class MPIService:
@@ -54,9 +55,13 @@ class MPIModule(MockModule):
     @property
     @functools.cache
     def COMM_WORLD(self):
-        if any("mpi" in key.lower() for key in os.environ):
+        if (
+            any("mpi" in key.lower() for key in os.environ)
+            and "BSB_IGNORE_PARALLEL" not in os.environ
+        ):
             raise DependencyError(
-                "MPI execution detected without MPI dependencies."
-                + " Please install with `pip install bsb[mpi]` to use MPI."
+                "MPI runtime detected without parallel support."
+                + " Please install with `pip install bsb[parallel]`."
+                + " Set `BSB_IGNORE_PARALLEL` to ignore this error."
             )
         return None

@@ -1,4 +1,5 @@
 import abc
+
 import numpy as np
 
 
@@ -129,19 +130,19 @@ class RhomboidData(PartitionData):
 
     @property
     def height(self):
-        return self.mdc[1] - self.ldc[1]
+        return self.mdc[2] - self.ldc[2]
 
     @height.setter
     def height(self, value):
-        self.mdc[1] = self.ldc[1] + value
+        self.mdc[2] = self.ldc[2] + value
 
     @property
     def depth(self):
-        return self.mdc[2] - self.ldc[2]
+        return self.mdc[1] - self.ldc[1]
 
     @depth.setter
     def depth(self, value):
-        self.mdc[2] = self.ldc[2] + value
+        self.mdc[1] = self.ldc[1] + value
 
 
 def box_layout(ldc, mdc):

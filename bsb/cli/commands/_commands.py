@@ -1,17 +1,18 @@
 """
 Contains builtin commands.
 """
+import itertools
 from uuid import uuid4
 
-from . import BaseCommand
-from ...option import BsbOption
-from ..._options import ConfigOption
-from ...core import from_storage, Scaffold
-from ...storage import open_storage
-from ...config import from_file
-from ...exceptions import NodeNotFoundError
-import itertools
 import errr
+
+from ..._options import ConfigOption
+from ...config import from_file
+from ...core import Scaffold, from_storage
+from ...exceptions import NodeNotFoundError
+from ...option import BsbOption
+from ...storage import open_storage
+from . import BaseCommand
 
 
 class XScale(BsbOption, name="x", cli=("x",), env=("BSB_CONFIG_NETWORK_X",)):
@@ -209,7 +210,7 @@ class BsbSimulate(BaseCommand, name="simulate"):
             append += ", ".join(f"'{name}'" for name in extra_simulations.keys())
             errr.wrap(type(e), e, append=append)
         else:
-            result.write(f"{uuid4()}.nio", "ow")
+            result.write(getattr(context.arguments, "output", f"{uuid4()}.nio"), "ow")
 
     def get_options(self):
         return {
@@ -220,12 +221,14 @@ class BsbSimulate(BaseCommand, name="simulate"):
     def add_parser_arguments(self, parser):
         parser.add_argument("network")
         parser.add_argument("simulation")
+        parser.add_argument("-o", "--output")
 
 
 class CacheCommand(BaseCommand, name="cache"):  # pragma: nocover
     def handler(self, context):
         import shutil
         from datetime import datetime
+
         from ...storage._util import _cache_path
 
         if context.clear:

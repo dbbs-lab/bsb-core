@@ -1,17 +1,16 @@
+import inspect
 import os
 import sys
 import unittest
-import numpy as np
-import inspect
+
 from bsb.voxels import VoxelSet
-from bsb.exceptions import *
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
-import bsb.unittest
+import bsb_test
 
 
-class TestVoxelSet(bsb.unittest.NumpyTestCase, unittest.TestCase):
+class TestVoxelSet(bsb_test.NumpyTestCase, unittest.TestCase):
     def setUp(self):
         vs = VoxelSet
         self.regulars = [

@@ -1,10 +1,13 @@
+from functools import cache
 from itertools import chain
+
 import numpy as np
+
 from ... import config
 from ...config import types
-from ...storage import Chunk
-from ...reporting import warn
 from ...exceptions import ConnectivityWarning
+from ...reporting import warn
+from ...storage import Chunk
 
 
 class Intersectional:
@@ -41,10 +44,9 @@ class Intersectional:
 
     def candidate_intersection(self, target_coll, candidate_coll):
         target_cache = [
-            (ttype, tset, tset.load_boxes())
-            for ttype, tset in target_coll.placement.items()
+            (tset.cell_type, tset, tset.load_boxes()) for tset in target_coll.placement
         ]
-        for ctype, cset in candidate_coll.placement.items():
+        for cset in candidate_coll.placement:
             box_tree = cset.load_box_tree()
             for ttype, tset, tboxes in target_cache:
                 yield (tset, cset, self._affinity_filter(box_tree.query(tboxes)))

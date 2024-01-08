@@ -1,18 +1,14 @@
+import abc
+
 import numpy as np
-import math
-from ..strategy import ConnectionStrategy
-from .shared import Intersectional
+from rtree import index
+
 from ... import config
 from ...config import types
 from ...exceptions import *
-from ...morphologies import Morphology, Branch
-from ...plotting import plot_fiber_morphology
-from ...reporting import report, warn
-import abc
-
-# Import rtree
-from rtree import index
-from rtree.index import Rtree
+from ...reporting import warn
+from ..strategy import ConnectionStrategy
+from .shared import Intersectional
 
 
 class FiberTransform(abc.ABC):
@@ -107,11 +103,6 @@ class FiberIntersection(Intersectional, ConnectionStrategy):
             # (2) Interpolate all branches recursively
             self.interpolate_branches(fm.root_branches)
 
-            if c in self.to_plot:
-                fig = plot_fiber_morphology(
-                    fm, fig=fig, offset=from_cell.position, show=False
-                )
-
             # (3) Transform the fiber if present.
             # It requires the from_cell position that will be
             # used for example in QuiverTransform to get the orientation value
@@ -123,9 +114,6 @@ class FiberIntersection(Intersectional, ConnectionStrategy):
                 )
                 if self.transformation._branch_cut_num > 0:
                     fiber_cut_num += 1
-
-            if c in self.to_plot:
-                fig = plot_fiber_morphology(fm, fig=fig, offset=from_cell.position)
 
             # (4) Interpolate again
             self.interpolate_branches(fm.root_branches)

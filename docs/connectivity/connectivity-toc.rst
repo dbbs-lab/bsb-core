@@ -2,5 +2,7 @@
    :maxdepth: 2
    :caption: Connectivity
 
-   connectivity-strategy
+   defining
+   component
+   connection-strategies
    point-cloud

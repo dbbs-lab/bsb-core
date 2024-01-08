@@ -1,24 +1,26 @@
+import importlib
+import inspect
+import os
+import sys
+import types
+import warnings
+from re import sub
+
+import errr
+
 from ..exceptions import (
     CastError,
-    RequirementError,
-    ConfigurationWarning,
-    DynamicClassInheritanceError,
-    UnfitClassCastError,
+    ConfigurationError,
     DynamicClassError,
-    UnresolvedClassCastError,
-    PluginError,
+    DynamicClassInheritanceError,
     DynamicObjectNotFoundError,
+    PluginError,
+    RequirementError,
+    UnfitClassCastError,
+    UnresolvedClassCastError,
 )
 from ..reporting import warn
 from ._hooks import overrides
-from re import sub
-import warnings
-import errr
-import importlib
-import inspect
-import sys
-import os
-import types
 
 
 def _has_own_init(meta_subject, kwargs):
@@ -37,7 +39,7 @@ def make_metaclass(cls):
     # The metaclass makes it so that there are 3 overloaded constructor forms:
     #
     # MyNode({ <config dict values> })
-    # MyNode(config="dict", values="here")
+    # MyNode(example="attr", values="here")
     # ParentNode(me=MyNode(...))
     #
     # The third makes it that type handling and other types of casting opt out early
@@ -132,9 +134,7 @@ def compile_class(cls):
         del cls_dict["__weakref__"]
     ncls = make_metaclass(cls)(cls.__name__, cls.__bases__, cls_dict)
     for method in ncls.__dict__.values():
-        cl = getattr(method, "__closure__", None)
-        if cl and cl[0].cell_contents is cls:
-            cl[0].cell_contents = ncls
+        _replace_closure_cells(method, cls, ncls)
 
     # Shitty hack, for some reason I couldn't find a way to override the first argument
     # of `__init_subclass__` methods, that would otherwise work on other classmethods,
@@ -156,6 +156,15 @@ def compile_class(cls):
             if v is cls:
                 classmap[k] = ncls
     return ncls
+
+
+def _replace_closure_cells(method, old, new):
+    cl = getattr(method, "__closure__", None) or []
+    for cell in cl:
+        if cell.cell_contents is old:
+            cell.cell_contents = new
+        elif inspect.isfunction(cell.cell_contents):
+            _replace_closure_cells(cell.cell_contents, old, new)
 
 
 def compile_isc(node_cls, dynamic_config):
@@ -284,17 +293,15 @@ def compile_postnew(cls):
             try:
                 _try_catch_attrs(self, catch_attrs, key, value)
             except UncaughtAttributeError:
-                warning = ConfigurationWarning(f"Unknown attribute: '{key}'")
-                warning.node = self
-                warn(warning, ConfigurationWarning)
                 try:
                     setattr(self, key, value)
                 except AttributeError:
                     raise AttributeError(
-                        f"Unknown configuration attribute key '{key}' conflicts with"
+                        f"Configuration attribute key '{key}' conflicts with"
                         + f" readonly class attribute on `{self.__class__.__module__}"
                         + f".{self.__class__.__name__}`."
                     ) from None
+                raise ConfigurationError(f"Unknown attribute:  '{key}'") from None
 
     return __post_new__
 
@@ -343,11 +350,13 @@ def _bubble_up_warnings(log):
 
 def get_config_attributes(cls):
     attrs = {}
+    if not isinstance(cls, type):
+        cls = cls.__class__
     for p_cls in reversed(cls.__mro__):
         if hasattr(p_cls, "_config_attrs"):
             attrs.update(p_cls._config_attrs)
         else:
-            # Add mixin config attributes
+            # Scrape for mixin config attributes
             from ._attrs import ConfigurationAttribute
 
             attrs.update(
@@ -440,9 +449,7 @@ def _get_dynamic_class(node_cls, kwargs):
     except DynamicClassError:
         mapped_class_msg = _get_mapped_class_msg(loaded_cls_name, classmap)
         raise UnresolvedClassCastError(
-            "Could not resolve '{}'{} to a class.".format(
-                loaded_cls_name, mapped_class_msg
-            )
+            f"Could not resolve '{loaded_cls_name}'{mapped_class_msg} to a class"
         ) from None
     return dynamic_cls
 
@@ -584,12 +591,12 @@ def walk_node_attributes(node):
     :returns: attribute, node, parents
     :rtype: Tuple[:class:`~.config.ConfigurationAttribute`, Any, Tuple]
     """
-    if hasattr(node.__class__, "_config_attrs"):
-        attrs = node.__class__._config_attrs
-    elif hasattr(node, "_config_attr"):
-        attrs = _get_walkable_iterator(node)
-    else:
-        return
+    attrs = get_config_attributes(node)
+    if not attrs:
+        if hasattr(node, "_config_attr"):
+            attrs = _get_walkable_iterator(node)
+        else:
+            return
     for attr in attrs.values():
         yield node, attr
         # Yield but don't follow references.

@@ -18,7 +18,6 @@ MPILock service
 
 from .pool import JobPool as _JobPool  # noqa
 
-
 JobPool = _JobPool
 """
 JobPool service

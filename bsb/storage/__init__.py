@@ -11,13 +11,11 @@
     consumers and can be used independent of the underlying storage engine, which is the
     end goal of this module.
 """
+from inspect import isclass
 from typing import Type
 
-from inspect import isclass
-
-from .interfaces import ConnectivitySet, PlacementSet, FileStore, MorphologyRepository
-from ..exceptions import UnknownStorageEngineError
 from .. import plugins
+from ..exceptions import UnknownStorageEngineError
 from ..services import MPI
 from ._chunks import Chunk, chunklist
 from ._files import (
@@ -26,7 +24,7 @@ from ._files import (
     NrrdDependencyNode,
     YamlDependencyNode,
 )
-
+from .interfaces import ConnectivitySet, FileStore, MorphologyRepository, PlacementSet
 
 # Pretend `Chunk` is defined here, for UX. It's only defined in `_chunks` to avoid
 # circular imports anyway.
@@ -401,9 +399,18 @@ def open_storage(root):
             raise FileNotFoundError(f"Storage `{root}` does not exist.")
 
 
-def get_engine_node(engine):
+def get_engine_node(engine_name):
     init_engines()
-    return _engines[engine]["StorageNode"]
+    try:
+        engine = _engines[engine_name]
+    except KeyError:
+        raise RuntimeError(f"Unknown storage engine '{engine_name}'")
+    try:
+        return engine["StorageNode"]
+    except KeyError:
+        raise RuntimeError(
+            f"Broken storage engine plugin '{engine_name}' is missing a StorageNode."
+        )
 
 
 def view_support(engine=None):

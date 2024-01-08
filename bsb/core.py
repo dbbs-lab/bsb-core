@@ -1,38 +1,34 @@
-import time
-import os
 import itertools
+import os
+import time
 import typing
+
 import numpy as np
 
-from .placement import PlacementStrategy
-from .connectivity import ConnectionStrategy
-from .storage import Chunk, Storage, _util as _storutil, open_storage
-from .exceptions import (
-    InputError,
-    NodeNotFoundError,
-    RedoError,
-    ScaffoldError,
-)
-from .reporting import report, warn
-from .config._config import Configuration
-from .services.pool import create_job_pool
-from .services import MPI
-from .simulation import get_simulation_adapter
 from ._util import obj_str_insert
+from .config._config import Configuration
+from .connectivity import ConnectionStrategy
+from .exceptions import InputError, NodeNotFoundError, RedoError, ScaffoldError
+from .placement import PlacementStrategy
 from .profiling import meter
+from .reporting import report, warn
+from .services import MPI
+from .services.pool import create_job_pool
+from .simulation import get_simulation_adapter
+from .storage import Chunk, Storage, open_storage
 
 if typing.TYPE_CHECKING:
-    from .storage.interfaces import (
-        PlacementSet,
-        ConnectivitySet,
-        MorphologyRepository,
-        FileStore,
-    )
-    from .config._config import NetworkNode as Network
-    from .simulation.simulation import Simulation
-    from .topology import Region, Partition
     from .cell_types import CellType
+    from .config._config import NetworkNode as Network
     from .postprocessing import PostProcessingHook
+    from .simulation.simulation import Simulation
+    from .storage.interfaces import (
+        ConnectivitySet,
+        FileStore,
+        MorphologyRepository,
+        PlacementSet,
+    )
+    from .topology import Partition, Region
 
 
 @meter()
@@ -88,6 +84,10 @@ def _get_linked_config(storage=None):
             return cfg
     else:
         return None
+
+
+def _bad_flag(flag: bool):
+    return flag is not None and bool(flag) is not flag
 
 
 class Scaffold:
@@ -253,8 +253,8 @@ class Scaffold:
         if pipelines:
             self.run_pipelines()
         if strategies is None:
-            strategies = list(self.placement.values())
-        strategies = PlacementStrategy.resolve_order(strategies)
+            strategies = [*self.placement]
+        strategies = PlacementStrategy.sort_deps(strategies)
         pool = create_job_pool(self)
         if pool.is_master():
             for strategy in strategies:
@@ -278,8 +278,8 @@ class Scaffold:
         if pipelines:
             self.run_pipelines()
         if strategies is None:
-            strategies = list(self.connectivity.values())
-        strategies = ConnectionStrategy.resolve_order(strategies)
+            strategies = set(self.connectivity.values())
+        strategies = ConnectionStrategy.sort_deps(strategies)
         pool = create_job_pool(self)
         if pool.is_master():
             for strategy in strategies:
@@ -346,6 +346,11 @@ class Scaffold:
         c_strats = self.get_connectivity(skip=skip, only=only)
         todo_list_str = ", ".join(s.name for s in itertools.chain(p_strats, c_strats))
         report(f"Compiling the following strategies: {todo_list_str}", level=2)
+        if _bad_flag(clear) or _bad_flag(redo) or _bad_flag(append):
+            raise InputError(
+                "`clear`, `redo` and `append` are strictly boolean flags. "
+                "Pass the strategies to run to the skip/only options instead."
+            )
         if sum((bool(clear), bool(redo), bool(append))) > 1:
             raise InputError("`clear`, `redo` and `append` are mutually exclusive.")
         if existed:

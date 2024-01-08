@@ -1,15 +1,17 @@
 import unittest
+
 import numpy as np
-from bsb.exceptions import DistributorError, DatasetNotFoundError, EmptySelectionError
-from bsb.core import Scaffold
+from bsb_test import get_data_path, skip_parallel
+
 from bsb.config import Configuration
-from bsb.unittest import skip_parallel, get_data_path
+from bsb.core import Scaffold
+from bsb.exceptions import DatasetNotFoundError, DistributorError, EmptySelectionError
+from bsb.morphologies import Morphology
 from bsb.placement.distributor import (
     MorphologyDistributor,
     MorphologyGenerator,
     VolumetricRotations,
 )
-from bsb.morphologies import Morphology
 
 
 class OneNoneDistributor(MorphologyDistributor):

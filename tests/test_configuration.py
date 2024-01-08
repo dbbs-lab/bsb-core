@@ -1,28 +1,29 @@
-import unittest
-import sys
-import numpy as np
 import json
-from bsb.core import Scaffold
+import sys
+import unittest
+
+import numpy as np
+from bsb_test import RandomStorageFixture, get_config_path, get_data_path
+
 from bsb import config
-from bsb.config import from_json, Configuration, _attrs, compose_nodes
-from bsb.config import types
+from bsb.config import Configuration, _attrs, compose_nodes, types
+from bsb.config.refs import Reference
+from bsb.core import Scaffold
 from bsb.exceptions import (
-    CfgReferenceError,
-    RequirementError,
-    ConfigurationWarning,
     CastError,
-    UnfitClassCastError,
-    DynamicClassInheritanceError,
-    UnresolvedClassCastError,
-    DynamicObjectNotFoundError,
+    CfgReferenceError,
     ClassMapMissingError,
+    ConfigurationError,
+    ConfigurationWarning,
+    DynamicClassInheritanceError,
+    DynamicObjectNotFoundError,
+    RequirementError,
+    UnfitClassCastError,
+    UnresolvedClassCastError,
 )
 from bsb.storage import NrrdDependencyNode, YamlDependencyNode
+from bsb.topology.partition import Partition
 from bsb.topology.region import RegionGroup
-from bsb.unittest import get_config_path, get_data_path
-
-minimal_config = get_config_path("test_minimal.json")
-full_config = get_config_path("test_full_v4.json")
 
 
 @config.root
@@ -30,60 +31,42 @@ class TestRoot:
     pass
 
 
-def as_json(f):
-    import json
-
-    with open(f, "r") as fh:
-        return json.load(fh)
-
-
-class TestConfiguration(unittest.TestCase):
-    def test_minimal_json_bootstrap(self):
-        config = from_json(minimal_config)
-        Scaffold(config)
-
+class TestConfiguration(
+    RandomStorageFixture, unittest.TestCase, setup_cls=True, engine_name="hdf5"
+):
     def test_default_bootstrap(self):
         cfg = config.Configuration.default()
-        Scaffold(cfg)
-
-    def test_minimal_json_content_bootstrap(self):
-        with open(minimal_config, "r") as f:
-            content = f.read()
-        config = from_json(data=content)
-        Scaffold(config)
-
-    def test_full_json_bootstrap(self):
-        config = from_json(full_config)
-        Scaffold(config)
+        Scaffold(cfg, self.storage)
 
     def test_missing_nodes(self):
-        self.assertRaises(RequirementError, from_json, data="""{}""")
+        with self.assertRaises(RequirementError):
+            Configuration({})
 
     def test_no_unknown_attributes(self):
         try:
             with self.assertWarns(ConfigurationWarning) as cm:
-                from_json(minimal_config)
-            self.fail(f"Unknown configuration attributes detected: {cm.warning}")
-        except AssertionError:
-            pass
-
-    def test_full_no_unknown_attributes(self):
-        try:
-            with self.assertWarns(ConfigurationWarning) as cm:
-                from_json(full_config)
+                Configuration.default()
             self.fail(f"Unknown configuration attributes detected: {cm.warning}")
         except AssertionError:
             pass
 
     def test_unknown_attributes(self):
-        data = as_json(minimal_config)
-        data["shouldntexistasattr"] = 15
-        with self.assertWarns(ConfigurationWarning) as warning:
-            from_json(data=data)
+        tree = Configuration.default().__tree__()
+        tree["shouldntexistasattr"] = 15
+        with self.assertRaises(ConfigurationError) as e:
+            Configuration(tree)
 
-        self.assertIn(
-            """Unknown attribute: 'shouldntexistasattr'""", str(warning.warning)
-        )
+    def test_readonly_attributes(self):
+        tree = Configuration.default().__tree__()
+        tree["partitions"] = {
+            "base_layer": {"type": "layer", "thickness": 100, "region": "x"}
+        }
+        with self.assertRaises(CastError) as ec:
+            Configuration(tree)
+        # Need a further check since CastError is raised before AttributeError
+        check_str = "Configuration attribute key 'region' conflicts with readonly"
+        msg_str = "Readonly class attribute conflicts"
+        self.assertIn(check_str, str(ec.exception), msg_str)
 
 
 class TestConfigAttrs(unittest.TestCase):
@@ -161,6 +144,7 @@ class TestConfigAttrs(unittest.TestCase):
 
         @config.node
         class Test4:
+            timmy = config.attr(type=str)
             name = config.attr(type=str, required=regular)
 
         Test(name="required")
@@ -338,6 +322,37 @@ class TestConfigRefList(unittest.TestCase):
         root = BootRoot({})
         with self.assertRaises(CfgReferenceError):
             root.empty_list = 5
+
+    def test_mixin_reflist_resolution(self):
+        """
+        Test that mixins without decorators also have their references resolved.
+        """
+
+        class NodeReference(Reference):
+            def __call__(self, root, here):
+                return self.up(here)
+
+            def is_ref(self, value):
+                return isinstance(value, Node)
+
+        class NodeMixin:
+            children = config.reflist(NodeReference())
+
+        @config.node
+        class Node(NodeMixin):
+            pass
+
+        @config.root
+        class Root:
+            a = config.dict(type=Node)
+
+        cfg = Root(a=dict(b=Node(children=["b", "c"]), c=Node(children=[])))
+        node = cfg.a.b
+        self.assertIs(
+            node.children[0],
+            node,
+            "Mixin reference should be resolved",
+        )
 
 
 class HasRefsReference:
@@ -890,6 +905,33 @@ class TestTypes(unittest.TestCase):
         self.assertEqual(b.c, "h")
         self.assertRaises(CastError, TestF, {"c": "h"}, _parent=TestRoot())
 
+    def test_dynamic_or(self):
+        @config.dynamic(
+            attr_name="f", default="a", auto_classmap=True, classmap_entry="a"
+        )
+        class TestA:
+            pass
+
+        class TestB(TestA, classmap_entry="b"):
+            pass
+
+        @config.node
+        class Container:
+            direct = config.attr(type=TestA)
+            or_ = config.attr(type=types.or_(TestA, TestA))
+
+        # Direct dynamic TestA with value 'b' should resolve to TestB
+        self.assertEqual(TestB, type(TestA(f="b")))
+        # Dynamic attr TestA with value 'b' should resolve to TestB
+        self.assertEqual(TestB, type(Container(direct={"f": "b"}).direct))
+        # Dynamic or of TestA with value 'b' should resolve to TestB
+        self.assertEqual(TestB, type(Container(or_={"f": "b"}).or_))
+        # Dynamic or of TestA should fall back to default TestA
+        self.assertEqual(TestA, type(Container(or_={}).or_))
+        # Unknown value 'bb' in dynamic or should raise CastError
+        with self.assertRaises(CastError):
+            _ = Container(or_={"f": "bb"}).or_
+
     def test_scalar_expand(self):
         @config.node
         class Test:
@@ -1149,10 +1191,6 @@ class TestTreeing(unittest.TestCase):
         test_tree = cfg.__tree__()
         ref_tree = {"a": 5, "b": 5.0, "c": "3"}
         self.surjective("autocorrect", Test, ref_tree, test_tree)
-
-    @unittest.expectedFailure
-    def test_full(self):
-        self.bijective("full", Configuration, as_json(full_config))
 
     def test_eval(self):
         @config.root

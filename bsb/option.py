@@ -1,11 +1,13 @@
 """
 This module contains the classes required to construct options.
 """
-import os
-import toml
-import pathlib
-import functools
 import argparse
+import functools
+import os
+import pathlib
+
+import toml
+
 from .exceptions import OptionError
 
 

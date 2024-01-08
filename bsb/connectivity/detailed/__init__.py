@@ -1,8 +1,9 @@
-from ..strategy import ConnectionStrategy
-from importlib import import_module
+import inspect
+import os
 from glob import glob
-import os, inspect
+from importlib import import_module
 
+from ..strategy import ConnectionStrategy
 
 # Scan the whole directory for python files, then import any ConnectionStrategies into
 # this module.
