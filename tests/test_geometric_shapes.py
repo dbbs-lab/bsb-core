@@ -1,16 +1,18 @@
 import unittest
+
 import numpy as np
-from bsb.exceptions import RequirementError
-from bsb.unittest import NumpyTestCase
+from bsb_test import NumpyTestCase
+
 from bsb.connectivity.point_cloud.geometric_shapes import (
-    ShapesComposition,
-    Sphere,
-    Cylinder,
     Cone,
+    Cuboid,
+    Cylinder,
     Ellipsoid,
     Parallelepiped,
-    Cuboid,
+    ShapesComposition,
+    Sphere,
 )
+from bsb.exceptions import RequirementError
 
 
 class TestGeometricShapes(unittest.TestCase, NumpyTestCase):

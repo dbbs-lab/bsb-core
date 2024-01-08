@@ -1,8 +1,10 @@
 import numpy as np
-from bsb.connectivity import ConnectionStrategy
+
 from bsb import config
-from .cloud_cloud_intersection import CloudHemitype
+from bsb.connectivity import ConnectionStrategy
+
 from ...config import types
+from .cloud_cloud_intersection import CloudHemitype
 
 
 @config.node
@@ -28,9 +30,9 @@ class CloudToMorphologyIntersection(ConnectionStrategy):
         return [pre_chunks[i] for i in tree.query(post_mbb, unique=True)]
 
     def connect(self, pre, post):
-        for pre_ct, pre_ps in pre.placement.items():
-            for post_ct, post_ps in post.placement.items():
-                self._connect_type(pre_ct, pre_ps, post_ct, post_ps)
+        for pre_ps in pre.placement:
+            for post_ps in post.placement:
+                self._connect_type(pre_ps.cell_type, pre_ps, post_ps.cell_type, post_ps)
 
     def _connect_type(self, pre_ct, pre_ps, post_ct, post_ps):
         pre_pos = pre_ps.load_positions()[:, [0, 2, 1]]

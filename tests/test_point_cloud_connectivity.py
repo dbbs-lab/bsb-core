@@ -1,14 +1,16 @@
-from bsb.core import Scaffold
-from bsb.config import Configuration
-from bsb.unittest import (
-    NumpyTestCase,
+import unittest
+
+from bsb_test import (
     FixedPosConfigFixture,
-    RandomStorageFixture,
     MorphologiesFixture,
     NetworkFixture,
+    NumpyTestCase,
+    RandomStorageFixture,
 )
+
+from bsb.config import Configuration
+from bsb.core import Scaffold
 from bsb.exceptions import DatasetNotFoundError
-import unittest
 
 
 class TestPointCloudConnectivity(

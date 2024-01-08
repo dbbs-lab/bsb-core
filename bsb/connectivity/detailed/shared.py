@@ -1,4 +1,3 @@
-from functools import cache
 from itertools import chain
 
 import numpy as np

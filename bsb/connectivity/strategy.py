@@ -1,6 +1,9 @@
 import abc
 import typing
+from functools import cache
 from itertools import chain
+
+import numpy as np
 
 from .. import config
 from .._util import ichain, obj_str_insert
@@ -11,7 +14,6 @@ from ..reporting import report, warn
 
 if typing.TYPE_CHECKING:
     from ..cell_types import CellType
-    from ..connectivity import ConnectionStrategy
     from ..core import Scaffold
     from ..morphologies import MorphologySet
     from ..storage.interfaces import PlacementSet
