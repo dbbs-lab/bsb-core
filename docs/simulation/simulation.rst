@@ -247,21 +247,18 @@ NEURON
 Cell models
 -----------
 
-A cell model is described by loading external ``arborize.CellModel`` classes:
+By default the NEURON adapter uses an ``ArborizedCellModel``, which loads
+external ``arborize`` definition to instantiate cells.
 
 .. code-block:: json
 
   {
     "cell_models": {
       "cell_type_A": {
-        "model": "dbbs_models.GranuleCell",
-        "record_soma": true,
-        "record_spikes": true
+        "model": "dbbs_models.GranuleCell"
       },
       "cell_type_B": {
-        "model": "dbbs_models.PurkinjeCell",
-        "record_soma": true,
-        "record_spikes": true
+        "model": "dbbs_models.PurkinjeCell"
       }
     }
   }
@@ -290,11 +287,9 @@ can be referenced by name:
 Devices
 -------
 
-In NEURON an assortment of devices is provided by the BSB to send input, or
-record output.
+Devices send input, or record output.
 
-In addition to voltage and spike recording we'll place a spike generator and a
-voltage clamp:
+Here we'll place a spike generator and a voltage clamp:
 
 .. code-block:: json
 
