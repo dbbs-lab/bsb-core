@@ -2,7 +2,6 @@
     An attrs-inspired class annotation system, but my A stands for amateuristic.
 """
 import builtins
-import traceback
 
 import errr
 
@@ -463,12 +462,11 @@ class ConfigurationAttribute:
                 e.node, e.attr = instance, self.attr_name
             raise
         except Exception as e:
-            traceback.print_exc()
             raise CastError(
                 f"Couldn't cast '{value}' into {self.type.__name__}: {e}",
                 instance,
                 self.attr_name,
-            )
+            ) from e
         # The value was cast to its intented type and the new value can be set.
         _setattr(instance, self.attr_name, value)
         root = _strict_root(instance)
