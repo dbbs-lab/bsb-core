@@ -466,7 +466,7 @@ class ConfigurationAttribute:
                 f"Couldn't cast '{value}' into {self.type.__name__}: {e}",
                 instance,
                 self.attr_name,
-            )
+            ) from e
         # The value was cast to its intented type and the new value can be set.
         _setattr(instance, self.attr_name, value)
         root = _strict_root(instance)
