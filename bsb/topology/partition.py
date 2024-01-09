@@ -490,7 +490,7 @@ class AllenStructure(NrrdVoxels, classmap_entry="allen"):
     referred as Allen Mouse Brain Region Hierarchy (AMBRH)
     """
 
-    struct_id: int = config.attr(type=int, key=True)
+    struct_id: int = config.attr(type=int)
     """Id of the region to filter within the annotation volume according to the AMBRH.
     If struct_id is set, then struct_name should not be set."""
     struct_name: str = config.attr(type=types.str(strip=True, lower=True), key=True)
