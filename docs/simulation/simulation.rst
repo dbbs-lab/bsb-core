@@ -20,9 +20,7 @@ control. When using the CLI, the framework sets up a "hands off" simulation work
 * Run the simulation
 * Collect all the output
 
-When you use the library, you can set up more complex workflows. For example a parameter
-sweep that loops and modifies the release probability of the AMPA synapse in the
-cerebellar granule cell:
+When you use the library, you can set up more complex workflows, such as parameter sweeps:
 
 .. literalinclude:: ../../examples/simulation/parameter_sweep.py
   :language: python
