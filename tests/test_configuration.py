@@ -1089,6 +1089,14 @@ class TestTypes(unittest.TestCase):
         d = Test(c="test.yaml", _parent=TestRoot())
         self.assertRaises(FileNotFoundError, d.c.load_object)
 
+    def test_mutexcl(self):
+        """test the types.mut_excl function"""
+        with self.assertRaises(RequirementError):
+            cfg = Configuration.default(
+                regions=dict(br=dict(children=["a"])),
+                partitions=dict(a=dict(type="allen", struct_id=7, struct_name="VAL")),
+            )
+
 
 @config.dynamic(
     type=types.in_classmap(),
