@@ -4,17 +4,13 @@
 Simulating networks
 ###################
 
-.. The BSB manages simulations by deferring as soon as possible to the simulation backends.
-.. Each simulator has good reasons to make their design choices, befitting of their
-.. simulation paradigm. These choices lead to divergence in how simulations are described,
-.. and each simulator has their own niche functions. This means that if you are already
-.. familiar with a simulator, writing simulation config should feel familiar, on top of that
-.. the BSB is able to offer you access to each simulator's full set of features. The downside
-.. is that you're required to write a separate simulation config block per backend.
-..
-.. Now, let's get started.
+Simulations can be run through the CLI:
 
-Simulations can be run through the CLI tool, or through the ``bsb`` library for more
+.. code-block:: bash
+
+  bsb simulate my_network.hdf5 my_sim_name
+
+or through the ``bsb`` library for more
 control. When using the CLI, the framework sets up a "hands off" simulation workflow:
 
 * Read the network file
@@ -23,10 +19,6 @@ control. When using the CLI, the framework sets up a "hands off" simulation work
 * Create all cells, connections and devices
 * Run the simulation
 * Collect all the output
-
-.. code-block:: bash
-
-  bsb simulate my_network.hdf5 my_sim_name
 
 When you use the library, you can set up more complex workflows. For example a parameter
 sweep that loops and modifies the release probability of the AMPA synapse in the
