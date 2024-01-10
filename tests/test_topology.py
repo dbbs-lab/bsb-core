@@ -71,26 +71,6 @@ class TestTopology(unittest.TestCase):
 
 
 class TestAllenVoxels(unittest.TestCase):
-    def test_optional_struct_key(self):
-        """Test if AllenStructure correctly assign default struct_name"""
-        cfg = Configuration.default(
-            partitions=dict(val=dict(type="allen")),
-        )
-        part = cfg.partitions.val
-        vs = part.voxelset
-        self.assertEqual(52314, len(vs), "VAL is that many voxels")
-        self.assertEqual(52314 * 25**3, part.volume(), "VAL occupies this much space")
-        self.assertTrue(
-            np.allclose([(5975, 3550, 3950), (7125, 5100, 7475)], vs.bounds),
-            "VAL has those bounds",
-        )
-        not_impl = "We don't support transforming voxel partitions yet. Contribute it!"
-        for t in ("translate", "scale", "rotate"):
-            with self.subTest(transform=t):
-                transform = getattr(part, t)
-                with self.assertRaises(LayoutError, msg=not_impl):
-                    transform(0)
-
     def test_val(self):
         cfg = Configuration.default(
             partitions=dict(a=dict(type="allen", struct_name="VAL")),
@@ -109,6 +89,15 @@ class TestAllenVoxels(unittest.TestCase):
                 transform = getattr(part, t)
                 with self.assertRaises(LayoutError, msg=not_impl):
                     transform(0)
+
+    def test_optional_struct_key(self):
+        """Test only if AllenStructure correctly assign default struct_name, the actual function is tested in test_val()"""
+        cfg = Configuration.default(
+            partitions=dict(val=dict(type="allen")),
+        )
+        part = cfg.partitions.val
+        vs = part.voxelset
+        self.assertEqual(52314, len(vs), "VAL is that many voxels")
 
     def test_mask_nrrd(self):
         cfg = Configuration.default(

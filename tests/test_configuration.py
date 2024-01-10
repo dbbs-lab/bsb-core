@@ -1091,11 +1091,40 @@ class TestTypes(unittest.TestCase):
 
     def test_mutexcl(self):
         """test the types.mut_excl function"""
+
+        @config.node
+        class TestClass1:
+            a = config.attr(required=types.mut_excl("a", "b"))
+            b = config.attr(required=types.mut_excl("a", "b"))
+
+        @config.node
+        class TestClass2:
+            a = config.attr(required=types.mut_excl("a", "b", required=False))
+            b = config.attr(required=types.mut_excl("a", "b", required=False))
+
+        @config.node
+        class TestClass3:
+            a = config.attr(required=types.mut_excl("a", "b", max=2))
+            b = config.attr(required=types.mut_excl("a", "b", max=2))
+
+        @config.node
+        class TestClass4:
+            a = config.attr(required=types.mut_excl("a", "b", "c", max=2))
+            b = config.attr(required=types.mut_excl("a", "b", "c", max=2))
+            c = config.attr(required=types.mut_excl("a", "b", "c", max=2))
+
+        TestClass1(a="1")
+        TestClass1(b="6")
         with self.assertRaises(RequirementError):
-            cfg = Configuration.default(
-                regions=dict(br=dict(children=["a"])),
-                partitions=dict(a=dict(type="allen", struct_id=7, struct_name="VAL")),
-            )
+            TestClass1(a="5", b="6")
+        with self.assertRaises(RequirementError):
+            TestClass1()
+
+        TestClass2()
+        TestClass3(a="1", b="6")
+        TestClass4(a="1", c="3")
+        with self.assertRaises(RequirementError):
+            TestClass4(a="1", b="6", c="3")
 
 
 @config.dynamic(
