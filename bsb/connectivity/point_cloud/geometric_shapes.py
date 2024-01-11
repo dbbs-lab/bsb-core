@@ -128,14 +128,14 @@ class GeometricShape(abc.ABC):
         Check if the points given in input are inside the geometric shape.
 
         :param numpy.ndarray points: A cloud of points.
-        :return: A bool array of length npoints, containing whether the -ith point is inside the
-            geometric shape or not.
+        :return: A bool array with same length as points, containing whether the -ith point is
+            inside the geometric shape or not.
         :rtype: numpy.ndarray
         """
         pass
 
     @abc.abstractmethod
-    def wireframe_points(self, nb_points_1=30, nb_points_2=30):
+    def wireframe_points(self, nb_points_1=30, nb_points_2=30):  # pragma: no cover
         """
         Generate a wireframe to plot the geometric shape.
         If a sampling of points is needed (e.g. for sphere), the wireframe is based on a grid
@@ -341,7 +341,9 @@ class ShapesComposition:
             for shape in self._shapes:
                 # For each shape, the shape of the wireframe is different, so we need to append them
                 # manually
-                xt, yt, zt = shape.wireframe_points(nb_points_1, nb_points_2)
+                xt, yt, zt = shape.wireframe_points(
+                    nb_points_1=nb_points_1, nb_points_2=nb_points_2
+                )
                 x.append(xt)
                 y.append(yt)
                 z.append(zt)

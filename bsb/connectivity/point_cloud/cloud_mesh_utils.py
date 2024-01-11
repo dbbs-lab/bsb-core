@@ -66,7 +66,7 @@ def uniform_surface_sampling(
 
 def uniform_surface_wireframe(
     n_points_1,
-    nb_points_2,
+    n_points_2,
     surface_function,
     theta_min=0,
     theta_max=2 * np.pi,
@@ -75,11 +75,11 @@ def uniform_surface_wireframe(
     precision=25,
 ):
     """
-    Uniform-like meshgrid of polar coordinates based on surface estimation.
-    This sampling is useful on elliptic surfaces (e.g. sphere).
+    Uniform-like meshgrid of size (n_point_1, n_points_2) of polar coordinates based on surface
+    estimation.
+    This meshgrid is useful on elliptic surfaces (e.g. sphere).
     Algorithm based on https://github.com/maxkapur/param_tools
 
-    :param int n_points: number of points to sample
     :param Callable[..., np.ndarray[float]] surface_function: function converting polar coordinates
         into cartesian coordinates
     :param int precision: size of grid used to estimate function surface
@@ -89,7 +89,7 @@ def uniform_surface_wireframe(
         surface_function, theta_min, theta_max, phi_min, phi_max, precision
     )
     sampled_t = np.linspace(0, cum_S_t[-1], n_points_1)
-    sampled_u = np.linspace(0, cum_S_u[-1], nb_points_2)
+    sampled_u = np.linspace(0, cum_S_u[-1], n_points_2)
     sampled_t = interp1d(cum_S_t, theta[0, :])(sampled_t)
     sampled_u = interp1d(cum_S_u, phi[:, 0])(sampled_u)
     sampled_t, sampled_u = np.meshgrid(sampled_t, sampled_u)
