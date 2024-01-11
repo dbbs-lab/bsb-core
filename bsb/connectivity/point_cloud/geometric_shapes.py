@@ -1,18 +1,22 @@
 from __future__ import annotations
-import numpy as np
-from scipy.spatial.transform import Rotation as R
-import pickle
+
 import abc
 import copy
 from typing import List, Tuple
+
 import numpy
+import numpy as np
+from scipy.spatial.transform import Rotation as R
+
 from bsb import config
 from bsb.config import types
 
 from .cloud_mesh_utils import (
+    rotate_3d_mesh_by_rot_mat,
     rotate_3d_mesh_by_vec,
     translate_3d_mesh_by_vec,
-    rotate_3d_mesh_by_rot_mat,
+    uniform_surface_sampling,
+    uniform_surface_wireframe,
 )
 
 
@@ -131,12 +135,16 @@ class GeometricShape(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def wireframe_points(self):  # pragma: no cover
+    def wireframe_points(self, nb_points_1=30, nb_points_2=30):
         """
         Generate a wireframe to plot the geometric shape.
+        If a sampling of points is needed (e.g. for sphere), the wireframe is based on a grid
+        of shape (nb_points_1, nb_points_2).
 
-        :return: An array of 3D points
-        :rtype: numpy.ndarray
+        :param int nb_points_1: number of points sampled along the first dimension
+        :param int nb_points_2: number of points sampled along the second dimension
+        :return: Coordinate components of the wireframe
+        :rtype: Tuple[numpy.ndarray[numpy.ndarray[float]]
         """
         pass
 
@@ -313,12 +321,18 @@ class ShapesComposition:
 
     def generate_wireframe(
         self,
-    ) -> Tuple[numpy.ndarray[float], numpy.ndarray[float], numpy.ndarray[float]]:
+        nb_points_1=30,
+        nb_points_2=30,
+    ) -> Tuple[List, List, List] | None:
         """
-        Generate a wireframe to plot the collection of shapes.
+        Generate the wireframes of a collection of shapes.
+        If a sampling of points is needed for certain shapes (e.g. for sphere), their wireframe
+        is based on a grid of shape (nb_points_1, nb_points_2).
 
+        :param int nb_points_1: number of points sampled along the first dimension
+        :param int nb_points_2: number of points sampled along the second dimension
         :return: The x,y,z coordinates of the wireframe of each shape.
-        :rtype: Tuple(numpy.ndarray[float], numpy.ndarray[float], numpy.ndarray[float]) | None
+        :rtype: Tuple[List[numpy.ndarray[numpy.ndarray[float]]]] | None
         """
         if len(self._shapes) != 0:
             x = []
@@ -327,7 +341,7 @@ class ShapesComposition:
             for shape in self._shapes:
                 # For each shape, the shape of the wireframe is different, so we need to append them
                 # manually
-                xt, yt, zt = shape.wireframe_points()
+                xt, yt, zt = shape.wireframe_points(nb_points_1, nb_points_2)
                 x.append(xt)
                 y.append(yt)
                 z.append(zt)
@@ -441,24 +455,31 @@ class Ellipsoid(GeometricShape, classmap_entry="ellipsoid"):
         self.v1 = rot.apply(self.v1)
         self.v2 = rot.apply(self.v2)
 
-    def generate_point_cloud(self, npoints: int):
-        # Generate an ellipse orientated along x,y,z
-        cloud = np.full((npoints, 3), 0, dtype=float)
-        theta = np.pi * 2.0 * np.random.rand(npoints)
-        phi = 1.0 * np.pi * np.random.rand(npoints)
-        rand = np.random.rand(npoints, 3)
+    def surface_point(self, theta, phi):
+        """
+        Convert polar coordinates into their 3D location on the ellipsoid surface.
 
-        # Generate an ellipsoid centered at the origin, with the semiaxes on x,y,z
-        cloud[:, 0] = self.lambdas[0] * np.cos(theta) * np.sin(phi)
-        cloud[:, 1] = self.lambdas[1] * np.sin(theta) * np.sin(phi)
-        cloud[:, 2] = self.lambdas[2] * np.cos(phi)
-        cloud = cloud * rand
+        :param float|numpy.ndarray[float] theta: first polar coordinate in [0; 2*np.pi]
+        :param float|numpy.ndarray[float] phi: second polar coordinate in [0; np.pi]
+        :return: surface coordinates
+        :rtype: float|numpy.ndarray[float]
+        """
+        return np.array(
+            [
+                self.lambdas[0] * np.cos(theta) * np.sin(phi),
+                self.lambdas[1] * np.sin(theta) * np.sin(phi),
+                self.lambdas[2] * np.cos(phi),
+            ]
+        )
+
+    def generate_point_cloud(self, npoints: int):
+        cloud = uniform_surface_sampling(npoints, self.surface_point)
+        cloud = cloud.T * np.random.rand(npoints, 3)  # sample within the shape
 
         # Rotate the ellipse
         rmat = np.array([self.v0, self.v1, self.v2]).T
         cloud = cloud.dot(rmat)
         cloud = cloud + self.origin
-
         return cloud
 
     def check_inside(self, points: numpy.ndarray[float]):
@@ -473,24 +494,13 @@ class Ellipsoid(GeometricShape, classmap_entry="ellipsoid"):
         inside_points = quad_prod < 1
         return inside_points
 
-    def wireframe_points(self):
+    def wireframe_points(self, nb_points_1=30, nb_points_2=30):
         # Generate an ellipse orientated along x,y,z
-        theta = np.linspace(0, 2 * np.pi, 90)
-        phi = np.linspace(0, np.pi, 90)
-
-        theta, phi = np.meshgrid(theta, phi)
-
-        # Generate an ellipsoid centered at the origin, with the semiaxes on x,y,z
-        x = self.lambdas[0] * np.cos(theta) * np.sin(phi)
-        y = self.lambdas[1] * np.sin(theta) * np.sin(phi)
-        z = self.lambdas[2] * np.cos(phi)
-
+        x, y, z = uniform_surface_wireframe(nb_points_1, nb_points_2, self.surface_point)
         # Rotate the ellipse
         rmat = np.array([self.v0, self.v1, self.v2]).T
         x, y, z = rotate_3d_mesh_by_rot_mat(x, y, z, rmat)
-        x, y, z = translate_3d_mesh_by_vec(x, y, z, self.center)
-
-        return x, y, z
+        return translate_3d_mesh_by_vec(x, y, z, self.origin)
 
 
 @config.node
@@ -570,7 +580,6 @@ class Cone(GeometricShape, classmap_entry="cone"):
 
         if hv[2] < 0:
             cloud[:, 2] = -cloud[:, 2]
-
         rot = R.from_rotvec(perp * angle)
         cloud = rot.apply(cloud)
 
@@ -609,10 +618,10 @@ class Cone(GeometricShape, classmap_entry="cone"):
         )
         return inside_points
 
-    def wireframe_points(self):
+    def wireframe_points(self, nb_points_1=30, nb_points_2=30):
         # Set up the grid in polar coordinates
-        theta = np.linspace(0, 2 * np.pi, 90)
-        r = np.linspace(0, self.radius, 150)
+        theta = np.linspace(0, 2 * np.pi, nb_points_1)
+        r = np.linspace(0, self.radius, nb_points_2)
         theta, r = np.meshgrid(theta, r)
 
         # Height vector
@@ -746,18 +755,17 @@ class Cylinder(GeometricShape, classmap_entry="cylinder"):
         )
         return inside_points
 
-    def wireframe_points(self):
+    def wireframe_points(self, nb_points_1=30, nb_points_2=30):
         # Set up the grid in polar coordinates
-        theta = np.linspace(0, 2 * np.pi, 90)
+        theta = np.linspace(0, 2 * np.pi, nb_points_1)
 
         # Height vector
         hv = np.array(self.origin) - np.array(self.top_center)
         height = np.linalg.norm(hv)
 
-        h = np.linspace(0, height, 150)
+        h = np.linspace(0, height, nb_points_2)
         theta, h = np.meshgrid(theta, h)
 
-        # Generate a cone with the apex in the origin and the center at (0,0,height)
         x = self.radius * np.cos(theta)
         y = self.radius * np.sin(theta)
         z = h
@@ -806,16 +814,27 @@ class Sphere(GeometricShape, classmap_entry="sphere"):
         # It's a sphere, it's invariant under rotation!
         pass
 
+    def surface_function(self, theta, phi):
+        """
+        Convert polar coordinates into their 3D location on the sphere surface.
+
+        :param float|numpy.ndarray[float] theta: first polar coordinate in [0; 2*np.pi]
+        :param float|numpy.ndarray[float] phi: second polar coordinate in [0; np.pi]
+        :return: surface coordinates
+        :rtype: float|numpy.ndarray[float]
+        """
+        return np.array(
+            [
+                self.radius * np.cos(theta) * np.sin(phi),
+                self.radius * np.sin(theta) * np.sin(phi),
+                self.radius * np.cos(phi),
+            ]
+        )
+
     def generate_point_cloud(self, npoints: int):
         # Generate a sphere centered at the origin.
-        cloud = np.full((npoints, 3), 0, dtype=float)
-        theta = np.pi * 2.0 * np.random.rand(npoints)
-        phi = -1.0 * np.pi * np.random.rand(npoints)
-        rand = np.random.rand(npoints, 3)
-        cloud[:, 0] = self.radius * np.cos(theta) * np.sin(phi)
-        cloud[:, 1] = self.radius * np.sin(theta) * np.sin(phi)
-        cloud[:, 2] = self.radius * np.cos(phi)
-        cloud = cloud * rand
+        cloud = uniform_surface_sampling(npoints, self.surface_function)
+        cloud = cloud.T * np.random.rand(npoints, 3)  # sample within the shape
 
         cloud = cloud + self.origin
 
@@ -829,19 +848,11 @@ class Sphere(GeometricShape, classmap_entry="sphere"):
         inside_points = lhs < self.radius + self.epsilon
         return inside_points
 
-    def wireframe_points(self):
-        # Generate a sphere centered at the origin
-        theta = np.linspace(0, 2 * np.pi, 90)
-        phi = np.linspace(0, np.pi, 90)
-        theta, phi = np.meshgrid(theta, phi)
-        x = self.radius * np.cos(theta) * np.sin(phi)
-        y = self.radius * np.sin(theta) * np.sin(phi)
-        z = self.radius * np.cos(phi)
-
-        # Translate the sphere
-        x, y, z = translate_3d_mesh_by_vec(x, y, z, self.origin)
-
-        return x, y, z
+    def wireframe_points(self, nb_points_1=30, nb_points_2=30):
+        x, y, z = uniform_surface_wireframe(
+            nb_points_1, nb_points_2, self.surface_function
+        )
+        return translate_3d_mesh_by_vec(x, y, z, self.origin)
 
 
 @config.node
@@ -977,7 +988,7 @@ class Cuboid(GeometricShape, classmap_entry="cuboid"):
         )
         return inside_points
 
-    def wireframe_points(self):
+    def wireframe_points(self, **kwargs):
         a = self.side_length_1 / 2.0
         b = self.side_length_2 / 2.0
         c = np.linalg.norm(self.top_center - self.origin)
@@ -1084,7 +1095,7 @@ class Parallelepiped(GeometricShape, classmap_entry="parallelepiped"):
                 + rand[i, 1] * self.side_vector_2
                 + rand[i, 2] * self.side_vector_3
             )
-        cloud = cloud + self.origin
+        cloud += self.origin
         return cloud
 
     def check_inside(self, points: numpy.ndarray[float]):
@@ -1121,7 +1132,7 @@ class Parallelepiped(GeometricShape, classmap_entry="parallelepiped"):
         )
         return inside_points
 
-    def wireframe_points(self):
+    def wireframe_points(self, **kwargs):
         va = self.side_vector_1
         vb = self.side_vector_2
         vc = self.side_vector_3
@@ -1160,4 +1171,4 @@ class Parallelepiped(GeometricShape, classmap_entry="parallelepiped"):
             ]
         )
 
-        return x, y, z
+        return x + self.origin[0], y + self.origin[1], z + self.origin[2]

@@ -68,7 +68,9 @@ class TestGeometricShapes(unittest.TestCase, NumpyTestCase):
         self.assertEqual([], sc.get_volumes())
 
         # Add the sphere to the ShapesComposition object
-        configuration = dict(radius=100.0, origin=np.array([0, 0, 0], dtype=np.float64))
+        radius = 100.0
+        origin = np.array([0, 0, 0], dtype=np.float64)
+        configuration = dict(radius=radius, origin=origin)
         sc.add_shape(Sphere(configuration), ["sphere"])
 
         # Find the mmb
@@ -129,6 +131,11 @@ class TestGeometricShapes(unittest.TestCase, NumpyTestCase):
         volume = 4 * (np.pi * configuration["radius"] ** 3) / 3.0
         self._check_points_inside(sc, volume, conf["voxel_size"])
         self._check_translation(sc, expected_mbb)
+        wireframe = np.array(sc.generate_wireframe())
+        self.assertEqual((3, 1, 30, 30), wireframe.shape)
+        self.assertTrue(
+            np.allclose(np.linalg.norm(wireframe[:, 0, :, 0].T - origin, axis=1), radius)
+        )
 
     # Create an ellipsoid, add it to a ShapeComposition object and test the minimal bounding box, inside_mbox, inside_shapes and generate_point_cloud methods
     def test_ellipsoid(self):
@@ -217,6 +224,9 @@ class TestGeometricShapes(unittest.TestCase, NumpyTestCase):
         self.assertClose(mbb[0], expected_mbb[0, [1, 0, 2]])
         self.assertClose(mbb[1], expected_mbb[1, [1, 0, 2]])
 
+        wireframe = np.array(sc.generate_wireframe())
+        self.assertEqual((3, 1, 30, 30), wireframe.shape)
+
     # Create a cylinder, add it to a ShapeComposition object and test the minimal bounding box, inside_mbox, inside_shapes and generate_point_cloud methods
     def test_cylinder(self):
         # Create a ShapesComposition object; In this test the size of the voxel is not important.
@@ -224,10 +234,14 @@ class TestGeometricShapes(unittest.TestCase, NumpyTestCase):
         sc = ShapesComposition(conf)
 
         # Add the cylinder to the ShapesComposition object
+        radius = 100.0
+        origin = np.array([0, 0, 0], dtype=np.float64)
+        top_center = np.array([0, 0, 10], dtype=np.float64)
+
         configuration = dict(
-            radius=100.0,
-            origin=np.array([0, 0, 0], dtype=np.float64),
-            top_center=np.array([0, 0, 10], dtype=np.float64),
+            radius=radius,
+            origin=origin,
+            top_center=top_center,
         )
         cylinder = Cylinder(configuration)
         sc.add_shape(cylinder, ["cylinder"])
@@ -298,6 +312,26 @@ class TestGeometricShapes(unittest.TestCase, NumpyTestCase):
         self.assertClose(mbb[0], [-100.0, -10.0, -100.0])
         self.assertClose(mbb[1], [100.0, 0.0, 100.0])
 
+        wireframe = np.array(sc.generate_wireframe())
+        self.assertEqual((3, 1, 30, 30), wireframe.shape)
+        self.assertTrue(
+            np.allclose(
+                np.linalg.norm(
+                    (wireframe[:, 0, :, 0] - cylinder.origin[..., np.newaxis])[
+                        np.array([0, 2])
+                    ],
+                    axis=0,
+                ),
+                radius,
+            )
+        )
+        for p in wireframe[:, 0, :, 0].T:
+            self.assertTrue(
+                0
+                <= np.absolute(p[1] - cylinder.origin[1])
+                <= np.absolute(cylinder.top_center[1] - cylinder.origin[1])
+            )
+
     # Create a parallelepiped, add it to a ShapeComposition object and test the minimal bounding box, inside_mbox, inside_shapes and generate_point_cloud methods
     def test_parallelepiped(self):
         # Create a ShapesComposition object; In this test the size of the voxel is not important.
@@ -364,7 +398,7 @@ class TestGeometricShapes(unittest.TestCase, NumpyTestCase):
         self.assertEqual(
             inside_shape[1],
             expected_inside_shape[1],
-            "The point (10,10,10) should be outside the parallelepiped",
+            "The point (10,100,10) should be outside the parallelepiped",
         )
 
         # Test generate_point_cloud method.
@@ -386,6 +420,10 @@ class TestGeometricShapes(unittest.TestCase, NumpyTestCase):
         )
         self.assertClose(mbb[0], expected_mbb[0])
         self.assertClose(mbb[1], expected_mbb[1])
+        wireframe = np.array(sc.generate_wireframe())
+        self.assertEqual((3, 1, 4, 4), wireframe.shape)
+        self.assertTrue(np.alltrue(wireframe.reshape(3, 16).T - expected_mbb[0] >= -1e-5))
+        self.assertTrue(np.alltrue(wireframe.reshape(3, 16).T - expected_mbb[1] <= 1e-5))
 
     # Create a cuboid, add it to a ShapeComposition object and test the minimal bounding box, inside_mbox, inside_shapes and generate_point_cloud methods
     def test_cuboid(self):
@@ -470,6 +508,10 @@ class TestGeometricShapes(unittest.TestCase, NumpyTestCase):
         mbb = cuboid.find_mbb()
         self.assertClose(mbb[0], expected_mbb[0])
         self.assertClose(mbb[1], expected_mbb[1])
+        wireframe = np.array(sc.generate_wireframe())
+        self.assertEqual((3, 1, 4, 4), wireframe.shape)
+        self.assertTrue(np.alltrue(wireframe.reshape(3, 16).T - expected_mbb[0] >= -1e-5))
+        self.assertTrue(np.alltrue(wireframe.reshape(3, 16).T - expected_mbb[1] <= 1e-5))
 
     # Create a cone, add it to a ShapeComposition object and test the minimal bounding box, inside_mbox, inside_shapes and generate_point_cloud methods
     def test_cone(self):
@@ -478,10 +520,13 @@ class TestGeometricShapes(unittest.TestCase, NumpyTestCase):
         sc = ShapesComposition(conf)
 
         # Add the cone to the ShapesComposition object
+        radius = 100.0
+        origin = np.array([0, 0, 100], dtype=np.float64)
+        apex = np.array([0, 0, 0], dtype=np.float64)
         configuration = {
-            "origin": np.array([0, 0, 100], dtype=np.float64),
-            "radius": 100.0,
-            "apex": np.array([0, 0, 0], dtype=np.float64),
+            "origin": origin,
+            "radius": radius,
+            "apex": apex,
         }
         cone = Cone(configuration)
         sc.add_shape(cone, ["cone"])
@@ -554,6 +599,27 @@ class TestGeometricShapes(unittest.TestCase, NumpyTestCase):
         mbb = cone.find_mbb()
         self.assertClose(mbb[0], expected_mbb[0])
         self.assertClose(mbb[1], expected_mbb[1])
+
+        wireframe = np.array(sc.generate_wireframe())
+        self.assertEqual((3, 1, 30, 30), wireframe.shape)
+        self.assertTrue(
+            np.alltrue(
+                np.linalg.norm(
+                    (wireframe[:, 0, :, 0] - cone.origin[..., np.newaxis])[
+                        np.array([0, 1])
+                    ],
+                    axis=0,
+                )
+                - radius
+                <= 1e-5
+            )
+        )
+        for p in wireframe[:, 0, :, 0].T:
+            self.assertTrue(
+                0
+                <= np.absolute(p[2] - cone.origin[2])
+                <= np.absolute(cone.apex[2] - cone.origin[2])
+            )
 
     # Create ShapeComposition object, add a sphere and a cylinder and then test
     def test_shape_composition(self):
