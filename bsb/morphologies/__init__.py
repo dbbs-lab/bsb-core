@@ -1098,7 +1098,7 @@ class Branch:
         :param radii: Array of radii associated to each point
         :type radii: list | numpy.ndarray
         :param labels: Array of labels to associate to each point
-        :type labels: EncodedLabels | List[str] | set | numpy.ndarray
+        :type labels: List[str] | set | numpy.ndarray
         :param properties: dictionary of per-point data to store in the branch
         :type properties: dict
         :param children: list of child branches to attach to the branch
