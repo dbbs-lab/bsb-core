@@ -226,6 +226,10 @@ class TestGeometricShapes(unittest.TestCase, NumpyTestCase):
 
         wireframe = np.array(sc.generate_wireframe())
         self.assertEqual((3, 1, 30, 30), wireframe.shape)
+        for coord in (wireframe[:, 0, :, 0] - ellipsoid.origin[..., np.newaxis]).T:
+            self.assertTrue(-1e-5 <= coord[0] <= 1e5)
+            self.assertTrue(-1e-5 <= coord[1] <= 50)
+            self.assertTrue(-10 <= coord[2] <= 10)
 
     # Create a cylinder, add it to a ShapeComposition object and test the minimal bounding box, inside_mbox, inside_shapes and generate_point_cloud methods
     def test_cylinder(self):
