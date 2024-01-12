@@ -25,6 +25,7 @@ from ..config._attrs import cfglist
 from ..reporting import warn
 
 if _tp.TYPE_CHECKING:
+    from ..core import Scaffold
     from ..morphologies import Morphology
     from ..storage.interfaces import FileStore
 
@@ -362,7 +363,7 @@ def _get_scheme(scheme: str) -> FileScheme:
 
 @config.node
 class FileDependencyNode:
-    file: "FileDependency" = config.attr(type=FileDependency)
+    scaffold: "Scaffold"
 
     def __init__(self, value=None, **kwargs):
         if value is not None:
