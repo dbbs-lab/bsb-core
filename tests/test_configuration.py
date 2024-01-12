@@ -1113,18 +1113,29 @@ class TestTypes(unittest.TestCase):
             b = config.attr(required=types.mut_excl("a", "b", "c", max=2))
             c = config.attr(required=types.mut_excl("a", "b", "c", max=2))
 
-        TestClass1(a="1")
-        TestClass1(b="6")
-        with self.assertRaises(RequirementError):
-            TestClass1(a="5", b="6")
-        with self.assertRaises(RequirementError):
-            TestClass1()
+        def test_mutexcl_required(TestClass):
+            TestClass(a="1")
+            TestClass(b="6")
+            with self.assertRaises(RequirementError):
+                TestClass(a="5", b="6")
+            with self.assertRaises(RequirementError):
+                TestClass()
 
-        TestClass2()
-        TestClass3(a="1", b="6")
-        TestClass4(a="1", c="3")
-        with self.assertRaises(RequirementError):
-            TestClass4(a="1", b="6", c="3")
+        def test_mutexcl_optional(TestClass):
+            TestClass()
+
+        def test_mutexcl_maxval(TestClass):
+            TestClass(a="1", b="6")
+
+        def test_mutexcl_threecases(TestClass):
+            TestClass(a="1", c="3")
+            with self.assertRaises(RequirementError):
+                TestClass(a="1", b="6", c="3")
+
+        test_mutexcl_required(TestClass1)
+        test_mutexcl_optional(TestClass2)
+        test_mutexcl_maxval(TestClass3)
+        test_mutexcl_threecases(TestClass4)
 
 
 @config.dynamic(
