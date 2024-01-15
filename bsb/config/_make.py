@@ -1,3 +1,4 @@
+import copy
 import importlib
 import inspect
 import os
@@ -582,6 +583,21 @@ def make_tree(node_cls):
         return tree
 
     node_cls.__tree__ = get_tree
+
+
+def make_copyable(node_cls):
+    def loc_copy(instance):
+        if hasattr(instance, "__tree__"):
+            return type(instance)(instance.__tree__())
+        return copy.copy(instance)
+
+    def loc_deepcopy(instance):
+        if hasattr(instance, "__tree__"):
+            return type(instance)(instance.__tree__())
+        return copy.deepcopy(instance)
+
+    node_cls.__copy__ = loc_copy
+    node_cls.__deepcopy__ = loc_deepcopy
 
 
 def walk_node_attributes(node):

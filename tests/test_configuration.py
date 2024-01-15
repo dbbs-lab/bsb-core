@@ -1202,6 +1202,35 @@ class TestTreeing(unittest.TestCase):
         self.assertEqual({"statement": "[1, 2, 3]"}, tree["a"])
 
 
+class TestCopy(unittest.TestCase):
+    def test_copy(self):
+        @config.node
+        class SubClass:
+            c = config.attr(
+                required=False,
+                default=lambda: np.array([0, 0, 0], dtype=int),
+                call_default=True,
+                type=types.ndarray(),
+            )
+
+        @config.root
+        class MainClass:
+            a = config.attr(type=SubClass)
+            b = config.attr(default=5.0)
+
+        tab = np.array([1, 2, 3], dtype=int)
+        instance = MainClass({"a": {"c": tab}, "b": 3.0})
+        copied = instance.__copy__()
+        self.assertTrue(id(instance.a) != id(copied.a))
+        self.assertTrue(np.alltrue(instance.a.c == copied.a.c))
+        self.assertEqual(instance.b, copied.b)
+
+        copied = instance.__deepcopy__()
+        self.assertTrue(id(instance.a) != id(copied.a))
+        self.assertTrue(np.alltrue(instance.a.c == copied.a.c))
+        self.assertEqual(instance.b, copied.b)
+
+
 class TestDictScripting(unittest.TestCase):
     def test_add(self):
         netw = Scaffold()
