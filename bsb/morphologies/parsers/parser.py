@@ -2,6 +2,7 @@ import abc
 import itertools
 import typing
 from collections import deque
+from functools import reduce
 
 import morphio
 import numpy as np
@@ -170,8 +171,26 @@ class _MorphIoSomaWrapper:
 
 @config.node
 class MorphIOParser(MorphologyParser, classmap_entry="morphio"):
+    @config.property(type=types.list(type=types.in_(morphio.Option.__members__)))
+    def flags(self):
+        return getattr(self, "_flags", morphio.Option.no_modifier)
+
+    @flags.setter
+    def flags(self, values):
+        self._flags = reduce(
+            morphio.Option.__or__,
+            [getattr(morphio.Option, flag) for flag in values or []],
+            morphio.Option.no_modifier,
+        )
+
     def parse(self, file: typing.Union["FileDependency", str]) -> Morphology:
-        morpho_io = morphio.Morphology(file)
+        from ...storage import FileDependency
+
+        if isinstance(file, str):
+            file = FileDependency(file)
+
+        with file.provide_locally() as (fp, encoding):
+            morpho_io = morphio.Morphology(fp, self.flags)
         # We create shared buffers for the entire morphology, which optimize operations on the
         # entire morphology such as `.flatten`, subtree transformations and IO.  The branches
         # have views on those buffers, and as long as no points are added or removed, we can
