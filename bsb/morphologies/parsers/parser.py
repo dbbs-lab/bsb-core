@@ -36,9 +36,9 @@ class BsbParser(MorphologyParser, classmap_entry="bsb"):
     """
     skip_boundary_labels: list[str] = config.attr(type=types.list(str))
     """
-    A set of labels. No point will be inferred between a child branch of a branch
-    labelled with the entire set of given labels; usually to skip points between the soma
-    and its child branches.
+    A set of labels that is used to create gaps in a morphology at certain boundaries.
+    No point will be inferred between a child branch of a branch labelled with the given
+    labels; usually used to skip points between the soma and its child branches.
     """
 
     def parse(self, file: typing.Union["FileDependency", str]):
