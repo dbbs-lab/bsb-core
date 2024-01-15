@@ -1,11 +1,6 @@
-import itertools
-import json
-import os
 import re
-import sys
 import unittest
 
-import h5py
 import numpy as np
 from bsb_test import (
     NumpyTestCase,
@@ -18,10 +13,15 @@ from scipy.spatial.transform import Rotation
 from bsb._encoding import EncodedLabels
 from bsb.config._config import Configuration
 from bsb.core import Scaffold
-from bsb.exceptions import *
-from bsb.morphologies import Branch, Morphology, MorphologySet, RotationSet
-from bsb.services import MPI
-from bsb.storage import Storage
+from bsb.exceptions import CastError, EmptyBranchError, MorphologyError
+from bsb.morphologies import (
+    Branch,
+    Morphology,
+    MorphologySet,
+    RotationSet,
+    parse_morphology_file,
+)
+from bsb.services import JobPool
 from bsb.storage._files import (
     MorphologyDependencyNode,
     MorphologyOperation,
@@ -32,7 +32,7 @@ from bsb.storage.interfaces import StoredMorphology
 
 class TestIO(NumpyTestCase, unittest.TestCase):
     def test_swc_2comp(self):
-        m = Morphology.from_swc(get_morphology_path("2comp.swc"))
+        m = parse_morphology_file(get_morphology_path("2comp.swc"))
         self.assertEqual(2, len(m), "Expected 2 points on the morphology")
         self.assertEqual(1, len(m.roots), "Expected 1 root on the morphology")
         self.assertClose([1, 1], m.tags, "tags should be all soma")
@@ -40,12 +40,12 @@ class TestIO(NumpyTestCase, unittest.TestCase):
         self.assertEqual({0: set(), 1: {"soma"}}, m.labels.labels, "incorrect labelsets")
 
     def test_swc_2root(self):
-        m = Morphology.from_swc(get_morphology_path("2root.swc"))
+        m = parse_morphology_file(get_morphology_path("2root.swc"))
         self.assertEqual(2, len(m), "Expected 2 points on the morphology")
         self.assertEqual(2, len(m.roots), "Expected 2 roots on the morphology")
 
     def test_swc_branch_filling(self):
-        m = Morphology.from_swc(get_morphology_path("3branch.swc"))
+        m = parse_morphology_file(get_morphology_path("3branch.swc"))
         # SWC specifies child-parent edges, when translating that to branches, at branch
         # points some points need to be duplicated: there's 4 samples (SWC) and 2 child
         # branches -> 2 extra points == 6 points
@@ -53,9 +53,9 @@ class TestIO(NumpyTestCase, unittest.TestCase):
         self.assertEqual(3, len(m.branches), "Expected 3 branches on the morphology")
         self.assertEqual(1, len(m.roots), "Expected 1 root on the morphology")
 
-    def test_known(self):
+    def test_known_pc(self):
         # TODO: Check the morphos visually with glover
-        m = Morphology.from_file(get_morphology_path("PurkinjeCell.swc"))
+        m = parse_morphology_file(get_morphology_path("PurkinjeCell.swc"))
         self.assertEqual(3834, len(m), "Amount of point on purkinje changed")
         self.assertEqual(459, len(m.branches), "Amount of branches on purkinje changed")
         self.assertEqual(
@@ -66,6 +66,8 @@ class TestIO(NumpyTestCase, unittest.TestCase):
         for labelset in m.labelsets.values():
             for label in labelset:
                 self.assertTrue(re.match(r"((tag_)?[0-9]+)|(soma)", label) is not None)
+
+    def test_known_pc_tags(self):
         tags = {
             1: "soma",
             16: ["axon", "AIS"],
@@ -76,7 +78,7 @@ class TestIO(NumpyTestCase, unittest.TestCase):
             21: ["dendrites", "pf_targets"],
             22: ["dendrites", "aa_targets"],
         }
-        m = Morphology.from_file(get_morphology_path("PurkinjeCell.swc"), tags=tags)
+        m = parse_morphology_file(get_morphology_path("PurkinjeCell.swc"), tags=tags)
         all_sets = set()
         for value in m.labelsets.values():
             all_sets.update(value)
@@ -84,7 +86,9 @@ class TestIO(NumpyTestCase, unittest.TestCase):
             set(np.concatenate([[v] if type(v) == str else v for v in tags.values()])),
             all_sets,
         )
-        m = Morphology.from_file(get_morphology_path("GolgiCell.asc"))
+
+    def test_known_gc(self):
+        m = parse_morphology_file(get_morphology_path("GolgiCell.asc"), parser="morphio")
         self.assertEqual(5105, len(m), "Amount of point on purkinje changed")
         self.assertEqual(227, len(m.branches), "Amount of branches on purkinje changed")
         self.assertEqual(
@@ -94,8 +98,8 @@ class TestIO(NumpyTestCase, unittest.TestCase):
         )
 
     def test_shared_labels(self):
-        m = Morphology.from_swc(get_morphology_path("PurkinjeCell.swc"))
-        m2 = Morphology.from_swc(get_morphology_path("PurkinjeCell.swc"))
+        m = parse_morphology_file(get_morphology_path("PurkinjeCell.swc"))
+        m2 = parse_morphology_file(get_morphology_path("PurkinjeCell.swc"))
         lbl = m._shared._labels.labels
         self.assertIsNot(lbl, m2._shared._labels.label, "reload shares state")
         for b in m.branches:
@@ -104,7 +108,7 @@ class TestIO(NumpyTestCase, unittest.TestCase):
 
     def test_graph_array(self):
         file = get_morphology_path("AA0048.swc")
-        m = Morphology.from_swc(file)
+        m = parse_morphology_file(file)
         with open(str(file), "r") as f:
             content = f.read()
             data = np.array(
@@ -702,7 +706,7 @@ class TestMorphometry(NumpyTestCase, unittest.TestCase):
         self.bzero_r10 = Branch([[1] * 3] * 10, [0] * 10)
         self.b3 = Branch([[0, 0, 0], [3, 6 * np.sin(np.pi / 3), 0], [6, 0, 0]], [1] * 3)
         # Meaningful toy morphology
-        m = Morphology.from_swc(get_morphology_path("test_morphometry.swc"))
+        m = parse_morphology_file(get_morphology_path("test_morphometry.swc"))
         self.adjacency = m.branch_adjacency
         self.branches = m.branches
 
@@ -854,7 +858,7 @@ class TestSwcFiles(NumpyTestCase, unittest.TestCase):
         self.m = Morphology([root])
 
     def test_identity(self):
-        m = Morphology.from_swc(get_morphology_path("test_morphometry.swc"))
+        m = parse_morphology_file(get_morphology_path("test_morphometry.swc"))
         self.assertClose(m.points, self.m.points)
 
 
@@ -1093,3 +1097,94 @@ class TestPipelines(
             m3.load_object().points,
             "Pipeline rotations went wrong",
         )
+
+
+class TestMorphologyParsers(unittest.TestCase):
+    def test_parse_mio(self):
+        m_mio = parse_morphology_file(
+            get_morphology_path("soma_boundary.swc"), parser="morphio"
+        )
+        self.assertEqual(12, len(m_mio), "Expected 12 points in morpho")
+
+    def test_parse_mio_flags(self):
+        m_mio = parse_morphology_file(
+            get_morphology_path("soma_boundary.swc"),
+            parser="morphio",
+            flags=["no_duplicates", "no_modifier"],
+        )
+        self.assertEqual(10, len(m_mio), "Expected 10 non-duplicate points in morpho")
+
+    def test_parse_mio__wrong_flags(self):
+        with self.assertRaises(CastError):
+            m_mio = parse_morphology_file(
+                get_morphology_path("soma_boundary.swc"),
+                parser="morphio",
+                flags=["no_duplicates", "no_love"],
+            )
+
+
+class TestMorphologyPipelineNode(
+    RandomStorageFixture, NumpyTestCase, unittest.TestCase, engine_name="hdf5"
+):
+    def test_single_source(self):
+        """
+        Test a simple pipeline on 1 morpho
+        """
+        cfg = Configuration.default(
+            morphologies=[
+                {
+                    "files": [
+                        {
+                            "file": get_morphology_path("soma_boundary.swc"),
+                            "name": "test_mio",
+                            "parser": {"parser": "morphio"},
+                        }
+                    ],
+                    "pipeline": [{"func": "rotate", "rotation": [0, 90, 0]}],
+                }
+            ]
+        )
+        scaffold = Scaffold(cfg, self.storage)
+        pool = JobPool(scaffold)
+        cfg.morphologies[0].queue(pool)
+        self.assertEqual(1, len(pool._queue))
+        pool.execute()
+        m_mio = scaffold.morphologies.load("test_mio")
+        self.assertEqual(12, len(m_mio), "Expected 12 points in morpho")
+        self.assertClose(0, m_mio.points[:, 2], "Rotation step skipped")
+
+    def test_multi_source_parser_priority(self):
+        """
+        Test whether locally defined parsers in the morphology dependency node take
+        precedence over the pipeline defined global parser.
+        """
+        cfg = Configuration.default(
+            morphologies=[
+                {
+                    "files": [
+                        {
+                            "file": get_morphology_path("soma_boundary.swc"),
+                            "name": "test_mio",
+                        },
+                        {
+                            "file": get_morphology_path("soma_boundary.swc"),
+                            "name": "test_bsb",
+                            "parser": {"parser": "bsb"},
+                        },
+                    ],
+                    "parser": {"parser": "morphio"},
+                }
+            ]
+        )
+        scaffold = Scaffold(cfg, self.storage)
+        pool = JobPool(scaffold)
+        cfg.morphologies[0].queue(pool)
+        self.assertEqual(2, len(pool._queue))
+        pool.execute()
+        m_mio = scaffold.morphologies.load("test_mio")
+        m_bsb = scaffold.morphologies.load("test_bsb")
+        # The MorphIO parser by default skips the boundary between soma and other tags
+        # while the BSB does not unless explicitly configured to do so.
+        # Here we assert the expected length differences due to this difference.
+        self.assertEqual(12, len(m_mio), "MorphIO parser not applied?")
+        self.assertEqual(14, len(m_bsb), "BSB parser not applied?")
