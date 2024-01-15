@@ -846,64 +846,6 @@ class MorphologyRepository(Interface, engine_key="morphologies"):
         """
         pass
 
-    def import_swc(self, file, name=None, overwrite=False):
-        """
-        Import and store .swc file contents as a morphology in the repository.
-
-        :param file: file-like object or path to the file.
-        :param name: Key to store the morphology under.
-        :type name: str
-        :param overwrite: Overwrite any stored morphology that already exists under that
-          name
-        :type overwrite: bool
-        :returns: The stored morphology
-        :rtype: ~bsb.storage.interfaces.StoredMorphology
-        """
-        name = name if name is not None else Path(file).stem
-        morpho = Morphology.from_swc(file)
-
-        return self.save(name, morpho, overwrite=overwrite)
-
-    def import_file(self, file, name=None, overwrite=False):
-        """
-        Import and store file contents as a morphology in the repository.
-
-        :param file: file-like object or path to the file.
-        :param name: Key to store the morphology under.
-        :type name: str
-        :param overwrite: Overwrite any stored morphology that already exists under that
-          name
-        :type overwrite: bool
-        :returns: The stored morphology
-        :rtype: ~bsb.storage.interfaces.StoredMorphology
-        """
-        name = name if name is not None else Path(file).stem
-        morpho = Morphology.from_file(file)
-
-        return self.save(name, morpho, overwrite=overwrite)
-
-    def import_arb(self, arbor_morpho, labels, name, overwrite=False, centering=True):
-        """
-        Import and store an Arbor morphology object as a morphology in the repository.
-
-        :param arbor_morpho: Arbor morphology.
-        :type arbor_morpho: arbor.morphology
-        :param name: Key to store the morphology under.
-        :type name: str
-        :param overwrite: Overwrite any stored morphology that already exists under that
-          name
-        :type overwrite: bool
-        :param centering: Whether the morphology should be centered on the geometric mean
-          of the morphology roots. Usually the soma.
-        :type centering: bool
-        :returns: The stored morphology
-        :rtype: ~bsb.storage.interfaces.StoredMorphology
-        """
-        morpho = Morphology.from_arbor(arbor_morpho, centering=centering)
-
-        self.save(name, morpho, overwrite=overwrite)
-        return morpho
-
     def list(self):
         """
         List all the names of the morphologies in the repository.
