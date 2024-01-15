@@ -21,6 +21,7 @@ from bsb.morphologies import (
     RotationSet,
     parse_morphology_file,
 )
+from bsb.morphologies.parsers.parser import BsbParser
 from bsb.services import JobPool
 from bsb.storage._files import (
     MorphologyDependencyNode,
@@ -943,6 +944,96 @@ class TestBranchInsertion(NumpyTestCase, unittest.TestCase):
         for c in self.m.branches[3].children:
             self.assertClose(second_insertion_pt, c.start)
         self.assertEqual(self.m.adjacency_dictionary, target)
+
+    def test_skip_in_branch_boundary(self):
+        """Test that we can skip a boundary that's in a continuum of points"""
+        parser_noskip = BsbParser()
+        parser_skip = BsbParser(skip_boundary_labels=["soma"])
+        swc_data = [
+            [1, 1, 3, 3, 3, 1, -1],
+            [2, 1, 4, 3, 3, 1, 1],
+            [3, 2, 5, 3, 3, 1, 2],
+            [4, 2, 6, 3, 3, 1, 3],
+        ]
+        m_noskip = parser_noskip._swc_data_to_morpho(swc_data)
+        m_skip = parser_skip._swc_data_to_morpho(swc_data)
+        # The number of points remains the same, but we create a new branch
+        self.assertEqual(len(m_skip), len(m_noskip))
+        self.assertEqual(1, len(m_noskip.branches))
+        self.assertEqual(2, len(m_skip.branches))
+        # Check the coord of the start of the 2nd branch
+        self.assertEqual(5, m_skip.branches[1].points[0, 0])
+
+    def test_skip_branchpoint_boundary(self):
+        """Test that we can skip a boundary that's at a branch point"""
+        parser_noskip = BsbParser()
+        parser_skip = BsbParser(skip_boundary_labels=["soma"])
+        swc_data = [
+            [1, 1, 3, 3, 3, 1, -1],
+            [2, 1, 4, 3, 3, 1, 1],
+            [3, 2, 5, 3, 3, 1, 2],
+            [4, 2, 6, 3, 3, 1, 3],
+            [5, 2, 7, 3, 3, 1, 2],
+            [6, 2, 9, 3, 3, 1, 5],
+        ]
+        m_noskip = parser_noskip._swc_data_to_morpho(swc_data)
+        m_skip = parser_skip._swc_data_to_morpho(swc_data)
+        # The number of branchs is the same, but the child branches should skip a point
+        self.assertLess(len(m_skip), len(m_noskip))
+        self.assertEqual(3, len(m_noskip.branches))
+        self.assertEqual(3, len(m_skip.branches))
+        # Check the coords of the start of the child branches
+        self.assertEqual(5, m_skip.branches[1].points[0, 0])
+        self.assertEqual(7, m_skip.branches[2].points[0, 0])
+
+    def test_skip_str_tagged_boundary(self):
+        """Test that we can skip a boundary that's at a branch point"""
+        parser_skip = BsbParser(skip_boundary_labels=["blabla"], tags={2: "blabla"})
+        swc_data = [
+            [1, 1, 3, 3, 3, 1, -1],
+            [2, 2, 4, 3, 3, 1, 1],
+            [3, 3, 5, 3, 3, 1, 2],
+            [4, 3, 6, 3, 3, 1, 3],
+        ]
+        m_skip = parser_skip._swc_data_to_morpho(swc_data)
+        # The number of branchs is the same, but the child branches should skip a point
+        self.assertEqual(2, len(m_skip.branches))
+        # Check the coords of the start of the child branches
+        self.assertEqual(5, m_skip.branches[1].points[0, 0])
+
+    def test_skip_list_tagged_boundary(self):
+        """Test that we can skip a boundary that's at a branch point"""
+        parser_skip = BsbParser(skip_boundary_labels=["blabla"], tags={2: ["blabla"]})
+        swc_data = [
+            [1, 1, 3, 3, 3, 1, -1],
+            [2, 2, 4, 3, 3, 1, 1],
+            [3, 3, 5, 3, 3, 1, 2],
+            [4, 3, 6, 3, 3, 1, 3],
+        ]
+        m_skip = parser_skip._swc_data_to_morpho(swc_data)
+        # The number of branchs is the same, but the child branches should skip a point
+        self.assertEqual(2, len(m_skip.branches))
+        # Check the coords of the start of the child branches
+        self.assertEqual(5, m_skip.branches[1].points[0, 0])
+
+    def test_skip_compound_boundary(self):
+        """Test that we can skip a boundary that's at a branch point"""
+        parser_skip = BsbParser(
+            skip_boundary_labels=["A", "B"], tags={2: "A", 3: "B", 4: ["A", "B"]}
+        )
+        swc_data = [
+            [1, 1, 3, 3, 3, 1, -1],
+            [2, 2, 4, 3, 3, 1, 1],
+            [3, 3, 5, 3, 3, 1, 2],
+            [4, 4, 6, 3, 3, 1, 3],
+            [5, 5, 7, 3, 3, 1, 4],
+            [6, 5, 8, 3, 3, 1, 5],
+        ]
+        m_skip = parser_skip._swc_data_to_morpho(swc_data)
+        # The number of branchs is the same, but the child branches should skip a point
+        self.assertEqual(2, len(m_skip.branches))
+        # Check the coords of the start of the child branches
+        self.assertEqual(7, m_skip.branches[1].points[0, 0])
 
 
 class TestMorphologyFiltering(NumpyTestCase, unittest.TestCase):

@@ -34,6 +34,12 @@ class BsbParser(MorphologyParser, classmap_entry="bsb"):
     """
     Dictionary mapping SWC tags to sets of morphology labels.
     """
+    skip_boundary_labels: list[str] = config.attr(type=types.list(str))
+    """
+    A set of labels. No point will be inferred between a child branch of a branch
+    labelled with the entire set of given labels; usually to skip points between the soma
+    and its child branches.
+    """
 
     def parse(self, file: typing.Union["FileDependency", str]):
         from ...storage import FileDependency
@@ -63,6 +69,7 @@ class BsbParser(MorphologyParser, classmap_entry="bsb"):
         return np.array(data)
 
     def _swc_data_to_morpho(self, data):
+        data = np.array(data, copy=False)
         tag_map = {1: "soma", 2: "axon", 3: "dendrites"}
         if self.tags is not None:
             tag_map.update((int(k), v) for (k, v) in self.tags.items())
@@ -82,7 +89,7 @@ class BsbParser(MorphologyParser, classmap_entry="bsb"):
         # Call these `node_branches` because they only contain the sample/node ids.
         node_branches = []
         for root_node in adjacency[-1]:
-            self._swc_branch_dfs(adjacency, node_branches, root_node)
+            self._swc_branch_dfs(adjacency, node_branches, root_node, data, tag_map)
         branches = []
         roots = []
         _len = sum(len(s[1]) for s in node_branches)
@@ -95,8 +102,8 @@ class BsbParser(MorphologyParser, classmap_entry="bsb"):
         # form the basis of the Morphology data structure.
         ptr = 0
         for parent, branch_nodes in node_branches:
-            nptr = ptr + len(branch_nodes)
             node_data = data[branch_nodes]
+            nptr = ptr + len(node_data)
             # Example with the points data matrix: copy over the swc data into contiguous arr
             points[ptr:nptr] = node_data[:, 2:5]
             # Then create a partial view into that data matrix for the branch
@@ -132,29 +139,47 @@ class BsbParser(MorphologyParser, classmap_entry="bsb"):
         assert morpho._check_shared(), "SWC import didn't result in shareable buffers."
         return morpho
 
-    def _swc_branch_dfs(self, adjacency, branches, node):
+    def _swc_branch_dfs(self, adjacency, branches, node, data, tags):
+        boundaries = set()
+        if self.skip_boundary_labels:
+            tset = set(self.skip_boundary_labels)
+            for tag, labels in tags.items():
+                lset = set(labels if not isinstance(labels, str) else [labels])
+                if tset.issuperset(lset):
+                    boundaries.add(tag)
         branch = []
         branch_id = len(branches)
         branches.append((None, branch))
         node_stack = deque()
         while True:
             if node is not None:
+                # Append the current node to the current branch, and get its child nodes
                 branch.append(node)
                 child_nodes = adjacency[node]
+
             if not child_nodes:
+                # No children, pop next branch
                 try:
-                    parent_bid, parent, node = node_stack.pop()
+                    parent_bid, parent, node, skip = node_stack.pop()
                 except IndexError:
+                    # No next branch, we're done
                     break
                 else:
-                    branch = [parent]
+                    # Start the next branch
+                    branch = [] if skip else [parent]
                     branch_id = len(branches)
                     branches.append((parent_bid, branch))
-            elif len(child_nodes) == 1:
+            elif len(child_nodes) == 1 and not (
+                data[node, 1] in boundaries and data[child_nodes[0], 1] not in boundaries
+            ):
+                # One child, and not a skipped boundary: grow the branch
                 node = child_nodes[0]
             else:
+                # Branch point: create 1 new branch per child point
+                # If skip is False we add the current node to all the child branches.
+                skip = data[node, 1] in boundaries
                 node_stack.extend(
-                    (branch_id, node, child) for child in reversed(child_nodes)
+                    (branch_id, node, child, skip) for child in reversed(child_nodes)
                 )
                 child_nodes = []
                 node = None
