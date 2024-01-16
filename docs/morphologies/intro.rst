@@ -4,8 +4,7 @@ Morphologies
 
 Morphologies are the 3D representation of a cell. A morphology consists of head-to-tail
 connected branches, and branches consist of a series of points with radii. Points can be
-labelled and user-defined properties with one value per point can be declared on the
-morphology.
+labelled and can have multiple user-defined properties per point.
 
 .. figure:: /images/morphology.png
   :figclass: only-light
@@ -22,18 +21,39 @@ morphology.
 2. A child branch of the root branch.
 3. Another child branch of the root branch.
 
-Morphologies can be stored in :class:`MorphologyRepositories
-<.storage.interfaces.MorphologyRepository>`.
+Network configurations can contain a :guilabel:`morphologies` key to define
+the morphologies that should be processed and assigned to cells. See
+:doc:`../getting-started/include_morphos` for a guide on the possibilities.
+Morphologies can be stored in a network in the
+:class:`~.storage.interfaces.MorphologyRepository`.
 
 
-Importing
-=========
+Parsing morphologies
+====================
 
-ASC or SWC files can be imported into a morphology repository:
+A morphology file can be parsed with :func:`~.morphologies.parsers.parse_morphology_file`,
+if you already have the content of a file you can pass that directly into
+:func:`~.morphologies.parsers.parse_morphology_content`:
 
-.. literalinclude:: ../../examples/morphologies/import.py
-  :lines: 2-5
-  :language: python
+.. code-block:: python
+
+  from bsb.morphologies import parse_morphology_file
+
+  morpho = parse_morphology_file("./my_file.swc")
+
+.. important::
+
+  The default parser only supports SWC files. Use the ``morphio`` parser for ASC files.
+
+There are many different formats and even multiple conventions per format for parsing
+morphologies. To support these diverse approaches the framework provides configurable
+:doc:`parsers`. You can pass the type of parser and additional arguments:
+
+.. code-block:: python
+
+  from bsb.morphologies import parse_morphology_file
+
+  morpho = parse_morphology_file("./my_file.swc", parser="morphio", flags=["no_duplicates"])
 
 Once we have our :class:`~.morphologies.Morphology` object we can save it in
 :class:`~.storage.Storage`; storages and networks have a ``morphologies`` attribute that
@@ -119,8 +139,9 @@ cell later on in simulation.
 .. rubric:: Properties
 
 Branches and morphologies can be given additional properties. The basic properties are
-``x``, ``y``, ``z``, ``radii`` and ``labels``. When you use
-:meth:`~.morphologies.Morphology.from_swc`, it adds ``tags`` as an extra property.
+``x``, ``y``, ``z``, ``radii`` and ``labels``. You can pass additional properties to the
+``properties`` argument of the :class:`~.morphologies.Branch` constructor. They will be
+automatically joined on the morphology.
 
 .. _transform:
 
